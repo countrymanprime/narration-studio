@@ -1,11 +1,12 @@
 import type { PronunciationSource } from '../../../../../api/contracts/pronunciationSources';
 import type { GuideEntity } from '../../../../../api/contracts/storyBible';
+import type { EntityColour } from '../../../../../kinds/entityColour';
 import { IconButton } from '../../../../primitives/IconButton';
 import { Menu } from '../../../../primitives/Menu';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { Swatch } from '../../../../primitives/Swatch';
 import { EntryCard, firstAppearance } from './EntryCard';
-import { kindSwatch } from './kinds';
+import { swatchOf, type BibleKind } from './kinds';
 
 /**
  * The Story Bible tab of the Script rail: the selected entry read-only, or, for text with no entry, an offer to create one;
@@ -13,6 +14,7 @@ import { kindSwatch } from './kinds';
  */
 export function BiblePanel({
   entry,
+  colourOf,
   canSpeak,
   missing,
   kinds,
@@ -26,12 +28,14 @@ export function BiblePanel({
 }: {
   /** The entry shown. */
   entry: GuideEntity | undefined;
+  /** The colour of an entry category's type (`entryColour`). */
+  colourOf: (category: string) => EntityColour;
   /** Whether an entry of this category can speak, by its type's Can speak flag. */
   canSpeak: (category: string) => boolean;
   /** Selected text that has no entry; shown when no entry is. */
   missing: string | null;
   /** The kinds a new entry can be. */
-  kinds: readonly string[];
+  kinds: readonly BibleKind[];
   /** The entries the chapter names. */
   entries: readonly GuideEntity[];
   sources: readonly PronunciationSource[];
@@ -46,6 +50,7 @@ export function BiblePanel({
       {entry ? (
         <EntryCard
           entry={entry}
+          colour={colourOf(entry.category)}
           speaks={canSpeak(entry.category)}
           sources={sources}
           onFind={onFind}
@@ -59,7 +64,12 @@ export function BiblePanel({
           <div className="flex">
             <Menu
               render={<IconButton action="add" label="Create an entry" size="sm" />}
-              items={kinds.map((kind) => ({ key: kind, label: kind, leading: <Swatch colour={kindSwatch(kind)} />, onSelect: () => onCreate(kind) }))}
+              items={kinds.map((kind) => ({
+                key: kind.name,
+                label: kind.name,
+                leading: <Swatch colour={swatchOf(kind.colour)} />,
+                onSelect: () => onCreate(kind.name),
+              }))}
             >
               {null}
             </Menu>
@@ -81,7 +91,10 @@ export function BiblePanel({
                 className={`flex w-full cursor-pointer flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-left text-[var(--text)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${entry?.id === row.id ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}
               >
                 <b className="text-[0.88rem]">{row.canonical_name}</b>
-                <span className="text-[0.8rem] text-[var(--text-muted)]">{`${row.category} · first ${firstAppearance(row)}`}</span>
+                <span className="flex items-center gap-1.5 text-[0.8rem] text-[var(--text-muted)]">
+                  <Swatch colour={swatchOf(colourOf(row.category))} />
+                  {`${row.category} · first ${firstAppearance(row)}`}
+                </span>
               </button>
             </li>
           ))}

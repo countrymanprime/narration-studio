@@ -234,7 +234,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
   return (
     <div className="space-y-5 text-sm">
       {loadError && (
-        <div className="rounded-md p-3 text-sm" role="alert" style={{ background: 'var(--review-soft)', color: 'var(--danger-text)' }}>
+        <div className="rounded-md p-3 text-sm" role="alert" style={{ background: 'var(--danger-soft)', color: 'var(--danger-text)' }}>
           Credits could not be loaded: {loadError}.
         </div>
       )}

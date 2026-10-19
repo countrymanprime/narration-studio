@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile, DeliveryProfilesState } from '../../../types';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { Button } from '../../primitives/Button';
+import { Heading } from '../../primitives/Heading';
 import { Panel } from '../../primitives/Panel';
+import { PANEL_BODY_CLASS, PANEL_HEADER_CLASS } from '../../primitives/panelStyles';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { heardText, useHostRead } from '../page/useHostRead';
@@ -80,7 +82,7 @@ export function ProfileCard({
 
   if (!state || !profile) {
     return (
-      <Panel title="Delivery profile">
+      <ProfilePanel>
         {read.error ? (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
             The delivery profiles could not be read, {heardText(read.lastHeard)}: {read.error}{' '}
@@ -93,7 +95,7 @@ export function ProfileCard({
             Reading the delivery profiles…
           </p>
         )}
-      </Panel>
+      </ProfilePanel>
     );
   }
 
@@ -107,8 +109,7 @@ export function ProfileCard({
   const declined = (rule: { label: string }) => setError(`${rule.label}: that is not a number, so the limit was left as it was.`);
 
   return (
-    <Panel
-      title="Delivery profile"
+    <ProfilePanel
       actions={
         <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <ProfileMenu profiles={state.profiles} current={profile} disabled={busy || locked} selectRef={menu} onSelect={(next) => void choose(next)} />
@@ -165,6 +166,25 @@ export function ProfileCard({
           </p>
         )}
       </div>
+    </ProfilePanel>
+  );
+}
+
+/**
+ * The first panel (the mock's): its header holds the page's title, then the right-aligned PROFILE label with the profile menu and the
+ * "Built in" pill. The panel has no title of its own, so the page's level-1 heading is the header's; the card is named for a screen reader.
+ */
+function ProfilePanel({ actions, children }: { actions?: ReactNode; children: ReactNode }) {
+  return (
+    <Panel label="Delivery profile" flush>
+      <div className={PANEL_HEADER_CLASS}>
+        <Heading title="Delivery" />
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <SectionLabel>Profile</SectionLabel>
+          {actions}
+        </div>
+      </div>
+      <div className={PANEL_BODY_CLASS}>{children}</div>
     </Panel>
   );
 }

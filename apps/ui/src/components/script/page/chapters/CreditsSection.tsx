@@ -1,10 +1,12 @@
 import { previewParts } from '../../../../creditsPreviewParts';
+import { WARN_COLOUR } from '../../../../kinds/entityColour';
 import type { CreditsRenderResult } from '../../../../api/contracts/credits';
 import { CREDITS_LABEL, creditsParagraphs, type CreditsKind } from '../../../booth/readerModel';
 import { CREDITS_STOP } from '../../../credits/creditsRows';
 import { Button } from '../../../primitives/Button';
 import { IconButton } from '../../../primitives/IconButton';
 import { InsetCard } from '../../../primitives/InsetCard';
+import { KindMark } from '../../../primitives/KindMark';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { WPH } from '../../../schedule/estimates';
 import { useChapterFacts } from '../data/useScriptData';
@@ -78,9 +80,10 @@ export function CreditsSection({
               typeof part === 'string' ? (
                 <span key={i}>{part}</span>
               ) : (
-                <span key={i} className="rounded-[0.15rem] bg-[var(--review-soft)] px-[0.15em] text-[var(--review-text)]">
+                // An unfilled token is an entry still to review (D7): the warn tint and underline, as in Settings.
+                <KindMark key={i} kind="entity" colour={WARN_COLOUR}>
                   [{part.token}]
-                </span>
+                </KindMark>
               ),
             )}
           </p>

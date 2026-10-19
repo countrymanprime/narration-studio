@@ -4,6 +4,7 @@
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
+import type { GuideType } from '../../../../types';
 import type { GuideDialogueCue, GuideDialogueCueSpeakerSource, GuideEntity } from '../../../../api/contracts/storyBible';
 
 export const TYPES: readonly MarkType[] = [
@@ -13,6 +14,16 @@ export const TYPES: readonly MarkType[] = [
   { key: 'pause', name: 'Pause', colour: 'ok', style: 'double', asks: false },
   { key: 'breath', name: 'Breath', colour: 'violet', style: 'dotted', asks: false },
   { key: 'redo', name: 'Re-record', colour: 'bad', style: 'box', asks: false },
+];
+
+/** The Story Bible's six built-in types, with the colours the Settings picker gives them by default. */
+export const GUIDE_TYPES: readonly GuideType[] = [
+  { name: 'Character', colour: 'green', speaks: true },
+  { name: 'Place', colour: 'blue', speaks: false },
+  { name: 'Organization', colour: 'violet', speaks: false },
+  { name: 'Lore', colour: 'amber', speaks: false },
+  { name: 'Item', colour: 'teal', speaks: false },
+  { name: 'Event', colour: 'rose', speaks: false },
 ];
 
 type Span = { start: number; end: number };

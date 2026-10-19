@@ -2,7 +2,7 @@
 // Next mock's (`selectors/pickups.ts`: `srcLabel`, `typeLabel`; `state/commands/pickups.ts`: `pickupScript`).
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { PickupGapKind, PickupItem } from '../../../api/contracts/pickups';
-import type { StatusTone } from '../../primitives/StatusBadge';
+import type { KindId } from '../../../kinds/kindMap';
 
 export type ChapterRef = { id: string; name: string };
 
@@ -57,16 +57,24 @@ export const typeLabel = (pickup: PickupItem): string => {
   return pickup.type.charAt(0).toUpperCase() + pickup.type.slice(1);
 };
 
-/** The chip's colour (the mock's `t-*` classes): a misread or a left-out line in red, a mouth or noise problem in amber, a name in blue, pacing and repeats in the accent. */
-export function typeTone(pickup: PickupItem): StatusTone {
-  if (pickup.gap === 'misread' || pickup.gap === 'missing') return 'danger';
-  if (pickup.gap === 'extra') return 'warning';
+/**
+ * The kind a pickup is, for the Type column's chip (kinds/kindMap.ts draws it): a gap a speech check found, otherwise the kind of
+ * finding the host named. A type the registry has no kind for (a free-text note) is null and draws as a neutral chip.
+ */
+export function pickupKind(pickup: PickupItem): KindId | null {
+  if (pickup.gap && pickup.gap !== 'other') return pickup.gap;
   const type = pickup.type.toLowerCase();
-  if (/misread|skip/.test(type)) return 'danger';
-  if (/mouth|plosive|noise|breath|click/.test(type)) return 'warning';
-  if (/pron/.test(type)) return 'info';
-  if (/pacing|repeat/.test(type)) return 'accent';
-  return 'neutral';
+  if (/misread/.test(type)) return 'misread';
+  if (/skip|missing|left out/.test(type)) return 'missing';
+  if (/extra/.test(type)) return 'extra';
+  if (/repeat/.test(type)) return 'repeat';
+  if (/pacing|silence/.test(type)) return 'pacing';
+  if (/plosive/.test(type)) return 'plosive';
+  if (/noise/.test(type)) return 'noise';
+  if (/breath/.test(type)) return 'breath';
+  if (/click|mouth/.test(type)) return 'click';
+  if (/pron/.test(type)) return 'pron';
+  return null;
 }
 
 /**

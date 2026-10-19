@@ -1,11 +1,15 @@
 import { Fragment, memo, useEffect, useMemo, useRef, type ReactNode, type RefObject } from 'react';
-import { Highlight, highlightKind, type HighlightKind } from '../primitives/Highlight';
+import { NOTE_COLOUR } from '../../kinds/narratorMark';
+import { kindMarkStyle } from '../../kinds/markStyle';
+import type { KindId } from '../../kinds/kindMap';
+import type { EntityColour } from '../../kinds/entityColour';
+import { Highlight } from '../primitives/Highlight';
+import { KindMark } from '../primitives/KindMark';
 import { SpeakerTag } from '../primitives/SpeakerTag';
 import { TooltipTarget } from '../primitives/Tooltip';
-import { flagHint } from './readerFlags';
+import { FLAG_KIND_ID, flagHint } from './readerFlags';
 import { scrollCursorIntoView } from './useFollowCursor';
 import { segmentWords, splitWords, type ReaderMark, type ReaderMarkTarget, type ReaderRow, type WordSegment } from './readerModel';
-import type { TeleprompterFlagKind } from '../../types';
 
 type SkippedRange = [number, number];
 
@@ -14,12 +18,11 @@ const NO_SKIPPED: SkippedRange[] = [];
 // The row is `whitespace-pre-line`, so a line break in the source text is kept as one and any other gap is a single space.
 const separator = (gap: string): string => (gap.includes('\n') ? '\n' : ' ');
 
-// Every mark goes through `Highlight`: an entity in its Story Bible category colour, a note in the note
-// colour, exactly as the Manuscript reader draws them, and a suspected flag in the flag kind of the same name.
-const FLAG_HIGHLIGHT: Record<TeleprompterFlagKind, HighlightKind> = { misread: 'Misread', extra: 'Extra', skipped: 'Skipped', restart: 'Restart' };
-function markHighlight(target: ReaderMarkTarget): HighlightKind {
-  if (target.kind === 'flag') return FLAG_HIGHLIGHT[target.flag.kind];
-  return target.kind === 'note' ? 'Note' : highlightKind(target.entity.category);
+// Every mark goes through `KindMark`, the registry's one text mark (kinds/kindMap.ts): an entry in its type's colour (resolved by
+// `readerMarks`), a note in the note colour, and a suspected flag as the kind it is (`FLAG_KIND_ID`), the same as on every other page.
+function markKind(target: ReaderMarkTarget): { kind: KindId; colour?: EntityColour } {
+  if (target.kind === 'flag') return { kind: FLAG_KIND_ID[target.flag.kind] };
+  return { kind: 'entity', colour: target.kind === 'note' ? NOTE_COLOUR : target.colour };
 }
 
 // Whether the word at `index` sits ahead of or behind the highlight ("Start here" moves the tracker forward without
@@ -48,7 +51,7 @@ type RowWordsProps = {
   dense?: boolean;
 };
 
-// One word, dimmed once read (unless `dim` is false: see renderMarkedSegment), underlined when skipped, filled when current. `seekable` is false inside a mark: a mark is
+// One word, dimmed once read (unless `dim` is false: see renderMarkedSegment), outlined as a missing word when skipped, filled when current. `seekable` is false inside a mark: a mark is
 // one button that opens the rail, so the words under it are never also seek buttons (no nested controls, and a
 // mark click can never move the tracker). `withGap` keeps the gap after the word inside its span, as before marks existed;
 // the last word of a marked segment leaves its gap to `renderMarkedSegment`.
@@ -71,11 +74,7 @@ function renderWord(row: RowWordsProps, index: number, seekable: boolean, withGa
       key={index}
       data-word={position ?? undefined}
       data-skipped={missed || undefined}
-      style={{
-        color: spoken && !missed && dim ? 'var(--text-muted)' : undefined,
-        textDecoration: missed ? 'underline dotted var(--warn)' : undefined,
-        textUnderlineOffset: missed ? '0.25em' : undefined,
-      }}
+      style={missed ? kindMarkStyle('missing') : { color: spoken && dim ? 'var(--text-muted)' : undefined }}
     >
       {seekable && onSeek && position !== null && !isCurrent ? (
         <button
@@ -113,10 +112,11 @@ function renderMarkedSegment(
   const wrap = (child: ReactNode, mark: ReaderMark, layer: number): ReactNode => {
     const control = Boolean(onOpenMark) && layer === innermost;
     const hint = mark.value.kind === 'flag' ? flagHint(mark.value.flag) : undefined;
+    const { kind, colour } = markKind(mark.value);
     const highlight = (
-      <Highlight key={mark.id} kind={markHighlight(mark.value)} description={hint} onActivate={control ? () => onOpenMark?.(mark) : undefined}>
+      <KindMark key={mark.id} kind={kind} colour={colour} description={hint} onActivate={control ? () => onOpenMark?.(mark) : undefined}>
         {child}
-      </Highlight>
+      </KindMark>
     );
     // A flag that is the control also shows what was heard as a hint, flowing with the line it sits in.
     if (!hint || !control) return highlight;

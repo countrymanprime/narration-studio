@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApi } from '../../../api/ApiContext';
-import type { CreditsRenderResult, GuideEntity, ManuscriptChapter, ManuscriptNote } from '../../../types';
+import type { CreditsRenderResult, GuideEntity, GuideType, ManuscriptChapter, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
 import type { CreditsKind } from '../readerModel';
 import { ACTIVE_PHASES } from '../useTeleprompterSession';
@@ -12,6 +12,7 @@ import { addressPath } from '../../../navigation/address';
 const CREDITS_KINDS: CreditsKind[] = ['opening', 'closing'];
 const NO_ENTITIES: GuideEntity[] = [];
 const NO_NOTES: ManuscriptNote[] = [];
+const NO_TYPES: GuideType[] = [];
 
 type Props = {
   /** Opens Settings > Credits, where a token with no value is filled in. */
@@ -29,6 +30,7 @@ export function CompanionPage({ onFixCredits }: Props) {
   const [params] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>();
   const [entities, setEntities] = useState<GuideEntity[]>(NO_ENTITIES);
+  const [types, setTypes] = useState<GuideType[]>(NO_TYPES);
   const [notes, setNotes] = useState<ManuscriptNote[]>(NO_NOTES);
   const [fallback, setFallback] = useState('');
   const [credits, setCredits] = useState<CreditsRenderResult>();
@@ -44,13 +46,15 @@ export function CompanionPage({ onFixCredits }: Props) {
       api.readerState().catch(() => undefined),
       api.teleprompterState().catch(() => undefined),
       api.guideEntities().catch(() => NO_ENTITIES),
+      api.guideTypes().catch(() => NO_TYPES),
       api.noteList().catch(() => NO_NOTES),
     ])
-      .then(([all, reader, host, nextEntities, nextNotes]) => {
+      .then(([all, reader, host, nextEntities, nextTypes, nextNotes]) => {
         if (!live) return;
         const narration = all.filter((item) => (item.contentKind ?? 'narration') === 'narration');
         setChapters(narration);
         setEntities(nextEntities);
+        setTypes(nextTypes);
         setNotes(nextNotes);
         const running = host && ACTIVE_PHASES.includes(host.phase) ? narration.find((item) => item.id === host.chapter)?.id : undefined;
         const last = narration.find((item) => item.id === reader?.activeChapter || item.title === reader?.activeChapter);
@@ -100,6 +104,7 @@ export function CompanionPage({ onFixCredits }: Props) {
         key={creditsKind ? `credits:${creditsKind}` : chapter!.id}
         source={source}
         entities={source.kind === 'chapter' ? entities : undefined}
+        types={source.kind === 'chapter' ? types : undefined}
         notes={source.kind === 'chapter' ? chapterNotes : undefined}
         onFullApp={toBooth}
         onFixCredits={onFixCredits}

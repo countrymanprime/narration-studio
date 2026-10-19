@@ -1,4 +1,5 @@
 import { LoadError } from '../layout/LoadError';
+import { statusTone } from '../../kinds/statusTone';
 import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -555,7 +556,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                             <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-[0.9375rem] font-bold">
                               <span className="truncate">{row.canonical_name}</span>
                               {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
-                              {pill && <StatusBadge tone="warning" label={pill} className="ml-auto shrink-0 whitespace-nowrap" />}
+                              {pill && <StatusBadge tone={statusTone('needs_review')} label={pill} className="ml-auto shrink-0 whitespace-nowrap" />}
                             </span>
                             <span data-line="kind" className="flex items-center gap-1.5 text-sm font-normal" style={{ color: 'var(--text-muted)' }}>
                               <Swatch colour={kindSwatch(types, row.category)} />
