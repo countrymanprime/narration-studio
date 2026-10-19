@@ -77,6 +77,7 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
     { id: 'proof.decide.waive', label: 'Waive' },
     { id: 'proof.decide.defer', label: 'Defer' },
     { id: 'proof.escape', label: 'All chapters', when: 'chapterView' },
+    { id: 'undo.last', label: 'Undo' },
   ],
 };
 

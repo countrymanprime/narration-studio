@@ -10,17 +10,12 @@ const DECISIONS: ReadonlyArray<{ label: string; key: string; status: FindingRevi
   { label: 'Defer', key: 'D', status: 'deferred' },
 ];
 
-/** Why the other of Needs pickup and Fix in edit is off: the fix comes from the kind of note, never stored on its own. */
-export const OTHER_FIX: Record<FixKind, string> = {
-  pickup: 'This kind of note is re-recorded, so it is a pickup, not a fix in the edit.',
-  edit: 'This kind of note is fixed in the edit, so it is not a pickup.',
-};
-
 /**
  * The Studio Next Inspector's decision group: Needs pickup, Fix in edit, Waive and Defer, each with its key cap. The stored status is
  * the finding's own review status: both of the first two are `accepted` and the fix the note asks for (`fix`, from
- * `fixKindOf`) says which one is pressed. The one that does not match the note's fix is off with `OTHER_FIX`, so a press never saves
- * the other fix in its name. Waive is `dismissed` and shown as Waived. The keys themselves are registered by the page.
+ * `fixKindOf`) says which one is pressed. Any of the four can be pressed on any note (the mock's group is a two-column grid of equal
+ * buttons); the fix is still the note kind's, so Fix in edit on a pickup-kind note saves the decision and the note stays a pickup.
+ * Waive is `dismissed` and shown as Waived. The keys themselves are registered by the page.
  */
 export function DecisionButtons({
   status,
@@ -38,29 +33,25 @@ export function DecisionButtons({
   onDecide: (status: FindingReviewStatus) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <div role="group" aria-label="Resolution" className="flex flex-wrap gap-2">
-        {DECISIONS.map((decision) => {
-          const pressed = status === decision.status && (decision.fix === undefined || decision.fix === fix);
-          const otherFix = decision.fix !== undefined && decision.fix !== fix;
-          return (
-            <Button
-              key={decision.label}
-              variant={pressed ? 'primary' : 'secondary'}
-              size="sm"
-              aria-pressed={pressed}
-              disabled={disabled || otherFix}
-              title={otherFix ? OTHER_FIX[fix] : undefined}
-              pending={pendingStatus === decision.status}
-              onClick={() => onDecide(decision.status)}
-            >
-              {decision.label}
-              <KeyCap k={decision.key} />
-            </Button>
-          );
-        })}
-      </div>
-      <p className="text-sm text-[var(--text-muted)]">{OTHER_FIX[fix]}</p>
+    <div role="group" aria-label="Resolution" className="grid grid-cols-2 gap-2">
+      {DECISIONS.map((decision) => {
+        const pressed = status === decision.status && (decision.fix === undefined || decision.fix === fix);
+        return (
+          <Button
+            key={decision.label}
+            variant="secondary"
+            size="lg"
+            className={`justify-between ${pressed ? 'outline-2 outline-offset-1 outline-[var(--accent)]' : ''}`}
+            aria-pressed={pressed}
+            disabled={disabled}
+            pending={pendingStatus === decision.status}
+            onClick={() => onDecide(decision.status)}
+          >
+            {decision.label}
+            <KeyCap k={decision.key} />
+          </Button>
+        );
+      })}
     </div>
   );
 }
