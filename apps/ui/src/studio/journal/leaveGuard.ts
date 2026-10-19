@@ -3,7 +3,7 @@
 // `ConfirmSpec` is declared here so the journal does not import the overlay service.
 
 /** What the confirmation shows. The overlay service renders it. */
-export type ConfirmSpec = { title: string; body: string; confirmLabel: string; cancelLabel?: string };
+export type ConfirmSpec = { title: string; body: string; confirmLabel: string; cancelLabel?: string; safeDefault?: boolean };
 
 /** The answer to "may the narrator leave for `next`?": go ahead, or ask this first. */
 type LeaveVerdict = 'allow' | { ask: ConfirmSpec };
