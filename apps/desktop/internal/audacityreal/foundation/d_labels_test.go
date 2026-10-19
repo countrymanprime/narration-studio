@@ -77,7 +77,8 @@ func TestA3T08ProjectIdentity(t *testing.T) {
 
 	// A second Audacity process on b.aup3 while the first has a.aup3.
 	cmd := exec.Command(filepath.Join(g.e.App, "AppRun"), b)
-	cmd.Env = append(os.Environ(), "HOME="+p.Home, "DISPLAY="+g.e.Display)
+	cmd.Env = append(os.Environ(), "HOME="+p.Home, "DISPLAY="+g.e.Display, "XDG_CONFIG_HOME="+filepath.Join(p.Home, ".config"),
+		"XDG_DATA_HOME="+filepath.Join(p.Home, ".local", "share"), "XDG_STATE_HOME="+filepath.Join(p.Home, ".local", "state"))
 	_ = cmd.Start()
 	t.Cleanup(func() {
 		if cmd.Process != nil {

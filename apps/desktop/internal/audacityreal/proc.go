@@ -166,7 +166,11 @@ func (e Env) Start(t testing.TB, home string, args ...string) *Proc {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(filepath.Join(e.App, "AppRun"), args...)
-	cmd.Env = append(os.Environ(), "HOME="+home, "DISPLAY="+e.Display)
+	// Audacity keeps its configuration under XDG_CONFIG_HOME when it is set, and a hosted runner sets it: HOME alone would send it to the
+	// runner's own profile, where none of this seed exists, so every XDG base directory is pinned inside the profile.
+	cmd.Env = append(os.Environ(), "HOME="+home, "DISPLAY="+e.Display,
+		"XDG_CONFIG_HOME="+filepath.Join(home, ".config"), "XDG_DATA_HOME="+filepath.Join(home, ".local", "share"),
+		"XDG_STATE_HOME="+filepath.Join(home, ".local", "state"), "XDG_CACHE_HOME="+filepath.Join(home, ".cache"))
 	cmd.Stdout, cmd.Stderr = lf, lf
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := cmd.Start(); err != nil {
