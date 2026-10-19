@@ -172,7 +172,8 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 	defer a.close(runID)
 	started := time.Now()
 	defer a.client.Expect()()
-	if _, err := a.client.Send(command, append([]string{runID}, args...)); err != nil {
+	target, err := a.client.Send(command, append([]string{runID}, args...))
+	if err != nil {
 		a.report(command, "send_failed", started)
 		a.logFailure(command, runID, "could not send")
 		return nil, fmt.Errorf("could not send %s to REAPER: %w", command, err)
@@ -190,13 +191,21 @@ func (a *Actions) request(ctx context.Context, command string, closing []string,
 		return got.events, got.err
 	case <-timer.C:
 		a.report(command, "no_answer", started)
-		a.logFailure(command, runID, "no answer within "+timeout.String())
+		a.logFailure(command, runID, "no answer within "+timeout.String()+retractNote(a.client.Retract(target)))
 		return nil, ErrNoAnswer
 	case <-ctx.Done():
 		a.report(command, "cancelled", started)
-		a.logFailure(command, runID, "cancelled")
+		a.logFailure(command, runID, "cancelled"+retractNote(a.client.Retract(target)))
 		return nil, ctx.Err()
 	}
+}
+
+// retractNote is what the host log adds when a request ends unanswered: whether the command was taken back before REAPER read it.
+func retractNote(retracted bool) string {
+	if retracted {
+		return " (command taken back)"
+	}
+	return " (REAPER had already read the command)"
 }
 
 // logFailure writes one host-log line for a command sent that failed, with its run ID: the command's first argument, which every event

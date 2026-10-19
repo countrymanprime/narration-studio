@@ -105,7 +105,8 @@ func (c *LevelMatchClient) Apply(ctx context.Context, candidates []GainCandidate
 		return ApplyGainResult{}, err
 	}
 	defer c.client.Expect()()
-	if _, err := c.client.Send("apply_item_gain", []string{runID, path}); err != nil {
+	target, err := c.client.Send("apply_item_gain", []string{runID, path})
+	if err != nil {
 		return ApplyGainResult{}, fmt.Errorf("could not send apply_item_gain to REAPER: %w", err)
 	}
 	timer := time.NewTimer(timeout)
@@ -117,8 +118,10 @@ func (c *LevelMatchClient) Apply(ctx context.Context, candidates []GainCandidate
 		}
 		return ApplyGainResult{Changed: got.changed, Stale: got.stale}, nil
 	case <-timer.C:
+		c.client.Retract(target)
 		return ApplyGainResult{}, ErrNoAnswer
 	case <-ctx.Done():
+		c.client.Retract(target)
 		return ApplyGainResult{}, ctx.Err()
 	}
 }

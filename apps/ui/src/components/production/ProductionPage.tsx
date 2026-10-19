@@ -362,7 +362,7 @@ export function ProductionPage({
     );
 
   return (
-    <div className="mx-auto flex max-w-[96rem] flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {caps && !caps.reachable && caps.daw !== 'none' && (
         <DawBanner
           reachable={false}
