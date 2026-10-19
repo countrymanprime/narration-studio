@@ -2,7 +2,7 @@
 // notice strip and top bar, and the footer with the search palette and the shared script. Every page of dist-site/ that is not the app or
 // Storybook itself is built from it: the landing page (scripts/site/landing/index.html, through fillShell), the docs (scripts/site/docs.mjs,
 // through sitePage), and the demo and Storybook pages that hold the app and the component library. Its look is the public-site mock's
-// (docs/research/mockups/public-site/index.html); the styles and script are in scripts/site/shell/. See docs/operations/public-demo-site.md.
+// (docs/research/mockups/public-site/index.html); the styles and script are in scripts/site/common/. See docs/operations/public-demo-site.md.
 //
 // `base` is the way from the page back to the site's root ('' for index.html, '../' for docs/x.html), so every address stays relative and
 // the site opens from any sub-path and inside a sandboxed frame. Fonts and the icon are data URIs because a font fetched from a file beside
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ui = join(root, 'apps', 'ui');
-const shellDir = join(root, 'scripts', 'site', 'shell');
+const commonDir = join(root, 'scripts', 'site', 'common');
 
 export const REPO = 'https://github.com/countrymanprime/narration-utils';
 const RELEASES = `${REPO}/releases`;
@@ -50,8 +50,8 @@ function assets() {
       ),
     ).join('\n'),
     icon: dataUri(join(ui, 'public', 'favicon.png'), 'image/png'),
-    css: readFileSync(join(shellDir, 'shell.css'), 'utf8'),
-    js: readFileSync(join(shellDir, 'shell.js'), 'utf8'),
+    css: readFileSync(join(commonDir, 'shell.css'), 'utf8'),
+    js: readFileSync(join(commonDir, 'shell.js'), 'utf8'),
   };
   return cached;
 }

@@ -41,7 +41,7 @@ node scripts/site/build-demo-site.mjs --skip-storybook                        # 
 
 ## The site shell
 
-`scripts/site/shell.mjs` holds what every site page shares, cut from the mock: the app's fonts and icon as data URIs, the theme applied before the first paint, the notice strip, the top bar (**Product**, **Docs**, **Live demo**, **Storybook**, search, theme, **Download**), the footer, the search palette (Ctrl K) and the toasts. Its styles and script are `scripts/site/shell/shell.css` and `shell.js`; the script puts its helpers on `window.Site` for a page's own script.
+`scripts/site/shell.mjs` holds what every site page shares, cut from the mock: the app's fonts and icon as data URIs, the theme applied before the first paint, the notice strip, the top bar (**Product**, **Docs**, **Live demo**, **Storybook**, search, theme, **Download**), the footer, the search palette (Ctrl K) and the toasts. Its styles and script are `scripts/site/common/shell.css` and `shell.js`; the script puts its helpers on `window.Site` for a page's own script.
 
 - `sitePage({ title, meta, css, body, script, base, current, withStorybook, search })` returns a whole page: the docs, the demo page and the Storybook page use it.
 - `fillShell(template, options)` fills the `<!--shell:head-->`, `<!--shell:header-->` and `<!--shell:footer-->` markers of a page template: the landing page uses it.
