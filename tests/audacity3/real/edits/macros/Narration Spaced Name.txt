@@ -1,0 +1,1 @@
+Normalize:ApplyVolumeAdjust="0" DC="1" PeakLevel="-6" StereoIndependent="0"

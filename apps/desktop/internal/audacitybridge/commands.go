@@ -2,8 +2,10 @@ package audacitybridge
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -116,12 +118,29 @@ func (c *Client) SetLabel(ctx context.Context, index int, edit LabelEdit) error 
 	return err
 }
 
-// SetTrackName renames one track (SetTrackStatus: Track Name).
+// SetTrackName renames one track. SetTrackStatus takes Name, Selected and Focused and acts on the selected track: Audacity 3.7.7
+// ignores a Track parameter without an error (tests/audacity3/real/edits, A3-T17), so the track is selected first, alone. That leaves
+// it the only selected track.
 func (c *Client) SetTrackName(ctx context.Context, track int, name string) error {
-	if track < 0 {
-		return fmt.Errorf("%w: track %d", ErrInvalidValue, track)
+	cmd := NewCommand("SetTrackStatus").String("Name", name)
+	if err := cmd.Err(); err != nil {
+		return err
 	}
-	_, err := c.Do(ctx, NewCommand("SetTrackStatus").Int("Track", track).String("Name", name))
+	if err := c.SelectTracks(ctx, track, 1); err != nil {
+		return err
+	}
+	_, err := c.Do(ctx, cmd)
+	return err
+}
+
+// SetTrackMute mutes or unmutes one track. SetTrackAudio takes Mute, Solo, Volume and Pan and acts on the selected tracks, ignoring a
+// Track parameter (A3-T17 and A3-T19), so the track is selected first, alone. A muted track is left out of an export, so a muted
+// track is how a take or a backup is kept out of the narrator's delivery file.
+func (c *Client) SetTrackMute(ctx context.Context, track int, mute bool) error {
+	if err := c.SelectTracks(ctx, track, 1); err != nil {
+		return err
+	}
+	_, err := c.Do(ctx, NewCommand("SetTrackAudio").Bool("Mute", mute))
 	return err
 }
 
@@ -145,11 +164,13 @@ func (c *Client) PlayLooped(ctx context.Context) error {
 	return err
 }
 
-// ApplyMacro runs one saved Macro Manager chain by its exact name (ApplyMacro: MacroName=...), against whatever is currently
-// selected. The scripting reference documents no way to list or read a macro's own steps back, so a caller narrates its own words
-// for the narrator's report rather than asking Audacity what the macro does.
+// ApplyMacro runs one saved Macro Manager chain by its name, against whatever is currently selected, as the menu command
+// Macro_<name> (see newMacroCommand: Audacity 3.7.7 has no ApplyMacro command, and answers it "was not recognized"). A macro runs on
+// the selected tracks only: with none selected Audacity opens a modal dialog that holds the pipe, so a caller selects a track first.
+// The scripting reference documents no way to read a macro's own steps back, so a caller narrates its own words for the narrator's
+// report rather than asking Audacity what the macro does. A macro adds one undo point however many steps it has.
 func (c *Client) ApplyMacro(ctx context.Context, name string) error {
-	_, err := c.DoLong(ctx, NewCommand("ApplyMacro").String("MacroName", name))
+	_, err := c.DoLong(ctx, newMacroCommand(name))
 	return err
 }
 
@@ -202,4 +223,42 @@ func checkExtension(path string, allowed []string) error {
 		}
 	}
 	return fmt.Errorf("%w: %q is not one of %s", ErrInvalidValue, ext, strings.Join(allowed, ", "))
+}
+
+// PrefClipsMove is Audacity's "Editing a clip can move other clips" (Preferences > Tracks Behaviors). A Delete or a Paste moves only the
+// audio of its own clip while it is off, so closing a gap between clips needs it on: with a track split in two and the preference
+// off, a Delete in the first clip left the second where it was (tests/audacity3/real/edits, A3-T18). It reads as not set on a fresh
+// profile, and behaves as off.
+const PrefClipsMove = "/GUI/EditClipCanMove"
+
+// writablePrefs are the preferences SetPreference may write: the pipe can write any of Audacity's, and the app has a reason to change
+// only these.
+var writablePrefs = []string{PrefClipsMove}
+
+// Preference reads a saved preference (GetPreference: Name). Audacity saves a preference only once something sets it, and answers
+// Failed! for any other key, so a key nothing has set is not set and no error. Any other error is the pipe's.
+func (c *Client) Preference(ctx context.Context, name string) (value string, set bool, err error) {
+	cmd := NewCommand("GetPreference").String("Name", name)
+	if err := cmd.Err(); err != nil {
+		return "", false, err
+	}
+	reply, err := c.Do(ctx, cmd)
+	if errors.Is(err, ErrCommandFailed) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return strings.TrimSpace(reply.Text()), true, nil
+}
+
+// SetPreference saves one of writablePrefs (SetPreference: Name Value Reload=1). Reload makes Audacity read the preferences again,
+// which a behaviour preference needs to take effect; without it the value is saved and ignored. A value is a plain word or number.
+func (c *Client) SetPreference(ctx context.Context, name, value string) error {
+	if !slices.Contains(writablePrefs, name) {
+		return fmt.Errorf("%w: the preference %q is not one the app changes", ErrInvalidValue, name)
+	}
+	cmd := NewCommand("SetPreference").String("Name", name).String("Value", value).Bool("Reload", true)
+	_, err := c.Do(ctx, cmd)
+	return err
 }

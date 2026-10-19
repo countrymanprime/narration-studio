@@ -20,7 +20,7 @@ const (
 	messageCutMode      = "Audacity can cut words by closing up the gap or by leaving one, so nothing was changed."
 	messageNoRoomTone   = "Audacity has no room tone to fill a cut with, so nothing was changed. Leave the gap silent or close it up."
 	messageCutPadAll    = "The pad leaves nothing of those words to cut, so nothing was changed."
-	messageNoMacro      = "Choose one of your Audacity macros for the effect. Its name cannot contain a double quote or a backslash."
+	messageNoMacro      = "Choose one of your Audacity macros for the effect. Its name can only hold letters, digits, spaces, hyphens and underscores."
 	messageRemoveFX     = "Audacity cannot take an effect off part of a track. Put the audio back from the backup made before it, in Backups on the Editing page."
 )
 
@@ -60,10 +60,11 @@ func words(n int) string {
 	return plural(n, "word", "words")
 }
 
-// DeleteRange backs up the range, selects it on its track and deletes it (SplitDelete, which leaves a gap). Mode close then
-// deletes the gap (Delete), which moves the audio after it up; mode gap leaves it silent, since Audacity has no room tone to fill
-// it with, and a request for room tone is refused. Two undo points for close, one for gap. The pad is taken off each end of the
-// range before anything is sent. Audacity makes no fade at the edges, so FadeMs is not used.
+// DeleteRange backs up the range, selects it on its track and deletes it. Mode close is one Delete, which takes the audio out and
+// moves the audio after it up; mode gap is a SplitDelete, which leaves the range silent, since Audacity has no room tone to fill it
+// with, and a request for room tone is refused. One undo point each. Labels after a close-up cut move with the audio only while
+// Sync-Lock is on, and it starts off, so they drift by the cut's length (docs/reference/daw/audacity-3.md). The pad is taken off each
+// end of the range before anything is sent. Audacity makes no fade at the edges, so FadeMs is not used.
 func (s *steps) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequest) (dawport.Result, error) {
 	if !s.canBackUp() {
 		return dawport.Refused(backupsSentence(dawport.CapCutRange)), nil
@@ -89,30 +90,37 @@ func (s *steps) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequ
 		return dawport.Result{}, err
 	}
 	e.did(stepSelectWords, 0)
-	if err := s.do(ctx, "SplitDelete"); err != nil {
-		return dawport.Result{}, err
-	}
 	if request.Mode == dawport.CutGap {
+		if err := s.do(ctx, "SplitDelete"); err != nil {
+			return dawport.Result{}, err
+		}
 		e.did(stepDeleteLeaveGap, 1)
 	} else {
-		e.did(stepDeleteWords, 1)
-		// The selection is still the stretch, now empty: deleting it moves what follows up.
+		// One Delete takes the audio out and moves what follows up, with Sync-Lock on or off. A SplitDelete first would leave a gap that
+		// the Delete after it cannot close with Sync-Lock off, which is how Audacity starts (tests/audacity3/real/edits, A3-T18). The
+		// audio of the clips after the cut moves only while clips may move other clips, which the edit turns on for itself.
+		restore, err := s.clipsMove(ctx)
+		if err != nil {
+			return dawport.Result{}, err
+		}
+		defer restore()
 		if err := s.do(ctx, "Delete"); err != nil {
 			return dawport.Result{}, err
 		}
-		e.did(stepCloseUp, 1)
+		e.did(stepDeleteWords, 1)
+		e.did(stepCloseUp, 0)
 	}
 	return e.done("Deleted " + words(request.Words) + " and their audio in Audacity."), nil
 }
 
 // ApplyFXToRange backs up the range, selects it, splits the clip at both ends (Split) and applies the narrator's macro to the
-// selection by its name (ApplyMacro), one of the chains Audacity listed. A name the pipe cannot carry is refused before anything is
+// selection by its name (Macro_<name>, see audacitybridge.Client.ApplyMacro), one of the chains Audacity listed. A name the pipe cannot carry is refused before anything is
 // sent. One undo point for the split and one for the macro; a macro of several effects may add more, which the owner's pass checks.
 func (s *steps) ApplyFXToRange(ctx context.Context, request dawport.FXRangeRequest) (dawport.Result, error) {
 	if !s.canBackUp() {
 		return dawport.Refused(backupsSentence(dawport.CapFXRange)), nil
 	}
-	if _, err := audacitybridge.NewCommand("ApplyMacro").String("MacroName", request.ChainName).Encode(); request.ChainName == "" || err != nil {
+	if request.ChainName == "" || audacitybridge.CheckMacroName(request.ChainName) != nil {
 		return dawport.Refused(messageNoMacro), nil
 	}
 	s.mu.Lock()
