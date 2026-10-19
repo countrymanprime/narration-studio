@@ -22,6 +22,8 @@ export const TOOLTIP_CLOSES_ON_RESIZE = { reloadPerViewport: true } as const;
 export const KEEPS_DESKTOP_SCROLL = { reloadPerViewport: true } as const;
 export const POPUP_ANCHORED_AT_FIRST_WIDTH = { reloadPerViewport: true } as const;
 export const LIVE_PROGRESS_MOVES_ON = { reloadPerViewport: true } as const;
+// The Booth's side panel is a column from 1280 px and a drawer that starts closed below it, so a driver that opens it opens it the way the width shows it.
+export const SIDE_PANEL_DEPENDS_ON_WIDTH = { reloadPerViewport: true } as const;
 export const TOAST_FADES_OUT = { reloadPerViewport: true } as const;
 // Settings' category list folds behind a Category button only where the page is narrower than 760 px, and a button that a wide layout does not draw
 // cannot be pressed there: the driver runs on a fresh load at each width.

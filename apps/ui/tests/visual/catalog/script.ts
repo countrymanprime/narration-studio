@@ -1,7 +1,7 @@
 // The `script` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. The Studio Next Script page (SN-B77,
 // swapped in by SN-B8): three columns at 1440, the rail a drawer below 1280 px and the chapter list a drawer below 1180 px.
 import type { StateEntry } from '../lib/types';
-import { POPUP_ANCHORED_AT_FIRST_WIDTH, RAIL_DEPENDS_ON_WIDTH, TOAST_FADES_OUT } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, RAIL_DEPENDS_ON_WIDTH, TOAST_FADES_OUT } from './shared';
 
 // A rail tab: the column beside the reader at 1440, the drawer over the text with its scrim below 1280 px.
 const railTab = (state: string, description: string): StateEntry => ({ page: 'script', state, description, ...RAIL_DEPENDS_ON_WIDTH });
@@ -76,6 +76,7 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'credits-setup-banner',
     description: 'Script, the credits-setup banner above the Opening credits and the card’s own Fill in (?mockCredits=setup, kept as built)',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'script',
