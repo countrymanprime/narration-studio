@@ -4,7 +4,9 @@ import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import { useJournal } from '../../../../studio/StudioProvider';
 import { Button } from '../../../primitives/Button';
+import { Heading } from '../../../primitives/Heading';
 import { IconButton } from '../../../primitives/IconButton';
+import { SectionLabel } from '../../../primitives/SectionLabel';
 import { StatusBadge } from '../../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../primitives/Table';
 import { ToggleGroup } from '../../../primitives/ToggleGroup';
@@ -227,106 +229,114 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3.5">
-      <p className="text-sm" style={MUTED}>
-        A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" onClick={() => fileInput.current?.click()}>
-          Choose a file…
-        </Button>
-        {/* native-control-ok: the browser's file picker has no styled equivalent; it stays hidden behind the Choose a file button */}
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".csv,.json"
-          className="hidden"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = '';
-            if (file) void choose(file);
-          }}
-        />
-        {fileName && (
-          <span className="text-sm [overflow-wrap:anywhere]" style={MUTED}>
-            {fileName}
-          </span>
-        )}
-        <span className="flex-1" />
-        <IconButton action="copyPrompt" onClick={copyPrompt} />
-        <IconButton action={showExample ? 'hideExample' : 'showExample'} aria-pressed={showExample} onClick={() => setShowExample(!showExample)} />
-      </div>
-      {fileProblem && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          {fileProblem}
-        </p>
-      )}
-      {showExample && (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <ToggleGroup
-              label="Example format"
-              value={exampleFormat}
-              onChange={(value) => setExampleFormat(value as ImportFormat)}
-              options={FORMATS}
-              look="segmented"
-            />
-            <span className="flex-1" />
-            <IconButton action="copyExample" onClick={() => copy(example, 'Example copied.')} />
-          </div>
-          <pre
-            tabIndex={0}
-            aria-label="Format example"
-            className="max-h-48 overflow-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] p-3 font-mono text-xs [overflow-wrap:anywhere] whitespace-pre-wrap"
-          >
-            {example}
-          </pre>
+    <div className="flex flex-col">
+      {/* The mock's dialog header (`.dh`): eyebrow, 26 px title, subtitle and Cancel. The overlay opens this dialog headerless, so the shell draws none. */}
+      <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-[1.1rem] py-[0.85rem]">
+        <div className="min-w-0">
+          <SectionLabel as="div">Story Bible</SectionLabel>
+          <Heading level={2} title="Import entries">
+            A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
+          </Heading>
         </div>
-      )}
-      {/* native-control-ok: Field's textarea carries a visible label above it; the mock's paste box is named by aria-label alone */}
-      <textarea
-        aria-label="Paste JSON or CSV"
-        placeholder="Or paste JSON (or CSV) here"
-        value={text}
-        spellCheck={false}
-        onChange={(event) => {
-          reading.current += 1;
-          setText(event.target.value);
-          setHint(undefined);
-          setFileName('');
-        }}
-        className="box-border min-h-24 w-full resize-y rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-2 font-mono text-xs leading-[1.35] text-[var(--text)]"
-      />
-      {oversize && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          {tooBigSentence(limit)}
-        </p>
-      )}
-      {!oversize && text.trim() && waiting && !problem && (
-        <p role="status" className="text-sm" style={MUTED}>
-          Checking the text with the host…
-        </p>
-      )}
-      {problem && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          The preview could not be made: {problem}
-        </p>
-      )}
-      {text.trim() && plan && <Preview plan={plan} />}
-      {addProblem && (
-        <p role="alert" className="text-sm" style={DANGER}>
-          {addProblem}
-        </p>
-      )}
-      <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={() => void add()} pending={adding} disabled={!offered || waiting}>
-          {addLabel(offered)}
-        </Button>
+      </div>
+      <div className="flex flex-col gap-3.5 p-[1.1rem]">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" onClick={() => fileInput.current?.click()}>
+            Choose a file…
+          </Button>
+          {/* native-control-ok: the browser's file picker has no styled equivalent; it stays hidden behind the Choose a file button */}
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".csv,.json"
+            className="hidden"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) void choose(file);
+            }}
+          />
+          {fileName && (
+            <span className="text-sm [overflow-wrap:anywhere]" style={MUTED}>
+              {fileName}
+            </span>
+          )}
+          <span className="flex-1" />
+          <IconButton action="copyPrompt" onClick={copyPrompt} />
+          <IconButton action={showExample ? 'hideExample' : 'showExample'} aria-pressed={showExample} onClick={() => setShowExample(!showExample)} />
+        </div>
+        {fileProblem && (
+          <p role="alert" className="text-sm" style={DANGER}>
+            {fileProblem}
+          </p>
+        )}
+        {showExample && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <ToggleGroup
+                label="Example format"
+                value={exampleFormat}
+                onChange={(value) => setExampleFormat(value as ImportFormat)}
+                options={FORMATS}
+                look="segmented"
+              />
+              <span className="flex-1" />
+              <IconButton action="copyExample" onClick={() => copy(example, 'Example copied.')} />
+            </div>
+            <pre
+              tabIndex={0}
+              aria-label="Format example"
+              className="max-h-48 overflow-auto rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--bg)] p-3 font-mono text-xs [overflow-wrap:anywhere] whitespace-pre-wrap"
+            >
+              {example}
+            </pre>
+          </div>
+        )}
+        {/* native-control-ok: Field's textarea carries a visible label above it; the mock's paste box is named by aria-label alone */}
+        <textarea
+          aria-label="Paste JSON or CSV"
+          placeholder="Or paste JSON (or CSV) here"
+          value={text}
+          spellCheck={false}
+          onChange={(event) => {
+            reading.current += 1;
+            setText(event.target.value);
+            setHint(undefined);
+            setFileName('');
+          }}
+          className="box-border min-h-24 w-full resize-y rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-2 font-mono text-xs leading-[1.35] text-[var(--text)]"
+        />
+        {oversize && (
+          <p role="alert" className="text-sm" style={DANGER}>
+            {tooBigSentence(limit)}
+          </p>
+        )}
+        {!oversize && text.trim() && waiting && !problem && (
+          <p role="status" className="text-sm" style={MUTED}>
+            Checking the text with the host…
+          </p>
+        )}
+        {problem && (
+          <p role="alert" className="text-sm" style={DANGER}>
+            The preview could not be made: {problem}
+          </p>
+        )}
+        {text.trim() && plan && <Preview plan={plan} />}
+        {addProblem && (
+          <p role="alert" className="text-sm" style={DANGER}>
+            {addProblem}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <Button variant="primary" onClick={() => void add()} pending={adding} disabled={!offered || waiting}>
+            {addLabel(offered)}
+          </Button>
+        </div>
       </div>
     </div>
   );
