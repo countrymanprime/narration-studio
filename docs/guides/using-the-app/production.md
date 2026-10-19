@@ -94,7 +94,8 @@ mark (✓) for a stage done, a half circle for the stage under way and a dash fo
 circle while in progress and an empty circle when not started. **Pickups** counts the chapter's
 open lines once it is recorded to the end (0 when none are open). **Master** and **QC** come from
 the files measured on [Master & QC](master-and-qc.md): mastered, and PASS or FAIL. A cell with nothing to
-read says "Not measured yet". A cell opens its stage for the chapter: Script, the Booth, the editing
+read says "Not measured yet". A cell's colour is the colour of its status everywhere in the app: green for done or passing, blue for under way,
+amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
 check, Proof, Pickups or Master & QC. The table scrolls sideways in a narrow window.
 
 The chip on the chapter's current-stage cell is its [readiness](#stage-readiness).

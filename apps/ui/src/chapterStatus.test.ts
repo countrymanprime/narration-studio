@@ -12,11 +12,11 @@ describe('STATUS_TONE', () => {
     }
   });
 
-  it('maps the two ends of the pipeline to neutral and success, and the middle stages to progress', () => {
+  it('maps the two ends of the pipeline to neutral and success, and the middle stages to info (In progress, note D-table 4.4)', () => {
     expect(STATUS_TONE.not_started).toBe('neutral');
     expect(STATUS_TONE.finalized).toBe('success');
-    expect(STATUS_TONE.recording).toBe('progress');
-    expect(STATUS_TONE.editing).toBe('progress');
-    expect(STATUS_TONE.proofing).toBe('progress');
+    expect(STATUS_TONE.recording).toBe('info');
+    expect(STATUS_TONE.editing).toBe('info');
+    expect(STATUS_TONE.proofing).toBe('info');
   });
 });

@@ -141,7 +141,7 @@ export function DeliveryProfileEditor({
                     <TableCell valign="top" className="min-w-[9rem]" style={draft.off ? MUTED : undefined}>
                       <span className="inline-flex flex-wrap items-center gap-2 font-medium">
                         {rule.label}
-                        {changed(rule) && <Mark tone="warn">Changed</Mark>}
+                        {changed(rule) && <Mark status="changed">Changed</Mark>}
                       </span>
                       {draft.off && (
                         <span className="block text-[0.75rem]" style={MUTED}>

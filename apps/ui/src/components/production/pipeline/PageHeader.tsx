@@ -4,15 +4,17 @@ import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { fmtD, num } from '../../schedule/dates';
-import { deadlineTone, type Calc, type Tone } from '../../schedule/progress';
+import { statusTone } from '../../../kinds/statusTone';
+import { toneColors } from '../../primitives/StatusBadge';
+import { deadlineTone, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
 import { VerdictPill } from '../../schedule/VerdictPill';
 
 /** The tone as a word and a shape, beside its colour, so the due date is never told by colour alone. */
 const TONE_MARK: Record<Tone, { glyph: string; word: string; color: string } | null> = {
   neutral: null,
-  success: { glyph: '✓', word: 'finished', color: 'var(--ok-text)' },
-  warn: { glyph: '!', word: 'due soon', color: 'var(--warn-text)' },
-  danger: { glyph: '✕', word: 'overdue or behind', color: 'var(--danger-text)' },
+  success: { glyph: '✓', word: 'finished', color: toneColors(statusTone(TONE_STATUS.success)).text },
+  warn: { glyph: '!', word: 'due soon', color: toneColors(statusTone(TONE_STATUS.warn)).text },
+  danger: { glyph: '✕', word: 'overdue or behind', color: toneColors(statusTone(TONE_STATUS.danger)).text },
 };
 
 type Props = {

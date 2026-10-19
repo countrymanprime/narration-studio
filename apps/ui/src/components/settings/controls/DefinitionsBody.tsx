@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DefinitionSource } from '../../../api/contracts/system';
 import { Radio } from '../../primitives/RadioGroup';
 import { IconButton } from '../../primitives/IconButton';
-import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
+import { statusLabel, statusTone } from '../../../kinds/statusTone';
+import { StatusBadge } from '../../primitives/StatusBadge';
+import { installPill } from '../installPill';
 import { useSettingsStore } from '../data/SettingsStore';
 import { computerValue } from '../data/values';
 import { useAssetsStore, type AssetStatus } from '../models/AssetsStore';
@@ -21,21 +23,16 @@ const SOURCES: { value: DefinitionSource; label: string }[] = [
   { value: 'api', label: 'Online service. Shows definitions inline when online.' },
 ];
 
-const DICTIONARY_BADGE: Record<LocalDictionaryState, { tone: StatusTone; label: string }> = {
-  installed: { tone: 'success', label: 'Installed' },
-  missing: { tone: 'neutral', label: 'Not installed' },
-  repair: { tone: 'warning', label: 'Needs repair' },
-  downloading: { tone: 'progress', label: 'Downloading' },
-  verifying: { tone: 'progress', label: 'Checking' },
-  failed: { tone: 'danger', label: 'Download failed' },
-  unavailable: { tone: 'neutral', label: 'Not available' },
-  absent: { tone: 'neutral', label: 'Not available' },
-};
-
-const SERVICE_BADGE: Record<OnlineServiceState, { tone: StatusTone; label: string }> = {
-  online: { tone: 'success', label: 'Online' },
-  offline: { tone: 'warning', label: 'Offline' },
-  no_key: { tone: 'warning', label: 'No key saved' },
+// The dictionary's short words; its tone comes from the shared install pill (../installPill.ts).
+const DICTIONARY_LABEL: Record<LocalDictionaryState, string> = {
+  installed: 'Installed',
+  missing: 'Not installed',
+  repair: 'Needs repair',
+  downloading: 'Downloading',
+  verifying: 'Checking',
+  failed: 'Download failed',
+  unavailable: 'Not available',
+  absent: 'Not available',
 };
 
 /** The three sources, the local dictionary installed or not with Download or Remove, and the online service's state. Takes props only. */
@@ -63,7 +60,7 @@ function DefinitionsView({
   /** The host's sentence for the last refused download or removal. */
   problem?: string;
 }) {
-  const badge = DICTIONARY_BADGE[dictionary];
+  const badge = { tone: installPill(dictionary).tone, label: DICTIONARY_LABEL[dictionary] };
   const running = dictionary === 'downloading' || dictionary === 'verifying';
   const extras: Partial<Record<DefinitionSource, ReactNode>> = {
     local: (
@@ -76,7 +73,7 @@ function DefinitionsView({
         )}
       </>
     ),
-    api: <StatusBadge tone={SERVICE_BADGE[service].tone} label={SERVICE_BADGE[service].label} />,
+    api: <StatusBadge tone={statusTone(service)} label={statusLabel(service)} />,
   };
   return (
     <div className="space-y-2.5" role="group" aria-label="Show definitions from">
