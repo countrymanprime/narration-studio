@@ -43,6 +43,12 @@ type Service struct {
 	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
 	// +checklocks:editMu
 	held *heldDocument
+	// searchManuscript opens the project's manuscript for the name search create and the aliases edit make (occurrenceSearch). The host
+	// creates entries and adds aliases itself only when it is set; nil leaves both to the sidecar (hostCreates).
+	searchManuscript func(path string) (occurrenceSearch, error)
+	// pronunciationLookup answers the pronunciations the host needs for a new entry or alias; nil asks the sidecar (pronunciations). The
+	// tests set it.
+	pronunciationLookup func(words []string) ([]map[string]any, error)
 	// undoIDs makes the id a merge is stored under; nil in the app (a random one), set by the tests that need a known one.
 	undoIDs func() string
 	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
@@ -107,9 +113,10 @@ func (s *Service) SaveFindings() error {
 	return nil
 }
 
-// schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION), and so
-// does the host for the commands it runs itself (editInHost, mutateInHost: an edit without aliases, a merge, an unmerge and a split among them),
-// which refuse a newer file instead of rewriting it.
+// schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION) for a build
+// and a rescan, and for a create and an alias edit until the host can search the manuscript itself (hostCreates). The host writes it for the
+// commands it runs itself (editInHost, mutateInHost, createInHost: an edit, a merge, an unmerge, a split and, then, a create and an alias
+// edit, which ask the sidecar only for pronunciations), and refuses a newer file instead of rewriting it.
 const schemaVersion = 2
 
 // document reads and version-checks the Story Bible file, returning its raw
@@ -418,14 +425,15 @@ func (s *Service) Edit(id, field, value string) error {
 }
 
 // EditFields changes every field of an entity at once: all of them are applied in memory and the file is written once, so a field that is
-// refused leaves the file as it was. The host applies the edit itself (editInHost) unless it changes the aliases; then the whole edit goes
-// to the sidecar in one process, because a new alias needs a pronunciation and the manuscript. The fields are sent in name order, so
+// refused leaves the file as it was. The host applies the edit itself (editInHost); an edit of the aliases asks the sidecar only for the
+// pronunciations of the new names, and the host searches the manuscript. Where the host cannot search it yet (hostCreates), the whole
+// edit of the aliases goes to the sidecar in one process. The fields are sent in name order, so
 // the same edit always produces the same command.
 func (s *Service) EditFields(id string, values map[string]string) error {
 	if len(values) == 0 {
 		return nil
 	}
-	if _, editsAliases := values["aliases"]; !editsAliases {
+	if _, editsAliases := values["aliases"]; !editsAliases || s.hostCreates() {
 		return s.editInHost(id, values)
 	}
 	_, err := s.Run(s.editArgs(id, values)...)
@@ -577,6 +585,9 @@ func (s *Service) CreateDescribed(name, category string, aliases []string, descr
 // CreateFull creates an entity with its description and its properties in one sidecar process. The import of a manuscript's cast blocks
 // uses it for the labelled facts of a character.
 func (s *Service) CreateFull(name, category string, aliases []string, description string, properties []Property) (string, error) {
+	if s.hostCreates() {
+		return s.createInHost(name, category, aliases, description, properties)
+	}
 	out, err := s.Run(s.createArgs(name, category, aliases, description, properties)...)
 	if err != nil {
 		return "", err

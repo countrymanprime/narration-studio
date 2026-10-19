@@ -100,8 +100,8 @@ Line counts are the functions each command uses, counted from the module's synta
 | `suggest` | Model | GLiNER, BookNLP or the rules (`extraction_*.py`) | in those modules | `test_extraction_*.py` | Stays |
 | `pronounce`, `candidate` | Model (dictionary) | CMU, eSpeak, Wiktextract through `SOURCES` | in `providers.py` | `test_pronounce.py`, `test_providers.py` | Stays |
 | `render-audio`, `self-check`, `capabilities` | Model or voice, and glue | Piper, the freeze's data files | about 150 | `test_pronunciation_preview.py`, `test_providers.py` | Stays |
-| `create` | Mixed | `find_occurrences` over the manuscript, plus a pronunciation for the name and every alias | about 60 | `test_manuscript_guide.py`, `test_properties.py` | M later: Go writes, Python answers only the pronunciation |
-| `edit` with `aliases` | Mixed | as `create` | in `apply_edit` | `test_manuscript_guide.py` | M later, as `create` |
+| `create` | Mixed | `find_occurrences` over the manuscript, plus a pronunciation for the name and every alias | about 60 | `test_manuscript_guide.py`, `test_properties.py`, `test_create_parity.py` | M: built (`guide/create.go`), Go writes and the sidecar's `pronunciation` command answers; switched on with the Go `find_occurrences` |
+| `edit` with `aliases` | Mixed | as `create` | in `apply_edit` | `test_manuscript_guide.py`, `test_create_parity.py` | M: built, as `create` |
 | `edit` (every other field), setLocked | Pure | the file | 168 with `load_json`, `write_json` and the types and properties checks | `test_manuscript_guide.py`, `test_properties.py`; the Go parity test here | **S, prototyped** |
 | `mark-reviewed`, `review-flag`, `speaker-color` | Pure | the file | 79 | `test_review_flags.py` (23 tests) | S |
 | `relate`, `unrelate`, `delete`, `correct-cue` | Pure | the file | 53 | `test_manuscript_guide.py`, `test_character_cues.py` | S |
@@ -222,7 +222,7 @@ On 2026-10-18 the owner approved B and asked for step 1 (#1923).
 6. **`merge`, `unmerge` and `split` together**, with the fingerprint encoder and its golden. Done on 2026-10-18: `guide/merge.go` and `guide/pythonjson.go`, pinned by `testdata/merge-parity.json` and `testdata/merge-fingerprint-golden.json` (written by `test_merge_parity.py`). Python's `split` has no binding yet, so `Service.Split` has no caller in the app.
 7. **Later:**
    - `rescan` and `status`, once a Go `find_occurrences` matches Python's excerpts;
-   - `create` and alias edits, with Go writing and the sidecar asked only for the pronunciation. This needs a stateless command beside `candidate` that returns the whole value of `pronunciation()`.
+   - `create` and alias edits, with Go writing and the sidecar asked only for the pronunciation. Built on 2026-10-19 (step 7b): the stateless `pronunciation` command beside `candidate` (`--word` repeats, one JSON line each, the whole value of `pronunciation()`), `guide/create.go` (`createInHost`, `applyAliases`, and a port of `direct_description` with Python's `\b` and `\s`), and `create-parity.json`, recorded by `test_create_parity.py` with fixed pronunciations and replayed as a chain and step by step. **Not switched on:** `Service.searchManuscript` is nil until the Go `find_occurrences` of the `rescan` and `status` port exists, and a nil one leaves `create` and alias edits with the sidecar as before. Setting it is the last step, and the recorded searches are then answered by the real finder, which the same fixtures check to the character. Divergences kept: a file that is not JSON is refused instead of started over (as the type commands do), one whose entries are not a list is refused, and Go's `(?i)` folds a few Turkish letters Python's `re` equates (`ı` and `i`) differently.
 
 `build`, `suggest`, `pronounce`, `candidate`, `render-audio`, `self-check` and `capabilities` stay in Python.
 
