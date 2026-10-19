@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
@@ -20,6 +21,13 @@ import (
 // kill-on-close job object (internal/process/job_windows.go), so REAPER
 // outlives the app when the narrator closes it.
 func (h *Host) DawLaunch() (string, error) {
+	if svc := h.services(); h.projectDaw(svc).kind.HasScriptingPipe() {
+		result, err := h.launchAudacity(svc)
+		if err != nil {
+			return "", err
+		}
+		return encodeBinding(result, nil)
+	}
 	result, err := launchReaper(h.services(), h.persist, h.reaperLocate, h.reaperLaunch, h.reaperRunning)
 	if err != nil {
 		return "", err
@@ -79,4 +87,38 @@ func launchReaper(svc hostServices, reporter *persist.Reporter, locate func() (p
 		return nil, fmt.Errorf("could not start REAPER: %w", err)
 	}
 	return map[string]any{"launched": true, "path": execPath, "source": source}, nil
+}
+
+// launchAudacity starts Audacity for an Audacity project: on the linked project file when the link names one that still exists,
+// and bare otherwise. It starts nothing while Audacity runs (a second start would open the file in the running one, or a second
+// Audacity, and the pipe serves only one), and says what to do instead. Audacity reads its scripting setting when it starts, so the
+// state it left behind is the link state's to word (bindings_audacity_link.go): this only starts the program, detached
+// (daw.Launch) so it outlives the app.
+func (h *Host) launchAudacity(svc hostServices) (map[string]any, error) {
+	if svc.config.projectFolder == "" {
+		return nil, fmt.Errorf("open a project before starting Audacity")
+	}
+	exe, err := h.locateAudacity()
+	if err != nil {
+		return nil, fmt.Errorf("Audacity was not found on this computer. Install Audacity 3, or choose another recorder.") //nolint:staticcheck // a sentence the narrator reads
+	}
+	if h.isAudacityRunning() {
+		return nil, fmt.Errorf("Audacity is already running. If the app cannot reach it, close Audacity and start it from here.") //nolint:staticcheck // a sentence the narrator reads
+	}
+	var args []string
+	if svc.settings != nil {
+		if linked := svc.settings.Project(recordingSettingsTool)[audacityLinkFileKey]; linked != "" {
+			if info, statErr := os.Stat(linked); statErr == nil && !info.IsDir() {
+				args = append(args, linked)
+			}
+		}
+	}
+	launch := h.audacityLaunch
+	if launch == nil {
+		launch = func(program string, args []string) error { return daw.Launch(program, args...) }
+	}
+	if err := launch(exe, args); err != nil {
+		return nil, fmt.Errorf("could not start Audacity: %w", err)
+	}
+	return map[string]any{"launched": true, "path": exe, "source": "audacity"}, nil
 }

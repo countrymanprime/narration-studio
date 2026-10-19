@@ -79,6 +79,53 @@ export function AssetsVerify(kind: string, id: string): $CancellablePromise<stri
 }
 
 /**
+ * AudacityEnableModule turns Audacity's scripting module on in its settings file. Audacity writes that file when it closes, so it
+ * refuses while Audacity runs; the refusal is the sentence the narrator reads.
+ */
+export function AudacityEnableModule(): $CancellablePromise<string> {
+    return $Call.ByID(265736451);
+}
+
+/**
+ * AudacityLink answers the link state: the last heartbeat's, or a fresh read when there is none yet.
+ */
+export function AudacityLink(): $CancellablePromise<string> {
+    return $Call.ByID(2166530616);
+}
+
+/**
+ * AudacityLinkCheck reads the link state afresh, asking Audacity now, and tells the window if it changed. It can take as long as
+ * the pipe's timeout when Audacity is showing a dialog.
+ */
+export function AudacityLinkCheck(): $CancellablePromise<string> {
+    return $Call.ByID(901038688);
+}
+
+/**
+ * AudacityLinkFile opens a file dialog for the Audacity project (.aup3) this project's work lives in, records it, and chooses
+ * Audacity for the project. Cancelling the dialog changes nothing and answers the state as it was.
+ */
+export function AudacityLinkFile(): $CancellablePromise<string> {
+    return $Call.ByID(2490593198);
+}
+
+/**
+ * AudacityLinkOpenProject writes this project's link label into the project open in Audacity, so the app can tell that project
+ * from any other. It adds one label to the "Narration Utils" label track and touches nothing else. It needs Audacity to answer.
+ */
+export function AudacityLinkOpenProject(): $CancellablePromise<string> {
+    return $Call.ByID(684815301);
+}
+
+/**
+ * AudacityUnlink forgets the linked Audacity project. The label stays in the Audacity project, where it is one line in the
+ * "Narration Utils" label track that the narrator can delete.
+ */
+export function AudacityUnlink(): $CancellablePromise<string> {
+    return $Call.ByID(1550893295);
+}
+
+/**
  * BookmarksAdd bookmarks a spot: offset is UTF-16 units into the line's text, from 0 to its length. A spot that already has
  * a bookmark returns that one.
  */

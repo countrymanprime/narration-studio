@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { DAW_BACKUPS_MAX, DAW_LEVEL_MAX, DAW_FX_RANGE_MAX_SETTINGS, DAW_LAST_ACTIONS, DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
 import type {
+  AudacityLink,
+  AudacityLinkAction,
+  AudacityLinkState,
+  AudacityLinkStep,
+  AudacityOpenProject,
   DawBackup,
   DawBackupsFile,
   DawCapabilities,
@@ -77,6 +82,37 @@ export const dawChoiceSchema = z.strictObject({
     }),
   ),
 }) satisfies z.ZodType<DawChoice>;
+
+const AUDACITY_LINK_STATES = [
+  'unsupported',
+  'not_installed',
+  'not_running',
+  'module_off',
+  'needs_restart',
+  'audacity4',
+  'dialog',
+  'no_project',
+  'answering',
+] as const satisfies readonly AudacityLinkState[];
+const AUDACITY_LINK_ACTIONS = ['none', 'launch', 'enable_module'] as const satisfies readonly AudacityLinkAction[];
+const AUDACITY_OPEN_PROJECTS = ['unknown', 'linked', 'other', 'unlabelled'] as const satisfies readonly AudacityOpenProject[];
+const AUDACITY_LINK_STEP_IDS = ['installed', 'started_once', 'scripting_on', 'answering'] as const satisfies readonly AudacityLinkStep['id'][];
+
+/** AudacityLink and audacity_link_changed: every key always present, file names never paths, a sentence always. */
+export const audacityLinkSchema = z.strictObject({
+  hasProject: z.boolean(),
+  chosen: z.boolean(),
+  state: z.enum(AUDACITY_LINK_STATES),
+  message: z.string().min(1),
+  action: z.enum(AUDACITY_LINK_ACTIONS),
+  steps: z.array(z.strictObject({ id: z.enum(AUDACITY_LINK_STEP_IDS), label: z.string(), done: z.boolean() })).length(4),
+  installed: z.boolean(),
+  running: z.boolean(),
+  openProject: z.enum(AUDACITY_OPEN_PROJECTS),
+  linked: z.boolean(),
+  linkedFile: z.string().nullable(),
+  heardSecondsAgo: z.number().int().nonnegative().nullable(),
+}) satisfies z.ZodType<AudacityLink>;
 
 /** daw_transport_changed: position is absent while stopped. */
 export const dawTransportSchema = z.object({

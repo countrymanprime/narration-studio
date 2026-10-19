@@ -50,6 +50,10 @@ func dawResolverOver(svc hostServices, kind dawport.Kind, live bool) (*dawport.R
 	if live {
 		runtime = dawport.Runtime{Bridge: client != nil, Reachable: reach != nil && reach.Reachable()}
 	}
+	// An Audacity project's runtime is its pipe: always a connection to ask, answering while the last request got a reply.
+	if live && kind.HasScriptingPipe() && svc.audacity != nil {
+		runtime = svc.audacity.runtime()
+	}
 	// An engine that is part of the app (the built-in recorder) reports its own runtime: it has no bridge to connect.
 	if own, ok := adapter.(interface{ Runtime() dawport.Runtime }); ok {
 		runtime = own.Runtime()

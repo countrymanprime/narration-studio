@@ -141,6 +141,10 @@ func RebuildsServices(a, b Kind) bool { return (a == KindAudacity) != (b == Kind
 // LinksProjectFile is whether k keeps its project in a file the app links (a REAPER .rpp, ProjectLinkDawFile).
 func (k Kind) LinksProjectFile() bool { return k == KindREAPER }
 
+// HasScriptingPipe is whether k is driven over a scripting pipe the host opens itself (Audacity 3's mod-script-pipe), which the
+// narrator turns on in the DAW and the host probes for the link state (apps/desktop/bindings_audacity_link.go).
+func (k Kind) HasScriptingPipe() bool { return k == KindAudacity }
+
 // IsREAPERLaunch reports whether daw (the launch's own `daw` fact) names a live REAPER launch. It is the one place outside this
 // package allowed to ask "is this REAPER" at all (boundary_test.go enforces it): a caller with a narrower question asks the
 // resolver for a capability instead, but the launch's own identity (dawfacts.go's linked-launch case, app.go's

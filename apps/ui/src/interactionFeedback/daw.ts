@@ -1,6 +1,6 @@
 // The DAW port's host adapter (ports/daw.ts, SN-D21). No page calls `usePort('daw')` yet, so these sites have no control of their own: each
 // is the adapter forwarding to the binding, and the page that adopts the port adds its own row for the control and removes the old call's row.
-import { row, startup } from './row';
+import { row, startup, subscription } from './row';
 
 const adapter = (what: string) =>
   row(
@@ -16,6 +16,87 @@ const adapter = (what: string) =>
   );
 
 export const dawFeedback = {
+  // Linking Audacity (components/engine/AudacityLinkCard.tsx, useAudacityLink.ts; apps/desktop/bindings_audacity_link.go)
+  'src/components/engine/useAudacityLink.ts::audacityLink#1': row(
+    'mount',
+    'instant',
+    'na',
+    'na',
+    'ui',
+    'inline',
+    'na',
+    'ok',
+    "Reads the link state on open and when the window gets focus back; the host answers its last heartbeat without asking Audacity. A failed read is the card's inline alert with the reason.",
+  ),
+  'src/components/engine/useAudacityLink.ts::subscribeAudacityLink#1': subscription(
+    'The host pushes the link state when it changes (it asks Audacity every 2 s while the project records with it), so the card, the header chip and the engine panel follow Audacity starting, stopping or waiting on a dialog.',
+  ),
+  'src/components/engine/useAudacityLink.ts::audacityLinkCheck#1': row(
+    'click',
+    'instant',
+    'disabled',
+    'disabled',
+    'ui',
+    'inline',
+    'na',
+    'ok',
+    "Check again asks Audacity now, which takes up to the pipe's 5 s timeout while Audacity shows a dialog; the buttons read Checking and stay off until the answer is in, then the card shows it, or the failure under the card.",
+  ),
+  'src/components/engine/AudacityLinkCard.tsx::audacityEnableModule#1': row(
+    'click',
+    'file-io',
+    'disabled',
+    'disabled',
+    'ui',
+    'inline',
+    'na',
+    'ok',
+    "Turn on scripting edits Audacity's settings file; the buttons are off until the host answers, then the card shows the next step, and a refusal (Audacity open, no settings file yet) is the host sentence under the card.",
+  ),
+  'src/components/engine/AudacityLinkCard.tsx::audacityLinkFile#1': row(
+    'click',
+    'os-dialog',
+    'disabled',
+    'disabled',
+    'ui',
+    'inline',
+    'na',
+    'ok',
+    'Choose Audacity project file opens the file dialog and records the pick; the buttons are off meanwhile, cancelling changes nothing, and a refusal (not a .aup3, gone) is the host sentence under the card.',
+  ),
+  'src/components/engine/AudacityLinkCard.tsx::audacityLinkOpenProject#1': row(
+    'click',
+    'instant',
+    'disabled',
+    'disabled',
+    'ui',
+    'inline',
+    'na',
+    'ok',
+    'Link the open Audacity project writes one label into the project open in Audacity; the buttons are off until Audacity answers, the card then says linked, and a refusal (Audacity not answering, a dialog) is the host sentence under the card.',
+  ),
+  'src/components/engine/AudacityLinkCard.tsx::audacityUnlink#1': row(
+    'click',
+    'file-io',
+    'disabled',
+    'disabled',
+    'ui',
+    'inline',
+    'na',
+    'ok',
+    'Unlink forgets the recorded project file and link id; the buttons are off until the host answers, and the card then offers to link again.',
+  ),
+  'src/components/engine/AudacityLinkCard.tsx::launchDaw#1': row(
+    'click',
+    'instant',
+    'disabled',
+    'disabled',
+    'toast',
+    'inline',
+    'no',
+    'ok',
+    'Start Audacity reads Starting and the buttons are off while the detached spawn is in flight; the outcome is a toast, and a refusal (already running, not installed) is the host sentence under the card. The card then follows Audacity as it starts answering.',
+  ),
   'src/ports/daw.ts::dawCapabilities#1': adapter('Forwards the capability read.'),
   'src/ports/daw.ts::dawProjectState#1': startup(
     'The adapter forwards the saved-versus-live project state read (DawProjectState) unchanged; it changes nothing, and the page that adopts the port shows its answer or failure.',

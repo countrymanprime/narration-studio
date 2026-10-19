@@ -71,7 +71,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 139
+const hostAPIVersion = 140
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -272,10 +272,13 @@ type Host struct {
 	// read and move the narrator's place in the project. Nil (a true nil interface) with no bridge client or no such role.
 	placeFollower dawport.PlaceFollower
 	// backupKeeper is the DAW port's backups role: on an Audacity launch with a project open, the Audacity adapter's,
-	// over its own scripting pipe client, opened on the first request and closed when the next project replaces the role.
+	// over the project's one scripting pipe client (h.audacity), opened on the first request and closed when the next project
+	// replaces it.
 	// DawBackupAround and DawRestoreBackup (bindings_daw_backups.go) ask it to clone and restore audio, and the host prunes it
 	// when the project opens. Nil otherwise.
 	backupKeeper dawport.BackupKeeper
+	// audacity is the open project's one Audacity connection (audacityconn.go): nil unless the project records with Audacity.
+	audacity *audacityConn
 	// actions is the action commands' client on the same bridge (chapter regions, chapterregions.go); swappable like
 	// transcript, and it reads the experimental switch on every request.
 	actions *bridge.Actions
@@ -405,6 +408,11 @@ type Host struct {
 	reaperLocate  func() (path, source string, err error)
 	// audacityLocate is DawChoice's seam for daw.LocateAudacityExecutable (bindings_dawchoice.go); nil means the real one.
 	audacityLocate func() (path, source string, err error)
+	// audacityRunning, audacityLaunch and audacityConfig are the link state's seams (bindings_audacity_link.go, dawlaunch.go): nil
+	// means daw.IsRunning, daw.Launch and %APPDATA%\audacity\audacity.cfg.
+	audacityRunning func() bool
+	audacityLaunch  func(program string, args []string) error
+	audacityConfig  func() string
 	// dawCatalogDetectors is a seam for tests (dawcatalog.go): nil means dawcatalog.DefaultDetectors(), the real
 	// per-entry registry/path lookups. Detection is stateless and not project-scoped, so unlike the swappable
 	// services above it needs no lock or snapshot - it is set once (or left nil) and read directly.
@@ -765,14 +773,15 @@ func (h *Host) configureLocked(next config) {
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
 		h.monitorLeveler, h.placeFollower = nil, nil
 	}
-	if previous, ok := h.backupKeeper.(audacityBackups); ok {
-		previous.closePipe()
+	if h.audacity != nil {
+		h.audacity.close()
 	}
 	// Only an Audacity project has a backups role: REAPER and the built-in recorder declare backups not yet
-	// available or unsupported, and the table lives in the project folder.
-	h.backupKeeper = nil
+	// available or unsupported, and the table lives in the project folder. The same connection serves every other Audacity role.
+	h.backupKeeper, h.audacity = nil, nil
 	if h.config.projectFolder != "" && projectKind == dawport.KindAudacity {
-		h.backupKeeper = audacityBackupsFor(h.config.projectFolder, h.persist, settingsStore)
+		h.audacity = newAudacityConn(h.config.projectFolder, h.persist, settingsStore)
+		h.backupKeeper = h.audacity.backups
 		// The prune runs after the lock is released, over a snapshot taken here: services() cannot be called under h.mu.
 		snapshot := hostServices{config: h.config, settings: h.settings, bridge: h.bridge, reachability: h.reachability, backupKeeper: h.backupKeeper}
 		go h.pruneBackupsOnOpen(snapshot, h.backupKeeper)
@@ -1211,6 +1220,7 @@ func (h *Host) pollTranscript() {
 	h.pollDawCapabilities()
 	h.pollDawTransport()
 	h.pollDawProjectState()
+	h.pollAudacityLink()
 }
 
 // ServiceShutdown is Wails v3's stop hook for the Host service: the window is closing or the app was asked to quit.
@@ -1551,6 +1561,10 @@ func (h *Host) Bootstrap() map[string]any {
 		transcriptState = svc.transcript.Snapshot()
 	}
 	dawFileLinked, dawReachable, dawProjectMatches := dawLinkFacts(h.persist, config.projectFolder, config.daw, svc.reachability)
+	// An Audacity project has no .rpp and no REAPER heartbeat: its facts are the Audacity link's (bindings_audacity_link.go).
+	if linked, reachable, matches, ok := h.audacityLinkFacts(svc); ok {
+		dawFileLinked, dawReachable, dawProjectMatches = linked, reachable, matches
+	}
 	h.traceDawLink(config.projectFolder, concreteReachability(svc.reachability), dawFileLinked, dawReachable, dawProjectMatches)
 	return map[string]any{
 		"apiVersion": hostAPIVersion, "diagnosticId": h.diagnostic, "version": h.version,

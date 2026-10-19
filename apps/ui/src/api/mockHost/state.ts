@@ -1,4 +1,5 @@
 // The mock host (mockApi.ts): its seeds and shared state.
+import type { AudacityLinkMockSeed } from '../audacityLinkMock';
 import type { DawChoiceMockSeed } from '../dawChoiceMock';
 import type {
   ApprovedCharacterReference,
@@ -237,6 +238,8 @@ export type MockApiSeed = {
   dawScript?: DawMockScript;
   /** The project's DAW choice and folder (`?mockDawChoice=`; dawChoiceMock.ts). */
   dawChoice?: DawChoiceMockSeed;
+  /** How far the app is from talking to Audacity (`?mockAudacityLink=`; audacityLinkMock.ts). */
+  audacityLink?: AudacityLinkMockSeed;
   /** Seeds the provider capabilities mock (platform, installed asset counts), see `ProvidersMockSeed`. */
   providers?: ProvidersMockSeed;
   /**

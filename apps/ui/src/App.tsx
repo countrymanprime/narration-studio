@@ -53,6 +53,7 @@ import { NotFoundPage } from './components/layout/NotFoundPage';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
 import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
+import { useAudacityLink } from './components/engine/useAudacityLink';
 import { RetiredTracksRoute } from './components/engine/RetiredTracksRoute';
 import { ProofChapterPage } from './components/proof/ProofChapterPage';
 import { ProofPage } from './components/proof/ProofPage';
@@ -170,6 +171,8 @@ function AppRoutes() {
   const journal = useJournal();
   const overlay = useOverlay();
   const dawKind = useDawKind();
+  // Audacity's link state (null-safe: `chosen` is false for a project that records elsewhere); the header chip reads it for an Audacity project.
+  const audacityLink = useAudacityLink();
   const theme = useTheme();
   const toggleTheme = () => theme.setPreference(theme.resolved === 'dark' ? 'light' : 'dark');
   const keymap = useUserKeymap();
@@ -271,12 +274,24 @@ function AppRoutes() {
       const held = bootstrapRef.current;
       if (held && caps.daw === 'REAPER' && caps.reachable !== held.dawReachable) again();
     });
+    // An Audacity project's three facts are the Audacity link's (the host's Bootstrap), so they are read again when the link changes them.
+    const unsubscribeAudacity = api.subscribeAudacityLink((link) => {
+      const held = bootstrapRef.current;
+      if (!held || !link.chosen) return;
+      if (
+        link.linked !== held.dawFileLinked ||
+        (link.state === 'answering') !== held.dawReachable ||
+        (link.openProject === 'linked') !== held.dawProjectMatches
+      )
+        again();
+    });
     const onFocus = () => {
       if (bootstrapRef.current && Date.now() - lastRead > DAW_FACTS_FOCUS_MS) again();
     };
     window.addEventListener('focus', onFocus);
     return () => {
       unsubscribe();
+      unsubscribeAudacity();
       window.removeEventListener('focus', onFocus);
     };
   }, [api, refreshBootstrap]);
@@ -827,6 +842,7 @@ function AppRoutes() {
             linkingDawFile={dawLink.isBusy}
             engine={engine}
             daw={dawKind}
+            audacity={audacityLink.link}
             navCounts={navCounts}
             onOpenJump={() => openJump()}
             onOpenZoomMenu={() => openJump(undefined, 'Zoom')}

@@ -92,3 +92,11 @@ func TestRebuildsServices(t *testing.T) {
 		t.Error("a move between REAPER and the built-in recorder rebuilds nothing")
 	}
 }
+
+func TestHasScriptingPipeIsAudacityAlone(t *testing.T) {
+	for kind, want := range map[Kind]bool{KindAudacity: true, KindREAPER: false, KindBuiltIn: false, KindNone: false} {
+		if got := kind.HasScriptingPipe(); got != want {
+			t.Errorf("%s.HasScriptingPipe() = %v, want %v", kind, got, want)
+		}
+	}
+}

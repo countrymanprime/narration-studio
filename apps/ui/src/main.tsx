@@ -1,3 +1,4 @@
+import { AUDACITY_LINK_MOCK_SEEDS, type AudacityLinkMockName } from './api/audacityLinkMock';
 import { DAW_CHOICE_MOCK_SEEDS, type DawChoiceMockName } from './api/dawChoiceMock';
 import { DAW_MOCK_SCRIPTS, type DawMockControl, type DawMockSeed } from './api/dawMock';
 import { BOOTH_STRESS, MIC_STRESS, boothStressSeed, micStressDevices } from './fixtures/boothStress';
@@ -86,6 +87,11 @@ const mockDawScript = DAW_MOCK_SCRIPTS.find((script) => script === mockDawScript
 // one, a REAPER that is not answering: Settings > Recording's link and start rows and the Booth chip's states, without a host.
 const mockDawChoiceName = mockParams.get('mockDawChoice');
 const mockDawChoice = mockDawChoiceName && mockDawChoiceName in DAW_CHOICE_MOCK_SEEDS ? (mockDawChoiceName as DawChoiceMockName) : undefined;
+// `?mockAudacityLink=first-start|module-off|not-running|needs-restart|answering|linked|dialog|no-project|audacity4|not-installed` boots a
+// project that records with Audacity, at that point on the way to a working link (audacityLinkMock.ts): Settings > Recording's
+// Audacity card, the engine panel and the header chip, without a host.
+const mockAudacityLinkName = mockParams.get('mockAudacityLink');
+const mockAudacityLink = mockAudacityLinkName && mockAudacityLinkName in AUDACITY_LINK_MOCK_SEEDS ? (mockAudacityLinkName as AudacityLinkMockName) : undefined;
 // `?mockCreditsMissing=1` drops the closing credit templates: Home's chapter table shows the
 // Closing credits row as "Not set up" with a link to Settings > Credits.
 const mockCreditsMissing = mockParams.has('mockCreditsMissing');
@@ -621,11 +627,13 @@ const mockInitial = {
   ...(mockProofingRenderStale ? { proofingRender: { [WIRE_CHAPTERS[8].id]: { state: 'stale' as const } } } : {}),
   ...(mockDawScript ? { dawScript: mockDawScript, dawFileLinked: false } : {}),
   ...(mockDawChoice ? { dawChoice: DAW_CHOICE_MOCK_SEEDS[mockDawChoice] } : {}),
+  ...(mockAudacityLink ? { audacityLink: AUDACITY_LINK_MOCK_SEEDS[mockAudacityLink] } : {}),
   daw: mergeDawSeeds(
     mockScenario?.seed.daw,
     mockDawExperimentalOn ? { experimentalOn: true } : undefined,
-    mockDawAudacity ? { daw: 'Audacity' } : undefined,
+    mockDawAudacity || mockAudacityLink ? { daw: 'Audacity' } : undefined,
     mockDawScript ? { connected: false } : undefined,
+    mockAudacityLink ? { connected: true, reachable: mockAudacityLink === 'answering' || mockAudacityLink === 'linked' } : undefined,
     mockRegionsCapabilityOn ? { toggles: { regions: 'on' } } : undefined,
     mockPunchCapabilityOn ? { toggles: { punch: 'on' } } : undefined,
     mockRecordCapabilityOn ? { toggles: { record: 'on' } } : undefined,

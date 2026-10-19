@@ -116,12 +116,12 @@ const MESSAGE_EXPERIMENTAL_OFF = 'Experimental: switched off in Settings.';
 /** docs/architecture/daw-integration.md#audacity-boundary's sentence, for what an Audacity launch does not build. */
 const MESSAGE_AUDACITY_NOT_YET =
   "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.";
-/** An Audacity launch's built but Experimental capabilities while no page opens the pipe (
+/** An Audacity capability while the project does not record with Audacity, so the host holds no pipe to it (
  * apps/desktop/internal/dawport/audacity/audacity.go's Declaration). */
-const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this app yet. This part of Audacity support is still being tested.";
+const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.";
 /** The Audacity adapter over its pipe, when the pipe is missing or silent (audacity.go's messageNotReachable). */
 const MESSAGE_AUDACITY_NOT_REACHABLE =
-  'Audacity is not answering. Open Audacity 3 with mod-script-pipe enabled in Preferences > Modules, then try again. Audacity 4.0 has no scripting pipe.';
+  'Audacity is not answering. Open the Audacity chip at the top for the steps: Audacity 3 must be open with scripting turned on (Audacity 4.0 has no scripting pipe).';
 /** What Audacity has only with its backups on, and the words its refusal starts with (audacity.go's needBackups, SN-D83). */
 const AUDACITY_NEED_BACKUPS: Partial<Record<DawCapabilityKey, string>> = {
   takes: 'Keeping takes',

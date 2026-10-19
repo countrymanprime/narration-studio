@@ -48,7 +48,7 @@ import type { EditWordFxApi } from '../api/contracts/wordFx';
 import type { EditStacksApi } from '../api/contracts/editStacks';
 import type { WorkspaceApi } from '../api/contracts/workspace';
 import type { PreviewApi } from '../api/contracts/preview';
-import type { DawCapabilitiesApi, DawChoiceApi } from '../api/contracts/daw';
+import type { AudacityLinkApi, DawCapabilitiesApi, DawChoiceApi } from '../api/contracts/daw';
 import type {
   DawBackupsApi,
   DawDeleteRangeApi,
@@ -149,6 +149,7 @@ export type {
   DawFilesApi,
   MasterFilesApi,
   DawProjectStateApi,
+  AudacityLinkApi,
   ProviderCapabilitiesApi,
   MasteringApi,
   RecordingApi,
@@ -213,6 +214,7 @@ export interface PortMap {
   preview: PreviewApi;
   dawCapabilities: DawCapabilitiesApi;
   dawChoice: DawChoiceApi;
+  audacityLink: AudacityLinkApi;
   dawHideTakes: DawHideTakesApi;
   dawRoll: DawRollApi;
   dawDeleteRange: DawDeleteRangeApi;

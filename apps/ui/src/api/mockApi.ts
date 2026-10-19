@@ -14,6 +14,7 @@ import { createPreviewMock } from './previewMock';
 import { createProductionMock } from './productionMock';
 import { createStagesMock } from './stagesMock';
 import { createProofingRenderMock } from './proofingRenderMock';
+import { createAudacityLinkMock } from './audacityLinkMock';
 import { createDawChoiceMock } from './dawChoiceMock';
 import { createDawMock } from './dawMock';
 import type { RecordingApi } from './contracts/recording';
@@ -139,8 +140,16 @@ export function createMockApi(
   const dawSeed = mockEngineFromLocation() === 'builtin' && !initial.daw?.daw ? { ...initial.daw, daw: 'Built-in' as const } : initial.daw;
   const dawMock = createDawMock(dawSeed, initial.dawScript);
   const { control: dawControl, ...daw } = dawMock;
+  // Audacity's link state (audacityLinkMock.ts): Start Audacity moves it, REAPER's launch is the DAW mock's.
+  const { launched: audacityLaunched, ...audacityLink } = createAudacityLinkMock(initial.audacityLink ?? {}, { capabilities: () => daw.dawCapabilities() });
   const project = createProjectMock(initial, {
-    launch: () => dawControl.launch(),
+    launch: async () => {
+      if ((await daw.dawCapabilities()).daw === 'Audacity') {
+        audacityLaunched();
+        return 'started';
+      }
+      return dawControl.launch();
+    },
     relinked: () => dawControl.linkedOpenProject(),
     linked: initial.dawChoice ? (initial.dawChoice.linkedFile === undefined ? true : initial.dawChoice.linkedFile !== null) : undefined,
   });
@@ -460,6 +469,7 @@ export function createMockApi(
     ...findings,
     ...daw,
     ...dawChoice,
+    ...audacityLink,
     ...createHideTakesMock(daw, workspaceTakes),
     ...createRollMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createDeleteRangeMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
@@ -497,7 +507,17 @@ export function createMockApi(
     ...createWorkspaceSnapMock(),
     ...createPronunciationSourcesMock(),
   };
-  const recorded: NarrationApi = { ...base, ...recordingUndo(base, undoHistory) };
+  // An Audacity project's three DAW facts are the Audacity link's, as the host's Bootstrap makes them (bindings_audacity_link.go).
+  const withAudacityFacts: NarrationApi = {
+    ...base,
+    bootstrap: async () => {
+      const [boot, link] = await Promise.all([base.bootstrap(), audacityLink.audacityLink()]);
+      return link.chosen
+        ? { ...boot, dawFileLinked: link.linked, dawReachable: link.state === 'answering', dawProjectMatches: link.openProject === 'linked' }
+        : boot;
+    },
+  };
+  const recorded: NarrationApi = { ...withAudacityFacts, ...recordingUndo(withAudacityFacts, undoHistory) };
   const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
   // A driver (Playwright, a console) plays REAPER's side of the mock DAW from here: kill it, restart it, open another project.

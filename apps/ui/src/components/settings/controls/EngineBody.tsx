@@ -6,6 +6,8 @@ import { Button } from '../../primitives/Button';
 import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { engineChanged } from '../data/engineSignal';
+import { AudacityLinkCard } from '../../engine/AudacityLinkCard';
+import { useAudacityLink } from '../../engine/useAudacityLink';
 import { useSettingsHost } from '../row/SettingsHost';
 
 /** One engine's honest state under its radio: not found on this computer, or why it cannot record now, in the host's sentence. */
@@ -14,7 +16,9 @@ function optionDescription(option: DawChoiceOption): ReactNode {
   if (option.installed === false) {
     lines.push(
       <span key="installed">
-        {option.daw} was not found on this computer. Install it, or set where it is under Advanced, in the REAPER program setting below.{' '}
+        {option.daw === 'Audacity'
+          ? 'Audacity 3 was not found on this computer. Install it, or choose another recorder. '
+          : `${option.daw} was not found on this computer. Install it, or set where it is under Advanced, in the REAPER program setting below. `}
       </span>,
     );
   }
@@ -125,6 +129,7 @@ export function EngineBody() {
   const project = usePort('project');
   const catalog = usePort('dawCatalog');
   const { data, notify, onLinkDawFile } = useSettingsHost();
+  const audacity = useAudacityLink();
   const [choice, setChoice] = useState<DawChoice>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -238,7 +243,8 @@ export function EngineBody() {
           This window was opened from {daw}, so it records with {daw} until the app is opened another way. The choice saved for this project is {choice.chosen}.
         </p>
       )}
-      {status && (
+      {daw === 'Audacity' && state !== 'app' && <AudacityLinkCard view={audacity} notify={notify} />}
+      {daw !== 'Audacity' && status && (
         <div
           role="group"
           aria-label="Connection"

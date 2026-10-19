@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import type { Notify } from '../primitives/Toast';
 import { useStageRecommendations } from '../stages/useStageRecommendations';
+import { AudacityLinkCard } from './AudacityLinkCard';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
 import { ChapterTagsDialog } from './ChapterTagsDialog';
@@ -19,6 +20,7 @@ import { CreateChapterRegionsDialog } from './CreateChapterRegionsDialog';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
 import { RenderConfigDialog } from './RenderConfigDialog';
 import { RetakeLanesDialog } from './RetakeLanesDialog';
+import { useAudacityLink } from './useAudacityLink';
 import type { ManuscriptChapter, Track, TrackMapping, TracksDiscovery, TracksProject } from '../../types';
 
 function basename(path: string): string {
@@ -48,9 +50,28 @@ export type EngineLinkState = {
 export function EnginePanel({ open, onClose, notify, link }: { open: boolean; onClose: () => void; notify: Notify; link: EngineLinkState }) {
   return (
     <SlideOver open={open} title="Audio engine" closeLabel="Close the engine panel" size="wide" headingLevel={2} onClose={onClose}>
-      <EnginePanelBody notify={notify} link={link} />
+      <EnginePanelFor notify={notify} link={link} />
     </SlideOver>
   );
+}
+
+/** An Audacity project gets the Audacity link; any other gets REAPER's project, tools and tracks. */
+function EnginePanelFor({ notify, link }: { notify: Notify; link: EngineLinkState }) {
+  const audacity = useAudacityLink();
+  if (audacity.link?.chosen) {
+    return (
+      <div className="space-y-4">
+        <Panel title="Audacity project">
+          <AudacityLinkCard view={audacity} notify={notify} />
+        </Panel>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          Audacity keeps no tracks per chapter and no render setup the app can read, so chapter sync, track links and the REAPER tools are not shown. The app
+          marks lines, pickups and chapters in Audacity as labels on a label track named &ldquo;Narration Utils&rdquo;.
+        </p>
+      </div>
+    );
+  }
+  return <EnginePanelBody notify={notify} link={link} />;
 }
 
 function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkState }) {

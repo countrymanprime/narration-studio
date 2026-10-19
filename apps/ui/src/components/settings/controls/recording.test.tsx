@@ -154,8 +154,9 @@ describe('Recording & DAW: Record with', () => {
 
   it("names no .rpp file under Audacity and shows the host's refusal of the built-in recorder", async () => {
     await renderPage({ api: createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' } }), category: 'Recording & DAW' });
-    await screen.findByRole('group', { name: 'Connection' });
-    expect(screen.getByRole('group', { name: 'Connection' }).textContent).not.toMatch(/\.rpp/);
+    await screen.findByRole('group', { name: 'Audacity connection' });
+    expect(screen.queryByRole('group', { name: 'Connection' })).toBeNull();
+    expect(screen.getByRole('group', { name: 'Audacity connection' }).textContent).not.toMatch(/\.rpp/);
     cleanup();
     await renderPage({ api: createMockApi({}, foundSeed), category: 'Recording & DAW' });
     fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
