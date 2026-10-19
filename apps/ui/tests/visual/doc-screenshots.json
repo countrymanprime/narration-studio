@@ -141,6 +141,13 @@
   },
   {
     "page": "production",
+    "state": "stage-suggestion-options",
+    "viewport": "desktop",
+    "docName": "production-stage-suggestion-options",
+    "caption": "Production - the Stage suggestion options dialog opened from Jump to or run"
+  },
+  {
+    "page": "production",
     "state": "stage-evidence-recommended",
     "viewport": "desktop",
     "docName": "production-stage-evidence",

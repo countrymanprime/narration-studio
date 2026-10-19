@@ -241,6 +241,13 @@ export const productionStates: StateEntry[] = [
   // found short (evidence changed), Chapter 8 confirmed on evidence that still holds.
   {
     page: 'production',
+    state: 'stage-suggestion-options',
+    description:
+      "Production, the Stage suggestion options dialog opened from the jump menu (?mockStages=mixed): the switch and each readiness signal as Required or Ignored, this project's values",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'production',
     state: 'stage-evidence-recommended',
     description:
       'Production, the evidence of a suggestion in its slide-over: the verdict, Confirm and Dismiss, the recording check met with its evidence, the saved-project basis and its age, Check now',
