@@ -73,7 +73,7 @@ Method: each mock case is a row below, mapped to a real test by reading the real
 | batch-b.test.tsx | colours the Due card and the days on Production | ported | apps/ui/src/components/production/overview/overview.test.tsx::due-tile-uses-the-deadline-tone |  |
 | batch-b.test.tsx | shows a finished book as finished | covered | apps/ui/src/components/schedule/SchedulePage.test.tsx::reads Finished when every chapter is delivered, whatever the date | Production's header uses the same verdict. |
 | batch-b.test.tsx | keeps ours: the work that costs the most hours leads | ported | apps/ui/src/components/production/pipeline/nextUpRanking.test.ts::lists the most work-hours at risk first, then an item with no hours by group and stage |  |
-| batch-b.test.tsx | breaks ties by group (in progress and not ready first), then the least advanced stage | ported | apps/ui/src/components/production/pipeline/nextUpRanking.test.ts::breaks a tie of hours by group, then by the least advanced stage |  |
+| batch-b.test.tsx | breaks ties by group (in progress and not ready first), then the least advanced stage | ported | apps/ui/src/components/production/pipeline/nextUpRanking.test.ts::lists the most work-hours at risk first, then an item with no hours by group and stage |  |
 | batch-b.test.tsx | draws the items in that order | ported | apps/ui/src/components/production/pipeline/pipeline.test.tsx::next-up-ranks-by-risk-then-group-then-stage |  |
 | batch-b.test.tsx | This week is worked out from the take log through the provider | ported | apps/ui/src/components/production/measured/measured.selectors.test.ts::week-figures-use-the-last-seven-days-and-the-weekly-target |  |
 | batch-b.test.tsx | shows what a different provider reports, not a fixed figure | covered | apps/ui/src/components/production/measured/useMeasured.test.tsx::hook-reads-once-and-on-change | The figures come from the host read, so another host answer shows another figure. |
@@ -126,7 +126,7 @@ Agreed rulings of the Production and Schedule pages. The index holds their text:
 | PR-2 | apps/ui/src/components/schedule/progress.test.ts::is neutral beyond a week, a warning at a week or less, danger once past, success when finished |
 | PR-3 | apps/ui/src/components/production/overview/overview.test.tsx::chart-plan-actual-projection |
 | PR-4 | apps/ui/src/components/production/pipeline/pipeline.test.tsx::cells-go-to-their-stage-and-chapter |
-| PR-5 | apps/ui/src/components/production/pipeline/nextUpRanking.test.ts::breaks a tie of hours by group, then by the least advanced stage |
+| PR-5 | apps/ui/src/components/production/pipeline/nextUpRanking.test.ts::lists the most work-hours at risk first, then an item with no hours by group and stage |
 | PR-6 | apps/ui/src/components/production/measured/measured.selectors.test.ts::week-figures-never-invent-a-number |
 | PR-7 | apps/ui/src/components/schedule/SchedulePage.test.tsx::changes with the date field, as one journal entry, and the header reads the new date |
 | PR-8 | apps/desktop/internal/coverage/read_test.go::TestAManuscriptTextChangeMakesTheResultStale |
