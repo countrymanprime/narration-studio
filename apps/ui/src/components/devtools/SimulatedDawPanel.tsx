@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import { clock, type SimulatedDaw, type SimulatedDawEvent } from '../../api/mockHost/simulatedDaw';
 import { Button } from '../primitives/Button';
+import { Dot } from '../primitives/StatusBadge';
 
 // The public demo's "Simulated DAW" badge and panel (src/api/mockHost/simulatedDaw.ts holds what it shows). It is the demo's stand-in for the
 // window of REAPER or Audacity beside the app: where the cursor is, the take markers dropped, the takes recorded and what the app asked the DAW
@@ -78,14 +79,8 @@ export function SimulatedDawPanel({
       className="fixed right-3 bottom-24 z-[var(--z-takeover)] flex max-w-[calc(100vw-1.5rem)] flex-col-reverse items-end gap-2 text-sm font-[var(--font-body,inherit)]"
       data-simulated-daw
     >
-      <Button
-        variant="secondary"
-        aria-expanded={open}
-        aria-controls="simulated-daw-panel"
-        onClick={() => setOpen((was) => !was)}
-        className="rounded-full shadow-[var(--shadow,0_1px_4px_rgba(0,0,0,0.2))]"
-      >
-        <span aria-hidden="true" className="inline-block size-2 rounded-full" style={{ background: answering ? 'var(--ok)' : 'var(--non-text)' }} />
+      <Button variant="secondary" size="sm" aria-expanded={open} aria-controls="simulated-daw-panel" onClick={() => setOpen((was) => !was)}>
+        <Dot color={answering ? 'var(--ok)' : 'var(--text-muted)'} />
         <span>
           Simulated DAW · {daw}
           {snapshot.recording ? ' · recording' : ''}
