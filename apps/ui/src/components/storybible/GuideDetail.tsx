@@ -19,7 +19,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import type { GuideEntity, GuidePreview, GuideType, TtsInstallJob } from '../../types';
 import { canSpeak } from '../../storyBibleTypes';
-import { categoryLabel, categoryValue, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
+import { categoryLabel, CREATABLE_CATEGORIES, findAliasMatches } from '../../state';
 import { useApi } from '../../api/ApiContext';
 import { usePort } from '../../ports/usePort';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
@@ -648,13 +648,13 @@ export function GuideDetail({
             triggerClassName={badgeClass('pill')}
             triggerStyle={badgeStyle(kindChipColors('entity', entryColour(types, entity.category)))}
             disabled={locked || !(editing || isNewDraft) || mutation.isBusy}
-            items={CREATABLE_CATEGORIES.map((label) => ({
+            items={(types.length > 0 ? types.map((type) => type.name) : CREATABLE_CATEGORIES).map((label) => ({
               key: label,
               label,
-              leading: <Dot color={dotOf(categoryValue(label))} />,
+              leading: <Dot color={dotOf(label)} />,
               onSelect: () => {
-                if (isNewDraft) void createNewEntity(categoryValue(label));
-                else void save('category', { category: categoryValue(label) }, `Category changed to ${label}.`);
+                if (isNewDraft) void createNewEntity(label);
+                else void save('category', { category: label }, `Category changed to ${label}.`);
               },
             }))}
           >
@@ -667,7 +667,7 @@ export function GuideDetail({
       }
       actions={
         <>
-          {entryFlagged(entity) &&
+          {(entryFlagged(entity) || toVerify > 0) &&
             (toVerify > 0 ? (
               <TooltipTarget text={VERIFY_FIRST_REASON}>
                 <Button variant="secondary" size="sm" disabled>

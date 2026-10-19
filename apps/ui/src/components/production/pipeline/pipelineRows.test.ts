@@ -73,7 +73,7 @@ describe('proof-cell-counts-cleared-notes', () => {
   it('reads "N of M notes cleared" as the tip and the name', () => {
     const [row] = rowsOf([chapter('c2', { status: 'proofing' })], { proof: { c2: { cleared: 6, total: 9 } } });
     expect(row!.cells.proof.tip).toBe('6 of 9 notes cleared');
-    expect(cellName(row!.name, row!.cells.proof)).toBe('Chapter 2: Proof 6 of 9 notes cleared');
+    expect(cellName(row!.name, row!.cells.proof)).toBe('Chapter 2: Proof 66%, 6 of 9 notes cleared');
   });
 
   it('reads Proofed for a finalized chapter with no notes, Not started for another', () => {

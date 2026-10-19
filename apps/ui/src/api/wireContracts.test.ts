@@ -4280,6 +4280,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeLiveUpdateHealth',
       'subscribeNotices',
       'subscribeJobEnded',
+      'subscribeManuscriptDropped',
       'subscribeVoiceSamples',
       'subscribeTranscript',
       'subscribeCoverage',

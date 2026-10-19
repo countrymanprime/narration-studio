@@ -2,7 +2,7 @@ import { useState, type DragEvent } from 'react';
 import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
 
-/** What a drop can hand over. A browser `File` has no path; a host that reads paths from a drop would add one (the desktop host does not yet). */
+/** What a drop on the zone can hand over in a browser. A browser `File` has no path: in the desktop app the host reads the dropped file itself (`hostProblem`, `data-file-drop-target`). */
 export type DroppedManuscript = { name: string; path?: string };
 
 /**
@@ -16,6 +16,7 @@ export function ImportChooseDialog({
   choosing,
   onChoose,
   onDrop,
+  hostProblem,
   cancel,
 }: {
   replacing: boolean;
@@ -26,6 +27,8 @@ export function ImportChooseDialog({
   onChoose: () => void;
   /** A file was dropped on the zone. It answers in words when the drop cannot be used, so the zone never fails silently. */
   onDrop: (file: DroppedManuscript) => string | undefined;
+  /** Why the host could not use a file dropped on the zone (it checks the file and starts the import itself). */
+  hostProblem?: string;
   cancel: () => void;
 }) {
   const [over, setOver] = useState(false);
@@ -59,6 +62,8 @@ export function ImportChooseDialog({
         </div>
         <div
           data-drop-zone
+          // Wails reports an operating-system drop only over an element marked like this (the host then reads the path, never the page).
+          data-file-drop-target
           onDragOver={(event) => {
             event.preventDefault();
             setOver(true);
@@ -74,9 +79,9 @@ export function ImportChooseDialog({
             Choose a file…
           </Button>
         </div>
-        {problem && (
+        {(problem ?? hostProblem) && (
           <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-            {problem}
+            {problem ?? hostProblem}
           </p>
         )}
         <p className="text-sm text-[var(--text-muted)]">The manuscript is read-only. Your marks and notes are stored separately.</p>

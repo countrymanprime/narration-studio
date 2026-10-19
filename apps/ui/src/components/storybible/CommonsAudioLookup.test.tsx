@@ -25,14 +25,14 @@ describe('CommonsAudioLookup', () => {
   it('opens the word alone, only when pressed', async () => {
     const { open } = setup('Happy');
     expect(open).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', { name: 'Listen to Happy on Wikimedia Commons' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Listen on Commons: Happy' }));
     expect(open).toHaveBeenCalledTimes(1);
     expect(open).toHaveBeenCalledWith('Happy');
   });
 
   it('shows a clear reason inline for a word with no recorded audio', async () => {
     setup('gloomy');
-    await userEvent.click(screen.getByRole('button', { name: 'Listen to gloomy on Wikimedia Commons' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Listen on Commons: gloomy' }));
     expect(await screen.findByText('No Wikimedia Commons audio file is recorded for "gloomy".')).toBeTruthy();
   });
 
@@ -43,6 +43,6 @@ describe('CommonsAudioLookup', () => {
         <CommonsAudioLookup name="Happy" disabled />
       </ApiProvider>,
     );
-    expect((screen.getByRole('button', { name: 'Listen to Happy on Wikimedia Commons' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Listen on Commons: Happy' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

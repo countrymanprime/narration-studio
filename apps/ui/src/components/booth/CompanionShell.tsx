@@ -188,9 +188,10 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           <Toolbar label="Companion commands">
             <ToolbarButton
               render={
-                <Button aria-label={playPauseLabel} aria-pressed={listening} onClick={onPlayPause} disabled={playPauseDisabled} size="sm">
-                  <Kbd keys={['Space']} />
-                  {playPauseLabel}
+                // Named by what it draws, the key and the action ("Space Play"): an aria-label of the action alone leaves out the key
+                // the button draws, which axe's label-content-name-mismatch fails.
+                <Button aria-pressed={listening} onClick={onPlayPause} disabled={playPauseDisabled} size="sm">
+                  <Kbd keys={['Space']} /> {playPauseLabel}
                 </Button>
               }
             />

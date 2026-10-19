@@ -34,12 +34,12 @@ export function NavDrawer({ open, onClose, children }: { open: boolean; onClose:
       <Drawer.Portal>
         <Drawer.Backdrop
           data-nav-drawer-backdrop
-          className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)] data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 motion-ok:transition-opacity motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter)"
+          className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)] motion-ok:transition-opacity motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter) data-[ending-style]:motion-ok:opacity-0 data-[starting-style]:motion-ok:opacity-0"
         />
         <Drawer.Viewport className="fixed inset-0 z-[var(--z-dialog)] flex items-stretch justify-start">
           <Drawer.Popup
             finalFocus={finalFocus}
-            className="relative flex h-full w-[min(17rem,86vw)] [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col overflow-y-auto bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none data-[ending-style]:[transform:translateX(-100%)] data-[starting-style]:[transform:translateX(-100%)] data-[swiping]:duration-0 motion-ok:transition-transform motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter)"
+            className="relative flex h-full w-[min(17rem,86vw)] [transform:translateX(var(--drawer-swipe-movement-x,0px))] flex-col overflow-y-auto bg-[var(--surface)] shadow-[var(--shadow-lg)] outline-none data-[swiping]:duration-0 motion-ok:transition-transform motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-enter) data-[ending-style]:motion-ok:[transform:translateX(-100%)] data-[starting-style]:motion-ok:[transform:translateX(-100%)]"
           >
             <Drawer.Title className="sr-only">Navigation</Drawer.Title>
             <IconButton label="Close navigation" onClick={onClose} className="absolute top-3 right-3">

@@ -231,7 +231,7 @@ export function useStackRetries({ journal, chapterId, lines, passageOf }: StackO
           if (!yes) return;
           const result = await journal.act(cleanUpCommand(daw, line, keptId, others.length, dawName));
           if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
-          overlay.toastUndo(result.value.value.message, () => journal.undo(result.value.id));
+          overlay.toastUndo(result.value.value.message, () => journal.undo(result.value.id), { entry: result.value.id });
         });
     },
     [merged, settings, journal, daw, dawName],

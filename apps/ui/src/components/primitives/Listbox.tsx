@@ -73,7 +73,7 @@ export function Listbox({
                 aria-selected={selectedId === undefined ? active : selected}
                 aria-disabled={option.disabled || undefined}
                 aria-describedby={option.hint ? `${listboxOptionId(id, option.id)}-hint` : undefined}
-                className={`flex w-full items-center gap-2 px-3 py-2 text-left ${option.action ? 'min-w-0 flex-1' : `hover:bg-[var(--surface-2)] ${active ? 'bg-[var(--surface-2)]' : ''}`}`}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left aria-disabled:cursor-not-allowed aria-disabled:opacity-55 ${option.action ? 'min-w-0 flex-1' : `not-aria-disabled:hover:bg-[var(--surface-2)] ${active ? 'bg-[var(--surface-2)]' : ''}`}`}
                 // A press picks without taking focus from the text box that drives the list.
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => onPick(option.id)}

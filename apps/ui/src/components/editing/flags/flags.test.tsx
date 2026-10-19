@@ -113,7 +113,7 @@ describe('accepting records the words and Undo puts the flag back', () => {
     const changed = vi.fn();
     render(<Harness journal={journal} chapterId="c1" keys={['p-1:7']} api={api} />);
     fireEvent.click(screen.getByText('go'));
-    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Not flagged any more.', expect.any(Function)));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalledWith('Not flagged any more.', expect.any(Function), { entry: expect.any(Number) }));
     expect(accept).toHaveBeenCalledWith('c1', ['p-1:7']);
     expect((await journal.entries()).length).toBe(1);
     const undo = toastUndo.mock.calls[0][1];
