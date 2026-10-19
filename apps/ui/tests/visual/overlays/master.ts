@@ -13,6 +13,13 @@ const picker = (page: Page) => page.getByRole('button', { name: /^Chapter: / });
 async function measured(page: Page): Promise<void> {
   if (await masterFileRows(page).first().isVisible()) return;
   await measureOnMaster(page);
+  // The rows arrive while the run is still going. When it ends, Cancel goes away and focus returns to the check button (MeasureProgress), which
+  // scrolls the page back to the top, so a case that scrolled a control into view and hovered it before then lost the control under its hint.
+  await page
+    .getByRole('button', { name: /^Re-check \d+ files?$/ })
+    .and(page.locator(':enabled'))
+    .waitFor();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
 const afterMeasuring = (overlay: OverlayCase): OverlayCase => ({
