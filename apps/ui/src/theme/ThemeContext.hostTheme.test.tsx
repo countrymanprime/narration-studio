@@ -2,24 +2,25 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FromSite } from '../components/layout/siteWindow';
+import { registerAppExtension, resetAppExtension } from '../appExtension';
 import { ThemeProvider, useTheme } from './ThemeContext';
 import { THEME_STORAGE_KEY } from './theme';
 
-// The public site's window frame hands the app the site's theme in the frame's address and sends the page's theme switch as messages
-// (components/layout/siteWindow.ts). siteWindow's own tests cover reading a message; these cover what the provider does with them.
-const site = vi.hoisted(() => ({ handed: null as 'light' | 'dark' | null, listeners: new Set<(message: FromSite) => void>() }));
+// An embedding page (the public site's window frame) hands the app its theme through the extension's hostTheme and sends its theme switch as events.
+// The site's own tests cover reading a message; these cover what the provider does with the host theme.
+const host = vi.hoisted(() => ({ handed: null as 'light' | 'dark' | null, listeners: new Set<(theme: 'light' | 'dark') => void>() }));
 
-vi.mock('../components/layout/siteWindow', () => ({
-  handedTheme: () => site.handed,
-  onSiteMessage: (listener: (message: FromSite) => void) => {
-    site.listeners.add(listener);
-    return () => site.listeners.delete(listener);
-  },
-}));
-
-const send = (message: FromSite) => act(() => site.listeners.forEach((listener) => listener(message)));
-const CHANNEL = 'narration-site' as const;
+const send = (theme: 'light' | 'dark') => act(() => host.listeners.forEach((listener) => listener(theme)));
+const install = () =>
+  registerAppExtension({
+    hostTheme: {
+      initial: () => host.handed,
+      subscribe: (listener) => {
+        host.listeners.add(listener);
+        return () => host.listeners.delete(listener);
+      },
+    },
+  });
 
 function ThemeProbe() {
   const { preference, setPreference } = useTheme();
@@ -46,16 +47,16 @@ afterEach(() => {
   cleanup();
   localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
-  site.handed = null;
-  site.listeners.clear();
+  host.handed = null;
+  host.listeners.clear();
+  resetAppExtension();
   vi.unstubAllGlobals();
-  vi.unstubAllEnvs();
 });
 
-describe('ThemeProvider in the site window', () => {
+describe('ThemeProvider with a host theme', () => {
   it('opens in the theme the page handed over, over the stored preference', () => {
-    vi.stubEnv('VITE_SITE', '1');
-    site.handed = 'dark';
+    install();
+    host.handed = 'dark';
     localStorage.setItem(THEME_STORAGE_KEY, 'light');
     renderProvider();
     expect(screen.getByTestId('preference').textContent).toBe('dark');
@@ -63,11 +64,11 @@ describe('ThemeProvider in the site window', () => {
   });
 
   it("follows the page's theme switch, and the app's own setting still works after it", async () => {
-    vi.stubEnv('VITE_SITE', '1');
-    site.handed = 'light';
+    install();
+    host.handed = 'light';
     const user = userEvent.setup();
     renderProvider();
-    send({ channel: CHANNEL, kind: 'theme', theme: 'dark' });
+    send('dark');
     expect(screen.getByTestId('preference').textContent).toBe('dark');
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
 
@@ -76,26 +77,26 @@ describe('ThemeProvider in the site window', () => {
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
   });
 
-  it('ignores a message that is not a theme, and stops listening when the provider goes', () => {
-    vi.stubEnv('VITE_SITE', '1');
-    site.handed = 'light';
+  it('stops listening when the provider goes', () => {
+    install();
+    host.handed = 'light';
     const { unmount } = renderProvider();
-    send({ channel: CHANNEL, kind: 'motion', play: true });
+    send('light');
     expect(screen.getByTestId('preference').textContent).toBe('light');
-    expect(site.listeners.size).toBe(1);
+    expect(host.listeners.size).toBe(1);
     unmount();
-    expect(site.listeners.size).toBe(0);
+    expect(host.listeners.size).toBe(0);
   });
 
-  it('does not listen outside the site build, or in the site build without a handed theme', () => {
-    site.handed = 'dark';
+  it('does not listen without an extension, or when the host handed no theme', () => {
+    host.handed = 'dark';
     const outside = renderProvider();
-    expect(site.listeners.size).toBe(0);
+    expect(host.listeners.size).toBe(0);
     outside.unmount();
 
-    vi.stubEnv('VITE_SITE', '1');
-    site.handed = null;
+    install();
+    host.handed = null;
     renderProvider();
-    expect(site.listeners.size).toBe(0);
+    expect(host.listeners.size).toBe(0);
   });
 });
