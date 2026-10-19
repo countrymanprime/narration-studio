@@ -326,7 +326,7 @@ describe('proof-decisions-and-undo', () => {
   it('a decision moves to the next note, and Undo takes back the decision and the selection', async () => {
     const api = createMockApi();
     const review = vi.spyOn(api, 'findingsReview');
-    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
     const user = userEvent.setup();
     const rows = await noteRows();
     const at = rows.findIndex((row) => row.textContent?.includes('To review'));
@@ -337,6 +337,8 @@ describe('proof-decisions-and-undo', () => {
     await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
     expect(review.mock.calls[0][0].status).toBe('dismissed');
     await waitFor(() => expect(selectedAt(at + 1)).toBe('true'));
+    // The toast's Undo takes back the journal's entry, which is written once the host has answered: before that it has nothing to undo.
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
     await user.click(await screen.findByRole('button', { name: 'Undo' }));
     // Undo runs after the page's own re-render (the reload and the selection step) has painted, which a coverage-instrumented 2-vCPU runner
     // takes longer than waitFor's 1 s default to get through; the wait is for the call, so give it the runner's time, not a sleep.
