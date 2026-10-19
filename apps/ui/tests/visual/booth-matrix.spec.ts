@@ -312,6 +312,7 @@ test.describe('with a take running', () => {
     await expect(page.locator('#blisten-why')).toContainText('was unplugged');
     await expect(stop(page)).toBeVisible();
     expect((await daw(page))?.recording).toBe(true);
+    await pastStartGuard(page);
     await page.keyboard.press('Space');
     await expect(record(page)).toBeVisible();
     expect((await daw(page))?.recording).toBe(false);

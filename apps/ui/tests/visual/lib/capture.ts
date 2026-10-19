@@ -276,7 +276,7 @@ export async function captureState(page: Page, entry: StateEntry, viewport: View
 export async function captureAcrossViewports(page: Page, entry: StateEntry, shared: Viewport[], fresh: Viewport[], driver: Driver): Promise<void> {
   const viewports = [...shared, ...fresh];
   // Each capture is given the time a test of its own had.
-  test.setTimeout(test.info().timeout * viewports.length);
+  test.setTimeout(test.info().timeout * viewports.length * (entry.timeoutFactor ?? 1));
   const failures: string[] = [];
   let current = page;
   let problems: string[] = [];

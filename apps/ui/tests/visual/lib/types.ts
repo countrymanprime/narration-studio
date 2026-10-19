@@ -31,4 +31,8 @@ export interface StateEntry {
   // keeps what the first viewport left (an open menu, a measured layout), and a fresh load at the smaller width does not.
   // Give the reason in a comment on the row.
   reloadPerViewport?: true;
+  // Multiplies the time each viewport's capture is given (default 1). For a state whose page is so large that one resize takes
+  // tens of seconds (delivery / many-chapters lays out 5002 chapters and used up the 90 s of three viewports on a CI runner).
+  // Give the reason in a comment on the row.
+  timeoutFactor?: number;
 }
