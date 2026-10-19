@@ -22,8 +22,12 @@ export function listedChapters(chapters: readonly ManuscriptChapter[], credits: 
   return [...(credits.opening ? [credit(credits.opening)] : []), ...chapters, ...(credits.closing ? [credit(credits.closing)] : [])];
 }
 
-export function chapterStates(chapters: readonly Listed[], files: readonly MeasureFileResult[]): ChapterState[] {
-  return chapters.map((chapter) => stateOf({ id: chapter.id, name: chapterName(chapter) }, fileOf(chapter, files)));
+/**
+ * `pickups` is the open pickup lines per chapter id, from the Pickups list; a chapter that is not mastered says what it waits on when it
+ * has any. Without it (the list is not read) every such chapter reads "Not mastered".
+ */
+export function chapterStates(chapters: readonly Listed[], files: readonly MeasureFileResult[], pickups?: Readonly<Record<string, number>>): ChapterState[] {
+  return chapters.map((chapter) => stateOf({ id: chapter.id, name: chapterName(chapter) }, fileOf(chapter, files), pickups?.[chapter.id]));
 }
 
 /**
@@ -65,10 +69,11 @@ function notReadyWhy(file: MeasureFileResult | undefined): string {
   return file.rules.some((rule) => rule.status === 'not_measurable') ? 'part of its file could not be measured' : 'the app judged nothing about its file';
 }
 
-/** One row's state from its file: no file, or a file the host did not judge, is "Not mastered". */
-export function stateOf(base: { id: string; name: string }, file: MeasureFileResult | undefined): ChapterState {
+/** One row's state from its file: no file, or a file the host did not judge, is "Not mastered", or "Waiting on N pickups" when `pickups` are open. */
+export function stateOf(base: { id: string; name: string }, file: MeasureFileResult | undefined, pickups = 0): ChapterState {
   const verdict = file ? fileVerdict(file) : 'none';
-  if (!file || verdict === 'none') return { ...base, kind: 'wait', text: 'Not mastered' };
+  if (!file || verdict === 'none')
+    return { ...base, kind: 'wait', text: pickups > 0 ? `Waiting on ${pickups} ${pickups === 1 ? 'pickup' : 'pickups'}` : 'Not mastered' };
   if (verdict === 'pass') return { ...base, kind: 'ok', text: 'Pass' };
   const failing = file.rules.filter((rule) => rule.status === 'not_met').length;
   return { ...base, kind: 'bad', text: `Fails ${failing} ${failing === 1 ? 'check' : 'checks'}` };
