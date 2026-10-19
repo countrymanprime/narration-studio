@@ -45,6 +45,15 @@ func sampleInput() Input {
 			{Name: "Final delivery", DueDate: "2026-09-01"},
 		},
 		Now: time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC),
+		Pickups: []PickupChapter{
+			{Chapter: "Chapter 1", Open: 0},
+			{Chapter: "Chapter 2", Open: 2, Kinds: []string{"misread", "noise"}},
+		},
+		Delivery: &DeliveryInput{Profile: "ACX", Files: []DeliveryFile{
+			{Name: "ch-1.wav", Measured: true},
+			{Name: "ch-2.wav", Measured: true, Missed: []string{"noise floor", "peak"}},
+			{Name: "ch-3.wav"},
+		}},
 	}
 }
 
@@ -165,7 +174,9 @@ func TestAnUntickedSectionIsLeftOutOfBothRenderings(t *testing.T) {
 		{"stages", func(s *Sections) { s.Stages = false }, `"hours_by_stage"`, "Hours by stage"},
 		{"milestones", func(s *Sections) { s.Milestones = false }, `"schedule"`, "<h2>Milestones</h2>"},
 		{"pickups", func(s *Sections) { s.Pickups = false }, `"held_back"`, "Chapters held back"},
+		{"pickups list", func(s *Sections) { s.Pickups = false }, `"open"`, "Open pickups"},
 		{"delivery", func(s *Sections) { s.Delivery = false }, `"readiness"`, "Chapter readiness"},
+		{"delivery check", func(s *Sections) { s.Delivery = false }, `"unchecked"`, "Delivery check"},
 	}
 	whole, wholePage := render(t, sampleInput())
 	for _, tc := range cases {
@@ -188,5 +199,32 @@ func TestAChapterHeldBackIsListedWithItsReason(t *testing.T) {
 	held := Build(sampleInput()).HeldBack
 	if held == nil || len(held.Chapters) != 1 || held.Chapters[0].ID != "ch-2" || held.Chapters[0].Reason != "2 pickups open" {
 		t.Fatalf("unexpected held-back chapters: %+v", held)
+	}
+}
+
+func TestOpenPickupsSkipAChapterWithNone(t *testing.T) {
+	pickups := Build(sampleInput()).Pickups
+	if pickups == nil || pickups.Open != 2 || len(pickups.Chapters) != 1 || pickups.Chapters[0].Chapter != "Chapter 2" {
+		t.Fatalf("unexpected pickups: %+v", pickups)
+	}
+}
+
+func TestDeliveryCountsPassFailAndUncheckedFiles(t *testing.T) {
+	d := Build(sampleInput()).Delivery
+	if d == nil || !d.Measured || d.Pass != 1 || d.Fail != 1 || d.Unchecked != 1 || len(d.Failing) != 1 || d.Failing[0].File != "ch-2.wav" {
+		t.Fatalf("unexpected delivery: %+v", d)
+	}
+}
+
+func TestDeliverySaysNothingWasMeasuredNeverAPass(t *testing.T) {
+	in := sampleInput()
+	in.Delivery = nil
+	d := Build(in).Delivery
+	if d == nil || d.Measured || d.Pass != 0 || d.Note == "" {
+		t.Fatalf("unexpected delivery: %+v", d)
+	}
+	_, page := render(t, in)
+	if !bytes.Contains([]byte(page), []byte("Nothing has been measured")) {
+		t.Fatal("the page should say nothing was measured")
 	}
 }

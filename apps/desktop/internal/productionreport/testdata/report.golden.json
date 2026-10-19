@@ -54,12 +54,42 @@
       }
     ]
   },
+  "pickups": {
+    "open": 2,
+    "chapters": [
+      {
+        "chapter": "Chapter 2",
+        "open": 2,
+        "kinds": [
+          "misread",
+          "noise"
+        ]
+      }
+    ]
+  },
   "readiness": {
     "recommended": 1,
     "not_ready": 1,
     "unknown": 0,
     "dismissed": 0,
     "none": 1
+  },
+  "delivery": {
+    "measured": true,
+    "profile": "ACX",
+    "pass": 1,
+    "fail": 1,
+    "unchecked": 1,
+    "failing": [
+      {
+        "file": "ch-2.wav",
+        "rules": [
+          "noise floor",
+          "peak"
+        ]
+      }
+    ],
+    "note": "The files the last measurement of this session covered, judged against the delivery profile in force."
   },
   "privacy": {
     "sections": {
