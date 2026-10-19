@@ -139,7 +139,7 @@ the character has 20 samples, or samples already use the 200 MiB a project may h
 
 A small dot after the last word of a marked stretch says it is a voice sample. It is grey for Narration, and a number in it says
 how many samples end on that word. **Tab** reaches it in reading order; **Enter**, **Space** or a
-click opens what was marked there: the character, the label, the length and any note, a play button, and **Open in Story
+click opens what was marked there: the character, the label, the length, the words that were marked and any note, a play button, and **Open in Story
 Bible** for a character who has an entry. The play button plays the saved clip, not the recording as it is now, and stops
 Editing's own playback while it plays; the same button reads **Stop** and ends it, and **Esc** closes the list. Rename, move and delete
 stay in the Story Bible.

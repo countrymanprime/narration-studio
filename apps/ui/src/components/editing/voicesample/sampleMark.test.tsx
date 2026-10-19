@@ -106,6 +106,8 @@ describe('the dots', () => {
     expect(within(li).getByText('The Queen of Hearts')).toBeTruthy();
     expect(within(li).getByText('Furious, to the court')).toBeTruthy();
     expect(within(li).getByText('0:07')).toBeTruthy();
+    // The marked words say which sample this is when a character has several.
+    expect(within(li).getByText('Once or twice she')).toBeTruthy();
     expect(within(li).getByText('Primary')).toBeTruthy();
     expect(within(li).getByRole('button', { name: /^Play voice sample: Furious, to the court, 6\.8 seconds$/ })).toBeTruthy();
   });
@@ -170,6 +172,28 @@ describe('the dots', () => {
     await userEvent.click(dots()[0]);
     const shown = await screen.findByText(label);
     expect(shown.getAttribute('dir')).toBe('auto');
+  });
+});
+
+describe('the marked words', () => {
+  it('a long stretch is cut at a length the popover can hold and the whole text is the hint', async () => {
+    const words = Array.from({ length: 120 }, (_, i) => `word${i}`).join(' ');
+    const long = sample('a');
+    long.source.text = words;
+    show([long]);
+    await userEvent.click(dots()[0]);
+    const quote = (await screen.findByRole('dialog')).querySelector('q')!;
+    expect(quote.textContent!.endsWith('…')).toBe(true);
+    expect([...quote.textContent!].length).toBeLessThanOrEqual(81);
+    expect(quote.getAttribute('title')).toBe(words);
+  });
+
+  it('a sample with no recorded words draws no empty quote', async () => {
+    const none = sample('a');
+    none.source.text = '';
+    show([none]);
+    await userEvent.click(dots()[0]);
+    expect((await screen.findByRole('dialog')).querySelector('q')).toBeNull();
   });
 });
 

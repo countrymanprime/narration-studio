@@ -104,6 +104,13 @@ function SampleList({ samples }: { samples: readonly VoiceSample[] }) {
                 ) : null}
                 <span className="font-mono">{sampleLength(sample.durationMs)}</span>
               </div>
+              {sample.source.text ? (
+                <div className="text-sm text-[var(--text-muted)]">
+                  <q dir="auto" title={sample.source.text}>
+                    {truncate(sample.source.text)}
+                  </q>
+                </div>
+              ) : null}
               {sample.note ? (
                 <div className="mt-0.5 text-sm whitespace-pre-line" dir="auto">
                   {sample.note}
@@ -133,4 +140,12 @@ export function MovedSampleMarks() {
       <SampleMark samples={moved} />
     </div>
   );
+}
+
+const WORDS_SHOWN = 80;
+
+/** The marked words cut at a length the popover can hold; the whole text is the hint. */
+function truncate(text: string): string {
+  const chars = [...text];
+  return chars.length <= WORDS_SHOWN ? text : `${chars.slice(0, WORDS_SHOWN).join('')}…`;
 }
