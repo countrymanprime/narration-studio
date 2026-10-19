@@ -145,7 +145,7 @@ func requireEnv(t *testing.T, name string) string {
 	t.Helper()
 	v := os.Getenv(name)
 	if v == "" {
-		t.Skipf("set %s (scripts/research/real-audacity3-ci/run.sh sets it)", name)
+		t.Fatalf("%s is not set: the audacityreal tag is opt-in, so run scripts/research/real-audacity3-ci/run.sh, which sets it", name)
 	}
 	return v
 }
