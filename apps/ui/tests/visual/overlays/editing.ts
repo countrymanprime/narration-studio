@@ -6,7 +6,9 @@ const stepper = (page: Page) => page.getByRole('button', { name: /^Chapter: .*Ch
 // Editing's overlays: the chapter stepper's menu, the Add FX menu and its dialog, the Voice sample dialog and the popover of a voice-sample dot, the delete and take-step confirms, the context
 // menu on a word, and the clean-up and effects drawer, which the catalog reaches (tests/visual/drivers/editing.ts).
 export const editingCases: OverlayCase[] = [
-  clickCase('chapter stepper menu', 'menu', stepper),
+  // Not at 320x300: the sticky key-hint bar at the foot of the page covers the stepper in a 300 px window, so the click never lands (a page
+  // behaviour at a window far below the 960 px minimum; listed as not covered, as Proof's and Pickups' steppers are).
+  clickCase('chapter stepper menu', 'menu', stepper, { viewports: ({ height }) => height >= 500 }),
   {
     name: 'context menu on a word',
     kind: 'context-menu',

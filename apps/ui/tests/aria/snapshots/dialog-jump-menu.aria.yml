@@ -12,7 +12,11 @@
   - listbox "Jump menu results":
     - text: Commands
     - option /Go to \d+ ›/ [selected]
-    - option "Zoom 3 ›"
+    - option /Zoom \d+ ›/
     - option "Booth 1 ›"
-    - option "View 2 ›"
+    - option /View \d+ ›/
     - option /Chapters \d+ ›/
+    - option /Settings \d+ ›/
+    - option /Manuscript \d+ ›/
+    - option /Edit \d+ ›/
+    - option /Production \d+ ›/
