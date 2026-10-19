@@ -137,7 +137,7 @@ describe('CheckRecordingsDialog', () => {
     await screen.findByText('Audio to check');
     expect(screen.getByText('20 min')).toBeTruthy();
     expect(screen.getByText('1 chapter left out: length not measured')).toBeTruthy();
-    expect(screen.getByText('Not measured yet')).toBeTruthy();
+    expect(screen.queryByText('Estimated time')).toBeNull();
   });
 
   it('audio-to-check-says-not-measured-rather-than-0-min', async () => {
@@ -238,6 +238,12 @@ describe('CheckRecordingsDialog', () => {
     const { service } = open(api, ['a']);
     const dialog = await screen.findByRole('dialog', { name: 'Check recordings' });
     expect(dialog).toBeTruthy();
+    // PK-2: the mock's header (Pickups over a 26 px Check recordings, no intro line) and its footer sentence.
+    expect(dialog.querySelector('[aria-hidden="true"] h2')?.textContent).toBe('Check recordings');
+    expect(within(dialog).getByText('Pickups')).toBeTruthy();
+    expect(within(dialog).getAllByRole('heading', { name: 'Check recordings' })).toHaveLength(1);
+    expect(within(dialog).getByText('Skipped, changed or unclear lines become pickups.')).toBeTruthy();
+    expect(within(dialog).queryByText(/runs speech recognition over the audio/)).toBeNull();
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(service.getSnapshot().dialogs).toHaveLength(0));
     await waitFor(() => expect(document.activeElement).toBe(screen.getByText('Check icon')));
@@ -254,27 +260,46 @@ describe('CheckRecordingsDialog', () => {
     beforeEach(() => vi.stubGlobal('navigator', { ...navigator, hardwareConcurrency: 8 }));
     afterEach(() => vi.unstubAllGlobals());
     const option = (name: string) => screen.findByRole('combobox', { name });
+    const slider = (name: string) => screen.findByRole('slider', { name }) as Promise<HTMLInputElement>;
 
-    it('begins at what the host would do and says it in words', async () => {
+    it('begins at what the host would do, inside the sliders, and says it in words', async () => {
       const { api } = host();
       open(api, ['a']);
-      expect(((await option('Parallel processes')) as HTMLSelectElement).value).toBe('0');
-      expect((screen.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement).value).toBe('300');
-      expect((screen.getByRole('combobox', { name: 'Crossover' }) as HTMLSelectElement).value).toBe('6');
+      // The host's 300 s chunks and its own choice of workers (0) are more than the sliders hold: 120 s, and the 8 processors.
+      expect((await slider('Chunk length')).value).toBe('120');
+      expect((await slider('Overlap between chunks')).value).toBe('6');
+      expect((await slider('Parallel workers')).value).toBe('8');
+      expect(screen.getByText('120 s')).toBeTruthy();
       expect((screen.getByRole('checkbox', { name: /Look again with a larger model/ }) as HTMLInputElement).getAttribute('aria-checked')).toBe('false');
-      expect(screen.getByText('Whisper small in 5 min chunks that overlap by 6 s, as many at a time as the model allows.')).toBeTruthy();
+      expect(screen.getByText('Whisper small in 2 min chunks that overlap by 6 s, 8 at a time.')).toBeTruthy();
       expect(screen.queryByRole('combobox', { name: 'Larger model' })).toBeNull();
+    });
+
+    it('PK-2: the sliders run 10 to 120 s by 5, 0 to 10 s by 1 and 1 to 8 workers by 1', async () => {
+      const { api } = host();
+      open(api, ['a']);
+      const range = (input: HTMLInputElement) => [input.min, input.max, input.step];
+      expect(range(await slider('Chunk length'))).toEqual(['10', '120', '5']);
+      expect(range(await slider('Overlap between chunks'))).toEqual(['0', '10', '1']);
+      expect(range(await slider('Parallel workers'))).toEqual(['1', '8', '1']);
     });
 
     it('sends every choice, so the host runs what the dialog showed', async () => {
       const { api, sent } = host();
       open(api, ['a']);
-      await userEvent.selectOptions(await option('Parallel processes'), '3');
-      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chunk length' }), '120');
-      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Crossover' }), '10');
+      const chunk = await slider('Chunk length');
+      chunk.focus();
+      await userEvent.keyboard('{Home}{ArrowRight}');
+      expect(chunk.value).toBe('15');
+      expect(screen.getByText('15 s')).toBeTruthy();
+      (await slider('Overlap between chunks')).focus();
+      await userEvent.keyboard('{End}');
+      (await slider('Parallel workers')).focus();
+      await userEvent.keyboard('{Home}{ArrowRight}{ArrowRight}');
+      expect(screen.getByText('Whisper small in 15 s chunks that overlap by 10 s, 3 at a time.')).toBeTruthy();
       await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
       await waitFor(() => expect(sent).toHaveLength(1));
-      expect(sent[0]).toEqual({ model: 'small', recheck: false, workers: 3, chunkSeconds: 120, overlapSeconds: 10, chapters: 1 });
+      expect(sent[0]).toEqual({ model: 'small', recheck: false, workers: 3, chunkSeconds: 15, overlapSeconds: 10, chapters: 1 });
     });
 
     it('a second look names the larger model and the score under which a passage is looked at again', async () => {
@@ -302,26 +327,16 @@ describe('CheckRecordingsDialog', () => {
       expect((screen.getByRole('button', { name: 'Check 1 chapter' }) as HTMLButtonElement).disabled).toBe(true);
     });
 
-    it('an item taken whole has one process and no crossover to choose', async () => {
-      const { api, sent } = host();
+    it('shows a setting the sliders cannot hold at the nearest value they can, and sends that', async () => {
+      const odd: CoverageEngines = { ...engines, defaults: { ...engines.defaults, chunkSeconds: 0, overlapSeconds: 15, workers: 12, recheckBelow: 0.45 } };
+      const { api, sent } = host({ coverageEngines: async () => odd });
       open(api, ['a']);
-      await userEvent.selectOptions(await option('Parallel processes'), '4');
-      await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chunk length' }), '0');
-      expect((screen.getByRole('combobox', { name: 'Parallel processes' }) as HTMLSelectElement).disabled).toBe(true);
-      expect((screen.getByRole('combobox', { name: 'Crossover' }) as HTMLSelectElement).disabled).toBe(true);
-      expect(screen.getByText('Whisper small over each recording whole, one process.')).toBeTruthy();
+      expect((await slider('Chunk length')).value).toBe('120');
+      expect((await slider('Overlap between chunks')).value).toBe('10');
+      expect((await slider('Parallel workers')).value).toBe('8');
       await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
       await waitFor(() => expect(sent).toHaveLength(1));
-      expect(sent[0]).toMatchObject({ workers: 1, chunkSeconds: 0 });
-    });
-
-    it('shows a setting the list does not offer instead of silently changing it', async () => {
-      const odd: CoverageEngines = { ...engines, defaults: { ...engines.defaults, chunkSeconds: 240, overlapSeconds: 7, workers: 5, recheckBelow: 0.45 } };
-      const { api } = host({ coverageEngines: async () => odd });
-      open(api, ['a']);
-      expect(((await option('Chunk length')) as HTMLSelectElement).value).toBe('240');
-      expect((screen.getByRole('combobox', { name: 'Crossover' }) as HTMLSelectElement).value).toBe('7');
-      expect((screen.getByRole('combobox', { name: 'Parallel processes' }) as HTMLSelectElement).value).toBe('5');
+      expect(sent[0]).toMatchObject({ workers: 8, chunkSeconds: 120, overlapSeconds: 10 });
     });
 
     it('the settings default of a second look starts checked', async () => {

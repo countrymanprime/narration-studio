@@ -10,6 +10,7 @@ export function openCheckRecordings(preselected: readonly string[] = [], service
     kind: 'dialog',
     dismissOnOutsidePress: false,
     title: 'Check recordings',
+    headerless: true,
     render: ({ close }) => <CheckRecordingsDialog preselected={preselected} close={close} />,
   });
 }

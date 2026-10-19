@@ -182,11 +182,15 @@ On Production, **Jump to or run** (Ctrl+K) has **Open Recording check rules**: a
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
-share. For a long chapter, **Chunk length** cuts each recording into pieces, **Parallel processes** is how
-many Whisper copies work on the pieces at once (each holds the whole model in memory), and **Crossover** is how
-much neighbouring pieces overlap, so a word on an edge is whole in one of them. A line under the choices says
+share. For a long chapter, three sliders say how it is cut up: **Chunk length** (10 to 120 s, in steps of 5) cuts each recording into pieces,
+**Overlap between chunks** (0 to 10 s) is how much neighbouring pieces overlap, so a word on an edge is whole in one of them, and **Parallel workers**
+(1 to 8) is how many Whisper copies work on the pieces at once (each holds the whole model in memory). Each slider shows its value on the right and
+moves with the arrow keys, Home and End. A setting from Settings that a slider cannot hold is shown, and run, at the nearest value it can: a chunk length
+of 0 (each item whole) or over 120 s as 120 s, and workers left to the computer (0) as the computer's processors, at most 8. A line under the choices says
 what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.
+
+The dialog's heading is **Pickups** over **Check recordings**. The recorded chapters are on the right, each with its check state and last result, and **All** and **None**; **Audio to check** adds up the ticked chapters' recordings, or says **Not measured** when it cannot, and the app shows no estimated time. A short window scrolls the dialog as one sheet, so no row is cut off, and the sentence **Skipped, changed or unclear lines become pickups.** and the **Cancel** and **Check** buttons stay at the bottom. **Escape** or **Cancel** closes it.
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 

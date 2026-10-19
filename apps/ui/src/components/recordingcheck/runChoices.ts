@@ -17,12 +17,34 @@ export type RunChoices = {
 };
 
 export const CHAPTERS_AT_ONCE = [1, 2, 3, 4, 6, 8] as const;
-export const CHUNK_SECONDS = [0, 60, 120, 300, 600, 900] as const;
-export const OVERLAP_SECONDS = [2, 4, 6, 10, 15] as const;
+/** The sliders' ranges (mock `pickups/CheckRecordings.tsx`): chunk length 10 to 120 s in steps of 5, overlap 0 to 10 s, 1 to 8 workers. */
+export const CHUNK_RANGE = { min: 10, max: 120, step: 5 } as const;
+export const OVERLAP_RANGE = { min: 0, max: 10, step: 1 } as const;
+export const WORKER_RANGE = { min: 1, max: 8, step: 1 } as const;
 export const DOUBT_SHARES = [0, 0.3, 0.4, 0.5, 0.6, 0.7] as const;
 
-/** The choices a run begins with: what the host would do with no options, so the dialog shows the narrator's own settings. */
-export const startChoices = (engines: CoverageEngines): RunChoices => ({ model: engines.default, ...engines.defaults });
+const clamp = (value: number, { min, max, step }: { min: number; max: number; step: number }): number =>
+  Math.min(max, Math.max(min, Math.round((value - min) / step) * step + min));
+
+/** The processors to offer when the host leaves the count to itself: the computer's, within the slider. */
+const processors = (): number => (typeof navigator === 'undefined' ? 4 : navigator.hardwareConcurrency || 4);
+
+/**
+ * `choices` with chunk length, overlap and workers inside the sliders' ranges, so the dialog shows what the run will do. A setting the sliders
+ * cannot hold is moved to the nearest value they can: a chunk length of 0 (each item whole) or over 120 s becomes 120 s, and workers set to 0
+ * (the host's choice) become the computer's processors, at most 8.
+ */
+export function withinSliders(choices: RunChoices, cpus: number = processors()): RunChoices {
+  return {
+    ...choices,
+    chunkSeconds: clamp(choices.chunkSeconds === 0 ? CHUNK_RANGE.max : choices.chunkSeconds, CHUNK_RANGE),
+    overlapSeconds: clamp(choices.overlapSeconds, OVERLAP_RANGE),
+    workers: clamp(choices.workers === 0 ? cpus : choices.workers, WORKER_RANGE),
+  };
+}
+
+/** The choices a run begins with: what the host would do with no options (the narrator's own settings), moved inside the sliders. */
+export const startChoices = (engines: CoverageEngines): RunChoices => withinSliders({ model: engines.default, ...engines.defaults });
 
 /** The options a start sends. Every choice is named, so the host runs what the dialog showed and a later change to a setting cannot
  * change a run already read. A whole item has one process: workers share chunks. */
@@ -40,13 +62,6 @@ export function startOptions(choices: RunChoices): CoverageStartOptions {
     options.recheckBelow = choices.recheckBelow;
   }
   return options;
-}
-
-/** The process counts to offer: automatic (0), then 1 and up to the computer's processors. */
-export function workerChoices(cpus: number): number[] {
-  const top = Number.isFinite(cpus) && cpus >= 1 ? Math.floor(cpus) : 1;
-  const counts = [0, ...[1, 2, 3, 4, 6, 8, 12, 16, 24, 32].filter((count) => count <= top)];
-  return counts.includes(top) || top > 32 ? counts : [...counts, top];
 }
 
 /** `list` with `current` in it, in order: a setting can hold a value the dialog does not list, and a select must show it. */

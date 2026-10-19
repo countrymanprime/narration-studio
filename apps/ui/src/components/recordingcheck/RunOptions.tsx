@@ -1,27 +1,17 @@
 import type { CoverageEngine, CoverageEngines } from '../../api/contracts/coverage';
 import { Checkbox } from '../primitives/Checkbox';
 import { Select } from '../primitives/Select';
+import { Slider } from '../primitives/Slider';
 import { engineOptionLabel } from './checkSelection';
-import {
-  CHAPTERS_AT_ONCE,
-  CHUNK_SECONDS,
-  DOUBT_SHARES,
-  OVERLAP_SECONDS,
-  chunkLabel,
-  findProblem,
-  runSummary,
-  withChoice,
-  workerChoices,
-  type RunChoices,
-} from './runChoices';
+import { CHAPTERS_AT_ONCE, CHUNK_RANGE, DOUBT_SHARES, OVERLAP_RANGE, WORKER_RANGE, findProblem, runSummary, withChoice, type RunChoices } from './runChoices';
 
 const engineOptions = (engines: readonly CoverageEngine[]) => engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }));
 
 const LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
 
 /**
- * How a recording check is made: the speech model, whether a larger model looks again and at what, and how a long recording is cut up and shared
- * between processes and chapters. It is the one set of controls every page that starts a check offers (the Check recordings dialog and a
+ * How a recording check is made: the speech model, whether a larger model looks again and at what, and how a long recording is cut up (sliders for the chunk length, the overlap and the workers) and shared
+ * between chapters. It is the one set of controls every page that starts a check offers (the Check recordings dialog and a
  * chapter's own check panel), so a choice means the same wherever it is made. It starts from the host's defaults (`useRunChoices`) and only
  * reports changes; the page sends them with `startOptions`.
  *
@@ -40,8 +30,6 @@ export function RunOptions({
   /** Say that a chosen model is not installed. A page that offers the download itself when a check starts leaves it out. */
   showInstallProblems?: boolean;
 }) {
-  const whole = choices.chunkSeconds === 0;
-  const cpus = typeof navigator === 'undefined' ? 4 : navigator.hardwareConcurrency || 4;
   const blocker = findProblem(choices, engines);
   const problem = blocker && (showInstallProblems || !blocker.needsInstall) ? blocker.message : undefined;
   return (
@@ -81,46 +69,30 @@ export function RunOptions({
           </label>
         </div>
       ) : null}
-      <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-3 border-0 border-t border-[var(--border)] p-0 pt-3 @sm:grid-cols-3">
+      <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 border-t border-[var(--border)] p-0 pt-3">
         <legend className="sr-only">Long recordings</legend>
-        <label className="flex flex-col gap-1">
-          <span className={LABEL}>Chunk length</span>
-          <Select
-            label="Chunk length"
-            fullWidth
-            value={String(choices.chunkSeconds)}
-            onChange={(value) => onChange({ chunkSeconds: Number(value) })}
-            options={withChoice(CHUNK_SECONDS, choices.chunkSeconds).map((seconds) => ({ value: String(seconds), label: chunkLabel(seconds) }))}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={LABEL}>Parallel processes</span>
-          <Select
-            label="Parallel processes"
-            fullWidth
-            disabled={whole}
-            value={String(whole ? 1 : choices.workers)}
-            onChange={(value) => onChange({ workers: Number(value) })}
-            options={withChoice(workerChoices(cpus), whole ? 1 : choices.workers).map((count) => ({
-              value: String(count),
-              label: count === 0 ? 'Automatic' : String(count),
-            }))}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={LABEL}>Crossover</span>
-          <Select
-            label="Crossover"
-            fullWidth
-            disabled={whole}
-            value={String(choices.overlapSeconds)}
-            onChange={(value) => onChange({ overlapSeconds: Number(value) })}
-            options={withChoice(OVERLAP_SECONDS, choices.overlapSeconds).map((seconds) => ({ value: String(seconds), label: `${seconds} s` }))}
-          />
-        </label>
-        <p className="m-0 text-[var(--text-muted)] @sm:col-span-3">
-          Chunks overlap by the crossover so a word on an edge is whole in one of them; each process transcribes its own chunks.
-        </p>
+        <Slider
+          label="Chunk length"
+          valueText={`${choices.chunkSeconds} s`}
+          {...CHUNK_RANGE}
+          value={choices.chunkSeconds}
+          onValueChange={(chunkSeconds) => onChange({ chunkSeconds })}
+        />
+        <Slider
+          label="Overlap between chunks"
+          valueText={`${choices.overlapSeconds} s`}
+          {...OVERLAP_RANGE}
+          value={choices.overlapSeconds}
+          onValueChange={(overlapSeconds) => onChange({ overlapSeconds })}
+        />
+        <Slider
+          label="Parallel workers"
+          valueText={String(choices.workers)}
+          {...WORKER_RANGE}
+          value={choices.workers}
+          onValueChange={(workers) => onChange({ workers })}
+        />
+        <p className="m-0 text-[var(--text-muted)]">Chunks overlap so a word on an edge is whole in one of them; each worker transcribes its own chunks.</p>
         <label className="flex flex-col gap-1">
           <span className={LABEL}>Chapters at once</span>
           <Select
@@ -131,7 +103,7 @@ export function RunOptions({
             options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
           />
         </label>
-        <p className="m-0 self-end text-[var(--text-muted)] @sm:col-span-2">Chapters share the processors, so more at once means fewer processes for each.</p>
+        <p className="m-0 text-[var(--text-muted)]">Chapters share the processors, so more at once means fewer workers for each.</p>
       </fieldset>
       <p className="m-0">{runSummary(choices, engines)}</p>
       {problem ? (

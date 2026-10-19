@@ -33,12 +33,18 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
   **Recorded**). The type is drawn as that kind is everywhere in the app: a misread, a left-out line, extra words,
   a repeat and a long silence are red; a breath, click, noise or plosive is amber; a pronunciation is blue. **Open** is amber, a thing
   still to do, and **Recorded** is green;
+- **Hear the original in context**, which plays your recording of the chapter from 3 seconds before the line to 6 seconds after it
+  (press it again, now **Stop the original**, to stop). It reads the chapter's linked track in the DAW project and plays the file straight from disk, so the DAW's
+  cursor does not move. It is off for a line the app could not place in the recording; when the chapter has no track linked
+  (link it on [Proof](proof.md)), the track is no longer in the project, there is no audio at that time, or the file cannot be read, a message says which;
 - **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and **Remove from
   pickups**.
 
 In a narrow window the table scrolls sideways, with a shadow on the edge that has more to see.
 
-Right-click a line for the same actions, **Open this chapter in Script**, and **Go to the note in Proof** for a line that
+Each line is 57 px tall with 36 px buttons, and a chapter's group row is tinted with its heading and how many lines are open.
+
+Right-click a line for the same actions, **Hear the original in context**, **Open this chapter in Script**, and **Go to the note in Proof** for a line that
 came from a note. Up and Down move between lines. When you come back from the Booth with the browser's Back button after
 opening one line, that line is selected again and has the focus.
 
@@ -65,7 +71,7 @@ while it cannot read, and whenever you return to the window.
 ![Pickups - the list could not be read: the reason and Check again](../../images/ui/pickups-unreadable.webp)
 
 **Check recordings** opens the recording check on the chapters whose check is not current, so their gaps can join the
-list. It is off when the DAW is not reachable. An off button stays in the Tab order: focus it and the reason appears, and
+list. Its options, with the chunk length, overlap and workers as sliders, are described under [Production](production.md#checking-a-chapters-recording). It is off when the DAW is not reachable. An off button stays in the Tab order: focus it and the reason appears, and
 a screen reader reads it as the button's description. **Add a pickup by hand** asks for the time in the
 recording (`05:12.0`, or `5:12`; seconds run 00 to 59) and the line to re-record (one line, up to 500 characters), and
 adds it to the chapter in view (with every chapter shown, the last chapter you stepped to, or the first). A time or

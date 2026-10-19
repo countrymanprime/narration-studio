@@ -328,13 +328,15 @@ describe('the recording check panel shares the check options with Check recordin
     );
     const dialog = await screen.findByRole('dialog', { name: /^Recording check: Chapter 1\b/ });
     await userEvent.click(await within(dialog).findByText('Check options'));
-    const chunk = within(dialog).getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement;
-    expect(chunk.value).toBe('300');
-    await userEvent.selectOptions(chunk, '600');
+    // The host's 300 s chunks are more than the slider holds (10 to 120 s): the panel shows, and sends, 120 s.
+    const chunk = within(dialog).getByRole('slider', { name: 'Chunk length' }) as HTMLInputElement;
+    expect(chunk.value).toBe('120');
+    chunk.focus();
+    await userEvent.keyboard('{Home}');
     await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Chapters at once' }), '2');
     await userEvent.click(within(dialog).getByRole('button', { name: /^Check (again|recording)$/ }));
     await waitFor(() => expect(coverageStart).toHaveBeenCalled());
-    expect(coverageStart).toHaveBeenLastCalledWith(chapter.id, expect.objectContaining({ model: 'small', chunkSeconds: 600, chapters: 2, recheck: false }));
+    expect(coverageStart).toHaveBeenLastCalledWith(chapter.id, expect.objectContaining({ model: 'small', chunkSeconds: 10, chapters: 2, recheck: false }));
   });
 
   it('waits for the other chapters unless Chapters at once leaves room, and says why', async () => {

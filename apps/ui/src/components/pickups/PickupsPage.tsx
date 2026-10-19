@@ -17,6 +17,7 @@ import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
+import { usePlayOriginal } from './list/usePlayOriginal';
 
 /** A chapter named as the manuscript heads it, label then title ("Chapter 3 A Caucus-Race and a Long Tale"), as the mock's `chName` and the Editing page. */
 function headingName(chapter: Parameters<typeof chapterHeading>[0]): string {
@@ -59,6 +60,7 @@ export function PickupsPage({
   const measurements = usePort('measurements');
   const daw = usePort('daw');
   const overlay = useOverlay();
+  const original = usePlayOriginal();
   const review = useCapability('review');
   const markers = useCapability('markers');
   const dawKind = useDawKind();
@@ -220,6 +222,8 @@ export function PickupsPage({
       <div className="grid items-start gap-4 min-[1180px]:grid-cols-[minmax(0,1fr)_360px]">
         <PickupsTable
           pickups={list.pickups}
+          playingId={original.playing}
+          onPlayOriginal={(pickup) => void original.toggle(pickup)}
           returnTo={returnTo}
           read={read}
           checking={checking}

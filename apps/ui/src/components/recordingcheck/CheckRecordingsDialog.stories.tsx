@@ -118,7 +118,7 @@ export const SecondLookWithParallelChunks: Story = {
       coverageEngines: async () => ({
         ...engines,
         default: 'tiny',
-        defaults: { recheck: true, recheckModel: 'small', recheckBelow: 0.4, workers: 4, chunkSeconds: 600, overlapSeconds: 10, chapters: 2 },
+        defaults: { recheck: true, recheckModel: 'small', recheckBelow: 0.4, workers: 4, chunkSeconds: 100, overlapSeconds: 10, chapters: 2 },
       }),
     }),
   },
@@ -126,9 +126,11 @@ export const SecondLookWithParallelChunks: Story = {
     const canvas = within(canvasElement);
     await expect(
       await canvas.findByText(
-        'Whisper tiny in 10 min chunks that overlap by 10 s, 4 at a time. Up to 2 chapters at once. Then Whisper small re-checks what is missing and words scored under 40%.',
+        'Whisper tiny in 1 min 40 s chunks that overlap by 10 s, 4 at a time. Up to 2 chapters at once. Then Whisper small re-checks what is missing and words scored under 40%.',
       ),
     ).toBeTruthy();
     await expect(canvas.getByRole('combobox', { name: 'Larger model' })).toBeTruthy();
+    await expect((canvas.getByRole('slider', { name: 'Chunk length' }) as HTMLInputElement).value).toBe('100');
+    await expect((canvas.getByRole('slider', { name: 'Parallel workers' }) as HTMLInputElement).value).toBe('4');
   },
 };

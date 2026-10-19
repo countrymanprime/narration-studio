@@ -26,6 +26,7 @@ const meta = {
     onRemove: fn(),
     onOpenInBooth: fn(),
     onOpenInScript: fn(),
+    onPlayOriginal: fn(),
     onGoToProof: fn(),
   },
   render: (args) => (
@@ -61,3 +62,19 @@ export const NothingQueued: Story = { args: { pickups: [] } };
 export const NoneInThisChapter: Story = { args: { pickups: [SPEECH], scope: 'c3' } };
 // Without the DAW the recording check and the markers are off.
 export const DawWithoutMarkers: Story = { args: { daw: { available: false, message: 'REAPER is not open.' } } };
+// PK-1: Hear the original in context plays the recording around a line; the line that is playing offers Stop.
+export const HearTheOriginal: Story = {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Hear the original in context' })[0]);
+    await expect(args.onPlayOriginal).toHaveBeenCalledWith(SPEECH);
+  },
+};
+export const OriginalPlaying: Story = {
+  args: { playingId: SPEECH.id },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Stop the original' })).toBeTruthy();
+  },
+};
+// A line the host could not place in the recording has no audio to play: the button is off and says why.
+export const LineWithoutAPlaceInTheRecording: Story = { args: { pickups: [{ ...SPEECH, at: null }] } };

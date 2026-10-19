@@ -25,6 +25,7 @@ function setup(over: Partial<Props> = {}) {
     onRemove: vi.fn().mockResolvedValue(undefined),
     onOpenInBooth: vi.fn(),
     onOpenInScript: vi.fn(),
+    onPlayOriginal: vi.fn(),
     onGoToProof: vi.fn(),
     onReload: vi.fn(),
   };
@@ -131,7 +132,7 @@ describe('PickupsTable', () => {
     expect(onSetIncluded).not.toHaveBeenCalled();
   });
 
-  it('a row leads with Play, draws the type as a chip and the status as a pill, and shows the whole line', () => {
+  it('a row leads with Hear the original, draws the type as a chip and the status as a pill, and shows the whole line', () => {
     const long =
       'The first question of course was, how to get dry again: they had a consultation about this, and after a few minutes it seemed quite natural to Alice.';
     setup({ pickups: [{ ...SPEECH, script: long }, DONE] });
@@ -139,17 +140,34 @@ describe('PickupsTable', () => {
     const buttons = within(row)
       .getAllByRole('button')
       .map((button) => button.getAttribute('aria-label'));
-    expect(buttons.slice(0, 2)).toEqual(['Play the original around this line', 'Open in Booth at this line']);
+    expect(buttons.slice(0, 2)).toEqual(['Hear the original in context', 'Open in Booth at this line']);
     // A chip is the badge primitive: the type a tag (capitals), the status a pill (fully rounded).
     expect(within(row).getByText('Misread').className).toContain('uppercase');
     expect(within(row).getByText('Open').className).toContain('rounded-full');
     expect(within(row).getByText(long)).toBeTruthy();
   });
 
-  it('Play says why it is off rather than doing nothing', () => {
-    setup();
-    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Play the original around this line' });
-    expect(play.getAttribute('aria-disabled') === 'true' || (play as HTMLButtonElement).disabled).toBe(true);
+  it('PK-1: Hear the original in context plays the line, and Stop takes its place while it plays', async () => {
+    const { onPlayOriginal, user } = setup();
+    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' }));
+    expect(onPlayOriginal).toHaveBeenCalledWith(SPEECH);
+  });
+
+  it('PK-1: the line that is playing offers Stop, and the others still offer Hear', () => {
+    setup({ playingId: SPEECH.id });
+    expect(within(rowOf('05:12.0')).getByRole('button', { name: 'Stop the original' })).toBeTruthy();
+    expect(within(rowOf('05:12.0')).queryByRole('button', { name: 'Hear the original in context' })).toBeNull();
+    expect(within(rowOf('00:12.0')).getByRole('button', { name: 'Hear the original in context' })).toBeTruthy();
+  });
+
+  it('PK-1: a line the host could not place in the recording says why Hear is off, and the menu item says it too', async () => {
+    const { onPlayOriginal, user } = setup({ pickups: [{ ...SPEECH, at: null }] });
+    const hear = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
+    expect(hear.getAttribute('aria-disabled')).toBe('true');
+    await user.click(hear);
+    expect(onPlayOriginal).not.toHaveBeenCalled();
+    const item = contextItemsFor(rowOf('05:12.0'))!.find((i) => i.label === 'Hear the original in context')!;
+    expect(item.unavailable).toMatch(/no place in the recording/);
   });
 
   it('status-is-a-word-and-a-shape: Recorded and Open, and Mark recorded calls onSetDone', async () => {
@@ -267,10 +285,11 @@ describe('PickupsTable', () => {
   });
 
   it('context-menu-rows: the provider offers the row actions and runs them', async () => {
-    const { onSetIncluded, onOpenInBooth, onOpenInScript, onSetDone, onRemove, onGoToProof } = setup();
+    const { onSetIncluded, onPlayOriginal, onOpenInBooth, onOpenInScript, onSetDone, onRemove, onGoToProof } = setup();
     const items = contextItemsFor(rowOf('00:12.0'))!;
     expect(items.map((i) => i.label)).toEqual([
       'Leave out of the session',
+      'Hear the original in context',
       'Open in Booth at this line',
       'Open this chapter in Script',
       'Mark recorded',
@@ -284,6 +303,7 @@ describe('PickupsTable', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
     expect(onSetIncluded).toHaveBeenCalledWith(PROOF.id, false);
+    expect(onPlayOriginal).toHaveBeenCalledWith(PROOF);
     expect(onOpenInBooth).toHaveBeenCalledWith([PROOF]);
     expect(onOpenInScript).toHaveBeenCalledWith('c3');
     expect(onSetDone).toHaveBeenCalledWith(PROOF.id, true);
