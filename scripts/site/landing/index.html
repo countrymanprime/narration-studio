@@ -25,10 +25,11 @@ section.block{padding-block:72px 0}
 .sec-head p{color:var(--text-muted);font-size:17px}
 
 /* hero */
-.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center;padding-block:64px 8px}
-.hero h1{font:700 clamp(52px,8.4vw,104px)/.88 var(--display);text-transform:uppercase;letter-spacing:.003em}
-.hero h1 span{display:block;animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
-.hero h1 span:nth-child(2){animation-delay:.08s;color:var(--accent)}
+.hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:48px;align-items:center;padding-block:64px 8px}
+.hero h1{font:700 clamp(52px,6.5vw,82px)/.88 var(--display);text-transform:uppercase;letter-spacing:.003em}
+.hero h1>span{display:block;animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.hero h1 .nw{white-space:nowrap}
+.hero h1>span:nth-child(2){animation-delay:.08s;color:var(--accent)}
 @keyframes rise{from{transform:translateY(22px);opacity:.35}}
 .hero .sub{margin-top:22px;font-size:18px;color:var(--text-muted);max-width:520px}
 .hero .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
@@ -117,6 +118,7 @@ section.block{padding-block:72px 0}
 
 @media (max-width:860px){
   .hero{grid-template-columns:minmax(0,1fr);gap:36px;padding-top:40px}
+  .hero h1{font-size:clamp(52px,8.4vw,104px)}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stats div:nth-child(3){border-left:0;padding-left:0}.stats div:nth-child(n+3){border-top:1px solid var(--border)}
   .tabs{grid-template-columns:minmax(0,1fr)}.tablist{grid-auto-flow:column;overflow:auto;gap:6px}
   .tab{border-left:1px solid transparent;border-radius:8px;border-bottom:3px solid var(--border);min-width:130px}
@@ -143,7 +145,7 @@ section.block{padding-block:72px 0}
   <section class="hero">
     <div>
       <div class="eyebrow">For audiobook narrators · Windows</div>
-      <h1 style="margin-top:16px"><span>Studio-grade.</span> <span>Not studio-priced.</span></h1>
+      <h1 style="margin-top:16px"><span><span class="nw">Studio-grade.</span></span> <span>Not <span class="nw">studio-priced.</span></span></h1>
       <p class="sub">Studio-quality tools for audiobook narrators, free to download and use. Narration Studio imports your manuscript, follows along as you read, listens to the recording with a local Whisper model and marks every skipped or added word. Then it checks your files against the platform's delivery rules. Free software, built for narrators.</p>
       <div class="cta">
         <a class="btn primary lg" href="https://github.com/countrymanprime/narration-utils/releases" target="_blank" rel="noopener">Download for Windows</a>
