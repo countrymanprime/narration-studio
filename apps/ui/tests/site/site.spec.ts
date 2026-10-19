@@ -213,3 +213,117 @@ test('the demo and the landing page each run from one file inside a sandboxed fr
     page.removeAllListeners('pageerror');
   }
 });
+
+// The how-to guides (docs/guides/using-the-app/) rendered by scripts/site/guides.mjs.
+const GUIDES = [
+  'index',
+  'getting-started',
+  'navigation',
+  'production',
+  'schedule',
+  'script',
+  'story-bible',
+  'booth',
+  'editing',
+  'proof',
+  'pickups',
+  'master-and-qc',
+  'delivery',
+  'settings',
+];
+
+test('the landing page links the guides, every guide page exists and its screenshots load', async ({ page, request }) => {
+  const seen = watchRequests(page);
+  await page.goto('./');
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Guides' }).click();
+  await expect(page).toHaveURL(/guides\/index\.html$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Using the app');
+  for (const name of GUIDES) {
+    const response = await request.get(`guides/${name}.html`);
+    expect(response.status(), name).toBe(200);
+  }
+  // Every screenshot of a long guide loads (they are lazy, so ask for them all).
+  await page.goto('guides/pickups.html');
+  await page.evaluate(() => document.querySelectorAll('img').forEach((image) => (image.loading = 'eager')));
+  const images = page.locator('article img');
+  expect(await images.count()).toBeGreaterThan(3);
+  await expect
+    .poll(() => images.evaluateAll((all) => all.every((image) => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)))
+    .toBe(true);
+  // A link between guides keeps its heading.
+  await page.goto('guides/pickups.html');
+  await page
+    .locator('article')
+    .getByRole('link', { name: /recording check/i })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/guides\/proof\.html#one-chapter$/);
+  expect(seen).toEqual({ outside: [], failed: [], errors: [] });
+});
+
+test('each demo page links the guide that explains it, and the guide links back to the page', async ({ page }) => {
+  await page.goto('demo/index.html#/pickups');
+  await page.getByRole('link', { name: 'How to use this page' }).click();
+  await expect(page).toHaveURL(/guides\/pickups\.html$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pickups');
+  await page.getByRole('link', { name: /Open this page in the live demo/ }).click();
+  await expect(page).toHaveURL(/demo\/index\.html#\/pickups$/);
+  await page.getByRole('link', { name: 'How to use this page' }).waitFor();
+  await page.goto('demo/index.html#/proof');
+  await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../guides/proof.html');
+});
+
+test('a guide runs from one file inside a sandboxed frame, with no request but its own page and its screenshots', async ({ page }) => {
+  await page.goto('./');
+  const own = new URL('guides/pickups.html', page.url()).href;
+  const requests: string[] = [];
+  const errors: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.setContent(`<iframe id="f" title="guide" sandbox="allow-scripts" src="${own}" style="width:1000px;height:800px;border:0"></iframe>`);
+  const frame = page.frameLocator('#f');
+  await expect(frame.getByRole('heading', { level: 1 })).toHaveText('Pickups');
+  const image = frame.locator('article img').first();
+  await image.scrollIntoViewIfNeeded();
+  await expect.poll(() => image.evaluate((element) => (element as HTMLImageElement).complete && (element as HTMLImageElement).naturalWidth > 0)).toBe(true);
+  const guidesFolder = new URL('guides/', page.url()).href;
+  expect(requests.filter((url) => url !== own && !url.startsWith('data:') && !url.startsWith(`${guidesFolder}images/`))).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+// The demo's Play animations switch: a device that asks for reduced motion shows the demo none of the app's transitions until the visitor says so.
+const transitionOf = (page: Page) => page.getByRole('switch', { name: 'Play animations' }).evaluate((element) => getComputedStyle(element).transitionDuration);
+const motionFast = (page: Page) => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--motion-fast').trim());
+
+test("Play animations turns the demo's transitions on under reduced motion, can be switched back, and is remembered", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('demo/index.html#/proof');
+  const toggle = page.getByRole('switch', { name: 'Play animations' });
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  expect(await transitionOf(page)).toBe('0s');
+  expect(await motionFast(page)).toMatch(/^0m?s$/);
+
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'play');
+  expect(await transitionOf(page)).toBe('0.12s');
+  expect(await motionFast(page)).toMatch(/^(120ms|0?\.12s)$/);
+
+  await page.reload();
+  await expect(page.getByRole('switch', { name: 'Play animations' })).toHaveAttribute('aria-checked', 'true');
+  expect(await transitionOf(page)).toBe('0.12s');
+
+  await page.getByRole('switch', { name: 'Play animations' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-motion', 'play');
+  expect(await transitionOf(page)).toBe('0s');
+  expect(await motionFast(page)).toMatch(/^0m?s$/);
+});
+
+test('without a request for reduced motion the demo animates and the switch starts off', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('demo/index.html#/proof');
+  await expect(page.getByRole('switch', { name: 'Play animations' })).toHaveAttribute('aria-checked', 'false');
+  expect(await transitionOf(page)).toBe('0.12s');
+  await expect(page.locator('html')).not.toHaveAttribute('data-motion', /.+/);
+});

@@ -1,3 +1,9 @@
+import { useState } from 'react';
+import { useInRouterContext, useLocation } from 'react-router-dom';
+import { readStoredPlay, setPlayAnimations } from '../../motion';
+import { Switch } from '../primitives/Switch';
+import { guideHref } from './demoGuide';
+
 const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
 
 // The public demo is the only build that sets VITE_DEMO: the
@@ -9,6 +15,43 @@ const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
 const isDemoBuild = import.meta.env.VITE_DEMO === '1';
 // The public site's own copy (`vite build --mode site`) sits at `demo/` beside the landing page and the Storybook, and links both by relative address.
 const isSiteBuild = import.meta.env.VITE_SITE === '1';
+
+// The guide that explains the page on screen (docs/guides/using-the-app/, rendered beside the demo). Inside the router it follows the route; the
+// banner is also drawn by tests with no router, where it reads the address.
+function RoutedGuideLink() {
+  const { pathname } = useLocation();
+  return <GuideLink path={pathname} />;
+}
+function GuideLink({ path }: { path: string }) {
+  return (
+    <a href={guideHref(path)} className="underline">
+      How to use this page
+    </a>
+  );
+}
+function HowToUseThisPage() {
+  const inRouter = useInRouterContext();
+  return inRouter ? <RoutedGuideLink /> : <GuideLink path={window.location.hash} />;
+}
+
+// The demo's own Motion choice: a phone with Reduce Motion on would otherwise show none of the app's transitions (docs/design/motion-and-animation.md).
+// Off follows the device, as the real app always does; the switch is not part of the app and is not in its Settings.
+function PlayAnimationsSwitch() {
+  const [on, setOn] = useState(readStoredPlay);
+  return (
+    <span className="inline-flex rounded-full bg-[var(--surface)] px-2.5 py-0.5 text-[var(--text)]">
+      <Switch
+        checked={on}
+        onChange={(next) => {
+          setPlayAnimations(next);
+          setOn(next);
+        }}
+      >
+        Play animations
+      </Switch>
+    </span>
+  );
+}
 
 // Rendered unconditionally by every top-level screen (StartupScreen, ProjectPicker, AppShell) so
 // it shows before and after a project loads, so every page of the demo says it is a demo. Self-gates on isDemoBuild so callers never branch on it.
@@ -25,6 +68,7 @@ export function DemoBanner() {
       <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="underline">
         View source
       </a>
+      <PlayAnimationsSwitch />
       {isSiteBuild && (
         <>
           <a href="../index.html" className="underline">
@@ -33,6 +77,7 @@ export function DemoBanner() {
           <a href="../storybook/index.html" className="underline">
             Storybook
           </a>
+          <HowToUseThisPage />
           <span className="min-[860px]:hidden">Best on a larger screen: the app is built for a window at least 860 px wide.</span>
         </>
       )}

@@ -1,6 +1,7 @@
 // Assembles the public site into one folder, `dist-site/` by default:
 //   index.html          the landing page (scripts/site/landing/)
 //   demo/index.html     the real UI, built in its `site` mode as one self-contained page: mock host, hash routes, script, styles and fonts inline (apps/ui/.env.site)
+//   guides/             the how-to guides (docs/guides/using-the-app/), one static page each with their screenshots (scripts/site/guides.mjs)
 //   storybook/          the component Storybook (`pnpm --dir apps/ui run build-storybook`), unless --skip-storybook
 // The landing page and the demo are each one file with nothing fetched from another host, and every link between the pieces is relative, so the
 // folder opens from any sub-path, from a file server and, page by page, from a sandboxed frame with no network. Nothing here deploys it: see docs/operations/public-demo-site.md.
@@ -9,6 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildGuides } from './guides.mjs';
 import { findOutwardLoads, withIcon } from './siteFiles.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -67,6 +69,13 @@ const storybook = {
 };
 for (const [marker, html] of Object.entries(storybook)) landing = landing.replace(`<!--${marker}-->`, withStorybook ? html : '');
 writeFileSync(join(out, 'index.html'), landing);
+const guides = buildGuides({
+  root,
+  out,
+  withStorybook,
+  icon: dataUri(join(ui, 'public', 'favicon.png'), 'image/png'),
+});
+console.log(`site: ${guides.pages.length} guide pages, ${guides.images.length} screenshots`);
 writeFileSync(join(out, '.nojekyll'), '');
 
 const outward = findOutwardLoads(out);

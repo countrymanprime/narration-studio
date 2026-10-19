@@ -1,13 +1,14 @@
 # The public demo site
 
-How to build and run the public site: a landing page, the real app in its mock mode as a live demo, and the Storybook, in one folder that needs no backend. Nothing here is published. GitHub Pages stays paused ([The Pages workflow](ci-and-releases.md#the-pages-workflow), owner decision D75), and `pages.yml` is unchanged.
+How to build and run the public site: a landing page, the real app in its mock mode as a live demo, the how-to guides and the Storybook, in one folder that needs no backend. Nothing here is published. GitHub Pages stays paused ([The Pages workflow](ci-and-releases.md#the-pages-workflow), owner decision D75), and `pages.yml` is unchanged.
 
 ## What it holds
 
 | Path in `dist-site/` | What | Built by |
 | --- | --- | --- |
-| `index.html` | The landing page: a short intro, **Try the live demo**, **Storybook**, download and guide links. It reads the app's stored theme (`narration-ui-theme`) and otherwise follows the system | `scripts/site/landing/index.html` |
+| `index.html` | The landing page: a short intro, **Try the live demo**, **Guides**, **Storybook** and download links. It reads the app's stored theme (`narration-ui-theme`) and otherwise follows the system | `scripts/site/landing/index.html` |
 | `demo/index.html` | The real UI (`apps/ui`), built with `vite build --mode site` as one self-contained page (about 4.5 MB: script, styles, fonts and icon inline): the mock host (`createMockApi`) and its sample project, Alice's Adventures in Wonderland (public domain) | `pnpm --dir apps/ui run build:site` |
+| `guides/` | The how-to guides: `docs/guides/using-the-app/*.md` rendered to one static page each (`index.html` for the guide index), with the screenshots they use in `guides/images/` | `scripts/site/guides.mjs`, from `build-demo-site.mjs` |
 | `storybook/` | The component Storybook | `pnpm --dir apps/ui run build-storybook` |
 
 ## Build and run it
@@ -20,6 +21,19 @@ node scripts/site/build-demo-site.mjs --skip-storybook                        # 
 ```
 
 `dist-site/` is ignored by git. Copy it anywhere: the landing page and the demo are each one file with nothing fetched from outside it, and the links between the pieces (`demo/index.html`, `storybook/index.html`, and the banner's **Site** and **Storybook** links back) are relative. The Storybook is a folder of files, as Storybook builds it.
+
+## The guides
+
+The guides on the site are the repository's own: `docs/guides/using-the-app/*.md` and their screenshots in `docs/images/ui/`. The build renders them with markdown-it (a dev dependency of the repository root, not of the app) and writes `guides/`, which is part of `dist-site/` and so not tracked by git.
+
+- Each page is one file with its styles and a theme script inline, a sidebar that groups the guides as the sidebar of the app does, and **Open this page in the live demo**. Links between guides keep their headings (`proof.html#one-chapter`), and a link to anything else in the repository becomes a link to GitHub.
+- The build fails on a link or screenshot that points nowhere, or on a guide that `scripts/site/guides.mjs` does not list in a group. A new guide is added to `GROUPS` and, if a demo page matches it, to `DEMO_ROUTE`.
+- In the demo, the banner's **How to use this page** link goes to the guide for the page on screen (`apps/ui/src/components/layout/demoGuide.ts` maps a route to its guide), and to the guide index for a route no guide covers.
+- The guides work offline and from any sub-path, as the landing page does. A guide opens in a sandboxed frame with no request but its own page and its screenshots.
+
+## Play animations
+
+The app moves only when the device allows it ([Motion and animation](../design/motion-and-animation.md#reduced-motion)). A phone with Reduce Motion on shows the demo none of that, so the demo banner has a **Play animations** switch, off by default (the demo then follows the device, as the app does). Switched on, it sets `<html data-motion="play">`, which the `motion-ok:` variant, the `--motion-*` tokens and `reducedMotion()` treat as "motion is on", and it is kept in this browser (`narration-ui-demo-play-motion`) and applied before the first paint. It exists only in a demo build (`VITE_DEMO=1`): the app keeps following the device and Settings > Motion is unchanged.
 
 ## Why the demo is a separate Vite mode
 
@@ -47,7 +61,7 @@ The demo boots with the DAW's Experimental switch on (`VITE_SITE=1`, read in `ap
 pnpm --dir apps/ui run test:site
 ```
 
-`apps/ui/playwright.site.config.ts` builds `dist-site/`, serves it under `/narration-utils/` and runs `apps/ui/tests/site/site.spec.ts`: the landing page loads from the sub-path, the demo opens, the demo and the landing page each run inside a sandboxed frame with no request but their own file, Storybook opens from the landing page and the banner and renders a story, the landing page follows the stored app theme, a Proof note marked **Needs pickup** moves the rail's Pickups count at once and appears in Pickups and in Production's open-pickups tile, the simulated DAW shows Show in REAPER, a marker, a Booth take, the render setup, a cleanup tool and the linking of an unlinked project, and no request leaves the folder or fails. `SITE_SKIP_BUILD=1` serves the folder as it is. In a container, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the installed Chromium ([verification tooling](verification-tooling.md)).
+`apps/ui/playwright.site.config.ts` builds `dist-site/`, serves it under `/narration-utils/` and runs `apps/ui/tests/site/site.spec.ts`: the landing page loads from the sub-path, the demo opens, every guide page exists and its screenshots load, a demo page links its guide and back, a guide runs inside a sandboxed frame, the **Play animations** switch turns transitions on and off under emulated reduced motion, the demo and the landing page each run inside a sandboxed frame with no request but their own file, Storybook opens from the landing page and the banner and renders a story, the landing page follows the stored app theme, a Proof note marked **Needs pickup** moves the rail's Pickups count at once and appears in Pickups and in Production's open-pickups tile, the simulated DAW shows Show in REAPER, a marker, a Booth take, the render setup, a cleanup tool and the linking of an unlinked project, and no request leaves the folder or fails. `SITE_SKIP_BUILD=1` serves the folder as it is. In a container, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the installed Chromium ([verification tooling](verification-tooling.md)).
 
 ## Build it in CI, without publishing
 

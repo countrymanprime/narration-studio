@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react';
 
 /**
- * Whether motion should stop: Windows asked for reduced motion, or `<html data-motion="reduce">` is set. The same two
- * conditions turn off every `motion-ok:` utility (styles.css), so code that moves things itself must ask this.
+ * Whether motion should stop: Windows asked for reduced motion, or `<html data-motion="reduce">` is set, and the public demo's
+ * "Play animations" switch (`<html data-motion="play">`) is not on. The same conditions turn off every `motion-ok:` utility
+ * (styles.css), so code that moves things itself must ask this.
  */
 export function reducedMotion(): boolean {
+  if (document.documentElement.dataset.motion === 'play') return false;
   if (document.documentElement.dataset.motion === 'reduce') return true;
   return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
@@ -15,6 +17,25 @@ export type MotionPreference = 'system' | 'reduce';
 // Kept by this browser window, as the theme is (theme/theme.ts); index.html applies it before first paint.
 export const MOTION_STORAGE_KEY = 'narration-ui-motion';
 
+// The public demo's "Play animations" switch (DemoBanner): a visitor whose device asks for reduced motion can still see the app move. Its own
+// key, so Settings -> Motion and the real app are untouched; the demo build alone reads it (`VITE_DEMO`, as index.html's inline script does).
+export const PLAY_MOTION_STORAGE_KEY = 'narration-ui-demo-play-motion';
+
+/** Whether this is the public demo, the only build where the Play animations switch exists. Read per call so a test can stub the env. */
+export function playSwitchAvailable(): boolean {
+  return import.meta.env.VITE_DEMO === '1';
+}
+
+/** Whether the demo visitor switched Play animations on in this browser. Always false outside the demo. */
+export function readStoredPlay(): boolean {
+  if (!playSwitchAvailable()) return false;
+  try {
+    return localStorage.getItem(PLAY_MOTION_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function readStoredMotion(): MotionPreference {
   try {
     return localStorage.getItem(MOTION_STORAGE_KEY) === 'reduce' ? 'reduce' : 'system';
@@ -23,10 +44,29 @@ export function readStoredMotion(): MotionPreference {
   }
 }
 
-/** `reduce` sets `<html data-motion="reduce">`; Follow Windows removes it, so only `prefers-reduced-motion` decides. */
+/**
+ * `reduce` sets `<html data-motion="reduce">`; Follow Windows removes it, so only `prefers-reduced-motion` decides. In the demo, the
+ * Play animations switch, when on, wins over both: it sets `data-motion="play"`, which keeps motion on whatever the device or Settings ask.
+ */
 export function applyMotion(preference: MotionPreference): void {
-  if (preference === 'reduce') document.documentElement.dataset.motion = 'reduce';
+  if (readStoredPlay()) document.documentElement.dataset.motion = 'play';
+  else if (preference === 'reduce') document.documentElement.dataset.motion = 'reduce';
   else delete document.documentElement.dataset.motion;
+}
+
+/** The demo's Play animations switch: keeps the choice for this browser and applies it at once. Off goes back to the Motion setting. */
+export function setPlayAnimations(on: boolean): void {
+  if (!playSwitchAvailable()) return;
+  try {
+    if (on) localStorage.setItem(PLAY_MOTION_STORAGE_KEY, '1');
+    else localStorage.removeItem(PLAY_MOTION_STORAGE_KEY);
+  } catch {
+    // Storage unavailable: the choice holds for this window only.
+    if (on) document.documentElement.dataset.motion = 'play';
+    else applyMotion(readStoredMotion());
+    return;
+  }
+  applyMotion(readStoredMotion());
 }
 
 /** The Motion choice and its setter, which applies it at once and keeps it for the next start. */
