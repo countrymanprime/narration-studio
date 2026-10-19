@@ -37,10 +37,20 @@ Off only decides what the rail offers. A page you reach another way (a typed add
 If the manuscript goes while you are on one of these pages, the page stays and asks for it, its rail item turns off where it is, and the
 rail shows no note counts, since the notes and pickups the project still holds belong to an earlier manuscript.
 
+## The header
+
 The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, **Jump to or run…** (`Ctrl+K`),
 a zoom chip when you are zoomed, and the engine chip. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it, and opening a
 recent project there switches to it.
+
+![The header in the Light theme: Project, the project's name, Jump to or run… and the engine chip](../../images/ui/nav-rail-collapsed.webp)
+
+![The same header in the Dark theme](../../images/ui/nav-rail-collapsed-dark.webp)
+
+There are no Back and Forward, Undo or History buttons, folder icon or always-visible zoom controls in the header, and no timer chip. Reach them from **Jump to or run…** or by key: Back and Forward are `Alt+Left` and `Alt+Right`, Undo is `Ctrl+Z`, the undo history is `Ctrl+Shift+H`, and zoom is `Ctrl+=`, `Ctrl+-` and `Ctrl+0` ([the table below](#jump-to-or-run) lists each command and when it is off).
+
+### Jump to or run
 
 Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or type `>` to list commands only. Escape, or a press anywhere outside the menu,
 closes it. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it:
