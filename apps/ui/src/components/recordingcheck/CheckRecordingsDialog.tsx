@@ -164,21 +164,9 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
   return (
     <div className="flex max-h-[calc(80dvh-8rem)] min-h-0 flex-col gap-3">
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <p className="m-0 text-[var(--text-muted)]">Checking recordings runs speech recognition over the audio and compares it with the manuscript.</p>
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
-            <RunOptions engines={loaded.engines} choices={choices} onChange={change} />
-            <dl className="m-0 flex flex-col gap-2 border-t border-[var(--border)] pt-3">
-              <div className="flex justify-between gap-3">
-                <dt>Audio to check</dt>
-                <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt>Estimated time</dt>
-                <dd className="m-0 font-mono">Not measured yet</dd>
-              </div>
-            </dl>
-            {note ? <p className="m-0 text-[var(--text-muted)]">{note}</p> : null}
+            <RunOptions engines={loaded.engines} choices={choices} onChange={change} sliders />
           </div>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex items-center gap-2">
@@ -218,7 +206,14 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
           </div>
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-[var(--border)] pt-3">
+      <div className="shrink-0 border-t border-[var(--border)] pt-3">
+        <dl className="m-0 flex justify-between gap-3">
+          <dt>Audio to check</dt>
+          <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
+        </dl>
+        {note ? <p className="m-0 mt-1 text-[var(--text-muted)]">{note}</p> : null}
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-3">
         <span className="mr-auto text-[var(--text-muted)]">Skipped, changed or unclear lines become pickups.</span>
         <Button variant="secondary" onClick={close}>
           Cancel
