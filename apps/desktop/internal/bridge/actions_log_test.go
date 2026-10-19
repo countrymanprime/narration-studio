@@ -97,7 +97,7 @@ func TestASendErrorAndACancelAreLogged(t *testing.T) {
 
 	mu.Lock()
 	defer mu.Unlock()
-	if len(lines) != 2 || !strings.HasSuffix(lines[0], ": cancelled") || !strings.HasSuffix(lines[1], ": could not send") {
+	if len(lines) != 2 || !strings.HasSuffix(lines[0], ": cancelled (command taken back)") || !strings.HasSuffix(lines[1], ": could not send") {
 		t.Fatalf("lines = %q", lines)
 	}
 }

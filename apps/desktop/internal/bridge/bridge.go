@@ -83,6 +83,14 @@ func (c *Client) Send(action string, fields []string) (string, error) {
 	return target, nil
 }
 
+// Retract takes back a command the host gave up on, by removing its command file. REAPER's bridge runs every file in the commands
+// folder at its next tick and deletes each one it reads, so a REAPER that was busy, behind a dialog or slow would otherwise run, late,
+// the cut, the recording or the gain change the host has already reported as not done. It answers whether the file was still there,
+// which is to say REAPER had not taken the command; one REAPER already read cannot be taken back, and Retract says so by answering false.
+func (c *Client) Retract(target string) bool {
+	return os.Remove(target) == nil
+}
+
 func percentDecode(value string) (string, error) {
 	bytes := make([]byte, 0, len(value))
 	for index := 0; index < len(value); index++ {
