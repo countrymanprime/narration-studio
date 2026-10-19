@@ -211,7 +211,9 @@ describe('scan-button-starts-the-job-and-shows-real-progress', () => {
     const sources = await api.extractionSources();
     await u.click(scanButton);
     expect(h.calls.scan).toHaveBeenCalledWith(sources.filter((s) => s.runs && s.available).map((s) => s.id));
-    await screen.findByRole('button', { name: 'Cancel scan' });
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel scan' });
+    // The keyboard follows the wand to Cancel, and back to the wand when the scan ends, instead of dropping to the page.
+    expect(document.activeElement).toBe(cancelButton);
     // The wand gives its slot to Cancel while the job runs, so nothing beside it moves.
     expect(screen.queryByRole('button', { name: 'Scan the manuscript for suggestions' })).toBeNull();
     h.set({ percent: 40, message: 'Scanning with Rules (1 of 2).' });
@@ -223,6 +225,7 @@ describe('scan-button-starts-the-job-and-shows-real-progress', () => {
     await waitFor(() => expect(h.calls.list).toBe(listed + 1));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel scan' })).toBeNull());
     expect(screen.getByRole('button', { name: 'Scan the manuscript for suggestions' }).getAttribute('aria-busy')).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Scan the manuscript for suggestions' }));
   });
 
   it('a second start joins the running job instead of starting another', async () => {
