@@ -8,6 +8,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 
 - Default
 - From Action
+- Pressed
 - Primary
 - Danger
 - Small
@@ -24,8 +25,10 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/booth/frame/BoothTop.tsx`
 - `src/components/booth/frame/LevelsMenu.tsx`
 - `src/components/booth/pickups/PickupSession.tsx`
+- `src/components/booth/reading/SpeakerChip.tsx`
 - `src/components/booth/side/BoothSidePanel.tsx`
 - `src/components/booth/side/Reference.tsx`
+- `src/components/booth/side/VoicesNearby.tsx`
 - `src/components/booth/suspected/SuspectedLines.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/page/Preflight.tsx`
@@ -37,12 +40,12 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/editing/cleanup/CleanupList.tsx`
 - `src/components/editing/drawer/Drawer.tsx`
 - `src/components/editing/effects/OnWords.tsx`
-- `src/components/editing/page/DawOffBanner.tsx`
 - `src/components/editing/page/EditingBody.tsx`
 - `src/components/editing/page/EditingHeader.tsx`
 - `src/components/editing/takes/TakeCompare.tsx`
 - `src/components/editing/takes/TakeLines.tsx`
 - `src/components/editing/takes/useShowInDaw.tsx`
+- `src/components/editing/voicesample/VoiceSampleDialog.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/manuscript/EntitySummary.tsx`
 - `src/components/masterqc/files/FileChecks.tsx`
@@ -89,16 +92,23 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/script/page/tools/select/MarksDialog.tsx`
 - `src/components/script/page/tools/select/SelectionTool.tsx`
 - `src/components/script/page/tools/text/TextSettings.tsx`
+- `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/analysis/ToolRow.tsx`
-- `src/components/settings/page/DefinitionsPanel.tsx`
+- `src/components/settings/controls/AppearanceBodies.tsx`
+- `src/components/settings/controls/DefinitionsBody.tsx`
+- `src/components/settings/controls/ProjectBodies.tsx`
+- `src/components/settings/models/AssetRow.tsx`
 - `src/components/settings/page/MarksPanel.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
+- `src/components/settings/row/AssetNote.tsx`
+- `src/components/settings/row/SettingRowView.tsx`
 - `src/components/storybible/AppearsIn.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/PropertiesSection.tsx`
-- `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/panel/ImportButton.tsx`
 - `src/components/storybible/suggested/panel/ScanButton.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`
+- `src/components/storybible/voicesamples/VoiceSampleRow.tsx`
+- `src/components/voicesamples/SamplePlayButton.tsx`

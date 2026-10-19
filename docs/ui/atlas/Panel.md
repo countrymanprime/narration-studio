@@ -29,6 +29,7 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 
 - `src/components/booth/ReadAlongView.tsx`
 - `src/components/booth/page/BoothNextPage.tsx`
+- `src/components/booth/page/BoothUnavailable.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/page/Preflight.tsx`
@@ -74,16 +75,15 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/script/page/tools/find/FindBar.tsx`
 - `src/components/settings/ManuscriptSection.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
-- `src/components/settings/page/AppearancePanel.tsx`
-- `src/components/settings/page/DefinitionsPanel.tsx`
-- `src/components/settings/page/DeliveryProfileField.tsx`
-- `src/components/settings/page/KeysPanel.tsx`
+- `src/components/settings/controls/AboutSection.tsx`
+- `src/components/settings/page/CategoryPane.tsx`
 - `src/components/settings/page/MarksPanel.tsx`
+- `src/components/settings/page/ModelsPane.tsx`
+- `src/components/settings/page/PagesPane.tsx`
 - `src/components/settings/page/ProjectDataPanel.tsx`
 - `src/components/settings/page/ReaderTextPanel.tsx`
-- `src/components/settings/page/RecordingPanel.tsx`
+- `src/components/settings/page/Results.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
-- `src/components/settings/page/SettingsPage.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`
