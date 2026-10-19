@@ -23,13 +23,6 @@ export const productionStates: StateEntry[] = [
     description:
       'Production with a time log, a delivery date 18 days out and a contracted amount (?mockProduction=on-pace) - hours by stage, PFH and the effective rate from logged hours and measured audio only, the running timer on Chapter 6 with Stop timer, and no Start timer while it runs',
   },
-  // Benchmark mock 01's own data, the state the pixel-match tool scores.
-  {
-    page: 'production',
-    state: 'mock-fidelity-01',
-    description:
-      "Production drawn with benchmark mock 01's data (?mockFidelity=01) - chapters 1-4 finished, 5 in proof, 6 in edit, 7 being recorded with the timer on it (its row bold), the mock's hours and delivery date - the one-card figures, the flush Chapter pipeline with its board cells beside Next up, the state mock 01 is scored against",
-  },
   {
     page: 'production',
     state: 'at-risk',
@@ -181,6 +174,12 @@ export const productionStates: StateEntry[] = [
     state: 'recording-check-incomplete',
     description:
       'Production, recording check result for a chapter not finished: the summary states "Recorded to paragraph N of M" rather than listing the unread end as a pickup, with no pickups from this check',
+  },
+  {
+    page: 'production',
+    state: 'report-dialog',
+    description:
+      'Production, Export status report: two panes, the Include checkboxes (with the contracted amount and rate, off) and the format beside a tall live preview, under the 26 px title and "project · as of date"',
   },
   {
     page: 'production',
@@ -343,6 +342,6 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'loading',
     description:
-      'Production while the production log is still being read (?mockHold=overview): the page header (title, counts, buttons) as usual and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
+      'Production while the production log is still being read (?mockHold=overview): the page header with its title and buttons, and grey blocks where the chapter and word counts, the due date and the verdict will be (never "0 chapters" or "No due date set"), and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
   },
 ];

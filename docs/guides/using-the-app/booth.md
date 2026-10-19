@@ -7,7 +7,7 @@ starts and stops the take in your DAW (or the built-in recorder). It needs an [i
 Open it from **Booth** in the navigation, or from **Record in Booth** on a chapter or credits card on [Script](script.md), which
 opens it on that chapter. What the Booth is reading is part of its address (`/booth?chapter=…`, `/booth?credits=opening`), so Back
 and a link land on the same chapter. The Booth fills the window and follows the app's theme, light or dark.
-While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead.
+While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with **Checking this link…** while the chapter list is read once more.
 
 ## The page
 
@@ -149,7 +149,7 @@ pill it cannot vouch for. Another project opened in REAPER mid-take does not sto
 While a take runs, Record becomes **Stop**, a **REC** pill shows beside the setup chip and the timer counts. The timer is the
 clock's: a window that slept or sat in the background shows the true time when you look at it again. A question that holds the
 reading ("Stop recording?", a menu) does not stop the DAW: the pill then says **REC · reading paused** and the timer goes on. The
-chapter cannot be changed until you stop, and the chapter arrows and the chapter list say so when you hover or focus them. When listening reaches the last word of the chapter and stops, the take stops with it and a message says
+chapter cannot be changed until you stop, and the chapter arrows and the chapter list say so when you hover or focus them. A screen reader hears nothing when a take starts, so the Booth never speaks into an open microphone (turn on **Start tone** in [Settings](settings.md) for a beep before each take); once the take stops it says "Stopped. Recorded 00:42." When listening reaches the last word of the chapter and stops, the take stops with it and a message says
 **Take saved**. Reading on past the end keeps the take running.
 
 **R** punches and rolls from the word you are on: the DAW plays in from a little before it and records from there, keeping the

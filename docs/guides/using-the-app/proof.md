@@ -20,7 +20,7 @@ something, there is no ring, every chapter in the strip is empty and the Inspect
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
 
 While Proof reads its chapters and notes, it keeps its title and shows grey blocks where the chapter strip, the notes and the
-Inspector will be, and says **Reading the chapters and notes…**.
+Inspector will be, and says **Reading the chapters and notes…**. A link to a chapter the list does not have first shows the same blocks with **Checking this link…** while the chapter list is read once more.
 
 If the page's chapters or notes cannot be read when it opens, Proof keeps its title and says "This page could not be
 loaded" with the reason and a **Retry** button, which reads them again. The rest of the app keeps working.
@@ -123,7 +123,7 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
   is fixed in the edit, so **Fix in edit** on a misread saves your decision and the note still reads **Needs pickup**;
 - **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
-A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
+A decision is saved at once and the next note is selected. If focus was on a note, it moves to that next note too, so the focused row, the panel and a screen reader agree; a decision made with focus elsewhere leaves focus where it is. A message says what was saved, with **Undo** to put the
 note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. The decision is also in the app's undo history, so Ctrl+Z, **Undo** in the header and
 [History](navigation.md) take it back too, as "Decision “Waive” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Waive** says the line stays as it was read. **Reopen** puts a decided note back
 to review.

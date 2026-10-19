@@ -378,6 +378,7 @@ export function ProductionPage({
         />
       )}
       <PageHeader
+        loading={load.status === 'loading'}
         chapters={narrated.length}
         words={k.words}
         k={k}
@@ -419,8 +420,9 @@ export function ProductionPage({
             targetInfo={<TargetInfoButton />}
           />
           <TimerFigures overview={overview} />
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]">
-            <StageBar segments={stageSegments(narrated, WPH)} wph={WPH} />
+          {/* The mock's widths: one column under 1180, two to 1280 with the stage card across both, three above. */}
+          <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[1180px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] min-[1180px]:max-[1280px]:[&>:first-child]:col-span-2">
+            <StageBar segments={stageSegments(narrated, WPH, pipelineSources.master)} wph={WPH} />
             <WeekCard figures={weekFigures(log, today, start, due, k.words / WPH)} />
             <CheckCountsCard
               counts={counts}
@@ -429,7 +431,7 @@ export function ProductionPage({
               onCheck={(ids) => openCheckRecordings(ids)}
             />
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]">
             <div className="flex min-w-0 flex-col gap-4">
               <Panel title="Chapter pipeline" flush>
                 <div {...{ [PIPELINE_AREA]: '' }}>
@@ -450,7 +452,7 @@ export function ProductionPage({
               </Panel>
               {tools.panels}
             </div>
-            <div className="flex min-w-0 flex-col gap-4">
+            <div className="flex min-w-0 flex-col gap-4 max-[1280px]:grid max-[1280px]:grid-cols-2 max-[1280px]:items-stretch">
               <Panel title="Next up">
                 <NextUp
                   inputs={{
@@ -468,14 +470,22 @@ export function ProductionPage({
                       : null,
                     pickups: openPickups > 0 ? { lines: openPickups, chapters: pickupChapters(openLines ?? [], nameOf) } : null,
                     failing: pipelineSources.failing,
-                    changed: null,
                   }}
                   record={record}
                   onGo={(target, chapterId) => onGo(target, chapterId)}
                   timer={{ running: Boolean(overview.running), starting: timer.starting, onStart: (id, stage) => void timer.start(id, stage) }}
                 />
               </Panel>
-              <ProgressChart k={k} wph={WPH} start={start} today={today} due={due} recordedHours={recordedHours} series={recordedSeries(log, start)} />
+              <ProgressChart
+                k={k}
+                wph={WPH}
+                start={start}
+                today={today}
+                due={due}
+                recordedHours={recordedHours}
+                series={recordedSeries(log, start)}
+                onOpenSchedule={() => go('/schedule')}
+              />
             </div>
           </div>
         </>

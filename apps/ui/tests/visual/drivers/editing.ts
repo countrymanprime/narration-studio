@@ -1,7 +1,7 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
@@ -9,12 +9,31 @@ const LINKED = '?mockChapterLink=confirmed';
 const EDITS = `${LINKED}&mockDawExperimentalOn=1`;
 
 export const editingDrivers: Record<string, Driver> = {
+  'address-checking': async (page) => {
+    await openCheckingLink(page, '/editing/gone');
+  },
   // The chapters never answer, so the page's content never arrives and `goToPage` (which waits for it) is not used.
   loading: async (page) => {
     await page.goto('/?mockChapters=loading');
     await settlePage(page);
     await clickNav(page, 'Editing');
     await page.getByRole('group', { name: 'Loading the editor' }).waitFor();
+  },
+  // The chapters read fails: the page's error and Retry stand in for the page. `goToPage` waits for content that never comes, so it is not used.
+  'load-failed': async (page) => {
+    await page.goto('/?mockChapters=fails');
+    await settlePage(page);
+    await clickNav(page, 'Editing');
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
+    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+  },
+  // One chapter's read fails: the header and stepper stay and the chapter's error and Retry sit under them.
+  'chapter-load-failed': async (page) => {
+    await page.goto('/?mockChapterRead=fails');
+    await settlePage(page);
+    await clickNav(page, 'Editing');
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
   },
   default: async (page) => {
     await openEditing(page, LINKED);
@@ -86,6 +105,15 @@ export const editingDrivers: Record<string, Driver> = {
     const toast = page.getByRole('status').filter({ hasText: /^Saved voice sample for / });
     await toast.waitFor();
     await toast.getByRole('button', { name: 'Undo' }).waitFor();
+  },
+  'voice-sample-mark': async (page) => {
+    await saveSample(page);
+    await sampleDot(page).waitFor();
+  },
+  'voice-sample-mark-open': async (page) => {
+    await saveSample(page);
+    await sampleDot(page).click();
+    await page.getByRole('dialog', { name: /^Voice sample: / }).waitFor();
   },
   'takes-open': async (page) => {
     await openTakes(page, EDITS);
@@ -203,6 +231,19 @@ const question = (page: Page, title: string | RegExp) => page.locator('[role="di
 const bar = (page: Page) => page.getByRole('toolbar', { name: 'Playback and selection' });
 
 /** Loads `query` and opens Editing from the rail on the first chapter, its script read. */
+/** Saves a voice sample from the four selected words, as the narrator would, and waits for the dialog to close. */
+async function saveSample(page: Page): Promise<void> {
+  await openEditing(page, EDITS);
+  await selectWords(page);
+  await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Voice sample' });
+  await dialog.getByRole('button', { name: 'Save sample' }).click();
+  await dialog.waitFor({ state: 'hidden' });
+}
+
+/** The dot after the last word of the range just saved. */
+const sampleDot = (page: Page) => page.getByRole('button', { name: /^Voice sample: .*Press Enter for details$/ }).first();
+
 async function openEditing(page: Page, query: string): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);

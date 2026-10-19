@@ -14,4 +14,4 @@ Storybook title: `Settings/BackupsSection`. Source: `src/components/settings/Bac
 
 ## Used by
 
-- `src/components/settings/page/SettingsPage.tsx`
+- `src/components/settings/page/PageSettingPanel.tsx`

@@ -43,6 +43,12 @@ type Service struct {
 	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
 	// +checklocks:editMu
 	held *heldDocument
+	// searchManuscript opens the project's manuscript for the name search a create and an aliases edit make (occurrenceSearch); New sets it
+	// to the host's own (searchNarration), and a test sets one that records what is searched for.
+	searchManuscript func(path string) (occurrenceSearch, error)
+	// pronunciationLookup answers the pronunciations the host needs for a new entry or alias; nil asks the sidecar (pronunciations). The
+	// tests set it.
+	pronunciationLookup func(words []string) ([]map[string]any, error)
 	// undoIDs makes the id a merge is stored under; nil in the app (a random one), set by the tests that need a known one.
 	undoIDs func() string
 	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
@@ -50,7 +56,7 @@ type Service struct {
 }
 
 func New(project, python, backend string, store *settings.Store, sidecars *process.Supervisor) *Service {
-	return &Service{project: project, python: python, backend: backend, settings: store, sidecars: sidecars, previewTimeout: previewTimeout}
+	return &Service{project: project, python: python, backend: backend, settings: store, sidecars: sidecars, previewTimeout: previewTimeout, searchManuscript: searchNarration}
 }
 func (s *Service) guidePath() string {
 	return filepath.Join(s.project, "ManuscriptGuide", "manuscript_guide.json")
@@ -107,9 +113,9 @@ func (s *Service) SaveFindings() error {
 	return nil
 }
 
-// schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION), and so
-// does the host for the commands it runs itself (editInHost, mutateInHost: an edit without aliases, a merge, an unmerge, a split and a rescan among them),
-// which refuse a newer file instead of rewriting it.
+// schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION) for a build
+// and for a pronunciation looked up from one named source. The host writes it for the commands it runs itself (editInHost, createInHost,
+// mutateInHost: an edit, a create, a merge, an unmerge, a split and a rescan among them), and refuses a newer file instead of rewriting it.
 const schemaVersion = 2
 
 // document reads and version-checks the Story Bible file, returning its raw
@@ -402,7 +408,7 @@ func (s *Service) buildArgs(progress, log, model string) []string {
 
 // defaultPronunciationSourceArgs is --default-source <value> when the narrator set a preferred pronunciation source
 // (Settings > Story Bible); omitted (not passed as an explicit empty
-// value) when unset, so the build/edit/create command line carries no extra flag.
+// value) when unset, so the build and pronunciation lookup command lines carry no extra flag.
 // It only reorders the sidecar's own build-time fallback (manuscript_guide.py's pronunciation()); it never limits the
 // entity/alias Generate-Replace control's own explicit --source choice (Pronounce, below).
 func (s *Service) defaultPronunciationSourceArgs() []string {
@@ -418,37 +424,13 @@ func (s *Service) Edit(id, field, value string) error {
 }
 
 // EditFields changes every field of an entity at once: all of them are applied in memory and the file is written once, so a field that is
-// refused leaves the file as it was. The host applies the edit itself (editInHost) unless it changes the aliases; then the whole edit goes
-// to the sidecar in one process, because a new alias needs a pronunciation and the manuscript. The fields are sent in name order, so
-// the same edit always produces the same command.
+// refused leaves the file as it was. The host applies the edit itself (editInHost). An edit of the aliases asks the sidecar only for the
+// pronunciations of the new names (pronunciations), and the host searches the manuscript for where they occur.
 func (s *Service) EditFields(id string, values map[string]string) error {
 	if len(values) == 0 {
 		return nil
 	}
-	if _, editsAliases := values["aliases"]; !editsAliases {
-		return s.editInHost(id, values)
-	}
-	_, err := s.Run(s.editArgs(id, values)...)
-	return err
-}
-func (s *Service) editArgs(id string, values map[string]string) []string {
-	fields := make([]string, 0, len(values))
-	for field := range values {
-		fields = append(fields, field)
-	}
-	sort.Strings(fields)
-	args := []string{"edit", "--guide", s.guidePath(), "--entity-id", id}
-	for _, field := range fields {
-		// --value=... and not "--value", "...": argparse takes a value that starts with a dash ("-brave") only in this form.
-		args = append(args, "--field", field, "--value="+values[field])
-	}
-	if _, editsAliases := values["aliases"]; editsAliases {
-		args = append(args, "--manuscript", s.manuscript())
-		// Only a new alias generates a pronunciation (apply_edit's "aliases" branch); every other field never reads
-		// --default-source, so it stays off their command line too.
-		args = append(args, s.defaultPronunciationSourceArgs()...)
-	}
-	return args
+	return s.editInHost(id, values)
 }
 
 // Pronounce sets the pronunciation of an entity's own name (aliasIndex nil) or one of its aliases from exactly the
@@ -570,30 +552,10 @@ func (s *Service) CreateDescribed(name, category string, aliases []string, descr
 	return s.CreateFull(name, category, aliases, description, nil)
 }
 
-// CreateFull creates an entity with its description and its properties in one sidecar process. The import of a manuscript's cast blocks
-// uses it for the labelled facts of a character.
+// CreateFull creates an entity with its description and its properties, and answers its id. The import of a manuscript's cast blocks uses it
+// for the labelled facts of a character. The host makes the entry itself (createInHost) and asks the sidecar only for the pronunciations.
 func (s *Service) CreateFull(name, category string, aliases []string, description string, properties []Property) (string, error) {
-	out, err := s.Run(s.createArgs(name, category, aliases, description, properties)...)
-	if err != nil {
-		return "", err
-	}
-	parts := strings.Split(out, "|")
-	if len(parts) < 2 || parts[0] != "CREATED" {
-		return "", fmt.Errorf("could not create the entity")
-	}
-	return parts[1], nil
-}
-func (s *Service) createArgs(name, category string, aliases []string, description string, properties []Property) []string {
-	args := []string{"create", "--guide", s.guidePath(), "--manuscript", s.manuscript(), "--name", name, "--category", category, "--aliases", strings.Join(aliases, ";")}
-	if description != "" {
-		args = append(args, "--description="+description)
-	}
-	if len(properties) > 0 {
-		// One JSON list in the --flag=value form, which argparse takes even when the text starts with a dash.
-		encoded, _ := json.Marshal(properties) // a slice of two strings cannot fail to encode
-		args = append(args, "--properties="+string(encoded))
-	}
-	return append(args, s.defaultPronunciationSourceArgs()...)
+	return s.createInHost(name, category, aliases, description, properties)
 }
 
 // MergeResult is what GuideMerge answers: the id Unmerge takes the merge back by.

@@ -12,6 +12,7 @@ import { KeyHints } from '../../primitives/KeyHints';
 import { keepsBackups, registerBackupsSection } from '../backups/registerBackupsSection';
 import { SelectionBar } from '../bar/SelectionBar';
 import { SelToolbar } from '../bar/SelToolbar';
+import { useAnnouncePlayback } from '../bar/useAnnouncePlayback';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { registerCleanupSection } from '../cleanup/registerCleanupSection';
 import { useCleanupDeps } from '../cleanup/useCleanupDeps';
@@ -43,6 +44,7 @@ import { NO_TEXT, ScriptDoc } from '../script/ScriptDoc';
 import type { StackLine } from '../stack/types';
 import type { ManuscriptChapter } from '../../../types';
 import { useStackRetries } from '../stack/useStackRetries';
+import { SampleMarksContext, SamplePlayerContext, useSampleMarks } from '../voicesample/sampleMarksContext';
 import { useVoiceSample } from '../voicesample/useVoiceSample';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
 import { useKeepTakes } from '../takes/keepTake';
@@ -116,6 +118,8 @@ export interface EditingBodyProps {
   checkChapter?: ManuscriptChapter;
   /** Opens the manuscript text at a paragraph (the recording check's passage links). */
   onGoToParagraph: (index: number) => void;
+  /** Opens a character's Story Bible entry from a voice-sample dot. Absent: the dot's popover has no link. */
+  onOpenStoryBible?: (entityId: string) => void;
   caps: DawCapabilities | null;
   keymap: Keymap;
   /** The window is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
@@ -176,6 +180,7 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Playback: the chapter on the document's clock, and a take on its own.
   const playback = useScriptPlayback({ playlist, mediaUrl: tracks.mediaUrl });
+  useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it.
   useDawPlayPosition({ items: read.workspace.items, playlist, caps, playback });
   useFollowScroll(root, playback);
@@ -280,6 +285,9 @@ export function EditingBody(props: EditingBodyProps) {
   const accept = useAcceptWords({ journal, chapterId, onChange: props.onAccepted });
   // Mark the selected words as how a character sounds: the dialog plays a range of its own, so the page's playback stops as it opens.
   const voice = useVoiceSample({ chapterId, workspace: read.workspace, items: read.items, mediaUrl: tracks.mediaUrl, stopPlayback: playback.stop });
+  // The dots after the last word of each marked range, with a play control for each sample: a sample plays in the app's own audio, so the page's own playback stops when one starts.
+  const hasWord = useCallback((key: string) => doc.index.has(key), [doc]);
+  const { marks: sampleMarks, player: samplePlayer } = useSampleMarks({ chapterId, hasWord, onOpenStoryBible: props.onOpenStoryBible });
   // A DAW that changes the audio itself (a cut, FX or stack capability that runs `steps`) backs the words up first.
   const backupPlaces = useRef({ chapterId, locator, doc });
   backupPlaces.current = { chapterId, locator, doc };
@@ -501,9 +509,13 @@ export function EditingBody(props: EditingBodyProps) {
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>
-                  <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
-                    <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
-                  </ScriptNotesProvider>
+                  <SampleMarksContext.Provider value={sampleMarks}>
+                    <SamplePlayerContext.Provider value={samplePlayer}>
+                      <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
+                        <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={check.open} />
+                      </ScriptNotesProvider>
+                    </SamplePlayerContext.Provider>
+                  </SampleMarksContext.Provider>
                 </FxMarkersContext.Provider>
               ) : (
                 // The page's own empty state, so its heading sits under the page's h1.

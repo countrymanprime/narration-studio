@@ -39,7 +39,7 @@ async function renderGuide() {
   await screen.findByRole('heading', { name: 'Alice' });
   return { api, merge, unmerge, edit, toast };
 }
-const box = () => screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' });
+const box = () => screen.getByRole('textbox', { name: 'Add a name' });
 const rows = () => within(screen.getByRole('list', { name: 'Story Bible entries' })).queryAllByRole('button');
 const rowNames = () => rows().map((row) => row.querySelector('.truncate')?.textContent);
 const open = async (name: string) => {
@@ -71,7 +71,7 @@ describe('merging an entry into this one', () => {
     expect(queen.relationships).toContainEqual({ id: 'cheshire-cat', name: 'Cheshire Cat', label: 'rules' });
     expect(queen.relationships.some((rel) => rel.id === 'queens-garden')).toBe(false);
     // The selection stays on the entry that took the merge, which now lists the names it absorbed.
-    expect(screen.getByRole('heading', { name: 'Cheshire Cat' })).toBeTruthy();
+    expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('Cheshire Cat');
     expect(screen.getByRole('list', { name: 'Names' }).textContent).toContain('garden');
   });
 
@@ -123,7 +123,7 @@ describe('merging an entry into this one', () => {
     expect(screen.queryByRole('status')).toBeNull();
     fireEvent.keyDown(box(), { key: 'Enter' });
     await waitFor(() => expect(edit).toHaveBeenCalledWith('cheshire-cat', { aliases: 'Cat;garden party' }));
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Add alias' })[0].getAttribute('aria-busy')).not.toBe('true'));
+    await waitFor(() => expect((box() as HTMLInputElement).value).toBe(''));
 
     fireEvent.change(box(), { target: { value: 'white rabbit' } });
     fireEvent.keyDown(box(), { key: 'Enter' });

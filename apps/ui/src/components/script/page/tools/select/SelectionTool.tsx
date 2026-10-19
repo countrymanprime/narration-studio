@@ -12,6 +12,11 @@ import { KindMenu } from './KindMenu';
 import { lookupTarget } from './lookupTarget';
 import { MarkMenu } from './MarkMenu';
 
+/** What makes a toolbar button the mock's `.seltool` one: no border or fill, the toolbar's text colour, a white wash on hover. Important so
+ * it wins over the button variants' own hover rules. */
+export const TOOL_BUTTON = 'border-0! bg-transparent! text-inherit! not-aria-disabled:hover:bg-white/15!';
+/** The record button's red: the mock's `--bad` on the ink pill, eased toward the surface so it holds 3:1 on the pill in both themes. */
+const RECORD_RED = 'border-0! bg-transparent! text-[color-mix(in_srgb,var(--danger)_60%,var(--surface))]! not-aria-disabled:hover:bg-white/15!';
 export const ACROSS_PARAGRAPHS = 'Select within one paragraph.';
 const ABOVE = 46;
 const EDGE = 8;
@@ -81,10 +86,10 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
       role="toolbar"
       aria-label="Selection tools"
       onMouseDown={keep}
-      className="fixed isolate z-[var(--z-popover)] flex items-center gap-1 rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-1 shadow-[var(--shadow-lg)]"
+      className="fixed isolate z-[var(--z-popover)] flex items-center gap-1 rounded-lg bg-[var(--text)] p-1 text-[var(--surface)] shadow-[var(--shadow-lg)]"
     >
       {place === null ? (
-        <Button variant="secondary" size="sm" disabled>
+        <Button variant="ghost" size="sm" disabled className={`${TOOL_BUTTON} opacity-100!`}>
           {ACROSS_PARAGRAPHS}
         </Button>
       ) : (
@@ -114,6 +119,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
           <IconButton
             action="bookmark"
             label="Bookmark here"
+            className={TOOL_BUTTON}
             onClick={() => {
               onDismiss();
               void bookmarks.add({ chapterId: place.chapterId, paragraphId: place.paragraphId, offset: place.start });
@@ -123,6 +129,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
             <IconButton
               action="recordHere"
               label="Record from here"
+              className={RECORD_RED}
               onClick={() => {
                 onDismiss();
                 onRecordHere(place);
@@ -131,8 +138,9 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
           )}
           <TooltipTarget text="Look the selected words up in the dictionary or the Story Bible">
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
+              className={TOOL_BUTTON}
               onClick={() => {
                 onDismiss();
                 const target = lookupTarget(place.quote, entries);

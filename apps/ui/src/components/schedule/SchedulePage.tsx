@@ -215,7 +215,8 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
         <span className="flex-1" />
         <VerdictPill k={k} today={day} due={due} />
       </div>
-      <div className="grid items-stretch gap-4 md:grid-cols-2">
+      {/* The mock's split: the chart takes what the 360 px column leaves, and the two stack at 1280 and below. */}
+      <div className="grid items-stretch gap-4 min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]">
         <ProgressChart
           title="Recorded audio vs plan"
           clearTodayLabel

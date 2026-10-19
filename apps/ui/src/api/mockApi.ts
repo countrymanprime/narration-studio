@@ -213,6 +213,11 @@ export function createMockApi(
     reaper: initial.reaper,
   };
   const workspace = createWorkspaceMock(workspaceDeps);
+  // `?mockChapterRead=fails`: the read of one chapter's check state (Editing's chapter, Proof's chapter view) fails.
+  if (initial.chapterRead === 'fails')
+    workspace.workspaceAlignment = async () => {
+      throw new Error('This chapter could not be read from the project.');
+    };
   const preview = createPreviewMock({ chapters: () => s.chapters, paragraphs: () => s.paragraphs }, initial.preview);
   const providers = createProvidersMock(initial.providers);
   const mastering = createMasteringMock(initial.mastering);
@@ -285,6 +290,10 @@ export function createMockApi(
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
   if (held.has('series')) series.bindings.seriesVoiceBible = never;
+  if (initial.seriesVoiceBible === 'fails')
+    series.bindings.seriesVoiceBible = async () => {
+      throw new Error('The series could not be read from this project.');
+    };
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
   const { saveAnalyzerFindings, saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
@@ -317,6 +326,11 @@ export function createMockApi(
     seed: initial.proofingRender,
   });
   const { current: deliveryProfile, all: deliveryProfilesAll, ...deliveryProfiles } = createDeliveryProfilesMock(initial.deliveryProfile);
+  // `?mockProfileRead=fails`: the read of the delivery profiles fails, so Master & QC says so and offers Retry.
+  if (initial.profileRead === 'fails')
+    deliveryProfiles.deliveryProfiles = async () => {
+      throw new Error('The delivery profiles could not be read from this project.');
+    };
   const { peekDiagnostics, ...diagnostics } = createDiagnosticsMock(endJob, measurePicked, initial.diagnostics);
   const editing = createEditingMock(initial.editing, editingChoices);
   const cleanupAction = createCleanupActionMock(initial.cleanupAction);

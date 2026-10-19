@@ -1,5 +1,6 @@
 import { Fragment, memo, useEffect } from 'react';
 import { clockText } from '../../booth/boothProgress';
+import { useSampleMarksValue } from '../voicesample/sampleMarksContext';
 import type { DocPara } from './types';
 import { useParagraphNotes } from './paragraphNotes';
 import { SpeakerChip } from './SpeakerChip';
@@ -25,6 +26,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
     onRender?.(dp.p.id);
   });
   const notes = useParagraphNotes(dp.p.id, dp.p.text);
+  const sampleMarks = useSampleMarksValue()?.marks.at;
   const nowIdx = nowKey ? dp.items.findIndex((i) => i.key === nowKey) : -1;
   const index = new Map(dp.items.map((i, k) => [i.key, k]));
   return (
@@ -59,6 +61,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
                   join={selected && !!next && sel.has(next.key) && (it.kind === 'x' || !!it.gap)}
                   note={it.tok ? notes.at(it.tok.s, it.tok.s + it.tok.text.length) : undefined}
                   fxEnd={it.fx.length > 0 && !it.cut && !(next && !next.cut && next.fx.includes(it.fx[0]))}
+                  samples={sampleMarks?.get(it.key)}
                 />
               );
             })}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { overlay } from '../../overlay/overlayService';
 import { usePort } from '../../ports/usePort';
+import { useSampleOutputSync } from './useSampleOutputSync';
 import {
   NOT_WHILE_RECORDING,
   playSample,
@@ -43,6 +44,7 @@ const toast: SampleReport = (text, tone) => overlay.toast(text, tone ? { tone } 
  */
 export function useSamplePlayer({ guard, notify = toast }: SamplePlayerOptions = {}): SamplePlayer {
   const { voiceSampleMediaUrl } = usePort('voiceSamples');
+  useSampleOutputSync();
   const state = useSyncExternalStore(subscribeSamplePlayer, samplePlayerState);
   const self = useMemo(() => Symbol('sample player'), []);
   const live = useRef({ guard, notify, voiceSampleMediaUrl });

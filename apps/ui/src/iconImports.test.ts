@@ -21,7 +21,6 @@ const CEILING: Record<string, number> = {
   'src/components/layout/LoadError.tsx': 2,
   'src/components/layout/StartupScreen.tsx': 5,
   'src/components/layout/TimerChip.tsx': 2,
-  'src/components/manuscript/EntitySummary.tsx': 3,
   'src/components/master/DeliveryProfilePanel.tsx': 1,
   'src/components/master/RuleBadges.tsx': 6,
   'src/components/production/useChapterSyncToast.ts': 1,
@@ -32,7 +31,7 @@ const CEILING: Record<string, number> = {
   'src/components/proof/NativeTakesPanel.tsx': 3,
   'src/components/proof/PreviewPanel.tsx': 9,
   'src/components/storybible/Guide.tsx': 4,
-  'src/components/storybible/GuideDetail.tsx': 13,
+  'src/components/storybible/GuideDetail.tsx': 12,
   'src/components/storybible/PropertiesSection.tsx': 5,
 };
 

@@ -136,7 +136,7 @@ describe('how the book pays', () => {
     await mountSchedule();
     await commit('300');
     await waitFor(async () => expect((await stored()).contractedAmount).toBe(300));
-    const due = screen.getByRole('textbox', { name: 'Delivery due' });
+    const due = screen.getByLabelText('Delivery due');
     fireEvent.change(due, { target: { value: '2026-11-05' } });
     fireEvent.blur(due);
     await waitFor(async () => expect((await stored()).deadline).toBe('2026-11-05'));

@@ -38,7 +38,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/editing/takes/split/SplitButton.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/EngineChip.tsx`
-- `src/components/manuscript/EntitySummary.tsx`
 - `src/components/primitives/CapabilityGate.tsx`
 - `src/components/primitives/ChapterStepper.tsx`
 - `src/components/primitives/IconButton.tsx`
@@ -55,6 +54,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/production/pipeline/PageHeader.tsx`
 - `src/components/production/pipeline/PipelineTable.tsx`
 - `src/components/production/readiness/ReadinessChip.tsx`
+- `src/components/project/ProjectPicker.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/frame/WaveformWindow.tsx`
@@ -70,5 +70,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/PropertiesSection.tsx`
+- `src/components/storybible/suggested/panel/ScanButton.tsx`
 - `src/components/storybible/suggested/row/ConfidenceChip.tsx`
 - `src/components/storybible/suggested/row/Quotes.tsx`

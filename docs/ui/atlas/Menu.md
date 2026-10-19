@@ -19,3 +19,4 @@ Storybook title: `Primitives/Menu`. Source: `src/components/primitives/Menu.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`
 - `src/components/script/page/tools/select/MarkMenu.tsx`
 - `src/components/storybible/GuideDetail.tsx`
+- `src/components/storybible/voicesamples/VoiceSampleRow.tsx`

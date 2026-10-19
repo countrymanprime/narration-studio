@@ -11,4 +11,4 @@ Storybook title: `Settings/Page/ReaderTextPanel`. Source: `src/components/settin
 
 ## Used by
 
-- `src/components/settings/page/SettingsPage.tsx`
+- `src/components/settings/controls/AppearanceBodies.tsx`

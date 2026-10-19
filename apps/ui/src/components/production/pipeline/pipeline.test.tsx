@@ -161,11 +161,6 @@ describe('NextUp', () => {
     expect(onGo.mock.calls).toEqual([['booth', 'c4'], ['pickups'], ['master', 'c2']]);
   });
 
-  it('leaves out the changed-chapters item where the host reports none', () => {
-    view(<NextUp inputs={{ ...NEXT_UP_EMPTY, changed: { count: 2, names: ['a', 'b'] } }} record={record} onGo={noop} timer={timer} />);
-    expect(screen.getByText('Nothing needs you right now.')).toBeTruthy();
-  });
-
   it('timer-stays-as-built: Start timer is on the recording item and hidden while a timer runs', async () => {
     const onStart = vi.fn();
     const { rerender } = view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={{ running: false, onStart }} />);
@@ -235,6 +230,24 @@ describe('PageHeader', () => {
     expect(h.onOpenSchedule).toHaveBeenCalledOnce();
     expect(h.onExport).toHaveBeenCalledOnce();
     expect(h.onStartSession).toHaveBeenCalledOnce();
+  });
+
+  it('draws blocks, not figures, the due date or a verdict, while the production log is read, and keeps the title and the actions', () => {
+    header({ loading: true, chapters: 0, words: 0, due: null });
+    expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    expect(screen.queryByText(/chapters/)).toBeNull();
+    expect(screen.queryByText(/no delivery date set/)).toBeNull();
+    expect(screen.queryByText('No due date set')).toBeNull();
+    expect(screen.queryByRole('button', { name: /(On track|Tight|Behind|No due date set)/ })).toBeNull();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Export status report' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start session' })).toBeTruthy();
+  });
+
+  it('says "0 chapters" and "no delivery date set" once a read that found nothing has ended', () => {
+    header({ loading: false, chapters: 0, words: 0, due: null });
+    expect(screen.getByText(/0 chapters · 0 words · no delivery date set/)).toBeTruthy();
+    expect(screen.getByText('No due date set')).toBeTruthy();
   });
 
   it('says the tone in a word and a shape when the due date is close', () => {

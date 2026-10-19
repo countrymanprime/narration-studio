@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
-import type { ProductionPlan, ProductionReportPreview } from '../../../api/contracts/production';
+import type { ProductionPlan, ProductionReportInclude, ProductionReportPreview } from '../../../api/contracts/production';
 import { createMockApi } from '../../../api/mockApi';
 import { overlay } from '../../../overlay/overlayService';
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
@@ -13,21 +13,24 @@ import { ReportDialog } from './ReportDialog';
 afterEach(cleanup);
 
 const PLAN: ProductionPlan = { deadline: '2026-11-01', contractedAmount: 250, payment: 'per_finished_hour', milestones: [] };
-const previewOf = (included: boolean): ProductionReportPreview => ({
-  html: `<h1>Status</h1>${included ? '<p>Contracted amount 250.00</p>' : ''}`,
-  json: included ? '{"amount":250}\n' : '{}\n',
+const DEFAULTS: ProductionReportInclude = { words: true, stages: true, milestones: true, pickups: true, delivery: true, money: false };
+const previewOf = (include: ProductionReportInclude): ProductionReportPreview => ({
+  html: `<h1>Status</h1>${include.money ? '<p>Contracted amount 250.00</p>' : ''}${include.words ? '<p>Words</p>' : ''}`,
+  json: include.money ? '{"amount":250}\n' : '{}\n',
   folder: 'narration-utils/production/reports',
   stem: 'production-status-1',
-  contractedAmountIncluded: included,
+  contractedAmountIncluded: include.money,
+  include,
 });
 
 function mount(overrides: Record<string, unknown> = {}, plan: ProductionPlan = PLAN) {
-  const preview = vi.fn(async (included: boolean) => previewOf(included));
-  const write = vi.fn(async (included: boolean) => ({
+  const preview = vi.fn(async (include: ProductionReportInclude) => previewOf(include));
+  const write = vi.fn(async (include: ProductionReportInclude) => ({
     folder: 'narration-utils/production/reports',
     htmlFile: 'production-status-1.html',
     jsonFile: 'production-status-1.json',
-    contractedAmountIncluded: included,
+    contractedAmountIncluded: include.money,
+    include,
   }));
   const onClose = vi.fn();
   const api = createMockApi({ productionPlan: async () => plan, productionStatusReportPreview: preview, productionStatusReport: write, ...overrides });
@@ -43,7 +46,7 @@ describe('ReportDialog', () => {
   it('preview-is-what-the-host-answers', async () => {
     const { preview } = mount();
     const frame = (await screen.findByTitle('Preview of the report')) as HTMLIFrameElement;
-    expect(preview).toHaveBeenCalledWith(false);
+    expect(preview).toHaveBeenCalledWith(DEFAULTS);
     expect(frame.getAttribute('sandbox')).toBe('');
     expect(frame.getAttribute('srcdoc')).toContain('<h1>Status</h1>');
     expect(screen.getByText('Dune · as of 21 Sep 2026')).toBeTruthy();
@@ -54,14 +57,27 @@ describe('ReportDialog', () => {
 
   it('amount-is-opt-in-and-refreshes-the-preview', async () => {
     const { preview } = mount();
-    const box = await screen.findByRole('checkbox', { name: /contracted amount and effective rate/i });
+    const box = await screen.findByRole('checkbox', { name: 'Contracted amount and effective rate' });
     expect(box.getAttribute('aria-checked')).toBe('false');
     await userEvent.click(box);
-    await waitFor(() => expect(preview).toHaveBeenLastCalledWith(true));
+    await waitFor(() => expect(preview).toHaveBeenLastCalledWith({ ...DEFAULTS, money: true }));
     await waitFor(() => expect((screen.getByTitle('Preview of the report') as HTMLIFrameElement).getAttribute('srcdoc')).toContain('Contracted amount 250.00'));
     await userEvent.click(box);
-    await waitFor(() => expect(preview).toHaveBeenLastCalledWith(false));
+    await waitFor(() => expect(preview).toHaveBeenLastCalledWith(DEFAULTS));
     await waitFor(() => expect((screen.getByTitle('Preview of the report') as HTMLIFrameElement).getAttribute('srcdoc')).not.toContain('250.00'));
+  });
+
+  it('a-section-checkbox-per-section-and-unticking-follows-the-preview', async () => {
+    const { preview, write } = mount();
+    await screen.findByTitle('Preview of the report');
+    for (const name of ['Words and finished audio', 'Hours by stage', 'Deadline and milestones', 'Chapters held back', 'Chapter readiness']) {
+      expect(screen.getByRole('checkbox', { name }).getAttribute('aria-checked')).toBe('true');
+    }
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Words and finished audio' }));
+    await waitFor(() => expect(preview).toHaveBeenLastCalledWith({ ...DEFAULTS, words: false }));
+    await waitFor(() => expect((screen.getByTitle('Preview of the report') as HTMLIFrameElement).getAttribute('srcdoc')).not.toContain('Words'));
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
+    await waitFor(() => expect(write).toHaveBeenCalledWith({ ...DEFAULTS, words: false }));
   });
 
   it.each([
@@ -71,9 +87,10 @@ describe('ReportDialog', () => {
   ])('checkbox-only-for-a-per-hour-contract: %s', async (_name, plan) => {
     const { preview } = mount({}, plan);
     await screen.findByTitle('Preview of the report');
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: /contracted amount/i })).toBeNull();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(5);
     expect(preview).toHaveBeenCalledTimes(1);
-    expect(preview).toHaveBeenCalledWith(false);
+    expect(preview).toHaveBeenCalledWith(DEFAULTS);
   });
 
   it('format-switch-changes-the-pane-and-the-path', async () => {
@@ -89,7 +106,7 @@ describe('ReportDialog', () => {
     await screen.findByTitle('Preview of the report');
     await userEvent.click(screen.getByRole('button', { name: 'Export' }));
     await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
-    expect(write).toHaveBeenCalledWith(false);
+    expect(write).toHaveBeenCalledWith(DEFAULTS);
     await waitFor(() =>
       expect(document.body.textContent).toContain('Wrote production-status-1.html and production-status-1.json to narration-utils/production/reports.'),
     );
@@ -134,7 +151,7 @@ describe('ReportDialog', () => {
 
 describe('openReportDialog', () => {
   it('closes on a press outside the dialog: a preview with no input of its own (issue 1706)', async () => {
-    const api = createMockApi({ productionPlan: async () => PLAN, productionStatusReportPreview: async (i) => previewOf(i) });
+    const api = createMockApi({ productionPlan: async () => PLAN, productionStatusReportPreview: async (include) => previewOf(include) });
     render(
       <ApiProvider api={api}>
         <OverlayProvider>
@@ -151,7 +168,7 @@ describe('openReportDialog', () => {
   });
 
   it('dialog-behaviour: opens through the overlay with the title, Escape closes and focus returns to the opener', async () => {
-    const api = createMockApi({ productionPlan: async () => PLAN, productionStatusReportPreview: async (i) => previewOf(i) });
+    const api = createMockApi({ productionPlan: async () => PLAN, productionStatusReportPreview: async (include) => previewOf(include) });
     render(
       <ApiProvider api={api}>
         <OverlayProvider>

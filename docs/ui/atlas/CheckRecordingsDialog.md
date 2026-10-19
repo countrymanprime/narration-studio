@@ -10,6 +10,7 @@ Storybook title: `RecordingCheck/CheckRecordingsDialog`. Source: `src/components
 - Running Two Chapters
 - Refused Chapter
 - No Recorded Chapters
+- Second Look With Parallel Chunks
 
 ## Used by
 

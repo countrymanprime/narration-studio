@@ -8,7 +8,7 @@ editing and proofing is left, the open pickups, the due date and whether the pac
 what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
 The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
-While the production log is being read, the page keeps its header and shows grey blocks where the figures, cards and pipeline will be; if it cannot be read, the page says so with **Retry**.
+While the production log is being read, the page keeps its title and buttons and shows grey blocks where the chapter and word counts, due date, verdict, figures, cards and pipeline will be (it never says "0 chapters" or "No due date set" before it knows); if it cannot be read, the page says so with **Retry**.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
 
@@ -54,12 +54,12 @@ The six figures are one card; each opens the page it counts.
 - **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
 
 Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
-from each chapter's words and status (its **Recorded, not edited yet** share is the chapters
-recorded but not edited; **Finished audio** above is the measured length), **This
+from each chapter's own progress in five parts: **Delivered** (the chapters mastered for delivery), **Proofed**, **Edited**,
+**Recorded** and **Not recorded yet**. A chapter still being recorded counts for the share of its audio measured so far, **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
-already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends.
+already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 1180 px one; **Next up** and the chart sit side by side under the pipeline.
 A figure with nothing honest to work from says "Not measured yet" and why, rather than 0.
 
 ## The stage timer
@@ -277,12 +277,23 @@ the reason and **Try again** above the table.
 
 ## Status report
 
-**Export status report** opens the report dialog: a preview of the host's own report, the format
-(HTML or JSON), the path it will be written to, and **Export**. The file goes into this project's
-`narration-utils/production/reports` folder, under a name built from when you exported it, and an
-export never overwrites an earlier one.
+**Export status report** opens the report dialog in two panes. The form is on the left: an **Include**
+checkbox for each section, the format (HTML or JSON) and the path the file will be written to. A tall
+live preview of the host's own report is on the right, under the project's name and the date it is "as of".
 
-The contracted amount and effective rate are left out unless you tick the box to include them: a
+![The Export status report dialog: the Include checkboxes and format beside the live preview](../../images/ui/production-report-dialog.webp)
+
+The sections are **Words and finished audio**, **Hours by stage**, **Deadline and milestones**,
+**Chapters held back** (the chapters whose stage is held back, with the reason), **Chapter readiness** (the count of chapters by verdict)
+and, when the book pays per finished hour and has an amount, **Contracted amount and effective rate**. Every section but the last is
+ticked when the dialog opens. Ticking or unticking one rebuilds the preview, and **Export** writes exactly the sections that are
+ticked: a section you leave out is missing from both the HTML page and the JSON file. The JSON file records which sections were
+ticked, so a reader can tell a section left out from one that is empty.
+
+**Export** writes the HTML page and the JSON file into this project's `narration-utils/production/reports` folder, under a name built
+from when you exported it, and an export never overwrites an earlier one.
+
+The contracted amount and effective rate are left out unless you tick their box: a
 status report is often handed to someone else — a publisher, a collaborator, a rights holder
 checking on progress — who has no need to know what the book pays.
 

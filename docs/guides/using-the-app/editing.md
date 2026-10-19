@@ -18,7 +18,7 @@ The header sits inside the one bordered card that holds the script, so the title
 next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each,
 the recogniser that heard the words (**Flagged by**, written out when the card is wide enough and always in the legend's name and hint), the timeline strip button (a timeline icon, on a window 1360 px
 wide or more) and the button that opens the drawer are all in it. At 1280 px and below the legend uses short labels with no counts.
-While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so.
+While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
 same way on every page of the app, and the legend shows a sample of each beside its count, so the shape tells two red kinds apart
@@ -85,7 +85,7 @@ With a screen reader, the script is one read-only text box. Each time the cursor
 when Esc lets the selection go. It waits for a quarter of a second without a key before it speaks, so holding ← or → says where the
 cursor stopped, not every word it passed. A flagged word says what its card says instead. When a dialog opened from the text closes
 (**Add note…**, **Mark as voice sample…**, and the delete, mute and effects dialogs), by Esc, **Cancel** or **Save**, focus is back on the text
-and the selection is as you left it.
+and the selection is as you left it. Playback says "Playing" when it starts and "Stopped" when it ends.
 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it).
@@ -146,7 +146,24 @@ takes ("Choose words inside one take"), the recording changed since the chapter 
 sample"), some of the words are cut ("Restore the cut words or choose words without them"), the clip would be under half a
 second or over 30 seconds, the recording is not a WAV file, the audio file is missing, the saved REAPER project cannot be read,
 the character has 20 samples, or samples already use the 200 MiB a project may hold. Play, rename and manage a saved sample under
-**Voice samples** on the character's entry in the [Story Bible](story-bible.md#voice-samples); playing one from the Booth is not built yet.
+**Voice samples** on the character's entry in the [Story Bible](story-bible.md#voice-samples), and hear them in the
+[Booth](booth.md#voice-samples).
+
+### Samples in the script
+
+A small dot after the last word of a marked stretch says it is a voice sample. It is grey for Narration, and a number in it says
+how many samples end on that word. **Tab** reaches it in reading order; **Enter**, **Space** or a
+click opens what was marked there: the character, the label, the length, the words that were marked and any note, a play button, and **Open in Story
+Bible** for a character who has an entry. The play button plays the saved clip, not the recording as it is now, and stops
+Editing's own playback while it plays; the same button reads **Stop** and ends it, and **Esc** closes the list. Rename, move and delete
+stay in the Story Bible.
+
+![Editing - the dot after a marked stretch, opened: the character, the length and a play button, with Open in Story Bible](../../images/ui/editing-voice-sample-mark.webp)
+
+A dot with a hollow ring says the words changed since the sample was marked; the sample still plays. A dashed ring says the audio
+file is missing or changed; it cannot play, and the Story Bible has **Check again** and **Delete**. A sample whose last word is no
+longer in the chapter is drawn once above the script as "A voice sample whose words moved". Unlike the Booth, Editing does not
+check whether a take is recording before it plays a sample, so do not play one while you record.
 
 ## Takes
 

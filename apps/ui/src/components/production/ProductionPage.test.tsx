@@ -85,9 +85,12 @@ describe('production-route-draws-the-mock-page', () => {
   it('lays the stats row out 1.5 : 1 : 1 and gives Next up 360 px', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
     const stats = (await screen.findByRole('heading', { name: 'Where the book stands' })).closest('.grid') as HTMLElement;
-    expect(stats.className).toContain('min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
+    // The mock's widths: three columns above 1280, two from 1180 with the stage card across both, one below.
+    expect(stats.className).toContain('min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
+    expect(stats.className).toContain('min-[1180px]:grid-cols-2');
+    expect(stats.className).toContain('min-[1180px]:max-[1280px]:[&>:first-child]:col-span-2');
     const board = screen.getByRole('heading', { name: 'Chapter pipeline' }).closest('.grid') as HTMLElement;
-    expect(board.className).toContain('min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]');
+    expect(board.className).toContain('min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]');
   });
 
   it('is the import when there is no manuscript', async () => {
@@ -148,6 +151,23 @@ describe('production loading state', () => {
     expect(region()).toBeTruthy();
   });
 
+  it('shows no chapter count, word count or due date in the header until the first read ends', async () => {
+    await renderPage({ overrides: { productionOverview: never } });
+    expect(await screen.findByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+    expect(region()).toBeTruthy();
+    expect(screen.queryByText(/\d+ chapters/)).toBeNull();
+    expect(screen.queryByText(/no delivery date set/)).toBeNull();
+    expect(screen.queryByText('No due date set')).toBeNull();
+    expect(within(region()!).getAllByRole('status')).toHaveLength(1);
+  });
+
+  it('says "0 chapters" when the log is read and has none', async () => {
+    const base = await createMockApi().productionOverview();
+    await renderPage({ overrides: { productionOverview: async () => ({ ...base, chapters: [] }) } });
+    expect(await screen.findByText(/0 chapters · 0 words/)).toBeTruthy();
+    expect(region()).toBeNull();
+  });
+
   it('is replaced by the overview when the log arrives', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
     await pipeline();
@@ -165,6 +185,7 @@ describe('production loading state', () => {
     await userEvent.click(retry);
     await waitFor(() => expect(region()).toBeTruthy());
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(screen.queryByText(/\d+ chapters/)).toBeNull();
   });
 });
 
@@ -451,5 +472,12 @@ describe('deleted-files-have-no-importers', () => {
   it.each(['ChapterBoard', 'PlanPanel', 'StatusReportPanel', 'StageSummary'])('no source imports %s', (name) => {
     const importers = sources(SRC).filter((file) => new RegExp(`from '[^']*/${name}'`).test(readFileSync(file, 'utf8')));
     expect(importers).toEqual([]);
+  });
+
+  it('opens the Schedule from the calendar button on the Recorded vs plan panel', async () => {
+    const { go } = await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    await pipeline();
+    await userEvent.setup().click(within(screen.getByRole('region', { name: 'Recorded vs plan' })).getByRole('button', { name: 'Open schedule' }));
+    expect(go).toHaveBeenLastCalledWith('/schedule');
   });
 });
