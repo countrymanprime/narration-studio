@@ -31,7 +31,7 @@ const RUNBOOKS = {
   audacity: 'docs/operations/audacity-verification-pass.md',
   spikes: 'docs/operations/daw-spike-run-sheet.md',
 };
-const LINK_BASE = 'https://github.com/countrymanprime/narration-utils/blob/main/';
+const LINK_BASE = 'https://github.com/countrymanprime/narration-studio/blob/main/';
 
 /** Steps the PRDs name that a slice line may not carry. Where a runbook holds the commands, `run` links its section. */
 const BASELINE = [

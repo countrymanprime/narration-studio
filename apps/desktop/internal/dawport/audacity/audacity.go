@@ -224,11 +224,11 @@ func (a *Adapter) Runtime() dawport.Runtime {
 	return dawport.Runtime{Bridge: true, Reachable: a.client.Reachable()}
 }
 
-// Explain words a pipe that is missing or silent, and docs/architecture/daw-integration.md#audacity-boundary's sentence for what is not built.
+// Explain words a pipe that is missing or silent. A capability not built yet gets the resolver's own sentence, "<label> is not
+// available with Audacity yet.", which names the thing the narrator asked for: ErrNotAvailable is about comparing a recording, and
+// said so under Record, Start session and Settings' rows for take creation and render setup.
 func (a *Adapter) Explain(_ dawport.Capability, r dawport.Reason) string {
 	switch r {
-	case dawport.ReasonNotYet:
-		return string(ErrNotAvailable)
 	case dawport.ReasonStandalone, dawport.ReasonNotRunning:
 		return messageNotReachable
 	default:
@@ -253,8 +253,6 @@ func (declaration) ExplainRequirement(c, required dawport.Capability, r dawport.
 }
 func (declaration) Explain(_ dawport.Capability, r dawport.Reason) string {
 	switch r {
-	case dawport.ReasonNotYet:
-		return string(ErrNotAvailable)
 	case dawport.ReasonNotRunning:
 		// The host holds a pipe for this project (Runtime.Bridge) and Audacity is not answering on it.
 		return messageNotReachable

@@ -58,11 +58,11 @@ The full table, with the commands and their reply shapes, is [the Audacity 4 spe
 
 ## What the app has no Audacity equivalent for
 
-Audacity has no items, takes or extension data. Take creation, pickups, line identity and render setup are REAPER-only, and the review page hides REAPER's take management for an Audacity launch instead of showing it disabled.
+Audacity has no items, takes or extension data. Take creation, line identity and render setup are REAPER-only (pickups are labels, [Snapshot](#the-snapshot)), and the review page hides REAPER's take management for an Audacity launch instead of showing it disabled.
 
 ## Not yet available
 
-Every capability except navigate, markers, `macro_render`, `backups` and the five below is not yet available ([matrix](matrix.md)).
+Sixteen capabilities are not yet available ([matrix](matrix.md)): `line_identity`, `render_config`, `cleanup_tools`, `retake_lanes`, `project_state`, `take_create`, `heartbeat`, `record`, `fx_chains`, `item_gain`, `render_with_fx`, `master_chain_read`, `file_preview`, `file_reveal`, `undo_last` and `monitor_level`. Each refuses with the resolver's sentence naming it ("Record is not available with Audacity yet."); the comparison sentence in `audacity.ErrNotAvailable` is only the review workflow's answer on a launch with no pipe.
 
 ## What needs backups
 

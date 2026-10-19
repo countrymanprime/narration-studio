@@ -40,8 +40,10 @@ the app in Audacity mode on the picker above, and the project you pick or create
 start other programs, so there is no Audacity macro or plug-in to install.
 
 - Audacity support targets **Audacity 3.x**. Audacity 4.0 has no scripting pipe, and the app needs that pipe to reach Audacity.
-- Bringing findings into Audacity is not available yet. A review in an Audacity project says "Audacity support is not available
-  yet" instead of trying to reach REAPER.
+- Bringing findings into Audacity works once the project is [linked in Settings](settings.md#daw-integration) and Audacity
+  answers; the Audacity features are Experimental and stay off until the Experimental switch is on. See
+  [Proof](proof.md#going-to-a-note-in-the-daw) for what a review does in Audacity. A capability the app has not built for
+  Audacity says "Audacity support is not available yet" instead of trying to reach REAPER.
 - If the app is already open, the entry brings its window forward and leaves the open project and mode as they are.
 Once a project is open, the [sidebar](navigation.md) takes you to each page, and
 [Production](production.md) is where you import the manuscript that most other pages depend on.

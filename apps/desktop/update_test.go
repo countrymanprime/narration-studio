@@ -15,7 +15,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/update"
 )
 
-const updateTestRepository = "countrymanprime/narration-utils"
+const updateTestRepository = "countrymanprime/narration-studio"
 
 // fakeReleaseServer answers the release list the way GitHub does and counts the requests, so a test can say "no request was made".
 type fakeReleaseServer struct {

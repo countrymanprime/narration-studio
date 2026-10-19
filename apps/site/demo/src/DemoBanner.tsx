@@ -6,7 +6,7 @@ import { guideHref } from './demoGuide';
 import { demoToolbarItem, demoToolbarSlots } from './demoToolbar';
 import { inSiteWindow } from './siteWindow';
 
-const REPO_URL = 'https://github.com/countrymanprime/narration-utils';
+const REPO_URL = 'https://github.com/countrymanprime/narration-studio';
 
 // Registered by register.ts, so only the demo builds draw it: the regular mock build used by Vitest, the Playwright visual suite and Storybook
 // registers no banner, so it never appears in a captured app state or an atlas story. AGPL-3.0-or-later

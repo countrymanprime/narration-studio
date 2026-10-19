@@ -1970,6 +1970,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       expect(link.chosen, name).toBe(true);
       expect(link.message.length, name).toBeGreaterThan(10);
     }
+    // An install that looks like Audacity 4 does not tick "Audacity 3 is installed" while the card says it cannot be linked (audacitylink.steps).
+    expect((await read(AUDACITY_LINK_MOCK_SEEDS.audacity4)).steps.find((step) => step.id === 'installed')?.done).toBe(false);
+    expect((await read(AUDACITY_LINK_MOCK_SEEDS['module-off'])).steps.find((step) => step.id === 'installed')?.done).toBe(true);
     // A project that records elsewhere reads nothing from Audacity.
     expect((await createMockApi().audacityLink()).chosen).toBe(false);
 
@@ -1988,7 +1991,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const linked = await api.audacityLinkOpenProject();
     expect(linked).toMatchObject({ openProject: 'linked', linked: true });
     expectMatches(audacityLinkSchema, linked, 'mock link after linking the open project');
-    expect(await api.audacityUnlink()).toMatchObject({ linked: false, linkedFile: null });
+    // The label stays in the open project but nothing records its id any more: the card says the project is not linked, as the host does, not that it belongs to another one.
+    const unlinked = await api.audacityUnlink();
+    expect(unlinked).toMatchObject({ linked: false, linkedFile: null, openProject: 'unlabelled' });
+    expect(unlinked.message).not.toMatch(/different project/);
     await expect(audacity({ module: 'on' }).audacityLinkOpenProject()).rejects.toThrow(/did not answer/);
   });
 

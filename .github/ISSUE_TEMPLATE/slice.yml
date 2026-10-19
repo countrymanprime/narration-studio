@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         A slice is one worker, one PR, one session. The issue is the worker's spec. The Studio Next mock (`docs/research/mockups/studio-next/`) is the only UI spec.
-        Fill the title as `SN-<code><n> <verb phrase>`, for example `SN-F2 Icon vocabulary and Icon wrapper`. The header spec lives in the comment at the top of [`scripts/dev/slice-lint.mjs`](https://github.com/countrymanprime/narration-utils/blob/main/scripts/dev/slice-lint.mjs); paste the finished issue body into `node scripts/dev/slice-lint.mjs <file>` before you set `ready`.
+        Fill the title as `SN-<code><n> <verb phrase>`, for example `SN-F2 Icon vocabulary and Icon wrapper`. The header spec lives in the comment at the top of [`scripts/dev/slice-lint.mjs`](https://github.com/countrymanprime/narration-studio/blob/main/scripts/dev/slice-lint.mjs); paste the finished issue body into `node scripts/dev/slice-lint.mjs <file>` before you set `ready`.
         Set the lane (`lane:<L>`), the PRD (`prd:<code>`) and `ready` labels once the slice is groomed.
   - type: input
     id: prd

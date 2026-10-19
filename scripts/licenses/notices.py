@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from importlib import metadata
 from pathlib import Path
 
-REPOSITORY = "https://github.com/countrymanprime/narration-utils"
+REPOSITORY = "https://github.com/countrymanprime/narration-studio"
 PROGRAM_LICENSE = "AGPL-3.0-or-later"
 SIDECARS = ("manuscript-guide", "transcript-compare", "manuscript-teleprompter")
 # The Python packages the sidecars import at run time, which the frozen bundle must therefore contain (pyproject.toml lists test and

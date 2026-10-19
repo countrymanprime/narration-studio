@@ -9,7 +9,7 @@
     "cleanup_tools": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Cleanup tools is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "click_repair": {
@@ -29,13 +29,13 @@
     "file_preview": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Play part of a file is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "file_reveal": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Show a file in the audio engine is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "follow_position": {
@@ -47,7 +47,7 @@
     "fx_chains": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "FX chains is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "fx_range": {
@@ -60,7 +60,7 @@
     "heartbeat": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Connection status is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "input_level": {
@@ -72,13 +72,13 @@
     "item_gain": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Level matching is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "line_identity": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Line identity is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "macro_render": {
@@ -96,13 +96,13 @@
     "master_chain_read": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Master and track FX listing is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "monitor_level": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Set the monitor level is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "navigate": {
@@ -126,7 +126,7 @@
     "project_state": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Project change check is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "punch": {
@@ -146,7 +146,7 @@
     "record": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Record is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "regions": {
@@ -158,19 +158,19 @@
     "render_config": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Chapter render setup is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "render_with_fx": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Mastering with the project's FX is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "retake_lanes": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Retake lanes is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "review": {
@@ -189,7 +189,7 @@
     "take_create": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Create takes is not available with Audacity yet.",
       "reason": "not_yet"
     },
     "takes": {
@@ -213,7 +213,7 @@
     "undo_last": {
       "available": false,
       "level": "not_yet_available",
-      "message": "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+      "message": "Undo the app's last action is not available with Audacity yet.",
       "reason": "not_yet"
     }
   },

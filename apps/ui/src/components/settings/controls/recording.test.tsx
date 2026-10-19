@@ -100,6 +100,24 @@ describe('Recording & DAW: Record with', () => {
     expect(await screen.findByText('No answer from REAPER.')).toBeTruthy();
   });
 
+  it('drops a failed Test connection result once another project file is linked, since it was about the old one', async () => {
+    const api = createMockApi({}, notRunningSeed);
+    let update: (() => void) | undefined;
+    vi.spyOn(api, 'subscribeDawCapabilities').mockImplementation((onUpdate) => {
+      update = () => onUpdate(undefined as never);
+      return () => undefined;
+    });
+    await renderPage({ api, category: 'Recording & DAW' });
+    expect(await screen.findByText('Not running')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
+    expect(await screen.findByText('No answer from REAPER.')).toBeTruthy();
+    const current = await api.dawChoice();
+    vi.spyOn(api, 'dawChoice').mockResolvedValue({ ...current, linkedFile: 'Other.rpp' });
+    update?.();
+    expect(await screen.findByText(/Linked to Other\.rpp/)).toBeTruthy();
+    expect(screen.queryByText('No answer from REAPER.')).toBeNull();
+  });
+
   it('Test connection reads the host again and says when it answered', async () => {
     const api = createMockApi();
     const read = vi.spyOn(api, 'dawChoice');

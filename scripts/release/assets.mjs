@@ -178,7 +178,7 @@ const runGh = (args) => execFileSync('gh', args, { encoding: 'utf8', stdio: ['ig
 // Returns a problem for every present asset or checksum that has no attestation from the workflow that should have built
 // it. Meant for promote, which has the network and the GitHub CLI; `verifyAssets` stays offline.
 export function verifyAttestations(dir, { repository, version, run = runGh } = {}) {
-  if (!repository) throw new Error('Verifying attestations needs the repository, for example countrymanprime/narration-utils.');
+  if (!repository) throw new Error('Verifying attestations needs the repository, for example countrymanprime/narration-studio.');
   requireVersion(version);
   const problems = [];
   for (const [platform, { signerWorkflow }] of Object.entries(PLATFORMS)) {
