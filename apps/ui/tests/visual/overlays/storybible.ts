@@ -16,7 +16,6 @@ const header = (page: Page, label: string) => page.getByRole('button', { name: l
 export const storyBibleCases: OverlayCase[] = [
   hoverCase('hint on Scan', (page) => header(page, 'Scan the manuscript for suggestions')),
   hoverCase('hint on Import entries', (page) => header(page, 'Import entries (CSV or JSON)')),
-  hoverCase('hint on Voice data', (page) => header(page, 'Voice data')),
   hoverCase('hint on Add entity', (page) => header(page, 'Add entity')),
   {
     // A right click on an entry row (the mock's registerContext for the Bible page).
