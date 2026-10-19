@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { boothProgress, clockText, comingUp, progressText } from './boothProgress';
 import type { ReaderMark, ReaderRow } from './readerModel';
 import type { GuideEntity } from '../../types';
+import { typeHueColour } from '../../kinds/entityColour';
 
 const paragraph = (key: string, start: number, text: string, tracked = true): ReaderRow => {
   const words = text.split(' ');
@@ -10,7 +11,12 @@ const paragraph = (key: string, start: number, text: string, tracked = true): Re
 const pronunciation = (ipa: string, status: 'researched' | 'author_confirmed' = 'researched') => ({ ipa, source: 'cmu', confidence: '', status });
 const entity = (id: string, name: string, ipa: string, aliases: GuideEntity['aliases'] = []): GuideEntity =>
   ({ id, canonical_name: name, aliases, category: 'Character', pronunciation: pronunciation(ipa) }) as unknown as GuideEntity;
-const mark = (id: string, from: number, to: number, target: GuideEntity): ReaderMark => ({ id, from, to, value: { kind: 'entity', entity: target } });
+const mark = (id: string, from: number, to: number, target: GuideEntity): ReaderMark => ({
+  id,
+  from,
+  to,
+  value: { kind: 'entity', entity: target, colour: typeHueColour('green') },
+});
 
 describe('boothProgress (audit BO5, mock 03)', () => {
   const rows: ReaderRow[] = [

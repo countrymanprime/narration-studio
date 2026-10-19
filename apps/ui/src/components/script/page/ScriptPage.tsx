@@ -565,7 +565,14 @@ function ScriptWorkspace({
                 chapters={chapters}
                 paragraphsOf={paragraphs.paragraphsOf}
                 onNeedParagraphs={paragraphs.want}
-                sources={{ marks: marks.marks, markTypes: marks.types, words: prep.words, entries: entries.entries, cues: speakers.value ?? [] }}
+                sources={{
+                  marks: marks.marks,
+                  markTypes: marks.types,
+                  words: prep.words,
+                  entries: entries.entries,
+                  cues: speakers.value ?? [],
+                  types: entries.types,
+                }}
                 vars={vars}
                 onChapterInView={(chapterId) => update({ spyAt: chapterId })}
                 pendingJump={pendingJump}

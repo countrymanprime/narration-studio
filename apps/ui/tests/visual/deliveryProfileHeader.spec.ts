@@ -19,7 +19,7 @@ for (const [width, height] of [
       if (!rect) throw new Error('not drawn');
       return { y: rect.y + rect.height / 2, width: rect.width };
     };
-    const title = await centre(page.getByRole('heading', { name: 'Delivery profile' }));
+    const title = await centre(page.getByRole('heading', { level: 1, name: 'Delivery' }));
     const menu = await centre(page.getByRole('combobox', { name: /^Delivery profile:/ }));
     const name = await centre(page.getByRole('textbox', { name: 'Profile name' }));
     expect(Math.abs(menu.y - name.y), 'the menu and the name box share a row').toBeLessThanOrEqual(4);

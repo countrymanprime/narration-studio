@@ -55,6 +55,10 @@ A chapter shows its **Recording check** card and its recording:
   where it can be fixed. **Show the findings** lists what the check found, each with the suggested
   decision: **Accept** turns one into a note with that decision, and **Ignore** keeps it out of your notes and is
   remembered.
+- A kind of finding is the same colour everywhere in the app, here in the card's counts, the findings, the notes' Type
+  column and the waveform pins: red when the words are wrong (misread, skipped, extra, repeat, a long silence), amber when
+  the recording is in doubt (breath, click, noise, plosive) and blue for a pronunciation. The word on the chip says which.
+  A decision keeps its own tone: **Needs pickup** copper, **Fix in edit** blue, **Waive** green, **Defer** grey.
 - The waveform window draws the chapter's recording with a pin at each note that has a time. Press a pin to select its
   note. It opens on a minute of the chapter; zoom in and out, or drag the window's edges, to see more or less of it. The
   window follows the selected note.

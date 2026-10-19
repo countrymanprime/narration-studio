@@ -4,7 +4,7 @@
 
 **Builds on:** the delivered Booth ([Booth](../guides/using-the-app/booth.md), [The page](../guides/using-the-app/booth.md#the-page), [Design system reference](../design/design-system.md), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Where you stopped](../guides/using-the-app/booth.md#where-you-stopped), [Flags](../architecture/manuscript-teleprompter.md#flags), [Shared Findings Contract](../architecture/findings-contract.md), [Built-in recorder: what the app declares for it](../reference/daw/builtin-recorder.md)), record in REAPER ([app.go](../../apps/desktop/app.go), [Live transport and track state (`narration_track_state.lua`)](../architecture/reaper-bridge.md#live-transport-and-track-state-narration_track_statelua), [Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua)), punch and roll ([narration_punch.lua](../../integrations/reaper/narration_punch.lua), [Punch from here: where a word's time comes from](../architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from)), the input registry ([Studio shell and registries](../architecture/studio-shell-and-registries.md)). It carries over the unfinished phases of the old read-aloud control bar, teleprompter integration, engines and booth-actions PRDs (see the overview's carried-over table). The DAW commands are [DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md).
 
-**Status (2026-10-12):** the swap is in review (SN-O10, #1258): `/booth` mounts the Studio Next Booth and the old Booth is deleted. Bookmarks and the pickup session (phase 8) are built but not yet mounted on the page; the trailing confirmation pass of item 10 has no slice (#1476 lists it as not built).
+**Status (2026-10-12):** the swap is done (SN-O10, #1258): `/booth` mounts the Studio Next Booth and the old Booth is deleted, with bookmarks and the pickup session (phase 8) on the page; the trailing confirmation pass of item 10 has no slice (#1476 lists it as not built).
 
 ## Problem Statement
 
@@ -141,9 +141,9 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 5 | Resume and flags | Source display, tombstones, stable keys | done (SN-O51 #1227, SN-O52 #1228) | 4 | 1 | 1.0 | - |
 | 6 | Reading polish | Phrase navigation, scroll rule check, levels, chips, footer | done (SN-O61 #1229, SN-O62 #1232, SN-O63 #1233, SN-O64 #1234) | 4 | SNF-4 | 1.0 | - |
 | 7 | Passage map | Writer, sidecar, schema, golden | done (SN-O71 #1237, SN-O72 #1238) | 5 | 2 | 0.8 | - |
-| 8 | Pickup session and bookmarks | Side panel, ribbons | built, not mounted (SN-O81 #1242, SN-O82 #1249; the page does not mount them yet) | - | SNB-5, SNQ-8 | 0.7 | - |
+| 8 | Pickup session and bookmarks | Side panel, ribbons | done: bookmarks (`bookmarks/BookmarkRibbons.tsx`, `bookmarks/useBoothBookmarks.ts`) and the pickup session (`pickups/PickupSession.tsx`, `pickups/usePickupSession.ts`) are mounted by `booth/page/BoothNextPage.tsx` (SN-O81 #1242, SN-O82 #1249, SN-O103 #1516) | - | SNB-5, SNQ-8 | 0.7 | - |
 | 9 | Engine picker | Host-reported engines, Moonshine live label | dropped: the mock Booth has no engine picker (SNO-1 finding 8); the engine and model stay in Settings > Booth | - | 1 | 0.4 | - |
-| 10 | Swap and close-out | Route swap, delete the old Booth and its old equivalents, rows, guide, screenshots; carried-over owner checks | in review (SN-O10, #1258; the SNO-1 audit note is deleted, its tables acted on) | - | 2 to 9 | 0.5 | - |
+| 10 | Swap and close-out | Route swap, delete the old Booth and its old equivalents, rows, guide, screenshots; carried-over owner checks | done: `/booth` mounts `BoothNextPage` (`apps/ui/src/App.tsx`) and the old Booth is deleted (SN-O10, #1258) | - | 2 to 9 | 0.5 | - |
 
 ### Phase Details
 

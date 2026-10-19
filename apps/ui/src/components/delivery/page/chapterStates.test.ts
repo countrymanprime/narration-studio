@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MeasureFileResult } from '../../../types';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
-import { firstFailure, firstNotReady } from './chapterStates';
+import { chapterStates, firstFailure, firstNotReady } from './chapterStates';
 
 const chapters = [1, 2, 3, 4].map((n) => ({ id: `c${n}`, title: `Chapter 0${n}`, index: n - 1 }));
 const all = [passing('Chapter 01.wav'), passing('Chapter 02.wav'), passing('Chapter 03.wav'), passing('Chapter 04.wav')];
@@ -40,5 +40,22 @@ describe('firstNotReady', () => {
   it('leaves a failing chapter to firstFailure, which names its rule, value and limit', () => {
     const files = withFile(3, failingTwo('Chapter 04.wav')).slice(0, 4);
     expect(firstFailure(chapters, files, profile)).toMatch(/^Chapter 04: noise floor/);
+  });
+});
+
+describe('chapterStates pickups', () => {
+  const texts = (pickups?: Record<string, number>) => chapterStates(chapters, all.slice(0, 1), pickups).map((state) => state.text);
+
+  it('says what a chapter that is not mastered waits on, singular and plural', () => {
+    expect(texts({ c2: 3, c3: 1 })).toEqual(['Pass', 'Waiting on 3 pickups', 'Waiting on 1 pickup', 'Not mastered']);
+  });
+
+  it('reads Not mastered when the pickups are not read, or none are open', () => {
+    expect(texts(undefined)).toEqual(['Pass', 'Not mastered', 'Not mastered', 'Not mastered']);
+    expect(texts({ c2: 0 })).toEqual(['Pass', 'Not mastered', 'Not mastered', 'Not mastered']);
+  });
+
+  it('leaves a mastered chapter as it is, whatever is open', () => {
+    expect(texts({ c1: 2 })[0]).toBe('Pass');
   });
 });

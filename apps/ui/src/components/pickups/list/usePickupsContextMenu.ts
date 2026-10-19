@@ -10,6 +10,9 @@ export type PickupMenuActions = {
   onSetIncluded: (id: string, included: boolean) => unknown;
   onSetDone: (id: string, done: boolean) => unknown;
   onRemove: (id: string) => unknown;
+  /** Plays the original recording around the line; `unavailable` is why it cannot. */
+  onPlayOriginal?: (pickup: PickupItem) => void;
+  playOriginalUnavailable?: (pickup: PickupItem) => string | undefined;
   onOpenInBooth: (pickups: PickupItem[]) => void;
   onOpenInScript: (chapterId: string) => void;
   /** Goes to the note the pickup came from, in Proof. */
@@ -25,6 +28,16 @@ function pickupMenuItems(pickup: PickupItem, actions: PickupMenuActions): Contex
       unavailable: pickup.done ? 'Recorded lines are not in a session.' : undefined,
       onSelect: () => void actions.onSetIncluded(pickup.id, !pickup.included),
     },
+    ...(actions.onPlayOriginal
+      ? [
+          {
+            key: 'pickup-play',
+            label: 'Hear the original in context',
+            unavailable: actions.playOriginalUnavailable?.(pickup),
+            onSelect: () => actions.onPlayOriginal?.(pickup),
+          },
+        ]
+      : []),
     { key: 'pickup-booth', label: 'Open in Booth at this line', onSelect: () => actions.onOpenInBooth([pickup]) },
     { key: 'pickup-script', label: 'Open this chapter in Script', onSelect: () => actions.onOpenInScript(pickup.chapterId) },
     { key: 'pickup-done', label: pickup.done ? 'Mark open again' : 'Mark recorded', onSelect: () => void actions.onSetDone(pickup.id, !pickup.done) },

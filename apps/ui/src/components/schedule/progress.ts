@@ -1,5 +1,6 @@
 import type { ChapterStatus, ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ProductionMilestone } from '../../api/contracts/production';
+import type { StatusId } from '../../kinds/statusTone';
 import { addDays, diffDays, fmtD, isIsoDate, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
@@ -21,6 +22,8 @@ const stageDone = (c: ScheduleChapter, stage: keyof typeof DONE_AT): boolean => 
 
 export type Verdict = 'ok' | 'tight' | 'behind';
 export type Tone = 'neutral' | 'warn' | 'danger' | 'success';
+/** The registry status each schedule tone says (kinds/statusTone.ts), so a due date and a verdict draw in the tone every page uses for that meaning. */
+export const TONE_STATUS: Record<Tone, StatusId> = { neutral: 'not_started', success: 'done', warn: 'at_risk', danger: 'behind' };
 
 export type Calc = {
   /** Words of every narrated chapter. */
