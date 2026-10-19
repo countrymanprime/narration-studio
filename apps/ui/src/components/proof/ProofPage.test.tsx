@@ -338,9 +338,11 @@ describe('proof-decisions-and-undo', () => {
     expect(review.mock.calls[0][0].status).toBe('dismissed');
     await waitFor(() => expect(selectedAt(at + 1)).toBe('true'));
     await user.click(await screen.findByRole('button', { name: 'Undo' }));
-    await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
+    // Undo runs after the page's own re-render (the reload and the selection step) has painted, which a coverage-instrumented 2-vCPU runner
+    // takes longer than waitFor's 1 s default to get through; the wait is for the call, so give it the runner's time, not a sleep.
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(2), { timeout: 10_000 });
     expect(review.mock.calls[1][0].status).toBe('unreviewed');
-    await waitFor(() => expect(selectedAt(at)).toBe('true'));
+    await waitFor(() => expect(selectedAt(at)).toBe('true'), { timeout: 10_000 });
   });
 
   it('a decision is one journal entry: Ctrl+Z and History take it back, and the toast Undo is the same entry', async () => {
