@@ -111,4 +111,11 @@ export const proofStates: StateEntry[] = [
       'Proof with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript, the rail shows no note count, and nothing moves to Production',
     ...REFLOW,
   },
+  {
+    page: 'proof',
+    state: 'address-checking',
+    description:
+      'Proof opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /proof?chapter=gone): the Proof title and the loaded page\'s two columns as grey blocks, with one polite "Checking this link…" status in place of the bare sentence',
+    ...REFLOW,
+  },
 ];

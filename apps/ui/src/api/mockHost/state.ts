@@ -112,8 +112,9 @@ export type MockApiSeed = {
   held?: readonly ('overview' | 'entities' | 'series')[];
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
   planRead?: 'loading' | 'fails';
-  /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error. */
-  chaptersRead?: 'loading' | 'fails';
+  /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error.
+   * `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…". */
+  chaptersRead?: 'loading' | 'fails' | 'reread-hangs';
   /** `?mockSettings=`: how the settings file behaves (see `MockSettingsSeed`). */
   settings?: MockSettingsSeed;
   /** What `teleprompterDevices` reports; defaults to `WIRE_TELEPROMPTER_DEVICES`. An empty array exercises the picker's no-devices fallback. */
@@ -243,9 +244,10 @@ export type MockApiSeed = {
   characterContinuity?: 'empty';
   /**
    * Boots the current project outside any series, so the Series
-   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books).
+   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books). `fails` makes the read of the
+   * series voice bible fail, so the tab's error and its Retry can be seen.
    */
-  seriesVoiceBible?: 'not-in-series' | 'single-book';
+  seriesVoiceBible?: 'not-in-series' | 'single-book' | 'fails';
   /** Boots with voice samples saved (`?mockVoiceSamples=`), see `VoiceSamplesSeed`. Unset boots with none. */
   voiceSamples?: VoiceSamplesSeed;
   /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed`. */

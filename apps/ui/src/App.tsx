@@ -1066,6 +1066,7 @@ function EditingRoute({ hasManuscript, onImport }: { hasManuscript: boolean; onI
       onChapter={(id) => navigate(`/editing/${encodeURIComponent(id)}`, { replace: true })}
       onImport={onImport}
       onGoToParagraph={(chapter, index) => navigate(scriptPath(chapter, index))}
+      onOpenStoryBible={(entityId) => navigate(addressPath({ page: 'story-bible', entity: entityId }))}
     />
   );
 }
