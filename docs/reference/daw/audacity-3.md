@@ -1,6 +1,6 @@
 # Audacity 3.x: what the app relies on
 
-Engine facts the Audacity adapter depends on, as of 2026-10-10. The protocol below is the published `mod-script-pipe` of Audacity 3; the adapter was built from that spec and has not yet been through the owner's verification pass ([The DAW port](../../architecture/daw-integration.md#the-daw-port)). Nothing on this page was observed in a running Audacity 3: the protocol facts, the 1024-byte limit, the escaping rules and the behaviour table below come from the published manual and Audacity's source ([research, "Not verified"](../../research/audacity-4-scripting-spec.md#not-verified)).
+Engine facts the Audacity adapter depends on, as of 2026-10-10. The protocol below is the published `mod-script-pipe` of Audacity 3; the adapter was built from that spec and has not yet been through the owner's verification pass ([The DAW port](../../architecture/daw-integration.md#the-daw-port)). Most of this page was not observed in a running Audacity 3; what was is in [the foundation tests' first run](../../research/audacity-3-real-run-foundation.md) (3.7.7 on Linux, 2026-10-19), and the rest the protocol facts, the 1024-byte limit, the escaping rules and the behaviour table below come from the published manual and Audacity's source ([research, "Not verified"](../../research/audacity-4-scripting-spec.md#not-verified)).
 
 ## How the app reaches Audacity
 

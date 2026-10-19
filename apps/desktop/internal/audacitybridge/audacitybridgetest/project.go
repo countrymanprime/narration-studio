@@ -203,6 +203,9 @@ func (p *Project) getInfo(cmd Parsed) ([]string, bool) {
 		return []string{fmt.Sprintf("The fake does not answer GetInfo Type=%s.", cmd.Params["Type"])}, false
 	}
 	b, _ := json.MarshalIndent(v, "", " ")
+	if string(b) == "[]" {
+		b = []byte("[  ]") // what Audacity 3.7.7 writes for an empty list (A3-T3 golden replies)
+	}
 	return strings.Split(string(b), "\n"), true
 }
 
