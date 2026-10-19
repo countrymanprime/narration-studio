@@ -132,6 +132,9 @@ export function Inspector({
       <DecisionButtons status={shown.review.status} fix={fix} disabled={inert} pendingStatus={saving} onDecide={(status) => void decide(status)} />
       <Field
         label="Note with the decision (optional)"
+        placeholder="Note with the decision (optional)"
+        labelHidden
+        compact
         textarea
         value={evidence.note}
         onChange={(value) => evidence.setNote([...value].slice(0, MAX_REVIEW_NOTE_LENGTH).join(''))}

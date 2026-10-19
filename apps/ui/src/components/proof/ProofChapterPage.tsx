@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useApi } from '../../api/ApiContext';
+import { apiErrorMessage } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
 import { formatWhen } from '../production/recordingCheckText';
 import { RecordingCheck } from '../production/RecordingCheck';
+import { LoadError } from '../layout/LoadError';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
@@ -62,6 +64,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
   const [reload, setReload] = useState(0);
+  // Retry after a failed read: counted apart from `reload` (which only re-reads the check's state) so both reads run again.
+  const [attempt, setAttempt] = useState(0);
 
   // The last completed comparison, offered for review without running again (it needs no linked project file).
   useEffect(() => {
@@ -75,11 +79,15 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
 
   // The check's state for the header; read again after Check again closes.
   useEffect(() => {
+    let live = true;
     api
       .workspaceAlignment(chapterId)
-      .then(setAlignment)
-      .catch((reason: unknown) => setLoadError(String(reason)));
-  }, [api, chapterId, reload]);
+      .then((next) => live && setAlignment(next))
+      .catch((reason: unknown) => live && setLoadError(apiErrorMessage(reason)));
+    return () => {
+      live = false;
+    };
+  }, [api, chapterId, reload, attempt]);
 
   useEffect(() => {
     let active = true;
@@ -91,12 +99,21 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
         setLinkedTrackGuid(mapping.mappings.find((entry) => entry.chapterId === chapterId)?.trackGuid);
       })
       .catch((reason: unknown) => {
-        if (active) setLoadError(String(reason));
+        if (active) setLoadError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
     };
-  }, [api, chapterId]);
+  }, [api, chapterId, attempt]);
+
+  // Clears the error and the half-read state first, so the skeleton shows with no stale sentence under it, then both reads run again.
+  const retry = () => {
+    setLoadError('');
+    setRead(false);
+    setChapter(undefined);
+    setAlignment(undefined);
+    setAttempt((n) => n + 1);
+  };
 
   // How many of the compare run's results are this chapter's: the live run's once it succeeds, or the last completed one while the
   // narrator reviews it. A run covers the selected REAPER audio, so rows for other chapters are left out.
@@ -108,11 +125,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
 
   let content: ReactNode;
   if (loadError) {
-    content = (
-      <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
-        {loadError}
-      </p>
-    );
+    content = <LoadError title="Proof" message={loadError} retry={retry} />;
   } else if (chapter === undefined && !read) {
     // Still reading: the page's title stays, the panels are blocks.
     content = (
