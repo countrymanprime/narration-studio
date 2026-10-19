@@ -52,9 +52,9 @@ So the gap is not "can CI start REAPER" (it can) but that no workflow runs the c
 
 ## Prototype
 
-In [the workflow pull request](https://github.com/countrymanprime/narration-utils/tree/claude/real-reaper-ci-workflow), `scripts/ci/real-reaper/`:
+In [the workflow pull request](https://github.com/countrymanprime/narration-utils/tree/claude/real-reaper-ci-workflow), `scripts/ci/real-reaper/` (the launcher sits under the `reaper` project so stylua lints it):
 
-- `launcher.lua`, run **inside REAPER** by the `reaper.exe -cfgfile … project script` startup path of S6. It refuses to run unless the resource path is the scratch folder, closes the audio device, builds a one-track project with the LibriVox chapter as an item, loads the real `narration_ui_bridge.lua`, and adds four CI-only commands: `ci_state`, `ci_undo`, `ci_render` (action 42230, name-checked as in S5) and `ci_quit`.
+- `integrations/reaper/spikes/ci_real_reaper_launcher.lua`, run **inside REAPER** by the `reaper.exe -cfgfile … project script` startup path of S6. It refuses to run unless the resource path is the scratch folder, closes the audio device, builds a one-track project with the LibriVox chapter as an item, loads the real `narration_ui_bridge.lua`, and adds four CI-only commands: `ci_state`, `ci_undo`, `ci_render` (action 42230, name-checked as in S5) and `ci_quit`.
 - `drive.py`, a Python driver that talks the same file protocol as the Go host (`commands/NNNNNNNN.cmd` in, `events.log` out) and prints one `PASS`, `FAIL` or `SKIP` per action, `results.md` and `results.json`. It also fetches the pinned chapter. The same driver runs against the fake (`--target fake`), which is how it was tested here.
 - `run-real-reaper-check.ps1` and `.github/workflows/real-reaper-bridge.yml` (`workflow_dispatch`): install the hash-pinned REAPER, fetch the chapter, start REAPER through the existing `run-reaper.ps1` (so the audio-device and save dialogs are answered as in the 9.7 run), run the driver, upload the report. The workflow is `risk:high` and needs the owner's approval.
 
