@@ -85,13 +85,12 @@ describe('JumpMenu', () => {
     expect(runCommand).toHaveBeenCalledWith('zoom.in');
   });
 
-  it('lists-the-commands-the-header-used-to-hold: Back, Forward, Undo, History and the zoom steps are each findable by name', () => {
+  it('lists-the-commands-the-header-used-to-hold: Back, Forward, History and the zoom steps are each findable by name (the named Undo comes from the shell provider, see App.test)', () => {
     const { open } = mount();
     act(() => void open());
     fireEvent.change(field(), { target: { value: '>' } });
     const all = names().join('|');
-    for (const label of ['Back', 'Forward', 'Undo the last change', 'Open the undo history', 'Zoom in', 'Zoom out', 'Reset zoom to 100%'])
-      expect(all).toContain(label);
+    for (const label of ['Back', 'Forward', 'Open the undo history', 'Zoom in', 'Zoom out', 'Reset zoom to 100%']) expect(all).toContain(label);
   });
 
   it('opens-on-a-short-list: one row per group, at most ten, and Go to Production waits for its group', () => {

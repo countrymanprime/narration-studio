@@ -1586,6 +1586,8 @@ describe('App shell mounts', () => {
       expect.stringMatching(/^Zoom in/),
       expect.stringMatching(/^Zoom out/),
       expect.stringMatching(/^Reset zoom to 100%/),
+      // The shell provider's fixed steps share the Zoom group.
+      ...[100, 110, 125, 150, 175, 200].map((percent) => expect.stringMatching(new RegExp(`^Set zoom to ${percent}%`))),
     ]);
     // Reset is on now (zoom is off 100%) and runs from here.
     expect(screen.getByRole('option', { name: /^Reset zoom to 100%/ }).getAttribute('aria-disabled')).toBeNull();
@@ -1628,7 +1630,7 @@ describe('App shell mounts', () => {
   it('jump-undo-follows-the-journal: Undo is off with the reason while the journal is empty', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    const undo = await jumpRow('Undo the last change');
+    const undo = await jumpRow('Undo');
     expect(undo.getAttribute('aria-disabled')).toBe('true');
     expect(undo.textContent).toContain('Nothing to undo');
   });
@@ -1651,8 +1653,8 @@ describe('App shell mounts', () => {
     await journal.act({ label: 'Added a bookmark', touches: ['bookmarks'], run: async () => ({ ok: true, value: 1 }), undo });
     renderWithJournal(journal);
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    await waitFor(async () => expect(await jumpRowIsOff('Undo the last change')).toBe(false));
-    await runFromJump('Undo the last change');
+    await waitFor(async () => expect(await jumpRowIsOff('Undo')).toBe(false));
+    await runFromJump('Undo');
     await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();
   });
@@ -1667,8 +1669,8 @@ describe('App shell mounts', () => {
     });
     renderWithJournal(journal);
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    await waitFor(async () => expect(await jumpRowIsOff('Undo the last change')).toBe(false));
-    await runFromJump('Undo the last change');
+    await waitFor(async () => expect(await jumpRowIsOff('Undo')).toBe(false));
+    await runFromJump('Undo');
     expect(await screen.findByText('Renaming cannot be undone here.')).toBeTruthy();
   });
 
