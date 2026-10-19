@@ -31,6 +31,8 @@ export interface ChapterSourceState {
   reloadAccepted: () => void;
   /** Reads everything again, as for a chapter just opened: after the narrator linked the chapter to its track elsewhere in the app. */
   reread: () => void;
+  /** After a failed read: forgets the error and shows the loading state, then reads again. */
+  retry: () => void;
 }
 
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -123,6 +125,10 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   }, [read, error]);
 
   const reread = useCallback(() => setReads((n) => n + 1), []);
+  const retry = useCallback(() => {
+    setState({ chapterId, read: null, error: null });
+    setReads((n) => n + 1);
+  }, [chapterId]);
 
-  return { source, setCuts, setEffects, reloadAccepted, reread };
+  return { source, setCuts, setEffects, reloadAccepted, reread, retry };
 }

@@ -42,10 +42,6 @@ export const productionDrivers: Record<string, Driver> = {
     await openProduction(page, '?mockProduction=on-pace');
     await page.getByRole('timer', { name: /^Timer running on Chapter 6/ }).waitFor();
   },
-  'mock-fidelity-01': async (page) => {
-    await openProduction(page, '?mockFidelity=01');
-    await page.getByRole('timer', { name: /^Timer running on Chapter 7/ }).waitFor();
-  },
   'at-risk': async (page) => {
     await page.clock.install({ time: MOCK_DAY });
     await openProduction(page, '?mockProduction=at-risk');

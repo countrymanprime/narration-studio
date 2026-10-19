@@ -18,7 +18,7 @@ three parts side by side:
   pronunciation has a blue dotted underline. A speaker's lines carry a chip with their name in the speaker's own
   colour: a dashed border means the speaker is only suggested, and a grey dashed chip with a question mark means nobody
   is set. Find matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has **Bookmarks**, **Find**
-  (Ctrl+F) and the **text settings** (font, size, line spacing and column width).
+  (Ctrl+F) and the **text settings** (font, size, line spacing, 1.7 at first, and column width).
 - **The rail** on the right, with five tabs: **Words**, **Story Bible**, **Notes**, **Queries** and **Bookmarks**.
 
 While the manuscript is being read, the page shows the same three columns as grey blocks; if it cannot be read, the page says so with **Retry**.
@@ -53,7 +53,7 @@ page at the same place, as do the links from Proof and the Story Bible.
 
 ## Select text
 
-Select words in the reader and a toolbar appears over them:
+Select words in the reader and a dark toolbar appears over them:
 
 - **Mark** puts one of your marks on them, with a note (a query for the author is a mark too), marks a word for its
   pronunciation (**Pronunciation (a word)**), or opens **Define marks…**, where you name your marks and choose each
@@ -88,7 +88,10 @@ word in the text to open it on the **Words** tab.
   it, and its definition from where **Definitions from** says: the web page (the default), the offline dictionary
   ([Settings, Models and downloads](settings.md#models-and-downloads)) or the online service on your own key. The choice is saved
   for every project, and Settings' **Definitions and pronunciations** panel changes the same one.
-- **Story Bible** lists the entries met in the chapter, each with a swatch in its type's colour; one opens its summary, and **Open in Story Bible** goes there.
+- **Story Bible** lists the entries met in the chapter, one row each with its type's swatch, its type and the chapter it first appears in (**Chapter 1**); a row opens the entry's summary. The entry's header is one row:
+  its name, its type, **first:** and its chapter, then **Find in the manuscript**, **Add a note** and **Open in Story Bible**, which goes there.
+  **Look up** on selected words with no entry shows them as a card instead, with their definition from where **Definitions from** says, **Create an entry**
+  (the kinds are the Story Bible's own types) and the **Definition**, **Forvo** and **YouGlish** pages.
 - **Notes** and **Queries** list the chapter's marks with a note and its questions for the author; one goes to its
   place in the text.
 - **Bookmarks** lists your bookmarks under their chapters, each with its line; one goes to its place, its pencil

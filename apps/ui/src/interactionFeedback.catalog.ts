@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/voicesamples/audioOutputs.ts#1':
+    'Putting the sample player back on the system default failed after the chosen output could not be used: the element stays where it was, the caller already says the sample is not on the chosen output, and the sample still plays.',
   'src/components/editing/voicesample/sampleMarksContext.tsx#1':
     'The names of the characters the voice-sample dots are read for: a failed read leaves the names as they were, and a dot with no names is called "this character" and still plays. The dots are an extra on the page, and the Story Bible says what failed.',
   'src/components/voicesamples/samplePlayerStore.ts#1':

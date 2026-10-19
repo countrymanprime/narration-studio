@@ -52,7 +52,7 @@ describe('text-settings-popover', () => {
     fireEvent.keyDown(screen.getByRole('slider', { name: 'Size' }), { key: 'ArrowRight' });
     expect(onChange).toHaveBeenLastCalledWith({ size: 22 });
     fireEvent.keyDown(screen.getByRole('slider', { name: 'Line spacing' }), { key: 'ArrowRight' });
-    expect(onChange).toHaveBeenLastCalledWith({ spacing: 1.9 });
+    expect(onChange).toHaveBeenLastCalledWith({ spacing: 1.8 });
     fireEvent.keyDown(screen.getByRole('slider', { name: 'Column width' }), { key: 'ArrowRight' });
     expect(onChange).toHaveBeenLastCalledWith({ width: 80 });
   });

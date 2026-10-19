@@ -463,7 +463,9 @@ test.describe('the worst inputs', () => {
     const median = [...steps].sort((a, b) => a - b)[Math.floor(steps.length / 2)];
     test.info().annotations.push({ type: 'timing', description: `opened (traced) in ${opened} ms; seven steps took ${steps.join(', ')} ms` });
     expect(await page.locator('[data-state="cur"]').count(), 'the steps moved the reading position').toBe(1);
-    expect(median, `the median of seven steps (${steps.join(', ')} ms) is under 250 ms`).toBeLessThan(250);
+    // 500 ms, not the 100 ms a step costs on a quiet machine: a shared CI runner under a sharded run measured 169 to 344 ms, three times slower. The
+    // fault this guards against cost 800 ms a step, so 500 ms still fails on it.
+    expect(median, `the median of seven steps (${steps.join(', ')} ms) is under 500 ms`).toBeLessThan(500);
     expect(opened, 'the Booth opens in under 30 s, traced').toBeLessThan(30_000);
     await record(page).click();
     await expect(stop(page)).toBeVisible({ timeout: 20_000 });

@@ -30,6 +30,8 @@ Storybook title: `Editing/Effects`. Source: `src/components/editing/effects/Effe
 - Add Over Cap
 - Add Far Over Cap
 - Add Daw Cannot
+- Add With Favourites
+- Add Favourites Refused
 - Tab
 
 ## Used by
