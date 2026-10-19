@@ -59,14 +59,33 @@ describe('Master & QC page body', () => {
     expect(screen.getByRole('row', { name: /Chapter 2 — The Pool of Tears/ }).getAttribute('aria-selected')).toBe('true');
   });
 
-  it('a chapter with no file yet reads Not mastered yet', async () => {
+  it('draws a waiting row per chapter and the retail sample before anything is measured, with the header and one refresh in the table panel', async () => {
+    withChapters([]);
+    const grid = await screen.findByRole('grid', { name: 'Per-file checks' });
+    // The chapters, the opening and closing credits, then the retail sample.
+    await waitFor(() => expect(grid.querySelectorAll('tbody tr').length).toBe(CHAPTERS.length + 3));
+    expect(within(grid).getByText('Opening credits')).toBeTruthy();
+    expect(within(grid).getByText('Retail sample')).toBeTruthy();
+    for (const row of grid.querySelectorAll('tbody tr')) {
+      expect(within(row as HTMLElement).getByText('Waiting')).toBeTruthy();
+      // What it waits on is its open pickups when the list has any, else that no file is measured.
+      expect(row.textContent).toMatch(/(No measured file yet|Waiting on \d+ pickups?) · not mastered/);
+    }
+    // The title, the profile pill and the one refresh icon are in the table's own panel.
+    const panel = screen.getByRole('region', { name: 'Per-file checks' });
+    expect(within(panel).getByRole('heading', { level: 1, name: 'Master & QC' })).toBeTruthy();
+    expect(within(panel).getByRole('button', { name: 'ACX' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Check the files again' })).toHaveLength(1);
+  });
+
+  it('a chapter with no file yet reads No measured file yet', async () => {
     const user = userEvent.setup();
     withChapters([passing('Chapter 01.wav'), failingTwo('Chapter 04.wav')]);
     await waitFor(() => expect(bar().getAttribute('aria-label')).toContain('Chapter 4'));
     await user.click(screen.getByRole('button', { name: 'Previous chapter' }));
     await user.click(screen.getByRole('button', { name: 'Previous chapter' }));
     expect(await screen.findByRole('heading', { name: 'Chapter 2 — The Pool of Tears · Not mastered' })).toBeTruthy();
-    expect(screen.getByText('Not mastered yet.')).toBeTruthy();
+    expect(screen.getByText('No measured file yet.')).toBeTruthy();
   });
 
   it('opens on the chapter a link names by its id when the chapter has a file', async () => {

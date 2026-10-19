@@ -89,7 +89,7 @@ export function FilesDemo({
   const current = selected === undefined ? undefined : rows.find((row) => row.id === selected);
   return (
     <div className="flex flex-col gap-4">
-      <FilesTable files={labelled} profile={profile} selected={selected} onSelect={pick} actions={actions} />
+      <FilesTable rows={buildRows(labelled, profile)} heading={<h1>Master &amp; QC</h1>} selected={selected} onSelect={pick} actions={actions} />
       <FileChecks
         row={current ?? (selected === undefined ? undefined : undefined)}
         chapterLabel={selected !== undefined && !current ? 'Chapter 09' : undefined}

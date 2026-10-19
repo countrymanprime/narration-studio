@@ -50,7 +50,9 @@ export function packageItems(profile: DeliveryProfile | undefined, files: readon
   const sample = measured(files).find(isSample);
   if (retail?.max != null && sample) {
     const seconds = sample.report!.duration_seconds;
-    items.push({ state: seconds <= retail.max ? 'ok' : 'bad', text: `Retail sample ${formatLength(seconds)} (up to ${minutes(retail.max)} min)` });
+    // The range is the profile's own: "1 to 5 min" when its rule has a lower bound, else "up to 5 min"; a bound the profile lacks is not drawn.
+    const range = retail.min != null ? `${minutes(retail.min)} to ${minutes(retail.max)} min` : `up to ${minutes(retail.max)} min`;
+    items.push({ state: seconds <= retail.max && seconds >= (retail.min ?? 0) ? 'ok' : 'bad', text: `Retail sample ${formatLength(seconds)} (${range})` });
   }
 
   const channels = ruleFor(profile, 'channels');

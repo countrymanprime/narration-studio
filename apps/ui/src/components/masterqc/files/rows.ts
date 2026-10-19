@@ -3,13 +3,16 @@
 // measure (`not_measurable`, `not_checked`, `off`) has no row here, and no value is made up for it.
 import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, ManuscriptChapter, MeasureFileResult, MeasureReport } from '../../../types';
-import { chapterOfFile } from '../../master/chapterFile';
+import { chapterOfFile, fileOf } from '../../master/chapterFile';
 import { formatLength, formatLevel } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
 import { fileVerdict, type FileVerdict } from '../../master/fileVerdict';
 
 /** One value in a cell: its text (a dash when it could not be measured) and whether the profile's rule on it was not met. */
 export type Cell = { text: string; missed: boolean };
+
+/** What a row needs of a chapter: the manuscript's, or a credits file's stand-in (`listedChapters`). */
+export type ChapterLike = Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle' | 'index'>;
 
 type CheckRow = { ruleId: string; label: string; passed: boolean; value: string; limit: string };
 
@@ -22,6 +25,8 @@ export type FileRow = {
   waiting?: string;
   /** What the Result column says for a file with no measurements. */
   waitingPill?: string;
+  /** False for a chapter (or the retail sample) with no measured file: it has nothing to play or show in the DAW. */
+  hasFile: boolean;
   /** The cells of a measured file. */
   length?: string;
   rms?: Cell;
@@ -41,7 +46,7 @@ const isSampleFile = (file: MeasureFileResult): boolean => /sample/i.test(file.n
  * The files named the way the manuscript names them: a chapter's file by its chapter's name (`chapterName`), the retail sample
  * "Retail sample", and a file that matches no chapter by its own file name. Only `name` changes; a file stays keyed by its path.
  */
-export function labelFiles(files: readonly MeasureFileResult[], chapters: readonly ManuscriptChapter[]): MeasureFileResult[] {
+export function labelFiles(files: readonly MeasureFileResult[], chapters: readonly ChapterLike[]): MeasureFileResult[] {
   return files.map((file) => {
     if (isSampleFile(file)) return { ...file, name: 'Retail sample' };
     const chapter = chapterOfFile(file, chapters);
@@ -106,6 +111,7 @@ function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: 
     noiseFloor: cell(report.noise_floor_dbfs, resultFor(file, profile, ['noise_floor_dbfs']), formatLevel),
     head: cell(report.head_room_tone_seconds, resultFor(file, profile, ['head_room_tone_seconds']), (n) => n.toFixed(1)),
     tail: cell(report.tail_room_tone_seconds, resultFor(file, profile, ['tail_room_tone_seconds']), (n) => n.toFixed(1)),
+    hasFile: true,
     checks: checkRows(file, profile),
   };
 }
@@ -114,11 +120,53 @@ export function buildRows(files: readonly MeasureFileResult[], profile: Delivery
   return files.map((file) => {
     if (file.status === 'measured' && file.report) return measuredRow(file, profile, file.report);
     const waiting = waitingText(file);
-    return { id: file.path, name: file.name, verdict: 'none', waiting: waiting.text, waitingPill: waiting.pill, checks: [] };
+    return { id: file.path, name: file.name, verdict: 'none', waiting: waiting.text, waitingPill: waiting.pill, hasFile: true, checks: [] };
   });
 }
 
-/** The file the table opens on: the first that fails, else the first. */
+/** The id of the retail sample's row while it has no file; a chapter without one is keyed by its own id. */
+export const SAMPLE_ROW_ID = 'retail-sample';
+
+const NO_FILE = 'No measured file yet';
+
+/** What a row with no file waits on: its open pickups when it has any, else that no file is measured. */
+function noFileText(pickups: number | undefined): string {
+  return pickups ? `Waiting on ${pickups} ${pickups === 1 ? 'pickup' : 'pickups'}` : NO_FILE;
+}
+
+function noFileRow(id: string, name: string, pickups?: number): FileRow {
+  return { id, name, verdict: 'none', waiting: noFileText(pickups), waitingPill: 'Waiting', hasFile: false, checks: [] };
+}
+
+/**
+ * The table's rows the mock's way: one per chapter in the order given (the credits and the chapters), then the retail sample, whether
+ * or not a file is measured for each, so the table is never empty. A chapter with no file waits on its open `pickups` ("Waiting on 3
+ * pickups") or says no file is measured. The sample's row is drawn once the profile has a retail-sample rule or a sample file is measured. A
+ * measured file no chapter claims keeps its row at the end, so nothing measured is dropped. A file is named by its chapter, as `labelFiles` does.
+ */
+export function buildChapterRows(
+  files: readonly MeasureFileResult[],
+  profile: DeliveryProfile,
+  chapters: readonly ChapterLike[],
+  pickups?: Readonly<Record<string, number>>,
+): FileRow[] {
+  const rowOfPath = new Map(buildRows(labelFiles(files, chapters), profile).map((row) => [row.id, row]));
+  const claimed = new Set<string>();
+  const claim = (file: MeasureFileResult | undefined): FileRow | undefined => {
+    const row = file && !claimed.has(file.path) ? rowOfPath.get(file.path) : undefined;
+    if (row) claimed.add(row.id);
+    return row;
+  };
+  const chapterFiles = files.filter((file) => !isSampleFile(file));
+  const rows = chapters.map((chapter) => claim(fileOf(chapter, chapterFiles)) ?? noFileRow(chapter.id, chapterName(chapter), pickups?.[chapter.id]));
+  const sample = claim(files.find(isSampleFile));
+  const hasSampleRule = profile.rules.some((rule) => rule.metric === 'retail_sample_seconds' && !rule.off);
+  if (sample) rows.push(sample);
+  else if (hasSampleRule) rows.push(noFileRow(SAMPLE_ROW_ID, 'Retail sample'));
+  return [...rows, ...[...rowOfPath.values()].filter((row) => !claimed.has(row.id))];
+}
+
+/** The file the table opens on: the first that fails, else the first with a measurement, else the first. */
 export function openingId(rows: readonly FileRow[]): string | undefined {
-  return (rows.find((row) => row.verdict === 'fail') ?? rows[0])?.id;
+  return (rows.find((row) => row.verdict === 'fail') ?? rows.find((row) => !row.waiting) ?? rows[0])?.id;
 }

@@ -30,9 +30,13 @@ export function FileChecks({ row, chapterLabel, actions }: { row: FileRow | unde
             <IconButton action="play" label="Play the quietest 5 s" disabledReason={off(gates.play)} onClick={() => actions.onPlayQuietest(row.id)} />
           )}
           {row && (
-            <IconButton action="openInReaper" label={`Open in ${gates.dawName}`} disabledReason={dawReason} onClick={() => actions.onOpenInDaw(row.id)} />
+            <IconButton
+              action="openInReaper"
+              label={`Open in ${gates.dawName}`}
+              disabledReason={row.hasFile ? dawReason : 'This chapter has no measured file yet.'}
+              onClick={() => actions.onOpenInDaw(row.id)}
+            />
           )}
-          <IconButton action="retry" label="Check the files again" disabledReason={off(gates.recheck)} onClick={actions.onRecheck} />
         </div>
       }
     >

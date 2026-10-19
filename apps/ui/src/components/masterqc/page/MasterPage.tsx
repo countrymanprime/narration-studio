@@ -5,6 +5,7 @@ import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
 import { creditsEntries, ownsOpeningCredits } from '../../credits/creditsEntries';
 import { useCreditsRows } from '../../credits/useCreditsRows';
+import { listedChapters } from '../../delivery/page/chapterStates';
 import { chapterOfFile, fileOf } from '../../master/chapterFile';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DiagnosticsSection } from '../../master/DiagnosticsSection';
@@ -16,13 +17,16 @@ import { ReportExportPanel } from '../../master/ReportExportPanel';
 import { useExportJobs } from '../../master/useExportJobs';
 import { Button } from '../../primitives/Button';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
+import { HeaderChip } from '../../primitives/HeaderChip';
 import { Heading } from '../../primitives/Heading';
 import { Panel } from '../../primitives/Panel';
+import { TooltipTarget } from '../../primitives/Tooltip';
+import { useOpenPickups } from '../../pickups/useOpenPickups';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
-import { buildRows, labelFiles } from '../files/rows';
+import { buildChapterRows } from '../files/rows';
 import { Consistency } from './Consistency';
 import { MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
@@ -122,8 +126,19 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
 
   // The profile a measurement was judged against wins over the project's current choice until it is measured again.
   const profile = run.job?.profile ?? chosen;
-  const files = useMemo(() => labelFiles(run.files, chapters), [run.files, chapters]);
-  const rows = useMemo(() => (profile ? buildRows(files, profile) : []), [files, profile]);
+  // One row per chapter and credits file, then the retail sample, whether or not a file is measured. A row with no file waits on its open
+  // pickups, counted as Production's pipeline and Delivery count them; nothing is claimed until that list is read.
+  const listed = useMemo(() => listedChapters(chapters, credits), [chapters, credits]);
+  const openLines = useOpenPickups();
+  const pickups = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const line of openLines ?? []) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
+    return counts;
+  }, [openLines]);
+  const rows = useMemo(
+    () => (profile ? buildChapterRows(run.files, profile, listed, openLines ? pickups : undefined) : []),
+    [run.files, profile, listed, openLines, pickups],
+  );
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
@@ -151,7 +166,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     (id: string) => {
       setPicked(id);
       const file = run.files.find((candidate) => candidate.path === id);
-      remember(file && chapterOfFile(file, chapters));
+      remember(file ? chapterOfFile(file, chapters) : chapters.find((candidate) => candidate.id === id));
     },
     [run.files, chapters, remember],
   );
@@ -178,23 +193,12 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     <div className="mx-auto max-w-[96rem]">
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,22.4rem)]">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <Heading title="Master & QC" />
-            {bar.length > 0 && chapterOfSelection && (
-              <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
-            )}
-            {profile && (
-              <Button variant="ghost" size="sm" title="Open Delivery" onClick={onOpenDelivery}>
-                {profileName(profile)}
-              </Button>
-            )}
-            <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-              {/* Opens Master to spec below (no mock equivalent, kept as built). */}
-              <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
-                Master all to spec…
-              </Button>
-              <MeasureControls run={run} />
-            </div>
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            {/* Opens Master to spec below (no mock equivalent, kept as built). */}
+            <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.exportRunning}>
+              Master all to spec…
+            </Button>
+            <MeasureControls run={run} />
           </div>
           {profileProblem && (
             <p role="alert" className="text-sm" style={DANGER}>
@@ -219,20 +223,37 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             </div>
           )}
           <MeasureProgress run={run} />
-          {profile && run.files.length > 0 ? (
+          <FilesTable
+            rows={rows}
+            selected={selected}
+            onSelect={select}
+            actions={actions}
+            heading={
+              <>
+                <Heading title="Master & QC" />
+                {bar.length > 0 && chapterOfSelection && (
+                  <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
+                )}
+                {profile && (
+                  <TooltipTarget text="Open Delivery">
+                    <HeaderChip onClick={onOpenDelivery}>{profileName(profile)}</HeaderChip>
+                  </TooltipTarget>
+                )}
+              </>
+            }
+          />
+          {profile && rows.length > 0 && (
             <>
-              <FilesTable files={files} profile={profile} selected={selected} onSelect={select} actions={actions} />
               {staleLink === undefined && <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />}
-              {profile && currentFile && rulesClosed !== currentFile.path && (
+              {currentFile && rulesClosed !== currentFile.path && (
                 <FileRulesPanel file={currentFile} profile={profile} onClose={() => setRulesClosed(currentFile.path)} />
               )}
             </>
-          ) : (
-            !run.running && (
-              <p className="text-sm" style={MUTED}>
-                Nothing measured yet. Check your rendered chapter files (WAV) to see them here.
-              </p>
-            )
+          )}
+          {run.files.length === 0 && !run.running && (
+            <p className="text-sm" style={MUTED}>
+              Nothing measured yet. Check your rendered chapter files (WAV) to see them here.
+            </p>
           )}
           <Panel title="Book consistency" subtitle={profile ? `RMS by file against the ${profileName(profile)} range` : undefined}>
             <Consistency files={run.files} profile={profile} />

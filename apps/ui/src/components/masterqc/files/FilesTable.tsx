@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useContextProvider, type ContextProvider } from '../../../registries/context';
-import type { DeliveryProfile, MeasureFileResult } from '../../../types';
+import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
+import { PANEL_HEADER_CLASS } from '../../primitives/panelStyles';
 import { statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import type { FileActions } from './FileActions';
-import { buildRows, type Cell, type FileRow } from './rows';
+import type { Cell, FileRow } from './rows';
 import { useDawGates } from './useDawGates';
 import { useMasterSelection } from './useMasterSelection';
 
@@ -34,26 +35,28 @@ function Result({ row }: { row: FileRow }) {
   return <StatusBadge tone={statusTone('not_checked')} label="Not judged" />;
 }
 
+const NO_FILE = 'This chapter has no measured file yet.';
+
 /**
- * Master & QC's per-file checks (the Studio Next mock's Master page): one row per file, each level red when the profile's rule on
- * it was not met, the Result column in words, and a row with no measurements saying what it waits on ("<reason> · not mastered").
- * The caller owns which file is selected (it is the shared chapter). Right-click on a row offers its checks through the context
- * provider; the actions themselves are the page's (`FileActions`).
+ * Master & QC's per-file checks (the Studio Next mock's Master page): the panel's header holds `heading` (the title, the chapter bar and
+ * the profile pill) and the one "Check the files again" icon at the far right, over one row per chapter, each level red when the profile's
+ * rule on it was not met, the Result column in words, and a row with no measurements saying what it waits on ("<reason> · not mastered").
+ * The caller owns which file is selected (it is the shared chapter) and builds the rows (`buildChapterRows`). Right-click on a row offers
+ * its checks through the context provider; the actions themselves are the page's (`FileActions`).
  */
 export function FilesTable({
-  files,
-  profile,
+  rows,
+  heading,
   selected,
   onSelect,
   actions,
 }: {
-  files: readonly MeasureFileResult[];
-  profile: DeliveryProfile;
+  rows: readonly FileRow[];
+  heading: ReactNode;
   selected: string | undefined;
   onSelect: (fileId: string) => void;
   actions: FileActions;
 }) {
-  const rows = useMemo(() => buildRows(files, profile), [files, profile]);
   const { current, bind, onKeyDown } = useMasterSelection({ rows, selected, onSelect });
   const gates = useDawGates();
 
@@ -74,7 +77,7 @@ export function FilesTable({
           {
             key: 'open',
             label: `Open in ${gates.dawName}`,
-            unavailable: gates.open.ok ? undefined : gates.open.reason,
+            unavailable: !row.hasFile ? NO_FILE : gates.open.ok ? undefined : gates.open.reason,
             onSelect: () => actions.onOpenInDaw(row.id),
           },
           { key: 'recheck', label: 'Check the files again', unavailable: gates.recheck.ok ? undefined : gates.recheck.reason, onSelect: actions.onRecheck },
@@ -87,8 +90,17 @@ export function FilesTable({
 
   return (
     <Panel flush label="Per-file checks">
+      <div className={PANEL_HEADER_CLASS}>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">{heading}</div>
+        <IconButton
+          action="retry"
+          label="Check the files again"
+          disabledReason={gates.recheck.ok ? undefined : gates.recheck.reason}
+          onClick={actions.onRecheck}
+        />
+      </div>
       {/* The keys sit on the wrapper: a row's own Enter and Space come from `TableRow`, the arrows from here. */}
-      <div ref={bind} onKeyDown={onKeyDown} className="overflow-x-auto">
+      <div ref={bind} onKeyDown={onKeyDown} className="overflow-x-auto" hidden={rows.length === 0}>
         <Table label="Per-file checks">
           <TableHead>
             <TableRow>
