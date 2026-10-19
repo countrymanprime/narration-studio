@@ -11,6 +11,7 @@ import { CommandRouter } from '../../input/router';
 import { createJournal } from '../../studio/journal/createJournal';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { OverlayHost } from '../../overlay/OverlayHost';
+import { overlay } from '../../overlay/overlayService';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import type { DawCapabilities } from '../../api/contracts/daw';
@@ -25,6 +26,8 @@ const drawn = (tile: HTMLElement): string => [...tile.querySelectorAll('[data-te
 
 afterEach(() => {
   cleanup();
+  // The service is the app's one, so a toast kept for the test would still be on screen in the next.
+  overlay.dismissUndo();
   window.localStorage.clear();
   vi.restoreAllMocks();
 });
@@ -44,6 +47,9 @@ function Back() {
   );
 }
 
+/** Longer than any test: the toast outlasts the slowest runner. */
+const UNDO_TOAST_FOR_TEST_MS = 10 * 60_000;
+
 function renderPage({
   api = createMockApi(),
   at = '/proof',
@@ -52,6 +58,10 @@ function renderPage({
 }: { api?: NarrationApi; at?: string; before?: string[]; hasManuscript?: boolean } = {}) {
   const handlers = { goTo: vi.fn(), goToScript: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+  // The toast's Undo goes away on a real five-second timer. A loaded runner takes longer than that between the decision and the click, so the
+  // button was gone when the click landed. These tests are about what Undo does, not how long it stays: keep the toast for the whole test.
+  const toastUndo = overlay.toastUndo;
+  vi.spyOn(overlay, 'toastUndo').mockImplementation((text, undo, options) => toastUndo(text, undo, { ...options, durationMs: UNDO_TOAST_FOR_TEST_MS }));
   window.localStorage.setItem('narration.proof.lastChapter./p', 'chapter-2');
   render(
     <MemoryRouter initialEntries={[...before, at]} initialIndex={before.length}>
@@ -323,6 +333,22 @@ describe('proof-keys-follow-the-visible-list', () => {
 });
 
 describe('proof-decisions-and-undo', () => {
+  it('the Undo toast is still there after the five seconds a loaded runner can take to reach it', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+    try {
+      renderPage({ at: '/proof?chapter=chapter-1' });
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const rows = await noteRows();
+      await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+      press('w', 'KeyW');
+      const undo = await screen.findByRole('button', { name: 'Undo' });
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(undo.isConnected).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a decision moves to the next note, and Undo takes back the decision and the selection', async () => {
     const api = createMockApi();
     const review = vi.spyOn(api, 'findingsReview');
