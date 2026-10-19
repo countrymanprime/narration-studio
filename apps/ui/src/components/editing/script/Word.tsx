@@ -5,6 +5,8 @@ import { clockText } from '../../booth/boothProgress';
 import { isLow, type DocItem } from '../model';
 import { FxMarker } from '../range/fx/FxButtons';
 import { useFxMarker } from '../range/fx/fxMarkers';
+import { SampleMark } from '../voicesample/SampleMark';
+import type { MarkedSample } from '../voicesample/sampleMarks';
 
 /** What marks a word: each is drawn with a shape (underline, strike, dashed box) as well as a colour, and named in `aria-description`. */
 type Mark = 'cut' | 'extra' | 'miss' | 'mis' | 'low';
@@ -83,10 +85,12 @@ export interface WordProps {
   join: boolean;
   /** The last word of an effect: its marker follows. */
   fxEnd: boolean;
+  /** The voice samples whose marked range ends on this word: a dot follows it. */
+  samples?: readonly MarkedSample[];
 }
 
 /** One word of the script, or one that was said and is not in it. Read-only: never editable text. */
-export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fxEnd }: WordProps) {
+export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fxEnd, samples }: WordProps) {
   const mark = markOf(it);
   const note = mark ? describe(it, mark) : undefined;
   const fx = it.fx.length > 0 && !it.cut;
@@ -121,6 +125,7 @@ export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fx
         {it.text}
       </span>
       {fxEnd ? <FxEnd id={it.fx[0]} /> : null}
+      {samples ? <SampleMark samples={samples} /> : null}
       {join ? <span className="bg-[var(--info-soft)] shadow-[0_2px_0_var(--info)]">{gap}</span> : gap}
     </Fragment>
   );

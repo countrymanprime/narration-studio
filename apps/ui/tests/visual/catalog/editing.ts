@@ -61,6 +61,19 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'voice-sample-mark',
+    description:
+      'Editing, a voice sample saved from four selected words - the dot after the last word of the range, with its accessible name naming the character and what was saved',
+    ...TOAST_FADES_OUT,
+  },
+  {
+    page: 'editing',
+    state: 'voice-sample-mark-open',
+    description: 'Editing, the dot after a marked range opened - the character, its length and a play control under the dot, with Open in Story Bible',
+    ...TOAST_FADES_OUT,
+  },
+  {
+    page: 'editing',
     state: 'takes-open',
     description:
       'Editing, the first line’s takes opened under it - the suggested take with the steps that would make it surer, each take’s evidence, and how retries are kept',
@@ -119,6 +132,18 @@ export const editingStates: StateEntry[] = [
     state: 'loading',
     description:
       'Editing while the chapters are still being read (?mockChapters=loading): the page\'s own header (the title, a block where the chapter stepper will be, the strip and Clean up and effects buttons) and the script\'s three paragraphs as grey blocks, with one polite "Reading the chapters…" status',
+  },
+  {
+    page: 'editing',
+    state: 'load-failed',
+    description:
+      'Editing when the chapters cannot be read (?mockChapters=fails): the Editing title and "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapters again; no skeleton left behind',
+  },
+  {
+    page: 'editing',
+    state: 'chapter-load-failed',
+    description:
+      'Editing when one chapter cannot be read (?mockChapterRead=fails): the header and chapter stepper stay and, under them, "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapter again; no skeleton left behind',
   },
   {
     page: 'editing',

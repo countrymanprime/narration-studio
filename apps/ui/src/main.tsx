@@ -108,7 +108,7 @@ const mockTeleprompter = (['listening', 'waiting', 'done', 'ended', 'flagged'] a
 // holds still for a capture.
 const mockLevelParam = Number(mockParams.get('mockLevel') ?? Number.NaN);
 const mockLevel = Number.isFinite(mockLevelParam) && mockLevelParam >= -100 && mockLevelParam <= 0 ? mockLevelParam : undefined;
-// `?mockZoom=125` boots the header's zoom group already at that percentage, so the visual
+// `?mockZoom=125` boots the app already zoomed to that percentage (the header's zoom chip shows), so the visual
 // suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
 const mockZoomParam = Number(mockParams.get('mockZoom') ?? Number.NaN);
 const mockZoom = Number.isFinite(mockZoomParam) && mockZoomParam > 0 ? mockZoomParam / 100 : undefined;
@@ -225,6 +225,10 @@ const mockPlan = (['loading', 'fails'] as const).find((seed) => seed === mockPar
 // `?mockChapters=loading|fails` makes the read of the manuscript's chapters never answer, or fail, so a page that reads them (the Booth) shows its loading skeleton or its error.
 // `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…".
 const mockChapters = (['loading', 'fails', 'reread-hangs'] as const).find((seed) => seed === mockParams.get('mockChapters'));
+// `?mockChapterRead=fails` makes the read of one chapter's check state fail, so Editing's chapter and Proof's chapter view show their error and Retry.
+const mockChapterRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockChapterRead'));
+// `?mockProfileRead=fails` makes the read of the delivery profiles fail, so Master & QC says so and offers Retry.
+const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockProfileRead'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
@@ -405,7 +409,7 @@ const mockDelivery = (['ready', 'building', 'fails', 'quiet'] as const).find((se
 // `?mockProduction=on-pace|at-risk` seeds the Production page with a time log, a running timer (on-pace only), a deadline and a
 // contracted amount; with none, nothing is logged or set yet.
 const mockProduction = (['on-pace', 'at-risk'] as const).find((seed) => seed === mockParams.get('mockProduction'));
-// `?mockFidelity=01` draws the mock backend as benchmark mock 01 draws Production, for the pixel-match tool (mockHost/mockFidelity.ts).
+// `?mockFidelity=05` draws the mock backend as benchmark mock 05 draws Master & QC, for the pixel-match tool (mockHost/mockFidelity.ts).
 const mockFidelity = mockFidelityFrom(mockParams.get('mockFidelity'));
 
 // `?mockRecorder=recording|failed|empty|no-devices|start-fails|unavailable` seeds the Booth's built-in recorder
@@ -462,6 +466,8 @@ const mockInitial = {
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
+  ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
+  ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),

@@ -35,7 +35,6 @@ async function renderPage({
 }: { overrides?: Partial<NarrationApi>; initial?: Initial; onManuscriptChanged?: () => void; dawConnectGraceMs?: number } = {}) {
   const api = createMockApi(overrides, initial);
   const data = await api.bootstrap();
-  const onOverview = vi.fn();
   const go = vi.fn();
   const goToBooth = vi.fn();
   const notify = vi.fn();
@@ -51,7 +50,6 @@ async function renderPage({
             goToEditing={vi.fn()}
             goToBooth={goToBooth}
             refreshBootstrap={async () => {}}
-            onOverview={onOverview}
             onManuscriptChanged={onManuscriptChanged}
             dawConnectGraceMs={dawConnectGraceMs}
           />
@@ -60,7 +58,7 @@ async function renderPage({
       </ApiProvider>
     </MemoryRouter>,
   );
-  return { api, onOverview, go, goToBooth, notify };
+  return { api, go, goToBooth, notify };
 }
 
 const pipeline = () => screen.findByRole('table', { name: 'Chapter pipeline' });
@@ -85,9 +83,12 @@ describe('production-route-draws-the-mock-page', () => {
   it('lays the stats row out 1.5 : 1 : 1 and gives Next up 360 px', async () => {
     await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
     const stats = (await screen.findByRole('heading', { name: 'Where the book stands' })).closest('.grid') as HTMLElement;
-    expect(stats.className).toContain('min-[1024px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
+    // The mock's widths: three columns above 1280, two from 1180 with the stage card across both, one below.
+    expect(stats.className).toContain('min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
+    expect(stats.className).toContain('min-[1180px]:grid-cols-2');
+    expect(stats.className).toContain('min-[1180px]:max-[1280px]:[&>:first-child]:col-span-2');
     const board = screen.getByRole('heading', { name: 'Chapter pipeline' }).closest('.grid') as HTMLElement;
-    expect(board.className).toContain('min-[1280px]:grid-cols-[minmax(0,1fr)_22.5rem]');
+    expect(board.className).toContain('min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]');
   });
 
   it('is the import when there is no manuscript', async () => {
@@ -225,12 +226,13 @@ describe('header-icons-and-dialogs-open', () => {
 });
 
 describe('timer-and-chip-still-work', () => {
-  it('feeds the shell chip from every overview read, and Stop timer stops the running one', async () => {
-    const { onOverview } = await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
-    await waitFor(() => expect(onOverview).toHaveBeenCalledWith(expect.objectContaining({ running: expect.objectContaining({ chapterId: 'chapter-6' }) })));
+  it('draws the running timer as a chip beside Stop timer, and Stop timer stops it and takes the chip away', async () => {
+    await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    const chip = await screen.findByRole('timer', { name: /^Timer running on / });
+    expect(chip.closest('header')).toBe((await screen.findByRole('button', { name: 'Stop timer' })).closest('header'));
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Stop timer' }));
     expect(await screen.findByText(/Timer stopped/)).toBeTruthy();
-    await waitFor(() => expect(onOverview.mock.lastCall?.[0].running).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('timer')).toBeNull());
     expect(screen.queryByRole('button', { name: 'Stop timer' })).toBeNull();
   });
 
@@ -469,5 +471,12 @@ describe('deleted-files-have-no-importers', () => {
   it.each(['ChapterBoard', 'PlanPanel', 'StatusReportPanel', 'StageSummary'])('no source imports %s', (name) => {
     const importers = sources(SRC).filter((file) => new RegExp(`from '[^']*/${name}'`).test(readFileSync(file, 'utf8')));
     expect(importers).toEqual([]);
+  });
+
+  it('opens the Schedule from the calendar button on the Recorded vs plan panel', async () => {
+    const { go } = await renderPage({ initial: { production: PRODUCTION_SCENARIOS['on-pace'] } });
+    await pipeline();
+    await userEvent.setup().click(within(screen.getByRole('region', { name: 'Recorded vs plan' })).getByRole('button', { name: 'Open schedule' }));
+    expect(go).toHaveBeenLastCalledWith('/schedule');
   });
 });

@@ -7,6 +7,7 @@ Storybook title: `Booth/RecordSetup`. Source: `src/components/booth/record/Recor
 ## Stories
 
 - Turn On Record
+- Turn On Record Built In
 - Connect Reaper
 - Reaper Not Answering
 - No Project Linked

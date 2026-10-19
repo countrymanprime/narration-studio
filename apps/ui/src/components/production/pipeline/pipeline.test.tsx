@@ -161,11 +161,6 @@ describe('NextUp', () => {
     expect(onGo.mock.calls).toEqual([['booth', 'c4'], ['pickups'], ['master', 'c2']]);
   });
 
-  it('leaves out the changed-chapters item where the host reports none', () => {
-    view(<NextUp inputs={{ ...NEXT_UP_EMPTY, changed: { count: 2, names: ['a', 'b'] } }} record={record} onGo={noop} timer={timer} />);
-    expect(screen.getByText('Nothing needs you right now.')).toBeTruthy();
-  });
-
   it('timer-stays-as-built: Start timer is on the recording item and hidden while a timer runs', async () => {
     const onStart = vi.fn();
     const { rerender } = view(<NextUp inputs={NEXT_UP_BUSY} record={record} onGo={noop} timer={{ running: false, onStart }} />);

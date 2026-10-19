@@ -49,7 +49,8 @@ describe('a Proof decision carries to Pickups, the rail and Production', () => {
     expect(within(await screen.findByRole('main')).getAllByText('Proof note').length).toBeGreaterThan(0);
 
     await user.click(await rail(/^Proof/));
-    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    // The header has no Undo button now; Ctrl+Z is the same command (the jump menu lists it too).
+    fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
     await waitFor(async () => expect((await api.pickupsList()).pickups).toHaveLength(before));
     await user.click(await rail(/^Pickups/));
     expect(await rail(new RegExp(`^Pickups, ${before}$`))).toBeTruthy();

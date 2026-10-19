@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -171,6 +171,38 @@ describe('selection-and-keys', () => {
     await userEvent.type(await screen.findByRole('textbox', { name: 'Find in notes' }), 'jk');
     expect(dataRows()).toHaveLength(0);
     expect(screen.getByRole('heading', { name: 'No notes match' })).toBeTruthy();
+  });
+});
+
+// Issue 2073: a decision moves the selection to the next note while focus stayed on the old row, so a screen reader and the next Tab
+// disagreed with the Inspector.
+describe('focus-follows-a-selection-the-page-moves', () => {
+  function Moved({ selectedId }: { selectedId: string }) {
+    return (
+      <TooltipProvider>
+        <NotesPanel findings={notesFixture()} allChapters sort="time" onSortChange={() => {}} selectedId={selectedId} onSelect={() => {}} />
+      </TooltipProvider>
+    );
+  }
+  const ids = () => notesFixture().map((f) => f.id);
+
+  it('moves focus to the selected row when the page selects another note while a row has focus', () => {
+    const [first, second] = ids();
+    const view = render(<Moved selectedId={first} />);
+    const rows = dataRows();
+    act(() => rows[0].focus());
+    expect(document.activeElement).toBe(rows[0]);
+    view.rerender(<Moved selectedId={second} />);
+    expect(document.activeElement).toBe(screen.getAllByRole('row').find((r) => r.getAttribute('aria-selected') === 'true'));
+  });
+
+  it('leaves focus alone when it was not on a row (the Inspector, the sort box)', () => {
+    const [first, second] = ids();
+    const view = render(<Moved selectedId={first} />);
+    const sort = screen.getByRole('combobox');
+    act(() => sort.focus());
+    view.rerender(<Moved selectedId={second} />);
+    expect(document.activeElement).toBe(sort);
   });
 });
 

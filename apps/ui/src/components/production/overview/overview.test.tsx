@@ -10,7 +10,8 @@ import { ProgressChart } from './ProgressChart';
 import { StageBar } from './StageBar';
 import { WeekCard } from './WeekCard';
 import { COUNTS, FINISHED, MID_BOOK, NO_TAKE_LOG, NOTHING_RECORDED, STORY_TODAY, nameOf, overviewFor } from './overviewFixtures';
-import { deliveryCounts, NOT_MEASURED } from './overviewFigures';
+import { WPH } from '../../schedule/estimates';
+import { deliveryCounts, NOT_MEASURED, stageSegments } from './overviewFigures';
 
 afterEach(cleanup);
 const view = (ui: ReactElement) => render(<TooltipProvider>{ui}</TooltipProvider>);
@@ -124,22 +125,53 @@ describe('StageBar', () => {
     const bar = screen.getByRole('img', { name: 'Book progress by stage' });
     const widths = [...bar.querySelectorAll('i')].map((i) => parseFloat(i.style.width));
     expect(widths.reduce((a, b) => a + b, 0)).toBeCloseTo(100, 1);
-    expect(bar.querySelector('i[title^="Proofed"]')).toBeTruthy();
-    expect(bar.querySelector('i[title^="Not recorded yet: 2:00"]')).toBeTruthy();
-    // Delivered has no chapter-level source, so it is not drawn.
-    expect(screen.queryByText(/Delivered/)).toBeNull();
+    expect([...bar.querySelectorAll('i')].map((i) => i.title.split(':')[0])).toEqual(['Delivered', 'Proofed', 'Edited', 'Recorded', 'Not recorded yet']);
+    // Chapter 1 is mastered, chapter 2 is in proof (edited), chapter 3 in edit (recorded), chapter 4 half recorded, chapter 5 untouched; a chapter is an hour.
+    expect(bar.querySelector('i[title="Delivered: 1:00"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Proofed: 0:00"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Edited: 1:00"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Recorded: 1:30"]')).toBeTruthy();
+    expect(bar.querySelector('i[title="Not recorded yet: 1:30"]')).toBeTruthy();
   });
 
-  it('names its recorded share as not yet edited and says it is an estimate, not the measured length of the Finished audio tile', () => {
+  it('says Recorded for the share recorded and has no footnote under the legend', () => {
     const { segments } = overviewFor(MID_BOOK);
     view(<StageBar segments={segments} wph={9300} />);
-    expect(screen.getByText(/Recorded, not edited yet/)).toBeTruthy();
-    expect(screen.getByText(/Estimated from each chapter's words and status\. Finished audio above is the measured length\./)).toBeTruthy();
+    expect(screen.getByText(/^Recorded/)).toBeTruthy();
+    expect(screen.queryByText(/Recorded, not edited yet/)).toBeNull();
+    expect(screen.queryByText(/Estimated from each chapter's words and status/)).toBeNull();
   });
 
   it('draws an empty bar for a book with no words', () => {
     view(<StageBar segments={overviewFor([]).segments} wph={9300} />);
-    expect(screen.getByRole('img', { name: 'Book progress by stage' }).querySelectorAll('i')).toHaveLength(4);
+    expect(screen.getByRole('img', { name: 'Book progress by stage' }).querySelectorAll('i')).toHaveLength(5);
+  });
+});
+
+describe('stageSegments', () => {
+  const hoursOf = (segments: ReturnType<typeof stageSegments>) => Object.fromEntries(segments.map((s) => [s.key, s.hours]));
+
+  it('weights a chapter still in recording by the share of its audio measured, so the bar agrees with the Finished audio tile', () => {
+    const half = MID_BOOK.filter((c) => c.id === 'c4');
+    expect(hoursOf(stageSegments(half, WPH, {}))).toMatchObject({ recorded: 0.5, unrecorded: 0.5 });
+  });
+
+  it('counts a mastered chapter as delivered, and never lets a later stage count for less than an earlier one', () => {
+    const [c1] = MID_BOOK;
+    const delivered = { [c1.id]: { mastered: true } };
+    expect(hoursOf(stageSegments([{ ...c1, status: 'recording', recordedSeconds: null }], WPH, delivered))).toMatchObject({
+      delivered: 1,
+      proofed: 0,
+      edited: 0,
+      recorded: 0,
+      unrecorded: 0,
+    });
+    expect(hoursOf(stageSegments([{ ...c1, status: 'finalized' }], WPH, {}))).toMatchObject({ delivered: 0, proofed: 1 });
+  });
+
+  it('leaves a reference chapter out of the book', () => {
+    const [c1] = MID_BOOK;
+    expect(stageSegments([{ ...c1, contentKind: 'reference' }], WPH, {}).every((s) => s.words === 0 && s.percent === 0)).toBe(true);
   });
 });
 

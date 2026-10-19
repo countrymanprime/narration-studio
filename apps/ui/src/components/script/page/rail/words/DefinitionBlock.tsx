@@ -69,7 +69,8 @@ export function DefinitionBlock({
   word: string;
   source: DefinitionSource;
   host: Pick<WordsHost, 'onlineDefinition' | 'installPrompt'>;
-  onUse: (say: string, sourceId: string) => void;
+  /** Absent where a word is looked up with nothing to save (the Story Bible's no-entry card): the rows then have no "Use". */
+  onUse?: (say: string, sourceId: string) => void;
 }) {
   const { answer, again } = useAnswer(word, source, host);
   if (source === 'web' || !answer) return null;
@@ -127,9 +128,11 @@ export function DefinitionBlock({
         <div key={`${row.headword}:${row.spelling}`} className="flex flex-wrap items-center gap-2">
           <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{row.spelling}</span>
           <span className="text-[var(--text-muted)]">{capitalized(row.headword)}</span>
-          <Button variant="secondary" size="sm" aria-label="Use" onClick={() => onUse(row.spelling, ONLINE_SOURCE_ID)}>
-            Use
-          </Button>
+          {onUse && (
+            <Button variant="secondary" size="sm" aria-label="Use" onClick={() => onUse(row.spelling, ONLINE_SOURCE_ID)}>
+              Use
+            </Button>
+          )}
         </div>
       ))}
     </InsetCard>

@@ -2,22 +2,27 @@ import { useMemo } from 'react';
 import { entryColour } from '../../../../../kinds/entityColour';
 import { overlay } from '../../../../../overlay/overlayService';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
-import { useEntries, useParagraphs, useScriptCommands, useScriptView } from '../../data/useScriptData';
+import { chapterName } from '../../../../../chapterName';
+import { useChapters, useEntries, useParagraphs, useScriptCommands, useScriptView } from '../../data/useScriptData';
+import type { WordsHost } from '../words/wordsHost';
 import { BiblePanel } from './BiblePanel';
 import { useBibleKindChoices } from './kinds';
 
 export type BibleTabProps = {
   chapterId: string;
+  /** The Words tab's host: the miss card's dictionary block and look-up links. */
+  host: WordsHost;
   /** The page opens the entry on the Story Bible page. */
   onOpenStoryBible: (entryId: string) => void;
 };
 
 /** The Story Bible tab of the Script rail: the chapter's entries and one entry read-only, over the page's data layer. */
-export function BibleTab({ chapterId, onOpenStoryBible }: BibleTabProps) {
+export function BibleTab({ chapterId, host, onOpenStoryBible }: BibleTabProps) {
   const entries = useEntries();
   const kinds = useBibleKindChoices();
   const paragraphs = useParagraphs(chapterId);
   const commands = useScriptCommands();
+  const chapters = useChapters();
   const { sources } = usePronunciationSources();
   const [entryId, update] = useScriptView((state) => state.entryId);
   const [miss] = useScriptView((state) => state.miss);
@@ -33,6 +38,11 @@ export function BibleTab({ chapterId, onOpenStoryBible }: BibleTabProps) {
       kinds={kinds}
       entries={inChapter}
       sources={sources}
+      host={host}
+      tagOf={(id) => {
+        const chapter = chapters.value?.find((row) => row.id === id);
+        return chapter ? chapterName(chapter, 'short') : undefined;
+      }}
       onPick={(id) => update({ entryId: id, miss: null, missSel: null })}
       onFind={(name) => update((state) => ({ find: { ...state.find, open: true, q: name, i: 0 }, findNonce: state.findNonce + 1 }))}
       onAddNote={() => overlay.toast('Select text in the reader, then choose Mark.')}

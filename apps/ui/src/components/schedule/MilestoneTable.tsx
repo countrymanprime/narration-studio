@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import type { ProductionMilestone } from '../../api/contracts/production';
+import { DateField } from '../primitives/DateField';
 import { Icon } from '../primitives/Icon';
 import { IconButton } from '../primitives/IconButton';
 import { statusTone, type StatusId } from '../../kinds/statusTone';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
-import { TextField } from '../primitives/TextField';
 import { TooltipTarget } from '../primitives/Tooltip';
-import { fmtIso } from './dates';
+import { fmtIso, isIsoDate } from './dates';
 import { measureText } from './measures';
 import { milestoneStatus, type MilestoneStatus, type ScheduleChapter } from './progress';
 
@@ -125,24 +125,24 @@ export function MilestoneTable({ milestones, chapters, today, due, onToggleDone,
   );
 }
 
-/** The due date, committed when focus leaves or on Enter. It is written "YYYY-MM-DD", as the plan stores it. */
+/**
+ * The due date, a native date field. A whole, real date is committed as soon as it is written or picked. A part-written one waits and leaving the field drops it;
+ * Enter on an emptied field clears the due date, so deleting one part of the date on the way to another never does.
+ */
 function DueField({ value, onCommit }: { value: string; onCommit: (date: string) => void | Promise<unknown> }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const commit = () => {
-    if (draft !== null && draft.trim() !== value) onCommit(draft.trim());
-    setDraft(null);
-  };
   return (
-    <TextField
+    <DateField
       label="Delivery due"
-      mono
-      placeholder="YYYY-MM-DD"
       value={draft ?? value}
-      onChange={setDraft}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') event.currentTarget.blur();
+      onChange={(text) => {
+        setDraft(text);
+        if (isIsoDate(text) && text !== value) void onCommit(text);
       }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && draft === '' && value !== '') void onCommit('');
+      }}
+      onBlur={() => setDraft(null)}
     />
   );
 }
