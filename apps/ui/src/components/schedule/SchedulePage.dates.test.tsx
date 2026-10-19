@@ -3,6 +3,7 @@
 // away, impossible, mistyped, cleared, refused by the host, committed twice, and a plan edited by hand to hold something that is not a date.
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { overlay } from '../../overlay/overlayService';
 import { REC, mountSchedule, stored, toasts, installKit } from './scheduleKit.test';
 
 installKit();
@@ -187,5 +188,52 @@ describe('typing the due date', () => {
     fireEvent.blur(field);
     await waitFor(() => expect(subtitle()).toMatch(/Due Nov 5/));
     expect(calls).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('telling a screen reader what the due date became', () => {
+  const said = () => overlay.getSnapshot().announcement;
+
+  it('announces the saved date and the status it gives', async () => {
+    await mountSchedule({ seed: { deadline: '2026-10-31' } });
+    await commit('2026-10-09');
+    await waitFor(() => expect(said()).toMatch(/^Due date saved: Oct 9\. /));
+    expect(said()).toMatch(/due Oct 9/);
+    expect(said()).toMatch(/On track|Tight|Behind/);
+  });
+
+  it('announces a due date in the past as overdue', async () => {
+    await mountSchedule();
+    await commit('2026-09-29');
+    await waitFor(() => expect(said()).toMatch(/Behind .*2 days overdue/));
+  });
+
+  it('announces a cleared due date', async () => {
+    await mountSchedule();
+    await commit('');
+    await waitFor(() => expect(said()).toBe('Due date cleared. No due date set.'));
+  });
+
+  it('announces nothing for a date the host refuses', async () => {
+    await mountSchedule({
+      wrap: () => ({
+        setProductionDeadline: async () => {
+          throw new Error('the project is read-only');
+        },
+      }),
+    });
+    await commit('2026-11-05');
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/read-only/));
+    expect(said()).not.toMatch(/Due date saved/);
+  });
+});
+
+describe('the pace is an estimate', () => {
+  it('labels the pace and the finish as estimates and says what they assume', async () => {
+    await mountSchedule();
+    await dueField();
+    expect(screen.getByText('Your pace (estimate)')).toBeTruthy();
+    expect(screen.getByText('At your pace, done (estimate)')).toBeTruthy();
+    expect(document.body.textContent).toMatch(/not measured from your sessions.*assumes 1\.5 h of work a day/);
   });
 });
