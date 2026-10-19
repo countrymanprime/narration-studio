@@ -11,7 +11,7 @@ function startServer({ dir, base = '/', port = 0 }) {
   const prefix = base.endsWith('/') ? base : `${base}/`;
   const server = createServer((request, response) => {
     const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
-    if (!path.startsWith(prefix)) {
+    if (path.includes('\0') || !path.startsWith(prefix)) {
       response.statusCode = 404;
       return response.end('not under the base path');
     }
