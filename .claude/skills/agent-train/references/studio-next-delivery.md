@@ -84,7 +84,7 @@ The owner ruled on 2026-10-11 (see [Studio Next Rebuild](../../../../docs/prds/s
 
 ## Users & Context
 
-The coordinator session (30-minute Routine), worker sessions (Sonnet default), groomer sessions (Sonnet, Opus for the contract PRDs), fixer sessions, and the owner (reviews, answers questions, merges are the coordinator's under D40). Sessions are cloud sessions on `https://github.com/countrymanprime/narration-utils` with the `SessionStart` hook installing the toolchain ([Tooling](../SKILL.md#the-worker-protocol)).
+The coordinator session (30-minute Routine), worker sessions (Sonnet default), groomer sessions (Sonnet, Opus for the contract PRDs), fixer sessions, and the owner (reviews, answers questions, merges are the coordinator's under D40). Sessions are cloud sessions on `https://github.com/countrymanprime/narration-studio` with the `SessionStart` hook installing the toolchain ([Tooling](../SKILL.md#the-worker-protocol)).
 
 ## Solution Detail
 

@@ -249,7 +249,7 @@ class TestReport:
 
         assert "narration-utils 0.1.0" in text
         assert "AGPL-3.0-or-later" in text
-        assert "https://github.com/countrymanprime/narration-utils" in text
+        assert "https://github.com/countrymanprime/narration-studio" in text
         assert "v0.1.0" in text
         assert "AGPL FULL TEXT" in text
 

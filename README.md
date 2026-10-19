@@ -80,7 +80,7 @@ with someone testing on those systems, non-Windows builds can come back.
 
 ## Install on Windows
 
-The supported way to get the app is a GitHub release. From the [releases page](https://github.com/countrymanprime/narration-utils/releases):
+The supported way to get the app is a GitHub release. From the [releases page](https://github.com/countrymanprime/narration-studio/releases):
 
 1. Download `narration-utils-<version>-windows-x64-setup.exe`, for example `narration-utils-0.2.7-windows-x64-setup.exe` (and,
    to check it, the `.sha256` file of the same name). Every file on a release carries its version in its name.
@@ -94,7 +94,7 @@ The supported way to get the app is a GitHub release. From the [releases page](h
    - the checksum, which only detects a damaged download: `(Get-FileHash .\narration-utils-0.2.7-windows-x64-setup.exe).Hash` in
      PowerShell must equal the hash in the `.sha256` file;
    - where it was built, with the [GitHub CLI](https://cli.github.com):
-     `gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-utils`. Success names the
+     `gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio`. Success names the
      workflow, commit and run that built it (see [CI and releases](docs/operations/ci-and-releases.md#build-provenance)).
 4. Start **Narration Studio** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
 
