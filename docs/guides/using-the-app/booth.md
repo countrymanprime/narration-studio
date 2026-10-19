@@ -7,7 +7,7 @@ starts and stops the take in your DAW (or the built-in recorder). It needs an [i
 Open it from **Booth** in the navigation, or from **Record in Booth** on a chapter or credits card on [Script](script.md), which
 opens it on that chapter. What the Booth is reading is part of its address (`/booth?chapter=…`, `/booth?credits=opening`), so Back
 and a link land on the same chapter. The Booth fills the window and follows the app's theme, light or dark.
-While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead.
+While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with **Checking this link…** while the chapter list is read once more.
 
 ## The page
 
