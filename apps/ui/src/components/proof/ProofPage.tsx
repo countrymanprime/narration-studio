@@ -325,11 +325,12 @@ export function ProofPage({
       entryOf.current.delete(next.id);
       replace(next);
       setReload((n) => n + 1);
+      if (decided && entry !== undefined) {
+        const after = order[order.indexOf(next.id) + 1];
+        if (after) select(after);
+        overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, () => journal.undo(entry), { entry });
+      }
       announcePickupListChanged();
-      if (!decided || entry === undefined) return;
-      const after = order[order.indexOf(next.id) + 1];
-      if (after) select(after);
-      overlay.toastUndo(`${noteRow(next).time} · ${noteRow(next).resolution.label}`, () => journal.undo(entry), { entry });
     },
     [order, replace, select, overlay, journal],
   );
