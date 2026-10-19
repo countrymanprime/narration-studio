@@ -676,6 +676,17 @@ export function DawFxRangeParams(chapterID: string, firstToken: number, lastToke
 }
 
 /**
+ * DawGoToChapter selects chapterID's linked track in the DAW and puts its cursor at where: "end" (the end of what is recorded on the
+ * track, seconds ignored) or "at" (that many project seconds). The page sends the chapter id, never a track id: the track is the
+ * chapter's link, read here. The answer is a DawResult: the capability's own sentence when the resolver refuses it, a chapter with no
+ * or several links, a time that is not a number of seconds, or a track the DAW no longer has, each with nothing moved. A chapter the
+ * manuscript does not have is an error. It starts and seeks no playback and adds no undo step.
+ */
+export function DawGoToChapter(chapterID: string, where: string, seconds: number): $CancellablePromise<string> {
+    return $Call.ByID(2466987050, chapterID, where, seconds);
+}
+
+/**
  * DawLastAction answers whether the DAW's next undo point is the app's own action of kind (#1711, docs/architecture/ui-state-and-journal.md#the-journal-and-undo): "this", "other"
  * (another action, or none), or "unknown" when the DAW cannot tell: the undo_last capability refused (a standalone launch, a DAW not
  * answering, Experimental actions off, the toggle off, an engine that has not built it), no live adapter, or no answer. It never
@@ -716,6 +727,15 @@ export function DawLinkFound(): $CancellablePromise<string> {
  */
 export function DawMonitorLevel(): $CancellablePromise<string> {
     return $Call.ByID(2167912414);
+}
+
+/**
+ * DawPlace reads which chapter's track the narrator is on in the DAW and where their cursor is, so the Booth opens there. It changes
+ * nothing in the DAW. The page never sees a track id: the host maps the selected track back to a chapter through the confirmed
+ * chapter-track links, so the same call serves any DAW whose follow_position role answers.
+ */
+export function DawPlace(): $CancellablePromise<string> {
+    return $Call.ByID(2065151625);
 }
 
 /**

@@ -103,7 +103,7 @@ export const ROWS: readonly SettingMeta[] = [
     section: 'REAPER',
     label: 'Start the launcher script with REAPER',
     scope: 'computer',
-    def: 'false',
+    def: 'true',
     field: { tool: 'DAW', key: 'auto_start_launcher' },
     desc: 'Passes the launcher to REAPER as its startup script so the link is ready when REAPER opens.',
     used: ['booth'],

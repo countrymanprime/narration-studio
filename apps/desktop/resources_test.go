@@ -115,3 +115,23 @@ func TestMaterializeResourcesReportsWhyItCouldNotUnpack(t *testing.T) {
 		t.Fatal("a cache folder that is a file was accepted")
 	}
 }
+
+func TestMaterializeResourcesKeepsTheLauncherInOneFolderAcrossUpdates(t *testing.T) {
+	cache := t.TempDir()
+	exe := filepath.Join(cache, "narration-utils.exe")
+	stable := stableLauncherDir(cache)
+	for _, version := range []string{"-- v1", "-- v2"} {
+		tree := resourceTree(map[string]string{"reaper/NarrationStudio_Launcher.lua": version})
+		if _, err := materializeResources(tree, cache, exe); err != nil {
+			t.Fatal(err)
+		}
+		got, err := os.ReadFile(filepath.Join(stable, "NarrationStudio_Launcher.lua"))
+		if err != nil || string(got) != version {
+			t.Fatalf("launcher after %q = %q (%v)", version, got, err)
+		}
+		pointer, err := os.ReadFile(filepath.Join(stable, "narration-utils-app-path.txt"))
+		if err != nil || strings.TrimSpace(string(pointer)) != exe {
+			t.Fatalf("pointer = %q (%v), want %q", pointer, err, exe)
+		}
+	}
+}

@@ -156,7 +156,7 @@ func (h *Host) dawChoice(svc hostServices) DawChoice {
 				choice.Chosen = &name
 			}
 		}
-		autoStart, _ := svc.settings.Effective(dawport.SettingsTool, "auto_start_launcher", "false")
+		autoStart, _ := svc.settings.Effective(dawport.SettingsTool, "auto_start_launcher", "true")
 		choice.LauncherAutoStart = autoStart == "true"
 		choice.Experimental = dawport.SettingsExperimental(svc.settings.Effective)()
 	}

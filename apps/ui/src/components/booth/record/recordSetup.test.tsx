@@ -91,11 +91,40 @@ function mount(capabilities: DawCapabilities, facts: RecordSetupFacts = LINKED, 
   const onChanged = vi.fn();
   render(
     <ApiProvider api={api}>
-      <RecordSetup capabilities={capabilities} facts={facts} say={say} onSettings={onSettings} onChanged={onChanged} />
+      <RecordSetup capabilities={capabilities} facts={facts} say={say} onSettings={onSettings} onChanged={onChanged} graceMs={0} />
     </ApiProvider>,
   );
   return { say, onSettings, onChanged };
 }
+
+describe('RecordSetup while a linked project connects on its own', () => {
+  it('waits before it shows the steps, and lets the narrator open them at once', async () => {
+    render(
+      <ApiProvider api={createMockApi()}>
+        <RecordSetup capabilities={recordRefused('standalone')} facts={LINKED} say={vi.fn()} onSettings={vi.fn()} onChanged={vi.fn()} onCheckAgain={vi.fn()} />
+      </ApiProvider>,
+    );
+    expect(screen.getByRole('heading', { name: 'Connecting to REAPER…' })).toBeTruthy();
+    expect(screen.queryByRole('listitem')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Show the steps' }));
+    expect(screen.getByRole('heading', { name: 'Connect REAPER to record' })).toBeTruthy();
+  });
+
+  it('shows the steps at once for a project that is not linked', () => {
+    render(
+      <ApiProvider api={createMockApi()}>
+        <RecordSetup
+          capabilities={recordRefused('standalone')}
+          facts={{ dawFileLinked: false, launcherPath: LAUNCHER }}
+          say={vi.fn()}
+          onSettings={vi.fn()}
+          onChanged={vi.fn()}
+        />
+      </ApiProvider>,
+    );
+    expect(screen.getByRole('heading', { name: 'Connect REAPER to record' })).toBeTruthy();
+  });
+});
 
 describe('RecordSetup when the app turns the launch away', () => {
   /** A mock api whose attach event the test sends by hand, as the host does when REAPER hands its project to a busy app. */
@@ -106,7 +135,15 @@ describe('RecordSetup when the app turns the launch away', () => {
     } as Partial<NarrationApi>);
     render(
       <ApiProvider api={api}>
-        <RecordSetup capabilities={recordRefused('standalone')} facts={LINKED} say={vi.fn()} onSettings={vi.fn()} onChanged={vi.fn()} onCheckAgain={vi.fn()} />
+        <RecordSetup
+          capabilities={recordRefused('standalone')}
+          facts={LINKED}
+          say={vi.fn()}
+          onSettings={vi.fn()}
+          onChanged={vi.fn()}
+          onCheckAgain={vi.fn()}
+          graceMs={0}
+        />
       </ApiProvider>,
     );
     return (state: { attached: boolean; reason?: string }) => act(() => send(state));
@@ -279,6 +316,7 @@ describe('RecordSetup says what it waits for and when it last looked', () => {
           onChanged={vi.fn()}
           checkedAt={Date.now() - 7000}
           onCheckAgain={onCheckAgain}
+          graceMs={0}
           {...extra}
         />
       </ApiProvider>,

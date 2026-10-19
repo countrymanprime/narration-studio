@@ -125,6 +125,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     return rollFrom(s.punchAt ?? s.phrase);
   }, [rollFrom]);
 
+  const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
+
   /** Start from here (right-click on a phrase): while a take runs it goes through the same plan as R; before one it marks the start. */
   const startFromHere = useCallback(
     async (unit: number) => {
@@ -138,29 +140,36 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       }
       actionsRef.current.chooseStart(to, !s.recording);
       if (s.recording) return rollFrom(to);
+      // Not recording yet: the text moves to the phrase (chooseStart), and the take starts there now, with the DAW moved to that spot first,
+      // so the narrator never has to find the place and click in the DAW with a live microphone.
       actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
+      return startTakeRef.current(to);
     },
     [rollFrom],
   );
 
   /** Starts the take: a phrase chosen inside what is recorded is a punch-in and follows the plan; anywhere else it starts at the end. */
-  const startTake = useCallback(async () => {
-    const s = sessionRef.current;
-    const at = s.punchAt;
-    if (at == null || at >= s.phraseCount || !isPunch({ phrase: at, seconds: s.secondsOf(at), recordedEnd: s.recordedEnd }))
-      return actionsRef.current.beginTake();
-    const seconds = Math.round(s.secondsOf(at));
-    const plan = rollPlan(s.capabilities);
-    if (plan.kind === 'refused') {
-      // A punch the DAW cannot do must not leave the narrator unable to record at all: the chosen start is let go, the take starts at the end of
-      // what is recorded, and the sentence says why.
-      actionsRef.current.notify(`${plan.reason} Recording from the end of what is already there instead.`);
-      actionsRef.current.clearStart?.();
-      return actionsRef.current.beginTake();
-    }
-    if (plan.kind === 'confirm' && !(await ask(`Punch in at ¶ ${s.paragraphOf(at) + 1}?`, 'Punch in', plan.dawName))) return;
-    return actionsRef.current.beginTake(seconds);
-  }, [ask]);
+  const startTake = useCallback(
+    async (from?: number) => {
+      const s = sessionRef.current;
+      const at = from ?? s.punchAt;
+      if (at == null || at >= s.phraseCount || !isPunch({ phrase: at, seconds: s.secondsOf(at), recordedEnd: s.recordedEnd }))
+        return actionsRef.current.beginTake();
+      const seconds = Math.round(s.secondsOf(at));
+      const plan = rollPlan(s.capabilities);
+      if (plan.kind === 'refused') {
+        // A punch the DAW cannot do must not leave the narrator unable to record at all: the chosen start is let go, the take starts at the end of
+        // what is recorded, and the sentence says why.
+        actionsRef.current.notify(`${plan.reason} Recording from the end of what is already there instead.`);
+        actionsRef.current.clearStart?.();
+        return actionsRef.current.beginTake();
+      }
+      if (plan.kind === 'confirm' && !(await ask(`Punch in at ¶ ${s.paragraphOf(at) + 1}?`, 'Punch in', plan.dawName))) return;
+      return actionsRef.current.beginTake(seconds);
+    },
+    [ask],
+  );
+  startTakeRef.current = startTake;
 
   /** `hold` is the one switch for the take: the page holds it for an open menu too, so neither resumes what the other still holds. */
   return { punchAndRoll, startFromHere, startTake, hold: hold.current };

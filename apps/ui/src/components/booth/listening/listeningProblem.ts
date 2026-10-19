@@ -15,8 +15,8 @@ type Session = Pick<TeleprompterSession, 'error' | 'canStart' | 'startReason' | 
 const NO_MIC = 'Choose a microphone first.';
 
 /**
- * Why the text cannot follow the narrator's voice, for the Booth's footer, or nothing when it can. A take still records without
- * it; only the following stops. Nothing is said while the microphones and the saved choice are still being read.
+ * Why the text cannot follow the narrator's voice, for the Booth's footer, or nothing when it can. A take does not begin without it
+ * (the Booth starts listening first); a session that fails later leaves the take running. Nothing is said while the microphones and the saved choice are still being read.
  */
 export function listeningProblem(session: Session): string | undefined {
   if (session.error) return `The text cannot follow your voice: ${session.error}`;
