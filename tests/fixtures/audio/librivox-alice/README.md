@@ -42,7 +42,7 @@ deterministic: the same recordings give byte-identical files.
 
 ## What each corpus is for
 
-### `coverage/`: the recording check on real speech ([#425](https://github.com/countrymanprime/narration-utils/issues/425) item 3)
+### `coverage/`: the recording check on real speech ([#425](https://github.com/countrymanprime/narration-studio/issues/425) item 3)
 
 14 cases in `docs/utilities/recording-coverage.md`'s layout, 9 `tune` (Kara) and 5 `held_out` (Kara's Chapter X and all of Leach): complete chapters,
 a skipped paragraph, a skipped sentence, a pickup read at the end, a truncated tail, a late start, a false start and

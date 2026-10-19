@@ -35,14 +35,14 @@ test('the release notes point at the third-party notices and the source offer', 
 });
 
 test('the release notes tell a narrator how to verify a download against the repository that built it', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-utils' });
+  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-studio' });
 
   assert.match(notes, /## Verifying this download/);
-  assert.match(notes, /gh attestation verify <file> --repo countrymanprime\/narration-utils/);
+  assert.match(notes, /gh attestation verify <file> --repo countrymanprime\/narration-studio/);
 });
 
 test('the changes still come first and the verification section last', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-utils' });
+  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-studio' });
 
   assert.ok(notes.indexOf('## Features') > 0);
   assert.ok(notes.indexOf('## Features') < notes.indexOf('## Verifying this download'));
@@ -57,7 +57,7 @@ test('the verification section names a placeholder when the repository is not kn
 // The first stable release is unsigned (owner decision D7): the notes say so and say what a narrator will see, instead of leaving the
 // SmartScreen warning to look like a fault.
 test('the release notes say how to install on Windows and that the download is unsigned', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-utils' });
+  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-studio' });
 
   assert.match(notes, /## Installing on Windows/);
   assert.match(notes, /`narration-utils-0\.1\.0-windows-x64-setup\.exe`/);
@@ -68,7 +68,7 @@ test('the release notes say how to install on Windows and that the download is u
 });
 
 test('the install section comes after the changes and before the verification section', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-utils' });
+  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-studio' });
 
   assert.ok(notes.indexOf('## Features') < notes.indexOf('## Installing on Windows'));
   assert.ok(notes.indexOf('## Installing on Windows') < notes.indexOf('## Verifying this download'));

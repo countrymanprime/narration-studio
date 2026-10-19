@@ -52,7 +52,7 @@ function gh(path) {
 function main(argv) {
   const runId = argv.find((arg) => /^\d+$/.test(arg));
   const repoIndex = argv.indexOf('--repo');
-  const repo = repoIndex >= 0 ? argv[repoIndex + 1] : (process.env.GITHUB_REPOSITORY ?? 'countrymanprime/narration-utils');
+  const repo = repoIndex >= 0 ? argv[repoIndex + 1] : (process.env.GITHUB_REPOSITORY ?? 'countrymanprime/narration-studio');
   if (!runId) {
     console.error('Usage: run-timings.mjs <run-id> [--steps] [--repo owner/name]');
     process.exit(2);
