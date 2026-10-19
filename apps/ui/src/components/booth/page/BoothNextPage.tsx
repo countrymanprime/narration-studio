@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Marks } from '../../../api/contracts/marks';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
@@ -112,6 +112,12 @@ export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOT
   );
 }
 
+/** Escape leaves the Booth while there is nothing to read yet (the session's own Escape takes over once there is). */
+function BoothExit({ onExit, children }: { onExit: () => void; children: ReactNode }) {
+  useCommand('booth.exit', onExit);
+  return <CommandScope kind="booth">{children}</CommandScope>;
+}
+
 function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; exitTo: string }) {
   const [params, setParams] = useSearchParams();
   const asked = useMemo(() => readBoothQuery(params), [params]);
@@ -144,7 +150,15 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   );
 
   const { source } = data;
-  if (data.error) return <LoadError title="Booth" message={data.error} retry={data.retry} />;
+  // The Booth fills the window, so a read that failed or has not ended has no rail to leave by: both leave as Escape does elsewhere (for
+  // Pickups when the address names a pickup session, else the page the Booth was opened from).
+  const leave = () => navigate(pickupIds.length > 0 ? BOOTH_LINKS.pickups : exitTo);
+  if (data.error)
+    return (
+      <BoothExit onExit={leave}>
+        <LoadError title="Booth" message={data.error} retry={data.retry} exit={{ label: 'Leave the Booth', onClick: leave }} />
+      </BoothExit>
+    );
   if (data.chapters?.length === 0)
     return (
       <div className="p-4 md:p-6">
@@ -155,13 +169,18 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
     );
   if (!source) {
     // Still reading the chapters (or the credits): the page's frame, drawn as blocks. A failed read is the alert above, never this.
-    if (!data.unavailable) return <BoothSkeleton />;
+    if (!data.unavailable)
+      return (
+        <BoothExit onExit={leave}>
+          <BoothSkeleton />
+        </BoothExit>
+      );
     return (
       <BoothUnavailable
         why={data.unavailable}
         onSetUpCredits={() => navigate(`${BOOTH_LINKS.settings}#credits`)}
         onChapters={() => navigate(BOOTH_LINKS.script)}
-        onExit={() => navigate(pickupIds.length > 0 ? BOOTH_LINKS.pickups : exitTo)}
+        onExit={leave}
       />
     );
   }

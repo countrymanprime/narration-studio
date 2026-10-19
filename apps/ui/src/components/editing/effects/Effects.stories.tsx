@@ -85,6 +85,15 @@ export const InspectorStepping: Story = {
     await expect(canvas.getByRole('button', { name: 'Show in REAPER' })).toBeTruthy();
   },
 };
+// On the last effect Next is off and says so; Previous works.
+export const InspectorLast: Story = {
+  render: () => inspector('REAPER', 420, { at: MANY.length - 1, of: MANY.length, to: fn() }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Next effect' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(canvas.getByRole('button', { name: 'Previous effect' })).not.toHaveAttribute('aria-disabled');
+  },
+};
 // The DAW lists the effect's settings: a slider for the continuous one, a number field for the stepped one; Bypass, Preview and Compare work.
 const withSettings = (bypassed: boolean, width = 420) => {
   const setup = withFxRange(DAW_SETUPS.reaper, 'native');

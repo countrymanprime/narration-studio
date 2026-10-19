@@ -16,6 +16,7 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean): Confi
       body: `${subject} is recording and keeps recording after you leave. The app did not start this take, so it will not stop it.`,
       confirmLabel: 'Leave',
       cancelLabel: KEEP_RECORDING,
+      safeDefault: true,
     };
   }
   return {
@@ -23,5 +24,6 @@ export function stopRecordingSpec(dawName: string, startedByApp: boolean): Confi
     body: `${subject} is recording. Leaving the Booth stops it.`,
     confirmLabel: 'Stop and leave',
     cancelLabel: KEEP_RECORDING,
+    safeDefault: true,
   };
 }

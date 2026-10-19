@@ -285,7 +285,7 @@ deleted), the Booth shows a panel instead of text: **The closing credits are not
 **Back to the chapters**, which opens [Script](script.md), the chapter list, as Escape does with a chapter open. A link to a chapter the book no longer has shows the
 same panel with **Back to the chapters**. An address the app cannot read at all, or one that names a chapter or line the book lacks, shows "This link could not be opened" with **Open Booth** and **Go to Production**; Escape leaves it as it leaves the Booth: for [Pickups](pickups.md) when the link still names pickups ("Open 3 in Booth"), otherwise for [Script](script.md).
 
-If the book's chapters cannot be read when the Booth opens, it shows "This page could not be loaded" with the reason and **Retry**; Retry shows the Booth's grey blocks again while it reads, then the page or the reason again.
+If the book's chapters cannot be read when the Booth opens, it shows "This page could not be loaded" with the reason and **Retry**; Retry shows the Booth's grey blocks again while it reads, then the page or the reason again. **Leave the Booth** beside it goes back (to [Script](script.md), or to [Pickups](pickups.md) for a pickup session). Escape does the same, both from that panel and while the grey blocks are showing.
 
 ![Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters](../../images/ui/booth-credits-missing.webp)
 
@@ -304,7 +304,7 @@ While its chapters are being read, the panel shows its title and grey blocks, an
 
 Escape (when nothing is open on top of the Booth) takes you to Script. While a take is recording, every way out asks first
 (Escape, Back, Forward, the setup chip, a link to another chapter): "Stop recording?" says the DAW is recording and leaving
-stops it. The take is held while the question is open. **Keep recording** stays; **Stop and leave** stops the recording and then leaves. If the DAW was already recording
+stops it. The take is held while the question is open. Focus opens on **Keep recording**, so Enter stays; **Stop and leave** stops the recording and then leaves. When the question closes, focus is where it was before it opened, so Enter never moves you to another chapter mid-take. If the DAW was already recording
 when you came in, the Booth did not start that take and does not stop it, and the question says so.
 
 ![Booth - Escape during a take asks "Stop recording?", with the take held until the narrator answers](../../images/ui/booth-flag.webp)

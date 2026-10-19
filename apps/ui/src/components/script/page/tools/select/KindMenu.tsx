@@ -3,7 +3,6 @@ import { Icon } from '../../../../primitives/Icon';
 import { Menu } from '../../../../primitives/Menu';
 import { Swatch } from '../../../../primitives/Swatch';
 import { TooltipTarget } from '../../../../primitives/Tooltip';
-import { TOOL_BUTTON } from './SelectionTool';
 import { swatchOf, type BibleKind } from '../../rail/bible/kinds';
 
 /** The Story Bible menu: "Add to the Story Bible as" each kind. The kinds are the Story Bible's categories, passed in. */
@@ -17,7 +16,7 @@ export function KindMenu({ kinds, onChoose }: { kinds: readonly BibleKind[]; onC
           leading: <Swatch colour={swatchOf(kind.colour)} />,
           onSelect: () => onChoose(kind.name),
         }))}
-        render={<Button variant="ghost" size="sm" className={TOOL_BUTTON} />}
+        render={<Button variant="inverse" size="sm" />}
       >
         <Icon name="book" />
         Story Bible

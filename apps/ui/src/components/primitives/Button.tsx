@@ -4,8 +4,9 @@ import type { ComponentProps } from 'react';
 
 // `secondary` is the mocks' outlined button, filled `--surface` so it reads the same on the page background and in a card.
 // `ghost` is the same button with no fill, for the rare one on a tinted surface. `link` is the underlined text action that sits
-// inside a sentence: it takes the sentence's font, size and colour and draws none of the button chrome.
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link';
+// inside a sentence: it takes the sentence's font, size and colour and draws none of the button chrome. `inverse` is for a button on an
+// ink-coloured surface (the Script selection toolbar): no border or fill, the surface's own text colour and a white wash on hover.
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse' | 'link';
 // `lg` is 40 px (`--button-height-lg`), the Inspector's decision buttons. `md` is the mocks' 32 px button (`--button-height`); `sm` is 28 px (`--button-height-sm`), for the companion and dense rows.
 type ButtonSize = 'lg' | 'md' | 'sm';
 
@@ -14,6 +15,7 @@ const VARIANT_CLASSES: Record<Exclude<ButtonVariant, 'link'>, string> = {
   secondary: 'border-[var(--btn-line)] bg-[var(--surface)] text-[var(--text)] not-aria-disabled:hover:bg-[var(--surface-2)]',
   ghost: 'border-[var(--line-strong)] bg-transparent text-[var(--text)] not-aria-disabled:hover:bg-[var(--surface-2)]',
   danger: 'border-[var(--danger)] bg-transparent text-[var(--danger-text)] not-aria-disabled:hover:bg-[var(--review-soft)]',
+  inverse: 'border-transparent bg-transparent text-inherit not-aria-disabled:hover:bg-white/15',
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
