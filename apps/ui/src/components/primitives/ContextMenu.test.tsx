@@ -151,4 +151,38 @@ describe('ContextMenu', () => {
     await user.click(off);
     expect(screen.queryByRole('menuitem', { name: 'Warm' })).toBeNull();
   });
+
+  it('draws key hints, and a check on the row that is current, which closes the menu when chosen', async () => {
+    const pick = vi.fn();
+    render(
+      <ContextMenu
+        items={[
+          {
+            key: 'go',
+            label: 'Go to',
+            onSelect: vi.fn(),
+            submenu: [
+              { key: 'a', label: 'Production', checked: true, onSelect: pick },
+              { key: 'b', label: 'Script', checked: false, onSelect: pick },
+              { key: 'c', label: 'Booth', checked: false, unavailable: 'Import a manuscript first.', onSelect: pick },
+            ],
+          },
+          { key: 'jump', label: 'Jump menu…', shortcut: ['Ctrl', 'K'], onSelect: vi.fn() },
+        ]}
+      >
+        <p>Empty</p>
+      </ContextMenu>,
+    );
+    fireEvent.contextMenu(screen.getByText('Empty'));
+    const jump = await screen.findByRole('menuitem', { name: /^Jump menu…/ });
+    expect(within(jump).getByText('Ctrl')).toBeTruthy();
+    expect(within(jump).getByText('K')).toBeTruthy();
+    await userEvent.setup().keyboard('{ArrowDown}{ArrowRight}');
+    const rows = await screen.findAllByRole('menuitemcheckbox');
+    expect(rows.map((row) => row.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+    expect(rows[2].getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(rows[1]);
+    expect(pick).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryAllByRole('menuitem')).toHaveLength(0));
+  });
 });

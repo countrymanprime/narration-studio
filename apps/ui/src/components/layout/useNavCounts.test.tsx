@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import type { NarrationApi as Api } from '../../types';
+import type { ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi as Api } from '../../types';
 import { MIXED } from '../pickups/list/pickupFixtures';
 import { openPickups } from '../pickups/list/pickupRows';
 import { useNavCounts } from './useNavCounts';
@@ -15,7 +15,7 @@ const wrap = (api: Api) =>
   };
 
 describe('useNavCounts (rail badges, N-B61)', () => {
-  it('reads the notes still open (not cleared, not just unreviewed) and the open lines of the pickup list, and no Story Bible count', async () => {
+  it('reads the notes still open (not cleared, not just unreviewed), the open lines of the pickup list and the chapters failing a delivery check, and no Story Bible count', async () => {
     const base = createMockApi({}, {});
     const api: Api = {
       ...base,
@@ -23,7 +23,7 @@ describe('useNavCounts (rail badges, N-B61)', () => {
       pickupsList: async () => ({ pickups: MIXED, leftOut: [] }),
     };
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
-    await waitFor(() => expect(result.current).toEqual({ proof: 14, pickups: openPickups(MIXED).length }));
+    await waitFor(() => expect(result.current).toEqual({ proof: 14, pickups: openPickups(MIXED).length, master: 0 }));
   });
 
   it('leaves a count out when its call fails, rather than drawing a made-up number', async () => {
@@ -51,5 +51,58 @@ describe('useNavCounts (rail badges, N-B61)', () => {
     const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
     await waitFor(() => expect(result.current.pickups).toBeDefined());
     expect(result.current.proof).toBeUndefined();
+  });
+});
+
+const chapter = (id: string, index: number, title: string) => ({ id, index, title }) as ManuscriptChapter;
+const file = (name: string, status: 'met' | 'not_met'): MeasureFileResult =>
+  ({
+    name,
+    path: `C:\\book\\${name}`,
+    status: 'measured',
+    report: null,
+    fingerprint: null,
+    findings: [],
+    rules: [{ ruleId: 'r', status }],
+  }) as unknown as MeasureFileResult;
+
+describe('useNavCounts: Master & QC', () => {
+  const base = createMockApi({}, {});
+  const withMeasurement = (files: MeasureFileResult[], chapters: ManuscriptChapter[]): Api => ({
+    ...base,
+    measureState: async () => ({ phase: 'success', files }) as unknown as MeasureJob,
+    manuscriptChapters: async () => chapters,
+  });
+
+  it('counts the chapters whose measured file fails a check; a passing, an unmeasured and a file-less chapter add nothing', async () => {
+    const api = withMeasurement(
+      [file('One.wav', 'not_met'), file('Two.wav', 'met'), file('Three.wav', 'not_met')],
+      [chapter('c1', 0, 'One'), chapter('c2', 1, 'Two'), chapter('c3', 2, 'Three'), chapter('c4', 3, 'Four')],
+    );
+    const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(api) });
+    await waitFor(() => expect(result.current.master).toBe(2));
+  });
+
+  it('counts nothing failing as 0, which draws no badge', async () => {
+    const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(withMeasurement([file('One.wav', 'met')], [chapter('c1', 0, 'One')])) });
+    await waitFor(() => expect(result.current.master).toBe(0));
+  });
+
+  it('leaves the count out when the measurement cannot be read, rather than drawing a made-up number', async () => {
+    const broken: Api = {
+      ...base,
+      measureState: async () => {
+        throw new Error('no measurement');
+      },
+    };
+    const { result } = renderHook(() => useNavCounts('/'), { wrapper: wrap(broken) });
+    await waitFor(() => expect(result.current.pickups).toBeDefined());
+    expect(result.current.master).toBeUndefined();
+  });
+
+  it('reads nothing with no manuscript', async () => {
+    const { result } = renderHook(() => useNavCounts('/', false), { wrapper: wrap(withMeasurement([file('One.wav', 'not_met')], [chapter('c1', 0, 'One')])) });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(result.current).toEqual({});
   });
 });
