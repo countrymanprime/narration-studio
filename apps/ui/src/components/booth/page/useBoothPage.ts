@@ -223,8 +223,19 @@ export function useBoothPage(options: BoothPageOptions) {
         // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
         // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
         if (!(await latest.current.session.ensureModel())) return;
+        // Listening comes first, and a take never begins without it: a text that cannot follow the voice is a failed start, not a
+        // recording that runs while the narrator is told why it cannot be followed. The DAW is asked to start at the punch itself,
+        // so it is already at that spot when the take begins.
+        if (!latest.current.session.active) {
+          const listening = await latest.current.session.start();
+          if (!listening.ok) {
+            notify(`Recording did not start: the text cannot follow your voice (${listening.reason || 'listening failed'}). Nothing was recorded.`);
+            return;
+          }
+        }
         takeAt.current = punch ?? recordedEnd;
-        return control.toggle();
+        const started = await control.toggle(punch);
+        if (!started && latest.current.session.active) latest.current.session.stop();
       },
       clearStart: () => setPunchAt(null),
       chooseStart: (phrase, move) => {
@@ -384,7 +395,10 @@ export function useBoothPage(options: BoothPageOptions) {
   useFullscreenKey();
 
   // The keys: every one is a catalogue command; the router keeps a field's own keys and any modified press away from them.
-  const toggleTake = useCallback(() => (latest.current.recording ? control.toggle() : roll.startTake()), [control, roll]);
+  const toggleTake = useCallback(async () => {
+    if (latest.current.recording) await control.toggle();
+    else await roll.startTake();
+  }, [control, roll]);
   useCommand('reading.toggle', () => void toggleTake());
   usePedalSpace(toggleTake);
   useCommand('booth.phrase.next', () => moveTo(nextPhrase(latest.current.units, latest.current.at)));

@@ -179,9 +179,19 @@ to in Levels**. A microphone you chose is never replaced. The choice is remember
 If the speech model is not downloaded yet, the footer says so before you press Record ("The text cannot follow your voice yet"),
 and the first take asks to download it, says how large it is and where it goes, and
 downloads nothing until you press **Download model**. While the text cannot follow (no microphone listed, or the listening failed
-to start), the footer says why; the take still records.
+to start), the footer says why. The text starts following your voice before the DAW records, so a take never begins with the text unable to follow: if listening fails to start, nothing is recorded and the Booth says why.
 
 ![Booth - Record pressed with the live engine's model not installed: the take runs and the Booth asks about the model](../../images/ui/booth-model-required.webp)
+
+## Where the Booth opens in your DAW
+
+When your DAW is connected and following is on, the Booth and the DAW stay together at the start:
+
+- **Opened with no chapter** (from the sidebar, say): the Booth opens on the chapter whose track is selected in the DAW. With no track selected, several selected, or a track no chapter is linked to, it opens where it would have.
+- **Opened at a chapter** (from the Script, Pickups or a bookmark): the DAW goes to that chapter's track as well. With only a chapter, its cursor goes to the end of the track; with a line, to that line's place in the track, so you can punch from it.
+- **Start from here** and **Punch and roll** from a line move the text there, move the DAW's cursor to that spot, and start recording from it, so you never have to find the place in the DAW with the microphone live.
+
+The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message.
 
 ## Where you stopped
 

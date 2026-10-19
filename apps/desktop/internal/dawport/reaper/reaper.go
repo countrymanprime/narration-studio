@@ -50,11 +50,13 @@ var declares = map[dawport.Capability]dawport.Level{
 	// reduce_range_gain; repair_click; last_action, undo_last; monitor_level (declared with the edit rows below).
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
-	dawport.CapRecord:      dawport.Experimental,
-	dawport.CapPunch:       dawport.Experimental,
-	dawport.CapRegions:     dawport.Experimental,
-	dawport.CapTakes:       dawport.Experimental,
-	dawport.CapFXChains:    dawport.Experimental,
+	// follow_position is read_place's and go_to's (narration_track_select.lua): Experimental until the owner sees the Booth open on the track REAPER is on.
+	dawport.CapFollowPosition: dawport.Experimental,
+	dawport.CapRecord:         dawport.Experimental,
+	dawport.CapPunch:          dawport.Experimental,
+	dawport.CapRegions:        dawport.Experimental,
+	dawport.CapTakes:          dawport.Experimental,
+	dawport.CapFXChains:       dawport.Experimental,
 	// Built, never wired to a binding, so never gated: Experimental keeps it off until it is verified.
 	dawport.CapItemGain: dawport.Experimental,
 	// The mastering port's DAW row (masterrender.go): Experimental until the owner's
@@ -97,6 +99,8 @@ var declares = map[dawport.Capability]dawport.Level{
 var commandCapability = map[string]dawport.Capability{
 	"chapter_track_state": dawport.CapTrackState,
 	"select_track":        dawport.CapTrackSelect,
+	"read_place":          dawport.CapFollowPosition,
+	"go_to":               dawport.CapFollowPosition,
 	"arm_only":            dawport.CapRecord,
 	"record_start":        dawport.CapRecord,
 	"record_stop":         dawport.CapRecord,
@@ -224,6 +228,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapProjectRead:     ProjectReader{},
 			dawport.CapTrackState:      actions,
 			dawport.CapTrackSelect:     actions,
+			dawport.CapFollowPosition:  placeFollower{actions, allowed},
 			dawport.CapRecord:          actions,
 			dawport.CapPunch:           puncher{actions, allowed},
 			dawport.CapRegions:         actions,

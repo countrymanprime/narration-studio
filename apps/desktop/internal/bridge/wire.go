@@ -200,6 +200,10 @@ var eventSpecs = map[string]eventSpec{
 	"UNDONE_LAST": {required: []fieldSpec{text("run"), text("kind"), count("steps"), count("undone")}},
 	// monitor_level (narration_levels.lua): the monitor level now held, a whole number from 0 to 100, read back after a set.
 	"MONITOR_LEVEL": {required: []fieldSpec{text("run"), count("level")}},
+	// read_place and go_to (narration_track_select.lua): PLACE is the one selected track (guid empty when none or several), how many are
+	// selected and the edit cursor in seconds; PLACE_SET is the track now selected and the cursor now held, in seconds. Neither opens an undo block.
+	"PLACE":     {required: []fieldSpec{text("run"), text("guid"), count("selected"), number("cursor")}},
+	"PLACE_SET": {required: []fieldSpec{text("run"), text("guid"), number("cursor")}},
 }
 
 // CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of

@@ -111,6 +111,10 @@ type Service struct {
 	// final state, which is later than the child process exiting.
 	// +checklocks:mu
 	finished chan struct{}
+	// ready is closed by the first event that shows the session is listening (anything after the script, which is sent before the
+	// model loads); readyDone makes the close happen once. AwaitReady waits on it.
+	ready     chan struct{}
+	readyDone bool
 }
 
 // New builds the service. emit receives every JSON line the sidecar prints;
@@ -404,6 +408,7 @@ func (s *Service) begin(plan launch) error {
 	s.script, s.position, s.stopping, s.stopFile, s.controlFile, s.scriptFile = nil, nil, false, plan.stopFile, plan.controlFile, plan.scriptFile
 	s.cancelAutoStopLocked()
 	s.autoStopped = false
+	s.ready, s.readyDone = make(chan struct{}), false
 	s.mu.Unlock()
 	s.notify()
 	// The session opens the same microphone and reports its own levels: the meter lets go of it first.
@@ -506,6 +511,9 @@ func (s *Service) onLine(line string) {
 		s.drop()
 		return
 	}
+	if kind != "script" {
+		s.markReady()
+	}
 	switch kind {
 	case "script":
 		s.mu.Lock()
@@ -523,6 +531,44 @@ func (s *Service) onLine(line string) {
 	s.traceLine(kind, raw)
 	if s.emit != nil {
 		s.emit(raw)
+	}
+}
+
+func (s *Service) markReady() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.ready != nil && !s.readyDone {
+		s.readyDone = true
+		close(s.ready)
+	}
+}
+
+// AwaitReady waits until the session just started is listening, and answers an error when it ended first (the sidecar crashed on
+// start, the microphone could not be opened): the Booth begins a take only once the text can follow it. A session that is still
+// loading after timeout is not a failure; it answers nil and any later failure arrives as the session's state.
+func (s *Service) AwaitReady(timeout time.Duration) error {
+	s.mu.RLock()
+	ready, finished := s.ready, s.finished
+	s.mu.RUnlock()
+	if ready == nil || finished == nil {
+		return nil
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case <-ready:
+		return nil
+	case <-finished:
+		s.mu.RLock()
+		message, _ := s.state["message"].(string)
+		phase, _ := s.state["phase"].(string)
+		s.mu.RUnlock()
+		if phase == "error" && message != "" {
+			return errors.New(message)
+		}
+		return errors.New("the teleprompter stopped before it was listening")
+	case <-timer.C:
+		return nil
 	}
 }
 
