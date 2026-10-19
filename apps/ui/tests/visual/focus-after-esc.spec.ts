@@ -75,14 +75,15 @@ test.describe('Editing: Escape keeps focus where the narrator opened something',
     expect(await focused(page)).toBe('BUTTON#drawertoggle');
   });
 
-  test('Escape in the script text still lets the cursor go', async ({ page }) => {
+  // Escape lets the selection go and nothing more: blurring the script text would drop the narrator on <body> (#2136), and Tab already leaves it.
+  test('Escape in the script text lets the selection go and focus stays on the script text', async ({ page }) => {
     await openEditing(page);
     await page.locator(WORDS).nth(3).click();
     await page.keyboard.press('Shift+ArrowRight');
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-sel]')).toHaveCount(0);
     await page.keyboard.press('Escape');
-    expect(await focused(page)).toBe('BODY');
+    await expect(page.locator('[data-script]')).toBeFocused();
   });
 });
 

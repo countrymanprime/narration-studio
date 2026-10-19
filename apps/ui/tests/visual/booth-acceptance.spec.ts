@@ -2,7 +2,7 @@
 // the document is a run of this file and not a memory. Rows 40 to 42 need a real REAPER, a microphone and a pedal: they are listed, not driven.
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
-import { chooseTheme, goToPage } from './drivers/shared';
+import { chooseMicrophone, chooseTheme, goToPage } from './drivers/shared';
 
 // The side panel is a drawer below 1360 px; the rows that read it are driven at the desktop size.
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -13,12 +13,15 @@ const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const chapterButton = (page: Page) => page.getByRole('button', { name: /^Chapter: / });
 const cursorWord = (page: Page) => page.locator('[data-current]').first();
 
-async function open(page: Page, query = RECORD_ON, ready = true): Promise<void> {
+// The built-in recorder listens before it records, so a built-in take needs a microphone chosen in Levels; the rows that are about having none
+// chosen (row 45) say so with `mic: false`.
+async function open(page: Page, query = RECORD_ON, ready = true, mic = query.includes('mockEngine=builtin')): Promise<void> {
   await page.goto(`/${query}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
   await chapterButton(page).waitFor();
   if (ready) await expect(record(page)).toBeEnabled();
+  if (mic) await chooseMicrophone(page);
 }
 
 async function take(page: Page, query = RECORD_ON): Promise<void> {
@@ -439,14 +442,19 @@ test('row 44: the built-in recorder with Experimental off says so, and Turn on R
 });
 
 test('row 45: with several microphones and none chosen, none listed, or one that will not open, Record says why and records nothing', async ({ page }) => {
-  await open(page, `${BUILTIN}&mockRecorder=empty`);
+  // The Booth listens before it records, so with none chosen the take does not begin, and the notice and the footer say the text cannot follow the voice until one is chosen.
+  await open(page, `${BUILTIN}&mockRecorder=empty`, true, false);
   await record(page).click();
-  await expect(page.getByText('Choose the microphone in Levels, then press Record.').first()).toBeVisible();
+  await expect(page.getByText(/Recording did not start: the text cannot follow your voice \(Choose a microphone\.\)/).first()).toBeVisible();
+  await expect(page.locator('#blisten-why')).toContainText('The text cannot follow your voice: Choose a microphone.');
   await expect(stop(page)).toHaveCount(0);
 
-  await open(page, `${BUILTIN}&mockRecorder=no-devices`);
+  // The listening side lists no microphone either (`mockNoDevices`), which is what the Booth listens with before it records. The footer says so
+  // before Record is pressed; the press is still sent to the host, whose refusal is the notice, and no take begins.
+  await open(page, `${BUILTIN}&mockRecorder=no-devices&mockNoDevices=1`, true, false);
+  await expect(page.locator('#blisten-why')).toContainText('The text cannot follow your voice: No microphone found.');
   await record(page).click();
-  await expect(page.getByText(/No microphone found/).first()).toBeVisible();
+  await expect(page.getByText(/Recording did not start/).first()).toBeVisible();
   await expect(stop(page)).toHaveCount(0);
 
   await open(page, `${BUILTIN}&mockRecorder=start-fails`);
