@@ -18,7 +18,7 @@ The header has the chapter step (the previous and next chapter buttons, Alt+↑ 
 legend of the marks in the text with how many of each, the recogniser that heard the words (**Flagged by**), the
 **Timeline** button (on a window 1360 px wide or more) and the button that opens the drawer. At 1280 px and below the
 legend uses short labels with no counts.
-While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so.
+While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
 same way on every page of the app, and the legend shows a sample of each beside its count, so the shape tells two red kinds apart
@@ -138,7 +138,24 @@ takes ("Choose words inside one take"), the recording changed since the chapter 
 sample"), some of the words are cut ("Restore the cut words or choose words without them"), the clip would be under half a
 second or over 30 seconds, the recording is not a WAV file, the audio file is missing, the saved REAPER project cannot be read,
 the character has 20 samples, or samples already use the 200 MiB a project may hold. Play, rename and manage a saved sample under
-**Voice samples** on the character's entry in the [Story Bible](story-bible.md#voice-samples); playing one from the Booth is not built yet.
+**Voice samples** on the character's entry in the [Story Bible](story-bible.md#voice-samples), and hear them in the
+[Booth](booth.md#voice-samples).
+
+### Samples in the script
+
+A small dot after the last word of a marked stretch says it is a voice sample. It is grey for Narration, and a number in it says
+how many samples end on that word. **Tab** reaches it in reading order; **Enter**, **Space** or a
+click opens what was marked there: the character, the label, the length, the words that were marked and any note, a play button, and **Open in Story
+Bible** for a character who has an entry. The play button plays the saved clip, not the recording as it is now, and stops
+Editing's own playback while it plays; the same button reads **Stop** and ends it, and **Esc** closes the list. Rename, move and delete
+stay in the Story Bible.
+
+![Editing - the dot after a marked stretch, opened: the character, the length and a play button, with Open in Story Bible](../../images/ui/editing-voice-sample-mark.webp)
+
+A dot with a hollow ring says the words changed since the sample was marked; the sample still plays. A dashed ring says the audio
+file is missing or changed; it cannot play, and the Story Bible has **Check again** and **Delete**. A sample whose last word is no
+longer in the chapter is drawn once above the script as "A voice sample whose words moved". Unlike the Booth, Editing does not
+check whether a take is recording before it plays a sample, so do not play one while you record.
 
 ## Takes
 

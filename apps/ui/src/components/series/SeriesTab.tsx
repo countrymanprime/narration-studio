@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { describeApiError } from '../../api/errorMessage';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import type { Series, SeriesVoiceBible } from '../../types';
+import { LoadErrorPanel } from '../layout/LoadError';
 import { formatRegionTime } from '../storybible/VoiceReferencesSection';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
@@ -27,19 +28,40 @@ export function SeriesTab({ notify }: { notify: Notify }) {
   const [newBookPath, setNewBookPath] = useState('');
   const [seriesName, setSeriesName] = useState('');
 
+  // Only the latest read may set state: a Retry (or a reload after an edit) supersedes one still in flight, and a read that ends after
+  // the tab is gone sets nothing.
+  const latest = useRef(0);
   const load = useCallback(async () => {
+    const mine = ++latest.current;
     try {
       const [nextBible, nextList] = await Promise.all([api.seriesVoiceBible(), api.seriesList()]);
+      if (mine !== latest.current) return;
       setBible(nextBible);
       setSeriesList(nextList);
       setLoadError(undefined);
     } catch (error) {
-      setLoadError(describeApiError(error));
+      if (mine === latest.current) setLoadError(apiErrorMessage(error));
     }
   }, [api]);
   useEffect(() => {
     void load();
+    return () => {
+      latest.current += 1;
+    };
   }, [load]);
+  // Retry: clears the error and what was read first, so the skeleton shows with no stale sentence under it, then reads again.
+  // A second press while that read runs does nothing.
+  const retrying = useRef(false);
+  const retry = () => {
+    if (retrying.current) return;
+    retrying.current = true;
+    setLoadError(undefined);
+    setBible(undefined);
+    setSeriesList(undefined);
+    void load().finally(() => {
+      retrying.current = false;
+    });
+  };
 
   const currentSeries = bible?.seriesId ? seriesList?.find((series) => series.id === bible.seriesId) : undefined;
 
@@ -97,9 +119,9 @@ export function SeriesTab({ notify }: { notify: Notify }) {
 
   if (loadError)
     return (
-      <p className="p-4 text-sm" style={{ color: 'var(--danger-text)' }}>
-        {loadError}
-      </p>
+      <div className="p-4">
+        <LoadErrorPanel message={loadError} retry={retry} />
+      </div>
     );
   if (!bible) return <SeriesSkeleton />;
 

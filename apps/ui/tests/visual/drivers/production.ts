@@ -1,4 +1,5 @@
 // How to reach each `production` state in STATE_CATALOG (see app.drivers.ts).
+import { expect } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -24,6 +25,7 @@ export const productionDrivers: Record<string, Driver> = {
     await page.goto('/?mockHold=overview');
     await settlePage(page);
     await page.getByRole('group', { name: 'Loading the production overview' }).waitFor();
+    await expect(page.getByText(/\d+ chapters/)).toHaveCount(0);
   },
   'load-error': async (page) => {
     await page.goto('/?mockInvalidPayload=production');
@@ -188,6 +190,14 @@ export const productionDrivers: Record<string, Driver> = {
     const dialog = await openRecordingCheck(page, 'Chapter 4');
     await dialog.getByText(/^Recorded to paragraph \d+ of \d+/).waitFor();
     await dialog.getByText('Pickups (0)').waitFor();
+  },
+  // The report dialog on a book with an amount: the form beside the live preview.
+  'report-dialog': async (page) => {
+    await openProduction(page, '?mockProduction=on-pace');
+    await page.getByRole('button', { name: 'Export status report' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Export status report' });
+    await dialog.getByTitle('Preview of the report').waitFor();
+    await dialog.getByRole('checkbox', { name: 'Contracted amount and effective rate' }).waitFor();
   },
   // The options a chapter's own panel shares with the Check recordings dialog, opened from the closed "Check options" line.
   'recording-check-options': async (page) => {

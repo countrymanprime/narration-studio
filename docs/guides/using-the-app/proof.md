@@ -20,7 +20,7 @@ something, there is no ring, every chapter in the strip is empty and the Inspect
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
 
 While Proof reads its chapters and notes, it keeps its title and shows grey blocks where the chapter strip, the notes and the
-Inspector will be, and says **Reading the chapters and notes…**.
+Inspector will be, and says **Reading the chapters and notes…**. A link to a chapter the list does not have first shows the same blocks with **Checking this link…** while the chapter list is read once more.
 
 If the page's chapters or notes cannot be read when it opens, Proof keeps its title and says "This page could not be
 loaded" with the reason and a **Retry** button, which reads them again. The rest of the app keeps working.
