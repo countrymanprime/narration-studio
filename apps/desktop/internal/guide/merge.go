@@ -321,7 +321,7 @@ func mergeEntities(document map[string]any, sourceID, targetID string, newUndoID
 		seen := map[string]bool{}
 		for _, item := range listOf(other["relationships"]) {
 			rel, _ := item.(map[string]any)
-			var ref any = rel["id"]
+			ref := rel["id"]
 			if rel["id"] == sourceID {
 				ref = targetID
 			}
