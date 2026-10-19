@@ -134,6 +134,8 @@ function DueField({ value, onCommit }: { value: string; onCommit: (date: string)
   return (
     <DateField
       label="Delivery due"
+      // The cell's own width (the mock's 152 px less its 10 px padding each side): a percentage width counts as the field's natural 160 px when the column is sized, which made Due 180 px.
+      className="w-[8.25rem] px-2 text-[0.8125rem]!"
       value={draft ?? value}
       onChange={(text) => {
         setDraft(text);
