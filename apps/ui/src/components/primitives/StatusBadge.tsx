@@ -20,8 +20,9 @@ export type StatusTone = 'neutral' | 'info' | 'progress' | 'accent' | 'success' 
 export type BadgeShape = 'pill' | 'tag' | 'booth' | 'cell';
 
 /** `soft` fills the badge with its tone's soft fill; `outline` draws it hollow in the tone's line colour, the dark sets'
- * "TO VERIFY" and "CHANGED" badges (and the Keyboard panel's "Changed", which the input-commands mock draws the same). */
-export type BadgeLook = 'soft' | 'outline';
+ * "TO VERIFY" and "CHANGED" badges (and the Keyboard panel's "Changed", which the input-commands mock draws the same).
+ * `dashed` is the soft fill with a dashed border in the line colour: a suggested or unknown speaker (`KindChip`). */
+export type BadgeLook = 'soft' | 'outline' | 'dashed';
 
 /** A badge's colours: `fill` behind the label, `text` for it (and a dot's mark), `line` for the outline look. */
 export type BadgeColors = { fill: string; text: string; line: string };
@@ -68,7 +69,9 @@ export function badgeClass(shape: BadgeShape = 'pill'): string {
 
 /** The inline colours of a badge in `look`. */
 export function badgeStyle({ fill, text, line }: BadgeColors, look: BadgeLook = 'soft'): CSSProperties {
-  return look === 'outline' ? { background: 'transparent', color: text, borderColor: line } : { background: fill, color: text, borderColor: 'transparent' };
+  if (look === 'outline') return { background: 'transparent', color: text, borderColor: line };
+  if (look === 'dashed') return { background: fill, color: text, borderColor: line, borderStyle: 'dashed' };
+  return { background: fill, color: text, borderColor: 'transparent' };
 }
 
 type BadgeProps = {

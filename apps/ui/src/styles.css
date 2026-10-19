@@ -140,7 +140,6 @@ html[data-motion='reduce'] {
      experimental, distinct from every other kind and status hue. */
   --experimental: #1f7a7a;
   --experimental-text: color-mix(in srgb, var(--experimental) 85%, var(--text));
-  --bookmark: #3b6fc4;
   /* Alternating reader rows: a touch darker than --surface, like banded table rows. */
   --row-alt: color-mix(in srgb, var(--surface) 94%, var(--text));
   /* LevelMeter's zones: named for their role rather than duplicating the status
@@ -296,7 +295,6 @@ html[data-motion='reduce'] {
   --danger-soft: #40201d;
   --experimental: #4fbdbd;
   --experimental-text: var(--experimental);
-  --bookmark: #6e9fdb;
   /* Mock 03 measures both. */
   --reading-bg: #0e0d09;
   --rec-fill: #5e1d16;
@@ -437,30 +435,6 @@ html[data-motion='reduce'] {
   }
   100% {
     transform: translateX(2400%);
-  }
-}
-/* Second parity pass: reader headers use the page width while prose keeps the
-   chosen reading measure. Custom colors are CSS variables so every consumer
-   (tabs, list rows, highlights, and legend) remains in sync. */
-.reader-page {
-  width: 100%;
-}
-/* The reader owns its horizontal padding so its sticky control band can cover
-   the entire scroll surface, including the top edge beneath app chrome. */
-.reader-page {
-  --reader-inline: 1.5rem;
-  min-height: 100%;
-}
-.reader-chapters {
-  padding-top: 0.75rem;
-}
-.source-line-number {
-  z-index: 3;
-  padding-top: 0.1rem;
-}
-@media (max-width: 767px) {
-  .reader-page {
-    --reader-inline: 1rem;
   }
 }
 /* A box that scrolls sideways shows a soft shadow on the edge that has more beyond it: the shadows stay put (`scroll`) and a cover in

@@ -22,7 +22,7 @@ export function FindingRow({
   const what = `${finding.type} at ${at}`;
   return (
     <li
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--line)] py-2 text-sm"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border)] py-2 text-sm"
       data-finding={finding.id}
       data-status={finding.status}
     >

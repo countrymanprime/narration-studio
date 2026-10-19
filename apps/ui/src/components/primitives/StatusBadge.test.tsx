@@ -38,6 +38,14 @@ describe('StatusBadge', () => {
       expect(chip.style.color).toBe(text);
     });
 
+    it("draws the dashed look as the soft fill with a dashed border in the tone's line", () => {
+      render(<StatusBadge tone={tone as StatusTone} label="Suggested" look="dashed" />);
+      const chip = screen.getByText('Suggested');
+      expect(chip.style.background).toBe(fill);
+      expect(chip.style.borderStyle).toBe('dashed');
+      expect(chip.style.borderColor).toBe(line);
+    });
+
     it("draws the dot in the tone's text token, named for a screen reader, with no visible text", () => {
       render(<StatusBadge tone={tone as StatusTone} label="On track" variant="dot" />);
       const dot = screen.getByRole('img', { name: 'On track' });

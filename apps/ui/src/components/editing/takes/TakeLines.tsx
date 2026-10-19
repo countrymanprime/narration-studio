@@ -110,10 +110,10 @@ export function TakeLines(props: TakeLinesProps) {
       aria-activedescendant={props.onTake ? takeRowId(passage.id, props.onTake) : undefined}
       data-takes={passage.id}
       onKeyDown={props.onKeyDown}
-      className="flex flex-col gap-2 border-l border-[var(--line)] pl-3"
+      className="flex flex-col gap-2 border-l border-[var(--border)] pl-3"
     >
       <Suggested suggestion={suggestion} labelOf={labelOf} />
-      <div className="flex flex-col divide-y divide-[var(--line)]">
+      <div className="flex flex-col divide-y divide-[var(--border)]">
         {passage.takes.map((t) => (
           <TakeRow key={t.id} {...props} take={t} suggestedId={suggestion.take} />
         ))}
