@@ -94,7 +94,7 @@ figure). From there:
   REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers. With
   Audacity the markers are labels on a label track named "Narration Utils", written `[nu:pickup open] …` (and
   `[nu:pickup done] …` once resolved): one label per line, with no colour. They are Experimental, so they stay off until the
-  Experimental switch is on, and Audacity must be [linked and answering](settings.md#recording--daw). Edit one by hand and the
+  Experimental switch is on, and Audacity must be [linked and answering](settings.md#daw-integration). Edit one by hand and the
   app reads it as it stands; delete the `[nu:pickup …]` start and it is no longer a pickup.
 - **Copy the pickup script** copies the lines, one per line as "chapter · time: line", to paste elsewhere. If the window
   does not allow the clipboard, it says so.
