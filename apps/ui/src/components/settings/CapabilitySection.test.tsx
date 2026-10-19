@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilitySupport } from '../../api/contracts/daw';
@@ -15,7 +16,10 @@ function renderSection(overrides: Partial<NarrationApi>) {
   render(
     // The mock's own subscription emits its seeded report on subscribe, which would pre-empt a read a test overrides.
     <ApiProvider api={createMockApi({ subscribeDawCapabilities: () => () => undefined, ...overrides })}>
-      <CapabilitySection />
+      {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
+      <main tabIndex={-1}>
+        <CapabilitySection />
+      </main>
     </ApiProvider>,
   );
 }
@@ -143,6 +147,28 @@ describe('CapabilitySection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(screen.getAllByRole('listitem')).toHaveLength(1));
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('keeps focus on the page when Retry succeeds and its error line goes away', async () => {
+    const dawCapabilities = vi
+      .fn<NarrationApi['dawCapabilities']>()
+      .mockRejectedValueOnce(new Error('bridge down'))
+      .mockResolvedValue(report({ markers: { level: 'supported', available: true } }));
+    renderSection({ dawCapabilities });
+    await screen.findByRole('alert');
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+  });
+
+  it('keeps Retry focused when the read fails again and the error stays', async () => {
+    const dawCapabilities = vi.fn<NarrationApi['dawCapabilities']>().mockRejectedValue(new Error('bridge down'));
+    renderSection({ dawCapabilities });
+    await screen.findByRole('alert');
+    const retry = screen.getByRole('button', { name: 'Retry' });
+    await userEvent.click(retry);
+    await waitFor(() => expect(dawCapabilities).toHaveBeenCalledTimes(2));
+    expect(document.activeElement).toBe(retry);
   });
 
   it('says no DAW reported capabilities for an empty report', async () => {

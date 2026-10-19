@@ -126,7 +126,7 @@ export function MeasureControls({ run }: { run: MeasureRun }) {
           Choose other files…
         </Button>
       )}
-      <Button onClick={() => void run.check()} pending={run.checking} disabled={run.running}>
+      <Button onClick={() => void run.check()} pending={run.checking} disabled={run.running} data-measure-check>
         {run.paths.length > 0 ? `Re-check ${plural(run.paths.length, 'file', 'files')}` : 'Check files…'}
       </Button>
     </div>
@@ -136,6 +136,20 @@ export function MeasureControls({ run }: { run: MeasureRun }) {
 /** The progress of a running measurement with Cancel, and what went wrong reading or starting one. */
 export function MeasureProgress({ run }: { run: MeasureRun }) {
   const { job } = run;
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const cancelShown = !!job && run.running;
+  const wasShown = useRef(cancelShown);
+  // Check files… is disabled while a run goes, and a disabled button drops focus to the page: send the keyboard to Cancel, the one
+  // control the run offers, and back to the check button when Cancel goes away with the run. Only when focus is lost, and never on
+  // arrival (a page that opens on a run in flight is the shell's to focus).
+  useEffect(() => {
+    if (cancelShown === wasShown.current) return;
+    wasShown.current = cancelShown;
+    const active = document.activeElement as HTMLButtonElement | null;
+    if (active && active !== document.body && !active.disabled) return;
+    if (cancelShown) cancelRef.current?.focus();
+    else document.querySelector<HTMLElement>('[data-measure-check]')?.focus();
+  }, [cancelShown]);
   return (
     <>
       {run.jobError && (
@@ -164,7 +178,7 @@ export function MeasureProgress({ run }: { run: MeasureRun }) {
             <p aria-live="polite" className="text-sm">
               {job.message}
             </p>
-            <Button variant="secondary" onClick={run.cancel}>
+            <Button ref={cancelRef} variant="secondary" onClick={run.cancel}>
               Cancel
             </Button>
           </div>

@@ -234,3 +234,42 @@ func TestProductionStatusReportFollowsTheTickedSections(t *testing.T) {
 		t.Fatalf("the export does not echo the sections: %v", exported["include"])
 	}
 }
+
+func TestProductionStatusReportCountsTheOpenPickupsOfTheList(t *testing.T) {
+	f := newGapFixture(t)
+	preview := decodeAnswer(t)(f.host.ProductionStatusReportPreview(ProductionReportInclude{Pickups: true, Delivery: true}))
+	page := preview["html"].(string)
+	if !strings.Contains(page, "1 open in") || !strings.Contains(page, "Nothing has been measured") {
+		t.Fatalf("the pickups or the delivery sentence are missing:\n%s", page)
+	}
+}
+
+func TestProductionStatusReportLeavesOutThePickupListAndTheMeasurementUnlessTicked(t *testing.T) {
+	f := newGapFixture(t)
+	page := decodeAnswer(t)(f.host.ProductionStatusReportPreview(ProductionReportInclude{Words: true}))["html"].(string)
+	for _, left := range []string{"Open pickups", "Delivery check", "Nothing has been measured"} {
+		if strings.Contains(page, left) {
+			t.Fatalf("%q is in a report that ticked only words", left)
+		}
+	}
+}
+
+func TestProductionStatusReportJudgesTheLastMeasurementAgainstTheProfile(t *testing.T) {
+	host := productionHost(t)
+	good, quiet := measuredFile("ch-1.wav", 600, nil), measuredFile("ch-2.wav", 600, nil)
+	good.Report.IntegratedLUFS = floatPtr(-20)
+	quiet.Report.IntegratedLUFS = floatPtr(-12)
+	unread := MeasureFileResult{Path: "ch-3.wav", Name: "ch-3.wav", Status: measureFileFailed, Error: "not a RIFF/WAVE file"}
+	lastRun(host, good, quiet, unread)
+	input := host.reportDelivery()
+	if input == nil || len(input.Files) != 3 || input.Profile == "" {
+		t.Fatalf("delivery input = %+v", input)
+	}
+	if input.Files[2].Measured || len(input.Files[2].Missed) > 0 {
+		t.Fatalf("a file that could not be read is unchecked, not failing: %+v", input.Files[2])
+	}
+	page := decodeAnswer(t)(host.ProductionStatusReportPreview(ProductionReportInclude{Delivery: true}))["html"].(string)
+	if !strings.Contains(page, "1 unchecked") {
+		t.Fatalf("the page does not count the unchecked file:\n%s", page)
+	}
+}

@@ -18,7 +18,10 @@ const mount = (files: readonly MeasureFileResult[], profile: DeliveryProfile = a
   const api = apiOf(jobOf(files, profile), profile, overrides);
   render(
     <PageHost api={api}>
-      <MasterPage {...PROPS} onOpenDelivery={onOpenDelivery} openSettings={vi.fn()} />
+      {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
+      <main tabIndex={-1}>
+        <MasterPage {...PROPS} onOpenDelivery={onOpenDelivery} openSettings={vi.fn()} />
+      </main>
     </PageHost>,
   );
   return { api, onOpenDelivery };
@@ -298,6 +301,8 @@ describe('Master & QC page body', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Check files…' }));
     await waitFor(() => expect(analyze).toHaveBeenCalledWith(['C:/a.wav']));
     expect(await screen.findByText('Reading Chapter 01.wav')).toBeTruthy();
+    // Check files… is disabled for the run, which would leave the keyboard on the page: it goes to Cancel instead.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' })));
     const cancel = vi.spyOn(api, 'measureCancel');
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(cancel).toHaveBeenCalled();
@@ -417,6 +422,21 @@ describe.each([
     expect(await screen.findByText(line('second'))).toBeTruthy();
     expect(screen.queryByText(line('first'))).toBeNull();
     expect(retry()).toBeTruthy();
+  });
+
+  it('keeps focus on the page when Retry removes the line it was pressed on, each time', async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    mountWith(steps([fail('first'), fail('second'), () => held.then(real)]));
+    await screen.findByText(line('first'));
+    await userEvent.click(retry());
+    await screen.findByText(line('second'));
+    // The second line is a new button: pressing it removes it as the first was.
+    await userEvent.click(retry());
+    expect(screen.queryByRole('button', { name: /^Retry reading/ })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+    await act(async () => release());
+    await waitFor(() => expect(region()).toBeNull());
   });
 
   it('reads again once for a double press, as for a single press', async () => {
