@@ -14,7 +14,7 @@ import { MarkMenu } from './MarkMenu';
 
 /** What makes a toolbar icon button the mock's `.seltool` one: no border or fill, the toolbar's text colour, a white wash on hover. Important so
  * it wins over `IconButton`'s own hover rules. Text buttons use `Button variant="inverse"`. */
-export const TOOL_BUTTON = 'border-0! bg-transparent! text-inherit! not-aria-disabled:hover:bg-white/15!';
+const TOOL_BUTTON = 'border-0! bg-transparent! text-inherit! not-aria-disabled:hover:bg-white/15!';
 /** The record button's red: the mock's `--bad` on the ink pill, eased toward the surface so it holds 3:1 on the pill in both themes. */
 const RECORD_RED = 'border-0! bg-transparent! text-[color-mix(in_srgb,var(--danger)_60%,var(--surface))]! not-aria-disabled:hover:bg-white/15!';
 export const ACROSS_PARAGRAPHS = 'Select within one paragraph.';
