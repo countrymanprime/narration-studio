@@ -83,6 +83,31 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('Recording happens in the app. Nothing to connect.').waitFor();
     await showConnection(page);
   },
+  'recording-sample-output-daw': async (page) => {
+    await openSettings(page);
+    const row = await showSettingsRow(page, 'daw.sampleOutput');
+    await row.getByText("Voice samples play on this computer's default output.", { exact: false }).waitFor();
+  },
+  'recording-sample-output-builtin': async (page) => {
+    // A computer with two named outputs: the suite's browser would name none (or its own), so the list is fixed before the page loads.
+    await page.addInitScript(() => {
+      const outputs = [
+        { kind: 'audiooutput', deviceId: 'default', label: 'Default - Speakers' },
+        { kind: 'audiooutput', deviceId: 'a1', label: 'Speakers (Realtek)' },
+        { kind: 'audiooutput', deviceId: 'b2', label: 'Headphones (Focusrite USB Audio)' },
+      ];
+      Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', { value: async () => outputs, configurable: true });
+    });
+    await openSettings(page, undefined, '?mockDawExperimentalOn=1');
+    await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
+    await page
+      .getByRole('radio', { name: /^Built-in recorder/ })
+      .and(page.locator('[aria-checked="true"]'))
+      .waitFor();
+    const row = await showSettingsRow(page, 'daw.sampleOutput');
+    await row.getByRole('combobox', { name: 'Voice sample output' }).selectOption('Headphones (Focusrite USB Audio)');
+    await row.getByRole('button', { name: 'Refresh the list' }).waitFor();
+  },
   'recording-found': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=found');
     await page.getByRole('button', { name: 'Link Alice.rpp' }).waitFor();
