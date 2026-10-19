@@ -12,6 +12,10 @@ One static file, `index.html`: no build, no network, system fonts. Open it in a 
 | Story Bible | A character entry with four samples (primary, playing, **Passage changed**, **Audio file missing**) above **Reference clips**; the empty section; the **Voice data** panel with Narration's sample, the totals and a sample whose character left the Story Bible |
 | Booth | The speaker picker with a play control on each character that has a sample; **Voices in this scene** with the samples listed; play refused while a take records; the listening-paused state |
 
+## Output device
+
+Section 4 is a draft for [#2047](https://github.com/countrymanprime/narration-utils/issues/2047), drawn 2026-10-19. It follows the owner's rulings of that day: per project, a choice only with the built-in recorder, and a sentence with a DAW connected (samples stay in the app's own audio). It is not approved. Questions for the owner: does a project's **Test sound** belong here; should the row show with no project open (this draft hides it); is "System default" first, or last.
+
 ## Lifecycle
 
 This folder is deleted in the pull request that merges the last of phases 3 to 5, as the Studio Next mock's rule says ([Which mocks are the spec](../../../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)). Nothing links to it from outside this PRD.
