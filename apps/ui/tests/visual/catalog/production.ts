@@ -196,6 +196,12 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'report-dialog',
+    description:
+      'Production, Export status report: two panes, the Include checkboxes (with the contracted amount and rate, off) and the format beside a tall live preview, under the 26 px title and "project · as of date"',
+  },
+  {
+    page: 'production',
     state: 'recording-check-options',
     description:
       "Production, a chapter's recording check panel with its Check options section open: Speech model, Larger model, the score under which words are looked at again, Chunk length, Parallel processes, Crossover and Chapters at once",

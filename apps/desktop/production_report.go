@@ -10,14 +10,25 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/productionreport"
 )
 
-// The Production page's status report export. The page sends only the narrator's one
-// choice, whether to include the contracted amount and effective rate; the host builds the report from
+// The Production page's status report export. The page sends only the narrator's choice of sections (the Include
+// checkboxes; the money one is off by default); the host builds the report from
 // exactly the same overview and plan the Production page just read (buildProductionOverview, bindings_production.go)
 // and writes an HTML and a JSON file into the project's narration-utils/production/reports folder. It never writes
 // next to the audio, never changes the time log or the plan, and never overwrites an earlier report.
 
 // maxProductionReportNameAttempts bounds the search for a free file name when reports are exported within the same second.
 const maxProductionReportNameAttempts = 100
+
+// ProductionReportInclude is the sections the narrator ticked in the report dialog: the preview and the written file hold
+// exactly these. Money is the contracted amount and the effective rate.
+type ProductionReportInclude struct {
+	Words      bool `json:"words"`
+	Stages     bool `json:"stages"`
+	Milestones bool `json:"milestones"`
+	Pickups    bool `json:"pickups"`
+	Delivery   bool `json:"delivery"`
+	Money      bool `json:"money"`
+}
 
 // ProductionReportExport is what one export wrote: the folder (relative to the project, slash-separated) and the two
 // file names in it.
@@ -26,6 +37,8 @@ type ProductionReportExport struct {
 	HTMLFile                 string `json:"htmlFile"`
 	JSONFile                 string `json:"jsonFile"`
 	ContractedAmountIncluded bool   `json:"contractedAmountIncluded"`
+	// Include echoes the sections the file holds.
+	Include ProductionReportInclude `json:"include"`
 }
 
 // ProductionReportPreview is what an export would write now, built from the same Report the export renders: the HTML
@@ -37,10 +50,12 @@ type ProductionReportPreview struct {
 	Folder                   string `json:"folder"`
 	Stem                     string `json:"stem"`
 	ContractedAmountIncluded bool   `json:"contractedAmountIncluded"`
+	// Include echoes the sections the preview holds.
+	Include ProductionReportInclude `json:"include"`
 }
 
 // buildProductionReport builds the report both the preview and the export render; it refuses without a project.
-func (h *Host) buildProductionReport(includeContractedAmount bool) (project, generatedAt string, report productionreport.Report, err error) {
+func (h *Host) buildProductionReport(include ProductionReportInclude) (project, generatedAt string, report productionreport.Report, err error) {
 	project = h.services().config.projectFolder
 	if project == "" {
 		return "", "", productionreport.Report{}, fmt.Errorf("open a project first; the report is kept in its narration-utils/production/reports folder")
@@ -53,7 +68,7 @@ func (h *Host) buildProductionReport(includeContractedAmount bool) (project, gen
 	generatedAt = now.UTC().Format(time.RFC3339)
 	report = productionreport.Build(productionreport.Input{
 		GeneratedAt: generatedAt, AppVersion: h.version,
-		Options:    productionreport.Options{IncludeContractedAmount: includeContractedAmount},
+		Options:    productionreport.Options{Include: productionreport.Sections(include)},
 		Overview:   overview,
 		Milestones: milestones,
 		Now:        now,
@@ -62,9 +77,9 @@ func (h *Host) buildProductionReport(includeContractedAmount bool) (project, gen
 }
 
 // ProductionStatusReportPreview answers the document ProductionStatusReport would write, without writing anything
-// includeContractedAmount is the same opt-in as the export's.
-func (h *Host) ProductionStatusReportPreview(includeContractedAmount bool) (string, error) {
-	project, generatedAt, report, err := h.buildProductionReport(includeContractedAmount)
+// include is the same choice of sections as the export's.
+func (h *Host) ProductionStatusReportPreview(include ProductionReportInclude) (string, error) {
+	project, generatedAt, report, err := h.buildProductionReport(include)
 	if err != nil {
 		return "", err
 	}
@@ -78,16 +93,17 @@ func (h *Host) ProductionStatusReportPreview(includeContractedAmount bool) (stri
 	}
 	return encodeBinding(ProductionReportPreview{
 		HTML: string(rendered.HTML), JSON: string(rendered.JSON), Folder: productionreport.Dir, Stem: stem,
-		ContractedAmountIncluded: report.Privacy.ContractedAmountIncluded,
+		ContractedAmountIncluded: report.Privacy.ContractedAmountIncluded, Include: include,
 	}, nil)
 }
 
-// ProductionStatusReport writes the book's status report: hours by stage, PFH, the deadline and milestone
-// status, and book-wide readiness counts, as an HTML and a JSON file. includeContractedAmount is the narrator's choice
-// to write the contracted amount and the effective rate; off by default, since a status report is often shared with
-// someone the narrator would not otherwise tell their rate. It refuses without a project.
-func (h *Host) ProductionStatusReport(includeContractedAmount bool) (string, error) {
-	project, generatedAt, report, err := h.buildProductionReport(includeContractedAmount)
+// ProductionStatusReport writes the book's status report, as an HTML and a JSON file, with the sections include ticks:
+// words and finished audio, hours by stage and PFH, the deadline and milestones, the chapters held back, and
+// book-wide readiness counts. include.Money is the narrator's choice to write the contracted amount and the effective
+// rate; off by default, since a status report is often shared with someone the narrator would not otherwise tell their
+// rate. It refuses without a project.
+func (h *Host) ProductionStatusReport(include ProductionReportInclude) (string, error) {
+	project, generatedAt, report, err := h.buildProductionReport(include)
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +134,7 @@ func writeProductionReport(project, generatedAt string, report productionreport.
 	}
 	return ProductionReportExport{
 		Folder: productionreport.Dir, HTMLFile: stem + ".html", JSONFile: stem + ".json",
-		ContractedAmountIncluded: report.Privacy.ContractedAmountIncluded,
+		ContractedAmountIncluded: report.Privacy.ContractedAmountIncluded, Include: ProductionReportInclude(report.Privacy.Sections),
 	}, nil
 }
 

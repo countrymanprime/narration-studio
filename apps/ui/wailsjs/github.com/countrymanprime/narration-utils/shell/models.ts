@@ -379,6 +379,51 @@ export class PassageMapMarkPlace {
 }
 
 /**
+ * ProductionReportInclude is the sections the narrator ticked in the report dialog: the preview and the written file hold
+ * exactly these. Money is the contracted amount and the effective rate.
+ */
+export class ProductionReportInclude {
+    "words": boolean;
+    "stages": boolean;
+    "milestones": boolean;
+    "pickups": boolean;
+    "delivery": boolean;
+    "money": boolean;
+
+    /** Creates a new ProductionReportInclude instance. */
+    constructor($$source: Partial<ProductionReportInclude> = {}) {
+        if (!("words" in $$source)) {
+            this["words"] = false;
+        }
+        if (!("stages" in $$source)) {
+            this["stages"] = false;
+        }
+        if (!("milestones" in $$source)) {
+            this["milestones"] = false;
+        }
+        if (!("pickups" in $$source)) {
+            this["pickups"] = false;
+        }
+        if (!("delivery" in $$source)) {
+            this["delivery"] = false;
+        }
+        if (!("money" in $$source)) {
+            this["money"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ProductionReportInclude instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ProductionReportInclude {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ProductionReportInclude($$parsedSource as Partial<ProductionReportInclude>);
+    }
+}
+
+/**
  * ProfileSelection is one platform the narrator checked to build a package for.
  */
 export class ProfileSelection {

@@ -259,12 +259,23 @@ the reason and **Try again** above the table.
 
 ## Status report
 
-**Export status report** opens the report dialog: a preview of the host's own report, the format
-(HTML or JSON), the path it will be written to, and **Export**. The file goes into this project's
-`narration-utils/production/reports` folder, under a name built from when you exported it, and an
-export never overwrites an earlier one.
+**Export status report** opens the report dialog in two panes. The form is on the left: an **Include**
+checkbox for each section, the format (HTML or JSON) and the path the file will be written to. A tall
+live preview of the host's own report is on the right, under the project's name and the date it is "as of".
 
-The contracted amount and effective rate are left out unless you tick the box to include them: a
+![The Export status report dialog: the Include checkboxes and format beside the live preview](../../images/ui/production-report-dialog.webp)
+
+The sections are **Words and finished audio**, **Hours by stage**, **Deadline and milestones**,
+**Chapters held back** (the chapters whose stage is held back, with the reason), **Chapter readiness** (the count of chapters by verdict)
+and, when the book pays per finished hour and has an amount, **Contracted amount and effective rate**. Every section but the last is
+ticked when the dialog opens. Ticking or unticking one rebuilds the preview, and **Export** writes exactly the sections that are
+ticked: a section you leave out is missing from both the HTML page and the JSON file. The JSON file records which sections were
+ticked, so a reader can tell a section left out from one that is empty.
+
+**Export** writes the HTML page and the JSON file into this project's `narration-utils/production/reports` folder, under a name built
+from when you exported it, and an export never overwrites an earlier one.
+
+The contracted amount and effective rate are left out unless you tick their box: a
 status report is often handed to someone else — a publisher, a collaborator, a rights holder
 checking on progress — who has no need to know what the book pays.
 
