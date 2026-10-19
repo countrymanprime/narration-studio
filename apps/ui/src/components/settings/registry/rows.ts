@@ -59,6 +59,17 @@ export const ROWS: readonly SettingMeta[] = [
     syn: 'input device audio interface',
   },
   {
+    id: 'daw.startTone',
+    cat: 'recording',
+    section: 'Take cues',
+    label: 'Start tone',
+    scope: 'browser',
+    def: 'off',
+    desc: 'A short beep before a take starts, for recording by foot pedal without looking at the screen. It ends before the take begins, so it is not on the recording; the take starts a fraction of a second after the press.',
+    used: ['booth'],
+    syn: 'beep sound cue audio pedal foot switch record start',
+  },
+  {
     id: 'daw.reaperPath',
     cat: 'recording',
     section: 'REAPER',
