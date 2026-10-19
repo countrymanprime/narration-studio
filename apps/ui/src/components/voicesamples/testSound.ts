@@ -1,7 +1,7 @@
 import { setOutput } from './audioOutputs';
 
 /** A short 440 Hz tone as a WAV file: the sound "Test sound" plays, so the narrator can tell which output a sample will come from. */
-export function testToneUrl(): string {
+function testToneUrl(): string {
   const rate = 22_050;
   const frames = Math.round(rate * 0.5);
   const bytes = new ArrayBuffer(44 + frames * 2);
