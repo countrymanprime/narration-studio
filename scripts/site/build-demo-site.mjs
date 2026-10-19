@@ -11,6 +11,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildGuides } from './guides.mjs';
+import { fillShell, iconUri, searchItems } from './shell.mjs';
 import { findOutwardLoads, withIcon } from './siteFiles.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -43,38 +44,34 @@ if (withStorybook) {
   }
 }
 
-// The landing page carries its fonts and icon as data URIs, as the demo does: a font fetched from a file beside the page needs CORS headers a
-// sandboxed frame's host may not send.
-const dataUri = (file, type) => `data:${type};base64,${readFileSync(file).toString('base64')}`;
-const fontFile = (pkg, file) => join(ui, 'node_modules', '@fontsource', pkg, 'files', file);
-const fonts = Object.fromEntries(
-  [
-    ['barlow-condensed', [500, 600, 700]],
-    ['ibm-plex-mono', [400, 500]],
-    ['ibm-plex-sans', [400, 500, 600, 700]],
-  ].flatMap(([pkg, weights]) => weights.map((weight) => [`${pkg}-${weight}`, fontFile(pkg, `${pkg}-latin-${weight}-normal.woff2`)])),
-);
+// The demo pages the search palette lists, in the app's sidebar order.
+const DEMO_PAGES = [
+  { label: 'Production', route: '/' },
+  { label: 'Schedule', route: '/schedule' },
+  { label: 'Script', route: '/script' },
+  { label: 'Story Bible', route: '/story-bible' },
+  { label: 'Booth', route: '/booth' },
+  { label: 'Editing', route: '/editing' },
+  { label: 'Proof', route: '/proof' },
+  { label: 'Pickups', route: '/pickups' },
+  { label: 'Master & QC', route: '/master' },
+  { label: 'Delivery', route: '/delivery' },
+  { label: 'Settings', route: '/settings' },
+];
 
 // The landing page names Storybook only when this build holds it, so a --skip-storybook folder has no dead link.
-let landing = readFileSync(join(root, 'scripts', 'site', 'landing', 'index.html'), 'utf8');
-for (const [name, file] of Object.entries(fonts)) landing = landing.replaceAll(`./assets/fonts/${name}.woff2`, dataUri(file, 'font/woff2'));
-landing = landing.replace('./assets/favicon.png', dataUri(join(ui, 'public', 'favicon.png'), 'image/png'));
-const storybook = {
-  STORYBOOK_NAV: '<a href="storybook/index.html">Storybook</a>',
-  STORYBOOK_CTA: '<a class="btn" href="storybook/index.html">Storybook</a>',
-  STORYBOOK_CARD: `<a class="card" href="storybook/index.html">
-              <h3>Storybook</h3>
-              <p>Every component of the app with its states, controls and an accessibility check, in both themes.</p>
-              <span class="go">Browse components →</span>
-            </a>`,
-};
-for (const [marker, html] of Object.entries(storybook)) landing = landing.replace(`<!--${marker}-->`, withStorybook ? html : '');
-writeFileSync(join(out, 'index.html'), landing);
+const landing = fillShell(readFileSync(join(root, 'scripts', 'site', 'landing', 'index.html'), 'utf8'), {
+  base: '',
+  current: 'home',
+  withStorybook,
+  search: searchItems({ base: '', docs: [], demoPages: DEMO_PAGES, withStorybook }),
+});
+writeFileSync(join(out, 'index.html'), withStorybook ? landing : landing.replace(/<a class="card reveal" href="storybook\/index\.html">[\s\S]*?<\/a>\n/, ''));
 const guides = buildGuides({
   root,
   out,
   withStorybook,
-  icon: dataUri(join(ui, 'public', 'favicon.png'), 'image/png'),
+  icon: iconUri(),
 });
 console.log(`site: ${guides.pages.length} guide pages, ${guides.images.length} screenshots`);
 writeFileSync(join(out, '.nojekyll'), '');
