@@ -45,7 +45,7 @@ export type ScheduleReading = {
 /**
  * What the Schedule reads from the host and keeps fresh: the plan, the chapters the estimates come from, the delivery profile and the take
  * log. It reads when the page opens, when the window is focused again (at most every 30 s), every minute while open, when the journal changes, and on `reload`.
- * A failed re-read keeps the last reading and says so; a first read that fails is an error with Try again.
+ * A failed re-read keeps the last reading and says so; a first read that fails is an error with Retry.
  */
 export function useScheduleReading(fixedToday: Date | undefined, journal: { subscribe: (listener: () => void) => () => void }): ScheduleReading {
   const production = usePort('production');

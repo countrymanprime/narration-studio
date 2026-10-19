@@ -6,7 +6,7 @@ Schedule answers one question: will the book be done by its due date. It holds t
 recorded audio against the plan, the work left and how it is worked out, and the book's milestones. It sits after
 [Production](production.md) in the navigation. With no manuscript it asks you to import one first. Every change is one
 step you can undo from the toast that follows it or from the undo history.
-While the plan is being read, the page shows its title and grey blocks where the chart, the contract and the milestones will be; if the plan cannot be read, it says so with **Try again**.
+While the plan is being read, the page shows its title and grey blocks where the chart, the contract and the milestones will be; if the plan cannot be read, it says so with **Retry**.
 
 ![Schedule - the verdict, the recorded audio against the plan, how the book pays, the work left and the milestones](../../images/ui/schedule-on-pace.webp)
 
@@ -71,7 +71,7 @@ due date.
 
 The page reads again when you switch back to the app (at most every 30 seconds) and every minute while it is open, so a change
 made elsewhere, and the day turning over at midnight, show up without a reload. If a later read fails, the page keeps what it
-had and says so: **Couldn't read the schedule again**, why, how long ago it was read, and **Check again**. Every change
+had and says so: **Couldn't read the schedule again**, why, how long ago it was read, and **Retry**. Every change
 starts from what the project holds at that moment: a change to a row that was edited somewhere else since you saw it is refused with a
 message instead of overwriting it, and two quick presses on the same row are one change.
 

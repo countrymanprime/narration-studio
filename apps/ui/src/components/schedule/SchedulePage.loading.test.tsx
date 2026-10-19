@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The Schedule's loading state (state matrix): the title and the page's blocks while the plan is read, then the page, the empty state or the
-// error with Try again; a reload from the error starts from the skeleton again.
+// error with Retry; a reload from the error starts from the skeleton again.
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { installKit, mountSchedule } from './scheduleKit.test';
@@ -29,14 +29,14 @@ describe('Schedule loading state', () => {
     expect(screen.getAllByRole('heading', { level: 1, name: 'Schedule' })).toHaveLength(1);
   });
 
-  it('shows the error with Try again, not a skeleton, when the plan cannot be read, and the skeleton again while it reads', async () => {
+  it('shows the error with Retry, not a skeleton, when the plan cannot be read, and the skeleton again while it reads', async () => {
     let calls = 0;
     await mountSchedule({
       wrap: (base) => ({
         productionPlan: () => (++calls === 1 ? Promise.reject(new Error('The plan could not be read.')) : base.productionPlan()),
       }),
     });
-    const retry = await screen.findByRole('button', { name: 'Try again' });
+    const retry = await screen.findByRole('button', { name: 'Retry' });
     expect(region()).toBeNull();
     fireEvent.click(retry);
     await screen.findByText(/Due Oct 31/);

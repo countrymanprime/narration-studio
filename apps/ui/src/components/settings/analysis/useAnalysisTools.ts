@@ -15,7 +15,7 @@ export const useComponentsPort = (): ComponentsPort => usePort('assets');
 /**
  * The analysis tools and what is being done to them. Downloads run one after another through the one `useAssetInstall` loop: `install`
  * queues tools, the head of the queue is the one downloading, and the next starts when it ends. A download that was running when the
- * section opened is followed through the registry's `activeJobId`. A failure is kept per tool, with the host's sentence, until Try again or
+ * section opened is followed through the registry's `activeJobId`. A failure is kept per tool, with the host's sentence, until Retry or
  * Dismiss; a cancel returns the tool to not installed.
  */
 export function useAnalysisTools(port: ComponentsPort) {

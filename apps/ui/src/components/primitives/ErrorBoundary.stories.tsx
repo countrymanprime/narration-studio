@@ -21,7 +21,7 @@ const muteExpectedRenderErrorLog = () => {
 };
 
 // Fixing the cause happens outside the boundary (it stays on the fallback until
-// reset), then "Try again" re-renders the children, which no longer throw.
+// reset), then "Retry" re-renders the children, which no longer throw.
 function RecoveryDemo({ onError }: { onError?: (error: unknown) => void }) {
   const [repaired, setRepaired] = useState(false);
   return (
@@ -61,7 +61,7 @@ export const ChildThrows: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Something went wrong')).toBeVisible();
     await expect(canvas.getByText("Error: Cannot read properties of undefined (reading 'chapters')")).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Try again' })).toBeEnabled();
+    await expect(canvas.getByRole('button', { name: 'Retry' })).toBeEnabled();
     await expect(args.onError).toHaveBeenCalledOnce();
   },
 };
@@ -73,7 +73,7 @@ export const TryAgainRecovers: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Something went wrong')).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Repair chapter data' }));
-    await userEvent.click(canvas.getByRole('button', { name: 'Try again' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Retry' }));
     await expect(canvas.getByText('Chapter 1 loaded without problems.')).toBeVisible();
     await expect(canvas.queryByText('Something went wrong')).toBeNull();
   },

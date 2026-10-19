@@ -773,7 +773,7 @@ describe('Script loading state', () => {
       manuscriptChapters: () => (++calls === 1 ? Promise.reject(new Error('The manuscript could not be read.')) : never()),
     });
     mount({ api });
-    const retry = await screen.findByRole('button', { name: /Retry|Try again/ });
+    const retry = await screen.findByRole('button', { name: /Retry/ });
     expect(region()).toBeNull();
     fireEvent.click(retry);
     await waitFor(() => expect(calls).toBe(2));

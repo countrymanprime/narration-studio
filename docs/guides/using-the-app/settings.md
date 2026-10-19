@@ -141,7 +141,7 @@ or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Rec
 ## Models and downloads
 
 One list of everything Narration Studio can keep on this computer: Whisper models, Moonshine models, the preview voice, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
-removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager. When the list cannot be read, the message offers **Try again** and **Open the folder**.
+removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager. When the list cannot be read, the message offers **Retry** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
@@ -152,7 +152,7 @@ Each row says what it is, its type and size, its **Status**, **Used by** (pages)
 - **Downloading** and **Checking the download**: the download itself, then the check of every file against its approved size and checksum.
 - **Installed · checked**: **Remove** deletes that one asset after you confirm. The confirm names the settings that use it; they switch to the smallest other model you have, and checks made with it are marked out of date. When it is the only installed choice for a setting, the removal is refused and says so.
 - **Needs repair**: some files are missing or no longer match, so the app will not use the asset. **Repair** downloads it again; **Remove** deletes it.
-- **Download failed**: the reason (no connection, not enough disk space) is in the row, with **Try again** and **Dismiss**.
+- **Download failed**: the reason (no connection, not enough disk space) is in the row, with **Retry** and **Dismiss**.
 - **Not available yet**: the app lists the asset but does not offer it in this version. The row says why and has no buttons.
 
 With nothing downloaded, the page offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large, and a local language model), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. None is offered in this version; once one is, **Download** asks first.
@@ -281,9 +281,9 @@ Some settings only change what one page does, so they belong on that page, next 
 ## When something is wrong
 
 - While the settings are read, the pane shows grey blocks under its title and says **Reading your settings…**.
-- If the settings file cannot be read, the page says **Your settings could not be read** and disables the controls until **Try again** works.
+- If the settings file cannot be read, the page says **Your settings could not be read** and disables the controls until **Retry** works.
 - If a change cannot be saved, the page says **Changes cannot be saved right now** and the row says why; the previous value is still in use.
-- If the list of downloads cannot be read, Models & downloads says so with **Try again**; your downloads are not touched.
+- If the list of downloads cannot be read, Models & downloads says so with **Retry**; your downloads are not touched.
 
 ---
 

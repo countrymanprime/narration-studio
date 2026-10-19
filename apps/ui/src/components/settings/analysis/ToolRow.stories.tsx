@@ -48,7 +48,7 @@ export const NotInstalled: Story = {
 };
 
 // Every status the pill can say, each with the one action it allows: the host's real percent while downloading, Cancel while the files
-// are checked, the host's sentence and Try again after a failure, Remove once installed.
+// are checked, the host's sentence and Retry after a failure, Remove once installed.
 export const EveryStatus: Story = {
   args: {
     rows: [
