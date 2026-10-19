@@ -32,8 +32,10 @@ type Review struct {
 
 	*eventHub
 
-	mu    sync.Mutex // guards runs, order and every run's rows
-	runs  map[string]*reviewRun
+	mu sync.Mutex // guards runs, order and every run's rows
+	// +checklocks:mu
+	runs map[string]*reviewRun
+	// +checklocks:mu
 	order []string
 }
 
