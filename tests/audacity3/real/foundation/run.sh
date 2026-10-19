@@ -104,7 +104,7 @@ status=0
 
 if [ "$status" -ne 0 ]; then
 	# Audacity's own output, without the library list the AppImage prints, for a run that never got a pipe.
-	for f in "$WORK"/out/logs/audacity-*.log; do [ -f "$f" ] && { echo "--- $f"; grep -v '^/' "$f" | tail -20; }; done 2>/dev/null | head -80 || true
+	for f in $(ls -t "$WORK"/out/logs/audacity-*.log 2>/dev/null | head -3); do [ -f "$f" ] && { echo "--- $f"; grep -v '^/' "$f" | tail -20; }; done 2>/dev/null | head -80 || true
 fi
 python3 -I "$HERE/summarise.py" "$WORK/out" || true
 log "artifacts in $WORK/out and $WORK/logs"

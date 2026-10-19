@@ -184,7 +184,13 @@ func SetPref(t testing.TB, home, section, key, value string) {
 		}
 		out = append(out, l)
 	}
-	if !done {
+	// Trim the empty element the final line feed leaves, so a key can be added at the end of the last section.
+	for len(out) > 0 && out[len(out)-1] == "" {
+		out = out[:len(out)-1]
+	}
+	if !done && inSection {
+		out = append(out, key+"="+value)
+	} else if !done {
 		out = append(out, "["+section+"]", key+"="+value)
 	}
 	if err := os.WriteFile(cfg, []byte(strings.Join(out, "\n")+"\n"), 0o644); err != nil {

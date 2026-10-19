@@ -70,12 +70,6 @@ func (e Env) ApplySeed(t testing.TB, home string, s Seed) {
 		return regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(key) + `=`).MatchString(text)
 	}
 	var add strings.Builder
-	if s.UpdateNotice && !has("UpdateNoticeShown") {
-		add.WriteString("[Update]\nDefaultUpdatesChecking=0\nUpdateNoticeShown=1\n")
-	}
-	if s.Splash && !has("ShowSplashScreen") {
-		add.WriteString("[GUI]\nShowSplashScreen=0\n")
-	}
 	if !has("TempDir") {
 		fmt.Fprintf(&add, "[Directories]\nTempDir=%s\n", filepath.Join(home, "temp"))
 	}
@@ -89,6 +83,15 @@ func (e Env) ApplySeed(t testing.TB, home string, s Seed) {
 		}
 		_, _ = f.WriteString(add.String())
 		_ = f.Close()
+	}
+	// Forced, not only added: a first start on a networked machine writes UpdateNoticeShown=0 itself (the hosted runner did), and the
+	// "App updates & usage info" dialog it then opens is modal before the scripting module has made its pipes.
+	if s.UpdateNotice {
+		SetPref(t, home, "Update", "UpdateNoticeShown", "1")
+		SetPref(t, home, "Update", "DefaultUpdatesChecking", "0")
+	}
+	if s.Splash {
+		SetPref(t, home, "GUI", "ShowSplashScreen", "0")
 	}
 	if s.Module {
 		b, _ = os.ReadFile(cfg)
