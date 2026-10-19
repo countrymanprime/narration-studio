@@ -1,0 +1,2 @@
+Amplify:AllowClipping="0" Ratio="0.5"
+Normalize:ApplyVolumeAdjust="1" DC="1" PeakLevel="-3" StereoIndependent="0"
