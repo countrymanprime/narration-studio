@@ -10,7 +10,7 @@ The book's dates, payment and milestones are on [Schedule](schedule.md), the ite
 the navigation.
 While the production log is being read, the page keeps its header and shows grey blocks where the figures, cards and pipeline will be; if it cannot be read, the page says so with **Retry**.
 
-![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
+![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the page header](../../images/ui/production-home.webp)
 
 The header names the book's chapters, words and due date ("12 chapters · 29,189 words · delivery
 due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only a colour. The pill
@@ -65,9 +65,8 @@ A figure with nothing honest to work from says "Not measured yet" and why, rathe
 ## The stage timer
 
 The stage timer stays as it was. **Start timer**, on the Next up item of the chapter being
-recorded, starts timing that chapter's current stage. While a timer runs, a chip in the header of
-every page counts its time and names the chapter ("0:42:07 · timer on Chapter 6"), and **Stop
-timer** is in this page's header. Only one timer runs at a time: stop it before you start
+recorded, starts timing that chapter's current stage. While a timer runs, this page's header counts its time and names the chapter ("0:42:07 · timer on Chapter 6")
+beside **Stop timer**; the app's top bar has no timer. Only one timer runs at a time: stop it before you start
 another. Time is logged only while you run a timer, never from REAPER activity, and starting or
 stopping a timer never changes a chapter's status.
 
