@@ -12,7 +12,7 @@ While the plan is being read, the page shows its title and grey blocks where the
 
 ## The verdict
 
-The pill at the top right says **On track**, **Tight** or **Behind**, with when the work would finish at your pace and, when you
+The pill at the top right says **On track**, **Tight** or **Behind**, with when the work would finish at the pace ("at current pace done Oct 4", the 1.5 hours a day under **How this is worked out**) and, when you
 are behind, the daily pace the due date needs. The days left to the due date set it: with three days to spare or more it is
 on track, with less than three it is tight, and once the work needs more days than are left it is behind. A book whose chapters
 are all delivered reads **Finished**, whatever the date.
@@ -53,14 +53,14 @@ The table lists your milestones by date (the Milestone column keeps a readable w
 
 ![Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
 
-**Add milestone**, at the top of the table, opens a dialog for the name, due date (written `YYYY-MM-DD`), what it measures, a note
+**Add milestone**, at the top of the table, opens a dialog for the name, due date (a date field: type the parts or open its calendar), what it measures, a note
 and Done. The 15-minute checkpoint is offered only when the project's delivery profile asks for it. A book can have at most 100
 milestones, a name is at most 200 characters and a note 2,000; when a save is refused the dialog says why and nothing changes.
 
 ## The due date
 
-Type the date in the **Final delivery** row as `YYYY-MM-DD` and press Enter or leave the box. It must be a real date in the years
-1000 to 9999: `2026-02-30` and `10/14/2026` are refused with a message. Emptying the box clears the due date, and the page says **No
+Set the date in the **Final delivery** row: type its parts or open the calendar. A whole, real date is saved as soon as it is written
+or picked; a date still being typed, or a year before 1000, is not saved, and leaving the field puts the saved date back. To clear the due date, empty the field and press Enter, and the page says **No
 due date set**. A due date in the plan that is not a real date (the file was edited by hand) is named in the header and treated as no
 due date.
 

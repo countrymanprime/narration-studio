@@ -416,6 +416,9 @@ function BoothSession({ source, from, requested, adopt, data, choose, navigate, 
       {/* The shell gives the Booth the whole window and none of its chrome, its context menu included: the page hosts its own. */}
       <ContextMenuHost className="size-full">
         <div ref={page.root} className="flex size-full flex-col bg-[var(--bg)] text-[var(--text)]">
+          <div role="status" aria-label="Take status" className="sr-only">
+            {page.takeNote}
+          </div>
           {/* The top bar keeps the drawer open: its toggle opens and closes it, and nothing else on it is the text. */}
           <div data-booth-side-keep="">
             <BoothTop

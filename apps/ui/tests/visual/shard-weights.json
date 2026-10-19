@@ -182,7 +182,6 @@
     "app.spec.ts|production / live-updates-degraded": 7.6,
     "app.spec.ts|production / load-error": 5.8,
     "app.spec.ts|production / manuscript-candidate-offer": 7.1,
-    "app.spec.ts|production / mock-fidelity-01": 7.4,
     "app.spec.ts|production / no-data": 7.7,
     "app.spec.ts|production / no-manuscript": 6,
     "app.spec.ts|production / on-pace": 5,

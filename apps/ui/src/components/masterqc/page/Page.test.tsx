@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeChapters } from '../../../fixtures/chapters';
@@ -358,5 +358,96 @@ describe('Master & QC package panel loading state', () => {
     mount(ALL_PASS, acx, { manuscriptChapters: () => Promise.reject(new Error('unreadable')) });
     expect(await screen.findByText(/The chapters could not be read/)).toBeTruthy();
     await waitFor(() => expect(region()).toBeNull());
+  });
+});
+
+// A failed read of the chapters or of the profile leaves the page working with a line that says so; each line offers Retry that reads again.
+describe.each([
+  // The package panel shows its skeleton while the chapters are read again; a measured job already carries its profile, so a profile read
+  // again shows no skeleton, only the line going away and coming back if it fails again.
+  {
+    what: 'the chapters',
+    seam: 'manuscriptChapters',
+    skeleton: true,
+    line: (reason: string) => new RegExp(`The chapters could not be read, so the files keep their file names: ${reason}`),
+  },
+  {
+    what: 'the delivery profile',
+    seam: 'deliveryProfiles',
+    skeleton: false,
+    line: (reason: string) => new RegExp(`The delivery profile could not be read: ${reason}`),
+  },
+] as const)('Master & QC: a failed read of $what offers Retry', ({ seam, line, skeleton }) => {
+  const region = () => screen.queryByRole('group', { name: 'Loading the delivery package checks' });
+  const retry = () => screen.getByRole('button', { name: `Retry reading ${seam === 'manuscriptChapters' ? 'the chapters' : 'the delivery profile'}` });
+  const fail = (reason: string) => () => Promise.reject(new Error(reason));
+  const never = () => new Promise<never>(() => undefined);
+  // Each call takes the next step; the last step repeats.
+  const steps = (list: Array<() => Promise<unknown>>) => vi.fn(() => (list.length > 1 ? (list.shift() as () => Promise<unknown>)() : list[0]()));
+  const real = () =>
+    (apiOf(jobOf(ALL_PASS, acx), acx, { manuscriptChapters: async () => CHAPTERS }) as unknown as Record<string, () => Promise<unknown>>)[seam]();
+  const mountWith = (read: unknown) => mount(ALL_PASS, acx, { manuscriptChapters: async () => CHAPTERS, [seam]: read } as Partial<NarrationApi>);
+
+  it('shows the line as an alert with Retry beside it, and no skeleton', async () => {
+    mountWith(fail('first'));
+    const text = await screen.findByText(line('first'));
+    expect(text.getAttribute('role')).toBe('alert');
+    expect(retry()).toBeTruthy();
+    await waitFor(() => expect(region()).toBeNull());
+  });
+
+  it("shows no stale line while it reads again (the package panel's skeleton where it applies), then the loaded page", async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    mountWith(steps([fail('first'), () => held.then(real)]));
+    await screen.findByText(line('first'));
+    await userEvent.click(retry());
+    if (skeleton) expect(region()?.getAttribute('aria-busy')).toBe('true');
+    expect(screen.queryByText(line('first'))).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Retry reading/ })).toBeNull();
+    await act(async () => release());
+    await waitFor(() => expect(region()).toBeNull());
+    expect(screen.queryByText(/could not be read/)).toBeNull();
+  });
+
+  it('shows the new line with Retry when the second read fails too', async () => {
+    mountWith(steps([fail('first'), fail('second')]));
+    await screen.findByText(line('first'));
+    await userEvent.click(retry());
+    expect(await screen.findByText(line('second'))).toBeTruthy();
+    expect(screen.queryByText(line('first'))).toBeNull();
+    expect(retry()).toBeTruthy();
+  });
+
+  it('reads again once for a double press, as for a single press', async () => {
+    const reads = async (presses: number) => {
+      const read = steps([fail('first'), never]);
+      const view = mountWith(read);
+      await screen.findByText(line('first'));
+      const before = read.mock.calls.length;
+      const button = retry();
+      await act(async () => {
+        for (let press = 0; press < presses; press++) button.click();
+      });
+      const extra = read.mock.calls.length - before;
+      cleanup();
+      return { extra, view };
+    };
+    const single = (await reads(1)).extra;
+    expect(single).toBeGreaterThan(0);
+    expect((await reads(2)).extra).toBe(single);
+  });
+
+  it('sets nothing when the page is left mid-retry', async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mountWith(steps([fail('first'), () => held.then(real)]));
+    await screen.findByText(line('first'));
+    await userEvent.click(retry());
+    cleanup();
+    await act(async () => release());
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

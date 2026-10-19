@@ -824,4 +824,95 @@ describe('EditingPage loading state', () => {
     expect(await screen.findByText('The manuscript could not be read.')).toBeTruthy();
     expect(region('Loading the editor')).toBeNull();
   });
+
+  // A failed read of the chapters (the page), or of one chapter's lines (the chapter under its stepper), offers Retry that reads again.
+  describe.each([
+    {
+      what: 'the chapters',
+      seam: 'manuscriptChapters',
+      // The page-level error stands in for the page: its own title, no stepper.
+      keepsStepper: false,
+      skeleton: 'Loading the editor',
+    },
+    {
+      what: 'a chapter',
+      seam: 'workspaceAlignment',
+      // The chapter's error sits under the stepper, so the narrator can still pick another chapter.
+      keepsStepper: true,
+      skeleton: 'Loading the chapter',
+    },
+  ])('a failed read of $what offers Retry', ({ seam, keepsStepper, skeleton }) => {
+    const sentence = 'The read failed.';
+    const fail = () => Promise.reject(new Error(sentence));
+    const retry = () => screen.getByRole('button', { name: 'Retry' });
+    // Each call takes the next step; the last step repeats.
+    const steps = (list: Array<() => Promise<unknown>>) => vi.fn(() => (list.length > 1 ? (list.shift() as () => Promise<unknown>)() : list[0]()));
+    const mountWith = (read: unknown) => mount({ api: { [seam]: read } as Partial<NarrationApi> });
+    const real = () => pageApi()[seam as 'manuscriptChapters' | 'workspaceAlignment'] as unknown as (...args: string[]) => Promise<unknown>;
+
+    it('shows the sentence as an alert with Retry, and no skeleton', async () => {
+      mountWith(fail);
+      const text = await screen.findByText(sentence);
+      expect(text.getAttribute('role')).toBe('alert');
+      expect(retry()).toBeTruthy();
+      expect(region(skeleton)).toBeNull();
+      expect(!!screen.queryByRole('group', { name: 'Chapter' })).toBe(keepsStepper);
+    });
+
+    it('shows the skeleton with no stale error while it reads again, then the script', async () => {
+      let release: () => void = () => {};
+      const held = new Promise<void>((resolve) => (release = resolve));
+      mountWith(steps([fail, () => held.then(() => real()('c1'))]));
+      await screen.findByText(sentence);
+      await act(async () => retry().click());
+      expect(region(skeleton)?.getAttribute('aria-busy')).toBe('true');
+      expect(screen.queryByText(sentence)).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      await act(async () => release());
+      await script();
+      expect(region(skeleton)).toBeNull();
+    });
+
+    it('shows the new error with Retry when the second read fails too', async () => {
+      mountWith(steps([() => Promise.reject(new Error('first')), () => Promise.reject(new Error('second'))]));
+      await screen.findByText('first');
+      await act(async () => retry().click());
+      expect(await screen.findByText('second')).toBeTruthy();
+      expect(screen.queryByText('first')).toBeNull();
+      expect(retry()).toBeTruthy();
+    });
+
+    it('reads again once for a double press, as for a single press', async () => {
+      // The page asks for the same answer from more than one place, so a double press is compared with a single one, not with a number.
+      const reads = async (presses: number) => {
+        const read = steps([fail, () => new Promise<never>(() => {})]);
+        const view = mountWith(read);
+        await screen.findByText(sentence);
+        const before = read.mock.calls.length;
+        const button = retry();
+        await act(async () => {
+          for (let press = 0; press < presses; press++) button.click();
+        });
+        const extra = read.mock.calls.length - before;
+        view.unmount();
+        cleanup();
+        return extra;
+      };
+      const single = await reads(1);
+      expect(single).toBeGreaterThan(0);
+      expect(await reads(2)).toBe(single);
+    });
+
+    it('sets nothing when the page is left mid-retry', async () => {
+      let release: () => void = () => {};
+      const held = new Promise<void>((resolve) => (release = resolve));
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const view = mountWith(steps([fail, () => held.then(() => real()('c1'))]));
+      await screen.findByText(sentence);
+      await act(async () => retry().click());
+      view.unmount();
+      await act(async () => release());
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
 });

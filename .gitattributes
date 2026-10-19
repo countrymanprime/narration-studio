@@ -25,6 +25,10 @@ tests/fixtures/contracts/** text eol=lf
 apps/desktop/**/*.tmpl text eol=lf
 apps/desktop/**/testdata/*.golden.* text eol=lf
 
+# The Story Bible's recorded manuscripts are hashed byte for byte (Service.Status compares the SHA-256 of the file with the one recorded from
+# the LF file): a CRLF checkout on a Windows runner makes the status STALE.
+apps/desktop/internal/guide/testdata/*.json text eol=lf
+
 # The demo's sample manuscript is Project Gutenberg's file byte for byte (CRLF line endings and all), so it can be checked
 # against the published one; aliceManuscript.ts reads either line ending.
 apps/ui/src/api/fixtures/alice-in-wonderland.txt -text

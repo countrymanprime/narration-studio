@@ -123,7 +123,7 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
   is fixed in the edit, so **Fix in edit** on a misread saves your decision and the note still reads **Needs pickup**;
 - **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
-A decision is saved at once and the next note is selected. A message says what was saved, with **Undo** to put the
+A decision is saved at once and the next note is selected. If focus was on a note, it moves to that next note too, so the focused row, the panel and a screen reader agree; a decision made with focus elsewhere leaves focus where it is. A message says what was saved, with **Undo** to put the
 note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. The decision is also in the app's undo history, so Ctrl+Z, **Undo the last change** in the jump menu and the
 [undo history](navigation.md) take it back too, as "Decision “Waive” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Waive** says the line stays as it was read. **Reopen** puts a decided note back
 to review.

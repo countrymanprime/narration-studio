@@ -54,12 +54,12 @@ The six figures are one card; each opens the page it counts.
 - **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
 
 Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
-from each chapter's words and status (its **Recorded, not edited yet** share is the chapters
-recorded but not edited; **Finished audio** above is the measured length), **This
+from each chapter's own progress in five parts: **Delivered** (the chapters mastered for delivery), **Proofed**, **Edited**,
+**Recorded** and **Not recorded yet**. A chapter still being recorded counts for the share of its audio measured so far, **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
-already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends.
+already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 1180 px one; **Next up** and the chart sit side by side under the pipeline.
 A figure with nothing honest to work from says "Not measured yet" and why, rather than 0.
 
 ## The stage timer

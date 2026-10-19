@@ -26,7 +26,7 @@ export const READER_WIDTHS: ReadonlyArray<readonly [name: string, percent: numbe
   ['Full', 100],
 ];
 
-export const DEFAULT_TEXT_PREFS: TextPrefs = { font: 'Georgia', size: 20, spacing: 1.8, width: 64 };
+export const DEFAULT_TEXT_PREFS: TextPrefs = { font: 'Georgia', size: 20, spacing: 1.7, width: 64 };
 
 export const fontStack = (name: string): string => (READER_FONTS.find(([font]) => font === name) ?? READER_FONTS[0]!)[1];
 export const widthName = (percent: number): string => READER_WIDTHS.find(([, width]) => width === percent)?.[0] ?? 'Custom';

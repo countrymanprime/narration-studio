@@ -13,4 +13,4 @@ Storybook title: `Settings/Page/StoryBibleTypesPanel`. Source: `src/components/s
 
 ## Used by
 
-- `src/components/settings/page/SettingsPage.tsx`
+- `src/components/settings/controls/ProjectBodies.tsx`

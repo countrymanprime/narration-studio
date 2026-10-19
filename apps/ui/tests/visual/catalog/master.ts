@@ -168,4 +168,16 @@ export const masterStates: StateEntry[] = [
     description:
       'Master & QC while the chapters are still being read (?mockChapters=loading): the page as usual, and in the Delivery package panel grey blocks in place of the checks and of the "failing and not ready" count, with Open Delivery still offered and one polite "Reading the profile and the chapters…" status',
   },
+  {
+    page: 'master',
+    state: 'chapters-load-failed',
+    description:
+      'Master & QC when the chapters cannot be read (?mockChapters=fails): the page as usual and, under the file table, "The chapters could not be read, so the files keep their file names" with the reason as an alert and a Retry button that reads the chapters again',
+  },
+  {
+    page: 'master',
+    state: 'profile-load-failed',
+    description:
+      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, under the file table, "The delivery profile could not be read" with the reason as an alert and a Retry button that reads the profile again',
+  },
 ];

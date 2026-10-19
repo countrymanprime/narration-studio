@@ -135,6 +135,18 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'load-failed',
+    description:
+      'Editing when the chapters cannot be read (?mockChapters=fails): the Editing title and "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapters again; no skeleton left behind',
+  },
+  {
+    page: 'editing',
+    state: 'chapter-load-failed',
+    description:
+      'Editing when one chapter cannot be read (?mockChapterRead=fails): the header and chapter stepper stay and, under them, "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapter again; no skeleton left behind',
+  },
+  {
+    page: 'editing',
     state: 'address-checking',
     description:
       'Editing opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /editing/gone): the Editing title and a block where the chapter stepper will be, then the script\'s three paragraphs as grey blocks, with one polite "Checking this link…" status',

@@ -21,6 +21,30 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-sample-output-daw',
+    description:
+      'Settings, Recording & DAW with REAPER chosen: the Voice sample output row is a sentence saying samples play on this computer’s default output and REAPER’s own audio device is not changed, with Test sound and no choice',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'recording-sample-output-builtin',
+    description:
+      'Settings, Recording & DAW with the built-in recorder chosen (?mockDawExperimentalOn=1) on a computer with two named outputs: the Voice sample output row with Headphones chosen, Refresh the list, Test sound and what the choice changes',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'recording-sample-output-long-name',
+    description:
+      'Settings, Recording & DAW with the built-in recorder on a computer whose outputs have a very long name and an Arabic one with an emoji: the Voice sample output row with the long one chosen, kept inside its card at every width',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'recording-found',
     description:
       'Settings, Recording & DAW for a folder holding one .rpp that is not linked (?mockDawChoice=found): REAPER chosen, every engine listed with its state, "REAPER not linked", "Alice.rpp is in the project folder." and Link Alice.rpp',

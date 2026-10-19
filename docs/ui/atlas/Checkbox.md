@@ -23,6 +23,7 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - `src/components/editing/cleanup/CleanupList.tsx`
 - `src/components/editing/effects/EffectSettings.tsx`
 - `src/components/editing/range/cut/CutDialog.tsx`
+- `src/components/editing/voicesample/VoiceSampleDialog.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
@@ -34,6 +35,7 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - `src/components/production/report/ReportDialog.tsx`
 - `src/components/proof/AuditionDialog.tsx`
 - `src/components/recordingcheck/CheckRecordingsDialog.tsx`
+- `src/components/recordingcheck/RunOptions.tsx`
 - `src/components/schedule/MilestoneDialog.tsx`
 - `src/components/script/page/tools/select/MarksDialog.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`

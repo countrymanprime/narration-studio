@@ -5,7 +5,7 @@ import type { TakeLogEntry } from '../../../fixtures/measurements';
 import { WPH } from '../../schedule/estimates';
 import { calc, scheduleChapters } from '../../schedule/progress';
 import { planStart, recordedSeries, weekFigures } from '../measured/measured.selectors';
-import { FINISHED, MID_BOOK, NOTHING_RECORDED, STORY_DUE, STORY_TODAY } from '../pipeline/pipelineFixtures';
+import { FINISHED, MID_BOOK, MID_BOOK_SOURCES, NOTHING_RECORDED, STORY_DUE, STORY_TODAY } from '../pipeline/pipelineFixtures';
 import { checkCounts, kpiTiles, stageSegments, type DeliveryCounts, type KpiInputs } from './overviewFigures';
 
 export { FINISHED, MID_BOOK, NOTHING_RECORDED, STORY_TODAY };
@@ -30,6 +30,7 @@ export function overviewFor(
   due: Date | null = STORY_DUE,
   log: Measured<readonly TakeLogEntry[]> = TAKE_LOG,
   openPickups = 3,
+  master: Readonly<Record<string, { mastered: boolean }>> = MID_BOOK_SOURCES.master ?? {},
 ) {
   const k = calc(scheduleChapters(chapters), STORY_TODAY, due, openPickups);
   const start = planStart(STORY_TODAY);
@@ -47,7 +48,7 @@ export function overviewFor(
     start,
     kpi,
     tiles: kpiTiles(kpi),
-    segments: stageSegments(chapters, WPH),
+    segments: stageSegments(chapters, WPH, master),
     week: weekFigures(log, STORY_TODAY, start, due, k.words / WPH),
     series: recordedSeries(log, start),
     recordedHours: hours(chapters) / 3600,
