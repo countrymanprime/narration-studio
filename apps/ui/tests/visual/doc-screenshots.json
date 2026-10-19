@@ -631,6 +631,13 @@
   },
   {
     "page": "editing",
+    "state": "voice-sample-mark-open",
+    "viewport": "desktop",
+    "docName": "editing-voice-sample-mark",
+    "caption": "Editing - the dot after a marked stretch, opened: the character, the length and a play button, with Open in Story Bible"
+  },
+  {
+    "page": "editing",
     "state": "takes-open",
     "viewport": "desktop",
     "docName": "editing-takes",
