@@ -512,7 +512,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: '1',
     desc: 'Scales the whole window. Ctrl + plus, Ctrl + minus and Ctrl 0 change it from anywhere.',
     used: ['production', 'script', 'booth', 'editing', 'proof', 'master'],
-    also: 'Header zoom chip, Ctrl + / −',
+    also: 'Zoom chip in the header, Ctrl + / −',
     syn: 'scale size dpi',
   },
   {

@@ -111,7 +111,7 @@ const mockTeleprompter = (['listening', 'waiting', 'done', 'ended', 'flagged'] a
 // holds still for a capture.
 const mockLevelParam = Number(mockParams.get('mockLevel') ?? Number.NaN);
 const mockLevel = Number.isFinite(mockLevelParam) && mockLevelParam >= -100 && mockLevelParam <= 0 ? mockLevelParam : undefined;
-// `?mockZoom=125` boots the header's zoom group already at that percentage, so the visual
+// `?mockZoom=125` boots the app already zoomed to that percentage (the header's zoom chip shows), so the visual
 // suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
 const mockZoomParam = Number(mockParams.get('mockZoom') ?? Number.NaN);
 const mockZoom = Number.isFinite(mockZoomParam) && mockZoomParam > 0 ? mockZoomParam / 100 : undefined;

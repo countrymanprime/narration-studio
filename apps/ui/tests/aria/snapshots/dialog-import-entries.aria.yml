@@ -1,8 +1,7 @@
 # The Story Bible's Import entries (SN-X522): a modal dialog with its file choice, the paste box and Add, which stays off until
 # something is read. The page behind it is aria-hidden; the live regions stay exposed (see dialog-mark-composer.aria.yml).
 - /children: equal
-- main:
-  - group "Zoom"
+- main
 - status
 - alert
 - status

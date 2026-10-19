@@ -47,6 +47,13 @@ type JumpMenuProps = {
   runCommand: (id: CommandId) => void;
   close: () => void;
   initialTerm?: string;
+  /** Opens with this command group already chosen (the zoom chip opens at "Zoom"); Backspace or the back row returns to the groups. */
+  initialGroup?: string;
+  /**
+   * Why a catalogue command cannot run now (Back with no earlier page, Undo with nothing to undo), read once as the menu opens. Such a row stays
+   * listed, off, with the reason, as a provided command does.
+   */
+  disabledReasons?: () => Partial<Record<CommandId, string>>;
   catalog?: readonly CommandDescriptor[];
 };
 
@@ -55,21 +62,23 @@ type JumpMenuProps = {
  * search-source hits, filtered by the typed term. With nothing typed it shows one row per group and a group opens to its commands.
  * A leading `>` lists commands only. The field keeps focus and names the active option; nothing here waits on the host.
  */
-function JumpMenu({ keymap, runCommand, close, initialTerm = '', catalog = COMMAND_CATALOG }: JumpMenuProps) {
+function JumpMenu({ keymap, runCommand, close, initialTerm = '', initialGroup, disabledReasons, catalog = COMMAND_CATALOG }: JumpMenuProps) {
   const listId = useId();
   const [query, setQuery] = useState(initialTerm);
-  const [group, setGroup] = useState<string | null>(null);
+  const [group, setGroup] = useState<string | null>(initialGroup ?? null);
   const [active, setActive] = useState(0);
 
   // Providers are asked once per open, not per keystroke.
-  const commands = useMemo<Entry[]>(
-    () => [
+  const commands = useMemo<Entry[]>(() => {
+    const off = disabledReasons?.() ?? {};
+    return [
       ...commandsFor('jumpMenu', catalog).map((row) => ({
         id: `static-${row.id}`,
         group: row.group ?? 'Commands',
         title: row.label,
         hint: row.hint,
         keys: gestureKeys(keymap[row.id]?.[0]),
+        disabledReason: off[row.id],
         run: () => runCommand(row.id),
       })),
       ...providedCommands(catalog).map((row) => ({
@@ -80,9 +89,9 @@ function JumpMenu({ keymap, runCommand, close, initialTerm = '', catalog = COMMA
         disabledReason: row.disabledReason,
         run: row.run,
       })),
-    ],
-    [catalog, keymap, runCommand],
-  );
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the reasons are read once per open, like the providers.
+  }, [catalog, keymap, runCommand]);
 
   const raw = query.trim();
   const commandsOnly = raw.startsWith('>');
