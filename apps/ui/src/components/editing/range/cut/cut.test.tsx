@@ -553,6 +553,34 @@ describe('Delete words and audio', () => {
     expect(button('Delete words and audio').getAttribute('aria-description')).toBe(`Delete words and audio (Del) — ${ONLY_SAID}`);
   });
 
+  // Issue 2074: a word only said, at the edge of a selection, has no token, so the DAW cut the script words alone while the dialog promised
+  // them all and the page struck them all.
+  it('a said-only word at the edge of the selection stays: the dialog counts, and the cut and the record cover, the script words only', async () => {
+    mount();
+    await flush();
+    const um = doc.items.find((i) => i.kind === 'x')!.key;
+    await select(um, 'p-1:6');
+    act(() => cut.remove());
+    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Delete 1 word and their audio?' })).toBeTruthy());
+    expect(dialogText('data-cut-stays')).toBe('“um” was only said and is not in the script, so its audio stays.');
+    await confirm(/Delete 1 word and audio/);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ firstToken: 6, lastToken: 6 });
+    expect(toastUndo.mock.calls[0][0]).toBe('Deleted 1 word and their audio in REAPER.');
+    expect(log.cuts.map((c) => c.keys)).toEqual([['p-1:6']]);
+    expect(item(um).cut).toBeUndefined();
+    expect(item('p-1:6').cut).toBeTruthy();
+  });
+
+  it('a said-only word between script words is cut with them and named nowhere as staying', async () => {
+    mount();
+    await flush();
+    await select('p-1:5', 'p-1:6');
+    act(() => cut.remove());
+    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Delete 3 words and their audio?' })).toBeTruthy());
+    expect(dialog().querySelector('[data-cut-stays]')).toBeNull();
+  });
+
   it('atlas-and-axe: the dialog is named by its question and Cancel comes first in focus order', async () => {
     mount();
     await flush();
