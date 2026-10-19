@@ -67,9 +67,13 @@ func SessionFolder(project string) string {
 	return filepath.Join(project, "narration-utils", "audacity-session")
 }
 
-// NewReview is the review role over session.
-func NewReview(session *Session) *Review {
-	return &Review{session: session, eventHub: newEventHub(), runs: map[string]*reviewRun{}}
+// NewReview is the review role over session, with events of its own.
+func NewReview(session *Session) *Review { return newReview(session, newEventHub()) }
+
+// newReview is the review role over session, queuing its events on hub: the adapter's roles share one, so the transcript service's
+// Dispatch also delivers a pickup's or a line's event, as REAPER's one events.log does.
+func newReview(session *Session, hub *eventHub) *Review {
+	return &Review{session: session, eventHub: hub, runs: map[string]*reviewRun{}}
 }
 
 // fail queues the ERROR event the transcript service shows as the run's message.

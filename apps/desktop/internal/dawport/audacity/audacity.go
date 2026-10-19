@@ -65,6 +65,7 @@ var declares = func() map[dawport.Capability]dawport.Level {
 	// app can add it. monitor_level stays NotYetAvailable like the rest: Audacity's monitoring output is not built.
 	d[dawport.CapInputLevel] = dawport.Unsupported
 	d[dawport.CapReview] = dawport.Experimental
+	d[dawport.CapPickups] = dawport.Experimental
 	d[dawport.CapNavigate] = dawport.Experimental
 	d[dawport.CapMarkers] = dawport.Experimental
 	d[dawport.CapMacroRender] = dawport.Experimental
@@ -134,6 +135,7 @@ type Adapter struct {
 	client  *audacitybridge.Client
 	session *Session
 	review  *Review
+	pickups *Pickups
 	backups *Backups
 	steps   *steps
 }
@@ -160,7 +162,9 @@ func New(client *audacitybridge.Client) *Adapter { return NewWithBackups(client,
 func NewWithBackups(client *audacitybridge.Client, backups BackupsConfig) *Adapter {
 	keeper := NewBackups(client, backups)
 	session := NewSession(client)
-	return &Adapter{client: client, session: session, review: NewReview(session), backups: keeper, steps: &steps{client: client, backups: keeper}}
+	// One hub for every asynchronous role: the services above them are drained through the transcript service's Dispatch.
+	hub := newEventHub()
+	return &Adapter{client: client, session: session, review: newReview(session, hub), pickups: newPickups(session, hub), backups: keeper, steps: &steps{client: client, backups: keeper}}
 }
 
 func (a *Adapter) Kind() dawport.Kind { return dawport.KindAudacity }
@@ -177,6 +181,8 @@ func (a *Adapter) Role(c dawport.Capability) any {
 	switch c {
 	case dawport.CapReview:
 		return a.review
+	case dawport.CapPickups:
+		return a.pickups
 	case dawport.CapNavigate, dawport.CapMarkers:
 		return a.session
 	case dawport.CapMacroRender:

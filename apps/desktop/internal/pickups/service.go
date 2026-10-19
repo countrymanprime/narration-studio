@@ -16,8 +16,12 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// Config is the session path the service needs to talk to REAPER over the file bridge.
-type Config struct{ SessionDir string }
+// Config is the session path the service needs to talk to the DAW (REAPER's file bridge, or the folder Audacity's role trades files in),
+// and the DAW's name for the sentences it shows ("REAPER" when empty).
+type Config struct {
+	SessionDir string
+	DAW        string
+}
 
 // Service is the state machine for one pickup-list run at a time (import, export, jump, resolve, reopen, list or count),
 // mirroring transcript.Service and lineidentity.Service.
@@ -52,6 +56,26 @@ func New(config Config, role dawport.PickupList, changed func(map[string]any)) *
 	return s
 }
 
+// dawName is the DAW's name in the sentences this service shows.
+func (s *Service) dawName() string {
+	if s.config.DAW == "" {
+		return "REAPER"
+	}
+	return s.config.DAW
+}
+
+// words says a sentence written for REAPER in the project's DAW's name.
+func (s *Service) words(message string) string {
+	if s.config.DAW == "" {
+		return message
+	}
+	return strings.ReplaceAll(message, "REAPER", s.config.DAW)
+}
+
+func (s *Service) unavailable() error {
+	return fmt.Errorf("the %s bridge is unavailable", s.dawName())
+}
+
 func empty() map[string]any {
 	return map[string]any{
 		"runId": nil, "phase": "idle", "message": "",
@@ -72,10 +96,10 @@ func (s *Service) Import(rows []Row) error {
 		return fmt.Errorf("select at least one pickup to import")
 	}
 	if s.role == nil {
-		return fmt.Errorf("the REAPER bridge is unavailable")
+		return s.unavailable()
 	}
 	if err := os.MkdirAll(s.config.SessionDir, 0o755); err != nil {
-		return fmt.Errorf("could not prepare the REAPER session directory: %w", err)
+		return fmt.Errorf("could not prepare the %s session directory: %w", s.dawName(), err)
 	}
 	runID := newRunID()
 	path := filepath.Join(s.config.SessionDir, "pickups_import_"+runID+".txt")
@@ -105,10 +129,10 @@ func (s *Service) Import(rows []Row) error {
 // can offer it as a download with no second round trip.
 func (s *Service) Export() error {
 	if s.role == nil {
-		return fmt.Errorf("the REAPER bridge is unavailable")
+		return s.unavailable()
 	}
 	if err := os.MkdirAll(s.config.SessionDir, 0o755); err != nil {
-		return fmt.Errorf("could not prepare the REAPER session directory: %w", err)
+		return fmt.Errorf("could not prepare the %s session directory: %w", s.dawName(), err)
 	}
 	runID := newRunID()
 	path := filepath.Join(s.config.SessionDir, "pickups_export_"+runID+".txt")
@@ -125,7 +149,7 @@ func (s *Service) Export() error {
 // one), read-only otherwise.
 func (s *Service) Next() error {
 	if s.role == nil {
-		return fmt.Errorf("the REAPER bridge is unavailable")
+		return s.unavailable()
 	}
 	runID := newRunID()
 	s.begin(runID, "jumping", "Jumping to the next pickup…")
@@ -140,7 +164,7 @@ func (s *Service) Next() error {
 // Resolve marks the open pickup nearest position as done (PICKUP_DONE:), keeping its body, in one undo step.
 func (s *Service) Resolve(position float64) error {
 	if s.role == nil {
-		return fmt.Errorf("the REAPER bridge is unavailable")
+		return s.unavailable()
 	}
 	runID := newRunID()
 	s.begin(runID, "resolving", "Resolving this pickup…")
@@ -156,7 +180,7 @@ func (s *Service) Resolve(position float64) error {
 // inverse of Resolve. A position that is not a finite number of seconds, zero or more, is refused before anything is sent.
 func (s *Service) Reopen(position float64) error {
 	if s.role == nil {
-		return fmt.Errorf("the REAPER bridge is unavailable")
+		return s.unavailable()
 	}
 	if math.IsNaN(position) || math.IsInf(position, 0) || position < 0 {
 		return fmt.Errorf("the pickup position must be a number of seconds, zero or more")
@@ -175,10 +199,10 @@ func (s *Service) Reopen(position float64) error {
 // session folder; once PICKUP_MARKERS_LISTED arrives Handle reads that file back into the state's markers (readMarkers).
 func (s *Service) ListMarkers() error {
 	if s.role == nil {
-		return fmt.Errorf("the REAPER bridge is unavailable")
+		return s.unavailable()
 	}
 	if err := os.MkdirAll(s.config.SessionDir, 0o755); err != nil {
-		return fmt.Errorf("could not prepare the REAPER session directory: %w", err)
+		return fmt.Errorf("could not prepare the %s session directory: %w", s.dawName(), err)
 	}
 	runID := newRunID()
 	path := filepath.Join(s.config.SessionDir, "pickups_markers_"+runID+".txt")
@@ -197,7 +221,7 @@ func (s *Service) ListMarkers() error {
 // Count asks REAPER how many pickups remain versus the total (open plus resolved); read-only.
 func (s *Service) Count() error {
 	if s.role == nil {
-		return fmt.Errorf("the REAPER bridge is unavailable")
+		return s.unavailable()
 	}
 	runID := newRunID()
 	s.begin(runID, "counting", "Counting pickups…")
@@ -228,7 +252,7 @@ func (s *Service) begin(runID, phase, message string) {
 	s.mu.Lock()
 	remaining, total := s.state["remaining"], s.state["total"]
 	s.state = empty()
-	s.state["runId"], s.state["phase"], s.state["message"] = runID, phase, message
+	s.state["runId"], s.state["phase"], s.state["message"] = runID, phase, s.words(message)
 	// Counts survive into the next run's state so the UI keeps showing the last known remaining/total while a
 	// different action (import, next, resolve) is in flight, instead of flashing back to zero.
 	s.state["remaining"], s.state["total"] = remaining, total
@@ -243,7 +267,7 @@ func (s *Service) notify() {
 
 func (s *Service) fail(message string) {
 	s.mu.Lock()
-	s.state["phase"], s.state["message"] = "error", message
+	s.state["phase"], s.state["message"] = "error", s.words(message)
 	s.mu.Unlock()
 	s.notify()
 }
@@ -346,7 +370,7 @@ func (s *Service) Handle(fields []string) {
 		if len(fields) >= 5 && s.state["phase"] == "listing" {
 			markers, skipped, problem := readMarkers(s.listPath, textAt(fields, 2))
 			if problem != "" {
-				s.state["phase"], s.state["message"] = "error", problem
+				s.state["phase"], s.state["message"] = "error", s.words(problem)
 			} else {
 				s.state["markers"] = markers
 				s.state["phase"], s.state["message"] = "success", markersSummary(markers, skipped)
@@ -365,7 +389,7 @@ func (s *Service) Handle(fields []string) {
 		if len(fields) > 2 {
 			message = fields[2]
 		}
-		s.state["phase"], s.state["message"] = "error", message
+		s.state["phase"], s.state["message"] = "error", s.words(message)
 		changed = true
 	}
 	snapshot := clone(s.state)

@@ -471,3 +471,32 @@ func TestTheIdleStateCarriesAnEmptyMarkerList(t *testing.T) {
 		t.Fatalf("markers = %#v", state["markers"])
 	}
 }
+
+// A service for another DAW says that DAW's name in every sentence it shows, never REAPER's.
+func TestSentencesNameTheProjectsDAW(t *testing.T) {
+	session := t.TempDir()
+	client, err := bridge.New(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := New(Config{SessionDir: session, DAW: "Audacity"}, pickupListRole(t, client), nil)
+	if err := s.Import([]Row{{Start: 1, Note: "n"}}); err != nil {
+		t.Fatal(err)
+	}
+	state := s.Snapshot()
+	if message := state["message"].(string); !strings.Contains(message, "Audacity") || strings.Contains(message, "REAPER") {
+		t.Errorf("message = %q", message)
+	}
+	s.Handle([]string{"ERROR", state["runId"].(string), "REAPER integration failed."})
+	if got := s.Snapshot()["message"].(string); got != "Audacity integration failed." {
+		t.Errorf("error = %q", got)
+	}
+	none := New(Config{DAW: "Audacity"}, nil, nil)
+	if err := none.Next(); err == nil || err.Error() != "the Audacity bridge is unavailable" {
+		t.Errorf("no role = %v", err)
+	}
+	plain := New(Config{}, nil, nil)
+	if err := plain.Next(); err == nil || err.Error() != "the REAPER bridge is unavailable" {
+		t.Errorf("default = %v", err)
+	}
+}

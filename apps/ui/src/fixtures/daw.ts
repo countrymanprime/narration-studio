@@ -150,6 +150,7 @@ const audacityCapabilities = (backups: boolean): DawCapabilities['capabilities']
   return everyCapability(() => notYet(AUDACITY_NOT_YET), {
     input_level: noInputLevel('Audacity'),
     review: audacityExperimental,
+    pickups: audacityExperimental,
     markers: audacityExperimental,
     navigate: audacityExperimental,
     macro_render: audacityExperimental,
