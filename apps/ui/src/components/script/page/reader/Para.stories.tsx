@@ -2,14 +2,14 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { buildLayerIndex, paragraphLayers, type LayerSources } from './layers';
 import { Para } from './Para';
-import { cue, entry, flaggedWord, mark, paragraph, TYPES } from './readerFixtures';
+import { cue, entry, flaggedWord, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 // The Studio Next mock's paragraph (`pages/script/Para.tsx`): the paragraph's own text with marks, flagged words, Story Bible names,
 // speaker chips and Find matches drawn over it. The text never changes; each layer only wraps part of it.
 const TEXT = 'Mina said, "Come along," and left the harbour. Wren asked, "Where to?" Nobody answered the third voice, "Not yet."';
 const at = (needle: string) => ({ start: TEXT.indexOf(needle), end: TEXT.indexOf(needle) + needle.length });
 const para = paragraph('p1', 'c1', TEXT);
-const empty: LayerSources = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [] };
+const empty: LayerSources = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [], types: GUIDE_TYPES };
 const layers = (sources: Partial<LayerSources>) => paragraphLayers(buildLayerIndex({ ...empty, ...sources }), para);
 
 const people = [entry('e1', 'Mina', 'Character', 4), entry('e2', 'Wren', 'Character'), entry('e3', 'harbour', 'Place')];

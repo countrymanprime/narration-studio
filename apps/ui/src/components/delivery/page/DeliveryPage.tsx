@@ -1,9 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { DeliveryProfilePanel } from '../../master/DeliveryProfilePanel';
 import { creditsEntries, ownsOpeningCredits } from '../../credits/creditsEntries';
 import { useCreditsRows } from '../../credits/useCreditsRows';
 import { NeedManuscript } from '../../layout/NeedManuscript';
-import { Heading } from '../../primitives/Heading';
+import { useOpenPickups } from '../../pickups/useOpenPickups';
 import type { DeliveryProfile } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
 import { chapterStates, firstFailure, firstNotReady, listedChapters, readiness } from './chapterStates';
@@ -65,15 +65,20 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
   const known = chapters !== undefined && job !== undefined && credits.rows !== undefined;
   const entries = creditsEntries(credits.rows, ownsOpeningCredits(chapters));
   const listed = known ? listedChapters(chapters, entries) : [];
-  const states = known ? chapterStates(listed, job.files) : [];
+  // Open pickup lines per chapter, as Production's pipeline counts them; nothing is claimed until the list is read.
+  const openLines = useOpenPickups();
+  const pickups = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const line of openLines ?? []) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
+    return counts;
+  }, [openLines]);
+  const states = known ? chapterStates(listed, job.files, openLines ? pickups : undefined) : [];
   const failure = known && profile ? (firstFailure(listed, job.files, profile) ?? firstNotReady(listed, job.files)) : undefined;
   const { ready, text } = known ? readiness(states) : { ready: false, text: "Can't tell which chapters pass yet." };
   const measuring = job?.phase === 'running' ? job : undefined;
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22.5rem]">
       <div className="flex min-w-0 flex-col gap-4">
-        {/* The mock's page title, "Delivery": the page heading every page opens with. */}
-        <Heading title="Delivery" />
         <ProfileCard onChange={onChange} onProfile={onProfile} locked={build.running || build.starting} />
         {profile && (
           <OutputPanel

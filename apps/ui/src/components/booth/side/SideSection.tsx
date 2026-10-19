@@ -10,5 +10,5 @@ export function SideSection({ title, children, id }: { title: string; children: 
   );
 }
 
-export const ROW_CLASS = 'flex items-center gap-2 rounded-[var(--radius-control,6px)] border border-[var(--line)] px-2 py-1.5 text-sm';
+export const ROW_CLASS = 'flex items-center gap-2 rounded-[var(--radius-control,6px)] border border-[var(--border)] px-2 py-1.5 text-sm';
 export const DIM_CLASS = 'text-sm text-[var(--text-muted)]';

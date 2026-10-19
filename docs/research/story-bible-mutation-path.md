@@ -189,7 +189,7 @@ These would only be worth porting if the sidecars became "audio in, words out".
 ## Risks of B
 
 - **Two writers of one schema** while `build`, `create`, alias edits, `pronounce` and `rescan` stay in Python.
-  - Every call, Python or Go, goes through one `guide.Service` lock, and the in-memory copy is dropped after any Python call.
+  - Every Go edit goes through one `guide.Service` lock (`editMu`). `Service.Run` does not take it, because a Save would then wait for a whole build; a sidecar write is seen by comparing bytes on the next edit (see [the concurrent build note](../architecture/story-bible-concurrent-build.md)).
   - Parity is pinned by fixtures, not by a Python run in the Go job. The Python tests write before-and-after pairs for each command into `tests/fixtures/contracts/` (`UPDATE_CONTRACTS=1`, the `wire-contract-change` pattern), and a Go test replays each pair and compares the JSON.
   - Python stops writing the file only if `build` returns its entities and the host does the rebuild merge (`merge_locked`, about 140 lines of the subtlest logic in the module, cost L). That is not proposed now.
 - **Merge undo.** `merge` stores fingerprints of what it changed: SHA-256 of `json.dumps(value, sort_keys=True, ensure_ascii=False)`, with Python's `", "` and `": "` separators and Python's float formatting. `unmerge` refuses when a fingerprint does not match.
@@ -214,12 +214,12 @@ C is not enough. Every mutation stays over 100 ms, and full-length ones over 350
 On 2026-10-18 the owner approved B and asked for step 1 (#1923).
 
 1. **`edit` for every field but `aliases`, and setLocked.** This is every Save. The prototype and its parity test exist.
-2. **Hold the document in `guide.Service`.** Keep the parsed document in memory keyed by size and modification time. Dropping the indent was put to the owner (it is still JSON, but no longer pleasant to read by hand, and it takes a full-length write from 44 to 16 ms here, write only, held document); on 2026-10-18 the owner chose to keep it.
+2. **Hold the document in `guide.Service`.** Keep the parsed document in memory with the file's bytes, and parse again whenever the bytes differ (built: size and modification time were not trusted on a coarse file system). Dropping the indent was put to the owner (it is still JSON, but no longer pleasant to read by hand, and it takes a full-length write from 44 to 16 ms here, write only, held document); on 2026-10-18 the owner chose to keep it. The host therefore writes the indented form, and the speed comes from not re-parsing.
    - The same unindented write in Python's `write_json` is a separate, smaller change that would help the commands that stay in Python. Estimated: about 70 ms off each full-length spawn (in-process, 127 to 56 ms).
 3. **`mark-reviewed`, `review-flag`, `speaker-color`, `relate`, `unrelate`, `delete` and `correct-cue`.**
 4. **The five `type-*` commands.**
 5. **`pronounce-user` and `pronunciation-use-alternate`.**
-6. **`merge`, `unmerge` and `split` together**, with the fingerprint encoder and its golden.
+6. **`merge`, `unmerge` and `split` together**, with the fingerprint encoder and its golden. Done on 2026-10-18: `guide/merge.go` and `guide/pythonjson.go`, pinned by `testdata/merge-parity.json` and `testdata/merge-fingerprint-golden.json` (written by `test_merge_parity.py`). Python's `split` has no binding yet, so `Service.Split` has no caller in the app.
 7. **Later:**
    - `rescan` and `status`, once a Go `find_occurrences` matches Python's excerpts;
    - `create` and alias edits, with Go writing and the sidecar asked only for the pronunciation. This needs a stateless command beside `candidate` that returns the whole value of `pronunciation()`.

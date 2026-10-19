@@ -1,16 +1,32 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Button } from '../../primitives/Button';
-import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
+import { statusTone } from '../../../kinds/statusTone';
+import { KindChip } from '../../primitives/KindChip';
+import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { TooltipTarget } from '../../primitives/Tooltip';
-import { RESOLUTION_CHIP_CH, TYPE_CHIP_CH, TYPE_TONE, groupByChapter, type NoteRow } from './noteRows';
+import { NOTE_KIND, RESOLUTION_CHIP_CH, TYPE_CHIP_CH, groupByChapter, type NoteRow } from './noteRows';
 
 /** A badge as wide as the longest word it can show, so a changed type or decision never moves the cells around it. */
-function FixedChip({ ch, tone, label, shape }: { ch: number; tone: StatusTone; label: string; shape?: 'tag' }) {
+function FixedChip({ ch, children }: { ch: number; children: ReactNode }) {
   return (
     <span className="inline-flex" style={{ minWidth: `${ch + 2}ch` }}>
-      <StatusBadge tone={tone} label={label} shape={shape} className="w-full justify-center" />
+      {children}
     </span>
+  );
+}
+
+/** A note's type chip: the kind's own chip, or a neutral tag for a take comparison, which has no hue. */
+function TypeChip({ row }: { row: NoteRow }) {
+  const kind = NOTE_KIND[row.type];
+  return (
+    <FixedChip ch={TYPE_CHIP_CH}>
+      {kind ? (
+        <KindChip kind={kind} label={row.type} className="w-full justify-center" />
+      ) : (
+        <StatusBadge tone={statusTone('muted')} shape="tag" label={row.type} className="w-full justify-center" />
+      )}
+    </FixedChip>
   );
 }
 
@@ -74,7 +90,7 @@ export function NotesTable({
     <TableRow key={row.id} selected={row.id === selectedId} onActivate={() => onSelect(row.id)}>
       <TableCell numeric>{row.time}</TableCell>
       <TableCell>
-        <FixedChip ch={TYPE_CHIP_CH} tone={TYPE_TONE[row.type]} shape="tag" label={row.type} />
+        <TypeChip row={row} />
       </TableCell>
       <TableCell>
         <span className="[overflow-wrap:anywhere]">{[row.script, row.heard].filter(Boolean).join(' → ')}</span>
@@ -84,7 +100,9 @@ export function NotesTable({
         <FromCell row={row} />
       </TableCell>
       <TableCell>
-        <FixedChip ch={RESOLUTION_CHIP_CH} tone={row.resolution.tone} label={row.resolution.label} />
+        <FixedChip ch={RESOLUTION_CHIP_CH}>
+          <StatusBadge tone={row.resolution.tone} label={row.resolution.label} className="w-full justify-center" />
+        </FixedChip>
       </TableCell>
     </TableRow>
   );

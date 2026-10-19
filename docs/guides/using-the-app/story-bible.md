@@ -184,6 +184,11 @@ entry first. Delete asks first and says that the sample's audio is
 removed and the recording it was copied from is not touched; afterwards the focus moves to the next sample. A character may have 20 samples,
 and the section says so when it has them; moving a sample to a character that has 20 is refused.
 
+When you merge an entry into another, its samples go with it: they are listed under the entry it was merged into, and that entry
+keeps its own primary sample (an entry that had none takes the merged entry's primary). If the entry it merged into would have more
+than 20, the primary and the newest move and the rest stay where they were, under **Samples for a character that is no longer in the
+Story Bible** in **Voice data**. **Undo** on the merge moves them back, all but any you moved or deleted yourself since.
+
 A row says what is wrong with it:
 
 | Shown | What it means | What to do |
@@ -198,8 +203,8 @@ again. The list also follows the project by itself: a sample marked in Editing, 
 you doing anything.
 
 In **Voice data**, **Narration voice samples** work the same way, and **Move to a character…** and **Delete…** are always there. Under
-**Samples for a character that is no longer in the Story Bible** are the samples of a character who was deleted, merged into another
-entry, or whose type no longer speaks; they are kept until you move them to a character or delete them. **Remove voice samples…** deletes
+**Samples for a character that is no longer in the Story Bible** are the samples of a character who was deleted, or whose type no longer speaks,
+and any a merge could not move because the other entry already had 20; they are kept until you move them to a character or delete them. **Remove voice samples…** deletes
 every sample in the project, with its audio, after you confirm, and says how many it removed and how much space came back.
 
 ![Story Bible - the Voice data slide-over with Narration voice samples, the space the samples use, and the sample of a character who left the Story Bible](../../images/ui/storybible-voice-data-samples.webp)

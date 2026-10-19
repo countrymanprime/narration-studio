@@ -62,6 +62,13 @@ export const masterStates: StateEntry[] = [
   },
   {
     page: 'master',
+    state: 'diagnostics-cleanup-options',
+    description:
+      "Master & QC / Diagnostics, the Silence cleanup options dialog opened from the jump menu - the hold, the breath length range, the breath level and the click height, this project's values",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
     state: 'diagnostics-running',
     description:
       'Master & QC / Diagnostics, a check part way through (?mockDiagnostics=running) - its real progress from the bytes read, what it is reading, Cancel, and the source-kind choice locked while it runs',

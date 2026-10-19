@@ -112,3 +112,100 @@ Enforced beyond the token test: axe runs on every app state in the visual suite 
 3. The visual suite in both themes (`UI_THEME=dark` runs the whole suite in dark; the run ends with a known validation failure on `theme-dark` and `reader-dark`, which match their default states there), at every viewport, and look at the PNGs: `screenshots/app/<page>/<state>/<viewport>.png`.
 4. For a wide change, an axe `color-contrast` pass over every state in both themes catches what the declared pairs miss (it found nested highlights and placeholders while the palette stack was built).
 5. Regenerate the documentation images once, after the last visual change (`doc-screenshot-sync`).
+
+## One colour and one form per kind
+
+**Status: accepted by the owner 2026-10-18; not built yet.** The sections above describe the app as built. This one is the target, from the research note the research note "finding-colours-and-chips" ("One colour and one form per kind of highlighted thing", PR #2006) (evidence, not kept current). Where it differs from the sections above, this section wins once the page PR lands; each PR updates the text it replaces.
+
+**The rule.** Colour and form follow what a thing is, never the page it is on or which palette wins. The same kind is highlighted the same way on every page, and drawn the same way every time it is a chip. Related kinds share a colour family and are told apart by shape and label, never by colour alone. Every text mark has a shape cue, and each shape means one kind app-wide. No new hue is added.
+
+### The semantic map
+
+| Kind | Family colour | Text mark | Chip |
+| --- | --- | --- | --- |
+| Misread / mispronounced | `--danger` | danger-soft fill, wavy underline | `tag`, danger |
+| Missing / skipped | `--danger` | dashed box, no fill, muted text | `tag`, danger |
+| Extra words | `--danger` | italic, danger-soft fill, left insertion bar (the bar alone where zero-width) | `tag`, danger |
+| Repeat / restart | `--danger` | double underline | `tag`, danger |
+| Long silence / pacing | `--danger` | none in text; waveform pin and chip | `tag`, danger |
+| Breath, click / mouth, plosive, noise | `--warn` | none in text; waveform pin and chip | `tag`, warning |
+| Low confidence | `--warn` | 1px solid thin underline, no fill | `tag`, warning |
+| Pronunciation differs | `--info` | dotted underline | `tag`, info |
+| Take diff | not said in the take = missing; said but not in the script = extra | those shapes | none |
+| Entity of a type | the type colour, through one resolver | type tint and 2px solid underline, text `--<kind>-text` | `pill` with swatch in lists; type `tag` in headers |
+| Needs Review / Draft entry | `--warn` | faint mark, no hue | `pill`, warning |
+| Unknown or deleted type | `--non-text` | solid faint underline | neutral `pill` |
+| Speaker | the entry's own colour | none | tint and hue text; suggested = dashed border; unknown = dashed neutral border |
+| Narrator mark type | the narrator's colour and style | one recipe on every page | per page |
+| Note, query | note `--note`, query `--warn` | end marker follows the mark colour | none |
+| Find hit | `--search` | 20% tint, 1.5px line; the current hit adds a 2px ring | none |
+| Selection, cursor, playing word | `--info-soft`, `--focus` ring, `--accent` fill | one playing-word recipe on Booth and Editing | none |
+| Bookmark | `--accent` | ribbon, as built | none |
+
+Read the family as: red is the words (or the pacing) are wrong, amber is the audio or the recogniser is in doubt, blue is pronunciation.
+
+Statuses and decisions use one tone per concept, `soft` look, shared across pages: needs pickup `accent`; fix in edit `info`; waive, keep, fixed, accepted, pass, ready, done, kept take `success`; defer, not started, not checked, waiting, muted `neutral`; in progress, active take, downloading, verifying `info`; changed, to verify, stale, at risk, needs review `warning`; failed, fail, behind, late `danger`; open pickup `warning` (CD10); suggested take `accent`; take identity has no hue (CD11).
+
+Chip forms, one per role:
+
+| Role | Form |
+| --- | --- |
+| Kind of finding, type of entry | `tag` (16px, uppercase) |
+| Status, decision, verdict, resolution | `pill` (22px) |
+| Pipeline, schedule, package cells | `cell` |
+| Legend entry, dense list marker, count chip | `Dot` and label; the legend draws the same text mark as the document |
+| Toggle filter | `Pill` toggle, as built |
+
+### Accepted decisions (CD1 to CD13, 2026-10-18)
+
+The `CD` numbers are this document's. They are not the agent-train D-numbers.
+
+| # | Decision |
+| --- | --- |
+| CD1 | Misread, missing, extra and repeat are all in the red (`--danger`) family. |
+| CD2 | Extra words are red italic with an insertion bar. This replaces Proof's green `ins` and the check card's info dot. |
+| CD3 | Repeat / restart is a red double underline. |
+| CD4 | Long silence / pacing is red, with the mistakes. This is an owner override of the note's amber recommendation. Breath, click, noise and plosive stay amber audio-doubt pins. |
+| CD5 | The shape set is accepted: wavy, dashed box, bar, double, thin solid, dotted. Each page PR confirms it with a screenshot pass in both themes. |
+| CD6 | Speaker colour comes from the entry's own colour, with no id hash. An unknown speaker is neutral dashed. |
+| CD7 | Needs Review / Draft entries use `--warn`, which frees `--review` from the entity role. |
+| CD8 | Narrator marks draw their style on Booth and Editing as well as the reader; end markers follow the mark colour. |
+| CD9 | The find hit keeps its own `--search` hue. |
+| CD10 | An open pickup is a warning. |
+| CD11 | Take identity has no hue; the suggested take is `accent`. |
+| CD12 | Delete the unused `--bookmark` token. |
+| CD13 | One helper computes the entity tint (the existing 18% badge recipe); no new `-soft` tokens. |
+
+### Mock lines this supersedes
+
+The Studio Next mock stays frozen ([Which mocks are the spec](design-system.md#which-mocks-are-the-spec)). These are the places the decisions depart from it, per [UI spec and screenshots](../../.claude/rules/ui-spec-and-screenshots.md).
+
+| Mock draws | Replaced by | Why |
+| --- | --- | --- |
+| Long silence in copper (`--accent`) | red, CD4 | Silence is a recording mistake the narrator fixes, so it sits with the mistakes; copper stays for decisions and positions. |
+| Find hit reusing the info and warn hues | `--search`, CD9 | A hit must never read as a Location or a Query. |
+| Proof's green `ins`; the check card's info dot (extra words) | red italic with an insertion bar, CD2 | The mock draws extra words four ways; one kind gets one look, in the "words are wrong" family. |
+| Repeat in copper (Proof) or violet (Editing) | red double underline, CD3 | Same kind, one colour. |
+| Unknown speaker in red dashed | neutral dashed, CD6 | An unknown speaker is not an error. |
+| Take identity in violet | no hue, CD11 | The violet has no app token and would collide with Organization. |
+| Note and query end markers in fixed violet and warn | the mark's own colour, CD8 | The marker is part of the mark. |
+| Open pickup in three tones | `warning`, CD10 | It is one concept: a thing still to do. |
+
+### Per-speaker colours change
+
+CD6 supersedes the hash in [Per-speaker colours](#per-speaker-colours): `speakerColorToken` and `--speaker-1` to `--speaker-7` go when the Script and Booth PRs land, and a speaker draws its entry's colour. Until then that section describes the app.
+
+### Build plan
+
+Each PR is small; PRs 2 to 7 touch disjoint files and can run in parallel after PR 1. Each of 2 to 7 updates its pages' guides and screenshots ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)).
+
+| PR | Contents |
+| --- | --- |
+| 0 | This section. |
+| 1 | a new `kinds` folder in the UI source (kind map, entity colour resolver, status tones), `KindMark`, `KindChip`, a guard test with a `PENDING` list of files still to migrate, `PAIRS` rows for the new combinations, fixes for undefined tokens (`--line`, `--warning-soft`, `--surface-muted`, `--radius-panel`), dead-code removal, `--bookmark` (CD12). |
+| 2 | Proof: check card, finding rows, notes table, pins. |
+| 3 | Editing: word marks, legend, flag card, ribbon, found list, strip, takes. |
+| 4 | Booth: reader flags, key, text marks, speaker chip, Reference chip. |
+| 5 | Script: names, speaker chips, rail kinds, marks, find hit, word layer. |
+| 6 | Pickups and Story Bible: type column, entry list, detail header, entity summary, Settings types panel. |
+| 7 | Statuses: Production, Schedule, Master/QC, Delivery, Settings tools and models, capability and engine chips. |

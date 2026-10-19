@@ -144,10 +144,10 @@ describe('Settings: editing', () => {
     pick('Project');
     const build = row('project.build');
     expect(build.textContent).toContain('This project uses the computer setting.');
-    fireEvent.click(within(build).getByRole('button', { name: 'Override Build the Story Bible after import for this project' }));
+    fireEvent.click(within(build).getByRole('button', { name: 'Override for this project: Build the Story Bible after import' }));
     await waitFor(() => expect(save).toHaveBeenCalledWith('ManuscriptGuide', 'project', { build_after_import: 'true' }));
     await waitFor(() => expect(within(row('project.build')).getByText('overridden here', { exact: false })).toBeTruthy());
-    fireEvent.click(within(row('project.build')).getByRole('button', { name: 'Use the computer setting for Build the Story Bible after import' }));
+    fireEvent.click(within(row('project.build')).getByRole('button', { name: 'Use computer setting for Build the Story Bible after import' }));
     await waitFor(() => expect(save).toHaveBeenLastCalledWith('ManuscriptGuide', 'project', { build_after_import: null }));
     await waitFor(() => expect(row('project.build').textContent).toContain('This project uses the computer setting.'));
   });
@@ -217,6 +217,15 @@ describe('Settings: search and filters', () => {
     expect(backups).toBeTruthy();
     expect(within(backups!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
     expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
+  });
+
+  it('lists the favourite effects with a way to Editing and the panel that edits them here', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'plugin');
+    const entry = document.querySelector<HTMLElement>('[data-page-setting="ps.fx"]');
+    expect(entry).toBeTruthy();
+    expect(within(entry!).getByRole('button', { name: /^Open Editing/ })).toBeTruthy();
+    expect(within(entry!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
   });
 
   it('Escape clears the search', async () => {

@@ -20,12 +20,19 @@ legend of the marks in the text with how many of each, the recogniser that heard
 legend uses short labels with no counts.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so.
 
-Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard:
+Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
+same way on every page of the app, and the legend shows a sample of each beside its count, so the shape tells two red kinds apart
+without the colour:
 
-- **Not in the script** (Extra): words heard that the script does not have, between the words they followed;
-- **In the script, not read** (Not read): words of the script nothing was heard for;
-- **Misread**: a word heard differently, with what was heard;
-- **Low confidence**: a word the recogniser was unsure of.
+- **Not in the script** (Extra): words heard that the script does not have, in italics on a red tint with a red bar at their left;
+- **In the script, not read** (Not read): words of the script nothing was heard for, in muted text inside a dashed red box;
+- **Misread**: a word heard differently, with a wavy red underline and what was heard on hover;
+- **Low confidence**: a word the recogniser was unsure of, with a thin amber underline.
+
+Red means the words are wrong, amber means the recording or the recogniser is in doubt. The same colours mark the matching
+spans on the ribbon, the kind chip on a word's card, the rows of the drawer's found list and, in a take's line, the words
+the take left out (as not read) and added (as extra). A cut word is struck through, and a selected or playing word keeps its own fill;
+the mark's underline stays under both.
 
 Each line starts with its time in the chapter. A line with more than one take has a takes chip under it: how many
 takes, the one that plays, and whether one was chosen yet. Tab visits one chip, the one on the line the cursor is on (the
@@ -129,7 +136,7 @@ the character has 20 samples, or samples already use the 200 MiB a project may h
 
 ## Takes
 
-Click a line's takes chip (T steps to the next take) to open its takes under it. The suggested take comes first, with
+Click a line's takes chip (T steps to the next take) to open its takes under it. Escape folds them again and leaves focus on the chip. The suggested take comes first, with
 why it is suggested and the steps that would make the comparison surer: **Trim white space**, **Trim breaths** and
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. Play a take to hear it; **Keep take**
@@ -147,7 +154,7 @@ the DAW moves anything.
 ## The drawer
 
 The drawer button (Ctrl+Shift+C) opens the drawer beside the text, or over it on a narrower window. **Esc** closes it,
-from the text once nothing is selected or from the drawer itself, which hands the focus back to the button.
+from the text once nothing is selected or from the drawer itself, and leaves focus on the button when it was pressed inside the drawer.
 
 ### Cleaning up
 
@@ -161,13 +168,15 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
 **Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
 ![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
+
+![Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first](../../images/ui/editing-drawer-effects-chains.webp)
 
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 

@@ -157,7 +157,7 @@ function JumpMenu({ keymap, runCommand, close, initialTerm = '', initialGroup, d
 
   return (
     <>
-      <div className="border-b border-[var(--line)] p-2">
+      <div className="border-b border-[var(--border)] p-2">
         <TextField
           label="Jump menu"
           autoFocus

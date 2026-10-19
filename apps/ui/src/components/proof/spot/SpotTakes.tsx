@@ -1,6 +1,7 @@
 import { useApi } from '../../../api/ApiContext';
 import { IconButton } from '../../primitives/IconButton';
 import { SectionLabel } from '../../primitives/SectionLabel';
+import { statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { parseMarkup, type MarkupNode } from '../inspector/evidenceQuotes';
@@ -77,7 +78,11 @@ export function SpotTakes({
                 />
                 <span className="font-semibold">{take.label}</span>
                 <span className="text-[var(--text-muted)]">{seconds(take.sourceLength)}</span>
-                {take.kept ? <StatusBadge tone="success" label="✓ Kept" /> : take.active ? <StatusBadge tone="info" label="✓ Active" /> : null}
+                {take.kept ? (
+                  <StatusBadge tone={statusTone('kept_take')} label="✓ Kept" />
+                ) : take.active ? (
+                  <StatusBadge tone={statusTone('active_take')} label="✓ Active" />
+                ) : null}
               </div>
               {unplayable && <p className="text-xs text-[var(--text-muted)]">{unplayable}</p>}
               {take.heard !== undefined && (

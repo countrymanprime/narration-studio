@@ -23,6 +23,7 @@ import type { VoiceSample } from '../../../api/contracts/voiceSamples';
 import { BoothSamplesProvider } from '../samples/BoothSamplesContext';
 import type { BoothSamples } from '../samples/useBoothSamples';
 import { SpeakerChip } from './SpeakerChip';
+import { typeHueColour } from '../../../kinds/entityColour';
 
 afterEach(cleanup);
 
@@ -76,7 +77,14 @@ const SPEAKERS = ['The Queen of Hearts', 'Alice', 'The King of Hearts', 'The Hat
 function setup(samples: BoothSamples | null = stand(), speakers: readonly string[] = SPEAKERS, confirmed = true) {
   const onSetSpeaker = vi.fn();
   const chip = (
-    <SpeakerChip phraseKey="p1:0" speaker="The Queen of Hearts" confirmed={confirmed} colour="--speaker-2" speakers={speakers} onSetSpeaker={onSetSpeaker} />
+    <SpeakerChip
+      phraseKey="p1:0"
+      speaker="The Queen of Hearts"
+      confirmed={confirmed}
+      colour={typeHueColour('violet')}
+      speakers={speakers}
+      onSetSpeaker={onSetSpeaker}
+    />
   );
   render(samples ? <BoothSamplesProvider value={samples}>{chip}</BoothSamplesProvider> : chip);
   return { onSetSpeaker, samples };

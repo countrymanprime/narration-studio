@@ -1,6 +1,8 @@
+import { entryColour, type EntityColour } from '../../kinds/entityColour';
 import { entityAnnotations, noteAnnotations } from '../manuscript/annotations';
 import type {
   GuideEntity,
+  GuideType,
   ManuscriptChapter,
   ManuscriptNote,
   ManuscriptParagraph,
@@ -150,16 +152,22 @@ export function segmentWords<T>(count: number, marks: WordMark<T>[]): WordSegmen
 }
 
 /** What a reader mark opens in the side rail: a story bible entry or a note, or a suspected flag (`readerFlags.ts`). */
-export type ReaderMarkTarget = { kind: 'entity'; entity: GuideEntity } | { kind: 'note'; note: ManuscriptNote } | { kind: 'flag'; flag: TeleprompterFlag };
+export type ReaderMarkTarget =
+  { kind: 'entity'; entity: GuideEntity; colour: EntityColour } | { kind: 'note'; note: ManuscriptNote } | { kind: 'flag'; flag: TeleprompterFlag };
 export type ReaderMark = WordMark<ReaderMarkTarget>;
 
 /**
  * The story bible and note marks of a chapter's paragraphs, by paragraph id (a paragraph row's `key`, in both `buildRows`
  * and `previewRows`). Mentions and anchors come from the helpers the Manuscript reader uses, so both readers mark the
- * same words. A row's marks are in reading order; a paragraph with no marks has no entry. Formatting spans are out of
+ * same words, and an entry's mark is in its type's colour (`types`; an entry whose type is unknown is in the fallback colour). A row's marks are in reading order; a paragraph with no marks has no entry. Formatting spans are out of
  * scope for the reader.
  */
-export function readerMarks(paragraphs: ManuscriptParagraph[], entities: GuideEntity[], notes: ManuscriptNote[]): Map<string, ReaderMark[]> {
+export function readerMarks(
+  paragraphs: ManuscriptParagraph[],
+  entities: GuideEntity[],
+  notes: ManuscriptNote[],
+  types: readonly GuideType[] = [],
+): Map<string, ReaderMark[]> {
   const entitiesById = new Map(entities.map((entity) => [entity.id, entity]));
   const byRow = new Map<string, ReaderMark[]>();
   for (const paragraph of paragraphs) {
@@ -170,7 +178,10 @@ export function readerMarks(paragraphs: ManuscriptParagraph[], entities: GuideEn
         id: item.id,
         start: item.start,
         end: item.end,
-        value: item.kind === 'note' ? { kind: 'note', note: item.note! } : { kind: 'entity', entity: item.entity! },
+        value:
+          item.kind === 'note'
+            ? { kind: 'note', note: item.note! }
+            : { kind: 'entity', entity: item.entity!, colour: entryColour(types, item.entity!.category) },
       })),
     );
     if (marks.length)

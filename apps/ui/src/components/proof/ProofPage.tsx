@@ -1,7 +1,7 @@
 import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Finding, FindingsSummary } from '../../api/contracts/findings';
+import type { Finding, FindingNoteType, FindingsSummary } from '../../api/contracts/findings';
 import type { PickupItem } from '../../api/contracts/pickups';
 import { describeApiError } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
@@ -20,6 +20,7 @@ import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { creditsEntries, creditsKindOfId, ownsOpeningCredits } from '../credits/creditsEntries';
 import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
+import { ProofSkeleton } from './frame/ProofSkeleton';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
@@ -27,11 +28,13 @@ import type { Band, Pin } from './frame/pins';
 import { ProofHeader } from './frame/ProofHeader';
 import { WaveformWindow } from './frame/WaveformWindow';
 import { FIRST_WINDOW, followSecond, type TimeWindow } from './frame/windowMath';
+import { useKeepFocusInside } from './inspector/useKeepFocusInside';
 import { Inspector } from './inspector/Inspector';
 import { decisionLabel, fixKindOf } from './resolution';
 import { TypeSelect } from './inspector/TypeSelect';
 import { NotesPanel } from './notes/NotesPanel';
-import { inBookOrder, noteRow, queryFor, type NoteSort } from './notes/noteRows';
+import { kindColour } from '../../kinds/kindMap';
+import { inBookOrder, NOTE_KIND, noteRow, queryFor, type NoteSort } from './notes/noteRows';
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
 import { recallSelection, rememberSelection } from './proofMemory';
@@ -44,13 +47,10 @@ import { useProofKeys } from './useProofKeys';
 import { useNoteContextMenu } from './useNoteContextMenu';
 import { addressPath } from '../../navigation/address';
 
-/** A pin's ink by the kind of note: a misread or a skip in red, a pickup or a repeat in amber, a name in blue, the rest muted. */
-const PIN_COLOUR: Record<string, string> = {
-  transcript_discrepancy: 'var(--danger)',
-  pickup: 'var(--warn)',
-  duplicate_read: 'var(--warn)',
-  pronunciation: 'var(--info)',
-  entity: 'var(--info)',
+/** A pin's ink is its note type's kind colour (kinds/kindMap.ts); a take comparison has no hue, so it is muted. */
+const pinColour = (type: FindingNoteType): string => {
+  const kind = NOTE_KIND[type];
+  return kind ? `var(${kindColour(kind).line})` : 'var(--text-muted)';
 };
 
 // The last chapter the narrator looked at on Proof, per project: stepping out of All chapters opens it. A per-viewer
@@ -125,6 +125,8 @@ export function ProofPage({
   const loadProblem = chaptersProblem ?? notesProblem;
   const [attempt, setAttempt] = useState(0);
   const read = useRef({ chapters: false, notes: false });
+  // The same two reads as state, so the page can show its skeleton until both have ended once.
+  const [firstRead, setFirstRead] = useState({ chapters: false, notes: false });
   // The pickups list, for the open pickups no note stands for: while one is open the head never reads 100.
   const [pickups, setPickups] = useState<readonly PickupItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(params.get('finding') ?? recallSelection(projectFolder, params.get('chapter') ?? ALL_CHAPTERS));
@@ -138,6 +140,7 @@ export function ProofPage({
   // Toasts stay left of the Inspector while it is beside the notes, so a decision's message never covers the next decision button.
   const inspectorPanel = useRef<HTMLDivElement>(null);
   useToastSideClearance(inspectorPanel);
+  useKeepFocusInside(inspectorPanel);
   const selectingForMenu = useRef(false);
 
   const scope = params.get('chapter') ?? ALL_CHAPTERS;
@@ -164,6 +167,7 @@ export function ProofPage({
       .then((list) => {
         if (!live) return;
         read.current.chapters = true;
+        setFirstRead((now) => (now.chapters ? now : { ...now, chapters: true }));
         setChaptersProblem(undefined);
         setChapters(list.filter(isNarration));
         setOwnsOpening(ownsOpeningCredits(list));
@@ -198,6 +202,7 @@ export function ProofPage({
       .then(([page, counts]) => {
         if (!live) return;
         read.current.notes = true;
+        setFirstRead((now) => (now.notes ? now : { ...now, notes: true }));
         setNotesProblem(undefined);
         setFindings(page.findings.map(held));
         setSummary(counts);
@@ -344,7 +349,7 @@ export function ProofPage({
       const sec = f.time_range ? timeline.toTimeline(f.time_range.start) : null;
       if (sec === null) return [];
       const row = noteRow(f);
-      return [{ id: f.id, sec, colour: PIN_COLOUR[f.category] ?? 'var(--text-muted)', done: row.decided, label: `${row.type} at ${row.time}` }];
+      return [{ id: f.id, sec, colour: pinColour(row.type), done: row.decided, label: `${row.type} at ${row.time}` }];
     });
   }, [chapterNotes, timeline]);
   // The takes sit in project seconds and the window in seconds into the chapter's recording: `shift` is the one less the other.
@@ -400,6 +405,7 @@ export function ProofPage({
 
   if (!hasManuscript) return <NeedManuscript title="Proof" onImport={() => goTo('/')} />;
   if (loadProblem !== undefined) return <LoadError title="Proof" message={loadProblem} retry={() => setAttempt((n) => n + 1)} />;
+  if (!firstRead.chapters || !firstRead.notes) return <ProofSkeleton />;
 
   const stepper = (
     <ChapterStepper
@@ -429,7 +435,7 @@ export function ProofPage({
         >
           <section
             aria-label="Proof"
-            className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4"
+            className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4"
           >
             <ProofHeader progress={progress} chapterBar={stepper} />
             {all || !chapter ? (
@@ -506,7 +512,7 @@ export function ProofPage({
           </div>
           <div
             ref={inspectorPanel}
-            className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1"
+            className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1"
           >
             {selected ? (
               <Inspector

@@ -167,8 +167,8 @@ export const storybibleDrivers: Record<string, Driver> = {
       .locator('[data-name="Alice"]')
       .getByRole('button', { name: /Look up elsewhere/ })
       .click();
-    await page.getByRole('button', { name: /^Look up .+ online in Merriam-Webster$/ }).click();
-    const answer = page.getByRole('button', { name: /^Use .+ as your pronunciation of / }).first();
+    await page.getByRole('button', { name: /^Look up online: .+ in Merriam-Webster$/ }).click();
+    const answer = page.getByRole('button', { name: /^Use this: .+ as your pronunciation of / }).first();
     await answer.waitFor();
     await answer.evaluate((element) => element.scrollIntoView({ block: 'center' }));
   },

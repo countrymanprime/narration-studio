@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
@@ -116,8 +116,13 @@ export function KeyCap({ k, size = 'sm' }: { k: string; size?: KbdSize }) {
 export function KeyChord({ keys, size = 'sm' }: { keys: string[]; size?: KbdSize }) {
   return (
     <span className="inline-flex items-center gap-1">
+      {/* A space between caps, which the flex gap does not draw, so the keys read as words ("Ctrl K", not "CtrlK") to axe's
+          label-content-name-mismatch and to copied text. */}
       {keys.map((k, index) => (
-        <KeyCap key={`${index}-${k}`} k={k} size={size} />
+        <Fragment key={`${index}-${k}`}>
+          {index > 0 && ' '}
+          <KeyCap k={k} size={size} />
+        </Fragment>
       ))}
     </span>
   );

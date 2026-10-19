@@ -3,11 +3,12 @@ import { clockText } from '../../booth/boothProgress';
 import { overlay } from '../../../overlay/overlayService';
 import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
-import { Badge, toneColors, type StatusTone } from '../../primitives/StatusBadge';
+import { KindChip } from '../../primitives/KindChip';
+import type { KindId } from '../../../kinds/kindMap';
 import type { ChapterDoc, DocItem } from '../model';
 import type { DocPara } from '../script/types';
 import { useFlagActions } from './flagActions';
-import { bare, HEAR_MARGIN, notScoredText } from './flagText';
+import { bare, flagKindId, HEAR_MARGIN, notScoredText } from './flagText';
 
 /** The recogniser's score for a word, as the port gave it: a number, or null with the reason it gave none. */
 interface WordScore {
@@ -34,7 +35,7 @@ const NOT_YET = 'Not available yet';
 const NO_AUDIO = 'There is no audio for this chapter to play.';
 
 interface Shape {
-  tone: StatusTone;
+  kind: KindId;
   pill: string;
   title: ReactNode;
 }
@@ -66,12 +67,12 @@ export function FlagCard({ doc, dp, flag, score = { conf: null, reason: 'no_word
   const dupItems = dp.items.filter((i) => i.dup);
 
   const shape: Shape | null = (() => {
-    if (isDup) return { tone: 'org', pill: 'Read twice', title: 'The line is read twice' };
+    if (isDup) return { kind: 'repeat', pill: 'Read twice', title: 'The line is read twice' };
     if (!it) return null;
-    if (it.st === 'extra') return { tone: 'danger', pill: 'Not in the script', title: `Heard “${run.map((i) => bare(i.text)).join(' ')}”` };
-    if (it.st === 'miss') return { tone: 'warning', pill: 'Not read', title: `The script has “${bare(it.text)}”, it was not heard` };
-    if (it.st === 'mis') return { tone: 'warning', pill: 'Misread', title: `Heard “${bare(it.heard ?? '')}”, the script says “${bare(it.text)}”` };
-    return { tone: 'info', pill: 'Low confidence', title: `The recogniser was unsure of “${bare(it.text)}”` };
+    if (it.st === 'extra') return { kind: flagKindId('extra'), pill: 'Not in the script', title: `Heard “${run.map((i) => bare(i.text)).join(' ')}”` };
+    if (it.st === 'miss') return { kind: flagKindId('miss'), pill: 'Not read', title: `The script has “${bare(it.text)}”, it was not heard` };
+    if (it.st === 'mis') return { kind: flagKindId('mis'), pill: 'Misread', title: `Heard “${bare(it.heard ?? '')}”, the script says “${bare(it.text)}”` };
+    return { kind: flagKindId('low'), pill: 'Low confidence', title: `The recogniser was unsure of “${bare(it.text)}”` };
   })();
 
   const label = shape ? `${shape.pill}. ${typeof shape.title === 'string' ? shape.title : ''}` : '';
@@ -124,7 +125,7 @@ export function FlagCard({ doc, dp, flag, score = { conf: null, reason: 'no_word
       className="my-1 ml-[82px] flex max-w-[1000px] flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-3 text-[var(--text)]"
     >
       <div className="flex flex-nowrap items-center gap-2">
-        <Badge label={shape.pill} colors={toneColors(shape.tone)} />
+        <KindChip kind={shape.kind} label={shape.pill} />
         <b>{shape.title}</b>
       </div>
       {isDup ? (

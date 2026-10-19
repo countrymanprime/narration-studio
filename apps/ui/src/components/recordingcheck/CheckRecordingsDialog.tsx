@@ -168,7 +168,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
             <RunOptions engines={loaded.engines} choices={choices} onChange={change} />
-            <dl className="m-0 flex flex-col gap-2 border-t border-[var(--line)] pt-3">
+            <dl className="m-0 flex flex-col gap-2 border-t border-[var(--border)] pt-3">
               <div className="flex justify-between gap-3">
                 <dt>Audio to check</dt>
                 <dd className="m-0 font-mono">{audio.seconds === 0 && audio.unmeasured > 0 ? 'Not measured' : formatAudio(audio.seconds)}</dd>
@@ -218,7 +218,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
           </div>
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-[var(--line)] pt-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-[var(--border)] pt-3">
         <span className="mr-auto text-[var(--text-muted)]">Skipped, changed or unclear lines become pickups.</span>
         <Button variant="secondary" onClick={close}>
           Cancel

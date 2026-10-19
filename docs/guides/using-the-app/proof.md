@@ -19,6 +19,9 @@ something, there is no ring, every chapter in the strip is empty and the Inspect
 
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
 
+While Proof reads its chapters and notes, it keeps its title and shows grey blocks where the chapter strip, the notes and the
+Inspector will be, and says **Reading the chapters and notes…**.
+
 If the page's chapters or notes cannot be read when it opens, Proof keeps its title and says "This page could not be
 loaded" with the reason and a **Retry** button, which reads them again. The rest of the app keeps working.
 
@@ -52,6 +55,10 @@ A chapter shows its **Recording check** card and its recording:
   where it can be fixed. **Show the findings** lists what the check found, each with the suggested
   decision: **Accept** turns one into a note with that decision, and **Ignore** keeps it out of your notes and is
   remembered.
+- A kind of finding is the same colour everywhere in the app, here in the card's counts, the findings, the notes' Type
+  column and the waveform pins: red when the words are wrong (misread, skipped, extra, repeat, a long silence), amber when
+  the recording is in doubt (breath, click, noise, plosive) and blue for a pronunciation. The word on the chip says which.
+  A decision keeps its own tone: **Needs pickup** copper, **Fix in edit** blue, **Waive** green, **Defer** grey.
 - The waveform window draws the chapter's recording with a pin at each note that has a time. Press a pin to select its
   note. It opens on a minute of the chapter; zoom in and out, or drag the window's edges, to see more or less of it. The
   window follows the selected note.
@@ -229,6 +236,15 @@ Large model doesn't support Auto).
 
 ![Proof chapter view - a different model, chunk length, and worker count selected](../../images/ui/proof-chapter-compare-setup-alt.webp)
 
+**Jump to or run** (Ctrl+K) has **Open Compare options**, a dialog with this project's defaults for a run: the **chunk length** a run starts
+with and the colours of the three kinds of marker a comparison exports to REAPER (**misread**, **skipped** and **extra**,
+each a colour picker and six hex digits). A change is saved at once for this project; **Reset** appears on one this project
+changes and hands it back to the computer-wide value or the built-in default. Settings under **Set on a page** has the same
+values with a **Global** / **This project** switch. The transcription model is not here: it is the
+one default in Settings under Speech to text.
+
+![Proof chapter view - the Compare options dialog opened from Jump to or run](../../images/ui/proof-chapter-options.webp)
+
 Vocabulary hints teach the transcription model unusual names it's likely to mis-hear. The pills box is
 the input: type a name and press Enter or a comma to add it, click elsewhere to commit whatever you were
 typing, or press Backspace in an empty box to remove the last term added. Pasting a list with
@@ -264,6 +280,8 @@ words, starting and ending on a paragraph boundary). A candidate that falls shor
 even using the whole chapter says so, in words and an icon rather than colour alone. Open a candidate
 in the manuscript reader, or copy its range and length to paste elsewhere; neither changes anything — a
 suggestion is recomputed fresh every time you visit the page, never applied, exported or stored.
+
+**Jump to or run** (Ctrl+K) has **Open Preview options**, which sets how the suggestions are made for this project: the target length, the tolerance around it, the preset (**Sample** or **Spot check**) and how much of each chapter's ending to leave out. A change is saved at once and the suggestions are computed again; **Reset** hands one back to the computer-wide value or the default.
 
 ![Proof chapter view - the Preview panel suggesting three candidate excerpts from the manuscript](../../images/ui/proof-chapter-preview.webp)
 

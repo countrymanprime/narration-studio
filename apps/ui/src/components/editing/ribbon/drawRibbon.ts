@@ -1,23 +1,38 @@
 import type { PeakColumn } from './peaksWindow';
 import type { RibbonLayout } from './ribbonLayout';
 
+import { kindColour, type KindId } from '../../../kinds/kindMap';
+import type { TintKind } from './ribbonLayout';
+
+/** The registry kind each tinted span is, so a span is the colour the same words have in the script (kinds/kindMap.ts). */
+const TINT_KIND: Record<TintKind, KindId> = { extra: 'extra', mis: 'misread', low: 'low' };
+
 /** The colour tokens the canvas draws with, read from CSS when drawn (a canvas cannot resolve `var()` itself). */
 const RIBBON_TOKENS = {
   bars: '--waveform',
-  extra: '--danger-soft',
-  low: '--warn-soft',
-  flagBar: '--warn',
   tick: '--line-strong',
   band: '--info',
   playhead: '--accent',
 } as const;
-export type RibbonColors = Record<keyof typeof RIBBON_TOKENS, string>;
+export type RibbonColors = Record<keyof typeof RIBBON_TOKENS, string> & {
+  /** The tint behind each kind of flagged span, and the solid bar along its top edge. */
+  tint: Record<TintKind, string>;
+  bar: Record<TintKind, string>;
+};
 
 /** Each token's value from `el`'s computed style. A token that reads empty falls back to the element's own text colour, never a literal. */
 export function readRibbonColors(el: Element): RibbonColors {
   const styles = getComputedStyle(el);
+  const read = (token: string | null): string => (token ? styles.getPropertyValue(token).trim() : '') || styles.color;
   const out = {} as RibbonColors;
-  for (const k of Object.keys(RIBBON_TOKENS) as (keyof typeof RIBBON_TOKENS)[]) out[k] = styles.getPropertyValue(RIBBON_TOKENS[k]).trim() || styles.color;
+  for (const k of Object.keys(RIBBON_TOKENS) as (keyof typeof RIBBON_TOKENS)[]) out[k] = read(RIBBON_TOKENS[k]);
+  out.tint = {} as RibbonColors['tint'];
+  out.bar = {} as RibbonColors['bar'];
+  for (const k of Object.keys(TINT_KIND) as TintKind[]) {
+    const { line, soft } = kindColour(TINT_KIND[k]);
+    out.tint[k] = read(soft);
+    out.bar[k] = read(line);
+  }
   return out;
 }
 
@@ -43,10 +58,10 @@ export function drawRibbon(canvas: HTMLCanvasElement, size: RibbonSize, layout: 
   const x = (t: number): number => ((t - layout.t0) / span) * width;
 
   for (const f of layout.flags) {
-    ctx.fillStyle = f.kind === 'extra' ? colors.extra : colors.low;
+    ctx.fillStyle = colors.tint[f.kind];
     ctx.fillRect(x(f.t0), 0, Math.max(2, x(f.t1) - x(f.t0)), height);
     // The tint is not the only cue: a solid bar along the top edge.
-    ctx.fillStyle = colors.flagBar;
+    ctx.fillStyle = colors.bar[f.kind];
     ctx.fillRect(x(f.t0), 0, Math.max(2, x(f.t1) - x(f.t0)), 3);
   }
   if (layout.band) {

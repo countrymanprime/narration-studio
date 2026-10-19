@@ -45,7 +45,7 @@ function RetakeRow({
       </span>
       <Button
         variant="secondary"
-        aria-label={`Play lane ${lane} for ${line.lineId} on ${line.trackName}`}
+        aria-label={`Play this lane: lane ${lane} for ${line.lineId} on ${line.trackName}`}
         onClick={onPick}
         pending={picking && state.itemGuid === retake.itemGuid}
         disabled={picking && state.itemGuid !== retake.itemGuid}

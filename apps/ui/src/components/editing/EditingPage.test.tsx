@@ -416,7 +416,7 @@ describe('EditingPage', () => {
     mount();
     await script();
     expect(await screen.findByRole('button', { name: 'Timeline' })).toBeTruthy();
-    expect(document.querySelector('[data-legend="extra"]')!.textContent).toBe('Not in the script · 1');
+    expect(document.querySelector('[data-legend="extra"] [data-legend-label]')!.textContent).toBe('Not in the script · 1');
   });
 
   it('below 1360, S opens the drawer on Timeline and closes it again', async () => {

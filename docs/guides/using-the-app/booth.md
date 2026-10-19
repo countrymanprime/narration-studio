@@ -29,7 +29,11 @@ its own once connected. Click it to fix that in [Settings](settings.md#link-your
 ![Booth - ready to record: the chapter stepper, progress and resume line on the top bar, the text with the reading position, the side panel, and Record, the levels and the key hints in the footer](../../images/ui/booth-setup.webp)
 
 The text fills the middle, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
-marked on [Script](script.md) underlined in their mark's colour; a mark's note shows under its paragraph. The word you
+marked on [Script](script.md) drawn in their mark's colour and the line style you chose for it (a tint, a box, or a solid, double,
+dotted or wavy underline), as they are on Script; a mark's note shows under its paragraph with a bar in the mark's colour. A
+speaker chip takes its character's colour; a suggested speaker's chip is dashed, and a quote nobody is matched to has a grey dashed
+**?** chip. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **Voices in this
+scene** chips alike. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move
 the view without moving your place.
 
@@ -159,7 +163,7 @@ Right-click the text for **Start from here** (on a phrase), **Bookmark here** (o
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
 during a take it rolls again from that phrase, as **R** does. A take is held while the menu is open.
 
-While a popover, a menu or a question is open (Levels, Text settings, a speaker, the chapter list, the jump menu, "Stop recording?"), no key reaches the Booth behind it: a foot pedal's Space cannot start or stop a take until it is closed. Escape closes the one on top and returns you to the control that opened it.
+While a popover or a menu is open (Levels, Text settings, a speaker, the chapter list, a right-click menu), a foot pedal's Space still starts or stops the take: it closes the popup, as Escape would, and records. The exception is a box you can type in (the speaker search): Space types a space there until focus moves. A question ("Stop recording?") or the jump menu keeps every key, Space included, until you answer it. Escape closes the one on top and returns you to the control that opened it.
 
 The engine and model the Booth listens with are chosen in [Settings](settings.md) › Booth. Nothing you say is sent anywhere.
 

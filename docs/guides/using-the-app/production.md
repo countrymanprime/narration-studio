@@ -249,6 +249,12 @@ evidence changed while you were looking at it, Confirm and Dismiss are refused w
 readiness is read again. If it cannot be read at all, every chapter says **Couldn't check**, with
 the reason and **Try again** above the table.
 
+### Choose what a suggestion waits for
+
+**Jump to or run** (Ctrl+K) has **Open Stage suggestion options**, a dialog for this project's say in the suggestions (Settings under **Set on a page** has the same values with a **Global** / **This project** switch): a switch, **Suggest stage advances**, turns them off or on, and each readiness signal (the recording check, the editing signals, the pickups, and each check on the rendered file) is **Required** before a stage is suggested or **Ignored**. A change is saved at once and the suggestions are read again. **Reset** on a signal hands it back to the computer-wide value or the default. A rendered-file check counts only while the project's delivery profile has a limit for it, The two editing signals marked not yet validated, clicks and breaths, are offered like any other.
+
+![Production - the Stage suggestion options dialog opened from Jump to or run](../../images/ui/production-stage-suggestion-options.webp)
+
 ![Production - a chapter's readiness slide-over: the evidence behind a suggestion with Confirm and Dismiss](../../images/ui/production-stage-evidence.webp)
 
 ![Production - evidence changed since you confirmed: the check that is no longer met and Revert; nothing moved on its own](../../images/ui/production-stage-evidence-changed.webp)
@@ -272,10 +278,12 @@ checking on progress — who has no need to know what the book pays.
 
 **Import manuscript** (or **Replace manuscript…** in Settings, Project) first opens step 1 of 2, **Choose your
 manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .md or .txt file. A copy is
-kept in your project, and the original is read-only. If the window cannot read where a dropped file is, it says
-so under the zone; press **Choose a file…** instead.
+kept in your project, and the original is read-only. The app checks a dropped file before it reads it: one file at a time, in a format
+it can import. If it cannot use the file, it says why under the zone; press **Choose a file…** instead.
 
-Choosing the file opens step 2 of 2, **Check the chapter outline**, previewing the detected format,
+![Replace manuscript, step 1 of 2: Choose your manuscript, with the drop zone and Choose a file…](../../images/ui/production-import-choose.webp)
+
+Choosing the file opens step 2 of 2, **Check the chapter outline**. Each heading in the outline shows how many words it holds, and pressing its title shows how it begins in the preview beside the outline. The step previews the detected format,
 paragraph count, and proposed chapters before anything changes. Each section is named the way the
 manuscript writes its headings: a heading with a label shows the label in bold and the chapter's name
 after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8: Croquet"), and any other heading shows its
@@ -288,7 +296,7 @@ goes back into the chapter's text so it is narrated (the row says it "is read as
 **Read a heading's second line as its subtitle** option in Import options does the same for every
 row at once; a row you changed by hand keeps your choice.
 
-![Production - import manuscript confirm dialog with format/paragraph/chapter preview](../../images/ui/production-import-confirm.webp)
+![Import manuscript, step 2 of 2: Check the chapter outline, with each heading's words and a preview of how the selected one begins](../../images/ui/production-import-confirm.webp)
 
 The message at the top says what was found: the format, the number of paragraphs and of narration
 chapters, then how many front matter and reference sections, character suggestions and repairs the

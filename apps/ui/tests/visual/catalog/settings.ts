@@ -264,7 +264,8 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'appearance',
-    description: 'Settings, Appearance & keys: the Theme radios (Match my system, Light, Dark), Reader text, Note colour and Zoom, then Shortcuts',
+    description:
+      'Settings, Appearance & keys: the Theme radios (Match my system, Light, Dark), the Motion radios (Follow Windows, Reduce), Reader text, Note colour and Zoom, then Shortcuts',
     ...REFLOW,
   },
   {
