@@ -82,6 +82,7 @@ project's `.rpp` file is linked or changed:
 - **Amber dot, "A different project is open"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
 - **Quiet dot, "Open the engine panel to link a project file"**: nothing is linked yet.
+- **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project, tools and track list.
 - **Built-in**: the project records in the app. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
 
 ## Moving around: Back and Forward

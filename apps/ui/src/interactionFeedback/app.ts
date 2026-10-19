@@ -16,6 +16,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/App.tsx::subscribeNotices#1': subscription('Host notices (a file kept aside) become toasts.'),
   'src/App.tsx::subscribeUpdate#1': subscription('The update check finding a newer release becomes one toast.'),
   'src/App.tsx::subscribeLiveUpdateHealth#1': subscription('Degraded live updates become one toast.'),
+  'src/App.tsx::subscribeAudacityLink#1': subscription('An Audacity project\'s three facts (linked, reachable, open project matches) are the Audacity link\'s, so a change in the link re-reads the DAW facts bootstrap holds and the navigation chip, Settings and the Booth tell one story.'),
   'src/App.tsx::subscribeDawCapabilities#1': subscription('The DAW starting or stopping answering re-reads the DAW facts bootstrap holds (reachable, open project), so the navigation chip, Settings and the Booth tell one story.'),
   'src/App.tsx::subscribeProjectAttach#1': subscription('A project attach refreshes the bootstrap or shows why it was refused.'),
   'src/studio/slots.ts::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'The jump menu\'s "Go to <chapter>" list, the store\'s chapters slot, loaded from App when a manuscript arrives: a failed read leaves the chapter rows out while every page still shows, and the pages that need the chapters report the real error.'),
