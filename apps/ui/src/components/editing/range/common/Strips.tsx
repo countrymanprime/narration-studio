@@ -1,6 +1,10 @@
+import { kindColour } from '../../../../kinds/kindMap';
 import { InsetCard } from '../../../primitives/InsetCard';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import type { DocItem } from '../../model';
+
+/** The words a cut removes are drawn as extra words, the registry's red, so a marked bar is the colour the same words have in the script. */
+const CUT_BAR = `var(${kindColour('extra').line})`;
 
 /** Seconds of audio drawn either side of the range. */
 const AROUND = 1.1;
@@ -27,7 +31,7 @@ function Strip({ items, from, to, marked }: { items: DocItem[]; from: number; to
         .filter((i) => i.t0 != null && i.t1 != null && (i.t1 as number) > from && (i.t0 as number) < to)
         .flatMap((i) =>
           bars(i.key, x(i.t0 as number), x(i.t1 as number)).map((b) => (
-            <rect key={`${i.key}:${b.x}`} x={b.x} y={(H - b.h) / 2} width={2} height={b.h} fill={marked.includes(i.key) ? 'var(--danger)' : 'currentColor'} />
+            <rect key={`${i.key}:${b.x}`} x={b.x} y={(H - b.h) / 2} width={2} height={b.h} fill={marked.includes(i.key) ? CUT_BAR : 'currentColor'} />
           )),
         )}
     </svg>

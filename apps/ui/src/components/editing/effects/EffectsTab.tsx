@@ -25,7 +25,7 @@ export interface EffectsTabProps {
   /** The keys of the words selected on the page. */
   selected: readonly string[];
   /** Add FX and Remove from the page's `useFxWords` (SN-E64): the question, the DAW and the history are its. */
-  fx: Pick<FxWords, 'list' | 'ask' | 'remove' | 'refusalOf'>;
+  fx: Pick<FxWords, 'list' | 'ask' | 'remove' | 'refusalOf'> & Partial<Pick<FxWords, 'favourites'>>;
   /** Selects these words in the script. */
   onSelectWords: (keys: string[]) => void;
 }
@@ -68,6 +68,7 @@ export function EffectsTab({ doc, effects, cuts, total, selected, fx, onSelectWo
         impact={impact}
         cap={fxCap.cap}
         list={fx.list}
+        favourites={fx.favourites}
         onAdd={() => fx.ask(selected)}
       />
     </div>
