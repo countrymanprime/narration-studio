@@ -1,6 +1,9 @@
 import { ContextMenu as BaseContextMenu } from '@base-ui/react/context-menu';
 import { useId } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
+import { faCheck } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { KeyChord } from './KeyCap';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type ContextMenuItem = {
@@ -14,6 +17,10 @@ export type ContextMenuItem = {
   // Makes the item a submenu: its row opens these items beside it (Right arrow or hover) and `onSelect` is not used. A submenu with a
   // `unavailable` reason is off like any item; its items are plain rows or groups, and may nest.
   submenu?: ContextMenuItem[];
+  /** The keys that run it from anywhere, drawn at the row's end ("Ctrl", "K"). */
+  shortcut?: string[];
+  /** Draws a check before the label (the page you are on) and reads as a checked menu item that closes the menu when chosen. Absent: no check, no state. */
+  checked?: boolean;
   onSelect: () => void;
 };
 
@@ -34,11 +41,19 @@ const POPUP_CLASSES = `max-h-[var(--available-height)] w-64 overflow-y-auto roun
 const ROW_CLASSES =
   'flex w-full cursor-pointer flex-col gap-0.5 rounded-[0.3rem] px-[0.55rem] py-[0.45rem] text-left text-[0.82rem] outline-none data-[disabled]:cursor-default data-[disabled]:text-[var(--text-muted)] data-[highlighted]:bg-[var(--surface-2)]';
 
-/** A row's label and, when it is off, the reason under it. */
+/** A row's label, with its check slot and key hint, and when it is off the reason under it. */
 function RowText({ item, reasonId }: { item: ContextMenuItem; reasonId: string }) {
   return (
     <>
-      {item.label}
+      <span className="flex items-center gap-2">
+        {item.checked !== undefined && (
+          <span className="w-3 flex-none text-[0.7rem]" aria-hidden="true">
+            {item.checked && <FontAwesomeIcon icon={faCheck} />}
+          </span>
+        )}
+        <span className="min-w-0 flex-1">{item.label}</span>
+        {item.shortcut && <KeyChord keys={item.shortcut} />}
+      </span>
       {item.unavailable !== undefined && (
         <span id={`${reasonId}-${item.key}`} className="text-[0.72rem] text-[var(--text-muted)]">
           {item.unavailable}
@@ -53,10 +68,22 @@ function Row({ item, reasonId }: { item: ContextMenuItem; reasonId: string }) {
   const off = item.unavailable !== undefined;
   const described = off ? `${reasonId}-${item.key}` : undefined;
   if (!item.submenu) {
-    return (
+    return item.checked === undefined ? (
       <BaseContextMenu.Item key={item.key} disabled={off} aria-describedby={described} onClick={item.onSelect} className={ROW_CLASSES}>
         <RowText item={item} reasonId={reasonId} />
       </BaseContextMenu.Item>
+    ) : (
+      <BaseContextMenu.CheckboxItem
+        key={item.key}
+        disabled={off}
+        checked={item.checked}
+        closeOnClick
+        aria-describedby={described}
+        onClick={item.onSelect}
+        className={ROW_CLASSES}
+      >
+        <RowText item={item} reasonId={reasonId} />
+      </BaseContextMenu.CheckboxItem>
     );
   }
   return (
