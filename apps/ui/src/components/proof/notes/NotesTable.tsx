@@ -79,13 +79,19 @@ export function NotesTable({
   const body = useRef<HTMLDivElement>(null);
   const anchor = rows.some((r) => r.id === selectedId) ? selectedId : (rows[0]?.id ?? null);
 
-  // `TableRow` puts every row in the tab order; only the anchor row stays there, and the selected row scrolls into view.
+  // `TableRow` puts every row in the tab order; only the anchor row stays there.
   useLayoutEffect(() => {
     body.current?.querySelectorAll<HTMLElement>('tbody tr[data-row]').forEach((tr, i) => {
       tr.tabIndex = rows[i]?.id === anchor ? 0 : -1;
     });
-    body.current?.querySelector('tr[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest' });
   });
+
+  // The selected row scrolls into view when the selection (or whether its row is listed) changes, not on every render: a re-render
+  // while a menu is open (the chapter stepper's) must not drag the page back to the row.
+  const selectedListed = rows.some((r) => r.id === selectedId);
+  useLayoutEffect(() => {
+    body.current?.querySelector('tr[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest' });
+  }, [selectedId, selectedListed]);
 
   if (rows.length === 0) {
     return total > 0 ? (
