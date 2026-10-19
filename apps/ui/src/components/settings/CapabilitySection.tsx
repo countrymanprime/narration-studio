@@ -6,6 +6,7 @@ import { Button } from '../primitives/Button';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { statusLabel, statusTone, type StatusId } from '../../kinds/statusTone';
 import { StatusBadge } from '../primitives/StatusBadge';
+import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 
 // Each level is a word and a glyph, so no level is told apart by colour alone.
 const LEVEL: Record<DawCapabilityLevel, { status: StatusId; glyph: string }> = {
@@ -117,7 +118,7 @@ export function CapabilitySection() {
           style={{ background: 'var(--review-soft)', color: 'var(--danger-text)' }}
         >
           <span>The DAW's capabilities could not be read: {loadError}.</span>
-          <Button variant="secondary" type="button" onClick={retry}>
+          <Button ref={keepFocusOnRemoval} variant="secondary" type="button" onClick={retry}>
             Retry
           </Button>
         </div>

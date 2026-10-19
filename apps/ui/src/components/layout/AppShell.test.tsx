@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppShell, shellPages } from './AppShell';
 import { TooltipProvider } from '../primitives/Tooltip';
@@ -498,5 +498,89 @@ describe('AppShell rail', () => {
       label: 'Delivery',
       disabledReason: 'Import a manuscript to unlock this page.',
     });
+  });
+});
+
+// Issues 2075 and 2076: the shell gives a keyboard or screen-reader user a way past the rail and a signal when the page changes.
+describe('AppShell skip link', () => {
+  it('is the first thing in the document, and moves focus into <main> instead of following a hash', () => {
+    const { container } = renderShell({ pathname: '/pickups' });
+    const link = screen.getByRole('link', { name: 'Skip to content' });
+    expect(container.querySelector('a, button')).toBe(link);
+    fireEvent.click(link);
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+    expect(window.location.hash).toBe('');
+  });
+
+  it('points at a focusable element that exists (axe: skip-link)', () => {
+    renderShell({ pathname: '/script' });
+    const target = document.getElementById(screen.getByRole('link', { name: 'Skip to content' }).getAttribute('href')!.slice(1));
+    expect(target).toBe(screen.getByRole('main'));
+    expect(target?.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('is also on the Booth, whose main fills the window', () => {
+    renderShell({ pathname: '/booth' });
+    fireEvent.click(screen.getByRole('link', { name: 'Skip to content' }));
+    expect(document.activeElement).toBe(screen.getByRole('main'));
+  });
+});
+
+describe('AppShell page change', () => {
+  const shell = (pathname: string) => (
+    <ApiProvider api={createMockApi({}, {})}>
+      <TooltipProvider>
+        <AppShell
+          pathname={pathname}
+          navigate={() => {}}
+          projectName="Alice"
+          hasManuscript
+          dawFileLinked
+          onOpenEnginePanel={() => {}}
+          zoom={defaultZoom}
+          onOpenJump={() => {}}
+          onOpenZoomMenu={() => {}}
+          onSwitchProject={() => {}}
+        >
+          <div>page content</div>
+        </AppShell>
+      </TooltipProvider>
+    </ApiProvider>
+  );
+
+  it('names the page in the document title', () => {
+    const { rerender } = render(shell('/proof'));
+    expect(document.title).toBe('Proof · Narration Studio');
+    rerender(shell('/master'));
+    expect(document.title).toBe('Master & QC · Narration Studio');
+    rerender(shell('/editing/chapter-2'));
+    expect(document.title).toBe('Editing · Narration Studio');
+    rerender(shell('/settings'));
+    expect(document.title).toBe('Settings · Narration Studio');
+    rerender(shell('/'));
+    expect(document.title).toBe('Production · Narration Studio');
+  });
+
+  it('announces the new page politely and moves focus into <main>, but not on first load', async () => {
+    const { rerender } = render(shell('/proof'));
+    const live = () => screen.getByRole('status', { name: 'Page' });
+    expect(live().textContent).toBe('');
+    expect(document.activeElement).toBe(document.body);
+    const rail = within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Proof' });
+    rail.focus();
+    rerender(shell('/editing'));
+    expect(live().textContent).toBe('Editing');
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('main')));
+  });
+
+  it('stays quiet and leaves focus alone when only the chapter in the path changes', async () => {
+    const { rerender } = render(shell('/editing/chapter-1'));
+    const field = document.createElement('button');
+    screen.getByRole('main').append(field);
+    field.focus();
+    rerender(shell('/editing/chapter-2'));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.getByRole('status', { name: 'Page' }).textContent).toBe('');
+    expect(document.activeElement).toBe(field);
   });
 });

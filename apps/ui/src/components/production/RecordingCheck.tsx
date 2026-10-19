@@ -19,6 +19,7 @@ import { type Notify, retryAction } from '../primitives/Toast';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { RecordingCheckReport } from './RecordingCheckReport';
 import { COVERAGE_REASON_TEXT, LINK_REASONS, REASON_PAGE, formatWhen, passLabel, recheckLabel } from './recordingCheckText';
+import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
 
 type Refusal = Extract<CoverageStartResult, { status: 'refused' }>;
 type ModelRequired = Extract<CoverageStartResult, { status: 'asset_required' }>;
@@ -371,7 +372,7 @@ function ResultBody({
     return (
       <div role="alert" className="space-y-2">
         <p style={{ color: 'var(--danger-text)' }}>The last check could not be read: {loadError}</p>
-        <Button variant="secondary" onClick={() => void retry()}>
+        <Button ref={keepFocusOnRemoval} variant="secondary" onClick={() => void retry()}>
           Retry
         </Button>
       </div>
