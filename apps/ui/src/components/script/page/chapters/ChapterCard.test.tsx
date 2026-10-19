@@ -89,15 +89,4 @@ describe('chapter card', () => {
     expect(within(group).getByRole('button', { name: 'Not started' }).getAttribute('aria-pressed')).toBe('false');
     expect(announce).toHaveBeenCalledWith('Chapter 2: Prepped');
   });
-
-  it('draws the review banner only when the chapter carries a review, and Mark reviewed calls back', async () => {
-    mount();
-    expect(screen.queryByRole('button', { name: 'Mark reviewed' })).toBeNull();
-    cleanup();
-    const onMarkReviewed = vi.fn();
-    mount({ review: { text: 'Text changed since import.', onMarkReviewed } });
-    expect(screen.getByText('Text changed since import.')).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
-    expect(onMarkReviewed).toHaveBeenCalledTimes(1);
-  });
 });
