@@ -13,12 +13,16 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 
 ## Used by
 
+- `src/components/booth/reading/SpeakerChip.tsx`
 - `src/components/booth/record/RecordControl.tsx`
+- `src/components/booth/side/VoicesNearby.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`
 - `src/components/editing/flags/FlagCard.tsx`
 - `src/components/editing/range/cut/CutButtons.tsx`
 - `src/components/editing/range/fx/FxButtons.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
+- `src/components/editing/voicesample/VoiceSampleDialog.tsx`
+- `src/components/layout/Brand.tsx`
 - `src/components/primitives/ChapterStepper.tsx`
 - `src/components/primitives/IconButton.tsx`
 - `src/components/production/overview/CheckCountsCard.tsx`
@@ -28,7 +32,11 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`
 - `src/components/script/page/layout/RailPanel.tsx`
 - `src/components/script/page/rail/words/WordsTab.tsx`
+- `src/components/settings/page/CategoryNav.tsx`
+- `src/components/settings/page/SettingsPage.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/source/PronSourceTag.tsx`
 - `src/components/storybible/source/SourceMenu.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`
+- `src/components/storybible/voicesamples/VoiceSampleRow.tsx`
+- `src/components/voicesamples/SamplePlayButton.tsx`

@@ -10,6 +10,7 @@ Storybook title: `Primitives/Listbox`. Source: `src/components/primitives/Listbo
 - Matches
 - Empty
 - Grouped
+- With Row Action
 
 ## Used by
 
