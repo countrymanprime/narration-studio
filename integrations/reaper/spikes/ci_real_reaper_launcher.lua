@@ -1,4 +1,4 @@
--- Runs inside a real REAPER for the real-REAPER bridge check (scripts/ci/real-reaper/README in docs/research/real-reaper-ci-integration.md).
+-- Runs inside a real REAPER for the real-REAPER bridge check (docs/research/real-reaper-ci-integration.md).
 -- Builds a scratch project from one LibriVox chapter, loads the real narration_ui_bridge.lua on a session folder the driver
 -- (drive.py) writes commands into, adds four CI-only commands (ci_state, ci_undo, ci_render, ci_quit), then signals `ready`.
 -- Environment: NARRATION_CI_SESSION, NARRATION_CI_REAPER_DIR, NARRATION_CI_AUDIO, NARRATION_CI_OUT, NARRATION_CI_CFG.

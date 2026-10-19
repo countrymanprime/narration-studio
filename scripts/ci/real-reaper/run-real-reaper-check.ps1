@@ -1,5 +1,5 @@
 # Real-REAPER bridge check on a disposable Windows runner: installs the REAPER evaluation build (pinned SHA-256), fetches one pinned
-# LibriVox chapter, starts REAPER isolated (-cfgfile, through integrations/reaper/spikes/run-reaper.ps1) with launcher.lua, and
+# LibriVox chapter, starts REAPER isolated (-cfgfile, through integrations/reaper/spikes/run-reaper.ps1) with spikes/ci_real_reaper_launcher.lua, and
 # runs drive.py against the live bridge. Design and limits: docs/research/real-reaper-ci-integration.md.
 #
 #   pwsh run-real-reaper-check.ps1 -OutDir <dir> -ExpectedSha256 <hex> [-Version 7.80] [-ExpectedSize <bytes>]
@@ -46,7 +46,7 @@ $env:NARRATION_CI_AUDIO = $audio; $env:NARRATION_CI_REAPER_DIR = Join-Path $repo
 $job = Start-Job -ArgumentList $repo, $cfg, $out, $project, $PSScriptRoot -ScriptBlock {
   param($repo, $cfg, $out, $project, $here)
   & pwsh -NoProfile -File (Join-Path $repo 'integrations\reaper\spikes\run-reaper.ps1') -Cfg $cfg -Out $out `
-    -Script (Join-Path $here 'launcher.lua') -Project $project -Done (Join-Path $out 'done') -TimeoutSec 240 -IgnoreErrors
+    -Script (Join-Path $repo 'integrations\reaper\spikes\ci_real_reaper_launcher.lua') -Project $project -Done (Join-Path $out 'done') -TimeoutSec 240 -IgnoreErrors
 }
 $rc = 1
 try {
