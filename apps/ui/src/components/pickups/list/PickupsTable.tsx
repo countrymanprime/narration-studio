@@ -88,7 +88,7 @@ export function PickupsTable({
   /** The line to select and focus once it is listed: the one the narrator opened in the Booth and came back from. */
   returnTo?: string | null;
   read: PickupsRead;
-  /** Reads the list again now (Check again). */
+  /** Reads the list again now (Retry on a failed read, Check again over a list already shown). */
   onReload: () => void;
   /** A Check again is being answered. */
   checking?: boolean;
@@ -233,7 +233,9 @@ export function PickupsTable({
             {addTo ? (
               <AddPickup chapterId={addTo.id} chapterName={addTo.name} onAdd={onAdd} onDone={() => setAdding(false)} />
             ) : (
-              <p className="m-0 max-w-[18rem] text-[var(--text-muted)]">A pickup can be added once the list has been read. Use Check again.</p>
+              <p className="m-0 max-w-[18rem] text-[var(--text-muted)]">
+                A pickup can be added once the list has been read. If it could not be read, use Retry.
+              </p>
             )}
           </Popover>
         </div>
@@ -262,7 +264,7 @@ export function PickupsTable({
           <h2 className="font-semibold">The pickup list could not be read</h2>
           <span className="text-[var(--text-muted)]">{read.message}</span>
           <Button pending={checking} onClick={onReload}>
-            Check again
+            Retry
           </Button>
         </div>
       ) : list.length > 0 ? (

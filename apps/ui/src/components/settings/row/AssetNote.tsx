@@ -34,7 +34,7 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
             {view.failure}
           </span>
           <Button variant="secondary" size="sm" onClick={() => void store.install(item)}>
-            Try again
+            Retry
           </Button>
         </>
       ) : view.status === 'unavailable' ? (

@@ -51,7 +51,7 @@ describe('asking the host again', () => {
 });
 
 describe('a re-read that fails', () => {
-  it('keeps the reading, says it is old and why, and Check again clears it once the host answers', async () => {
+  it('keeps the reading, says it is old and why, and Retry clears it once the host answers', async () => {
     let fail = false;
     await mountSchedule({
       today: null,
@@ -69,11 +69,11 @@ describe('a re-read that fails', () => {
     expect(notice).toBeTruthy();
     expect(subtitle()).toMatch(/Due Oct 31/);
     fail = false;
-    fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(screen.queryByText(/Couldn't read the schedule again/)).toBeNull());
   });
 
-  it('is an error with Try again when the very first read fails, and recovers', async () => {
+  it('is an error with Retry when the very first read fails, and recovers', async () => {
     let fail = true;
     await mountSchedule({
       today: null,
@@ -86,7 +86,7 @@ describe('a re-read that fails', () => {
     });
     expect(await screen.findByText(/could not be read: no project is open/)).toBeTruthy();
     fail = false;
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await screen.findByText(/Due Oct 31/);
   });
 });

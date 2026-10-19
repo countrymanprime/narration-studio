@@ -22,7 +22,7 @@ export type ToolRowProps = {
 
 /**
  * One analysis tool in Settings: its name and status pill, what it does, and its size, host, memory and time per book (or the host's
- * reason it cannot be had yet). The one action its status allows sits on the right: Download, Cancel while it downloads, Try again and
+ * reason it cannot be had yet). The one action its status allows sits on the right: Download, Cancel while it downloads, Retry and
  * Dismiss after a failure, Remove once installed. Props only, so a story can show every status.
  */
 export function ToolRow({ tool, status, job, failure, download, cancel, retry, dismiss, remove }: ToolRowProps) {

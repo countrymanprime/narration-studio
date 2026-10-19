@@ -180,7 +180,7 @@ export function createFakeTools(options: { tools?: AssetItem[]; installs?: Recor
   };
   return {
     port,
-    /** Changes how the next install of a tool goes: a cause that is gone, for Try again. */
+    /** Changes how the next install of a tool goes: a cause that is gone, for Retry. */
     plan: (id: string, next: FakeInstall) => {
       installs[id] = next;
     },
