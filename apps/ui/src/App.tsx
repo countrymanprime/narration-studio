@@ -3,10 +3,11 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from 'rea
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
-import { AppShell, shellPages } from './components/layout/AppShell';
+import { AppShell, isActivePath, shellPages } from './components/layout/AppShell';
 import { openJumpMenu } from './components/layout/JumpMenu';
 import { HISTORY_TITLE, openHistoryPanel } from './components/layout/HistoryPanel';
 import { useGoToCommands } from './components/layout/useGoToCommands';
+import { useShellCommands } from './components/layout/useShellCommands';
 import { useJournalEntries } from './components/layout/useJournalEntries';
 import { OverlayProvider, useOverlay } from './overlay/OverlayProvider';
 import { dawShortName, StudioProvider, useJournal, useStoreHandle, useStudio } from './studio/StudioProvider';
@@ -41,6 +42,8 @@ import { registerCommandProvider } from './input/commandProviders';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
+import { categoryAnchorKey } from './components/settings/page/anchors';
+import { CATEGORIES } from './components/settings/registry/categories';
 import { BoothNextPage } from './components/booth/page/BoothNextPage';
 import { type BoothTarget } from './components/booth/page/boothQuery';
 import { addressPagePath, addressPath, type AddressPage } from './navigation/address';
@@ -82,6 +85,7 @@ const SETTINGS_ANCHORS: Record<string, string> = {
   '#cleanup': 'Cleanup',
   '#booth': 'Teleprompter',
   '#teleprompter': 'Teleprompter',
+  ...Object.fromEntries(CATEGORIES.map((category) => [`#category-${category.id}`, categoryAnchorKey(category.id)])),
 };
 
 const NO_CHAPTERS: ManuscriptChapter[] = [];
@@ -596,19 +600,75 @@ function AppRoutes() {
   useCommand('undo.last', () => {
     if (!isModalOpen() || onlyHistoryOpen()) void undoLast();
   });
-  // The menu on empty space in <main> (the mock's page menu): where to go, the jump menu, view. Zoom steps are here and in the jump menu.
+  // The jump menu's own commands: Settings categories, Import and Replace manuscript, the theme, fixed zoom steps and a labelled Undo.
+  useShellCommands({
+    hasManuscript,
+    openSettings: (categoryId) => {
+      if (isModalOpen()) return;
+      settingsOrigin.markLink();
+      guardedNavigateRef.current(categoryId ? `${addressPagePath('settings')}#category-${categoryId}` : addressPagePath('settings'));
+    },
+    importManuscript: () => guardedNavigateRef.current('/'),
+    darkTheme: theme.resolved === 'dark',
+    toggleTheme,
+    zoomPercent: zoom.percent,
+    setZoom: (factor) => void zoom.setLevel(factor),
+    undoLabel: journalRows?.[0]?.label,
+    undo: () => void undoLast(),
+  });
+  // The menu on empty space in <main> (the mock's page menu, `app/context.ts`): Go to with the current page checked, the jump menu, Find, and View.
+  // Ctrl+F is the jump menu's key except on Script and Proof, which keep it for their own find, so the hint is left off there.
+  const findHint = isActivePath(location.pathname, '/script') || isActivePath(location.pathname, '/proof') ? undefined : ['Ctrl', 'F'];
+  const contextTail = [
+    { key: 'jump', label: 'Jump menu…', shortcut: ['Ctrl', 'K'], onSelect: () => openJump() },
+    { key: 'find', label: 'Find a page, chapter or command', shortcut: findHint, onSelect: () => openJump() },
+  ] satisfies ContextMenuItem[];
   const contextMenu = {
     fallback: (): ContextMenuItem[] => [
-      { key: 'go-to', label: 'Go to…', onSelect: () => openJump('Go to ') },
-      { key: 'zoom-in', label: 'Zoom in', unavailable: zoom.canZoomIn ? undefined : 'Already at the largest size', onSelect: () => void zoom.zoomIn() },
-      { key: 'zoom-out', label: 'Zoom out', unavailable: zoom.canZoomOut ? undefined : 'Already at the smallest size', onSelect: () => void zoom.zoomOut() },
-      { key: 'zoom-reset', label: 'Reset zoom', unavailable: zoom.percent === 100 ? 'Already 100%' : undefined, onSelect: () => void zoom.reset() },
-      { key: 'theme', label: theme.resolved === 'dark' ? 'Use the light theme' : 'Use the dark theme', onSelect: toggleTheme },
+      {
+        key: 'go-to',
+        label: 'Go to',
+        onSelect: () => undefined,
+        submenu: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }).map((page) => ({
+          key: `go-${page.id}`,
+          label: page.label,
+          checked: isActivePath(location.pathname, page.id),
+          unavailable: page.disabledReason,
+          onSelect: () => guardedNavigateRef.current(page.id),
+        })),
+      },
+      ...contextTail,
+      {
+        key: 'view',
+        label: 'View',
+        onSelect: () => undefined,
+        submenu: [
+          {
+            key: 'zoom-in',
+            label: 'Zoom in',
+            shortcut: ['Ctrl', '='],
+            unavailable: zoom.canZoomIn ? undefined : 'Already at the largest size',
+            onSelect: () => void zoom.zoomIn(),
+          },
+          {
+            key: 'zoom-out',
+            label: 'Zoom out',
+            shortcut: ['Ctrl', '-'],
+            unavailable: zoom.canZoomOut ? undefined : 'Already at the smallest size',
+            onSelect: () => void zoom.zoomOut(),
+          },
+          {
+            key: 'zoom-reset',
+            label: 'Reset zoom',
+            shortcut: ['Ctrl', '0'],
+            unavailable: zoom.percent === 100 ? 'Already 100%' : undefined,
+            onSelect: () => void zoom.reset(),
+          },
+          { key: 'theme', label: theme.resolved === 'dark' ? 'Use the light theme' : 'Use the dark theme', onSelect: toggleTheme },
+        ],
+      },
     ],
-    tail: [
-      { key: 'jump', label: 'Jump menu…', onSelect: () => openJump() },
-      { key: 'find', label: 'Find a page, chapter or command', onSelect: () => openJump() },
-    ] satisfies ContextMenuItem[],
+    tail: contextTail,
   };
 
   popGuard.dirty = settingsDirty;
