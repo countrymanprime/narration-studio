@@ -338,7 +338,8 @@ describe('proof-decisions-and-undo', () => {
     expect(review.mock.calls[0][0].status).toBe('dismissed');
     await waitFor(() => expect(selectedAt(at + 1)).toBe('true'));
     await user.click(await screen.findByRole('button', { name: 'Undo' }));
-    await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
+    // Undo is a second host call behind a rendered toast; a loaded CI shard needs longer than the 1 s default.
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(2), { timeout: 5000 });
     expect(review.mock.calls[1][0].status).toBe('unreviewed');
     await waitFor(() => expect(selectedAt(at)).toBe('true'));
   });
