@@ -41,6 +41,11 @@ export function clock(seconds: number): string {
 
 const sentence = (reason: unknown): string => (reason instanceof Error ? reason.message : String(reason));
 
+// A value a DAW call returned is read field by field, never asserted to a shape: what is not there, or is not the type asked for, is undefined.
+const field = (value: unknown, key: string): unknown => (value !== null && typeof value === 'object' ? Reflect.get(value, key) : undefined);
+const text = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+const number = (value: unknown): number | undefined => (typeof value === 'number' ? value : undefined);
+
 export function simulateDaw(base: NarrationApi): SimulatedDaw {
   const listeners = new Set<() => void>();
   let events: SimulatedDawEvent[] = [];
@@ -71,9 +76,8 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
   // host's. Both are shown as the DAW's answer, and neither moves the picture.
   const refusalOf = (result: unknown): string | null => {
     if (!result || typeof result !== 'object') return null;
-    const answer = result as { ok?: unknown; outcome?: unknown; refused?: string; message?: string };
-    if (answer.ok === false) return answer.refused ?? answer.message ?? 'refused';
-    return answer.outcome === 'refused' ? (answer.message ?? 'refused') : null;
+    if (field(result, 'ok') === false) return text(field(result, 'refused')) ?? text(field(result, 'message')) ?? 'refused';
+    return field(result, 'outcome') === 'refused' ? (text(field(result, 'message')) ?? 'refused') : null;
   };
   const findingPlace = async (id: string) => {
     const finding = await base.findingsGet(id).catch(() => null);
@@ -90,20 +94,21 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
     },
     findingsGoTo: async ([id], result) => {
       const place = await findingPlace(String(id));
-      const seconds = (result as { projectTime?: number }).projectTime ?? place.seconds;
+      const seconds = number(field(result, 'projectTime')) ?? place.seconds;
       cursor = { label: place.label, seconds };
       note('cursor', `Cursor moved to ${place.label} at ${clock(seconds)}`);
     },
     findingsLoop: async ([id], result) => {
       const place = await findingPlace(String(id));
-      const loop = result as { loopStart?: number; loopEnd?: number };
-      cursor = { label: place.label, seconds: loop.loopStart ?? place.seconds };
-      note('cursor', `Looping ${clock(loop.loopStart ?? place.seconds)} to ${clock(loop.loopEnd ?? place.seconds)} in ${place.label}`);
+      const start = number(field(result, 'loopStart')) ?? place.seconds;
+      const end = number(field(result, 'loopEnd')) ?? place.seconds;
+      cursor = { label: place.label, seconds: start };
+      note('cursor', `Looping ${clock(start)} to ${clock(end)} in ${place.label}`);
     },
     findingsStopLoop: () => note('cursor', 'Loop stopped, time selection put back'),
     findingsAddMarker: async ([id], result) => {
       const place = await findingPlace(String(id));
-      if ((result as { outcome?: string }).outcome === 'existing') return note('marker', `Take marker already there at ${clock(place.seconds)}`);
+      if (field(result, 'outcome') === 'existing') return note('marker', `Take marker already there at ${clock(place.seconds)}`);
       markers = [...markers.filter((marker) => marker.seconds !== place.seconds), { seconds: place.seconds, label: place.label }].sort(
         (a, b) => a.seconds - b.seconds,
       );
@@ -117,7 +122,7 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
     pickupsReopen: ([position]) => note('pickup', `Pickup at ${clock(Number(position))} put back to open`),
     pickupsImport: () => note('pickup', 'Pickup markers imported into the project'),
     readAloudRecordStart: async ([chapterId], result) => {
-      if ((result as { outcome?: string }).outcome === 'armed') return note('record', `Track armed for ${await chapterName(String(chapterId))}`);
+      if (field(result, 'outcome') === 'armed') return note('record', `Track armed for ${await chapterName(String(chapterId))}`);
       recording = true;
       note('record', `Recording started on ${await chapterName(String(chapterId))}`);
     },
@@ -132,7 +137,7 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
       note('take', `Recording stopped: take ${takes} added to the track`);
     },
     workspaceUseTake: (_args, result) => {
-      if ((result as { changed?: boolean }).changed) note('take', 'A take made current on its lane');
+      if (field(result, 'changed') === true) note('take', 'A take made current on its lane');
     },
     cleanupToolsLaunch: ([tool]) => note('cleanup', `Cleanup tool “${String(tool)}” opened on the selected items`),
     renderConfigConfigure: ([folder]) => note('render', `Render set to all regions, written to ${String(folder)}`),
@@ -140,13 +145,13 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
     dawChoose: ([daw]) => note('link', `Recording tool set to ${String(daw)}`),
   };
 
-  const wrapped: Record<string, unknown> = { ...base };
+  const wrapped: NarrationApi = { ...base };
   for (const [name, hook] of Object.entries(after)) {
-    const original = (base as unknown as Record<string, unknown>)[name];
+    const original: unknown = Reflect.get(base, name);
     if (typeof original !== 'function') continue;
-    wrapped[name] = async (...args: unknown[]) => {
+    const call = async (...args: unknown[]) => {
       try {
-        const result = await (original as (...a: unknown[]) => Promise<unknown>).apply(base, args);
+        const result: unknown = await Reflect.apply(original, base, args);
         const refusal = refusalOf(result);
         if (refusal) note('refused', refusal);
         else await hook(args, result);
@@ -156,10 +161,11 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
         throw error;
       }
     };
+    Reflect.set(wrapped, name, call);
   }
 
   return {
-    api: wrapped as unknown as NarrationApi,
+    api: wrapped,
     snapshot: () => (snap ??= { events, cursor, markers, takes, recording }),
     subscribe: (onChange) => {
       listeners.add(onChange);
