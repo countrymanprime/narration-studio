@@ -112,8 +112,9 @@ export type MockApiSeed = {
   held?: readonly ('overview' | 'entities' | 'series')[];
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
   planRead?: 'loading' | 'fails';
-  /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error. */
-  chaptersRead?: 'loading' | 'fails';
+  /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error.
+   * `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…". */
+  chaptersRead?: 'loading' | 'fails' | 'reread-hangs';
   /** `?mockSettings=`: how the settings file behaves (see `MockSettingsSeed`). */
   settings?: MockSettingsSeed;
   /** What `teleprompterDevices` reports; defaults to `WIRE_TELEPROMPTER_DEVICES`. An empty array exercises the picker's no-devices fallback. */

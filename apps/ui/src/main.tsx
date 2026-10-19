@@ -223,7 +223,8 @@ const mockHold = (mockParams.get('mockHold') ?? '')
 // `?mockPlan=loading|fails` makes the Schedule's read of the production plan never answer, or fail, so it shows its loading skeleton or its error.
 const mockPlan = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockPlan'));
 // `?mockChapters=loading|fails` makes the read of the manuscript's chapters never answer, or fail, so a page that reads them (the Booth) shows its loading skeleton or its error.
-const mockChapters = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockChapters'));
+// `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…".
+const mockChapters = (['loading', 'fails', 'reread-hangs'] as const).find((seed) => seed === mockParams.get('mockChapters'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));

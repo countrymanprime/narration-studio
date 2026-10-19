@@ -204,8 +204,9 @@ describe('cancel-after-a-merge-does-not-bring-the-merged-entry-back', () => {
     await screen.findAllByText('Alice');
     expect(rowNames()).toContain('White Rabbit');
     fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' }), { target: { value: 'White Rabbit' } });
-    fireEvent.click(within(await screen.findByRole('listbox', { name: 'Matching Story Bible entries' })).getByRole('option', { name: /White Rabbit/ }));
+    const box = screen.getByRole('textbox', { name: 'Add a name' });
+    fireEvent.change(box, { target: { value: 'White Rabbit' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
     fireEvent.click(await screen.findByRole('button', { name: 'Merge into this entry' }));
     await waitFor(() => expect(rowNames()).not.toContain('White Rabbit'));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel editing' }));

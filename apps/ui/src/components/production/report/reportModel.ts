@@ -1,4 +1,4 @@
-import type { ProductionPlan } from '../../../api/contracts/production';
+import type { ProductionPlan, ProductionReportInclude } from '../../../api/contracts/production';
 
 export type ReportFormat = 'html' | 'json';
 
@@ -17,3 +17,18 @@ export function reportPath(folder: string, stem: string, format: ReportFormat): 
   const joined = /[\\/]$/.test(folder) ? folder : `${folder}${separator}`;
   return `${joined}${stem}.${format}`;
 }
+
+export type ReportSection = keyof ProductionReportInclude;
+
+/** The report's sections in the order the form lists them; `money` is the one only a per-finished-hour plan with an amount offers. */
+export const REPORT_SECTIONS: ReadonlyArray<{ id: ReportSection; label: string }> = [
+  { id: 'words', label: 'Words and finished audio' },
+  { id: 'stages', label: 'Hours by stage' },
+  { id: 'milestones', label: 'Deadline and milestones' },
+  { id: 'pickups', label: 'Chapters held back' },
+  { id: 'delivery', label: 'Chapter readiness' },
+  { id: 'money', label: 'Contracted amount and effective rate' },
+];
+
+/** What the dialog opens with: every section but the money one, which stays out unless the narrator ticks it. */
+export const DEFAULT_INCLUDE: ProductionReportInclude = { words: true, stages: true, milestones: true, pickups: true, delivery: true, money: false };
