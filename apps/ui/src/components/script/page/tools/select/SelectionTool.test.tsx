@@ -70,6 +70,17 @@ describe('toolbar-is-absent-without-a-selection', () => {
   });
 });
 
+describe('the-toolbar-is-a-dark-pill', () => {
+  it('is drawn in the ink colour over the surface colour, and its buttons carry no border or fill of their own', () => {
+    const m = mount();
+    m.rerender(inside(0, 5));
+    expect(tool().className).toContain('bg-[var(--text)]');
+    expect(tool().className).toContain('text-[var(--surface)]');
+    for (const name of ['Mark', 'Story Bible', 'Look up', 'Bookmark here'])
+      expect(within(tool()).getByRole('button', { name }).className).toContain('bg-transparent!');
+  });
+});
+
 describe('offers-mark-story-bible-and-look-up', () => {
   it('has the three groups with accessible names', () => {
     const m = mount();
