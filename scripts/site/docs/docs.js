@@ -4,7 +4,12 @@
   'use strict';
   const { $, $$, RM } = window.Site;
   const sel = $('#doc-sel');
-  if (sel) sel.onchange = (e) => location.assign(e.target.value + '.html');
+  if (sel) {
+    sel.onchange = (e) => {
+      // The value is a docs page name from the picker's own options; anything else (a scheme, a path) is ignored.
+      if (/^[a-z0-9-]+$/.test(e.target.value)) location.assign(e.target.value + '.html');
+    };
+  }
   document.addEventListener('click', (e) => {
     const s = e.target.closest('[data-sc]');
     if (s) {

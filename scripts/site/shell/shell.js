@@ -40,7 +40,10 @@
   function toast(msg, err, action) {
     const t = document.createElement('div');
     t.className = 'toast' + (err ? ' err' : '');
-    t.innerHTML = `<span style="flex:1">${esc(msg)}</span>`;
+    const m = document.createElement('span');
+    m.style.flex = '1';
+    m.textContent = msg;
+    t.append(m);
     if (action) {
       const b = document.createElement('button');
       b.className = 'btn sm';
@@ -104,9 +107,26 @@
     const q = $('#pal-in').value.trim().toLowerCase();
     pal.items = palItems().filter((x) => !q || (x.t + ' ' + x.k).toLowerCase().includes(q));
     pal.i = Math.min(pal.i, Math.max(0, pal.items.length - 1));
-    $('#pal-list').innerHTML = pal.items.length
-      ? pal.items.map((x, n) => `<li role="option" data-n="${n}" aria-selected="${n === pal.i}">${esc(x.t)}<small>${esc(x.k)}</small></li>`).join('')
-      : '<li style="cursor:default;color:var(--text-muted)">No matches. Try a page name like "Proof".</li>';
+    const list = $('#pal-list');
+    list.replaceChildren();
+    if (!pal.items.length) {
+      const none = document.createElement('li');
+      none.style.cssText = 'cursor:default;color:var(--text-muted)';
+      none.textContent = 'No matches. Try a page name like "Proof".';
+      list.append(none);
+      return;
+    }
+    pal.items.forEach((x, n) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.dataset.n = n;
+      li.setAttribute('aria-selected', String(n === pal.i));
+      li.append(x.t);
+      const small = document.createElement('small');
+      small.textContent = x.k;
+      li.append(small);
+      list.append(li);
+    });
   }
   function palOpen() {
     $('#pal-scrim').classList.add('on');
