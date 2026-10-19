@@ -139,7 +139,7 @@ describe('PickupsTable', () => {
     const buttons = within(row)
       .getAllByRole('button')
       .map((button) => button.getAttribute('aria-label'));
-    expect(buttons.slice(0, 2)).toEqual(['Play the original around this line', 'Open in Booth at this line']);
+    expect(buttons.slice(0, 2)).toEqual(['Hear the original in context', 'Open in Booth at this line']);
     // A chip is the badge primitive: the type a tag (capitals), the status a pill (fully rounded).
     expect(within(row).getByText('Misread').className).toContain('uppercase');
     expect(within(row).getByText('Open').className).toContain('rounded-full');
@@ -148,8 +148,24 @@ describe('PickupsTable', () => {
 
   it('Play says why it is off rather than doing nothing', () => {
     setup();
-    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Play the original around this line' });
+    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
     expect(play.getAttribute('aria-disabled') === 'true' || (play as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('Play calls the page player and a pressed line offers Stop', async () => {
+    const play = vi.fn();
+    const original = { playingId: 'speech:c1:g1', play, unavailable: () => undefined };
+    const { user } = setup({ original });
+    const row = within(rowOf('05:12.0'));
+    await user.click(row.getByRole('button', { name: 'Stop the original' }));
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(within(rowOf('05:40.5')).getByRole('button', { name: 'Hear the original in context' })).toBeTruthy();
+  });
+
+  it('a line with no place in the recording gives Play its reason', () => {
+    setup({ original: { playingId: null, play: vi.fn(), unavailable: () => 'This line has no place in the recording yet.' } });
+    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
+    expect(play.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('status-is-a-word-and-a-shape: Recorded and Open, and Mark recorded calls onSetDone', async () => {

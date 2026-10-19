@@ -29,8 +29,17 @@ export type PickupsRead = { kind: 'loading' } | { kind: 'ready'; readAt: number;
 /** The DAW as the head needs it: whether the recording check can run, and the host's sentence when it cannot. */
 export type DawGate = { available: boolean; message?: string };
 
-/** Why Play is off: the app has no player for the original recording around a line yet (the Booth plays a take, the Editing page a chapter). */
-const PLAY_OFF = 'Playing the original around a line is not available here yet. Open the line in the Booth to hear and re-record it.';
+/** Why Play is off when the page lends no player. */
+const PLAY_OFF = 'Playing the original around a line is not available here. Open the line in the Booth to hear and re-record it.';
+/** A pickup row is 57 px tall (mock `Pickups.tsx`); its icon buttons are 36 px. */
+const ROW_HEIGHT = '[&>td]:h-[57px]';
+
+/** The page's player for the original recording around a line: the line playing now, play or stop, and why a line cannot be heard. */
+export type OriginalPlayer = {
+  playingId: string | null;
+  play: (pickup: PickupItem) => void;
+  unavailable: (pickup: PickupItem) => string | undefined;
+};
 /** Why a recorded line says it is not in the DAW yet. */
 const WAITING = 'The line is recorded here. The DAW did not take the change yet; it is written to the pickup marker the next time the DAW answers.';
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
@@ -69,6 +78,7 @@ export function PickupsTable({
   onSetIncluded,
   onSetDone,
   onRemove,
+  original,
   onOpenInBooth,
   onOpenInScript,
   onGoToProof,
@@ -98,6 +108,8 @@ export function PickupsTable({
   onSetDone: (id: string, done: boolean) => Promise<unknown>;
   /** Removes the pickup and answers how to put it back; the list offers that as Undo. */
   onRemove: (id: string) => Promise<RemoveUndo | undefined>;
+  /** Plays the original recording around a line; without it the button is off. */
+  original?: OriginalPlayer;
   onOpenInBooth: (pickups: PickupItem[]) => void;
   onOpenInScript: (chapterId: string) => void;
   /** Goes to the note a pickup came from, in Proof; with no id, to Proof. */
@@ -163,6 +175,8 @@ export function PickupsTable({
       const pickup = list.find((p) => p.id === id);
       if (pickup) remove(pickup);
     },
+    onPlayOriginal: original?.play,
+    playOriginalUnavailable: original?.unavailable,
     onOpenInBooth,
     onOpenInScript,
     onGoToNote: (pickup) => onGoToProof(pickup.findingId),
@@ -281,7 +295,7 @@ export function PickupsTable({
                         event.currentTarget.focus();
                       }}
                       onKeyDown={(event) => rowKey(event, pickup)}
-                      className={`focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${pickup.id === selected ? 'bg-[var(--row-selected)]' : ''}`}
+                      className={`${ROW_HEIGHT} focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${pickup.id === selected ? 'bg-[var(--row-selected)]' : ''}`}
                     >
                       <TableCell>
                         <Checkbox checked={pickup.included && !pickup.done} disabled={pickup.done} onChange={(checked) => setIncluded(pickup.id, checked)}>
@@ -315,15 +329,19 @@ export function PickupsTable({
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-nowrap items-center justify-end gap-1">
-                          <IconButton action="play" label="Play the original around this line" size="sm" disabledReason={PLAY_OFF} />
-                          <IconButton action="openInBooth" label="Open in Booth at this line" size="sm" onClick={() => onOpenInBooth([pickup])} />
+                          <IconButton
+                            action={original?.playingId === pickup.id ? 'stop' : 'play'}
+                            label={original?.playingId === pickup.id ? 'Stop the original' : 'Hear the original in context'}
+                            disabledReason={original ? original.unavailable(pickup) : PLAY_OFF}
+                            onClick={() => original?.play(pickup)}
+                          />
+                          <IconButton action="openInBooth" label="Open in Booth at this line" onClick={() => onOpenInBooth([pickup])} />
                           <IconButton
                             action={pickup.done ? 'markedDone' : 'markDone'}
                             label={pickup.done ? 'Mark open again' : 'Mark recorded'}
-                            size="sm"
                             onClick={() => setDone(pickup.id, !pickup.done)}
                           />
-                          <IconButton action="remove" label="Remove from pickups" size="sm" variant="danger" onClick={() => remove(pickup)} />
+                          <IconButton action="remove" label="Remove from pickups" variant="danger" onClick={() => remove(pickup)} />
                         </div>
                       </TableCell>
                     </tr>
@@ -358,8 +376,8 @@ function PickupType({ pickup }: { pickup: PickupItem }) {
 function GroupRows({ name, open, children }: { name: string; open: number; children: ReactNode }) {
   return (
     <>
-      <TableRow className="bg-[var(--surface-2)]">
-        <TableCell colSpan={7}>
+      <TableRow>
+        <TableCell colSpan={7} className="bg-[var(--surface-2)]">
           <b>{name}</b> <span className={`text-[var(--text-muted)] ${MONO}`}>· {open} open</span>
         </TableCell>
       </TableRow>
