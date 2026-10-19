@@ -267,5 +267,5 @@ export function buildGuides({ root, out, withStorybook, icon }) {
     for (const image of guide.images) images.add(image);
   }
   for (const image of images) copyFileSync(join(root, IMAGE_DIR, image), join(dir, 'images', image));
-  return { pages: Object.keys(rendered).sort(), images: [...images].sort() };
+  return { pages: Object.keys(rendered).sort(), images: [...images].sort(), titles };
 }

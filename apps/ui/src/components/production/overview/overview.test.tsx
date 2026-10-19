@@ -54,9 +54,11 @@ describe('KpiRow', () => {
     expect(screen.getByRole('button', { name: /Due/ }).textContent).toContain('✓ finished');
   });
 
-  it('due-tile with no due date reads Set a due date and goes to the schedule', async () => {
+  it('due-tile with no due date reads Not set, says where to set one and goes to the schedule', async () => {
     const { onGo } = row({}, {}, MID_BOOK, null);
-    await userEvent.click(screen.getByRole('button', { name: /Set a due date/ }));
+    const tile = screen.getByRole('button', { name: /Due/ });
+    expect(tile.textContent).toBe('DueNot setSet it on the Schedule');
+    await userEvent.click(tile);
     expect(onGo).toHaveBeenCalledWith('schedule');
   });
 

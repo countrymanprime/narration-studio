@@ -21,6 +21,7 @@ import { MOCK_RESUME_SEEDS } from './api/resumeMockSeed';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS } from './api/teleprompterMock';
 import { scenarioFromParams } from './components/devtools/mockStates';
 import { ThemeProvider } from './theme/ThemeContext';
+import { inSiteWindow, startSiteWindow } from './components/layout/siteWindow';
 import { LiveCommandRouter } from './input/LiveCommandRouter';
 import { createKeyboardSource } from './input/KeyboardSource';
 import { combineSources, midiSource } from './input/MidiSource';
@@ -30,7 +31,10 @@ import './styles.css';
 
 // docs/architecture/studio-shell-and-registries.md: the router's one `source` slot carries KeyboardSource, MidiSource and HidSource. Built once, here, so
 // `router.tsx` never needs to know MIDI or HID exist.
-const commandInputSource = combineSources(createKeyboardSource(), midiSource, hidSource);
+// Inside the public site's demo window (a frame) the browser refuses MIDI and HID access and logs the refusal, so the frame listens to the keyboard
+// only; a pedal still works in the demo opened in a tab of its own.
+const commandInputSource =
+  import.meta.env.VITE_SITE === '1' && inSiteWindow() ? createKeyboardSource() : combineSources(createKeyboardSource(), midiSource, hidSource);
 
 // Mock mode runs the complete UI in a browser without the desktop host.
 //
@@ -644,6 +648,9 @@ const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window
 if (hostApi === wailsClient) enableUiLog();
 const simulatedDaw = siteDemo && hostApi !== wailsClient ? simulateDaw(hostApi) : undefined;
 const api = simulatedDaw?.api ?? hostApi;
+
+// Inside the public site's demo window (`?embed=1`), the page around the frame owns the theme, the Play animations switch and the title bar.
+if (siteDemo && inSiteWindow()) startSiteWindow();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

@@ -48,4 +48,33 @@ describe('the Simulated DAW panel', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Start unlinked' }));
     expect(boot.mock.calls).toEqual([['audacity'], ['unlinked']]);
   });
+
+  it('in the site window, draws no badge, opens when the page asks and tells the page what its badge says', async () => {
+    const parent = { postMessage: vi.fn() } as unknown as Window & { postMessage: ReturnType<typeof vi.fn> };
+    const spy = vi.spyOn(window, 'parent', 'get').mockReturnValue(parent);
+    render(<SimulatedDawPanel sim={simulateDaw(createMockApi({}, {}))} control={() => control()} placement="window" />);
+    expect(screen.queryByRole('button', { name: /^Simulated DAW/ })).toBeNull();
+    expect(parent.postMessage).toHaveBeenLastCalledWith(
+      { channel: 'narration-site', kind: 'daw', daw: 'REAPER', answering: true, recording: false, open: false },
+      '*',
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new MessageEvent('message', { data: { channel: 'narration-site', kind: 'daw-panel', open: true }, source: parent }));
+    });
+    expect(screen.getByRole('region', { name: 'Simulated DAW' })).toBeTruthy();
+    expect(parent.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'daw', open: true }), '*');
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('region', { name: 'Simulated DAW' })).toBeNull();
+    expect(parent.postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'daw', open: false }), '*');
+    spy.mockRestore();
+  });
+
+  it('in the banner, opens its panel under the badge rather than floating in the corner', async () => {
+    const { container } = render(<SimulatedDawPanel sim={simulateDaw(createMockApi({}, {}))} control={() => control()} placement="banner" />);
+    expect(container.querySelector('.fixed')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /^Simulated DAW/ }));
+    expect(screen.getByRole('region', { name: 'Simulated DAW' })).toBeTruthy();
+    expect(container.querySelector('.fixed')).toBeNull();
+  });
 });

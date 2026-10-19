@@ -19,6 +19,16 @@
         } catch (error) {
           // Storage/matchMedia unavailable - fall back to the default light palette.
         }
+        // Inside the public site's window frame (a sandboxed frame with no storage), the site hands over its theme and its Play animations switch in
+        // the address (src/components/layout/siteWindow.ts; VITE_SITE is replaced by Vite, so other builds skip this).
+        if ('%VITE_SITE%' === '1') {
+          var handed = new URLSearchParams(location.search);
+          if (handed.get('embed') === '1') {
+            if (handed.get('siteTheme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            if (handed.get('siteTheme') === 'light') document.documentElement.removeAttribute('data-theme');
+            if (handed.get('motion') === 'play') document.documentElement.setAttribute('data-motion', 'play');
+          }
+        }
         // Settings -> Motion -> Reduce sets data-motion before first paint, so nothing moves on the first frame
         // (apps/ui/src/motion.ts, applyMotion; same key, duplicated for the same reason).
         try {

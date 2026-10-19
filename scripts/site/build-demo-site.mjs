@@ -1,17 +1,20 @@
 // Assembles the public site into one folder, `dist-site/` by default:
 //   index.html          the landing page (scripts/site/landing/)
-//   demo/index.html     the real UI, built in its `site` mode as one self-contained page: mock host, hash routes, script, styles and fonts inline (apps/ui/.env.site)
+//   demo/index.html     the live demo page: the site's header and footer around a window that holds demo/app.html (scripts/site/windowPages.mjs)
+//   demo/app.html       the real UI, built in its `site` mode as one self-contained page: mock host, hash routes, script, styles and fonts inline (apps/ui/.env.site)
 //   guides/             the how-to guides (docs/guides/using-the-app/), one static page each with their screenshots (scripts/site/guides.mjs)
-//   storybook/          the component Storybook (`pnpm --dir apps/ui run build-storybook`), unless --skip-storybook
+//   storybook/index.html  the Storybook page: the same window around storybook/sb/, unless --skip-storybook
+//   storybook/sb/       the component Storybook (`pnpm --dir apps/ui run build-storybook`), unless --skip-storybook
 // The landing page and the demo are each one file with nothing fetched from another host, and every link between the pieces is relative, so the
 // folder opens from any sub-path, from a file server and, page by page, from a sandboxed frame with no network. Nothing here deploys it: see docs/operations/public-demo-site.md.
 //   node scripts/site/build-demo-site.mjs [--out dist-site] [--skip-storybook] [--skip-ui]
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildGuides } from './guides.mjs';
 import { findOutwardLoads, withIcon } from './siteFiles.mjs';
+import { demoPage, storybookPage } from './windowPages.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const args = process.argv.slice(2);
@@ -32,13 +35,15 @@ if (withStorybook) run('pnpm', ['--dir', 'apps/ui', 'run', 'build-storybook']);
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 cpSync(join(ui, 'dist', 'site-demo'), join(out, 'demo'), { recursive: true });
+// The app is `demo/app.html`, beside the demo page that shows it in a window; both sit in `demo/`, so the app's own relative links still resolve.
+renameSync(join(out, 'demo', 'index.html'), join(out, 'demo', 'app.html'));
 // The demo is one self-contained page (its icon is inline), so the public-folder copy of the icon is dead weight.
 rmSync(join(out, 'demo', 'favicon.png'), { force: true });
 if (withStorybook) {
-  cpSync(join(ui, 'storybook-static'), join(out, 'storybook'), { recursive: true });
+  cpSync(join(ui, 'storybook-static'), join(out, 'storybook', 'sb'), { recursive: true });
   // Storybook's preview page names no icon, so a browser would ask the host's root for /favicon.ico.
   for (const page of ['iframe.html', 'index.html']) {
-    const file = join(out, 'storybook', page);
+    const file = join(out, 'storybook', 'sb', page);
     writeFileSync(file, withIcon(readFileSync(file, 'utf8')));
   }
 }
@@ -52,6 +57,7 @@ const fonts = {
   'barlow-condensed-700': fontFile('barlow-condensed', 'barlow-condensed-latin-700-normal.woff2'),
   'ibm-plex-sans-400': fontFile('ibm-plex-sans', 'ibm-plex-sans-latin-400-normal.woff2'),
   'ibm-plex-sans-600': fontFile('ibm-plex-sans', 'ibm-plex-sans-latin-600-normal.woff2'),
+  'ibm-plex-mono-500': fontFile('ibm-plex-mono', 'ibm-plex-mono-latin-500-normal.woff2'),
 };
 
 // The landing page names Storybook only when this build holds it, so a --skip-storybook folder has no dead link.
@@ -69,13 +75,15 @@ const storybook = {
 };
 for (const [marker, html] of Object.entries(storybook)) landing = landing.replace(`<!--${marker}-->`, withStorybook ? html : '');
 writeFileSync(join(out, 'index.html'), landing);
-const guides = buildGuides({
-  root,
-  out,
-  withStorybook,
-  icon: dataUri(join(ui, 'public', 'favicon.png'), 'image/png'),
-});
+const icon = dataUri(join(ui, 'public', 'favicon.png'), 'image/png');
+const guides = buildGuides({ root, out, withStorybook, icon });
 console.log(`site: ${guides.pages.length} guide pages, ${guides.images.length} screenshots`);
+
+// The demo and Storybook pages: the site's header and footer around a window.
+const fontUris = Object.fromEntries(Object.entries(fonts).map(([name, file]) => [name, dataUri(file, 'font/woff2')]));
+const guideList = guides.pages.map((page) => ({ page, title: guides.titles[page] }));
+writeFileSync(join(out, 'demo', 'index.html'), demoPage({ fonts: fontUris, icon, withStorybook, guides: guideList }));
+if (withStorybook) writeFileSync(join(out, 'storybook', 'index.html'), storybookPage({ fonts: fontUris, icon, guides: guideList }));
 writeFileSync(join(out, '.nojekyll'), '');
 
 const outward = findOutwardLoads(out);
@@ -83,5 +91,5 @@ if (outward.length > 0) {
   for (const { file, url } of outward) console.error(`${file}: loads ${url} by an absolute path or from another host`);
   throw new Error('the built site is not self-contained');
 }
-if (!existsSync(join(out, 'demo', 'index.html'))) throw new Error('the demo has no index.html');
+if (!existsSync(join(out, 'demo', 'app.html'))) throw new Error('the demo has no app.html');
 console.log(`site: ${out}`);
