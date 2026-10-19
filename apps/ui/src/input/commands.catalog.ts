@@ -81,7 +81,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Go to',
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
-  // The header's zoom group: `Equal` is both the unshifted "="
+  // The zoom steps (the header shows a chip off 100%, and the jump menu holds the commands): `Equal` is both the unshifted "="
   // (Ctrl+=) and, on a US layout, "+" held with Shift (Ctrl++), so both chords are bound to the same physical key;
   // the numpad's own +/-/0 keys are separate physical codes, bound alongside. `Mod` resolves to Cmd on macOS.
   {
@@ -519,7 +519,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['help', 'settings'],
   },
-  // The History panel (SNR-Q5): opened from the header's History button and from the jump menu.
+  // The History panel (SNR-Q5): opened from the jump menu and from its key.
   {
     id: 'history.open',
     label: 'Open the undo history',

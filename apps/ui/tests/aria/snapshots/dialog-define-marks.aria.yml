@@ -2,7 +2,6 @@
 # The page behind it is aria-hidden; the live regions stay exposed (see dialog-mark-composer.aria.yml).
 - /children: equal
 - main:
-  - group "Zoom"
   - region "Reader": /¶ 1 of \d+/
 - status
 - alert

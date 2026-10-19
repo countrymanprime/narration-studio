@@ -6,6 +6,7 @@ import {
   openWithoutManuscript,
   diagnosticsEnded,
   measurementEnded,
+  masterFileRows,
   measureOnMaster,
   openDiagnostics,
   openMaster,
@@ -64,7 +65,7 @@ export const masterDrivers: Record<string, Driver> = {
   },
   'book-spread': async (page) => {
     await openMaster(page, '?mockMeasure=spread');
-    await page.getByRole('grid', { name: 'Per-file checks' }).waitFor();
+    await masterFileRows(page).first().waitFor();
     const consistency = panelTitled(page, 'Book consistency');
     await consistency.waitFor();
     await scrollToTop(page, consistency);
