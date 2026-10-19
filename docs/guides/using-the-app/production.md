@@ -8,7 +8,7 @@ editing and proofing is left, the open pickups, the due date and whether the pac
 what to work on next. Its **Chapter pipeline** has one row per chapter and one column per stage.
 The book's dates, payment and milestones are on [Schedule](schedule.md), the item after Production in
 the navigation.
-While the production log is being read, the page keeps its header and shows grey blocks where the figures, cards and pipeline will be; if it cannot be read, the page says so with **Retry**.
+While the production log is being read, the page keeps its title and buttons and shows grey blocks where the chapter and word counts, due date, verdict, figures, cards and pipeline will be (it never says "0 chapters" or "No due date set" before it knows); if it cannot be read, the page says so with **Retry**.
 
 ![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
 

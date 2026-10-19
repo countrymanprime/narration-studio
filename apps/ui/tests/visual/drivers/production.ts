@@ -1,4 +1,5 @@
 // How to reach each `production` state in STATE_CATALOG (see app.drivers.ts).
+import { expect } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -24,6 +25,7 @@ export const productionDrivers: Record<string, Driver> = {
     await page.goto('/?mockHold=overview');
     await settlePage(page);
     await page.getByRole('group', { name: 'Loading the production overview' }).waitFor();
+    await expect(page.getByText(/\d+ chapters/)).toHaveCount(0);
   },
   'load-error': async (page) => {
     await page.goto('/?mockInvalidPayload=production');
