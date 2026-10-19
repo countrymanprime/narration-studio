@@ -113,9 +113,6 @@ const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER i
 const MESSAGE_NO_ENGINE = 'No DAW is connected to this app. Open this app from your DAW to use it.';
 const MESSAGE_TURNED_OFF = 'Turned off in Settings.';
 const MESSAGE_EXPERIMENTAL_OFF = 'Experimental: switched off in Settings.';
-/** docs/architecture/daw-integration.md#audacity-boundary's sentence, for what an Audacity launch does not build. */
-const MESSAGE_AUDACITY_NOT_YET =
-  "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.";
 /** An Audacity capability while the project does not record with Audacity, so the host holds no pipe to it (
  * apps/desktop/internal/dawport/audacity/audacity.go's Declaration). */
 const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.";
@@ -228,7 +225,7 @@ function explain(daw: DawKind, key: DawCapabilityKey, reason: DawCapabilitySuppo
   // The one thing no engine can do, and the way out: the narrator's own audio interface sets its input gain.
   if (key === 'input_level' && reason === 'unsupported' && daw !== 'none') return MESSAGE_NO_INPUT_LEVEL(daw === 'Built-in' ? 'The built-in recorder' : daw);
   if (daw === 'Audacity') {
-    if (reason === 'not_yet') return MESSAGE_AUDACITY_NOT_YET;
+    if (reason === 'not_yet') return `${DAW_CAPABILITIES.find((row) => row.key === key)?.label ?? key} is not available with Audacity yet.`;
     if (reason === 'standalone' || reason === 'not_running') return pipe ? MESSAGE_AUDACITY_NOT_REACHABLE : MESSAGE_AUDACITY_NOT_CONNECTED;
   }
   if (daw === 'Built-in') {

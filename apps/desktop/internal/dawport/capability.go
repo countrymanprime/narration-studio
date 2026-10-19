@@ -108,7 +108,7 @@ var specs = []Spec{
 	{CapHeartbeat, "Connection status", NeedsBridge, reflect.TypeFor[Heartbeat](), nil},
 	{CapProjectRead, "Read the saved project", NeedsNothing, reflect.TypeFor[ProjectReader](), nil},
 	{CapTrackState, "Read track arm state", NeedsRunning, reflect.TypeFor[TrackStateReader](), nil},
-	{CapTrackSelect, "Select a track in REAPER", NeedsRunning, reflect.TypeFor[TrackSelector](), nil},
+	{CapTrackSelect, "Select a track in the recording tool", NeedsRunning, reflect.TypeFor[TrackSelector](), nil},
 	{CapFollowPosition, "Follow the narrator's place in the project", NeedsRunning, reflect.TypeFor[PlaceFollower](), nil},
 	{CapRecord, "Record", NeedsRunning, reflect.TypeFor[Recorder](), nil},
 	{CapPunch, "Punch and roll", NeedsRunning, reflect.TypeFor[Puncher](), nil},

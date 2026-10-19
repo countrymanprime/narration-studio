@@ -246,8 +246,9 @@ func TestWhatIsNotBuiltKeepsTheNotYetSentence(t *testing.T) {
 					}
 					continue
 				}
-				if s.Available || s.Reason != dawport.ReasonNotYet || s.Message != string(ErrNotAvailable) {
-					t.Errorf("%T %+v: %s = %+v, want not_yet with docs/architecture/daw-integration.md#audacity-boundary's sentence", adapter, rt, c, s)
+				spec, _ := dawport.SpecOf(c)
+				if want := spec.Label + " is not available with Audacity yet."; s.Available || s.Reason != dawport.ReasonNotYet || s.Message != want {
+					t.Errorf("%T %+v: %s = %+v, want not_yet saying %q: the sentence names the capability, never the comparison ErrNotAvailable is about", adapter, rt, c, s, want)
 				}
 			}
 			// The map-ranging above covers the capabilities that stay not yet; the ones that are built have their own tests.

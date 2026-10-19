@@ -265,6 +265,23 @@ describe('EditingPage', () => {
       expect(document.querySelector('#editoff')!.textContent).toContain('Experimental: switched off in Settings.');
     });
 
+    it('blames the connection, not what the engine has not built: Audacity quiet says it is not answering, never "Record is not available with Audacity yet"', async () => {
+      const audacity = DAW_SETUPS['audacity'];
+      const notAnswering =
+        'Audacity is not answering. Open the Audacity chip at the top for the steps: Audacity 3 must be open with scripting turned on (Audacity 4.0 has no scripting pipe).';
+      const quiet = {
+        ...audacity,
+        reachable: false,
+        capabilities: { ...audacity.capabilities, navigate: { level: 'experimental', available: false, reason: 'not_running', message: notAnswering } },
+      } as const;
+      expect(audacity.capabilities['record'].reason).toBe('not_yet');
+      mount({ daw: createMockDawClient(quiet, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] }) });
+      await script();
+      const banner = await waitFor(() => document.querySelector<HTMLElement>('#offbanner')!);
+      expect(banner.textContent).toContain(notAnswering);
+      expect(banner.textContent).not.toContain('Record is not available');
+    });
+
     it('keeps one takes chip in the Tab order: the cursor’s line, or the first before there is a cursor', async () => {
       mount({ chapterId: 'c1' });
       await script();

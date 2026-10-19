@@ -52,8 +52,7 @@ const AUDACITY_NOT_YET: DawCapabilitySupport = {
   level: 'not_yet_available',
   available: false,
   reason: 'not_yet',
-  message:
-    "Audacity support is not available yet. This version can't read audio from Audacity or add labels to it, so open the project from REAPER to compare it.",
+  message: 'Record is not available with Audacity yet.',
 };
 const BUILTIN_ON: DawCapabilitySupport = { level: 'experimental', available: true };
 
