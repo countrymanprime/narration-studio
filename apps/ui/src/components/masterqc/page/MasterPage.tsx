@@ -32,6 +32,7 @@ import { PackageChecks } from './PackageChecks';
 import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
 import { useFileActions } from './useFileActions';
+import { keepFocusOnRemoval } from '../../layout/keepFocusOnRemoval';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -254,7 +255,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                 The delivery profile could not be read: {profileProblem}
               </p>
               {profileReadFailed && (
-                <Button variant="secondary" size="sm" aria-label="Retry reading the delivery profile" onClick={retryProfile}>
+                <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" aria-label="Retry reading the delivery profile" onClick={retryProfile}>
                   Retry
                 </Button>
               )}
@@ -265,7 +266,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               <p role="alert" className="text-sm" style={DANGER}>
                 The chapters could not be read, so the files keep their file names: {chaptersProblem}
               </p>
-              <Button variant="secondary" size="sm" aria-label="Retry reading the chapters" onClick={retryChapters}>
+              <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" aria-label="Retry reading the chapters" onClick={retryChapters}>
                 Retry
               </Button>
             </div>

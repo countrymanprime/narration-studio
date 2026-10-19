@@ -25,8 +25,8 @@ export const REPORT_SECTIONS: ReadonlyArray<{ id: ReportSection; label: string }
   { id: 'words', label: 'Words and finished audio' },
   { id: 'stages', label: 'Hours by stage' },
   { id: 'milestones', label: 'Deadline and milestones' },
-  { id: 'pickups', label: 'Chapters held back' },
-  { id: 'delivery', label: 'Chapter readiness' },
+  { id: 'pickups', label: 'Open pickups and chapters held back' },
+  { id: 'delivery', label: 'Delivery check and chapter readiness' },
   { id: 'money', label: 'Contracted amount and effective rate' },
 ];
 

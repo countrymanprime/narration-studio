@@ -9,6 +9,7 @@ import { useSettingsStore } from '../data/SettingsStore';
 import { computerValue } from '../data/values';
 import { rowOf } from '../registry/rows';
 import type { SettingMeta } from '../registry/types';
+import { keepFocusOnRemoval } from '../../layout/keepFocusOnRemoval';
 
 const LABELS = new Map<string, string>(DAW_CAPABILITIES.map(({ key, label }) => [key, label]));
 const MODES = [
@@ -61,7 +62,7 @@ export function CapabilitiesBody() {
       {loadError && !report && (
         <div className="flex flex-wrap items-center gap-3 text-[0.8125rem] text-[var(--danger-text)]" role="alert">
           <span>The recording tool’s capabilities could not be read: {loadError}.</span>
-          <Button variant="secondary" size="sm" onClick={retry}>
+          <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" onClick={retry}>
             Retry
           </Button>
         </div>
