@@ -4,9 +4,9 @@ import type { EntityColour } from '../../../kinds/entityColour';
 import { KindChip } from '../../primitives/KindChip';
 import { voiceNote } from './nearby';
 import type { BoothReference } from './sections';
-import { DIM_CLASS, ROW_CLASS, SideSection } from './SideSection';
+import { DIM_CLASS, ROW_CLASS, SIDE_LABEL_CLASS, SideSection } from './SideSection';
 
-const FIELD = 'text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]';
+const FIELD = SIDE_LABEL_CLASS;
 
 function Entry({ entry, colour, onOpenEntry }: { entry: GuideEntity; colour?: EntityColour; onOpenEntry: (id: string) => void }) {
   const summary = entry.description.text.trim();
@@ -24,11 +24,11 @@ function Entry({ entry, colour, onOpenEntry }: { entry: GuideEntity; colour?: En
         <span className="flex-1" />
         <IconButton action="openInStoryBible" size="sm" onClick={() => onOpenEntry(entry.id)} />
       </div>
-      <div className={`text-sm whitespace-pre-wrap ${summary ? '' : 'text-[var(--text-muted)]'}`}>{summary || '—'}</div>
+      <div className={`whitespace-pre-wrap ${summary ? '' : 'text-[var(--text-muted)]'}`}>{summary || '—'}</div>
       {isCharacter ? (
         <div className="flex flex-col gap-0.5">
           <span className={FIELD}>How they talk</span>
-          <div className={`text-sm whitespace-pre-wrap ${voice ? '' : 'text-[var(--text-muted)]'}`}>{voice || '—'}</div>
+          <div className={`whitespace-pre-wrap ${voice ? '' : 'text-[var(--text-muted)]'}`}>{voice || '—'}</div>
         </div>
       ) : null}
       <div className="flex flex-col gap-1">
@@ -58,7 +58,7 @@ export function Reference({ reference, onOpenEntry }: { reference: BoothReferenc
             <span className={DIM_CLASS}>“{note.quote}”</span>
           </div>
           {note.messages.map((message, index) => (
-            <div className="text-sm" key={index}>
+            <div key={index}>
               {message.who ? <span className={DIM_CLASS}>{message.who}: </span> : null}
               {message.text}
             </div>
