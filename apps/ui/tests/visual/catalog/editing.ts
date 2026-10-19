@@ -31,6 +31,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'word-menu-fx',
+    description: 'Editing, right-click on four selected words with Add FX open - the word menu with its submenu of the DAW’s FX chains',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
     state: 'fx-dialog',
     description: 'Editing, an FX chain chosen for four words - the question names the chain and how the item is split around the words',
   },

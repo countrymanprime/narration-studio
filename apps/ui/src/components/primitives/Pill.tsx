@@ -1,14 +1,16 @@
 import { Toggle } from '@base-ui/react/toggle';
 import { TooltipTarget } from './Tooltip';
 
-/** `chip` is a standalone toggle (the Whisper model, chunk length): 32 px, its own border, the label in capitals. `segmented`
+/** `filter` is a list filter: 28 px, a round pill in sentence case, the ink fill when pressed (the mock's `.chip`). `chip` is a standalone toggle (the Whisper model, chunk length): 32 px, its own border, the label in capitals. `segmented`
  * is one segment of a `ToggleGroup look="segmented"` container: no
  * border of its own (the container draws it), the label in its own case, and the height fills the container's inset. */
-export type PillLook = 'chip' | 'segmented';
+export type PillLook = 'chip' | 'segmented' | 'filter';
 
 const LOOK_CLASS: Record<PillLook, (active: boolean) => string> = {
   chip: (active) =>
     `h-[var(--button-height)] rounded-[var(--radius-button)] border px-3 uppercase leading-none ${active ? 'active border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]' : 'border-[var(--line-strong)] text-[var(--text-muted)]'}`,
+  filter: (active) =>
+    `h-[var(--chip-height)] rounded-full border px-3 leading-none ${active ? 'active border-[var(--text)] bg-[var(--text)] text-[var(--surface)]' : 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-muted)]'}`,
   segmented: (active) =>
     `h-full rounded-[0.28rem] border-0 px-3 leading-none ${active ? 'active bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text)]'}`,
 };
@@ -36,7 +38,7 @@ export function Pill({
       pressed={active}
       disabled={disabled}
       onPressedChange={() => onClick?.()}
-      className={`inline-flex items-center justify-center font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)] disabled:opacity-40 ${LOOK_CLASS[look](active)}`}
+      className={`inline-flex items-center justify-center ${look === 'filter' ? 'text-[0.88rem] font-medium' : "font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)]"} disabled:opacity-40 ${LOOK_CLASS[look](active)}`}
     >
       {label}
     </Toggle>

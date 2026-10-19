@@ -18,6 +18,7 @@ export const editingCases: OverlayCase[] = [
     },
   },
   fromState('editing', 'fx-menu', 'menu'),
+  fromState('editing', 'word-menu-fx', 'menu'),
   fromState('editing', 'fx-dialog'),
   fromState('editing', 'voice-sample-dialog'),
   fromState('editing', 'voice-sample-mark-open', 'popover'),

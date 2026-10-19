@@ -23,6 +23,7 @@
             "metrics": {
               "audio": {
                 "channels": 1,
+                "click_candidate_count": 0,
                 "clip_run_count": 0,
                 "clip_runs": [],
                 "digital_silent_windows": 0,
@@ -205,6 +206,7 @@
             "metrics": {
               "audio": {
                 "channels": 1,
+                "click_candidate_count": 0,
                 "clip_run_count": 0,
                 "clip_runs": [],
                 "digital_silent_windows": 0,
@@ -387,6 +389,7 @@
             "metrics": {
               "audio": {
                 "channels": 1,
+                "click_candidate_count": 0,
                 "clip_run_count": 0,
                 "clip_runs": [],
                 "digital_silent_windows": 0,

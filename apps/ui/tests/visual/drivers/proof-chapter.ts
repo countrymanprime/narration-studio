@@ -15,6 +15,19 @@ export const proofChapterDrivers: Record<string, Driver> = {
     }, '/proof/chapter-1');
     await page.getByRole('group', { name: 'Loading the chapter' }).waitFor();
   },
+  // The chapters read fails: the chapter's address is opened in place, as `loading` does, and shows the error with Retry.
+  'load-failed': async (page) => {
+    await page.goto('/?mockChapters=fails');
+    await settlePage(page);
+    await goToPage(page, 'Proof');
+    await page.evaluate((path) => {
+      window.history.pushState(null, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, '/proof/chapter-1');
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
+    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+  },
   never: async (page) => {
     // Chapter 7 has no recordedFraction in the fixture (mockFixtures.ts: only chapters 1-6 do), so it reads "never checked".
     await openLinkedProofChapter(page, 'Chapter 7');
