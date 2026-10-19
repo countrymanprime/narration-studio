@@ -143,6 +143,12 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/listening/useListeningMic.ts#1':
     'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does.',
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
+  'src/components/booth/takeTone.ts#1':
+    'Saving the start-tone choice to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.',
+  'src/components/booth/takeTone.ts#2':
+    'Closing the audio context after the tone has played: a failed close only leaves an idle context for the browser to collect, and the take has already started.',
+  'src/components/booth/takeTone.ts#3':
+    'No audio or a refused context (no output device, a blocked autoplay policy): the tone is an extra for a narrator who is not looking, and the take starts without it.',
   'src/components/booth/useTeleprompterSession.ts#1':
     'Clearing the migrated browser-storage device once it is written to settings; if storage cannot be reached the stale value is simply left behind and never read again (the settings value now wins).',
   'src/components/booth/useTeleprompterSession.ts#2': 'Hydrates a session that was already running; the state event follows anyway.',
