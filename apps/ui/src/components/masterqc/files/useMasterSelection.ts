@@ -15,9 +15,11 @@ export function useMasterSelection({ rows, selected, onSelect }: { rows: readonl
   const current = selected ?? opening;
   const container = useRef<HTMLElement | null>(null);
 
+  // A row that is only waiting is shown as current but never chosen for the narrator: the choice would outlast the measurement that follows.
+  const openingMeasured = rows.some((row) => row.id === opening && !row.waiting);
   useEffect(() => {
-    if (selected === undefined && opening !== undefined) onSelect(opening);
-  }, [selected, opening, onSelect]);
+    if (selected === undefined && opening !== undefined && openingMeasured) onSelect(opening);
+  }, [selected, opening, openingMeasured, onSelect]);
 
   useEffect(() => {
     const table = container.current?.querySelector('table');

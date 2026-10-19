@@ -20,7 +20,6 @@ import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { HeaderChip } from '../../primitives/HeaderChip';
 import { Heading } from '../../primitives/Heading';
 import { Panel } from '../../primitives/Panel';
-import { TooltipTarget } from '../../primitives/Tooltip';
 import { useOpenPickups } from '../../pickups/useOpenPickups';
 import { NeedManuscript } from '../../layout/NeedManuscript';
 import type { FileActions } from '../files/FileActions';
@@ -235,9 +234,9 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   <ChapterStepper chapters={bar} value={chapterOfSelection.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={goToChapter} onStep={stepChapter} />
                 )}
                 {profile && (
-                  <TooltipTarget text="Open Delivery">
+                  <span title="Open Delivery" className="inline-flex">
                     <HeaderChip onClick={onOpenDelivery}>{profileName(profile)}</HeaderChip>
-                  </TooltipTarget>
+                  </span>
                 )}
               </>
             }
