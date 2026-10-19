@@ -43,8 +43,17 @@ export async function snapEnd(alignment: Pick<AlignmentPort, 'snap'>, chapterId:
 }
 
 const ms = (s: number): string => `${Math.abs(s * 1000).toFixed(1)} ms`;
+/** A reason as a sentence: a capital first, a full stop last, so the sentence after it does not run on. */
+const sentence = (s: string): string => {
+  const t = s.trim();
+  return t ? `${t[0]!.toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? '' : '.'}` : t;
+};
 const endText = (name: string, end: SnappedEnd): string =>
-  end.refused ? `The ${name} was not moved to a zero crossing: ${end.refused}` : end.moved ? `The ${name} moved ${ms(end.moved)} to a zero crossing.` : '';
+  end.refused
+    ? `The ${name} was not moved to a zero crossing: ${sentence(end.refused)}`
+    : end.moved
+      ? `The ${name} moved ${ms(end.moved)} to a zero crossing.`
+      : '';
 
 /** What the snap did to a range's ends, or '' when both were on a crossing already. */
 export function snapText(start: SnappedEnd, end: SnappedEnd): string {
