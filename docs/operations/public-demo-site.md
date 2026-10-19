@@ -1,35 +1,47 @@
 # The public demo site
 
-How to build and run the public site: a landing page, the real app in its mock mode as a live demo, the how-to guides and the Storybook, in one folder that needs no backend. Nothing here is published. GitHub Pages stays paused ([The Pages workflow](ci-and-releases.md#the-pages-workflow), owner decision D75), and `pages.yml` is unchanged.
+How to build and run the public site: a landing page, the real app in its mock mode as a live demo, the docs and the Storybook, in one folder that needs no backend. Nothing here is published. GitHub Pages stays paused ([The Pages workflow](ci-and-releases.md#the-pages-workflow), owner decision D75), and `pages.yml` is unchanged.
 
 ## What it holds
 
 | Path in `dist-site/` | What | Built by |
 | --- | --- | --- |
-| `index.html` | The landing page: a short intro, **Try the live demo**, **Guides**, **Storybook** and download links. It reads the app's stored theme (`narration-ui-theme`) and otherwise follows the system | `scripts/site/landing/index.html` |
+| `index.html` | The landing page: the Product view of the [public-site mock](../research/mockups/public-site/index.html), with **Try the live demo**, the workflow tabs, the docs, demo and Storybook cards and the install steps | `scripts/site/landing/index.html`, in the [site shell](#the-site-shell) |
 | `demo/index.html` | The real UI (`apps/ui`), built with `vite build --mode site` as one self-contained page (about 4.5 MB: script, styles, fonts and icon inline): the mock host (`createMockApi`) and its sample project, Alice's Adventures in Wonderland (public domain) | `pnpm --dir apps/ui run build:site` |
-| `guides/` | The how-to guides: `docs/guides/using-the-app/*.md` rendered to one static page each (`index.html` for the guide index), with the screenshots they use in `guides/images/` | `scripts/site/guides.mjs`, from `build-demo-site.mjs` |
+| `docs/` | The Docs section: one static page per condensed guide in `scripts/site/docs/*.md` (`index.html` is the overview), with the screenshots they use in `docs/images/` | `scripts/site/guides.mjs`, from `build-demo-site.mjs` |
 | `storybook/` | The component Storybook | `pnpm --dir apps/ui run build-storybook` |
 
 ## Build and run it
 
 ```bash
-pnpm run site:build    # builds the UI, the Storybook and the landing page into dist-site/
+pnpm run site:build    # builds the UI, the Storybook, the landing page and the docs into dist-site/
 pnpm run site:serve    # serves dist-site/ at http://localhost:4180/
 node scripts/site/serve.mjs dist-site --base /narration-utils/ --port 4180   # the same, under a sub-path, as Pages serves it
-node scripts/site/build-demo-site.mjs --skip-storybook                        # the landing page and the demo only
+node scripts/site/build-demo-site.mjs --skip-storybook                        # the landing page, the docs and the demo only
 ```
 
-`dist-site/` is ignored by git. Copy it anywhere: the landing page and the demo are each one file with nothing fetched from outside it, and the links between the pieces (`demo/index.html`, `storybook/index.html`, and the banner's **Site** and **Storybook** links back) are relative. The Storybook is a folder of files, as Storybook builds it.
+`dist-site/` is ignored by git. Copy it anywhere: the landing page, each docs page and the demo are each one file with nothing fetched from outside it, and the links between the pieces (`demo/index.html`, `storybook/index.html`, and the banner's **Site** and **Storybook** links back) are relative. The Storybook is a folder of files, as Storybook builds it.
 
-## The guides
+## The site shell
 
-The guides on the site are the repository's own: `docs/guides/using-the-app/*.md` and their screenshots in `docs/images/ui/`. The build renders them with markdown-it (a dev dependency of the repository root, not of the app) and writes `guides/`, which is part of `dist-site/` and so not tracked by git.
+`scripts/site/shell.mjs` holds what every site page shares, cut from the mock: the app's fonts and icon as data URIs, the theme applied before the first paint, the notice strip, the top bar (**Product**, **Docs**, **Live demo**, **Storybook**, search, theme, **Download**), the footer, the search palette (Ctrl K) and the toasts. Its styles and script are `scripts/site/shell/shell.css` and `shell.js`; the script puts its helpers on `window.Site` for a page's own script.
 
-- Each page is one file with its styles and a theme script inline, a sidebar that groups the guides as the sidebar of the app does, and **Open this page in the live demo**. Links between guides keep their headings (`proof.html#one-chapter`), and a link to anything else in the repository becomes a link to GitHub.
-- The build fails on a link or screenshot that points nowhere, or on a guide that `scripts/site/guides.mjs` does not list in a group. A new guide is added to `GROUPS` and, if a demo page matches it, to `DEMO_ROUTE`.
-- In the demo, the banner's **How to use this page** link goes to the guide for the page on screen (`apps/ui/src/components/layout/demoGuide.ts` maps a route to its guide), and to the guide index for a route no guide covers.
-- The guides work offline and from any sub-path, as the landing page does. A guide opens in a sandboxed frame with no request but its own page and its screenshots.
+- `sitePage({ title, meta, css, body, script, base, current, withStorybook, search })` returns a whole page: the docs use it.
+- `fillShell(template, options)` fills the `<!--shell:head-->`, `<!--shell:header-->` and `<!--shell:footer-->` markers of a page template: the landing page uses it.
+- `base` is the way back to the site's root (`''` for `index.html`, `'../'` for a page in `docs/`), so every link stays relative. `current` is the top bar entry marked as the page (`home`, `docs`, `demo`, `storybook`). `search` is the palette's entries, from `searchItems()`.
+- The top bar links `demo/index.html` and `storybook/index.html`; a page there is built with the same shell.
+- The theme uses the app's key, `narration-ui-theme`: the site opens in the theme the demo last stored on this origin, and the toggle stores `light` or `dark`.
+- The notice strip (`NOTICE` in `shell.mjs`) says the site is an unpublished preview. Remove it in the change that publishes the site.
+
+## The docs
+
+The Docs section is the mock's docs view, filled with a condensed copy of each page of the repository's guides (`docs/guides/using-the-app/`): what the page is for, the steps in order and one or two screenshots from `docs/images/ui/`. The full guides stay the source of truth; each docs page links its guide as **Full guide on GitHub**, and edge cases and long tables stay there.
+
+- A page is `scripts/site/docs/<page>.md`, named as its guide (`index.md` for the guide's `README.md`), with `title` and `lead` in its front matter and its sections as `##` headings, which make **On this page**. A screenshot alone in a paragraph becomes a figure, its title the caption; a quote that opens with `**Note:**` becomes a note.
+- `GROUPS` in `scripts/site/guides.mjs` is the sidebar, in the app's sidebar groups, and `DEMO_ROUTE` the demo page each docs page opens. A new page is added to both.
+- The build fails on a link to a page or heading that does not exist, a repository link or screenshot that points nowhere, a page in no group, a listed page with no source, and a page with no full guide (`scripts/site/guides.test.mjs`).
+- When a guide changes, check whether its condensed page still holds; markdown-it renders the pages at build time and nothing in `dist-site/` is tracked.
+- In the demo, the banner's **How to use this page** link goes to the docs page for the page on screen (`apps/ui/src/components/layout/demoGuide.ts` maps a route to its page), and to the overview for a route no page covers.
 
 ## Play animations
 
@@ -61,7 +73,7 @@ The demo boots with the DAW's Experimental switch on (`VITE_SITE=1`, read in `ap
 pnpm --dir apps/ui run test:site
 ```
 
-`apps/ui/playwright.site.config.ts` builds `dist-site/`, serves it under `/narration-utils/` and runs `apps/ui/tests/site/site.spec.ts`: the landing page loads from the sub-path, the demo opens, every guide page exists and its screenshots load, a demo page links its guide and back, a guide runs inside a sandboxed frame, the **Play animations** switch turns transitions on and off under emulated reduced motion, the demo and the landing page each run inside a sandboxed frame with no request but their own file, Storybook opens from the landing page and the banner and renders a story, the landing page follows the stored app theme, a Proof note marked **Needs pickup** moves the rail's Pickups count at once and appears in Pickups and in Production's open-pickups tile, the simulated DAW shows Show in REAPER, a marker, a Booth take, the render setup, a cleanup tool and the linking of an unlinked project, and no request leaves the folder or fails. `SITE_SKIP_BUILD=1` serves the folder as it is. In a container, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the installed Chromium ([verification tooling](verification-tooling.md)).
+`apps/ui/playwright.site.config.ts` builds `dist-site/`, serves it under `/narration-utils/` and runs `apps/ui/tests/site/site.spec.ts`: the landing page loads from the sub-path, the demo opens, every docs page exists and its screenshots load, the docs have the mock's sidebar, On this page and next links, a demo page links its docs page and back, a docs page runs inside a sandboxed frame, the **Play animations** switch turns transitions on and off under emulated reduced motion, the demo and the landing page each run inside a sandboxed frame with no request but their own file, Storybook opens from the landing page and the banner and renders a story, the landing page follows the stored app theme, a Proof note marked **Needs pickup** moves the rail's Pickups count at once and appears in Pickups and in Production's open-pickups tile, the simulated DAW shows Show in REAPER, a marker, a Booth take, the render setup, a cleanup tool and the linking of an unlinked project, and no request leaves the folder or fails. `SITE_SKIP_BUILD=1` serves the folder as it is. In a container, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` to the installed Chromium ([verification tooling](verification-tooling.md)).
 
 ## Build it in CI, without publishing
 
