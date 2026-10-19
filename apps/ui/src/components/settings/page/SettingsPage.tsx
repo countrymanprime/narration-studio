@@ -173,6 +173,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
           lit={lit}
           onShowCategory={showCategory}
           empty={text ? `No settings match “${text}”` : filter === 'changed' ? 'Nothing is changed from the defaults' : 'This project overrides nothing'}
+          hint={text ? 'Try a word from the setting’s name, such as “whisper”, “voice” or “reaper”.' : undefined}
         />
       </fieldset>
     );
