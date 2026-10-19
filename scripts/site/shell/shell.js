@@ -142,7 +142,15 @@
     const x = pal.items[pal.i];
     if (!x) return;
     palClose();
-    x.fn ? x.fn() : location.assign(x.href);
+    if (x.fn) return x.fn();
+    // The entries come from the page's own JSON; still, only a page of this site is a place to go (never a javascript: or data: address).
+    let to;
+    try {
+      to = new URL(String(x.href), location.href);
+    } catch (err) {
+      return;
+    }
+    if (to.protocol === location.protocol && /^(https?|file):$/.test(to.protocol) && to.origin === location.origin) location.assign(to.href);
   }
   $('#open-pal').onclick = palOpen;
   $('#pal-scrim').addEventListener('mousedown', (e) => {
