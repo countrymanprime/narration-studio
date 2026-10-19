@@ -14,7 +14,7 @@ One static file, `index.html`: no build, no network, system fonts. Open it in a 
 
 ## Output device
 
-Section 4 is a draft for [#2047](https://github.com/countrymanprime/narration-utils/issues/2047), drawn 2026-10-19. It follows the owner's rulings of that day: per project, a choice only with the built-in recorder, and a sentence with a DAW connected (samples stay in the app's own audio). It is not approved. Questions for the owner: does a project's **Test sound** belong here; should the row show with no project open (this draft hides it); is "System default" first, or last.
+Section 4 is a draft for [#2047](https://github.com/countrymanprime/narration-utils/issues/2047), drawn 2026-10-19. It follows the owner's rulings of that day: per project, a choice only with the built-in recorder, and a sentence with a DAW connected (samples stay in the app's own audio). The owner approved it on 2026-10-19; [#2047](https://github.com/countrymanprime/narration-utils/issues/2047) builds to it. Questions that were open when it was approved: does a project's **Test sound** belong here; should the row show with no project open (this draft hides it); is "System default" first, or last.
 
 ## Lifecycle
 
