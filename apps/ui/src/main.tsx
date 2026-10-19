@@ -225,6 +225,10 @@ const mockPlan = (['loading', 'fails'] as const).find((seed) => seed === mockPar
 // `?mockChapters=loading|fails` makes the read of the manuscript's chapters never answer, or fail, so a page that reads them (the Booth) shows its loading skeleton or its error.
 // `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…".
 const mockChapters = (['loading', 'fails', 'reread-hangs'] as const).find((seed) => seed === mockParams.get('mockChapters'));
+// `?mockChapterRead=fails` makes the read of one chapter's check state fail, so Editing's chapter and Proof's chapter view show their error and Retry.
+const mockChapterRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockChapterRead'));
+// `?mockProfileRead=fails` makes the read of the delivery profiles fail, so Master & QC says so and offers Retry.
+const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockProfileRead'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
@@ -462,6 +466,8 @@ const mockInitial = {
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
+  ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
+  ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),

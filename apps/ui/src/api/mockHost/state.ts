@@ -109,12 +109,16 @@ export type MockApiSeed = {
   /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error.
    * `reread-hangs` answers while the app is on `/` and never once it has moved to another page, so a link to a chapter the list lacks stays on the address gate's "Checking this link…". */
   chaptersRead?: 'loading' | 'fails' | 'reread-hangs';
+  /** `?mockProfileRead=`: the read of the delivery profiles fails (`fails`), so Master & QC says so and offers Retry. */
+  profileRead?: 'fails';
   /** `?mockSettings=`: how the settings file behaves (see `MockSettingsSeed`). */
   settings?: MockSettingsSeed;
   /** What `teleprompterDevices` reports; defaults to `WIRE_TELEPROMPTER_DEVICES`. An empty array exercises the picker's no-devices fallback. */
   teleprompterDevices?: TeleprompterDevice[];
   /** `?mockLevel=`: the RMS in dBFS of every input level the teleprompter mock sends, for a still meter. */
   teleprompterLevel?: number;
+  /** `?mockChapterRead=`: the read of one chapter's check state fails (`fails`), so Editing's and Proof's chapter views show their error and Retry. */
+  chapterRead?: 'fails';
   /** `?mockReaperState=`: what `readAloudReaperState` answers for every chapter (see `MockReaperSeed`). */
   reaperState?: MockReaperSeed;
   /** `?mockReaperInput=`: what `teleprompterReaperInput` answers (see `MockReaperInputSeed`). */

@@ -86,6 +86,11 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const [all, setAll] = useState<DeliveryProfile[]>([]);
   const [chosen, setChosen] = useState<DeliveryProfile>();
   const [profileProblem, setProfileProblem] = useState<string>();
+  // Whether that problem is a read that failed (Retry reads again) or a profile the project names that the list lacks (reading again would not change it).
+  const [profileReadFailed, setProfileReadFailed] = useState(false);
+  // Retry counters: each failed read's Retry clears its line and bumps one, so the effect reads again and the package panel shows its skeleton.
+  const [profileAttempt, setProfileAttempt] = useState(0);
+  const [chaptersAttempt, setChaptersAttempt] = useState(0);
   // A file's path, or a chapter's id when that chapter has no file yet. The chapter bar is read off it.
   const [picked, setPicked] = useState<string | undefined>(focusFile);
   // A link that arrives while the page is open (the narrator follows another one) moves the selection too.
@@ -105,12 +110,21 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
         if (found) setChosen(found);
         else setProfileProblem(`the profile ${state.projectProfile} is not in the list`);
       },
-      (error) => active && setProfileProblem(apiErrorMessage(error)),
+      (error) => {
+        if (!active) return;
+        setProfileProblem(apiErrorMessage(error));
+        setProfileReadFailed(true);
+      },
     );
     return () => {
       active = false;
     };
-  }, [profilesPort]);
+  }, [profilesPort, profileAttempt]);
+  const retryProfile = () => {
+    setProfileProblem(undefined);
+    setProfileReadFailed(false);
+    setProfileAttempt((n) => n + 1);
+  };
 
   useEffect(() => {
     let live = true;
@@ -121,7 +135,12 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     return () => {
       live = false;
     };
-  }, [manuscript]);
+  }, [manuscript, chaptersAttempt]);
+  const retryChapters = () => {
+    setChaptersProblem(undefined);
+    setChaptersRead(false);
+    setChaptersAttempt((n) => n + 1);
+  };
 
   // The profile a measurement was judged against wins over the project's current choice until it is measured again.
   const profile = run.job?.profile ?? chosen;
@@ -236,14 +255,26 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             );
           })()}
           {profileProblem && (
-            <p role="alert" className="text-sm" style={DANGER}>
-              The delivery profile could not be read: {profileProblem}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p role="alert" className="text-sm" style={DANGER}>
+                The delivery profile could not be read: {profileProblem}
+              </p>
+              {profileReadFailed && (
+                <Button variant="secondary" size="sm" aria-label="Retry reading the delivery profile" onClick={retryProfile}>
+                  Retry
+                </Button>
+              )}
+            </div>
           )}
           {chaptersProblem && (
-            <p role="alert" className="text-sm" style={DANGER}>
-              The chapters could not be read, so the files keep their file names: {chaptersProblem}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p role="alert" className="text-sm" style={DANGER}>
+                The chapters could not be read, so the files keep their file names: {chaptersProblem}
+              </p>
+              <Button variant="secondary" size="sm" aria-label="Retry reading the chapters" onClick={retryChapters}>
+                Retry
+              </Button>
+            </div>
           )}
           {staleLink !== undefined && (
             <div role="status" aria-label="Link not found" className="flex flex-wrap items-center gap-2 text-sm" style={MUTED}>

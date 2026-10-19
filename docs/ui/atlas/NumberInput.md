@@ -16,7 +16,9 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 
 ## Used by
 
+- `src/components/booth/frame/LevelsMenu.tsx`
 - `src/components/editing/backups/BackupsInspector.tsx`
 - `src/components/editing/cleanup/CleanupInspector.tsx`
 - `src/components/editing/effects/CoverageStrip.tsx`
 - `src/components/editing/effects/EffectSettings.tsx`
+- `src/components/proof/proofOptions/ProofOptions.tsx`

@@ -25,6 +25,22 @@ export const masterDrivers: Record<string, Driver> = {
     await goToPage(page, 'Master & QC');
     await page.getByRole('group', { name: 'Loading the delivery package checks' }).waitFor();
   },
+  // The chapters read fails: the page works and a line under the file table says so with Retry.
+  'chapters-load-failed': async (page) => {
+    await page.goto('/?mockChapters=fails');
+    await settlePage(page);
+    await goToPage(page, 'Master & QC');
+    await page.getByRole('button', { name: 'Retry reading the chapters' }).waitFor();
+    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+  },
+  // The delivery profiles read fails: the same line and Retry for the profile.
+  'profile-load-failed': async (page) => {
+    await page.goto('/?mockProfileRead=fails');
+    await settlePage(page);
+    await goToPage(page, 'Master & QC');
+    await page.getByRole('button', { name: 'Retry reading the delivery profile' }).waitFor();
+  },
   empty: async (page) => {
     await openMaster(page);
     await page.getByText(/^Nothing measured yet/).waitFor();

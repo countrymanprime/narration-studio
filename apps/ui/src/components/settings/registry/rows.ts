@@ -59,6 +59,18 @@ export const ROWS: readonly SettingMeta[] = [
     syn: 'input device audio interface',
   },
   {
+    id: 'daw.sampleOutput',
+    cat: 'recording',
+    section: 'Recording tool',
+    label: 'Voice sample output',
+    scope: 'project',
+    def: '',
+    field: { tool: 'VoiceSamples', key: 'output_device' },
+    desc: 'Where this project’s voice samples play. With the built-in recorder it is one of this computer’s outputs; with a DAW, samples play on the default output and the DAW’s own device is not changed.',
+    used: ['booth', 'editing', 'bible'],
+    syn: 'speaker headphones output device audio sample voice sample monitor',
+  },
+  {
     id: 'daw.startTone',
     cat: 'recording',
     section: 'Take cues',

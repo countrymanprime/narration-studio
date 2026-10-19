@@ -5,7 +5,11 @@ import { IconButton } from '../../../../primitives/IconButton';
 import { Menu } from '../../../../primitives/Menu';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { Swatch } from '../../../../primitives/Swatch';
-import { EntryCard, firstAppearance } from './EntryCard';
+import { Table, TableBody, TableCell, TableRow } from '../../../../primitives/Table';
+import { DefinitionBlock } from '../words/DefinitionBlock';
+import { ExternalLinks } from '../words/ExternalLinks';
+import type { WordsHost } from '../words/wordsHost';
+import { EntryCard, firstAppearance, type ChapterTagOf } from './EntryCard';
 import { swatchOf, type BibleKind } from './kinds';
 
 /**
@@ -20,6 +24,8 @@ export function BiblePanel({
   kinds,
   entries,
   sources,
+  host,
+  tagOf,
   onPick,
   onFind,
   onAddNote,
@@ -39,6 +45,10 @@ export function BiblePanel({
   /** The entries the chapter names. */
   entries: readonly GuideEntity[];
   sources: readonly PronunciationSource[];
+  /** What the miss card's dictionary block and look-up links need, the Words tab's own. */
+  host: WordsHost;
+  /** A chapter's tag by id, for "first:". */
+  tagOf: ChapterTagOf;
   onPick: (id: string) => void;
   onFind: (name: string) => void;
   onAddNote: () => void;
@@ -50,6 +60,7 @@ export function BiblePanel({
       {entry ? (
         <EntryCard
           entry={entry}
+          first={firstAppearance(entry, tagOf)}
           colour={colourOf(entry.category)}
           speaks={canSpeak(entry.category)}
           sources={sources}
@@ -61,6 +72,7 @@ export function BiblePanel({
         <section aria-label={missing} className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
           <h3 className="m-0 text-[1rem] font-semibold">{`“${missing}”`}</h3>
           <p className="m-0 text-[0.88rem]">No Story Bible entry for this.</p>
+          <DefinitionBlock word={missing} source={host.definitionSource} host={host} />
           <div className="flex">
             <Menu
               render={<IconButton action="add" label="Create an entry" size="sm" />}
@@ -74,31 +86,31 @@ export function BiblePanel({
               {null}
             </Menu>
           </div>
+          <SectionLabel as="div">Look up</SectionLabel>
+          <ExternalLinks word={missing} open={(source, word) => void host.openLookup(source, word)} />
         </section>
       ) : null}
       <SectionLabel as="h3">In this chapter</SectionLabel>
       {entries.length === 0 ? (
         <p className="m-0 text-[0.88rem] text-[var(--text-muted)]">No Story Bible entries in this chapter.</p>
       ) : (
-        <ul className="m-0 flex list-none flex-col gap-1 p-0">
-          {entries.map((row) => (
-            <li key={row.id}>
-              {/* native-control-ok: a row that is a button holding two lines of text, which Button's padded chrome does not fit */}
-              <button
-                type="button"
-                aria-pressed={entry?.id === row.id}
-                onClick={() => onPick(row.id)}
-                className={`flex w-full cursor-pointer flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-left text-[var(--text)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${entry?.id === row.id ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}
-              >
-                <b className="text-[0.88rem]">{row.canonical_name}</b>
-                <span className="flex items-center gap-1.5 text-[0.8rem] text-[var(--text-muted)]">
-                  <Swatch colour={swatchOf(colourOf(row.category))} />
-                  {`${row.category} · first ${firstAppearance(row)}`}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <Table label="In this chapter">
+          <TableBody>
+            {entries.map((row) => (
+              <TableRow key={row.id} selected={entry?.id === row.id} onActivate={() => onPick(row.id)} data={{ 'data-e': row.id }}>
+                <TableCell>
+                  <b>{row.canonical_name}</b>
+                </TableCell>
+                <TableCell muted>
+                  <span className="flex items-center gap-1.5">
+                    <Swatch colour={swatchOf(colourOf(row.category))} />
+                    {`${row.category} · first ${firstAppearance(row, tagOf)}`}
+                  </span>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
     </div>
   );

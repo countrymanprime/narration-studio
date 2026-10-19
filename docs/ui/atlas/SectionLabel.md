@@ -40,7 +40,6 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/production/ImportReview.tsx`
 - `src/components/production/RecordingCheckReport.tsx`
 - `src/components/production/readiness/ReadinessPanel.tsx`
-- `src/components/project/ProjectPicker.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
 - `src/components/proof/ProofChapterPage.tsx`
@@ -57,8 +56,10 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/settings/BackupsSection.tsx`
 - `src/components/settings/CapabilitySection.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
+- `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
-- `src/components/settings/page/DefinitionsPanel.tsx`
+- `src/components/settings/page/CategoryPane.tsx`
+- `src/components/settings/page/Results.tsx`
 - `src/components/storybible/suggested/row/AcceptedClaims.tsx`
 - `src/components/storybible/suggested/row/SuggestionList.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`

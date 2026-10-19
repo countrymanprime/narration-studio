@@ -623,6 +623,13 @@
     "caption": "Editing - an FX chain chosen for four words: how the item is split around the words"
   },
   {
+    "page": "settings",
+    "state": "recording-sample-output-builtin",
+    "viewport": "desktop",
+    "docName": "settings-sample-output",
+    "caption": "Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound"
+  },
+  {
     "page": "editing",
     "state": "voice-sample-dialog",
     "viewport": "desktop",

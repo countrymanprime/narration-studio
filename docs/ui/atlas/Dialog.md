@@ -39,10 +39,15 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 - `src/components/help/ShortcutSheet.tsx`
 - `src/components/primitives/ConfirmDialog.tsx`
 - `src/components/primitives/WorkDialog.tsx`
+- `src/components/production/ImportChooseDialog.tsx`
+- `src/components/production/ManuscriptImport.tsx`
 - `src/components/project/NewProjectDialog.tsx`
 - `src/components/proof/AuditionDialog.tsx`
+- `src/components/proof/proofOptions/ProofOptions.tsx`
 - `src/components/script/page/tools/select/MarkComposer.tsx`
 - `src/components/script/page/tools/select/MarksDialog.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
+- `src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx`
+- `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`
 - `src/overlay/OverlayHost.tsx`
