@@ -2160,8 +2160,27 @@ export function ProjectRemoveRecent(path: string): $CancellablePromise<string> {
     return $Call.ByID(614385112, path);
 }
 
+/**
+ * ProjectRunningDaw answers {linked, path, name} for the project picker's "REAPER is running with a project linked to <name>"
+ * banner: the recent project, other than the open one, whose linked REAPER file is the project REAPER has open now. It reads
+ * the Heartbeat role (as DawProjectState does), so it answers only while a bridge is up: a launch with no REAPER session has
+ * no heartbeat, and the answer is {linked: false, path: "", name: ""}. The wire schema, golden payloads, wireContracts row and
+ * mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).
+ */
+export function ProjectRunningDaw(): $CancellablePromise<string> {
+    return $Call.ByID(2377859334);
+}
+
 export function ProjectSelectFolder(): $CancellablePromise<string> {
     return $Call.ByID(3945872051);
+}
+
+/**
+ * ProjectSetPinned pins or unpins path in the recent-projects list and returns the updated list, as ProjectRemoveRecent
+ * does. A path that is not in the list changes nothing.
+ */
+export function ProjectSetPinned(path: string, pinned: boolean): $CancellablePromise<string> {
+    return $Call.ByID(1653109655, path, pinned);
 }
 
 /**

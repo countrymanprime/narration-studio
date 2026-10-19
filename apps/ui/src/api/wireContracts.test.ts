@@ -153,6 +153,7 @@ import {
   projectFolderSelectionSchema,
   projectSwitchResultSchema,
   recentProjectsSchema,
+  runningDawProjectSchema,
 } from './schemas/project';
 import {
   creditsAnnouncementsSchema,
@@ -1133,6 +1134,8 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const api = createMockApi({}, { projectFolder: '' });
     expectMatches(recentProjectsSchema, await api.projectRecents(), 'mock recents');
     expectMatches(recentProjectsSchema, await api.removeRecentProject('C:\\Projects\\Voltage-and-the-Undercroft'), 'mock recents after remove');
+    expectMatches(recentProjectsSchema, await api.setProjectPinned('C:\\Projects\\Voltage-and-the-Undercroft', true), 'mock recents after pin');
+    expectMatches(runningDawProjectSchema, await api.projectRunningDaw(), 'mock running DAW project');
     expectMatches(projectFolderSelectionSchema, await api.selectProjectFolder(), 'mock folder selection');
     expectMatches(projectSwitchResultSchema, await api.switchProject('C:/Projects/Other', 'Other'), 'mock switch');
     expectMatches(projectSwitchResultSchema, await api.createProject('C:/Projects/New', 'New'), 'mock create');
@@ -4012,6 +4015,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'switchProject',
       'createProject',
       'removeRecentProject',
+      'setProjectPinned',
+      'projectRunningDaw',
       'linkDawFile',
       'launchDaw',
       'dawCapabilities',

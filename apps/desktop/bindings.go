@@ -414,6 +414,19 @@ func (h *Host) ProjectRemoveRecent(path string) (string, error) {
 	return encodeBinding(entries, err)
 }
 
+// ProjectSetPinned pins or unpins path in the recent-projects list and returns the updated list, as ProjectRemoveRecent
+// does. A path that is not in the list changes nothing.
+func (h *Host) ProjectSetPinned(path string, pinned bool) (string, error) {
+	if h.recents == nil {
+		return encodeBinding([]any{}, nil)
+	}
+	if err := h.recents.SetPinned(path, pinned); err != nil {
+		return "", err
+	}
+	entries, err := h.recents.List()
+	return encodeBinding(entries, err)
+}
+
 func (h *Host) ManuscriptSelectFile() (string, error) {
 	h.mu.RLock()
 	ctx := h.ctx

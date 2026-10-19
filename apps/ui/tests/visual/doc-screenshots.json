@@ -4,7 +4,7 @@
     "state": "picker-empty",
     "viewport": "desktop",
     "docName": "project-picker",
-    "caption": "Choose your project - New project, the recent projects with Open and Remove, and Browse folders"
+    "caption": "Choose your project - New project, the pinned and recent projects with Open, Pin and Remove, and Browse folders"
   },
   {
     "page": "project",
@@ -12,6 +12,13 @@
     "viewport": "desktop",
     "docName": "project-picker-removed",
     "caption": "A removed recent project - the row is gone and the toast offers Undo"
+  },
+  {
+    "page": "project",
+    "state": "picker-daw-running",
+    "viewport": "desktop",
+    "docName": "project-picker-daw-running",
+    "caption": "REAPER is running with a project linked to a recent project - the bar above the list offers Open"
   },
   {
     "page": "production",

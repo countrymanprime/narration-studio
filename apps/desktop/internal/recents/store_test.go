@@ -241,3 +241,68 @@ func TestListDropsEntryWhoseFolderWasDeleted(t *testing.T) {
 		t.Fatalf("entries = %#v, want empty after folder deletion", entries)
 	}
 }
+
+func TestSetPinnedKeepsTheEntryPinnedAcrossTouchAndList(t *testing.T) {
+	store := New(filepath.Join(t.TempDir(), "recent-projects.json"))
+	project := t.TempDir()
+	if err := store.Touch(project, "My Book"); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SetPinned(project, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Touch(project, "My Book"); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := store.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || !entries[0].Pinned {
+		t.Fatalf("entries = %#v, want one pinned entry", entries)
+	}
+	if err := store.SetPinned(project, false); err != nil {
+		t.Fatal(err)
+	}
+	entries, _ = store.List()
+	if entries[0].Pinned {
+		t.Fatalf("entry = %#v, want unpinned", entries[0])
+	}
+}
+
+func TestSetPinnedOnAnUnknownPathIsNotAnError(t *testing.T) {
+	store := New(filepath.Join(t.TempDir(), "recent-projects.json"))
+	if err := store.SetPinned(t.TempDir(), true); err != nil {
+		t.Fatalf("err = %v", err)
+	}
+	if entries, _ := store.List(); len(entries) != 0 {
+		t.Fatalf("entries = %#v, want none", entries)
+	}
+}
+
+func TestACapOnlyDropsUnpinnedEntries(t *testing.T) {
+	store := New(filepath.Join(t.TempDir(), "recent-projects.json"))
+	oldest := t.TempDir()
+	if err := store.Touch(oldest, "Oldest"); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.SetPinned(oldest, true); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < maxEntries+2; i++ {
+		if err := store.Touch(t.TempDir(), "Newer"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	entries, _ := store.List()
+	if len(entries) != maxEntries {
+		t.Fatalf("len = %d, want %d", len(entries), maxEntries)
+	}
+	found := false
+	for _, entry := range entries {
+		found = found || (entry.Name == "Oldest" && entry.Pinned)
+	}
+	if !found {
+		t.Fatal("the pinned oldest entry was dropped by the cap")
+	}
+}

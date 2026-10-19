@@ -1,9 +1,18 @@
 import { z } from 'zod';
-import type { DawLaunchResult, DawLinkResult, ProjectDefaultLocation, ProjectFolderSelection, ProjectSwitchResult, RecentProject } from '../contracts/project';
+import type {
+  DawLaunchResult,
+  DawLinkResult,
+  ProjectDefaultLocation,
+  ProjectFolderSelection,
+  ProjectSwitchResult,
+  RecentProject,
+  RunningDawProject,
+} from '../contracts/project';
 import { listFromNull } from './base';
 
-const recentProjectSchema = z.object({ path: z.string(), name: z.string(), lastOpened: z.string() }) satisfies z.ZodType<RecentProject>;
+const recentProjectSchema = z.object({ path: z.string(), name: z.string(), lastOpened: z.string(), pinned: z.boolean() }) satisfies z.ZodType<RecentProject>;
 export const recentProjectsSchema = listFromNull(recentProjectSchema);
+export const runningDawProjectSchema = z.object({ linked: z.boolean(), path: z.string(), name: z.string() }) satisfies z.ZodType<RunningDawProject>;
 export const projectFolderSelectionSchema = z.object({ selected: z.boolean(), path: z.string().optional() }) satisfies z.ZodType<ProjectFolderSelection>;
 /** `reason` is an empty string when the switch worked. */
 export const projectSwitchResultSchema = z.object({ switched: z.boolean(), reason: z.string().optional() }) satisfies z.ZodType<ProjectSwitchResult>;
