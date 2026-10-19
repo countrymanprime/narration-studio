@@ -56,6 +56,14 @@ export function AssetsList(): $CancellablePromise<string> {
 }
 
 /**
+ * AssetsOpenFolder shows the folder the approved assets are kept in (the "Stored in" path AssetsList reports) in the file manager. It takes
+ * no path: the folder is the host's own, so the page cannot name another.
+ */
+export function AssetsOpenFolder(): $CancellablePromise<string> {
+    return $Call.ByID(2617467899);
+}
+
+/**
  * AssetsRemove deletes one asset. It refuses while the asset is downloading, and touches nothing else: not another asset, not a setting,
  * not a project.
  */
