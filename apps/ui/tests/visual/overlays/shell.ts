@@ -6,7 +6,7 @@ import { clickCase, contextMenuCase, hoverCase, type OverlayCase } from '../help
 //
 // - `shellPageCases` run on every page: the content area's context menu (it opens wherever the pointer is, over the page's own
 //   content) and the rail that opens over the page below 1360 px.
-// - `shellChromeCases` run on `SHELL_CHROME_PAGES` only: the top bar's hints, Jump to, History and the navigation drawer. They are
+// - `shellChromeCases` run on `SHELL_CHROME_PAGES` only: the top bar's hints, Jump to, History (opened from the jump menu) and the navigation drawer. They are
 //   anchored to the top bar, which AppShell draws once for every page, and they are portalled to the body at a layer of the one scale
 //   (styles.css: hints 1000, dialogs and the drawer 60). Nothing a page owns sits at or above those layers
 //   (shellOverlayScope.test.ts reads the sources and fails if one does), so the page under them cannot change what is on top of them.
@@ -34,18 +34,21 @@ export const shellPageCases: OverlayCase[] = [
 // A top-bar hint does not move with the content, so one pass over content scrolled to the end (where a sticky footer or table header
 // sits under the hint) stands for the halfway one too.
 export const shellChromeCases: OverlayCase[] = [
-  hoverCase('hint on Back', (page) => header(page).getByRole('group', { name: 'Page history' }).locator('xpath=./span').first(), {
-    viewports: atLeastMd,
-    scrolled: 'end',
-  }),
+  hoverCase('hint on Switch project', (page) => header(page).getByRole('button', { name: /, switch project$/ }), { scrolled: 'end' }),
   hoverCase('hint on Jump to or run', (page) => header(page).getByRole('button', { name: 'Jump to or run…' }), { scrolled: 'end' }),
-  hoverCase('hint on Zoom in', (page) => header(page).getByRole('button', { name: 'Zoom in' }), { viewports: atLeastMd, scrolled: 'end' }),
-  hoverCase('hint on Undo', (page) => header(page).getByRole('group', { name: 'Undo history' }).locator('xpath=./span').first(), {
-    viewports: atLeastMd,
-    scrolled: 'end',
-  }),
   clickCase('Jump to or run', 'dialog', (page) => header(page).getByRole('button', { name: 'Jump to or run…' })),
-  clickCase('History', 'dialog', (page) => header(page).getByRole('button', { name: 'History', exact: true }), { viewports: atLeastMd }),
+  {
+    // The History panel has no header button now: it opens from the jump menu's command, so the guard opens it the way a narrator does.
+    name: 'History',
+    kind: 'dialog',
+    viewports: atLeastMd,
+    open: async (page) => {
+      await header(page).getByRole('button', { name: 'Jump to or run…' }).click();
+      await page.getByRole('combobox', { name: 'Jump menu' }).fill('> open the undo history');
+      await page.getByRole('option', { name: /^Open the undo history/ }).click();
+      await page.getByRole('dialog', { name: 'Undo history' }).waitFor();
+    },
+  },
   {
     name: 'navigation drawer',
     kind: 'drawer',

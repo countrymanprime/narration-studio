@@ -7,10 +7,12 @@ import { REC, mountSchedule, stored, toasts, installKit } from './scheduleKit.te
 
 installKit();
 
-const dueField = () => screen.findByRole('textbox', { name: 'Delivery due' }) as Promise<HTMLInputElement>;
+const dueField = () => screen.findByLabelText('Delivery due') as Promise<HTMLInputElement>;
+// The native date field commits a whole, real date as it is written; emptying it commits on Enter. Leaving it then drops anything part-written.
 const commit = async (text: string) => {
   const field = await dueField();
   fireEvent.change(field, { target: { value: text } });
+  if (text === '') fireEvent.keyDown(field, { key: 'Enter' });
   fireEvent.blur(field);
 };
 const subtitle = () => document.querySelector('h1')?.parentElement?.textContent ?? '';
@@ -115,23 +117,37 @@ describe('typing the due date', () => {
     expect(calls).toHaveBeenCalledWith('2026-11-05', 250);
   });
 
+  // The native field holds only dates it can draw: the browser drops an impossible day, the wrong order, words, emoji and right-to-left text to an empty field,
+  // and a year before 1000 (typing 2026 passes through 0002, 0020 and 0202) is waited out. None of them is sent, and leaving the field puts the stored date back.
   it.each([
-    ['an impossible day', '2026-02-30', /2026-02-30 is not a real date/],
-    ['month 13', '2026-13-01', /not a real date/],
-    ['the wrong order', '10/14/2026', /YYYY-MM-DD/],
-    ['words', 'tomorrow', /YYYY-MM-DD/],
-    ['emoji', '📅', /YYYY-MM-DD/],
-    ['right-to-left text', 'غدا', /YYYY-MM-DD/],
-    ['a minus sign', '-001-01-01', /YYYY-MM-DD/],
-    ['year zero', '0000-01-01', /not a real date/],
-    ['the year 150', '0150-01-01', /not a real date/],
-  ])('refuses %s with a sentence and sends nothing', async (_name, text, sentence) => {
+    ['an impossible day', '2026-02-30'],
+    ['month 13', '2026-13-01'],
+    ['the wrong order', '10/14/2026'],
+    ['words', 'tomorrow'],
+    ['emoji', '📅'],
+    ['right-to-left text', 'غدا'],
+    ['a minus sign', '-001-01-01'],
+    ['year zero', '0000-01-01'],
+    ['the year 150', '0150-01-01'],
+  ])('does not send %s, and puts the stored date back', async (_name, text) => {
     const calls = vi.fn();
     await mountSchedule({ wrap: (base) => ({ setProductionDeadline: async (d, a) => (calls(d, a), base.setProductionDeadline(d, a)) }) });
-    await commit(text);
-    await waitFor(() => expect(toasts().join(' ')).toMatch(sentence));
+    const field = await dueField();
+    fireEvent.change(field, { target: { value: text } });
+    fireEvent.blur(field);
     expect(calls).not.toHaveBeenCalled();
+    expect(toasts()).toEqual([]);
     expect((await dueField()).value).toBe('2026-10-31');
+  });
+
+  it('does not clear the due date when the field is emptied and left without Enter', async () => {
+    const calls = vi.fn();
+    await mountSchedule({ wrap: (base) => ({ setProductionDeadline: async (d, a) => (calls(d, a), base.setProductionDeadline(d, a)) }) });
+    const field = await dueField();
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.blur(field);
+    expect(calls).not.toHaveBeenCalled();
+    expect((await stored()).deadline).toBe('2026-10-31');
   });
 
   it('accepts a leap day and a day across a daylight-saving change as whole calendar days', async () => {
@@ -161,7 +177,7 @@ describe('typing the due date', () => {
     expect((await dueField()).value).toBe('2026-10-31');
   });
 
-  it('writes once when Enter and then leaving the field both commit', async () => {
+  it('writes once when the date is set and then Enter and leaving the field follow', async () => {
     const calls = vi.fn();
     await mountSchedule({ wrap: (base) => ({ setProductionDeadline: async (d, a) => (calls(d, a), base.setProductionDeadline(d, a)) }) });
     const field = await dueField();

@@ -1,7 +1,4 @@
-# The zoom group, at the app's default boot level of 100%:
-# Zoom out and the readout/reset are both disabled there; Zoom in is not. Its own tree at a different level (both
-# enabled) is exercised by the visual suite, not pinned here.
-- group "Zoom":
-    - button "Zoom out" [disabled]
-    - button /Reset zoom to \d+%, now \d+%/ [disabled]
-    - button "Zoom in"
+# The header with the zoom chip, at ?mockZoom=125: the chip sits between the jump button and the engine chip and names the level.
+- button /Jump to or run/
+- button /Zoom \d+%.+jump menu/
+- button /REAPER.+/

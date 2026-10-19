@@ -12,14 +12,12 @@ type Props = {
   /** The record capability, from `DawClient.capabilities`: its own sentence sits beside Open Booth, which stays open to read and prepare. No branch on which DAW. */
   record: { ok: boolean; reason: string };
   onGo: (target: GoTarget, chapterId?: string) => void;
-  /** Review the chapters a new manuscript changed. Absent where the host reports none. */
-  onReviewChanges?: () => void;
   /** The stage timer. A timer is started from the item of the chapter being recorded and hidden while one runs. */
   timer: { running: boolean; starting?: string; onStart: (chapterId: string, stage: ChapterStatus) => void };
 };
 
 /** The status each item is, so its disc is drawn in the tone that status has everywhere: recording is in progress, a pickup session is an open pickup (D10), a failed check fails, a changed chapter is changed. */
-const DISC: Record<string, StatusId> = { rec: 'in_progress', pick: 'open_pickup', fail: 'fail', flags: 'changed' };
+const DISC: Record<string, StatusId> = { rec: 'in_progress', pick: 'open_pickup', fail: 'fail' };
 
 function Item({ icon, status, title, sub, children }: { icon: string; status: keyof typeof DISC; title: ReactNode; sub: ReactNode; children: ReactNode }) {
   const tone = statusTone(DISC[status]);
@@ -45,7 +43,7 @@ function Item({ icon, status, title, sub, children }: { icon: string; status: ke
   );
 }
 
-function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'inputs'> & { item: NextItem }) {
+function Rendered({ item, record, onGo, timer }: Omit<Props, 'inputs'> & { item: NextItem }) {
   switch (item.kind) {
     case 'rec': {
       const left =
@@ -95,30 +93,17 @@ function Rendered({ item, record, onGo, onReviewChanges, timer }: Omit<Props, 'i
           </Button>
         </Item>
       );
-    case 'flags':
-      return (
-        <Item
-          icon="!"
-          status="flags"
-          title={`${item.count} ${item.count > 1 ? 'chapters' : 'chapter'} changed by the new manuscript`}
-          sub={item.names.join(' · ')}
-        >
-          <Button variant="secondary" size="sm" onClick={onReviewChanges}>
-            Review changes
-          </Button>
-        </Item>
-      );
   }
 }
 
 /** What to do next, ranked by risk to the due date (the mock's NextUp). */
-export function NextUp({ inputs, record, onGo, onReviewChanges, timer }: Props) {
-  const items = rankNextUp(inputs).filter((item) => item.kind !== 'flags' || onReviewChanges);
+export function NextUp({ inputs, record, onGo, timer }: Props) {
+  const items = rankNextUp(inputs);
   if (items.length === 0) return <p className="py-5 text-center text-[0.875rem] text-[var(--text-muted)]">Nothing needs you right now.</p>;
   return (
     <ol aria-label="Next up">
       {items.map((item) => (
-        <Rendered key={item.kind} item={item} record={record} onGo={onGo} onReviewChanges={onReviewChanges} timer={timer} />
+        <Rendered key={item.kind} item={item} record={record} onGo={onGo} timer={timer} />
       ))}
     </ol>
   );

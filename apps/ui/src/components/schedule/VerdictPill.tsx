@@ -1,7 +1,6 @@
 import { statusLabel, statusTone, type StatusId } from '../../kinds/statusTone';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { addDays, daysText, fmtDY } from './dates';
-import { PACE } from './estimates';
 import { deadlineTone, type Calc, type Tone, type Verdict } from './progress';
 
 type Kind = 'ok' | 'warn' | 'bad';
@@ -18,7 +17,7 @@ const KIND: Record<Kind, { status: StatusId; glyph: string }> = {
 /** The words after the verdict: when the work is done at the pace, and what the due date needs. */
 function detail(k: Calc, today: Date, due: Date): string {
   const finish = fmtDY(addDays(today, Math.ceil(k.days)), today);
-  if (k.verdict === 'ok') return `at ${PACE} h/day done ${finish}`;
+  if (k.verdict === 'ok') return `at current pace done ${finish}`;
   const needs = `done ${finish}, due ${fmtDY(due, today)}`;
   // Once the due date is today or past, no daily pace can reach it: say how late instead of a pace of Infinity.
   if (!Number.isFinite(k.reqPace)) return k.daysLeft !== null && k.daysLeft < 0 ? `${needs} · ${daysText(k.daysLeft).toLowerCase()}` : `${needs} · due today`;

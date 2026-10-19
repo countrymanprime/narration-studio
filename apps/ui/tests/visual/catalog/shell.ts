@@ -3,17 +3,15 @@ import type { StateEntry } from '../lib/types';
 import { LAYOUT_BANDS, REFLOW } from './shared';
 
 export const shellStates: StateEntry[] = [
-  // The header's page history: the default states
-  // already show both Back and Forward disabled at the first page, so that needs no row of its own. Captured
-  // at the reflow width too (docs/design/design-system.md's declared extension): the header at 390px is what
-  // the narrator sees at high zoom, and no shell state was captured there before.
+  // Back and Forward are jump-menu commands now (the header draws neither): the first-page states show the menu with both off, so the
+  // rows here are the menu after a move. Captured at the reflow width too (docs/design/design-system.md's declared extension).
   {
     page: 'shell',
-    state: 'history-enabled',
-    description: 'Header, after one navigation (Story Bible): Back enabled, focused and its tooltip shown; Forward disabled',
+    state: 'jump-menu-back-enabled',
+    description: 'Jump menu typed "> back", after one navigation (Story Bible): Back on, with its key',
     ...REFLOW,
   },
-  { page: 'shell', state: 'history-forward', description: 'Header, after a Back: both Back and Forward enabled', ...REFLOW },
+  { page: 'shell', state: 'jump-menu-forward-enabled', description: 'Jump menu typed "> forward", after a Back: Forward on', ...REFLOW },
   // The engine chip, replacing the REAPER pill: its three
   // REAPER states are the existing default/`daw-not-linked`/mismatch captures of other pages' headers, so only the
   // two states nothing else reaches get their own row here.
@@ -35,13 +33,24 @@ export const shellStates: StateEntry[] = [
     },
     ...REFLOW,
   },
-  // The zoom group: the default states already show it at 100% with Zoom out disabled and the
-  // readout itself disabled, so only a non-100% level gets its own row. Reflow (docs/design/design-system.md's declared
-  // extension): the header at 390px is what the narrator sees at high real zoom.
+  // The zoom chip: the default states show no chip (zoom is 100%), so a non-100% level gets its own row, and the chip's press its own. Reflow
+  // (docs/design/design-system.md's declared extension): the header at 390px is what the narrator sees at high real zoom.
   {
     page: 'shell',
     state: 'zoom-level',
-    description: 'Header zoom group at 125% (?mockZoom=125): the readout enabled and reset-able, Zoom out enabled',
+    description: 'Header zoom chip at 125% (?mockZoom=125), between the Jump button and the engine chip',
+    ...REFLOW,
+  },
+  {
+    page: 'shell',
+    state: 'zoom-menu-open',
+    description: 'The zoom chip pressed at 125%: the jump menu opened at its Zoom commands, Reset zoom on',
+    ...REFLOW,
+  },
+  {
+    page: 'shell',
+    state: 'switch-project-open',
+    description: 'The header project name pressed: the project picker over the open project, with Back to it',
     ...REFLOW,
   },
   // The three layers the shell mounts (SN-R8): the jump menu from the header's button, the menu on empty space in the page, and the
@@ -78,7 +87,7 @@ export const shellStates: StateEntry[] = [
   {
     page: 'shell',
     state: 'history-panel-open',
-    description: 'The undo history slide-over from the header History button, with an empty journal',
+    description: 'The undo history slide-over from the jump menu\'s "Open the undo history" command, with an empty journal',
     ...LAYOUT_BANDS,
   },
 ];

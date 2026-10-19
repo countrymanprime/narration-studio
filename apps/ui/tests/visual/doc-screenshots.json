@@ -53,7 +53,7 @@
     "state": "on-pace",
     "viewport": "desktop",
     "docName": "production-home",
-    "caption": "Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header"
+    "caption": "Production - the figures, the chapter pipeline and Next up, with a stage timer running in the page header"
   },
   {
     "page": "script",
@@ -623,6 +623,13 @@
     "caption": "Editing - an FX chain chosen for four words: how the item is split around the words"
   },
   {
+    "page": "settings",
+    "state": "recording-sample-output-builtin",
+    "viewport": "desktop",
+    "docName": "settings-sample-output",
+    "caption": "Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound"
+  },
+  {
     "page": "editing",
     "state": "voice-sample-dialog",
     "viewport": "desktop",
@@ -775,6 +782,13 @@
     "viewport": "desktop",
     "docName": "nav-jump-menu",
     "caption": "The jump menu open over the page: type to find a page, a chapter or a command"
+  },
+  {
+    "page": "shell",
+    "state": "zoom-level",
+    "viewport": "desktop",
+    "docName": "nav-zoom-chip",
+    "caption": "The header at 125% zoom: the chip between the jump button and the engine chip"
   },
   {
     "page": "production",

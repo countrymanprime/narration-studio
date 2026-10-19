@@ -16,7 +16,7 @@ Storybook title: `Primitives/ProgressBar`. Source: `src/components/primitives/Pr
 
 ## Used by
 
-- `src/components/assets/LocalAssetRow.tsx`
+- `src/components/booth/side/VoicesNearby.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/editing/EditingCheckPanel.tsx`
 - `src/components/master/DiagnosticsSection.tsx`
@@ -30,4 +30,7 @@ Storybook title: `Primitives/ProgressBar`. Source: `src/components/primitives/Pr
 - `src/components/proof/checkcard/CheckCard.tsx`
 - `src/components/recordingcheck/RunningView.tsx`
 - `src/components/settings/analysis/ToolRow.tsx`
+- `src/components/settings/models/AssetRow.tsx`
+- `src/components/settings/row/AssetNote.tsx`
 - `src/components/storybible/suggested/panel/ScanButton.tsx`
+- `src/components/voicesamples/SamplePlayButton.tsx`

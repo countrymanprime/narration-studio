@@ -712,6 +712,16 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: 'project',
       effectiveSource: 'repo_default',
     },
+    {
+      key: 'output_device',
+      label: 'Where voice samples play',
+      kind: 'text',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '',
+      effectiveSource: 'hardcoded',
+    },
   ],
   TranscriptCompare: [
     choice('model_size', 'Default Whisper model', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'small'),

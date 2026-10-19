@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/voicesamples/audioOutputs.ts#1':
+    'Putting the sample player back on the system default failed after the chosen output could not be used: the element stays where it was, the caller already says the sample is not on the chosen output, and the sample still plays.',
   'src/components/editing/voicesample/sampleMarksContext.tsx#1':
     'The names of the characters the voice-sample dots are read for: a failed read leaves the names as they were, and a dot with no names is called "this character" and still plays. The dots are an extra on the page, and the Story Bible says what failed.',
   'src/components/voicesamples/samplePlayerStore.ts#1':
@@ -90,12 +92,10 @@ export const SILENT_CATCHES: Record<string, string> = {
     'onRemoveFromRecording already shows the failure (its own toast, in useChapterTools) before rethrowing; this catch only stops that rejection from going unhandled and skips closing the confirm, so the narrator can retry.',
   'src/api/wailsClient.ts#1': 'The diagnostic report itself: a report that fails must not raise a second error over the one being reported.',
   'src/api/wailsClient.ts#2': 'The host binding is missing (not running inside the desktop app), so there is nothing to report to.',
-  'src/App.tsx#1':
-    "The header's running-timer chip on first load: an unreadable overview just leaves the chip hidden until the Production home reads one and says why there.",
-  'src/App.tsx#2': 'A diagnostic report while showing the startup error; it must not throw over it.',
-  'src/App.tsx#3': 'The window error handler reports a diagnostic; a failing report must not raise another window error.',
-  'src/App.tsx#4': 'The unhandled-rejection handler reports a diagnostic; a failing report must not raise another rejection.',
-  'src/App.tsx#5': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
+  'src/App.tsx#1': 'A diagnostic report while showing the startup error; it must not throw over it.',
+  'src/App.tsx#2': 'The window error handler reports a diagnostic; a failing report must not raise another window error.',
+  'src/App.tsx#3': 'The unhandled-rejection handler reports a diagnostic; a failing report must not raise another rejection.',
+  'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
   'src/components/storybible/entryList.ts#1':
     "Saving the Story Bible list's sort choice to localStorage: with storage unavailable the choice lasts until the page closes, and the list is already sorted as asked.",
   'src/hooks/useChapterSync.ts#1':
@@ -125,12 +125,12 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/proof/frame/WaveformWindow.tsx#2':
     'Pointer capture is not available in every environment; the edge handle still follows the pointer events it gets without it.',
   'src/studio/commands/bookmarks.ts#1': 'Reloads the bookmarks slot after a change; the store records a failed load and the change that was made stands.',
-  'src/App.tsx#6':
+  'src/App.tsx#5':
     "The jump menu's chapter list (the store's chapters slot): a failed read keeps the last list, every page still shows, and the pages that need the chapters report the real error.",
-  'src/App.tsx#7': 'Best effort recovery for a popstate the app did not start: a reset that fails leaves the finished results in place, which is harmless.',
-  'src/App.tsx#8':
+  'src/App.tsx#6': 'Best effort recovery for a popstate the app did not start: a reset that fails leaves the finished results in place, which is harmless.',
+  'src/App.tsx#7':
     'Best effort when leaving a Proof chapter view with a compare run through the nav: a reset that fails leaves the finished results in place, which is harmless.',
-  'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
+  'src/App.tsx#8': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
     'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',

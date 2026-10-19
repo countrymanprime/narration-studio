@@ -9,8 +9,7 @@ import type { DawMockSeed } from '../../api/dawMock';
 
 afterEach(cleanup);
 
-const noHistory = { canGoBack: false, canGoForward: false, back: () => {}, forward: () => {} };
-const defaultZoom = { percent: 100, canZoomOut: false, canZoomIn: true, zoomIn: () => {}, zoomOut: () => {}, reset: () => {}, announcement: '' };
+const defaultZoom = { percent: 100, announcement: '' };
 
 function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}, daw: DawMockSeed = {}) {
   const api = createMockApi({}, { daw });
@@ -24,11 +23,10 @@ function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}, daw: D
           hasManuscript
           dawFileLinked
           onOpenEnginePanel={() => {}}
-          history={noHistory}
           zoom={defaultZoom}
           onOpenJump={() => {}}
-          onOpenHistory={() => {}}
-          undo={{ disabledReason: 'Nothing to undo', run: () => {} }}
+          onOpenZoomMenu={() => {}}
+          onSwitchProject={() => {}}
           {...props}
         >
           <div>page content</div>
@@ -44,7 +42,7 @@ describe('AppShell on the Booth', () => {
     expect(screen.queryByRole('navigation')).toBeNull();
     expect(screen.queryByRole('banner')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Open navigation' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Zoom in' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /, switch project$/ })).toBeNull();
     expect(within(screen.getByRole('main')).getByText('page content')).toBeTruthy();
   });
 
@@ -57,7 +55,7 @@ describe('AppShell on the Booth', () => {
   it('keeps the rail and header on every other page', () => {
     renderShell({ pathname: '/script' });
     expect(screen.getAllByRole('button', { name: 'Booth' }).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: 'Zoom in' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /, switch project$/ })).toBeTruthy();
   });
 });
 
@@ -104,11 +102,10 @@ describe('AppShell nav gating', () => {
             hasManuscript={false}
             dawFileLinked
             onOpenEnginePanel={() => {}}
-            history={noHistory}
             zoom={defaultZoom}
             onOpenJump={() => {}}
-            onOpenHistory={() => {}}
-            undo={{ disabledReason: 'Nothing to undo', run: () => {} }}
+            onOpenZoomMenu={() => {}}
+            onSwitchProject={() => {}}
           >
             <div>page content</div>
           </AppShell>
@@ -334,100 +331,84 @@ describe('AppShell engine chip', () => {
   });
 });
 
-// Back and Forward at the left of the header.
-describe('AppShell header history controls', () => {
-  it('are disabled with a reason when there is nowhere to go', () => {
-    renderShell({ history: noHistory });
-    expect((screen.getByRole('button', { name: 'Back' }) as HTMLButtonElement).getAttribute('aria-disabled')).toBe('true');
-    expect((screen.getByRole('button', { name: 'Forward' }) as HTMLButtonElement).getAttribute('aria-disabled')).toBe('true');
+// The Studio Next mock's top bar draws the crumb, the project name, the jump button, a zoom chip off 100% and the engine chip, and nothing else.
+// Everything the header once carried is in the jump menu on its key (JumpMenu.test.tsx, App.test.tsx).
+describe('AppShell header', () => {
+  it('draws the old controls nowhere: no Back, Forward, Undo, History, zoom steps or zoom readout button', () => {
+    renderShell({ zoom: { percent: 125, announcement: '' } });
+    const header = screen.getByRole('banner');
+    for (const name of ['Back', 'Forward', 'Undo', 'History', 'Zoom in', 'Zoom out', /Reset zoom/]) {
+      expect(within(header).queryByRole('button', { name })).toBeNull();
+    }
+    expect(within(header).queryByRole('group', { name: 'Page history' })).toBeNull();
+    expect(within(header).queryByRole('group', { name: 'Undo history' })).toBeNull();
+    expect(within(header).queryByRole('group', { name: 'Zoom' })).toBeNull();
   });
 
-  it('calls back()/forward() only when enabled', () => {
-    const back = vi.fn();
-    const forward = vi.fn();
-    renderShell({ history: { canGoBack: true, canGoForward: true, back, forward } });
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
-    expect(back).toHaveBeenCalledTimes(1);
-    expect(forward).toHaveBeenCalledTimes(1);
+  it('draws the project name as a "Switch project" button after the Project crumb, and it opens the picker', () => {
+    const onSwitchProject = vi.fn();
+    renderShell({ onSwitchProject });
+    const header = screen.getByRole('banner');
+    const project = within(header).getByRole('button', { name: 'Alice, switch project' });
+    expect(project.textContent).toBe('Alice');
+    expect(within(header).getByText('Project').compareDocumentPosition(project) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(project);
+    expect(onSwitchProject).toHaveBeenCalledTimes(1);
   });
 
-  it('does not call back() when disabled', () => {
-    const back = vi.fn();
-    renderShell({ history: { ...noHistory, back } });
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(back).not.toHaveBeenCalled();
-  });
-});
-
-// docs/guides/using-the-app/navigation.md#zoom: the zoom group, after a running timer chip and
-// before the engine chip.
-describe('AppShell header zoom group', () => {
-  it('is a "Zoom" group with the level readout between zoom out and zoom in', () => {
-    renderShell({ zoom: { ...defaultZoom, percent: 125, canZoomOut: true } });
-    const group = screen.getByRole('group', { name: 'Zoom' });
-    expect(within(group).getByRole('button', { name: 'Zoom out' })).toBeTruthy();
-    expect(within(group).getByRole('button', { name: 'Zoom in' })).toBeTruthy();
-    expect(within(group).getByText('125%')).toBeTruthy();
-  });
-
-  it('zoom out is disabled at 100%, matching canZoomOut', () => {
-    renderShell({ zoom: defaultZoom });
-    expect(screen.getByRole('button', { name: 'Zoom out' }).getAttribute('aria-disabled')).toBe('true');
-  });
-
-  it('zoom in is disabled at the 200% ceiling, matching canZoomIn', () => {
-    renderShell({ zoom: { ...defaultZoom, percent: 200, canZoomOut: true, canZoomIn: false } });
-    expect(screen.getByRole('button', { name: 'Zoom in' }).getAttribute('aria-disabled')).toBe('true');
-  });
-
-  it('calls zoomIn/zoomOut only when enabled', () => {
-    const zoomIn = vi.fn();
-    const zoomOut = vi.fn();
-    renderShell({ zoom: { ...defaultZoom, percent: 125, canZoomOut: true, zoomIn, zoomOut } });
-    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }));
-    expect(zoomIn).toHaveBeenCalledTimes(1);
-    expect(zoomOut).toHaveBeenCalledTimes(1);
-  });
-
-  it('the readout is disabled at exactly 100% and calls reset() when not', () => {
-    renderShell({ zoom: defaultZoom });
-    const atDefault = screen.getByRole('button', { name: /Reset zoom to 100%/ });
-    expect(atDefault.getAttribute('aria-disabled')).toBe('true');
-    cleanup();
-
-    const reset = vi.fn();
-    renderShell({ zoom: { ...defaultZoom, percent: 125, canZoomOut: true, reset } });
-    const enabled = screen.getByRole('button', { name: 'Reset zoom to 100%, now 125%' });
-    expect(enabled.getAttribute('aria-disabled')).toBeNull();
-    fireEvent.click(enabled);
-    expect(reset).toHaveBeenCalledTimes(1);
-  });
-
-  it('announces a debounced level change politely', () => {
-    renderShell({ zoom: { ...defaultZoom, percent: 125, canZoomOut: true, announcement: 'Zoom 125%' } });
-    expect(screen.getByText('Zoom 125%')).toBeTruthy();
-  });
-});
-
-// The running-timer chip sits right-aligned before the engine chip, and only while a timer runs.
-describe('AppShell running-timer chip', () => {
-  it('shows no timer chip when no timer runs', () => {
+  it('draws the folder icon beside the project name nowhere', () => {
     renderShell();
-    expect(screen.queryByRole('timer')).toBeNull();
+    expect(screen.getByRole('banner').querySelector('[data-icon="folder"]')).toBeNull();
   });
 
-  it('shows the running timer between the project name and the engine chip', () => {
-    const startedAt = new Date(Date.now() - 65_000).toISOString();
-    renderShell({ daw: 'REAPER', timer: { startedAt, chapterTitle: 'Chapter 7', stage: 'recording' } });
-    const chip = screen.getByRole('timer', { name: /^Timer running on Chapter 7, Recording: 0:01:0\d$/ });
-    expect(chip.textContent).toMatch(/^0:01:0\d· timer on Chapter 7$/);
-    const header = chip.closest('header')!;
-    const order = [within(header).getByText('Project'), chip, within(header).getByRole('button', { name: /^REAPER: / })];
+  it('orders the header: crumb, project, jump button, zoom chip, engine chip', () => {
+    renderShell({ daw: 'REAPER', zoom: { percent: 125, announcement: '' } });
+    const header = screen.getByRole('banner');
+    const order = [
+      within(header).getByText('Project'),
+      within(header).getByRole('button', { name: /, switch project$/ }),
+      within(header).getByRole('button', { name: /Jump to or run/ }),
+      within(header).getByRole('button', { name: /^Zoom 125%/ }),
+      within(header).getByRole('button', { name: /^REAPER: / }),
+    ];
     for (let i = 1; i < order.length; i += 1) {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
+  });
+});
+
+// The mock's `zoomchip`: drawn only while zoom is not 100%, and it opens the jump menu at the zoom commands.
+describe('AppShell zoom chip', () => {
+  it('is not drawn at exactly 100%', () => {
+    renderShell({ zoom: defaultZoom });
+    expect(screen.queryByRole('button', { name: /^Zoom \d+%/ })).toBeNull();
+  });
+
+  it.each([50, 90, 110, 125, 200])('is drawn at %i% with the level, and opens the zoom commands', (percent) => {
+    const onOpenZoomMenu = vi.fn();
+    renderShell({ zoom: { percent, announcement: '' }, onOpenZoomMenu });
+    const chip = screen.getByRole('button', { name: `Zoom ${percent}%: change in the jump menu` });
+    expect(chip.textContent).toBe(`${percent}%`);
+    fireEvent.click(chip);
+    expect(onOpenZoomMenu).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the polite live region mounted at 100% so the return to 100% is announced', () => {
+    renderShell({ zoom: { percent: 100, announcement: 'Zoom 100%' } });
+    expect(screen.getByText('Zoom 100%').getAttribute('aria-live')).toBe('polite');
+  });
+
+  it('announces a debounced level change politely', () => {
+    renderShell({ zoom: { percent: 125, announcement: 'Zoom 125%' } });
+    expect(screen.getByText('Zoom 125%').getAttribute('aria-live')).toBe('polite');
+  });
+});
+
+// The running timer left the header: it is the Production page's chip beside Stop timer (pipeline.test.tsx, TimerChip.test.tsx).
+describe('AppShell running-timer chip', () => {
+  it('draws no timer chip in the header', () => {
+    renderShell();
+    expect(screen.queryByRole('timer')).toBeNull();
   });
 });
 
@@ -455,7 +436,7 @@ describe('AppShell rail', () => {
   });
 });
 
-describe('AppShell header: jump, undo and history', () => {
+describe('AppShell header: jump', () => {
   it('opens the jump menu from the "Jump to or run…" button, which shows the key', () => {
     const onOpenJump = vi.fn();
     renderShell({ onOpenJump });
@@ -465,32 +446,8 @@ describe('AppShell header: jump, undo and history', () => {
     expect(onOpenJump).toHaveBeenCalledTimes(1);
   });
 
-  it('opens the history panel from the History button', () => {
-    const onOpenHistory = vi.fn();
-    renderShell({ onOpenHistory });
-    fireEvent.click(screen.getByRole('button', { name: 'History' }));
-    expect(onOpenHistory).toHaveBeenCalledTimes(1);
-  });
-
-  it('disables Undo with the reason when the journal is empty, and keeps it focusable', () => {
-    const run = vi.fn();
-    renderShell({ undo: { disabledReason: 'Nothing to undo', run } });
-    const undo = screen.getByRole('button', { name: 'Undo' });
-    expect(undo.getAttribute('aria-disabled')).toBe('true');
-    fireEvent.click(undo);
-    expect(run).not.toHaveBeenCalled();
-  });
-
-  it('runs Undo when the journal has an entry', () => {
-    const run = vi.fn();
-    renderShell({ undo: { run } });
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    expect(run).toHaveBeenCalledTimes(1);
-  });
-
   it('draws none of these on the Booth', () => {
     renderShell({ pathname: '/booth' });
-    expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
     expect(screen.queryByRole('button', { name: /Jump to or run/ })).toBeNull();
   });
 });

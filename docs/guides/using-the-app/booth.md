@@ -149,7 +149,7 @@ pill it cannot vouch for. Another project opened in REAPER mid-take does not sto
 While a take runs, Record becomes **Stop**, a **REC** pill shows beside the setup chip and the timer counts. The timer is the
 clock's: a window that slept or sat in the background shows the true time when you look at it again. A question that holds the
 reading ("Stop recording?", a menu) does not stop the DAW: the pill then says **REC · reading paused** and the timer goes on. The
-chapter cannot be changed until you stop, and the chapter arrows and the chapter list say so when you hover or focus them. When listening reaches the last word of the chapter and stops, the take stops with it and a message says
+chapter cannot be changed until you stop, and the chapter arrows and the chapter list say so when you hover or focus them. A screen reader hears nothing when a take starts, so the Booth never speaks into an open microphone (turn on **Start tone** in [Settings](settings.md) for a beep before each take); once the take stops it says "Stopped. Recorded 00:42." When listening reaches the last word of the chapter and stops, the take stops with it and a message says
 **Take saved**. Reading on past the end keeps the take running.
 
 **R** punches and rolls from the word you are on: the DAW plays in from a little before it and records from there, keeping the

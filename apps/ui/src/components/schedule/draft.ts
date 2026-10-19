@@ -28,7 +28,7 @@ export const blankDraft = (): MilestoneDraft => ({
 });
 
 export const MISSING_NAME = 'Give the milestone a name.';
-export const MISSING_DATE = 'Give the milestone a due date, written YYYY-MM-DD.';
+export const MISSING_DATE = 'Give the milestone a due date.';
 /** The most the host keeps of a milestone's name and note (the mock mirrors them), counted in characters. */
 const MAX_NAME = 200;
 const MAX_NOTE = 2000;

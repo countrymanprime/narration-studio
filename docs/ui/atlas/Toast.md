@@ -17,8 +17,6 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 ## Used by
 
 - `src/App.tsx`
-- `src/components/assets/LocalAssetRow.tsx`
-- `src/components/assets/LocalAssets.tsx`
 - `src/components/booth/passagemap/usePassageMapWriter.ts`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
@@ -35,6 +33,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/production/readiness/openReadiness.tsx`
 - `src/components/production/useChapterSyncToast.ts`
 - `src/components/production/useChapterTools.tsx`
+- `src/components/project/ProjectPicker.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/ProofChapterPage.tsx`
@@ -44,18 +43,14 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/script/page/ScriptPage.tsx`
 - `src/components/series/SeriesTab.tsx`
 - `src/components/settings/CreditsPanel.tsx`
-- `src/components/settings/DawCatalogPanel.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
 - `src/components/settings/ManuscriptSection.tsx`
-- `src/components/settings/OnlineDictionaryPanel.tsx`
 - `src/components/settings/RetailSamplePanel.tsx`
-- `src/components/settings/page/DawPanel.tsx`
-- `src/components/settings/page/LocalModelCard.tsx`
 - `src/components/settings/page/ProjectDataPanel.tsx`
-- `src/components/settings/page/RecordingPanel.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
 - `src/components/settings/page/SettingsPage.tsx`
+- `src/components/settings/row/SettingsHost.tsx`
 - `src/components/stages/useStageRecommendations.ts`
 - `src/components/storybible/DialogueCueAttribution.tsx`
 - `src/components/storybible/Guide.tsx`
@@ -64,6 +59,9 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/source/NamePronunciation.tsx`
 - `src/components/storybible/usePreviewAudio.ts`
+- `src/components/storybible/voicesamples/EntryVoiceSamples.tsx`
+- `src/components/storybible/voicesamples/VoiceSamplesBody.tsx`
+- `src/components/storybible/voicesamples/useVoiceSampleActions.tsx`
 - `src/hooks/useToasts.ts`
 - `src/jobEnded.ts`
 - `src/overlay/OverlayHost.tsx`

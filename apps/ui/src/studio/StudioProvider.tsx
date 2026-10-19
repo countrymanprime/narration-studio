@@ -19,7 +19,7 @@ const StoreContext = createContext<StudioStore<StudioRegistry> | null>(null);
 
 /**
  * The composition root of the command journal and the read-model store for the shell. It creates the one journal
- * the header's Undo and History read and the one store the slots live in, starts the store and stops it on unmount. A project
+ * the jump menu's Undo and the History panel read and the one store the slots live in, starts the store and stops it on unmount. A project
  * switch empties both: what was loaded for the old project is dropped and a load still in flight for it is ignored. The DAW's
  * name comes from the DAW capabilities; its last action comes from the DAW port for the kinds of change it can undo, else 'unknown'. A test passes its own
  * `journal` and `store`.

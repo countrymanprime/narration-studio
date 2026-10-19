@@ -1561,6 +1561,16 @@
       "kind": "choice",
       "label": "Where voice samples are kept",
       "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "hardcoded",
+      "effectiveValue": "",
+      "isSet": false,
+      "key": "output_device",
+      "kind": "text",
+      "label": "Where voice samples play",
+      "value": ""
     }
   ]
 }

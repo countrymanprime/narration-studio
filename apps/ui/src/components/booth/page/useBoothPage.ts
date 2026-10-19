@@ -25,6 +25,7 @@ import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
 import { estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
 import type { BoothStart } from './boothQuery';
+import { timerText } from '../frame/progressLine';
 import { useTakeClock } from './useTakeClock';
 import { useTextChoices } from './useTextChoices';
 
@@ -110,6 +111,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const { seconds } = takeClock;
   const [paused, setPaused] = useState(false);
   const [recorded, setRecorded] = useState(0);
+  // What a screen reader hears when a take ends: empty while it records and at the start, so nothing speaks into an open microphone.
+  const [takeNote, setTakeNote] = useState('');
   const [punches, setPunches] = useState<Punch[]>([]);
   const [kept, setKept] = useState<KeptResume | null>(null);
   const takeAt = useRef(0);
@@ -264,6 +267,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const now = latest.current;
     const place = placeOf(now.paragraphs, now.units, now.at);
     if (recording) {
+      setTakeNote('');
       setPaused(false);
       setBrowse(false);
       takeBegan.current = now.at.cur;
@@ -271,6 +275,7 @@ export function useBoothPage(options: BoothPageOptions) {
       if (!now.session.active && now.session.canStart) void now.session.start();
       return;
     }
+    setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
     if (now.session.active) now.session.stop();
     const said = endOfChapter.current;
@@ -470,6 +475,7 @@ export function useBoothPage(options: BoothPageOptions) {
     control,
     paused,
     seconds,
+    takeNote,
     resume,
     chooseResume,
     flags,

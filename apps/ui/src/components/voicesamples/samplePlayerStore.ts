@@ -2,6 +2,8 @@
 // lives outside React so the Booth's picker, its side panel and a Story Bible row, each calling `useSamplePlayer`, cannot start two samples.
 // The pages' own audio (Editing's playback, a take audition) registers with `onSampleStart` and stops when a sample starts.
 
+import { setOutput } from './audioOutputs';
+
 export const NOT_WHILE_RECORDING = 'Not while recording. Stop the take first.';
 export const SAMPLE_FAILED = "That voice sample couldn't be played. Its audio file may be missing or changed.";
 export const SAMPLE_FINISHED = 'Voice sample finished';
@@ -103,6 +105,16 @@ function failed(): void {
   report?.(SAMPLE_FAILED, 'error');
 }
 
+/** The output the narrator chose for this project, by name; empty is the system default (docs/prds/character-voice-samples.prd.md, phase 7). */
+let wantedOutput = '';
+/** The output the `Audio` was last sent to, so a choice is applied when it changes and not on every press. */
+let appliedOutput = '';
+
+/** Sets where the next sample plays: the project's choice, which the pages read from Settings and Settings sets when it is changed. */
+export function setSampleOutput(label: string): void {
+  wantedOutput = label;
+}
+
 export type StartOptions = {
   /** The page instance that starts it; stopping that instance (it unmounted) stops the sample. */
   by: symbol;
@@ -141,15 +153,26 @@ export function playSample(id: string, options: StartOptions): void {
   window.removeEventListener('keydown', onEscape);
   window.addEventListener('keydown', onEscape);
   set({ status: 'loading', id, progress: 0, announcement: '' });
-  try {
-    // A newer load interrupting this play() is expected, not a failure.
-    Promise.resolve(el.play()).catch((reason: unknown) => {
-      if (mine !== generation || (reason instanceof DOMException && reason.name === 'AbortError')) return;
+  const begin = (): void => {
+    try {
+      // A newer load interrupting this play() is expected, not a failure.
+      Promise.resolve(el.play()).catch((reason: unknown) => {
+        if (mine !== generation || (reason instanceof DOMException && reason.name === 'AbortError')) return;
+        failed();
+      });
+    } catch {
       failed();
-    });
-  } catch {
-    failed();
-  }
+    }
+  };
+  if (wantedOutput === appliedOutput) return begin();
+  // The output changes before the sample starts. A device that cannot be used plays on the default and says so, every time it is tried, so a
+  // speaker that comes back is used again without the narrator doing anything.
+  const label = wantedOutput;
+  void setOutput(el, label).then((result) => {
+    appliedOutput = result.ok ? label : '';
+    if (!result.ok) options.report(result.message);
+    if (mine === generation) begin();
+  });
 }
 
 /** Stops the sample, if one is loading or playing. Reports nothing. */

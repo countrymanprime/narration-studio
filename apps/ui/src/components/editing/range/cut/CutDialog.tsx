@@ -5,7 +5,7 @@ import { RadioGroup } from '../../../primitives/RadioGroup';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { Select } from '../../../primitives/Select';
 import { clock } from '../../bar/clock';
-import { isLow, laterAudio, summarize, type ChapterDoc, type CutSpan, type SelSummary } from '../../model';
+import { isLow, laterAudio, summarize, type ChapterDoc, type CutSpan, type DocItem, type SelSummary } from '../../model';
 import type { RangeLocator, SnappedEnd } from '../common/locate';
 import { snapText } from '../common/locate';
 import { cutPlanText, type RangePlan } from '../common/rangePlan';
@@ -38,6 +38,8 @@ const KEEP: Record<Acting['kind'], string> = {
 export interface CutDialogProps {
   doc: ChapterDoc;
   keys: readonly string[];
+  /** Words only said, at the edge of the selection, that the cut leaves alone (the DAW names words by their tokens). */
+  stays?: readonly DocItem[];
   cuts: readonly CutSpan[];
   mute: boolean;
   plan: Acting;
@@ -54,7 +56,7 @@ export interface CutDialogProps {
  * the audio before and after, the time range with its snapped ends, where the words sit, where the later audio goes, the choices and what the
  * DAW does and how it is undone. Cancel has the focus.
  */
-export function CutDialog({ doc, keys, cuts, mute, plan, chapterName, locator, snap, onCancel, onConfirm }: CutDialogProps) {
+export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName, locator, snap, onCancel, onConfirm }: CutDialogProps) {
   const [mode, setMode] = useState<CutOptions['mode']>(mute ? 'gap' : DEFAULT_CUT.mode);
   const [fade, setFade] = useState<number>(DEFAULT_CUT.fadeMs);
   const [pad, setPad] = useState<number>(0);
@@ -121,6 +123,12 @@ export function CutDialog({ doc, keys, cuts, mute, plan, chapterName, locator, s
           {laterText(mode, sum.len, later)}
         </dd>
       </dl>
+      {stays.length ? (
+        <p className="m-0 rounded-lg bg-[var(--info-soft)] px-3 py-2.5 text-sm" data-cut-stays>
+          {stays.map((i) => `“${i.text}”`).join(', ')} {stays.length === 1 ? 'was' : 'were'} only said and {stays.length === 1 ? 'is' : 'are'} not in the
+          script, so {stays.length === 1 ? 'its' : 'their'} audio stays.
+        </p>
+      ) : null}
       {lowN ? (
         <p className="m-0 rounded-lg bg-[var(--warn-soft)] px-3 py-2.5 text-sm" data-cut-low>
           Includes {plural(lowN, 'low-confidence word', 'low-confidence words')}: {lowWords.join(', ')}.

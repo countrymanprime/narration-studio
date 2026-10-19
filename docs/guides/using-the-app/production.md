@@ -10,7 +10,7 @@ The book's dates, payment and milestones are on [Schedule](schedule.md), the ite
 the navigation.
 While the production log is being read, the page keeps its title and buttons and shows grey blocks where the chapter and word counts, due date, verdict, figures, cards and pipeline will be (it never says "0 chapters" or "No due date set" before it knows); if it cannot be read, the page says so with **Retry**.
 
-![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the header](../../images/ui/production-home.webp)
+![Production - the figures, the chapter pipeline and Next up, with a stage timer running in the page header](../../images/ui/production-home.webp)
 
 The header names the book's chapters, words and due date ("12 chapters · 29,189 words · delivery
 due 14 Oct (18 days)"), with the due date's tone as a word and a mark, not only a colour. The pill
@@ -54,20 +54,19 @@ The six figures are one card; each opens the page it counts.
 - **Due**: the due date and what the pace says about it. It opens [Schedule](schedule.md).
 
 Under the figures, **Where the book stands** splits the book's finished hours by stage, estimated
-from each chapter's words and status (its **Recorded, not edited yet** share is the chapters
-recorded but not edited; **Finished audio** above is the measured length), **This
+from each chapter's own progress in five parts: **Delivered** (the chapters mastered for delivery), **Proofed**, **Edited**,
+**Recorded** and **Not recorded yet**. A chapter still being recorded counts for the share of its audio measured so far, **This
 week** says how much was recorded this week and in the last 24 hours (from the built-in recorder's
 take log), and **Recording check** counts the chapters checked as of the last save, out of date,
 and never checked; its icon opens **Check recordings** with the out-of-date and unchecked chapters
-already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends.
+already chosen. **Recorded vs plan** draws the plan, what was recorded and where that pace ends; its calendar icon, **Open schedule**, opens [Schedule](schedule.md). In a window 1280 px wide or less the three small cards become two, with **Where the book stands** across both, and below 1180 px one; **Next up** and the chart sit side by side under the pipeline.
 A figure with nothing honest to work from says "Not measured yet" and why, rather than 0.
 
 ## The stage timer
 
 The stage timer stays as it was. **Start timer**, on the Next up item of the chapter being
-recorded, starts timing that chapter's current stage. While a timer runs, a chip in the header of
-every page counts its time and names the chapter ("0:42:07 · timer on Chapter 6"), and **Stop
-timer** is in this page's header. Only one timer runs at a time: stop it before you start
+recorded, starts timing that chapter's current stage. While a timer runs, this page's header counts its time and names the chapter ("0:42:07 · timer on Chapter 6")
+beside **Stop timer**; the app's top bar has no timer. Only one timer runs at a time: stop it before you start
 another. Time is logged only while you run a timer, never from REAPER activity, and starting or
 stopping a timer never changes a chapter's status.
 

@@ -6,6 +6,7 @@ import { usePort } from '../../ports/usePort';
 import type { ManuscriptChapter } from '../../types';
 import { ChapterStepper } from '../primitives/ChapterStepper';
 import { Panel } from '../primitives/Panel';
+import { LoadError, LoadErrorPanel } from '../layout/LoadError';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import type { DrawerTab } from './drawer/drawerTabs';
 import { STRIP_MIN_WIDTH } from './drawer/drawerTabs';
@@ -87,6 +88,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
   const width = useWindowWidth();
   const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [chosen, setChosen] = useState<string | undefined>(asked);
   useEffect(() => setChosen(asked), [asked]);
   // Once the narrator moves to another chapter the link has been used: coming back does not open it again. A new link applies afresh.
@@ -102,7 +104,12 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
     return () => {
       live = false;
     };
-  }, [manuscript]);
+  }, [manuscript, attempt]);
+  // Retry: forgets the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
+  const retry = useCallback(() => {
+    setError(null);
+    setAttempt((n) => n + 1);
+  }, []);
 
   const list = useMemo(() => (chapters ?? []).map((c) => ({ id: c.id, name: headingName(c) })), [chapters]);
   const chapter = list.find((c) => c.id === chosen) ?? list[0];
@@ -133,9 +140,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
       <section aria-label="Script editor" className="flex h-full min-h-0 flex-col">
         <div className="flex h-full min-h-0 flex-col">
           {error ? (
-            <p role="alert" className="p-4 text-sm text-[var(--danger-text)]">
-              {error}
-            </p>
+            <LoadError title="Editing" message={error} retry={retry} />
           ) : chapter ? (
             <EditingChapter
               key={chapter.id}
@@ -210,7 +215,7 @@ function EditingChapter({
   onGoToParagraph,
   onOpenStoryBible,
 }: ChapterProps) {
-  const { source, setCuts, setEffects, reloadAccepted, reread } = useChapterSource(chapterId, name);
+  const { source, setCuts, setEffects, reloadAccepted, reread, retry } = useChapterSource(chapterId, name);
   const stripFits = width >= STRIP_MIN_WIDTH;
   if (source.status !== 'ready') {
     return (
@@ -225,9 +230,9 @@ function EditingChapter({
           onDrawer={panels.drawer.toggle}
         />
         {source.status === 'error' ? (
-          <p role="alert" className="px-4 text-sm text-[var(--danger-text)]">
-            {source.message}
-          </p>
+          <div className="px-4">
+            <LoadErrorPanel message={source.message} retry={retry} />
+          </div>
         ) : (
           <EditingBodySkeleton label="Loading the chapter" status="Reading the chapter…" />
         )}

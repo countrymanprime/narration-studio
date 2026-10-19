@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import type { Measured } from '../../../api/schemas/base';
 import { addDays, diffDays, fmtD } from '../../schedule/dates';
@@ -32,6 +33,8 @@ type Props = {
   title?: string;
   /** Put the "today" label on the side of the dot away from the plan and projection lines (the Schedule page); off, it is centred above the dot as Production draws it. */
   clearTodayLabel?: boolean;
+  /** Draws the header's "Open schedule" calendar button (Production's panel, the mock's `side-chart`); the Schedule page is already there and passes nothing. */
+  onOpenSchedule?: () => void;
 };
 
 /** "Recorded vs plan": the plan dashed, the recorded days solid, the projection dotted, with the due line, today and the estimated finish. */
@@ -47,6 +50,7 @@ export function ProgressChart({
   fill = false,
   title = 'Recorded vs plan',
   clearTodayLabel = false,
+  onOpenSchedule,
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(520);
@@ -91,7 +95,12 @@ export function ProgressChart({
   const summary = `Plan starts ${fmtD(start)}${due ? `, due ${fmtD(due)}` : ', no due date'}. Today is ${fmtD(today)}, ${recordedHours.toFixed(1)} of ${finishedHours.toFixed(1)} finished hours recorded. Estimated finish ${fmtD(k.finish)}.`;
 
   return (
-    <Panel title={title} className="min-w-0" fill={fill}>
+    <Panel
+      title={title}
+      className="min-w-0"
+      fill={fill}
+      actions={onOpenSchedule && <IconButton action="calendar" label="Open schedule" onClick={onOpenSchedule} />}
+    >
       {/* Filling, the svg is laid over the box so what it draws never sets the card's height: the cell does. */}
       <div ref={box} className={fill ? 'relative size-full overflow-hidden' : 'w-full overflow-hidden'} style={fill ? { minHeight } : { height }}>
         <svg

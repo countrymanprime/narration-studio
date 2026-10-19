@@ -5,6 +5,7 @@ import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
+import { engineChanged } from '../data/engineSignal';
 import { useSettingsHost } from '../row/SettingsHost';
 
 /** One engine's honest state under its radio: not found on this computer, or why it cannot record now, in the host's sentence. */
@@ -160,6 +161,7 @@ export function EngineBody() {
     setBusy(true);
     try {
       setChoice(await call());
+      engineChanged();
       setError(undefined);
       setTest({ phase: 'idle', text: '' });
     } catch (failure) {

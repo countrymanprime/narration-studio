@@ -12,4 +12,4 @@ Storybook title: `Settings/CapabilityList`. Source: `src/components/settings/Cap
 
 ## Used by
 
-- `src/components/settings/page/SettingsPage.tsx`
+- `src/components/settings/controls/CapabilitiesBody.tsx`

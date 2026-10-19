@@ -9,7 +9,7 @@ the box every project is judged against **ACX (September 2026)**, ACX's audio su
 the app recorded them. Your files are only read, never changed: mastering, encoding and packaging each write
 new files. Master & QC is always in the navigation, under **Finish**, and needs no DAW project. It needs an imported
 manuscript: without one the page says **This project has no manuscript yet** and offers to import one.
-While the profile and the chapters are being read, the **Delivery package** panel shows grey blocks in place of its checks and its count of failing and not-ready chapters, so a count of zero never appears before anything has been read.
+While the profile and the chapters are being read, the **Delivery package** panel shows grey blocks in place of its checks and its count of failing and not-ready chapters, so a count of zero never appears before anything has been read. If the chapters or the delivery profile cannot be read, a line under the file table says so with the reason and **Retry**; Retry reads again, and the grey blocks show while the chapters are read.
 
 ![Master & QC before anything is checked: the ACX profile pill, Check files…, the built-in mastering chain and the delivery package](../../images/ui/master-empty.webp)
 
@@ -41,7 +41,9 @@ place of its values and shows a neutral **Waiting** pill: **Waiting on 3 pickups
 chapter has open pickups (the number the Pickups page lists), else **No file measured yet · not mastered**.
 A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
 tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
-profile needs could not be measured), or **Waiting** / **Not measured**. A value that misses the
+profile needs could not be measured), or **Waiting** / **Not measured**. The table has no
+Clicks or Text column: the measurement reports clipping, not clicks, and does not compare the audio with the text, so
+nothing is drawn for them. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the

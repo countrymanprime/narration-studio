@@ -18,7 +18,7 @@ The header has the chapter step (the previous and next chapter buttons, Alt+↑ 
 legend of the marks in the text with how many of each, the recogniser that heard the words (**Flagged by**), the
 **Timeline** button (on a window 1360 px wide or more) and the button that opens the drawer. At 1280 px and below the
 legend uses short labels with no counts.
-While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
+While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says "This page could not be loaded" with the reason and **Retry**, and if one chapter cannot be read, the same appears under the header and the chapter stepper. Retry shows the grey blocks again while it reads, then the page or the reason again. A link to a chapter the list does not have shows the title and the same blocks with **Checking this link…** while the chapter list is read once more.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
 same way on every page of the app, and the legend shows a sample of each beside its count, so the shape tells two red kinds apart
@@ -77,7 +77,9 @@ With a screen reader, the script is one read-only text box. Each time the cursor
 when Esc lets the selection go. It waits for a quarter of a second without a key before it speaks, so holding ← or → says where the
 cursor stopped, not every word it passed. A flagged word says what its card says instead. When a dialog opened from the text closes
 (**Add note…**, **Mark as voice sample…**, and the delete, mute and effects dialogs), by Esc, **Cancel** or **Save**, focus is back on the text
-and the selection is as you left it.
+and the selection is as you left it. Playback says "Playing" when it starts and "Stopped" when it ends.
+
+The key hints at the foot of the page name what **Enter** does where the cursor is: **Open flag card** on a flagged word, **Keep take (T picks which)** on any other word, and **Keep take** once T has opened the line's takes. Enter on a word that is not flagged keeps the take the keys are on, or the line's active take if T has not been pressed.
 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it).
@@ -90,7 +92,7 @@ clears the mark (with Undo in the message that confirms it).
 the nearest zero crossings), the track, and what happens to the gap: close it, so later audio on the track moves up, or
 leave room tone of the same length so the timing does not move. You also choose the crossfade at the join, how much audio to keep at each
 edge of the cut, and whether the cut audio is kept on a muted track named Cuts. The DAW makes the cut as one undo step; the recording file is not
-touched. **Mute** keeps the audio and silences the words.
+touched. **Mute** keeps the audio and silences the words. The DAW names words by the script's words, so a word that was only said (in italics, not in the script) at the edge of your selection is left out: the question says so ("“um” was only said and is not in the script, so its audio stays.") and counts only the words that will be cut. A word that was only said between two script words is cut with them.
 
 ![Editing - Delete on four selected words: the question names the words, the cut and what the DAW will do](../../images/ui/editing-delete-dialog.webp)
 

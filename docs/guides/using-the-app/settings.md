@@ -57,6 +57,19 @@ Also here: **Microphone** (a list of the computer's inputs, with **Refresh the l
 one), and, for REAPER only, **Start the launcher script with REAPER**, and under Advanced **REAPER program**,
 **Experimental REAPER actions** and **Capabilities**. These are settings of this computer; a project has no override for them.
 
+**Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
+
+**Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
+project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
+again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays
+in the app's own audio, so with a DAW the row is a sentence: samples play on this computer's default output and the DAW's own audio
+device is not used or changed. An output that is not connected stays chosen, with a notice that samples play on the system default
+until it is back; the list is read again when the window gets focus and every few seconds while the notice shows. If the audio
+system will not list its outputs, the row says so and the choice is off. Taking and read-aloud keep using the microphone and output
+you chose elsewhere, and the row does not check whether a take is recording.
+
+![Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound](../../images/ui/settings-sample-output.webp)
+
 ![Settings - Recording & DAW: the capabilities and the REAPER path under Advanced](../../images/ui/settings-daw.webp)
 
 ### Choose REAPER
@@ -214,7 +227,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 - **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
 - **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
-- **Zoom** scales the whole window (100% to 200%, the steps the header's zoom buttons and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
+- **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
 - **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
 
 ![Settings - Reader text: font, size, line spacing and column width over the preview quote](../../images/ui/settings-reader-text.webp)
