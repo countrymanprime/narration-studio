@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Button } from '../../primitives/Button';
 import { statusTone } from '../../../kinds/statusTone';
 import { KindChip } from '../../primitives/KindChip';
+import { KindMark } from '../../primitives/KindMark';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { TooltipTarget } from '../../primitives/Tooltip';
@@ -10,7 +11,7 @@ import { NOTE_KIND, RESOLUTION_CHIP_CH, TYPE_CHIP_CH, groupByChapter, type NoteR
 /** A badge as wide as the longest word it can show, so a changed type or decision never moves the cells around it. */
 function FixedChip({ ch, children }: { ch: number; children: ReactNode }) {
   return (
-    <span className="inline-flex" style={{ minWidth: `${ch + 2}ch` }}>
+    <span className="inline-flex" style={{ minWidth: `${ch + 4}ch` }}>
       {children}
     </span>
   );
@@ -27,6 +28,21 @@ function TypeChip({ row }: { row: NoteRow }) {
         <StatusBadge tone={statusTone('muted')} shape="tag" label={row.type} className="w-full justify-center" />
       )}
     </FixedChip>
+  );
+}
+
+/** The note's headline sentence with the words in question marked in the note's kind (the mark is the registry's, never drawn here). */
+function Headline({ row }: { row: NoteRow }) {
+  const kind = NOTE_KIND[row.type];
+  const quoted = `“${row.marked}”`;
+  const at = row.marked === '' ? -1 : row.headline.indexOf(quoted);
+  if (at < 0 || !kind) return <>{row.headline}</>;
+  return (
+    <>
+      {row.headline.slice(0, at + 1)}
+      <KindMark kind={kind}>{row.marked}</KindMark>
+      {row.headline.slice(at + quoted.length - 1)}
+    </>
   );
 }
 
@@ -57,7 +73,7 @@ export function NotesTable({
   selectedId: string | null;
   onSelect: (id: string) => void;
   onClearFilters: () => void;
-  /** Drawn after the "heard" text (SN-Q7's takes badge); this slice draws none. */
+  /** Drawn after the headline (the takes badge). */
   badge?: (row: NoteRow) => ReactNode;
 }) {
   const body = useRef<HTMLDivElement>(null);
@@ -93,7 +109,9 @@ export function NotesTable({
         <TypeChip row={row} />
       </TableCell>
       <TableCell>
-        <span className="[overflow-wrap:anywhere]">{[row.script, row.heard].filter(Boolean).join(' → ')}</span>
+        <span className="[overflow-wrap:anywhere]">
+          <Headline row={row} />
+        </span>
         {badge?.(row)}
       </TableCell>
       <TableCell muted>
@@ -101,7 +119,7 @@ export function NotesTable({
       </TableCell>
       <TableCell>
         <FixedChip ch={RESOLUTION_CHIP_CH}>
-          <StatusBadge tone={row.resolution.tone} label={row.resolution.label} className="w-full justify-center" />
+          <StatusBadge tone={row.resolution.tone} label={row.resolution.label} className="w-full justify-center text-[13px]!" />
         </FixedChip>
       </TableCell>
     </TableRow>
@@ -123,7 +141,7 @@ export function NotesTable({
           {allChapters
             ? groupByChapter(rows).flatMap((group) => [
                 <TableRow key={`g-${group.chapterId}`}>
-                  <TableCell colSpan={5}>
+                  <TableCell colSpan={5} className="bg-[var(--surface-2)]">
                     <b>{group.title}</b> <span className="text-[var(--text-muted)]">· {group.open} open</span>
                   </TableCell>
                 </TableRow>,

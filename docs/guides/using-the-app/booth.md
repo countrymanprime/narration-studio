@@ -7,7 +7,7 @@ starts and stops the take in your DAW (or the built-in recorder). It needs an [i
 Open it from **Booth** in the navigation, or from **Record in Booth** on a chapter or credits card on [Script](script.md), which
 opens it on that chapter. What the Booth is reading is part of its address (`/booth?chapter=…`, `/booth?credits=opening`), so Back
 and a link land on the same chapter. The Booth fills the window and follows the app's theme, light or dark.
-While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead.
+While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with **Checking this link…** while the chapter list is read once more.
 
 ## The page
 
@@ -274,6 +274,8 @@ If the address asks for credits that have no template (for example an old link t
 deleted), the Booth shows a panel instead of text: **The closing credits are not set up**, with **Set up credits in Settings** and
 **Back to the chapters**, which opens [Script](script.md), the chapter list, as Escape does with a chapter open. A link to a chapter the book no longer has shows the
 same panel with **Back to the chapters**. An address the app cannot read at all, or one that names a chapter or line the book lacks, shows "This link could not be opened" with **Open Booth** and **Go to Production**; Escape leaves it as it leaves the Booth: for [Pickups](pickups.md) when the link still names pickups ("Open 3 in Booth"), otherwise for [Script](script.md).
+
+If the book's chapters cannot be read when the Booth opens, it shows "This page could not be loaded" with the reason and **Retry**; Retry shows the Booth's grey blocks again while it reads, then the page or the reason again.
 
 ![Booth - the closing credits with no closing template: the panel that says so and offers Settings and the chapters](../../images/ui/booth-credits-missing.webp)
 

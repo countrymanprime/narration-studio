@@ -103,10 +103,12 @@ const word = (key: string): HTMLElement => document.querySelector<HTMLElement>(`
 const select = (anchor: string, head: string) => act(() => page.dispatch({ type: 'select', anchor, head }));
 // The menu items for a right click on `key`; the mark types arrive from the host after the first render, so wait for them.
 async function itemsOn(key: string) {
-  await waitFor(() => expect(contextItemsFor(word(key))?.some((i) => i.key.startsWith('mark-as-'))).toBe(true));
+  await waitFor(() => expect(contextItemsFor(word(key))?.some((i) => i.key === 'mark-as' && i.submenu !== undefined)).toBe(true));
   return contextItemsFor(word(key))!;
 }
 const item = (items: Awaited<ReturnType<typeof itemsOn>>, key: string) => items.find((i) => i.key === key)!;
+// The kinds are the submenu of the one "Mark as" row.
+const kinds = (items: Awaited<ReturnType<typeof itemsOn>>) => item(items, 'mark-as').submenu!;
 
 describe('scriptSpanOf', () => {
   it('spans the script words of one line by their offsets and counts what it leaves out', () => {
@@ -137,9 +139,9 @@ describe('mark-as-lists-the-narrators-mark-types', () => {
     select('p-1:1', 'p-1:2');
     const items = await itemsOn('p-1:1');
     const types = (await api.marksList()).types;
-    expect(items.filter((i) => i.key.startsWith('mark-as-')).map((i) => i.label)).toEqual(types.map((t) => `Mark as ${t.name}`));
+    expect(kinds(items).map((i) => i.label)).toEqual(types.map((t) => t.name));
     const first = types[0];
-    await act(async () => item(items, `mark-as-${first.key}`).onSelect());
+    await act(async () => item(kinds(items), `mark-as-${first.key}`).onSelect());
     expect(api.marksAdd).toHaveBeenCalledWith(CHAPTER, 'p-1', expect.any(Number), expect.any(Number), first.key, '');
     expect(overlay.toast).toHaveBeenCalledWith(expect.stringContaining('Marked'));
   });
@@ -150,7 +152,7 @@ describe('mark-as-lists-the-narrators-mark-types', () => {
     const items = await itemsOn('p-1:0');
     const ask = (await api.marksList()).types.find((t) => t.asks);
     if (!ask) return;
-    await act(async () => item(items, `mark-as-${ask.key}`).onSelect());
+    await act(async () => item(kinds(items), `mark-as-${ask.key}`).onSelect());
     expect(api.marksAdd).not.toHaveBeenCalled();
     expect(overlay.toast).toHaveBeenCalledWith('Write the query first.', { tone: 'error' });
   });
@@ -162,9 +164,8 @@ describe('words-that-were-only-said-cannot-be-marked', () => {
     const extra = page.doc.items.find((i) => i.kind === 'x')!;
     select(extra.key, extra.key);
     const items = await itemsOn(extra.key);
-    const marks = items.filter((i) => i.key.startsWith('mark-as-'));
-    expect(marks.length).toBeGreaterThan(0);
-    for (const m of marks) expect(m.unavailable).toMatch(/only said/);
+    expect(kinds(items).length).toBeGreaterThan(0);
+    expect(item(items, 'mark-as').unavailable).toMatch(/only said/);
     expect(item(items, 'add-note').unavailable).toMatch(/only said/);
     expect(item(items, 'mark-for-pickup').unavailable).toBeUndefined();
   });
@@ -175,7 +176,7 @@ describe('words-that-were-only-said-cannot-be-marked', () => {
     select('p-1:4', extra.key);
     const items = await itemsOn('p-1:4');
     const first = (await api.marksList()).types.find((t) => !t.asks)!;
-    await act(async () => item(items, `mark-as-${first.key}`).onSelect());
+    await act(async () => item(kinds(items), `mark-as-${first.key}`).onSelect());
     expect(api.marksAdd).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(overlay.toast).toHaveBeenCalledWith(expect.stringMatching(/1 word that was only said was left out/)));
   });
@@ -300,11 +301,11 @@ describe('sections-register-with-the-word-menu', () => {
       .map((i) => i.key);
     expect(keys[0]).toBe('play-selection');
     expect(keys.at(-1)).toBe('copy-words');
-    expect(keys.indexOf('add-note')).toBeGreaterThan(keys.findIndex((k) => k.startsWith('mark-as-')));
+    expect(keys.indexOf('add-note')).toBeGreaterThan(keys.indexOf('mark-as'));
     expect(keys.indexOf('mark-for-pickup')).toBeGreaterThan(keys.indexOf('add-note'));
     unmount();
     const after = buildWordMenu({ doc: marksDoc(), keys: ['p-1:0'], summary: {} as never, play: vi.fn(), notify: vi.fn() }).groups.flat();
-    expect(after.some((i) => i.key === 'add-note' || i.key === 'mark-for-pickup' || i.key.startsWith('mark-as-'))).toBe(false);
+    expect(after.some((i) => i.key === 'add-note' || i.key === 'mark-for-pickup' || i.key === 'mark-as')).toBe(false);
   });
 });
 

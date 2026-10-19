@@ -57,10 +57,14 @@ func (e *ProtocolError) Is(target error) bool {
 // readReply reads one framed reply from r. It is strict: a terminator must be exactly one of the two documented lines and must be
 // followed by an empty line; any other "BatchCommand finished:" line, a line past maxReplyLineBytes, a reply past maxReplyBytes,
 // a NUL byte, or the stream ending before the empty line is a *ProtocolError. The returned bool is whether Audacity reported OK.
-// A line ending may be "\n" or "\r\n". An empty first line is ErrNoProject: a real answer never starts with one.
+// A line ending may be "\n" or "\r\n". An empty first line starts the reply to most commands (Audacity 3.7.7 writes it before the
+// output of GetInfo, Import2, SelectTime, Undo and others) and is dropped; an empty first line with nothing after it is the whole
+// answer when no project window is open, and is ErrNoProject. Audacity writes a reply in one write, so what follows that first
+// empty line is already buffered when it is part of a reply, and a reply that arrives in pieces after it is not handled.
 func readReply(r *bufio.Reader) (Reply, bool, error) {
 	var lines []string
 	total := 0
+	leadingBlank := false
 	for {
 		line, err := readLine(r)
 		if err != nil {
@@ -76,9 +80,13 @@ func readReply(r *bufio.Reader) (Reply, bool, error) {
 		if strings.ContainsRune(line, 0) {
 			return Reply{}, false, &ProtocolError{"the answer contains a NUL byte"}
 		}
-		if line == "" && len(lines) == 0 {
-			// Audacity's whole answer when no project window is open: an empty line and nothing after it.
-			return Reply{}, false, ErrNoProject
+		if line == "" && len(lines) == 0 && !leadingBlank {
+			leadingBlank = true
+			if r.Buffered() == 0 {
+				// Audacity's whole answer when no project window is open: an empty line and nothing after it.
+				return Reply{}, false, ErrNoProject
+			}
+			continue
 		}
 		if strings.HasPrefix(line, terminatorPrefix) {
 			var ok bool

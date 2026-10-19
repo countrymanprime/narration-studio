@@ -26,8 +26,8 @@ var errNoGuide = errors.New("Guide file does not exist; build it first.") //noli
 // new Story Bible for (typesInHost). A file that is there but is not a JSON object is errNoGuide alone.
 var errNoFile = fmt.Errorf("%w", errNoGuide)
 
-// editInHost is manuscript_guide.py `edit` for every field but "aliases" (locked, description, personality, context, properties,
-// category, canonical_name; a new alias needs a pronunciation lookup and the manuscript, so that stays in the sidecar). Every field is
+// editInHost is manuscript_guide.py `edit` (locked, description, personality, context, properties, category, canonical_name, and the
+// aliases once the host can search the manuscript, hostCreates: a new alias needs the sidecar's pronunciation and nothing else). Every field is
 // applied to a copy of the entity, in name order (the order editArgs sends them to the sidecar); only when all of them are accepted does
 // the copy replace the entity, marked reviewed, and the file get written, once. So a refused field leaves the file, and the held
 // document, exactly as they were. A file from a newer schema is refused, never rewritten.
@@ -54,9 +54,21 @@ func (s *Service) editInHost(id string, values map[string]string) error {
 		fields = append(fields, field)
 	}
 	slices.Sort(fields)
+	// The manuscript is read when the aliases are edited, before any field is applied, as the sidecar reads it.
+	var search occurrenceSearch
+	if _, editsAliases := values["aliases"]; editsAliases {
+		if search, err = s.openSearch(); err != nil {
+			return err
+		}
+	}
 	changed, _ := deepCopy(entity).(map[string]any)
 	for _, field := range fields {
-		if err := applyEdit(changed, field, values[field], categories); err != nil {
+		if field == "aliases" {
+			err = s.applyAliases(changed, values[field], search)
+		} else {
+			err = applyEdit(changed, field, values[field], categories)
+		}
+		if err != nil {
 			return err
 		}
 	}

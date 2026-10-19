@@ -1051,6 +1051,13 @@
   },
   {
     "page": "editing",
+    "state": "word-menu-fx",
+    "viewport": "desktop",
+    "docName": "editing-word-menu-fx",
+    "caption": "Editing - the word menu's Add FX submenu on four selected words"
+  },
+  {
+    "page": "editing",
     "state": "suggestion-step",
     "viewport": "desktop",
     "docName": "editing-suggestion-step",

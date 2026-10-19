@@ -164,7 +164,7 @@ func (s *Server) serve(conn *pipeEnd) {
 		case FaultFail:
 			out = "Something went wrong.\nBatchCommand finished: Failed!\n\n"
 		default:
-			out = frame(body, ok)
+			out = frame(body, ok, leadsWithBlankLine(line))
 		}
 		if _, err := conn.Write([]byte(out)); err != nil {
 			return
@@ -172,9 +172,25 @@ func (s *Server) serve(conn *pipeEnd) {
 	}
 }
 
-// frame writes a reply as mod-script-pipe does: the body lines, the terminator, an empty line.
-func frame(body []string, ok bool) string {
+// leadsWithBlankLine is whether Audacity 3.7.7 starts the reply to this command with an empty line. It does for every command except
+// those that answer through a message (Message and Export2 write their text first): GetInfo, Import2, SelectTime, AddLabel, Undo,
+// Play and the rest answer "\n", then their output, then the terminator.
+func leadsWithBlankLine(line string) bool {
+	name, _, _ := strings.Cut(line, ":")
+	switch strings.TrimSpace(name) {
+	case "Message", "Export2":
+		return false
+	}
+	return true
+}
+
+// frame writes a reply as mod-script-pipe does: an empty line first for most commands (blank), the body lines, the terminator, an
+// empty line.
+func frame(body []string, ok, blank bool) string {
 	var b strings.Builder
+	if blank {
+		b.WriteByte('\n')
+	}
 	for _, l := range body {
 		b.WriteString(l)
 		b.WriteByte('\n')

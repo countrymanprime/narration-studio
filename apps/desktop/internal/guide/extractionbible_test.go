@@ -97,11 +97,23 @@ func TestExtractionBibleReadsEntriesAndCues(t *testing.T) {
 	}
 }
 
-// The apply step writes through the Story Bible's own commands. Creating an entry and changing its names still start the sidecar (a new
-// name needs a pronunciation); the properties, the relationship, the review flags, the cue correction and the deletion are applied by the
-// host (editInHost, mutateInHost) and are checked in the file.
+// The apply step writes through the Story Bible's own commands. The host applies every one of them (createInHost, editInHost,
+// mutateInHost) and checks the result in the file; the sidecar is asked only for the pronunciation of a new name, and starts no process
+// here, since the lookup is answered by the test.
 func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 	s, log := newExtractionService(t)
+	var asked []string
+	s.pronunciationLookup = func(words []string) ([]map[string]any, error) {
+		asked = append(asked, words...)
+		values := make([]map[string]any, len(words))
+		for index := range words {
+			values[index] = map[string]any{"ipa": "x", "source": "cmu", "confidence": "high"}
+		}
+		return values, nil
+	}
+	s.searchManuscript = func(string) (occurrenceSearch, error) {
+		return func(string) ([]any, error) { return []any{}, nil }, nil
+	}
 	writeBible(t, s, []any{
 		map[string]any{"id": "wren", "canonical_name": "Wren", "category": "Character", "aliases": []any{map[string]any{"text": "Little Wren"}, map[string]any{"text": "W"}},
 			"review": map[string]any{"entry": true, "aliases": []any{"W"}}, "review_state": "needs review"},
@@ -109,16 +121,17 @@ func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 		map[string]any{"id": "brook", "canonical_name": "Brook", "category": "Place", "aliases": []any{}},
 	}, []any{map[string]any{"id": "c1", "speaker_entity_id": nil, "speaker_source": "unknown", "corrected": false}})
 	b := s.ExtractionBible()
-	if id, err := b.Create("Brook", "Place", []string{"the stream"}, "A stream."); err != nil || id != "new-id" {
+	if id, err := b.Create("Brook", "Place", []string{"the stream"}, "A stream."); err != nil || id != entityID("Brook") {
 		t.Fatalf("%q %v", id, err)
 	}
+	// The name W is unflagged before the aliases drop it: the host now applies the alias edit, which the fake sidecar used to swallow.
 	steps := []error{
-		b.SetAliases("wren", []string{"Little Wren"}),
 		b.SetProperties("wren", []apply.Property{{Key: "Says", Value: "Hold the door."}}),
 		b.Relate("wren", "mill", "works at"),
 		b.Flag("wren", "Little Wren"),
 		b.Unflag("wren", "W"),
 		b.Unflag("wren", ""),
+		b.SetAliases("wren", []string{"Little Wren"}),
 		b.CorrectCue("c1", "wren"),
 		b.Delete("brook"),
 	}
@@ -127,22 +140,18 @@ func TestExtractionBibleWritesThroughTheStoryBibleCommands(t *testing.T) {
 			t.Fatalf("step %d: %v", i, err)
 		}
 	}
-	var verbs []string
-	for _, c := range calls(t, log) {
-		verbs = append(verbs, c[0])
+	if all := calls(t, log); len(all) != 0 {
+		t.Fatalf("the sidecar was started: %v", all)
 	}
-	if want := []string{"create", "edit"}; !slices.Equal(verbs, want) {
-		t.Fatalf("sidecar commands = %v, want %v", verbs, want)
-	}
-	if all := calls(t, log); !slices.Contains(all[1], "--value=Little Wren") {
-		t.Fatalf("alias edit: %v", all[1])
+	if want := []string{"the stream", "Brook"}; !slices.Equal(asked, want) {
+		t.Fatalf("pronunciations asked for %q, want %q: the alias the entry had already needs none", asked, want)
 	}
 	entities, err := s.Entities()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entities) != 2 {
-		t.Fatalf("entries after deleting Brook = %d", len(entities))
+	if len(entities) != 3 {
+		t.Fatalf("entries after creating Brook and deleting the old one = %d", len(entities))
 	}
 	wren := entities[0]
 	if got := wren["properties"]; !reflect.DeepEqual(got, []any{map[string]any{"key": "Says", "value": "Hold the door."}}) {

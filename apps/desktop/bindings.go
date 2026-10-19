@@ -123,14 +123,6 @@ func (h *Host) WhisperRemove(modelID string) (string, error) {
 	return encodeBinding(nil, h.removeAsset(installKindWhisper, modelID))
 }
 
-// GuideBuild starts the Story Bible build, or asks for the language model it needs first (see startGuideBuild). rulesOnly builds without one
-// for this run.
-func (h *Host) GuideBuild(rulesOnly bool) (string, error) {
-	return encodeBinding(h.startGuideBuild(rulesOnly))
-}
-func (h *Host) GuideBuildState() (string, error) {
-	return encodeBinding(h.guideBuildState(), nil)
-}
 func (h *Host) GuideEntities() (string, error) {
 	service := h.services().guide
 	if service == nil {
