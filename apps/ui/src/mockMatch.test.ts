@@ -148,7 +148,8 @@ describe('the approved-mock list', () => {
   test('the spec is the research benchmark folder and the older per-feature mock sets are gone', () => {
     expect(SPEC_DIR).toBe('docs/research/mockups/audiobook-studio-benchmark');
     expect(existsSync(resolve(mockPath('01-production-home.webp'), '../../../../prds/mockups'))).toBe(false);
-    expect(APPROVED_MOCKS).toHaveLength(7);
+    // Six: the Production mock left the list when that page was laid out to the Studio Next mock (#2107).
+    expect(APPROVED_MOCKS).toHaveLength(6);
     for (const mock of APPROVED_MOCKS) {
       expect(mockPath(mock.file).replaceAll('\\', '/'), mock.file).toContain(`/${SPEC_DIR}/`);
     }
@@ -169,7 +170,7 @@ describe('the approved-mock list', () => {
     const themes = Object.fromEntries(APPROVED_MOCKS.map((mock) => [mock.file, mock.theme]));
     expect(themes['03-booth.webp']).toBe('dark');
     expect(themes['07-daw-companion.webp']).toBe('dark');
-    for (const light of ['01-production-home.webp', '02-prep-script.webp', '04-proof-pickups.webp', '05-master-delivery.webp']) {
+    for (const light of ['02-prep-script.webp', '04-proof-pickups.webp', '05-master-delivery.webp']) {
       expect(themes[light], light).toBe('light');
     }
   });
@@ -198,7 +199,7 @@ describe('chromeRegions', () => {
   };
 
   test('a benchmark mock is the chrome spec, with its 216 px rail and 52 px header', () => {
-    const mock = byFile('01-production-home.webp');
+    const mock = byFile('02-prep-script.webp');
     expect(isChromeSpec(mock)).toBe(true);
     expect(chromeRegions(mock, 1440, 900)).toEqual([
       { name: 'rail', x: 0, y: 0, width: 216, height: 900 },

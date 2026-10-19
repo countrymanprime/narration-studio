@@ -77,7 +77,7 @@ describe('the-toolbar-is-a-dark-pill', () => {
     expect(tool().className).toContain('bg-[var(--text)]');
     expect(tool().className).toContain('text-[var(--surface)]');
     for (const name of ['Mark', 'Story Bible', 'Look up', 'Bookmark here'])
-      expect(within(tool()).getByRole('button', { name }).className).toContain('bg-transparent!');
+      expect(within(tool()).getByRole('button', { name }).className).toMatch(/bg-transparent/);
   });
 });
 

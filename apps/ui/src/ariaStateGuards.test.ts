@@ -59,6 +59,7 @@ const NOT_A_TOGGLE: Record<string, string> = {
   'Show in': 'Moves the DAW cursor to the item; a one-shot navigation.',
   'Open in': 'A one-shot navigation to another app or page.',
   'Open this chapter in': 'A one-shot navigation to another page.',
+  'Open schedule': 'A one-shot navigation to the Schedule page.',
   'Open ${': 'A one-shot navigation to a named item ("Open <name> in the manuscript reader").',
 };
 
