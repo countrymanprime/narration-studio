@@ -8,7 +8,7 @@ import { registerFlagAction } from '../../flags/flagActions';
 import { registerWordMenuSection } from '../../menu/wordMenuRegistry';
 import { summarize, type SelSummary } from '../../model';
 import { useEditingPage } from '../../script/EditingPageState';
-import { docCutsOf, snapEnd, type RangeLocator } from '../common/locate';
+import { cutScope, docCutsOf, snapEnd, type RangeLocator } from '../common/locate';
 import { BUILT_IN, planRange, type RangePlan } from '../common/rangePlan';
 import { DeleteButton, MuteButton, RestoreButton } from './CutButtons';
 import { CutDialog, cutTitle } from './CutDialog';
@@ -96,7 +96,9 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
   );
 
   const ask = useCallback(
-    (keys: readonly string[], mute: boolean) => {
+    (asked: readonly string[], mute: boolean) => {
+      // Words only said at the edge of the selection have no token: the DAW cuts the script words, so the question is about those alone.
+      const { keys, stays } = cutScope(doc, asked, locator);
       const sum = summarize(doc, [...keys], docCuts, (t) => t);
       const why = refusalOf(sum);
       if (why) return overlay.toast(why, { tone: 'error' });
@@ -111,6 +113,7 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
           <CutDialog
             doc={doc}
             keys={keys}
+            stays={stays}
             cuts={docCuts}
             mute={mute}
             plan={plan}

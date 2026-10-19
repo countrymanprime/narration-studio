@@ -126,7 +126,7 @@ Source: [#1760](https://github.com/countrymanprime/narration-utils/pull/1760) un
 - [ ] **7.1 Real project values.** Needs: Packaged app. Open a real project's Schedule. See: due date, amount, payment type and milestones match the project manifest.
 - [ ] **7.2 Persistence.** Change each of due date, amount, payment and a milestone, close and reopen the app. See: they persisted.
 - [ ] **7.3 Manifest edited by hand.** Edit the project manifest while Schedule is open. See: within a minute, or on switching back, the page shows it.
-- [ ] **7.4 Undo.** Undo from the header history after a due-date change. See: the field returns to the earlier date.
+- [ ] **7.4 Undo.** Undo from the jump menu (Undo the last change) after a due-date change. See: the field returns to the earlier date.
 - [ ] **7.5 Across midnight.** Leave Schedule open across midnight. See: the day counts move on.
 - [ ] **7.6 Huge rate.** Type a 20-digit rate. See: it is refused with a sentence, and the sentence is gone after a valid one. Source: [#1789](https://github.com/countrymanprime/narration-utils/pull/1789).
 - [ ] **7.7 Open audit items.** The audit could not try the changed-elsewhere row, the "Couldn't read the schedule again" banner, or the Done toggle, note tooltip and Remove with Undo one by one. Source: open issue [#1775](https://github.com/countrymanprime/narration-utils/issues/1775).

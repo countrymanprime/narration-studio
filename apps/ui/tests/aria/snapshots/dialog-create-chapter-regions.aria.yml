@@ -3,8 +3,7 @@
 # (matched partially), a confirmation checkbox and Create N regions. The page behind it is aria-hidden.
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml); empty here.
-- main:
-  - group "Zoom"
+- main
 - status
 - alert
 - status

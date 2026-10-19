@@ -6,7 +6,7 @@ import type { ChapterStatus } from '../../api/contracts/manuscript';
 import { STATUS_LABELS } from '../../chapterStatus';
 import { HeaderChip } from '../primitives/HeaderChip';
 
-/** The production stage timer that is running, as the header shows it: when it started, and on which chapter and stage. */
+/** The production stage timer that is running, as the Production page's header shows it: when it started, and on which chapter and stage. */
 export type RunningTimer = { startedAt: string; chapterTitle: string; stage: ChapterStatus };
 
 /** The running timer in a production overview, or null when none runs. */
@@ -25,9 +25,8 @@ export function elapsedClock(startedAt: string, now: number): string {
 }
 
 /**
- * The header's running-timer chip ("The header" item 4; mock 01's
- * "2:14:08 today · timer on Ch 7"): how long the production stage timer has run and on which chapter, on every page while it
- * runs, and nothing otherwise. The host logs the time (production tracking); this only counts the seconds since the
+ * The running-timer chip (mock 01's "2:14:08 today · timer on Ch 7"): how long the production stage timer has run and on which chapter,
+ * beside Stop timer on the Production page while it runs, and nothing otherwise. The host logs the time (production tracking); this only counts the seconds since the
  * session started so the narrator sees it move. A `timer` role is not a live region, so the ticking is never announced.
  */
 export function TimerChip({ timer }: { timer: RunningTimer }) {

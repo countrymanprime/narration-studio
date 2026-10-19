@@ -3,8 +3,6 @@ import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
 export const productionFeedback: Record<string, FeedbackRow> = {
-  // The header's running-timer chip
-  'src/App.tsx::productionOverview#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads whether a production stage timer runs, once per manuscript, so the header chip shows on whichever page the app opens on; unreadable, the chip stays hidden and the Production home says why when it reads its own.'),
   // Production
   'src/components/booth/CompanionThisChapter.tsx::productionOverview#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads the Production board once when the companion opens, for its This chapter lines; unreadable, the section says nothing was measured rather than showing an error over a reading window.'),
   'src/components/production/ProductionPage.tsx::saveSettings#1': row('click', 'instant', 'pending', 'pending', 'toast', 'toast', 'no', 'ok', 'Part of the Connect button in the banner: it saves DAW.auto_start_launcher first so the launcher runs; the button reads "Connecting…" and disables until the connect finishes, and a failure is a toast.'),
