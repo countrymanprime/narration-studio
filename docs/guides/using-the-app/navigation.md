@@ -7,7 +7,7 @@ The sidebar on the left is grouped by production stage, the way a narrator's wee
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](delivery.md)).
 From 1360 px wide each group but the first shows as a heading over its pages; Production and Schedule sit straight under the logo. Below that the rail shrinks to icons, grouped by a thin line,
 and below 860 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme. **Proof** carries a count of
-the notes still open and **Pickups** the open lines of the Pickups list; a zero, or a count the app cannot read, shows no badge.
+the notes still open, **Pickups** the open lines of the Pickups list and **Master & QC** the chapters whose file fails a delivery check; a zero, or a count the app cannot read, shows no badge.
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
@@ -39,7 +39,7 @@ rail shows no note counts, since the notes and pickups the project still holds b
 
 The header runs, left to right: Back and Forward (below), the project's name, **Jump to or run…** (`Ctrl+K`), Undo and History, the timer,
 the [zoom controls](#zoom) and the engine chip. Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or
-type `>` to list commands only. Escape, or a press anywhere outside the menu, closes it, and focus goes back to the control that had it.
+type `>` to list commands only. Besides the pages and chapters it lists **Settings: <category>** for each Settings category, **Import manuscript…** and **Replace manuscript…** (the one that does not apply is off, with the reason), **Toggle dark theme**, **Set zoom to N%** for each zoom step, and **Undo: <the last change>** (off, as plain **Undo**, when there is nothing to undo). Escape, or a press anywhere outside the menu, closes it, and focus goes back to the control that had it.
 
 ![The jump menu open over the page: type to find a page, a chapter or a command](../../images/ui/nav-jump-menu.webp)
 
@@ -50,7 +50,7 @@ While a [production stage timer](production.md#the-stage-timer) runs,
 the timer chip counts its time and names the chapter ("0:42:07 · timer on Chapter 6") on every page; below the
 tablet width it keeps the clock only. With no timer running it is not there.
 
-Right-clicking empty space in a page opens a menu of where to go, the zoom steps and the theme, ending with the jump menu.
+Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Find a page, chapter or command** (`Ctrl+F`; Script and Proof keep `Ctrl+F` for their own find, so it shows no key there) and a **View** submenu of the zoom steps and the theme.
 
 The engine chip at the right of the header names the audio engine the project records with (REAPER, Audacity or Built-in), with a
 dot for how it is doing. Hover it for the detail, and click it to open the [audio engine panel](#the-audio-engine-panel), where the

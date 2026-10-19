@@ -1582,9 +1582,16 @@ describe('App shell mounts', () => {
     const page = main.querySelector('.scroll-chrome-hidden') as HTMLElement;
     fireEvent.contextMenu(page);
     const menu = await screen.findByRole('menu');
-    for (const name of ['Go to…', 'Zoom in', 'Zoom out', 'Reset zoom', 'Jump menu…']) {
+    for (const name of ['Go to', 'View', 'Jump menu…', 'Find a page, chapter or command']) {
       expect(within(menu).getByRole('menuitem', { name: new RegExp(`^${name}`) })).toBeTruthy();
     }
+    // The key hints the mock draws beside the two search rows, and the current page checked under Go to.
+    expect(within(menu).getByRole('menuitem', { name: /^Jump menu….*Ctrl.*K/ })).toBeTruthy();
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /^Go to/ }));
+    const goTo = (await screen.findAllByRole('menu')).at(-1)!;
+    expect(within(goTo).getAllByRole('menuitemcheckbox')).toHaveLength(11);
+    expect(within(goTo).getByRole('menuitemcheckbox', { name: 'Production' }).getAttribute('aria-checked')).toBe('true');
+    expect(within(goTo).getByRole('menuitemcheckbox', { name: 'Script' }).getAttribute('aria-checked')).toBe('false');
     cleanup();
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
