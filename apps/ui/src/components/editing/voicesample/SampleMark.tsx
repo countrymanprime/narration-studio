@@ -34,6 +34,7 @@ export function SampleMark({ samples }: { samples: readonly VoiceSample[] }) {
       fitToWindow
       label={many ? `${samples.length} voice samples` : name}
       trigger={
+        // native-control-ok: a 9 px ring or count drawn inline in the script's text; Button and IconButton are far larger.
         <button
           type="button"
           data-sample-mark
