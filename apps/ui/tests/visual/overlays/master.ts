@@ -1,14 +1,17 @@
 import type { Page } from '@playwright/test';
-import { measureOnMaster } from '../drivers/shared';
+import { masterFileRows, measureOnMaster } from '../drivers/shared';
 import { clickCase, type OverlayCase } from '../helpers/overlayGuardFor';
 
 const grid = (page: Page) => page.getByRole('grid', { name: 'Per-file checks' });
 const firstRow = (page: Page) => grid(page).getByRole('row').nth(1);
 const picker = (page: Page) => page.getByRole('button', { name: /^Chapter: / });
 
-/** The page is already on Master & QC; the overlays below hang off the files table, so the mock's three files are checked first (once per load). */
+/**
+ * The page is already on Master & QC; the overlays below hang off the files table, so the mock's three files are checked first (once per
+ * load). The table is drawn before anything is measured (a waiting row per chapter), so "checked" is a row with a file behind it.
+ */
 async function measured(page: Page): Promise<void> {
-  if (await grid(page).isVisible()) return;
+  if (await masterFileRows(page).first().isVisible()) return;
   await measureOnMaster(page);
 }
 
