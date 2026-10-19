@@ -139,3 +139,35 @@ export const Submenu: Story = {
     await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
   },
 };
+
+// The empty-space menu of the shell (the Studio Next mock's page menu): a "Go to" submenu with the current page checked, two rows with key hints.
+export const CheckedRowsAndKeyHints: Story = {
+  args: {
+    items: [
+      {
+        key: 'go',
+        label: 'Go to',
+        onSelect: () => undefined,
+        submenu: [
+          { key: 'production', label: 'Production', checked: true, onSelect: fn() },
+          { key: 'script', label: 'Script', checked: false, onSelect: fn() },
+          { key: 'booth', label: 'Booth', checked: false, unavailable: 'Import a manuscript first.', onSelect: fn() },
+        ],
+      },
+      { key: 'jump', label: 'Jump menu…', shortcut: ['Ctrl', 'K'], onSelect: fn() },
+      { key: 'find', label: 'Find a page, chapter or command', shortcut: ['Ctrl', 'F'], onSelect: fn() },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    fireEvent.contextMenu(within(canvasElement).getByText(/Alice was beginning/));
+    const menu = await screen.findByRole('menu');
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    await expect(within(menu).getByRole('menuitem', { name: /^Jump menu…/ })).toBeVisible();
+    await userEvent.keyboard('{ArrowDown}{ArrowRight}');
+    const rows = await screen.findAllByRole('menuitemcheckbox');
+    await expect(rows.map((row) => row.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+    await expect(rows[2]).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.keyboard('{Escape}{Escape}');
+    await waitFor(() => expect(screen.queryAllByRole('menuitem')).toHaveLength(0));
+  },
+};
