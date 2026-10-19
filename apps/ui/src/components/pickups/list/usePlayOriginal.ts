@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useApi } from '../../../api/ApiContext';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
@@ -31,10 +30,9 @@ export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem,
  * call, no project change). One line plays at a time; pressing the playing line again stops it. A refusal comes back as a sentence.
  */
 export function usePlayOriginal(onRefused: (sentence: string) => void) {
-  const api = useApi();
   const trackMap = usePort('chapterTrackMap');
   const tracks = usePort('tracks');
-  const player = useRangePlayer(api.mediaUrl, { pre: ORIGINAL_AROUND, post: ORIGINAL_AROUND });
+  const player = useRangePlayer(tracks.mediaUrl, { pre: ORIGINAL_AROUND, post: ORIGINAL_AROUND });
   const [playingId, setPlayingId] = useState<string | null>(null);
   const live = useRef({ onRefused, playingId });
   live.current = { onRefused, playingId };
