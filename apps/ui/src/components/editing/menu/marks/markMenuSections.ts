@@ -16,21 +16,24 @@ export interface MarkMenuSource {
 /** A selection with no script word has nothing to mark. */
 const markRefusal = (selection: WordMenuSelection): string | undefined => (scriptSpanOf(selection.doc, selection.keys) ? undefined : ONLY_SAID);
 
-/** The menu has no submenu yet, so the kinds are one item each, in the Script page's order. */
+/** One "Mark as" row whose submenu holds the kinds, in the Script page's order. */
 function markAsItems(source: MarkMenuSource, selection: WordMenuSelection): ContextMenuItem[] {
   const unavailable = markRefusal(selection);
   const types = source.types();
   if (types.length === 0) return [{ key: 'mark-as', label: 'Mark as', unavailable: 'The mark types have not loaded yet.', onSelect: () => {} }];
-  return types.map((type) => ({
-    key: `mark-as-${type.key}`,
-    label: `Mark as ${type.name}`,
-    ...(unavailable !== undefined ? { unavailable } : {}),
-    onSelect: () => source.mark(selection, type),
-  }));
+  return [
+    {
+      key: 'mark-as',
+      label: 'Mark as',
+      ...(unavailable !== undefined ? { unavailable } : {}),
+      submenu: types.map((type) => ({ key: `mark-as-${type.key}`, label: type.name, onSelect: () => source.mark(selection, type) })),
+      onSelect: () => {},
+    },
+  ];
 }
 
 /**
- * "Mark as <kind>" for each kind, "Add note…" and "Mark for pickup", between the effects and takes sections and Copy words. Registered
+ * "Mark as" with a submenu of the kinds, "Add note…" and "Mark for pickup", between the effects and takes sections and Copy words. Registered
  * as three sections so each can be dropped alone. Returns the function that removes them.
  */
 export function registerMarkMenuSections(source: MarkMenuSource): () => void {

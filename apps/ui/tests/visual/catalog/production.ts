@@ -102,18 +102,6 @@ export const productionStates: StateEntry[] = [
   { page: 'production', state: 'import-activity-log', description: 'Production, manuscript import finished with its live activity log populated' },
   {
     page: 'production',
-    state: 'import-build-running',
-    description:
-      'Production, the Story Bible build chained after an import (on by default) still running in its own "Build the Story Bible" dialog, the import already reported (?mockBuild=hold)',
-  },
-  {
-    page: 'production',
-    state: 'import-build-failed',
-    description:
-      'Production, the chained Story Bible build failed after a successful import: the build dialog shows the reason and the import stays reported as done (?mockBuild=fails)',
-  },
-  {
-    page: 'production',
     state: 'import-confirm',
     description:
       'Production, import manuscript confirm dialog with format/paragraph/chapter preview (reached via Settings > Manuscript, "Replace manuscript…", since a manuscript is already loaded)',
@@ -370,6 +358,6 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'loading',
     description:
-      'Production while the production log is still being read (?mockHold=overview): the page header (title, counts, buttons) as usual and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
+      'Production while the production log is still being read (?mockHold=overview): the page header with its title and buttons, and grey blocks where the chapter and word counts, the due date and the verdict will be (never "0 chapters" or "No due date set"), and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
   },
 ];

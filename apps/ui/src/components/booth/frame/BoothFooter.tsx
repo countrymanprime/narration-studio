@@ -81,7 +81,7 @@ export function BoothFooter({
   useToastClearance(bar);
   return (
     <div ref={bar} className="flex flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-5 py-2.5">
+      <div className="flex flex-wrap items-center gap-4 border-t border-[var(--border)] bg-[var(--surface)] px-4 py-2.5">
         {record}
         <span id="btimer" className="font-mono text-lg text-[var(--text)]">
           {timerText(seconds)}

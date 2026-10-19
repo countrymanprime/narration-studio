@@ -2,7 +2,7 @@
 import type { Page } from '@playwright/test';
 import { WIRE_ENTITIES } from '../../../src/api/mockFixtures';
 import { settlePage } from '../helpers/settle';
-import { type Driver, askForTheLanguageModel, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveMerriamWebsterKey } from './shared';
+import { type Driver, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveMerriamWebsterKey } from './shared';
 
 export const storybibleDrivers: Record<string, Driver> = {
   // The entries never answer, so `goToPage` (which waits for the first entry) is not used.
@@ -48,28 +48,11 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Save changes to this entry');
     await page.getByRole('button', { name: 'Save changes to this entry' }).and(page.locator('[aria-busy="true"]')).waitFor();
   },
-  'rebuild-running': async (page) => {
-    await page.goto('/?mockRebuildRunning=1');
-    await settlePage(page);
-    await clickNav(page, 'Story Bible');
-    await page.getByRole('dialog', { name: 'Rebuild Story Bible' }).waitFor();
-    await page.getByRole('button', { name: 'Continue in background' }).waitFor();
-  },
   'invalid-payload': async (page) => {
     await page.goto('/?mockInvalidPayload=storybible');
     await settlePage(page);
     await clickNav(page, 'Story Bible');
     await page.getByText('The app received data it could not read.').waitFor();
-  },
-  'language-model-confirm': async (page) => {
-    await askForTheLanguageModel(page, '/?mockAssets=missing');
-    await page.getByRole('alertdialog', { name: 'Download local language model?' }).waitFor();
-  },
-  'language-model-progress': async (page) => {
-    await askForTheLanguageModel(page, '/?mockAssets=downloading');
-    await page.getByRole('button', { name: 'Download model' }).click();
-    await page.getByRole('dialog', { name: 'Downloading language model' }).waitFor();
-    await page.getByText(/5 of 12 MB/).waitFor();
   },
   'voice-download-confirm': async (page) => {
     await askForThePreviewVoice(page, '/');
@@ -116,20 +99,18 @@ export const storybibleDrivers: Record<string, Driver> = {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();
   },
-  'alias-typeahead': async (page) => {
-    await goToPage(page, 'Story Bible');
-    await entryRows(page).first().click();
-    // "at" matches multiple canonical names in the mock fixture set
-    // (Hatter, Caterpillar, Cheshire Cat) regardless of which entity the
-    // fixture data happens to sort first into the row - findAliasMatches
-    // excludes the selected entity by id, not by name, so this can't
-    // accidentally match zero results.
-    // Entries open read-only: unlock if needed, then Edit, before
-    // the alias field accepts input.
-    const unlock = page.getByRole('button', { name: 'Unlock entry' });
-    if (await unlock.count()) await unlock.click();
-    await clickVisible(page, 'button', 'Edit this entry');
-    await page.getByPlaceholder('Add an alias or find a matching entry…').fill('at');
+  'name-clash': async (page) => {
+    await openForEditing(page, 'Alice');
+    // "White Rabbit" is another entry's name, so adding it offers the merge instead of a second copy.
+    const box = page.getByRole('textbox', { name: 'Add a name' });
+    await box.fill('White Rabbit');
+    await box.press('Enter');
+    await page.getByRole('button', { name: 'Merge into this entry' }).waitFor();
+  },
+  'relationship-picker': async (page) => {
+    await openForEditing(page, 'Alice');
+    await page.getByRole('button', { name: /^To: / }).first().click();
+    await page.getByRole('listbox', { name: 'Matching entries' }).waitFor();
   },
   'entry-needs-review': async (page) => {
     await goToPage(page, 'Story Bible');

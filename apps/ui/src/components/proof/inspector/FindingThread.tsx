@@ -50,16 +50,19 @@ function Message({
   return (
     <div
       data-message={message.id}
-      className={`flex flex-col gap-0.5 rounded-[var(--radius-card)] border border-[var(--border)] px-2 py-1.5 text-sm ${message.who === 'proofer' ? 'bg-[var(--surface-2)]' : 'bg-[var(--surface)]'}`}
+      className={`grid grid-cols-[68px_minmax(0,1fr)_auto] gap-2 rounded-[var(--radius-card)] border px-2 py-1.5 text-sm ${message.who === 'proofer' ? 'border-transparent bg-[var(--info-soft)]' : 'border-[var(--border)] bg-[var(--surface)]'}`}
     >
-      <span className="text-[0.72rem] font-semibold text-[var(--text-muted)] uppercase">{WHO_LABEL[message.who]}</span>
+      <span className="text-xs font-semibold tracking-widest text-[var(--text-muted)] uppercase">{WHO_LABEL[message.who]}</span>
       <span className="[overflow-wrap:anywhere] whitespace-pre-wrap">{message.text}</span>
-      <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-        {when(message.at)}
-        {message.edited_at ? ' · edited' : ''}
-        <span className="flex-1" />
-        <IconButton action="edit" label="Edit this note" size="sm" disabled={disabled} onClick={() => setDraft(message.text)} />
-        <IconButton action="delete" label="Delete note" size="sm" disabled={disabled} onClick={onDelete} />
+      <span className="flex flex-col items-end gap-1 text-xs text-[var(--text-muted)]">
+        <span>
+          {when(message.at)}
+          {message.edited_at ? ' · edited' : ''}
+        </span>
+        <span className="flex gap-0.5">
+          <IconButton action="edit" label="Edit this note" size="sm" disabled={disabled} onClick={() => setDraft(message.text)} />
+          <IconButton action="delete" label="Delete note" size="sm" disabled={disabled} onClick={onDelete} />
+        </span>
       </span>
     </div>
   );
@@ -135,14 +138,18 @@ export function FindingThread({ finding, api, onChanged }: { finding: Finding; a
           { value: 'you', label: 'My note' },
         ]}
       />
-      <Field
-        label="Add a note"
-        textarea
-        placeholder="Add a note or paste the proofer’s reply"
-        value={reply}
-        onChange={(value) => setReply([...value].slice(0, MAX_REVIEW_NOTE_LENGTH).join(''))}
-      />
-      <div className="flex">
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <Field
+            label="Add a note"
+            labelHidden
+            compact
+            textarea
+            placeholder="Add a note or paste the proofer’s reply"
+            value={reply}
+            onChange={(value) => setReply([...value].slice(0, MAX_REVIEW_NOTE_LENGTH).join(''))}
+          />
+        </div>
         <Button variant="secondary" size="sm" disabled={reply.trim() === ''} pending={action.isPending('add')} onClick={() => void add()}>
           Add note
         </Button>

@@ -1,7 +1,7 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
@@ -9,6 +9,9 @@ const LINKED = '?mockChapterLink=confirmed';
 const EDITS = `${LINKED}&mockDawExperimentalOn=1`;
 
 export const editingDrivers: Record<string, Driver> = {
+  'address-checking': async (page) => {
+    await openCheckingLink(page, '/editing/gone');
+  },
   // The chapters never answer, so the page's content never arrives and `goToPage` (which waits for it) is not used.
   loading: async (page) => {
     await page.goto('/?mockChapters=loading');
@@ -39,6 +42,16 @@ export const editingDrivers: Record<string, Driver> = {
       .waitFor();
     // The list of effects is a picker: the page menu's search items do not belong in it.
     if (await page.getByRole('menuitem', { name: /Jump menu|Find a page/ }).count()) throw new Error('The Add FX menu lists the page menu’s search items.');
+  },
+  'word-menu-fx': async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await page.locator('[data-k="p-1:2"]').click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Add FX' }).click();
+    await page
+      .getByRole('menuitem', { name: /RfxChain$/ })
+      .first()
+      .waitFor();
   },
   'fx-dialog': async (page) => {
     await openEditing(page, EDITS);

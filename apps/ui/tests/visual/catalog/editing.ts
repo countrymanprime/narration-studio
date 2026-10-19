@@ -31,6 +31,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'word-menu-fx',
+    description: 'Editing, right-click on four selected words with Add FX open - the word menu with its submenu of the DAW’s FX chains',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
     state: 'fx-dialog',
     description: 'Editing, an FX chain chosen for four words - the question names the chain and how the item is split around the words',
   },
@@ -113,5 +119,11 @@ export const editingStates: StateEntry[] = [
     state: 'loading',
     description:
       'Editing while the chapters are still being read (?mockChapters=loading): the page\'s own header (the title, a block where the chapter stepper will be, the strip and Clean up and effects buttons) and the script\'s three paragraphs as grey blocks, with one polite "Reading the chapters…" status',
+  },
+  {
+    page: 'editing',
+    state: 'address-checking',
+    description:
+      'Editing opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /editing/gone): the Editing title and a block where the chapter stepper will be, then the script\'s three paragraphs as grey blocks, with one polite "Checking this link…" status',
   },
 ];

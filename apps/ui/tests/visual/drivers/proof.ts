@@ -1,7 +1,7 @@
 // How to reach each `proof` state (the Studio Next Proof page) in STATE_CATALOG (see app.drivers.ts).
 import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
 const notes = (page: Page): Locator => page.getByRole('region', { name: 'Notes' });
 const inspector = (page: Page): Locator => page.getByRole('complementary', { name: 'Note' });
@@ -29,6 +29,9 @@ async function openChapter(page: Page, chapterTitle: string): Promise<void> {
 }
 
 export const proofDrivers: Record<string, Driver> = {
+  'address-checking': async (page) => {
+    await openCheckingLink(page, '/proof?chapter=gone');
+  },
   'load-error': async (page) => {
     await page.goto('/?mockInvalidPayload=manuscript');
     await settlePage(page);

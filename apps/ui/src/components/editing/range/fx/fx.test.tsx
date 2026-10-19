@@ -245,8 +245,10 @@ describe('the Add FX menu', () => {
     await select('p-1:0', 'p-1:1');
     const sum = summarize(doc, ['p-1:0', 'p-1:1'], [], (t) => t);
     const items = buildWordMenu({ doc, keys: ['p-1:0', 'p-1:1'], summary: sum, play: vi.fn(), notify: vi.fn() }).groups.flat();
-    expect(items.filter((i) => i.key.startsWith('fx')).map((i) => i.label)).toEqual([SOURCE, ...CHAINS, 'Manage in REAPER…']);
-    expect(items.find((i) => i.key === 'fx-manage')?.unavailable).toBeTruthy();
+    const add = items.find((i) => i.key === 'fx-add');
+    expect(add?.label).toBe('Add FX');
+    expect(add?.submenu?.map((i) => i.label)).toEqual([SOURCE, ...CHAINS, 'Manage in REAPER…']);
+    expect(add?.submenu?.find((i) => i.key === 'fx-manage')?.unavailable).toBeTruthy();
     press('KeyF');
     await screen.findByRole('menu');
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toContain(CHAINS[1]);
@@ -279,7 +281,7 @@ describe('the Add FX menu', () => {
     const sum = summarize(doc, ['p-1:0', 'p-1:1'], [], (t) => t);
     const items = buildWordMenu({ doc, keys: ['p-1:0', 'p-1:1'], summary: sum, play: vi.fn(), notify: vi.fn() }).groups.flat();
     const fxItems = items.filter((i) => i.key.startsWith('fx'));
-    expect(fxItems).toEqual([expect.objectContaining({ key: 'fx-off', unavailable: off }), expect.objectContaining({ key: 'fx-manage' })]);
+    expect(fxItems).toEqual([expect.objectContaining({ key: 'fx-off', label: 'Add FX', unavailable: off })]);
     expect(applied).toEqual([]);
   });
 
@@ -289,7 +291,9 @@ describe('the Add FX menu', () => {
     await select('p-1:7', 'p-2:1');
     const sum = summarize(doc, ['p-1:7', 'p-2:0', 'p-2:1'], [], (t) => t);
     const items = buildWordMenu({ doc, keys: ['p-1:7', 'p-2:0', 'p-2:1'], summary: sum, play: vi.fn(), notify: vi.fn() }).groups.flat();
-    const chainItems = items.filter((i) => i.key.startsWith('fx:'));
+    const add = items.find((i) => i.key === 'fx-add');
+    expect(add?.unavailable).toBe(SPANS_TWO_PARAGRAPHS);
+    const chainItems = add?.submenu?.filter((i) => i.key.startsWith('fx:')) ?? [];
     expect(chainItems.map((i) => i.label)).toEqual(CHAINS);
     for (const i of chainItems) expect(i.unavailable).toBe(SPANS_TWO_PARAGRAPHS);
   });
@@ -321,6 +325,37 @@ describe('F', () => {
     await select('p-1:0', 'p-1:1');
     press('KeyF');
     expect(toast).toHaveBeenLastCalledWith(DAW_SETUPS['reaper-off'].capabilities.fx_range?.message, { tone: 'error' });
+  });
+});
+
+describe('A/B in the question', () => {
+  const ab = () => within(dialog()).getByRole('button', { name: 'A/B' });
+
+  it('is off, with the reason, while the chain is not on the words', async () => {
+    mount();
+    await flush();
+    await choose();
+    expect(enabled(ab())).toBe(false);
+    expect(document.getElementById(ab().getAttribute('aria-describedby') ?? '')?.textContent).toMatch(
+      /compares an effect that is on the words\. Add Podcast Voice\.RfxChain first/,
+    );
+  });
+
+  it('plays the words with and without the chain that is on them, through the DAW’s compare', async () => {
+    const compares: Parameters<DawClient['compareFxRange']>[0][] = [];
+    const base = createMockDawClient(DAW_SETUPS.reaper);
+    mount(DAW_SETUPS.reaper, { compareFxRange: (t) => (compares.push(t), base.compareFxRange(t)) });
+    await flush();
+    await choose();
+    await confirmAdd();
+    await choose();
+    await waitFor(() => expect(enabled(ab())).toBe(true));
+    fireEvent.click(ab());
+    await flush();
+    expect(compares).toHaveLength(1);
+    expect(compares[0]).toMatchObject({ chapterId: 'chapter-1', chainName: CHAINS[0] });
+    expect(compares[0].lastToken).toBeGreaterThan(compares[0].firstToken - 1);
+    expect(toast).toHaveBeenCalled();
   });
 });
 

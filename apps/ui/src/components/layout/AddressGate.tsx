@@ -9,8 +9,12 @@ import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { addressPagePath, readAddress, type AddressPage, type AddressRead } from '../../navigation/address';
 import { Button } from '../primitives/Button';
+import { BoothSkeleton } from '../booth/page/BoothSkeleton';
+import { EditingBodySkeleton } from '../editing/page/EditingSkeleton';
+import { ProofSkeleton } from '../proof/frame/ProofSkeleton';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
+import { Skeleton } from '../primitives/Skeleton';
 
 const TITLE: Record<AddressPage, string> = {
   script: 'Script',
@@ -93,17 +97,41 @@ export function AddressGate({
   const read = useMemo(() => readAddress(page, { search, hash, param: chapterParam }), [page, search, hash, chapterParam]);
   const check = useChapterCheck(askedOf(read), chapters, reloadChapters);
   if (read.kind === 'bad') return <BadAddress page={page} message={read.message} />;
-  if (check.state === 'checking')
-    return (
-      <p role="status" className="p-4 text-sm text-[var(--text-muted)]">
-        Checking this link…
-      </p>
-    );
+  if (check.state === 'checking') return <CheckingLink page={page} />;
   if (check.state === 'missing') {
     const what = check.what === 'chapter' ? 'a chapter that is not in this manuscript' : 'a line that is not in that chapter';
     return <BadAddress page={page} message={`This ${TITLE[page]} link points to ${what}. It may have been removed or changed since the link was made.`} />;
   }
   return <>{children}</>;
+}
+
+const CHECKING = { label: 'Checking this link', status: 'Checking this link…' } as const;
+
+/**
+ * What stands in for the page while the chapter list is read once more: the page's own title and its loaded frame as blocks (Proof's two
+ * columns, the Booth's top bar and reading column, Editing's header and script), with the one polite sentence "Checking this link…".
+ */
+function CheckingLink({ page }: { page: AddressPage }) {
+  if (page === 'proof') return <ProofSkeleton {...CHECKING} />;
+  if (page === 'booth') {
+    return (
+      <>
+        <div className="sr-only">
+          <Heading title={TITLE.booth} />
+        </div>
+        <BoothSkeleton {...CHECKING} />
+      </>
+    );
+  }
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2">
+        <Heading title={TITLE[page]} />
+        <Skeleton className="h-8 w-56 max-w-full" />
+      </header>
+      <EditingBodySkeleton {...CHECKING} />
+    </div>
+  );
 }
 
 /**

@@ -1465,6 +1465,21 @@ def candidate(args: argparse.Namespace) -> None:
     print(json.dumps(result, ensure_ascii=False))
 
 
+def lookup_pronunciations(args: argparse.Namespace) -> None:
+    """Prints ``pronunciation()`` for each ``--word``, in order, one JSON line each: the whole value (``ipa``, ``source``, ``confidence``).
+
+    Stateless, like ``candidate``: it reads no guide and writes no file. It is what the host asks for when it creates an entry or adds an
+    alias itself (``create`` and the ``aliases`` edit, which also need only this from the sidecar). The value is the automatic one, the
+    ``--default-source`` first and then the usual CMU, eSpeak and Wiktextract order, and a word nothing knows is the ``not generated``
+    value, never an error. A word is the name as written, so there is no length limit (``create`` has none); a blank one is refused.
+    """
+    words = [word.strip() for word in args.word]
+    if any(not word or "\0" in word for word in words):
+        raise ValueError("A word to look up is not blank.")
+    for word in words:
+        print(json.dumps(pronunciation(word, args.espeak_library or None, args.default_source or None), ensure_ascii=False))
+
+
 def pronounce_user(args: argparse.Namespace) -> None:
     """Sets the narrator's own pronunciation (source ``manual``) beside the dictionary's, which is kept as the alternate."""
     value = user_pronunciation(args.ipa)
@@ -2229,6 +2244,11 @@ def main() -> None:
     candidate_parser.add_argument("--source", required=True, choices=sorted(PRONUNCIATION_SOURCES))
     candidate_parser.add_argument("--espeak-library", default="")
     candidate_parser.add_argument("--wiktextract-index", default="")
+    lookup_parser = command.add_parser("pronunciation", help="print the automatic pronunciation of each --word, one JSON line each; writes nothing")
+    lookup_parser.add_argument("--word", required=True, action="append")
+    lookup_parser.add_argument("--espeak-library", default="")
+    lookup_parser.add_argument("--wiktextract-index", default="")
+    lookup_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
     user_parser = command.add_parser("pronounce-user")
     user_parser.add_argument("--guide", required=True)
     user_parser.add_argument("--entity-id", required=True)
@@ -2350,6 +2370,7 @@ def main() -> None:
             "rescan": rescan,
             "pronounce": pronounce,
             "candidate": candidate,
+            "pronunciation": lookup_pronunciations,
             "pronounce-user": pronounce_user,
             "pronunciation-use-alternate": pronunciation_use_alternate,
             "create": create,

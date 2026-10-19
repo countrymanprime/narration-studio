@@ -15,10 +15,6 @@ on:
         type: choice
         options: [all, chapter, record]
         default: all
-      with-reply-patch:
-        description: 'Apply scripts/research/real-audacity3-ci/leading-blank-line.patch to the client for this run (without it the run shows the blank-first-line bug)'
-        type: boolean
-        default: false
   schedule:
     - cron: '17 3 * * *'
 permissions: {}
@@ -58,11 +54,10 @@ jobs:
       - name: Run the Audacity tests
         env:
           MODE: ${{ inputs.mode || 'all' }}
-          WITH_REPLY_PATCH: ${{ inputs.with-reply-patch && '1' || '' }}
         run: |
           set -o pipefail
           mkdir -p "$NU_AUDACITY_WORK"
-          NU_AUDACITY_WITH_REPLY_PATCH="$WITH_REPLY_PATCH" scripts/research/real-audacity3-ci/run.sh "$MODE" 2>&1 | tee "$NU_AUDACITY_WORK/run.log"
+          scripts/research/real-audacity3-ci/run.sh "$MODE" 2>&1 | tee "$NU_AUDACITY_WORK/run.log"
       - name: Summarise the rows
         if: always()
         run: |

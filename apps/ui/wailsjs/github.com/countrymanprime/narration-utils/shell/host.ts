@@ -56,6 +56,14 @@ export function AssetsList(): $CancellablePromise<string> {
 }
 
 /**
+ * AssetsOpenFolder shows the folder the approved assets are kept in (the "Stored in" path AssetsList reports) in the file manager. It takes
+ * no path: the folder is the host's own, so the page cannot name another.
+ */
+export function AssetsOpenFolder(): $CancellablePromise<string> {
+    return $Call.ByID(2617467899);
+}
+
+/**
  * AssetsRemove deletes one asset. It refuses while the asset is downloading, and touches nothing else: not another asset, not a setting,
  * not a project.
  */
@@ -1421,18 +1429,6 @@ export function FindingsSummary(): $CancellablePromise<string> {
  */
 export function FindingsThread(id: string, op: string, messageID: string, who: string, text: string): $CancellablePromise<string> {
     return $Call.ByID(1945391532, id, op, messageID, who, text);
-}
-
-/**
- * GuideBuild starts the Story Bible build, or asks for the language model it needs first (see startGuideBuild). rulesOnly builds without one
- * for this run.
- */
-export function GuideBuild(rulesOnly: boolean): $CancellablePromise<string> {
-    return $Call.ByID(2237994534, rulesOnly);
-}
-
-export function GuideBuildState(): $CancellablePromise<string> {
-    return $Call.ByID(1236161883);
 }
 
 /**

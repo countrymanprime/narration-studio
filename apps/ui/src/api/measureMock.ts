@@ -53,6 +53,7 @@ function report(path: string, silent: boolean): MeasureReport {
       full_scale_samples: 0,
       clip_run_count: 0,
       clip_runs: [],
+      click_candidate_count: 0,
     };
   }
   return {
@@ -74,6 +75,7 @@ function report(path: string, silent: boolean): MeasureReport {
     full_scale_samples: 4,
     clip_run_count: 1,
     clip_runs: [{ channel: 1, start_seconds: 612.25, duration_seconds: 0.0000833, samples: 4 }],
+    click_candidate_count: 2,
   };
 }
 
@@ -98,6 +100,7 @@ function mock05Report(path: string): MeasureReport {
     full_scale_samples: 0,
     clip_run_count: 0,
     clip_runs: [],
+    click_candidate_count: 0,
   };
 }
 
@@ -138,6 +141,9 @@ const SPREAD_LEVELS: readonly { rms: number; peak: number; noiseFloor: number; l
   { rms: -19.4, peak: -3.0, noiseFloor: -60.4, lufs: -18.0, duration: 1780.9 },
 ];
 
+/** Click candidates per chapter of the spread: mostly clean, a couple with one or two. */
+const SPREAD_CLICKS: readonly number[] = [0, 1, 0, 2, 0, 0];
+
 function spreadReport(path: string, index: number): MeasureReport {
   const level = SPREAD_LEVELS[index % SPREAD_LEVELS.length];
   return {
@@ -159,6 +165,7 @@ function spreadReport(path: string, index: number): MeasureReport {
     full_scale_samples: 0,
     clip_run_count: 0,
     clip_runs: [],
+    click_candidate_count: SPREAD_CLICKS[index % SPREAD_CLICKS.length],
   };
 }
 

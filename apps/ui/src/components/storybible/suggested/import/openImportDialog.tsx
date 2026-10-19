@@ -7,6 +7,7 @@ export function openImportDialog(props: Pick<ImportDialogProps, 'onChanged'> = {
     kind: 'dialog',
     dismissOnOutsidePress: false,
     title: 'Import entries',
+    headerless: true,
     render: ({ close }) => <ImportDialog {...props} onClose={close} />,
   });
 }

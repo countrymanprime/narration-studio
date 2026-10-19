@@ -253,10 +253,17 @@
   },
   {
     "page": "storybible",
-    "state": "alias-typeahead",
+    "state": "name-clash",
     "viewport": "desktop",
-    "docName": "storybible-alias-dropdown",
-    "caption": "Story Bible - alias typeahead dropdown matching existing entries"
+    "docName": "storybible-name-clash",
+    "caption": "Story Bible - a typed name another entry already has, with Merge into this entry"
+  },
+  {
+    "page": "storybible",
+    "state": "relationship-picker",
+    "viewport": "desktop",
+    "docName": "storybible-relationship-picker",
+    "caption": "Story Bible - a relationship in edit mode, choosing the other entry from the picker"
   },
   {
     "page": "booth",
@@ -1055,6 +1062,13 @@
     "viewport": "desktop",
     "docName": "editing-fx-menu",
     "caption": "Editing - Add FX on four selected words: the DAW's effect chains"
+  },
+  {
+    "page": "editing",
+    "state": "word-menu-fx",
+    "viewport": "desktop",
+    "docName": "editing-word-menu-fx",
+    "caption": "Editing - the word menu's Add FX submenu on four selected words"
   },
   {
     "page": "editing",
