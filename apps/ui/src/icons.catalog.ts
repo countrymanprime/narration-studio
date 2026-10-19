@@ -51,6 +51,7 @@ import {
   faMagnifyingGlassPlus,
   faMicrophone,
   faMicrophoneLines,
+  faCircleHalfStroke,
   faMoon,
   faPen,
   faPlay,
@@ -215,6 +216,7 @@ export const CATALOG = {
   unpin: action(faThumbtack, 'pin', 'Unpin'),
   themeDark: action(faMoon, 'theme:dark', 'Use the dark theme'),
   themeLight: action(faSun, 'theme:light', 'Use the light theme'),
+  appearance: action(faCircleHalfStroke, 'appearance', 'Open the appearance settings'),
 
   // Files and the DAW.
   import: action(faFileImport, 'import', 'Import a file'),
