@@ -90,7 +90,7 @@ export function ModelsPane({ category }: { category: Category }) {
           <span>{loadError} Your downloads are not touched.</span>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => void assets.refresh()}>
-              Try again
+              Retry
             </Button>
             <Button variant="secondary" size="sm" onClick={openFolder}>
               Open the folder
