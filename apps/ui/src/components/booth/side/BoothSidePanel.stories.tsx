@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
+import { typeHueColour } from '../../../kinds/entityColour';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { BoothSidePanel } from './BoothSidePanel';
@@ -33,13 +34,13 @@ export const Sections: Story = {
 };
 
 export const ReferenceCharacter: Story = {
-  args: { data: sideData({ reference: { entry: queen } }) },
+  args: { data: sideData({ reference: { entry: queen, colour: typeHueColour('green') } }) },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText('How they talk')).toBeTruthy();
   },
 };
 
-export const ReferencePlace: Story = { args: { data: sideData({ reference: { entry: garden } }) } };
+export const ReferencePlace: Story = { args: { data: sideData({ reference: { entry: garden, colour: typeHueColour('blue') } }) } };
 
 export const ReferenceNote: Story = {
   args: { data: sideData({ reference: { note: { name: 'Stress', quote: 'Garden', messages: [{ text: 'lean on it' }, { who: 'Author', text: 'yes' }] } } }) },

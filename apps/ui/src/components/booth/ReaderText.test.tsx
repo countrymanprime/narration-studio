@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ReaderText } from './ReaderText';
 import type { ReaderMark, ReaderRow } from './readerModel';
 import type { GuideEntity, ManuscriptNote } from '../../types';
+import { typeHueColour } from '../../kinds/entityColour';
 
 afterEach(cleanup);
 
@@ -63,17 +64,30 @@ describe('ReaderText word-click seek', () => {
 
 const alice = { id: 'e1', canonical_name: 'Alice', category: 'Character' } as GuideEntity;
 const note = { id: 'n1', text: 'Slow down.', paragraph: 0 } as ManuscriptNote;
-const entityMark = (from: number, to: number): ReaderMark => ({ id: `entity-${from}`, from, to, value: { kind: 'entity', entity: alice } });
+const entityMark = (from: number, to: number): ReaderMark => ({
+  id: `entity-${from}`,
+  from,
+  to,
+  value: { kind: 'entity', entity: alice, colour: typeHueColour('green') },
+});
 const noteMark = (from: number, to: number): ReaderMark => ({ id: `note-${from}`, from, to, value: { kind: 'note', note } });
 
+// A note is an entry mark in the note token's colour (`NOTE_COLOUR`), so the two are told apart by the colour in their style.
+const isNote = (el: Element): boolean => (el.getAttribute('style') ?? '').includes('--note');
+const kindMarks = (container: HTMLElement, kind: string): HTMLElement[] => [...container.querySelectorAll<HTMLElement>(`[data-kind="${kind}"]`)];
+const entries = (container: HTMLElement) => kindMarks(container, 'entity').filter((el) => !isNote(el));
+const notes = (container: HTMLElement) => kindMarks(container, 'entity').filter(isNote);
+
 describe('ReaderText story bible and note marks', () => {
-  it('draws an entity in its Story Bible category colour and a note as a note, through Highlight', () => {
+  it('draws an entity in its entry colour and a note in the note colour, through KindMark', () => {
     const marks = new Map([['p1', [entityMark(0, 1), noteMark(3, 5)]]]);
     const { container } = render(<ReaderText rows={[row()]} cursor={0} skipped={[]} follow={false} marks={marks} />);
 
-    const character = container.querySelector('[data-highlight="Character"]');
-    const noted = container.querySelector('[data-highlight="Note"]');
+    const character = entries(container)[0];
+    const noted = notes(container)[0];
     expect(character?.textContent).toBe('Alice');
+    expect(character?.getAttribute('style')).toContain('var(--character)');
+    expect(noted?.getAttribute('style')).toContain('var(--note)');
     // A mark over several words covers the gaps between them but not the one after its last word.
     expect(noted?.textContent).toBe('to get');
   });
@@ -92,7 +106,7 @@ describe('ReaderText story bible and note marks', () => {
     const { container } = render(<ReaderText rows={[row()]} cursor={1} skipped={[]} follow={false} onSeek={onSeek} marks={marks} onOpenMark={onOpenMark} />);
 
     // Found by its kind: jsdom's name computation drops the gap between the two word spans (a browser reads "to get").
-    const mark = container.querySelector<HTMLElement>('[data-highlight="Note"][role="button"]')!;
+    const mark = notes(container).find((el) => el.getAttribute('role') === 'button')!;
     await user.click(mark);
     mark.focus();
     await user.keyboard('{Enter}');
@@ -116,7 +130,7 @@ describe('ReaderText story bible and note marks', () => {
 
     const buttons = [...container.querySelectorAll<HTMLElement>('[role="button"]')];
     expect(buttons.some((button) => button.querySelector('[role="button"]'))).toBe(false);
-    expect(buttons.map((button) => button.dataset.highlight)).toEqual(['Character', 'Note']);
+    expect(buttons.map((button) => (isNote(button) ? 'Note' : 'Character'))).toEqual(['Character', 'Note']);
 
     await user.click(buttons[0]);
     await user.click(buttons[1]);
@@ -130,16 +144,16 @@ describe('ReaderText story bible and note marks', () => {
     const [first, second] = [...container.querySelectorAll<HTMLElement>('[data-marked]')];
     expect(first.textContent).toBe('Alice ');
     expect(second.textContent).toBe('was ');
-    expect(second.querySelectorAll('[data-highlight="Character"]')).toHaveLength(2);
+    expect(entries(second)).toHaveLength(2);
   });
   it('keeps the gap inside a note that carries on past a name, and outside the name', () => {
     const { container } = render(
       <ReaderText rows={[row()]} cursor={0} skipped={[]} follow={false} marks={new Map([['p1', [noteMark(0, 3), entityMark(1, 2)]]])} />,
     );
 
-    const name = container.querySelector<HTMLElement>('[data-highlight="Character"]')!;
+    const name = entries(container)[0]!;
     expect(name.textContent).toBe('was');
-    expect(name.parentElement?.dataset.highlight).toBe('Note');
+    expect(isNote(name.parentElement!)).toBe(true);
     expect(name.parentElement?.textContent).toBe('was ');
     expect(container.querySelector('p')?.textContent?.trimEnd()).toBe('Alice was beginning to get tired');
   });
@@ -175,7 +189,7 @@ describe('ReaderText story bible and note marks', () => {
     const marks = new Map([['p1', [entityMark(0, 1)]]]);
     const { container } = render(<ReaderText rows={[row({ words: null, gaps: null })]} cursor={0} skipped={[]} follow={false} marks={marks} />);
 
-    expect(container.querySelector('[data-highlight="Character"]')?.textContent).toBe('Alice');
+    expect(entries(container)[0]?.textContent).toBe('Alice');
     expect(container.querySelector('[data-word]')).toBeNull();
     expect(container.querySelector('[data-highlight="Cursor"]')).toBeNull();
     expect(container.querySelector('p')?.textContent?.trimEnd()).toBe('Alice was beginning to get tired');
@@ -189,7 +203,7 @@ describe('ReaderText story bible and note marks', () => {
     const { container, rerender } = render(<ReaderText rows={[row()]} cursor={1} skipped={[]} follow marks={marks} onOpenMark={vi.fn()} />);
     scrollIntoView.mockClear();
 
-    await user.click(container.querySelector<HTMLElement>('[data-highlight="Note"]')!);
+    await user.click(notes(container)[0]!);
     rerender(<ReaderText rows={[row()]} cursor={1} skipped={[]} follow marks={marks} onOpenMark={vi.fn()} />);
 
     expect(scrollIntoView).not.toHaveBeenCalled();
@@ -204,14 +218,14 @@ const flagMark = (from: number, to: number, kind: 'misread' | 'extra' | 'skipped
 });
 
 describe('ReaderText flag marks', () => {
-  it('draws each flag kind through Highlight, and a flag over a name keeps the name', () => {
+  it('draws each flag as the kind it is (misread, missing), and a flag over a name keeps the name', () => {
     const marks = new Map([['p1', [entityMark(0, 1), flagMark(0, 1, 'misread', 'Alison'), flagMark(4, 6, 'skipped', '')]]]);
     const { container } = render(<ReaderText rows={[row()]} cursor={0} skipped={[]} follow={false} marks={marks} onOpenMark={vi.fn()} />);
 
-    const misread = container.querySelector<HTMLElement>('[data-highlight="Misread"]')!;
+    const misread = kindMarks(container, 'misread')[0]!;
     expect(misread.textContent).toBe('Alice');
-    expect(misread.closest('[data-highlight="Character"]')).not.toBeNull();
-    expect(container.querySelector('[data-highlight="Skipped"]')?.textContent).toBe('get tired');
+    expect(misread.closest('[data-kind="entity"]')).not.toBeNull();
+    expect(kindMarks(container, 'missing')[0]?.textContent).toBe('get tired');
   });
 
   it('describes what was heard to a screen reader and shows it as a hint on focus, and opening it never seeks', async () => {
@@ -222,7 +236,7 @@ describe('ReaderText flag marks', () => {
     render(<ReaderText rows={[row()]} cursor={0} skipped={[]} follow={false} onSeek={onSeek} marks={new Map([['p1', [mark]]])} onOpenMark={onOpenMark} />);
 
     const control = screen.getByRole('button', { name: 'beginning' });
-    expect(control.dataset.highlight).toBe('Misread');
+    expect(control.dataset.kind).toBe('misread');
     expect(control.getAttribute('aria-description')).toBe('Suspected misread. Heard “begging”.');
     control.focus();
     expect((await screen.findByRole('tooltip')).textContent).toBe('Suspected misread. Heard “begging”.');
@@ -235,7 +249,7 @@ describe('ReaderText flag marks', () => {
     const { container } = render(
       <ReaderText rows={[row()]} cursor={0} skipped={[]} follow={false} marks={new Map([['p1', [flagMark(2, 3, 'misread', 'x')]]])} />,
     );
-    expect(container.querySelector('[data-highlight="Misread"]')?.getAttribute('role')).toBeNull();
+    expect(kindMarks(container, 'misread')[0]?.getAttribute('role')).toBeNull();
   });
 });
 

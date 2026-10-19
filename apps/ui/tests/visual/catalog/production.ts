@@ -190,6 +190,12 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'recording-check-rules',
+    description:
+      "Production, the Recording check rules dialog opened from the jump menu: the note that the values are proposed, then the share of each paragraph, the missing and misread runs, the shortest match and the background switch, this project's values",
+  },
+  {
+    page: 'production',
     state: 'recording-check-pickups',
     description:
       'Production, recording check result with interior gaps (?mockCoverage=pickups): a skip and a short read listed one per line under Pickups, each with Go to paragraph, alongside a small unread tail stated in the summary, not listed',
@@ -227,6 +233,13 @@ export const productionStates: StateEntry[] = [
   // Stage suggestions, on `?mockStages=mixed`: Chapter 4 read in
   // full (suggested), Chapter 5 with no track linked (can't tell), Chapter 6 short (not ready), Chapter 7 confirmed into Editing and since
   // found short (evidence changed), Chapter 8 confirmed on evidence that still holds.
+  {
+    page: 'production',
+    state: 'stage-suggestion-options',
+    description:
+      "Production, the Stage suggestion options dialog opened from the jump menu (?mockStages=mixed): the switch and each readiness signal as Required or Ignored, this project's values",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
   {
     page: 'production',
     state: 'stage-evidence-recommended',

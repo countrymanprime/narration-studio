@@ -133,11 +133,25 @@
     "caption": "Production - a chapter's recording check with Check options open"
   },
   {
+    "page": "production",
+    "state": "recording-check-rules",
+    "viewport": "desktop",
+    "docName": "production-recording-check-rules",
+    "caption": "Production - the Recording check rules dialog opened from Jump to or run"
+  },
+  {
     "page": "proof",
     "state": "check-recordings-dialog",
     "viewport": "desktop",
     "docName": "proof-check-recordings-dialog",
     "caption": "Proof - the Check recordings dialog before a run, with the options shared with every page"
+  },
+  {
+    "page": "production",
+    "state": "stage-suggestion-options",
+    "viewport": "desktop",
+    "docName": "production-stage-suggestion-options",
+    "caption": "Production - the Stage suggestion options dialog opened from Jump to or run"
   },
   {
     "page": "production",

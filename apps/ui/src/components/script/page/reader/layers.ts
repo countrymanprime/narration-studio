@@ -8,7 +8,8 @@ import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkColour, MarkStyle, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
-import { speakerColorIndex } from '../../../primitives/speakerColor';
+import { entryColour, speakerColour, type EntityColour } from '../../../../kinds/entityColour';
+import type { GuideType } from '../../../../types';
 import { mentionsIn, phrasesOf, type Phrase } from '../data/script.selectors';
 
 type Span = { start: number; end: number };
@@ -25,14 +26,15 @@ type MarkLayer = Span & {
   name: string;
 };
 type WordLayer = Span & { kind: 'word'; key: string; flagId: string; status: ScriptWord['status'] };
-type NameLayer = Span & { kind: 'name'; entryId: string; entryKind: string };
+/** A Story Bible name in the text; `colour` is its entry type's (`entryColour`), the same on every page. */
+type NameLayer = Span & { kind: 'name'; entryId: string; entryKind: string; colour: EntityColour };
 type FindLayer = Span & { kind: 'find'; current: boolean };
 export type PhraseLayer = Span & {
   kind: 'phrase';
   cueId: string;
   speakerId: string | null;
-  /** 1..7, into the `--speaker-N` tokens. */
-  colourIndex: number;
+  /** The speaker entry's own colour (`speakerColour`, D6); null when no entry speaks, which draws the neutral dashed chip. */
+  colour: EntityColour | null;
   /** The speaker's name, or `?` when none is known. */
   label: string;
   state: Phrase['state'];
@@ -89,6 +91,8 @@ export type LayerSources = {
   words: readonly ScriptWord[];
   entries: readonly GuideEntity[];
   cues: readonly GuideDialogueCue[];
+  /** The Story Bible's types, which decide the colour of a name and of a speaker. */
+  types: readonly GuideType[];
 };
 
 export type LayerIndex = {
@@ -132,20 +136,20 @@ const markLayer = (types: readonly MarkType[], mark: Mark): MarkLayer => {
   };
 };
 
-const phraseLayer = (phrase: Phrase): PhraseLayer => ({
+const phraseLayer = (types: readonly GuideType[], phrase: Phrase): PhraseLayer => ({
   kind: 'phrase',
   cueId: phrase.cueId,
   start: phrase.start,
   end: phrase.end,
   speakerId: phrase.speaker?.id ?? null,
-  colourIndex: speakerColorIndex(phrase.speaker?.id, phrase.speaker?.speaker_color),
+  colour: speakerColour(types, phrase.speaker ? { category: phrase.speaker.category, speakerColor: phrase.speaker.speaker_color } : undefined),
   label: phrase.speaker?.canonical_name ?? '?',
   state: phrase.state,
 });
 
 /** Every layer one paragraph draws except Find, which the reader adds from its matches. */
 export function paragraphLayers(index: LayerIndex, paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId' | 'text'>): Layer[] {
-  const { markTypes, entries, cues } = index.sources;
+  const { markTypes, entries, cues, types } = index.sources;
   const entryKind = new Map(entries.map((entry) => [entry.id, entry.category]));
   return [
     ...(index.marksBy.get(paragraph.id) ?? []).map((mark) => markLayer(markTypes, mark)),
@@ -154,9 +158,10 @@ export function paragraphLayers(index: LayerIndex, paragraph: Pick<ManuscriptPar
       kind: 'name',
       entryId: m.entryId,
       entryKind: entryKind.get(m.entryId) ?? '',
+      colour: entryColour(types, entryKind.get(m.entryId) ?? ''),
       start: m.start,
       end: m.end,
     })),
-    ...phrasesOf(cues, entries, paragraph).map(phraseLayer),
+    ...phrasesOf(cues, entries, paragraph).map((phrase) => phraseLayer(types, phrase)),
   ];
 }

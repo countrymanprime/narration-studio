@@ -2,17 +2,9 @@ import type { AssetInstallJob, AssetItem } from '../../../types';
 import { formatSize } from '../../assets/AssetFacts';
 import { IconButton } from '../../primitives/IconButton';
 import { ProgressBar } from '../../primitives/ProgressBar';
-import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
+import { StatusBadge } from '../../primitives/StatusBadge';
+import { installPill } from '../installPill';
 import { memoryText, minutesText, type ToolStatus } from './components';
-
-const PILL: Record<ToolStatus, [StatusTone, string]> = {
-  installed: ['success', 'Installed · checked'],
-  downloading: ['info', 'Downloading'],
-  verifying: ['info', 'Checking the download'],
-  failed: ['danger', 'Download failed'],
-  'not-installed': ['neutral', 'Not installed'],
-  unavailable: ['neutral', 'Not available yet'],
-};
 
 export type ToolRowProps = {
   tool: AssetItem;
@@ -34,7 +26,7 @@ export type ToolRowProps = {
  * Dismiss after a failure, Remove once installed. Props only, so a story can show every status.
  */
 export function ToolRow({ tool, status, job, failure, download, cancel, retry, dismiss, remove }: ToolRowProps) {
-  const [tone, label] = PILL[status];
+  const { tone, label } = installPill(status === 'not-installed' ? 'missing' : status);
   const name = tool.displayName;
   const busy = status === 'downloading' || status === 'verifying';
   return (

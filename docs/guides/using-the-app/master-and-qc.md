@@ -62,7 +62,8 @@ off and the page says **Can't tell what your DAW can do right now**, with **Chec
 
 Under it, the same file against the profile rule by rule: the result (**Met**, **Not met**, or why it was
 not judged), this file's value, what the platform requires, and the source: whether that requirement was
-**Verified** on the platform's own page, is still **To verify**, or has **Conflicting sources**. The
+**Verified** on the platform's own page, is still **To verify**, or has **Conflicting sources**. Met is
+green, Not met is red, To verify and Conflicting sources are amber, and a rule the app does not check is grey, as the same words are on every page. The
 rules the app could not judge are listed too. Integrated loudness (LUFS) and the true peak are shown at
 the top for information: ACX's page, as recorded, sets no LUFS rule. **Close** hides it until you select
 another file.

@@ -1,13 +1,17 @@
+import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { Panel } from '../../primitives/Panel';
+import { toneColors } from '../../primitives/StatusBadge';
 import { hm } from '../../schedule/dates';
 import { num } from '../../schedule/dates';
 import type { StageSegment } from './overviewFigures';
 
 // Delivered has no chapter-level source, so it is not drawn.
+// A bar needs one fill per stage: the registry's tone for the stage's status, lightened for the stage before it (the legend carries the names).
+const line = (id: StatusId) => toneColors(statusTone(id)).line;
 const FILL: Record<StageSegment['key'], string> = {
-  proofed: 'color-mix(in srgb, var(--ok) 70%, var(--surface))',
-  edited: 'var(--info)',
-  recorded: 'var(--accent)',
+  proofed: `color-mix(in srgb, ${line('done')} 70%, var(--surface))`,
+  edited: line('in_progress'),
+  recorded: `color-mix(in srgb, ${line('in_progress')} 55%, var(--surface))`,
   unrecorded: 'var(--line-strong)',
 };
 
