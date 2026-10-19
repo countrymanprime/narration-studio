@@ -114,4 +114,16 @@ export const editingStates: StateEntry[] = [
     description:
       'Editing while the chapters are still being read (?mockChapters=loading): the page\'s own header (the title, a block where the chapter stepper will be, the strip and Clean up and effects buttons) and the script\'s three paragraphs as grey blocks, with one polite "Reading the chapters…" status',
   },
+  {
+    page: 'editing',
+    state: 'load-failed',
+    description:
+      'Editing when the chapters cannot be read (?mockChapters=fails): the Editing title and "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapters again; no skeleton left behind',
+  },
+  {
+    page: 'editing',
+    state: 'chapter-load-failed',
+    description:
+      'Editing when one chapter cannot be read (?mockChapterRead=fails): the header and chapter stepper stay and, under them, "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapter again; no skeleton left behind',
+  },
 ];

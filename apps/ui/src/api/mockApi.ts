@@ -213,6 +213,11 @@ export function createMockApi(
     reaper: initial.reaper,
   };
   const workspace = createWorkspaceMock(workspaceDeps);
+  // `?mockChapterRead=fails`: the read of one chapter's check state (Editing's chapter, Proof's chapter view) fails.
+  if (initial.chapterRead === 'fails')
+    workspace.workspaceAlignment = async () => {
+      throw new Error('This chapter could not be read from the project.');
+    };
   const preview = createPreviewMock({ chapters: () => s.chapters, paragraphs: () => s.paragraphs }, initial.preview);
   const providers = createProvidersMock(initial.providers);
   const mastering = createMasteringMock(initial.mastering);

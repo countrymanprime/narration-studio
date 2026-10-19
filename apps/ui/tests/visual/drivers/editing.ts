@@ -16,6 +16,22 @@ export const editingDrivers: Record<string, Driver> = {
     await clickNav(page, 'Editing');
     await page.getByRole('group', { name: 'Loading the editor' }).waitFor();
   },
+  // The chapters read fails: the page's error and Retry stand in for the page. `goToPage` waits for content that never comes, so it is not used.
+  'load-failed': async (page) => {
+    await page.goto('/?mockChapters=fails');
+    await settlePage(page);
+    await clickNav(page, 'Editing');
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
+    // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
+    await page.getByRole('button', { name: 'Dismiss message' }).click();
+  },
+  // One chapter's read fails: the header and stepper stay and the chapter's error and Retry sit under them.
+  'chapter-load-failed': async (page) => {
+    await page.goto('/?mockChapterRead=fails');
+    await settlePage(page);
+    await clickNav(page, 'Editing');
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
+  },
   default: async (page) => {
     await openEditing(page, LINKED);
   },

@@ -120,6 +120,8 @@ export type MockApiSeed = {
   teleprompterDevices?: TeleprompterDevice[];
   /** `?mockLevel=`: the RMS in dBFS of every input level the teleprompter mock sends, for a still meter. */
   teleprompterLevel?: number;
+  /** `?mockChapterRead=`: the read of one chapter's check state fails (`fails`), so Editing's and Proof's chapter views show their error and Retry. */
+  chapterRead?: 'fails';
   /** `?mockReaperState=`: what `readAloudReaperState` answers for every chapter (see `MockReaperSeed`). */
   reaperState?: MockReaperSeed;
   /** `?mockReaperInput=`: what `teleprompterReaperInput` answers (see `MockReaperInputSeed`). */
