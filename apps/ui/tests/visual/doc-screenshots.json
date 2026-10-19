@@ -1099,6 +1099,13 @@
     "caption": "Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first"
   },
   {
+    "page": "editing",
+    "state": "drawer-effects-inspector",
+    "viewport": "desktop",
+    "docName": "editing-drawer-effects-inspector",
+    "caption": "Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW"
+  },
+  {
     "page": "proof",
     "state": "chapter",
     "viewport": "desktop",
