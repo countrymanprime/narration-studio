@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { kindPairRows } from './kinds/kindPairs';
 import { countRootRules, forcedThemeRules, parseThemes, resolveContrast, rootRules, type Theme, type TokenMap } from './tokenContrast';
 
 // The palette guard. It reads the tokens out of styles.css, in both themes, and asserts that every colour pair
@@ -51,7 +52,6 @@ const PAIRS: PairSpec[] = [
   text('text', 'body text', 'var(--text)', SURFACES),
   text('text-muted', 'secondary text, labels, helper text', 'var(--text-muted)', SURFACES),
   mark('non-text', 'icons, status dots, the info icon border and decorative glyphs: the one colour for what is seen and not read', 'var(--non-text)', SURFACES),
-  mark('bookmark', 'the bookmark icon: chapter header, chapter row badge and line/note bookmark rows, all on one token', 'var(--bookmark)', SURFACES),
   text('toast', 'Toast: page colour on the text colour', 'var(--bg)', ['surface'], 'var(--text)'),
   text('selection-toolbar', 'the selection toolbar: surface colour on the text colour', 'var(--surface)', ['surface'], 'var(--text)'),
   text('on-accent', 'primary button and logo: accent-contrast on accent', 'var(--accent-contrast)', ['surface'], 'var(--accent)'),
@@ -182,6 +182,14 @@ const PAIRS: PairSpec[] = [
   text('toast-tokens', 'Toast: the inverted pair', 'var(--toast-text)', ['surface'], 'var(--toast-bg)'),
   mark('waveform', "Proof's waveform bars on the card", 'var(--waveform)', ['surface']),
   mark('ok-zone-tick', "Master's book-consistency band: an accent chapter tick on the ok target zone", 'var(--accent)', ['surface'], 'var(--ok-zone)'),
+  // The kind registry (kinds/kindMap.ts): every mark and chip of every kind, in each colour it is drawn in. The text rows are 4.5:1, the
+  // line rows 3:1 (the wavy, double, thin and dotted underlines, the dashed box, the insertion bar and a dashed chip's border), on the
+  // surfaces the mark sits on (the reader's, or the card and the table's for a chip) and on the mark's own fill.
+  ...kindPairRows().map((row) => {
+    const over =
+      row.scope === 'reading' ? READING_SURFACES : row.scope === 'card' ? (['surface'] as const) : (['surface', 'surface-2', 'row-selected'] as const);
+    return row.role.endsWith('text') ? text(row.id, row.where, row.fg, over, row.bg) : mark(row.id, row.where, row.fg, over, row.bg);
+  }),
   // Per-speaker dialogue colours: --speaker-1..7 alias the seven entity-kind tokens above, so these
   // rows are already covered by the highlight-<kind> pairs; a dedicated row per alias protects SpeakerTag/Highlight's
   // speaker use specifically, the same reasoning as the meter-zone rows above.

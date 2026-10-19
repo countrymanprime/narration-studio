@@ -10,7 +10,7 @@ const meta = {
   component: BookmarkRibbon,
   args: { bookmark: bookmark(), lineText, top: 8, onUpdate: fn(), onRemove: fn() },
   render: (args) => (
-    <div className="relative ml-8 h-24 w-64 border-l border-[var(--line)] text-sm text-[var(--text)]">
+    <div className="relative ml-8 h-24 w-64 border-l border-[var(--border)] text-sm text-[var(--text)]">
       <BookmarkRibbon {...args} />
       <p className="m-0 pl-3">A line of the manuscript beside its ribbon.</p>
     </div>

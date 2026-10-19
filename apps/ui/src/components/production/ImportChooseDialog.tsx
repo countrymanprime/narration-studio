@@ -55,7 +55,7 @@ export function ImportChooseDialog({
     >
       <div className="space-y-4">
         <div>
-          <h3 className="text-[length:var(--font-size-xl)] font-semibold">Choose your manuscript</h3>
+          <h3 className="text-[length:var(--font-size-base)] font-semibold">Choose your manuscript</h3>
           <p className="text-sm text-[var(--text-muted)]">
             {replacing && importedOn ? `Replaces the manuscript imported ${importedOn}.` : 'Use a .docx, .md or .txt file. A copy is kept in your project.'}
           </p>

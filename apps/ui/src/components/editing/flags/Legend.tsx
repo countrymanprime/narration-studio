@@ -1,8 +1,7 @@
-import { Dot, Badge, toneColors, type StatusTone } from '../../primitives/StatusBadge';
-import type { ChapterDoc, FlagKind } from '../model';
-import { FLAG_KINDS, FLAG_LABEL } from './flagText';
-
-const KIND_TONE: Record<FlagKind, StatusTone> = { extra: 'danger', miss: 'warning', mis: 'warning', low: 'info' };
+import { KindMark } from '../../primitives/KindMark';
+import { Badge, toneColors } from '../../primitives/StatusBadge';
+import type { ChapterDoc } from '../model';
+import { FLAG_KINDS, FLAG_LABEL, flagKindId } from './flagText';
 
 export interface LegendProps {
   doc: ChapterDoc;
@@ -30,8 +29,10 @@ export function Legend({ doc, compact, noAudio = false }: LegendProps) {
     >
       {FLAG_KINDS.map((k) => (
         <span key={k} data-legend={k} className="inline-flex items-center gap-1.5">
-          <Dot color={toneColors(KIND_TONE[k]).line} />
-          {compact ? FLAG_LABEL[k][1] : `${FLAG_LABEL[k][0]} · ${doc.counts[k]}`}
+          <span aria-hidden="true">
+            <KindMark kind={flagKindId(k)}>Aa</KindMark>
+          </span>
+          <span data-legend-label>{compact ? FLAG_LABEL[k][1] : `${FLAG_LABEL[k][0]} · ${doc.counts[k]}`}</span>
         </span>
       ))}
       <span title={`Flagged by ${doc.engine.name}`} className="ml-auto">

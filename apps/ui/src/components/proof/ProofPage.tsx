@@ -437,7 +437,7 @@ export function ProofPage({
         >
           <section
             aria-label="Proof"
-            className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4"
+            className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4"
           >
             <ProofHeader progress={progress} chapterBar={stepper} />
             {all || !chapter ? (
@@ -514,7 +514,7 @@ export function ProofPage({
           </div>
           <div
             ref={inspectorPanel}
-            className="min-w-0 rounded-[var(--radius-panel)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1"
+            className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4 min-[1180px]:col-start-2 min-[1180px]:row-span-2 min-[1180px]:row-start-1"
           >
             {selected ? (
               <Inspector

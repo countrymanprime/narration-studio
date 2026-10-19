@@ -1057,6 +1057,13 @@
     "caption": "Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection"
   },
   {
+    "page": "editing",
+    "state": "drawer-effects-chains",
+    "viewport": "desktop",
+    "docName": "editing-drawer-effects-chains",
+    "caption": "Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first"
+  },
+  {
     "page": "proof",
     "state": "chapter",
     "viewport": "desktop",

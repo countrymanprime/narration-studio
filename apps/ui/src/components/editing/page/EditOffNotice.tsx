@@ -7,7 +7,7 @@ export function EditOffNotice({ reason }: { reason: string }) {
     <p
       id="editoff"
       role="status"
-      className="m-0 border-t border-[var(--line)] bg-[var(--surface)] px-3.5 pt-2 text-sm [overflow-wrap:anywhere] text-[var(--text-muted)]"
+      className="m-0 border-t border-[var(--border)] bg-[var(--surface)] px-3.5 pt-2 text-sm [overflow-wrap:anywhere] text-[var(--text-muted)]"
     >
       <b className="font-semibold text-[var(--text)]">Delete, Mute and Add FX are off.</b> {reason}
     </p>
