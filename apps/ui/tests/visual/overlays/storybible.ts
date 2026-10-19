@@ -4,7 +4,7 @@ import { fromState, hoverCase, type OverlayCase } from '../helpers/overlayGuardF
 import { settlePage } from '../helpers/settle';
 
 // The Story Bible's own overlays (components/storybible/): the hints on the header's icon buttons, the kind menu of an entry in Edit, the menu of a
-// voice sample and its Rename, Move and Delete dialogs, the right-click menu of an entry row, and the dialogs, the language-model and voice prompts and the Voice data panel that the catalog's
+// voice sample and its Rename, Move and Delete dialogs, the right-click menu of an entry row, and the dialogs, the voice prompt and the Voice data panel that the catalog's
 // state drivers already reach. Not driven: the Sort and speaker-colour selects (native selects, whose popup the browser draws outside
 // the page where `elementFromPoint` cannot see it), the pronunciation source menu and the review slide-over (each needs a chain of
 // steps the mock reaches only inside a driver), and a toast raised while a dialog is open, which the guard would fail today (the
@@ -17,7 +17,6 @@ export const storyBibleCases: OverlayCase[] = [
   hoverCase('hint on Scan', (page) => header(page, 'Scan the manuscript for suggestions')),
   hoverCase('hint on Import entries', (page) => header(page, 'Import entries (CSV or JSON)')),
   hoverCase('hint on Voice data', (page) => header(page, 'Voice data')),
-  hoverCase('hint on Build / refresh', (page) => header(page, 'Build / refresh Story Bible')),
   hoverCase('hint on Add entity', (page) => header(page, 'Add entity')),
   {
     // A right click on an entry row (the mock's registerContext for the Bible page).
@@ -45,9 +44,7 @@ export const storyBibleCases: OverlayCase[] = [
   },
   fromState('storybible', 'delete-confirm'),
   fromState('storybible', 'import-dialog'),
-  fromState('storybible', 'language-model-confirm'),
   fromState('storybible', 'voice-download-confirm'),
-  fromState('storybible', 'rebuild-running'),
   fromState('storybible', 'voice-data-panel', 'dialog', { root: (page) => page.getByRole('dialog', { name: 'Voice data' }) }),
   fromState('storybible', 'remove-voice-data-confirm'),
   {

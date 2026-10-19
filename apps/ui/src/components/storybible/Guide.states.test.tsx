@@ -46,6 +46,16 @@ const entry = (id: string, name: string, over: Partial<GuideEntity> = {}): Guide
 const rows = () => within(screen.getByRole('list', { name: 'Story Bible entries' })).queryAllByRole('button');
 const rowNames = () => rows().map((row) => row.querySelector('[data-line="name"]')!.textContent);
 
+// A story-bible job ending anywhere in the app reloads the entries: the page's one reload trigger that is not a decision.
+function endStoryBibleJob(api: ReturnType<typeof createMockApi>): () => void {
+  const listeners = new Set<(event: never) => void>();
+  vi.spyOn(api, 'subscribeJobEnded').mockImplementation((onEnded) => {
+    listeners.add(onEnded as never);
+    return () => listeners.delete(onEnded as never);
+  });
+  return () => listeners.forEach((ended) => ended({ kind: 'story_bible', outcome: 'success' } as never));
+}
+
 describe('a failed read says so, with a way forward', () => {
   it('the first load failing is an inline sentence with Retry, and Retry reads again', async () => {
     const api = createMockApi();
@@ -59,10 +69,11 @@ describe('a failed read says so, with a way forward', () => {
 
   it('a reload failing keeps the rows on screen and is a toast sentence', async () => {
     const api = createMockApi();
+    const reload = endStoryBibleJob(api);
     const notify = mount(api);
     await screen.findAllByText('Alice');
     vi.spyOn(api, 'guideEntities').mockRejectedValue(new Error('The Story Bible file is locked by another program.'));
-    await userEvent.click(screen.getByRole('button', { name: 'Build / refresh Story Bible' }));
+    reload();
     await vi.waitFor(() => expect(rowNames().length).toBeGreaterThan(0));
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('Error: Error'), 'error');
   });
@@ -255,46 +266,16 @@ describe('stale and leaving mid-action', () => {
     const api = createMockApi();
     const all = await api.guideEntities();
     const read = vi.spyOn(api, 'guideEntities').mockResolvedValue(all);
+    const reload = endStoryBibleJob(api);
     mount(api);
     await screen.findAllByText('Alice');
     fireEvent.click(rows().find((row) => row.textContent?.startsWith('Hatter'))!);
     await screen.findByRole('heading', { name: 'Hatter' });
     read.mockResolvedValue(all.filter((entry) => entry.canonical_name !== 'Hatter'));
-    fireEvent.click(screen.getByRole('button', { name: 'Build / refresh Story Bible' }));
+    reload();
     await vi.waitFor(() => expect(rowNames()).not.toContain('Hatter'));
     expect(screen.queryByRole('heading', { name: 'Hatter' })).toBeNull();
     expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThan(0);
-  });
-
-  it('leaving the page while an action is still running raises no error when it ends', async () => {
-    const api = createMockApi();
-    let finish: () => void = () => undefined;
-    vi.spyOn(api, 'guideBuild').mockImplementation(
-      () => new Promise((resolve) => (finish = () => resolve({ status: 'started', job: { id: 'j', phase: 'success' } } as never))),
-    );
-    const errors: unknown[] = [];
-    const onError = (event: ErrorEvent) => errors.push(event.error);
-    window.addEventListener('error', onError);
-    mount(api);
-    await screen.findAllByText('Alice');
-    fireEvent.click(screen.getByRole('button', { name: 'Build / refresh Story Bible' }));
-    cleanup();
-    finish();
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    window.removeEventListener('error', onError);
-    expect(errors).toEqual([]);
-  });
-
-  it('pressing Build twice in the same moment starts one build', async () => {
-    const api = createMockApi();
-    const build = vi.spyOn(api, 'guideBuild').mockImplementation(() => new Promise(() => undefined));
-    mount(api);
-    await screen.findAllByText('Alice');
-    const button = screen.getByRole('button', { name: 'Build / refresh Story Bible' });
-    fireEvent.click(button);
-    fireEvent.click(button);
-    fireEvent.click(button);
-    expect(build).toHaveBeenCalledTimes(1);
   });
 });
 

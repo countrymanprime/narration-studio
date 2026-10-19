@@ -127,8 +127,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#8':
     'Best effort when leaving a Proof chapter view with a compare run through the nav: a reset that fails leaves the finished results in place, which is harmless.',
   'src/App.tsx#9': 'Best effort when leaving a Proof chapter view with a compare run through guarded Back/Forward: same as the nav, harmless either way.',
-  'src/components/production/ManuscriptImport.tsx#1':
-    'Only pre-fills the "Build the Story Bible after import" checkbox from Settings; it keeps its on-by-default local state without it, and the narrator can still change it per import.',
   'src/components/proof/CompareRun.tsx#1': 'Reads the last model and chunk choice; the defaults stay usable and Settings reports a real error.',
   'src/components/proof/CompareRun.tsx#2':
     'The "may have changed since comparison" background check: comparing a successful REAPER answer against the baseline is best-effort - a failure just leaves the note as it was, tried again next low-frequency poll.',
