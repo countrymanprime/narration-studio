@@ -141,7 +141,7 @@ export const storybibleStates: StateEntry[] = [
   {
     page: 'storybible',
     state: 'voice-samples-empty',
-    description: 'Story Bible, an entry with no voice sample: how to mark one and Open Editing (?mockVoiceSamples=bible, Alice)',
+    description: 'Story Bible, an entry with no voice sample: how to mark one and Open Editing (?mockVoiceSamples=bible, White Rabbit)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

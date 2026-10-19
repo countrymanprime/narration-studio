@@ -24,6 +24,8 @@ import type { MeasureJob } from './types';
 // starts at "/".
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
+  // The title is set by an effect and outlives a test: one test's last page must not read as the next test's first.
+  document.title = '';
 });
 afterEach(cleanup);
 
@@ -1807,19 +1809,19 @@ describe('App page change signal', () => {
   it('titles the document with the page for rail clicks, the jump menu and Back/Forward', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(document.title).toBe('Production · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Production · Narration Studio'));
     fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
     await screen.findByRole('heading', { name: 'Script' });
-    expect(document.title).toBe('Script · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
     await waitFor(() => expect(focusIsInMain()).toBe(true));
 
     fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
-    expect(document.title).toBe('Production · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Production · Narration Studio'));
     await waitFor(() => expect(focusIsInMain()).toBe(true));
     fireEvent.keyDown(document, { key: 'ArrowRight', code: 'ArrowRight', altKey: true });
     await screen.findByRole('heading', { name: 'Script' });
-    expect(document.title).toBe('Script · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
   });
 
   it('leaves focus in the page after the jump menu picks one', async () => {
@@ -1834,7 +1836,7 @@ describe('App page change signal', () => {
     await screen.findByRole('heading', { name: 'Script' });
     await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
     await waitFor(() => expect(focusIsInMain()).toBe(true));
-    expect(document.title).toBe('Script · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
   });
 
   it('keeps the drawer returning focus to its menu button when a page is picked in it', async () => {
@@ -1846,6 +1848,6 @@ describe('App page change signal', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Script' }));
     await screen.findByRole('heading', { name: 'Script' });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Navigation' })).toBeNull());
-    expect(document.title).toBe('Script · Narration Studio');
+    await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
   });
 });
