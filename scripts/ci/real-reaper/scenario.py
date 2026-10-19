@@ -214,6 +214,23 @@ class Env:
         assert events[-1][0] == tag, f"{command}: expected {tag}, got {events}"
         return events[-1]
 
+    def start(self, command: str, *args: object) -> str:
+        """Sends a command without waiting; answers its run id (for events that come later, such as RECORD_ENDED)."""
+        return self.session.send(command, *args)
+
+    def wait_event(self, run: str, tag: str, *, timeout: float = 20.0) -> list[str]:
+        """The first event `tag` carrying the run id, waiting for it to arrive."""
+
+        def find():
+            self.session.events()
+            return next((e for e in self.session.seen if len(e) > 1 and e[0] == tag and e[1] == run), None)
+
+        return self.wait_for(find, timeout=timeout, what=f"{tag} for {run}")
+
+    def events_for(self, run: str) -> list[list[str]]:
+        self.session.events()
+        return [e for e in self.session.seen if len(e) > 1 and e[1] == run]
+
     def payload(self, name: str, lines: list[str]) -> str:
         directory = self.out / "payloads"
         directory.mkdir(parents=True, exist_ok=True)

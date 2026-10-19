@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / "tests" / "fixtures" / "audio" / "librivox-alice"
 CHAPTER_ID = "kara_01"  # Alice ch. I, Kara Shallenberg, LibriVox, public domain (sources.json holds URL and SHA-256)
-SUITES = ["scenarios_session", "scenarios_takes", "scenarios_range"]  # modules that register scenarios with scenario.scenario()
+SUITES = ["scenarios_session", "scenarios_takes", "scenarios_range", "scenarios_transport"]  # modules that register scenarios with scenario.scenario()
 REGIONS = [(0.0, 20.0, "Chapter 1"), (20.0, 40.0, "Chapter 2"), (40.0, 60.0, "Chapter 3")]
 
 
