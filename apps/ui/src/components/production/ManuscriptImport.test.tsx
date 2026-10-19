@@ -205,128 +205,6 @@ describe('the import review dialog, as the narrator meets it', () => {
   });
 });
 
-describe('build after import (B1-B3)', () => {
-  it('offers the checkbox pre-checked from Settings (ManuscriptGuide.build_after_import defaults on)', async () => {
-    const { dialog } = await openReview();
-    const box = await waitFor(() => dialog.getByRole('checkbox', { name: 'Build the Story Bible after import' }));
-    expect(box.getAttribute('aria-checked')).toBe('true');
-  });
-
-  it('chains a build after a successful import, saying so, and never blames the import for a build failure', async () => {
-    let guideBuild = vi.fn();
-    const notices: string[] = [];
-    const api = createMockApi({}, { noManuscript: true });
-    guideBuild = vi.spyOn(api, 'guideBuild').mockRejectedValue(new Error('the language model could not be read'));
-    render(
-      <MemoryRouter>
-        <ApiProvider api={api}>
-          <ImportHarness data={await api.bootstrap()} go={() => {}} notify={(text) => notices.push(text)} refreshBootstrap={async () => {}} />
-        </ApiProvider>
-      </MemoryRouter>,
-    );
-    fireEvent.click(await screen.findByRole('button', { name: 'Import manuscript' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
-    const dialog = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
-    await waitFor(() => dialog.getByRole('checkbox', { name: 'Build the Story Bible after import' }));
-    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
-
-    await waitFor(() => expect(guideBuild).toHaveBeenCalledWith({}));
-    await waitFor(() => expect(notices).toContain('Manuscript imported.'));
-    await waitFor(() => expect(notices.some((text) => text.includes('Story Bible build failed: the language model could not be read'))).toBe(true));
-    // The import itself is never in question: no dialog is left open demanding another look.
-    expect(screen.queryByRole('alertdialog')).toBeNull();
-  });
-
-  it('does not chain a build when the narrator unchecks it', async () => {
-    let guideBuild = vi.fn();
-    const { dialog } = await openReview((api) => void (guideBuild = vi.spyOn(api, 'guideBuild')));
-    const box = await waitFor(() => dialog.getByRole('checkbox', { name: 'Build the Story Bible after import' }));
-    fireEvent.click(box);
-    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-    expect(guideBuild).not.toHaveBeenCalled();
-  });
-
-  it('shows the chained build as its own progress dialog when it does not finish at once', async () => {
-    const { dialog, api } = await openReview((hostApi) =>
-      vi.spyOn(hostApi, 'guideBuild').mockResolvedValue({
-        status: 'started',
-        job: { id: 'chained-build', kind: 'story_bible', phase: 'running', message: 'Extracting names', percent: 30, logs: [], elapsed: 3 },
-      }),
-    );
-    vi.spyOn(api, 'guideBuildState').mockResolvedValue({
-      id: 'chained-build',
-      kind: 'story_bible',
-      phase: 'running',
-      message: 'Extracting names',
-      percent: 30,
-      logs: [],
-      elapsed: 3,
-    });
-    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
-    expect(await screen.findByRole('dialog', { name: 'Build the Story Bible' })).toBeTruthy();
-  });
-
-  // The chained build's dialog closes by itself on the host's success, as the Story Bible page's rebuild dialog does.
-  it('closes the chained build dialog by itself once the host reports the build done', async () => {
-    const running = {
-      id: 'chained-build',
-      kind: 'story_bible' as const,
-      phase: 'running' as const,
-      message: 'Extracting names',
-      percent: 30,
-      logs: [],
-      elapsed: 3,
-    };
-    const { dialog, api } = await openReview((hostApi) => vi.spyOn(hostApi, 'guideBuild').mockResolvedValue({ status: 'started', job: running }));
-    let calls = 0;
-    vi.spyOn(api, 'guideBuildState').mockImplementation(async () => ({ ...running, phase: ++calls < 3 ? 'running' : 'success' }));
-    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
-    await screen.findByRole('dialog', { name: 'Build the Story Bible' });
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Build the Story Bible' })).toBeNull(), { timeout: 3000 });
-  });
-
-  // The same build started from the Story Bible page can go on in the background; the chained one does not hold the narrator either.
-  it('lets the narrator send the chained build to the background, and stops following it', async () => {
-    const running = {
-      id: 'chained-build',
-      kind: 'story_bible' as const,
-      phase: 'running' as const,
-      message: 'Extracting names',
-      percent: 30,
-      logs: [],
-      elapsed: 3,
-    };
-    const { dialog, api } = await openReview((hostApi) => vi.spyOn(hostApi, 'guideBuild').mockResolvedValue({ status: 'started', job: running }));
-    const state = vi.spyOn(api, 'guideBuildState').mockResolvedValue(running);
-    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
-    const build = await screen.findByRole('dialog', { name: 'Build the Story Bible' });
-    expect(within(build).getByText(/keeps running/)).toBeTruthy();
-    fireEvent.click(within(build).getByRole('button', { name: 'Continue in background' }));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Build the Story Bible' })).toBeNull());
-    const polls = state.mock.calls.length;
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    expect(state.mock.calls.length).toBe(polls);
-  });
-
-  it('keeps the chained build dialog open with the reason when asking the host how far it is fails', async () => {
-    const running = {
-      id: 'chained-build',
-      kind: 'story_bible' as const,
-      phase: 'running' as const,
-      message: 'Extracting names',
-      percent: 30,
-      logs: [],
-      elapsed: 3,
-    };
-    const { dialog, api } = await openReview((hostApi) => vi.spyOn(hostApi, 'guideBuild').mockResolvedValue({ status: 'started', job: running }));
-    vi.spyOn(api, 'guideBuildState').mockRejectedValue(new Error('the host stopped answering'));
-    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
-    const build = await screen.findByRole('dialog', { name: 'Build the Story Bible' });
-    expect(await within(build).findAllByText(/the host stopped answering/)).not.toHaveLength(0);
-  });
-});
-
 describe('the summary and the groups of the review', () => {
   it('says in the dialog message what was found, and follows a reclassification', async () => {
     const { dialog } = await openReview();
@@ -555,7 +433,6 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
     await waitFor(() => expect(profileField(dialog)).toBeTruthy());
     fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('profile store is read-only'), 'error'));
-    expect(notify).toHaveBeenCalledWith('Manuscript imported.');
   });
 
   it('never asks on a replace', async () => {

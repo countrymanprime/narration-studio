@@ -2,7 +2,6 @@ import { z } from 'zod';
 import type {
   GuideAlias,
   GuideAppearance,
-  GuideBuildResult,
   GuideDialogueCue,
   GuideDialogueCueEvidence,
   GuideEntity,
@@ -19,8 +18,6 @@ import type {
 } from '../contracts/storyBible';
 import { GUIDE_TYPE_COLOURS } from '../contracts/storyBible';
 import { listFromNull, optionalFromNull } from './base';
-import { assetInstallStateSchema } from './assets';
-import { workJobSchema } from './manuscript';
 import { ttsInstallStateSchema, ttsVoiceIdentitySchema } from './tts';
 
 const evidenceSchema = z.object({
@@ -138,20 +135,6 @@ export const guidePreviewSchema = z.discriminatedUnion('status', [
   }),
 ]) satisfies z.ZodType<GuidePreview>;
 
-const languageModelSchema = z.object({
-  id: z.string(),
-  provider: z.string(),
-  displayName: z.string(),
-  description: z.string(),
-  version: z.string(),
-  publisher: z.string(),
-  license: z.string(),
-  licenseUrl: z.string(),
-  modelCardUrl: z.string(),
-  provenanceUrl: z.string(),
-  attribution: z.string(),
-});
-
 const guideDialogueCueEvidenceSchema = z.object({
   chapterId: z.string(),
   paragraphId: z.string(),
@@ -174,16 +157,3 @@ const guideDialogueCueSchema = z.object({
 
 /** The dialogue cue list: the host sends an empty list for a guide with none, and older guide a missing key. */
 export const guideDialogueCuesSchema = listFromNull(guideDialogueCueSchema);
-
-/** What starting a build answers: the job that started, or the first-use gate for the language model. */
-export const guideBuildResultSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('started'), job: workJobSchema }),
-  z.object({
-    status: z.literal('asset_required'),
-    model: languageModelSchema,
-    installState: assetInstallStateSchema,
-    downloadSize: z.number(),
-    diskSize: z.number(),
-    installPath: z.string(),
-  }),
-]) satisfies z.ZodType<GuideBuildResult>;

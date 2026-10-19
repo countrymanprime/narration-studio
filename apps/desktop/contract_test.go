@@ -80,27 +80,6 @@ func TestContractBootstrapOfAStandaloneLaunchWithNoProject(t *testing.T) {
 	contractfile.Check(t, "bootstrap-standalone", host.Bootstrap())
 }
 
-// The Story Bible build job as GuideBuildState sends it. Elapsed time is the only value that varies.
-func TestContractStoryBibleBuildJob(t *testing.T) {
-	host := contractHost(t, "")
-	pinBinding := func(name string, job map[string]any) {
-		job["elapsed"] = 2.5
-		contractfile.Check(t, name, job)
-	}
-	pinBinding("guide-build-idle", host.guideBuildState())
-	// A job just started has no log lines yet: its `logs` is a nil slice, which the host sends as null.
-	pinBinding("guide-build-starting", snapshotWork(&workJob{id: "guide-1", kind: "story_bible", phase: "running", message: "Preparing…", started: time.Now()}))
-	// What GuideBuild answers: the job that started, or the first-use gate for the language model.
-	started := snapshotWork(&workJob{id: "guide-1", kind: "story_bible", phase: "running", message: "Story Bible rebuild started.", percent: 1, started: time.Now()})
-	started["elapsed"] = 0.0
-	contractfile.Check(t, "guide-build-started", map[string]any{"status": "started", "job": started})
-	contractfile.Check(t, "guide-build-asset-required", spacyAssetRequired(spacy.Model{ID: "en_core_web_sm", Provider: "spacy", DisplayName: "English, small (fast)", Description: "The default: a small download that runs on any computer.",
-		Version: "3.8.0", Publisher: "Explosion", License: "MIT", LicenseURL: "https://spacy.io/models/en#en_core_web_sm", ModelCardURL: "https://github.com/explosion/spacy-models/releases/tag/en_core_web_sm-3.8.0",
-		ProvenanceURL: "https://github.com/explosion/spacy-models/releases/tag/en_core_web_sm-3.8.0", Attribution: "spaCy English pipeline by Explosion (MIT).",
-		Files: []spacy.File{{Name: "w.whl", Size: 12806118, Extract: "model", Expand: 15251718}}}, "not_installed", "C:/Users/narrator/AppData/Local/narration-utils/assets/spacy/en_core_web_sm/3.8.0"))
-	pinBinding("guide-build-failed", snapshotWork(&workJob{id: "guide-1", kind: "story_bible", phase: "error", message: "The Story Bible build failed.", errorText: "python exited with code 1", percent: 40, logs: []string{"Reading canonical manuscript", "Loaded 120 paragraphs"}, started: time.Now()}))
-}
-
 // How a project attach ends, as ProjectSwitch and ProjectCreateIn answer it, and the Story Bible answer that needs a voice.
 func TestContractProjectAttachResults(t *testing.T) {
 	for name, attached := range map[string]struct {

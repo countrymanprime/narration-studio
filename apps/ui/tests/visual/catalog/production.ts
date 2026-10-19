@@ -95,18 +95,6 @@ export const productionStates: StateEntry[] = [
   { page: 'production', state: 'import-activity-log', description: 'Production, manuscript import finished with its live activity log populated' },
   {
     page: 'production',
-    state: 'import-build-running',
-    description:
-      'Production, the Story Bible build chained after an import (on by default) still running in its own "Build the Story Bible" dialog, the import already reported (?mockBuild=hold)',
-  },
-  {
-    page: 'production',
-    state: 'import-build-failed',
-    description:
-      'Production, the chained Story Bible build failed after a successful import: the build dialog shows the reason and the import stays reported as done (?mockBuild=fails)',
-  },
-  {
-    page: 'production',
     state: 'import-confirm',
     description:
       'Production, import manuscript confirm dialog with format/paragraph/chapter preview (reached via Settings > Manuscript, "Replace manuscript…", since a manuscript is already loaded)',

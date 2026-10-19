@@ -94,14 +94,6 @@ export type MockApiSeed = {
   notice?: string;
   /** Makes every Story Bible edit hang, as a Python process that has not answered would, so the busy state can be seen without a host. */
   holdEdits?: boolean;
-  /** Boots with a Story Bible rebuild that is still running, so its dialog (and Continue in background) can be seen without a host. */
-  rebuildRunning?: boolean;
-  /**
-   * How the next Story Bible build behaves: `hold` starts it and keeps it running at 30 percent, and `fails` starts it and has the host
-   * report it failed at the first poll, so the chained build after an import can be seen
-   * running and failing without a host. Without it a build finishes at once.
-   */
-  build?: 'hold' | 'fails';
   /** Which manuscript an import picks: a Word file (the default) or a Markdown one, which has the chapter heading level choice. */
   importPreview?: MockImportKind;
   /** Boots the update state (see `MockUpdateSeed`). */

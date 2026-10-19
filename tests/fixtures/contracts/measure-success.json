@@ -42,7 +42,8 @@
             "duration_seconds": 0.0000833,
             "samples": 4
           }
-        ]
+        ],
+        "click_candidate_count": 2
       },
       "fingerprint": {
         "size_bytes": 530928044,
@@ -144,7 +145,8 @@
         "tail_digital_silence_seconds": null,
         "full_scale_samples": 0,
         "clip_run_count": 0,
-        "clip_runs": []
+        "clip_runs": [],
+        "click_candidate_count": 0
       },
       "fingerprint": {
         "size_bytes": 176444,
