@@ -201,4 +201,10 @@ export const storybibleStates: StateEntry[] = [
     description:
       'Story Bible, the Series tab while the series are still being read (?mockHold=series): the page and its tabs as usual and grey blocks in the tab, with one polite "Reading the series…" status',
   },
+  {
+    page: 'storybible',
+    state: 'series-tab-load-failed',
+    description:
+      'Story Bible, the Series tab when the series cannot be read (?mockSeries=fails): the page and its tabs as usual and, in the tab, "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the series again; no skeleton left behind',
+  },
 ];
