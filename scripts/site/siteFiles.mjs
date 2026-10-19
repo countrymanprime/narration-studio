@@ -38,10 +38,30 @@ const ABSOLUTE = /^(?:\/|[a-z][a-z0-9+.-]*:)/i;
 const SELF_CONTAINED = /^(?:data:|blob:|about:|javascript:|#)/i;
 const isOutward = (url) => ABSOLUTE.test(url) && !SELF_CONTAINED.test(url);
 
+/**
+ * `html` with the body of every inline script (one with no `src`) cut out, so JavaScript that mentions a tag is not read as markup. It walks the
+ * text instead of replacing a pattern, and puts a newline where it cut, so what is left cannot join into a new `<script`.
+ */
+function withoutInlineScripts(html) {
+  const open = /<script\b(?![^>]*\bsrc=)[^>]*>/gi;
+  const close = /<\/script\b[^>]*>/gi;
+  let kept = '';
+  let from = 0;
+  for (let start = open.exec(html); start; start = open.exec(html)) {
+    if (start.index < from) continue;
+    close.lastIndex = start.index + start[0].length;
+    const end = close.exec(html);
+    kept += `${html.slice(from, start.index)}\n`;
+    from = end ? end.index + end[0].length : html.length;
+    open.lastIndex = from;
+  }
+  return kept + html.slice(from);
+}
+
 /** The resources an HTML page loads by an absolute path or from another host. A plain link (`<a href>`) is navigation, not a load. */
 export function outwardHtmlLoads(html) {
   const found = [];
-  const strippedScripts = html.replace(/<script\b(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script\b[^>]*>/gi, '');
+  const strippedScripts = withoutInlineScripts(html);
   for (const tag of strippedScripts.matchAll(/<(script|link|img|source|iframe|audio|video|embed)\b[^>]*>/gi)) {
     const [markup, name] = tag;
     if (name.toLowerCase() === 'link' && !/\brel=["']?(?:stylesheet|icon|preload|modulepreload|manifest|apple-touch-icon)/i.test(markup)) continue;
