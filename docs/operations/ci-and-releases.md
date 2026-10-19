@@ -43,8 +43,8 @@ repository (read with `gh api repos/countrymanprime/narration-utils/rulesets`, a
   `quick-windows` and `go-test` and reports `CI light passed`; it skips the visual suite, the atlas, the UI bundle and `Build (Windows)`, and it
   shows no `CI passed`. Marking the pull request ready runs the full tier. No other workflow has a draft condition.
 - **A pull request's runs stop when they stop mattering.** Every workflow a pull request starts has a `concurrency` group
-  with `cancel-in-progress`, so a newer push cancels the run before it, and `cancel-closed-pr.yml` cancels whatever is
-  still queued or running when the pull request is merged or closed (a merge starts its own runs on `main`). Runs on
+  with `cancel-in-progress`, so a newer push cancels the run before it. Nothing cancels the runs of a pull request that is
+  merged or closed: the coordinator cancels them by hand (`.claude/skills/agent-train/SKILL.md`). Runs on
   `main` and the release workflows are never cancelled. A push cancels the run before it, so a refresh push that changes nothing a
   reviewer needs ("merge `main` into the branch" with no conflict) throws away a run that was part way through ([Wasted runs](#wasted-runs)).
 - **Windows is the only platform the app is built for** (a timing and maturity choice, not a design limit; see [Supported platforms](../../README.md#supported-platforms)). `Build (Windows)` is the only native
@@ -103,7 +103,6 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `codeql.yml` (`CodeQL`) | pull request to `main` that is not docs- or Markdown-only (same-repository, not Dependabot), nightly (05:23 UTC), manual | `CodeQL scope` (reads the diff), then `Analyze (go)`, `Analyze (javascript-typescript)` and `Analyze (python)` for the languages the pull request changes files of (`scripts/ci/codeql-scope.mjs`: Go for `apps/desktop/` and `scripts/toolchain.json`; JavaScript and TypeScript for `.js`, `.mjs`, `.ts`, `.tsx`, `.vue` and `.html` files; Python for `.py` files); all three on the nightly and manual runs, and for a change to the workflow, the toolchain action or an unreadable diff | advisory |
 | `dependency-review.yml` | pull request to `main` that changes a lockfile (`pnpm-lock.yaml`, `uv.lock`, `apps/desktop/go.sum`, any `package-lock.json`), a manifest (`apps/desktop/go.mod`, any `package.json` or `pyproject.toml`), a workflow or a composite action | `review` (fails on a high-severity advisory, or on a licence outside the allow-list, that a pull request adds to a **runtime** dependency; needs the dependency graph; [the licence policy](github-workflow.md#the-dependency-licence-allow-list)) | advisory |
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
-| `cancel-closed-pr.yml` | `pull_request_target` (closed: merged or closed without merging) | `cancel`: cancels every unfinished run of the pull request's head commit | not a check that gates anything |
 | `pages.yml` (`Pages`) | paused (an owner decision, narrowed by CI and releases): no push trigger and no pull request trigger, manual only | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only on a manual start on `main` with `publish` ticked | not a pull request check at all now; `Docs / Docs checks` (its `Links (offline)` and `Markdown lint (changed files)` steps) cover pull requests instead |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old | not a pull request check |
 | `main-health.yml` (`Main health`) | every three hours (minute 37), manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
@@ -161,10 +160,6 @@ The permission model, so a change can be judged against it:
   `run:` body.
 - `labeler.yml` uses `pull_request_target` so forks can be labelled; it checks out nothing and runs no pull request
   code (the comment at its top says why that is safe).
-- `cancel-closed-pr.yml` uses `pull_request_target` too, so it can cancel the runs of fork and Dependabot pull requests,
-  whose `pull_request` token is read-only. It checks out nothing, runs no pull request code and holds only `actions: write`;
-  the head SHA and number reach its shell through `env:`. Its trigger carries the one inline zizmor ignore
-  (`dangerous-triggers`), with that reason.
 
 Install-time settings are written in the repository so a default that changes upstream cannot change them silently:
 
