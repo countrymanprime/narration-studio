@@ -67,4 +67,11 @@ describe('storage', () => {
     expect(loadTextPrefs()).toEqual(DEFAULT_TEXT_PREFS);
     expect(() => saveTextPrefs(prefs)).not.toThrow();
   });
+
+  it('defaults to the mock’s 1.7 line spacing, and a spacing the narrator chose still wins', () => {
+    expect(DEFAULT_TEXT_PREFS.spacing).toBe(1.7);
+    window.localStorage.setItem(TEXT_PREFS_STORAGE_KEY, JSON.stringify({ ...DEFAULT_TEXT_PREFS, spacing: 1.9 }));
+    expect(loadTextPrefs().spacing).toBe(1.9);
+    expect(readerVars(loadTextPrefs())['--rl']).toBe(1.9);
+  });
 });

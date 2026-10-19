@@ -154,7 +154,7 @@ const Section = memo(function Section(props: SectionProps) {
   const rows = paragraphs ?? NO_PARAS;
   return (
     <Fragment>
-      <div data-bound="" data-ch={chapter.id} id={`ch-${chapter.id}`} className="mt-6 first:mt-0">
+      <div data-bound="" data-ch={chapter.id} id={`ch-${chapter.id}`} className="mt-12 mb-3 first:mt-3">
         {props.renderChapterCard ? (
           props.renderChapterCard(chapter)
         ) : (
@@ -478,12 +478,12 @@ export function Reader(props: ReaderProps) {
       >
         <div
           data-reader=""
-          className="mx-auto px-6 py-4"
+          className="mx-auto px-5 pt-2 pb-20"
           style={{
             maxWidth: 'calc(var(--rw, 64) * 1ch)',
             fontFamily: 'var(--rf, Georgia, serif)',
             fontSize: 'calc(var(--rs, 18) * 1px)',
-            lineHeight: 'var(--rl, 1.6)',
+            lineHeight: 'var(--rl, 1.7)',
             ...vars,
           }}
           onClick={onClick}
