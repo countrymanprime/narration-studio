@@ -31,6 +31,9 @@ func (m macroRender) RenderWithMacro(ctx context.Context, req dawport.MacroRende
 	if req.Macro == "" {
 		return dawport.MacroRendered{}, ErrNoMacro
 	}
+	if err := audacitybridge.CheckMacroName(req.Macro); err != nil {
+		return dawport.MacroRendered{}, err
+	}
 	if err := m.client.Import(ctx, req.Source); err != nil {
 		return dawport.MacroRendered{}, err
 	}

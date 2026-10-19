@@ -20,6 +20,10 @@ integrations/reaper/** text eol=lf
 # Golden payloads written by the Go and Python tests are compared byte for byte: a CRLF checkout would fail every one.
 tests/fixtures/contracts/** text eol=lf
 
+# The real-Audacity 3 golden replies are the exact bytes Audacity wrote on Linux (LF) and are compared byte for byte by
+# internal/audacitybridge; a CRLF checkout on a Windows runner (autocrlf=true) fails every one. Keep them out of conversion.
+tests/audacity3/real/foundation/golden/*.bin -text
+
 # The Delivery report embeds its HTML template (go:embed) and compares the page it renders with a golden file: a CRLF
 # checkout on a Windows runner puts CRLF into the page, fails the golden test and ships CRLF in the build.
 apps/desktop/**/*.tmpl text eol=lf

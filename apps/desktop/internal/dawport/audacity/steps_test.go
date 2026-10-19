@@ -3,6 +3,7 @@ package audacity
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -20,7 +21,7 @@ import (
 
 // editAudacity is the backups' fake Audacity (pipeAudacity) with the edit commands the steps send: Split (no change to the fake's
 // audio, which has no clips), SplitDelete (takes the selection out and leaves a gap), Delete (takes the selection out and moves
-// what follows up), ApplyMacro (marks the selection's audio "fx:"), Amplify (marks it "amp:" and records the ratio), ClickRemoval (marks it "fix:"), and PunchAndRoll (clears the selected track from the cursor on,
+// what follows up), a macro, Macro_<name> (marks the selection's audio "fx:"), Amplify (marks it "amp:" and records the ratio), ClickRemoval (marks it "fix:"), and PunchAndRoll (clears the selected track from the cursor on,
 // as a recording over it would). They are answered as the published scripting reference documents them; what only a real
 // Audacity can show is the owner's pass (docs/operations/audacity-verification-pass.md).
 type editAudacity struct {
@@ -37,8 +38,10 @@ func (f *editAudacity) handle(line string) ([]string, bool) {
 	if err != nil {
 		return f.pipeAudacity.handle(line)
 	}
-	switch cmd.Name {
-	case "Split", "SplitDelete", "Delete", "ApplyMacro", "Amplify", "ClickRemoval", "PunchAndRoll":
+	// A macro is the menu command Macro_<name> (spaces taken out of the name); it is the one edit whose name is data.
+	macro := strings.HasPrefix(cmd.Name, "Macro_")
+	switch {
+	case macro, slices.Contains([]string{"Split", "SplitDelete", "Delete", "Amplify", "ClickRemoval", "PunchAndRoll"}, cmd.Name):
 	default:
 		return f.pipeAudacity.handle(line)
 	}
@@ -54,12 +57,31 @@ func (f *editAudacity) handle(line string) ([]string, bool) {
 		return []string{"Select a track first."}, false
 	}
 	a, b := int(math.Floor(f.selStart)), int(math.Ceil(f.selEnd))
+	if macro {
+		f.macros = append(f.macros, strings.TrimPrefix(cmd.Name, "Macro_"))
+		for s := a; s < b; s++ {
+			if v, ok := t.audio[s]; ok {
+				t.audio[s] = "fx:" + v
+			}
+		}
+		return nil, true
+	}
 	switch cmd.Name {
 	case "SplitDelete":
 		for s := a; s < b; s++ {
 			delete(t.audio, s)
 		}
 	case "Delete":
+		// Audacity moves audio up only when the selection holds some: a Delete over a gap on a track with Sync-Lock off moves nothing.
+		held := false
+		for s := a; s < b; s++ {
+			if _, ok := t.audio[s]; ok {
+				held = true
+			}
+		}
+		if !held {
+			return nil, true
+		}
 		next := map[int]string{}
 		for s, v := range t.audio {
 			switch {
@@ -70,13 +92,6 @@ func (f *editAudacity) handle(line string) ([]string, bool) {
 			}
 		}
 		t.audio = next
-	case "ApplyMacro":
-		f.macros = append(f.macros, cmd.Params["MacroName"])
-		for s := a; s < b; s++ {
-			if v, ok := t.audio[s]; ok {
-				t.audio[s] = "fx:" + v
-			}
-		}
 	case "Amplify":
 		f.ratios = append(f.ratios, cmd.Params["Ratio"])
 		for s := a; s < b; s++ {
@@ -172,13 +187,13 @@ func afterBackup(log []string) ([]string, bool) {
 	return nil, false
 }
 
-// withoutReads drops GetInfo, which reads and changes nothing, from a list of command names.
+// withoutReads drops GetInfo and GetPreference, which read and change nothing, from a list of command names.
 func withoutReads(names []string) []string {
-	return slices.DeleteFunc(slices.Clone(names), func(n string) bool { return n == "GetInfo" })
+	return slices.DeleteFunc(slices.Clone(names), func(n string) bool { return n == "GetInfo" || n == "GetPreference" })
 }
 
 // editCommands are the commands that change the narrator's audio.
-var editCommands = []string{"Split", "SplitDelete", "Delete", "ApplyMacro", "Amplify", "ClickRemoval", "PunchAndRoll", "RemoveTracks"}
+var editCommands = []string{"Split", "SplitDelete", "Delete", "Macro_Warmvoice", "Amplify", "ClickRemoval", "PunchAndRoll", "RemoveTracks"}
 
 func editsIn(log []string) []string {
 	var found []string
@@ -348,13 +363,15 @@ func TestResultListsTheStepsInOrder(t *testing.T) {
 		adapter, _ := stepsOver(t, fake, true)
 		_, cut, _, _ := roles(adapter)
 		result, err := cut.DeleteRange(t.Context(), cutRequest(30, 33, dawport.CutClose))
-		want := dawport.Result{OK: true, Changed: true, Message: "Deleted 3 words and their audio in Audacity.", UndoSteps: 2,
+		// A plain Delete closes the gap and adds one undo point. SplitDelete then Delete closes it only with Sync-Lock on: with it off,
+		// which is how a fresh Audacity starts, the Delete finds no audio in the gap and moves nothing (A3-T18).
+		want := dawport.Result{OK: true, Changed: true, Message: "Deleted 3 words and their audio in Audacity.", UndoSteps: 1,
 			Steps: []string{stepSelectWords, stepDeleteWords, stepCloseUp}}
 		if err != nil || fmt.Sprint(result) != fmt.Sprint(want) {
 			t.Fatalf("DeleteRange = %+v, %v; want %+v", result, err, want)
 		}
 		after, _ := afterBackup(fake.commands())
-		if got := withoutReads(commandNames(after)); fmt.Sprint(got) != "[SelectTracks SelectTime SplitDelete Delete]" {
+		if got := withoutReads(commandNames(after)); fmt.Sprint(got) != "[SelectTracks SelectTime SetPreference Delete SetPreference]" {
 			t.Errorf("the cut sent %v", got)
 		}
 		source := fake.track("Chapter 1")
@@ -389,11 +406,11 @@ func TestResultListsTheStepsInOrder(t *testing.T) {
 			t.Fatalf("ApplyFXToRange = %+v, %v; want %+v", result, err, want)
 		}
 		after, _ := afterBackup(fake.commands())
-		if got := withoutReads(commandNames(after)); fmt.Sprint(got) != "[SelectTracks SelectTime Split ApplyMacro]" {
+		if got := withoutReads(commandNames(after)); fmt.Sprint(got) != "[SelectTracks SelectTime Split Macro_Warmvoice]" {
 			t.Errorf("the effect sent %v", got)
 		}
 		source := fake.track("Chapter 1")
-		if !slices.Equal(fake.macros, []string{"Warm voice"}) || source.audio[29] != "a29" || source.audio[30] != "fx:a30" ||
+		if !slices.Equal(fake.macros, []string{"Warmvoice"}) || source.audio[29] != "a29" || source.audio[30] != "fx:a30" ||
 			source.audio[32] != "fx:a32" || source.audio[33] != "a33" {
 			t.Errorf("macros %v; audio 29..33 = %v", fake.macros, audioIn(source, 29, 34))
 		}
@@ -404,7 +421,7 @@ func TestResultListsTheStepsInOrder(t *testing.T) {
 		adapter, project := stepsOver(t, fake, true)
 		_, _, _, stack := roles(adapter)
 		result, err := stack.StackTakes(t.Context(), stackRequest())
-		want := dawport.Result{OK: true, Changed: true, Message: "Stacked 1 take in Audacity. Done in 5 steps.", UndoSteps: 5,
+		want := dawport.Result{OK: true, Changed: true, Message: "Stacked 1 take in Audacity. Done in 5 steps.", UndoSteps: 4, // muting adds no undo point (A3-T22c)
 			Steps: []string{
 				"Add a take track",
 				"Paste each later read into it",
@@ -416,8 +433,9 @@ func TestResultListsTheStepsInOrder(t *testing.T) {
 			t.Fatalf("StackTakes = %+v, %v; want %+v", result, err, want)
 		}
 		after, _ := afterBackup(fake.commands())
-		wantLog := "[NewMonoTrack SetTrackStatus SelectTracks SelectTime Copy SelectTracks SelectTime Paste " +
-			"SelectTracks SelectTime Split Delete SetTrackAudio]"
+		// SetTrackStatus and SetTrackAudio act on the selected track, so each is preceded by the SelectTracks that picks its track.
+		wantLog := "[NewMonoTrack SelectTracks SetTrackStatus SelectTracks SelectTime Copy SelectTracks SelectTime Paste " +
+			"SelectTracks SelectTime SetPreference Split Delete SelectTracks SetTrackAudio SetPreference]"
 		if got := withoutReads(commandNames(after)); fmt.Sprint(got) != wantLog {
 			t.Errorf("the stack sent %v, want %v", got, wantLog)
 		}
@@ -425,6 +443,9 @@ func TestResultListsTheStepsInOrder(t *testing.T) {
 		take := fake.track(takeTrackName("take-2", 20, row.ID))
 		if take == nil || !take.muted {
 			t.Fatalf("no muted take track %q", takeTrackName("take-2", 20, row.ID))
+		}
+		if fake.track("Chapter 1").muted {
+			t.Error("the stack muted the chapter track: SetTrackAudio acts on the selected track, which was the chapter's after the Split and Delete")
 		}
 		if got := audioIn(take, 10, 18); fmt.Sprint(got) != fmt.Sprint(audioIn(fake.track(BackupTrackName(row.ID)), 20, 28)) {
 			t.Errorf("the take track holds %v at 10 s, want the later read", got)
@@ -612,6 +633,9 @@ func TestStaleAndBounds(t *testing.T) {
 	if result, err := fx.ApplyFXToRange(ctx, fxRequest(30, 33, "")); err != nil || result.Refused != messageNoMacro {
 		t.Errorf("ApplyFXToRange with no macro = %+v, %v", result, err)
 	}
+	if result, err := fx.ApplyFXToRange(ctx, fxRequest(30, 33, "Café")); err != nil || result.Refused != messageNoMacro {
+		t.Errorf("a macro name Audacity's id for is unknown = %+v, %v; want refused before anything is sent", result, err)
+	}
 	if result, err := fx.ApplyFXToRange(ctx, fxRequest(30, 33, `Say "hi"`)); err != nil || result.Refused != messageNoMacro {
 		t.Errorf("ApplyFXToRange with a macro name the pipe cannot carry = %+v, %v", result, err)
 	}
@@ -762,7 +786,7 @@ func TestAudacityReducesRangeGainAfterABackupOrRefuses(t *testing.T) {
 		adapter, project := stepsOver(t, fake, true)
 		reducer := adapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer)
 		result, err := reducer.ReduceRangeGain(t.Context(), gainRequest(dawport.GainStretch{Start: 30, End: 31.5}, dawport.GainStretch{Start: 20, End: 21}))
-		want := dawport.Result{OK: true, Changed: true, Message: "Lowered 2 stretches by 6 dB in Audacity.", UndoSteps: 2,
+		want := dawport.Result{OK: true, Changed: true, Message: "Lowered 2 stretches by 6 dB in Audacity.", UndoSteps: 0, // Amplify adds no undo point (A3-T22c)
 			Steps: []string{stepSelectStretch, "Lower it by 6 dB"}}
 		if err != nil || fmt.Sprint(result) != fmt.Sprint(want) {
 			t.Fatalf("ReduceRangeGain = %+v, %v; want %+v", result, err, want)
@@ -840,7 +864,7 @@ func TestAudacityRepairsClicksAfterABackupOrRefuses(t *testing.T) {
 		// 30.5 s and 20.5 s into the take, so 40.5 and 30.5 s on the track; 30.55 shares 30.5's selection.
 		result, err := repairer.RepairClick(t.Context(), clickRequest(dawport.Click{Start: 30.5, End: 30.503}, dawport.Click{Start: 20.5, End: 20.502},
 			dawport.Click{Start: 20.55, End: 20.552}))
-		want := dawport.Result{OK: true, Changed: true, Message: "Repaired 3 clicks in Audacity.", UndoSteps: 2,
+		want := dawport.Result{OK: true, Changed: true, Message: "Repaired 3 clicks in Audacity.", UndoSteps: 0, // ClickRemoval adds no undo point (A3-T22c)
 			Steps: []string{stepSelectClick, stepRemoveClick}}
 		if err != nil || fmt.Sprint(result) != fmt.Sprint(want) {
 			t.Fatalf("RepairClick = %+v, %v; want %+v", result, err, want)
@@ -891,4 +915,104 @@ func TestAudacityRepairsClicksAfterABackupOrRefuses(t *testing.T) {
 			}
 		})
 	}
+}
+
+// The fake models what A3-T18 measured: a Delete after a SplitDelete over the same selection leaves the gap in place, so the close
+// mode cannot be SplitDelete then Delete.
+func TestTheFakeLeavesAGapWhenDeleteFollowsSplitDelete(t *testing.T) {
+	fake := newEditAudacity()
+	fake.addAudio("Chapter 1", 0, 60, "a")
+	client := audacitybridge.New(fake.transport(), audacitybridge.Options{Timeout: 2 * time.Second})
+	t.Cleanup(func() { _ = client.Close() })
+	ctx := t.Context()
+	if err := errors.Join(client.SelectTracks(ctx, 0, 1), client.SelectTime(ctx, 30, 33)); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"SplitDelete", "Delete"} {
+		if _, err := client.Do(ctx, audacitybridge.NewCommand(name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := fake.track("Chapter 1").audio; got[30] != "" || got[33] != "a33" {
+		t.Errorf("30 s holds %q and 33 s %q: the Delete after a SplitDelete moved audio up", got[30], got[33])
+	}
+}
+
+// A close-up cut and a stack close a gap with a Delete, which moves only the audio of its own clip unless Audacity's "Editing a clip
+// can move other clips" is on (/GUI/EditClipCanMove): with two clips and the preference off, the later clip stayed where it was and
+// left a gap (A3-T18). The edit turns it on for its own commands and puts it back, also when the edit fails.
+func TestClosingAGapTurnsClipsMoveOnForTheEditAndPutsItBack(t *testing.T) {
+	prefName := audacitybridge.PrefClipsMove
+	t.Run("off before: on for the cut, off after", func(t *testing.T) {
+		fake := newEditAudacity()
+		fake.addAudio("Chapter 1", 0, 60, "a")
+		adapter, _ := stepsOver(t, fake, true)
+		_, cut, _, _ := roles(adapter)
+		if result, err := cut.DeleteRange(t.Context(), cutRequest(30, 33, dawport.CutClose)); err != nil || !result.OK {
+			t.Fatalf("DeleteRange = %+v, %v", result, err)
+		}
+		if got := fake.prefs[prefName]; got != "0" {
+			t.Errorf("the preference is %q afterwards, want 0 (it was never set, which behaves as off)", got)
+		}
+		var writes []string
+		for _, line := range fake.commands() {
+			if strings.HasPrefix(line, "SetPreference:") {
+				writes = append(writes, line)
+			}
+		}
+		if len(writes) != 2 || !strings.Contains(writes[0], `Value="1"`) || !strings.Contains(writes[1], `Value="0"`) {
+			t.Errorf("preference writes = %q, want on then off", writes)
+		}
+	})
+	t.Run("already on: nothing written", func(t *testing.T) {
+		fake := newEditAudacity()
+		fake.addAudio("Chapter 1", 0, 60, "a")
+		fake.prefs = map[string]string{prefName: "1"}
+		adapter, _ := stepsOver(t, fake, true)
+		_, cut, _, _ := roles(adapter)
+		if result, err := cut.DeleteRange(t.Context(), cutRequest(30, 33, dawport.CutClose)); err != nil || !result.OK {
+			t.Fatalf("DeleteRange = %+v, %v", result, err)
+		}
+		for _, line := range fake.commands() {
+			if strings.HasPrefix(line, "SetPreference:") {
+				t.Errorf("sent %q though the narrator already had it on", line)
+			}
+		}
+	})
+	t.Run("set by the narrator to 0: put back to 0", func(t *testing.T) {
+		fake := newEditAudacity()
+		fake.addAudio("Chapter 1", 0, 60, "a")
+		fake.prefs = map[string]string{prefName: "0"}
+		adapter, _ := stepsOver(t, fake, true)
+		_, cut, _, _ := roles(adapter)
+		_, _ = cut.DeleteRange(t.Context(), cutRequest(30, 33, dawport.CutClose))
+		if fake.prefs[prefName] != "0" {
+			t.Errorf("the preference is %q afterwards, want the narrator's 0", fake.prefs[prefName])
+		}
+	})
+	t.Run("a failing Delete still puts it back", func(t *testing.T) {
+		fake := newEditAudacity()
+		fake.addAudio("Chapter 1", 0, 60, "a")
+		fake.failOn = "Delete"
+		adapter, _ := stepsOver(t, fake, true)
+		_, cut, _, _ := roles(adapter)
+		if _, err := cut.DeleteRange(t.Context(), cutRequest(30, 33, dawport.CutClose)); err == nil {
+			t.Fatal("DeleteRange succeeded though Delete failed")
+		}
+		if fake.prefs[prefName] != "0" {
+			t.Errorf("the preference is %q after a failed edit, want it put back to 0", fake.prefs[prefName])
+		}
+	})
+	t.Run("a gap cut does not touch it", func(t *testing.T) {
+		fake := newEditAudacity()
+		fake.addAudio("Chapter 1", 0, 60, "a")
+		adapter, _ := stepsOver(t, fake, true)
+		_, cut, _, _ := roles(adapter)
+		if result, err := cut.DeleteRange(t.Context(), cutRequest(30, 33, dawport.CutGap)); err != nil || !result.OK {
+			t.Fatalf("DeleteRange = %+v, %v", result, err)
+		}
+		if len(fake.prefs) != 0 {
+			t.Errorf("preferences = %v after a cut that leaves a gap", fake.prefs)
+		}
+	})
 }

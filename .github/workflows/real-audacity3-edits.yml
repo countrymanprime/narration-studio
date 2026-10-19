@@ -1,0 +1,86 @@
+name: Real Audacity 3 edits (Linux)
+# Drives a real Audacity 3.7.7 over mod-script-pipe, headless, for recording, punch and roll, backups, cuts, stacks, macros, gain,
+# click repair, undo and the interface language (A3-T14 to T23 and T32 of docs/research/audacity-3-capability-matrix.md). Two halves:
+# the raw Python tests in tests/audacity3/real/edits measure what Audacity does with each command, and the Go tests in
+# apps/desktop/internal/dawport/audacity/real_edits_linux_live_test.go run the shipped adapter against it. Hosted, manual, and evidence
+# only: nothing requires it and it never runs on a pull request. A separate file from real-audacity3.yml, which another stream owns.
+#
+# It installs the hash-pinned AppImage and packages only, and never uploads the AppImage or an extracted tree (GPLv3 redistribution):
+# only the test results, screenshots, logs and the audio the tests exported.
+#
+# The script it runs, tests/audacity3/real/edits/run.sh, carries the Audacity version and SHA-256 pins.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'What to run: all (the Python tests, then the Go half), python (the Python tests only) or go (the adapter half only)'
+        type: choice
+        options: [all, python, go]
+        default: all
+permissions: {}
+concurrency:
+  group: real-audacity3-edits-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  real-audacity3-edits:
+    name: Audacity 3.7.7 edits and recording over mod-script-pipe
+    runs-on: ubuntu-24.04
+    # Each test starts a fresh Audacity (about 35 s) and the recording tests run in real time: the whole suite is about 30 minutes.
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Choose the work folder
+        run: echo "NU_AUDACITY_WORK=$RUNNER_TEMP/nu-audacity-edits" >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: '1.27.2'
+          cache-dependency-path: apps/desktop/go.sum
+      - name: Install the display, audio and helper packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb pulseaudio pulseaudio-utils libasound2-plugins xdotool ffmpeg imagemagick
+      # The key is the pinned hash's version: a new pin in run.sh is a new key.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ env.NU_AUDACITY_WORK }}/bin/*.AppImage
+          key: real-audacity3-edits-${{ hashFiles('tests/audacity3/real/edits/run.sh') }}
+      - name: Run the tests
+        env:
+          MODE: ${{ inputs.mode || 'all' }}
+        run: |
+          set -o pipefail
+          mkdir -p "$NU_AUDACITY_WORK"
+          case "$MODE" in
+            python) args=(A3-T14 A3-T15 A3-T16 A3-T17 A3-T18 A3-T19 A3-T20 A3-T21 A3-T22 A3-T22b A3-T22c A3-T23 A3-T32 A3-T33) ;;
+            go) args=(--go) ;;
+            *) args=() ;;
+          esac
+          tests/audacity3/real/edits/run.sh "${args[@]}" 2>&1 | tee "$NU_AUDACITY_WORK/run.log"
+      # summarize.py already appended its tables to the job summary; this adds the one line per test for a quick read.
+      - name: One line per test
+        if: always()
+        run: |
+          {
+            echo '### One line per test and step count'
+            echo '```'
+            grep -E '^=== |^\[go\] (--- |ok|FAIL)|real-audacity3-edits\]' "$NU_AUDACITY_WORK/run.log" || echo 'no output'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      # No AppImage and no extracted tree: only what the tests wrote.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: real-audacity3-edits
+          path: |
+            ${{ env.NU_AUDACITY_WORK }}/run.log
+            ${{ env.NU_AUDACITY_WORK }}/out/results.json
+            ${{ env.NU_AUDACITY_WORK }}/out/summary.md
+            ${{ env.NU_AUDACITY_WORK }}/out/results/
+            ${{ env.NU_AUDACITY_WORK }}/out/*.png
+            ${{ env.NU_AUDACITY_WORK }}/logs/
+          if-no-files-found: warn
+          retention-days: 14

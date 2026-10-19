@@ -23,9 +23,11 @@ type TrackInfo struct {
 	Index             int
 	Name, Kind        string
 	Selected, Focused bool
-	Start, End        float64
-	Channels          int
-	HasRange          bool
+	// Muted is the track's mute flag: a muted track is left out of an export.
+	Muted      bool
+	Start, End float64
+	Channels   int
+	HasRange   bool
 }
 
 // ClipInfo is one audio clip as GetInfo: Type=Clips reports it.
@@ -169,6 +171,7 @@ type trackJSON struct {
 	Kind     *string     `json:"kind"`
 	Selected flexBool    `json:"selected"`
 	Focused  flexBool    `json:"focused"`
+	Muted    flexBool    `json:"mute"`
 	Start    *flexNumber `json:"start"`
 	End      *flexNumber `json:"end"`
 	Channels *flexNumber `json:"channels"`
@@ -185,7 +188,7 @@ func parseTracks(reply Reply) ([]TrackInfo, error) {
 		if r.Name == nil || r.Kind == nil {
 			return nil, &ProtocolError{fmt.Sprintf("track %d has no name or kind", i)}
 		}
-		t := TrackInfo{Index: i, Name: *r.Name, Kind: *r.Kind, Selected: bool(r.Selected), Focused: bool(r.Focused)}
+		t := TrackInfo{Index: i, Name: *r.Name, Kind: *r.Kind, Selected: bool(r.Selected), Focused: bool(r.Focused), Muted: bool(r.Muted)}
 		if r.Start != nil && r.End != nil {
 			t.Start, t.End, t.HasRange = float64(*r.Start), float64(*r.End), true
 		}
