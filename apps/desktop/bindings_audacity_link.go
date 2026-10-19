@@ -90,7 +90,7 @@ func (h *Host) AudacityEnableModule() (string, error) {
 	svc := h.services()
 	if err := audacitylink.EnableModule(h.audacitySettingsPath(), h.isAudacityRunning()); err != nil {
 		if errors.Is(err, audacitylink.ErrAudacityRunning) {
-			return "", errors.New("Audacity is open. Close it first, because it saves its settings when it closes; then turn scripting on.")
+			return "", errors.New("Audacity is open. Close it first, because it saves its settings when it closes; then turn scripting on.") //nolint:staticcheck // a sentence the narrator reads
 		}
 		return "", err
 	}
@@ -126,14 +126,14 @@ func (h *Host) linkAudacityFile(path string) error {
 	}
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		return errors.New("That is not a path to an Audacity project. Choose a file ending in .aup3.")
+		return errors.New("That is not a path to an Audacity project. Choose a file ending in .aup3.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	name := filepath.Base(abs)
 	if !strings.EqualFold(filepath.Ext(abs), ".aup3") {
-		return fmt.Errorf("%s is not an Audacity project. Choose a file ending in .aup3.", name)
+		return fmt.Errorf("%s is not an Audacity project. Choose a file ending in .aup3.", name) //nolint:staticcheck // a sentence the narrator reads
 	}
 	if info, err := os.Stat(abs); err != nil || info.IsDir() {
-		return fmt.Errorf("%s could not be found. Choose the Audacity project again.", name)
+		return fmt.Errorf("%s could not be found. Choose the Audacity project again.", name) //nolint:staticcheck // a sentence the narrator reads
 	}
 	rows := map[string]*string{audacityLinkFileKey: &abs}
 	if svc.settings.Project(recordingSettingsTool)[audacityLinkIDKey] == "" {
@@ -158,7 +158,7 @@ func (h *Host) AudacityLinkOpenProject() (string, error) {
 	svc := h.services()
 	conn := svc.audacity
 	if conn == nil || svc.settings == nil {
-		return "", errors.New("Audacity is not connected to this project. Choose Audacity under Record with first.")
+		return "", errors.New("Audacity is not connected to this project. Choose Audacity under Record with first.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	id := svc.settings.Project(recordingSettingsTool)[audacityLinkIDKey]
 	if id == "" {

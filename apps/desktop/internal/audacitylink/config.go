@@ -97,7 +97,7 @@ func EnableModule(path string, audacityRunning bool) error {
 	}
 	raw, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return errors.New("Audacity has not made its settings file yet: start Audacity once, close it, then turn scripting on")
+		return errors.New("Audacity has not made its settings file yet: start Audacity once, close it, then turn scripting on") //nolint:staticcheck // a sentence the narrator reads
 	}
 	if err != nil {
 		return err

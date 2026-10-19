@@ -31,7 +31,7 @@ function proofByChapter(findings: readonly Finding[]): Proof {
  * The two credits files are paired the same way. A chapter with no measured file has no entry; a file with no verdict is not mastered and not checked. Several failing checks read as `FAIL`,
  * not one check's name (the mock's QC cell).
  */
-function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' | 'title' | 'index'>[], files: readonly MeasureFileResult[]): Master {
+export function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' | 'title' | 'index'>[], files: readonly MeasureFileResult[]): Master {
   const byChapter: Record<string, { mastered: boolean; qc: string | null }> = {};
   for (const chapter of chapters) {
     const file = fileOf(chapter, files);

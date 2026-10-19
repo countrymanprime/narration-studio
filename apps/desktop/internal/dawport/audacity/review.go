@@ -138,11 +138,11 @@ func (r *Review) PrepareReview(runID, projectFolder string) error {
 
 func (r *Review) prepare(ctx context.Context, runID, project string) error {
 	if !filepath.IsAbs(project) {
-		return errors.New("Save the project in the app before starting Transcript Compare.")
+		return errors.New("Save the project in the app before starting Transcript Compare.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	manuscript := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
 	if _, err := os.Stat(manuscript); err != nil {
-		return errors.New("Import a manuscript in Narration Utils before starting Transcript Compare.")
+		return errors.New("Import a manuscript in Narration Utils before starting Transcript Compare.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	tracks, err := r.session.client.Tracks(ctx)
 	if err != nil {
@@ -156,14 +156,14 @@ func (r *Review) prepare(ctx context.Context, runID, project string) error {
 		}
 	}
 	if track == nil {
-		return errors.New("Select the chapter's audio track in Audacity (click its name), then start Transcript Compare.")
+		return errors.New("Select the chapter's audio track in Audacity (click its name), then start Transcript Compare.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	if !track.HasRange || track.End <= track.Start {
-		return errors.New("The selected track has no audio.")
+		return errors.New("The selected track has no audio.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	folder := SessionFolder(project)
 	if err := os.MkdirAll(folder, 0o755); err != nil {
-		return fmt.Errorf("Could not prepare the Audacity review folder: %w", err)
+		return fmt.Errorf("Could not prepare the Audacity review folder: %w", err) //nolint:staticcheck // a sentence the narrator reads
 	}
 	wav, err := freshPath(folder, safeName(track.Name)+"_"+runID, ".wav")
 	if err != nil {
@@ -185,11 +185,11 @@ func (r *Review) prepare(ctx context.Context, runID, project string) error {
 	length := track.End - track.Start
 	manifest := filepath.Join(folder, "manifest_"+runID+".txt")
 	if err := os.WriteFile(manifest, []byte(fmt.Sprintf("0|%s|%.6f|%.6f\n", filepath.ToSlash(wav), 0.0, length)), 0o600); err != nil {
-		return fmt.Errorf("Could not write the Audacity audio manifest: %w", err)
+		return fmt.Errorf("Could not write the Audacity audio manifest: %w", err) //nolint:staticcheck // a sentence the narrator reads
 	}
 	diffs := filepath.Join(project, "TranscriptCompare", "diffs")
 	if err := os.MkdirAll(diffs, 0o755); err != nil {
-		return fmt.Errorf("Could not prepare the Transcript Compare folder: %w", err)
+		return fmt.Errorf("Could not prepare the Transcript Compare folder: %w", err) //nolint:staticcheck // a sentence the narrator reads
 	}
 	diff := filepath.Join(diffs, safeName(track.Name)+"_"+runID+".diff")
 	r.remember(runID, &reviewRun{trackName: track.Name, trackStart: track.Start, rows: map[string]*reviewRow{}})
@@ -203,10 +203,10 @@ func (r *Review) checkExport(path string) error {
 	}
 	info, err := os.Stat(path)
 	if err != nil {
-		return errors.New("Audacity did not write the chapter's audio. Check that Audacity is not showing a dialog, then try again.")
+		return errors.New("Audacity did not write the chapter's audio. Check that Audacity is not showing a dialog, then try again.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	if info.Size() <= 1024 {
-		return errors.New("Audacity wrote a file with no audio in it, so nothing was compared. Select the chapter's audio track and try again.")
+		return errors.New("Audacity wrote a file with no audio in it, so nothing was compared. Select the chapter's audio track and try again.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	return nil
 }
@@ -222,7 +222,7 @@ type resultMarker struct {
 func readResults(path string) (summary string, markers []resultMarker, err error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return "", nil, errors.New("Transcript results were not found.")
+		return "", nil, errors.New("Transcript results were not found.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	defer func() { _ = file.Close() }()
 	scanner := bufio.NewScanner(file)
@@ -281,7 +281,7 @@ func (r *Review) InspectFindings(runID, findingsPath string) error {
 func (r *Review) inspect(ctx context.Context, runID, path string) error {
 	run, ok := r.run(runID)
 	if !ok {
-		return errors.New("Transcript Compare context expired; prepare a new comparison.")
+		return errors.New("Transcript Compare context expired; prepare a new comparison.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	summary, markers, err := readResults(path)
 	if err != nil {
@@ -395,7 +395,7 @@ func (r *Review) ExportFindings(runID, findingsPath string, _ dawport.MarkerColo
 func (r *Review) export(ctx context.Context, runID, path string) error {
 	run, ok := r.run(runID)
 	if !ok {
-		return errors.New("Transcript Compare context expired; prepare a new comparison.")
+		return errors.New("Transcript Compare context expired; prepare a new comparison.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	_, markers, err := readResults(path)
 	if err != nil {

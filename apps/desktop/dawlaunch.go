@@ -100,10 +100,10 @@ func (h *Host) launchAudacity(svc hostServices) (map[string]any, error) {
 	}
 	exe, err := h.locateAudacity()
 	if err != nil {
-		return nil, fmt.Errorf("Audacity was not found on this computer. Install Audacity 3, or choose another recorder.")
+		return nil, fmt.Errorf("Audacity was not found on this computer. Install Audacity 3, or choose another recorder.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	if h.isAudacityRunning() {
-		return nil, fmt.Errorf("Audacity is already running. If the app cannot reach it, close Audacity and start it from here.")
+		return nil, fmt.Errorf("Audacity is already running. If the app cannot reach it, close Audacity and start it from here.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	var args []string
 	if svc.settings != nil {

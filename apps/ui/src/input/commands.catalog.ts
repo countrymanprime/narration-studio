@@ -536,7 +536,8 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     scope: 'global',
     defaults: [key('KeyZ', ['Mod'])],
     group: 'Edit',
-    surfaces: ['jumpMenu', 'help', 'settings'],
+    // Not in `jumpMenu`: the shell's provider lists it as "Undo: <last change>" (components/layout/useShellCommands.ts), with the journal's label.
+    surfaces: ['help', 'settings'],
     fieldsKeep: true,
   },
 ];
