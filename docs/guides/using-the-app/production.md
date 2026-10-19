@@ -94,7 +94,8 @@ mark (✓) for a stage done, a half circle for the stage under way and a dash fo
 circle while in progress and an empty circle when not started. **Pickups** counts the chapter's
 open lines once it is recorded to the end (0 when none are open). **Master** and **QC** come from
 the files measured on [Master & QC](master-and-qc.md): mastered, and PASS or FAIL. A cell with nothing to
-read says "Not measured yet". A cell opens its stage for the chapter: Script, the Booth, the editing
+read says "Not measured yet". A cell's colour is the colour of its status everywhere in the app: green for done or passing, blue for under way,
+amber for open pickups, red for a failed check, grey for not started. A cell opens its stage for the chapter: Script, the Booth, the editing
 check, Proof, Pickups or Master & QC. The table scrolls sideways in a narrow window.
 
 The chip on the chapter's current-stage cell is its [readiness](#stage-readiness).
@@ -165,7 +166,7 @@ the work dialog. The app tells you when
 it ends, wherever you are. If the Whisper model is not installed yet, the app asks before
 downloading it, as a chapter's Proof view does. A changed chapter can also be re-checked on its
 own, in the background, once REAPER has been quiet for a few minutes and the app is not otherwise
-busy (Settings' **Check changed chapters in the background**); pressing **Check recording**
+busy (**Check changed chapters in the background**, in Settings, or for this project in Production's **Open Recording check rules**); pressing **Check recording**
 yourself always pre-empts it.
 
 A chapter's recording check panel has the same choices under **Check options**, closed until you open it, and its **Check recording** button runs exactly
@@ -173,6 +174,10 @@ what they show. **Chapters at once** is how many chapters may be checked togethe
 button waits for a chapter being checked elsewhere, and says so, and above 1 it starts beside them.
 
 ![Production - a chapter's recording check with Check options open](../../images/ui/production-recording-check-options.webp)
+
+On Production, **Jump to or run** (Ctrl+K) has **Open Recording check rules**: a dialog with what the check judges a chapter by, for this project: **Share of each paragraph that must be read**, **Longest run of missing words allowed**, **Longest misread still counted as read**, **Shortest match that counts as read** and **Check changed chapters in the background**. They are proposed values, chosen on synthetic recordings and not yet calibrated on real narration. A change is saved at once and the last check is read again; the first two only change how a stored check is judged, but the next two change which words count, so earlier checks read as out of date and those chapters need checking again. **Reset** hands a rule back to the computer-wide value or the default. Settings under **Set on a page** has the same five rules with a **Global** / **This project** switch.
+
+![Production - the Recording check rules dialog opened from Jump to or run](../../images/ui/production-recording-check-rules.webp)
 
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
@@ -248,6 +253,12 @@ the evidence changed since you confirmed and offers **Revert**; nothing moves on
 evidence changed while you were looking at it, Confirm and Dismiss are refused with a message and the
 readiness is read again. If it cannot be read at all, every chapter says **Couldn't check**, with
 the reason and **Try again** above the table.
+
+### Choose what a suggestion waits for
+
+**Jump to or run** (Ctrl+K) has **Open Stage suggestion options**, a dialog for this project's say in the suggestions (Settings under **Set on a page** has the same values with a **Global** / **This project** switch): a switch, **Suggest stage advances**, turns them off or on, and each readiness signal (the recording check, the editing signals, the pickups, and each check on the rendered file) is **Required** before a stage is suggested or **Ignored**. A change is saved at once and the suggestions are read again. **Reset** on a signal hands it back to the computer-wide value or the default. A rendered-file check counts only while the project's delivery profile has a limit for it, The two editing signals marked not yet validated, clicks and breaths, are offered like any other.
+
+![Production - the Stage suggestion options dialog opened from Jump to or run](../../images/ui/production-stage-suggestion-options.webp)
 
 ![Production - a chapter's readiness slide-over: the evidence behind a suggestion with Confirm and Dismiss](../../images/ui/production-stage-evidence.webp)
 

@@ -1,11 +1,15 @@
-import { Highlight } from '../primitives/Highlight';
+import { typeHueColour } from '../../kinds/entityColour';
+import { kindMarkStyle } from '../../kinds/markStyle';
+import { NOTE_COLOUR } from '../../kinds/narratorMark';
+import { KindMark } from '../primitives/KindMark';
 
 // The legend for every mark the reader can show (read, current, skipped, and with `marks` the
 // story bible and note marks and the suspected flag marks: restart, misread, extra; a skipped flag is the skipped
-// underline). The current-word and skipped swatches copy `ReaderText`'s own styling by hand rather than rendering a
-// real `Highlight kind="Cursor"`/`data-word`, so this legend is never mistaken for the actual current word by a `[data-highlight="Cursor"]` or `[data-word]` query (the
-// reader's own tests and the mock-driven visual states rely on those being unique). The story bible and note swatches are
-// real `Highlight`s: nothing looks them up as unique.
+// outline). Each swatch is the registry's mark for its kind (kinds/kindMap.ts), so the key can never disagree with the text. The
+// current-word and skipped swatches are drawn by hand or by style rather than as a real `KindMark kind="Cursor"`/`data-word`, so this
+// legend is never mistaken for the actual current word by a `[data-highlight="Cursor"]` or `[data-word]` query (the
+// reader's own tests and the mock-driven visual states rely on those being unique). The other swatches are real `KindMark`s:
+// nothing looks them up as unique.
 // `layout="row"` is the inline strip above the text (the standalone page); `"list"` is the read-aloud rail's Key tab.
 export function ReaderKey({ seekable, marks = false, layout = 'row' }: { seekable: boolean; marks?: boolean; layout?: 'row' | 'list' }) {
   const list = layout === 'list';
@@ -26,26 +30,35 @@ export function ReaderKey({ seekable, marks = false, layout = 'row' }: { seekabl
         word read
       </span>
       <span className="flex items-center gap-1.5">
-        <span style={{ textDecoration: 'underline dotted var(--warn)', textUnderlineOffset: '0.25em' }}>word</span> skipped
+        <span className="rounded-[0.15rem] px-[0.05em]" style={kindMarkStyle('missing')}>
+          word
+        </span>{' '}
+        skipped
       </span>
       {marks && (
         <>
           <span className="flex items-center gap-1.5">
-            <Highlight kind="Character">name</Highlight> story bible entry
+            <KindMark kind="entity" colour={typeHueColour('green')}>
+              name
+            </KindMark>{' '}
+            story bible entry
           </span>
           <span className="flex items-center gap-1.5">
-            <Highlight kind="Note">words</Highlight> note
+            <KindMark kind="entity" colour={NOTE_COLOUR}>
+              words
+            </KindMark>{' '}
+            note
           </span>
-          {/* The suspected flags: real `Highlight`s of the flag kinds, like the story bible swatches. Skipped words
+          {/* The suspected flags: real `KindMark`s of the flag kinds, like the story bible swatches. Skipped words
               share the dotted underline above. */}
           <span className="flex items-center gap-1.5">
-            <Highlight kind="Restart">word</Highlight> read again from here (suspected restart)
+            <KindMark kind="repeat">word</KindMark> read again from here (suspected restart)
           </span>
           <span className="flex items-center gap-1.5">
-            <Highlight kind="Misread">word</Highlight> suspected misread
+            <KindMark kind="misread">word</KindMark> suspected misread
           </span>
           <span className="flex items-center gap-1.5">
-            <Highlight kind="Extra">word</Highlight> suspected extra words before it
+            <KindMark kind="extra">word</KindMark> suspected extra words before it
           </span>
         </>
       )}

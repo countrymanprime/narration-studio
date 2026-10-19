@@ -142,11 +142,11 @@ describe('Story Bible entry properties', () => {
 
 describe('the entry summary opened from the Manuscript', () => {
   it('lists the properties, and leaves the section out when there are none', () => {
-    const { unmount } = render(<EntitySummary entity={alice} jumpToLine={vi.fn()} />);
+    const { unmount } = render(<EntitySummary entity={alice} types={[]} jumpToLine={vi.fn()} />);
     expect(screen.getByText('Properties')).toBeTruthy();
     expect(screen.getByText('Seven')).toBeTruthy();
     unmount();
-    render(<EntitySummary entity={caterpillar} jumpToLine={vi.fn()} />);
+    render(<EntitySummary entity={caterpillar} types={[]} jumpToLine={vi.fn()} />);
     expect(screen.queryByText('Properties')).toBeNull();
   });
 });

@@ -1,10 +1,11 @@
 import type { PronunciationSource } from '../../../../../api/contracts/pronunciationSources';
 import type { GuideEntity } from '../../../../../api/contracts/storyBible';
+import type { EntityColour } from '../../../../../kinds/entityColour';
 import { IconButton } from '../../../../primitives/IconButton';
+import { KindChip } from '../../../../primitives/KindChip';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
-import { Badge, StatusBadge } from '../../../../primitives/StatusBadge';
+import { StatusBadge } from '../../../../primitives/StatusBadge';
 import { PronSourceTag } from '../../../../storybible/source/PronSourceTag';
-import { kindColours } from './kinds';
 
 /** The Story Bible's `Says`, `Does` and `Knows` properties under the mock's labels, for an entry whose type can speak (SN-X222,
  * docs/reference/data-files.md, SN-B97). */
@@ -36,6 +37,7 @@ function ReadOnly({ label, value }: { label: string; value: string }) {
  */
 export function EntryCard({
   entry,
+  colour,
   speaks,
   sources,
   onFind,
@@ -43,6 +45,8 @@ export function EntryCard({
   onOpenStoryBible,
 }: {
   entry: GuideEntity;
+  /** The colour of the entry's type (`entryColour`), which its type chip is drawn in. */
+  colour: EntityColour;
   /** Whether the entry's type can speak: only then does it have the talk, act and know rows. */
   speaks: boolean;
   sources: readonly PronunciationSource[];
@@ -58,7 +62,7 @@ export function EntryCard({
     <article aria-label={entry.canonical_name} className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
       <div className="flex items-center gap-1.5">
         <h3 className="m-0 min-w-0 flex-1 truncate text-[1rem] font-semibold">{entry.canonical_name}</h3>
-        <Badge label={entry.category} colors={kindColours(entry.category)} />
+        <KindChip kind="entity" colour={colour} label={entry.category} shape="tag" />
         <StatusBadge tone="neutral" label={`first: ${firstAppearance(entry)}`} />
       </div>
       <div className="flex justify-end gap-1">

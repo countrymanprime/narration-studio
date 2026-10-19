@@ -1,5 +1,7 @@
 // The phrases of a chapter and the words of each phrase, for the Booth's text (the Studio Next mock's selectors/booth.ts).
 // Pure: who speaks each quoted phrase arrives as input (the Script reader's attribution, `speakerLabels`), it is not recomputed here.
+import type { MarkColour, MarkStyle } from '../../../api/contracts/marks';
+import type { EntityColour } from '../../../kinds/entityColour';
 
 /** The speaker of a quoted phrase that nothing attributes: the mock's dashed "?" chip. */
 export const UNKNOWN_SPEAKER = '?';
@@ -109,17 +111,14 @@ export function boothUnits(paragraphs: readonly ReadingParagraph[]): BoothUnit[]
 }
 
 /** Marks drawn on words (a Story Bible name's tint, a marked word's underline); built by the adapter, not here. */
-export type WordDecoration = {
-  paragraphId: string;
-  start: number;
-  end: number;
-  kind: 'entity' | 'mark';
-  /** A colour token name, e.g. `--place`. */
-  colour: string;
-  title?: string;
-};
+type DecorationRange = { paragraphId: string; start: number; end: number; title?: string };
 
-export type ParagraphNote = { id: string; paragraphId: string; name: string; text: string };
+/** A Story Bible name, tinted in its entry's colour (`kinds/entityColour.ts`), or a narrator's mark in its type's colour and chosen style (`kinds/narratorMark.ts`). */
+export type WordDecoration =
+  (DecorationRange & { kind: 'entity'; colour: EntityColour }) | (DecorationRange & { kind: 'mark'; colour: MarkColour; style: MarkStyle });
+
+/** A note drawn under a paragraph; `colour` is its mark type's, which its end marker follows (D8). */
+export type ParagraphNote = { id: string; paragraphId: string; name: string; text: string; colour?: MarkColour };
 
 type WordToken = {
   /** The word without the space after it. */

@@ -3,16 +3,17 @@ import type { CreditsEntry } from '../../credits/creditsEntries';
 import { Button } from '../../primitives/Button';
 import { Panel } from '../../primitives/Panel';
 import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
+import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { packageCounts, packageItems, profileName, type PackageItem } from './packageItems';
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 const BADGE = {
-  ok: { tone: 'success', icon: '✓', word: 'Passes' },
-  bad: { tone: 'danger', icon: '✕', word: 'Fails' },
-  wait: { tone: 'neutral', icon: '…', word: 'Waiting' },
-} as const;
+  ok: { status: 'pass', icon: '✓', word: 'Passes' },
+  bad: { status: 'fail', icon: '✕', word: 'Fails' },
+  wait: { status: 'waiting', icon: '…', word: 'Waiting' },
+} as const satisfies Record<string, { status: StatusId; icon: string; word: string }>;
 
 /**
  * The aside "Delivery package · <profile>" (the Studio Next mock's Master page): the profile's package checks, the files that fail,
@@ -54,7 +55,7 @@ export function PackageChecks({
           <ul className="flex flex-col gap-2 text-sm">
             {items.map((item, index) => (
               <li key={index} className="flex items-center gap-2">
-                <StatusBadge tone={BADGE[item.state].tone} label={BADGE[item.state].icon} />
+                <StatusBadge tone={statusTone(BADGE[item.state].status)} label={BADGE[item.state].icon} />
                 <span className="sr-only">{BADGE[item.state].word}: </span>
                 <span>{item.text}</span>
               </li>

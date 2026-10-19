@@ -1,8 +1,11 @@
-import { useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
+import type { EntityColour } from '../../../kinds/entityColour';
+import { kindChipColors, kindDef, type KindId } from '../../../kinds/kindMap';
 import { IconButton } from '../../primitives/IconButton';
 import { Icon } from '../../primitives/Icon';
 import { Listbox, listboxOptionId, type ListboxOption } from '../../primitives/Listbox';
 import { Popover } from '../../primitives/Popover';
+import { badgeStyle } from '../../primitives/StatusBadge';
 import { SearchField } from '../../primitives/SearchField';
 import { useBoothSamplesContext } from '../samples/BoothSamplesContext';
 import { UNKNOWN_SPEAKER } from './boothUnits';
@@ -13,8 +16,8 @@ type Props = {
   speaker: string;
   /** The narrator confirmed this speaker: solid. Otherwise it is a suggestion: dashed. */
   confirmed: boolean;
-  /** The speaker's entity colour token, e.g. `--speaker-2`. Left out for a speaker with no entity. */
-  colour?: string;
+  /** The speaker's own colour (D6: its entry's). Left out for a speaker with no entry. */
+  colour?: EntityColour;
   /** Who can speak the phrase, narrator excluded. */
   speakers: readonly string[];
   onSetSpeaker: (phraseKey: string, speaker: string) => void;
@@ -70,14 +73,9 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
   const activeIndex = Math.min(active, Math.max(0, options.length - 1));
   const activeOption = options[activeIndex];
 
-  const style = colour
-    ? ({ '--spk-c': `var(${colour})`, '--spk-t': `var(${colour}-text)`, '--spk-soft': `color-mix(in srgb, var(${colour}) 20%, transparent)` } as CSSProperties)
-    : undefined;
-  const tone = unknown
-    ? 'border-dashed border-[var(--danger)] bg-transparent text-[var(--danger-text)]'
-    : confirmed
-      ? 'border-solid border-[var(--spk-soft,var(--border))] bg-[var(--spk-soft,var(--surface-2))] text-[var(--spk-t,var(--text-muted))]'
-      : 'border-dashed border-current bg-transparent text-[var(--spk-t,var(--text-muted))]';
+  // The chip is the registry's: the speaker in its entry's colour, a suggestion dashed, an unknown speaker neutral and dashed (D6).
+  const kind: KindId = unknown ? 'speaker-unknown' : confirmed ? 'speaker' : 'speaker-suggested';
+  const style = badgeStyle(kindChipColors(kind, colour), kindDef(kind).dashed ? 'dashed' : 'soft');
 
   const trigger = (
     // native-control-ok: the chip sits inside running text, so Button's padded chrome does not fit it
@@ -88,7 +86,7 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
       aria-label={`Speaker ${speaker}. Change speaker`}
       style={style}
       onClick={(event) => event.stopPropagation()}
-      className={`mr-[0.7em] inline cursor-pointer rounded-[5px] border px-[0.6em] py-[0.2em] align-[0.55em] text-[0.34em] leading-normal font-bold tracking-[0.12em] whitespace-nowrap uppercase ${tone}`}
+      className="mr-[0.7em] inline cursor-pointer rounded-[5px] border border-solid px-[0.6em] py-[0.2em] align-[0.55em] text-[0.34em] leading-normal font-bold tracking-[0.12em] whitespace-nowrap uppercase"
     >
       {speaker}
     </button>

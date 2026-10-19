@@ -1,39 +1,14 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileLines, faLock } from '@fortawesome/free-solid-svg-icons';
-import type { GuideEntity } from '../../types';
+import type { GuideEntity, GuideType } from '../../types';
+import { entryColour } from '../../kinds/entityColour';
 import { allEvidence, categoryLabel, highlightTerms } from '../../state';
-import { Highlight, highlightKind } from '../primitives/Highlight';
+import { KindChip } from '../primitives/KindChip';
+import { KindMark } from '../primitives/KindMark';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { IconButton } from '../primitives/IconButton';
-import { Badge, StatusBadge, toneColors, type BadgeColors } from '../primitives/StatusBadge';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { pronunciationSourceLabel } from '../storybible/pronunciationStatus';
-
-// An entity kind's badge colours: the kind's soft fill (an 18% mix into the surface for the three kinds with no soft
-// token) under its derived text colour, drawn by THE badge (StatusBadge.tsx's `Badge`).
-const kindColors = (kind: string, fill: string): BadgeColors => ({ fill, text: `var(--${kind}-text)`, line: `var(--${kind})` });
-export const ENTITY_BADGE_COLORS: Record<string, BadgeColors> = {
-  Character: kindColors('character', 'var(--character-soft)'),
-  Place: kindColors('place', 'var(--place-soft)'),
-  Organization: kindColors('org', 'var(--org-soft)'),
-  Review: kindColors('review', 'var(--review-soft)'),
-  Lore: kindColors('lore', 'color-mix(in srgb, var(--lore) 18%, var(--surface))'),
-  Item: kindColors('item', 'color-mix(in srgb, var(--item) 18%, var(--surface))'),
-  Event: kindColors('event', 'color-mix(in srgb, var(--event) 18%, var(--surface))'),
-};
-/** A kind's badge colours, and the neutral pill's for a category with no kind colour of its own (a draft, a note). */
-export const entityBadgeColors = (category: string): BadgeColors => ENTITY_BADGE_COLORS[category] ?? toneColors('neutral');
-
-export const CAT_DOT_BG: Record<string, string> = {
-  Character: 'var(--character)',
-  Place: 'var(--place)',
-  Organization: 'var(--org)',
-  Review: 'var(--review)',
-  Draft: 'var(--review)',
-  Lore: 'var(--lore)',
-  Item: 'var(--item)',
-  Event: 'var(--event)',
-  Note: 'var(--note)',
-};
 
 // A read-only mirror of the Story Bible's own detail panel (GuideDetail),
 // for previewing an entity from the Manuscript without leaving the reader.
@@ -43,15 +18,19 @@ export const CAT_DOT_BG: Record<string, string> = {
 // read, where leaving for another line would abandon the reading.
 export function EntitySummary({
   entity,
+  types,
   speaks = false,
   jumpToLine,
 }: {
   entity: GuideEntity;
+  /** The Story Bible's types: the entry is drawn in its type's colour, wherever it is shown. */
+  types: readonly GuideType[];
   /** Whether the entry's type can speak: only then are its personality notes shown. */
   speaks?: boolean;
   jumpToLine?: (chapter: string, paragraph: number) => void;
 }) {
   const evidence = allEvidence(entity);
+  const colour = entryColour(types, entity.category);
   return (
     <div className="space-y-4">
       {entity.locked && (
@@ -61,7 +40,7 @@ export function EntitySummary({
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <Badge label={categoryLabel(entity.category)} colors={entityBadgeColors(entity.category)} />
+        <KindChip kind="entity" label={categoryLabel(entity.category)} colour={colour} shape="pill" />
         <StatusBadge tone="neutral" label={entity.review_state} />
         <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs" style={{ color: 'var(--text-muted)' }}>
           {entity.occurrence_count} occurrences
@@ -162,9 +141,9 @@ export function EntitySummary({
                 <p className="mt-0.5 text-sm break-words">
                   {highlightTerms(item.excerpt, [entity.canonical_name, ...entity.aliases.map((alias) => alias.text)]).map((segment, piece) =>
                     segment.match ? (
-                      <Highlight key={piece} kind={highlightKind(entity.category)}>
+                      <KindMark key={piece} kind="entity" colour={colour}>
                         {segment.text}
-                      </Highlight>
+                      </KindMark>
                     ) : (
                       <span key={piece}>{segment.text}</span>
                     ),

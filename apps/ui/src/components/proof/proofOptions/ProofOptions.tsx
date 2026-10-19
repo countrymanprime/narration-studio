@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { useCommandProvider } from '../../../input/commandProviders';
 import { Button } from '../../primitives/Button';
 import { Dialog } from '../../primitives/Dialog';
 import { NumberInput } from '../../primitives/NumberInput';
 import { Select } from '../../primitives/Select';
+import { Switch } from '../../primitives/Switch';
 import { TextField } from '../../primitives/TextField';
 import type { ScopedSettingField } from '../../../types';
 import { proofingChoiceLabel } from '../options';
@@ -73,16 +74,27 @@ function Row({ field, onSet }: { field: ScopedSettingField; onSet: (key: string,
     ) : field.kind === 'color' ? (
       <ColourRow field={field} onSave={(hex) => onSet(field.key, hex)} />
     ) : null;
+  const reset = field.isSet ? (
+    <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => onSet(field.key, null)}>
+      Reset
+    </Button>
+  ) : null;
+  // A switch is its own label, so its row has no label column. Only the stored text "true" is on, as in Settings.
+  if (field.kind === 'bool')
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <Switch checked={field.effectiveValue === 'true'} onChange={(on) => onSet(field.key, String(on))}>
+          {field.label}
+        </Switch>
+        {reset}
+      </div>
+    );
   if (!control) return null;
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
       <span className="w-56 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{field.label}</span>
       {control}
-      {field.isSet ? (
-        <Button variant="link" aria-label={`Reset ${field.label}`} onClick={() => onSet(field.key, null)}>
-          Reset
-        </Button>
-      ) : null}
+      {reset}
     </div>
   );
 }
@@ -98,6 +110,7 @@ export function ProofOptions({
   tool,
   keys,
   onSaved,
+  note,
 }: {
   title: string;
   /** The jump menu heading the command is listed under: the page's name. */
@@ -106,6 +119,8 @@ export function ProofOptions({
   keys: readonly string[];
   /** Runs after each accepted save, so the page can read again what the option changes. */
   onSaved?: () => void;
+  /** What to know before changing them, above the rows. */
+  note?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const { fields, error, set } = useProjectOptions(tool, keys, { enabled: open, onSaved });
@@ -129,6 +144,7 @@ export function ProofOptions({
       }
     >
       <div className="flex flex-col gap-3">
+        {note}
         {fields.map((field) => (
           <Row key={field.key} field={field} onSet={set} />
         ))}

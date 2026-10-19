@@ -12,11 +12,12 @@ While the chapters are being read, **Before you build** shows grey blocks in pla
 
 ## The delivery profile
 
-**Delivery profile** names the project's profile in a menu: **ACX (built in)** and each custom profile.
+The first panel's header holds the page title, **Delivery**, and on the right the **Profile** label, the profile menu
+and, for a built-in profile, a **Built in** pill. The menu lists **ACX (built in)** and each custom profile.
 Choosing one makes it the project's profile; the files already checked keep the profile they were checked
 against until you check them again in Master & QC. **Checks on every chapter** lists the profile's
 measured limits (RMS, peak, noise floor, room tone at the head and tail), and **Files** its sample rate,
-longest file, MP3 format and channels. A built-in profile is marked **Built in** and is read-only.
+longest file, MP3 format and channels. A built-in profile is read-only, and a one-sided limit reads in words ("at most −3 dBFS").
 
 A custom profile's name, its limits (a lowest and a highest box each) and its longest file can be changed in
 place; the change is saved when you press Enter or leave the box, and a rule it turned off reads **Off**. A
@@ -40,8 +41,9 @@ offers **Check again**.
 
 **Before you build**, on the right, counts the chapters passing and lists each chapter, named as the
 manuscript's headings name it, with the opening credits first and the closing credits last (each judged by its
-own file, "Opening credits.wav"). Each shows **Pass**, **Fails N checks**, or **Not mastered**. Pressing a
-chapter opens its file in [Master & QC](master-and-qc.md); the button in the panel's header opens Master & QC
+own file, "Opening credits.wav"). Each shows **Pass**, **Fails N checks**, **Not mastered**, or, for a chapter that is not mastered and has open
+pickups, **Waiting on N pickups** (counted from the Pickups list, as Production counts them). Pressing a
+chapter opens its file in [Master & QC](master-and-qc.md); the arrow button in the panel's header opens Master & QC
 itself. A book with more than a hundred chapters lists the first hundred and a **Show the other N chapters**
 button for the rest; the count above the list is always the whole book.
 

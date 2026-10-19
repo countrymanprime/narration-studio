@@ -9,6 +9,9 @@ import {
   type UnitWords,
   type WordDecoration,
 } from './boothUnits';
+import type { EntityColour } from '../../../kinds/entityColour';
+import { kindMarkStyle } from '../../../kinds/markStyle';
+import { markToken, narratorMarkStyle } from '../../../kinds/narratorMark';
 import { positionOf, unitAtPosition, type ReadingPosition } from './readingPosition';
 import { SpeakerChip } from './SpeakerChip';
 import { useBrowseView, type BrowseView } from './useBrowseView';
@@ -34,8 +37,8 @@ type Props = {
   onBackground?: () => void;
   /** Who can speak a quoted phrase, narrator excluded; the picker offers these. */
   speakers: readonly string[];
-  /** The speaker's entity colour token (`--speaker-2`), by name. */
-  speakerColour?: (speaker: string) => string | undefined;
+  /** The speaker's own colour (`speakerColour`, D6: its entry's, no hash); none for a speaker with no entry. */
+  speakerColour?: (speaker: string) => EntityColour | undefined;
   onSetSpeaker: (phraseKey: string, speaker: string) => void;
   /** Story Bible tints and marked-word underlines, and the notes drawn under a paragraph. */
   decorations?: readonly WordDecoration[];
@@ -63,7 +66,7 @@ type UnitProps = {
   paragraph: ReadingParagraph;
   from: boolean;
   speakers: readonly string[];
-  colour?: string;
+  colour?: EntityColour;
   onSeek: (paragraphId: string, word: number) => void;
   onSetSpeaker: (phraseKey: string, speaker: string) => void;
   seekWord: (unit: BoothUnit, word: number) => number;
@@ -71,6 +74,23 @@ type UnitProps = {
 
 // Only what has been read is dimmed: the sentence being read and every sentence not yet read keep the full text colour (the mock's --bup is --ink).
 const MODE_TONE: Record<Mode, string> = { done: 'text-[var(--text-muted)]', cur: 'text-[var(--text)]', next: 'text-[var(--text)]' };
+
+type Token = UnitWords['words'][number];
+
+// What a word is drawn with beyond its position: an entry's name as the registry's entity mark in the entry's colour, a narrator's mark in
+// the colour and line style its type chose (D8), a name under a mark both (the mark's own keys win). The word being read keeps its own
+// fill and text colour, and a word already read is dimmed.
+function wordLook(token: Token, now: boolean, said: boolean): CSSProperties | undefined {
+  const entity = token.entity?.kind === 'entity' ? kindMarkStyle('entity', token.entity.colour) : undefined;
+  const mark = token.mark?.kind === 'mark' ? narratorMarkStyle(token.mark.colour, token.mark.style) : undefined;
+  if (!entity && !mark) return undefined;
+  const look: CSSProperties = { ...entity, ...mark };
+  if (now) {
+    delete look.background;
+    delete look.color;
+  } else if (said) look.color = 'var(--text-muted)';
+  return look;
+}
 
 // One sentence. A click on a word seeks to it; a click between words seeks to the sentence's first word.
 const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragraph, from, speakers, colour, onSeek, onSetSpeaker, seekWord }: UnitProps) {
@@ -92,8 +112,7 @@ const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragr
         {words.words.map((token) => {
           const now = mode === 'cur' && token.index === wcur;
           const said = mode === 'cur' && token.index < wcur;
-          const tint = token.entity ? `border-b-2 border-[var(--ek)] bg-[color-mix(in_srgb,var(--ek)_16%,transparent)]` : '';
-          const mark = token.mark ? 'border-b-[3px] border-[var(--mcb)]' : '';
+          const look = wordLook(token, now, said);
           return (
             <Fragment key={token.index}>
               <span
@@ -102,13 +121,8 @@ const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragr
                 aria-current={now ? 'true' : undefined}
                 aria-description={now ? 'Current word' : undefined}
                 title={token.mark?.title}
-                style={
-                  {
-                    ...(token.entity ? { '--ek': `var(${token.entity.colour})` } : {}),
-                    ...(token.mark ? { '--mcb': `var(${token.mark.colour})` } : {}),
-                  } as CSSProperties
-                }
-                className={`relative rounded-[0.12em] motion-ok:transition-colors ${tint} ${mark} ${said ? 'text-[var(--text-muted)]' : ''} ${
+                style={look}
+                className={`relative rounded-[0.12em] motion-ok:transition-colors ${
                   now
                     ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_0_0_0.08em_var(--accent)] before:absolute before:top-[-0.3em] before:left-1/2 before:-translate-x-1/2 before:border-x-[0.18em] before:border-t-[0.2em] before:border-x-transparent before:border-t-[var(--accent)] before:content-[""]'
                     : ''
@@ -248,6 +262,8 @@ export function BoothText({
                     key={note.id}
                     data-note={note.id}
                     onClick={() => onNote?.(note.id)}
+                    // The end marker follows the mark's colour (D8).
+                    style={note.colour ? { boxShadow: `inset 0.25em 0 0 var(${markToken(note.colour)})`, paddingLeft: '1.1em' } : undefined}
                     className="mt-2 block w-fit cursor-pointer rounded-md bg-[var(--accent-soft)] px-[0.8em] py-[0.4em] text-left text-[0.42em] font-medium text-[var(--accent-strong)]"
                   >
                     {note.name}: {note.text}

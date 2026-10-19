@@ -1,5 +1,5 @@
 import type { Mark, Marks } from '../../../api/contracts/marks';
-import type { GuideEntity } from '../../../api/contracts/storyBible';
+import type { GuideEntity, GuideType } from '../../../api/contracts/storyBible';
 import type { BoothUnit, ReadingParagraph } from '../reading/boothUnits';
 import { voicesNearby, comingUpWords } from './nearby';
 import type { BoothSideData } from './sections';
@@ -32,6 +32,10 @@ export const queen = entity('e-queen', 'Queen', 'Character', {
 export const garden = entity('e-garden', 'Garden', 'Place', { description: note('The walled rose garden.'), pronunciation: pron('ˈɡɑːdən') });
 const alice = entity('e-alice', 'Alice', 'Character');
 export const entities = [queen, garden, alice];
+export const guideTypes: GuideType[] = [
+  { name: 'Character', colour: 'green', speaks: true },
+  { name: 'Place', colour: 'blue', speaks: false },
+];
 
 export const paragraphs: ReadingParagraph[] = [
   { id: 'p1', text: 'The Garden was quiet. Nobody had come down since the morning.' },
@@ -95,7 +99,7 @@ export function sideData(overrides: Partial<BoothSideData> = {}): BoothSideData 
   return {
     chapterId: 'c1',
     reference: null,
-    voices: voicesNearby(units, 1, entities),
+    voices: voicesNearby(units, 1, entities, guideTypes),
     comingUp: comingUpWords(units, 0, entities),
     numbers: { recordedSeconds: 75, punches: 0 },
     flags: [],

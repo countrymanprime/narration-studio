@@ -28,8 +28,16 @@ export function limitsOf(profile: DeliveryProfile): Limit[] {
     .map((rule) => ({ id: rule.id, label: rule.label, unit: rule.unit, min: rule.min, max: rule.max }));
 }
 
-/** The text of a rule's limit in a built-in profile, or "Off" for a rule a custom profile turned off. */
-export const limitText = (rule: DeliveryRule): string => (rule.off ? 'Off' : formatBound(rule));
+/**
+ * The text of a rule's limit in a built-in profile, or "Off" for a rule a custom profile turned off. A one-sided bound reads in words, as
+ * the mock's does ("at most -3 dB"); a host-written `boundText` and a set of values are left as the host wrote them.
+ */
+export function limitText(rule: DeliveryRule): string {
+  if (rule.off) return 'Off';
+  const text = formatBound(rule);
+  if (rule.boundText || rule.oneOf.length > 0) return text;
+  return text.replace(/^≤ /, 'at most ').replace(/^≥ /, 'at least ');
+}
 
 /** A length is edited in minutes; every other bound in the rule's own unit. */
 export const shownUnit = (rule: DeliveryRule): string => (rule.metric === 'duration_seconds' ? 'min' : rule.unit);
