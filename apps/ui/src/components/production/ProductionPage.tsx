@@ -419,7 +419,7 @@ export function ProductionPage({
           />
           <TimerFigures overview={overview} />
           {/* The mock's widths: one column under 1180, two to 1280 with the stage card across both, three above. */}
-          <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[1180px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] min-[1180px]:max-[1280px]:[&>:first-child]:col-span-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[1180px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] min-[1180px]:max-[1281px]:[&>:first-child]:col-span-2">
             <StageBar segments={stageSegments(narrated, WPH, pipelineSources.master)} wph={WPH} />
             <WeekCard figures={weekFigures(log, today, start, due, k.words / WPH)} />
             <CheckCountsCard
@@ -450,7 +450,7 @@ export function ProductionPage({
               </Panel>
               {tools.panels}
             </div>
-            <div className="flex min-w-0 flex-col gap-4 max-[1280px]:grid max-[1280px]:grid-cols-2 max-[1280px]:items-stretch">
+            <div className="flex min-w-0 flex-col gap-4 max-[1281px]:grid max-[1281px]:grid-cols-2 max-[1281px]:items-stretch">
               <Panel title="Next up">
                 <NextUp
                   inputs={{

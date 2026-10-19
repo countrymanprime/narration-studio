@@ -1,6 +1,8 @@
 // The widths the Studio Next mock lays out at, as data (`docs/research/mockups/studio-next/src/app/layout.ts`; docs/design/design-system.md#layout-rules
 // decision 1). Tailwind cannot read a constant inside a class name, so a page writes the width variants out
-// (`min-[1360px]`, `max-[1359px]`, ...) and `layoutQueries.test.ts` scans the source to hold those to this vocabulary. The
+// (`min-[1360px]`, `max-[1360px]`, ...) and `layoutQueries.test.ts` scans the source to hold those to this vocabulary. Tailwind 4's
+// `max-[N]` is `width < N` and `min-[N]` is `width >= N`, so a boundary is written with the same N on both sides (`max-[1281px]` is 1280 and
+// below); an N-1 on the max side leaves exactly N matching neither, which broke the Script page in a 1280 px window. The
 // scan, not an import, is the link. `layoutClassFor` and `LAYOUT_QUERIES` are for the places CSS cannot decide.
 // Widths are CSS pixels, read from the reported width; the mock's `style.zoom` mechanism is not adopted (docs/guides/using-the-app/navigation.md#zoom: host
 // zoom moves a window across a threshold, nothing else does).

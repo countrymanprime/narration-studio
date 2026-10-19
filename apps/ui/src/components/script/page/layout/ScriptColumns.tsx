@@ -12,10 +12,10 @@ import { useDrawerFocus } from './useDrawerFocus';
 export type Drawer = ScriptViewState['drawer'];
 
 const DRAWER = 'z-[var(--z-panel)] motion-ok:transition-[transform,visibility] motion-ok:duration-(--motion-base)';
-const CHAPTER_DRAWER = `max-[1179px]:absolute max-[1179px]:top-2 max-[1179px]:bottom-2 max-[1179px]:left-2 max-[1179px]:w-[min(360px,calc(100%-24px))] max-[1179px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
-const RAIL_DRAWER = `max-[1280px]:absolute max-[1280px]:top-2 max-[1280px]:bottom-2 max-[1280px]:right-2 max-[1280px]:w-[min(380px,calc(100%-24px))] max-[1280px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
-const CHAPTER_CLOSED = 'max-[1179px]:invisible max-[1179px]:-translate-x-[calc(100%+16px)]';
-const RAIL_CLOSED = 'max-[1280px]:invisible max-[1280px]:translate-x-[calc(100%+16px)]';
+const CHAPTER_DRAWER = `max-[1180px]:absolute max-[1180px]:top-2 max-[1180px]:bottom-2 max-[1180px]:left-2 max-[1180px]:w-[min(360px,calc(100%-24px))] max-[1180px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
+const RAIL_DRAWER = `max-[1281px]:absolute max-[1281px]:top-2 max-[1281px]:bottom-2 max-[1281px]:right-2 max-[1281px]:w-[min(380px,calc(100%-24px))] max-[1281px]:shadow-[var(--shadow-lg)] ${DRAWER}`;
+const CHAPTER_CLOSED = 'max-[1180px]:invisible max-[1180px]:-translate-x-[calc(100%+16px)]';
+const RAIL_CLOSED = 'max-[1281px]:invisible max-[1281px]:translate-x-[calc(100%+16px)]';
 /** The scrim shows only while the open drawer is a drawer at this width. */
 const SCRIM_FOR: Record<'ch' | 'rail', string> = { ch: 'min-[1180px]:hidden', rail: 'min-[1281px]:hidden' };
 

@@ -26,7 +26,7 @@ describe('ScriptColumns drawers', () => {
     mount('ch');
     const panel = document.querySelector('[data-panel="chapters"]') as HTMLElement;
     expect(panel.className).not.toMatch(/\bfixed\b|max-\[1179px\]:fixed/);
-    expect(panel.className).toContain('max-[1179px]:absolute');
+    expect(panel.className).toContain('max-[1180px]:absolute');
     expect((document.querySelector('[data-scrim]') as HTMLElement).className).not.toContain('fixed');
   });
 
