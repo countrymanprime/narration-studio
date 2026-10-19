@@ -254,7 +254,7 @@ describe('AnalysisToolsSection', () => {
     mount({ overrides: { assetsList: list } });
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch(/The analysis tools could not be listed: .*registry could not be read/);
-    fireEvent.click(within(alert).getByRole('button', { name: 'Try again' }));
+    fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     expect(await row('gliner')).toBeTruthy();
   });
 });

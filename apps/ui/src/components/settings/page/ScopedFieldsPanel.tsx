@@ -149,7 +149,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
           >
             <span>Settings could not be loaded: {error}.</span>
             <Button variant="secondary" onClick={() => void reload()}>
-              Try again
+              Retry
             </Button>
           </div>
         )}

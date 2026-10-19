@@ -23,7 +23,7 @@ export function installSeedFor(seed: MockAssetSeed | undefined): 'missing' | 'do
 }
 
 const FAILURE =
-  'The downloaded file did not match the approved one, so it was not installed. Try again; if it keeps happening, the file may have changed at its source.';
+  'The downloaded file did not match the approved one, so it was not installed. Press Retry. If it keeps happening, the file may have changed at its source.';
 
 /**
  * A scripted install for the mock host: the same steps the real one reports (real bytes, the check, one end), one step for each time it is

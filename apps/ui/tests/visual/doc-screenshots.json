@@ -1194,7 +1194,7 @@
     "state": "unreadable",
     "viewport": "desktop",
     "docName": "pickups-unreadable",
-    "caption": "Pickups - the list could not be read: the reason and Check again"
+    "caption": "Pickups - the list could not be read: the reason and Retry"
   },
   {
     "page": "pickups",

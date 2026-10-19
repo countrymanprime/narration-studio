@@ -104,7 +104,7 @@ detection (see below).
 - Offers a **"Get `<name>`"** button on an undetected entry, which opens the vendor's download page; the button
   disables and reads "Opening…" while the browser call is in flight, so a narrator cannot open two tabs.
 - Offers a **"Check again"** button that re-runs the same detection call the panel's mount already makes (one call
-  site, two triggers — the same pattern `LocalAssets`' mount-plus-"Try again" uses), reading "Checking…" and
+  site, two triggers — the same pattern `LocalAssets`' mount-plus-"Retry" uses), reading "Checking…" and
   disabled meanwhile, so a narrator who just installed a DAW sees it detected without leaving Settings.
 - Offers a **"Link a REAPER project file"** handoff button on a detected-but-not-yet-linked entry, which calls the
   one shared `linkDawFile()` action Settings' project-scoped DAW panel, and the audio engine panel
