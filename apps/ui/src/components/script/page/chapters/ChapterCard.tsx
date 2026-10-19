@@ -10,9 +10,6 @@ import { PrepSegment } from './PrepSegment';
 
 const words = (n: number): string => n.toLocaleString('en-US');
 
-/** A changed-since-import notice the host raised for a chapter; the card draws it only when one is given (`ManuscriptChapter` carries none today). */
-export type ChapterReview = { text: string; onMarkReviewed: () => void };
-
 /** What the boundary above a card names: the chapter (or the credits) before it and its words. */
 export type Ended = { name: string; words: number };
 
@@ -28,21 +25,19 @@ export function EndOf({ ended }: { ended: Ended }) {
 }
 
 // The mock's chapter boundary in the reader: "End of {previous} · N words", then the card with the label and Record in Booth, the
-// title, the words, the finished minutes and the facts line, the "My prep" control and the review banner. Record in Booth is the
+// title, the words, the finished minutes and the facts line and the "My prep" control. Record in Booth is the
 // host's: no `onRecord`, no button (a chapter that is not narration).
 export function ChapterCard({
   chapter,
   previous,
   ended,
   onRecord,
-  review,
 }: {
   chapter: ManuscriptChapter;
   previous?: ManuscriptChapter;
   /** The boundary above a card with no chapter before it: the opening credits drawn above the first chapter. */
   ended?: Ended;
   onRecord?: (chapterId: string) => void;
-  review?: ChapterReview;
 }) {
   const facts = useChapterFacts();
   const { title } = chapterHeading(chapter);
@@ -68,12 +63,6 @@ export function ChapterCard({
           <SectionLabel>My prep</SectionLabel>
           <PrepSegment chapter={chapter} />
         </div>
-        {review && (
-          <div className="flex items-center gap-2 rounded-lg bg-[var(--warn-soft)] px-3 py-2 text-sm text-[var(--warn-text)]">
-            <span className="flex-1">{review.text}</span>
-            <IconButton action="markReviewed" onClick={review.onMarkReviewed} />
-          </div>
-        )}
       </InsetCard>
     </div>
   );

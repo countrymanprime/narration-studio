@@ -247,7 +247,8 @@ export const boothStates: StateEntry[] = [
   {
     page: 'booth',
     state: 'load-failed',
-    description: "Booth when the chapters cannot be read (?mockChapters=fails): the read's own sentence as an alert, and no skeleton left behind",
+    description:
+      'Booth when the chapters cannot be read (?mockChapters=fails): the page title and "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapters again; no skeleton left behind',
     ...REFLOW,
   },
   {

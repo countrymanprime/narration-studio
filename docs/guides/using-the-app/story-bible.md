@@ -3,7 +3,7 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (the colour you set for the type in Settings; an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The buttons under the title scan the manuscript (while a scan runs the same button becomes **Cancel scan**, and its progress shows under the filters, so nothing else moves), import entries, open Voice data, build or refresh the Story Bible, and add an entry; the **Entries** and **Series** tabs sit below them. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Check again**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
+with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (the colour you set for the type in Settings; an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The page fills the main area, the list 320 px wide beside the entry. The three buttons on the title's row scan the manuscript (while a scan runs the same button becomes **Cancel scan**, and its progress shows under the filters, so nothing else moves), import entries, and add an entry; the **Entries** and **Series** tabs sit below them, and **Voice data** sits under the list. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Check again**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
 While the entries are being read, the list and the detail pane show grey blocks under the title, tabs and search; "No entries match" appears only once the read has ended with none, and an unreadable Story Bible says so with **Retry**. The **Series** tab shows the same blocks while it is read.
 
 ![Story Bible - a search for "hatter" narrowing the list by name and alias](../../images/ui/storybible-search.webp)
@@ -16,7 +16,7 @@ properties, its **Relationships** to other entries, and **Appears in**, the chap
 button that opens it in the [Script](script.md). The kind beside the name is a plain label until you press Edit, when it becomes a menu that changes it, and the
 magnifier button opens the Script's Find on the name. Press Edit (the pencil) to change the entry, then Save
 (or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Locked entries can't be edited until
-unlocked. Rebuilding is deliberately strict: it favors missing a name over listing ordinary
+unlocked. The scan is deliberately strict: it favors missing a name over listing ordinary
 words, so add unusual names by hand with the + button.
 
 ![Story Bible entity detail panel](../../images/ui/storybible-entity.webp)
@@ -31,12 +31,12 @@ Each entry also has **Properties**: a list of labelled facts, such as "Codename:
 that you keep in the order you give them. In edit mode each property is a row with a name and a value, buttons to
 move it up or down or remove it, and an Add button below. A value needs a name, and no two properties may share
 one (capital letters do not make a name different); Save says which row to fix. A row you add and leave blank is
-dropped. Properties are kept when you rebuild the Story Bible.
+dropped. Properties are kept when you scan the manuscript again.
 
 ![Story Bible - an entry in edit mode, with Save and Cancel shown](../../images/ui/storybible-entry-editing.webp)
 
-Entries the build isn't sure what kind they are get the **Needs Review** kind, in amber (the colour of anything still to check);
-choose the right kind from the menu beside the name. An entry or a name the build flagged shows a
+Entries the scan isn't sure what kind they are get the **Needs Review** kind, in amber (the colour of anything still to check);
+choose the right kind from the menu beside the name. An entry or a name the scan flagged shows a
 **Review** pill in the list and **Needs review** with a **Mark reviewed** button in its header. The
 **Needs review** chip under the kind chips shows only these entries and the ones with suggestions waiting.
 An entry with suggestions still to verify shows **Mark reviewed** switched off, with the reason, until each is verified or rejected.
@@ -63,24 +63,6 @@ In edit mode a row changes in place:
 A change is saved at once, like the other edits to names and relationships, not with Save. It is written as the new relationship and then the old one is removed.
 
 ![Story Bible - a relationship in edit mode, choosing the other entry from the picker](../../images/ui/storybible-relationship-picker.webp)
-
-## Building with a language model
-
-The first time you press Build / refresh, the app asks before it downloads anything. The Story Bible finds
-people, places and organizations best with a language model (a small English model by default, chosen under
-Settings, Story Bible). The question says what it is, its version and publisher, how much is downloaded and how
-much disk it needs, where it will be kept, and its licence. You choose one of three:
-
-- **Download model** downloads it with a progress bar you can cancel, checks it, and then builds. The next build
-  does not ask again.
-- **Build with rules-only** builds this once without a model. The result is lower quality (it finds fewer names
-  and mistakes more ordinary words for names) and the build says so when it finishes. The model stays not
-  downloaded, and the next build asks again.
-- **Cancel** changes nothing: no build and no download.
-
-If a download fails, the message says why (no connection, not enough disk space, or a file that did not match
-the approved one) and you can try again. A download that was cut off carries on from where it stopped. Choosing a
-model in Settings never downloads it, and Settings lists every approved model whether or not it is installed.
 
 ## Hearing a name
 
@@ -110,7 +92,7 @@ field, a source tag, and beside the play button **Record my own clip** (for your
 - When you replace a dictionary's answer with your own, or the other way round, the one replaced is kept: the tag's
   menu offers **Use mine** or **Use the dictionary's** to switch back.
 
-A rebuild keeps all of this. Which source a *fresh* pronunciation tries first (at build time, or when you add an alias)
+A new scan keeps all of this. Which source a *fresh* pronunciation tries first (at scan time, or when you add an alias)
 follows **Settings > Voice & pronunciation > Pronunciation source for new names**. A note written on a pronunciation shows under its
 name. A question for the author is a mark on the [Script](script.md#select-text) page.
 
@@ -140,8 +122,8 @@ Wikimedia Commons.
 **Scan the manuscript** (the wand button at the top) reads the book and suggests new entries and facts about the ones
 you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
 asks whether to use the basic scan now, download better analysis, or import from a file instead; nothing downloads
-until you agree. **Import entries** opens a CSV or JSON file of entries you made elsewhere and shows what it would add
-before it adds anything.
+until you agree. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
+before it adds anything. Nothing builds the Story Bible on its own, not even a manuscript import.
 
 ![Story Bible - the Import entries dialog (CSV or JSON)](../../images/ui/storybible-import.webp)
 
@@ -168,13 +150,13 @@ reference shows a **Changed since approval** badge - re-approve it once you're h
 region, or revoke it. A reference clip has no play button; open the region by name in REAPER to hear it. To
 hear how you voiced a character in the app, mark a [voice sample](#voice-samples) instead.
 
-**Dialogue cues** lists the quoted lines the Story Bible build attributed to this character, plus
+**Dialogue cues** lists the quoted lines the Story Bible scan attributed to this character, plus
 any line left unattributed (three or more speakers active in a scene, or no speaker tag at all, are
 left `unknown` rather than guessed). Pick a different speaker, or **Unknown**, from the dropdown
-beside a cue to correct it. A correction survives the next Story Bible rebuild - it is never
+beside a cue to correct it. A correction survives the next scan - it is never
 silently overwritten by a fresh, possibly-wrong, extraction.
 
-The **Voice data** button at the top of the Story Bible opens a panel
+The **Voice data** button under the entry list opens a panel
 for what isn't about one character: **Narration voice samples** and a reference for **plain narration**
 (useful as a baseline separate from any character), the space the project's voice samples use, **Remove voice samples…**, and
 **Remove voice data…**, which revokes every approved reference in the project - for every character and for narration - in one

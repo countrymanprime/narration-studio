@@ -4,6 +4,7 @@
   "measuredAt": "2026-09-21T10:00:00Z",
   "measurement": {
     "channels": 2,
+    "click_candidate_count": null,
     "clip_run_count": 0,
     "clip_runs": null,
     "digital_silent_windows": 0,

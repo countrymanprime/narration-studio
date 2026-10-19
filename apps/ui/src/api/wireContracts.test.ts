@@ -167,7 +167,6 @@ import {
 } from './schemas/credits';
 import { dawCatalogListSchema } from './schemas/dawCatalog';
 import {
-  guideBuildResultSchema,
   guideCreatedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
@@ -935,13 +934,9 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     },
   );
 
-  it('the Story Bible entities, build job, created id and preview answers', async () => {
+  it('the Story Bible entities, created id and preview answers', async () => {
     const api = createMockApi();
     expectMatches(guideEntitiesSchema, await api.guideEntities(), 'mock entities');
-    expectMatches(workJobSchema, await api.guideBuildState(), 'mock guide state');
-    expectMatches(guideBuildResultSchema, await api.guideBuild(), 'mock guide build');
-    expectMatches(guideBuildResultSchema, await api.guideBuild({ rulesOnly: true }), 'mock guide build, rules-only');
-    expectMatches(guideBuildResultSchema, await createMockApi({}, { assets: 'downloading' }).guideBuild(), 'mock guide build, asking for the language model');
     expectMatches(guideCreatedSchema, { id: await api.guideCreate('New', 'Character', []) }, 'mock guide create');
     const entity = (await api.guideEntities())[0];
     expectMatches(guidePreviewSchema, await api.guidePreview(entity?.id ?? ''), 'mock preview');
@@ -3974,8 +3969,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'pronunciationCandidate',
       'manuscriptReader',
       'readerState',
-      'guideBuild',
-      'guideBuildState',
       'guideEntities',
       'guideCreate',
       'guideMerge',
@@ -4246,6 +4239,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'seriesDelete',
       'ttsRemove',
       'whisperRemove',
+      'assetsOpenFolder',
       'assetsRemove',
       'transcriptCancel',
       'coverageCancel',

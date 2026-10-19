@@ -8,9 +8,7 @@
 # its first-run dialogs switched off, then runs the audacityreal Go tests (apps/desktop/internal/dawport/audacity/real_linux_live_test.go).
 # Findings and the CI design built on them: docs/research/real-audacity3-ci-integration.md.
 #
-# NU_AUDACITY_WITH_REPLY_PATCH=1 applies leading-blank-line.patch to the client for the run (and reverts it on exit). Without it the
-# run shows the bug the research note describes: a real Audacity starts replies that have a body with an empty line, which the client
-# reads as "no project open". The script never leaves a change to the adapter behind.
+# NU_AUDACITY_WITH_REPLY_PATCH is ignored: the blank-first-line reply bug it worked around is fixed in audacitybridge.
 #
 # Needs: curl, sha256sum, python3, go, ffmpeg, Xvfb, PulseAudio (pulseaudio, pactl, paplay), libasound2-plugins, xdotool, ImageMagick `import`
 # (screenshots only). On Ubuntu 24.04: apt-get install xvfb pulseaudio pulseaudio-utils libasound2-plugins xdotool ffmpeg imagemagick.
@@ -42,17 +40,14 @@ cleanup() {
 		[ -n "$pid" ] && kill "$pid" 2>/dev/null || true
 	done
 	pkill -x audacity 2>/dev/null || true
-	[ -n "${PATCHED:-}" ] && git -C "$REPO" apply -R "$REPO/scripts/research/real-audacity3-ci/leading-blank-line.patch" || true
 	# PulseAudio is left to the CI job's end; locally, stop what this script started.
 	[ -n "${PULSE_STARTED:-}" ] && pulseaudio --kill 2>/dev/null || true
 }
 trap cleanup EXIT
 
-apply_reply_patch() {
-	[ "${NU_AUDACITY_WITH_REPLY_PATCH:-}" = 1 ] || return 0
-	git -C "$REPO" apply "$REPO/scripts/research/real-audacity3-ci/leading-blank-line.patch"
-	PATCHED=1
-	log "applied leading-blank-line.patch to audacitybridge (reverted on exit)"
+warn_ignored_patch() {
+	[ "${NU_AUDACITY_WITH_REPLY_PATCH:-}" = 1 ] && log "NU_AUDACITY_WITH_REPLY_PATCH is ignored: the client no longer needs the patch"
+	return 0
 }
 
 install_audacity() {
@@ -165,7 +160,7 @@ run_go() {
 }
 
 status=0
-apply_reply_patch
+warn_ignored_patch
 install_audacity
 fetch_fixture
 start_display

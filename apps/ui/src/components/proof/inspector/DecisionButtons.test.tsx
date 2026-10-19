@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DecisionButtons, OTHER_FIX } from './DecisionButtons';
+import { DecisionButtons } from './DecisionButtons';
 
 afterEach(cleanup);
 
@@ -25,18 +25,16 @@ describe('decision-buttons-set-the-status-and-show-the-key', () => {
     const onDecide = vi.fn();
     render(<DecisionButtons status="unreviewed" fix="pickup" onDecide={onDecide} />);
     for (const name of ['Needs pickup', 'Fix in edit', 'Waive', 'Defer']) await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
-    // Fix in edit is off for a note whose fix is a pickup, so it never saves a pickup in its name.
-    expect(onDecide.mock.calls.map(([s]) => s)).toEqual(['accepted', 'dismissed', 'deferred']);
+    expect(onDecide.mock.calls.map(([s]) => s)).toEqual(['accepted', 'accepted', 'dismissed', 'deferred']);
   });
 
-  it('turns off the fix the note does not ask for, and says why', () => {
-    const { rerender } = render(<DecisionButtons status="unreviewed" fix="pickup" onDecide={() => {}} />);
-    expect((screen.getByRole('button', { name: /^Fix in edit/ }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: /^Needs pickup/ }) as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.getByText(OTHER_FIX.pickup)).toBeTruthy();
-    rerender(<DecisionButtons status="unreviewed" fix="edit" onDecide={() => {}} />);
-    expect((screen.getByRole('button', { name: /^Needs pickup/ }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(OTHER_FIX.edit)).toBeTruthy();
+  it('allows every decision on any note, with no gate and no helper sentence', () => {
+    for (const fix of ['pickup', 'edit'] as const) {
+      const { unmount } = render(<DecisionButtons status="unreviewed" fix={fix} onDecide={() => {}} />);
+      for (const button of screen.getByRole('group', { name: 'Resolution' }).querySelectorAll('button')) expect(button.disabled).toBe(false);
+      expect(screen.queryByText(/re-recorded|fixed in the edit/)).toBeNull();
+      unmount();
+    }
   });
 
   it('presses the one that was chosen, the fix the note asks for deciding between the two accepted ones', () => {
