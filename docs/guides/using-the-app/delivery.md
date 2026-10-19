@@ -74,6 +74,9 @@ dBFS), and 1 more rule."). When no chapter fails, it names the first chapter tha
 measured file, its file is not measured yet or could not be read, or part of it could not be measured. Until
 something is measured, the line is left off and the count beside Build says so.
 
+While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as
+its description. Pressing it builds nothing and announces "Nothing was built" with that reason.
+
 ![Delivery with every chapter passing and the files encoded: Build ACX package is on](../../images/ui/delivery-ready.webp)
 
 While the package builds, the button is busy, **Cancel** is offered and a bar shows the work. A cancelled or failed
