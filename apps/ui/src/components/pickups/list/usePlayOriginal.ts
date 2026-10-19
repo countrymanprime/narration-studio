@@ -7,9 +7,9 @@ import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
 
 /** Seconds of the recording heard before and after the line's place. */
-export const ORIGINAL_AROUND = 3;
+const ORIGINAL_AROUND = 3;
 /** Why a line cannot be heard: the host gave it no place in the recording. */
-export const NO_PLACE = 'This line has no place in the recording yet.';
+const NO_PLACE = 'This line has no place in the recording yet.';
 const NO_AUDIO = 'The recording of this chapter is not in the project, so the original cannot be played.';
 
 /** Where a pickup falls in the chapter's source audio: the file and the second in it. `at` is a project second; `time` is a second on the app's own line over the played files. */
