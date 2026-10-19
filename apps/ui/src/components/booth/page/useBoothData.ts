@@ -58,6 +58,7 @@ export function useBoothData(target: BoothTarget | null) {
   const [types, setTypes] = useState<GuideType[]>(NONE);
   const { previews, loaded: creditsLoaded } = useCreditsPreviews();
 
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
     void Promise.all([manuscript.manuscriptChapters(), teleprompter.teleprompterState().catch(() => undefined)])
@@ -69,6 +70,13 @@ export function useBoothData(target: BoothTarget | null) {
         setFallback(running ?? narration[0]?.id ?? '');
       })
       .catch((reason) => live && setError(reason instanceof Error ? reason.message : String(reason)));
+    return () => {
+      live = false;
+    };
+  }, [manuscript, teleprompter, attempt]);
+
+  useEffect(() => {
+    let live = true;
     void storyBible
       .guideEntities()
       .then((next) => live && setEntities(next))
@@ -85,7 +93,13 @@ export function useBoothData(target: BoothTarget | null) {
     return () => {
       live = false;
     };
-  }, [manuscript, storyBible, teleprompter]);
+  }, [storyBible]);
+
+  // Retry: clears the error first, so the skeleton shows with no stale sentence under it, then reads the chapters again.
+  const retry = useCallback(() => {
+    setError('');
+    setAttempt((n) => n + 1);
+  }, []);
 
   const credits = target && 'credits' in target ? target.credits : undefined;
   const chapterId = credits ? '' : target && 'chapter' in target ? target.chapter : fallback;
@@ -117,6 +131,7 @@ export function useBoothData(target: BoothTarget | null) {
     source,
     unavailable,
     error,
+    retry,
     entities,
     types,
     cues,
