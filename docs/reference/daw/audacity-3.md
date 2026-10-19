@@ -33,6 +33,16 @@ Audacity has no project path, play state or version over the pipe, so "linked" i
 
 **What is Experimental.** The link itself reads and writes nothing in the audio. Every capability behind it keeps its level from [the matrix](matrix.md); nothing here is promoted before the owner's pass.
 
+## The snapshot
+
+The `.aup3` is a SQLite file the app does not read, and scripting reports no project path, so everything the app reads from a saved project offline (the track list, the chapter links, the recorded lengths, the regions, the pickup counts) comes from a snapshot. While Audacity answers, the host reads `GetInfo` Tracks, Clips and Labels (three commands) every 10 s and writes `narration-utils/audacity-snapshot.json` when the project changed (a selection change does not count), and at once after a narrator's action (Check again, linking the project). The offline readers take that file where REAPER's take the `.rpp`:
+
+- an audio track is a track with the id `audacity:<name>` (`#2`, `#3` for a repeated name); a clip is an item with its track's id and its start in milliseconds, so an id goes stale (never to another track or clip) when the track is renamed or the clip moves;
+- a range label `[nu:region] <title>` is a region, and a pickup label is a `PICKUP:` or `PICKUP_DONE:` marker;
+- a clip has no source file the app can open, so a reader that needs the audio itself (the recording check) says so rather than guessing.
+
+The panel and the readers say that tracks are "as of the last time Audacity answered". A project that chose another engine ignores a snapshot left from when it was Audacity.
+
 ## Behaviour the adapter works around
 
 | Audacity behaviour | What the adapter does |

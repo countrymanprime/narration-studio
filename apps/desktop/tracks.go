@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
@@ -40,6 +41,10 @@ func discoverProjectFiles(folder string, store *settings.Store) (candidates []st
 	if folder == "" {
 		return nil, "", fmt.Errorf("open a project before viewing tracks")
 	}
+	// A project that records with Audacity has no .rpp: what the offline readers read is the snapshot taken while Audacity answered.
+	if snapshot := audacitySnapshotFor(folder, store); snapshot != "" {
+		return []string{snapshot}, snapshot, nil
+	}
 	candidates, err = tracks.Discover(folder)
 	if err != nil {
 		return nil, "", fmt.Errorf("could not look for a REAPER project file: %w", err)
@@ -55,6 +60,26 @@ func discoverProjectFiles(folder string, store *settings.Store) (candidates []st
 		selected = candidates[0]
 	}
 	return candidates, selected, nil
+}
+
+// audacitySnapshotFor is the project's Audacity snapshot when the project records with Audacity and one has been taken, "" otherwise.
+// The saved engine choice decides (the host's own Recording.engine row); a project with no choice and no REAPER project file at all
+// but a snapshot is an Audacity project too, so a launch from the installer's Audacity shortcut finds its tracks.
+func audacitySnapshotFor(folder string, store *settings.Store) string {
+	path := audacity.SnapshotPath(folder)
+	if info, err := os.Stat(path); err != nil || info.IsDir() {
+		return ""
+	}
+	if store != nil && dawport.Classify(store.Project(recordingSettingsTool)[recordingEngineKey]).HasScriptingPipe() {
+		return path
+	}
+	if store != nil && store.Project(recordingSettingsTool)[recordingEngineKey] != "" {
+		return "" // chosen another engine: a snapshot left from when it was Audacity is not this project's tracks
+	}
+	if found, _ := tracks.Discover(folder); len(found) == 0 && linkedProjectFile(store.Reporter(), folder) == "" {
+		return path
+	}
+	return ""
 }
 
 // linkedProjectFile is the REAPER project file folder's manifest links, as it is on disk now ("" when there is no link or the
@@ -174,9 +199,26 @@ var projectReaderRole = func() (dawport.ProjectReader, error) {
 
 // readProject is tracks.go's, chapterlinks.go's and recordedlengths.go's shared way to parse a saved .rpp each asks the resolver for the dawport.ProjectReader role instead of calling tracks.Parse directly.
 func readProject(path string) (tracks.Project, error) {
+	if audacity.IsSnapshot(path) {
+		return audacity.SnapshotReader{}.ReadProject(path)
+	}
 	reader, err := projectReaderRole()
 	if err != nil {
 		return tracks.Project{}, err
 	}
 	return reader.ReadProject(path)
+}
+
+// projectFileReader is the offline reader the analyses are given (coverage, editing, the character bible, voice samples): a REAPER
+// project through the REAPER adapter, or an Audacity snapshot through the Audacity adapter's, told apart by the file (the snapshot's
+// fixed name), never by a label from the page.
+type projectFileReader struct{}
+
+var _ dawport.ProjectReader = projectFileReader{}
+
+func (projectFileReader) ReadProject(path string) (tracks.Project, error) {
+	if audacity.IsSnapshot(path) {
+		return audacity.SnapshotReader{}.ReadProject(path)
+	}
+	return reaper.ProjectReader{}.ReadProject(path)
 }

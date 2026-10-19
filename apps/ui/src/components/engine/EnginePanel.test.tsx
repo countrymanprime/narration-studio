@@ -140,3 +140,36 @@ describe('EnginePanel', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+describe('EnginePanel for an Audacity project', () => {
+  it('shows the Audacity card in place of the REAPER project and tools, and keeps the tracks and chapter links', async () => {
+    renderPanel(
+      {},
+      { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'answering', openProject: 'linked', linkedFile: 'Book One.aup3' } },
+    );
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    expect(await within(panel).findByRole('group', { name: 'Audacity connection' })).toBeTruthy();
+    expect(within(panel).getByRole('region', { name: 'Audacity project' })).toBeTruthy();
+    expect(within(panel).queryByRole('region', { name: 'REAPER project' })).toBeNull();
+    expect(within(panel).queryByRole('toolbar', { name: 'REAPER tools' })).toBeNull();
+    expect(await within(panel).findByRole('table', { name: 'Tracks' })).toBeTruthy();
+    expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
+    expect(within(panel).queryByText('Link a REAPER project file')).toBeNull();
+  });
+
+  it("keeps REAPER's panel for a project that records elsewhere", async () => {
+    renderPanel({}, { audacityLink: { module: 'on' } });
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    expect(await within(panel).findByRole('region', { name: 'REAPER project' })).toBeTruthy();
+    expect(within(panel).queryByRole('group', { name: 'Audacity connection' })).toBeNull();
+  });
+
+  it('says no tracks have been read when the host has no snapshot yet', async () => {
+    renderPanel(
+      { tracksDiscover: async () => ({ candidates: [], selected: null }) },
+      { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'answering' } },
+    );
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    expect(await within(panel).findByText(/No tracks have been read from Audacity yet/)).toBeTruthy();
+  });
+});

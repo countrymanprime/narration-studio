@@ -10,8 +10,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
@@ -21,6 +23,27 @@ import (
 // when Audacity has answered, so none may be called from a dawport Subscription's Handle.
 type Session struct {
 	client *audacitybridge.Client
+	// transport is what this app started and has not stopped: Audacity reports no play or record state, so a recording or a loop the
+	// app began is the only one it can know of.
+	transport transportState
+}
+
+// transportState is the app's own belief about Audacity's transport.
+type transportState struct {
+	mu                 sync.Mutex
+	playing, recording bool
+}
+
+func (t *transportState) snapshot() (playing, recording bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.playing, t.recording
+}
+
+func (t *transportState) set(playing, recording bool) {
+	t.mu.Lock()
+	t.playing, t.recording = playing, recording
+	t.mu.Unlock()
 }
 
 var (
@@ -73,9 +96,13 @@ func (s *Session) Navigate(ctx context.Context, target dawport.Target) (dawport.
 	if err != nil {
 		return dawport.Navigated{}, err
 	}
+	if _, recording := s.transport.snapshot(); recording {
+		return dawport.Navigated{}, bridge.ErrRecording
+	}
 	if err := s.client.Stop(ctx); err != nil {
 		return dawport.Navigated{}, err
 	}
+	s.transport.set(false, false)
 	if err := s.client.SelectTime(ctx, start, start); err != nil {
 		return dawport.Navigated{}, err
 	}
@@ -90,6 +117,9 @@ func (s *Session) Loop(ctx context.Context, target dawport.Target) (dawport.Loop
 		return dawport.LoopStarted{}, err
 	}
 	start, end = math.Max(0, start-ContextPaddingSeconds), end+ContextPaddingSeconds
+	if _, recording := s.transport.snapshot(); recording {
+		return dawport.LoopStarted{}, bridge.ErrRecording
+	}
 	if err := s.client.Stop(ctx); err != nil {
 		return dawport.LoopStarted{}, err
 	}
@@ -99,15 +129,20 @@ func (s *Session) Loop(ctx context.Context, target dawport.Target) (dawport.Loop
 	if err := s.client.PlayLooped(ctx); err != nil {
 		return dawport.LoopStarted{}, err
 	}
+	s.transport.set(true, false)
 	return dawport.LoopStarted{Start: start, End: end}, nil
 }
 
 // StopLoop stops playback. Audacity keeps no loop state for the adapter to put back (the loop is only the selection), so nothing
 // is restored or kept.
 func (s *Session) StopLoop(ctx context.Context) (dawport.LoopStopped, error) {
+	if _, recording := s.transport.snapshot(); recording {
+		return dawport.LoopStopped{}, bridge.ErrRecording
+	}
 	if err := s.client.Stop(ctx); err != nil {
 		return dawport.LoopStopped{}, err
 	}
+	s.transport.set(false, false)
 	return dawport.LoopStopped{}, nil
 }
 

@@ -35,6 +35,12 @@ type audacityConn struct {
 	// lastEmitted is the cached state as last sent to the window, without its heard-ago, which moves every second.
 	// +checklocks:mu
 	lastEmitted string
+	// lastSnap is the snapshot last written for this connection, and lastSnapAt when it was looked at: the snapshot is taken at most
+	// every snapshotEvery unless a narrator's action forces it.
+	// +checklocks:mu
+	lastSnap *audacity.Snapshot
+	// +checklocks:mu
+	lastSnapAt time.Time
 }
 
 // newAudacityConn is the connection for the project at project: the pipe client, the adapter whose roles share it, and the backups

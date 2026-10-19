@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
 	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
 	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
 	"github.com/countrymanprime/narration-utils/shell/internal/voicesample"
@@ -156,7 +155,7 @@ func (h *Host) voiceSamples() *voicesample.Service {
 		Project:       svc.config.projectFolder,
 		Manuscript:    voiceSamplesBook(svc.manuscript),
 		Reporter:      h.persist,
-		ProjectReader: reaper.ProjectReader{},
+		ProjectReader: projectFileReader{},
 	}
 	if svc.settings != nil {
 		folder, store := svc.config.projectFolder, svc.settings

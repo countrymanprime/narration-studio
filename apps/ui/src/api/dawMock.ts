@@ -138,6 +138,11 @@ const AUDACITY_NEED_BACKUPS_KEYS: readonly DawCapabilityKey[] = ['takes', 'punch
 const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabilityKey>([
   'review',
   'pickups',
+  'project_read',
+  'track_state',
+  'track_select',
+  'follow_position',
+  'regions',
   'navigate',
   'markers',
   'macro_render',

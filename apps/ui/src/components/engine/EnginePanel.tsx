@@ -50,32 +50,20 @@ export type EngineLinkState = {
 export function EnginePanel({ open, onClose, notify, link }: { open: boolean; onClose: () => void; notify: Notify; link: EngineLinkState }) {
   return (
     <SlideOver open={open} title="Audio engine" closeLabel="Close the engine panel" size="wide" headingLevel={2} onClose={onClose}>
-      <EnginePanelFor notify={notify} link={link} />
+      <EnginePanelBody notify={notify} link={link} />
     </SlideOver>
   );
 }
 
-/** An Audacity project gets the Audacity link; any other gets REAPER's project, tools and tracks. */
-function EnginePanelFor({ notify, link }: { notify: Notify; link: EngineLinkState }) {
-  const audacity = useAudacityLink();
-  if (audacity.link?.chosen) {
-    return (
-      <div className="space-y-4">
-        <Panel title="Audacity project">
-          <AudacityLinkCard view={audacity} notify={notify} />
-        </Panel>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Audacity keeps no tracks per chapter and no render setup the app can read, so chapter sync, track links and the REAPER tools are not shown. The app
-          marks lines, pickups and chapters in Audacity as labels on a label track named &ldquo;Narration Utils&rdquo;.
-        </p>
-      </div>
-    );
-  }
-  return <EnginePanelBody notify={notify} link={link} />;
-}
-
 function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkState }) {
   const api = useApi();
+  // An Audacity project has no .rpp: its card replaces the REAPER project section, the REAPER tools are not shown, and the tracks come
+  // from the snapshot the host takes while Audacity answers.
+  const audacity = useAudacityLink();
+  const forAudacity = audacity.link?.chosen === true;
+  // The tracks are read again whenever the Audacity card hears from the host (a change, or Check again), since the snapshot they come
+  // from is taken while Audacity answers.
+  const audacityHeard = forAudacity ? audacity.receivedAt : undefined;
   const [discovery, setDiscovery] = useState<TracksDiscovery>();
   const [project, setProject] = useState<TracksProject>();
   const [error, setError] = useState('');
@@ -137,7 +125,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, audacityHeard]);
 
   useEffect(() => {
     if (!discovery?.selected) return;
@@ -156,7 +144,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
     return () => {
       active = false;
     };
-  }, [api, discovery?.selected]);
+  }, [api, discovery?.selected, audacityHeard]);
 
   const selectRpp = (path: string) => {
     setError('');
@@ -171,13 +159,24 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
 
   return (
     <div className="space-y-4">
-      <ProjectSection discovery={discovery} link={link} onSelectRpp={selectRpp} />
+      {forAudacity ? (
+        <Panel title="Audacity project">
+          <AudacityLinkCard view={audacity} notify={notify} />
+        </Panel>
+      ) : (
+        <ProjectSection discovery={discovery} link={link} onSelectRpp={selectRpp} />
+      )}
+      {forAudacity && discovery && !discovery.selected && (
+        <p role="status" className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          No tracks have been read from Audacity yet. They appear here once Audacity answers with this project open.
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-sm" style={{ color: 'var(--danger-text)' }}>
           {error}
         </p>
       )}
-      {hasTracks && (
+      {hasTracks && !forAudacity && (
         <Panel title="REAPER tools">
           <Toolbar label="REAPER tools" className="flex-wrap">
             {chapters.length > 0 && (
@@ -194,7 +193,9 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
       <ChapterSyncPanel notify={notify} onChanged={() => setRefresh((count) => count + 1)} />
       {project && project.tracks.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          This REAPER project has no tracks yet.
+          {forAudacity
+            ? 'Audacity has no audio tracks yet, or has not answered since this project opened. The tracks shown here are read from the last time it did.'
+            : 'This REAPER project has no tracks yet.'}
         </p>
       )}
       {hasTracks && <TrackList tracks={project.tracks} mappings={mappings} />}
