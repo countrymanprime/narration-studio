@@ -33,7 +33,7 @@ describe('DemoBanner', () => {
     render(<DemoBanner />);
     expect(screen.getByRole('link', { name: 'Site' }).getAttribute('href')).toBe('../index.html');
     expect(screen.getByRole('link', { name: 'Storybook' }).getAttribute('href')).toBe('../storybook/index.html');
-    expect(screen.getByText(/at least 960 px wide/)).toBeTruthy();
+    expect(screen.getByText(/at least 860 px wide/)).toBeTruthy();
   });
 
   it('has no site links in the Pages demo build', async () => {

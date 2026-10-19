@@ -33,7 +33,7 @@ export function DemoBanner() {
           <a href="../storybook/index.html" className="underline">
             Storybook
           </a>
-          <span className="min-[960px]:hidden">Best on a larger screen: the app is built for a window at least 960 px wide.</span>
+          <span className="min-[860px]:hidden">Best on a larger screen: the app is built for a window at least 860 px wide.</span>
         </>
       )}
     </div>

@@ -30,7 +30,7 @@ The `site` mode (`apps/ui/.env.site`, `apps/ui/vite.config.ts`) differs from the
 - **No probe for the desktop host's script.** The Wails runtime asks `/wails/custom.js` with a HEAD request; the `site` mode removes that call, so the demo makes no request outside its own folder.
 - **The demo banner.** `VITE_DEMO=1`, as in the `demo` mode, so every page says it is a demo with nothing saved.
 
-- **Banner links.** In the site build the demo banner also links **Site** (`../index.html`) and **Storybook** (`../storybook/index.html`), and below 960 px wide says the app is best on a larger screen (the app has no phone layout).
+- **Banner links.** In the site build the demo banner also links **Site** (`../index.html`) and **Storybook** (`../storybook/index.html`), and below 860 px wide says the app is best on a larger screen (the app has no phone layout).
 
 The build script then fails when any built HTML or CSS file loads something by an absolute path or from another host (`scripts/site/siteFiles.mjs`), and gives Storybook's pages an empty icon so no browser asks the host's root for `/favicon.ico`. The Pages `demo` mode is untouched.
 
