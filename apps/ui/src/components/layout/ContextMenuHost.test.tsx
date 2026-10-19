@@ -115,11 +115,11 @@ describe('ContextMenuHost', () => {
     expect(screen.queryByRole('menuitem')).toBeNull();
   });
 
-  it('shows the fallback, then the tail, when no provider matches', async () => {
+  it('shows the fallback alone when no provider matches: it lists the tail items itself, in the order it wants', async () => {
     provide(word());
-    mount({ tail, fallback: () => [{ key: 'goto', label: 'Go to', onSelect: vi.fn() }] });
+    mount({ tail, fallback: () => [{ key: 'goto', label: 'Go to', onSelect: vi.fn() }, ...tail, { key: 'view', label: 'View', onSelect: vi.fn() }] });
     expect(rightClick(screen.getByText('Empty space'))).toBe(true);
-    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Go to', 'Jump menu']);
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Go to', 'Jump menu', 'View']);
   });
 
   it('menu-key-opens-at-the-active-descendant', async () => {
