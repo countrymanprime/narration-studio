@@ -19,11 +19,11 @@ import (
 type ModuleStatus int
 
 const (
-	// ModuleUnknown: no settings file, or no entry for the module. Audacity has never started on this profile.
+	// ModuleUnknown no settings file, or no entry for the module. Audacity has never started on this profile.
 	ModuleUnknown ModuleStatus = iota
-	// ModuleOn: the module is enabled (status 1).
+	// ModuleOn the module is enabled (status 1).
 	ModuleOn
-	// ModuleOff: the module is present and not enabled (any other status).
+	// ModuleOff the module is present and not enabled (any other status).
 	ModuleOff
 )
 
@@ -82,7 +82,7 @@ func sectionName(line string) (string, bool) {
 	return "", false
 }
 
-// ErrAudacityRunning: Audacity writes its settings file when it closes, so a change made while it runs is lost.
+// ErrAudacityRunning Audacity writes its settings file when it closes, so a change made while it runs is lost.
 var ErrAudacityRunning = errors.New("close Audacity first: it saves its settings when it closes, so a change made now would be lost")
 
 // EnableModule sets [Module] mod-script-pipe=1 in the settings file at path and leaves every other line as it is. The file must
