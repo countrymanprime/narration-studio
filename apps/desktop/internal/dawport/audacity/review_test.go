@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -26,7 +27,7 @@ type reviewFixture struct {
 func newReviewFixture(t *testing.T) *reviewFixture {
 	t.Helper()
 	server := abt.NewServer()
-	client := audacitybridge.New(server.Transport(), audacitybridge.Options{Timeout: time.Second, PosixPaths: true})
+	client := audacitybridge.New(server.Transport(), audacitybridge.Options{Timeout: time.Second, PosixPaths: runtime.GOOS != "windows"})
 	t.Cleanup(func() { _ = client.Close() })
 	review := NewReview(NewSession(client))
 	review.exported = func(string) error { return nil } // the fake writes no file
