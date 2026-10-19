@@ -1,3 +1,5 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useEffect, useRef, useState } from 'react';
 import type { ProductionReportExport, ProductionReportInclude, ProductionReportPreview } from '../../../api/contracts/production';
 import { apiErrorMessage } from '../../../api/errorMessage';
@@ -89,7 +91,9 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
             {projectName} · as of {asOf}
           </p>
         </div>
-        <IconButton action="close" label="Close" onClick={onClose} />
+        <IconButton label="Close" onClick={onClose}>
+          <FontAwesomeIcon icon={faXmark} />
+        </IconButton>
       </div>
       <div className="grid min-h-0 gap-4 p-[1.1rem] md:grid-cols-[17rem_minmax(0,1fr)]">
         <div className="flex flex-col gap-3.5">
