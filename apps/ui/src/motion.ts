@@ -22,7 +22,7 @@ export const MOTION_STORAGE_KEY = 'narration-ui-motion';
 export const PLAY_MOTION_STORAGE_KEY = 'narration-ui-demo-play-motion';
 
 /** Whether this is the public demo, the only build where the Play animations switch exists. Read per call so a test can stub the env. */
-export function playSwitchAvailable(): boolean {
+function playSwitchAvailable(): boolean {
   return import.meta.env.VITE_DEMO === '1';
 }
 

@@ -16,16 +16,16 @@ const ui = join(root, 'apps', 'ui');
 const shellDir = join(root, 'scripts', 'site', 'shell');
 
 export const REPO = 'https://github.com/countrymanprime/narration-utils';
-export const RELEASES = `${REPO}/releases`;
+const RELEASES = `${REPO}/releases`;
 /** The site's sections, in the top bar's order: the page each opens, relative to the site's root. */
-export const SECTIONS = [
+const SECTIONS = [
   { id: 'home', label: 'Product', href: 'index.html' },
   { id: 'docs', label: 'Docs', href: 'docs/index.html' },
   { id: 'demo', label: 'Live demo', href: 'demo/index.html' },
   { id: 'storybook', label: 'Storybook', href: 'storybook/index.html' },
 ];
 /** The notice above the top bar. The site is built only as a CI artifact (site-preview.yml); drop the notice in the change that publishes it. */
-export const NOTICE = 'Preview of the Narration Studio site, built from the repository. It is not published yet.';
+const NOTICE = 'Preview of the Narration Studio site, built from the repository. It is not published yet.';
 
 const escapeHtml = (text) => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const dataUri = (file, type) => `data:${type};base64,${readFileSync(file).toString('base64')}`;
@@ -56,9 +56,6 @@ function assets() {
   return cached;
 }
 
-/** The app's icon as a data URI. */
-export const iconUri = () => assets().icon;
-
 const THEME_HEAD = `<script>(function(){try{var t=localStorage.getItem('narration-ui-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>`;
 
 /**
@@ -77,7 +74,7 @@ export function searchItems({ base, docs, demoPages, withStorybook }) {
  * The three pieces of the shell for one page. `current` is the section the page belongs to (an id in SECTIONS), `withStorybook` false
  * leaves Storybook out of the top bar when the build has none, and `search` is the palette's entries (searchItems).
  */
-export function shellParts({ base, current, withStorybook = true, search = [] }) {
+function shellParts({ base, current, withStorybook = true, search = [] }) {
   const { fonts, icon, css, js } = assets();
   const sections = SECTIONS.filter((section) => withStorybook || section.id !== 'storybook');
   const nav = sections
