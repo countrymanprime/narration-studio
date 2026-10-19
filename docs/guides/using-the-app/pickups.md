@@ -30,7 +30,9 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
 
 - a box that includes it in the next session, or leaves it out (Space on a selected line does the same);
 - its time in the recording, its type, the line to re-record, where it came from and its status (**Open** or
-  **Recorded**);
+  **Recorded**). The type is drawn as that kind is everywhere in the app: a misread, a left-out line, extra words,
+  a repeat and a long silence are red; a breath, click, noise or plosive is amber; a pronunciation is blue. **Open** is amber, a thing
+  still to do, and **Recorded** is green;
 - **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and **Remove from
   pickups**.
 

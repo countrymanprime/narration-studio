@@ -29,7 +29,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 export const CREATABLE_CATEGORIES = ['Character', 'Location', 'Organization', 'Lore', 'Item', 'Event'];
 export const categoryLabel = (category: string): string => CATEGORY_LABELS[category] ?? category;
 export const categoryValue = (label: string): string => (label === 'Location' ? 'Place' : label);
-export const categoryCssName = (category: string): string => (category === 'Needs Review' ? 'Review' : category);
 
 // Backs the Story Bible alias field's "this matches an existing entity" combobox
 // prompt - a case-insensitive substring match against another entity's

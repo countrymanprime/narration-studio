@@ -12,7 +12,7 @@ import {
   sourceLabel,
   sourceTitle,
   typeLabel,
-  typeTone,
+  pickupKind,
 } from './pickupRows';
 
 describe('pickupRows', () => {
@@ -90,14 +90,16 @@ describe('the type chip', () => {
     expect(typeLabel(pickup({ gap: undefined, type: 'misread' }))).toBe('Misread');
   });
 
-  it('colours by the kind of fault, as the mock does', () => {
-    expect(typeTone(SPEECH)).toBe('danger');
-    expect(typeTone(NO_SCORE)).toBe('danger');
-    expect(typeTone(EXTRA)).toBe('warning');
-    expect(typeTone(pickup({ gap: undefined, type: 'noise' }))).toBe('warning');
-    expect(typeTone(pickup({ gap: undefined, type: 'Pronunciation' }))).toBe('info');
-    expect(typeTone(pickup({ gap: undefined, type: 'Pacing' }))).toBe('accent');
-    expect(typeTone(pickup({ gap: 'other', type: 'Odd' }))).toBe('neutral');
+  it('names the kind of fault, so the chip is drawn as that kind is on every page (extra words and pacing are red, D1 and D4)', () => {
+    expect(pickupKind(SPEECH)).toBe('misread');
+    expect(pickupKind(NO_SCORE)).toBe('missing');
+    expect(pickupKind(EXTRA)).toBe('extra');
+    expect(pickupKind(pickup({ gap: undefined, type: 'noise' }))).toBe('noise');
+    expect(pickupKind(pickup({ gap: undefined, type: 'Mouth click' }))).toBe('click');
+    expect(pickupKind(pickup({ gap: undefined, type: 'Pronunciation' }))).toBe('pron');
+    expect(pickupKind(pickup({ gap: undefined, type: 'Pacing' }))).toBe('pacing');
+    expect(pickupKind(pickup({ gap: undefined, type: 'Repeat' }))).toBe('repeat');
+    expect(pickupKind(pickup({ gap: 'other', type: 'Odd' }))).toBeNull();
   });
 });
 
