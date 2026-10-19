@@ -9,7 +9,7 @@ export const STATUS_ORDER = ['not_started', 'recording', 'editing', 'proofing', 
 
 // The registry status each stage is drawn as (kinds/statusTone.ts): the three stages in the middle of the pipeline share one meaning,
 // In progress, so they share its tone.
-export const STATUS_ID: Record<keyof typeof STATUS_LABELS, StatusId> = {
+const STATUS_ID: Record<keyof typeof STATUS_LABELS, StatusId> = {
   not_started: 'not_started',
   recording: 'in_progress',
   editing: 'in_progress',
