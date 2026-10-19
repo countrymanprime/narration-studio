@@ -1,0 +1,78 @@
+name: Real REAPER bridge check
+# PROTOTYPE, manual only (workflow_dispatch); nothing requires it. Installs the REAPER evaluation build on a GitHub-hosted Windows runner
+# (pinned SHA-256), fetches one pinned LibriVox chapter, starts REAPER isolated with the real narration bridge loaded and drives it
+# over the file protocol: ping, project, transport, regions, per-chapter render configuration and a real render. Report per action
+# in the job summary. Design, limits and the phased plan: docs/research/real-reaper-ci-integration.md. The runners have no audio device.
+# The Linux job ran green locally on 2026-10-19 (REAPER 7.82 under xvfb, about 9 s) but has not run on a GitHub runner; the Windows job has not run at all.
+on:
+  workflow_dispatch:
+    inputs:
+      reaper-version:
+        description: REAPER version to install (the repository's recorded runs used 7.80)
+        default: '7.82'
+      installer-sha256:
+        description: SHA-256 of the installer (required; the installer is not run unless it matches. A first run on an unpinned version fails with the hash it saw, in the job log. For the default reaper-version 7.82 the x64 installer hashed ae86dd8396673318a85275175dc8c1c9b0b8e090bf305f9cec920358e9d1e18f on 2026-10-19; the owner compares it with the hash reaper.fm publishes)
+        required: true
+      installer-size:
+        description: Size of the installer in bytes (optional extra check)
+        default: '0'
+      linux-reaper-version:
+        description: REAPER version for the Linux job
+        default: '7.82'
+      linux-tarball-sha256:
+        description: SHA-256 of that version's linux x86_64 tarball (the default is the 7.82 tarball hashed on 2026-10-19)
+        default: 'a4aa961534f22ae5ae910e4ec0c200dcb4476c9f7556806fe09a9743cd582563'
+permissions: { contents: read }
+concurrency:
+  group: real-reaper-bridge-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  linux:
+    name: Real REAPER bridge actions (Linux, xvfb)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install xvfb and REAPER's GTK runtime
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgtk-3-0t64 libasound2t64
+      - name: Download the pinned REAPER tarball, fetch the chapter, drive the bridge
+        env:
+          REAPER_VERSION: ${{ inputs.linux-reaper-version }}
+          REAPER_TARBALL_SHA256: ${{ inputs.linux-tarball-sha256 }}
+        run: ./scripts/ci/real-reaper/run-linux-check.sh "$RUNNER_TEMP/real-reaper-linux"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: real-reaper-bridge-linux
+          path: |
+            ${{ runner.temp }}/real-reaper-linux/out/results.*
+            ${{ runner.temp }}/real-reaper-linux/session/events.log
+            ${{ runner.temp }}/real-reaper-linux/session/fixture.json
+            ${{ runner.temp }}/real-reaper-linux/reaper.log
+            ${{ runner.temp }}/real-reaper-linux/reaper-EULA.txt
+          if-no-files-found: warn
+          retention-days: 14
+  bridge:
+    name: Real REAPER bridge actions (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install REAPER, fetch the chapter, drive the bridge
+        shell: pwsh
+        env:
+          REAPER_VERSION: ${{ inputs.reaper-version || '7.82' }}
+          INSTALLER_SHA256: ${{ inputs.installer-sha256 }}
+          INSTALLER_SIZE: ${{ inputs.installer-size }}
+        run: ./scripts/ci/real-reaper/run-real-reaper-check.ps1 -OutDir "$env:RUNNER_TEMP/real-reaper-report" -Version $env:REAPER_VERSION -ExpectedSha256 $env:INSTALLER_SHA256 -ExpectedSize $env:INSTALLER_SIZE
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: real-reaper-bridge
+          path: ${{ runner.temp }}/real-reaper-report/
+          if-no-files-found: warn
+          retention-days: 14
