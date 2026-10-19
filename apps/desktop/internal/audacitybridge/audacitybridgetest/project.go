@@ -24,11 +24,14 @@ type Track struct {
 	Labels     []Label
 }
 
-// Export is one Export2 the fake took: the file and the selection it would have written.
+// Export is one Export2 the fake took: the file and the selection it would have written. Audacity's Export2 writes only the
+// selected tracks, so Tracks names the selected audio tracks: an export with none is a valid file with no audio in it, which
+// Audacity 3.7.7 reports as OK (docs/research/real-audacity3-ci-integration.md, Finding 2).
 type Export struct {
 	Filename    string
 	NumChannels int
 	Start, End  float64
+	Tracks      []string
 }
 
 // Project is the fake's state. Tests read and set it through Server.With.
@@ -323,6 +326,12 @@ func (p *Project) export(cmd Parsed) ([]string, bool) {
 	if !hasAudio && p.RejectExportsWithoutAudio {
 		return []string{"There is no audio to export."}, false
 	}
-	p.Exports = append(p.Exports, Export{Filename: name, NumChannels: int(channels), Start: p.SelStart, End: p.SelEnd})
+	var selected []string
+	for _, t := range p.Tracks {
+		if t.Kind == "wave" && t.Selected {
+			selected = append(selected, t.Name)
+		}
+	}
+	p.Exports = append(p.Exports, Export{Filename: name, NumChannels: int(channels), Start: p.SelStart, End: p.SelEnd, Tracks: selected})
 	return nil, true
 }
