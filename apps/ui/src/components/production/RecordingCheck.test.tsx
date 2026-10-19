@@ -85,6 +85,21 @@ const openCheck = async (title: string) => {
 };
 
 // The check gets "Open in Editing": the Editing page at the check's chapter.
+describe('a failed read of the last check', () => {
+  it('keeps focus inside the dialog when Retry removes the error it was pressed on', async () => {
+    let fail = true;
+    const base = createMockApi();
+    await openBoard({}, { coverageResult: async (id) => (fail ? Promise.reject(new Error('The check file is unreadable.')) : base.coverageResult(id)) });
+    const dialog = await openCheck('Chapter 1');
+    await within(dialog).findByText(/The check file is unreadable/);
+    fail = false;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(within(dialog).queryByText(/The check file is unreadable/)).toBeNull());
+    expect(document.activeElement).not.toBe(document.body);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  });
+});
+
 describe('a refused start offers Retry', () => {
   it('puts a Retry on the failure toast that starts the check again', async () => {
     const real = createMockApi();
