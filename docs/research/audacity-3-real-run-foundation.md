@@ -1,6 +1,6 @@
 # Real Audacity 3.7.7: the foundation tests' first run
 
-**Run 2026-10-19 in a cloud container (Ubuntu 24.04, Xvfb, a PulseAudio null sink, Audacity 3.7.7 from the hash-pinned AppImage), by `tests/audacity3/real/foundation/run.sh`. Not yet run on a GitHub-hosted runner: `real-audacity3-foundation.yml` does that on its pull request.** The tests are A3-T1 to T13, T24 to T29 and T34 of [the capability matrix](audacity-3-capability-matrix.md#test-plan); the suite, its results format and the golden replies are described in [its README](../../tests/audacity3/real/foundation/README.md). All 20 tests passed (about 11 minutes). A row marked KNOWN LIMIT passes while a limit holds. Linux only: the product's Windows pipe and `C:/` paths were not exercised.
+**Run 2026-10-19 in a cloud container (Ubuntu 24.04, Xvfb, a PulseAudio null sink, Audacity 3.7.7 from the hash-pinned AppImage), by `tests/audacity3/real/foundation/run.sh`. First hosted-runner run: see [On a GitHub-hosted runner](#on-a-github-hosted-runner).** The tests are A3-T1 to T13, T24 to T29 and T34 of [the capability matrix](audacity-3-capability-matrix.md#test-plan); the suite, its results format and the golden replies are described in [its README](../../tests/audacity3/real/foundation/README.md). All 20 tests passed (about 11 minutes). A row marked KNOWN LIMIT passes while a limit holds. Linux only: the product's Windows pipe and `C:/` paths were not exercised.
 
 ## Results
 
@@ -36,6 +36,10 @@
 | The fake rejected a command with no colon and wrote `[]` for an empty list | A3-T3 goldens | Fixed in `audacitybridgetest`, with `golden_test.go` |
 | The fake's `GetInfo Tracks` names the gain `gain`; 3.7.7 writes `volume`, and `pan`, `VZoomMin`, `VZoomMax` | A3-T3 | Open |
 | `PlayAtSpeedLooped` does not loop | A3-T13 | Recorded: `navigate` keeps its Experimental level and `Loop` is not shown as working |
+
+## On a GitHub-hosted runner
+
+Run 39215656846 of `real-audacity3-foundation.yml` (Audacity 3.7.7 on `ubuntu-latest`, head `e067efc`): 24 of 25 tests passed, with the same facts as above (one start answered 0 of 5 times, the two-start procedure 5 of 5; the 93-id command list; `PlaybackVolume` honoured only at start; the in-window Save panel; 300 labels added in 39 s). **A3-T34 failed, and the failure was the test's.** It killed Audacity from a goroutine 20 ms after sending, then read `Alive()` and dialled the FIFO without waiting for the kill; `Send` returned after 0 s, so the process was still running and the dial succeeded (`error <nil> after 0s`, `Reachable=true`). The test now waits for the kill to finish before it checks anything. The container run passed because its timing happened to let the kill land first. No Audacity limitation was involved.
 
 ## Not exercised
 

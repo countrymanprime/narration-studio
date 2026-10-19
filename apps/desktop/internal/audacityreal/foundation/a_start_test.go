@@ -61,12 +61,17 @@ func TestA3T34CrashAndStalePipes(t *testing.T) {
 	if err != nil {
 		r.Fatal("dial before the crash", err.Error())
 	}
+	killed := make(chan struct{})
 	go func() {
+		defer close(killed)
 		time.Sleep(20 * time.Millisecond)
 		p.Kill()
 	}()
 	ex := pipe.Send(5*time.Second, "GetInfo: Type=Clips Format=JSON")
 	pipe.Close()
+	// Send can return before the kill has landed (the CI run read Alive and dialled the FIFO while Audacity still ran),
+	// so every check below waits for the kill to finish.
+	<-killed
 	r.Info("command in flight when Audacity was killed", fmt.Sprintf("complete=%v after %v, %s", ex.Complete, ex.Took.Round(time.Millisecond), audacityreal.Visible(ex.Raw)))
 	r.Check("Audacity is gone", !p.Alive(), "kill -9 of the process group")
 
