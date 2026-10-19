@@ -88,10 +88,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'onRemoveFromRecording already shows the failure (its own toast, in useChapterTools) before rethrowing; this catch only stops that rejection from going unhandled and skips closing the confirm, so the narrator can retry.',
   'src/api/wailsClient.ts#1': 'The diagnostic report itself: a report that fails must not raise a second error over the one being reported.',
   'src/api/wailsClient.ts#2': 'The host binding is missing (not running inside the desktop app), so there is nothing to report to.',
-  'src/components/booth/page/useBoothData.ts#5':
-    'The Story Bible types only colour the names and speakers: when none can be read, every entry keeps the fallback colour and the Booth still opens.',
-  'src/motion.ts#1':
-    'Saving the Motion choice to local storage failed (storage unavailable): the choice was already applied, so it holds for this window only.',
   'src/App.tsx#1':
     "The header's running-timer chip on first load: an unreadable overview just leaves the chip hidden until the Production home reads one and says why there.",
   'src/App.tsx#2': 'A diagnostic report while showing the startup error; it must not throw over it.',
