@@ -66,8 +66,6 @@ export function useManuscriptImport({
   const [groupOpen, setGroupOpen] = useState<ReviewGroupOpen>({});
   const [headingLevel, setHeadingLevel] = useState(1);
   const [, setDeclineCount] = useState(0);
-  // Guards the completion step so the poller reporting 'success' more than once cannot run it twice for the same import job.
-  const importFinished = useRef(false);
   // The delivery profile is asked for on a first import of a project with none chosen, never on a replace (SNM-Q1). The host's profile
   // state is read when a review opens; `profileToSave` holds the choice from the commit until the import has succeeded.
   const [profiles, setProfiles] = useState<DeliveryProfilesState>();
@@ -121,16 +119,11 @@ export function useManuscriptImport({
     if (importJob?.phase !== 'success') return;
     void refreshBootstrap();
     void saveProfile();
-    if (importFinished.current) return;
-    importFinished.current = true;
-    notify('Manuscript imported.');
-    setImportJob(undefined);
-  }, [importJob?.phase, notify, refreshBootstrap, saveProfile, setImportJob]);
+  }, [importJob?.phase, refreshBootstrap, saveProfile]);
   const beginImportPreview = async (jobId: string) => {
     setHeadingLevel(1);
     setImportSelection({});
     setGroupOpen({});
-    importFinished.current = false;
     setImportJob({ id: jobId, kind: 'manuscript_import', phase: 'preparing', message: 'Preparing manuscript import…', percent: 0, logs: [], elapsed: 0 });
     try {
       setImportJob(await api.manuscriptImportPreview(jobId, { markdownHeadingLevel: 1 }));

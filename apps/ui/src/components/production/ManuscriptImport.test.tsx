@@ -433,7 +433,6 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
     await waitFor(() => expect(profileField(dialog)).toBeTruthy());
     fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('profile store is read-only'), 'error'));
-    expect(notify).toHaveBeenCalledWith('Manuscript imported.');
   });
 
   it('never asks on a replace', async () => {

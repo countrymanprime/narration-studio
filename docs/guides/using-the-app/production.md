@@ -310,7 +310,7 @@ together), the repairs are listed at the end.
 
 The **Import options** group holds, for a Markdown file, the chapter heading level (choosing another
 level reads the file again and drops the choices you made for the old sections), then the subtitle
-option. The import dialog closes once the import has finished. It does not build the Story Bible: open
+option. The import dialog stays open with its activity log until you press Close. It does not build the Story Bible: open
 [Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
 
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its
