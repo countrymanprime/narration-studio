@@ -252,7 +252,8 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     return session.script ? buildRows(session.script, chapter, paragraphs) : previewRows(chapter, paragraphs);
   }, [creditsKind, creditsText, chapter, paragraphs, session.script]);
 
-  const start = async () => {
+  /** Starts listening. The host answers once the session is listening, or fails when it could not start; `ok` says which, `reason` is why not. */
+  const start = async (): Promise<{ ok: boolean; reason: string }> => {
     setError('');
     setModelMissing(false);
     try {
@@ -262,9 +263,13 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
         setModelMissing(true);
         modelInstall.reset();
         setPrompt(result);
+        return { ok: false, reason: 'the speech model is not downloaded' };
       }
+      return { ok: true, reason: '' };
     } catch (reason) {
-      setError(errorText(reason));
+      const text = errorText(reason);
+      setError(text);
+      return { ok: false, reason: text };
     }
   };
   const stop = () => void api.teleprompterStop().catch((reason) => setError(errorText(reason)));

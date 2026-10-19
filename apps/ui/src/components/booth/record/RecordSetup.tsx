@@ -48,6 +48,9 @@ function CheckLine({
   );
 }
 
+/** How long a linked project's connect notice waits for the app to connect on its own before it shows the steps. */
+const CONNECT_GRACE_MS = 20_000;
+
 /** A window short enough that the notice gives way to the text (the same height the explanation hides at). */
 const SHORT_WINDOW = '(max-height: 760px)';
 
@@ -100,6 +103,7 @@ export function RecordSetup({
   readFailed,
   factsFailed,
   onCheckAgain,
+  graceMs = CONNECT_GRACE_MS,
 }: {
   capabilities: DawCapabilities;
   facts: RecordSetupFacts;
@@ -116,13 +120,15 @@ export function RecordSetup({
   factsFailed?: boolean;
   /** The visible Check again: a fresh read now. */
   onCheckAgain?: () => void;
+  /** How long a linked project's connect notice waits for the app to connect on its own before it shows the steps. */
+  graceMs?: number;
 }) {
   const plan = recordSetupFor(capabilities, facts);
   if (!plan) return null;
   const check = { checkedAt, readFailed, onCheckAgain };
   if (plan.kind === 'turn-on') return <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />;
   if (plan.kind === 'other-project') return <OtherProject plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />;
-  return <Connect plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} factsFailed={factsFailed} />;
+  return <Connect plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} factsFailed={factsFailed} graceMs={graceMs} />;
 }
 
 type CheckProps = { checkedAt?: number | null; readFailed?: boolean; onCheckAgain?: () => void };
@@ -259,6 +265,7 @@ function Connect({
   onChanged,
   check,
   factsFailed,
+  graceMs,
 }: {
   plan: Extract<RecordSetupPlan, { kind: 'connect' }>;
   say: Say;
@@ -266,6 +273,7 @@ function Connect({
   onChanged: () => void;
   check: CheckProps;
   factsFailed?: boolean;
+  graceMs: number;
 }) {
   const system = usePort('system');
   const project = usePort('project');
@@ -275,6 +283,13 @@ function Connect({
   // A launch hands its project to this app, which turns it away while it is busy (the host's `system:attached` with a reason). Nothing else on the
   // page would say why the notice is still here, so the notice says it, and what to do, until a project is taken or the narrator checks again.
   const [turnedAway, setTurnedAway] = useState<string | null>(null);
+  // A linked project connects on its own (the app runs the launcher in the open DAW), so the steps wait until that has had its time.
+  const [settling, setSettling] = useState(plan.linked && graceMs > 0);
+  useEffect(() => {
+    if (!plan.linked) return;
+    const timer = window.setTimeout(() => setSettling(false), graceMs);
+    return () => window.clearTimeout(timer);
+  }, [plan.linked, graceMs]);
   useEffect(
     () =>
       system.subscribeProjectAttach((state) => {
@@ -326,6 +341,21 @@ function Connect({
       <span className="mt-1 block">{guide.installAgain}</span>
     </li>
   );
+  if (plan.linked && settling && !turnedAway) {
+    return (
+      <NoticeFrame title={`Connecting to ${name}…`}>
+        <p className="text-[var(--text-muted)]">The project is linked, so this app is connecting on its own.</p>
+        {check.onCheckAgain && (
+          <CheckLine waiting={`Waiting for ${name} to ${plan.notAnswering ? 'answer' : 'connect'}`} unknown={`${name} is connected`} {...check} />
+        )}
+        <div>
+          <Button variant="secondary" size="sm" onClick={() => setSettling(false)}>
+            Show the steps
+          </Button>
+        </div>
+      </NoticeFrame>
+    );
+  }
   return (
     <NoticeFrame
       title={turnedAway ? `${name} started, but its project was turned away` : plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}

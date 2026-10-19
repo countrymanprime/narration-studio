@@ -37,6 +37,12 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
+    "follow_position": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "fx_chains": {
       "available": false,
       "level": "unsupported",

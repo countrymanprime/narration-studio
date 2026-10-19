@@ -4,7 +4,7 @@
   "experimental": false,
   "foundFiles": [],
   "hasProject": true,
-  "launcherAutoStart": false,
+  "launcherAutoStart": true,
   "linkedFile": null,
   "options": [
     {

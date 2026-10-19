@@ -146,13 +146,21 @@ describe('useRoll', () => {
     expect(actions.logPunch).toHaveBeenCalledTimes(1);
   });
 
-  it('start from here before a take only marks the place and moves there', async () => {
+  it('start from here past what is recorded moves the text there and starts the take at the end', async () => {
     const { hook, actions, dialog } = setup(SETUPS.audacity, { recording: false });
     await act(() => hook.result.current.startFromHere(4));
     expect(actions.chooseStart).toHaveBeenCalledWith(4, true);
     expect(actions.notify).toHaveBeenCalledWith('Starting from ¶ 3');
     expect(dialog()).toBeUndefined();
     expect(actions.roll).not.toHaveBeenCalled();
+    expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
+  });
+
+  it('start from here inside what is recorded moves the text there and starts the take at that spot, not at the end', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false });
+    await act(() => hook.result.current.startFromHere(1));
+    expect(actions.chooseStart).toHaveBeenCalledWith(1, true);
+    expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
   });
 
   it('a-dawless-or-rollless-setup-says-why: nothing rolls', async () => {

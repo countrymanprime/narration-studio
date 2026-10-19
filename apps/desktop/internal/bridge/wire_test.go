@@ -99,6 +99,9 @@ var realEvents = map[string][]string{
 	"UNDONE_LAST": {"UNDONE_LAST", "u1", "cut_range", "4", "2"},
 	// integrations/reaper/tests/levels_test.lua (monitor_level).
 	"MONITOR_LEVEL": {"MONITOR_LEVEL", "m1", "70"},
+	// integrations/reaper/tests/track_select_test.lua (read_place, go_to).
+	"PLACE":     {"PLACE", "p1", "{00000001-0000-4000-8000-000000000001}", "1", "12.5"},
+	"PLACE_SET": {"PLACE_SET", "g1", "{00000001-0000-4000-8000-000000000001}", "60"},
 	// integrations/reaper/tests/split_take_test.lua (split_take).
 	"TAKE_SPLIT": {"TAKE_SPLIT", "p1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "{00000001-0000-4000-8000-000000000001}", "15.500", "1"},
 }

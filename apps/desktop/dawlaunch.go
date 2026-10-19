@@ -47,7 +47,7 @@ func launchReaper(svc hostServices, reporter *persist.Reporter, locate func() (p
 	}
 
 	override, _ := svc.settings.Effective("DAW", "reaper_path", "")
-	autoStart, _ := svc.settings.Effective("DAW", "auto_start_launcher", "false")
+	autoStart, _ := svc.settings.Effective("DAW", "auto_start_launcher", "true")
 
 	if locate == nil {
 		locate = daw.LocateReaperExecutable
