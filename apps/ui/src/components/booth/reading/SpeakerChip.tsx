@@ -86,7 +86,7 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
       aria-label={`Speaker ${speaker}. Change speaker`}
       style={style}
       onClick={(event) => event.stopPropagation()}
-      className="mr-[0.7em] inline cursor-pointer rounded-[5px] border border-solid px-[0.6em] py-[0.2em] align-[0.55em] text-[0.34em] leading-normal font-bold tracking-[0.12em] whitespace-nowrap uppercase"
+      className="mr-[0.7em] inline cursor-pointer rounded-[5px] border border-solid px-[0.6em] py-[0.2em] align-[0.55em] font-['Barlow_Condensed',sans-serif] text-[0.34em] leading-normal font-bold tracking-[0.12em] whitespace-nowrap uppercase"
     >
       {speaker}
     </button>
