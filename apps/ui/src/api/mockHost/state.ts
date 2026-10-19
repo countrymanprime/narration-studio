@@ -244,9 +244,10 @@ export type MockApiSeed = {
   characterContinuity?: 'empty';
   /**
    * Boots the current project outside any series, so the Series
-   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books).
+   * tab's "not in a series" state can be seen. Unset boots as a member of `WIRE_SERIES` (two books). `fails` makes the read of the
+   * series voice bible fail, so the tab's error and its Retry can be seen.
    */
-  seriesVoiceBible?: 'not-in-series' | 'single-book';
+  seriesVoiceBible?: 'not-in-series' | 'single-book' | 'fails';
   /** Boots with voice samples saved (`?mockVoiceSamples=`), see `VoiceSamplesSeed`. Unset boots with none. */
   voiceSamples?: VoiceSamplesSeed;
   /** Seeds the mastering chain mock (whether a project is open, its stored choice), see `MasteringMockSeed`. */
