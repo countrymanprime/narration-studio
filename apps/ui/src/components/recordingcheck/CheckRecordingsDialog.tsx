@@ -34,7 +34,7 @@ import { RunningView } from './RunningView';
  */
 function Shell({ footer, children }: { footer?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex min-h-full flex-col gap-4 p-[1.1rem]">
+    <div className="flex min-h-full flex-col gap-4 px-[1.1rem] pt-[1.1rem]">
       {/* The headerless dialog already names itself (a hidden title), so this drawn copy is hidden from a screen reader. */}
       <div aria-hidden="true">
         <div className="text-[length:var(--font-size-sm)] font-semibold text-[var(--text-muted)] uppercase">Pickups</div>
@@ -42,7 +42,7 @@ function Shell({ footer, children }: { footer?: ReactNode; children: ReactNode }
       </div>
       {children}
       {footer ? (
-        <div className="sticky bottom-[-1.1rem] z-10 -mx-[1.1rem] mt-auto -mb-[1.1rem] flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-[1.1rem] py-3">
+        <div className="sticky bottom-0 z-10 -mx-[1.1rem] mt-auto flex flex-wrap items-center gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-[1.1rem] py-3">
           {footer}
         </div>
       ) : null}
