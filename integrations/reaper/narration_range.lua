@@ -116,14 +116,16 @@
 -- stopping playback, a recording the narrator starts (which the Compare never stops), the piece or take going, and the script
 -- ending. Each cycle finds the item, take and chain FX again by GUID, so an FX the narrator adds mid-Compare is left alone. Every
 -- other command in this file that changes the project ends a running Compare first, and fx_range_params answers the chain as it
--- was before the Compare. The switches are made outside any undo block, so a Compare adds no undo point.
+-- was before the Compare. The switches are made outside any undo block with TakeFX_SetEnabled, which adds one "FX bypass toggle: ..." undo
+-- point to REAPER's own history for each change (REAPER 7.82); the point carries no project change the app made, and no setting of the FX
+-- avoids it (the Bypass setting adds an "Edit FX parameter" point a moment later). undo_last and last_action only ever name the app's labels.
 -- Answers RANGE_FX_COMPARE|run|itemGuid|takeGuid|chain|start|end|bypassed at once (the piece's project seconds and whether
 -- the chain was bypassed before). stop_fx_compare(run) ends a running Compare early and answers
 -- RANGE_FX_COMPARE_STOPPED|run|stopped (1 when one was running).
 --
--- Not run in REAPER (pending the QA pass, #1495): that TakeFX_SetEnabled outside an undo block adds no undo point in a
--- deferred script, that GetPlayPosition2 leaves the piece within a cycle of its end, that the switch between passes is heard
--- as a short gap, and that a plug-in's tail does not carry into the bypassed pass.
+-- Run in REAPER 7.82 (Linux, the real-REAPER CI run, 2026-10-19): both passes play and the FX and the cursor are put back; the Compare adds
+-- two REAPER-labelled "FX bypass toggle" undo points. Not run: that the switch between passes is heard as a short gap, and that a plug-in's
+-- tail does not carry into the bypassed pass (an owner row).
 
 local core = ...
 local event = core.event

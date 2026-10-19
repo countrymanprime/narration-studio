@@ -112,6 +112,15 @@ Run on 2026-10-19, REAPER 7.82/linux-x86_64, Lua 5.4, `NARRATION_CI_AUDIO_MODE=j
 | `track_state` | `chapter_track_state`, `project_state` | transport, saved path, items and sources, change count; a never-saved project | 2 of 2 passed | A1, A2 (A3 is in the playback group) |
 | `track_select` | `select_track` | only the named track selected, no undo point, a stale GUID | 1 of 1 passed | A11 |
 | `follow_position` | `read_place`, `go_to` | the one selected track and the cursor; `end` and `at`; never starts playback; three refusals | 1 of 1 passed | none listed |
+| `takes` | `set_active_take`, `hide_takes`, `split_take` | use, same again, Undo, stale; hide with the saved volume, silence measured, save and reload, give back, Undo; split at the second read, played, Undo; five refusals | 4 of 4 passed | A6, C1, C12 |
+| `stack_takes` | `stack_takes`, `unstack_takes` | stack with the shift and the Cuts track, Undo; four refusals; un-stack after a save and reload, both reads heard where recorded, Undo | 3 of 3 passed | C6, C7 |
+| `cut_range` | `delete_range` | `close` (splits, Cuts track, fades, the rest moved, rendered pitch), `gap` (silence), pad, room tone (the fill heard), refusals, one Undo each | 3 of 3 passed | C3 |
+| `undo_last` | `last_action`, `undo_last` | `this` and `other`, one `undo_last` reverses a cut whole, a narrator's later point is never undone, a label sent as a kind is refused | 1 of 1 passed | C17 |
+| `fx_range` | `apply_fx_range`, `remove_fx_range`, `fx_range_params`, `fx_range_set_param`, `fx_range_bypass`, `fx_range_compare`, `stop_fx_compare` | the chain on the middle piece only and heard at -12 dB, join on removal, Undo; a setting set and bypass switched, each one step and heard; Compare plays both passes with the playback device | 4 of 4 passed; Compare writes REAPER's own "FX bypass toggle" points (finding, below) | C4, C5, C15, C16 |
+| `range_gain` | `reduce_range_gain` | two stretches heard at -9 dB, none between them, one Undo gives a flat take | 1 of 1 passed | C13 |
+| `click_repair` | `repair_click` | the click's peak 0.91 to 0.03, the tone around it unchanged, one Undo | 1 of 1 passed | C14 |
+
+**Findings.** The run found two places where REAPER 7.82 differs from what the bridge assumed. (1) `TrackFX_AddByName` and `TakeFX_AddByName` refuse a chain's full path and load its name relative to `FXChains`: fixed, the bridge loads by the listed name and keeps the full path as a fallback. (2) `TakeFX_SetEnabled` writes an "FX bypass toggle" undo point per change, so `fx_range_compare` leaves two of REAPER's own points on top of the history although it opens no block. No API call avoids it (setting the FX's Bypass setting writes an "Edit FX parameter" point a moment later). The harness fake now models the first and the second; `fx_range` stays Experimental until the owner decides whether a Compare may leave those points.
 
 ## Switching a command on
 
