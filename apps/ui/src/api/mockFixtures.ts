@@ -895,11 +895,24 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('click_above_silence_db', 'How far above the silence around it a click stands', '30', { min: 0.1, max: null, step: 0.5, unit: 'dB' }),
   ],
   // Which signals must be met for a stage suggestion, mirroring the
-  // host's fieldSchemas: the master switch, then one choice per signal a provider declares. Only the recording
-  // signal is wired so far (coverage.RecordingSignalID); the editing and proofing signal phases add their own rows.
+  // host's fieldSchemas: the master switch, then one choice per signal a provider declares (recording, editing, proofing).
   StageRecommendations: [
     bool('suggestions_enabled', 'Suggest stage advances', 'true'),
     choice('recording.text_present', 'Text present in order (recording)', ['required', 'ignored'], 'required'),
+    choice('editing.empty_space', 'No empty space left to trim', ['required', 'ignored'], 'required'),
+    choice('editing.clicks', 'No clicks left (not yet validated)', ['required', 'ignored'], 'required'),
+    choice('editing.breaths', 'No loud breaths left (not yet validated)', ['required', 'ignored'], 'required'),
+    choice('proofing.pickups', 'No pickups left to clear up (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.integrated_lufs', 'Rendered file: integrated loudness (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.rms_dbfs', 'Rendered file: RMS (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.sample_peak_dbfs', 'Rendered file: sample peak (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.true_peak_dbtp', 'Rendered file: true peak (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.noise_floor_dbfs', 'Rendered file: noise floor (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.sample_rate', 'Rendered file: sample rate (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.duration_seconds', 'Rendered file: file length (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.head_room_tone_seconds', 'Rendered file: room tone, head (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.tail_room_tone_seconds', 'Rendered file: room tone, tail (proofing)', ['required', 'ignored'], 'required'),
+    choice('proofing.delivery.render_length', 'Rendered file: length matches the chapter (proofing)', ['required', 'ignored'], 'required'),
   ],
   // The preview suggestion's four settings, mirroring the host's
   // fieldSchemas and numberSpecs: preview.DefaultSettings' own shipped defaults (5:00, 10%, Sample, ending

@@ -47,7 +47,7 @@ export function Preflight({
   const [all, setAll] = useState(false);
   const shown = all ? states : states.slice(0, FIRST_ROWS);
   return (
-    <Panel title="Before you build" actions={onOpenMaster && <IconButton action="openInMaster" onClick={onOpenMaster} />}>
+    <Panel title="Before you build" actions={onOpenMaster && <IconButton action="goTo" label="Open in Master & QC" onClick={onOpenMaster} />}>
       <div className="flex flex-col gap-1">
         {problem && (
           <p role="alert" className={`text-sm ${ARRIVE_CLASSES}`} style={DANGER}>
@@ -85,7 +85,7 @@ export function Preflight({
                     variant="link"
                     onClick={() => onOpen(state.id)}
                     aria-label={`${state.name}: ${state.text}. Open in Master & QC`}
-                    className="flex! w-full items-center justify-between gap-2 py-0.5 text-left text-sm no-underline!"
+                    className="flex! min-h-[2.8125rem] w-full items-center justify-between gap-2 text-left text-sm no-underline!"
                   >
                     <span dir="auto" title={state.name} className="min-w-0 flex-1 truncate">
                       {state.name}

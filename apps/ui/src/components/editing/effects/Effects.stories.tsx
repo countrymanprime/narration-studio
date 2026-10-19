@@ -113,6 +113,20 @@ export const AddWithSelection: Story = { render: () => add() };
 export const AddOverCap: Story = { render: () => add({ impact: { before: 9, after: 12, over: true, far: false } }) };
 export const AddFarOverCap: Story = { render: () => add({ impact: { before: 9, after: 25, over: true, far: true } }) };
 export const AddDawCannot: Story = { render: () => add({ reason: 'REAPER is not running.' }) };
+const MANY_CHAINS = {
+  source: LIST.source,
+  choices: ['Air.RfxChain', 'Podcast Voice.RfxChain', 'Warm.RfxChain'].map((name) => ({ id: name, name })),
+};
+export const AddWithFavourites: Story = {
+  render: () =>
+    add({
+      list: { source: MANY_CHAINS.source, choices: [MANY_CHAINS.choices[2], MANY_CHAINS.choices[0], MANY_CHAINS.choices[1]] },
+      favourites: { names: ['Warm.RfxChain', 'Air.RfxChain'], toggle: fn(), error: '' },
+    }),
+};
+export const AddFavouritesRefused: Story = {
+  render: () => add({ list: MANY_CHAINS, favourites: { names: [], toggle: fn(), error: 'The settings file is read-only.' } }),
+};
 
 export const Tab: Story = {
   render: () => (

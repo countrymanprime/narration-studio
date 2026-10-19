@@ -48,7 +48,10 @@ describe('credits section', () => {
   it('renders an unresolved token as a highlighted chip and reports the unresolved count, never as silent empty text (C6)', () => {
     mount({ preview: preview('[Title], written by [Author], narrated by You.', ['Title', 'Author']) });
     const chip = screen.getByText('[Title]');
-    expect(chip.className).toContain('--review-soft');
+    // The registry's entity mark in the warn colour (D7), not the review hue.
+    expect(chip.tagName).toBe('MARK');
+    expect(chip.getAttribute('data-kind')).toBe('entity');
+    expect(chip.style.boxShadow).toContain('var(--warn)');
     expect(screen.getByText('[Author]')).toBeTruthy();
     expect(screen.getByText(/2 unresolved tokens: Title, Author/)).toBeTruthy();
   });

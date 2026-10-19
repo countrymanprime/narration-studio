@@ -29,7 +29,11 @@ its own once connected. Click it to fix that in [Settings](settings.md#link-your
 ![Booth - ready to record: the chapter stepper, progress and resume line on the top bar, the text with the reading position, the side panel, and Record, the levels and the key hints in the footer](../../images/ui/booth-setup.webp)
 
 The text fills the middle, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
-marked on [Script](script.md) underlined in their mark's colour; a mark's note shows under its paragraph. The word you
+marked on [Script](script.md) drawn in their mark's colour and the line style you chose for it (a tint, a box, or a solid, double,
+dotted or wavy underline), as they are on Script; a mark's note shows under its paragraph with a bar in the mark's colour. A
+speaker chip takes its character's colour; a suggested speaker's chip is dashed, and a quote nobody is matched to has a grey dashed
+**?** chip. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **Voices in this
+scene** chips alike. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move
 the view without moving your place.
 

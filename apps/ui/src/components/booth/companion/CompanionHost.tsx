@@ -3,7 +3,7 @@ import { chapterName } from '../../../chapterName';
 import { useApi } from '../../../api/ApiContext';
 import { useCapability } from '../../../useCapability';
 import { CommandScope } from '../../../input/router';
-import type { GuideEntity, ManuscriptNote } from '../../../types';
+import type { GuideEntity, GuideType, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
 import { CompanionShell } from '../CompanionShell';
 import { RecordInReaperConfirm } from '../RecordInReaperConfirm';
@@ -18,6 +18,7 @@ import { useTeleprompterSession } from '../useTeleprompterSession';
 
 const NO_ENTITIES: GuideEntity[] = [];
 const NO_NOTES: ManuscriptNote[] = [];
+const NO_TYPES: GuideType[] = [];
 const NO_MARKS = new Map<string, ReaderMark[]>();
 const NO_DISMISSED: ReadonlySet<number> = new Set();
 
@@ -25,6 +26,8 @@ type Props = {
   source: BoothSource;
   /** The Story Bible entries; the ones this chapter mentions are marked in the text. Chapter mode only. */
   entities?: GuideEntity[];
+  /** The Story Bible's types, which colour the entries' marks. */
+  types?: GuideType[];
   /** This chapter's notes. Chapter mode only. */
   notes?: ManuscriptNote[];
   /** "Full app" and the double Escape: the Booth on the same chapter or credits. */
@@ -40,7 +43,7 @@ type Props = {
  *
  * Flags the session raised are kept as findings when it ends and when the Companion is left, as in the Booth.
  */
-export function CompanionHost({ source, entities = NO_ENTITIES, notes = NO_NOTES, onFullApp, onFixCredits }: Props) {
+export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES, notes = NO_NOTES, onFullApp, onFixCredits }: Props) {
   const api = useApi();
   const chapter = source.kind === 'chapter' ? source.chapter : undefined;
   const session = useTeleprompterSession({
@@ -55,7 +58,7 @@ export function CompanionHost({ source, entities = NO_ENTITIES, notes = NO_NOTES
   const { paragraphs, rows } = session;
   const { flags } = session.session;
 
-  const storyMarks = useMemo(() => (paragraphs ? readerMarks(paragraphs, entities, notes) : NO_MARKS), [paragraphs, entities, notes]);
+  const storyMarks = useMemo(() => (paragraphs ? readerMarks(paragraphs, entities, notes, types) : NO_MARKS), [paragraphs, entities, notes, types]);
   const visibility = useMemo(loadFlagVisibility, []);
   const shownFlags = useMemo(() => visibleFlags(flags, visibility, NO_DISMISSED), [flags, visibility]);
   const marks = useMemo(() => withMarks(storyMarks, flagMarks(rows, shownFlags)), [storyMarks, rows, shownFlags]);

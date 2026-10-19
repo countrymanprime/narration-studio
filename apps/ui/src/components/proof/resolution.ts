@@ -4,7 +4,6 @@
 // re-record or a fix in the edit, and that comes from the note itself (its category, or Transcript Compare's evidence
 // kind), never stored as a second field. docs/guides/using-the-app/proof.md#a-note-and-your-decision records the mapping.
 import type { Finding, FindingReviewStatus } from '../../types';
-import type { StatusTone } from '../primitives/StatusBadge';
 import type { FlagKind } from './flags';
 
 export type FixKind = 'pickup' | 'edit';
@@ -30,22 +29,6 @@ export function fixKindOf(finding: Finding): FixKind {
 
 /** The same question for a chapter-view flag: extra words and cleanup candidates are edits, the rest are pickups. */
 export const flagFixKind = (kind: FlagKind): FixKind => (kind === 'extra' || kind === 'cleanup' ? 'edit' : 'pickup');
-
-const RESOLUTION: Record<FindingReviewStatus, { label: string; tone: StatusTone }> = {
-  unreviewed: { label: 'To review', tone: 'neutral' },
-  accepted: { label: 'Pickup', tone: 'danger' },
-  dismissed: { label: 'Waived', tone: 'success' },
-  deferred: { label: 'Deferred', tone: 'info' },
-};
-
-/** The resolution chip for a status and fix: an accepted edit reads Edit, an accepted pickup Pickup. */
-function resolutionFor(status: FindingReviewStatus, fix: FixKind): { label: string; tone: StatusTone } {
-  if (status === 'accepted' && fix === 'edit') return { label: 'Edit', tone: 'warning' };
-  return RESOLUTION[status];
-}
-
-/** A note's Resolution column chip (mock 04): Pickup, Edit or Waived once decided; To review or Deferred otherwise. */
-export const resolutionOf = (finding: Finding) => resolutionFor(finding.review.status, fixKindOf(finding));
 
 export function decisionLabel(status: FindingReviewStatus, fix: FixKind): string {
   switch (status) {

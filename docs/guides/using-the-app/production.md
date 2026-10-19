@@ -250,6 +250,12 @@ evidence changed while you were looking at it, Confirm and Dismiss are refused w
 readiness is read again. If it cannot be read at all, every chapter says **Couldn't check**, with
 the reason and **Try again** above the table.
 
+### Choose what a suggestion waits for
+
+**Jump to or run** (Ctrl+K) has **Open Stage suggestion options**, a dialog for this project's say in the suggestions (Settings under **Set on a page** has the same values with a **Global** / **This project** switch): a switch, **Suggest stage advances**, turns them off or on, and each readiness signal (the recording check, the editing signals, the pickups, and each check on the rendered file) is **Required** before a stage is suggested or **Ignored**. A change is saved at once and the suggestions are read again. **Reset** on a signal hands it back to the computer-wide value or the default. A rendered-file check counts only while the project's delivery profile has a limit for it, The two editing signals marked not yet validated, clicks and breaths, are offered like any other.
+
+![Production - the Stage suggestion options dialog opened from Jump to or run](../../images/ui/production-stage-suggestion-options.webp)
+
 ![Production - a chapter's readiness slide-over: the evidence behind a suggestion with Confirm and Dismiss](../../images/ui/production-stage-evidence.webp)
 
 ![Production - evidence changed since you confirmed: the check that is no longer met and Revert; nothing moved on its own](../../images/ui/production-stage-evidence-changed.webp)

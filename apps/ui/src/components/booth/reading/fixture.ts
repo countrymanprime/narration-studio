@@ -1,3 +1,4 @@
+import { typeHueColour, type EntityColour } from '../../../kinds/entityColour';
 import type { ParagraphNote, ReadingParagraph, WordDecoration } from './boothUnits';
 
 // Sample chapter for the tests and stories: narration, a suggested speaker, a confirmed one and a continued quotation.
@@ -19,6 +20,7 @@ export const sampleParagraphs: ReadingParagraph[] = [
 ];
 
 export const sampleSpeakers = ['Alice', 'Queen', 'King'];
-export const sampleColour = (speaker: string): string | undefined => (speaker === 'Queen' ? '--speaker-2' : speaker === 'Alice' ? '--speaker-1' : undefined);
-export const sampleDecorations: WordDecoration[] = [{ paragraphId: 'p1', start: 4, end: 10, kind: 'entity', colour: '--place', title: 'Garden' }];
-export const sampleNotes: ParagraphNote[] = [{ id: 'n1', paragraphId: 'p3', name: 'Pace', text: 'slow down' }];
+export const sampleColour = (speaker: string): EntityColour | undefined =>
+  speaker === 'Queen' ? typeHueColour('violet') : speaker === 'Alice' ? typeHueColour('green') : undefined;
+export const sampleDecorations: WordDecoration[] = [{ paragraphId: 'p1', start: 4, end: 10, kind: 'entity', colour: typeHueColour('blue'), title: 'Garden' }];
+export const sampleNotes: ParagraphNote[] = [{ id: 'n1', paragraphId: 'p3', name: 'Pace', text: 'slow down', colour: 'ok' }];

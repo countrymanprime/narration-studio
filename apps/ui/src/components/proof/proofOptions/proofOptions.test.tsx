@@ -43,11 +43,23 @@ const color = (key: string, label: string, value: string, isSet = false): Scoped
   effectiveSource: isSet ? 'project' : 'repo default',
 });
 
+const bool = (key: string, label: string, value: string, isSet = false): ScopedSettingField => ({
+  key,
+  label,
+  kind: 'bool',
+  choices: [],
+  value: isSet ? value : '',
+  isSet,
+  effectiveValue: value,
+  effectiveSource: isSet ? 'project' : 'repo default',
+});
+
 const FIELDS = {
   Demo: [
     number('target', 'Target length (seconds)', '300'),
     choice('preset', 'Preset', ['sample', 'spot_check'], 'sample'),
     color('tint', 'Tint', 'B5473C', true),
+    bool('suggest', 'Suggest advances', 'true'),
   ],
 };
 
@@ -55,7 +67,7 @@ function mount(over: Partial<NarrationApi> = {}) {
   const save = vi.fn(async () => undefined);
   const api = createMockApi({ settingsForScope: async () => FIELDS, saveSettings: save, ...over } as Partial<NarrationApi>);
   const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
-  render(<ProofOptions title="Demo options" group="Proof" tool="Demo" keys={['target', 'preset', 'tint']} />, { wrapper });
+  render(<ProofOptions title="Demo options" group="Proof" tool="Demo" keys={['target', 'preset', 'tint', 'suggest']} />, { wrapper });
   return {
     save,
     open: async () =>
@@ -107,6 +119,15 @@ describe('Proof options', () => {
     fireEvent.change(hex, { target: { value: '#3f6ea6' } });
     fireEvent.blur(hex);
     await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { tint: '3F6EA6' }));
+  });
+
+  it('shows an on/off setting as a switch at its value in force and saves the flip as the text true or false', async () => {
+    const { save, open } = mount();
+    await open();
+    const toggle = await screen.findByRole('switch', { name: 'Suggest advances' });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(toggle);
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Demo', 'project', { suggest: 'false' }));
   });
 
   it('offers Reset only on a setting this project overrides, and Reset hands the setting back to the default', async () => {

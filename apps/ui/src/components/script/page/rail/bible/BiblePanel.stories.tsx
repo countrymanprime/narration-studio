@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
+import { entryColour } from '../../../../../kinds/entityColour';
+import { GUIDE_TYPES } from '../../reader/readerFixtures';
 import { BiblePanel } from './BiblePanel';
 import { ALICE, GARDEN, SOURCES } from './bibleFixtures';
 import { BIBLE_KINDS } from './kinds';
@@ -11,9 +13,10 @@ const meta = {
   args: {
     entry: ALICE,
     // The default types: only a character speaks.
+    colourOf: (category: string) => entryColour(GUIDE_TYPES, category),
     canSpeak: (category: string) => category === ALICE.category,
     missing: null,
-    kinds: BIBLE_KINDS,
+    kinds: BIBLE_KINDS.map((name) => ({ name, colour: entryColour(GUIDE_TYPES, name) })),
     entries: [ALICE, GARDEN],
     sources: SOURCES,
     onPick: fn(),

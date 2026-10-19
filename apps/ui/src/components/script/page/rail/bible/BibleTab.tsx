@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
+import { entryColour } from '../../../../../kinds/entityColour';
 import { overlay } from '../../../../../overlay/overlayService';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
 import { useEntries, useParagraphs, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import { BiblePanel } from './BiblePanel';
-import { useBibleKinds } from './kinds';
+import { useBibleKindChoices } from './kinds';
 
 export type BibleTabProps = {
   chapterId: string;
@@ -14,7 +15,7 @@ export type BibleTabProps = {
 /** The Story Bible tab of the Script rail: the chapter's entries and one entry read-only, over the page's data layer. */
 export function BibleTab({ chapterId, onOpenStoryBible }: BibleTabProps) {
   const entries = useEntries();
-  const kinds = useBibleKinds();
+  const kinds = useBibleKindChoices();
   const paragraphs = useParagraphs(chapterId);
   const commands = useScriptCommands();
   const { sources } = usePronunciationSources();
@@ -26,6 +27,7 @@ export function BibleTab({ chapterId, onOpenStoryBible }: BibleTabProps) {
   return (
     <BiblePanel
       entry={entries.entryById(entryId)}
+      colourOf={(category) => entryColour(entries.types, category)}
       canSpeak={entries.canSpeak}
       missing={miss}
       kinds={kinds}
