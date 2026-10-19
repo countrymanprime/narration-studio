@@ -5,6 +5,8 @@
  */
 import { alignToScript, normKey, type Heard } from './align';
 import { curTime, origTime, takeLength, takeShift, type DocCut } from './cuts';
+import type { EntityColour } from '../../../kinds/entityColour';
+import type { ParagraphNote, WordDecoration } from '../../booth/reading/boothUnits';
 
 type ItemState = 'ok' | 'mis' | 'miss' | 'extra';
 
@@ -13,13 +15,26 @@ interface WordTok {
   text: string;
   gap: string;
   i: number;
+  /** Characters of the paragraph's text before the word. */
+  at: number;
+  /** The Story Bible name the word stands in, and the narrator's mark on it (the booth's decorations, matched by character range). */
+  entity?: Extract<WordDecoration, { kind: 'entity' }>;
+  mark?: Extract<WordDecoration, { kind: 'mark' }>;
 }
 
 /** A phrase of a paragraph (the unit the cursor steps by): `[s, e)` characters of the paragraph's text. */
-interface ScriptUnit {
+export interface ScriptUnit {
   key: string;
   s: number;
   e: number;
+  /** A quotation: someone speaks it, so it begins with a speaker chip (unless it carries on from the unit before). */
+  q?: boolean;
+  /** Who speaks it, as the Story Bible names them; "?" when nothing attributes the quote. */
+  spk?: string;
+  /** The narrator confirmed the speaker; otherwise the chip is a suggestion. */
+  conf?: boolean;
+  /** The speaker's own colour. */
+  col?: EntityColour;
 }
 
 /** The take a stretch of a paragraph is heard in. `start` is seconds into the chapter recording before any cut. */
@@ -38,6 +53,8 @@ export interface ScriptParagraph {
   text: string;
   units: ScriptUnit[];
   take?: ScriptTake;
+  /** The line's Booth notes, drawn under its text. */
+  notes?: ParagraphNote[];
 }
 
 interface HeardRequest {
@@ -72,6 +89,8 @@ export interface ChapterInput {
   accepted: string[];
   /** How much of the script is recorded, 0 to 100, for paragraphs with no take (default 100). */
   recordedPercent?: number;
+  /** Story Bible names and narrator's marks to draw on the words, by character range in the paragraph's text. */
+  decorations?: readonly WordDecoration[];
 }
 
 export interface DocItem {
@@ -150,7 +169,7 @@ export const r3 = (n: number): number => Math.round(n * 1000) / 1000;
 const tokenCount = (t: string): number => wordsOf(t).length;
 
 /** Every word of a stretch of text is its own token. */
-function unitWords(text: string, s: number, e: number): { lead: string; words: WordTok[] } {
+function unitWords(text: string, s: number, e: number, decorations: readonly WordDecoration[] = []): { lead: string; words: WordTok[] } {
   const txt = text.slice(s, e);
   const words: WordTok[] = [];
   const re = /\S+\s*/g;
@@ -158,7 +177,10 @@ function unitWords(text: string, s: number, e: number): { lead: string; words: W
   let wi = 0;
   while ((m = re.exec(txt))) {
     const word = m[0].trimEnd();
-    words.push({ text: word, gap: m[0].slice(word.length), i: wi++ });
+    const at = s + m.index;
+    const hit = <K extends WordDecoration['kind']>(kind: K) =>
+      decorations.find((d): d is Extract<WordDecoration, { kind: K }> => d.kind === kind && d.start < at + word.length && d.end > at);
+    words.push({ text: word, gap: m[0].slice(word.length), i: wi++, at, entity: hit('entity'), mark: hit('mark') });
   }
   return { lead: txt.match(/^\s*/)?.[0] ?? '', words };
 }
@@ -242,7 +264,8 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
   /* 3. The words. */
   const docParas: DocPara[] = plans.map((pl) => {
     const { p, pi, take } = pl;
-    const unitList = p.units.map((u) => ({ u, ...unitWords(p.text, u.s, u.e) }));
+    const own = (input.decorations ?? []).filter((d) => d.paragraphId === p.id);
+    const unitList = p.units.map((u) => ({ u, ...unitWords(p.text, u.s, u.e, own) }));
     const script: Array<{ tok: WordTok; u: ScriptUnit }> = unitList.flatMap((x) => x.words.map((tok) => ({ tok, u: x.u })));
     const out: DocUnit[] = unitList.map((x) => ({ u: x.u, lead: x.lead, items: [] }));
     const unitIndex = new Map(out.map((x, i) => [x.u.key, i]));

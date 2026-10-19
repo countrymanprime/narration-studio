@@ -78,6 +78,8 @@ function mount({ setup = 'reaper', daw, api = {}, ...props }: Options = {}) {
 }
 
 const script = () => screen.findByRole('textbox', { name: 'Script with what was heard' });
+/** The DAW's capabilities arrive a moment after the page: Clean up is put back when they do, so a test that chooses an operation waits for them first. */
+const dawAnswered = () => act(async () => new Promise((resolve) => setTimeout(resolve, 60)));
 const cursorKey = () => screen.getByRole('textbox', { name: 'Script with what was heard' }).getAttribute('aria-activedescendant');
 const word = (key: string) => document.querySelector<HTMLElement>(`[data-k="${key}"]`)!;
 const codeOf = (key: string): string => (key.length === 1 ? `Key${key.toUpperCase()}` : key);
@@ -241,7 +243,11 @@ describe('EditingPage', () => {
     it('says why Delete, Mute and Add FX are off in words on the page, not only in a hint', async () => {
       mount({ setup: 'reaper-off' });
       await script();
-      const notice = await waitFor(() => document.querySelector<HTMLElement>('#editoff')!);
+      const notice = await waitFor(() => {
+        const found = document.querySelector<HTMLElement>('#editoff');
+        expect(found).not.toBeNull();
+        return found!;
+      });
       expect(notice.textContent).toContain('Delete, Mute and Add FX are off.');
       expect(notice.textContent).toContain(DAW_SETUPS['reaper-off'].capabilities['cut_range'].message!);
     });
@@ -371,7 +377,7 @@ describe('EditingPage', () => {
   it('strip-and-drawer-toggles-follow-the-width', async () => {
     mount();
     await script();
-    const strip = await screen.findByRole('button', { name: 'Timeline' });
+    const strip = await screen.findByRole('button', { name: 'Timeline strip' });
     expect(strip.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(strip);
     expect(strip.getAttribute('aria-pressed')).toBe('true');
@@ -388,7 +394,7 @@ describe('EditingPage', () => {
     width = 1200;
     mount();
     await script();
-    expect(screen.queryByRole('button', { name: 'Timeline' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Timeline strip' })).toBeNull();
     expect(drawerButton()).toBeTruthy();
   });
 
@@ -415,7 +421,7 @@ describe('EditingPage', () => {
     });
     mount();
     await script();
-    expect(await screen.findByRole('button', { name: 'Timeline' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Timeline strip' })).toBeTruthy();
     expect(document.querySelector('[data-legend="extra"] [data-legend-label]')!.textContent).toBe('Not in the script · 1');
   });
 
@@ -423,7 +429,7 @@ describe('EditingPage', () => {
     width = 1280;
     mount();
     await script();
-    expect(screen.queryByRole('button', { name: 'Timeline' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Timeline strip' })).toBeNull();
     press('s');
     expect(drawerButton().getAttribute('aria-pressed')).toBe('true');
     expect(
@@ -498,6 +504,7 @@ describe('EditingPage', () => {
       const api = { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] };
       mount({ drawer: 'cleanup', api });
       await script();
+      await dawAnswered();
       fireEvent.click(await screen.findByRole('button', { name: /^Breaths/ }));
       const apply = await screen.findByRole('button', { name: 'Apply to 1 selected' });
       await waitFor(() => expect((apply as HTMLButtonElement).disabled).toBe(false));
@@ -653,6 +660,7 @@ describe('EditingPage', () => {
       const breath = finding({ id: 'b1', start: 2, end: 2.4, cls: 'breath', db: -22 });
       mount({ drawer: 'cleanup', api: { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] } });
       await script();
+      await dawAnswered();
       const drawer = document.querySelector<HTMLElement>('#drawer')!;
       fireEvent.click(await within(drawer).findByRole('button', { name: /^Breaths/ }));
       fireEvent.click(within(drawer).getByRole('button', { name: 'Preview' }));

@@ -35,7 +35,7 @@ export function Legend({ doc, compact, noAudio = false }: LegendProps) {
           <span data-legend-label>{compact ? FLAG_LABEL[k][1] : `${FLAG_LABEL[k][0]} · ${doc.counts[k]}`}</span>
         </span>
       ))}
-      <span title={`Flagged by ${doc.engine.name}`} className="ml-auto">
+      <span title={`Flagged by ${doc.engine.name}`} className="ml-auto whitespace-nowrap">
         Flagged by {doc.engine.name.split(' ')[0]}
       </span>
     </div>

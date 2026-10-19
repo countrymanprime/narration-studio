@@ -8,7 +8,7 @@ import type { ChapterDoc, HeardWord as ModelWord } from '../model';
 import { duplicateRead } from '../model/duplicates';
 import type { RangeLocator } from '../range/common/locate';
 import { docCutsOf } from '../range/common/locate';
-import { docFromHeard } from '../script/docFromHeard';
+import { docFromHeard, type ScriptDecor } from '../script/docFromHeard';
 
 /** Seconds of lead-in `docFromHeard` puts before a paragraph's first heard word. */
 const LEAD = 0.15;
@@ -68,13 +68,14 @@ export function audioOf(link: 'linked' | 'unlinked' | 'missing' | 'unknown', tra
   return { kind: link === 'linked' ? 'empty' : link };
 }
 
-/** The chapter's document with its cuts, effects and accepted words. */
-export function docOf(read: ChapterRead): ChapterDoc {
+/** The chapter's document with its cuts, effects and accepted words, and the speakers, names and notes the Story Bible and the marks put on the text. */
+export function docOf(read: ChapterRead, decor?: ScriptDecor): ChapterDoc {
   const answer: HeardAnswer = read.audio.kind === 'ready' ? read.answer : { heard: null, reason: NO_AUDIO_REASON, reasons: [] };
   return docFromHeard(read.workspace.paragraphs, answer, {
     cuts: docCutsOf(read.cuts),
     effects: read.effects.filter((e) => !e.stale).map((e) => ({ id: e.id, keys: [...e.keys] })),
     accepted: read.accepted,
+    decor,
   });
 }
 

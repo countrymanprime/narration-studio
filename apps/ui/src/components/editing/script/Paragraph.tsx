@@ -1,6 +1,8 @@
 import { Fragment, memo, useEffect } from 'react';
 import { clockText } from '../../booth/boothProgress';
 import type { DocPara } from './types';
+import { LineNotes } from './LineNotes';
+import { SpeakerTag } from './SpeakerTag';
 import { Word } from './Word';
 
 export interface ParagraphProps {
@@ -36,6 +38,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
       <p className={`m-0 min-w-0 ${dp.recorded ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
         {dp.units.map((us) => (
           <Fragment key={us.u.key}>
+            {us.u.q ? <SpeakerTag speaker={us.u.spk ?? ''} confirmed={!!us.u.conf} colour={us.u.col} /> : null}
             {us.lead}
             {us.items.map((it) => {
               const at = index.get(it.key) ?? 0;
@@ -58,6 +61,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
           </Fragment>
         ))}
       </p>
+      {dp.p.notes?.length ? <LineNotes notes={dp.p.notes} /> : null}
     </div>
   );
 });

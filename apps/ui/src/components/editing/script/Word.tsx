@@ -1,5 +1,6 @@
 import { Fragment, memo, type CSSProperties } from 'react';
 import { kindMarkStyle } from '../../../kinds/markStyle';
+import { narratorMarkStyle } from '../../../kinds/narratorMark';
 import type { KindId } from '../../../kinds/kindMap';
 import { clockText } from '../../booth/boothProgress';
 import { isLow, type DocItem } from '../model';
@@ -46,17 +47,33 @@ const FX_SHADOW = 'inset 0 -3px 0 var(--accent-strong)';
 // A script holds thousands of words, so a word is one span and its mark is a shared style object from the registry, never a `<mark>` per
 // word. The style is cached per combination of what else is drawn on the word (a selection, an effect, a ring, the playing word).
 const STYLES = new Map<string, CSSProperties | undefined>();
+const DECO = new Map<string, CSSProperties>();
+
+/** The Story Bible name and the narrator's mark a word carries, as one style: the name's entity mark, the narrator's mark over it. A flag's mark, drawn after, wins where they share a property. */
+function decoStyle(tok: DocItem['tok']): { key: string; style: CSSProperties } | null {
+  if (!tok?.entity && !tok?.mark) return null;
+  const key = `${tok.entity?.colour.hue ?? ''}|${tok.mark ? `${tok.mark.colour}:${tok.mark.style}` : ''}`;
+  let style = DECO.get(key);
+  if (!style) {
+    style = {
+      ...(tok.entity ? kindMarkStyle('entity', tok.entity.colour) : undefined),
+      ...(tok.mark ? narratorMarkStyle(tok.mark.colour, tok.mark.style) : undefined),
+    };
+    DECO.set(key, style);
+  }
+  return { key, style };
+}
 
 /**
  * The inline style of a word: its kind's mark (`kindMarkStyle`) with the layers that share its properties composed in. The selection and the
  * playing word paint their own fill and text colour, a cursor or open flag draws its ring as the outline, and the selection underline and the
  * effect underline join the mark's shadow, so the mark yields to each rather than hiding it.
  */
-function wordStyle(mark: Mark | null, sel: boolean, fx: boolean, ringed: boolean, now: boolean): CSSProperties | undefined {
-  const key = `${mark ?? ''}|${sel}|${fx}|${ringed}|${now}`;
+function wordStyle(mark: Mark | null, sel: boolean, fx: boolean, ringed: boolean, now: boolean, deco: ReturnType<typeof decoStyle>): CSSProperties | undefined {
+  const key = `${mark ?? ''}|${sel}|${fx}|${ringed}|${now}|${deco?.key ?? ''}`;
   if (STYLES.has(key)) return STYLES.get(key);
   const base = mark && mark !== 'cut' ? kindMarkStyle(KIND_OF[mark]) : undefined;
-  const style: CSSProperties = { ...base };
+  const style: CSSProperties = { ...deco?.style, ...base };
   if (sel || now) {
     delete style.background;
     delete style.color;
@@ -65,7 +82,7 @@ function wordStyle(mark: Mark | null, sel: boolean, fx: boolean, ringed: boolean
     delete style.outline;
     delete style.outlineOffset;
   }
-  const shadows = [sel ? SEL_SHADOW : '', fx ? FX_SHADOW : '', base?.boxShadow ?? ''].filter(Boolean);
+  const shadows = [sel ? SEL_SHADOW : '', fx ? FX_SHADOW : '', base?.boxShadow ?? deco?.style.boxShadow ?? ''].filter(Boolean);
   if (shadows.length) style.boxShadow = shadows.join(', ');
   const out = Object.keys(style).length ? style : undefined;
   STYLES.set(key, out);
@@ -88,7 +105,7 @@ export interface WordProps {
 /** One word of the script, or one that was said and is not in it. Read-only: never editable text. */
 export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fxEnd }: WordProps) {
   const mark = markOf(it);
-  const note = mark ? describe(it, mark) : undefined;
+  const note = mark ? describe(it, mark) : (it.tok?.mark?.title ?? it.tok?.entity?.title);
   const fx = it.fx.length > 0 && !it.cut;
   const cls = [
     'rounded-[0.12em] cursor-text',
@@ -100,7 +117,8 @@ export const Word = memo(function Word({ it, sel, cur, now, said, flag, join, fx
   ]
     .filter(Boolean)
     .join(' ');
-  const style = wordStyle(mark, sel, fx, (cur && !sel) || flag, now);
+  const deco = decoStyle(it.tok);
+  const style = wordStyle(mark, sel, fx, (cur && !sel) || flag, now, deco);
   const gap = it.kind === 'x' ? ' ' : it.gap;
   return (
     <Fragment>

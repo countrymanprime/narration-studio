@@ -8,6 +8,7 @@ import { useDawKind } from '../../../useDawKind';
 import { applyCleanupCommand, outcomeSentence, previewOf, type CleanupDeps, type CleanupPreview } from './cleanupApply';
 import { initialParams, opSpec, type CleanupKind, type CleanupParams, type Level, type ParamKey } from './cleanupOps';
 import { countsOf, noiseFloorOf, proposals, selectedRows, type CleanupRow } from './cleanupRows';
+import { readFindings } from './readFindings';
 import { CleanupHeader } from './CleanupHeader';
 import { CleanupInspector } from './CleanupInspector';
 import { CleanupList } from './CleanupList';
@@ -44,11 +45,10 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
 
   useEffect(() => {
     let live = true;
-    Promise.all([findingsPort.findingsList({ chapterId }), editing.editingCandidates(chapterId)])
-      .then(([page, candidates]) => {
+    readFindings(findingsPort, editing, chapterId)
+      .then((all) => {
         if (!live) return;
-        const seen = new Set<string>();
-        setFindings([...page.findings, ...candidates].filter((f) => !seen.has(f.id) && !!seen.add(f.id)));
+        setFindings(all);
         setReadError(null);
       })
       .catch((reason: unknown) => live && setReadError(describeApiError(reason)));

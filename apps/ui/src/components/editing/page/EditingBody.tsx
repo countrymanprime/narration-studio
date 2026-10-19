@@ -1,5 +1,5 @@
 import type { WordFx } from '../../../api/contracts/wordFx';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { FindingsApi } from '../../../api/contracts/findings';
@@ -39,6 +39,7 @@ import { Ribbon } from '../ribbon/Ribbon';
 import { activePid } from '../ribbon/ribbonLayout';
 import { useEditingPage } from '../script/EditingPageState';
 import { NO_TEXT, ScriptDoc } from '../script/ScriptDoc';
+import { stackedView } from '../stack/stackedLine';
 import type { StackLine } from '../stack/types';
 import type { ManuscriptChapter } from '../../../types';
 import { useStackRetries } from '../stack/useStackRetries';
@@ -49,6 +50,7 @@ import { useHideOthers } from '../takes/prep/useHideOthers';
 import { usePrepSteps } from '../takes/prep/usePrepSteps';
 import { dawSplitter } from '../takes/split/splitCommand';
 import { useSplitDuplicate } from '../takes/split/useSplitDuplicate';
+import { TakeBadge } from '../takes/TakeBadge';
 import { TakeChip } from '../takes/TakeChip';
 import { TakeLines } from '../takes/TakeLines';
 import { registerTakesMenuSection } from '../takes/takesMenuSection';
@@ -63,6 +65,8 @@ import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
+import { useBackupsCount } from '../backups/useBackupsCount';
+import { useCleanupCount } from '../cleanup/useCleanupCount';
 import { useShowInDaw } from '../takes/useShowInDaw';
 import { escapeClosesPanel } from '../../primitives/focusReturn';
 import { IconButton } from '../../primitives/IconButton';
@@ -260,7 +264,9 @@ export function EditingBody(props: EditingBodyProps) {
     return out;
   }, [lines.byId, doc, keep.kept, hide, chapterId]);
   const stack = useStackRetries({ journal, chapterId, lines: stackLines, passageOf: (sel) => stackLines.find((l) => l.id === passageOf(sel)?.id) ?? null });
-  void stack;
+  const stackedIds = useMemo(() => new Set(stack.lines.filter((l) => stackedView(l).stacked).map((l) => l.id)), [stack.lines]);
+  // A line one take reads twice is shown as such on its chip; the page measures it once for all lines.
+  const duplicateIds = useMemo(() => new Set([...lines.byId.keys()].filter((id) => doubledCut(read, id) !== null)), [lines.byId, read]);
 
   // Ranges: delete and mute, FX, accept.
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
@@ -333,6 +339,9 @@ export function EditingBody(props: EditingBodyProps) {
   // The drawer and its sections.
   const backups = keepsBackups(caps);
   const offered = tabsFor(backups, stripFits);
+  // The tabs count what is in them: the clean-up findings with the words flagged in the text, and the DAW's backups of this chapter.
+  const cleanupCount = useCleanupCount(chapterId, read.cuts);
+  const backupsCount = useBackupsCount(chapterId, backups, read.cuts);
   const tab = resolveTab(panels.drawer.want, offered);
   useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
@@ -437,7 +446,7 @@ export function EditingBody(props: EditingBodyProps) {
   const underLines = new Set<string>([...lines.byId.keys(), ...(flagPid ? [flagPid] : []), ...(current ? [current] : [])]);
   const drawerOpen = panels.drawer.open;
   // With no cursor yet the first chip stays in the Tab order, so the takes are reachable from the keyboard before a word is chosen.
-  const firstChipPid = [...underLines].find((pid) => (lines.byId.get(pid)?.takes.length ?? 0) > 1);
+  const firstChipPid = [...underLines].find((pid) => (lines.byId.get(pid)?.takes.length ?? 0) > 0);
 
   const toggleOf = () => document.getElementById('drawertoggle');
   const drawerEscape = escapeClosesPanel(panels.drawer.close, toggleOf);
@@ -447,7 +456,11 @@ export function EditingBody(props: EditingBodyProps) {
       chapterId={chapterId}
       tab={tab}
       tabs={offered}
-      counts={{ effects: effectsCount(read.effects) }}
+      counts={{
+        cleanup: doc.counts.extra + doc.counts.miss + doc.counts.mis + doc.counts.low + cleanupCount,
+        effects: effectsCount(read.effects),
+        backups: backupsCount,
+      }}
       onTab={panels.drawer.setWant}
       onClose={panels.drawer.close}
       flagKind={flagKind}
@@ -459,25 +472,25 @@ export function EditingBody(props: EditingBodyProps) {
 
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
-      {props.banner}
-      <NoAudioBanner
-        audio={read.audio}
-        chapterName={chapterName}
-        daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
-        onReread={props.onReread}
-      />
-      <EditingHeader
-        stepper={props.stepper}
-        legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
-        strip={panels.strip}
-        stripFits={stripFits}
-        drawerOpen={drawerOpen}
-        onDrawer={panels.drawer.toggle}
-        onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
-      />
-      <div className="min-h-0 flex-1 px-4 pb-3 [&>div]:h-full">
+      <div className="min-h-0 flex-1 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} drawer={drawer}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+            {props.banner}
+            <NoAudioBanner
+              audio={read.audio}
+              chapterName={chapterName}
+              daw={caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null}
+              onReread={props.onReread}
+            />
+            <EditingHeader
+              stepper={props.stepper}
+              legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
+              strip={panels.strip}
+              stripFits={stripFits}
+              drawerOpen={drawerOpen}
+              onDrawer={panels.drawer.toggle}
+              onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
+            />
             <ScriptHost box={scriptBox} root={root}>
               {doc.paras.length ? (
                 <FxMarkersContext.Provider value={fxMarkers}>
@@ -509,60 +522,68 @@ export function EditingBody(props: EditingBodyProps) {
         const open = !!line && isOpen(pid);
         return (
           // What sits under a line is UI text (the mock's `.sx-tkw`, 13 px), not the 24 px reading size of the row it is drawn in.
-          <InHost
-            key={pid}
-            root={root}
-            selector={rowOf(pid)}
-            name={`under-${pid}`}
-            className="col-start-2 flex flex-col items-start gap-2 pt-1 text-[length:var(--font-size-sm)] leading-[1.4]"
-            watch={doc}
-          >
-            {pid === current && doc.aligned ? <Ribbon chapterId={chapterId} pid={pid} /> : null}
-            {flagPara && flagPid === pid && state.flag ? (
-              <FlagCard
-                doc={doc}
-                dp={flagPara}
-                flag={state.flag}
-                score={scoreOf(read, state.flag)}
-                hear={playlist.length ? (start, end) => playback.playFrom(start, end) : null}
-                accept={(keys) => void accept(keys)}
-                onClose={() => dispatch({ type: 'closeFlag' })}
-              />
+          <Fragment key={pid}>
+            {line ? (
+              <InHost root={root} selector={`${rowOf(pid)} > span:first-child`} name={`gutter-${pid}`} className="flex justify-end pt-1 pr-2" watch={doc}>
+                <TakeBadge count={line.takes.length} active={pid === current} open={open} controls={`takes-${pid}`} onToggle={() => setLineOpen(pid, !open)} />
+              </InHost>
             ) : null}
-            {line && shown ? (
-              <TakeChip
-                passage={line}
-                open={open}
-                keptId={keep.kept[pid] ?? null}
-                controls={`takes-${pid}`}
-                tabbable={open || pid === (current ?? firstChipPid)}
-                onToggle={() => setLineOpen(pid, !open)}
-                onKeyDown={
-                  open
-                    ? escapeClosesPanel(
-                        () => setLineOpen(pid, false),
-                        () => chipOf(pid),
-                      )
-                    : undefined
-                }
-              />
-            ) : null}
-            {open && shown ? (
-              <TakeLines
-                onKeyDown={escapeClosesPanel(
-                  () => setLineOpen(pid, false),
-                  () => chipOf(pid),
-                )}
-                passage={shown}
-                onTake={pid === current ? lineTakes.onTake : null}
-                keptId={keep.kept[pid] ?? null}
-                playingId={takePlayer.isPlaying ? playingTake : null}
-                gate={gate}
-                onKeep={(take) => void keep.keep(line!, take)}
-                onPlay={playTake}
-              />
-            ) : null}
-          </InHost>
+            <InHost
+              root={root}
+              selector={rowOf(pid)}
+              name={`under-${pid}`}
+              className="col-start-2 flex flex-col items-start gap-2 pt-1 text-[length:var(--font-size-sm)] leading-[1.4]"
+              watch={doc}
+            >
+              {pid === current && doc.aligned ? <Ribbon chapterId={chapterId} pid={pid} /> : null}
+              {flagPara && flagPid === pid && state.flag ? (
+                <FlagCard
+                  doc={doc}
+                  dp={flagPara}
+                  flag={state.flag}
+                  score={scoreOf(read, state.flag)}
+                  hear={playlist.length ? (start, end) => playback.playFrom(start, end) : null}
+                  accept={(keys) => void accept(keys)}
+                  onClose={() => dispatch({ type: 'closeFlag' })}
+                />
+              ) : null}
+              {line && shown ? (
+                <TakeChip
+                  passage={line}
+                  open={open}
+                  keptId={keep.kept[pid] ?? null}
+                  stacked={stackedIds.has(pid)}
+                  duplicate={duplicateIds.has(pid)}
+                  controls={`takes-${pid}`}
+                  tabbable={open || pid === (current ?? firstChipPid)}
+                  onToggle={() => setLineOpen(pid, !open)}
+                  onKeyDown={
+                    open
+                      ? escapeClosesPanel(
+                          () => setLineOpen(pid, false),
+                          () => chipOf(pid),
+                        )
+                      : undefined
+                  }
+                />
+              ) : null}
+              {open && shown ? (
+                <TakeLines
+                  onKeyDown={escapeClosesPanel(
+                    () => setLineOpen(pid, false),
+                    () => chipOf(pid),
+                  )}
+                  passage={shown}
+                  onTake={pid === current ? lineTakes.onTake : null}
+                  keptId={keep.kept[pid] ?? null}
+                  playingId={takePlayer.isPlaying ? playingTake : null}
+                  gate={gate}
+                  onKeep={(take) => void keep.keep(line!, take)}
+                  onPlay={playTake}
+                />
+              ) : null}
+            </InHost>
+          </Fragment>
         );
       })}
       {fx.menu}

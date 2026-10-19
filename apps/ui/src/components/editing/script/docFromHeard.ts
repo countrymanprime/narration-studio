@@ -1,5 +1,8 @@
 import type { HeardAnswer, HeardWord as PortWord } from '../../../ports/alignment';
-import { buildDoc, type Aligner, type ChapterDoc, type ChapterInput, type Heard, type HeardWord, type ScriptParagraph } from '../model';
+import type { ParagraphNote, WordDecoration } from '../../booth/reading/boothUnits';
+import { snapToWordBoundary } from '../../booth/reading/boothUnits';
+import type { EntityColour } from '../../../kinds/entityColour';
+import { buildDoc, type Aligner, type ChapterDoc, type ChapterInput, type Heard, type HeardWord, type ScriptParagraph, type ScriptUnit } from '../model';
 
 /** A paragraph of the chapter as the workspace port gives it. */
 export interface TextParagraph {
@@ -10,8 +13,53 @@ export interface TextParagraph {
 /** Seconds of lead-in before a stretch's first word, so the model's offsets begin just after zero. */
 const LEAD = 0.15;
 
-/** A paragraph is one phrase: the port knows no phrases, so the cursor steps by paragraph where the mock steps by phrase. */
-const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({ id: p.id, text: p.text, units: [{ key: `${p.id}:u0`, s: 0, e: p.text.length }] });
+/** A quotation in a line: the characters it covers, who speaks it and in what colour (the speaker's own, none for a speaker the Story Bible lacks). */
+export interface DecorPhrase {
+  start: number;
+  end: number;
+  speaker: string;
+  /** The narrator confirmed the speaker. */
+  confirmed: boolean;
+  colour?: EntityColour;
+}
+
+/** What the Story Bible and the Script's marks add to the text: the quoted phrases of each line, the words to underline and the notes under a line. */
+export interface ScriptDecor {
+  /** The quoted phrases of each paragraph, by its id (the Story Bible's dialogue cues). */
+  phrases: ReadonlyMap<string, readonly DecorPhrase[]>;
+  decorations: readonly WordDecoration[];
+  notes: readonly ParagraphNote[];
+}
+
+/**
+ * The units of a paragraph, the stretches the cursor steps by: each quotation with its speaker, and the narration between. A paragraph with no
+ * quotation is one unit. A cue whose range lies outside the text, or overlaps one before it, is left out; the edges snap to whole words.
+ */
+function unitsOf(p: TextParagraph, phrases: readonly DecorPhrase[] = []): ScriptUnit[] {
+  const whole = [{ key: `${p.id}:u0`, s: 0, e: p.text.length }];
+  const quotes = [...phrases].filter((q) => q.start >= 0 && q.end > q.start && q.end <= p.text.length).sort((a, b) => a.start - b.start);
+  if (!quotes.length) return whole;
+  const out: ScriptUnit[] = [];
+  let at = 0;
+  const push = (s: number, e: number, extra: Partial<ScriptUnit> = {}): void => {
+    if (e > s) out.push({ key: `${p.id}:u${out.length}`, s, e, ...extra });
+  };
+  for (const q of quotes) {
+    const s = snapToWordBoundary(p.text, q.start);
+    const e = snapToWordBoundary(p.text, q.end);
+    if (s < at || e <= s) continue;
+    push(at, s);
+    push(s, e, { q: true, spk: q.speaker, conf: q.confirmed, col: q.colour });
+    at = e;
+  }
+  push(at, p.text.length);
+  return out.length ? out : whole;
+}
+
+const toScriptParagraph = (p: TextParagraph, decor?: ScriptDecor): ScriptParagraph => {
+  const notes = decor?.notes.filter((n) => n.paragraphId === p.id);
+  return { id: p.id, text: p.text, units: unitsOf(p, decor?.phrases.get(p.id)), ...(notes?.length ? { notes } : {}) };
+};
 
 /** The port's words, grouped by the paragraph they were heard in: a word said and not in the script goes with the script word before it. */
 function groupByParagraph(words: readonly PortWord[], first: string | undefined): Map<string, PortWord[]> {
@@ -54,8 +102,17 @@ const NOT_HEARD: Aligner = { engine: () => ({ id: '', name: '' }), snap: (s) => 
 export function docFromHeard(
   paragraphs: readonly TextParagraph[],
   answer: HeardAnswer,
-  extras: Partial<Pick<ChapterInput, 'cuts' | 'effects' | 'accepted'>> = {},
+  extras: Partial<Pick<ChapterInput, 'cuts' | 'effects' | 'accepted'>> & { decor?: ScriptDecor } = {},
 ): ChapterDoc {
+  const { decor, ...rest } = extras;
   const aligner = answer.heard ? alignerFor(answer.heard, paragraphs) : NOT_HEARD;
-  return buildDoc({ paragraphs: paragraphs.map(toScriptParagraph), aligner, cuts: [], effects: [], accepted: [], ...extras });
+  return buildDoc({
+    paragraphs: paragraphs.map((p) => toScriptParagraph(p, decor)),
+    aligner,
+    cuts: [],
+    effects: [],
+    accepted: [],
+    decorations: decor?.decorations,
+    ...rest,
+  });
 }

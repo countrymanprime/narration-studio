@@ -1,6 +1,7 @@
 import { useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react';
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
+import { TooltipTarget } from '../../primitives/Tooltip';
 import { useEditingPage } from '../script/EditingPageState';
 import { RibbonView } from '../ribbon/Ribbon';
 import { activePid, ribbonLayout } from '../ribbon/ribbonLayout';
@@ -16,9 +17,9 @@ const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1
 /** The header button that shows and hides the strip. The page offers it from a 1360 px window (`useStripFits`), as the mock does. */
 export function StripToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
-    <Button variant="secondary" size="sm" id="striptoggle" aria-pressed={open} aria-keyshortcuts="S" onClick={onToggle}>
-      Timeline
-    </Button>
+    <TooltipTarget text="Timeline strip (S)">
+      <IconButton action="timelineStrip" label="Timeline strip" id="striptoggle" aria-pressed={open} aria-keyshortcuts="S" onClick={onToggle} />
+    </TooltipTarget>
   );
 }
 

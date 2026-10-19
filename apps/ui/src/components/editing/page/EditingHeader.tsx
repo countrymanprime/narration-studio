@@ -27,20 +27,23 @@ export function EditingHeader({ stepper, legend, strip, stripFits, drawerOpen, o
     <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2">
       <Heading title="Editing" />
       {stepper}
-      <div className="min-w-0 flex-1">{legend}</div>
-      <div className="flex items-center gap-2">
-        {stripFits ? <StripToggle open={strip.open} onToggle={strip.toggle} /> : null}
-        <TooltipTarget text="Clean up and effects (Ctrl+Shift+C)">
-          <IconButton
-            action="cleanUpAndEffects"
-            label="Clean up and effects"
-            id="drawertoggle"
-            aria-pressed={drawerOpen}
-            aria-keyshortcuts="Control+Shift+C"
-            onClick={onDrawer}
-            onKeyDown={onDrawerKeyDown}
-          />
-        </TooltipTarget>
+      {/* The legend and the buttons move as one group: where they do not fit beside the chapter step they go to their own row together, right-aligned, as in the mock. */}
+      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-x-4 gap-y-2">
+        <div className="min-w-max">{legend}</div>
+        <div className="flex items-center gap-2">
+          {stripFits ? <StripToggle open={strip.open} onToggle={strip.toggle} /> : null}
+          <TooltipTarget text="Clean up and effects (Ctrl+Shift+C)">
+            <IconButton
+              action="cleanUpAndEffects"
+              label="Clean up and effects"
+              id="drawertoggle"
+              aria-pressed={drawerOpen}
+              aria-keyshortcuts="Control+Shift+C"
+              onClick={onDrawer}
+              onKeyDown={onDrawerKeyDown}
+            />
+          </TooltipTarget>
+        </div>
       </div>
     </header>
   );

@@ -5,6 +5,7 @@ import { usePort } from '../../../ports/usePort';
 import type { ChapterDoc } from '../model';
 import type { RangeLocator } from '../range/common/locate';
 import type { PlaylistSegment } from '../../proof/playlist';
+import { useScriptDecor } from '../script/useScriptDecor';
 import { audioOf, docOf, lengthOf, locatorOf, playlistOf, type ChapterRead } from './chapterSource';
 
 type ChapterSource =
@@ -107,10 +108,11 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
 
   const read = state.chapterId === chapterId ? state.read : null;
   const error = state.chapterId === chapterId ? state.error : null;
+  const { decor, settled } = useScriptDecor(chapterId, read?.workspace.paragraphs);
   const source = useMemo((): ChapterSource => {
     if (error) return { status: 'error', message: error };
-    if (!read) return { status: 'loading' };
-    const doc = docOf(read);
+    if (!read || !settled) return { status: 'loading' };
+    const doc = docOf(read, decor);
     return {
       status: 'ready',
       read,
@@ -120,7 +122,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
       playlist: playlistOf(doc, read),
       total: lengthOf(doc),
     };
-  }, [read, error]);
+  }, [read, error, decor, settled]);
 
   const reread = useCallback(() => setReads((n) => n + 1), []);
 

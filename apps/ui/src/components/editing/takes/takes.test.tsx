@@ -119,9 +119,12 @@ describe('chip-under-a-line-with-more-than-one-take', () => {
     expect(chip().getAttribute('aria-expanded')).toBe('true');
     expect(document.querySelectorAll('[data-takes] [data-take]')).toHaveLength(3);
   });
-  it('a line with one take has no chip', () => {
+  it('a line with one take has a chip too, and it reads 1 take', () => {
     mount(singleTakePassage());
-    expect(document.querySelector('[data-tchip]')).toBeNull();
+    const one = document.querySelector('[data-tchip]');
+    expect(one?.textContent).toContain('1 take');
+    expect(one?.textContent).not.toContain('1 takes');
+    expect(one?.textContent).toContain('To choose');
   });
 });
 

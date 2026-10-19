@@ -14,10 +14,11 @@ With no manuscript imported yet, the page says so and offers **Import manuscript
 
 ## The page
 
-The header has the chapter step (the previous and next chapter buttons, Alt+↑ and Alt+↓, and the chapter list), a
-legend of the marks in the text with how many of each, the recogniser that heard the words (**Flagged by**), the
-**Timeline** button (on a window 1360 px wide or more) and the button that opens the drawer. At 1280 px and below the
-legend uses short labels with no counts.
+The page is one bordered card, and its header is the card's top: the chapter step (the previous and next chapter
+buttons, Alt+↑ and Alt+↓, and the chapter list), a legend of the marks in the text with how many of each, the recogniser
+that heard the words (**Flagged by**), the **Timeline strip** button (an icon, on a window 1360 px wide or more) and the
+button that opens the drawer. Where the legend does not fit beside the chapter step, it and the buttons move to their own
+row together. At 1280 px and below the legend uses short labels with no counts.
 While the chapters and the chapter's lines are being read, the header stays and the script is drawn as grey blocks; if the chapters cannot be read, the page says so.
 
 Words carry what the last [recording check](production.md#checking-a-chapters-recording) heard. Each kind is drawn the
@@ -34,8 +35,16 @@ spans on the ribbon, the kind chip on a word's card, the rows of the drawer's fo
 the take left out (as not read) and added (as extra). A cut word is struck through, and a selected or playing word keeps its own fill;
 the mark's underline stays under both.
 
-Each line starts with its time in the chapter. A line with more than one take has a takes chip under it: how many
-takes, the one that plays, and whether one was chosen yet. Tab visits one chip, the one on the line the cursor is on (the
+A quotation starts with a chip naming who speaks it, from the [Story Bible](story-bible.md)'s dialogue cues: solid once the
+speaker is confirmed, dashed while it is only a suggestion, and a dashed **?** when nothing says who speaks it. Change a
+speaker in the [Script](script.md) or the [Booth](booth.md); here the chip only says. A name the Story Bible knows is
+underlined in its entry's colour, and words you marked on the Script page are drawn in their mark type's colour and line
+style. A note on a line shows under its text as "type: note".
+
+Each line starts with its time in the chapter and, under it, a round count of its takes: press it to open the line's takes.
+Every line that has takes, one take included, has a takes chip under it: how many takes, a bar for each (the active one
+filled), the one that plays, and where the line stands: **Kept**, **Stacked** (the later takes sit on the first read's
+place), **Duplicate read** (a take reads the line twice, which the flag card offers to split) or **To choose**. Tab visits one chip, the one on the line the cursor is on (the
 first before there is a cursor), so the script is not forty stops; **T** opens the takes of the cursor's line, and a click
 opens any other.
 
@@ -160,6 +169,8 @@ from the text once nothing is selected or from the drawer itself, and leaves foc
 
 **Clean up** lists what was found in the chapter (words not in the script, not read, misread and of low confidence,
 each with **Review** to step through them) and the clean-up findings by kind: gaps, breaths, clicks, plosives and noise.
+The tab's count adds the words flagged in the text to the clean-up findings left to fix (at the default strength). The Effects tab
+counts the effects on words, and the Backups tab the DAW's backups of this chapter.
 Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
 the findings you selected. Clean-up actions that are still
 experimental stay off until you turn them on in [Settings](settings.md).
@@ -172,7 +183,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's
-**Timeline** button (S) shows and hides; on a narrower window it is a tab of the drawer.
+**Timeline strip** button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
 ![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
 

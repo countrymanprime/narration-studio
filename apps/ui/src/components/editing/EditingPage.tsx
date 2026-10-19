@@ -156,7 +156,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
             </Panel>
           ) : (
             // Still reading the chapters: the page's own header stays, the script is blocks.
-            <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
               {banner}
               <EditingHeader
                 stepper={<Skeleton className="h-8 w-56 max-w-full" />}
@@ -209,23 +209,26 @@ function EditingChapter({
   const stripFits = width >= STRIP_MIN_WIDTH;
   if (source.status !== 'ready') {
     return (
+      // The same bordered card the page is drawn in once the chapter is read, so the header does not move when it arrives.
       <div className="flex min-h-0 flex-1 flex-col">
-        {banner}
-        <EditingHeader
-          stepper={stepper}
-          legend={null}
-          strip={panels.strip}
-          stripFits={stripFits}
-          drawerOpen={panels.drawer.open}
-          onDrawer={panels.drawer.toggle}
-        />
-        {source.status === 'error' ? (
-          <p role="alert" className="px-4 text-sm text-[var(--danger-text)]">
-            {source.message}
-          </p>
-        ) : (
-          <EditingBodySkeleton label="Loading the chapter" status="Reading the chapter…" />
-        )}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+          {banner}
+          <EditingHeader
+            stepper={stepper}
+            legend={null}
+            strip={panels.strip}
+            stripFits={stripFits}
+            drawerOpen={panels.drawer.open}
+            onDrawer={panels.drawer.toggle}
+          />
+          {source.status === 'error' ? (
+            <p role="alert" className="px-4 text-sm text-[var(--danger-text)]">
+              {source.message}
+            </p>
+          ) : (
+            <EditingBodySkeleton label="Loading the chapter" status="Reading the chapter…" />
+          )}
+        </div>
       </div>
     );
   }

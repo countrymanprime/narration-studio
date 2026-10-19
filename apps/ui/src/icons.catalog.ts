@@ -63,6 +63,7 @@ import {
   faArrowsLeftRightToLine,
   faScissors,
   faSliders,
+  faTimeline,
   faStop,
   faSun,
   faTableColumns,
@@ -277,6 +278,8 @@ export const CATALOG = {
   // Editing: the mock's sliders for effects, on Add FX and on the clean-up and effects drawer.
   addFx: action(faSliders, 'effects', 'Add FX', 'F'),
   cleanUpAndEffects: action(faSliders, 'effects', 'Show clean up and effects', 'Ctrl+Shift+C'),
+  // The mock draws a wave for the timeline strip too, so it wears the timeline glyph (audit rule 1).
+  timelineStrip: action(faTimeline, 'timeline strip', 'Show the timeline strip', 'S'),
   // The mock draws a wave for it, which is the Proof page's icon (audit rule 1), so a voice sample wears the speech bubble.
   primarySample: action(faStar, 'primary sample', 'Mark the primary sample'),
   moreActions: action(faEllipsis, 'more actions', 'Show more actions'),
