@@ -19,6 +19,13 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickVisible(page, 'tab', 'Series');
     await page.getByRole('group', { name: 'Loading the series' }).waitFor();
   },
+  'series-tab-load-failed': async (page) => {
+    await page.goto('/?mockSeries=fails');
+    await settlePage(page);
+    await goToPage(page, 'Story Bible');
+    await clickVisible(page, 'tab', 'Series');
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
+  },
   'review-filter': async (page) => {
     // The mock host flags nothing, so the entries it lists are sent with White Rabbit (the entry and its name "Rabbit") and Hatter flagged,
     // the way the host sends them; its suggestions leave two to verify on White Rabbit.
