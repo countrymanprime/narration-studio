@@ -134,7 +134,7 @@ export function EngineBody() {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [test, setTest] = useState<{ phase: 'idle' | 'testing' | 'ok' | 'bad'; text: string }>({ phase: 'idle', text: '' });
+  const [test, setTest] = useState<{ phase: 'idle' | 'testing' | 'ok' | 'bad'; text: string; file?: string | null }>({ phase: 'idle', text: '' });
   const live = useRef(true);
 
   const read = useCallback(
@@ -194,10 +194,11 @@ export function EngineBody() {
     const next = await read();
     if (!next) return setTest({ phase: 'bad', text: 'The connection could not be read.' });
     setError(undefined);
+    const file = next.daw === 'REAPER' ? next.linkedFile : null;
     setTest(
       next.state === 'connected'
-        ? { phase: 'ok', text: `Connected. Answered in ${Math.max(1, Math.round(performance.now() - began))} ms.` }
-        : { phase: 'bad', text: `No answer from ${next.daw}.` },
+        ? { phase: 'ok', text: `Connected. Answered in ${Math.max(1, Math.round(performance.now() - began))} ms.`, file }
+        : { phase: 'bad', text: `No answer from ${next.daw}.`, file },
     );
   };
 
@@ -281,7 +282,7 @@ export function EngineBody() {
               </Button>
             )}
             <span role="status" className="text-[var(--text-muted)]">
-              {test.text}
+              {test.phase === 'testing' || test.file === linkedFile ? test.text : ''}
             </span>
           </div>
         </div>
