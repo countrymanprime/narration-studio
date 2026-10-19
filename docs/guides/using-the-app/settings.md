@@ -57,6 +57,8 @@ Also here: **Microphone** (a list of the computer's inputs, with **Refresh the l
 one), and, for REAPER only, **Start the launcher script with REAPER**, and under Advanced **REAPER program**,
 **Experimental REAPER actions** and **Capabilities**. These are settings of this computer; a project has no override for them.
 
+**Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
+
 **Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
 project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
 again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays

@@ -77,7 +77,7 @@ With a screen reader, the script is one read-only text box. Each time the cursor
 when Esc lets the selection go. It waits for a quarter of a second without a key before it speaks, so holding ← or → says where the
 cursor stopped, not every word it passed. A flagged word says what its card says instead. When a dialog opened from the text closes
 (**Add note…**, **Mark as voice sample…**, and the delete, mute and effects dialogs), by Esc, **Cancel** or **Save**, focus is back on the text
-and the selection is as you left it.
+and the selection is as you left it. Playback says "Playing" when it starts and "Stopped" when it ends.
 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it).
