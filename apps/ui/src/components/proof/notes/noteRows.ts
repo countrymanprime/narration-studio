@@ -12,7 +12,7 @@ import {
 import { statusTone } from '../../../kinds/statusTone';
 import type { KindId } from '../../../kinds/kindMap';
 import type { StatusTone } from '../../primitives/StatusBadge';
-import { analyzerLabel, noteTime } from '../findingFormat';
+import { analyzerLabel, findingSummary, noteTime } from '../findingFormat';
 import { noteIsOpen } from '../proof.selectors';
 import { fixKindOf } from '../resolution';
 import { proofProgress } from '../proof.selectors';
@@ -28,6 +28,10 @@ export type NoteRow = {
   type: FindingNoteType;
   script: string;
   heard: string;
+  /** The headline sentence of the note (`findingSummary`): what the script says against what was heard, worded for the kind. */
+  headline: string;
+  /** The words in question inside `headline`, drawn marked in the note's kind; empty when the headline has none to point at. */
+  marked: string;
   /** The analyzer's name; the Sources line counts by it. */
   from: string;
   confidence: number | null;
@@ -54,6 +58,12 @@ function resolutionWords(finding: Finding): { label: string; tone: StatusTone } 
   }
 }
 
+/** The words a headline points at: the script's words when it has them, else the extra words heard; only when the headline quotes them. */
+function markedWords(finding: Finding): string {
+  const words = finding.manuscript?.expected || finding.manuscript?.recorded || '';
+  return words !== '' && findingSummary(finding).includes(`“${words}”`) ? words : '';
+}
+
 export function noteRow(finding: Finding): NoteRow {
   const chapterId = finding.manuscript?.chapter_id ?? '';
   const status = finding.review.status;
@@ -67,6 +77,8 @@ export function noteRow(finding: Finding): NoteRow {
     type: shownFindingNoteType(finding),
     script: finding.manuscript?.expected ?? '',
     heard: finding.manuscript?.recorded ?? '',
+    headline: findingSummary(finding),
+    marked: markedWords(finding),
     from: analyzerLabel(finding.analyzer),
     confidence: finding.confidence,
     confidenceReason: finding.confidence_reason,

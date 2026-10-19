@@ -63,6 +63,7 @@ function metricsFor(
       full_scale_samples: noisy ? 0 : 7,
       clip_run_count: clipRuns.length,
       clip_runs: clipRuns,
+      click_candidate_count: 0,
       range,
     },
     clipping: { status: 'measured', full_scale_samples: noisy ? 0 : 7, clip_run_count: clipRuns.length, clip_runs: clipRuns },

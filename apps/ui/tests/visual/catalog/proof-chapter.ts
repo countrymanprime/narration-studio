@@ -217,4 +217,10 @@ export const proofChapterStates: StateEntry[] = [
     description:
       'Proof chapter view while the chapter is still being read (?mockChapters=loading, opened at /proof/chapter-1): the Proof title and grey blocks where the breadcrumb and the panels will be, with one polite "Reading the chapter…" status',
   },
+  {
+    page: 'proof-chapter',
+    state: 'load-failed',
+    description:
+      'Proof chapter view when the chapter cannot be read (?mockChapters=fails, opened at /proof/chapter-1): the Proof title and "This page could not be loaded" with the read\'s own sentence as an alert and a Retry button that reads the chapter again; no skeleton left behind',
+  },
 ];

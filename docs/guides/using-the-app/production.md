@@ -328,12 +328,8 @@ together), the repairs are listed at the end.
 
 The **Import options** group holds, for a Markdown file, the chapter heading level (choosing another
 level reads the file again and drops the choices you made for the old sections), then the subtitle
-option, then **Build the Story Bible after import**. That box starts checked; the default is in
-[Settings](settings.md), under Story Bible. With it checked, the import dialog closes once the import has finished and the Story
-Bible build starts in its own dialog, which you can leave running in the background. A build that
-fails never undoes the import. The build is most of the wait: on one test machine, about 6 seconds
-for a 26,000-word book and about 15 for a 79,000-word novel, against well under a second for the
-import itself.
+option. The import dialog stays open with its activity log until you press Close. It does not build the Story Bible: open
+[Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
 
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its
 message, outlined when you opened it with the keyboard), Tab and Shift+Tab stay inside it, and the
@@ -342,7 +338,7 @@ returns to the button that opened it. Clicking the dimmed background closes a di
 read-only view, a picker that applies each choice at once) and never closes a confirm or a form, so a
 stray click cannot discard a decision or typed input. A running job (such as an import) ignores Escape
 until it has finished. The red confirm button marks an action that destroys data. A step that
-cannot be cancelled (rebuilding the Story Bible, or an import while it writes to the project) says
+cannot be cancelled (an import while it writes to the project) says
 so at the top of its dialog, offers no button while it runs, and shows Close when it finishes.
 
 If the project folder contains a file named `manuscript.docx` or `manuscript.md` and nothing has

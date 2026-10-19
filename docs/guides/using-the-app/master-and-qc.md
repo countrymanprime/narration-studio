@@ -13,9 +13,10 @@ While the profile and the chapters are being read, the **Delivery package** pane
 
 ![Master & QC before anything is checked: the ACX profile pill, Check files…, the built-in mastering chain and the delivery package](../../images/ui/master-empty.webp)
 
-The button beside the title names the profile the files are judged against (**ACX** for the built-in
-profile, a custom profile by its name); pressing it opens [Delivery](delivery.md), where the profile is
-chosen and edited. The main column holds the files and their checks, **Book consistency**, the
+The header of the files panel holds the title, the chapter bar, a pill naming the profile the files are
+judged against (**ACX** for the built-in profile, a custom profile by its name) and one refresh icon,
+**Check the files again**. Pressing the pill opens [Delivery](delivery.md), where the profile is chosen and
+edited. The run buttons (**Master all to spec…**, **Check files…**) sit in a strip under the header. The main column holds the files and their checks, **Book consistency**, the
 [mastering chain](#the-mastering-chain), [Diagnostics](#diagnostics) and the [report](#exporting-a-report);
 the column on the right holds the [delivery package](#the-delivery-package) and
 [Multi-platform export](#building-packages-for-several-platforms-at-once).
@@ -34,7 +35,11 @@ picks others.
 
 ![A check in progress, with its real progress and Cancel](../../images/ui/master-running.webp)
 
-The files table has a row per file: its **Length**, **RMS**, **Peak**, **Noise floor** and the room
+The files table has a row per chapter, then one for the opening and closing credits and one for the retail
+sample, whether or not each has a file, so it is never empty. A row with no file says what it waits on in
+place of its values and shows a neutral **Waiting** pill: **Waiting on 3 pickups · not mastered** when the
+chapter has open pickups (the number the Pickups page lists), else **No file measured yet · not mastered**.
+A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
 tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
 profile needs could not be measured), or **Waiting** / **Not measured**. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
@@ -51,8 +56,7 @@ selects one. Right-click a row for the same actions as the buttons below it.
 Below the table, the selected file shows **Why it fails** (or **Checks** when it passes, **Not mastered**
 when it has no measurements): every rule the app measured for it with **Pass** or **Fail**, the value
 measured and the profile's limit. A rule the app could not measure has no row here. Of the buttons
-beside the heading, **Check the files again** (the circular arrow) measures the same files again;
-**Play the quietest 5 s** plays the 5 seconds around the quietest stretch the measurement found, through your DAW
+beside the heading, **Play the quietest 5 s** plays the 5 seconds around the quietest stretch the measurement found, through your DAW
 without adding anything to the project, and **Open in** your DAW shows the file in the DAW's own file browser without
 importing it. Both are Experimental: they stay off, with the reason on hover, until you turn on **Play part of a file**
 and **Show a file in the audio engine** in Settings. A file with no quiet stretch says so, and a file from an earlier
@@ -81,7 +85,7 @@ nothing measured it says **No measured files yet** rather than a zero.
 **Delivery package** on the right lists the package checks drawn from the profile's rules (chapters as one
 file each, every file under the profile's longest length, the channels, sample rate and MP3 format), the files that
 fail and how many checks each fails, and how many chapters are not ready (the same count Delivery's **Before you
-build** gives: the opening and closing credits files count like a chapter). A rule the profile lacks or
+build** gives: the opening and closing credits files count like a chapter). A retail sample that is measured is checked against the profile's range and named with it, as **Retail sample 4:40 (1 to 5 min)**; a profile that gives only a maximum reads **(up to 5 min)**. A rule the profile lacks or
 has turned off has no row. The MP3 format cannot be judged from a WAV render, so that row waits (with "the MP3
 format is checked on the MP3 you upload") instead of showing a tick. **Open Delivery** goes on to build the package.
 
@@ -89,7 +93,7 @@ A link from another page can name a file. If that file is not in the check (or n
 says so in a **Link not found** note with **Show the first file instead**, and a link followed while the page is open
 moves the selection to the file it names.
 
-![Master & QC judged by a custom profile based on ACX, named on the profile button](../../images/ui/master-custom-profile.webp)
+![Master & QC judged by a custom profile based on ACX, named on the profile pill](../../images/ui/master-custom-profile.webp)
 
 ## The mastering chain
 

@@ -2,7 +2,7 @@
 import type { Page } from '@playwright/test';
 import { WIRE_ENTITIES } from '../../../src/api/mockFixtures';
 import { settlePage } from '../helpers/settle';
-import { type Driver, askForTheLanguageModel, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveMerriamWebsterKey } from './shared';
+import { type Driver, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveMerriamWebsterKey } from './shared';
 
 export const storybibleDrivers: Record<string, Driver> = {
   // The entries never answer, so `goToPage` (which waits for the first entry) is not used.
@@ -55,28 +55,11 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Save changes to this entry');
     await page.getByRole('button', { name: 'Save changes to this entry' }).and(page.locator('[aria-busy="true"]')).waitFor();
   },
-  'rebuild-running': async (page) => {
-    await page.goto('/?mockRebuildRunning=1');
-    await settlePage(page);
-    await clickNav(page, 'Story Bible');
-    await page.getByRole('dialog', { name: 'Rebuild Story Bible' }).waitFor();
-    await page.getByRole('button', { name: 'Continue in background' }).waitFor();
-  },
   'invalid-payload': async (page) => {
     await page.goto('/?mockInvalidPayload=storybible');
     await settlePage(page);
     await clickNav(page, 'Story Bible');
     await page.getByText('The app received data it could not read.').waitFor();
-  },
-  'language-model-confirm': async (page) => {
-    await askForTheLanguageModel(page, '/?mockAssets=missing');
-    await page.getByRole('alertdialog', { name: 'Download local language model?' }).waitFor();
-  },
-  'language-model-progress': async (page) => {
-    await askForTheLanguageModel(page, '/?mockAssets=downloading');
-    await page.getByRole('button', { name: 'Download model' }).click();
-    await page.getByRole('dialog', { name: 'Downloading language model' }).waitFor();
-    await page.getByText(/5 of 12 MB/).waitFor();
   },
   'voice-download-confirm': async (page) => {
     await askForThePreviewVoice(page, '/');
