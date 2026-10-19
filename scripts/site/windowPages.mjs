@@ -129,12 +129,18 @@ play.addEventListener('click',function(){
 });
 daw.addEventListener('click',function(){send({kind:'daw-panel',open:daw.getAttribute('aria-expanded')!=='true'})});
 window.addEventListener('themechange',function(){send({kind:'theme',theme:(Site.isDark()?'dark':'light')})});
-window.addEventListener('hashchange',function(){var next=routeOf(location.hash);if(next!==route){route=next;send({kind:'navigate',path:next})}});
+// A route the visitor asks for in the address is sent until the app reports it: a message sent while the app is still starting is lost, and
+// the app's first report would otherwise pull the address back.
+var wanted=null;
+window.addEventListener('hashchange',function(){var next=routeOf(location.hash);if(next!==route){route=next;wanted=next;send({kind:'navigate',path:next})}});
 // Only the frame's own messages count, and only the fields named here are read, as text.
 window.addEventListener('message',function(e){
   if(e.source!==frame.contentWindow)return;
   var d=e.data;if(!d||typeof d!=='object'||d.channel!==CHANNEL)return;
-  if(d.kind==='route'&&typeof d.path==='string'&&ROUTE.test(d.path))showRoute(d.path,typeof d.guide==='string'?d.guide:null);
+  if(d.kind==='route'&&typeof d.path==='string'&&ROUTE.test(d.path)){
+    if(wanted&&d.path!==wanted){send({kind:'navigate',path:wanted});return}
+    wanted=null;showRoute(d.path,typeof d.guide==='string'?d.guide:null);
+  }
   if(d.kind==='daw'&&(d.daw==='REAPER'||d.daw==='Audacity')){
     daw.hidden=false;
     $('#daw-label').textContent='Simulated DAW · '+d.daw+(d.recording===true?' · recording':'');
