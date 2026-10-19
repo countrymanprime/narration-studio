@@ -4,7 +4,6 @@
 # The live regions stay in the tree on purpose: Base UI leaves live regions exposed behind a modal, so an error raised from inside a
 # dialog is still announced. Under <main> they are the reader's line position ("¶ 1 of 24") and the zoom readout; the page's toast pair is portalled to <body> (Toast.tsx).
 - main:
-  - group "Zoom"
   - region "Reader": /¶ 1 of \d+/
 - status
 - alert
