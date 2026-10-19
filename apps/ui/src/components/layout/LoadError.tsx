@@ -18,20 +18,30 @@ function retryAndKeepFocus(retry: () => void) {
   };
 }
 
+/** A way off a failed page, for a page with no navigation around it (the Booth fills the window): its label and what it does. */
+export type LoadErrorExit = { label: string; onClick: () => void };
+
 /**
  * The panel of a failed read: the sentence as an alert and Retry. A page puts it under its own title (`LoadError`); a tab or section
  * inside a page that already has one uses it alone.
  */
-export function LoadErrorPanel({ message, retry }: { message: string; retry: () => void }) {
+export function LoadErrorPanel({ message, retry, exit }: { message: string; retry: () => void; exit?: LoadErrorExit }) {
   return (
     <Panel title="This page could not be loaded" className={ARRIVE_CLASSES}>
       <p role="alert" className="text-sm" style={{ color: 'var(--text-muted)' }}>
         {message}
       </p>
-      <Button variant="primary" className="mt-4" onClick={retryAndKeepFocus(retry)}>
-        <FontAwesomeIcon icon={faRotate} />
-        Retry
-      </Button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button variant="primary" onClick={retryAndKeepFocus(retry)}>
+          <FontAwesomeIcon icon={faRotate} />
+          Retry
+        </Button>
+        {exit && (
+          <Button variant="secondary" onClick={exit.onClick}>
+            {exit.label}
+          </Button>
+        )}
+      </div>
     </Panel>
   );
 }
@@ -41,11 +51,11 @@ export function LoadErrorPanel({ message, retry }: { message: string; retry: () 
  * title, says what happened in plain words and offers Retry, and the navigation around it keeps working. The technical text is
  * in the host log.
  */
-export function LoadError({ title, message, retry }: { title: string; message: string; retry: () => void }) {
+export function LoadError({ title, message, retry, exit }: { title: string; message: string; retry: () => void; exit?: LoadErrorExit }) {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-6">
       <Heading title={title} />
-      <LoadErrorPanel message={message} retry={retry} />
+      <LoadErrorPanel message={message} retry={retry} exit={exit} />
     </div>
   );
 }
