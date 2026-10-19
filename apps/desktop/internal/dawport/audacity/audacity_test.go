@@ -60,7 +60,7 @@ func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 
 // built is what the adapter builds, Experimental until the owner's pass.
 func built(c dawport.Capability) bool {
-	return c == dawport.CapNavigate || c == dawport.CapMarkers || c == dawport.CapMacroRender || c == dawport.CapBackups ||
+	return c == dawport.CapReview || c == dawport.CapNavigate || c == dawport.CapMarkers || c == dawport.CapMacroRender || c == dawport.CapBackups ||
 		slices.Contains(backupRows, c)
 }
 
@@ -249,10 +249,7 @@ func TestWhatIsNotBuiltKeepsTheNotYetSentence(t *testing.T) {
 					t.Errorf("%T %+v: %s = %+v, want not_yet with docs/architecture/daw-integration.md#audacity-boundary's sentence", adapter, rt, c, s)
 				}
 			}
-			_, err := dawport.Role[dawport.ReviewSession](resolver, dawport.CapReview)
-			if !errors.Is(err, dawport.ErrNotSupported) || err.Error() != string(ErrNotAvailable) {
-				t.Errorf("Role(review) = %v, want the not-yet refusal", err)
-			}
+			// The map-ranging above covers the capabilities that stay not yet; the ones that are built have their own tests.
 		}
 	}
 }

@@ -170,7 +170,7 @@ func (c *Client) PlayLooped(ctx context.Context) error {
 // The scripting reference documents no way to read a macro's own steps back, so a caller narrates its own words for the narrator's
 // report rather than asking Audacity what the macro does. A macro adds one undo point however many steps it has.
 func (c *Client) ApplyMacro(ctx context.Context, name string) error {
-	_, err := c.Do(ctx, newMacroCommand(name))
+	_, err := c.DoLong(ctx, newMacroCommand(name))
 	return err
 }
 
@@ -189,7 +189,7 @@ func (c *Client) Export(ctx context.Context, path string, channels int) error {
 	if channels < 1 || channels > 2 {
 		return fmt.Errorf("%w: %d channels", ErrInvalidValue, channels)
 	}
-	_, err := c.Do(ctx, NewCommand("Export2").Path("Filename", path).Int("NumChannels", channels))
+	_, err := c.DoLong(ctx, NewCommand("Export2").PosixPaths(c.posixPaths).Path("Filename", path).Int("NumChannels", channels))
 	return err
 }
 
@@ -202,7 +202,7 @@ func (c *Client) Import(ctx context.Context, path string) error {
 	if err := checkExtension(path, ImportFormats); err != nil {
 		return err
 	}
-	_, err := c.Do(ctx, NewCommand("Import2").Path("Filename", path))
+	_, err := c.DoLong(ctx, NewCommand("Import2").PosixPaths(c.posixPaths).Path("Filename", path))
 	return err
 }
 
@@ -211,7 +211,7 @@ func (c *Client) OpenProject(ctx context.Context, path string) error {
 	if err := checkExtension(path, []string{".aup3"}); err != nil {
 		return err
 	}
-	_, err := c.Do(ctx, NewCommand("OpenProject2").Path("Filename", path).Bool("AddToHistory", false))
+	_, err := c.Do(ctx, NewCommand("OpenProject2").PosixPaths(c.posixPaths).Path("Filename", path).Bool("AddToHistory", false))
 	return err
 }
 

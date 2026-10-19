@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 	"github.com/countrymanprime/narration-utils/shell/internal/findings"
@@ -78,7 +80,9 @@ type findingNavigation struct {
 	navigator reaperNavigator
 	// standalone is true when there is no bridge at all: the app was opened on its own, not from REAPER's action.
 	standalone bool
-	mu         sync.Mutex // guards loopingID
+	// audacity is true when the project records with Audacity: a refusal then says so in Audacity's words, not REAPER's.
+	audacity bool
+	mu       sync.Mutex // guards loopingID
 	// +checklocks:mu
 	loopingID string
 }
@@ -88,8 +92,8 @@ type findingNavigation struct {
 // changes in Settings, or REAPER going quiet and coming back, is reflected the next time a finding is navigated, not
 // only at the project's next attach. standalone still comes from client directly, exactly as before, since a resolver
 // with no adapter already refuses every call the same way.
-func newFindingNavigation(resolver *dawport.Resolver, client *bridge.Client) *findingNavigation {
-	return &findingNavigation{navigator: navigatorRole{resolver}, standalone: client == nil}
+func newFindingNavigation(resolver *dawport.Resolver, standalone, audacity bool) *findingNavigation {
+	return &findingNavigation{navigator: navigatorRole{resolver}, standalone: standalone, audacity: audacity}
 }
 
 // navigatorRole is reaperNavigator resolved through the DAW port's resolver: it asks for the Navigate role
@@ -141,16 +145,62 @@ func roleRefusal(err error) error {
 	if !errors.As(err, &notSupported) {
 		return err
 	}
+	var mapped error
 	switch notSupported.Support.Reason {
 	case dawport.ReasonStandalone:
-		return bridge.ErrUnavailable
+		mapped = bridge.ErrUnavailable
 	case dawport.ReasonNotRunning:
-		return bridge.ErrNoAnswer
+		mapped = bridge.ErrNoAnswer
 	case dawport.ReasonTurnedOff, dawport.ReasonExperimentalOff:
-		return bridge.ErrExperimentalOff
+		mapped = bridge.ErrExperimentalOff
 	default:
 		return err
 	}
+	return resolverRefusal{mapped: mapped, message: notSupported.Support.Message}
+}
+
+// resolverRefusal is a bridge sentinel (so errors.Is still finds it) that also carries the resolver's own sentence, which an engine
+// other than REAPER shows instead of REAPER's wording.
+type resolverRefusal struct {
+	mapped  error
+	message string
+}
+
+func (r resolverRefusal) Error() string { return r.mapped.Error() }
+func (r resolverRefusal) Unwrap() error { return r.mapped }
+
+// refusal is refusal(err) in the project's engine's words: REAPER's (the sentences above) or, for Audacity, the resolver's own
+// sentence when it refused, and otherwise Audacity's own, which is already a whole sentence for every pipe error.
+func (n *findingNavigation) refusal(err error) FindingNavigation {
+	out := refusal(err)
+	if !n.audacity || out.Outcome != "refused" {
+		return out
+	}
+	var byResolver resolverRefusal
+	switch {
+	case errors.As(err, &byResolver) && byResolver.message != "":
+		out.Message = byResolver.message
+	case out.Reason == refusedFailed:
+		out.Message = audacitySentence(err)
+	}
+	return out
+}
+
+// audacitySentence is err as a sentence for the narrator: the pipe's errors are whole sentences already.
+func audacitySentence(err error) string {
+	var sentence audacitybridge.Sentence
+	if errors.As(err, &sentence) {
+		return string(sentence)
+	}
+	var failed *audacitybridge.CommandError
+	if errors.As(err, &failed) {
+		return "Audacity could not do that: " + strings.Join(failed.Lines, " ")
+	}
+	text := err.Error()
+	if text != "" && text[len(text)-1] != '.' {
+		text += "."
+	}
+	return "Audacity could not do that: " + text
 }
 
 func (n *findingNavigation) looping() string {
@@ -188,6 +238,11 @@ const (
 	messageRecording      = "REAPER is recording, so nothing was moved. Stop recording first."
 	messageScriptOutdated = "The Narration Utils script in REAPER is older than this app. Import it again from this app's REAPER folder, then try again."
 	messageStaleSuffix    = ", so nothing was moved. Run the check again to find it where it is now."
+
+	// What Audacity answers where REAPER's item and take are not there to use (docs/reference/daw/capabilities.md#navigate).
+	messageAudacityNotAnswering = "Audacity is not answering. Open the Audacity chip at the top for the steps, then try again."
+	messageAudacityNoTime       = "This finding has no place in the Audacity project to go to. Run the comparison again with the chapter's audio track selected."
+	messageAudacityNoTakes      = "Audacity keeps no separate takes, so one read of a grouped finding cannot be played on its own here. Go to the finding instead."
 )
 
 // ReaperStatus is whether the Review page's REAPER controls can work now: "connected" (REAPER's heartbeat is fresh),
@@ -237,6 +292,9 @@ func (h *Host) FindingsLoop(id string) (string, error) {
 // and REAPER goes to that read's own item and take, at the start of its range in its own source. A read index the
 // finding does not have is an error, not a refusal: the page only offers the reads it was sent.
 func (h *Host) FindingsGoToRead(id string, read int) (string, error) {
+	if h.services().audacity != nil {
+		return encodeBinding(refused(refusedNoItem, messageAudacityNoTakes), nil)
+	}
 	return h.navigateFinding(id, readTarget(read), false, goTo)
 }
 
@@ -244,13 +302,16 @@ func (h *Host) FindingsGoToRead(id string, read int) (string, error) {
 // the finding's, so FindingsReaperStatus names the finding and FindingsStopLoop stops it. REAPER plays the item's
 // active take: a read that is another take of its item is heard as itself through the in-app audition instead.
 func (h *Host) FindingsLoopRead(id string, read int) (string, error) {
+	if h.services().audacity != nil {
+		return encodeBinding(refused(refusedNoItem, messageAudacityNoTakes), nil)
+	}
 	return h.navigateFinding(id, readTarget(read), true, loopFor(id))
 }
 
 func goTo(navigation *findingNavigation, target bridge.Target) FindingNavigation {
 	went, err := navigation.navigator.Navigate(context.Background(), target)
 	if err != nil {
-		return refusal(err)
+		return navigation.refusal(err)
 	}
 	return FindingNavigation{Outcome: "navigated", ProjectTime: &went.ProjectTime}
 }
@@ -259,7 +320,7 @@ func loopFor(id string) func(*findingNavigation, bridge.Target) FindingNavigatio
 	return func(navigation *findingNavigation, target bridge.Target) FindingNavigation {
 		loop, err := navigation.navigator.Loop(context.Background(), target)
 		if err != nil {
-			return refusal(err)
+			return navigation.refusal(err)
 		}
 		navigation.setLooping(id)
 		return FindingNavigation{Outcome: "looping", LoopStart: &loop.Start, LoopEnd: &loop.End}
@@ -275,7 +336,7 @@ func (h *Host) FindingsStopLoop() (string, error) {
 	}
 	stopped, err := svc.navigation.navigator.StopLoop(context.Background())
 	if err != nil {
-		return encodeBinding(refusal(err), nil)
+		return encodeBinding(svc.navigation.refusal(err), nil)
 	}
 	svc.navigation.setLooping("")
 	return encodeBinding(FindingNavigation{Outcome: "stopped", Restored: &stopped.Restored, Kept: &stopped.Kept}, nil)
@@ -294,15 +355,22 @@ func (h *Host) navigateFinding(id string, locate func(findings.Finding) (bridge.
 	if err != nil {
 		return "", err
 	}
-	target, err := locate(finding)
-	if err != nil {
-		return "", err
-	}
-	if target.ItemGUID == "" {
-		return encodeBinding(refusal(bridge.ErrNoItemIdentity), nil)
-	}
-	if needsTime && target.SourceStart == nil {
-		return encodeBinding(refusal(bridge.ErrNoSourceTime), nil)
+	var target bridge.Target
+	if svc.audacity != nil {
+		// Audacity has no items or takes: a finding is a time in the project, which the comparison recorded as its time range.
+		if target, err = audacityTarget(finding); err != nil {
+			return encodeBinding(refused(refusedNoSourceTime, messageAudacityNoTime), nil)
+		}
+	} else {
+		if target, err = locate(finding); err != nil {
+			return "", err
+		}
+		if target.ItemGUID == "" {
+			return encodeBinding(refusal(bridge.ErrNoItemIdentity), nil)
+		}
+		if needsTime && target.SourceStart == nil {
+			return encodeBinding(refusal(bridge.ErrNoSourceTime), nil)
+		}
 	}
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
 		return encodeBinding(refused(status.Connection, status.Message), nil)
@@ -311,6 +379,16 @@ func (h *Host) navigateFinding(id string, locate func(findings.Finding) (bridge.
 }
 
 var errNoProject = errors.New("no project is open")
+
+// audacityTarget places a finding for Audacity: its time range in project seconds (the adapter reads SourceStart and SourceEnd as
+// project seconds, since Audacity has no items), with no item or take.
+func audacityTarget(finding findings.Finding) (bridge.Target, error) {
+	if finding.TimeRange == nil {
+		return bridge.Target{}, bridge.ErrNoSourceTime
+	}
+	start, end := finding.TimeRange.Start, finding.TimeRange.End
+	return bridge.Target{SourceStart: &start, SourceEnd: &end}, nil
+}
 
 func findingTarget(finding findings.Finding) (bridge.Target, error) {
 	return navigationTarget(finding), nil
@@ -369,11 +447,30 @@ func navigationTarget(finding findings.Finding) bridge.Target {
 }
 
 func reaperStatus(svc hostServices) ReaperStatus {
+	if svc.audacity != nil {
+		return audacityStatus(svc)
+	}
 	switch {
 	case svc.navigation == nil || svc.navigation.standalone:
 		return ReaperStatus{Connection: reaperStandalone, Message: messageStandalone}
 	case svc.reachability == nil || !svc.reachability.Reachable():
 		return ReaperStatus{Connection: reaperNotRunning, Message: messageNotRunning}
+	}
+	return ReaperStatus{Connection: reaperConnected, LoopingFindingID: svc.navigation.looping()}
+}
+
+// audacityStatus is reaperStatus for a project that records with Audacity: connected while Audacity answers, and otherwise the
+// link state's own sentence for what is wrong and what to do (bindings_audacity_link.go).
+func audacityStatus(svc hostServices) ReaperStatus {
+	if !svc.audacity.client.Reachable() {
+		svc.audacity.mu.Lock()
+		cached := svc.audacity.cached
+		svc.audacity.mu.Unlock()
+		message := messageAudacityNotAnswering
+		if cached != nil {
+			message = cached.Message
+		}
+		return ReaperStatus{Connection: reaperNotRunning, Message: message}
 	}
 	return ReaperStatus{Connection: reaperConnected, LoopingFindingID: svc.navigation.looping()}
 }

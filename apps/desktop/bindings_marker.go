@@ -48,18 +48,31 @@ func (h *Host) FindingsAddMarker(id string) (string, error) {
 		return "", err
 	}
 	target := navigationTarget(finding)
-	switch {
-	case target.ItemGUID == "":
-		return encodeBinding(markerRefused(refusedNoItem, messageMarkerNoItem), nil)
-	case target.SourceStart == nil:
-		return encodeBinding(markerRefused(refusedNoSourceTime, messageMarkerNoSourceTime), nil)
+	if svc.audacity != nil {
+		// Audacity has no items: the label goes at the finding's time in the project.
+		placed, err := audacityTarget(finding)
+		if err != nil {
+			return encodeBinding(markerRefused(refusedNoSourceTime, messageMarkerNoSourceTime), nil)
+		}
+		target = placed
+	} else {
+		switch {
+		case target.ItemGUID == "":
+			return encodeBinding(markerRefused(refusedNoItem, messageMarkerNoItem), nil)
+		case target.SourceStart == nil:
+			return encodeBinding(markerRefused(refusedNoSourceTime, messageMarkerNoSourceTime), nil)
+		}
 	}
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
 		return encodeBinding(markerRefused(status.Connection, status.Message), nil)
 	}
 	result, err := svc.navigation.navigator.AddMarker(context.Background(), target, approvedMarker(finding, svc.settings))
 	if err != nil {
-		return encodeBinding(markerRefusal(err), nil)
+		refused := markerRefusal(err)
+		if svc.navigation.audacity {
+			refused.Message = svc.navigation.refusal(err).Message
+		}
+		return encodeBinding(refused, nil)
 	}
 	outcome := "existing"
 	if result.Added {

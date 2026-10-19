@@ -166,6 +166,9 @@ export](#comparing-the-recording-with-the-script) adds, so Export markers does n
 already has one nothing is added. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
 the DAW removes it.
 
+With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time, and a note
+from a take review's grouped reads cannot be played read by read (Audacity keeps no takes).
+
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
 under the row. A note found by an older check that did not record its item cannot be placed; run the check again. When
 the DAW refuses (the note's item was deleted or trimmed, or the DAW is recording), nothing changes and the Inspector says
@@ -272,6 +275,15 @@ When it finishes, a summary reads "N discrepancies in \<chapter>", with how many
 marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepted note, so the two never
 mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
 comparison; Export markers is off while you review it.
+
+**With Audacity,** the comparison reads the audio track you have selected in Audacity (click its name), exports it whole to a
+WAV in the project's `narration-utils/audacity-session` folder (for a long chapter that takes a while), and compares that. The
+project must be [linked in Settings](settings.md#daw-integration) and Audacity must be answering; the Audacity features here are
+Experimental and stay off until the Experimental switch is on. **Export N markers** adds a label for each discrepancy to the
+"Narration Utils" label track, named like `[nu:f0-12500] MISREAD: …`, and skips a discrepancy whose label is already there.
+Labels have no colour, so the three marker colours in Settings do not apply. Audacity reports no unsaved-changes count, so the
+"project may have changed" notice never shows. The label of **Add marker in Audacity** has the finding's words in it, not the
+`[nu:…]` identity, so adding it for a spot an export already labelled can put a second label there.
 
 Leaving the chapter view while a run is under way or showing results resets the run.
 

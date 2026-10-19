@@ -9,6 +9,7 @@ import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { dawCapabilityGate } from '../../dawAvailability';
 import { useCapability } from '../../useCapability';
+import { useDawKind } from '../../useDawKind';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
 import { Button } from '../primitives/Button';
@@ -70,8 +71,13 @@ const PROJECT_STATE_POLL_MS = 30_000;
 /** Whether "Start comparison" can run, and why not: the run
  * needs a linked REAPER project file and the DAW port's `review` capability
  * (dawport.ReviewSession). */
-function startCapability(dawFileLinked: boolean, review: CapabilityEntry): CapabilityEntry {
-  if (!dawFileLinked) return { level: 'supported', available: false, message: 'Link a REAPER project (.rpp) file to start a comparison.' };
+function startCapability(dawFileLinked: boolean, review: CapabilityEntry, audacity: boolean): CapabilityEntry {
+  if (!dawFileLinked) {
+    const message = audacity
+      ? 'Link the Audacity project to start a comparison: open Settings, Recording & DAW, and link the open project.'
+      : 'Link a REAPER project (.rpp) file to start a comparison.';
+    return { level: 'supported', available: false, message };
+  }
   const gate = dawCapabilityGate({ manuscript: false, dawFile: false }, review);
   return gate.disabled ? { ...review, available: false, message: gate.reason } : { ...review, available: true };
 }
@@ -110,6 +116,8 @@ export function CompareRun({
   foundHere: number;
 }) {
   const api = useApi();
+  // The DAW's name in the sentences about the audio and the markers: REAPER until the capabilities say Audacity.
+  const dawName = useDawKind() === 'Audacity' ? 'Audacity' : 'REAPER';
   const reviewCapability = useCapability('review');
   const [model, setModel] = useState('small');
   const [chunkIndex, setChunkIndex] = useState(1);
@@ -317,10 +325,14 @@ export function CompareRun({
       {phase === 'setup' && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span style={{ color: 'var(--text-muted)' }}>Transcribes the selected REAPER audio with Whisper and compares it with {chapterTitle}.</span>
+            <span style={{ color: 'var(--text-muted)' }}>
+              {dawName === 'Audacity'
+                ? `Transcribes the audio track selected in Audacity with Whisper and compares it with ${chapterTitle}.`
+                : `Transcribes the selected REAPER audio with Whisper and compares it with ${chapterTitle}.`}
+            </span>
             {lastCompleted ? (
               <Button variant="link" style={{ color: 'var(--text-muted)' }} onClick={onReviewLast}>
-                Last narrated take: {lastCompleted.trackName || 'Selected REAPER audio'}
+                Last narrated take: {lastCompleted.trackName || (dawName === 'Audacity' ? 'Selected Audacity track' : 'Selected REAPER audio')}
                 {lastCompleted.audioItemCount ? ` · ${lastCompleted.audioItemCount} audio item${lastCompleted.audioItemCount === 1 ? '' : 's'}` : ''}
                 {lastCompleted.completedAt ? ` · ${new Date(lastCompleted.completedAt).toLocaleString()}` : ''}
               </Button>
@@ -408,7 +420,7 @@ export function CompareRun({
           </div>
           <ProofOptions title="Compare options" group="Proof" tool="TranscriptCompare" keys={COMPARE_OPTION_KEYS} />
           <div className="flex items-center justify-end gap-4 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
-            <CapabilityGate capability={startCapability(dawFileLinked, reviewCapability)}>
+            <CapabilityGate capability={startCapability(dawFileLinked, reviewCapability, dawName === 'Audacity')}>
               <Button variant="primary" onClick={() => void start()}>
                 <FontAwesomeIcon icon={faPlay} />
                 Start comparison
@@ -490,10 +502,10 @@ export function CompareRun({
               <TooltipTarget
                 text={
                   !canExportMarkers
-                    ? 'Marker export is available only for results from this active REAPER session'
+                    ? `Marker export is available only for results from this active ${dawName} session`
                     : pendingMarkers === 0
                       ? 'No new markers are ready to export'
-                      : `Export ${pendingMarkers} new marker${pendingMarkers === 1 ? '' : 's'} to REAPER`
+                      : `Export ${pendingMarkers} new marker${pendingMarkers === 1 ? '' : 's'} to ${dawName}`
                 }
               >
                 <Button
@@ -502,7 +514,7 @@ export function CompareRun({
                   onClick={async () => {
                     try {
                       await api.transcriptExportMarkers();
-                      notify(`Exporting ${pendingMarkers} marker${pendingMarkers === 1 ? '' : 's'} to REAPER…`);
+                      notify(`Exporting ${pendingMarkers} marker${pendingMarkers === 1 ? '' : 's'} to ${dawName}…`);
                     } catch (error) {
                       notify(describeApiError(error), 'error');
                     }

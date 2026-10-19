@@ -206,3 +206,21 @@ func TestPipeTransportOutsideWindows(t *testing.T) {
 		t.Fatal("PipeTransport is nil")
 	}
 }
+
+// An export is answered when Audacity is done, which for a chapter is longer than the 5 s of an ordinary command: DoLong waits for it
+// where Do gives up and drops the connection.
+func TestDoLongWaitsForAnAnswerDoGivesUpOn(t *testing.T) {
+	client, server := newClient(t, time.Second)
+	ctx := context.Background()
+	server.Script(abt.FaultSlow)
+	if _, err := client.Do(ctx, audacitybridge.NewCommand("Message").String("Text", "x")); !errors.Is(err, audacitybridge.ErrTimeout) {
+		t.Fatalf("Do on a slow answer = %v, want a timeout", err)
+	}
+	server.Script(abt.FaultSlow)
+	if _, err := client.DoLong(ctx, audacitybridge.NewCommand("Message").String("Text", "x")); err != nil {
+		t.Fatalf("DoLong on a slow answer = %v", err)
+	}
+	if !client.Reachable() {
+		t.Error("a late answer that arrived in time must leave the client reachable")
+	}
+}

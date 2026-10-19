@@ -306,3 +306,21 @@ func TestPreferencesReadAndWrite(t *testing.T) {
 		t.Errorf("a value with a quote = %v, want ErrInvalidValue", err)
 	}
 }
+
+// A platform-neutral test run takes slash paths; the app's own client never does.
+func TestPosixPathsAreOptIn(t *testing.T) {
+	windows := audacitybridge.New(abt.NewServer().Transport(), audacitybridge.Options{})
+	server := abt.NewServer()
+	server.With(func(p *abt.Project) { p.AddWaveTrack("A", 0, 10) })
+	posix := audacitybridge.New(server.Transport(), audacitybridge.Options{PosixPaths: true})
+	if err := windows.Export(context.Background(), "/tmp/a.wav", 1); !errors.Is(err, audacitybridge.ErrInvalidValue) {
+		t.Errorf("the default client took a slash path: %v", err)
+	}
+	for _, path := range []string{"/tmp/a.wav", "tmp/a.wav", "//server/a.wav", "/tmp/../a.wav", "C:/a.wav"} {
+		err := posix.Export(context.Background(), path, 1)
+		wantOK := path == "/tmp/a.wav"
+		if wantOK != (err == nil) {
+			t.Errorf("posix client, %q: %v", path, err)
+		}
+	}
+}

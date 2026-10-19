@@ -9,7 +9,7 @@ Engine facts the Audacity adapter depends on, as of 2026-10-19. The protocol bel
 - **One command per read, at most 1024 bytes.** The client refuses a line over 1020 bytes and a text value over 900.
 - **A reply is lines, a terminator, then an empty line.** The terminator is exactly `BatchCommand finished: OK` or `Failed!`; anything else drops the connection.
 - **No project window answers with a bare empty line.** The client reports "no project" and keeps the connection.
-- **No server-side timeout.** A modal dialog holds the answer, so the client times out at 5 s, closes the connection and reconnects on the next request.
+- **No server-side timeout.** A modal dialog holds the answer, so the client times out at 5 s (60 s for an export, an import or a macro, which Audacity answers when it has finished), closes the connection and reconnects on the next request.
 
 ## Linking
 

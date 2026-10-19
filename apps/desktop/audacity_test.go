@@ -1,13 +1,11 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
+	"time"
 )
 
 // `--daw Audacity` reaches the host the way the REAPER launcher's `--daw REAPER` does,
@@ -75,7 +73,8 @@ func TestAnAudacityLaunchResolvesEveryTierOfTheLayeredSettings(t *testing.T) {
 }
 
 // A session directory on an Audacity launch is not REAPER's to open: nothing may write bridge commands for it, and the review
-// workflow fails the run with the "not available yet" sentence instead of hanging on a DAW that will never answer.
+// workflow fails the run with the resolver's sentence (the Experimental switch, then Audacity not answering) instead of hanging on a
+// DAW that will never answer.
 func TestAnAudacityLaunchOpensNoReaperBridgeAndItsReviewFailsClearly(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	project, session := audacityProject(t), t.TempDir()
@@ -86,10 +85,30 @@ func TestAnAudacityLaunchOpensNoReaperBridgeAndItsReviewFailsClearly(t *testing.
 		t.Fatal("an Audacity launch must not open the REAPER bridge")
 	}
 	err := host.transcript.Start(map[string]string{})
-	if !errors.Is(err, audacity.ErrNotAvailable) {
-		t.Fatalf("Start() = %v, want ErrAudacityNotAvailable", err)
+	if err == nil || !strings.HasPrefix(err.Error(), "Experimental: switched off in Settings.") {
+		t.Fatalf("Start() = %v, want the Experimental refusal", err)
 	}
-	if state := host.transcript.Snapshot(); state["phase"] != "error" || !strings.HasPrefix(state["message"].(string), "Audacity support is not available yet.") {
+	if state := host.transcript.Snapshot(); state["phase"] != "error" || !strings.HasPrefix(state["message"].(string), "Experimental: switched off in Settings.") {
+		t.Fatalf("state = %v / %v", state["phase"], state["message"])
+	}
+	// With the switch on, a closed Audacity is said to be closed, in the pipe's words.
+	on := "true"
+	if err := host.saveSettings("DAW", "global", map[string]*string{"experimental_reaper_actions": &on}); err != nil {
+		t.Fatal(err)
+	}
+	if err := host.transcript.Reset(); err != nil {
+		t.Fatal(err)
+	}
+	if err := host.transcript.Start(map[string]string{"model": "small"}); err != nil {
+		t.Fatalf("Start() with the switch on = %v", err)
+	}
+	// The pipe's answer arrives as an event: the run fails with Audacity's own sentence, and nothing waits on a REAPER.
+	deadline := time.Now().Add(5 * time.Second)
+	for host.transcript.Snapshot()["phase"] != "error" && time.Now().Before(deadline) {
+		_ = host.transcript.Drain()
+		time.Sleep(10 * time.Millisecond)
+	}
+	if state := host.transcript.Snapshot(); state["phase"] != "error" || !strings.Contains(state["message"].(string), "Audacity") {
 		t.Fatalf("state = %v / %v", state["phase"], state["message"])
 	}
 	if entries, _ := os.ReadDir(filepath.Join(session, "commands")); len(entries) != 0 {
@@ -138,7 +157,7 @@ func TestAPickerSwitchKeepsAnAudacityLaunchAnAudacityOne(t *testing.T) {
 }
 
 // After the switch the review workflow still answers as the Audacity adapter, never through REAPER's bridge.
-func TestAnAudacityLaunchPickedInTheAppStillRefusesReviewClearly(t *testing.T) {
+func TestAnAudacityLaunchPickedInTheAppStillGatesReviewClearly(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := NewHost()
 	host.configureLocked(parseConfigArgs(host.config.repoRoot, []string{"--daw", "Audacity"}))
@@ -148,7 +167,7 @@ func TestAnAudacityLaunchPickedInTheAppStillRefusesReviewClearly(t *testing.T) {
 	if host.bridge != nil {
 		t.Fatal("an Audacity launch must not open the REAPER bridge after a picker switch")
 	}
-	if err := host.transcript.Start(map[string]string{}); !errors.Is(err, audacity.ErrNotAvailable) {
-		t.Fatalf("Start() = %v, want ErrAudacityNotAvailable", err)
+	if err := host.transcript.Start(map[string]string{}); err == nil || !strings.HasPrefix(err.Error(), "Experimental: switched off in Settings.") {
+		t.Fatalf("Start() = %v, want the Experimental refusal", err)
 	}
 }
