@@ -13,7 +13,7 @@ import type { NarrationApi } from '../../../types';
 import { apiWithTracks, dawClientFor } from './fixtures';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor } from './recordSetupModel';
-import { POLL_MS, stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
+import { POLL_MS, START_GUARD_MS, START_GUARD_SENTENCE, stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake, skipStartGuard } from './useRecordControl';
 
 // The Booth records with the app's own recorder through the DAW port. These drive the control over a port whose answers the test
 // controls, one cell of the state matrix at a time (definition-of-done, rule 3). The host's side is bindings_booth_record_test.go.
@@ -135,6 +135,33 @@ describe('Record with the built-in recorder', () => {
     expect(result.current.recording).toBe(true);
   });
 
+  it('a second press right after a take started is not a Stop: it is ignored and says why (issue 2202)', async () => {
+    const recordStart = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const recordStop = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const { result, notify } = hook(BUILTIN, createMockApi(), { recordStart, recordStop });
+    await waitFor(() => expect(result.current.disabled).toBe(false));
+    await act(() => result.current.toggle());
+    expect(result.current.recording).toBe(true);
+    await act(() => result.current.toggle());
+    expect(recordStop).not.toHaveBeenCalled();
+    expect(result.current.recording).toBe(true);
+    expect(notify).toHaveBeenCalledWith(START_GUARD_SENTENCE);
+  });
+
+  it('a Stop after the start guard has passed stops the take', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const recordStop = vi.fn(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    const { result } = hook(BUILTIN, createMockApi(), { recordStop });
+    await waitFor(() => expect(result.current.disabled).toBe(false));
+    await act(() => result.current.toggle());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(START_GUARD_MS + 10);
+    });
+    await act(() => result.current.toggle());
+    expect(recordStop).toHaveBeenCalledTimes(1);
+    expect(result.current.recording).toBe(false);
+  });
+
   it("a take that ends by itself (the microphone unplugged) is said with the recorder's reason, and Record is ready again", async () => {
     const api = createMockApi({}, { recording: { engine: 'builtin', lastTakeFailed: true } });
     const { result, transport, notify } = hook(BUILTIN, api);
@@ -210,6 +237,7 @@ describe('Record with the built-in recorder', () => {
     await waitFor(() => expect(result.current.disabled).toBe(false));
     await act(() => result.current.toggle());
     act(() => transport({ playing: false, recording: true }));
+    skipStartGuard();
     await act(() => result.current.toggle());
     expect(result.current.recording).toBe(false);
     expect(notify).not.toHaveBeenCalled();
@@ -227,6 +255,7 @@ describe('Record with the built-in recorder', () => {
     });
     await waitFor(() => expect(result.current.disabled).toBe(false));
     await act(() => result.current.toggle());
+    skipStartGuard();
     await act(() => result.current.toggle());
     expect(result.current.recording).toBe(false);
     expect(result.current.reason).toMatch(/not recording/);

@@ -15,6 +15,11 @@ export const TAKE_TOPIC = 'daw-take';
 /** How often the Booth asks again while Record is ready and idle: another project can be opened in the DAW with no event to say so. */
 export const READY_POLL_MS = 15_000;
 
+/** How long after a take starts that a press is not taken for Stop: a double click or a key repeat must not start and end a take at once. */
+export const START_GUARD_MS = 1000;
+/** What the Booth says when a press inside that guard is ignored. */
+export const START_GUARD_SENTENCE = 'Recording just started. Press Stop again in a moment if you meant to stop.';
+
 function tracksOf(status: ReadAloudReaperStatus, reason?: ReadAloudReaperReason): ChapterRecordState['tracks'] {
   if (status !== 'no_link') return 'one';
   return reason === 'several_links' ? 'several' : 'none';
@@ -32,8 +37,8 @@ export type RecordControlState = {
   /** `reason` is about the chapter's track link (none, or several), which the audio engine panel fixes. */
   reasonIsTrackLink?: boolean;
   disabled: boolean;
-  /** Start or stop a take (the `reading.toggle` command), a start at `at` seconds when it is a punch. A start that a precondition stops says why through `notify` and starts nothing. Answers whether the take started. */
-  toggle: (at?: number) => Promise<boolean>;
+  /** Start or stop a take (the `reading.toggle` command), a start at `at` seconds when it is a punch. A start that a precondition stops says why through `notify` and starts nothing. Answers whether the take started. A narrator's press within `START_GUARD_MS` of a start is ignored (a double click or key repeat is not a Stop); an `automatic` stop, the Booth's own, is never. */
+  toggle: (at?: number, how?: { automatic?: boolean }) => Promise<boolean>;
   /** The take was stopped by another path (the leave guard's "Stop and leave"): the Booth stops holding it now, not when the DAW's next heartbeat says so. */
   stopped: () => void;
   /** Read the capabilities again, after a setting the Booth itself changed. */
@@ -90,9 +95,16 @@ const lostInDaw = (daw: DawKind | undefined) => {
 // reloads its page): the take goes on in the DAW, and when the Booth is opened again that take is still the app's own to stop. A take the app
 // never started (the DAW was already recording when the app opened) is not claimed, and a page reload forgets this, as it should.
 let appTakeRunning = false;
+// When the last take started (ms since the epoch): a stop pressed inside START_GUARD_MS of it is ignored.
+let lastStartAt = 0;
 /** Forgets a take the app started; for tests that share the module. */
 export const forgetAppTake = (): void => {
   appTakeRunning = false;
+  lastStartAt = 0;
+};
+/** Lets the next Stop through as if the start guard had passed; for tests that start and stop at once. */
+export const skipStartGuard = (): void => {
+  lastStartAt = 0;
 };
 
 export function useRecordControl({ chapterId, notify }: { chapterId: string; notify: (sentence: string, topic?: string) => void }): RecordControlState {
@@ -374,10 +386,14 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   recordingRef.current = recording;
 
   const toggle = useCallback(
-    async (at?: number): Promise<boolean> => {
+    async (at?: number, how?: { automatic?: boolean }): Promise<boolean> => {
       if (busy.current) return false;
       if (!recordingRef.current && gateRef.current) {
         notify(gateRef.current);
+        return false;
+      }
+      if (recordingRef.current && !how?.automatic && Date.now() - lastStartAt < START_GUARD_MS) {
+        notify(START_GUARD_SENTENCE);
         return false;
       }
       busy.current = true;
@@ -399,6 +415,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
         const result = await (starting ? daw.recordStart(chapterId, at) : daw.recordStop());
         if (result.ok) {
           setRefused(null);
+          if (starting) lastStartAt = Date.now();
           setRecording(starting);
           return starting;
         } else {

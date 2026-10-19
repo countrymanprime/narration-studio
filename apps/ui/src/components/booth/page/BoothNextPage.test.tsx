@@ -36,7 +36,7 @@ import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText'
 import { BoothNextPage } from './BoothNextPage';
 import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
-import { forgetAppTake } from '../record/useRecordControl';
+import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -108,8 +108,10 @@ function Driver() {
   return null;
 }
 
+// A key press is a narrator's, never the double-fire the start guard ignores (the guard has its own tests in record/recordBuiltIn.test.tsx).
 const press = (key: string, code = key, init: KeyboardEventInit = {}, target: Element = document.body) =>
   act(() => {
+    skipStartGuard();
     fireEvent.keyDown(target, { key, code, ...init });
   });
 const space = () => press(' ', 'Space');

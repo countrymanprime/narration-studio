@@ -15,7 +15,7 @@ import { apiWithTracks, dawClientFor, REFUSALS, setupCapabilities, type TrackKin
 import { RecordControl } from './RecordControl';
 import { recordCheck } from './recordCheck';
 import { SetupChip } from './SetupChip';
-import { useRecordControl, forgetAppTake } from './useRecordControl';
+import { useRecordControl, forgetAppTake, skipStartGuard } from './useRecordControl';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -106,6 +106,7 @@ describe('Record preconditions on the Record control', () => {
     await userEvent.click(record());
     expect(start).toHaveBeenCalledExactlyOnceWith('c1', undefined);
     await waitFor(() => expect(record().textContent).toBe('Stop'));
+    skipStartGuard();
     await userEvent.click(record());
     expect(stop).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(record().textContent).toBe('Record'));
@@ -212,6 +213,7 @@ describe('useRecordControl', () => {
     await waitFor(() => expect(result.current.project?.savedAt).toBe('2026-09-26T08:40'));
     const before = read.mock.calls.length;
     await act(() => result.current.toggle());
+    skipStartGuard();
     await act(() => result.current.toggle());
     await waitFor(() => expect(read.mock.calls.length).toBeGreaterThan(before));
   });
