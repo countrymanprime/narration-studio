@@ -1,4 +1,10 @@
-export type RecentProject = { path: string; name: string; lastOpened: string };
+/** `pinned` keeps the entry in the picker's pinned group; the host keeps it past the recent-list cap. */
+export type RecentProject = { path: string; name: string; lastOpened: string; pinned: boolean };
+/**
+ * ProjectRunningDaw's result: the recent project (other than the open one) whose linked REAPER file is the project REAPER has open.
+ * `linked` is false, with `path` and `name` empty, when there is none or no REAPER session is up.
+ */
+export type RunningDawProject = { linked: boolean; path: string; name: string };
 export type ProjectFolderSelection = { selected: boolean; path?: string };
 export type ProjectSwitchResult = { switched: boolean; reason?: string };
 /** ProjectDefaultLocation's result: the folder an empty `createProject` parent creates in; empty when no home folder resolves. */
@@ -28,6 +34,10 @@ export interface ProjectApi {
   /** The default projects folder createProject('', name) creates in, for the New Project dialog to show. */
   projectDefaultLocation(): Promise<ProjectDefaultLocation>;
   removeRecentProject(path: string): Promise<RecentProject[]>;
+  /** Pins or unpins a recent project and resolves with the updated list. */
+  setProjectPinned(path: string, pinned: boolean): Promise<RecentProject[]>;
+  /** The recent project the running DAW has open, for the picker's "REAPER is running with a project linked to" banner. */
+  projectRunningDaw(): Promise<RunningDawProject>;
   /**
    * Opens a native "*.rpp" file dialog and links the chosen file to the current project (one shared binding behind the audio engine panel
    * and Settings' DAW category).

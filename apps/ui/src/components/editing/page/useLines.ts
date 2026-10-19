@@ -37,7 +37,7 @@ function linesToAsk(ranges: readonly ParagraphRange[], marks: readonly PassageMa
   return ranges.filter((r) => r.heard || booth.has(r.id));
 }
 
-const takeOf = (c: PassageTake): LineTake => ({
+const takeOf = (c: PassageTake, items: WorkspaceAlignmentResult['items']): LineTake => ({
   id: c.id,
   label: c.label,
   active: c.active,
@@ -46,7 +46,14 @@ const takeOf = (c: PassageTake): LineTake => ({
   sourceFile: c.sourceFile,
   sourceStart: c.sourceStart,
   sourceLength: c.sourceLength,
+  ...startOf(c, items),
 });
+
+/** Where the item the take sits on begins in the project, when the alignment names that item and its position. */
+function startOf(c: PassageTake, items: WorkspaceAlignmentResult['items']): { start?: number } {
+  const position = items.find((i) => i.itemGuid === c.itemGuid)?.position;
+  return position === undefined ? {} : { start: position };
+}
 
 export interface Lines {
   /** The lines with takes, by paragraph id. A line's id is its paragraph's, so the script, the takes and the stack records name one line. */
@@ -97,7 +104,14 @@ export function useLines(chapterId: string, ws: WorkspaceAlignmentResult | null)
         for (const one of all) {
           if (!one || one.answer.candidates.length === 0) continue;
           const { r, answer } = one;
-          byId.set(r.id, { id: r.id, chapterId, firstToken: r.firstToken, lastToken: r.lastToken, script: r.text, takes: answer.candidates.map(takeOf) });
+          byId.set(r.id, {
+            id: r.id,
+            chapterId,
+            firstToken: r.firstToken,
+            lastToken: r.lastToken,
+            script: r.text,
+            takes: answer.candidates.map((c) => takeOf(c, ws?.items ?? [])),
+          });
           if (answer.passageId) passageIds.set(answer.passageId, r.id);
         }
         setLines({ byId, passageIds });
@@ -105,7 +119,7 @@ export function useLines(chapterId: string, ws: WorkspaceAlignmentResult | null)
     return () => {
       live = false;
     };
-  }, [workspace, passageMap, chapterId, ranges]);
+  }, [workspace, passageMap, chapterId, ranges, ws]);
 
   const measure = useCallback(
     (id: string) => {

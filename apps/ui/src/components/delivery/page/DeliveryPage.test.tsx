@@ -64,10 +64,42 @@ describe('DeliveryPage', () => {
     mount(BLOCKED);
     const button = await screen.findByRole('button', { name: /Build .* package/ });
     await screen.findByText('1 failing, 1 not ready');
-    expect(button).toHaveProperty('disabled', true);
+    expect(button).toHaveProperty('disabled', false);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByText('2 of 4')).toBeTruthy();
     expect(screen.getByText('Fails 2 checks')).toBeTruthy();
     expect(screen.getByText('Not mastered')).toBeTruthy();
+  });
+
+  it('keeps a blocked Build focusable, described by its reason, and says why a press builds nothing', async () => {
+    const packageStart = vi.fn(async () => PACKAGE_DONE);
+    mount(BLOCKED, { packageStart });
+    const button = await screen.findByRole('button', { name: /Build .* package/ });
+    await screen.findByText('1 failing, 1 not ready');
+    expect(button).toHaveProperty('disabled', false);
+    const why = document.getElementById(button.getAttribute('aria-describedby') ?? '');
+    expect(why?.textContent).toBe('1 failing, 1 not ready');
+    await userEvent.tab();
+    await userEvent.tab();
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    expect(screen.queryByRole('status')).toBeNull();
+    await userEvent.click(button);
+    expect(packageStart).not.toHaveBeenCalled();
+    expect(screen.getByRole('status').textContent).toBe('Nothing was built: 1 failing, 1 not ready');
+  });
+
+  it('says nothing is mastered as the reason when no chapter has been measured, and drops the note once every chapter passes', async () => {
+    mount([]);
+    const button = await screen.findByRole('button', { name: /Build .* package/ });
+    await screen.findByText('0 failing, 4 not ready');
+    expect(document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent).toBe('0 failing, 4 not ready');
+    cleanup();
+    mount(PASSING);
+    const ready = await screen.findByRole('button', { name: /Build .* package/ });
+    await screen.findByText('Every chapter passes.');
+    expect(ready.getAttribute('aria-disabled')).toBeNull();
+    expect(ready.getAttribute('aria-describedby')).toBeNull();
   });
 
   it('names the first failing chapter, the rule, its value and its limit beside the disabled Build, and names none when nothing fails', async () => {
@@ -82,7 +114,7 @@ describe('DeliveryPage', () => {
   it('names the first not-ready chapter and why beside the disabled Build when nothing fails, and nothing when nothing was measured', async () => {
     mount([passing('Chapter 01.wav'), passing('Chapter 02.wav')]);
     expect((await screen.findByText('Chapter 03: no measured file yet.')).textContent).toBe('Chapter 03: no measured file yet.');
-    expect(screen.getByRole('button', { name: /Build .* package/ })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: /Build .* package/ }).getAttribute('aria-disabled')).toBe('true');
     cleanup();
     mount([]);
     await screen.findByText('0 failing, 4 not ready');
@@ -169,7 +201,7 @@ describe('DeliveryPage', () => {
       mount(PASSING, { creditsTemplates: async () => TEMPLATES });
       await screen.findByText('4 of 6');
       expect(await screen.findByText('0 failing, 2 not ready')).toBeTruthy();
-      expect(screen.getByRole('button', { name: /Build .* package/ })).toHaveProperty('disabled', true);
+      expect(screen.getByRole('button', { name: /Build .* package/ }).getAttribute('aria-disabled')).toBe('true');
     });
 
     it('draws a kind the library has no template for as no row', async () => {

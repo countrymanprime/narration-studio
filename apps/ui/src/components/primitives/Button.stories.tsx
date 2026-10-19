@@ -7,7 +7,7 @@ const meta = {
   component: Button,
   args: { children: 'Save changes', onClick: fn() },
   argTypes: {
-    variant: { control: 'radio', options: ['primary', 'secondary', 'ghost', 'danger', 'link'] },
+    variant: { control: 'radio', options: ['primary', 'secondary', 'ghost', 'danger', 'inverse', 'link'] },
     size: { control: 'radio', options: ['lg', 'md', 'sm'] },
   },
 } satisfies Meta<typeof Button>;
@@ -23,6 +23,15 @@ export const Primary: Story = { args: { variant: 'primary' } };
 export const Secondary: Story = { args: { variant: 'secondary' } };
 // Secondary without the fill, for a button on a tinted surface.
 export const Ghost: Story = { args: { variant: 'ghost' } };
+// For a button on an ink-coloured surface: it takes that surface's text colour and draws no border or fill.
+export const Inverse: Story = {
+  args: { variant: 'inverse' },
+  render: (args) => (
+    <div className="inline-flex rounded-lg bg-[var(--text)] p-1 text-[var(--surface)]">
+      <Button {...args} />
+    </div>
+  ),
+};
 export const Danger: Story = { args: { variant: 'danger', children: 'Delete' } };
 
 export const PrimarySmall: Story = { args: { variant: 'primary', size: 'sm', children: 'Punch & roll here' } };

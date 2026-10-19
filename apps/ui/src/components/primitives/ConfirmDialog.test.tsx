@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfirmDialog } from './ConfirmDialog';
 
@@ -148,5 +149,47 @@ describe('ConfirmDialog', () => {
     // @ts-expect-error danger is required with dangerLabel
     const missingHandler = <ConfirmDialog title="Unsaved" body="x" confirmLabel="Save" confirm={() => {}} dangerLabel="Discard" cancel={() => {}} />;
     expect([missingLabel, missingHandler]).toHaveLength(2);
+  });
+
+  // Opened with focus on <body> (a key pressed with nothing focused, as the Booth's Escape), a safe-default question opens on the decline button and
+  // closes with focus still on <body>: not on the page's <main> and not on its first control.
+  it.each([true, false])('safeDefault=%s: where focus opens and where it lands after Cancel', async (safe) => {
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <main tabIndex={-1}>
+            <button>First control</button>
+          </main>
+          <button onClick={() => setOpen(true)} data-testid="open">
+            Open
+          </button>
+          {open && (
+            <ConfirmDialog
+              title="Stop recording?"
+              body="It is recording."
+              confirmLabel="Stop and leave"
+              confirm={() => setOpen(false)}
+              cancel={() => setOpen(false)}
+              cancelLabel="Keep recording"
+              focusCancel={safe}
+              stayOnBody={safe}
+            />
+          )}
+        </>
+      );
+    }
+    render(<Harness />);
+    const opener = screen.getByTestId('open');
+    // Open without focusing the opener, as a keyboard shortcut does.
+    fireEvent.click(opener);
+    const dialog = await screen.findByRole('alertdialog');
+    const keep = within(dialog).getByRole('button', { name: 'Keep recording' });
+    if (safe) await waitFor(() => expect(document.activeElement).toBe(keep));
+    else expect(document.activeElement).not.toBe(keep);
+    fireEvent.click(keep);
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    if (safe) expect(document.activeElement).toBe(document.body);
+    else await waitFor(() => expect(document.querySelector('main')?.contains(document.activeElement)).toBe(true));
   });
 });

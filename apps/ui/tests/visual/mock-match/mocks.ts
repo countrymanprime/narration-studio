@@ -42,6 +42,11 @@ export const SPEC_DIR = 'docs/research/mockups/audiobook-studio-benchmark';
 
 export const APPROVED_MOCKS: ApprovedMock[] = [
   {
+    file: '01-production-home.webp',
+    theme: 'light',
+    unscored: 'retired as a target (D98): the Studio Next mock is the frozen reference for Production since the Production swap (#2107)',
+  },
+  {
     file: '02-prep-script.webp',
     theme: 'light',
     unscored: 'the Script page follows the Studio Next mock, the frozen reference for a page it covers (D98); this benchmark is not its target',

@@ -205,3 +205,44 @@ describe('no-audio-state', () => {
     expect(document.body.textContent).toMatch(/No audio to draw/);
   });
 });
+
+describe('Ribbon header', () => {
+  it('names the active take and the span the waveform draws', async () => {
+    const doc = marksDoc();
+    const para = doc.paras[1];
+    render(
+      <ApiProvider api={withPeaks(peaks(0, 20))}>
+        <EditingPageProvider doc={doc}>
+          <Driver run={(d) => d({ type: 'place', key: 'p-2:1' })} />
+          <Ribbon chapterId="chapter-1" pid="p-2" take="T-7" />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    click();
+    const head = await waitFor(() => {
+      const el = document.querySelector('[data-ribbon-head]');
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    const mmss = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
+    expect(head.textContent).toBe(`T-7active take · ${mmss(para.start ?? 0)} to ${mmss(para.end ?? 0)}`);
+  });
+  it('says recording, with a dash for the id, when the line has no take', async () => {
+    const doc = marksDoc();
+    render(
+      <ApiProvider api={withPeaks(peaks(0, 20))}>
+        <EditingPageProvider doc={doc}>
+          <Driver run={(d) => d({ type: 'place', key: 'p-2:1' })} />
+          <Ribbon chapterId="chapter-1" pid="p-2" />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    click();
+    const head = await waitFor(() => {
+      const el = document.querySelector('[data-ribbon-head]');
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(head.textContent).toMatch(/^—recording · /);
+  });
+});

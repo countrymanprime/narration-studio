@@ -21,6 +21,16 @@ export const projectStates: StateEntry[] = [
   },
   {
     page: 'project',
+    state: 'picker-pinned',
+    description: 'A recent project pinned - its row moves to the top and its pin toggle reads pressed',
+  },
+  {
+    page: 'project',
+    state: 'picker-daw-running',
+    description: 'REAPER running with a project linked to a recent project (?mockNoProject=1&mockDawRunning=1) - the banner above the list offers Open',
+  },
+  {
+    page: 'project',
     state: 'picker-no-recents',
     description: 'Every recent project removed - the list says there are none; New project and Browse folders stay',
   },

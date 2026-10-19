@@ -75,6 +75,10 @@ const STATUS = {
   kept_take: { label: 'Kept', tone: 'success' },
   active_take: { label: 'Active', tone: 'info' },
   suggested_take: { label: 'Suggested', tone: 'accent' },
+  // A line's later reads sit on the first read's spot (a stack), and the first read is the one they sit on; a hidden take is muted in the DAW.
+  stacked_take: { label: 'Stacked', tone: 'info' },
+  first_read: { label: 'First read', tone: 'neutral' },
+  hidden_take: { label: 'Hidden', tone: 'neutral' },
 } as const satisfies Record<string, { label: string; tone: StatusTone }>;
 
 export type StatusId = keyof typeof STATUS;

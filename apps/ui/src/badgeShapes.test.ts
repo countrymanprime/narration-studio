@@ -24,7 +24,6 @@ const PENDING: Record<string, Partial<Record<Shape, number>> & { owner: string }
   // The Proof notes header's sources line and the legend's dots.
   // The bookmark ribbon's note dot: a 6 px dot absolutely placed on the ribbon icon, which `Dot` (8 px, inline) does not size or place.
   // The take chip's state dot and the check card's count chip (SN-E5, SN-Q66) landed with no row; both should migrate onto `Dot` and `Badge`.
-  'src/components/editing/takes/TakeChip.tsx': { dot: 1, owner: 'state dot, #1119' },
   'src/components/proof/checkcard/CheckCard.tsx': { chip: 1, owner: 'count chip, #1119' },
   'src/components/script/bookmarks/ui/BookmarkRibbon.tsx': { dot: 1, owner: 'note dot on the ribbon, #1119' },
   // The Story Bible's kind chip (SN-B94, the mock's `.chip`): a 28 px pill with the kind's swatch, which `Pill`'s uppercase label-only look does not draw.

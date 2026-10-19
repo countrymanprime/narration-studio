@@ -44,10 +44,6 @@ a zoom chip when you are zoomed, and the engine chip. Below 860 px a hamburger b
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it, and opening a
 recent project there switches to it.
 
-![The header in the Light theme: Project, the project's name, Jump to or run… and the engine chip](../../images/ui/nav-rail-collapsed.webp)
-
-![The same header in the Dark theme](../../images/ui/nav-rail-collapsed-dark.webp)
-
 There are no Back and Forward, Undo or History buttons, folder icon or always-visible zoom controls in the header, and no timer chip. Reach them from **Jump to or run…** or by key: Back and Forward are `Alt+Left` and `Alt+Right`, Undo is `Ctrl+Z`, the undo history is `Ctrl+Shift+H`, and zoom is `Ctrl+=`, `Ctrl+-` and `Ctrl+0` ([the table below](#jump-to-or-run) lists each command and when it is off).
 
 ### Jump to or run
@@ -98,7 +94,7 @@ chapter, or the previous Story Bible entry are not Back steps.
 
 A link the app cannot open (a typed address it cannot read, or one that names a chapter or line the book does not have) shows
 **This link could not be opened** with **Open** *page* (the solid button) and **Go to Production** (quieter); both replace the link, so Back does not return to it.
-A link to a chapter the list does not have yet is checked first: the list is read once more, and meanwhile Proof, Editing and the Booth show their title and grey blocks with **Checking this link…**. If the chapter turns up the page opens; if the list cannot be read, the page opens as well.
+A link to a chapter the list does not have yet is checked first: the list is read once more, and meanwhile Proof, Editing and the Booth show their title and grey blocks with **Checking this link…** (the Booth, which has no sidebar, adds **Go to Production**). If the chapter turns up the page opens; if the list cannot be read, the page opens as well.
 The [Booth](booth.md#the-credits) fills the window and has no rail, so there Escape also leaves the message: for [Pickups](pickups.md) when the link still names pickups, otherwise for [Script](script.md).
 
 ## Zoom

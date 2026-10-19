@@ -1,19 +1,31 @@
+import type { ReactNode } from 'react';
 import { useBoothSideOpen } from '../side/BoothSidePanel';
 import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 
 // The Booth while its chapters are read: the same frame as `BoothSession` (the top bar's height, the reading column, the side panel's 20 rem
 // when it is inline, the footer), so the page does not jump when it arrives. The page's hidden h1 stays outside it, in `BoothNextPage`.
 // The side panel is a drawer at 1280 px and below (`useBoothSideOpen`), so it is not drawn then, as it is not drawn closed.
-// `label` and `status` default to the first read of the chapters; the address gate passes its own while it re-reads the chapter list.
-export function BoothSkeleton({ label = 'Loading the Booth', status = 'Reading the chapters…' }: { label?: string; status?: string }) {
+// `label` and `status` default to the first read of the chapters; the address gate passes its own while it re-reads the chapter list, with
+// `title` and `exit` to stand in the top bar's first and last blocks: a Booth that is only checking a link has no sidebar to leave by.
+export function BoothSkeleton({
+  label = 'Loading the Booth',
+  status = 'Reading the chapters…',
+  title,
+  exit,
+}: {
+  label?: string;
+  status?: string;
+  title?: ReactNode;
+  exit?: ReactNode;
+}) {
   const { drawer } = useBoothSideOpen();
   return (
     <LoadingRegion label={label} status={status} className="flex size-full flex-col bg-[var(--bg)]">
       <div className="flex min-h-13 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-1.5">
-        <Skeleton className="h-8 w-56 max-w-full" />
+        {title ?? <Skeleton className="h-8 w-56 max-w-full" />}
         <Skeleton className="hidden w-40 sm:block" />
         <span className="flex-1" />
-        <Skeleton className="w-24" />
+        {exit ?? <Skeleton className="w-24" />}
       </div>
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1 px-7">
