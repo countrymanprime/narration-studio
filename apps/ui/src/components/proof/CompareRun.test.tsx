@@ -557,3 +557,25 @@ describe('the running phase progress bar', () => {
     expect(bar.getAttribute('aria-valuenow')).toBe('63');
   });
 });
+
+describe('CompareRun for an Audacity project', () => {
+  it('words the setup, the gate and the export for Audacity, never REAPER', async () => {
+    const props = {
+      chapterTitle: 'Chapter 1',
+      state: WIRE_TRANSCRIPT,
+      notify: vi.fn(),
+      reviewingLast: false,
+      onReviewLast: vi.fn(),
+      onCloseLast: vi.fn(),
+      foundHere: 0,
+    };
+    render(
+      <ApiProvider api={createMockApi({}, { daw: { daw: 'Audacity' } })}>
+        <CompareRun {...props} dawFileLinked={false} />
+      </ApiProvider>,
+    );
+    expect(await screen.findByText(/Transcribes the audio track selected in Audacity/)).toBeTruthy();
+    expect(screen.getByText(/Link the Audacity project to start a comparison/)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/REAPER/);
+  });
+});

@@ -202,6 +202,10 @@ func (c *Client) deliver(event Event) {
 	}
 }
 
+// Wants reports whether the event reaches this subscription: its tag matches one of Tags, it has a Handle, and (when it carries a run ID)
+// Owns accepts it. An engine that has no event log of its own (Audacity's review session) delivers through its own queue with this.
+func (s Subscription) Wants(event Event) bool { return s.wants(event) }
+
 func (s Subscription) wants(event Event) bool {
 	matched := false
 	for _, tag := range s.Tags {

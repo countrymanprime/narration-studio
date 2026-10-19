@@ -44,6 +44,14 @@ func newAudacityConn(project string, reporter *persist.Reporter, store *settings
 	return newAudacityConnOver(audacitybridge.New(audacitybridge.PipeTransport(), audacitybridge.Options{}), project, reporter, store)
 }
 
+// openAudacityConn is the connection for the project being attached: over the real pipe, or the fake one a test set.
+func (h *Host) openAudacityConn(project string, store *settings.Store) *audacityConn {
+	if h.audacityPipe != nil {
+		return newAudacityConnOver(h.audacityPipe(), project, h.persist, store)
+	}
+	return newAudacityConn(project, h.persist, store)
+}
+
 // newAudacityConnOver is newAudacityConn over client, which a test gives a fake pipe.
 func newAudacityConnOver(client *audacitybridge.Client, project string, reporter *persist.Reporter, store *settings.Store) *audacityConn {
 	adapter := audacity.NewWithBackups(client, audacity.BackupsConfig{

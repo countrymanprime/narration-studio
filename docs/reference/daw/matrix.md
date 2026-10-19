@@ -6,7 +6,7 @@ What each engine declares for each capability today. The levels are the adapters
 
 | Capability | Role | Needs | REAPER 7.x | Audacity 3.x | Audacity 4.x | Built-in recorder |
 | --- | --- | --- | --- | --- | --- | --- |
-| `review` | `ReviewSession` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |
+| `review` | `ReviewSession` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
 | `navigate` | `Navigator` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
 | `markers` | `MarkerWriter` | Engine answering | Supported | Experimental | Not reachable | Unsupported |
 | `pickups` | `PickupList` | Engine answering | Supported | Not yet available | Not reachable | Unsupported |

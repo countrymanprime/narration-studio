@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/character"
 	"github.com/countrymanprime/narration-utils/shell/internal/cleanuptools"
@@ -413,6 +414,8 @@ type Host struct {
 	audacityRunning func() bool
 	audacityLaunch  func(program string, args []string) error
 	audacityConfig  func() string
+	// audacityPipe makes the Audacity client a project opens; nil means the real scripting pipe. A test gives it a fake pipe.
+	audacityPipe func() *audacitybridge.Client
 	// dawCatalogDetectors is a seam for tests (dawcatalog.go): nil means dawcatalog.DefaultDetectors(), the real
 	// per-entry registry/path lookups. Detection is stateless and not project-scoped, so unlike the swappable
 	// services above it needs no lock or snapshot - it is set once (or left nil) and read directly.
@@ -671,13 +674,27 @@ func (h *Host) configureLocked(next config) {
 	// consumers of bridge.Client's fan-out (events.go), so neither steals the other's events.
 	h.reachability = daw.NewReachability(client)
 	h.bridge = client
-	// The review workflow's session follows the project's DAW: REAPER's bridge (or none), or for an Audacity project one that
-	// answers "not available yet" until the Audacity pipe client exists.
-	review := reaper.ReviewFor(client)
-	if projectKind == dawport.KindAudacity {
-		review = audacity.UnavailableReview()
+	// The project's Audacity connection (audacityconn.go) is made before the services that take its roles; a project that records with
+	// anything else has none. The previous project's is closed, which drops its pipe.
+	if h.audacity != nil {
+		h.audacity.close()
 	}
-	h.transcript = transcript.NewWithReview(transcript.Config{Project: h.config.projectFolder, SessionDir: h.config.sessionDir, Python: h.config.comparePython, Backend: h.config.compareBackend}, review, h.settings, h.sidecars, h.emitTranscript)
+	h.backupKeeper, h.audacity = nil, nil
+	if h.config.projectFolder != "" && projectKind.HasScriptingPipe() {
+		h.audacity = h.openAudacityConn(h.config.projectFolder, h.settings)
+		h.backupKeeper = h.audacity.backups
+	}
+	// The review workflow's session follows the project's DAW: REAPER's bridge (or none), or for an Audacity project the Audacity
+	// adapter's review role, which exports the selected audio track and answers in the same events (internal/dawport/audacity/review.go).
+	// The comparison's results and progress files go under the project for Audacity, which has no REAPER session folder.
+	review := reaper.ReviewFor(client)
+	sessionDir := h.config.sessionDir
+	if h.audacity != nil {
+		review = h.gatedAudacityReview(h.audacity)
+		sessionDir = audacity.SessionFolder(h.config.projectFolder)
+		_ = os.MkdirAll(sessionDir, 0o755)
+	}
+	h.transcript = transcript.NewWithReview(transcript.Config{Project: h.config.projectFolder, SessionDir: sessionDir, Python: h.config.comparePython, Backend: h.config.compareBackend}, review, h.settings, h.sidecars, h.emitTranscript)
 	h.transcript.SetPersist(h.persist)
 	h.transcript.SetFindings(h.findings, h.manuscript)
 	projectFolder, settingsStore := h.config.projectFolder, h.settings
@@ -773,17 +790,11 @@ func (h *Host) configureLocked(next config) {
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
 		h.monitorLeveler, h.placeFollower = nil, nil
 	}
-	if h.audacity != nil {
-		h.audacity.close()
-	}
 	// Only an Audacity project has a backups role: REAPER and the built-in recorder declare backups not yet
-	// available or unsupported, and the table lives in the project folder. The same connection serves every other Audacity role.
-	h.backupKeeper, h.audacity = nil, nil
-	if h.config.projectFolder != "" && projectKind == dawport.KindAudacity {
-		h.audacity = newAudacityConn(h.config.projectFolder, h.persist, settingsStore)
-		h.backupKeeper = h.audacity.backups
+	// available or unsupported, and the table lives in the project folder. The connection was made above.
+	if h.audacity != nil {
 		// The prune runs after the lock is released, over a snapshot taken here: services() cannot be called under h.mu.
-		snapshot := hostServices{config: h.config, settings: h.settings, bridge: h.bridge, reachability: h.reachability, backupKeeper: h.backupKeeper}
+		snapshot := hostServices{config: h.config, settings: h.settings, bridge: h.bridge, reachability: h.reachability, backupKeeper: h.backupKeeper, audacity: h.audacity}
 		go h.pruneBackupsOnOpen(snapshot, h.backupKeeper)
 	}
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
@@ -801,13 +812,18 @@ func (h *Host) configureLocked(next config) {
 	// closure below: the closure outlives configureLocked's lock and a later project switch reassigns h.reachability,
 	// so reading the field itself from the closure would race that reassignment.
 	reach := h.reachability
+	runtime := func() dawport.Runtime { return dawport.Runtime{Bridge: client != nil, Reachable: reach.Reachable()} }
+	// An Audacity project's consumers take the Audacity adapter's own roles over its one pipe client, and its runtime is that pipe's.
+	if conn := h.audacity; conn != nil {
+		dawPortAdapter, runtime = conn.adapter, conn.runtime
+	}
 	h.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{
 		Adapter:      dawPortAdapter,
-		Runtime:      func() dawport.Runtime { return dawport.Runtime{Bridge: client != nil, Reachable: reach.Reachable()} },
+		Runtime:      runtime,
 		Toggle:       dawport.SettingsToggles(settingsStore.Effective),
 		Experimental: dawport.SettingsExperimental(settingsStore.Effective),
 	})
-	h.navigation = newFindingNavigation(h.dawPortResolver, client)
+	h.navigation = newFindingNavigation(h.dawPortResolver, client == nil && h.audacity == nil, h.audacity != nil)
 	// The pickup, line-identity, render-config and cleanup-tool services take the DAW port's roles instead of the
 	// raw bridge client: each depends on dawport.PickupList, LineStamper,
 	// RenderConfigurer or CleanupLauncher, never a concrete adapter, so a second engine can serve them unchanged.

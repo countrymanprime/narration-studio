@@ -36,19 +36,18 @@ func newAudacityLinkFixture(t *testing.T) *audacityLinkFixture {
 	}
 	host := NewHost()
 	host.platform = "windows"
+	f := &audacityLinkFixture{host: host, server: abt.NewServer(), config: filepath.Join(t.TempDir(), "audacity.cfg"), running: new(bool), exe: new(string), launched: new([][]string)}
+	*f.exe = `C:\Program Files\Audacity\Audacity.exe`
+	client := audacitybridge.New(f.server.Transport(), audacitybridge.Options{Timeout: time.Second, PosixPaths: true})
+	t.Cleanup(func() { _ = client.Close() })
+	host.audacityPipe = func() *audacitybridge.Client { return client }
 	next := host.config
 	next.projectFolder = folder
 	next.daw = "Audacity"
 	if attached, reason := host.attachProjectLocked(next); !attached {
 		t.Fatalf("attach failed: %s", reason)
 	}
-	f := &audacityLinkFixture{host: host, server: abt.NewServer(), config: filepath.Join(t.TempDir(), "audacity.cfg"), running: new(bool), exe: new(string), launched: new([][]string)}
-	*f.exe = `C:\Program Files\Audacity\Audacity.exe`
-	client := audacitybridge.New(f.server.Transport(), audacitybridge.Options{Timeout: time.Second})
-	t.Cleanup(func() { _ = client.Close() })
 	host.mu.Lock()
-	host.audacity = newAudacityConnOver(client, folder, host.persist, host.settings)
-	host.backupKeeper = host.audacity.backups
 	host.audacityConfig = func() string { return f.config }
 	host.audacityRunning = func() bool { return *f.running }
 	host.audacityLocate = func() (string, string, error) {

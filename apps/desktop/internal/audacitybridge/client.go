@@ -22,6 +22,9 @@ const LineEnd = "\r\n\x00"
 type Options struct {
 	Timeout time.Duration
 	LineEnd string
+	// PosixPaths accepts absolute paths that start with a slash (Audacity on Linux or macOS) instead of Windows drive paths. The
+	// app is Windows-only; a platform-neutral test run sets it, and nothing in the app does.
+	PosixPaths bool
 }
 
 // Client sends one command at a time over a Transport and reads its framed reply. It connects on the first request, and after any
@@ -31,9 +34,10 @@ type Options struct {
 // It is safe for concurrent use; requests are serialised, because the pipe carries one conversation.
 type Client struct {
 	// Set once in New and read-only after, so no lock guards them (Do reads them before it locks).
-	transport Transport
-	timeout   time.Duration
-	lineEnd   string
+	transport  Transport
+	timeout    time.Duration
+	lineEnd    string
+	posixPaths bool
 
 	mu sync.Mutex // guards conn and reader, and serialises requests
 	// +checklocks:mu
@@ -47,7 +51,7 @@ type Client struct {
 
 // New is a client over transport. It opens nothing until the first request.
 func New(transport Transport, opts Options) *Client {
-	c := &Client{transport: transport, timeout: opts.Timeout, lineEnd: opts.LineEnd}
+	c := &Client{transport: transport, timeout: opts.Timeout, lineEnd: opts.LineEnd, posixPaths: opts.PosixPaths}
 	if c.timeout <= 0 {
 		c.timeout = DefaultTimeout
 	}
@@ -73,11 +77,24 @@ func (c *Client) LastSeen() time.Time {
 // pipe is ErrNotReachable; no complete answer within the timeout (or before ctx ends) is ErrTimeout; a broken frame is a
 // *ProtocolError. A command with a refused value sends nothing and returns its ErrInvalidValue.
 func (c *Client) Do(ctx context.Context, cmd *Command) (Reply, error) {
+	return c.do(ctx, cmd, c.timeout)
+}
+
+// LongTimeout is how long a command that works through audio (an export, an import, a macro) may take: Audacity answers it on its
+// main thread only when it is done, and a chapter's export is longer than DefaultTimeout.
+const LongTimeout = 60 * time.Second
+
+// DoLong is Do for a command that works through audio, with LongTimeout in place of the client's own (never shorter than it).
+func (c *Client) DoLong(ctx context.Context, cmd *Command) (Reply, error) {
+	return c.do(ctx, cmd, max(c.timeout, LongTimeout))
+}
+
+func (c *Client) do(ctx context.Context, cmd *Command, timeout time.Duration) (Reply, error) {
 	line, err := cmd.Encode()
 	if err != nil {
 		return Reply{}, err
 	}
-	transport, timeout := c.transport, c.timeout
+	transport := c.transport
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if err := ctx.Err(); err != nil {

@@ -13,6 +13,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
 )
@@ -33,7 +34,12 @@ const (
 	FaultHangUp
 	// FaultFail answers "BatchCommand finished: Failed!" with a reason line, whatever the command.
 	FaultFail
+	// FaultSlow answers normally, after SlowDelay: a long export or macro, which Audacity answers when it is done.
+	FaultSlow
 )
+
+// SlowDelay is how long FaultSlow holds an answer back.
+const SlowDelay = 1500 * time.Millisecond
 
 // Server is the fake. The zero value is not usable; call NewServer.
 type Server struct {
@@ -149,6 +155,10 @@ func (s *Server) serve(conn *pipeEnd) {
 			continue
 		}
 		var out string
+		if fault == FaultSlow {
+			time.Sleep(SlowDelay)
+			fault = FaultNone
+		}
 		switch fault {
 		case FaultHang:
 			// Keep reading nothing until the client hangs up.

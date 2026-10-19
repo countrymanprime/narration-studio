@@ -64,6 +64,7 @@ var declares = func() map[dawport.Capability]dawport.Level {
 	// input_level is Unsupported, not NotYetAvailable: an audio interface's input gain is its driver's, so no Audacity version of this
 	// app can add it. monitor_level stays NotYetAvailable like the rest: Audacity's monitoring output is not built.
 	d[dawport.CapInputLevel] = dawport.Unsupported
+	d[dawport.CapReview] = dawport.Experimental
 	d[dawport.CapNavigate] = dawport.Experimental
 	d[dawport.CapMarkers] = dawport.Experimental
 	d[dawport.CapMacroRender] = dawport.Experimental
@@ -132,6 +133,7 @@ const (
 type Adapter struct {
 	client  *audacitybridge.Client
 	session *Session
+	review  *Review
 	backups *Backups
 	steps   *steps
 }
@@ -157,7 +159,8 @@ func New(client *audacitybridge.Client) *Adapter { return NewWithBackups(client,
 // NewWithBackups is the adapter over client whose backups role keeps its table under backups.Project.
 func NewWithBackups(client *audacitybridge.Client, backups BackupsConfig) *Adapter {
 	keeper := NewBackups(client, backups)
-	return &Adapter{client: client, session: NewSession(client), backups: keeper, steps: &steps{client: client, backups: keeper}}
+	session := NewSession(client)
+	return &Adapter{client: client, session: session, review: NewReview(session), backups: keeper, steps: &steps{client: client, backups: keeper}}
 }
 
 func (a *Adapter) Kind() dawport.Kind { return dawport.KindAudacity }
@@ -172,6 +175,8 @@ func (a *Adapter) Role(c dawport.Capability) any {
 		return a.steps
 	}
 	switch c {
+	case dawport.CapReview:
+		return a.review
 	case dawport.CapNavigate, dawport.CapMarkers:
 		return a.session
 	case dawport.CapMacroRender:

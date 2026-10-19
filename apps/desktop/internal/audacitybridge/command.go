@@ -21,6 +21,8 @@ type Command struct {
 	name   string
 	params []param
 	err    error
+	// posixPaths accepts an absolute path that starts with a slash instead of a drive letter (see Client's Options.PosixPaths).
+	posixPaths bool
 }
 
 type param struct {
@@ -33,6 +35,13 @@ func NewCommand(name string) *Command {
 	if !isIdentifier(name) {
 		c.err = fmt.Errorf("%w: command name %q", ErrInvalidValue, name)
 	}
+	return c
+}
+
+// PosixPaths makes Path accept an absolute path that starts with a slash, as Audacity on Linux and macOS takes it, in place of a
+// Windows drive path. Set it before Path. The app is Windows-only (D74); this exists for the platform-neutral test runs.
+func (c *Command) PosixPaths(on bool) *Command {
+	c.posixPaths = on
 	return c
 }
 
@@ -61,7 +70,7 @@ func (c *Command) String(key, value string) *Command {
 // with a double quote, a control character or a `..` element is refused.
 func (c *Command) Path(key, path string) *Command {
 	if c.checkKey(key) {
-		if err := checkPath(path); err != nil {
+		if err := checkPath(path, c.posixPaths); err != nil {
 			c.err = fmt.Errorf("%w: %s: %v", ErrInvalidValue, key, err)
 		} else {
 			c.params = append(c.params, param{key, `"` + strings.ReplaceAll(path, `\`, "/") + `"`})
@@ -70,8 +79,12 @@ func (c *Command) Path(key, path string) *Command {
 	return c
 }
 
-func checkPath(path string) error {
-	if len(path) < 3 || !isDriveLetter(path[0]) || path[1] != ':' || (path[2] != '\\' && path[2] != '/') {
+func checkPath(path string, posix bool) error {
+	if posix {
+		if len(path) < 2 || path[0] != '/' || path[1] == '/' {
+			return fmt.Errorf("not an absolute local path")
+		}
+	} else if len(path) < 3 || !isDriveLetter(path[0]) || path[1] != ':' || (path[2] != '\\' && path[2] != '/') {
 		return fmt.Errorf("not an absolute path on a local drive")
 	}
 	for _, part := range strings.FieldsFunc(path, func(r rune) bool { return r == '/' || r == '\\' }) {
