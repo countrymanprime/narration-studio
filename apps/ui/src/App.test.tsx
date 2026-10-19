@@ -58,7 +58,7 @@ const appToasts = (role: 'status' | 'alert') => {
 // The header carries only the jump button now (the Studio Next mock's top bar): Back, Forward, Undo, History and the zoom steps are jump-menu commands.
 // Opens the menu from its button, narrows to commands, and returns the row named `label` (its name starts with the label).
 async function jumpRow(label: string) {
-  fireEvent.click(screen.getByRole('button', { name: 'Jump to or run…' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Jump to or run…/ }));
   fireEvent.change(await screen.findByRole('combobox', { name: 'Jump menu' }), { target: { value: `> ${label}` } });
   return screen.findByRole('option', { name: new RegExp(`^${label}`) });
 }
