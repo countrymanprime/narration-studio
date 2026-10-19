@@ -258,4 +258,11 @@ export const boothStates: StateEntry[] = [
       'The Companion while its chapters are still being read (?mockChapters=loading): the whole-window column with its Companion title and grey blocks where the playhead badge, Full app and the sections will be, with one polite "Reading the chapters…" status',
     ...COMPANION,
   },
+  {
+    page: 'booth',
+    state: 'address-checking',
+    description:
+      'Booth opened from a link to a chapter the list does not have, while the list is read once more (?mockChapters=reread-hangs, at /booth?chapter=gone): the Booth\'s top bar, reading column, side panel and footer as grey blocks, with one polite "Checking this link…" status',
+    ...REFLOW,
+  },
 ];

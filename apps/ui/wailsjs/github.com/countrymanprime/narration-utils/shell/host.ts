@@ -2074,21 +2074,22 @@ export function ProductionStartTimer(chapterID: string, stage: string): $Cancell
 }
 
 /**
- * ProductionStatusReport writes the book's status report: hours by stage, PFH, the deadline and milestone
- * status, and book-wide readiness counts, as an HTML and a JSON file. includeContractedAmount is the narrator's choice
- * to write the contracted amount and the effective rate; off by default, since a status report is often shared with
- * someone the narrator would not otherwise tell their rate. It refuses without a project.
+ * ProductionStatusReport writes the book's status report, as an HTML and a JSON file, with the sections include ticks:
+ * words and finished audio, hours by stage and PFH, the deadline and milestones, the chapters held back, and
+ * book-wide readiness counts. include.Money is the narrator's choice to write the contracted amount and the effective
+ * rate; off by default, since a status report is often shared with someone the narrator would not otherwise tell their
+ * rate. It refuses without a project.
  */
-export function ProductionStatusReport(includeContractedAmount: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1628238977, includeContractedAmount);
+export function ProductionStatusReport(include: $models.ProductionReportInclude): $CancellablePromise<string> {
+    return $Call.ByID(1628238977, include);
 }
 
 /**
  * ProductionStatusReportPreview answers the document ProductionStatusReport would write, without writing anything
- * includeContractedAmount is the same opt-in as the export's.
+ * include is the same choice of sections as the export's.
  */
-export function ProductionStatusReportPreview(includeContractedAmount: boolean): $CancellablePromise<string> {
-    return $Call.ByID(1952080667, includeContractedAmount);
+export function ProductionStatusReportPreview(include: $models.ProductionReportInclude): $CancellablePromise<string> {
+    return $Call.ByID(1952080667, include);
 }
 
 /**

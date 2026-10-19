@@ -66,15 +66,18 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
     expect(busy('Rescan occurrences')).toBe(true);
   });
 
-  it('Add alias', () => {
+  it('Add a name', () => {
     const guideEdit = neverAnswers<void>();
     renderDetail({ guideEdit });
     edit();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' }), { target: { value: 'Ali' } });
-    press('Add alias');
+    const box = screen.getByRole('textbox', { name: 'Add a name' });
+    fireEvent.change(box, { target: { value: 'Ali' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
     acknowledged();
     expect(guideEdit).toHaveBeenCalledTimes(1);
-    expect(busy('Add alias')).toBe(true);
+    // A second Enter while it runs writes nothing more.
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(guideEdit).toHaveBeenCalledTimes(1);
   });
 
   it('keeps an alias the narrator typed while another action was running, instead of clearing it and adding nothing', () => {
@@ -82,7 +85,7 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
     renderDetail({ guideEdit, guideRescan: neverAnswers<void>() });
     edit();
     press('Rescan occurrences', 1);
-    const box = screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' });
+    const box = screen.getByRole('textbox', { name: 'Add a name' });
     fireEvent.change(box, { target: { value: 'Ali' } });
     fireEvent.keyDown(box, { key: 'Enter' });
     acknowledged();
@@ -99,7 +102,7 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
     acknowledged();
     expect(guideUnrelate).toHaveBeenCalledTimes(1);
     // Another action waits while one runs: this is not a second press of the same button, it is a different button.
-    press('Add alias', 1);
+    expect((screen.getByRole('button', { name: 'Add a relationship' }) as HTMLButtonElement).disabled).toBe(true);
     expect(guideRelate).not.toHaveBeenCalled();
   });
 

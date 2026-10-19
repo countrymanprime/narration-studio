@@ -23,6 +23,7 @@ export function Popover({
   open,
   defaultOpen,
   onOpenChange,
+  fitToWindow = false,
   children,
 }: {
   // The trigger's own element (a `Button`, an `IconButton`), the same `render` pattern as `Menu` and `TooltipTarget`.
@@ -35,6 +36,9 @@ export function Popover({
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  // Keep the popup inside the window, in the window's own bounds and even when its trigger has scrolled out of view or the window shrank under it:
+  // a trigger in a scrolling panel (a dot in the Editing script) would otherwise leave the popup past the window's edge.
+  fitToWindow?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -43,7 +47,15 @@ export function Popover({
       <BasePopover.Trigger render={trigger} />
       <BasePopover.Portal>
         {/* Measured on read-aloud-control-bar/03 and 04: 12 px from the trigger, 16 px padding, radius 8, at least 336 px wide. */}
-        <BasePopover.Positioner side={side} align={align} sideOffset={12} collisionPadding={8} className="z-[var(--z-dialog-popover)]">
+        <BasePopover.Positioner
+          side={side}
+          align={align}
+          sideOffset={12}
+          collisionPadding={8}
+          collisionBoundary={fitToWindow ? document.documentElement : undefined}
+          sticky={fitToWindow}
+          className="z-[var(--z-dialog-popover)]"
+        >
           <BasePopover.Popup
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}

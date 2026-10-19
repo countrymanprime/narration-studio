@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -132,6 +132,43 @@ describe('AddressGate', () => {
     view.rerender([{ id: 'c1' }, { id: 'c3' }]);
     await act(async () => resolve());
     expect(screen.getByText('the page')).toBeTruthy();
+  });
+
+  // The state matrix for the re-read: checking (the page's title and blocks, one polite status), found, gone, and the host not answering.
+  describe('while it re-reads the chapter list', () => {
+    const checking = (page: AddressPage, at: string, route: string) => {
+      const reload = vi.fn(() => new Promise<void>(() => {}));
+      mount({ at, page, route, reload, param: 'c9' });
+    };
+
+    it.each([
+      ['proof', 'Proof', '/proof?chapter=c9', '/proof'],
+      ['editing', 'Editing', '/editing/c9', '/editing/:chapterId'],
+      ['booth', 'Booth', '/booth?chapter=c9', '/booth'],
+    ] as const)('%s keeps its title and draws one busy region with the single status in place of a bare sentence', (page, title, at, route) => {
+      checking(page, at, route);
+      expect(screen.getByRole('heading', { level: 1, name: title })).toBeTruthy();
+      const region = screen.getByRole('group', { name: 'Checking this link' });
+      expect(region.getAttribute('aria-busy')).toBe('true');
+      expect(within(region).getByRole('status').textContent).toBe('Checking this link…');
+      expect(screen.getAllByRole('status')).toHaveLength(1);
+      expect(screen.queryByText('the page')).toBeNull();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('is replaced by the bad-address message, with its way out, when the fresh list still lacks the chapter', async () => {
+      mount({ at: '/proof?chapter=c9', page: 'proof', route: '/proof' });
+      await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('not in this manuscript'));
+      expect(screen.queryByRole('group', { name: 'Checking this link' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Open Proof' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Go to Production' })).toBeTruthy();
+    });
+
+    it('opens the page, not an endless skeleton, when the re-read fails', async () => {
+      mount({ at: '/proof?chapter=c9', page: 'proof', route: '/proof', reload: () => Promise.reject(new Error('no answer')) });
+      await waitFor(() => expect(screen.getByText('the page')).toBeTruthy());
+      expect(screen.queryByRole('group', { name: 'Checking this link' })).toBeNull();
+    });
   });
 
   it('says the chapter is gone when the fresh list still lacks it, and keeps the way out', async () => {

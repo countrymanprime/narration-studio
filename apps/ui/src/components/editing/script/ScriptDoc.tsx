@@ -3,6 +3,7 @@ import { Button } from '../../primitives/Button';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { flagged, type ChapterDoc } from '../model';
 import { useEditingPage } from './EditingPageState';
+import { MovedSampleMarks } from '../voicesample/SampleMark';
 import { Paragraph } from './Paragraph';
 import { playable, playingKey } from './playing';
 import { useAnnounceCursor } from './useAnnounceCursor';
@@ -103,6 +104,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
         onMouseDown={onDown}
         onMouseOver={onOver}
       >
+        <MovedSampleMarks />
         {doc.paras.map((dp) => {
           const pid = dp.p.id;
           return (

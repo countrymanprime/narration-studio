@@ -127,6 +127,16 @@ export type ProductionStartResult =
 
 export type ProductionStopResult = { stopped: true; session: ProductionSession } | { stopped: false; session: null };
 
+/** The sections of the status report the narrator can tick; `money` is the contracted amount and effective rate (off by default). */
+export type ProductionReportInclude = {
+  words: boolean;
+  stages: boolean;
+  milestones: boolean;
+  pickups: boolean;
+  delivery: boolean;
+  money: boolean;
+};
+
 /**
  * What one status report export wrote (ProductionStatusReport): the folder
  * relative to the project (`narration-utils/production/reports`), the two file names in it, and whether the narrator
@@ -138,6 +148,8 @@ export type ProductionReportExport = {
   htmlFile: string;
   jsonFile: string;
   contractedAmountIncluded: boolean;
+  /** The sections the files hold. */
+  include: ProductionReportInclude;
 };
 
 /**
@@ -152,6 +164,8 @@ export type ProductionReportPreview = {
   folder: string;
   stem: string;
   contractedAmountIncluded: boolean;
+  /** The sections the preview holds. */
+  include: ProductionReportInclude;
 };
 
 /**
@@ -185,16 +199,16 @@ export interface ProductionApi {
   /**
    * Writes an HTML and a JSON status report (hours by stage, PFH, the deadline and milestone status, and book-wide
    * readiness counts) into the project's sidecar folder, from exactly the same figures `productionOverview` just
-   * answered. `includeContractedAmount` writes the contracted amount and effective rate; off by default. Rejects
-   * without a project.
+   * answered. `include` ticks the sections written; `include.money` writes the contracted amount and effective rate and is
+   * off by default. Rejects without a project.
    */
-  productionStatusReport(includeContractedAmount: boolean): Promise<ProductionReportExport>;
+  productionStatusReport(include: ProductionReportInclude): Promise<ProductionReportExport>;
   /**
    * The status report an export would write now, built by the host from the same model as `productionStatusReport`,
-   * so the preview is the written file. Writes nothing; `includeContractedAmount` is the same opt-in. Rejects without
+   * so the preview is the written file. Writes nothing; `include` is the same choice of sections. Rejects without
    * a project.
    */
-  productionStatusReportPreview(includeContractedAmount: boolean): Promise<ProductionReportPreview>;
+  productionStatusReportPreview(include: ProductionReportInclude): Promise<ProductionReportPreview>;
   /** The book's logged hours by day, one point per day from the first stopped session to the last; empty until one
    * is logged. Data only, for a chart primitive that does not exist yet. */
   productionBurndown(): Promise<ProductionBurndownPoint[]>;

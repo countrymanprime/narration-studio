@@ -184,6 +184,12 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'report-dialog',
+    description:
+      'Production, Export status report: two panes, the Include checkboxes (with the contracted amount and rate, off) and the format beside a tall live preview, under the 26 px title and "project · as of date"',
+  },
+  {
+    page: 'production',
     state: 'recording-check-options',
     description:
       "Production, a chapter's recording check panel with its Check options section open: Speech model, Larger model, the score under which words are looked at again, Chunk length, Parallel processes, Crossover and Chapters at once",
@@ -343,6 +349,6 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'loading',
     description:
-      'Production while the production log is still being read (?mockHold=overview): the page header (title, counts, buttons) as usual and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
+      'Production while the production log is still being read (?mockHold=overview): the page header with its title and buttons, and grey blocks where the chapter and word counts, the due date and the verdict will be (never "0 chapters" or "No due date set"), and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
   },
 ];

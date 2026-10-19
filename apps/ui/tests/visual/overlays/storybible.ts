@@ -42,6 +42,7 @@ export const storyBibleCases: OverlayCase[] = [
     },
   },
   fromState('storybible', 'delete-confirm'),
+  fromState('storybible', 'relationship-picker', 'popover'),
   fromState('storybible', 'import-dialog'),
   fromState('storybible', 'voice-download-confirm'),
   fromState('storybible', 'voice-data-panel', 'dialog', { root: (page) => page.getByRole('dialog', { name: 'Voice data' }) }),

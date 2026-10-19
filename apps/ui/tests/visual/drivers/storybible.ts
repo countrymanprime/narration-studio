@@ -106,20 +106,18 @@ export const storybibleDrivers: Record<string, Driver> = {
     await goToPage(page, 'Story Bible');
     await entryRows(page).first().click();
   },
-  'alias-typeahead': async (page) => {
-    await goToPage(page, 'Story Bible');
-    await entryRows(page).first().click();
-    // "at" matches multiple canonical names in the mock fixture set
-    // (Hatter, Caterpillar, Cheshire Cat) regardless of which entity the
-    // fixture data happens to sort first into the row - findAliasMatches
-    // excludes the selected entity by id, not by name, so this can't
-    // accidentally match zero results.
-    // Entries open read-only: unlock if needed, then Edit, before
-    // the alias field accepts input.
-    const unlock = page.getByRole('button', { name: 'Unlock entry' });
-    if (await unlock.count()) await unlock.click();
-    await clickVisible(page, 'button', 'Edit this entry');
-    await page.getByPlaceholder('Add an alias or find a matching entry…').fill('at');
+  'name-clash': async (page) => {
+    await openForEditing(page, 'Alice');
+    // "White Rabbit" is another entry's name, so adding it offers the merge instead of a second copy.
+    const box = page.getByRole('textbox', { name: 'Add a name' });
+    await box.fill('White Rabbit');
+    await box.press('Enter');
+    await page.getByRole('button', { name: 'Merge into this entry' }).waitFor();
+  },
+  'relationship-picker': async (page) => {
+    await openForEditing(page, 'Alice');
+    await page.getByRole('button', { name: /^To: / }).first().click();
+    await page.getByRole('listbox', { name: 'Matching entries' }).waitFor();
   },
   'entry-needs-review': async (page) => {
     await goToPage(page, 'Story Bible');

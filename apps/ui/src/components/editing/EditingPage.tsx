@@ -48,6 +48,8 @@ export interface EditingPageProps {
   onImport?: () => void;
   /** Opens the manuscript text at a paragraph of a chapter (the recording check's passage links). */
   onGoToParagraph?: (chapterId: string, index: number) => void;
+  /** Opens a character's Story Bible entry (the voice-sample dots' "Open in Story Bible"). Absent: no link is drawn. */
+  onOpenStoryBible?: (entityId: string) => void;
 }
 
 /** The strip and the drawer: page state that a chapter change keeps. */
@@ -78,7 +80,7 @@ export function EditingPage(props: EditingPageProps) {
   return <EditingLoaded {...props} />;
 }
 
-function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onChapter, onGoToParagraph }: EditingPageProps) {
+function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onChapter, onGoToParagraph, onOpenStoryBible }: EditingPageProps) {
   const manuscript = usePort('manuscript');
   const keymap = useUserKeymap();
   const daw = useDawStatus();
@@ -154,6 +156,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
               step={step}
               checkChapter={chapters?.find((c) => c.id === chapter.id)}
               onGoToParagraph={(index) => onGoToParagraph?.(chapter.id, index)}
+              onOpenStoryBible={onOpenStoryBible}
             />
           ) : chapters ? (
             <Panel title="This manuscript has no chapters to edit">
@@ -193,6 +196,7 @@ type ChapterProps = {
   step: (d: 1 | -1) => void;
   checkChapter?: ManuscriptChapter;
   onGoToParagraph: (index: number) => void;
+  onOpenStoryBible?: (entityId: string) => void;
 };
 
 /** One chapter on the page. Keyed by it, so a chapter change starts with no cursor, selection, card or playhead. */
@@ -209,6 +213,7 @@ function EditingChapter({
   step,
   checkChapter,
   onGoToParagraph,
+  onOpenStoryBible,
 }: ChapterProps) {
   const { source, setCuts, setEffects, reloadAccepted, reread, retry } = useChapterSource(chapterId, name);
   const stripFits = width >= STRIP_MIN_WIDTH;
@@ -250,6 +255,7 @@ function EditingChapter({
         onReread={reread}
         checkChapter={checkChapter}
         onGoToParagraph={onGoToParagraph}
+        onOpenStoryBible={onOpenStoryBible}
         caps={caps}
         keymap={keymap}
         stripFits={stripFits}
