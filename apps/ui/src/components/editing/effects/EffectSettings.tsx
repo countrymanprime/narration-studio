@@ -86,7 +86,7 @@ const refusal = (code: string, reason: string): Result<never> => ({ ok: false, r
 const okOrRefusal = (res: DawResult): Result<DawResult> => (res.ok ? { ok: true, value: res } : refusal(res.code ?? 'daw_refused', res.refused ?? res.message));
 
 /** The first and last alignment tokens of an effect's script words, or null when it has none. */
-function targetOf(fx: WordFx, chapterId: string, locator: RangeLocator): FxRangeTarget | null {
+export function targetOf(fx: WordFx, chapterId: string, locator: RangeLocator): FxRangeTarget | null {
   const tokens = fx.keys.map((k) => locator.token(k)).filter((t): t is number => t !== undefined);
   return tokens.length ? { chapterId, firstToken: Math.min(...tokens), lastToken: Math.max(...tokens), chainName: fx.chainId } : null;
 }

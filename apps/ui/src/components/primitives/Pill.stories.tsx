@@ -39,3 +39,7 @@ export const AnnouncesItsPressedState: Story = {
     await expect(canvas.getByRole('button', { name: 'medium', pressed: true })).toBeVisible();
   },
 };
+
+// The list filter: 28 px, a round pill in sentence case, the ink fill when pressed.
+export const FilterInactive: Story = { args: { look: 'filter', label: 'To review 5' } };
+export const FilterActive: Story = { args: { look: 'filter', label: 'All 14', active: true } };

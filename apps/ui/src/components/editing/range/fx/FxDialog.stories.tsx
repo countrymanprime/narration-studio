@@ -40,6 +40,8 @@ function Question({ plan, over = null }: { plan: Acting; over?: string | null })
         locator={locator}
         snap={snap}
         overOf={() => (over ? { overlaps: [], cap: over, text: over } : null)}
+        compareReason={() => ''}
+        onCompare={fn()}
         onCancel={fn()}
         onConfirm={fn()}
       />
