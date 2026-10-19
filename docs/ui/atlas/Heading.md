@@ -21,7 +21,8 @@ Storybook title: `Primitives/Heading`. Source: `src/components/primitives/Headin
 
 ## Used by
 
-- `src/components/delivery/page/DeliveryPage.tsx`
+- `src/components/booth/page/BoothUnavailable.tsx`
+- `src/components/delivery/profile/ProfileCard.tsx`
 - `src/components/editing/page/EditingHeader.tsx`
 - `src/components/layout/AddressGate.tsx`
 - `src/components/layout/LoadError.tsx`
@@ -35,6 +36,8 @@ Storybook title: `Primitives/Heading`. Source: `src/components/primitives/Headin
 - `src/components/project/ProjectPicker.tsx`
 - `src/components/proof/ProofChapterPage.tsx`
 - `src/components/proof/frame/ProofHeader.tsx`
+- `src/components/proof/frame/ProofSkeleton.tsx`
 - `src/components/schedule/SchedulePage.tsx`
+- `src/components/schedule/ScheduleSkeleton.tsx`
 - `src/components/settings/page/SettingsPage.tsx`
 - `src/components/storybible/Guide.tsx`

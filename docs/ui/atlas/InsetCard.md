@@ -37,8 +37,13 @@ Storybook title: `Primitives/InsetCard`. Source: `src/components/primitives/Inse
 - `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/series/SeriesTab.tsx`
 - `src/components/settings/KeyboardPanel.tsx`
-- `src/components/settings/OnlineDictionaryPanel.tsx`
+- `src/components/settings/controls/CreditsBody.tsx`
+- `src/components/settings/controls/ShortcutsBody.tsx`
+- `src/components/settings/page/ModelsPane.tsx`
 - `src/components/settings/page/ReaderTextPanel.tsx`
+- `src/components/settings/page/SettingsPage.tsx`
 - `src/components/stages/StageEvidence.tsx`
 - `src/components/storybible/DialogueCueAttribution.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
+- `src/components/storybible/suggested/row/SuggestionRow.tsx`
+- `src/components/storybible/voicesamples/VoiceSampleRow.tsx`
