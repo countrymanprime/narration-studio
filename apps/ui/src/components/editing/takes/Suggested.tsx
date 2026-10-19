@@ -15,7 +15,7 @@ export function Suggested({ suggestion, labelOf }: { suggestion: Suggestion; lab
     <section
       aria-label="Suggested take"
       data-suggested
-      className="flex flex-col gap-1.5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--info-soft)] p-2.5"
+      className="flex flex-col gap-1.5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--accent-soft)] p-2.5"
     >
       <div className="flex flex-wrap items-center gap-2">
         <b>{suggestion.take ? `Suggested: ${labelOf(suggestion.take)}` : 'No suggestion yet'}</b>

@@ -1,6 +1,7 @@
 import type { ChapterDoc, FlagKind } from '../model';
 import { Button } from '../../primitives/Button';
-import { FLAG_KINDS, FLAG_LABEL } from '../flags/flagText';
+import { KindChip } from '../../primitives/KindChip';
+import { FLAG_KINDS, FLAG_LABEL, flagKindId } from '../flags/flagText';
 
 const NOUN: Record<FlagKind, readonly [string, string]> = {
   extra: ['run of extra words', 'runs of extra words'],
@@ -26,9 +27,8 @@ export function FoundList({ doc, activeKind, onReview }: { doc: ChapterDoc; acti
               data-on={activeKind === k || undefined}
               className="flex items-center gap-2 rounded-[var(--radius-button)] px-2 py-1 data-[on]:bg-[var(--accent-soft)]"
             >
-              <span className="flex-1">
-                {FLAG_LABEL[k][0]}
-                <br />
+              <span className="flex flex-1 flex-col items-start gap-0.5">
+                <KindChip kind={flagKindId(k)} label={FLAG_LABEL[k][0]} />
                 <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
                   {n} {NOUN[k][n === 1 ? 0 : 1]}
                 </span>

@@ -61,6 +61,8 @@ let fx: FxWords;
 let doc: ChapterDoc;
 let chains: FxChainsPort | undefined;
 let cutRecords: EditCut[];
+/** The stored `DAW.fx_favourites` the mock settings answer with; '' is none. */
+let favouriteNames = '';
 let cap: ((r: { keys: string[] }) => string) | undefined;
 let toast: ReturnType<typeof vi.spyOn>;
 let toastUndo: ReturnType<typeof vi.spyOn>;
@@ -121,7 +123,22 @@ function mount(setup: DawCapabilities = DAW_SETUPS.reaper, over: Partial<DawClie
     removeFxFromRange: (r) => (removed.push(r), base.removeFxFromRange(r)),
     ...over,
   };
-  const api = Object.assign(createMockApi(), log);
+  const api = Object.assign(createMockApi(), log, {
+    settingsForScope: async () => ({
+      DAW: [
+        {
+          key: 'fx_favourites',
+          label: 'Favourite effects',
+          kind: 'tags' as const,
+          choices: [],
+          value: favouriteNames,
+          isSet: favouriteNames !== '',
+          effectiveValue: favouriteNames,
+          effectiveSource: 'user',
+        },
+      ],
+    }),
+  });
   let listener: ((e: GestureEvent) => void) | undefined;
   const source: InputSource = {
     subscribe(on) {
@@ -177,6 +194,7 @@ beforeEach(() => {
   snapMoved = 0;
   cutRecords = [];
   cap = undefined;
+  favouriteNames = '';
   chains = listOf(SOURCE, CHAINS);
   beforeFx.length = 0;
   toast = vi.spyOn(overlay, 'toast');
@@ -210,6 +228,15 @@ describe('the Add FX menu', () => {
       'Normalize',
       expect.stringMatching(/^Manage in REAPER…/),
     ]);
+  });
+
+  it('lists the narrator’s favourite effects first, in the bar menu and the right-click menu alike', async () => {
+    favouriteNames = CHAINS[1];
+    mount();
+    await flush();
+    await select('p-1:0', 'p-1:1');
+    await openMenu();
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual([SOURCE, CHAINS[1], CHAINS[0], expect.stringMatching(/^Manage in REAPER…/)]);
   });
 
   it('menu-lists-the-daws-own-chains: the right-click menu and F list the same effects', async () => {

@@ -145,10 +145,10 @@ describe('each-take-is-a-sub-line-with-its-evidence', () => {
     expect(document.querySelector('[data-take="t-9"] [data-evidence]')!.textContent).toContain('Matched: This take was not aligned');
     expect(document.querySelector('[data-take="t-9"]')!.textContent).toContain('This take cannot be heard.');
   });
-  it('marks left-out words struck and added words underlined, not by colour alone, and shortens a long run', () => {
+  it('marks left-out words as missing (a dashed box) and added words as extra (italic with a bar), not by colour alone, and shortens a long run', () => {
     const { container } = render(<Diff parts={takeDiff('a b c d e f g h tail', 'a tail x')} />);
-    expect(container.querySelector('del')!.className).toContain('line-through');
-    expect(container.querySelector('ins')!.className).toContain('underline');
+    expect(container.querySelector('del')!.style.outline).toContain('dashed');
+    expect(container.querySelector('ins')!.style.fontStyle).toBe('italic');
     expect(container.querySelector('del')!.textContent).toBe('b c … (7 words)');
     expect(container.textContent).toContain('left out: ');
     expect(container.textContent).toContain('added: ');

@@ -1,3 +1,4 @@
+import type { KindId } from '../../../kinds/kindMap';
 import type { FlagKind } from '../model';
 
 /** The legend's kinds in the order the mock draws them. */
@@ -10,6 +11,10 @@ export const FLAG_LABEL: Record<FlagKind, readonly [string, string]> = {
   mis: ['Misread', 'Misread'],
   low: ['Low confidence', 'Low'],
 };
+
+/** The registry kind each flag is (kinds/kindMap.ts), so the legend, the card, the found list and the words draw it as every other page does. */
+const FLAG_KIND_ID: Record<FlagKind, KindId> = { extra: 'extra', miss: 'missing', mis: 'misread', low: 'low' };
+export const flagKindId = (kind: FlagKind): KindId => FLAG_KIND_ID[kind];
 
 /** Seconds kept on each side of a word when it is played from its card. */
 export const HEAR_MARGIN = 0.3;

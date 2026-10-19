@@ -4,6 +4,8 @@ import type { WordFx } from '../../../../api/contracts/wordFx';
 import { overlay } from '../../../../overlay/overlayService';
 import type { FxChainsPort } from '../../../../ports/fxchains';
 import type { FxList } from '../../../../ports/daw';
+import { favouritesFirst } from '../../effects/favourites';
+import { useFxFavourites, type FxFavourites } from '../../effects/useFxFavourites';
 import { usePort } from '../../../../ports/usePort';
 import type { Journal } from '../../../../studio/journal/createJournal';
 import { useContextProvider, type ContextProvider } from '../../../../registries/context';
@@ -42,8 +44,10 @@ export interface FxWordsOptions {
 export interface FxWords {
   /** The plan for the DAW now, or null until it has answered. */
   plan: RangePlan | null;
-  /** The DAW's list, or null until it has answered or while it cannot list. */
+  /** The DAW's list with the narrator's favourites first, or null until it has answered or while it cannot list. */
   list: FxList | null;
+  /** The narrator's favourite effects: what the Effects tab stars, and what put them first in `list`. */
+  favourites: FxFavourites;
   /** Opens the menu of the DAW's effects at an element. */
   openMenu: (anchor: HTMLElement) => void;
   /** Asks first, then adds the chain to the words. A refusal is a toast and nothing opens. */
@@ -77,7 +81,10 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
   );
   const [plan, setPlan] = useState<RangePlan | null>(null);
   const [dawName, setDawName] = useState('the DAW');
-  const [list, setList] = useState<FxList | null>(null);
+  const [dawList, setList] = useState<FxList | null>(null);
+  const { names, error, toggle } = useFxFavourites();
+  const favourites = useMemo<FxFavourites>(() => ({ names, error, toggle }), [names, error, toggle]);
+  const list = useMemo(() => (dawList ? favouritesFirst(dawList, names) : null), [dawList, names]);
   const [listWhy, setListWhy] = useState('');
   const anchor = useRef<HTMLSpanElement>(null);
 
@@ -249,5 +256,5 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
   );
   useContextProvider(provider);
   const menu = <span ref={anchor} aria-hidden="true" data-fx-anchor className="contents" />;
-  return { plan, list, openMenu, ask, remove, fx, menu, refusalOf };
+  return { plan, list, favourites, openMenu, ask, remove, fx, menu, refusalOf };
 }
