@@ -113,7 +113,9 @@ type Service struct {
 	finished chan struct{}
 	// ready is closed by the first event that shows the session is listening (anything after the script, which is sent before the
 	// model loads); readyDone makes the close happen once. AwaitReady waits on it.
-	ready     chan struct{}
+	// +checklocks:mu
+	ready chan struct{}
+	// +checklocks:mu
 	readyDone bool
 }
 
