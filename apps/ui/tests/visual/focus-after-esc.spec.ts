@@ -127,7 +127,7 @@ test.describe('The jump menu returns focus on Escape', () => {
     expect(await focused(page)).toBe('BUTTON#striptoggle');
   });
 
-  test('with nothing focused, focus lands inside the page, not on <body>', async ({ page }) => {
+  test('with nothing focused, focus lands inside the page, not on the body element', async ({ page }) => {
     await openEditing(page);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.keyboard.press('Control+k');
@@ -190,7 +190,7 @@ test.describe('Proof: focus stays with the control that acted', () => {
     expect(await page.evaluate(() => document.activeElement?.closest('section[aria-label="Notes"]') !== null)).toBe(true);
   });
 
-  test('Reopen hands focus to the decision group, not to <body>', async ({ page }) => {
+  test('Reopen hands focus to the decision group, not to the body element', async ({ page }) => {
     await openProof(page);
     await page
       .locator(INSPECTOR)
