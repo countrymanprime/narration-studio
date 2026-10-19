@@ -177,6 +177,18 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
     expect(page.passageMapRecordRun.mock.calls[0]).toMatchObject(['c1', [{ kind: 'start', pid: 'p1' }, { kind: 'stop' }]]);
   });
 
+  it('says the take ended in a status region once it stops, and nothing while it records', async () => {
+    const page = renderPage();
+    await record(page);
+    expect(screen.getByRole('status', { name: 'Take status' }).textContent).toBe('');
+    await space();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('status', { name: 'Take status' }).textContent).toMatch(/^Stopped\. Recorded \d\d:\d\d\.$/));
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('status', { name: 'Take status' }).textContent).toBe('');
+  });
+
   it('a pedal only starts and stops: no other key records, rolls or flags', async () => {
     const page = renderPage();
     await ready();
