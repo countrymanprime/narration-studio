@@ -1,5 +1,5 @@
 // How to reach each `script` state in STATE_CATALOG (see app.drivers.ts): the Studio Next Script page (SN-B77, swapped in by SN-B8).
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, chooseTheme, clickNav, clickVisible, goToPage, selectReaderWord, openWithoutManuscript } from './shared';
 
@@ -152,9 +152,21 @@ export const scriptDrivers: Record<string, Driver> = {
     // the page's own banner.
     await clickVisible(page, 'button', 'Not now');
     await goToPage(page, 'Script');
-    // The banner sits at the top of the book, above the Opening credits; the reader is scrolled there.
+    // The banner sits at the top of the book, above the Opening credits.
     await page.getByText(/The credits need 3 values/).waitFor();
-    await page.locator('section[aria-label="Reader"] [role="region"]').evaluate((reader) => (reader.scrollTop = 0));
+    // The reader opens on Chapter 1, below the banner, and a scroll to its top alone does not stay: the chapter list's Opening credits row (in
+    // the drawer below the wide layout) takes it to the credits first, as it takes a narrator.
+    const drawerButton = page.getByRole('button', { name: 'Chapters', exact: true });
+    if (await drawerButton.isVisible()) await drawerButton.click();
+    await page
+      .getByRole('list', { name: 'Chapters' })
+      .and(page.locator(':visible'))
+      .getByRole('button', { name: /Opening credits$/ })
+      .first()
+      .click();
+    // The row puts the credits card at the top of the reader, which leaves the banner just above it: step back to it.
+    await page.getByRole('region', { name: /^Script reader/ }).evaluate((reader) => (reader.scrollTop = 0));
+    await expect(page.getByText(/The credits need 3 values/)).toBeInViewport();
     await page.getByRole('button', { name: 'Fill in' }).first().waitFor();
   },
   // The retail sample: ?mockCredits=extras picks lines 1-3 of Chapter 3, reached from the chapter list.

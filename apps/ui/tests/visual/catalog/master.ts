@@ -109,7 +109,7 @@ export const masterStates: StateEntry[] = [
     sameAs: {
       of: 'master/multi-export-empty',
       reason: 'Both are scrolled to the end of the one-column page, where the Report and Multi-platform export panels sit together',
-      viewports: ['tablet'],
+      viewports: ['small-desktop', 'tablet'],
     },
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -178,6 +178,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'profile-load-failed',
     description:
-      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, under the file table, "The delivery profile could not be read" with the reason as an alert and a Retry button that reads the profile again',
+      'Master & QC when the delivery profiles cannot be read (?mockProfileRead=fails): the page as usual and, under the file table, "The delivery profile could not be read" with the reason as an alert and a Retry button that reads the profile again (scrolled to the alert)',
+    ...KEEPS_DESKTOP_SCROLL,
   },
 ];

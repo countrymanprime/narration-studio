@@ -68,6 +68,8 @@ export const proofDrivers: Record<string, Driver> = {
     };
     await add('My note', 'Is this the room or a misread? Ask the proofer.');
     await add('Proofer replied', 'A misread: the script says "pink eyes".');
+    // Below the wide layout the Inspector stacks under the queue, out of the window: bring the thread up, or the picture is `default`'s.
+    await thread.scrollIntoViewIfNeeded();
   },
   'chapter-no-recording': async (page) => {
     await openProof(page);

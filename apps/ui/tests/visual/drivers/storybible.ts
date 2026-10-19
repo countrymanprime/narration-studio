@@ -257,7 +257,8 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'voice-samples-empty': async (page) => {
     await openWithSamples(page, 'bible');
-    await entryRows(page).filter({ hasText: 'Alice' }).first().click();
+    // Alice is the entry the page opens on (category-all's picture); the White Rabbit has no sample either, and selecting it moves the detail.
+    await entryRows(page).filter({ hasText: 'White Rabbit' }).first().click();
     await samplesSection(page)
       .getByText(/No voice samples yet/)
       .waitFor();

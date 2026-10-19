@@ -73,13 +73,13 @@ export const globalStates: StateEntry[] = [
     ...LAYOUT_BANDS,
   },
 
-  // Theme smoke check (the Production home only, not the full page/state matrix - see
-  // docs/design/design-system.md#theme) - explicit Light/Dark selected via Settings > Appearance,
-  // captured on the Production home across every viewport.
+  // Theme smoke check (not the full page/state matrix - see docs/design/design-system.md#theme) - explicit Light/Dark selected via
+  // Settings > Appearance. Dark is captured on the Production home across every viewport; Light is the default theme, so its Production
+  // home is production/no-data and Light is captured where it was chosen.
   {
     page: 'global',
     state: 'theme-light',
-    description: 'The Production home with Light explicitly selected in Settings > Appearance',
+    description: 'Settings > Appearance & keys with Light explicitly selected (Light is the default theme, so the Production home in it is production/no-data)',
   },
   { page: 'global', state: 'theme-dark', description: 'The Production home with Dark explicitly selected in Settings > Appearance' },
 ];
