@@ -7,7 +7,7 @@ The sidebar on the left is grouped by production stage, the way a narrator's wee
 **Review** ([Proof](proof.md), [Pickups](pickups.md)) and **Finish** ([Master & QC](master-and-qc.md), [Delivery](delivery.md)).
 From 1360 px wide each group but the first shows as a heading over its pages; Production and Schedule sit straight under the logo. Below that the rail shrinks to icons, grouped by a thin line,
 and below 860 px it hides behind a hamburger menu that opens it as a slide-in drawer with the headings back. [Settings](settings.md) lives at the bottom of the sidebar, in every layout, below every group, under a **Dark theme** / **Light theme** item that switches the theme. **Proof** carries a count of
-the notes still open and **Pickups** the open lines of the Pickups list; a zero, or a count the app cannot read, shows no badge. Both counts move as soon as you decide a note on Proof or change the Pickups list, not only when you leave the page.
+the notes still open, **Pickups** the open lines of the Pickups list and **Master & QC** the chapters whose file fails a delivery check; a zero, or a count the app cannot read, shows no badge. The Proof and Pickups counts move as soon as you decide a note on Proof or change the Pickups list, not only when you leave the page.
 
 ![Primary navigation sidebar at desktop width](../../images/ui/nav-sidebar-desktop.webp)
 
@@ -60,10 +60,14 @@ closes it. The header has no other buttons, so everything else you might look fo
 | Command | Key | Off when |
 | --- | --- | --- |
 | Back, Forward | `Alt+Left`, `Alt+Right`, or the mouse's back and forward buttons | there is no earlier or later page |
-| Undo the last change | `Ctrl+Z` (not in a text box, which keeps its own undo) | the journal has nothing to undo |
+| Undo: <the last change>, named | `Ctrl+Z` (not in a text box, which keeps its own undo) | the journal has nothing to undo (it reads plain Undo) |
 | Open the undo history | `Ctrl+Shift+H` | never |
 | Zoom in, Zoom out, Reset zoom to 100% | `Ctrl+=`, `Ctrl+-`, `Ctrl+0`; also Ctrl+scroll | already at the largest or smallest size, or already at 100% |
 | Switch project… | none | never |
+| Settings: <category>, one for each Settings category | none | never |
+| Import manuscript…, Replace manuscript… | none | the project already has a manuscript (Import), or has none (Replace) |
+| Toggle dark theme | none | never |
+| Set zoom to N%, one for each zoom step | none | already at that level |
 
 ![The jump menu open over the page: type to find a page, a chapter or a command](../../images/ui/nav-jump-menu.webp)
 
@@ -71,7 +75,7 @@ Undo takes back the last change you made in the app, and says why when it cannot
 The **Undo** on a message beside a change goes away once it would no longer be true: when you undo that change another way (`Ctrl+Z`, the jump menu or the history), open another page or chapter, or switch project.
 A running [production stage timer](production.md#the-stage-timer) is not in the header: its clock and chapter ("0:42:07 · timer on Chapter 6") sit beside **Stop timer** at the top of the Production page, and only there.
 
-Right-clicking empty space in a page opens a menu of where to go, the zoom steps and the theme, ending with the jump menu.
+Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Find a page, chapter or command** (`Ctrl+F`; Script and Proof keep `Ctrl+F` for their own find, so it shows no key there) and a **View** submenu of the zoom steps and the theme.
 
 The engine chip at the right of the header names the audio engine the project records with (REAPER, Audacity or Built-in), with a
 dot for how it is doing. Hover it for the detail, and click it to open the [audio engine panel](#the-audio-engine-panel), where the

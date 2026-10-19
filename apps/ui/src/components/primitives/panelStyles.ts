@@ -1,9 +1,9 @@
 // The card look Panel draws, measured on benchmark mock
-// 05: a 1 px `--border` frame at the card radius with `--shadow` on `--surface`; a header row 50 px tall with its divider
+// 05 and the Studio Next mock's `.panel`: a 1 px `--border` frame at the card radius (10 px) on `--surface`, with no shadow (the mock draws none); a header row 50 px tall with its divider
 // (55 px when it holds a 32 px button, 11 px above and below it), its content 16 px in from the frame; and a 16 px body.
 // A surface that is not a `section` (a TabPanel drawn as a card) takes these from here rather than copying them.
 
-export const PANEL_FRAME_CLASS = 'rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]';
+export const PANEL_FRAME_CLASS = 'rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)]';
 
 export const PANEL_HEADER_CLASS =
   'flex min-h-[3.125rem] flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[var(--border)] px-4 py-[0.6875rem]';

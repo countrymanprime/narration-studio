@@ -39,7 +39,7 @@ const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery'
 // Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
 // replacement. The Production page is the home at `/` (`/production` redirects there).
 type NavItem = typeof PRODUCTION;
-const NAV_COUNT_KEYS: Record<string, keyof NavCounts> = { Proof: 'proof', Pickups: 'pickups' };
+const NAV_COUNT_KEYS: Record<string, keyof NavCounts> = { Proof: 'proof', Pickups: 'pickups', 'Master & QC': 'master' };
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   { label: 'Production', items: [PRODUCTION, SCHEDULE] },
   { label: 'Prep', items: [SCRIPT, STORY_BIBLE] },
@@ -56,7 +56,7 @@ export function shellPages(facts: NavFacts): { id: string; label: string; disabl
     disabledReason: navAvailability(item.path, facts).reason,
   }));
 }
-const isActivePath = (pathname: string, path: string) => (path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`));
+export const isActivePath = (pathname: string, path: string) => (path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`));
 const APP_NAME = 'Narration Studio';
 const ALL_PAGES: { name: string; path: string }[] = [...NAV_GROUPS.flatMap((group) => group.items), { name: 'Settings', path: '/settings' }];
 /** The rail's name for the page `pathname` is on (`/editing/chapter-2` is Editing), or undefined for a path no rail item owns. */
@@ -208,7 +208,7 @@ export function AppShell({
       <div className="mt-3 flex h-[3.125rem] flex-none items-center gap-[0.625rem] px-4 pt-1 pb-2.5">
         <Brand />
       </div>
-      <nav className="flex-1 px-2 pt-0.5 pb-2">
+      <nav className="flex flex-1 flex-col gap-0.5 px-2 pt-0.5 pb-2">
         {NAV_GROUPS.map((group, index) => (
           <div
             key={group.label}
@@ -346,11 +346,7 @@ export function AppShell({
               linkingDawFile={linkingDawFile}
             />
           </header>
-          <ContextMenuHost
-            className={`scroll-chrome-hidden relative flex-1 overflow-y-auto ${isActivePath(pathname, '/script') ? 'p-0' : 'p-4 md:p-6'}`}
-            fallback={contextMenu?.fallback}
-            tail={contextMenu?.tail}
-          >
+          <ContextMenuHost className="scroll-chrome-hidden relative flex-1 overflow-y-auto p-4" fallback={contextMenu?.fallback} tail={contextMenu?.tail}>
             {children}
           </ContextMenuHost>
         </main>
