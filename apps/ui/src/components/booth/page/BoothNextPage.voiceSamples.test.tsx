@@ -127,11 +127,12 @@ describe('the Booth page and voice samples', () => {
     expect(within(panel).getByRole('button', { name: /Play primary voice sample for Queen/ })).toBeTruthy();
   });
 
-  it('a project with no samples draws nothing about them in the panel but where to make one', async () => {
+  it('a project with no samples keeps the reference-clip button, off, and plays nothing', async () => {
     renderPage([]);
     await ready();
     const panel = await screen.findByRole('complementary', { name: 'Side panel' });
-    expect(await within(panel).findByText('No voice sample yet. Mark one in Editing.')).toBeTruthy();
+    const hear = await within(panel).findAllByRole('button', { name: 'Hear the reference clip' });
+    expect(hear.every((button) => button.getAttribute('aria-disabled') === 'true')).toBe(true);
     expect(within(panel).queryByRole('button', { name: /voice sample for/ })).toBeNull();
   });
 

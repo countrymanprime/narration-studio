@@ -98,6 +98,8 @@ export interface AssetsApi {
   assetsInstallCancel(jobId: string): Promise<AssetInstallJob>;
   /** Reads every byte of the asset (it can take seconds for a large model) and says whether it is installed, damaged or absent. */
   assetsVerify(kind: string, id: string): Promise<AssetVerifyResult>;
+  /** Shows the folder the assets are kept in (`cacheRoot`) in the file manager. */
+  assetsOpenFolder(): Promise<void>;
   /** Deletes the asset and nothing else. Refused while it downloads. */
   assetsRemove(kind: string, id: string): Promise<void>;
 }

@@ -15,6 +15,7 @@ import { NeedManuscript } from '../layout/NeedManuscript';
 import { ALL_SCOPE, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
+import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
 
@@ -59,6 +60,7 @@ export function PickupsPage({
   const measurements = usePort('measurements');
   const daw = usePort('daw');
   const overlay = useOverlay();
+  const original = usePlayOriginal((sentence) => overlay.toast(sentence, { tone: 'error' }));
   const review = useCapability('review');
   const markers = useCapability('markers');
   const dawKind = useDawKind();
@@ -239,6 +241,7 @@ export function PickupsPage({
           onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
           onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}
           onRemove={remove}
+          original={{ ...original, play: (pickup) => void original.play(pickup) }}
           onOpenInBooth={openInBooth}
           onOpenInScript={goToScript}
           onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
