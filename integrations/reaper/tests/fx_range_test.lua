@@ -122,7 +122,7 @@ H.test('apply-splits-and-loads-the-saved-chain-on-the-middle-piece: split at bot
   local right = p.chapter.items[4]
   H.eq(span(right), { 16, 14 }, 'the right piece stays where it was')
   H.eq(#take.fx, 1)
-  H.eq(take.fx[1].name, H.join(H.join(p.root, 'Voice'), 'Radio.RfxChain'), 'the chain is loaded by its full path, built here')
+  H.eq(take.fx[1].name, 'Voice/Radio.RfxChain', 'the chain is loaded by its listed name: REAPER 7.82 on Linux refuses the full path')
   local add = nil
   for _, call in ipairs(s.fake.calls) do
     if call.name == 'TakeFX_AddByName' then
@@ -134,6 +134,15 @@ H.test('apply-splits-and-loads-the-saved-chain-on-the-middle-piece: split at bot
   H.eq(take.ext[FX_KEY], take.fx[1].guid, 'and the FX it added')
   H.eq(s.fake:undo_labels(), { APPLY_LABEL }, 'one undo block')
   H.eq(s.fake.open_undo_blocks, 0)
+end)
+
+H.test('a chain REAPER loads only by its full path is still applied', function()
+  local s, p = project()
+  s.fake.fx_relative_fails = true
+  s.fake.fx_full_path_loads = true
+  local middle, event = applied(s, p)
+  H.eq(event[1], 'RANGE_FX_APPLIED', 'applied through the fallback')
+  H.eq(middle.takes[1].fx[1].name, H.join(H.join(p.root, 'Voice'), 'Radio.RfxChain'))
 end)
 
 H.test('a chain of several FX records every one it added', function()

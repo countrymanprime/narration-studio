@@ -165,11 +165,31 @@ H.test('apply_fx_chain adds the chain to the named track in one undo step and to
   local item = trimmed_item(s, track)
   s:send('apply_fx_chain', 'c1', track.guid, 'Voice/Test EQ.RfxChain')
   H.eq(s:events(), { { 'FX_CHAIN_APPLIED', 'c1', 'Voice/Test EQ.RfxChain', track.guid, '1' } })
-  H.eq(track.fx[1].name, H.join(H.join(root, 'Voice'), 'Test EQ.RfxChain'), 'the chain is loaded by its full path, built here')
+  H.eq(track.fx[1].name, 'Voice/Test EQ.RfxChain', 'the chain is loaded by its listed name: REAPER 7.82 on Linux refuses the full path')
   H.eq(#track.items, 1)
   H.eq(#(item.takes[1].fx or {}), 0)
   H.eq(calls_named(s, 'SplitMediaItem'), 0)
   H.eq(s.fake:undo_labels(), { 'Narration Utils: apply FX chain Voice/Test EQ.RfxChain to Chapter 1' })
+end)
+
+H.test('apply_fx_chain falls back to the full path on a REAPER that refuses the listed name', function()
+  local s, track = new_session()
+  local root = chains(s, { 'Voice/Test EQ.RfxChain' })
+  s.fake.fx_relative_fails = true
+  s.fake.fx_full_path_loads = true
+  s:send('apply_fx_chain', 'c1', track.guid, 'Voice/Test EQ.RfxChain')
+  H.eq(s:events(), { { 'FX_CHAIN_APPLIED', 'c1', 'Voice/Test EQ.RfxChain', track.guid, '1' } })
+  H.eq(track.fx[1].name, H.join(H.join(root, 'Voice'), 'Test EQ.RfxChain'))
+  H.eq(calls_named(s, 'TrackFX_AddByName'), 2, 'the listed name was tried first')
+end)
+
+H.test('apply_fx_chain answers an error when REAPER loads neither the listed name nor the full path', function()
+  local s, track = new_session()
+  chains(s, { 'Voice/Test EQ.RfxChain' })
+  s.fake.fx_relative_fails = true
+  s:send('apply_fx_chain', 'c1', track.guid, 'Voice/Test EQ.RfxChain')
+  H.eq(s:events(), { { 'ERROR', 'c1', 'REAPER did not load the FX chain.' } })
+  H.eq(#(track.fx or {}), 0)
 end)
 
 H.test('apply_fx_chain adds the chain to the master track by name or by its GUID', function()

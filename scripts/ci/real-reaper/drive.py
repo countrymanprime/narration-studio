@@ -21,6 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / "tests" / "fixtures" / "audio" / "librivox-alice"
 CHAPTER_ID = "kara_01"  # Alice ch. I, Kara Shallenberg, LibriVox, public domain (sources.json holds URL and SHA-256)
+SUITES = ["scenarios_session"]  # modules that register scenarios with scenario.scenario()
 REGIONS = [(0.0, 20.0, "Chapter 1"), (20.0, 40.0, "Chapter 2"), (40.0, 60.0, "Chapter 3")]
 
 
@@ -205,10 +206,19 @@ def run(args: argparse.Namespace) -> int:
     c("regions: undo label and one-step undo (ci_state, ci_undo)", lambda: [region_state(), undo_regions()][0], real_only=True, target=target)
     c("render: configure per-chapter file names (configure_chapter_render)", render_config, real_only=True, target=target)
     c("render: files written (action 42230)", render, real_only=True, target=target)
-    for name in ("record and take lanes", "takes and comping", "ID3 CHAP titles"):
+    if args.suite:
+        import scenario  # the scenario suites arrange, act and assert on real project state (scenario.py)
+
+        for module in SUITES:
+            __import__(module)
+        media = scenario.make_media(out / "media")
+        env = scenario.Env(session, out, fixture, media, audio_mode=fixture.get("audio_mode", "closed"))
+        names = set(args.only.split(",")) if args.only else None
+        scenario.run_scenarios(env, report, target, names)
+    for name in ("ID3 CHAP titles",):
         report.record(name, "SKIP", "not in the prototype (see the research note's matrix)")
 
-    if target == "real":
+    if target == "real" and not args.no_quit:
         try:
             session.send("ci_quit")
         except OSError:
@@ -243,6 +253,9 @@ def main() -> int:
     r.add_argument("--out", required=True)
     r.add_argument("--target", choices=["real", "fake"], default="real")
     r.add_argument("--timeout", type=float, default=120.0)
+    r.add_argument("--suite", action="store_true", help="also run the scenario suites (scenarios_*.py)")
+    r.add_argument("--only", default="", help="comma-separated capability names or scenario names to run")
+    r.add_argument("--no-quit", action="store_true", help="leave REAPER running (development)")
     ns = parser.parse_args()
     return fetch(ns) if ns.cmd == "fetch" else run(ns)
 
