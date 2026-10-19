@@ -24,7 +24,7 @@ function editing(entity: GuideEntity) {
   fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
   return guideEdit;
 }
-const box = () => screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' });
+const box = () => screen.getByRole('textbox', { name: 'Add a name' });
 const type = (text: string) => fireEvent.change(box(), { target: { value: text } });
 const enter = () => fireEvent.keyDown(box(), { key: 'Enter' });
 
@@ -67,12 +67,12 @@ describe('the Names box', () => {
         />
       </ApiProvider>,
     );
-    expect(screen.queryByRole('combobox', { name: 'Add an alias or find a matching entry' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Add alias' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Add a name' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Rescan occurrences' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     expect(box()).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Add alias' })).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: /Add an alias/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Review entry' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Rescan occurrences' })).toBeTruthy();
   });
 });

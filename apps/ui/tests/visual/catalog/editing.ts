@@ -61,6 +61,19 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'voice-sample-mark',
+    description:
+      'Editing, a voice sample saved from four selected words - the dot after the last word of the range, with its accessible name naming the character and what was saved',
+    ...TOAST_FADES_OUT,
+  },
+  {
+    page: 'editing',
+    state: 'voice-sample-mark-open',
+    description: 'Editing, the dot after a marked range opened - the character, its length and a play control under the dot, with Open in Story Bible',
+    ...TOAST_FADES_OUT,
+  },
+  {
+    page: 'editing',
     state: 'takes-open',
     description:
       'Editing, the first line’s takes opened under it - the suggested take with the steps that would make it surer, each take’s evidence, and how retries are kept',

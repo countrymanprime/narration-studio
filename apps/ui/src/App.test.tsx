@@ -253,33 +253,6 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(await screen.findByRole('button', { name: 'Delete entity' })).toBeTruthy();
   });
 
-  it('opens Review Entry as a read-only overlay without discarding the in-progress edit', async () => {
-    renderApp();
-    await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
-    fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
-    await waitFor(() => expect(screen.getByRole('heading', { name: /^Story Bible/ })).toBeTruthy());
-
-    fireEvent.click((await screen.findAllByText('Alice'))[0]);
-    // An entry opens read-only (SN-B91); Edit this entry turns the fields on.
-    fireEvent.click(await screen.findByRole('button', { name: 'Edit this entry' }));
-    const nameInput = await screen.findByDisplayValue('Alice');
-    fireEvent.change(nameInput, { target: { value: 'Alice (editing)' } });
-
-    const aliasInput = screen.getByPlaceholderText('Add an alias or find a matching entry…');
-    fireEvent.change(aliasInput, { target: { value: 'White Rabbit' } });
-    const matchList = await screen.findByRole('listbox', { name: 'Matching Story Bible entries' });
-    // The text box is the combobox that drives the list (#156): it names the list and the active option.
-    const combobox = screen.getByRole('combobox', { name: 'Add an alias or find a matching entry' });
-    expect(combobox.getAttribute('aria-expanded')).toBe('true');
-    expect(combobox.getAttribute('aria-controls')).toBe(matchList.id);
-    expect(combobox.getAttribute('aria-activedescendant')).toBe(within(matchList).getAllByRole('option')[0].id);
-    fireEvent.click(within(matchList).getByRole('option', { name: /White Rabbit/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Review entry' }));
-
-    expect(await screen.findByRole('button', { name: 'Close review panel' })).toBeTruthy();
-    expect((screen.getByDisplayValue('Alice (editing)') as HTMLInputElement).value).toBe('Alice (editing)');
-  });
-
   it('shows a repeated message as a fresh toast, so a second click on the same action gives a new signal', async () => {
     window.history.replaceState(null, '', `/proof/${WIRE_CHAPTERS[0].id}`);
     renderApp({ transcriptSuggestHints: async () => ({ terms: [], found: 0 }) });
@@ -934,9 +907,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(editButton);
     expect((await screen.findByRole('button', { name: 'Save changes to this entry' })).textContent?.trim()).toBe('');
 
-    const addAliasButton = screen.getByRole('button', { name: 'Add alias' });
-    const rescanButton = screen.getByRole('button', { name: /Rescan occurrences/ });
-    expect(addAliasButton.closest('[data-alias-actions]')).toBe(rescanButton.closest('[data-alias-actions]'));
+    // Add a name is one input; Rescan stays beside the Names heading.
+    expect(screen.getByRole('textbox', { name: 'Add a name' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Rescan occurrences/ })).toBeTruthy();
   });
 
   it('guards navigating away from unsaved Settings changes and saves on confirm', async () => {
