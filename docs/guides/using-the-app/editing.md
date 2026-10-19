@@ -77,7 +77,7 @@ line** (on a line with more than one take) and **Delete**; the bar offers the sa
 audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
 and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it, headed by the take that plays (or "recording") and the stretch it draws. Right-click a word for its
-menu: play the selection, copy, delete or mute the words, add or remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
+menu: play the selection, copy, delete or mute the words, **Add FX** and **Mark as** (each opens a list beside it), remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
 With a screen reader, the script is one read-only text box. Each time the cursor stops, the screen reader says the word it is on
@@ -107,10 +107,16 @@ touched. **Mute** keeps the audio and silences the words.
 **Add FX** (F) lists your FX chains from the DAW. Choose one and the question shows how the item will be split around
 the words, where the splits fall, the fades at the joins and what the DAW does: it splits the item at both ends and puts
 the chain on the middle piece only. Nothing else moves, and one undo step in the DAW takes it off. The words with an
-effect are underlined and end with an effects marker: click it to select the words or remove the effect. The word
-menu offers **Remove** with the chain's name too, and the drawer's Effects tab lists them.
+effect are underlined and end with an effects marker: click it to select the words or remove the effect. The question
+also has **A/B**, which plays the words in the DAW without the chain and then with it, and puts the chain back as it was.
+A/B compares a chain that is already on the words, so it is off, with the reason beside it, until the chain you picked is
+on them; the Effects tab's **Compare** does the same for any effect in the list. The word menu (right-click) has **Add FX**
+with your chains in a list beside it, and **Remove** with the chain's name on words that carry an effect. The drawer's
+Effects tab lists them.
 
 ![Editing - Add FX on four selected words: the DAW's effect chains](../../images/ui/editing-fx-menu.webp)
+
+![Editing - the word menu's Add FX list on four selected words](../../images/ui/editing-word-menu-fx.webp)
 
 The Effects tab shows how much of the chapter effects cover against a cap, 10% unless you change it in the tab's **Cap**
 field (a whole percent from 1 to 100, kept for the project). Over the cap the tab warns, and Add effect asks again
@@ -179,7 +185,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name) next to **Remove this effect** moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the line the cursor is on as the chapter's audio
 and one lane per take on one time axis. On a window 1360 px wide or more it is a strip under the text, which the header's

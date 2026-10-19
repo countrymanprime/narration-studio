@@ -68,6 +68,7 @@ export const boothDrivers: Record<string, Driver> = {
   'load-failed': async (page) => {
     await openBoothReading(page, 'fails');
     await page.locator('p[role="alert"]', { hasText: 'The manuscript could not be read from this project.' }).waitFor();
+    await page.getByRole('button', { name: 'Retry' }).waitFor();
     // The failed host call also raises its own toast, which removes itself on a real timer and would race the screenshot: dismiss it.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },

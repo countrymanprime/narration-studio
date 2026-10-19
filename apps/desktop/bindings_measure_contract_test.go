@@ -19,11 +19,12 @@ var contractMeasurePaths = []string{"C:/Renders/Chapter 01.wav", "C:/Renders/Cha
 
 func contractMeasured(path string) measure.FileMeasurement {
 	value := func(v float64) *float64 { return &v }
+	clicks := 2
 	return measure.FileMeasurement{
 		Report: measure.Report{
 			File: path, SampleRate: 48000, Channels: 2, DurationSeconds: 1843.5,
 			IntegratedLUFS: value(-19.4), RMSdBFS: value(-21.2), SamplePeakdBFS: value(-3.6), TruePeakdBTP: value(-3.1),
-			NoiseFloordBFS: value(-66.8), NoiseFloorStartSeconds: value(412.5), DigitalSilentWindows: 0, FullScaleSamples: 4, ClipRunCount: 1,
+			NoiseFloordBFS: value(-66.8), NoiseFloorStartSeconds: value(412.5), DigitalSilentWindows: 0, FullScaleSamples: 4, ClipRunCount: 1, ClickCandidateCount: &clicks,
 			HeadRoomToneSeconds: value(0.8), TailRoomToneSeconds: value(2.5), HeadDigitalSilenceSeconds: value(0), TailDigitalSilenceSeconds: value(0),
 			ClipRuns: []measure.ClipRun{{Channel: 1, StartSeconds: 612.25, DurationSeconds: 0.0000833, Samples: 4}},
 		},
@@ -33,8 +34,9 @@ func contractMeasured(path string) measure.FileMeasurement {
 
 // contractUnavailable is a render of digital silence: measured, and every level unavailable.
 func contractUnavailable(path string) measure.FileMeasurement {
+	clicks := 0
 	return measure.FileMeasurement{
-		Report:      measure.Report{File: path, SampleRate: 44100, Channels: 1, DurationSeconds: 2, DigitalSilentWindows: 4, ClipRuns: []measure.ClipRun{}},
+		Report:      measure.Report{File: path, SampleRate: 44100, Channels: 1, DurationSeconds: 2, DigitalSilentWindows: 4, ClipRuns: []measure.ClipRun{}, ClickCandidateCount: &clicks},
 		Fingerprint: measure.Fingerprint{SizeBytes: 176_444, ModifiedAt: "2026-09-23T14:05:00Z", SHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
 	}
 }

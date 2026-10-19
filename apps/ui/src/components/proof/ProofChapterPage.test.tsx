@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_DISCREPANCIES, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from '../../api/mockFixtures';
@@ -200,5 +200,82 @@ describe('ProofChapterPage loading state', () => {
     renderWorkspace({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) });
     expect(await screen.findByText(/The manuscript could not be read\./)).toBeTruthy();
     expect(region()).toBeNull();
+  });
+
+  describe('a failed read offers Retry', () => {
+    const chapters = () => Promise.resolve(WIRE_CHAPTERS);
+    const failing = (message: string) => () => Promise.reject(new Error(message));
+    const retry = () => screen.getByRole('button', { name: 'Retry' });
+    const settle = () => act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+    // Each call takes the next step: a function that answers (or fails) now, or a held promise.
+    const sequence = <T,>(steps: Array<() => Promise<T>>) => vi.fn(() => (steps.length > 1 ? (steps.shift() as () => Promise<T>)() : steps[0]()));
+
+    it("shows the read's sentence as an alert with Retry, and no skeleton", async () => {
+      renderWorkspace({ manuscriptChapters: failing('The manuscript could not be read.') });
+      const sentence = await screen.findByText(/The manuscript could not be read\./);
+      expect(sentence.getAttribute('role')).toBe('alert');
+      expect(retry()).toBeTruthy();
+      expect(region()).toBeNull();
+    });
+
+    it('shows the skeleton with no stale error while it reads again, then the chapter', async () => {
+      let release: (value: typeof WIRE_CHAPTERS) => void = () => {};
+      const held = new Promise<typeof WIRE_CHAPTERS>((resolve) => (release = resolve));
+      const read = sequence([failing('The manuscript could not be read.'), () => held]);
+      renderWorkspace({ manuscriptChapters: read });
+      await screen.findByText(/The manuscript could not be read\./);
+      await userEvent.click(retry());
+      expect(region()?.getAttribute('aria-busy')).toBe('true');
+      expect(screen.queryByText(/The manuscript could not be read\./)).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      await act(async () => release(WIRE_CHAPTERS));
+      expect(await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` })).toBeTruthy();
+      expect(region()).toBeNull();
+    });
+
+    it('shows the new error with Retry when the second read fails too', async () => {
+      renderWorkspace({ manuscriptChapters: sequence([failing('first'), failing('second')]) });
+      await screen.findByText('first');
+      await userEvent.click(retry());
+      expect(await screen.findByText('second')).toBeTruthy();
+      expect(screen.queryByText('first')).toBeNull();
+      expect(retry()).toBeTruthy();
+    });
+
+    it("reads the chapter's check state again too, when that read was what failed", async () => {
+      const alignment = sequence([failing('The check could not be read.'), () => new Promise<never>(() => {})]);
+      renderWorkspace({ workspaceAlignment: alignment as never, manuscriptChapters: chapters });
+      await screen.findByText(/The check could not be read\./);
+      await userEvent.click(retry());
+      await settle();
+      expect(alignment).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText(/The check could not be read\./)).toBeNull();
+    });
+
+    it('fires one extra read for a double press', async () => {
+      const read = sequence([failing('The manuscript could not be read.'), () => new Promise<never>(() => {})]);
+      renderWorkspace({ manuscriptChapters: read });
+      await screen.findByText(/The manuscript could not be read\./);
+      const button = retry();
+      await act(async () => {
+        button.click();
+        button.click();
+      });
+      await settle();
+      expect(read).toHaveBeenCalledTimes(2);
+    });
+
+    it('sets nothing when the page is left mid-retry', async () => {
+      let release: (value: typeof WIRE_CHAPTERS) => void = () => {};
+      const held = new Promise<typeof WIRE_CHAPTERS>((resolve) => (release = resolve));
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      renderWorkspace({ manuscriptChapters: sequence([failing('The manuscript could not be read.'), () => held]) });
+      await screen.findByText(/The manuscript could not be read\./);
+      await userEvent.click(retry());
+      cleanup();
+      await act(async () => release(WIRE_CHAPTERS));
+      expect(spy).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
   });
 });

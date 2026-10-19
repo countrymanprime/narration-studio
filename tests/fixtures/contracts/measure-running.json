@@ -39,7 +39,8 @@
             "duration_seconds": 0.0000833,
             "samples": 4
           }
-        ]
+        ],
+        "click_candidate_count": 2
       },
       "fingerprint": {
         "size_bytes": 530928044,

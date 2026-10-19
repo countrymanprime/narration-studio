@@ -3,29 +3,14 @@
 An opt-in setting and per-import checkbox that chain a Story Bible build onto a successful manuscript import, so a
 narrator who always builds right after importing gets it without a second manual step.
 
-## The path
+## The path (removed)
 
-`apps/ui/src/components/production/ManuscriptImport.tsx` (the import flow, since renamed off "Home") owns the chain:
-
-1. On import success, the import `WorkDialog` closes itself (the same self-closing behavior a successful Story Bible
-   rebuild already had, [Job-end events](interaction-feedback.md#job-end-events)).
-2. When the per-import checkbox (pre-filled from `ManuscriptGuide.build_after_import`, read once via
-   `settingsForScope('global')`) is checked, `api.guideBuild({})` starts and a second `WorkDialog` ("Build the Story
-   Bible") tracks it until the host's own `job:ended` event announces it.
-3. A build failure is its own toast; it never unmakes the reported import success. Seeded characters
-   (`seedCharacterCandidates`) and freshly extracted entities coexist after the chained build, because `merge_locked`
-   keeps `manual` entities across a rebuild.
-4. `apps/ui/src/hooks/useWorkJob.ts` is the one poll loop behind both the import job and the chained build job (and
-   the Story Bible page's own rebuild), pinned by tests on each consumer's success, failure and background-continue
-   behavior.
+The chain is gone (Studio Next gap audit SB-2): `ManuscriptImport.tsx` no longer starts a build after an import, the Story Bible page has no
+Build / refresh button, and the `GuideBuild` and `GuideBuildState` bindings are removed (host API 138). Scan and Import entries replace
+it. The notes below are what the chained build taught; the host still runs the build job internally.
 
 ## Decisions worth remembering
 
-- **On by default** (an owner decision).
-  `ManuscriptGuide.build_after_import` is a normal Story Bible-category setting, global and project scope like every
-  other one.
-- **UI-chained, not host-chained**: no binding signature change; the frontend starts the build itself after the
-  import job reports success, so a build failure is naturally its own, separate report.
 - **Measured cost** (Windows 11 dev venv, `en_core_web_sm`, p50 of 5 runs): import itself is under 0.1s regardless of
   manuscript size; the build is the real cost, roughly 5s of Python/model start-up plus about 1s per 10,000 words (a
   79,000-word manuscript: 14.7s build, 16.8s import-then-build; rules-only, no language model: 1.2s). The chained
@@ -39,10 +24,3 @@ narrator who always builds right after importing gets it without a second manual
   sidecar run would block every Save for the length of a build. An edit made while a sidecar command is running can
   therefore be overwritten by that command, as two sidecar commands could overwrite each other before edits moved to the
   host. The host sees the sidecar's write on its next edit, because it compares the file's bytes with the ones it holds.
-
-## Tests
-
-Vitest: `ManuscriptImport.test.tsx` (checkbox pre-fill, the chained `WorkDialog`, a rejecting `guideBuild` reported
-separately from import success, background continuation). Go: `apps/desktop/internal/importer` and `internal/guide`
-package tests cover seeding-then-build sequencing and `merge_locked`'s manual-entity survival
-(`sidecars/manuscript-guide/tests/test_manuscript_guide.py`).

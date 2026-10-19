@@ -40,3 +40,13 @@ export function fxMenuItems({ list, listWhy, refusal, dawName, onPick }: FxMenuI
     manage,
   ];
 }
+
+/**
+ * The word menu's one "Add FX" row (the mock's submenu): `items` from `fxMenuItems` as its submenu, off with the refusal when the selection cannot take
+ * an effect. When the DAW cannot list there is no submenu to open, so the row `fxMenuItems` gave in its place stands.
+ */
+export function addFxItem(items: ContextMenuItem[], refusal: string): ContextMenuItem {
+  const off = items.find((i) => i.key === 'fx-off');
+  if (off) return off;
+  return { key: 'fx-add', label: 'Add FX', ...(refusal ? { unavailable: refusal } : {}), submenu: items, onSelect: () => {} };
+}
