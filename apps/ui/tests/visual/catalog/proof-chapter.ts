@@ -26,7 +26,7 @@ export const proofChapterStates: StateEntry[] = [
   {
     page: 'proof-chapter',
     state: 'compare-setup',
-    description: 'Proof chapter view, the compare run’s setup with its default model, chunk length and workers',
+    description: 'Proof chapter view, the compare run’s setup with its default model, chunk length and workers and the keyboard on Start comparison',
   },
   {
     page: 'proof-chapter',
@@ -90,9 +90,9 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'preview-default',
     sameAs: {
-      of: 'proof-chapter/compare-setup',
+      of: 'proof-chapter/current',
       reason:
-        'The chapter view is about one screen tall since the Editing page took its workspace: the compare run and the default Preview table show in the same picture, scrolled to the foot of the page.',
+        'The chapter view is about one screen tall since the Editing page took its workspace: the compare run and the default Preview table show in the same picture as the page opens on, with nothing to scroll to.',
     },
     description: 'Proof chapter view, the Preview panel with its default candidates from the demo manuscript: three full-length chapters, no warnings',
   },
