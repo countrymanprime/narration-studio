@@ -21,10 +21,10 @@ export const pickupsCases: OverlayCase[] = [
     kind: 'context-menu',
     over: { name: 'Add popover', open: async (page) => addButton(page).click() },
     open: async (page) => {
-      // The popover can lie over the right of the first line at narrow widths, so the click goes to the line's left end.
-      await rows(page)
-        .first()
-        .click({ button: 'right', position: { x: 4, y: 4 } });
+      // The popover can lie over the whole top of the first line at narrow widths, so the click goes to the line's bottom left corner.
+      const row = rows(page).first();
+      const box = await row.boundingBox();
+      await row.click({ button: 'right', position: { x: 4, y: Math.max(4, (box?.height ?? 8) - 4) } });
       await page.locator('[role="menu"]:visible').last().waitFor({ timeout: 2000 });
     },
   },

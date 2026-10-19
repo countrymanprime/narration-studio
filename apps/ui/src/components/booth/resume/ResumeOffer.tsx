@@ -30,7 +30,7 @@ export function ResumeOfferLine({ state, saved = '', onChoose }: { state: Resume
           Resume at ¶ {offer.paragraph}
         </HeaderChip>
       </TooltipTarget>
-      <span className="truncate text-xs text-[var(--text-muted)]">{why}</span>
+      <span className="hidden truncate text-xs text-[var(--text-muted)] sm:inline">{why}</span>
     </span>
   );
 }
