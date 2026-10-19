@@ -161,6 +161,67 @@ describe('the list, the words and the inspector', () => {
   });
 });
 
+describe('the inspector header and Show in the DAW', () => {
+  const inspect = (step?: { at: number; of: number; to: (by: -1 | 1) => void }, over: { daw?: DawClient; goTo?: () => Promise<unknown> } = {}) =>
+    render(
+      <ApiProvider api={{ ...createMockApi(), ...(over.goTo ? { workspaceGoTo: over.goTo } : {}) } as ReturnType<typeof createMockApi>}>
+        <PortOverrides clients={{ daw: over.daw ?? createMockDawClient(DAW_SETUPS.reaper) }}>
+          <EffectHostProvider
+            value={{
+              chapterId: 'chapter-1',
+              locator,
+              journal: createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
+              effects: MANY,
+              onEffects: () => {},
+              play: () => {},
+              stop: () => {},
+            }}
+          >
+            <EffectInspector fx={MANY[1]} cuts={[]} total={TOTAL} dawName="REAPER" onRemove={() => {}} step={step} />
+          </EffectHostProvider>
+        </PortOverrides>
+      </ApiProvider>,
+    );
+  const off = (el: HTMLElement) => el.getAttribute('aria-disabled') === 'true';
+
+  it('steps to the previous and next effect, and is off at either end', () => {
+    const to = vi.fn();
+    inspect({ at: 1, of: 3, to });
+    fireEvent.click(screen.getByRole('button', { name: 'Previous effect' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next effect' }));
+    expect(to.mock.calls).toEqual([[-1], [1]]);
+    cleanup();
+    inspect({ at: 0, of: 3, to });
+    expect(off(screen.getByRole('button', { name: 'Previous effect' }))).toBe(true);
+    expect(off(screen.getByRole('button', { name: 'Next effect' }))).toBe(false);
+    cleanup();
+    inspect({ at: 2, of: 3, to });
+    expect(off(screen.getByRole('button', { name: 'Next effect' }))).toBe(true);
+  });
+
+  it('moves the DAW to the effect’s first word and says where it went', async () => {
+    const goTo = vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 100 }));
+    const toast = vi.spyOn(overlay, 'toast');
+    inspect(undefined, { goTo });
+    const button = screen.getByRole('button', { name: 'Show in REAPER' });
+    await waitFor(() => expect(off(button)).toBe(false));
+    fireEvent.click(button);
+    await waitFor(() => expect(goTo).toHaveBeenCalledWith('chapter-1', expect.any(Number)));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to .* in the DAW\.$/)));
+    toast.mockRestore();
+  });
+
+  it('is off, with the DAW’s sentence, when the DAW cannot navigate', async () => {
+    const stuck = {
+      ...DAW_SETUPS.reaper,
+      capabilities: { ...DAW_SETUPS.reaper.capabilities, navigate: { level: 'unavailable', available: false, message: 'Navigation is off.' } },
+    } as unknown as DawCapabilities;
+    inspect(undefined, { daw: createMockDawClient(stuck) });
+    const button = screen.getByRole('button', { name: 'Show in REAPER' });
+    await waitFor(() => expect(off(button)).toBe(true));
+  });
+});
+
 describe('Add effect', () => {
   const add = (over: Partial<Parameters<typeof AddEffect>[0]> = {}) => {
     const onAdd = vi.fn();

@@ -89,4 +89,66 @@ describe('ContextMenu', () => {
     ).toEqual(['Tone', 'Query']);
     expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   });
+
+  it('opens a submenu beside its row, runs one of its items and closes the whole menu', async () => {
+    const user = userEvent.setup();
+    const pick = vi.fn();
+    render(
+      <ContextMenu
+        items={[
+          { key: 'play', label: 'Play selection', onSelect: vi.fn() },
+          {
+            key: 'mark',
+            label: 'Mark as',
+            onSelect: vi.fn(),
+            submenu: [
+              { key: 'tone', label: 'Tone', onSelect: pick },
+              { key: 'query', label: 'Query', onSelect: vi.fn() },
+            ],
+          },
+        ]}
+      >
+        <p>Alice was beginning to get very tired.</p>
+      </ContextMenu>,
+    );
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const row = await screen.findByRole('menuitem', { name: 'Mark as' });
+    expect(row.getAttribute('aria-haspopup')).toBe('menu');
+    expect(screen.queryByRole('menuitem', { name: 'Tone' })).toBeNull();
+    await user.click(row);
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Tone' }));
+    expect(pick).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+  });
+
+  it('opens a submenu with the Right arrow, and leaves a submenu row that is unavailable shut with its reason', async () => {
+    const user = userEvent.setup();
+    render(
+      <ContextMenu
+        items={[
+          { key: 'mark', label: 'Mark as', onSelect: vi.fn(), submenu: [{ key: 'tone', label: 'Tone', onSelect: vi.fn() }] },
+          {
+            key: 'fx',
+            label: 'Add FX',
+            unavailable: 'Select some words first.',
+            onSelect: vi.fn(),
+            submenu: [{ key: 'warm', label: 'Warm', onSelect: vi.fn() }],
+          },
+        ]}
+      >
+        <p>Alice was beginning to get very tired.</p>
+      </ContextMenu>,
+    );
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const menu = await screen.findByRole('menu');
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    await user.keyboard('{ArrowDown}{ArrowRight}');
+    expect(await screen.findByRole('menuitem', { name: 'Tone' })).toBeTruthy();
+    const off = screen.getByRole('menuitem', { name: /Add FX/ });
+    expect(off.getAttribute('aria-disabled')).toBe('true');
+    expect(off.getAttribute('aria-describedby')).toBeTruthy();
+    expect(screen.getByText('Select some words first.')).toBeTruthy();
+    await user.click(off);
+    expect(screen.queryByRole('menuitem', { name: 'Warm' })).toBeNull();
+  });
 });
