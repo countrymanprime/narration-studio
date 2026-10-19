@@ -53,7 +53,8 @@ const (
 	// reconnects.
 	ErrProtocol = Sentence("Audacity's answer was not in the expected form")
 	// ErrNoProject: Audacity answered with a bare empty line and no terminator, which is what it does when no project window is
-	// open (the spec note, "Concurrency"; audacity/audacity#11471). Nothing was done. The connection stays usable.
+	// open (the spec note, "Concurrency"; audacity/audacity#11471). An empty line followed by more is not this: Audacity starts the
+	// reply to most commands with one. Nothing was done. The connection stays usable.
 	ErrNoProject = Sentence("Audacity has no project open: open the chapter's project in Audacity, then try again")
 	// ErrCommandFailed is what every *CommandError is: Audacity ran the command and reported "BatchCommand finished: Failed!".
 	ErrCommandFailed = Sentence("Audacity could not do that")

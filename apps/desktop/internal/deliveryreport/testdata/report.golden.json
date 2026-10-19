@@ -481,7 +481,8 @@
           "tail_digital_silence_seconds": 0,
           "full_scale_samples": 0,
           "clip_run_count": 0,
-          "clip_runs": []
+          "clip_runs": [],
+          "click_candidate_count": null
         },
         "fingerprint": {
           "size_bytes": 530928044,
@@ -577,7 +578,8 @@
           "tail_digital_silence_seconds": 0,
           "full_scale_samples": 0,
           "clip_run_count": 0,
-          "clip_runs": []
+          "clip_runs": [],
+          "click_candidate_count": null
         },
         "fingerprint": {
           "size_bytes": 176444,

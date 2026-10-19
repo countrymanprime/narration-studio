@@ -6,24 +6,8 @@ export const storybibleStates: StateEntry[] = [
   // Story Bible
   {
     page: 'storybible',
-    state: 'rebuild-running',
-    description: 'Story Bible, a rebuild still running: its dialog says the step cannot be cancelled but can go on in the background (?mockRebuildRunning=1)',
-  },
-  {
-    page: 'storybible',
     state: 'entry-saving',
     description: 'Story Bible, an entry being saved: the Save button is busy and the other actions are off (?mockHoldEdits=1)',
-  },
-  {
-    page: 'storybible',
-    state: 'language-model-confirm',
-    description:
-      'Story Bible, the first-use question before the language model is downloaded: what it is, its sizes and where it goes, with Download, Build with rules-only and Cancel (?mockAssets=missing)',
-  },
-  {
-    page: 'storybible',
-    state: 'language-model-progress',
-    description: 'Story Bible, the language model download with real bytes, 39 percent and Cancel (?mockAssets=downloading)',
   },
   {
     page: 'storybible',

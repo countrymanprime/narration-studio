@@ -2121,15 +2121,6 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 	}()
 	return map[string]any{"status": "started", "job": snapshotWork(job)}, nil
 }
-func (h *Host) guideBuildState() map[string]any {
-	h.mu.RLock()
-	job := h.guideJob
-	h.mu.RUnlock()
-	if job == nil {
-		return map[string]any{"id": nil, "kind": "story_bible", "phase": "idle", "message": "Ready to build the Story Bible.", "percent": 0, "logs": []string{}, "elapsed": 0}
-	}
-	return snapshotWork(job)
-}
 
 // pollWorkJob folds the sidecar's latest progress line and any new log lines
 // into job. Progress never moves backwards, and *logAt remembers how much of

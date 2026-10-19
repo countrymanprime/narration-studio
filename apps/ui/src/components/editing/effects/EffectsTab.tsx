@@ -43,6 +43,11 @@ export function EffectsTab({ doc, effects, cuts, total, selected, fx, onSelectWo
   const fxCap = useFxCap();
   const [pick, setPick] = useState<string | null>(null);
   const current = effects.find((f) => f.id === pick) ?? effects[0] ?? null;
+  const at = current ? effects.indexOf(current) : -1;
+  const stepTo = (by: -1 | 1) => {
+    const to = effects[at + by];
+    if (to) setPick(to.id);
+  };
   const docCuts = useMemo(() => docCutsOf(cuts), [cuts]);
   const summary = useMemo(() => (selected.length ? summarize(doc, [...selected], docCuts, (t) => t) : null), [doc, selected, docCuts]);
   const range = summary?.ranges.length === 1 ? summary.ranges[0] : null;
@@ -61,7 +66,16 @@ export function EffectsTab({ doc, effects, cuts, total, selected, fx, onSelectWo
         capError={fxCap.error}
       />
       <EffectsList effects={effects} cuts={cuts} total={total} selectedId={current?.id ?? null} onSelect={setPick} />
-      {current ? <EffectInspector fx={current} cuts={cuts} total={total} dawName={dawName} onRemove={(f) => void fx.remove(f)} /> : null}
+      {current ? (
+        <EffectInspector
+          fx={current}
+          cuts={cuts}
+          total={total}
+          dawName={dawName}
+          onRemove={(f) => void fx.remove(f)}
+          step={{ at, of: effects.length, to: stepTo }}
+        />
+      ) : null}
       <AddEffect
         hasSelection={selected.length > 0}
         reason={summary ? fx.refusalOf(summary) : ''}

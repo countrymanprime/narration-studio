@@ -3,7 +3,8 @@ import type { EditCut } from '../../../../api/contracts/editCuts';
 import type { WordFx } from '../../../../api/contracts/wordFx';
 import { overlay } from '../../../../overlay/overlayService';
 import type { FxChainsPort } from '../../../../ports/fxchains';
-import type { FxList } from '../../../../ports/daw';
+import type { FxChoice, FxList } from '../../../../ports/daw';
+import { targetOf } from '../../effects/EffectSettings';
 import { favouritesFirst } from '../../effects/favourites';
 import { useFxFavourites, type FxFavourites } from '../../effects/useFxFavourites';
 import { usePort } from '../../../../ports/usePort';
@@ -19,7 +20,7 @@ import { BUILT_IN, planRange, type RangePlan } from '../common/rangePlan';
 import { AddFxButton } from './FxButtons';
 import { FxDialog } from './FxDialog';
 import { applyFxCommand, fxPlanFor, removeFxCommand, type FxPlan } from './fxCommand';
-import { fxMenuItems } from './fxMenu';
+import { addFxItem, fxMenuItems } from './fxMenu';
 import { fxTitle } from './fxText';
 import { createHostFxChains } from '../../../../ports/fxchains';
 import { returnToScript } from '../../script/returnToScript';
@@ -137,6 +138,38 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     [plan, journal, daw, log, onEffects, chapterId, locator],
   );
 
+  /** The effect already on these words with this chain: the DAW's Compare plays a chain it finds on the words, so A/B needs one. */
+  const onTheWords = useCallback(
+    (summary: SelSummary, chainId: string): WordFx | undefined => {
+      const words = new Set(summary.ranges.flatMap((r) => r.keys));
+      return effects.find((f) => f.chainId === chainId && f.keys.some((k) => words.has(k)));
+    },
+    [effects],
+  );
+  const compareReason = useCallback(
+    (summary: SelSummary, chain: FxChoice): string => {
+      if (!plan || plan.kind === 'refused') return plan?.kind === 'refused' ? plan.reason : 'Checking what the DAW can do.';
+      return onTheWords(summary, chain.id)
+        ? ''
+        : `The DAW compares an effect that is on the words. Add ${chain.name} first, then compare it in the Effects tab.`;
+    },
+    [plan, onTheWords],
+  );
+  const compare = useCallback(
+    async (summary: SelSummary, chain: FxChoice) => {
+      const on = onTheWords(summary, chain.id);
+      const target = on ? targetOf(on, chapterId, locator) : null;
+      if (!target) return overlay.toast('These words are not in the script, so the DAW cannot be asked about them.', { tone: 'error' });
+      try {
+        const { result } = await daw.compareFxRange(target);
+        overlay.toast(result.ok ? result.message : (result.refused ?? result.message), result.ok ? undefined : { tone: 'error' });
+      } catch (e) {
+        overlay.toast(`The DAW was not asked: ${e instanceof Error ? e.message : String(e)}`, { tone: 'error' });
+      }
+    },
+    [onTheWords, chapterId, locator, daw],
+  );
+
   const ask = useCallback(
     (keys: readonly string[], chainId?: string) => {
       if (!keys.length) return overlay.toast(NO_SELECTION);
@@ -162,6 +195,8 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
             locator={locator}
             snap={snap}
             overOf={(summary) => planOf(summary).over}
+            compareReason={compareReason}
+            onCompare={(summary, chain) => void compare(summary, chain)}
             onCancel={close}
             onConfirm={(summary, chain, over) => {
               close();
@@ -172,7 +207,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
         ),
       });
     },
-    [doc, docCuts, refusalOf, plan, list, alignment, chapterId, chapterName, locator, planOf, run],
+    [doc, docCuts, refusalOf, plan, list, alignment, chapterId, chapterName, locator, planOf, run, compareReason, compare],
   );
 
   const remove = useCallback(
@@ -229,7 +264,10 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
       }),
       registerWordMenuSection({
         order: 90,
-        items: ({ keys, summary }) => (summary.items.length > 0 && summary.items.every((i) => i.cut) ? [] : latest.current.itemsOf(keys, summary)),
+        items: ({ keys, summary }) =>
+          summary.items.length > 0 && summary.items.every((i) => i.cut)
+            ? []
+            : [addFxItem(latest.current.itemsOf(keys, summary), latest.current.refusalOf(summary))],
       }),
       // "Remove <chain>" for the first effect on the selected words, as the mock's menu has it.
       registerWordMenuSection({

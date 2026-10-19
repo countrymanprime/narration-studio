@@ -57,7 +57,7 @@ export function SpotTakes({
         <span className="flex-1" />
         <IconButton size="sm" action="manageTakes" label="Manage takes in Editing" onClick={() => onOpenInEditing(spot.chapterId, spot.passageId)} />
       </div>
-      <ul className="flex flex-col gap-1.5">
+      <ul className="flex flex-col gap-2">
         {spot.takes.map((take) => {
           const unplayable =
             take.sourceFile === ''
@@ -67,7 +67,11 @@ export function SpotTakes({
                 : undefined;
           const on = playing(take);
           return (
-            <li key={take.id} className="flex flex-col gap-0.5">
+            <li
+              key={take.id}
+              data-kept={take.kept || undefined}
+              className={`flex min-w-0 flex-col gap-0.5 rounded-[var(--radius-card)] border p-2 ${take.kept ? 'border-[var(--ok)] bg-[var(--ok-soft)]' : 'border-[var(--border)]'}`}
+            >
               <div className="flex items-center gap-2 text-sm">
                 <IconButton
                   size="sm"

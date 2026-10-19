@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { FxChoice, FxList } from '../../../../ports/daw';
 import { Button } from '../../../primitives/Button';
+import { Icon } from '../../../primitives/Icon';
 import { Select } from '../../../primitives/Select';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { clock } from '../../bar/clock';
@@ -29,6 +30,10 @@ export interface FxDialogProps {
   snap: (at: number) => Promise<SnappedEnd>;
   /** What the snapped range comes to for "Add anyway": an overlap or the Effects tab's cap, or null. */
   overOf: (summary: SelSummary) => FxOver | null;
+  /** Why A/B is off for this chain on these words, or '' when the DAW can play them with and without it. */
+  compareReason: (summary: SelSummary, chain: FxChoice) => string;
+  /** Plays the words in the DAW with the chain, then without (`DawFxRangeCompare`); it says what happened itself. */
+  onCompare: (summary: SelSummary, chain: FxChoice) => void;
   onCancel: () => void;
   onConfirm: (summary: SelSummary, chain: FxChoice, over: FxOver | null) => void;
 }
@@ -36,9 +41,24 @@ export interface FxDialogProps {
 /**
  * The question asked before an effect goes on words (the mock's `FxDialog`). Choosing a chain opens this and applies nothing: it shows the
  * words, the split ends (snapped to zero crossings), the pieces either side, the chain (which can be changed here) and what the DAW does and how
- * it is undone. Cancel has the focus and changes nothing.
+ * it is undone, and an A/B button that hears the words without and with the chain. Cancel has the focus and changes nothing.
  */
-export function FxDialog({ doc, keys, cuts, plan, list, chainId, chapterName, locator, snap, overOf, onCancel, onConfirm }: FxDialogProps) {
+export function FxDialog({
+  doc,
+  keys,
+  cuts,
+  plan,
+  list,
+  chainId,
+  chapterName,
+  locator,
+  snap,
+  overOf,
+  compareReason,
+  onCompare,
+  onCancel,
+  onConfirm,
+}: FxDialogProps) {
   const [chain, setChain] = useState(chainId ?? list.choices[0]?.id ?? '');
   const choice = list.choices.find((c) => c.id === chain);
   const [snapped, setSnapped] = useState<Map<number, SnappedEnd> | null>(null);
@@ -57,6 +77,7 @@ export function FxDialog({ doc, keys, cuts, plan, list, chainId, chapterName, lo
   const ends = snapped && first ? snapText(snapped.get(first.start) ?? { time: 0, moved: 0 }, snapped.get(first.end) ?? { time: 0, moved: 0 }) : '';
   const over = useMemo(() => (snapped ? overOf(sum) : null), [snapped, overOf, sum]);
   const n = sum.audible.length;
+  const abWhy = choice ? compareReason(sum, choice) : '';
   const facts = 'm-0 grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-1.5';
   return (
     <div className="flex flex-col gap-3" data-fx-dialog>
@@ -106,6 +127,21 @@ export function FxDialog({ doc, keys, cuts, plan, list, chainId, chapterName, lo
         </dt>
         <dd className="m-0">{FX_JOINS}</dd>
       </dl>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!snapped || !r || !choice || abWhy !== ''}
+          aria-describedby={abWhy ? 'fx-ab-why' : undefined}
+          onClick={() => choice && onCompare(sum, choice)}
+        >
+          <Icon name="play" /> A/B
+        </Button>
+        <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
+          {abWhy ? <span id="fx-ab-why">{abWhy}</span> : 'Hear the words without, then with, the effect.'}
+        </span>
+      </div>
       {over ? (
         <p className="m-0 rounded-lg bg-[var(--warn-soft)] px-3 py-2.5 text-sm" role="alert" data-fx-over>
           {over.text}
