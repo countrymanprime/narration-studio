@@ -26,4 +26,6 @@ export const pickupsFeedback: Record<string, FeedbackRow> = {
   'src/components/pickups/PickupsPage.tsx::pickupsRemove#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'no', 'ok', 'The row leaves the list when the host answers; a line added by hand offers Undo, a refusal is a toast.'),
   'src/components/pickups/PickupsPage.tsx::pickupsSetIncluded#1': row('input', 'file-io', 'none', 'none', 'ui', 'toast', 'no', 'ok', 'The checkbox and the session panel follow the host\'s answer; a refusal is a toast and the box keeps the stored state.'),
   'src/components/pickups/PickupsPage.tsx::pickupsSetDone#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'no', 'ok', 'Mark recorded or open again goes through the DAW marker when the DAW holds it; a refusal is a toast in the DAW\'s words.'),
+  'src/components/pickups/list/usePlayOriginal.ts::chapterTrackMapList#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Finds the track the pickup\'s chapter is linked to before Play original; a failed read is the refusal sentence the list shows.'),
+  'src/components/pickups/list/usePlayOriginal.ts::tracksList#1': row('click', 'file-io', 'none', 'none', 'ui', 'toast', 'na', 'ok', 'Read with the link above for the original take\'s file; a failure is the same refusal.'),
 };
