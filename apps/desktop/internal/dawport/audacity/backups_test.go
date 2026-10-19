@@ -39,6 +39,8 @@ type pipeAudacity struct {
 	failOnNth map[string]int
 	// ignoreNames answers SetTrackStatus OK without renaming, so a backup's track is never found again.
 	ignoreNames bool
+	// prefs are the saved preferences: GetPreference of a key nothing set fails, as in Audacity.
+	prefs map[string]string
 }
 
 type fakeTrack struct {
@@ -149,6 +151,18 @@ func (f *pipeAudacity) handle(line string) ([]string, bool) {
 		return strings.Split(string(raw), "\n"), true
 	case "Stop":
 		return nil, true
+	case "GetPreference":
+		v, ok := f.prefs[cmd.Params["Name"]]
+		if !ok {
+			return nil, false
+		}
+		return []string{v}, true
+	case "SetPreference":
+		if f.prefs == nil {
+			f.prefs = map[string]string{}
+		}
+		f.prefs[cmd.Params["Name"]] = cmd.Params["Value"]
+		return nil, true
 	case "SelectTracks":
 		first, ok1 := param(cmd, "Track")
 		count, ok2 := param(cmd, "TrackCount")
@@ -211,16 +225,26 @@ func (f *pipeAudacity) handle(line string) ([]string, bool) {
 		f.tracks = append(f.tracks, &fakeTrack{name: "Audio Track", kind: "wave", channels: channels, selected: true, audio: map[int]string{}})
 		return nil, true
 	case "SetTrackStatus", "SetTrackAudio":
-		index, ok := param(cmd, "Track")
-		if !ok || int(index) < 0 || int(index) >= len(f.tracks) {
-			return []string{"Track is out of range."}, false
+		// Audacity 3.7.7 applies both to the selected track and ignores a Track parameter without an error (tests/audacity3/real/edits,
+		// A3-T17 and A3-T19), so a caller that does not select the track first changes the wrong one.
+		changed := false
+		for _, t := range f.tracks {
+			if !t.selected {
+				continue
+			}
+			changed = true
+			if name, ok := cmd.Params["Name"]; ok && !f.ignoreNames {
+				t.name = name
+			}
+			if mute, ok := cmd.Params["Mute"]; ok {
+				t.muted = mute == "1"
+			}
+			if cmd.Name == "SetTrackStatus" {
+				break
+			}
 		}
-		t := f.tracks[int(index)]
-		if name, ok := cmd.Params["Name"]; ok && !f.ignoreNames {
-			t.name = name
-		}
-		if mute, ok := cmd.Params["Mute"]; ok {
-			t.muted = mute == "1"
+		if !changed {
+			return []string{"Select a track first."}, false
 		}
 		return nil, true
 	case "SilenceAudio":

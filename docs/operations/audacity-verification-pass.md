@@ -1,6 +1,6 @@
 # The Audacity verification pass
 
-The Audacity adapter was built from Audacity's published scripting spec and tested against a fake pipe server. It was not tested against a running Audacity ([The DAW port](../architecture/daw-integration.md#the-daw-port), [the spec note](../research/audacity-4-scripting-spec.md)). This pass is the owner's check of what only a real Audacity can show. It works the way the REAPER checks do ([The DAW port](../architecture/daw-integration.md#the-daw-port)). Until it passes, every Audacity capability stays **Experimental**, and it is tracked on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+The Audacity adapter was built from Audacity's published scripting spec and tested against a fake pipe server. It was first tested against a running Audacity on 2026-10-19, on Linux, by the hosted-runner tests ([results](../research/audacity-3-real-edits-results.md), [CI design](../research/real-audacity3-ci-integration.md)); those found and fixed several commands that did not work as built ([The DAW port](../architecture/daw-integration.md#the-daw-port), [the spec note](../research/audacity-4-scripting-spec.md)). It has not run on Windows or with a real microphone. This pass is the owner's check of what only a real Audacity can show. It works the way the REAPER checks do ([The DAW port](../architecture/daw-integration.md#the-daw-port)). Until it passes, every Audacity capability stays **Experimental**, and it is tracked on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
 
 - **Part A** runs unattended in about a minute and writes a results file.
 - **Part B** is five short checks by eye and ear.
@@ -72,19 +72,19 @@ Part A's run goes on to Part C on the same scratch project and the same 12 s ton
 
 | Step | What it does in Audacity | Expected |
 | --- | --- | --- |
-| C1 | Cut 2 to 3 s, closing up: backup, `SplitDelete`, `Delete` | PASS: the tone ends at 11 s; a muted backup track |
+| C1 | Cut 2 to 3 s, closing up: backup, then one `Delete` (a `SplitDelete` first leaves the gap in place) | PASS: the tone ends at 11 s; a muted backup track |
 | C2 | Cut 4 to 4.5 s, leaving a gap: backup, `SplitDelete` | PASS: the tone still ends at 11 s, silent from 4 to 4.5 s |
-| C3 | Your macro on 5 to 6 s: backup, `Split`, `ApplyMacro` | PASS, or SKIP with no macro named |
-| C4 | Stack the read at 8 to 9 s on 6 s: backup, a take track, `Paste`, `Split`, `Delete`, mute | PASS: the tone ends at 9 s; a muted track `Narration Utils take pass-take-2 from 8.000 s, backup {ID}` holds 6 to 7 s |
+| C3 | Your macro on 5 to 6 s: backup, `Split`, then the macro's menu command `Macro_<name>` (no `ApplyMacro` command exists) | PASS, or SKIP with no macro named. A macro name may hold letters, digits, spaces, hyphens and underscores; any other character is refused |
+| C4 | Stack the read at 8 to 9 s on 6 s: backup, a take track, `Paste`, `Split`, `Delete` (with "Editing a clip can move other clips" on for the edit), mute the take track | PASS: the tone ends at 9 s; a muted track `Narration Utils take pass-take-2 from 8.000 s, backup {ID}` holds 6 to 7 s, and the chapter track is not muted |
 | C5 | Un-stack it: backup, `Paste` from the stack's backup track, `RemoveTracks` | PASS: the tone ends at 11 s again; the take track is gone |
 | C6 | Roll at 10 s: `Stop`, backup, `PunchAndRoll`, then `Stop` after 2 s | PASS: Audacity records from 10 s |
 | C7 | A cut on a track that is not there | PASS: refused as stale, nothing sent |
 
-By ear, after the run: the tone is silent from 4 to 4.5 s (C2's gap), and the audio after 10 s is C6's recording. Record in #510 how many entries each step added to Edit > Undo History: the app reports C1 2, C2 1, C3 2, C4 5, C5 2 and C6 0, and a different count is fixed in `steps*.go`.
+By ear, after the run: the tone is silent from 4 to 4.5 s (C2's gap), and the audio after 10 s is C6's recording. Record in #510 how many entries each step added to Edit > Undo History: the app reports C1 1, C2 1, C3 2, C4 4, C5 2 and C6 0 at the call (the roll's entry is added when the recording stops, so 1 once it has), and a different count is fixed in `steps*.go`. These are the counts a real Audacity 3.7.7 gave on a Linux runner ([results](../research/audacity-3-real-edits-results.md)); Edit > Undo History on Windows is where they are checked by eye.
 
-## Backups (pending: not in Part A yet)
+## Backups (not in Part A yet; run on a Linux Audacity)
 
-The `backups` role ([Audacity 3.x: what the app relies on](../reference/daw/audacity-3.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` on their own (`pass_live_test.go`, 2026-10-12): the bindings merged in SN-D82 ([#1567](https://github.com/countrymanprime/narration-utils/pull/1567)) without a pass step, and Part C runs a backup only as the first step of each edit. Until a step is added, each check below is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)), and none has run.
+A real Audacity 3.7.7 on Linux ran the first, second and fourth checks below and the last one through the adapter ([results](../research/audacity-3-real-edits-results.md), A3-T17): the restore was sample-for-sample the original, the pasted backup started at the window start, a stereo source got a stereo backup, and a deleted backup track was refused as stale. They have not run on Windows, and Part A does not run them. The `backups` role ([Audacity 3.x: what the app relies on](../reference/daw/audacity-3.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` on their own (`pass_live_test.go`, 2026-10-12): the bindings merged in SN-D82 ([#1567](https://github.com/countrymanprime/narration-utils/pull/1567)) without a pass step, and Part C runs a backup only as the first step of each edit. Until a step is added, each check below is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)), and none has run.
 
 | Check | Expected |
 | --- | --- |
@@ -94,6 +94,66 @@ The `backups` role ([Audacity 3.x: what the app relies on](../reference/daw/auda
 | A stereo track | The backup track is stereo and the restore matches |
 | Delete the backup track, then restore | Refused: "The backup's track is no longer in the Audacity project, so nothing was restored." Nothing changes |
 
+## A3-T31: the owner's pass on Windows (with a real microphone)
+
+What a hosted runner cannot show: a real input device, how it sounds, how the Windows build starts for the first time, and what Edit > Undo History says. Everything the hosted runs measured is in [the results note](../research/audacity-3-real-edits-results.md); this list checks the same things on your machine and the ones that need a person. Do it after the hosted results are in. Record each line in #510 as "as expected" or what happened instead, and any difference goes to the fake (`audacitybridgetest`) and to the results note.
+
+**Set up once**
+
+1. Windows machine, Audacity 3.7.x from the official zip or installer. Write down Help > About Audacity's version.
+2. A scratch project, a scratch folder (`C:\Temp\nu-audacity-pass`) and a microphone you can tap or clap into. Set Edit > Preferences > Devices to it, Quality > Default Sample Rate to 44100 Hz.
+3. In Tools > Macro Manager make a macro named `Narration-Test` with two steps: Amplify (ratio 0.5), then Normalize (peak -3 dB). Make a second named `Narration Spaced Name` with one Normalize step (peak -6 dB).
+4. Open Edit > Undo History and leave it open: it is where the counts below are read.
+
+**The first run (before enabling anything)**
+
+| # | Do | Expected |
+| --- | --- | --- |
+| T31-1 | Start Audacity with no profile (rename `%APPDATA%\audacity` first, and put it back after) | Write down every dialog in the order it appears (the welcome box, the update and usage notice). A hosted Linux run saw an "App updates & usage info" box and a welcome box, and `UpdateNoticeShown=1` and `ShowSplashScreen=0` in `audacity.cfg` stop them |
+| T31-2 | Edit > Preferences > Modules: set `mod-script-pipe` to Enabled, restart, reopen Modules | It says Enabled. Write down whether it said New or Failed after the first restart: on a fresh Linux profile the first start marked it failed and a second start worked |
+| T31-3 | Tracks > Sync-Lock Tracks, and Preferences > Tracks Behaviors > "Editing a clip can move other clips" | Write down whether each is on or off on a fresh install. Linux: Sync-Lock off, the preference not stored and behaving as off |
+
+**Recording (needs the microphone)**
+
+| # | Do | Expected |
+| --- | --- | --- |
+| T31-4 | Part A and Part C of this page, unchanged | As their tables above. C6 records 2 s from the microphone |
+| T31-5 | File > Import a 22.05 kHz WAV (the pass folder has none: export one from any clip at 22050 Hz), select its track, click the red Record button | The box "Too few tracks are selected for recording at this sample rate" opens. It has no title bar. Click OK; the next scripted command is answered at once |
+| T31-6 | New project, 44.1 kHz. Select nothing, set the cursor at 1 s, click Record, clap at about 3 s of the wall clock, then run `Message: Text=x` from the pass tool while it records | Recording stops at the `Message`: any batch command (`Message`, `GetInfo`, `SelectTime`, `SetLabel`, an effect) ends a recording, while `AddLabelPlaying` does not. Write down whether Windows does the same, and how long after the click the first sound is on the track (Linux null sink: 1.5 to 2.1 s) |
+| T31-7 | Record 10 s with a tap every 2 s. At the 5th second run `AddLabelPlaying` from the pass tool, then click Stop | The label sits at the tap nearest the 5th second to within 0.25 s. Measure label time against the tap in the waveform and write both |
+| T31-8 | Roll at 10 s (Part C, C6) and listen | The audio before 10 s minus the pre-roll is untouched, the audio from 10 s is your new take, and there is no click at the join. Edit > Undo History gained one entry once you pressed Stop |
+| T31-9 | Click Stop in Audacity's own window during a recording the app started, then ask the app (Booth) whether it is still recording | The app cannot tell: no scripted read answers without ending a recording. Write what the Booth shows |
+
+**Undo counts (read in Edit > Undo History after each, then Undo)**
+
+| # | Do | Expected entries |
+| --- | --- | --- |
+| T31-10 | Part C C1, C2, C3, C4, C5 and C6, one at a time, reading the history after each | C1 1, C2 1, C3 2, C4 4, C5 2, C6 1 after Stop. Write each count you see |
+| T31-11 | Run an Amplify from the pass tool (`Amplify: Ratio=0.5`) and look at the history | No new entry. A single Undo then takes back the edit before it as well. Write what you see: the app reports 0 undo points for lowered stretches and repaired clicks |
+| T31-12 | With the history at its beginning, run `Undo` from the pass tool | A box "Nothing to undo" opens and holds the pipe; click OK. (Linux: the same box, and twice a crash report window after the box had been left open.) Write whether Windows crashes |
+
+**Windows paths and bytes**
+
+| # | Do | Expected |
+| --- | --- | --- |
+| T31-13 | Import and export (`Export2`) with `C:/Temp/nu audacity pass/é-ß.wav` and with a path of 240 characters | Both work, or the long one is refused before sending; write which |
+| T31-14 | Look at the hosted Windows job's summary (A3-T30, `real-audacity3-windows.yml`, dispatched by hand) | Replies that start with an empty line, `Failed!` for an unknown command, `C:/` and backslash paths accepted. Any row that differs from the Linux run is a bug in the fake |
+| T31-15 | Run a macro from the pass tool with no track selected | A box saying "Normalize" requires one or more tracks to be selected opens and holds the pipe; click OK |
+| T31-16 | Run Click Removal from the pass tool on a selection with no click in it | A box "Algorithm not effective on this audio. Nothing changed." opens and holds the pipe; click OK |
+
+**Language**
+
+| # | Do | Expected |
+| --- | --- | --- |
+| T31-17 | Edit > Preferences > Interface > Language: Deutsch, restart, run Part A | Passes. The menus are German, replies still end `BatchCommand finished: OK`, and the label track the app makes is named `Narration Utils` (the default name `Textmarken 1` is German) |
+
+**Windows only, by ear**
+
+| # | Do | Expected |
+| --- | --- | --- |
+| T31-18 | Part B's loop check (A10) and the view following the cursor | The loop plays at normal pitch between 3 and 7.5 s; write whether the window scrolls to the cursor |
+| T31-19 | Set the playback slider (the speaker slider in the toolbar) to two values while a tone plays | The loudness changes and the export of the same tone does not. This decides `monitor_level` (hosted tests could not reach the slider) |
+
 ## What to paste into #510
 
 Comment on #510, headed "Audacity 4 pass results", with:
@@ -101,7 +161,8 @@ Comment on #510, headed "Audacity 4 pass results", with:
 - the results table from `audacity-pass-results.md` (Parts A and C);
 - one line per B step: as expected, or what happened instead;
 - the undo counts from Part C;
-- the Audacity version, and whether mod-script-pipe was enabled.
+- the Audacity version, and whether mod-script-pipe was enabled;
+- for A3-T31, each of its rows (T31-1 to T31-19) as "as expected" or what happened.
 
 ## What happens with the results
 

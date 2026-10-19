@@ -22,10 +22,8 @@ func (a audacityText) Error() string { return string(a) }
 
 // ParseCommand parses one command line (without its line ending).
 func ParseCommand(line string) (Parsed, error) {
-	name, rest, ok := strings.Cut(line, ":")
-	if !ok {
-		return Parsed{}, audacityText("Syntax error!\nCommand is missing ':'")
-	}
+	// Audacity 3.7.7 accepts a command with no colon and no parameters (SelectNone, Play, Stop answered OK: A3-T3).
+	name, rest, _ := strings.Cut(line, ":")
 	p := Parsed{Name: strings.TrimSpace(name), Params: map[string]string{}}
 	i := 0
 	for {
