@@ -1424,18 +1424,6 @@ export function FindingsThread(id: string, op: string, messageID: string, who: s
 }
 
 /**
- * GuideBuild starts the Story Bible build, or asks for the language model it needs first (see startGuideBuild). rulesOnly builds without one
- * for this run.
- */
-export function GuideBuild(rulesOnly: boolean): $CancellablePromise<string> {
-    return $Call.ByID(2237994534, rulesOnly);
-}
-
-export function GuideBuildState(): $CancellablePromise<string> {
-    return $Call.ByID(1236161883);
-}
-
-/**
  * GuideCorrectCue records the narrator's own attribution for one dialogue
  * cue. speakerEntityID "unknown" or "" clears the cue back to unknown; a
  * rebuild never overwrites a correction (mirroring sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).

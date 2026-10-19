@@ -56,7 +56,6 @@ import { masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
 import {
-  guideBuildResultSchema,
   guideCreatedSchema,
   guideDialogueCuesSchema,
   guideEntitiesSchema,
@@ -322,8 +321,6 @@ export const wailsClient: NarrationApi = {
   manuscriptImportCancel: (jobId) => decode(voidResult, 'ManuscriptImportCancel', host.ManuscriptImportCancel(jobId)),
   saveSettings: (tool, scope, values) => decode(bootstrapSchema, 'SystemSaveSettings', host.SystemSaveSettings(tool, scope, values)),
   settingsForScope: (scope) => decode(settingsForScopeSchema, 'SystemSettingsForScope', host.SystemSettingsForScope(scope)),
-  guideBuild: (options) => decode(guideBuildResultSchema, 'GuideBuild', host.GuideBuild(options?.rulesOnly ?? false)),
-  guideBuildState: () => decode(workJobSchema, 'GuideBuildState', host.GuideBuildState()),
   clearProjectData: () => decode(voidResult, 'ManuscriptClearProjectData', host.ManuscriptClearProjectData(true)),
   guideEntities: () => decode(guideEntitiesSchema, 'GuideEntities', host.GuideEntities()),
   guideEdit: (id, values) => decode(voidResult, 'GuideEdit', host.GuideEdit(id, values)),

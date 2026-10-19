@@ -172,8 +172,6 @@
     "app.spec.ts|production / editing-check-stale": 7.5,
     "app.spec.ts|production / editing-check-unsupported": 8,
     "app.spec.ts|production / import-activity-log": 7,
-    "app.spec.ts|production / import-build-failed": 8,
-    "app.spec.ts|production / import-build-running": 7.9,
     "app.spec.ts|production / import-confirm": 6.5,
     "app.spec.ts|production / import-confirm-markdown": 7.7,
     "app.spec.ts|production / import-review-characters": 4.6,

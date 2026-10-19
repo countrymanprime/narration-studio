@@ -2,7 +2,7 @@
 import type { MergeEvents } from './mergeEvents';
 import { parseWireJson } from '../wire/parseWire';
 import { guidePropertiesSchema } from '../schemas/storyBible';
-import type { GuideEntity, GuidePronunciation, GuideProperty, GuideType, NarrationApi, WorkJob } from '../../types';
+import type { GuideEntity, GuidePronunciation, GuideProperty, GuideType, NarrationApi } from '../../types';
 import { GUIDE_TYPE_COLOURS } from '../contracts/storyBible';
 import { wireClone } from '../mockFixtures';
 import { type MockApiSeed, type MockState, wireContext } from './state';
@@ -63,26 +63,9 @@ export function createStoryBibleMock(
   s: MockState,
   initial: MockApiSeed,
   manuscriptReady: Promise<void>,
-  {
-    spacyInstalled,
-    ttsInstalled,
-    mockLanguageModel,
-    mockVoiceIdentity,
-    mockVoice,
-  }: Pick<AssetsMock, 'spacyInstalled' | 'ttsInstalled' | 'mockLanguageModel' | 'mockVoiceIdentity' | 'mockVoice'>,
+  { ttsInstalled, mockVoiceIdentity, mockVoice }: Pick<AssetsMock, 'ttsInstalled' | 'mockVoiceIdentity' | 'mockVoice'>,
   merges?: MergeEvents,
 ) {
-  let storyBibleJob: WorkJob = initial.rebuildRunning
-    ? {
-        id: 'mock-guide-running',
-        kind: 'story_bible',
-        phase: 'running',
-        message: 'Extracting names and terms',
-        percent: 45,
-        logs: ['Reading canonical manuscript', 'Read 240 paragraphs in 3 chapters', 'Extracting names and terms'],
-        elapsed: 12,
-      }
-    : { id: null, kind: 'story_bible', phase: 'idle', message: 'Ready to build.', percent: 0, logs: [], elapsed: 0 };
   // The sidecar's rules (manuscript_guide.py set_pronunciation): the narrator's own and a dictionary's pronunciation sit
   // side by side, the one not in use kept as the alternate; an author confirmation is withdrawn when the IPA in use changes.
   const changePronunciation = (id: string, aliasIndex: number | undefined, change: (prior: GuidePronunciation) => GuidePronunciation) => {
@@ -128,51 +111,6 @@ export function createStoryBibleMock(
     return alias.text;
   };
   const bindings = {
-    guideBuild: async (options) => {
-      // The first-use gate: the selected language model is an asset, so nothing starts until the narrator chooses to download it or to
-      // build without it this once.
-      if (!spacyInstalled() && !options?.rulesOnly) {
-        return {
-          status: 'asset_required' as const,
-          model: mockLanguageModel,
-          installState: 'not_installed' as const,
-          downloadSize: 12806118,
-          diskSize: 15251718,
-          installPath: MOCK_ASSET_ROOT + '/spacy/en_core_web_sm/3.8.0',
-        };
-      }
-      if (initial.build) {
-        const running: WorkJob = {
-          id: 'mock-guide',
-          kind: 'story_bible',
-          phase: 'running',
-          message: 'Extracting names and terms',
-          percent: 30,
-          logs: ['Reading canonical manuscript', 'Read 221 paragraphs in 5 chapters', 'Extracting names and terms'],
-          elapsed: 4,
-        };
-        const failure = 'The language model could not be loaded: the model folder is missing its config.cfg.';
-        storyBibleJob = initial.build === 'hold' ? running : { ...running, phase: 'error', message: failure, error: failure, logs: [...running.logs, failure] };
-        if (initial.build === 'fails') s.endJob({ id: 'mock-guide', kind: 'story_bible', outcome: 'error', message: failure, durationMs: 4000 });
-        return { status: 'started' as const, job: wireClone(running) };
-      }
-      const message = options?.rulesOnly
-        ? 'Story Bible rebuild complete with the rules-only extraction, which is lower quality than a language model.'
-        : 'Story Bible rebuild complete.';
-      storyBibleJob = {
-        id: 'mock-guide',
-        kind: 'story_bible',
-        phase: 'success',
-        message,
-        percent: 100,
-        logs: ['Reading canonical manuscript', 'Built Story Bible with 7 entities'],
-        elapsed: 1,
-        result: { message: 'Story Bible rebuilt.' },
-      };
-      s.endJob({ id: 'mock-guide', kind: 'story_bible', outcome: 'success', message, durationMs: 1000 });
-      return { status: 'started' as const, job: wireClone(storyBibleJob) };
-    },
-    guideBuildState: async () => wireClone(storyBibleJob),
     clearProjectData: async () => {},
     guideEntities: async () => {
       await manuscriptReady;
