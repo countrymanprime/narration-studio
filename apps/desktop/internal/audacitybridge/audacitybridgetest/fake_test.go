@@ -17,7 +17,7 @@ func TestParseCommand(t *testing.T) {
 		{`SetLabel: Label=2  Text="a b" Start=1.5`, "SetLabel", map[string]string{"Label": "2", "Text": "a b", "Start": "1.5"}, false},
 		{`SetLabel: Text="a\nb\\d"`, "SetLabel", map[string]string{"Text": "a\nb\\d"}, false},
 		{`SetLabel: Text="a" Text="b"`, "SetLabel", map[string]string{"Text": "b"}, false},
-		{"NoColon", "", nil, true},
+		{"NoColon", "NoColon", map[string]string{}, false}, // Audacity 3.7.7 answers a bare SelectNone, Play or Stop (A3-T3)
 		{"SetLabel: Label", "", nil, true},
 		{`SetLabel: Text="open`, "", nil, true},
 	}
