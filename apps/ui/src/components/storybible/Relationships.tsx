@@ -126,6 +126,7 @@ function PickButton({
     <Popover
       label="Choose an entry"
       align="start"
+      fitToWindow
       open={open}
       onOpenChange={setOpen}
       trigger={
