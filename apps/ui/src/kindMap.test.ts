@@ -167,10 +167,8 @@ const PENDING: Record<string, { owner: number; max: number }> = {
   'components/delivery/page/Preflight.tsx': { owner: 7, max: 0 },
   'components/engine/LinkChaptersDialog.tsx': { owner: 7, max: 0 },
   'components/layout/EngineChip.tsx': { owner: 7, max: 0 },
-  'components/manuscript/EntitySummary.tsx': { owner: 6, max: 4 },
   'components/master/RuleBadges.tsx': { owner: 7, max: 0 },
   'components/masterqc/page/PackageChecks.tsx': { owner: 7, max: 0 },
-  'components/pickups/list/pickupRows.ts': { owner: 6, max: 0 },
   'components/primitives/Highlight.tsx': { owner: 4, max: 3 },
   'components/primitives/SpeakerTag.tsx': { owner: 5, max: 0 },
   'components/primitives/speakerColor.ts': { owner: 5, max: 0 },
@@ -188,14 +186,10 @@ const PENDING: Record<string, { owner: number; max: number }> = {
   'components/script/bookmarks/ui/BookmarkRibbon.tsx': { owner: 5, max: 0 },
   'components/script/page/chapters/PrepDot.tsx': { owner: 7, max: 0 },
   'components/settings/CapabilitySection.tsx': { owner: 7, max: 0 },
-  'components/settings/CreditsPanel.tsx': { owner: 6, max: 0 },
   'components/settings/analysis/ToolRow.tsx': { owner: 7, max: 0 },
   'components/settings/controls/DefinitionsBody.tsx': { owner: 7, max: 0 },
   'components/settings/models/AssetRow.tsx': { owner: 7, max: 0 },
   'components/stages/StageSuggestion.tsx': { owner: 7, max: 0 },
-  'components/storybible/FilterChip.tsx': { owner: 6, max: 0 },
-  'components/storybible/Guide.tsx': { owner: 6, max: 0 },
-  'components/storybible/entryList.ts': { owner: 6, max: 0 },
 };
 
 describe('the kind vocabulary has one home', () => {

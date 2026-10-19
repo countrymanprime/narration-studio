@@ -10,10 +10,12 @@ import { Heading } from '../../primitives/Heading';
 import { IconButton } from '../../primitives/IconButton';
 import { PANEL_FRAME_CLASS, PANEL_HEADER_CLASS } from '../../primitives/panelStyles';
 import { Popover } from '../../primitives/Popover';
+import { KindChip } from '../../primitives/KindChip';
 import { StatusBadge } from '../../primitives/StatusBadge';
+import { statusLabel, statusTone } from '../../../kinds/statusTone';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { AddPickup } from './AddPickup';
-import { clock, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, typeLabel, typeTone, ALL_SCOPE, type ChapterRef } from './pickupRows';
+import { clock, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, pickupKind, typeLabel, ALL_SCOPE, type ChapterRef } from './pickupRows';
 import { ScriptLine } from './ScriptLine';
 import { PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
@@ -291,7 +293,7 @@ export function PickupsTable({
                       </TableCell>
                       <TableCell>
                         <span className="whitespace-nowrap">
-                          <StatusBadge tone={typeTone(pickup)} label={typeLabel(pickup)} shape="tag" />
+                          <PickupType pickup={pickup} />
                         </span>
                       </TableCell>
                       <TableCell style={{ fontSize: 16 }}>
@@ -302,7 +304,10 @@ export function PickupsTable({
                       </TableCell>
                       <TableCell>
                         <span title={pickup.done && pickup.waiting ? WAITING : undefined}>
-                          <StatusBadge tone={pickup.done ? 'success' : 'neutral'} label={pickup.done ? 'Recorded' : 'Open'} />
+                          <StatusBadge
+                            tone={statusTone(pickup.done ? 'recorded' : 'open_pickup')}
+                            label={statusLabel(pickup.done ? 'recorded' : 'open_pickup')}
+                          />
                           {pickup.done && pickup.waiting && (
                             <span className="mt-1 block text-[0.75rem] leading-tight text-[var(--text-muted)]">Not in the DAW yet</span>
                           )}
@@ -344,6 +349,12 @@ export function PickupsTable({
 }
 
 /** A chapter's group row, "<n> open", then its pickups. */
+/** The Type column's chip: the kind of finding it is, drawn as that kind is everywhere; a type the app has no kind for is a neutral tag. */
+function PickupType({ pickup }: { pickup: PickupItem }) {
+  const kind = pickupKind(pickup);
+  return kind ? <KindChip kind={kind} label={typeLabel(pickup)} /> : <StatusBadge tone="neutral" label={typeLabel(pickup)} shape="tag" />;
+}
+
 function GroupRows({ name, open, children }: { name: string; open: number; children: ReactNode }) {
   return (
     <>
