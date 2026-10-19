@@ -83,6 +83,29 @@ describe('journal.act', () => {
   });
 });
 
+describe('journal.has', () => {
+  it('has-follows-the-entry: true while the entry is there, false once undone, cleared or pushed out', async () => {
+    const journal = setup();
+    const first = await added(journal, cmd('One', ['a/1']).command);
+    const second = await added(journal, cmd('Two', ['b/1']).command);
+    expect(journal.has(first)).toBe(true);
+    expect(journal.has(999)).toBe(false);
+    await journal.undo(first);
+    expect(journal.has(first)).toBe(false);
+    expect(journal.has(second)).toBe(true);
+    journal.clear();
+    expect(journal.has(second)).toBe(false);
+  });
+
+  it('a refused undo keeps the entry', async () => {
+    const journal = setup();
+    const { command } = cmd('One', ['a/1'], { undo: async () => refuse('No.') });
+    const id = await added(journal, command);
+    await journal.undo(id);
+    expect(journal.has(id)).toBe(true);
+  });
+});
+
 describe('journal.undo', () => {
   it('undo-by-name-restores-and-removes: calls the inverse with the run value, removes the entry; a second undo refuses', async () => {
     const journal = setup();

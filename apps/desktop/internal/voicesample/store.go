@@ -38,6 +38,8 @@ const (
 var (
 	idPattern     = regexp.MustCompile(`^[0-9a-f]{32}$`)
 	sha256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	// undoPattern is the Story Bible's own undo id: 16 lowercase hexadecimal characters (guide.isUndoID).
+	undoPattern = regexp.MustCompile(`^[0-9a-f]{16}$`)
 )
 
 // Dir is where this package keeps its data under a project. manuscript.Service.Clear removes it; a replace keeps it.
@@ -92,6 +94,18 @@ type StoredSource struct {
 	SourceEnd   float64 `json:"sourceEnd"`
 }
 
+// StoredMerge says that a sample was moved to another character by a Story Bible merge, so an undo of that merge can move it back.
+// It is host-only: the page never sees it. It is cleared when the narrator moves the sample by hand.
+type StoredMerge struct {
+	// UndoID is the id the Story Bible answered for the merge.
+	UndoID string `json:"undoId"`
+	// From is the absorbed entry the sample belonged to, and To the entry it moved to.
+	From string `json:"from"`
+	To   string `json:"to"`
+	// WasPrimary is whether it was From's primary sample before the merge.
+	WasPrimary bool `json:"wasPrimary"`
+}
+
 // Stored is one sample as kept in samples.json.
 type Stored struct {
 	ID          string       `json:"id"`
@@ -102,6 +116,8 @@ type Stored struct {
 	CreatedAt   time.Time    `json:"createdAt"`
 	Clip        StoredClip   `json:"clip"`
 	Source      StoredSource `json:"source"`
+	// Merge is set while the sample sits where a Story Bible merge put it (nil otherwise and on every sample made before merges were followed).
+	Merge *StoredMerge `json:"merge,omitempty"`
 }
 
 type storeFile struct {
@@ -164,6 +180,18 @@ func cleanCharacter(id string) (string, error) {
 	return id, nil
 }
 
+// cleanEntity checks the id of a Story Bible entry named by a merge: a character id that is neither padded nor the reserved narration.
+func cleanEntity(id string) (string, error) {
+	clean, err := cleanCharacter(id)
+	if err != nil {
+		return "", err
+	}
+	if clean != id || clean == NarrationCharacterID {
+		return "", fmt.Errorf("%w: that is not a Story Bible entry", ErrInvalid)
+	}
+	return clean, nil
+}
+
 func finite(value float64) bool { return !math.IsNaN(value) && !math.IsInf(value, 0) }
 
 // valid reports whether a file's samples keep the rules Mark and Update enforce; a file with one that does not is corrupt.
@@ -199,6 +227,27 @@ func valid(file storeFile) error {
 		if err := validSource(sample.Source); err != nil {
 			return err
 		}
+		if err := validMerge(sample); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validMerge checks a sample's merge record: the undo id the Story Bible gives, two different entries, the sample sitting at the
+// second.
+func validMerge(sample Stored) error {
+	merge := sample.Merge
+	if merge == nil {
+		return nil
+	}
+	if !undoPattern.MatchString(merge.UndoID) {
+		return errors.New("a sample has a bad merge record")
+	}
+	from, errFrom := cleanEntity(merge.From)
+	to, errTo := cleanEntity(merge.To)
+	if errFrom != nil || errTo != nil || from == to || from != merge.From || to != merge.To || sample.CharacterID != merge.To {
+		return errors.New("a sample has a bad merge record")
 	}
 	return nil
 }

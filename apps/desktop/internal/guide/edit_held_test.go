@@ -133,7 +133,7 @@ func TestAFileThatIsGoneIsNotEditedFromTheHeldCopy(t *testing.T) {
 // The parity cases again, all through one Service: each case's starting file replaces the last, which the held document must notice
 // every time, however quickly the files follow each other.
 func TestEditMatchesTheSidecarCasesThroughOneService(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("testdata", "edit-parity.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "tests", "fixtures", "guide-edit", "edit-parity.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,5 +183,66 @@ func TestEditMatchesTheSidecarCasesThroughOneService(t *testing.T) {
 				t.Errorf("case %d: the second edit parsed the file again", index)
 			}
 		}
+	}
+}
+
+// blockWrite makes the next writeDocument fail by putting a directory where it writes its temporary file; the returned function lifts it.
+func blockWrite(t *testing.T, s *Service) (lift func()) {
+	t.Helper()
+	blocker := s.guidePath() + ".tmp"
+	if err := os.Mkdir(blocker, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return func() {
+		if err := os.Remove(blocker); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// A write that fails leaves the file's contents unknown, so the held document is dropped and the next edit parses the file again.
+func TestAFailedWriteDropsTheHeldDocument(t *testing.T) {
+	s := heldService(t)
+	if err := s.EditFields("a", map[string]string{"description": "kept"}); err != nil {
+		t.Fatal(err)
+	}
+	lift := blockWrite(t, s)
+	if err := s.EditFields("a", map[string]string{"context": "never written"}); err == nil {
+		t.Fatal("the edit succeeded though its file could not be written")
+	}
+	lift()
+	if err := s.EditFields("a", map[string]string{"locked": "true"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.parses.Load(); got != 2 {
+		t.Fatalf("parses = %d, want 2: the edit after a failed write used the held document", got)
+	}
+	if got := entityField(t, s, "a", "context"); got != nil {
+		t.Fatalf("context = %v: the failed edit reached the file", got)
+	}
+	if got := entityField(t, s, "a", "description").(map[string]any)["text"]; got != "kept" {
+		t.Fatalf("description = %v, want the edit made before the failure", got)
+	}
+}
+
+// The same for a command that changes the document through mutateInHost.
+func TestAFailedMutationWriteDropsTheHeldDocument(t *testing.T) {
+	s := heldService(t)
+	if err := s.EditFields("a", map[string]string{"description": "kept"}); err != nil {
+		t.Fatal(err)
+	}
+	lift := blockWrite(t, s)
+	if err := s.MarkReviewed("b", nil); err == nil {
+		t.Fatal("the command succeeded though its file could not be written")
+	}
+	lift()
+	if err := s.EditFields("a", map[string]string{"locked": "true"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.parses.Load(); got != 2 {
+		t.Fatalf("parses = %d, want 2: the edit after a failed write used the held document", got)
+	}
+	if got := entityField(t, s, "b", "review_state"); got == "reviewed" {
+		t.Fatal("the failed command reached the file")
 	}
 }

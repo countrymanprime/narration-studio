@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../../src/components/primitives/changeHighlight';
-import { goToPage } from './drivers/shared';
+import { goToPage, openSettings } from './drivers/shared';
 
 // Motion is on here. Every other spec in this folder freezes it (helpers/settle.ts), and the atlas and Storybook do too, so this
 // is the only run that sees the motion a narrator sees: a control eases on the fast token, nothing loops on a page at rest, and
-// both ways of asking for reduced motion (Windows, and <html data-motion="reduce">) stop it. styles.css defines the tokens and
+// both ways of asking for reduced motion (Windows, and <html data-motion="reduce">, which the Settings Motion row sets) stop it. styles.css defines the tokens and
 // the `motion-ok:` variant; src/motion.test.ts checks that every utility uses them.
 const RAIL = 'aside[aria-label="Primary navigation"] > div';
 
@@ -165,5 +165,20 @@ test.describe('Motion / reduced', () => {
     await page.goto('/');
     await page.evaluate(() => (document.documentElement.dataset.motion = 'reduce'));
     expect(await railTransition(page)).toBe('0s');
+  });
+
+  test('the Settings Motion row stops the rail, and keeps it stopped after a reload', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.goto('/');
+    await openSettings(page, 'Appearance & keys');
+    const motion = page.locator('[data-row="look.motion"]');
+    await motion.getByRole('radio', { name: 'Reduce' }).click();
+    expect(await railTransition(page)).toBe('0s');
+    await page.reload();
+    expect(await page.evaluate(() => document.documentElement.dataset.motion)).toBe('reduce');
+    expect(await railTransition(page)).toBe('0s');
+    await openSettings(page, 'Appearance & keys');
+    await motion.getByRole('radio', { name: 'Follow Windows' }).click();
+    expect(await railTransition(page)).not.toBe('0s');
   });
 });

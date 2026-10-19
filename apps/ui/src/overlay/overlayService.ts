@@ -29,6 +29,8 @@ type DialogSpec =
       /** A slide-over always closes on a press outside, like the mock's side sheet. */
       kind: 'slideOver';
       title: string;
+      /** Where focus goes on close when the element that had it is gone (History opened from the jump menu); absent, what had focus before the first layer opened, then the page's <main>. */
+      returnFocus?: () => HTMLElement | null;
       render: (api: { close: () => void }) => ReactNode;
     };
 /** `topic` names what a message is about: a newer message on a topic replaces the one before it, and `dismissTopic` takes it away once it is no longer true. */
@@ -58,7 +60,14 @@ export type OverlayService = {
   confirm: (spec: ConfirmSpec) => Promise<boolean>;
   toast: (text: string, options?: ToastOptions) => void;
   /** A message with an Undo; `durationMs` keeps it longer than the usual five seconds. */
-  toastUndo: (text: string, undo: Undo, options?: { durationMs?: number }) => void;
+  toastUndo: (text: string, undo: Undo, options?: { durationMs?: number; entry?: number }) => void;
+  /**
+   * Takes away the Undo toasts whose journal `entry` `live` no longer holds (undone from the header, the keys or History; cleared by a project
+   * switch; pushed out). An Undo toast with no `entry` is left to `dismissUndo`.
+   */
+  settleUndo: (live: (entry: number) => boolean) => void;
+  /** Takes away every Undo toast: what they offered to undo belongs to a page, chapter or project the narrator has left. */
+  dismissUndo: () => void;
   announce: (text: string) => void;
   open: (spec: DialogSpec) => () => void;
   dismissToast: (id: number) => void;
@@ -75,6 +84,20 @@ export type OverlayService = {
 export function createOverlayService(): OverlayService {
   let snapshot: OverlaySnapshot = { dialogs: [], toasts: [], announcement: '' };
   let lastId = 0;
+  // The control that had focus when each layer opened. A layer opened from another layer (History from the jump menu) inherits the
+  // opener of the layer it came from: that layer is closing, so its own controls will be gone when this one closes.
+  const openers = new Map<number, HTMLElement | null>();
+  // The opener of the layer closed last: the jump menu closes, then runs its command, while its own field still has focus.
+  let closedOpener: HTMLElement | null = null;
+  const openerNow = (): HTMLElement | null => {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || active === document.body) return null;
+    if (active.closest('[role="dialog"], [role="alertdialog"], [data-slide-over]')) {
+      const top = snapshot.dialogs[snapshot.dialogs.length - 1];
+      return top ? (openers.get(top.id) ?? null) : closedOpener;
+    }
+    return active;
+  };
   const listeners = new Set<() => void>();
   const update = (next: Partial<OverlaySnapshot>) => {
     snapshot = { ...snapshot, ...next };
@@ -82,14 +105,16 @@ export function createOverlayService(): OverlayService {
   };
   const removeDialog = (id: number): boolean => {
     if (!snapshot.dialogs.some((entry) => entry.id === id)) return false;
+    closedOpener = openers.get(id) ?? null;
+    openers.delete(id);
     update({ dialogs: snapshot.dialogs.filter((entry) => entry.id !== id) });
     return true;
   };
 
-  const toast = (text: string, options: ToastOptions = {}) => {
+  const toast = (text: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
     if (!text) return;
     const tone = options.tone ?? 'info';
-    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs };
+    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs, undo };
     // A message that says what one on screen already says is that message again, and one on the same topic is its newer word: either
     // replaces the old one (its timer starts again), so a repeated press or a lost-and-found DAW never stacks the same sentence.
     const again = (old: ToastMessage) =>
@@ -114,26 +139,41 @@ export function createOverlayService(): OverlayService {
     toast,
     toastUndo: (text, undo, options) => {
       let pressed = false;
-      toast(text, {
-        durationMs: options?.durationMs,
-        action: {
-          label: 'Undo',
-          onAction: () => {
-            if (pressed) return;
-            pressed = true;
-            // The toast closes itself when Undo is pressed; a refusal says why in a toast of its own.
-            void undo().then((result) => {
-              if (!result.ok) toast(result.refusal.reason);
-            });
+      toast(
+        text,
+        {
+          durationMs: options?.durationMs,
+          action: {
+            label: 'Undo',
+            onAction: () => {
+              if (pressed) return;
+              pressed = true;
+              // The toast closes itself when Undo is pressed; a refusal says why in a toast of its own.
+              void undo().then((result) => {
+                if (!result.ok) toast(result.refusal.reason);
+              });
+            },
           },
         },
-      });
+        { entry: options?.entry },
+      );
+    },
+    settleUndo: (live) => {
+      const gone = (m: ToastMessage) => m.undo?.entry !== undefined && !live(m.undo.entry);
+      if (snapshot.toasts.some(gone)) update({ toasts: snapshot.toasts.filter((m) => !gone(m)) });
+    },
+    dismissUndo: () => {
+      if (snapshot.toasts.some((m) => m.undo)) update({ toasts: snapshot.toasts.filter((m) => !m.undo) });
     },
     announce: (text) => update({ announcement: text }),
     open: (spec) => {
       const id = ++lastId;
       const close = () => void removeDialog(id);
-      update({ dialogs: [...snapshot.dialogs, { id, kind: spec.kind, spec, close }] });
+      const opener = openerNow();
+      openers.set(id, opener);
+      // Where focus goes when the control that had it is gone: the layer's own say first, then what had focus before the chain of layers began.
+      const returnFocus = () => spec.returnFocus?.() ?? (opener?.isConnected ? opener : null);
+      update({ dialogs: [...snapshot.dialogs, { id, kind: spec.kind, spec: { ...spec, returnFocus }, close }] });
       return close;
     },
     dismissToast: (id) => update({ toasts: snapshot.toasts.filter((message) => message.id !== id) }),

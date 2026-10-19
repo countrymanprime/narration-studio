@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import { createMockApi } from '../../api/mockApi';
+import { providedCommands } from '../../input/commandProviders';
 import { diagnosticsJobSchema } from '../../api/schemas/diagnostics';
-import type { DiagnosticsJob, NarrationApi } from '../../types';
+import type { Bootstrap, DiagnosticsJob, NarrationApi } from '../../types';
 import { MasterPage } from '../masterqc/page/MasterPage';
 import { PageHost } from '../masterqc/page/testPage';
 
@@ -84,6 +85,27 @@ describe('Master & QC, Diagnostics', () => {
     const cleanup = await screen.findByRole('region', { name: 'Silence cleanup candidates' });
     await userEvent.setup().click(within(cleanup).getByRole('button', { name: 'Open Settings' }));
     expect(openSettings).toHaveBeenCalled();
+  });
+
+  it('opens the silence cleanup options from the jump menu, saved for this project, beside the Settings link', async () => {
+    const save = vi.fn(async () => ({}) as Bootstrap);
+    const openSettings = vi.fn();
+    render(
+      <PageHost api={createMockApi({ saveSettings: save } as Parameters<typeof createMockApi>[0], {})}>
+        <MasterPage onOpenDelivery={vi.fn()} openSettings={openSettings} />
+      </PageHost>,
+    );
+    const cleanup = await screen.findByRole('region', { name: 'Silence cleanup candidates' });
+    expect(within(cleanup).queryByRole('textbox', { name: 'Hold kept at each side of a cut silence' })).toBeNull();
+    act(() =>
+      providedCommands()
+        .find((command) => command.label === 'Open Silence cleanup options')!
+        .run(),
+    );
+    const box = await screen.findByRole('textbox', { name: 'Hold kept at each side of a cut silence' });
+    fireEvent.change(box, { target: { value: '0.2' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Cleanup', 'project', { pad_seconds: '0.2' }));
   });
 
   it('checks picked files and lists each finding with its time, measured value, threshold and source, read-only', async () => {
