@@ -169,3 +169,8 @@ export const FocusedOnMount: Story = {
     await expect(within(canvasElement).getByRole('textbox', { name: 'Note' })).toHaveFocus();
   },
 };
+
+// The Inspector's textarea: 56 px, a placeholder and a label only a screen reader gets.
+export const TextareaCompactHiddenLabel: Story = {
+  args: { label: 'Note with the decision', textarea: true, compact: true, labelHidden: true, value: '', placeholder: 'Note with the decision (optional)' },
+};

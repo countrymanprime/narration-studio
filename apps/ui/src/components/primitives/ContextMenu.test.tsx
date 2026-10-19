@@ -90,8 +90,69 @@ describe('ContextMenu', () => {
     expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   });
 
-  it('draws key hints, and a submenu whose rows open beside it with the current one checked', async () => {
+  it('opens a submenu beside its row, runs one of its items and closes the whole menu', async () => {
     const user = userEvent.setup();
+    const pick = vi.fn();
+    render(
+      <ContextMenu
+        items={[
+          { key: 'play', label: 'Play selection', onSelect: vi.fn() },
+          {
+            key: 'mark',
+            label: 'Mark as',
+            onSelect: vi.fn(),
+            submenu: [
+              { key: 'tone', label: 'Tone', onSelect: pick },
+              { key: 'query', label: 'Query', onSelect: vi.fn() },
+            ],
+          },
+        ]}
+      >
+        <p>Alice was beginning to get very tired.</p>
+      </ContextMenu>,
+    );
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const row = await screen.findByRole('menuitem', { name: 'Mark as' });
+    expect(row.getAttribute('aria-haspopup')).toBe('menu');
+    expect(screen.queryByRole('menuitem', { name: 'Tone' })).toBeNull();
+    await user.click(row);
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Tone' }));
+    expect(pick).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+  });
+
+  it('opens a submenu with the Right arrow, and leaves a submenu row that is unavailable shut with its reason', async () => {
+    const user = userEvent.setup();
+    render(
+      <ContextMenu
+        items={[
+          { key: 'mark', label: 'Mark as', onSelect: vi.fn(), submenu: [{ key: 'tone', label: 'Tone', onSelect: vi.fn() }] },
+          {
+            key: 'fx',
+            label: 'Add FX',
+            unavailable: 'Select some words first.',
+            onSelect: vi.fn(),
+            submenu: [{ key: 'warm', label: 'Warm', onSelect: vi.fn() }],
+          },
+        ]}
+      >
+        <p>Alice was beginning to get very tired.</p>
+      </ContextMenu>,
+    );
+    fireEvent.contextMenu(screen.getByText(/Alice was beginning/));
+    const menu = await screen.findByRole('menu');
+    await waitFor(() => expect(menu.contains(document.activeElement)).toBe(true));
+    await user.keyboard('{ArrowDown}{ArrowRight}');
+    expect(await screen.findByRole('menuitem', { name: 'Tone' })).toBeTruthy();
+    const off = screen.getByRole('menuitem', { name: /Add FX/ });
+    expect(off.getAttribute('aria-disabled')).toBe('true');
+    expect(off.getAttribute('aria-describedby')).toBeTruthy();
+    expect(screen.getByText('Select some words first.')).toBeTruthy();
+    await user.click(off);
+    expect(screen.queryByRole('menuitem', { name: 'Warm' })).toBeNull();
+  });
+
+  it('draws key hints, and a check on the row that is current, which closes the menu when chosen', async () => {
     const pick = vi.fn();
     render(
       <ContextMenu
@@ -100,7 +161,7 @@ describe('ContextMenu', () => {
             key: 'go',
             label: 'Go to',
             onSelect: vi.fn(),
-            items: [
+            submenu: [
               { key: 'a', label: 'Production', checked: true, onSelect: pick },
               { key: 'b', label: 'Script', checked: false, onSelect: pick },
               { key: 'c', label: 'Booth', checked: false, unavailable: 'Import a manuscript first.', onSelect: pick },
@@ -116,8 +177,7 @@ describe('ContextMenu', () => {
     const jump = await screen.findByRole('menuitem', { name: /^Jump menu…/ });
     expect(within(jump).getByText('Ctrl')).toBeTruthy();
     expect(within(jump).getByText('K')).toBeTruthy();
-    await screen.findByRole('menuitem', { name: /^Go to/ });
-    await user.keyboard('{ArrowDown}{ArrowRight}');
+    await userEvent.setup().keyboard('{ArrowDown}{ArrowRight}');
     const rows = await screen.findAllByRole('menuitemcheckbox');
     expect(rows.map((row) => row.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
     expect(rows[2].getAttribute('aria-disabled')).toBe('true');

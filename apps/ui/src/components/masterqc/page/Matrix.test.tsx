@@ -183,7 +183,8 @@ describe('Master & QC: what the narrator can name and how many', () => {
     const files = [...odd.map((name) => passing(name)), ...Array.from({ length: 296 }, (_, i) => passing(`Chapter ${String(i + 5).padStart(3, '0')}.wav`))];
     mount(files);
     const grid = await screen.findByRole('grid', { name: 'Per-file checks' });
-    expect(grid.querySelectorAll('tbody tr').length).toBe(300);
+    // The 300 files, the opening and closing credits and the retail sample, each with a row of its own.
+    expect(grid.querySelectorAll('tbody tr').length).toBe(303);
     for (const name of odd) expect(screen.getAllByText((_, element) => element?.tagName === 'TD' && element.textContent === name).length).toBe(1);
     await userEvent.click(within(grid).getByText('פרק 1 🎧 كتاب.wav', { exact: false }));
     expect(await screen.findByRole('heading', { name: /פרק 1 🎧 كتاب\.wav · / })).toBeTruthy();

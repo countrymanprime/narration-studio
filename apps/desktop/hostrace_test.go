@@ -28,7 +28,7 @@ import (
 // adds it, using arguments that fail fast (an unknown id, an uninstalled model)
 // so the row does no real work. Keep one row per line.
 // Rows for bindings that only read job maps or the set-once recents store
-// (GuideBuildState, ProjectRecents, the install-state calls) are smoke tests
+// (ProjectRecents, the install-state calls) are smoke tests
 // for lock ordering; the rows that read a service pointer are the probes.
 //
 // Readers keep calling for as long as the switcher runs (and at least
@@ -52,7 +52,6 @@ type stressReader struct {
 
 var stressReaders = []stressReader{
 	{"Bootstrap", func(h *Host) { _ = h.Bootstrap() }},
-	{"GuideBuildState", func(h *Host) { _, _ = h.GuideBuildState() }},
 	{"GuideEntities", func(h *Host) { _, _ = h.GuideEntities() }},
 	{"GuidePreview", func(h *Host) { _, _ = h.GuidePreview("missing", nil) }},
 	{"ManuscriptChapters", func(h *Host) { _, _ = h.ManuscriptChapters() }},
@@ -249,8 +248,8 @@ var stressReaders = []stressReader{
 	{"ProductionOverview", func(h *Host) { _, _ = h.ProductionOverview() }},
 	{"ProductionStartTimer (unknown chapter)", func(h *Host) { _, _ = h.ProductionStartTimer("missing", "recording") }},
 	{"ProductionStopTimer", func(h *Host) { _, _ = h.ProductionStopTimer() }},
-	{"ProductionStatusReport", func(h *Host) { _, _ = h.ProductionStatusReport(false) }},
-	{"ProductionStatusReportPreview", func(h *Host) { _, _ = h.ProductionStatusReportPreview(false) }},
+	{"ProductionStatusReport", func(h *Host) { _, _ = h.ProductionStatusReport(ProductionReportInclude{}) }},
+	{"ProductionStatusReportPreview", func(h *Host) { _, _ = h.ProductionStatusReportPreview(ProductionReportInclude{}) }},
 	{"ProductionBurndown", func(h *Host) { _, _ = h.ProductionBurndown() }},
 	{"emit callbacks", func(h *Host) {
 		h.emitTranscript(emptyTranscript())

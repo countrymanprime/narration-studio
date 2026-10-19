@@ -110,15 +110,45 @@ export const Grouped: Story = {
   },
 };
 
-// The empty-space menu of the shell (the Studio Next mock's page menu): a "Go to" submenu with the current page checked, two search rows with key hints.
-export const SubmenuAndKeyHints: Story = {
+// An item with `submenu` is a row that opens a nested list beside it (Right arrow or a press); the nested items run and close the whole menu.
+export const Submenu: Story = {
+  args: {
+    items: [
+      { key: 'play', label: 'Play selection', onSelect: fn() },
+      {
+        key: 'mark',
+        label: 'Mark as',
+        onSelect: fn(),
+        submenu: [
+          { key: 'tone', label: 'Tone', onSelect: fn() },
+          { key: 'query', label: 'Query', onSelect: fn() },
+        ],
+      },
+      { key: 'fx', label: 'Add FX', unavailable: 'Select some words first.', onSelect: fn(), submenu: [{ key: 'warm', label: 'Warm', onSelect: fn() }] },
+    ],
+  },
+  play: async ({ args, canvasElement }) => {
+    fireEvent.contextMenu(within(canvasElement).getByText(/Alice was beginning/));
+    const row = await screen.findByRole('menuitem', { name: 'Mark as' });
+    await expect(row).toHaveAttribute('aria-haspopup', 'menu');
+    await userEvent.click(row);
+    await expect(await screen.findAllByRole('menuitem', { name: /Tone|Query/ })).toHaveLength(2);
+    await expect(screen.getByRole('menuitem', { name: /Add FX/ })).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Tone' }));
+    await expect(args.items[1].submenu?.[0].onSelect).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+  },
+};
+
+// The empty-space menu of the shell (the Studio Next mock's page menu): a "Go to" submenu with the current page checked, two rows with key hints.
+export const CheckedRowsAndKeyHints: Story = {
   args: {
     items: [
       {
         key: 'go',
         label: 'Go to',
         onSelect: () => undefined,
-        items: [
+        submenu: [
           { key: 'production', label: 'Production', checked: true, onSelect: fn() },
           { key: 'script', label: 'Script', checked: false, onSelect: fn() },
           { key: 'booth', label: 'Booth', checked: false, unavailable: 'Import a manuscript first.', onSelect: fn() },

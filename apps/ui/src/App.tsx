@@ -604,7 +604,7 @@ function AppRoutes() {
         key: 'go-to',
         label: 'Go to',
         onSelect: () => undefined,
-        items: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }).map((page) => ({
+        submenu: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }).map((page) => ({
           key: `go-${page.id}`,
           label: page.label,
           checked: isActivePath(location.pathname, page.id),
@@ -617,7 +617,7 @@ function AppRoutes() {
         key: 'view',
         label: 'View',
         onSelect: () => undefined,
-        items: [
+        submenu: [
           {
             key: 'zoom-in',
             label: 'Zoom in',
@@ -1126,6 +1126,7 @@ function EditingRoute({ hasManuscript, onImport }: { hasManuscript: boolean; onI
       onChapter={(id) => navigate(`/editing/${encodeURIComponent(id)}`, { replace: true })}
       onImport={onImport}
       onGoToParagraph={(chapter, index) => navigate(scriptPath(chapter, index))}
+      onOpenStoryBible={(entityId) => navigate(addressPath({ page: 'story-bible', entity: entityId }))}
     />
   );
 }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -105,5 +105,83 @@ describe('the Series tab while it reads', () => {
     );
     expect(await screen.findByText(/The series could not be read\./)).toBeTruthy();
     expect(region()).toBeNull();
+  });
+
+  describe('a failed read offers Retry', () => {
+    const region = () => screen.queryByRole('group', { name: 'Loading the series' });
+    const retry = () => screen.getByRole('button', { name: 'Retry' });
+    const sentence = 'The series could not be read.';
+    const fail =
+      (message: string = sentence) =>
+      () =>
+        Promise.reject(new Error(message));
+    const never = () => new Promise<never>(() => {});
+    // Each call takes the next step; the last step repeats.
+    const steps = <T,>(list: Array<() => Promise<T>>) => vi.fn(() => (list.length > 1 ? (list.shift() as () => Promise<T>)() : list[0]()));
+    const show = (seriesVoiceBible: unknown) => {
+      render(
+        <ApiProvider api={createMockApi({ seriesVoiceBible: seriesVoiceBible as never })}>
+          <SeriesTab notify={vi.fn()} />
+        </ApiProvider>,
+      );
+    };
+
+    it('shows the sentence as an alert with Retry inside the tab, with no second page title', async () => {
+      show(fail());
+      const text = await screen.findByText(sentence);
+      expect(text.getAttribute('role')).toBe('alert');
+      expect(retry()).toBeTruthy();
+      expect(region()).toBeNull();
+      expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    });
+
+    it('shows the skeleton with no stale error while it reads again, then the tab', async () => {
+      const real = createMockApi({}).seriesVoiceBible;
+      let release: () => void = () => {};
+      const held = new Promise<void>((resolve) => (release = resolve));
+      show(steps([fail(), () => held.then(real)]));
+      await screen.findByText(sentence);
+      await userEvent.click(retry());
+      expect(region()?.getAttribute('aria-busy')).toBe('true');
+      expect(screen.queryByText(sentence)).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+      await act(async () => release());
+      expect(await screen.findByText('Wonderland')).toBeTruthy();
+      expect(region()).toBeNull();
+    });
+
+    it('shows the new error with Retry when the second read fails too', async () => {
+      show(steps([fail('first'), fail('second')]));
+      await screen.findByText('first');
+      await userEvent.click(retry());
+      expect(await screen.findByText('second')).toBeTruthy();
+      expect(screen.queryByText('first')).toBeNull();
+      expect(retry()).toBeTruthy();
+    });
+
+    it('fires one extra read for a double press', async () => {
+      const read = steps([fail(), never]);
+      show(read);
+      await screen.findByText(sentence);
+      const button = retry();
+      await act(async () => {
+        button.click();
+        button.click();
+      });
+      expect(read).toHaveBeenCalledTimes(2);
+    });
+
+    it('sets nothing when the tab is left mid-retry', async () => {
+      const real = createMockApi({}).seriesVoiceBible;
+      let release: () => void = () => {};
+      const held = new Promise<void>((resolve) => (release = resolve));
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      show(steps([fail(), () => held.then(real)]));
+      await screen.findByText(sentence);
+      await userEvent.click(retry());
+      cleanup();
+      await act(async () => release());
+      expect(spy).not.toHaveBeenCalled();
+    });
   });
 });

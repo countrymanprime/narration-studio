@@ -6,7 +6,7 @@ import { describe, expect, test } from 'vitest';
 import { GAPS, KEPT, unexplained } from './ratchetReasons';
 
 // The gaps SN-C4 found (#1217). Lower it with every fix; raising it needs the owner.
-const MAX_GAPS = 41;
+const MAX_GAPS = 40;
 
 // docs/design/design-system.md#base-ui-wrappers (and docs/design/design-system.md for the table parts): a page builds a control from a primitive (`IconButton`, `TextField`, `SearchField`, `Select`, `Field`, ...) and
 // not from the native element, so every control looks and behaves one way. This scan counts the native elements written in
