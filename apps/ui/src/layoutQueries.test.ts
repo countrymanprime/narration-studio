@@ -10,7 +10,7 @@ import { describe, expect, test } from 'vitest';
 // lowered or deleted, as `rawNatives.test.ts` does). It also fails a width compared with a vocabulary number outside the
 // hook, so a component cannot grow a second mechanism.
 const SRC = join(__dirname);
-const VOCABULARY = new Set(['min-[1360px]', 'max-[1359px]', 'max-[1280px]', 'min-[1281px]', 'max-[1179px]', 'min-[1180px]', 'max-[859px]', 'min-[860px]']);
+const VOCABULARY = new Set(['min-[1360px]', 'max-[1360px]', 'max-[1281px]', 'min-[1281px]', 'max-[1180px]', 'min-[1180px]', 'max-[860px]', 'min-[860px]']);
 
 // The off-vocabulary uses left after the page swaps. Each entry is a gap with a reason (SN-C4, #1217); the fix deletes it.
 const OFF_VOCABULARY: Record<string, Record<string, number>> = {
@@ -53,6 +53,13 @@ const COMPARE = new RegExp(
 );
 
 describe('width queries', () => {
+  // Tailwind 4: `max-[N]` is `width < N` and `min-[N]` is `width >= N`. A `max` at one number and a `min` at the next leaves the one width between them
+  // matching neither (exactly 1280 px, a 1280 px demo window, drew the Script page's rail in flow), so every vocabulary `max` has a `min` at the same number.
+  test('every-max-width-has-the-min-width-at-the-same-number', () => {
+    const numbers = (kind: string) => [...VOCABULARY].filter((v) => v.startsWith(`${kind}-`)).map((v) => v.replace(/\D/g, ''));
+    expect(numbers('max').sort()).toEqual(numbers('min').sort());
+  });
+
   test('tailwind-widths-use-the-vocabulary', () => {
     const stray: string[] = [];
     for (const f of files) {

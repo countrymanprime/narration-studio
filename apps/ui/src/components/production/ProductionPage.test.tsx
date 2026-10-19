@@ -86,7 +86,7 @@ describe('production-route-draws-the-mock-page', () => {
     // The mock's widths: three columns above 1280, two from 1180 with the stage card across both, one below.
     expect(stats.className).toContain('min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]');
     expect(stats.className).toContain('min-[1180px]:grid-cols-2');
-    expect(stats.className).toContain('min-[1180px]:max-[1280px]:[&>:first-child]:col-span-2');
+    expect(stats.className).toContain('min-[1180px]:max-[1281px]:[&>:first-child]:col-span-2');
     const board = screen.getByRole('heading', { name: 'Chapter pipeline' }).closest('.grid') as HTMLElement;
     expect(board.className).toContain('min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]');
   });

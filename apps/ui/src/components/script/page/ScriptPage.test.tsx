@@ -91,9 +91,9 @@ describe('three-columns-from-1440-and-drawers-below', () => {
     // jsdom does not lay out, so this pins the classes; the stories at 1440, 1024 and 768 show the result.
     expect(columns().className).toContain('min-[1281px]:grid-cols-[240px_minmax(0,1fr)_380px]');
     expect(columns().className).toContain('min-[1180px]:grid-cols-[240px_minmax(0,1fr)]');
-    expect(panel('rail').className).toContain('max-[1280px]:absolute');
-    expect(panel('chapters').className).toContain('max-[1179px]:absolute');
-    expect(panel('rail').className).toContain('max-[1280px]:invisible');
+    expect(panel('rail').className).toContain('max-[1281px]:absolute');
+    expect(panel('chapters').className).toContain('max-[1180px]:absolute');
+    expect(panel('rail').className).toContain('max-[1281px]:invisible');
     // At full width the list draws no title, as the mock's (its title and close button are the drawer's).
     expect(within(panel('chapters')).getByRole('region', { name: 'Chapters' })).toBeTruthy();
     expect(within(panel('chapters')).queryByRole('heading', { name: 'Chapters' })).toBeNull();
@@ -109,7 +109,7 @@ describe('three-columns-from-1440-and-drawers-below', () => {
     fireEvent.click(chaptersButton);
     expect(view.drawer).toBe('ch');
     expect(columns().dataset.drawer).toBe('ch');
-    expect(panel('chapters').className).not.toContain('max-[1179px]:invisible');
+    expect(panel('chapters').className).not.toContain('max-[1180px]:invisible');
     expect(document.querySelector('[data-scrim]')!.className).toContain('min-[1180px]:hidden');
     act(() => void vi.advanceTimersByTime(DRAWER_FOCUS_DELAY_MS));
     expect(panel('chapters').contains(document.activeElement)).toBe(true);
