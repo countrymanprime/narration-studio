@@ -276,14 +276,12 @@ func TestRealAudacityChapter(t *testing.T) {
 		}
 	})
 	t.Run("A6 export a label's range to WAV, as ExportChapter does", func(t *testing.T) {
-		// Session.ExportChapter cannot run here (see importFile). This is its sequence (Tracks, SelectTime, Export) after the same
-		// state the adapter's own calls left.
+		// Session.ExportChapter cannot run here (see importFile). This is its sequence: selectAudioForExport, SelectTime, Export, after
+		// the state the adapter's own ImportFindings left (only the label track selected).
 		f := findings[0]
-		tracks, err := client.Tracks(ctx)
-		if err != nil {
+		if _, err := session.selectAudioForExport(ctx); err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("tracks before the export: %+v", tracks)
 		if err := client.SelectTime(ctx, f.Start, f.End); err != nil {
 			t.Fatal(err)
 		}
@@ -296,8 +294,8 @@ func TestRealAudacityChapter(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Logf("%s: %+v", path, info)
-		if info.RMS < 0.01 {
-			t.Errorf("the export is silent (RMS %.5f, %.3f s): the wave track was not selected, and Export2 writes only selected tracks", info.RMS, info.Seconds)
+		if !within(info.Seconds, f.End-f.Start, 0.02) || info.RMS < 0.01 {
+			t.Errorf("the export is %.3f s at RMS %.5f, want %.3f s of speech", info.Seconds, info.RMS, f.End-f.Start)
 		}
 	})
 	t.Run("A6b export the label's range with the audio track selected", func(t *testing.T) {

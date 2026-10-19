@@ -182,11 +182,18 @@ On Production, **Jump to or run** (Ctrl+K) has **Open Recording check rules**: a
 **Check recordings** (the card's icon) lets you set up the run before it starts. **Speech model** is the
 first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
-share. For a long chapter, **Chunk length** cuts each recording into pieces, **Parallel processes** is how
-many Whisper copies work on the pieces at once (each holds the whole model in memory), and **Crossover** is how
-much neighbouring pieces overlap, so a word on an edge is whole in one of them. A line under the choices says
-what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
+share. In the **Check recordings** dialog, three sliders set how a long chapter is read: **Chunk length** (10 to 120 s, in steps
+of 5) cuts each recording into pieces, **Overlap between chunks** (0 to 10 s) is how much neighbouring pieces overlap, so a
+word on an edge is whole in one of them, and **Parallel workers** (1 to 8) is how many Whisper copies work on the pieces at
+once (each holds the whole model in memory). **Transcribe each recording whole** turns the chunks off and leaves one worker, and **Let the model choose
+the workers** hands the count back to the computer. A setting the sliders do not reach, such as a 5 min chunk from Settings, shows its real figure
+and is kept until you move the slider. A chapter's own **Check options** keeps the same choices as lists (**Chunk length**, **Parallel processes**,
+**Crossover**). A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
+processors, and starts the next as each ends. The boxes start at the values in Settings, and the check runs exactly what the dialog
 shows, so the same chapter is checked the same way wherever you start it, including in the background.
+
+The dialog scrolls when the window is short, but **Audio to check** (the recorded time of the ticked chapters, or **Not measured**) and the buttons stay in view
+under it. It gives no estimate of how long the check will take. The line by the buttons says what a check adds: skipped, changed or unclear lines become pickups.
 
 ![Proof - the Check recordings dialog before a run, with the options shared with every page](../../images/ui/proof-check-recordings-dialog.webp)
 

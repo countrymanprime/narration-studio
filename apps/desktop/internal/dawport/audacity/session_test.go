@@ -408,9 +408,57 @@ func TestExportChapter(t *testing.T) {
 		t.Errorf("path = %q, want %q", path, want)
 	}
 	server.With(func(p *abt.Project) {
-		want := []abt.Export{{Filename: filepath.ToSlash(path), NumChannels: 1, Start: 10, End: 300}}
+		want := []abt.Export{{Filename: filepath.ToSlash(path), NumChannels: 1, Start: 10, End: 300, Tracks: []string{"Chapter 1"}}}
 		if !reflect.DeepEqual(p.Exports, want) {
 			t.Errorf("exports = %+v", p.Exports)
+		}
+	})
+}
+
+// Export2 writes only the selected tracks, and importing findings leaves only the label track selected, so an export that does not
+// select the audio first is a valid file with no audio in it. This runs on every platform: ExportChapter's own test needs a drive path.
+func TestSelectAudioForExportAfterImportingFindings(t *testing.T) {
+	session, server := newSession(t)
+	server.With(func(p *abt.Project) { p.AddWaveTrack("Chapter 1", 0, 600) })
+	ctx := t.Context()
+	if _, err := session.ImportFindings(ctx, []Finding{{ID: "f1", Start: 10, End: 12, Words: "x"}}); err != nil {
+		t.Fatal(err)
+	}
+	server.With(func(p *abt.Project) {
+		if p.Tracks[0].Selected || !p.Tracks[1].Selected {
+			t.Fatalf("the findings import should leave only the label track selected: %+v", p.Tracks)
+		}
+	})
+	channels, err := session.selectAudioForExport(ctx)
+	if err != nil || channels != 1 {
+		t.Fatalf("channels %d, err %v", channels, err)
+	}
+	if err := session.client.SelectTime(ctx, 10, 12); err != nil {
+		t.Fatal(err)
+	}
+	if err := session.client.Export(ctx, `C:/x/out.wav`, channels); err != nil {
+		t.Fatal(err)
+	}
+	server.With(func(p *abt.Project) {
+		if got := p.Exports[len(p.Exports)-1].Tracks; !reflect.DeepEqual(got, []string{"Chapter 1"}) {
+			t.Errorf("the export wrote tracks %v, want the chapter's audio", got)
+		}
+	})
+}
+
+func TestSelectAudioForExportKeepsLabelTracksBetweenAudio(t *testing.T) {
+	session, server := newSession(t)
+	server.With(func(p *abt.Project) {
+		p.AddWaveTrack("A", 0, 10)
+		p.Tracks = append(p.Tracks, abt.Track{Name: "Labels", Kind: "label"})
+		p.AddWaveTrack("B", 0, 10)
+	})
+	if _, err := session.selectAudioForExport(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	server.With(func(p *abt.Project) {
+		if !p.Tracks[0].Selected || !p.Tracks[2].Selected {
+			t.Errorf("both audio tracks should be selected: %+v", p.Tracks)
 		}
 	})
 }

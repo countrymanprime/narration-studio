@@ -69,8 +69,11 @@ export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose,
             </Tab>
           ))}
         </TabList>
-        <TabPanel value={tab} className="min-h-0 flex-1 overflow-y-auto">
-          {body}
+        <TabPanel value={tab} className="flex min-h-0 flex-1 flex-col">
+          {/* The scroller is the tab stop: a tab whose content has nothing to focus (Backups when its settings cannot be read) still scrolls from the keyboard. */}
+          <div tabIndex={0} role="group" aria-label={tabs.find(([k]) => k === tab)?.[1]} className="min-h-0 flex-1 overflow-y-auto">
+            {body}
+          </div>
         </TabPanel>
       </Tabs>
     </aside>

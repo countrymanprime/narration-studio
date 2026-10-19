@@ -210,19 +210,22 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             </Button>
           )}
           <span className="flex-1" />
-          <div role="search" className="flex flex-wrap items-center gap-2.5">
-            <SearchField
-              label="Search settings"
-              placeholder="Search settings"
-              value={query}
-              onChange={setQuery}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape' && query) {
-                  event.stopPropagation();
-                  setQuery('');
-                }
-              }}
-            />
+          <div role="search" className="flex flex-wrap items-center gap-2.5 text-[var(--text-muted)]">
+            <Icon name="find" />
+            <div className="w-[260px] max-w-full">
+              <SearchField
+                label="Search settings"
+                placeholder="Search settings"
+                value={query}
+                onChange={setQuery}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && query) {
+                    event.stopPropagation();
+                    setQuery('');
+                  }
+                }}
+              />
+            </div>
             <ToggleGroup
               label="Show"
               look="segmented"
