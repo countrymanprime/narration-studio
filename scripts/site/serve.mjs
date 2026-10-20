@@ -1,5 +1,5 @@
 // Serves a built site folder, optionally under a sub-path, to try the site the way GitHub Pages will serve it.
-//   node scripts/site/serve.mjs [dir=dist-site] [--base /narration-utils/] [--port 4180]
+//   node scripts/site/serve.mjs [dir=dist-site] [--base /site/] [--port 4180]
 // With --base, a request outside it is a 404, so a page that reaches for `/assets/x.js` fails here as it would on Pages.
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';

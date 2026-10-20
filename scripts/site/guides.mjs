@@ -172,11 +172,16 @@ export function renderPage(markdown, page, knownPages, repoRoot) {
   const html = md
     .render(markdown)
     // A paragraph that is one screenshot is a figure, its title the caption.
-    .replace(/<p><img src="([^"]+)" alt="([^"]*)"(?: title="([^"]*)")? loading="lazy"><\/p>/g, (_, src, alt, caption) =>
-      `<figure class="fig"><img src="${src}" alt="${alt}" loading="lazy">${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`,
+    .replace(
+      /<p><img src="([^"]+)" alt="([^"]*)"(?: title="([^"]*)")? loading="lazy"><\/p>/g,
+      (_, src, alt, caption) =>
+        `<figure class="fig"><img src="${src}" alt="${alt}" loading="lazy">${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`,
     )
     // A quote that opens with "Note:" is the mock's note.
-    .replace(/<blockquote>\s*<p><strong>Note:<\/strong>\s*([\s\S]*?)<\/p>\s*<\/blockquote>/g, (_, text) => `<div class="note">${ICON_INFO}<div>${text}</div></div>`);
+    .replace(
+      /<blockquote>\s*<p><strong>Note:<\/strong>\s*([\s\S]*?)<\/p>\s*<\/blockquote>/g,
+      (_, text) => `<div class="note">${ICON_INFO}<div>${text}</div></div>`,
+    );
   if (/<img (?![^>]*loading="lazy")/.test(html)) throw new Error(`${page}.md: an image is not a paragraph of its own`);
   return { html, headings, images, links };
 }
@@ -211,9 +216,7 @@ function docsPage({ page, meta, rendered, flat, withStorybook, search }) {
           .join('')}</div>`
       : '';
   const headings = [...rendered.headings, ...(page === 'index' ? [{ id: 'pick-your-path', text: 'Pick your path' }] : [])];
-  const toc = headings.length
-    ? `<b>On this page</b>${headings.map((h) => `<a href="#${h.id}" data-sc="${h.id}">${escapeHtml(h.text)}</a>`).join('')}`
-    : '';
+  const toc = headings.length ? `<b>On this page</b>${headings.map((h) => `<a href="#${h.id}" data-sc="${h.id}">${escapeHtml(h.text)}</a>`).join('')}` : '';
   const route = DEMO_ROUTE[page];
   const demo = route
     ? `<p>Open this page in the <a href="../demo/index.html#${route}">live demo</a>.</p>`
