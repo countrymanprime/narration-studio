@@ -15,7 +15,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const ui = join(root, 'apps', 'ui');
 const commonDir = join(root, 'apps', 'site', 'common');
 
-export const REPO = 'https://github.com/countrymanprime/narration-utils';
+// The repository the site links (Download, Full guide on GitHub, View source): the one the build runs in, so a renamed repository needs no edit here.
+// Outside Actions, and for a value that is not `owner/name`, the current name is used.
+const FALLBACK_SLUG = 'countrymanprime/narration-studio';
+const envSlug = (process.env.GITHUB_REPOSITORY ?? '').trim();
+export const REPO = `https://github.com/${/^[\w.-]+\/[\w.-]+$/.test(envSlug) ? envSlug : FALLBACK_SLUG}`;
 const RELEASES = `${REPO}/releases`;
 /** The site's sections, in the top bar's order: the page each opens, relative to the site's root. */
 const SECTIONS = [
@@ -24,8 +28,8 @@ const SECTIONS = [
   { id: 'demo', label: 'Live demo', href: 'demo/index.html' },
   { id: 'storybook', label: 'Storybook', href: 'storybook/index.html' },
 ];
-/** The notice above the top bar. The site is built only as a CI artifact (site-preview.yml); drop the notice in the change that publishes it. */
-const NOTICE = 'Preview of the Narration Studio site, built from the repository. It is not published yet.';
+/** The notice above the top bar, for a build that is not the published site (site-preview.yml's artifact). pages.yml sets SITE_PUBLISHED=1, which drops it. */
+const NOTICE = process.env.SITE_PUBLISHED === '1' ? '' : 'Preview of the Narration Studio site, built from the repository. It is not published.';
 
 const escapeHtml = (text) => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const dataUri = (file, type) => `data:${type};base64,${readFileSync(file).toString('base64')}`;
@@ -51,7 +55,7 @@ function assets() {
     ).join('\n'),
     icon: dataUri(join(ui, 'public', 'favicon.png'), 'image/png'),
     css: readFileSync(join(commonDir, 'shell.css'), 'utf8'),
-    js: readFileSync(join(commonDir, 'shell.js'), 'utf8'),
+    js: readFileSync(join(commonDir, 'shell.js'), 'utf8').replaceAll('__REPO__', REPO),
   };
   return cached;
 }
@@ -89,9 +93,7 @@ ${THEME_HEAD}
 /* Fonts: the app's own files (@fontsource), inline; no font host is contacted. */
 ${fonts}
 ${css}</style>`;
-  const header = `<div id="top-strip" class="strip">${escapeHtml(NOTICE)} <button type="button" id="strip-x">Dismiss</button></div>
-
-<header class="top">
+  const header = `${NOTICE ? `<div id="top-strip" class="strip">${escapeHtml(NOTICE)} <button type="button" id="strip-x">Dismiss</button></div>\n\n` : ''}<header class="top">
   <div class="bar">
     <a class="brand" href="${base}index.html" aria-label="Narration Studio, home"><span class="mark" aria-hidden="true"><b></b><b></b><b></b><b></b></span>Narration Studio</a>
     <nav class="nav" id="nav" aria-label="Main">
@@ -129,7 +131,7 @@ ${js}</script>`;
 /** A page template with the shell put in at its `<!--shell:head-->`, `<!--shell:header-->` and `<!--shell:footer-->` markers. */
 export function fillShell(template, options) {
   const parts = shellParts(options);
-  let html = template;
+  let html = template.replaceAll('__REPO__', REPO);
   for (const name of ['head', 'header', 'footer']) {
     const marker = `<!--shell:${name}-->`;
     if (!html.includes(marker)) throw new Error(`the page template has no ${marker}`);

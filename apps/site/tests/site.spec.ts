@@ -2,6 +2,10 @@
 // sub-path. What a visitor does first: open the demo, decide a note, see it in Pickups.
 import { expect, test, type Page } from '@playwright/test';
 
+// The sub-path the site is served from (playwright.config.ts) and the repository its links name (the build's GITHUB_REPOSITORY, as shell.mjs reads it).
+const SITE_BASE = process.env.SITE_BASE ?? '/site/';
+const REPO_SLUG = /^[\w.-]+\/[\w.-]+$/.test(process.env.GITHUB_REPOSITORY ?? '') ? process.env.GITHUB_REPOSITORY : 'countrymanprime/narration-studio';
+
 // The rail's, Production's and Pickups' counts and lines are read by what the visitor sees, not by a test hook.
 const rail = (page: Page, name: RegExp) => page.locator('nav').first().getByRole('button', { name });
 const railCount = async (page: Page, name: RegExp): Promise<number> => Number(((await rail(page, name).innerText()).match(/\d+/) ?? ['0'])[0]);
@@ -14,7 +18,7 @@ function watchRequests(page: Page): { outside: string[]; failed: string[]; error
     const url = new URL(request.url());
     if (url.protocol === 'data:' || url.protocol === 'blob:') return;
     if (url.origin !== own && url.hostname !== 'localhost') seen.outside.push(request.url());
-    else if (!url.pathname.startsWith('/narration-utils/')) seen.outside.push(request.url());
+    else if (!url.pathname.startsWith(SITE_BASE)) seen.outside.push(request.url());
   });
   page.on('response', (response) => {
     if (response.status() >= 400) seen.failed.push(`${response.status()} ${response.url()}`);
@@ -285,7 +289,7 @@ test('the docs follow the mock: a grouped sidebar, On this page, previous and ne
   await expect(page.getByRole('complementary', { name: 'On this page' }).getByRole('link', { name: 'One chapter' })).toBeVisible();
   await expect(page.getByRole('link', { name: /Full guide on GitHub/ })).toHaveAttribute(
     'href',
-    'https://github.com/countrymanprime/narration-utils/blob/main/docs/guides/using-the-app/proof.md',
+    `https://github.com/${REPO_SLUG}/blob/main/docs/guides/using-the-app/proof.md`,
   );
   await page.getByRole('link', { name: /Next\s*Pickups/ }).click();
   await expect(page).toHaveURL(/docs\/pickups\.html$/);

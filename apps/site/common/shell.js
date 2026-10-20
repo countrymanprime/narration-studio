@@ -100,7 +100,7 @@
     return [
       ...ITEMS,
       { t: 'Toggle light and dark', k: 'Action', fn: () => setTheme(isDark() ? 'light' : 'dark') },
-      { t: 'Download for Windows', k: 'Action', fn: () => window.open('https://github.com/countrymanprime/narration-utils/releases', '_blank') },
+      { t: 'Download for Windows', k: 'Action', fn: () => window.open('__REPO__/releases', '_blank') },
     ];
   }
   function palDraw() {

@@ -75,7 +75,7 @@
         "command": "pnpm --dir {projectRoot} run test:site"
       },
       "metadata": {
-        "description": "Playwright smoke test of the built site. Builds dist-site/ first and serves it under /narration-utils/. Not run by CI."
+        "description": "Playwright smoke test of the built site. Builds dist-site/ first and serves it under /site/. Not run by CI."
       }
     }
   },

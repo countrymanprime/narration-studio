@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { buildGuides, GROUPS, parsePage, renderPage, slug } from './guides.mjs';
+import { REPO } from './shell.mjs';
 import { outwardHtmlLoads } from './siteFiles.mjs';
 
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..', '..');
@@ -31,7 +32,7 @@ test('links, images, notes and tables become the mock blocks, and a dead link or
   assert.deepEqual(headings, [{ id: 'one-step', text: 'One step' }]);
   assert.match(html, /<h2 id="one-step">One step<a class="anchor" href="#one-step"/);
   assert.match(html, /href="proof\.html#one-chapter"/);
-  assert.match(html, /href="https:\/\/github\.com\/countrymanprime\/narration-utils\/blob\/main\/docs\/utilities\/recording-coverage\.md#x"/);
+  assert.ok(html.includes(`href="${REPO}/blob/main/docs/utilities/recording-coverage.md#x"`));
   assert.match(html, /<figure class="fig"><img src="images\/pickups-list\.webp" alt="Alt" loading="lazy"><figcaption>Caption<\/figcaption><\/figure>/);
   assert.match(html, /<div class="note"><svg[^>]*>.*<\/svg><div>Kept\.<\/div><\/div>/);
   assert.match(html, /<div class="tbl"><table>/);

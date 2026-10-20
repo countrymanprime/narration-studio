@@ -140,7 +140,8 @@ describe('cross-page matrix: where an address lands the narrator', () => {
     async ({ address, shows, leavesAt }) => {
       mountApp(address);
       await shows();
-      expect(here()).toBe(leavesAt ?? address);
+      // A deep link is consumed (the hash cleared) after the page shows, so wait for the address to settle.
+      await waitFor(() => expect(here()).toBe(leavesAt ?? address));
     },
     30_000,
   );
