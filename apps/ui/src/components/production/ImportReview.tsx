@@ -119,14 +119,14 @@ export function ImportReview({
       onOpenChange={(next) => onGroupOpenChange('narration', next)}
       className="border-t border-[var(--border)]"
     >
-      {/* Two columns that fill top to bottom: a long book takes half the height, and a row never splits across them. */}
-      <div className="[column-gap:2rem] pt-1 pb-3 pl-5 sm:columns-2">
+      {/* Two columns in a box of their own height that scrolls, so a long book never pushes the sample below out of view. */}
+      <div className="max-h-[min(40vh,20rem)] gap-x-8 overflow-y-auto pt-1 pr-1 pb-3 pl-5 sm:grid sm:grid-cols-2 sm:content-start">
         {chapters.map((section) => {
           const heading = reviewedHeading(section, selection);
           const name = sectionName(section, selection);
           const styled = headingParts(heading);
           return (
-            <div key={section.id} className="mb-1.5 break-inside-avoid" onMouseEnter={() => setPreviewId(section.id)} onFocus={() => setPreviewId(section.id)}>
+            <div key={section.id} className="mb-1.5" onMouseEnter={() => setPreviewId(section.id)} onFocus={() => setPreviewId(section.id)}>
               {/* The whole row is the switch's label: the title and its subtitle on a second, smaller and dimmer line. */}
               <Switch checked={chapterIncluded(section, selection)} onChange={(included) => setIncluded(section, included)} className="w-full">
                 <span className="block min-w-0" title={name}>
@@ -276,7 +276,11 @@ export function ImportReview({
         {options}
         {previewed && (
           // The first lines of the chapter the pointer is over (or the one focused last): the sample at the foot of the review.
-          <section aria-label="Preview of the selected heading" className="rounded-[var(--radius-card)] border p-3" style={{ borderColor: 'var(--border)' }}>
+          <section
+            aria-label="Preview of the selected heading"
+            className="sticky bottom-0 rounded-[var(--radius-card)] border bg-[var(--surface)] p-3"
+            style={{ borderColor: 'var(--border)' }}
+          >
             <h4 className="text-sm font-semibold">{sectionName(previewed, selection)}</h4>
             <p className="mt-1 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
           </section>

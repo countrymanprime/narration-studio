@@ -132,10 +132,14 @@ describe('ImportReview', () => {
     expect(groupButton(/^Chapters 5 of 5 chapters included$/)).toBeTruthy();
   });
 
-  it('sets the chapters in two columns, so a long book wraps to the second and each row stays whole', () => {
+  it('sets the chapters in two columns that scroll inside their own box, so the sample below stays in view', () => {
     renderReview();
-    expect(chapterSwitch(/^Chapter One/).closest('.sm\\:columns-2')).not.toBeNull();
-    expect(chapterSwitch(/^Chapter One/).closest('.break-inside-avoid')).not.toBeNull();
+    const list = chapterSwitch(/^Chapter One/).closest('.sm\\:grid-cols-2');
+    expect(list).not.toBeNull();
+    expect(list!.className).toContain('overflow-y-auto');
+    expect(list!.className).toMatch(/max-h-/);
+    // The sample is pinned to the foot of the dialog's own scroll, so hovering a row always has somewhere to show it.
+    expect(screen.getByRole('region', { name: 'Preview of the selected heading' }).className).toContain('sticky');
   });
 
   it('counts the character suggestions live, opens them once one is unchecked, and selects all or none', async () => {
