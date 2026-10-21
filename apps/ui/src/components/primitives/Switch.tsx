@@ -8,15 +8,18 @@ export function Switch({
   checked,
   onChange,
   disabled,
+  className = '',
   children,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  /** Added to the label, for a switch that fills a row. */
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <label className="inline-flex items-center gap-2 text-sm">
+    <label className={`inline-flex items-center gap-2 text-sm ${disabled ? '' : 'cursor-pointer'} ${className}`.trim()}>
       <BaseSwitch.Root
         checked={checked}
         disabled={disabled}

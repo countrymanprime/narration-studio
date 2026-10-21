@@ -104,7 +104,7 @@ var builtinDefaults = map[string]Values{
 	// docs/architecture/native-notifications.md). debug_logging defaults
 	// off: decision records are opt-in, on the Settings page or with
 	// NARRATION_DEBUG=1.
-	"General": {"log_verbosity": "normal", "notifications": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
+	"General": {"log_verbosity": "normal", "notifications": "true", "close_import_when_done": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
 	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
 	// analysis_prompt defaults to ask: the optional analysis tools are offered until the narrator chooses "Don't ask again" (basic).
 	"ManuscriptGuide": {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},

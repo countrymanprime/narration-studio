@@ -154,7 +154,7 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'import-review-collapsed': async (page) => {
     const review = await openImportReview(page);
-    for (const group of [/^Narration chapters/, /^Front matter/, /^Reference material/]) await review.getByRole('button', { name: group }).click();
+    await review.getByRole('button', { name: /^Chapters/ }).click();
   },
   'import-review-characters': async (page) => {
     const review = await openImportReview(page);
@@ -164,7 +164,7 @@ export const productionDrivers: Record<string, Driver> = {
   'import-review-repaired': async (page) => {
     const review = await openImportReview(page, 'repaired');
     // The chapters are folded so the repairs, the last group, are on screen without scrolling the dialog.
-    await review.getByRole('button', { name: /^Narration chapters/ }).click();
+    await review.getByRole('button', { name: /^Chapters/ }).click();
   },
   'recording-check-never': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7');
@@ -323,14 +323,13 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'import-review-subtitles-off': async (page) => {
     const review = await openImportReview(page);
-    // The default turned off: every Word heading's second line is joined back to its title (a title wrapped onto two lines).
-    await review.getByRole('checkbox', { name: "Read a heading's second line as its subtitle" }).click();
-    await review.getByRole('checkbox', { name: 'Subtitle — The Pool of Tears' }).click();
+    // Subtitles turned off: every Word heading's second line is joined back to its title (a title wrapped onto two lines).
+    await review.getByRole('checkbox', { name: 'Subtitles' }).click();
   },
   'import-review-text-subtitle': async (page) => {
     const review = await openImportReview(page, 'text');
     // A plain-text heading's second line turned off returns to the text: the row says the epigraph is read as text.
-    await review.getByRole('checkbox', { name: /^Subtitle — “Curiouser and curiouser!”/ }).click();
+    await review.getByRole('checkbox', { name: 'Subtitles' }).click();
   },
   'import-confirm-markdown': async (page) => {
     // The mock's Markdown seam (see main.tsx): the same book as a .md file, which is the one with the heading level choice.

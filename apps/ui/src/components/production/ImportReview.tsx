@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 import { ImportProfileField } from '../delivery/ImportProfileField';
 import { Button } from '../primitives/Button';
@@ -7,14 +7,13 @@ import { Disclosure } from '../primitives/Disclosure';
 import { FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
+import { Switch } from '../primitives/Switch';
 import { StatusBadge } from '../primitives/StatusBadge';
-import { Tooltip } from '../primitives/Tooltip';
-import { TitleSubtitle } from '../primitives/TitleSubtitle';
 import {
+  chapterIncluded,
+  chapterRows,
   checkedCandidateIds,
   describeReview,
-  effectiveKind,
-  groupSections,
   headingName,
   headingParts,
   hasSubtitleChoice,
@@ -23,22 +22,9 @@ import {
   plural,
   reviewCounts,
   reviewedHeading,
-  subtitleKept,
   type ReviewGroupKey,
   type ReviewGroupOpen,
 } from './importReviewModel';
-
-const SECTION_KIND_OPTIONS = [
-  { value: 'narration', label: 'Narration chapter' },
-  { value: 'opening', label: 'Front Matter' },
-  { value: 'reference', label: 'Reference material' },
-];
-
-// What each group is for, in one short string that is true for that group (the old sentence spoke of reference material only, and front
-// matter is left out of the audiobook totals and Proof in just the same way). Reference material is filtered from the chapter lists
-// front matter is listed.
-const FRONT_MATTER_NOTE = 'Not counted as a chapter: excluded from audiobook totals and Proof. Still listed and readable in the manuscript.';
-const REFERENCE_NOTE = 'Excluded from audiobook totals, Proof and the chapter list. Still readable in the manuscript.';
 
 // The heading as it will be written: the title and, when it keeps one, the subtitle, the way the reader writes them ("Chapter One — Down
 // the Rabbit-Hole"), and a line turned off that returns to the text, said as such.
@@ -52,8 +38,8 @@ function sectionName(section: ManuscriptImportSection, selection: ManuscriptImpo
 const TEXT_LINE_NOTE = 'is read as text';
 
 /**
- * The lines at the top of the review dialog that say what was found: the format and size with the number of narration chapters, then
- * what else exists (front matter, reference material, suggestions, repairs), all counted from the narrator's choices as they stand.
+ * The lines at the top of the review dialog that say what was found: the format and size with the number of chapters, then
+ * what else exists (suggestions, repairs), all counted from the narrator's choices as they stand.
  */
 export function ImportSummary({
   preview,
@@ -112,104 +98,65 @@ export function ImportReview({
   const sections = preview.sections ?? [];
   const notices = preview.notices ?? [];
   const counts = reviewCounts(preview, selection);
-  const groups = groupSections(sections, selection);
   const checkedIds = checkedCandidateIds(preview, selection);
   const open = (key: ReviewGroupKey) => isGroupOpen(key, groupOpen, counts);
   const root = useRef<HTMLDivElement>(null);
   // The row whose first lines the preview shows (the mock's selected outline row); the first section until the narrator picks one.
   const [previewId, setPreviewId] = useState<string>();
   const previewed = sections.find((section) => section.id === previewId) ?? sections[0];
-  // Reclassifying a row moves it to another group, which is a new place in the page: the select is put back in focus there, so a keyboard
-  // narrator does not lose their place, and a group the row moved into opens so the change can be seen.
-  const focusAfterMove = useRef<string | null>(null);
-  useEffect(() => {
-    const id = focusAfterMove.current;
-    if (id === null) return;
-    focusAfterMove.current = null;
-    // Matched by comparing, not by building a selector from a host-sent id.
-    [...(root.current?.querySelectorAll<HTMLElement>('[data-section-select]') ?? [])].find((select) => select.dataset.sectionSelect === id)?.focus();
-  });
-  const reclassify = (section: ManuscriptImportSection, kind: ManuscriptContentKind) => {
-    if (kind !== effectiveKind(section, selection)) {
-      focusAfterMove.current = section.id;
-      onGroupOpenChange(kind, true);
-    }
+  // A row's switch puts the chapter in the recording or leaves it out. Front matter and reference material are never listed or asked
+  // about: they stay as the importer sorted them.
+  const setIncluded = (section: ManuscriptImportSection, included: boolean) => {
+    const kind: ManuscriptContentKind = included ? 'narration' : 'reference';
     onSelectionChange((current) => ({ ...current, sectionKinds: { ...current.sectionKinds, [section.id]: kind } }));
   };
-  const sectionGroup = (kind: ManuscriptContentKind, title: string, summary: string, note?: { label: string; text: string }) =>
-    groups[kind].length > 0 && (
-      <Disclosure
-        title={title}
-        summary={summary}
-        open={open(kind)}
-        onOpenChange={(next) => onGroupOpenChange(kind, next)}
-        className="border-t border-[var(--border)]"
-        aside={note && <Tooltip label={note.label} text={note.text} />}
-      >
-        <div className="space-y-1.5 pt-1 pb-3 pl-5">
-          {groups[kind].map((section) => {
-            const heading = reviewedHeading(section, selection);
-            const name = sectionName(section, selection);
-            const styled = headingParts(heading);
-            return (
-              <div key={section.id} className="flex items-center gap-3 text-sm">
-                {/* native-control-ok: an outline row's title, a bare text control that picks the heading to preview; Button's uppercase chrome would break the row */}
-                <button
-                  type="button"
-                  className="min-w-0 flex-1 cursor-pointer truncate text-left"
-                  title={name}
-                  aria-pressed={previewed?.id === section.id}
-                  onClick={() => setPreviewId(section.id)}
-                >
-                  {heading.textLine ? (
-                    <>
-                      {heading.title}
-                      <span className="text-[var(--text-muted)]">
-                        {' '}
-                        · {heading.textLine} {TEXT_LINE_NOTE}
+  const chapters = chapterRows(sections);
+  const chapterList = chapters.length > 0 && (
+    <Disclosure
+      title="Chapters"
+      summary={`${counts.narration} of ${chapters.length} ${plural(chapters.length, 'chapter')} included`}
+      open={open('narration')}
+      onOpenChange={(next) => onGroupOpenChange('narration', next)}
+      className="border-t border-[var(--border)]"
+    >
+      {/* Two columns that fill top to bottom: a long book takes half the height, and a row never splits across them. */}
+      <div className="[column-gap:2rem] pt-1 pb-3 pl-5 sm:columns-2">
+        {chapters.map((section) => {
+          const heading = reviewedHeading(section, selection);
+          const name = sectionName(section, selection);
+          const styled = headingParts(heading);
+          return (
+            <div key={section.id} className="mb-1.5 break-inside-avoid" onMouseEnter={() => setPreviewId(section.id)} onFocus={() => setPreviewId(section.id)}>
+              {/* The whole row is the switch's label: the title and its subtitle on a second, smaller and dimmer line. */}
+              <Switch checked={chapterIncluded(section, selection)} onChange={(included) => setIncluded(section, included)} className="w-full">
+                <span className="block min-w-0" title={name}>
+                  <span className="block truncate">
+                    {heading.textLine ? (
+                      heading.title
+                    ) : styled.label ? (
+                      <span className="normal-case">
+                        <span className="font-semibold">{styled.label}</span> {styled.rest}
                       </span>
-                    </>
-                  ) : styled.label ? (
-                    <span className="normal-case">
-                      <span className="font-semibold">{styled.label}</span> <span className="text-[var(--text-muted)]">{styled.rest}</span>
-                    </span>
-                  ) : (
-                    <TitleSubtitle title={heading.title} subtitle={heading.subtitle} />
-                  )}
-                </button>
-                {section.wordCount !== undefined && (
-                  <span className="flex-none text-xs text-[var(--text-muted)] tabular-nums">
-                    {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
+                    ) : (
+                      heading.title
+                    )}
+                    {section.wordCount !== undefined && (
+                      <span className="ml-2 text-xs text-[var(--text-muted)] tabular-nums">
+                        {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
+                      </span>
+                    )}
                   </span>
-                )}
-                {hasSubtitleChoice(section) && (
-                  // The heading's second line, read as its subtitle or not. The visible word is
-                  // short so the row keeps its room for the title; the name says which line it is about.
-                  <div className="flex-none">
-                    <Checkbox
-                      checked={subtitleKept(section, selection)}
-                      onChange={(keep) =>
-                        onSelectionChange((current) => ({ ...current, subtitleOverrides: { ...current.subtitleOverrides, [section.id]: keep } }))
-                      }
-                    >
-                      Subtitle <span className="sr-only">— {section.subtitle}</span>
-                    </Checkbox>
-                  </div>
-                )}
-                <Select
-                  label={`${name} content type`}
-                  className="flex-none"
-                  data-section-select={section.id}
-                  value={effectiveKind(section, selection)}
-                  options={SECTION_KIND_OPTIONS}
-                  onChange={(value) => reclassify(section, value as ManuscriptContentKind)}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </Disclosure>
-    );
+                  {heading.subtitle && !heading.textLine && !styled.label && (
+                    <span className="block truncate text-xs text-[var(--text-muted)]">{heading.subtitle}</span>
+                  )}
+                </span>
+              </Switch>
+            </div>
+          );
+        })}
+      </div>
+    </Disclosure>
+  );
   const subtitleChoices = hasSubtitleChoices(preview);
   const subtitleRows = sections.filter(hasSubtitleChoice).length;
   const options = (preview.format === 'markdown' || buildStoryBible || subtitleChoices || deliveryProfile) && (
@@ -230,16 +177,14 @@ export function ImportReview({
           </label>
         )}
         {subtitleChoices && (
-          // The mock's "Subtitle detected" banner, for the book: how many headings have a second line, and the default every row starts
-          // from; a row set by hand keeps its own answer (owner decision I2: a book's house style here, the exceptions on the rows).
-          <div className="space-y-1 rounded-[var(--radius-card)] border p-3" style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
-            <b className="text-sm">Subtitles detected</b>
-            <p className="text-xs text-[var(--text-muted)]">
-              {subtitleRows} {plural(subtitleRows, 'heading has', 'headings have')} a second line the importer read as a subtitle. Each row can say otherwise.
-            </p>
+          // One choice for the book: whether a heading's second line is read as the chapter's subtitle. There is no per-chapter choice.
+          <div className="space-y-1">
             <Checkbox checked={selection.subtitleDefault ?? true} onChange={(next) => onSelectionChange((current) => ({ ...current, subtitleDefault: next }))}>
-              Read a heading's second line as its subtitle
+              Subtitles
             </Checkbox>
+            <p className="pl-6 text-xs text-[var(--text-muted)]">
+              {subtitleRows} {plural(subtitleRows, 'chapter has', 'chapters have')} a second line read as a subtitle, shown under the chapter name.
+            </p>
           </div>
         )}
         {deliveryProfile && <ImportProfileField value={deliveryProfile.value} onChange={deliveryProfile.onChange} />}
@@ -260,7 +205,7 @@ export function ImportReview({
         <StatusBadge tone="neutral" label={`${counts.suggestionsTotal} character ${plural(counts.suggestionsTotal, 'suggestion')}`} />
         {counts.repairs > 0 && <StatusBadge tone="warning" label={`${counts.repairs} ${plural(counts.repairs, 'repair')}`} />}
       </div>
-      <div className="mt-4 grid gap-4 min-[1180px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="mt-4 space-y-4">
         <div className="min-w-0">
           {preview.format === 'pdf' && preview.chapterTitles.length > 0 && (
             <p className="mt-3 text-xs">Detected chapters: {preview.chapterTitles.join(' · ')}</p>
@@ -270,15 +215,7 @@ export function ImportReview({
               <SectionLabel as="legend" className="px-1">
                 Review what was found
               </SectionLabel>
-              {sectionGroup('narration', 'Narration chapters', `${counts.narration} ${plural(counts.narration, 'chapter')}`)}
-              {sectionGroup('opening', 'Front matter', `${counts.opening} ${plural(counts.opening, 'section')}`, {
-                label: 'About front matter',
-                text: FRONT_MATTER_NOTE,
-              })}
-              {sectionGroup('reference', 'Reference material', `${counts.reference} ${plural(counts.reference, 'section')}`, {
-                label: 'About reference material',
-                text: REFERENCE_NOTE,
-              })}
+              {chapterList}
               {candidates.length > 0 && (
                 <Disclosure
                   title="Story Bible character suggestions"
@@ -336,15 +273,14 @@ export function ImportReview({
             </fieldset>
           )}
         </div>
-        <div className="min-w-0 space-y-4">
-          {previewed && (
-            <section aria-label="Preview of the selected heading" className="rounded-[var(--radius-card)] border p-3" style={{ borderColor: 'var(--border)' }}>
-              <h4 className="text-sm font-semibold">{sectionName(previewed, selection)}</h4>
-              <p className="mt-1 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
-            </section>
-          )}
-          {options}
-        </div>
+        {options}
+        {previewed && (
+          // The first lines of the chapter the pointer is over (or the one focused last): the sample at the foot of the review.
+          <section aria-label="Preview of the selected heading" className="rounded-[var(--radius-card)] border p-3" style={{ borderColor: 'var(--border)' }}>
+            <h4 className="text-sm font-semibold">{sectionName(previewed, selection)}</h4>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
+          </section>
+        )}
       </div>
     </div>
   );

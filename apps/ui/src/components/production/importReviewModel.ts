@@ -5,8 +5,11 @@ import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSe
 // The pure half of the import review: what the narrator's choices come to. The summary line, the groups and the rows are all read from
 // these functions, so they cannot disagree after a section is reclassified (the summary is a count of the rows, not a second opinion).
 
-/** The groups of the review, in the order they are listed. `characters` and `repairs` hold no section rows. */
-export type ReviewGroupKey = ManuscriptContentKind | 'characters' | 'repairs';
+/**
+ * The groups of the review, in the order they are listed. `characters` and `repairs` hold no section rows. Front matter and reference
+ * material are not groups: the review never lists them and never asks about them, so they stay as the importer sorted them.
+ */
+export type ReviewGroupKey = 'narration' | 'characters' | 'repairs';
 
 /** What the narrator opened or closed by hand; a group that is not here takes its default (`isGroupOpen`). */
 export type ReviewGroupOpen = Partial<Record<ReviewGroupKey, boolean>>;
@@ -17,9 +20,8 @@ export const MANY_NARRATION_CHAPTERS = 8;
 const FEW_REPAIRS = 3;
 
 export type ReviewCounts = {
+  /** The chapters that will be written: the rows whose switch is on. */
   narration: number;
-  opening: number;
-  reference: number;
   suggestionsChecked: number;
   suggestionsTotal: number;
   repairs: number;
@@ -28,6 +30,16 @@ export type ReviewCounts = {
 /** The kind a section will be written as: what the narrator chose for it, or else what the importer proposed. */
 export function effectiveKind(section: ManuscriptImportSection, selection: ManuscriptImportSelection): ManuscriptContentKind {
   return selection.sectionKinds?.[section.id] ?? section.contentKind;
+}
+
+/** The sections the review lists, one switch each: the ones the importer proposed as chapters. The rest are never shown or asked about. */
+export function chapterRows(sections: readonly ManuscriptImportSection[]): ManuscriptImportSection[] {
+  return sections.filter((section) => section.contentKind === 'narration');
+}
+
+/** Whether a chapter row's switch is on: it will be written as a chapter. A row switched off is left out of the recording, like reference material. */
+export function chapterIncluded(section: ManuscriptImportSection, selection: ManuscriptImportSelection): boolean {
+  return effectiveKind(section, selection) === 'narration';
 }
 
 /** A section whose heading has a second line the narrator can say is not its subtitle. */
@@ -101,15 +113,13 @@ export function reviewCounts(preview: ManuscriptImportPreview, selection: Manusc
   const listed = new Set((preview.characterCandidates ?? []).map((candidate) => candidate.id));
   return {
     narration: groups.narration.length,
-    opening: groups.opening.length,
-    reference: groups.reference.length,
     suggestionsChecked: checkedCandidateIds(preview, selection).filter((id) => listed.has(id)).length,
     suggestionsTotal: listed.size,
     repairs: preview.notices?.length ?? 0,
   };
 }
 
-/** Expand the exceptions (front matter, reference material, a suggestion left unchecked, a few repairs); the chapters the importer got right start collapsed when there are many. */
+/** Expand the exceptions (a suggestion left unchecked, a few repairs); the chapters the importer got right start collapsed when there are many. */
 export function isGroupOpen(key: ReviewGroupKey, chosen: ReviewGroupOpen, counts: ReviewCounts): boolean {
   const byHand = chosen[key];
   if (byHand !== undefined) return byHand;
@@ -120,8 +130,6 @@ export function isGroupOpen(key: ReviewGroupKey, chosen: ReviewGroupOpen, counts
       return counts.suggestionsChecked < counts.suggestionsTotal;
     case 'repairs':
       return counts.repairs <= FEW_REPAIRS;
-    default:
-      return true;
   }
 }
 
@@ -130,18 +138,15 @@ export function plural(count: number, singular: string, many = `${singular}s`): 
 }
 
 /**
- * The two lines that say what was found. The headline counts narration chapters only (front matter and reference material are not
- * chaptered audio: they are excluded from the totals), and the second line lists the rest that exists. A PDF has no sections, so it keeps the
- * host's title count.
+ * The two lines that say what was found. The headline counts the chapters that will be written, and the second line lists the rest that
+ * exists. A PDF has no sections, so it keeps the host's title count.
  */
 export function describeReview(preview: ManuscriptImportPreview, counts: ReviewCounts): { headline: string; detail: string } {
   const hasSections = (preview.sections ?? []).length > 0;
   const chapters = hasSections
-    ? `${counts.narration} narration ${plural(counts.narration, 'chapter')}`
+    ? `${counts.narration} ${plural(counts.narration, 'chapter')}`
     : `${preview.chapterTitles.length || 1} proposed ${plural(preview.chapterTitles.length || 1, 'chapter')}`;
   const detail = [
-    counts.opening > 0 ? `${counts.opening} front matter ${plural(counts.opening, 'section')}` : '',
-    counts.reference > 0 ? `${counts.reference} reference ${plural(counts.reference, 'section')}` : '',
     counts.suggestionsTotal > 0
       ? `${counts.suggestionsChecked} of ${counts.suggestionsTotal} character ${plural(counts.suggestionsTotal, 'suggestion')} checked`
       : '',

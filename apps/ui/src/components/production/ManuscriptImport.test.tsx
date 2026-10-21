@@ -45,24 +45,17 @@ async function openReview(prepare: (api: NarrationApi) => void = () => {}, impor
 const openSuggestions = (dialog: ReturnType<typeof within>) => fireEvent.click(dialog.getByRole('button', { name: /^Story Bible character suggestions/ }));
 
 describe('the import review dialog, as the narrator meets it', () => {
-  it('states the format and size, and lists every section the importer found with its kind', async () => {
+  it('states the format and size, and lists the chapters the importer found, each with its switch on', async () => {
     const { dialog } = await openReview();
     expect(dialog.getByText(/^DOCX · 221 paragraphs · /)).toBeTruthy();
-    const kinds = (title: string) => (dialog.getByRole('combobox', { name: `${title} content type` }) as HTMLSelectElement).value;
-    expect(kinds('Chapter One — Down the Rabbit-Hole')).toBe('narration');
-    expect(kinds('Characters')).toBe('reference');
-    expect(kinds('Glossary')).toBe('reference');
-    expect(kinds('Front Matter')).toBe('opening');
-    // Eight sections, and the delivery profile a first import of a project with none chosen also asks for. The profile is read after
-    // the dialog opens, so the count waits for its field.
+    const included = (name: RegExp) => dialog.getByRole('switch', { name }).getAttribute('aria-checked');
+    for (const name of [/^Chapter One/, /^Chapter Two/, /^Chapter Three/, /^Chapter Four/, /^Chapter Five/]) expect(included(name)).toBe('true');
+    // Front matter and reference sections are not listed: they stay as the importer sorted them.
+    for (const title of ['Characters', 'Glossary', 'Front Matter']) expect(dialog.queryByRole('switch', { name: new RegExp(title) })).toBeNull();
+    expect(dialog.getAllByRole('switch')).toHaveLength(5);
+    // The one select left is the delivery profile a first import of a project with none chosen also asks for; it is read after the dialog opens.
     await dialog.findByRole('combobox', { name: 'Delivery profile' });
-    expect(dialog.getAllByRole('combobox')).toHaveLength(9);
-  });
-
-  it('offers the three kinds a section can be, by their names in the reader', async () => {
-    const { dialog } = await openReview();
-    const options = within(dialog.getByRole('combobox', { name: 'Chapter One — Down the Rabbit-Hole content type' })).getAllByRole('option');
-    expect(options.map((option) => option.textContent)).toEqual(['Narration chapter', 'Front Matter', 'Reference material']);
+    expect(dialog.getAllByRole('combobox')).toHaveLength(1);
   });
 
   it('shows the character suggestions checked, with their descriptions', async () => {
@@ -84,24 +77,23 @@ describe('the import review dialog, as the narrator meets it', () => {
     });
   });
 
-  it('commits the subtitles the narrator turned off, by the default and by a row, as false for each section', async () => {
+  it('commits the subtitles as false for every chapter that has one when Subtitles is turned off, and nothing otherwise', async () => {
     let commit = vi.fn();
     const { dialog } = await openReview((api) => void (commit = vi.spyOn(api, 'manuscriptImportCommit')));
-    fireEvent.click(dialog.getByRole('checkbox', { name: "Read a heading's second line as its subtitle" }));
-    fireEvent.click(dialog.getByRole('checkbox', { name: 'Subtitle — The Pool of Tears' }));
+    fireEvent.click(dialog.getByRole('checkbox', { name: 'Subtitles' }));
     fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
-    expect(commit.mock.calls[0]?.[1].selection?.subtitleOverrides).toEqual({ 'section-0001': false, 'section-0004': false });
+    expect(commit.mock.calls[0]?.[1].selection?.subtitleOverrides).toEqual({ 'section-0001': false, 'section-0002': false, 'section-0004': false });
   });
 
-  it('commits a section the narrator reclassified, and leaves the others out of the choices', async () => {
+  it('commits a chapter the narrator switched off as left out of the recording, and leaves the others out of the choices', async () => {
     let commit = vi.fn();
     const { dialog } = await openReview((api) => void (commit = vi.spyOn(api, 'manuscriptImportCommit')));
-    fireEvent.change(dialog.getByRole('combobox', { name: 'Glossary content type' }), { target: { value: 'narration' } });
-    expect((dialog.getByRole('combobox', { name: 'Glossary content type' }) as HTMLSelectElement).value).toBe('narration');
+    fireEvent.click(dialog.getByRole('switch', { name: /^Chapter Three/ }));
+    expect(dialog.getByRole('switch', { name: /^Chapter Three/ }).getAttribute('aria-checked')).toBe('false');
     fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
-    expect(commit.mock.calls[0]?.[1].selection?.sectionKinds).toEqual({ 'section-0006': 'narration' });
+    expect(commit.mock.calls[0]?.[1].selection?.sectionKinds).toEqual({ 'section-0003': 'reference' });
   });
 
   it('commits only the suggestions that are still checked, as an explicit list', async () => {
@@ -141,11 +133,11 @@ describe('the import review dialog, as the narrator meets it', () => {
     expect(level().value).toBe('1');
     expect(preview).toHaveBeenLastCalledWith('mock-import', { markdownHeadingLevel: 1 });
 
-    fireEvent.change(dialog.getByRole('combobox', { name: 'Glossary content type' }), { target: { value: 'narration' } });
+    fireEvent.click(dialog.getByRole('switch', { name: /^Chapter Three/ }));
     fireEvent.change(level(), { target: { value: '2' } });
     await waitFor(() => expect(preview).toHaveBeenLastCalledWith('mock-import', { markdownHeadingLevel: 2 }));
     await waitFor(() => expect(level().value).toBe('2'));
-    expect((dialog.getByRole('combobox', { name: 'Glossary content type' }) as HTMLSelectElement).value).toBe('reference');
+    expect(dialog.getByRole('switch', { name: /^Chapter Three/ }).getAttribute('aria-checked')).toBe('true');
 
     fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
@@ -206,35 +198,36 @@ describe('the import review dialog, as the narrator meets it', () => {
 });
 
 describe('the summary and the groups of the review', () => {
-  it('says in the dialog message what was found, and follows a reclassification', async () => {
+  it('says in the dialog message what was found, and follows a chapter switched off', async () => {
     const { dialog } = await openReview();
-    expect(dialog.getByText(/^DOCX · 221 paragraphs · 5 narration chapters\./)).toBeTruthy();
-    expect(dialog.getByText('1 front matter section · 2 reference sections · 3 of 3 character suggestions checked')).toBeTruthy();
-    fireEvent.change(dialog.getByRole('combobox', { name: 'Glossary content type' }), { target: { value: 'narration' } });
-    expect(dialog.getByText(/^DOCX · 221 paragraphs · 6 narration chapters\./)).toBeTruthy();
-    expect(dialog.getByText('1 front matter section · 1 reference section · 3 of 3 character suggestions checked')).toBeTruthy();
+    expect(dialog.getByText(/^DOCX · 221 paragraphs · 5 chapters\./)).toBeTruthy();
+    expect(dialog.getByText('3 of 3 character suggestions checked')).toBeTruthy();
+    fireEvent.click(dialog.getByRole('switch', { name: /^Chapter Three/ }));
+    expect(dialog.getByText(/^DOCX · 221 paragraphs · 4 chapters\./)).toBeTruthy();
+    expect(dialog.getByText('3 of 3 character suggestions checked')).toBeTruthy();
   });
 
-  it('keeps the groups the narrator folded when another Markdown heading level is read', async () => {
+  it('keeps the chapters folded when another Markdown heading level is read', async () => {
     const { dialog } = await openReview(() => {}, 'markdown');
-    fireEvent.click(dialog.getByRole('button', { name: /^Narration chapters/ }));
-    expect(dialog.queryByRole('combobox', { name: 'Chapter Three content type' })).toBeNull();
+    fireEvent.click(dialog.getByRole('button', { name: /^Chapters/ }));
+    expect(dialog.queryByRole('switch', { name: /^Chapter Three/ })).toBeNull();
     fireEvent.change(dialog.getByRole('combobox', { name: 'Markdown chapter heading level' }), { target: { value: '2' } });
     await waitFor(() => expect((dialog.getByRole('combobox', { name: 'Markdown chapter heading level' }) as HTMLSelectElement).value).toBe('2'));
-    expect(dialog.getByRole('button', { name: /^Narration chapters/ }).getAttribute('aria-expanded')).toBe('false');
+    expect(dialog.getByRole('button', { name: /^Chapters/ }).getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('starts every group from its default, with no earlier choices, when another file is chosen', async () => {
+  it('starts the chapters from their default, with no earlier choices, when another file is chosen', async () => {
     const { dialog } = await openReview();
-    fireEvent.click(dialog.getByRole('button', { name: /^Narration chapters/ }));
-    fireEvent.change(dialog.getByRole('combobox', { name: 'Glossary content type' }), { target: { value: 'narration' } });
+    fireEvent.click(dialog.getByRole('button', { name: /^Chapters/ }));
+    fireEvent.click(dialog.getByRole('button', { name: /^Chapters/ }));
+    fireEvent.click(dialog.getByRole('switch', { name: /^Chapter Three/ }));
     fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
     const again = within(await screen.findByRole('alertdialog', { name: /^Import Alice\./ }));
-    expect(again.getByRole('button', { name: /^Narration chapters 5 chapters/ }).getAttribute('aria-expanded')).toBe('true');
-    expect((again.getByRole('combobox', { name: 'Glossary content type' }) as HTMLSelectElement).value).toBe('reference');
+    expect(again.getByRole('button', { name: /^Chapters 5 of 5 chapters included$/ }).getAttribute('aria-expanded')).toBe('true');
+    expect(again.getByRole('switch', { name: /^Chapter Three/ }).getAttribute('aria-checked')).toBe('true');
   });
 
   it('has no preview activity, and says what the importer repaired', async () => {
@@ -247,11 +240,12 @@ describe('the summary and the groups of the review', () => {
 });
 
 describe('the subtitle of each chapter in the review', () => {
-  it('shows the subtitle of a chapter after its title, and only its title when the heading had none', async () => {
+  it('shows the subtitle of a chapter on a second line below its title, and no second line when the heading had none', async () => {
     const { dialog } = await openReview();
-    expect(dialog.getByText('Chapter One').closest('[title]')!.textContent).toBe('Chapter One — Down the Rabbit-Hole');
-    expect(dialog.getByText('Chapter Two').closest('[title]')!.textContent).toBe('Chapter Two — The Pool of Tears');
-    expect(dialog.getByText('Chapter Three').closest('[title]')!.textContent).toBe('Chapter Three');
+    const second = (title: string) => dialog.getByText(title).closest('label')!.querySelector('.block.text-xs');
+    expect(second('Chapter One')?.textContent).toBe('Down the Rabbit-Hole');
+    expect(second('Chapter Two')?.textContent).toBe('The Pool of Tears');
+    expect(second('Chapter Three')).toBeNull();
   });
 
   it('keeps the whole title and subtitle in the title attribute of the row, for a name cut short', async () => {
@@ -260,10 +254,10 @@ describe('the subtitle of each chapter in the review', () => {
     expect(dialog.getByText('Chapter Three').closest('[title]')!.getAttribute('title')).toBe('Chapter Three');
   });
 
-  it('names the select of a row for the subtitle too, so two chapters with one title can be told apart', async () => {
+  it('names the switch of a row for the subtitle too, so two chapters with one title can be told apart', async () => {
     const { dialog } = await openReview();
-    expect(dialog.getByRole('combobox', { name: 'Chapter Two — The Pool of Tears content type' })).toBeTruthy();
-    expect(dialog.getByRole('combobox', { name: 'Chapter Three content type' })).toBeTruthy();
+    expect(dialog.getByRole('switch', { name: /^Chapter Two.*The Pool of Tears/ })).toBeTruthy();
+    expect(dialog.getByRole('switch', { name: /^Chapter Three/ })).toBeTruthy();
   });
 });
 
@@ -589,5 +583,33 @@ describe('step 2: check the chapter outline (the Studio Next mock)', () => {
   it('the confirm is Import reviewed manuscript, and Replace and reset when it replaces one', async () => {
     const { dialog } = await openReview();
     expect(dialog.getByRole('button', { name: 'Import reviewed manuscript' })).toBeTruthy();
+  });
+});
+
+describe('closing the import when it finishes', () => {
+  const checkbox = (dialog: ReturnType<typeof within>) => dialog.findByRole('checkbox', { name: 'Close when the import finishes' });
+
+  it('is on by default, and closes the import once the manuscript is written', async () => {
+    const { dialog } = await openReview();
+    expect((await checkbox(dialog)).getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Import manuscript' })).toBeNull());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('saves an unchecked box as an app setting, and then leaves the finished import on screen to read', async () => {
+    let save = vi.fn();
+    const { dialog } = await openReview((api) => void (save = vi.spyOn(api, 'saveSettings')));
+    fireEvent.click(await checkbox(dialog));
+    await waitFor(() => expect(save).toHaveBeenCalledWith('General', 'global', { close_import_when_done: 'false' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
+    expect(await screen.findByRole('dialog', { name: 'Import manuscript' })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(screen.getByRole('dialog', { name: 'Import manuscript' })).toBeTruthy();
+  });
+
+  it('starts unchecked when the saved setting is off', async () => {
+    const { dialog } = await openReview((api) => void api.saveSettings('General', 'global', { close_import_when_done: 'false' }));
+    await waitFor(async () => expect((await checkbox(dialog)).getAttribute('aria-checked')).toBe('false'));
   });
 });

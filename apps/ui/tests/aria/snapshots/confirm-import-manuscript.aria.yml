@@ -15,8 +15,8 @@
   - paragraph: /DOCX · \d+ paragraphs.*This replaces the active manuscript and clears Story Bible/
   - heading "Check the chapter outline" [level=3]
   - group "Review what was found"
-  - region "Preview of the selected heading"
   - group "Import options"
+  - region "Preview of the selected heading"
   - button "Cancel"
   - button "Back"
   - button "Replace and reset"

@@ -9,6 +9,7 @@ import { CreditsSetupBanner } from '../credits/CreditsSetupBanner';
 import { CreditsSetupDialog } from '../credits/CreditsSetupDialog';
 import { NEUTRAL_PROFILE, PLATFORM_PROFILES } from '../schedule/profiles';
 import { Button } from '../primitives/Button';
+import { Checkbox } from '../primitives/Checkbox';
 import { ImportChooseDialog, type DroppedManuscript } from './ImportChooseDialog';
 import { ImportReview, ImportSummary } from './ImportReview';
 import { subtitleOverridesToCommit, type ReviewGroupKey, type ReviewGroupOpen } from './importReviewModel';
@@ -73,6 +74,27 @@ export function useManuscriptImport({
   const profileToSave = useRef<string | null>(null);
   const asksProfile = !found && profiles !== undefined && profiles.projectChoice === null;
   const reviewing = importJob?.phase === 'ready';
+  // General.close_import_when_done, an app setting (on by default): the finished import closes itself unless the narrator unchecks the box
+  // in the review. The ref carries the answer to the success effect below, which runs after the review is gone.
+  const [closeWhenDone, setCloseWhenDone] = useState(true);
+  const closeWhenDoneRef = useRef(true);
+  useEffect(() => {
+    if (!reviewing) return;
+    void api
+      .settingsForScope('global')
+      .then((tools) => {
+        const field = tools.General?.find((candidate) => candidate.key === 'close_import_when_done');
+        const on = (field?.effectiveValue ?? 'true') !== 'false';
+        closeWhenDoneRef.current = on;
+        setCloseWhenDone(on);
+      })
+      .catch(() => undefined);
+  }, [api, reviewing]);
+  const changeCloseWhenDone = (next: boolean) => {
+    closeWhenDoneRef.current = next;
+    setCloseWhenDone(next);
+    void api.saveSettings('General', 'global', { close_import_when_done: String(next) }).catch((error) => notify(apiErrorMessage(error), 'error'));
+  };
   useEffect(() => {
     if (!reviewing || found) return;
     void api
@@ -119,7 +141,8 @@ export function useManuscriptImport({
     if (importJob?.phase !== 'success') return;
     void refreshBootstrap();
     void saveProfile();
-  }, [importJob?.phase, refreshBootstrap, saveProfile]);
+    if (closeWhenDoneRef.current) setImportJob(undefined);
+  }, [importJob?.phase, refreshBootstrap, saveProfile, setImportJob]);
   const beginImportPreview = async (jobId: string) => {
     setHeadingLevel(1);
     setImportSelection({});
@@ -268,7 +291,10 @@ export function useManuscriptImport({
               <Button variant="secondary" onClick={cancelImport}>
                 Cancel
               </Button>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3">
+                <Checkbox checked={closeWhenDone} onChange={changeCloseWhenDone}>
+                  Close when the import finishes
+                </Checkbox>
                 <Button
                   variant="secondary"
                   onClick={() => {
