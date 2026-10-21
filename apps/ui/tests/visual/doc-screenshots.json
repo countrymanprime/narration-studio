@@ -371,11 +371,11 @@
     "caption": "The audio engine panel, opened from the header chip - the linked REAPER project, the REAPER tools, chapter sync, the tracks with their chapters, and chapter links"
   },
   {
-    "page": "engine",
-    "state": "sync-activity",
+    "page": "settings",
+    "state": "recording-sync-activity",
     "viewport": "desktop",
-    "docName": "engine-panel-sync-activity",
-    "caption": "The audio engine panel - chapter sync's summary and Sync activity, with Undo on a link sync made"
+    "docName": "settings-sync-activity",
+    "caption": "Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made"
   },
   {
     "page": "engine",

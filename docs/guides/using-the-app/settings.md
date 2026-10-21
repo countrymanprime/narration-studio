@@ -57,8 +57,8 @@ With **Audacity** chosen, **Connection** is **Audacity connection** instead: a s
 
 Also here: **Microphone** (a list of the computer's inputs, with **Refresh the list**; the Booth uses the same
 one); with REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
-for Audacity or the built-in recorder); and, under Advanced for any recorder, **Experimental DAW actions** and
-**Capabilities**. These are settings of this computer; a project has no override for them. **Voice sample output** names the
+for Audacity or the built-in recorder); and, under Advanced for any recorder, **Experimental DAW actions**,
+**Capabilities** and, for REAPER, **Sync activity**. These are settings of this computer; a project has no override for them. **Voice sample output** names the
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
@@ -75,6 +75,8 @@ you chose elsewhere, and the row does not check whether a take is recording.
 ![Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound](../../images/ui/settings-sample-output.webp)
 
 ![Settings - Recording & DAW: the capabilities and the REAPER path under Advanced](../../images/ui/settings-daw.webp)
+
+![Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made](../../images/ui/settings-sync-activity.webp)
 
 ### Choose REAPER
 
@@ -113,6 +115,9 @@ the last 5 seconds, and the card says whether its open project matches the linke
 - **Capabilities** (Advanced): a table of what the app can ask the recording tool to do, each with **Auto**, **On** or
   **Off** and a **Now** column: the level (**Supported**, **Experimental**, **Not yet available** or **Unsupported**),
   the tool's own reason when it is unavailable, and a warning on any action that replaces audio that cannot be brought back.
+- **Sync activity** (Advanced, REAPER only): what each chapter sync did, newest first: the first sync, each
+  chapter a later sync linked when you saved in REAPER, and each new track that isn't a chapter. A link sync made has **Undo**
+  while the chapter still holds it; Undo removes that link and sync never makes the same one again.
 - The **REAPER launcher** path with **Copy path**, to load once in REAPER as an action (**Actions > Show action list >
   New action > Load ReaScript**) and load again after each update, since the path changes. The Booth shows the same
   steps when Record is waiting for REAPER ([Booth](booth.md#recording)).
