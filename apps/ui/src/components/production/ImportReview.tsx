@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 import { ImportProfileField } from '../delivery/ImportProfileField';
 import { Button } from '../primitives/Button';
@@ -48,19 +48,27 @@ export function importDescription(requiresReset: boolean): string {
  * dimmer with no dash. A heading in a label style ("CHAPTER VIII. Croquet") keeps its label set apart; a line turned back into text has no
  * subtitle to show.
  */
-function HeadingLines({ heading, truncate = false }: { heading: ReturnType<typeof reviewedHeading>; truncate?: boolean }) {
+function HeadingLines({ heading, truncate = false, trailing }: { heading: ReturnType<typeof reviewedHeading>; truncate?: boolean; trailing?: ReactNode }) {
   const styled = headingParts(heading);
   const clip = truncate ? 'truncate' : '';
+  // The title and whatever trails it (the word count) share one line; the title is what gives way, clipped with an ellipsis.
+  const firstLine = (content: ReactNode, extra = '') => (
+    <span className="flex items-baseline gap-2">
+      <span className={`min-w-0 flex-1 ${clip} ${extra}`}>{content}</span>
+      {trailing}
+    </span>
+  );
   if (!heading.textLine && styled.label) {
-    return (
-      <span className={`block normal-case ${clip}`}>
+    return firstLine(
+      <>
         <span className="font-semibold">{styled.label}</span> {styled.rest}
-      </span>
+      </>,
+      'normal-case',
     );
   }
   return (
     <>
-      <span className={`block ${clip}`}>{heading.title}</span>
+      {firstLine(heading.title)}
       {heading.subtitle && !heading.textLine && <span className={`block text-xs text-[var(--text-muted)] ${clip}`}>{heading.subtitle}</span>}
     </>
   );
@@ -135,12 +143,17 @@ export function ImportReview({
               {/* The whole row is the switch's label: the title and its subtitle on a second, smaller and dimmer line. */}
               <Switch checked={chapterIncluded(section, selection)} onChange={(included) => setIncluded(section, included)} className="w-full">
                 <span className="block min-w-0" title={name}>
-                  <HeadingLines heading={heading} truncate />
-                  {section.wordCount !== undefined && (
-                    <span className="block text-xs text-[var(--text-muted)] tabular-nums">
-                      {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
-                    </span>
-                  )}
+                  <HeadingLines
+                    heading={heading}
+                    truncate
+                    trailing={
+                      section.wordCount !== undefined && (
+                        <span className="flex-none text-xs text-[var(--text-muted)] tabular-nums">
+                          {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
+                        </span>
+                      )
+                    }
+                  />
                 </span>
               </Switch>
             </div>

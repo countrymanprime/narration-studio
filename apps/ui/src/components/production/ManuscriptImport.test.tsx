@@ -634,11 +634,24 @@ describe('the sample under the review', () => {
     const sample = within(dialog.getByRole('region', { name: 'Preview of the selected heading' }));
     const heading = sample.getByRole('heading');
     expect(heading.textContent).toBe('Chapter OneDown the Rabbit-Hole');
-    const lines = heading.querySelectorAll('span.block');
-    expect(lines).toHaveLength(2);
-    expect(lines[1]!.textContent).toBe('Down the Rabbit-Hole');
-    expect(lines[1]!.className).toContain('text-xs');
-    expect(lines[1]!.className).toContain('text-[var(--text-muted)]');
+    const subtitle = heading.querySelector('span.block');
+    expect(subtitle!.textContent).toBe('Down the Rabbit-Hole');
+    expect(subtitle!.className).toContain('text-xs');
+    expect(subtitle!.className).toContain('text-[var(--text-muted)]');
+  });
+
+  it('keeps the word count of a chapter row to the right of its title, and lets a long title clip instead of running under the next column', async () => {
+    const { dialog } = await openReview();
+    const row = dialog.getByRole('switch', { name: /^Chapter One/ }).closest('label')!;
+    const words = within(row).getByText(/ words?$/);
+    const firstLine = words.parentElement!;
+    expect(firstLine.textContent).toMatch(/^Chapter One/);
+    expect(words.className).toContain('flex-none');
+    const title = firstLine.firstElementChild!;
+    expect(title.className).toContain('truncate');
+    expect(title.className).toContain('min-w-0');
+    // The label's text box can shrink below its content, which is what lets the clip happen inside the column.
+    expect(row.querySelector(':scope > span.min-w-0')).not.toBeNull();
   });
 
   it('follows the pointer over another chapter', async () => {

@@ -28,7 +28,8 @@ export function Switch({
       >
         <BaseSwitch.Thumb className="size-3.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow)] data-[checked]:translate-x-4 motion-ok:transition-transform" />
       </BaseSwitch.Root>
-      <span>{children}</span>
+      {/* min-w-0: a long label shrinks and clips inside its column instead of running behind the next one. */}
+      <span className="min-w-0 flex-1">{children}</span>
     </label>
   );
 }
