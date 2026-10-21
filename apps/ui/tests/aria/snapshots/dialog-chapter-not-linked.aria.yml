@@ -1,0 +1,25 @@
+- main:
+  - region "Script editor":
+    - status: "Delete, Mute and Add FX are off. Experimental: switched off in Settings."
+    - toolbar "Playback and selection": Click a word to place the cursor, drag or Shift+arrows to select
+- status
+- alert
+- status
+- alert
+- status
+- dialog "Chapter 1 Down the Rabbit-Hole is not linked to a track":
+  - heading "Chapter 1 Down the Rabbit-Hole is not linked to a track" [level=2]
+  - button "Close"
+  - paragraph: There is no audio to edit yet. The script is shown without what was heard.
+  - radiogroup "Track for Chapter 1 Down the Rabbit-Hole":
+    - radio "Chapter 1" [checked]
+    - text: Chapter 1 Best match for this chapter
+    - radio "Chapter 2"
+    - text: Chapter 2
+    - radio "Click Track"
+    - text: Click Track
+  - paragraph:
+    - status: Waiting for Chapter 1 Down the Rabbit-Hole to be linked.
+    - text: /Last checked \d+ s ago, from the project as last saved\./
+  - button "Check again"
+  - button "Link track"

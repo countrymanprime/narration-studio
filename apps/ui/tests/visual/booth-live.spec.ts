@@ -5,7 +5,8 @@ import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 
-const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
+// includeHidden: the connect dialog hides the page behind it from the accessibility tree, and Record is still there, disabled.
+const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const notice = (page: Page) => page.locator('#brec-setup');
 // REAPER not connected is a quiet mark in the notice's place and a dialog that opens by itself once (after the connect grace for a linked project).
@@ -123,7 +124,8 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(page.getByText('Narration Studio is busy, so the current project was left unchanged.').first()).toBeVisible();
     await expect(dialog(page).getByRole('alert')).toContainText('Finish or cancel what is running, then press Open in REAPER and connect again.');
     await expect(record(page)).toBeDisabled();
-    await expect(dialog(page).getByRole('button', { name: 'Open in REAPER and connect' })).toBeEnabled();
+    // The button reads Connecting… while the app waits ten seconds for the bridge, then offers the press again.
+    await expect(dialog(page).getByRole('button', { name: 'Open in REAPER and connect' })).toBeEnabled({ timeout: 20_000 });
   });
 
   test('a REAPER with another project open refuses Record in a sentence, and the right project clears it', async ({ page }) => {

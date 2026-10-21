@@ -1,0 +1,19 @@
+- main:
+  - region "Script editor":
+    - toolbar "Playback and selection": Click a word to place the cursor, drag or Shift+arrows to select
+- status
+- alert
+- status
+- alert
+- status
+- dialog "Audacity is not connected":
+  - heading "Audacity is not connected" [level=2]
+  - button "Close"
+  - paragraph: Audacity is not running.
+  - paragraph: Audacity connected before and has stopped answering.
+  - paragraph: You can look at takes, findings and effects. Changes wait until Audacity is running.
+  - paragraph:
+    - status: Waiting for Audacity to answer.
+    - text: /Last checked \d+ s ago\./
+  - button "Check again"
+  - button "Start Audacity"

@@ -35,7 +35,12 @@ export function useChapterLink({
       <ChapterLinkDialog
         chapterId={chapterId}
         chapterName={chapterName}
-        sentence={`${text.headline} ${text.next}`}
+        // The title says which problem it is; the description says what it costs, not the same sentence again.
+        sentence={
+          audio.kind === 'missing'
+            ? `Linking a track replaces the old link. There is no audio to edit meanwhile. ${text.next}`
+            : `There is no audio to edit yet. ${text.next}`
+        }
         dawName={daw}
         missing={audio.kind === 'missing'}
         onLinked={onReread}

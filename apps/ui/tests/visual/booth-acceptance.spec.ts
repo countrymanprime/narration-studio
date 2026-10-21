@@ -9,7 +9,8 @@ import { chooseMicrophone, chooseTheme, goToPage } from './drivers/shared';
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const RECORD_ON = '?mockRecordCapabilityOn=1';
-const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
+// includeHidden: the connect dialog hides the page behind it from the accessibility tree, and Record is still there, disabled.
+const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const chapterButton = (page: Page) => page.getByRole('button', { name: /^Chapter: / });
 const cursorWord = (page: Page) => page.locator('[data-current]').first();

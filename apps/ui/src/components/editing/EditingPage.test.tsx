@@ -303,7 +303,7 @@ describe('EditingPage', () => {
       await script();
       const open = await dialog();
       expect(within(open).getByText('Chapter One’s track is not in the project')).toBeTruthy();
-      expect(open.textContent).toMatch(/linked track is not in the saved project/);
+      expect(open.textContent).toMatch(/Linking a track replaces the old link/);
       cleanup();
       mount({ api: noAudioApi('empty') });
       await script();

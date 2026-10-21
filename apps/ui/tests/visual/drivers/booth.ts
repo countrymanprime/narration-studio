@@ -130,6 +130,8 @@ export const boothDrivers: Record<string, Driver> = {
     await notice.getByRole('button').click();
     await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
     await connect.getByRole('alert').waitFor();
+    // The app waits ten seconds for the bridge with the button busy (dimmed); the state is the settled dialog, with the button offered again.
+    await connect.locator('button:not([aria-busy])', { hasText: 'Open in REAPER and connect' }).waitFor({ timeout: 20_000 });
   },
   'record-other-project': async (page) => {
     await openBooth(page, '?mockDaw=different');

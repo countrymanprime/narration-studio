@@ -32,7 +32,12 @@ export function ResolveShell({
   children: ReactNode;
 }) {
   const button = (action: ResolveAction, variant: 'primary' | 'secondary') => (
-    <Button variant={variant} pending={action.pending} aria-disabled={action.disabled || undefined} onClick={action.disabled ? undefined : action.onPress}>
+    <Button
+      variant={variant}
+      pending={action.pending}
+      {...(action.disabled ? { 'aria-disabled': true } : {})}
+      onClick={action.disabled ? undefined : action.onPress}
+    >
       {action.label}
     </Button>
   );

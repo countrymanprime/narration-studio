@@ -65,7 +65,7 @@ const linking = {
   variant: 'chapter-unlinked',
   chapterId: 'c3',
   chapterName: 'Chapter 3',
-  sentence: 'Chapter 3 is not linked to a track in REAPER, so there is no audio to edit. The script is shown without what was heard.',
+  sentence: 'There is no audio to edit yet. The script is shown without what was heard.',
   dawName: 'REAPER',
   onLinked: fn(),
   onClose: fn(),
@@ -87,7 +87,7 @@ export const NotConnected: Story = {
   play: async () => {
     const open = await dialog();
     await expect(within(open).getByText('REAPER is not connected')).toBeVisible();
-    await expect(within(open).getByText(/closed, or open without the launcher run/)).toBeVisible();
+    await expect(await within(open).findByText(/closed, or open without the launcher run/)).toBeVisible();
     await expect(within(open).getByText(/Last checked \d+ s ago/)).toBeVisible();
     await userEvent.click(within(open).getByRole('button', { name: 'Close' }));
     await expect(off.onClose).toHaveBeenCalledOnce();
@@ -258,7 +258,7 @@ const LONG = 'The Very Long Title of a Chapter That Goes On and On and Never See
 /** Long chapter and track names, an RTL name and emoji wrap inside the dialog, and many tracks scroll in its body. */
 export const ChapterLongNames: Story = {
   args: {
-    props: { ...linking, chapterName: LONG, sentence: `${LONG} is not linked to a track in REAPER, so there is no audio to edit.` },
+    props: { ...linking, chapterName: LONG, sentence: 'There is no audio to edit yet. The script is shown without what was heard.' },
     api: {
       chapterTrackMatch: async () =>
         match({
