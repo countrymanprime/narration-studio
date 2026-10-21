@@ -10,6 +10,7 @@ import { wailsClient } from './api/wailsClient';
 import { enableUiLog } from './api/uiLog';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
+import { simulateDaw } from './api/mockHost/simulatedDaw';
 import { scenarioFromToday } from './api/productionMock';
 import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
@@ -21,6 +22,7 @@ import { MOCK_RESUME_SEEDS } from './api/resumeMockSeed';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS } from './api/teleprompterMock';
 import { scenarioFromParams } from './components/devtools/mockStates';
 import { ThemeProvider } from './theme/ThemeContext';
+import { inSiteWindow, startSiteWindow } from './components/layout/siteWindow';
 import { LiveCommandRouter } from './input/LiveCommandRouter';
 import { createKeyboardSource } from './input/KeyboardSource';
 import { combineSources, midiSource } from './input/MidiSource';
@@ -30,7 +32,10 @@ import './styles.css';
 
 // docs/architecture/studio-shell-and-registries.md: the router's one `source` slot carries KeyboardSource, MidiSource and HidSource. Built once, here, so
 // `router.tsx` never needs to know MIDI or HID exist.
-const commandInputSource = combineSources(createKeyboardSource(), midiSource, hidSource);
+// Inside the public site's demo window (a frame) the browser refuses MIDI and HID access and logs the refusal, so the frame listens to the keyboard
+// only; a pedal still works in the demo opened in a tab of its own.
+const commandInputSource =
+  import.meta.env.VITE_SITE === '1' && inSiteWindow() ? createKeyboardSource() : combineSources(createKeyboardSource(), midiSource, hidSource);
 
 // Mock mode runs the complete UI in a browser without the desktop host.
 //
@@ -73,7 +78,10 @@ const mockDawNotDetected = mockParams.has('mockDawNotDetected');
 // `?mockDawExperimentalOn=1` turns every Experimental DAW capability on (the old `DAW.experimental_reaper_actions`
 // setting's own effect), so a `CapabilityGate('item_gain')` control's live,
 // clickable state can be seen without a host - it still carries the "Experimental" badge.
-const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn');
+// The public site (`vite build --mode site`, .env.site) also boots with Experimental REAPER actions on and shows the "Simulated DAW" panel, so a
+// visitor's Show in REAPER, markers, pickups and recording all get an answer from the mock DAW and the panel shows what they did.
+const siteDemo = import.meta.env.VITE_SITE === '1';
+const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn') || siteDemo;
 // `?mockDaw=Audacity` boots the app talking to Audacity instead of REAPER: Proof's finding detail
 // leaves out REAPER's take management (Go to/Loop/Add marker, take review, take comparison), which has no
 // Audacity analog, while everything else about a finding works the same.
@@ -644,8 +652,13 @@ const mockInitial = {
     mockDawRecording ? { transport: { playing: true, recording: true, position: 12 } } : undefined,
   ),
 };
-const api = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
-if (api === wailsClient) enableUiLog();
+const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
+if (hostApi === wailsClient) enableUiLog();
+const simulatedDaw = siteDemo && hostApi !== wailsClient ? simulateDaw(hostApi) : undefined;
+const api = simulatedDaw?.api ?? hostApi;
+
+// Inside the public site's demo window (`?embed=1`), the page around the frame owns the theme, the Play animations switch and the title bar.
+if (siteDemo && inSiteWindow()) startSiteWindow();
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -665,4 +678,10 @@ createRoot(document.getElementById('root')!).render(
 // shipped build holds neither the panel nor its sentence.
 if (import.meta.env.VITE_USE_MOCK_API === '1' && mockParams.get('mockPanel') === '1') {
   void import('./components/devtools/MockStatesPanel').then(({ mountMockStatesPanel }) => mountMockStatesPanel());
+}
+
+// The site build's "Simulated DAW" badge. Only the site build reaches the dynamic import, so the shipped build holds neither the panel nor its text.
+if (simulatedDaw) {
+  const sim = simulatedDaw;
+  void import('./components/devtools/SimulatedDawPanel').then(({ mountSimulatedDawPanel }) => mountSimulatedDawPanel(sim, () => window.__NARRATION_MOCK_DAW__));
 }

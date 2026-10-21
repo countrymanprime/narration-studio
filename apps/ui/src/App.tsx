@@ -1,6 +1,6 @@
 import { logUi } from './api/uiLog';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
 import { useApi } from './api/ApiContext';
 import { AppShell, isActivePath, shellPages } from './components/layout/AppShell';
@@ -101,6 +101,13 @@ const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not
 // dialogs claim the scope generically.
 const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'));
 
+// The public site (`vite build --mode site`, .env.site) is a static folder that must open from any sub-path and from a sandboxed frame, where
+// the server cannot rewrite `/proof` to index.html: it routes by the address hash and uses relative asset URLs. The popGuard below reads
+// the pathname, so it reads the hash route there.
+const HASH_ROUTER = import.meta.env.VITE_ROUTER === 'hash';
+const Router = HASH_ROUTER ? HashRouter : BrowserRouter;
+const routePath = (): string => (HASH_ROUTER ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
+
 // A `popstate` the app did not start (the keyboard's or the system's Back) from dirty Settings is stopped before the router sees it: once
 // the route changed, Settings would unmount and its edits be gone before any prompt. History is put back where it was and the same
 // "Unsaved settings" prompt asks. The listener is added when this module loads, ahead of the router's own, which React Router adds
@@ -122,7 +129,7 @@ if (typeof window !== 'undefined') {
       return;
     }
     const next = historyIdx();
-    if (!popGuard.ask || popGuard.isOwnPop() || !popGuard.dirty || popGuard.pathname !== '/settings' || window.location.pathname.endsWith('/settings')) {
+    if (!popGuard.ask || popGuard.isOwnPop() || !popGuard.dirty || popGuard.pathname !== '/settings' || routePath().endsWith('/settings')) {
       popGuard.idx = next;
       return;
     }
@@ -141,7 +148,7 @@ export function App({ journal }: { journal?: Journal } = {}) {
   // nothing, so every page renders blank apart from the app shell (found by loading the built demo
   // and reading the console: "No routes matched location ...").
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <Router {...(HASH_ROUTER ? {} : { basename: import.meta.env.BASE_URL })}>
       {/* The journal and the overlay host are mounted once, here: a page asks the overlay for a confirm, a dialog or a toast by calling the service. */}
       <StudioProvider journal={journal}>
         {/* Positioned, so the host's visually hidden announcer lays out against the app and not the document. */}
@@ -151,7 +158,7 @@ export function App({ journal }: { journal?: Journal } = {}) {
           </OverlayProvider>
         </div>
       </StudioProvider>
-    </BrowserRouter>
+    </Router>
   );
 }
 

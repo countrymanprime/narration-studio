@@ -15,6 +15,8 @@
       // node:test files. None of them is imported, so each is an entry.
       "entry": ["scripts/**/*.mjs"],
       "project": ["scripts/**"],
+      // Browser scripts of the public site: scripts/site/*.mjs read them with readFileSync and inline them into the pages.
+      "ignore": ["scripts/site/docs/docs.js", "scripts/site/common/shell.js"],
       "ignoreDependencies": [
         // Loaded by `nx release version` (nx.json "release"), not imported anywhere.
         "@nx/js"

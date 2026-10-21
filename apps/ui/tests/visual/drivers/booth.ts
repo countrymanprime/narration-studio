@@ -172,14 +172,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.keyboard.press('r');
     await page.getByRole('alertdialog', { name: /^Roll again from ¶ \d+\?$/ }).waitFor();
   },
-  // The replay moves the reading position; the clock is run on six seconds and held so every viewport shows the same place.
+  // The replay moves the reading position (a narrator's pace, 150 words a minute); the clock is run on thirty seconds and held so every viewport shows the same place.
   following: async (page) => {
     await readyToRecord(page);
     await page.clock.install({ time: REC_START });
     await page.clock.pauseAt(REC_START + 1_000);
     await record(page).click();
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
-    await page.clock.runFor(6_000);
+    await page.clock.runFor(30_000);
     await page.getByText(/^¶ [2-9] of 24/).waitFor();
     if (await page.locator('#blisten-why').count()) throw new Error('the footer says the text cannot follow during a take that follows');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());

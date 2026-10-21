@@ -13,7 +13,7 @@ export type NavCounts = { proof?: number; pickups?: number; master?: number };
 
 /**
  * What waits on each page, read from the host: the notes still open (Proof's summary, through the one `proofProgress` selector: not cleared, which is more than unreviewed) and the open lines of the Pickups page's list (`openPickups`, the same count Production and Schedule use) and the chapters whose measured file fails a check (the per-chapter verdict the Production pipeline's QC cell reads: `masterByChapter`; a chapter with no measured file is not counted). It reads again on
- * every page move, so a decision made on a page shows on the rail as the narrator leaves it. It only reads the list; it never asks the DAW
+ * every page move and when Proof or Pickups announce a change, so a decision shows on the rail at once. It only reads the list; it never asks the DAW
  * to count. With no manuscript it reads nothing and gives no count.
  */
 export function useNavCounts(pathname: string, hasManuscript = true): NavCounts {
@@ -29,10 +29,12 @@ export function useNavCounts(pathname: string, hasManuscript = true): NavCounts 
     let active = true;
     const set = (patch: NavCounts) => active && setCounts((previous) => ({ ...previous, ...patch }));
     const clear = (key: keyof NavCounts) => () => set({ [key]: undefined });
-    api
-      .findingsSummary()
-      .then((summary) => set({ proof: proofProgress(summary, 0).open }))
-      .catch(clear('proof'));
+    const readProof = () =>
+      api
+        .findingsSummary()
+        .then((summary) => set({ proof: proofProgress(summary, 0).open }))
+        .catch(clear('proof'));
+    void readProof();
     const readPickups = () =>
       api
         .pickupsList()
@@ -46,7 +48,11 @@ export function useNavCounts(pathname: string, hasManuscript = true): NavCounts 
       })
       .catch(clear('master'));
     const unsubscribe = api.subscribePickups(() => void readPickups());
-    const unlisten = onPickupListChanged(() => void readPickups());
+    // A decision saved on Proof announces too, so the rail's two badges follow it without a page move.
+    const unlisten = onPickupListChanged(() => {
+      void readProof();
+      void readPickups();
+    });
     return () => {
       active = false;
       unsubscribe();

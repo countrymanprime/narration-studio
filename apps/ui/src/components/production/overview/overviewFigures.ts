@@ -94,7 +94,8 @@ export function kpiTiles({ k, wph, recordedSeconds, due, openPickups, pickupMinu
           tip: 'The delivery date, and what the pace says about reaching it',
           tone: TONE_TILE[tone],
         }
-      : { key: 'due', target: 'schedule', label: 'Due', value: 'Set a due date', hint: 'on the Schedule', tip: 'No delivery date is set yet', tone: 'neutral' };
+      : // A short value, as every other tile has: a phrase in the 30 px value font wraps to two lines in a tile of the six-wide row.
+        { key: 'due', target: 'schedule', label: 'Due', value: 'Not set', hint: 'Set it on the Schedule', tip: 'No delivery date is set yet', tone: 'neutral' };
   return [
     {
       key: 'finished',

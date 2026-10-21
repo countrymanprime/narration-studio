@@ -78,6 +78,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/settings/controls/CreditsBody.tsx#1':
     'A template that cannot be previewed is shown as unknown in the credits summary; Edit credits opens the editor, which shows the real error.',
   'src/motion.ts#1':
+    "Saving the demo's Play animations switch to browser storage: when storage is unavailable the switch still holds for this window (playThisWindow), which is all a per-window setting promises.",
+  'src/motion.ts#2':
     'Saving the motion choice to browser storage: when storage is unavailable the choice still holds for this window, which is all a per-window setting promises.',
   'src/api/uiLog.ts#1':
     'The trace line is best effort: a failed write of a log line must never become an error the narrator sees or the client reports again (it would loop).',

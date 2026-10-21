@@ -14,6 +14,8 @@
     "check:fast": "node scripts/quality.mjs staged",
     "eval:skills": "node scripts/ci/skill-evals.mjs",
     "knip": "knip",
+    "site:build": "node scripts/site/build-demo-site.mjs",
+    "site:serve": "node scripts/site/serve.mjs dist-site",
     "lint:md": "node scripts/ci/lint-markdown-changed.mjs",
     "lint:md:fix": "node scripts/ci/lint-markdown-changed.mjs --fix",
     "fix:staged": "lint-staged",
@@ -33,6 +35,7 @@
     "jsdom": "^30.1.2",
     "knip": "^6.41.0",
     "lint-staged": "^17.6.0",
+    "markdown-it": "15.0.1",
     "markdownlint-cli2": "0.23.3",
     "mermaid": "^12.1.0",
     "nx": "^23.3.0"

@@ -22,7 +22,8 @@
 }
 
 /* Motion (docs/design/motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by these
-   tokens. `motion-ok:` applies only when Windows has not asked for reduced motion and <html> has no data-motion="reduce";
+   tokens. `motion-ok:` applies only when Windows has not asked for reduced motion and <html> has no data-motion="reduce", or when
+   <html data-motion="play"> is set: the public demo's "Play animations" switch (DemoBanner), which nothing else sets;
    `motion-safe:` reads the media query alone, so `src/motion.test.ts` fails on it. The motion rules select `html`, not `:root`:
    paletteContrast.test.ts reads every `:root` rule as a colour theme. */
 @custom-variant motion-ok {
@@ -31,12 +32,17 @@
       @slot;
     }
   }
+  &:where(html[data-motion='play'] *) {
+    @slot;
+  }
 }
 /* The other side of `motion-ok:`: Windows asked for reduced motion, or <html data-motion="reduce"> is set. A one-shot
    highlight that fades under `motion-ok:` shows here as a still tint for as long as its flag is on (changeHighlight.ts). */
 @custom-variant motion-still {
   @media (prefers-reduced-motion: reduce) {
-    @slot;
+    &:where(html:not([data-motion='play']) *) {
+      @slot;
+    }
   }
   &:where(html[data-motion='reduce'] *) {
     @slot;
@@ -61,7 +67,7 @@ html {
 }
 /* Under reduced motion the tokens are zero too, for anything that reads them outside a `motion-ok:` utility. */
 @media (prefers-reduced-motion: reduce) {
-  html {
+  html:not([data-motion='play']) {
     --motion-fast: 0ms;
     --motion-base: 0ms;
     --motion-slow: 0ms;
