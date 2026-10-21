@@ -384,6 +384,18 @@ html[data-motion='reduce'] {
     color: var(--text-muted);
     opacity: 1;
   }
+  /* Scroll bars are thin and drawn in the theme's colours, everywhere. A vertical scroll box keeps room for its bar (stable gutter), so
+     its content, a sticky header or a padded edge is never under the bar. A surface that hides its bar on purpose (.scroll-chrome-hidden,
+     .guide-list-scroll below) says so with a class, which wins over this. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .overflow-y-auto,
+  .overflow-auto,
+  .overflow-y-scroll {
+    scrollbar-gutter: stable;
+  }
 }
 /* A toast arrives the way a tooltip does: it fades in and rises by --motion-shift (Toast.tsx, `motion-ok:` only). */
 @keyframes toast-in {
