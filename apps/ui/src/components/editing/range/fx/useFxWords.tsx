@@ -16,6 +16,8 @@ import { registerWordMenuSection } from '../../menu/wordMenuRegistry';
 import { summarize, type Range, type SelSummary } from '../../model';
 import { useEditingPage } from '../../script/EditingPageState';
 import { docCutsOf, snapEnd, type RangeLocator } from '../common/locate';
+import { spanForKeys } from '../common/spanRequest';
+import type { Span } from '../../ribbon/rangeMath';
 import { BUILT_IN, planRange, type RangePlan } from '../common/rangePlan';
 import { AddFxButton } from './FxButtons';
 import { FxDialog } from './FxDialog';
@@ -71,7 +73,7 @@ const NO_SELECTION = 'Select some words first.';
  * effects (`FxChainsPort`) and opens the same question; nothing reaches the DAW until it is answered. The chains are never named here.
  */
 export function useFxWords({ journal, chapterId, chapterName, effects, cuts, locator, onEffects, cap, chains }: FxWordsOptions): FxWords {
-  const { doc, selected } = useEditingPage();
+  const { doc, selected, state } = useEditingPage();
   const daw = usePort('daw');
   const log = usePort('editWordFx');
   const alignment = usePort('alignment');
@@ -128,9 +130,11 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
   const refusalOf = useCallback((summary: SelSummary): string => planOf(summary).refusal || (list ? '' : listWhy), [planOf, list, listWhy]);
 
   const run = useCallback(
-    async (range: Range, chain: { id: string; name: string }, source: string, needsOver: boolean, confirmedOver: boolean) => {
+    async (range: Range, chain: { id: string; name: string }, source: string, needsOver: boolean, confirmedOver: boolean, span?: Span) => {
       if (!plan || plan.kind === 'refused') return;
-      const result = await journal.act(applyFxCommand({ daw, log, onEffects }, plan, { chapterId, range, chain, source, locator, needsOver, confirmedOver }));
+      const result = await journal.act(
+        applyFxCommand({ daw, log, onEffects }, plan, { chapterId, range, chain, source, locator, needsOver, confirmedOver, ...(span ? { span } : {}) }),
+      );
       if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
       const { id, value } = result.value;
       overlay.toastUndo(value.message, () => journal.undo(id), { entry: id });
@@ -173,6 +177,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
   const ask = useCallback(
     (keys: readonly string[], chainId?: string) => {
       if (!keys.length) return overlay.toast(NO_SELECTION);
+      const span = spanForKeys(state.span, keys, selected);
       const sum = summarize(doc, [...keys], docCuts, (t) => t);
       const why = refusalOf(sum);
       if (why) return overlay.toast(why, { tone: 'error' });
@@ -193,6 +198,7 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
             chainId={chainId}
             chapterName={chapterName}
             locator={locator}
+            span={span}
             snap={snap}
             overOf={(summary) => planOf(summary).over}
             compareReason={compareReason}
@@ -201,13 +207,13 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
             onConfirm={(summary, chain, over) => {
               close();
               const range = summary.ranges[0];
-              if (range) void run(range, chain, list.source, over !== null, over !== null);
+              if (range) void run(range, chain, list.source, over !== null, over !== null, span);
             }}
           />
         ),
       });
     },
-    [doc, docCuts, refusalOf, plan, list, alignment, chapterId, chapterName, locator, planOf, run, compareReason, compare],
+    [doc, docCuts, refusalOf, plan, list, alignment, chapterId, chapterName, locator, planOf, run, compareReason, compare, state.span, selected],
   );
 
   const remove = useCallback(

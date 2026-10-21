@@ -1,6 +1,7 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
-import type { ChapterDoc } from '../model';
+import type { TimeWindow } from '../../proof/frame/windowMath';
+import type { ChapterDoc, DocItem } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
 import { reducedMotion } from '../../../motion';
 import { drawRibbon, readRibbonColors, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
@@ -9,6 +10,11 @@ import { peaksWindowAll } from './peaksWindow';
 import { barLayout } from './ribbonBars';
 import { activePid, ribbonLayout, type RibbonLayout } from './ribbonLayout';
 import { pickEntries, useRibbonPeaks } from './useRibbonPeaks';
+import { RangeNotes, RangeOverlay } from './RangeOverlay';
+import { spanOfKeys, wordAtTime, wordsCovered, type Span } from './rangeMath';
+import { PanStrip, ZoomRow } from './RibbonControls';
+import { useRangeInteraction } from './useRangeInteraction';
+import { useRibbonView } from './useRibbonView';
 
 const HEIGHT = 56;
 /** Width used where nothing can measure the canvas (a test environment without ResizeObserver). */
@@ -16,12 +22,29 @@ const FALLBACK_WIDTH = 640;
 
 const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
 
-/** The ribbon for one line: the audio of its window with word ticks, tints, the selection band and the playhead. With no peaks it draws nothing and says why. */
+/** A peak bar wider than this many pixels is a block of audio, not a detail of it, and the waveform says so. */
+const COARSE_PX = 10;
+
+/** What makes the waveform a place to choose a range: the line's words, the range now, and what to do when it changes or is tapped. Without it the ribbon only shows. */
+export interface RibbonRange {
+  words: readonly DocItem[];
+  range: Span | null;
+  onRange: (span: Span, phase: 'drag' | 'commit') => void;
+  /** A tap on the waveform (no drag) at a time on the document's clock. */
+  onTap: (t: number) => void;
+}
+
+/**
+ * The ribbon for one line: the audio of its window with word ticks, tints, the selection band and the playhead. With no peaks it draws nothing and says why.
+ * Given `choose` it is also the place to zoom (down to one second) and pan, and to draw a range with a handle on each edge: `initialView` is the part it opens on.
+ */
 export function RibbonView({
   layout,
   peaks,
   reason,
   head,
+  choose,
+  initialView,
 }: {
   layout: RibbonLayout;
   /** The audio the line covers: one entry, or every item it runs across. */
@@ -29,6 +52,9 @@ export function RibbonView({
   reason?: string;
   /** The header row above the waveform: the active take's name (null for a line heard in the recording) and the span it draws. Omitted, no row. */
   head?: { take: string | null };
+  choose?: RibbonRange;
+  /** The part of the line to open on, seconds from its start; the whole line when left out. */
+  initialView?: TimeWindow;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,6 +62,26 @@ export function RibbonView({
   // Bumped when the root's `data-theme` or `data-motion` changes, or the system's motion setting does, so the draw re-reads the tokens and the motion choice.
   const [theme, setTheme] = useState(0);
   const descId = useId();
+  const [surface, setSurface] = useState<HTMLDivElement | null>(null);
+  const total = layout.t1 - layout.t0;
+  const ribbon = useRibbonView(total, layout.playhead == null ? null : layout.playhead - layout.t0, surface, initialView);
+  const view = choose ? ribbon.view : { start: 0, len: total };
+  // What is drawn is the view; the layout's words, tints and cuts are on the document's clock and need no change.
+  const shownLayout = useMemo(
+    () => (choose ? { ...layout, t0: layout.t0 + view.start, t1: layout.t0 + view.start + view.len } : layout),
+    [choose, layout, view.start, view.len],
+  );
+  const bounds = useMemo(() => ({ start: layout.t0, end: layout.t1 }), [layout.t0, layout.t1]);
+  const interaction = useRangeInteraction({
+    surface,
+    t0: layout.t0,
+    view: ribbon,
+    bounds,
+    words: choose?.words ?? [],
+    range: choose?.range ?? null,
+    onRange: choose?.onRange ?? (() => {}),
+    onTap: choose?.onTap ?? (() => {}),
+  });
 
   useEffect(() => {
     const box = boxRef.current;
@@ -64,13 +110,15 @@ export function RibbonView({
   const columns = useMemo(() => {
     if (!peaks || width <= 0) return null;
     // One column for each bar, so the window is reduced once per span and width, not once per frame.
-    return peaksWindowAll(Array.isArray(peaks) ? peaks : [peaks as WorkspacePeaks], layout.t0, layout.t1, barLayout(width).count);
-  }, [peaks, layout.t0, layout.t1, width]);
+    return peaksWindowAll(Array.isArray(peaks) ? peaks : [peaks as WorkspacePeaks], shownLayout.t0, shownLayout.t1, barLayout(width).count);
+  }, [peaks, shownLayout.t0, shownLayout.t1, width]);
   const empty = peaks ? columns === null && width > 0 : true;
+  // The host's resolution, for the note on what a bar is at this zoom.
+  const bps = (Array.isArray(peaks) ? peaks[0] : peaks)?.bucketsPerSecond;
 
   // What the frame loop reads, so it keeps running while the host's playhead and the layout change under it.
-  const latest = useRef({ layout, columns, width });
-  latest.current = { layout, columns, width };
+  const latest = useRef({ layout: shownLayout, columns, width });
+  latest.current = { layout: shownLayout, columns, width };
   const colors = useRef<RibbonColors | null>(null);
   // When the host last moved the playhead, for the loop to move it on from.
   const headStamp = useRef(0);
@@ -94,7 +142,7 @@ export function RibbonView({
   useEffect(() => {
     colors.current = null;
     paint(playing && !reducedMotion() ? frameNow() : STILL_FRAME);
-  }, [columns, layout, width, theme, playing]);
+  }, [columns, shownLayout, width, theme, playing]);
 
   // One shared frame loop, only while this line is playing and motion is wanted; stopping or reducing motion draws the still look once.
   useEffect(() => {
@@ -117,19 +165,39 @@ export function RibbonView({
           </span>
         </div>
       ) : null}
+      {choose && !empty ? <ZoomRow t0={layout.t0} ribbon={ribbon} /> : null}
       {empty ? (
         <p className="m-0 px-3 py-2 text-xs text-[var(--text-muted)]" style={{ minHeight: HEIGHT }}>
           No audio to draw. {why}
         </p>
       ) : (
-        <canvas
-          ref={canvasRef}
-          role="img"
-          aria-label="Audio of the active line"
-          aria-describedby={descId}
-          style={{ width: '100%', height: HEIGHT, display: 'block' }}
-        />
+        <div
+          ref={setSurface}
+          {...(choose ? { 'data-ribbon-surface': '', ...interaction.surface } : {})}
+          className={`relative ${choose ? 'cursor-crosshair touch-none select-none' : ''}`}
+        >
+          <canvas
+            ref={canvasRef}
+            role="img"
+            aria-label="Audio of the active line"
+            aria-describedby={descId}
+            style={{ width: '100%', height: HEIGHT, display: 'block' }}
+          />
+          {choose ? <RangeOverlay interaction={interaction} t0={layout.t0} viewStart={view.start} viewLen={view.len} bounds={bounds} /> : null}
+        </div>
       )}
+      {choose && !empty && ribbon.zoomed ? <PanStrip t0={layout.t0} ribbon={ribbon} /> : null}
+      {choose && bps && !empty && width / (view.len * bps) >= COARSE_PX ? (
+        <p data-peaks-detail className="m-0 px-3 pb-1 text-xs text-[var(--text-muted)]">
+          Each bar is {Math.round(1000 / bps)} ms of audio at this zoom: the host keeps {bps} peaks a second.
+        </p>
+      ) : null}
+      {choose && !empty ? <RangeNotes shown={interaction.shown} covered={interaction.covered} words={choose.words} /> : null}
+      {choose ? (
+        <p role="status" className="sr-only">
+          {interaction.announcement}
+        </p>
+      ) : null}
       <p id={descId} className="sr-only">
         {layout.description}
       </p>
@@ -162,9 +230,38 @@ function ActiveRibbon({
   take: string | null;
   item: number | undefined;
 }) {
+  const { state, dispatch } = useEditingPage();
   const peaks = useRibbonPeaks(chapterId);
   const layout = useMemo(() => ribbonLayout(doc, pid, selected, playT), [doc, pid, selected, playT]);
+  const words = useMemo(() => doc.paras.find((p) => p.p.id === pid)?.items ?? [], [doc, pid]);
+  // The range is what the narrator drew, else the span of the words that are selected.
+  const range = useMemo(() => state.span ?? spanOfKeys(words, selected), [state.span, words, selected]);
+  // While a drag runs the page follows only when the words it covers change, so the script is not redrawn at every pixel.
+  const lastKeys = useRef('');
+  const onRange = useCallback(
+    (span: Span, phase: 'drag' | 'commit') => {
+      const { keys } = wordsCovered(words, span);
+      const anchor = keys[0] ?? null;
+      const head = keys[keys.length - 1] ?? null;
+      const id = `${anchor}|${head}`;
+      if (phase === 'drag') {
+        if (id === lastKeys.current) return;
+        lastKeys.current = id;
+      } else lastKeys.current = '';
+      dispatch({ type: 'selectSpan', span, anchor, head });
+    },
+    [words, dispatch],
+  );
+  // A tap puts the cursor on the word it lands on, and on no word lets the range go.
+  const onTap = useCallback(
+    (t: number) => {
+      const word = wordAtTime(words, t);
+      dispatch(word ? { type: 'place', key: word.key } : { type: 'dropRange' });
+    },
+    [words, dispatch],
+  );
+  const choose = useMemo(() => ({ words, range, onRange, onTap }), [words, range, onRange, onTap]);
   if (!layout) return null;
   const entry = pickEntries(peaks, layout.t0, layout.t1, item);
-  return <RibbonView layout={layout} head={{ take }} {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })} />;
+  return <RibbonView layout={layout} head={{ take }} choose={choose} {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })} />;
 }
