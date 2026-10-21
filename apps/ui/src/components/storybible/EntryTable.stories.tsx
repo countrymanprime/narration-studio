@@ -77,7 +77,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** A few entries: name, kind with its colour, and aliases. */
+/** A few entries: name and kind with its colour. */
 export const Entries: Story = { render: () => <Harness rows={FEW} /> };
 
 /** A press on a header sorts by it and announces it; a second press flips it. Enter opens the focused row. */

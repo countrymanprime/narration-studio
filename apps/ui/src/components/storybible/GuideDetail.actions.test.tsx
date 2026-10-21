@@ -252,7 +252,7 @@ describe('a-header-sorts-the-table-and-the-choice-is-kept', () => {
   it('survives clicking headers faster than the table can draw', async () => {
     renderGuide();
     await screen.findAllByText('Alice');
-    for (const name of ['Kind', 'Aliases', 'Name', 'Name', 'Kind', 'Aliases']) sortBy(name);
+    for (const name of ['Kind', 'Name', 'Name', 'Kind', 'Name', 'Kind']) sortBy(name);
     expect(entryRows().length).toBeGreaterThan(3);
     expect(
       within(entryTable())
@@ -262,15 +262,12 @@ describe('a-header-sorts-the-table-and-the-choice-is-kept', () => {
   });
 });
 
-describe('each-row-shows-its-kind-and-its-aliases', () => {
-  it('a row has the kind and the aliases in their own cells', async () => {
+describe('each-row-shows-its-name-and-its-kind', () => {
+  it('a row has the name and the kind in their own cells, and no alias or count', async () => {
     renderGuide();
     await screen.findAllByText('Alice');
     const alice = cellsOf(entryRows().find((row) => rowName(row) === 'Alice')!).map((cell) => cell.textContent);
-    expect(alice[1]).toBe('Character');
-    const rabbit = cellsOf(entryRows().find((row) => rowName(row) === 'White Rabbit')!)[2]!.textContent!;
-    expect(rabbit.split(', ').length).toBeGreaterThan(0);
-    expect(rabbit).not.toBe('');
+    expect(alice).toEqual(['Alice', 'Character']);
   });
 });
 

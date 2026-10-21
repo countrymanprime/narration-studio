@@ -39,7 +39,7 @@ export type EntryTableProps = {
   empty: ReactNode;
 };
 
-const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[7.5rem]', aliases: 'w-[32%]' };
+const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[45%]' };
 
 /**
  * The Story Bible's entries as a data table: a header that sorts, one row per entry, one tab stop moved by the arrow keys, and only the rows in view
@@ -220,11 +220,6 @@ function EntryRow({
         <span className="flex items-center gap-1.5">
           <Swatch colour={kindSwatch(types, entry.category)} />
           <span className="truncate">{kind}</span>
-        </span>
-      </TableCell>
-      <TableCell muted className="overflow-hidden">
-        <span dir="auto" className="block truncate">
-          {entry.aliases.map((alias) => alias.text).join(', ')}
         </span>
       </TableCell>
     </TableRow>

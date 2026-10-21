@@ -17,7 +17,6 @@ export type EntrySort = readonly SortKey[];
 export const COLUMNS: readonly { key: ColumnKey; label: string; numeric: boolean }[] = [
   { key: 'name', label: 'Name', numeric: false },
   { key: 'kind', label: 'Kind', numeric: false },
-  { key: 'aliases', label: 'Aliases', numeric: false },
 ];
 
 /** The types a fresh Story Bible starts with, in their order: what the kind sort uses until the host's list is read. */

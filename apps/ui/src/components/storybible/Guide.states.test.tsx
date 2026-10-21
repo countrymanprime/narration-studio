@@ -12,7 +12,7 @@ import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
 import type { GuideEntity } from '../../types';
-import { cellsOf, entryRows, entryTable, rowName, rowNames } from './entryTableTestKit';
+import { entryRows, entryTable, rowName, rowNames } from './entryTableTestKit';
 import { Guide } from './Guide';
 
 afterEach(cleanup);
@@ -121,7 +121,6 @@ describe('the list at its edges', () => {
     mount(api);
     await vi.waitFor(() => expect(rowNames()).toEqual(['Solo']));
     expect(rows()).toHaveLength(1);
-    expect(cellsOf(rows()[0]!)[2]!.textContent).toBe('');
   });
 
   it('draws long, right-to-left, emoji and duplicate names without losing a row', async () => {

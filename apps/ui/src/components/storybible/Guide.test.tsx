@@ -74,7 +74,7 @@ describe('the-list-is-a-kind-menu-over-a-table-of-entries', () => {
     expect(screen.queryByText('Series')).toBeNull();
 
     const alice = rows().find((row) => rowName(row) === 'Alice')!;
-    expect(cellsOf(alice).map((cell) => cell.textContent)).toEqual(['Alice', 'Character', '']);
+    expect(cellsOf(alice).map((cell) => cell.textContent)).toEqual(['Alice', 'Character']);
 
     chooseKind('Place');
     const shown = rows();
@@ -120,6 +120,5 @@ describe('the-type-colour-tints-the-rows', () => {
     await waitFor(() => expect(swatchOf(row)).toBe('var(--warn)'));
     // The review state is the row's badge, not the type word.
     expect(cellsOf(row)[1]!.textContent).toBe('Type not set');
-    expect(cellsOf(row)[2]!.textContent).toBe('');
   });
 });

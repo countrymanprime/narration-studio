@@ -57,11 +57,11 @@ function setup(rows: GuideEntity[], over: Partial<EntryTableProps> = {}) {
 const bodyRows = () => screen.getAllByRole('row').slice(1);
 
 describe('the-headers-sort-and-announce-the-sort', () => {
-  it('names three columns and marks the sorted one, the others none', () => {
+  it('names two columns and marks the sorted one, the others none', () => {
     setup([entry('a', 'Alice')]);
     const headers = screen.getAllByRole('columnheader');
-    expect(headers.map((header) => header.textContent?.replace(/\s*[↑↓]$/, '').trim())).toEqual(['Name', 'Kind', 'Aliases']);
-    expect(headers.map((header) => header.getAttribute('aria-sort'))).toEqual(['ascending', 'none', 'none']);
+    expect(headers.map((header) => header.textContent?.replace(/\s*[↑↓]$/, '').trim())).toEqual(['Name', 'Kind']);
+    expect(headers.map((header) => header.getAttribute('aria-sort'))).toEqual(['ascending', 'none']);
   });
   it('announces descending and moves with the sort it is given', () => {
     setup([entry('a', 'Alice')], {
@@ -76,22 +76,22 @@ describe('the-headers-sort-and-announce-the-sort', () => {
   it('reports the column pressed, from the mouse and the keyboard', async () => {
     const { props } = setup([entry('a', 'Alice')]);
     await userEvent.click(screen.getByRole('button', { name: 'Kind' }));
-    screen.getByRole('button', { name: 'Aliases' }).focus();
+    screen.getByRole('button', { name: 'Name' }).focus();
     await userEvent.keyboard('{Enter}');
     expect(props.onSort).toHaveBeenNthCalledWith(1, 'kind');
-    expect(props.onSort).toHaveBeenNthCalledWith(2, 'aliases');
+    expect(props.onSort).toHaveBeenNthCalledWith(2, 'name');
   });
 });
 
 describe('a-row-per-entry', () => {
-  it('shows the name, kind and aliases of each entry', () => {
+  it('shows the name and kind of each entry', () => {
     setup([
       entry('h', 'Hatter', {
         aliases: [{ text: 'Mad Hatter' }, { text: 'Tarrant' }] as GuideEntity['aliases'],
       }),
     ]);
     const cells = within(bodyRows()[0]!).getAllByRole('cell');
-    expect(cells.map((cell) => cell.textContent)).toEqual(['Hatter', 'Character', 'Mad Hatter, Tarrant']);
+    expect(cells.map((cell) => cell.textContent)).toEqual(['Hatter', 'Character']);
   });
   it('draws the type colour beside the kind, amber for an entry whose kind is not set, and says so', () => {
     setup([entry('a', 'Alice'), entry('n', 'Nobody', { category: 'Needs Review' })]);
