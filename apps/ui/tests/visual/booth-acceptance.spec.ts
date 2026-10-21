@@ -1,6 +1,7 @@
 // docs/operations/booth-acceptance.md, row by row: each test is named for its row and drives that step in the mock build, so the status column of
 // the document is a run of this file and not a memory. Rows 40 to 42 need a real REAPER, a microphone and a pedal: they are listed, not driven.
 import { expect, test, type Page } from '@playwright/test';
+import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { chooseMicrophone, chooseTheme, goToPage } from './drivers/shared';
 
@@ -100,6 +101,7 @@ test('row 8: with no microphone listed, the Booth says the text cannot follow an
 
 test('row 9: Space again stops the take, and This session counts it', async ({ page }) => {
   await take(page);
+  await pastStartGuard(page);
   await page.keyboard.press('Space');
   await expect(record(page)).toBeVisible();
   await expect(
@@ -427,6 +429,7 @@ test('row 43: with the built-in recorder Space starts a take and Stop ends it, w
   await page.keyboard.press('Space');
   await expect(stop(page)).toBeVisible();
   await expect(page.getByText('REC', { exact: true })).toBeVisible();
+  await pastStartGuard(page);
   await stop(page).click();
   await expect(record(page)).toBeEnabled();
   await expect(page.getByText('REC', { exact: true })).toHaveCount(0);

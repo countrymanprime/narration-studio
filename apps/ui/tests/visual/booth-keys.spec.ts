@@ -3,6 +3,7 @@
 // opened it. The one key that does reach the take is a pedal's Space (owner ruling): with a menu or popover open it closes the popup and records or
 // stops, unless focus is in a field that takes typed text; a dialog or question keeps Space like every other key.
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
 
@@ -220,6 +221,7 @@ for (const overlay of OVERLAYS) {
         const reopened = await overlay.open(page);
         await focusSettled(page, reopened.popup);
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await pastStartGuard(page);
         await page.keyboard.press('Space');
         await expect(record(page)).toBeVisible();
         await expect(reopened.popup).toBeHidden();
@@ -260,6 +262,7 @@ test.describe('the pedal works after an overlay closes', () => {
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await pastStartGuard(page);
     await page.keyboard.press('Space');
     await expect(record(page)).toBeVisible();
     expect(await dawRecording(page)).toBe(false);
@@ -272,6 +275,7 @@ test.describe('the pedal works after an overlay closes', () => {
     await page.keyboard.press('Space');
     await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Levels' })).toHaveCount(0);
+    await pastStartGuard(page);
     await page.keyboard.press('Space');
     await expect(record(page)).toBeVisible();
   });
@@ -297,6 +301,7 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
       await page.keyboard.press('Space');
       await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
       await expect(popup).toBeHidden();
+      await pastStartGuard(page);
       await page.keyboard.press('Space');
       await expect(record(page)).toBeVisible();
     }
@@ -309,6 +314,7 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
     await page.locator('[data-word]').nth(40).click({ button: 'right' });
     const menu = page.getByRole('menu').last();
     await expect(menu).toBeVisible();
+    await pastStartGuard(page);
     await page.keyboard.press('Space');
     await expect(record(page)).toBeVisible();
     await expect(menu).toBeHidden();

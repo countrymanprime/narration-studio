@@ -26,6 +26,8 @@ export const deliveryStates: StateEntry[] = [
   {
     page: 'delivery',
     state: 'many-chapters',
+    // 5002 chapters: each resize lays the whole list out again, about 28 s a viewport, so the default 90 s for three left no margin on a CI runner.
+    timeoutFactor: 2,
     description:
       'Delivery for a 5002-chapter book (?mockBooth=many-chapters) - the first hundred chapters listed under "Before you build", the count above them for the whole book, and "Show the other 4902 chapters" below the list',
   },

@@ -11,7 +11,7 @@ import type { DawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
-import { POLL_MS, useRecordControl, forgetAppTake } from './useRecordControl';
+import { POLL_MS, useRecordControl, forgetAppTake, skipStartGuard } from './useRecordControl';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -153,6 +153,7 @@ async function run(actions: Action[]) {
         const wasRecording = before.recording;
         const refusedByGate = !wasRecording && before.disabled;
         const mustSucceed = wasRecording ? host.stop === 'ok' : host.start === 'ok';
+        skipStartGuard();
         await act(async () => {
           const first = result.current.toggle();
           if (step.t === 'doublePress') void result.current.toggle();

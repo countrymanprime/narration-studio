@@ -303,7 +303,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!ended || !reachedEnd.current || !latest.current.recording) return;
     reachedEnd.current = false;
     endOfChapter.current = true;
-    void recordToggle();
+    void recordToggle(undefined, { automatic: true });
   }, [session.active, recordToggle]);
 
   // Leaving. The question holds the take while it is open; Yes stops the recording the app started and the listening with it.
