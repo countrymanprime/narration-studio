@@ -509,7 +509,7 @@ function Fake:add_project_api(api)
     return fake.os_name or 'Win64'
   end
   function api.time_precise()
-    fake.clock = (fake.clock or 1000) + 1
+    fake.clock = (fake.clock or 1000) + (fake.clock_step or 1)
     return fake.clock
   end
   function api.ShowMessageBox(text, title, kind)

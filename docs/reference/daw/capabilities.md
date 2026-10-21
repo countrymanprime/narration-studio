@@ -161,6 +161,17 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Binding:** `DawPlace()` and `DawGoToChapter(chapterId, where, seconds)` (`apps/desktop/bindings_daw_place.go`).
 - **Checked:** harness (`track_select_test.lua`); the run in REAPER is pending with the owner.
 
+### `transport_sync`
+
+- **Intent:** let the Editing page and the engine's transport follow each other: a click on a word puts the engine's cursor there, Play in the page plays the engine from the same place (so the sound comes through the engine's output and level), Stop stops it, and a cursor or play head the narrator moves in the engine shows on the page ([the design](../../design/editing-daw-transport-sync.md)).
+- **Role:** `TransportSyncer`, synchronous, with an `OnPosition` callback. `SetCursor(seconds)` puts the cursor at a project time without seeking playback. `PlayFrom(seconds)` starts the transport there (a playing engine is seeked). `Stop()` stops it. `Watch(lease)` takes or renews a lease on the position stream, which the engine may shorten. Each answers the time the engine reports. `OnPosition(handler)` is told each streamed position: play state, play head and cursor, in project seconds.
+- **Result:** none adds an undo point or selects a track, and none touches a recording: each is refused with the engine's own sentence while it records. A time that is negative or not a number is refused before anything is sent. A lease that is not renewed runs out by itself, so a host that closed leaves no stream behind.
+- **REAPER:** `set_cursor` (`CURSOR_SET`), `play_from` (`TRANSPORT_PLAYING`), `stop_play` (`TRANSPORT_STOPPED`) and `watch_transport` (`TRANSPORT_WATCHING`, then `TRANSPORT` broadcasts), Experimental, in `narration_transport.lua`. The cursor is `SetEditCurPos(time, true, false)`; a stopped REAPER plays with `OnPlayButton` after the cursor is set, a playing one is seeked with `SetEditCurPos(time, true, true)`, a paused one is stopped first; `TRANSPORT` carries `GetPlayState`, `GetPlayPosition` and `GetCursorPosition`, at once on a change and about four times a second while playing. The stream is a lease of at most ten seconds ([the bridge](../../architecture/reaper-bridge.md#transport-sync-narration_transportlua)).
+- **Audacity 3.x:** Not yet available.
+- **Built-in recorder:** Unsupported: it has no project transport to follow.
+- **Binding:** `DawTransportSync(action, seconds)` and the `daw_position_changed` event (`apps/desktop/bindings_daw_transportsync.go`).
+- **Checked:** harness (`transport_sync_test.lua`). Not checked in REAPER: that `OnPlayButton` plays from the edit cursor, what `GetPlayPosition` reads while stopped and paused, and what Stop does to the cursor. The owner's pass is pending ([the design's checklist](../../design/editing-daw-transport-sync.md#what-only-a-person-in-reaper-can-check)).
+
 ### `record`
 
 - **Intent:** arm one track, start and stop recording on it, and learn when the narrator stops it in the engine.

@@ -4,6 +4,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { useRef, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
@@ -54,9 +56,12 @@ function Harness({ playlist = [SEGMENT], children }: { playlist?: PlaylistSegmen
 }
 const mount = (node: ReactNode = null, doc = base, playlist = [SEGMENT]) =>
   render(
-    <EditingPageProvider doc={doc}>
-      <Harness playlist={playlist}>{node}</Harness>
-    </EditingPageProvider>,
+    // The playback hook reads the DAW sync port; with no DAW sync asked for it does nothing.
+    <ApiProvider api={createMockApi()}>
+      <EditingPageProvider doc={doc}>
+        <Harness playlist={playlist}>{node}</Harness>
+      </EditingPageProvider>
+    </ApiProvider>,
   );
 const state = () => JSON.parse(screen.getByTestId('state').textContent ?? '{}') as { cursor: string | null; sel: unknown; playT: number | null };
 const dispatch = (a: Parameters<typeof page.dispatch>[0]) => act(() => page.dispatch(a));
