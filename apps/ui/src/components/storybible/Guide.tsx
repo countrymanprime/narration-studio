@@ -320,10 +320,10 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
           </div>
         </div>
         <div className="grid min-h-0 flex-1 gap-4 max-lg:h-auto lg:grid-cols-[minmax(16rem,30%)_minmax(0,1fr)] [&>*]:max-lg:min-h-96">
-          <section aria-label="Entries" className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden max-lg:max-h-[20rem]`}>
+          <section aria-label="Entries" className={`${PANEL_FRAME_CLASS} @container flex min-h-0 flex-col overflow-hidden max-lg:max-h-[20rem]`}>
             <div className="flex flex-col gap-2 border-b border-[var(--border)] p-4">
               <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Find in any column" />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 @xs:grid-cols-2">
                 <Select
                   label="Kind"
                   fullWidth
