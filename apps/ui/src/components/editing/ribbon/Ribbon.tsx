@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import type { TimeWindow } from '../../proof/frame/windowMath';
 import type { ChapterDoc, DocItem } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
 import { reducedMotion } from '../../../motion';
+import type { DocPeaks, ItemClocks } from './docClock';
 import { drawRibbon, readRibbonColors, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
 import { subscribeFrames } from './frameLoop';
 import { peakGain, peaksWindowAll } from './peaksWindow';
@@ -48,8 +48,8 @@ export function RibbonView({
   gain = 1,
 }: {
   layout: RibbonLayout;
-  /** The audio the line covers: one entry, or every item it runs across. */
-  peaks?: WorkspacePeaks | readonly WorkspacePeaks[];
+  /** The audio the line covers: every item it runs across, each on the document clock (the layout's clock). */
+  peaks?: readonly DocPeaks[];
   reason?: string;
   /** The header row above the waveform: the active take's name (null for a line heard in the recording) and the span it draws. Omitted, no row. */
   head?: { take: string | null };
@@ -113,11 +113,11 @@ export function RibbonView({
   const columns = useMemo(() => {
     if (!peaks || width <= 0) return null;
     // One column for each bar, so the window is reduced once per span and width, not once per frame.
-    return peaksWindowAll(Array.isArray(peaks) ? peaks : [peaks as WorkspacePeaks], shownLayout.t0, shownLayout.t1, barLayout(width).count);
+    return peaksWindowAll(peaks, shownLayout.t0, shownLayout.t1, barLayout(width).count);
   }, [peaks, shownLayout.t0, shownLayout.t1, width]);
   const empty = peaks ? columns === null && width > 0 : true;
   // The host's resolution, for the note on what a bar is at this zoom.
-  const bps = (Array.isArray(peaks) ? peaks[0] : peaks)?.bucketsPerSecond;
+  const bps = peaks?.[0]?.peaks.bucketsPerSecond;
 
   // What the frame loop reads, so it keeps running while the host's playhead and the layout change under it.
   const latest = useRef({ layout: shownLayout, columns, width, gain });
@@ -210,10 +210,23 @@ export function RibbonView({
 
 /** The ribbon under the active line: renders for the cursor's paragraph, else the selection head's, else the playing word's, and for no other. */
 /** `take` is the line's active take, named in the header; a line with none is heard in the recording. */
-export function Ribbon({ chapterId, pid, take = null, items }: { chapterId: string; pid: string; take?: string | null; items?: readonly number[] }) {
+export function Ribbon({
+  chapterId,
+  pid,
+  take = null,
+  items,
+  clocks,
+}: {
+  chapterId: string;
+  pid: string;
+  take?: string | null;
+  items?: readonly number[];
+  /** Where each item's source seconds sit on the document clock (`itemClocks`); the peaks are in source seconds. */
+  clocks: ItemClocks;
+}) {
   const { doc, state, selected } = useEditingPage();
   if (activePid(doc, state) !== pid) return null;
-  return <ActiveRibbon chapterId={chapterId} doc={doc} pid={pid} selected={selected} playT={state.playT} take={take} items={items} />;
+  return <ActiveRibbon chapterId={chapterId} doc={doc} pid={pid} selected={selected} playT={state.playT} take={take} items={items} clocks={clocks} />;
 }
 
 function ActiveRibbon({
@@ -224,6 +237,7 @@ function ActiveRibbon({
   playT,
   take,
   items,
+  clocks,
 }: {
   chapterId: string;
   doc: ChapterDoc;
@@ -232,6 +246,7 @@ function ActiveRibbon({
   playT: number | null;
   take: string | null;
   items: readonly number[] | undefined;
+  clocks: ItemClocks;
 }) {
   const { state, dispatch } = useEditingPage();
   const peaks = useRibbonPeaks(chapterId);
@@ -265,7 +280,7 @@ function ActiveRibbon({
   );
   const choose = useMemo(() => ({ words, range, onRange, onTap }), [words, range, onRange, onTap]);
   if (!layout) return null;
-  const entry = pickEntries(peaks, layout.t0, layout.t1, items);
+  const entry = pickEntries(peaks, clocks, layout.t0, layout.t1, items);
   return (
     <RibbonView
       layout={layout}

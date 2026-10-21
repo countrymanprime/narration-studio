@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sameClock } from '../ribbon/docClock';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import axe from 'axe-core';
 import { useEffect } from 'react';
@@ -63,7 +64,7 @@ function mount(p: LinePassage | null, place: Place = { key: 'p-1:1' }, extra: Pa
     <ApiProvider api={api}>
       <EditingPageProvider doc={doc}>
         <Seed place={place} />
-        <TimelineStrip passage={p} playingId={null} onPlay={onPlay} chapterId="5" {...extra} />
+        <TimelineStrip passage={p} playingId={null} onPlay={onPlay} chapterId="5" clocks={sameClock([0])} {...extra} />
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -112,6 +113,25 @@ describe('the strip follows the line', () => {
   });
 });
 
+// The peaks are in the file's seconds and the strip's axis is the document's: the strip puts each item's peaks on the axis by its clock.
+describe('the strip reads the peaks on the document clock', () => {
+  const at = (shift: number) => new Map([[0, [{ from: -Infinity, to: Infinity, shift }]]]);
+  it('draws the audio when the item sits under the line on the axis', async () => {
+    mount(three, { key: 'p-1:1' }, { clocks: at(0) });
+    await waitFor(() => expect(document.querySelector('[data-lane="audio"] canvas')).not.toBeNull());
+  });
+  it('says the line is outside the audio when the item, once shifted onto the axis, lies elsewhere', async () => {
+    // The entry covers 0 to 40 s of the file; at +100 s it is heard long after the line.
+    mount(three, { key: 'p-1:1' }, { clocks: at(100) });
+    await waitFor(() => expect(screen.getByText(/No audio to draw/)).toBeTruthy());
+    expect(document.querySelector('[data-lane="audio"] canvas')).toBeNull();
+  });
+  it('draws nothing for an item no word is heard on', async () => {
+    mount(three, { key: 'p-1:1' }, { clocks: new Map() });
+    await waitFor(() => expect(screen.getByText(/No audio to draw/)).toBeTruthy());
+  });
+});
+
 describe('the selection and the playhead', () => {
   it('mirrors the selection as a band on the active lane with its length', () => {
     mount(three, { select: ['p-1:1', 'p-1:3'] });
@@ -151,7 +171,7 @@ describe('dragging on the audio', () => {
         <EditingPageProvider doc={doc}>
           <Seed place={{ key: items[0].key }} />
           <Probe />
-          <TimelineStrip passage={null} playingId={null} onPlay={() => undefined} chapterId="5" />
+          <TimelineStrip passage={null} playingId={null} onPlay={() => undefined} chapterId="5" clocks={sameClock([0])} />
         </EditingPageProvider>
       </ApiProvider>,
     );

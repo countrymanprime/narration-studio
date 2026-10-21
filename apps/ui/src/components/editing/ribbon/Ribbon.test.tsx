@@ -9,6 +9,7 @@ import type { ChapterDoc } from '../model';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import { frameSubscribers } from './frameLoop';
+import { sameClock, shiftPeaks } from './docClock';
 import { Ribbon, RibbonView } from './Ribbon';
 import { ribbonLayout } from './ribbonLayout';
 
@@ -62,6 +63,9 @@ const peaks = (start: number, seconds: number): WorkspacePeaks => {
   return { startSeconds: start, bucketsPerSecond: 10, buckets: n, minMax: btoa(String.fromCharCode(...bytes)), sampleRate: 48000, channels: 1 };
 };
 
+/** The entry as the ribbon is given it: already on the document clock, which these fixtures share with the file. */
+const onDoc = (p: WorkspacePeaks) => [shiftPeaks(p, 0)];
+
 function Driver({ run }: { run: (d: ReturnType<typeof useEditingPage>['dispatch']) => void }) {
   const { dispatch } = useEditingPage();
   return (
@@ -75,7 +79,7 @@ function page(doc: ChapterDoc, api = createMockApi(), run?: (d: ReturnType<typeo
     <ApiProvider api={api}>
       <EditingPageProvider doc={doc}>
         {doc.paras.map((p) => (
-          <Ribbon key={p.p.id} chapterId="chapter-1" pid={p.p.id} />
+          <Ribbon key={p.p.id} chapterId="chapter-1" pid={p.p.id} clocks={sameClock([0])} />
         ))}
         {run ? <Driver run={run} /> : null}
       </EditingPageProvider>
@@ -126,7 +130,7 @@ describe('RibbonView drawing', () => {
   it('draws-the-lines-window-of-the-peaks, at the device pixel ratio, and redraws when the span changes', async () => {
     vi.stubGlobal('devicePixelRatio', 2);
     const p = peaks(0, 20);
-    const { rerender } = render(<RibbonView layout={l} peaks={p} />);
+    const { rerender } = render(<RibbonView layout={l} peaks={onDoc(p)} />);
     await waitFor(() => expect(sizes.length).toBeGreaterThan(0));
     const last = sizes[sizes.length - 1];
     // sized in device pixels: twice the CSS height at a ratio of 2, and an even width
@@ -134,19 +138,19 @@ describe('RibbonView drawing', () => {
     expect(last.width).toBeGreaterThan(0);
     expect(last.width % 2).toBe(0);
     const before = sizes.length;
-    rerender(<RibbonView layout={{ ...l, t1: l.t1 + 0.5 }} peaks={p} />);
+    rerender(<RibbonView layout={{ ...l, t1: l.t1 + 0.5 }} peaks={onDoc(p)} />);
     await waitFor(() => expect(sizes.length).toBeGreaterThan(before));
     vi.unstubAllGlobals();
   });
 
   it('a span outside the entry draws nothing and says so', () => {
-    render(<RibbonView layout={l} peaks={peaks(100, 5)} />);
+    render(<RibbonView layout={l} peaks={onDoc(peaks(100, 5))} />);
     expect(sizes).toHaveLength(0);
     expect(screen.getByText(/No audio to draw/)).toBeTruthy();
   });
 
   it('ticks-at-every-word-boundary-and-a-tint-where-flagged, with a cue beyond colour', async () => {
-    render(<RibbonView layout={l} peaks={peaks(0, 20)} />);
+    render(<RibbonView layout={l} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(calls.length).toBeGreaterThan(0));
     const lines = calls.filter((c) => c.op === 'lineTo').length;
     expect(lines).toBeGreaterThanOrEqual(l.ticks.length);
@@ -160,7 +164,7 @@ describe('RibbonView drawing', () => {
     const mid = (l.t0 + l.t1) / 2;
     const withBoth = layout(['p-1:0', 'p-2:1'], mid);
     expect(withBoth.band!.t1).toBeLessThanOrEqual(l.t1);
-    render(<RibbonView layout={withBoth} peaks={peaks(0, 20)} />);
+    render(<RibbonView layout={withBoth} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(calls.some((c) => c.op === 'fillRect')).toBe(true));
     expect(document.body.textContent).toMatch(/Selection from/);
     expect(document.body.textContent).toMatch(/Playing at/);
@@ -169,13 +173,13 @@ describe('RibbonView drawing', () => {
   it('cut-words-leave-a-gap-marker: a hatched gap', async () => {
     const cutDoc = marksDoc({ cuts: [{ id: 'c1', a: 4.2, b: 4.3, mode: 'gap', keys: ['p-2:1'], off0: 0, off1: 0.1 }] });
     const cl = ribbonLayout(cutDoc, 'p-2', [], null)!;
-    render(<RibbonView layout={cl} peaks={peaks(0, 20)} />);
+    render(<RibbonView layout={cl} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(calls.some((c) => c.op === 'clip')).toBe(true));
     expect(document.body.textContent).toMatch(/1 cut span, drawn hatched/);
   });
 
   it('canvas-draws-from-the-tokens-in-both-themes: a token change redraws in the new colour', async () => {
-    render(<RibbonView layout={l} peaks={peaks(0, 20)} />);
+    render(<RibbonView layout={l} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(calls.some((c) => c.color === 'rgb(1, 2, 3)')).toBe(true));
     calls.length = 0;
     document.documentElement.style.setProperty('--waveform', 'rgb(9, 8, 7)');
@@ -185,7 +189,7 @@ describe('RibbonView drawing', () => {
   });
 
   it('ribbon-is-labelled: a name and a text alternative with the duration and flagged count; axe is clean', async () => {
-    const { container } = render(<RibbonView layout={l} peaks={peaks(0, 20)} />);
+    const { container } = render(<RibbonView layout={l} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(sizes.length).toBeGreaterThan(0));
     expect(screen.getByRole('img', { name: 'Audio of the active line' })).toBeTruthy();
     expect(container.textContent).toMatch(/seconds long/);
@@ -224,7 +228,7 @@ describe('Ribbon header', () => {
       <ApiProvider api={withPeaks(peaks(0, 20))}>
         <EditingPageProvider doc={doc}>
           <Driver run={(d) => d({ type: 'place', key: 'p-2:1' })} />
-          <Ribbon chapterId="chapter-1" pid="p-2" take="T-7" />
+          <Ribbon chapterId="chapter-1" pid="p-2" take="T-7" clocks={sameClock([0])} />
         </EditingPageProvider>
       </ApiProvider>,
     );
@@ -243,7 +247,7 @@ describe('Ribbon header', () => {
       <ApiProvider api={withPeaks(peaks(0, 20))}>
         <EditingPageProvider doc={doc}>
           <Driver run={(d) => d({ type: 'place', key: 'p-2:1' })} />
-          <Ribbon chapterId="chapter-1" pid="p-2" />
+          <Ribbon chapterId="chapter-1" pid="p-2" clocks={sameClock([0])} />
         </EditingPageProvider>
       </ApiProvider>,
     );
@@ -284,22 +288,22 @@ describe('RibbonView animation', () => {
   const bars = () => calls.filter((c) => c.op === 'roundRect');
 
   it('schedules no frames while nothing is playing, and stops when playback stops', async () => {
-    const { rerender } = render(<RibbonView layout={l} peaks={peaks(0, 20)} />);
+    const { rerender } = render(<RibbonView layout={l} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(bars().length).toBeGreaterThan(0));
     expect(frames.size).toBe(0);
     expect(frameSubscribers()).toBe(0);
 
-    rerender(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    rerender(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(frameSubscribers()).toBe(1));
     expect(frames.size).toBe(1);
 
-    rerender(<RibbonView layout={playingAt(null)} peaks={peaks(0, 20)} />);
+    rerender(<RibbonView layout={playingAt(null)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(frameSubscribers()).toBe(0));
     expect(frames.size).toBe(0);
   });
 
   it('redraws only its own canvas on each frame, with the bars near the playhead taller than at rest', async () => {
-    render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(frameSubscribers()).toBe(1));
     const heightsOf = () => bars().map((c) => c.args[3]);
     calls.length = 0;
@@ -313,7 +317,7 @@ describe('RibbonView animation', () => {
 
   it('draws the still look and runs no loop when the narrator reduces motion', async () => {
     document.documentElement.dataset.motion = 'reduce';
-    render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(bars().length).toBeGreaterThan(0));
     expect(frameSubscribers()).toBe(0);
     expect(frames.size).toBe(0);
@@ -323,7 +327,7 @@ describe('RibbonView animation', () => {
   });
 
   it('stops the loop and settles to the still look when motion is reduced mid-playback', async () => {
-    render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(frameSubscribers()).toBe(1));
     act(() => {
       document.documentElement.dataset.motion = 'reduce';
@@ -335,12 +339,12 @@ describe('RibbonView animation', () => {
   it('data-motion="play" keeps the loop going even though the system asks for less', async () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), addEventListener: () => {}, removeEventListener: () => {} }));
     document.documentElement.dataset.motion = 'play';
-    render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(frameSubscribers()).toBe(1));
   });
 
   it('unmounting leaves no frame scheduled', async () => {
-    const { unmount } = render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    const { unmount } = render(<RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />);
     await waitFor(() => expect(frameSubscribers()).toBe(1));
     unmount();
     expect(frameSubscribers()).toBe(0);
@@ -350,8 +354,8 @@ describe('RibbonView animation', () => {
   it('two ribbons playing together share one frame request', async () => {
     render(
       <>
-        <RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />
-        <RibbonView layout={playingAt(mid + 0.2)} peaks={peaks(0, 20)} />
+        <RibbonView layout={playingAt(mid)} peaks={onDoc(peaks(0, 20))} />
+        <RibbonView layout={playingAt(mid + 0.2)} peaks={onDoc(peaks(0, 20))} />
       </>,
     );
     await waitFor(() => expect(frameSubscribers()).toBe(2));

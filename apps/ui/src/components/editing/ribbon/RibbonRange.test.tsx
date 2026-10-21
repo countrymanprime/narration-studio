@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { sameClock } from './docClock';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,7 +58,7 @@ function mount(start: 'cursor' | 'none' = 'cursor') {
     <ApiProvider api={api}>
       <EditingPageProvider doc={doc}>
         <Probe />
-        <Ribbon chapterId="chapter-1" pid="p-1" />
+        <Ribbon chapterId="chapter-1" pid="p-1" clocks={sameClock([0])} />
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -491,7 +492,7 @@ describe('states', () => {
       <ApiProvider api={api}>
         <EditingPageProvider doc={doc}>
           <Probe />
-          <Ribbon chapterId="chapter-1" pid="p-1" />
+          <Ribbon chapterId="chapter-1" pid="p-1" clocks={sameClock([0])} />
         </EditingPageProvider>
       </ApiProvider>,
     );

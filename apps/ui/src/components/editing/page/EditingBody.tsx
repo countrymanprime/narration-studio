@@ -38,6 +38,7 @@ import { findingWords, flagged, type ChapterDoc, type FlagKind } from '../model'
 import type { RangeLocator } from '../range/common/locate';
 import { useCutWords } from '../range/cut/useCutWords';
 import { useFxWords } from '../range/fx/useFxWords';
+import { itemClocks } from '../ribbon/docClock';
 import { Ribbon } from '../ribbon/Ribbon';
 import { activePid } from '../ribbon/ribbonLayout';
 import { useEditingPage } from '../script/EditingPageState';
@@ -182,6 +183,8 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Playback: the chapter on the document's clock, and a take on its own.
   const closedCuts = useMemo(() => closedCutsOf(read), [read]);
+  // The host's peaks are in source seconds and the page's axis is the document's: this puts each item's peaks where its audio is heard.
+  const clocks = useMemo(() => itemClocks(doc, read.answer), [doc, read.answer]);
   const { prefs: output, change: changeOutput } = useOutputPrefs();
   const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
   const playback = useScriptPlayback({
@@ -460,6 +463,7 @@ export function EditingBody(props: EditingBodyProps) {
     playingId: takePlayer.isPlaying ? playingTake : null,
     onPlay: playTake,
     chapterId,
+    clocks,
   };
   const cursorItem = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1] : undefined;
   const cursorOnFlag = cursorItem !== undefined && flagged(doc).some((x) => x.key === cursorItem.key);
@@ -580,7 +584,13 @@ export function EditingBody(props: EditingBodyProps) {
               </InHost>
             ) : null}
             {pid === current && doc.aligned ? (
-              <Ribbon chapterId={chapterId} pid={pid} take={line?.takes.find((t) => t.active)?.label ?? null} items={itemIndexesOf(read, pid)} />
+              <Ribbon
+                chapterId={chapterId}
+                pid={pid}
+                take={line?.takes.find((t) => t.active)?.label ?? null}
+                items={itemIndexesOf(read, pid)}
+                clocks={clocks}
+              />
             ) : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import { marksDoc } from '../script/scriptFixtures';
+import { shiftPeaks } from './docClock';
 import { RibbonView } from './Ribbon';
 import { ribbonLayout } from './ribbonLayout';
 
@@ -19,7 +20,7 @@ function peaksOf(seconds: number): WorkspacePeaks {
 
 const doc = marksDoc();
 const frame = (node: React.ReactNode) => <div className="bg-[var(--surface)] p-4 text-[var(--text)]">{node}</div>;
-const peaks = peaksOf(30);
+const peaks = [shiftPeaks(peaksOf(30), 0)];
 
 // Light and dark: the atlas renders every story in both themes, so the bars, the played split and the overlays are checked against each.
 const base = ribbonLayout(doc, 'p-1', [], null)!;

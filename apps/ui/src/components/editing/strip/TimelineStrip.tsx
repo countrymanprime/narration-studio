@@ -3,6 +3,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useEditingPage } from '../script/EditingPageState';
+import type { ItemClocks } from '../ribbon/docClock';
 import { RibbonView } from '../ribbon/Ribbon';
 import { activePid, ribbonLayout } from '../ribbon/ribbonLayout';
 import { peakGain } from '../ribbon/peaksWindow';
@@ -44,6 +45,8 @@ export interface TimelineStripProps {
   /** Plays the take's own source range through the playback hook; called again for the take that plays, it stops. */
   onPlay: (take: LineTake) => void;
   chapterId: string;
+  /** Where each item's source seconds sit on the document clock (`itemClocks`): the peaks are in source seconds, the strip's axis is not. */
+  clocks: ItemClocks;
   /** Drawn in the drawer's Timeline tab, which is offered only where the strip does not fit: shown at every width, not only from 1360 px. */
   inDrawer?: boolean;
 }
@@ -53,7 +56,7 @@ export interface TimelineStripProps {
  * The selection is mirrored as a band; dragging on the audio selects the words under it (the selection keys do the same from the keyboard), and a
  * lane plays its take.
  */
-export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay, chapterId, inDrawer = false }: TimelineStripProps) {
+export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay, chapterId, clocks, inDrawer = false }: TimelineStripProps) {
   const { doc, state, dispatch, selected: cursorOrSel } = useEditingPage();
   // The cursor's own word is not a selection: no band until a run is selected.
   const selected = useMemo(() => (state.sel ? cursorOrSel : []), [state.sel, cursorOrSel]);
@@ -109,7 +112,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
     drag.current = null;
   };
   const audioLayout = { ...base, t0, t1, playhead: layout.playhead, band: layout.band && { t0: layout.band.t0, t1: layout.band.t1 } };
-  const entry = pickEntries(peaks, t0, t1);
+  const entry = pickEntries(peaks, clocks, t0, t1);
 
   return (
     <section id="timeline" aria-label="Waveform and takes, following the line the cursor is on" className={region}>
