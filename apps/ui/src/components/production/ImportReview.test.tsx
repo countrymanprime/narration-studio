@@ -220,6 +220,16 @@ describe('ImportReview', () => {
     expect(sample.className).toContain('overflow-hidden');
   });
 
+  it('centres each switch in its tile, so it stays in one place whether or not the chapter has a subtitle', () => {
+    renderReview();
+    const withSubtitle = chapterSwitch(/^Chapter One/).closest('label')!.parentElement!;
+    const without = chapterSwitch(/^Chapter Five/).closest('label')!.parentElement!;
+    for (const tile of [withSubtitle, without]) {
+      expect(tile.className).toContain('flex');
+      expect(tile.className).toContain('items-center');
+    }
+  });
+
   it('counts the character suggestions live, and selects all or none', async () => {
     const user = userEvent.setup();
     renderReview();

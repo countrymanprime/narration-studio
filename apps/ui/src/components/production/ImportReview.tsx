@@ -48,7 +48,7 @@ export function importDescription(requiresReset: boolean): string {
 function Tile({ on, children }: { on: boolean; children: ReactNode }) {
   return (
     <div
-      className={`h-[3.25rem] overflow-hidden rounded-[var(--radius-card)] border px-2.5 py-1.5 ${on ? 'bg-[var(--surface-2)]' : 'opacity-60'}`}
+      className={`flex h-[3.25rem] items-center overflow-hidden rounded-[var(--radius-card)] border px-2.5 py-1.5 ${on ? 'bg-[var(--surface-2)]' : 'opacity-60'}`}
       style={{ borderColor: 'var(--border)' }}
     >
       {children}
