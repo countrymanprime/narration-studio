@@ -2,8 +2,11 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import type { ChapterDoc } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
-import { drawRibbon, readRibbonColors } from './drawRibbon';
+import { reducedMotion } from '../../../motion';
+import { drawRibbon, readRibbonColors, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
+import { subscribeFrames } from './frameLoop';
 import { peaksWindow } from './peaksWindow';
+import { barLayout } from './ribbonBars';
 import { activePid, ribbonLayout, type RibbonLayout } from './ribbonLayout';
 import { pickEntry, useRibbonPeaks } from './useRibbonPeaks';
 
@@ -29,7 +32,7 @@ export function RibbonView({
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
-  // Bumped when the root's `data-theme` changes, so the draw re-reads the tokens.
+  // Bumped when the root's `data-theme` or `data-motion` changes, or the system's motion setting does, so the draw re-reads the tokens and the motion choice.
   const [theme, setTheme] = useState(0);
   const descId = useId();
 
@@ -46,22 +49,61 @@ export function RibbonView({
   }, []);
   useEffect(() => {
     if (typeof MutationObserver === 'undefined') return;
-    const mo = new MutationObserver(() => setTheme((n) => n + 1));
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => mo.disconnect();
+    const bump = () => setTheme((n) => n + 1);
+    const mo = new MutationObserver(bump);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-motion'] });
+    const query = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    query?.addEventListener?.('change', bump);
+    return () => {
+      mo.disconnect();
+      query?.removeEventListener?.('change', bump);
+    };
   }, []);
 
   const columns = useMemo(() => {
     if (!peaks || width <= 0) return null;
-    return peaksWindow(peaks, layout.t0, layout.t1, Math.max(1, Math.round(width)));
+    // One column for each bar, so the window is reduced once per span and width, not once per frame.
+    return peaksWindow(peaks, layout.t0, layout.t1, barLayout(width).count);
   }, [peaks, layout.t0, layout.t1, width]);
   const empty = peaks ? columns === null && width > 0 : true;
 
+  // What the frame loop reads, so it keeps running while the host's playhead and the layout change under it.
+  const latest = useRef({ layout, columns, width });
+  latest.current = { layout, columns, width };
+  const colors = useRef<RibbonColors | null>(null);
+  // When the host last moved the playhead, for the loop to move it on from.
+  const headStamp = useRef(0);
   useEffect(() => {
+    headStamp.current = performance.now();
+  }, [layout.playhead]);
+
+  const paint = (frame: RibbonFrame): void => {
     const canvas = canvasRef.current;
-    if (!canvas || !columns || width <= 0) return;
-    drawRibbon(canvas, { width, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, layout, columns, readRibbonColors(canvas));
-  }, [columns, layout, width, theme]);
+    const { layout: l, columns: cols, width: w } = latest.current;
+    if (!canvas || !cols || w <= 0) return;
+    colors.current ??= readRibbonColors(canvas);
+    drawRibbon(canvas, { width: w, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, l, cols, colors.current, frame);
+  };
+
+  const playing = layout.playhead != null && columns !== null;
+  const frameNow = (): RibbonFrame => ({ nowMs: performance.now(), sinceUpdateMs: performance.now() - headStamp.current, animate: true });
+
+  // A draw whenever the data, the size or the look changes (the tokens are read again only then, not every frame). While the loop below is
+  // running it is drawn in motion, so the host's 4 Hz playhead updates do not flash the still look between frames.
+  useEffect(() => {
+    colors.current = null;
+    paint(playing && !reducedMotion() ? frameNow() : STILL_FRAME);
+  }, [columns, layout, width, theme, playing]);
+
+  // One shared frame loop, only while this line is playing and motion is wanted; stopping or reducing motion draws the still look once.
+  useEffect(() => {
+    if (!playing || reducedMotion()) return;
+    const stop = subscribeFrames((now) => paint({ ...frameNow(), nowMs: now }));
+    return () => {
+      stop();
+      paint(STILL_FRAME);
+    };
+  }, [playing, theme, width]);
 
   const why = reason ?? 'This line lies outside the audio the host read.';
   return (
