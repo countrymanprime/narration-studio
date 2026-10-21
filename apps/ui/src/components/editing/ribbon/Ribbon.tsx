@@ -139,10 +139,10 @@ export function RibbonView({
 
 /** The ribbon under the active line: renders for the cursor's paragraph, else the selection head's, else the playing word's, and for no other. */
 /** `take` is the line's active take, named in the header; a line with none is heard in the recording. */
-export function Ribbon({ chapterId, pid, take = null }: { chapterId: string; pid: string; take?: string | null }) {
+export function Ribbon({ chapterId, pid, take = null, item }: { chapterId: string; pid: string; take?: string | null; item?: number }) {
   const { doc, state, selected } = useEditingPage();
   if (activePid(doc, state) !== pid) return null;
-  return <ActiveRibbon chapterId={chapterId} doc={doc} pid={pid} selected={selected} playT={state.playT} take={take} />;
+  return <ActiveRibbon chapterId={chapterId} doc={doc} pid={pid} selected={selected} playT={state.playT} take={take} item={item} />;
 }
 
 function ActiveRibbon({
@@ -152,6 +152,7 @@ function ActiveRibbon({
   selected,
   playT,
   take,
+  item,
 }: {
   chapterId: string;
   doc: ChapterDoc;
@@ -159,10 +160,11 @@ function ActiveRibbon({
   selected: string[];
   playT: number | null;
   take: string | null;
+  item: number | undefined;
 }) {
   const peaks = useRibbonPeaks(chapterId);
   const layout = useMemo(() => ribbonLayout(doc, pid, selected, playT), [doc, pid, selected, playT]);
   if (!layout) return null;
-  const entry = pickEntries(peaks, layout.t0, layout.t1);
+  const entry = pickEntries(peaks, layout.t0, layout.t1, item);
   return <RibbonView layout={layout} head={{ take }} {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })} />;
 }
