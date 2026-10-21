@@ -49,3 +49,28 @@ func TestPreviewCandidatesAreAnEmptyListWhenThereIsNoCast(t *testing.T) {
 		t.Fatalf("got %v", got)
 	}
 }
+
+// The count looks for the full name or the first name, in any case, across a line break, and counts a mention once even when both would
+// match it ("Mr. Holmes" is one appearance, not two).
+func TestAppearancesMatchTheFullNameOrTheFirstNameInAnyCase(t *testing.T) {
+	draft := importer.Draft{
+		Paragraphs: []importer.Paragraph{
+			{Text: "THE MOCK TURTLE sighed. The mock\nturtle wept. Mock soup is not turtle soup."},
+			{Text: "Dr. Watson met Watson's friend. DR. WATSON bowed."},
+			{Text: "Mina Harker wrote; Mina read it; MINA HARKER smiled; harker left."},
+		},
+		CharacterCandidates: []importer.CharacterCandidate{
+			{ID: "a", Name: "The Mock Turtle"},
+			{ID: "b", Name: "Dr. Watson"},
+			{ID: "c", Name: "Mina Harker"},
+		},
+	}
+	got := appearancesOf(t, draft)
+	// Mock Turtle: two full-name mentions, plus "Mock soup" by the first name word "Mock" (the article is skipped).
+	want := map[string]int{"The Mock Turtle": 3, "Dr. Watson": 3, "Mina Harker": 3}
+	for name, count := range want {
+		if got[name] != count {
+			t.Errorf("%s: %d appearances, want %d", name, got[name], count)
+		}
+	}
+}
