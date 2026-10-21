@@ -14,11 +14,6 @@ export type ReviewGroupKey = 'narration' | 'characters' | 'repairs';
 /** What the narrator opened or closed by hand; a group that is not here takes its default (`isGroupOpen`). */
 export type ReviewGroupOpen = Partial<Record<ReviewGroupKey, boolean>>;
 
-/** More narration chapters than this start collapsed: a long list of chapters that the importer got right is not where a decision is needed. */
-export const MANY_NARRATION_CHAPTERS = 8;
-/** As many repairs as this are listed at once; more start collapsed. */
-const FEW_REPAIRS = 3;
-
 export type ReviewCounts = {
   /** The chapters that will be written: the rows whose switch is on. */
   narration: number;
@@ -119,18 +114,17 @@ export function reviewCounts(preview: ManuscriptImportPreview, selection: Manusc
   };
 }
 
-/** Expand the exceptions (a suggestion left unchecked, a few repairs); the chapters the importer got right start collapsed when there are many. */
-export function isGroupOpen(key: ReviewGroupKey, chosen: ReviewGroupOpen, counts: ReviewCounts): boolean {
-  const byHand = chosen[key];
-  if (byHand !== undefined) return byHand;
-  switch (key) {
-    case 'narration':
-      return counts.narration <= MANY_NARRATION_CHAPTERS;
-    case 'characters':
-      return counts.suggestionsChecked < counts.suggestionsTotal;
-    case 'repairs':
-      return counts.repairs <= FEW_REPAIRS;
-  }
+/** The groups' order in the review; `GROUPS` is also the list an accordion closes the others from. */
+export const REVIEW_GROUPS: readonly ReviewGroupKey[] = ['narration', 'characters', 'repairs'];
+
+/**
+ * The review is an accordion: one group is open at a time and the others show only their header. The group the narrator opened by hand is
+ * the open one; until they open another, the chapters are, unless they closed those too.
+ */
+export function isGroupOpen(key: ReviewGroupKey, chosen: ReviewGroupOpen): boolean {
+  const opened = REVIEW_GROUPS.find((group) => chosen[group] === true);
+  if (opened) return key === opened;
+  return key === 'narration' && chosen.narration !== false;
 }
 
 export function plural(count: number, singular: string, many = `${singular}s`): string {

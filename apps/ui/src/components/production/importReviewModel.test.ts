@@ -9,8 +9,8 @@ import {
   groupSections,
   hasSubtitleChoices,
   isGroupOpen,
-  MANY_NARRATION_CHAPTERS,
   plural,
+  REVIEW_GROUPS,
   reviewCounts,
   reviewedHeading,
   subtitleKept,
@@ -123,30 +123,27 @@ describe('groupSections', () => {
 });
 
 describe('isGroupOpen', () => {
-  const counts = reviewCounts(preview, {});
-
-  it('leaves the character suggestions closed while every one is checked', () => {
-    expect(isGroupOpen('narration', {}, counts)).toBe(true);
-    expect(isGroupOpen('characters', {}, counts)).toBe(false);
+  it('opens the chapters and no other group until the narrator opens one', () => {
+    expect(REVIEW_GROUPS).toEqual(['narration', 'characters', 'repairs']);
+    expect(isGroupOpen('narration', {})).toBe(true);
+    expect(isGroupOpen('characters', {})).toBe(false);
+    expect(isGroupOpen('repairs', {})).toBe(false);
   });
 
-  it('opens the character suggestions once one is unchecked', () => {
-    expect(isGroupOpen('characters', {}, reviewCounts(preview, { characterCandidateIds: ['candidate-section-0007-001'] }))).toBe(true);
+  it('is an accordion: the group opened by hand is the only open one', () => {
+    for (const opened of REVIEW_GROUPS) {
+      const chosen = { [opened]: true };
+      for (const key of REVIEW_GROUPS) expect(isGroupOpen(key, chosen)).toBe(key === opened);
+    }
   });
 
-  it('closes the narration chapters when there are many', () => {
-    expect(isGroupOpen('narration', {}, { ...counts, narration: MANY_NARRATION_CHAPTERS })).toBe(true);
-    expect(isGroupOpen('narration', {}, { ...counts, narration: MANY_NARRATION_CHAPTERS + 1 })).toBe(false);
+  it('leaves every group closed once the narrator closed the chapters and opened nothing else', () => {
+    for (const key of REVIEW_GROUPS) expect(isGroupOpen(key, { narration: false })).toBe(false);
   });
 
-  it('opens the repairs when there are a few and closes them when there are many', () => {
-    expect(isGroupOpen('repairs', {}, { ...counts, repairs: 3 })).toBe(true);
-    expect(isGroupOpen('repairs', {}, { ...counts, repairs: 4 })).toBe(false);
-  });
-
-  it('gives way to what the narrator chose, either way', () => {
-    expect(isGroupOpen('characters', { characters: true }, counts)).toBe(true);
-    expect(isGroupOpen('narration', { narration: false }, counts)).toBe(false);
+  it('closes the chapters when another group was opened', () => {
+    expect(isGroupOpen('narration', { characters: true })).toBe(false);
+    expect(isGroupOpen('narration', { characters: true, narration: false })).toBe(false);
   });
 });
 

@@ -322,10 +322,12 @@ label in bold and the chapter's name after it ("CHAPTER VIII. Croquet", "8. Croq
 Croquet"). Front matter and reference material are never listed or asked about: they stay out of the
 chapters, and the title and author in them are offered when you set up the credits. The character
 suggestions are switches too, each with the number of times the character's first name appears in the
-story; **Select all** and **Select none** change them at once. The chapters, the suggestions and the
-repairs scroll together in one bordered box, and a group's title row stays at the top of the box while
-you scroll through it, so you can close it from wherever you are. Resting the pointer on a chapter shows how it begins in the sample
-pinned under the box, a fixed size so the scroll bar never jumps, set in the same title and subtitle lines.
+story; **Select all** and **Select none** change them at once. **Review what was found** is always in
+view, and under it **Chapters**, **Character suggestions** and, when the importer repaired a heading,
+**Repairs** are an accordion in one bordered box: every group's header is always in view, and opening one
+closes the others, so the open group takes the room and scrolls (the only scroll bar), with the closed
+headers above and below it. Resting the pointer on a chapter shows how it begins in the sample
+pinned under the box, a fixed size so it never jumps, set in the same title and subtitle lines.
 
 The footer has one secondary action, **Back**, and the import itself. The Close button at the top
 cancels. **Close when the import finishes** (on by default, an app setting also under Settings, App &

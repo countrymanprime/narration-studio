@@ -17,7 +17,7 @@ export function Disclosure({
   open,
   onOpenChange,
   aside,
-  stickyHeader = false,
+  panelClassName = '',
   className = '',
   children,
 }: {
@@ -27,14 +27,14 @@ export function Disclosure({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   aside?: ReactNode;
-  /** Pins the title row to the top of the nearest scrolling box while its group is in view, so a long open group can be closed from where the narrator is. */
-  stickyHeader?: boolean;
+  /** Classes for the panel, for a group that fills the room it is given and scrolls inside it (the import review's accordion). */
+  panelClassName?: string;
   className?: string;
   children: ReactNode;
 }) {
   return (
     <BaseCollapsible.Root open={open} onOpenChange={onOpenChange} className={className}>
-      <div className={`flex items-center gap-1 ${stickyHeader ? 'sticky top-0 z-10 bg-[var(--surface)]' : ''}`}>
+      <div className="flex flex-none items-center gap-1">
         <BaseCollapsible.Trigger className="group flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 text-left">
           <FontAwesomeIcon
             icon={faChevronRight}
@@ -49,7 +49,7 @@ export function Disclosure({
         </BaseCollapsible.Trigger>
         {aside}
       </div>
-      <BaseCollapsible.Panel>{children}</BaseCollapsible.Panel>
+      <BaseCollapsible.Panel className={panelClassName || undefined}>{children}</BaseCollapsible.Panel>
     </BaseCollapsible.Root>
   );
 }

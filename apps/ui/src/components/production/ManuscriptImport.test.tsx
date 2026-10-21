@@ -41,8 +41,8 @@ async function openReview(prepare: (api: NarrationApi) => void = () => {}, impor
   return { api, dialog: within(dialog) };
 }
 
-// The character suggestions start folded while every one is checked (nothing to decide), so a test that works on them opens the group.
-const openSuggestions = (dialog: ReturnType<typeof within>) => fireEvent.click(dialog.getByRole('button', { name: /^Story Bible character suggestions/ }));
+// The review is an accordion with the chapters open, so a test that works on the character suggestions opens that group (which closes the chapters).
+const openSuggestions = (dialog: ReturnType<typeof within>) => fireEvent.click(dialog.getByRole('button', { name: /^Character suggestions/ }));
 
 describe('the import review dialog, as the narrator meets it', () => {
   it('lists the chapters the importer found, each with its switch on, and states the size once, in the chips', async () => {
@@ -245,6 +245,8 @@ describe('the summary and the groups of the review', () => {
     expect(dialog.queryByText('Preview activity')).toBeNull();
     expect(dialog.queryByRole('progressbar')).toBeNull();
     expect(within(dialog.getByLabelText('What was found')).getByText('2 repairs')).toBeTruthy();
+    // The repairs are one accordion group, closed until opened (the chapters are the open one).
+    fireEvent.click(dialog.getByRole('button', { name: /^Repairs/ }));
     expect(dialog.getByText(/CHAPTER TWOThe Pool of Tears/)).toBeTruthy();
   });
 });

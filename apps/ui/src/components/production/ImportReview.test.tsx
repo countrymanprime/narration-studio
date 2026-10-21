@@ -60,7 +60,7 @@ describe('ImportReview', () => {
   it('lists the chapters in one group with a switch on each row, and the character suggestions apart', () => {
     renderReview();
     expect(groupButton(/^Chapters 5 of 5 chapters included$/).getAttribute('aria-expanded')).toBe('true');
-    expect(groupButton(/^Story Bible character suggestions 3 of 3 checked$/).getAttribute('aria-expanded')).toBe('false');
+    expect(groupButton(/^Character suggestions 3 of 3 checked$/).getAttribute('aria-expanded')).toBe('false');
     expect(screen.getAllByRole('switch')).toHaveLength(5);
     for (const name of [/^Chapter One/, /^Chapter Two/, /^Chapter Three/, /^Chapter Four/, /^Chapter Five/]) {
       expect(chapterSwitch(name).getAttribute('aria-checked')).toBe('true');
@@ -105,9 +105,10 @@ describe('ImportReview', () => {
   it('offers a character found in a reference section under the characters, and only there', async () => {
     const user = userEvent.setup();
     renderReview();
-    await user.click(groupButton(/^Story Bible character suggestions/));
+    await user.click(groupButton(/^Character suggestions/));
     expect(screen.getByRole('switch', { name: /^Alice/ })).toBeTruthy();
     expect(screen.queryByText('Characters')).toBeNull();
+    expect(screen.queryByText(/story bible character/i)).toBeNull();
   });
 
   it('collapses and expands the chapters on a press, and keeps what the narrator chose', async () => {
@@ -117,6 +118,52 @@ describe('ImportReview', () => {
     expect(screen.queryByRole('switch', { name: /^Chapter Three/ })).toBeNull();
     await user.click(groupButton(/^Chapters/));
     expect(chapterSwitch(/^Chapter Three/)).toBeTruthy();
+  });
+
+  it('is an accordion: opening the character suggestions collapses the chapters, and the chapters header stays in view', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    expect(groupButton(/^Chapters/).getAttribute('aria-expanded')).toBe('true');
+    await user.click(groupButton(/^Character suggestions/));
+    expect(groupButton(/^Character suggestions/).getAttribute('aria-expanded')).toBe('true');
+    expect(groupButton(/^Chapters/).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('switch', { name: /^Chapter One/ })).toBeNull();
+    expect(screen.getByRole('switch', { name: /^Alice/ })).toBeTruthy();
+    // The collapsed group is only its header, still there to press.
+    expect(groupButton(/^Chapters 5 of 5 chapters included$/)).toBeTruthy();
+  });
+
+  it('opening the chapters again collapses the character suggestions', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    await user.click(groupButton(/^Character suggestions/));
+    await user.click(groupButton(/^Chapters/));
+    expect(groupButton(/^Chapters/).getAttribute('aria-expanded')).toBe('true');
+    expect(groupButton(/^Character suggestions/).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('switch', { name: /^Alice/ })).toBeNull();
+    expect(chapterSwitch(/^Chapter One/)).toBeTruthy();
+  });
+
+  it('closing the open group leaves every group closed, with every header still in view', async () => {
+    const user = userEvent.setup();
+    renderReview('repaired');
+    await user.click(groupButton(/^Chapters/));
+    for (const name of [/^Chapters/, /^Character suggestions/, /^Repairs/]) expect(groupButton(name).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+    expect(screen.getByText('Review what was found')).toBeTruthy();
+  });
+
+  it('keeps the groups in one order, the open one taking the room and scrolling, a closed one only its header', async () => {
+    const user = userEvent.setup();
+    renderReview('repaired');
+    const order = () => screen.getAllByRole('button', { name: /^(Chapters|Character suggestions|Repairs)/ }).map((button) => button.textContent!.split(' ')[0]);
+    expect(order()).toEqual(['Chapters', 'Character', 'Repairs']);
+    await user.click(groupButton(/^Repairs/));
+    expect(order()).toEqual(['Chapters', 'Character', 'Repairs']);
+    const panel = screen.getByText(/CHAPTER ONEDown the Rabbit-Hole/).closest('.overflow-y-auto')!;
+    expect(panel.className).toContain('flex-1');
+    expect(document.body.querySelectorAll('.overflow-y-auto')).toHaveLength(1);
+    expect(groupButton(/^Chapters/).closest('.flex-none')).not.toBeNull();
   });
 
   it('leaves a chapter out of the recording when its switch is turned off, and puts it back when turned on, with the counts following', async () => {
@@ -160,37 +207,37 @@ describe('ImportReview', () => {
     expect(sample.className).not.toContain('sticky');
   });
 
-  it('boxes the list, pins each group header while it scrolls, and keeps the sample one size', () => {
+  it('boxes the groups under a label that is not in the box, and keeps the sample one size', () => {
     renderReview();
-    const header = screen.getByRole('button', { name: /^Chapters/ }).parentElement!;
-    expect(header.className).toContain('sticky');
-    expect(header.className).toContain('top-0');
-    const scroller = header.closest('.overflow-y-auto')!;
-    expect(scroller.className).toContain('border');
+    const label = screen.getByText('Review what was found');
+    const box = screen.getByRole('button', { name: /^Chapters/ }).closest('.border')!;
+    expect(box.className).toContain('rounded');
+    expect(box.contains(label)).toBe(false);
+    expect(label.closest('.overflow-y-auto')).toBeNull();
     const sample = screen.getByRole('region', { name: 'Preview of the selected heading' });
     // A fixed height, so a longer first line never changes the box (and the scroll bar above it) while the pointer moves down the list.
     expect(sample.className).toContain('h-[8.5rem]');
     expect(sample.className).toContain('overflow-hidden');
   });
 
-  it('counts the character suggestions live, opens them once one is unchecked, and selects all or none', async () => {
+  it('counts the character suggestions live, and selects all or none', async () => {
     const user = userEvent.setup();
     renderReview();
-    await user.click(groupButton(/^Story Bible character suggestions/));
+    await user.click(groupButton(/^Character suggestions/));
     await user.click(screen.getByRole('switch', { name: /^The White Rabbit/ }));
-    expect(groupButton(/^Story Bible character suggestions 2 of 3 checked$/).getAttribute('aria-expanded')).toBe('true');
+    expect(groupButton(/^Character suggestions 2 of 3 checked$/).getAttribute('aria-expanded')).toBe('true');
     await user.click(screen.getByRole('button', { name: 'Select none' }));
-    expect(groupButton(/^Story Bible character suggestions 0 of 3 checked$/)).toBeTruthy();
+    expect(groupButton(/^Character suggestions 0 of 3 checked$/)).toBeTruthy();
     for (const name of ['Alice', 'The White Rabbit', 'The Duchess'])
       expect(screen.getByRole('switch', { name: new RegExp(`^${name}`) }).getAttribute('aria-checked')).toBe('false');
     await user.click(screen.getByRole('button', { name: 'Select all' }));
-    expect(groupButton(/^Story Bible character suggestions 3 of 3 checked$/)).toBeTruthy();
+    expect(groupButton(/^Character suggestions 3 of 3 checked$/)).toBeTruthy();
   });
 
   it('shows how often each character appears, in place of a description, and says one appearance in the singular', async () => {
     const user = userEvent.setup();
     renderReview();
-    await user.click(groupButton(/^Story Bible character suggestions/));
+    await user.click(groupButton(/^Character suggestions/));
     expect(screen.getByRole('switch', { name: /^Alice.*412 appearances$/ })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /^The White Rabbit.*38 appearances$/ })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /^The Duchess.*1 appearance$/ })).toBeTruthy();
@@ -199,6 +246,9 @@ describe('ImportReview', () => {
 
   it('says what the importer repaired, and shows nothing about repairs when it repaired nothing', () => {
     const { unmount } = renderReview('repaired');
+    // The repairs are an accordion group like the others: closed until opened, the chapters being the open one.
+    expect(groupButton(/^Repairs 2 made to the source$/).getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(groupButton(/^Repairs/));
     expect(groupButton(/^Repairs 2 made to the source$/).getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText(/CHAPTER ONEDown the Rabbit-Hole/)).toBeTruthy();
     expect(within(screen.getByLabelText('What was found')).getByText('2 repairs')).toBeTruthy();

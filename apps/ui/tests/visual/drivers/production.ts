@@ -158,7 +158,7 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'import-review-characters': async (page) => {
     const review = await openImportReview(page);
-    await review.getByRole('button', { name: /^Story Bible character suggestions/ }).click();
+    await review.getByRole('button', { name: /^Character suggestions/ }).click();
     await review.getByRole('checkbox', { name: /^The White Rabbit/ }).click();
   },
   'import-review-repaired': async (page) => {

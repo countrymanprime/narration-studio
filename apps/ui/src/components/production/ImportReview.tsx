@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 import { ImportProfileField } from '../delivery/ImportProfileField';
 import { Button } from '../primitives/Button';
@@ -19,6 +19,7 @@ import {
   hasSubtitleChoice,
   hasSubtitleChoices,
   isGroupOpen,
+  REVIEW_GROUPS,
   plural,
   reviewCounts,
   reviewedHeading,
@@ -112,7 +113,16 @@ export function ImportReview({
   const notices = preview.notices ?? [];
   const counts = reviewCounts(preview, selection);
   const checkedIds = checkedCandidateIds(preview, selection);
-  const open = (key: ReviewGroupKey) => isGroupOpen(key, groupOpen, counts);
+  const open = (key: ReviewGroupKey) => isGroupOpen(key, groupOpen);
+  // An accordion: opening a group closes the others, so exactly one fills the room and scrolls, and every header stays in view.
+  const setOpen = (key: ReviewGroupKey, next: boolean) => {
+    if (next) for (const other of REVIEW_GROUPS) if (other !== key) onGroupOpenChange(other, false);
+    onGroupOpenChange(key, next);
+  };
+  const labelId = useId();
+  // The open group takes the room left over and scrolls inside it; a closed one is only its header. Groups after the first have a rule above.
+  const groupClass = (key: ReviewGroupKey) => `${open(key) ? 'flex min-h-0 flex-1 flex-col' : 'flex-none'} border-[var(--border)] not-first:border-t`;
+  const panelClass = 'min-h-0 flex-1 overflow-y-auto';
   const root = useRef<HTMLDivElement>(null);
   // The row whose first lines the preview shows (the mock's selected outline row); the first section until the narrator picks one.
   const [previewId, setPreviewId] = useState<string>();
@@ -129,9 +139,9 @@ export function ImportReview({
       title="Chapters"
       summary={`${counts.narration} of ${chapters.length} ${plural(chapters.length, 'chapter')} included`}
       open={open('narration')}
-      onOpenChange={(next) => onGroupOpenChange('narration', next)}
-      stickyHeader
-      className="border-[var(--border)] not-first:border-t"
+      onOpenChange={(next) => setOpen('narration', next)}
+      className={groupClass('narration')}
+      panelClassName={panelClass}
     >
       {/* Two columns. The whole review scrolls in one place (the box around it), so this list never carries a scrollbar of its own. */}
       <div className="gap-x-8 pt-1 pr-1 pb-3 pl-5 sm:grid sm:grid-cols-2 sm:content-start">
@@ -213,23 +223,25 @@ export function ImportReview({
       </div>
       {/* The options sit above the list, where an expanded list cannot push them out of sight. */}
       {options}
-      {/* The one scrollbar of the review: the list and everything under it scroll here, between the options above and the sample below. */}
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-[var(--radius-card)] border px-3 pb-1" style={{ borderColor: 'var(--border)' }}>
-        {preview.format === 'pdf' && preview.chapterTitles.length > 0 && <p className="text-xs">Detected chapters: {preview.chapterTitles.join(' · ')}</p>}
-        {(sections.length > 0 || candidates.length > 0 || notices.length > 0) && (
-          <fieldset className="min-w-0">
-            <SectionLabel as="legend" className="px-1">
-              Review what was found
-            </SectionLabel>
+      {preview.format === 'pdf' && preview.chapterTitles.length > 0 && (
+        <p className="flex-none text-xs">Detected chapters: {preview.chapterTitles.join(' · ')}</p>
+      )}
+      {(sections.length > 0 || candidates.length > 0 || notices.length > 0) && (
+        // The label stays in view, and so does every group's header: the box is a column in which the one open group scrolls.
+        <div role="group" aria-labelledby={labelId} className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
+          <SectionLabel as="div" id={labelId} className="flex-none px-1">
+            Review what was found
+          </SectionLabel>
+          <div className="flex min-h-0 flex-1 flex-col rounded-[var(--radius-card)] border px-3" style={{ borderColor: 'var(--border)' }}>
             {chapterList}
             {candidates.length > 0 && (
               <Disclosure
-                title="Story Bible character suggestions"
+                title="Character suggestions"
                 summary={`${counts.suggestionsChecked} of ${counts.suggestionsTotal} checked`}
                 open={open('characters')}
-                onOpenChange={(next) => onGroupOpenChange('characters', next)}
-                stickyHeader
-                className="border-t border-[var(--border)]"
+                onOpenChange={(next) => setOpen('characters', next)}
+                className={groupClass('characters')}
+                panelClassName={panelClass}
               >
                 <div className="pt-1 pb-3 pl-5">
                   <p className="mb-2 text-xs text-[var(--text-muted)]">Checked names become reviewable Character entries after import.</p>
@@ -277,9 +289,9 @@ export function ImportReview({
                 title="Repairs"
                 summary={`${notices.length} made to the source`}
                 open={open('repairs')}
-                onOpenChange={(next) => onGroupOpenChange('repairs', next)}
-                stickyHeader
-                className="border-t border-[var(--border)]"
+                onOpenChange={(next) => setOpen('repairs', next)}
+                className={groupClass('repairs')}
+                panelClassName={panelClass}
               >
                 <ul className="list-disc space-y-1 pt-1 pb-3 pl-9 text-xs break-words text-[var(--text-muted)]">
                   {notices.map((notice, index) => (
@@ -288,9 +300,9 @@ export function ImportReview({
                 </ul>
               </Disclosure>
             )}
-          </fieldset>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
       {previewed && (
         // The first lines of the chapter the pointer is over (or the one focused last), in the same title and subtitle lines as the list.
         <section
