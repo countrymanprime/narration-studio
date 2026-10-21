@@ -326,7 +326,7 @@ recognize as any chapter's is listed under "Tracks that are not chapters" so it 
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.
 
-The log of what each sync did, with **Undo** on a link sync made, is in Settings: [Recording & DAW > Sync activity](settings.md#recording--daw).
+The log of what each sync did, with **Undo** on a link sync made, is in Settings: [Recording & DAW > Sync activity](settings.md#recording-daw).
 
 ---
 
