@@ -8,6 +8,12 @@ import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, TOAST_FADES_OUT } 
 export const editingStates: StateEntry[] = [
   {
     page: 'editing',
+    state: 'jump-menu',
+    description:
+      'Editing, the jump menu typed "selected" with no words selected: the selection actions listed under On this page, each off with "Select some words in the script first."',
+  },
+  {
+    page: 'editing',
     state: 'default',
     description:
       'Editing, Chapter 1 linked to its track - the header with the chapter step and the legend, the script with each line’s takes chip and time, the bar and the key hints',

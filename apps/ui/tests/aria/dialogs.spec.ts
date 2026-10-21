@@ -172,7 +172,7 @@ test('Editing: the drawer has its tabs and the open tab’s panel', async ({ pag
 });
 
 // The shell's menu on empty space: a menu of items, the unavailable ones carrying their reason.
-test('the menu on empty space is a menu of the shell items, ending with the jump menu and Find', async ({ page }) => {
+test('the menu on empty space is a menu of the shell items, ending with the jump menu and the page search', async ({ page }) => {
   await openApp(page, DESKTOP, ['shell', 'context-menu-open']);
   await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-page-fallback.aria.yml' });
 });

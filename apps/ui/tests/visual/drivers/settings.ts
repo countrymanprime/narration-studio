@@ -86,6 +86,14 @@ async function openFirstPagePanel(page: Page): Promise<void> {
 }
 
 export const settingsDrivers: Record<string, Driver> = {
+  // The menu lists every setting by its label under its category.
+  'jump-menu': async (page) => {
+    await openSettings(page);
+    await page.getByRole('radiogroup', { name: 'Record with' }).waitFor();
+    await page.keyboard.press('Control+k');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('microphone');
+    await page.getByRole('option').first().waitFor();
+  },
   'page-top': async (page) => {
     await openSettings(page);
     // The page has arrived once the first category's heading and its Record with radios are drawn.

@@ -2,5 +2,5 @@
 - menu:
   - menuitem "Go to"
   - menuitem /Jump menu… Ctrl K/
-  - menuitem /Find a page, chapter or command Ctrl F/
+  - menuitem /Search this page Ctrl F/
   - menuitem "View"

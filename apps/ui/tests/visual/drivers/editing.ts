@@ -38,6 +38,13 @@ export const editingDrivers: Record<string, Driver> = {
   default: async (page) => {
     await openEditing(page, LINKED);
   },
+  // The menu knows the page: with nothing selected the selection actions are listed off, each with its reason.
+  'jump-menu': async (page) => {
+    await openEditing(page, LINKED);
+    await page.keyboard.press('Control+k');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('selected');
+    await page.getByRole('option', { name: /Delete the selected words and audio/ }).waitFor();
+  },
   selection: async (page) => {
     await openEditing(page, EDITS);
     await selectWords(page);

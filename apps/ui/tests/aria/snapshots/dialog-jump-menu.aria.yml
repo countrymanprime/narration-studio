@@ -1,5 +1,6 @@
-# The jump menu (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to), opened from the header: a modal dialog holding one combobox field that names the active option and
-# a listbox. Opened with nothing typed it lists one row per command group, the first selected. The live regions behind it are the page's and the overlay host's.
+# The jump menu (docs/architecture/studio-shell-and-registries.md#jump-menu), opened from the header: a modal dialog holding one combobox field that names the active option, is described by the page's name,
+# and a listbox. Opened with nothing typed it lists the page's groups under "On this page", then one row per command group under "Commands", the first selected. The live regions behind it are the page's and the overlay host's;
+# the one inside the dialog says the result count while a term is typed.
 - main
 - status
 - alert
@@ -9,13 +10,18 @@
 - dialog "Jump menu":
   - heading "Jump menu" [level=2]
   - combobox "Jump menu" [expanded]
+  - text: /On the Production page/
+  - status
   - listbox "Jump menu results":
+    - text: On this page
+    - option /Chapters \d+ ›/ [selected]
+    - option /Checks \d+ ›/
+    - option /Actions \d+ ›/
     - text: Commands
-    - option /Go to \d+ ›/ [selected]
+    - option /Go to \d+ ›/
     - option /Zoom \d+ ›/
     - option "Booth 1 ›"
     - option /View \d+ ›/
-    - option /Chapters \d+ ›/
     - option /Settings \d+ ›/
     - option /Manuscript \d+ ›/
     - option /Edit \d+ ›/
