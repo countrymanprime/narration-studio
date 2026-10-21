@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, within } from 'storybook/test';
+import { useState } from 'react';
+import { expect, fn, screen, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
+import { resetOpenOnce } from '../../connection/useOpenOnce';
 import { RecordSetup } from './RecordSetup';
 
 // The Booth's one-time recording setup, above the footer while Record is unavailable for a reason the narrator can fix from the Booth:
@@ -27,6 +29,8 @@ type Args = {
 };
 
 function Strip({ capabilities, linked, open, say, onSettings, onChanged }: Args) {
+  // The connect dialog opens by itself once; a story that is played again starts as if the Booth had just opened.
+  useState(resetOpenOnce);
   return (
     <ApiProvider api={createMockApi()}>
       <div className="max-w-full bg-[var(--surface)] py-2">
@@ -36,6 +40,7 @@ function Strip({ capabilities, linked, open, say, onSettings, onChanged }: Args)
           say={say}
           onSettings={onSettings}
           onChanged={onChanged}
+          graceMs={0}
         />
       </div>
     </ApiProvider>
@@ -83,18 +88,25 @@ export const TurnOnRecordBuiltIn: Story = {
   },
 };
 
+/** REAPER is not connected: a chip stands in the Booth and a dialog opens by itself once with the launcher steps and Open in REAPER. */
 export const ConnectReaper: Story = {
   args: { capabilities: refused('standalone', 'REAPER is not connected to this app. Open this app from REAPER to use it.') },
+  play: async () => {
+    await expect(await within(await screen.findByRole('dialog')).findByRole('button', { name: 'Open in REAPER and connect' })).toBeEnabled();
+  },
 };
 
 export const ReaperNotAnswering: Story = {
   args: { capabilities: refused('not_running', 'REAPER is not answering. Check that REAPER is open, then try again.') },
+  play: async () => {
+    await expect(within(await screen.findByRole('dialog')).getByText(/REAPER is not answering/)).toBeVisible();
+  },
 };
 
 export const NoProjectLinked: Story = {
   args: { capabilities: refused('standalone', 'No DAW is connected to this app. Open this app from your DAW to use it.'), linked: false },
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Open in REAPER and connect' })).toBeDisabled();
+  play: async () => {
+    await expect(await screen.findByRole('button', { name: 'Open in REAPER and connect' })).toHaveAttribute('aria-disabled', 'true');
   },
 };
 

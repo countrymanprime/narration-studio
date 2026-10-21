@@ -9,6 +9,8 @@ export interface EditingHeaderProps {
   stepper: ReactNode;
   /** What is marked (the legend), or the "Not transcribed yet" pill; nothing while the chapter loads. */
   legend: ReactNode;
+  /** The quiet marks that reopen a connection dialog (the DAW is not connected, the chapter is not linked); nothing when all is well. */
+  status?: ReactNode;
   strip: { open: boolean; toggle: () => void };
   /** The strip fits beside the text: its button is offered (the button also hides itself below a 1360 px window). */
   stripFits: boolean;
@@ -22,13 +24,14 @@ export interface EditingHeaderProps {
  * The page's header (the Studio Next mock's `.ph.sx-ph`): the title, the chapter step, the legend, and the two header buttons, the timeline
  * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C).
  */
-export function EditingHeader({ stepper, legend, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown }: EditingHeaderProps) {
+export function EditingHeader({ stepper, legend, status, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown }: EditingHeaderProps) {
   return (
     <header className="@container/hd flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2">
       <Heading title="Editing" />
       {stepper}
       <div className="min-w-0 flex-1">{legend}</div>
       <div className="flex items-center gap-2">
+        {status}
         {stripFits ? <StripToggle open={strip.open} onToggle={strip.toggle} /> : null}
         <TooltipTarget text="Clean up and effects (Ctrl+Shift+C)">
           <IconButton

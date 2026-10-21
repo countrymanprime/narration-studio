@@ -19,7 +19,7 @@ const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 
 async function readyToRecord(page: Page, query = RECORD_ON): Promise<void> {
   await openBooth(page, query);
-  await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
   await record(page).and(page.locator(':enabled')).waitFor();
 }
 
@@ -100,33 +100,47 @@ export const boothDrivers: Record<string, Driver> = {
     await openBooth(page);
     await page.getByText('Experimental: switched off in Settings.').waitFor();
     await page.getByRole('heading', { name: 'Recording in REAPER is experimental' }).waitFor();
-    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
   },
   'record-connect': async (page) => {
     await openBooth(page, '?mockDawConnected=0&mockRecordCapabilityOn=1');
-    await page.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
+    // The bridge is down and the project is not linked: the dialog opens by itself, with the launcher steps and Open in REAPER (off until a file is linked).
+    await page.getByRole('dialog', { name: /is not connected/ }).waitFor();
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
+  },
+  // The same with the dialog closed by its X: the quiet mark stands above the footer and reopens it.
+  'record-connect-closed': async (page) => {
+    await openBooth(page, '?mockDawConnected=0&mockRecordCapabilityOn=1');
+    const dialog = page.getByRole('dialog', { name: /is not connected/ });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page
+      .locator('#brec-setup')
+      .getByRole('button', { name: /REAPER not connected/ })
+      .waitFor();
   },
   'record-turned-away': async (page) => {
     await openBooth(page, '?mockDaw=busy');
     const notice = page.locator('#brec-setup');
     await notice.getByRole('button', { name: 'Turn on Record' }).click();
-    await notice.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
-    await notice.getByRole('button', { name: 'Link in Settings' }).click();
+    const connect = page.getByRole('dialog', { name: /is not connected/ });
+    await connect.getByRole('button', { name: 'Link in Settings' }).click();
     await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
-    await notice.getByRole('alert').waitFor();
+    await notice.getByRole('button').click();
+    await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    await connect.getByRole('alert').waitFor();
   },
   'record-other-project': async (page) => {
     await openBooth(page, '?mockDaw=different');
     const notice = page.locator('#brec-setup');
     await notice.getByRole('button', { name: 'Turn on Record' }).click();
-    await notice.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
-    await notice.getByRole('button', { name: 'Link in Settings' }).click();
+    const connect = page.getByRole('dialog', { name: /is not connected/ });
+    await connect.getByRole('button', { name: 'Link in Settings' }).click();
     await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    await notice.getByRole('button').click();
+    await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
     await notice.getByRole('heading', { name: 'REAPER has a different project open' }).waitFor({ timeout: 15_000 });
     await notice.getByText(/Last checked \d+ s ago/).waitFor();
   },
@@ -261,7 +275,7 @@ export const boothDrivers: Record<string, Driver> = {
     // The Script's "Marked …" toast would otherwise sit over the Booth's footer.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
     await page.locator('[data-booth-text] [data-word][title]', { hasText: 'tired' }).click();
     await page.locator('#booth-reference').getByText('Lean on it: she is bored, not sleepy.').waitFor();
   },
@@ -302,7 +316,7 @@ export const boothDrivers: Record<string, Driver> = {
     await settlePage(page);
     await chooseTheme(page, 'Dark');
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
     await record(page).and(page.locator(':enabled')).waitFor();
   },
   'companion-default': async (page) => {

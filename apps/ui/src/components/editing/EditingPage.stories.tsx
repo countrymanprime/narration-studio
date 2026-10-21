@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
+import { expect, fireEvent, screen, userEvent, waitFor, within } from 'storybook/test';
 import type { DawSetupId } from '../../fixtures/daw';
 import { withBackupSettings } from './backups/backupsFixtures';
+import { resetOpenOnce } from '../connection/useOpenOnce';
 import { EditingPage, type EditingPageProps } from './EditingPage';
 import { dawFor, EditingHost, newJournal, noAudioApi, pageApi } from './page/testPage';
 
@@ -12,14 +13,16 @@ type Args = Omit<EditingPageProps, 'hasManuscript'> & { setup: DawSetupId; heard
 
 function Page({ setup, heard, noAudio, ...props }: Args) {
   const [host] = useState(() => ({
+    // A connection dialog opens by itself once; a story that is played again starts as if the page had just opened.
+    reset: resetOpenOnce(),
     api: withBackupSettings(pageApi({ heard, ...(noAudio ? noAudioApi(noAudio) : {}) })),
     daw: dawFor(setup),
     journal: newJournal(),
   }));
   return (
     <div className="h-[calc(100vh-2rem)]">
-      <EditingHost {...host}>
-        <EditingPage {...props} />
+      <EditingHost api={host.api} daw={host.daw} journal={host.journal}>
+        <EditingPage dawConnectGraceMs={1_000_000_000} {...props} />
       </EditingHost>
     </div>
   );
@@ -35,7 +38,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const script = (canvasElement: HTMLElement) => within(canvasElement).findByRole('textbox', { name: 'Script with what was heard' }, { timeout: 4000 });
+const script = (canvasElement: HTMLElement) =>
+  within(canvasElement).findByRole('textbox', { name: 'Script with what was heard', hidden: true }, { timeout: 4000 });
 const word = (canvasElement: HTMLElement, key: string) => canvasElement.querySelector<HTMLElement>(`[data-k="${key}"]`)!;
 
 // The script: the chapter step, the legend, the text with its marks, the bar and the key hints; no drawer or strip until asked.
@@ -96,12 +100,15 @@ export const DrawerBackups: Story = {
   },
 };
 
-// The DAW is not answering: the banner with the capability's own sentence and Check again; the edits wait, playback goes on.
+// The DAW is not answering: the dialog with the capability's own sentence, Start and Check again opens by itself once; the edits wait, playback goes on.
 export const DawOff: Story = {
-  args: { setup: 'reaper-off' },
+  args: { setup: 'reaper-off', dawConnectGraceMs: 0 },
   play: async ({ canvasElement }) => {
     await script(canvasElement);
-    await within(canvasElement).findByRole('button', { name: 'Check again' });
+    const open = await screen.findByRole('dialog');
+    await within(open).findByRole('button', { name: 'Check again' });
+    await userEvent.click(within(open).getByRole('button', { name: 'Close' }));
+    await within(canvasElement).findByRole('button', { name: /REAPER not connected/ });
   },
 };
 
@@ -111,17 +118,17 @@ export const BuiltIn: Story = { args: { setup: 'builtin' } };
 // Nothing transcribed yet: the "Not transcribed yet" pill where the legend goes, and the text plain.
 export const NotTranscribed: Story = { args: { heard: false } };
 
-// A chapter with no audio to edit: the banner says why and offers the audio engine panel; the script reads plain, nothing boxed "not read".
+// A chapter with no audio to edit: a dialog opens by itself once, names the chapter and links the chosen track; the script reads plain, nothing boxed "not read".
 export const NoAudioUnlinked: Story = {
   args: { noAudio: 'unlinked' },
   play: async ({ canvasElement }) => {
     await script(canvasElement);
-    await within(canvasElement).findByRole('button', { name: 'Open the audio engine panel' });
+    await within(await screen.findByRole('dialog')).findByRole('button', { name: 'Link track' });
     await expect(canvasElement.querySelectorAll('[data-mark="miss"]')).toHaveLength(0);
   },
 };
 
-// The chapter's linked track is not in the saved project.
+// The chapter's linked track is not in the saved project: the same dialog, which replaces the old link.
 export const NoAudioTrackMissing: Story = { args: { noAudio: 'missing' } };
 
 // The chapter's track has nothing on it.

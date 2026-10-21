@@ -36,14 +36,21 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'record-connect',
     description:
-      'Booth opened without REAPER\'s bridge (?mockDawConnected=0 with the record capability on, the app started on its own): Record is disabled with the capability\'s sentence, and above the footer "Connect REAPER to record" lists loading the launcher action once (the mock reports no launcher path, so the step names the file; the Booth/RecordSetup stories show the path with Copy path) and running it, with Open in REAPER and connect',
+      "Booth opened without REAPER's bridge (?mockDawConnected=0 with the record capability on, the app started on its own): Record is disabled with the capability's sentence, and a dialog opens by itself saying REAPER is not connected, with what still works, when it last checked, the launcher steps (the mock reports no launcher path, so the step names the file; the Booth/RecordSetup stories show the path with Copy path), Open in REAPER and connect (off until a project file is linked) and Check again",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-connect-closed',
+    description:
+      'The same Booth after the dialog was closed with its X: the quiet "REAPER not connected" mark stands above the footer and reopens it; Record stays disabled with the capability\'s sentence',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-turned-away',
     description:
-      'Booth after REAPER was started from its connect notice but the busy app turned the project away (?mockDaw=busy, Record turned on and the project linked first): the connect notice says "REAPER started, but this app turned its project away: Narration Studio is busy, so the current project was left unchanged. Finish or cancel what is running, then press Open in REAPER and connect again.", and the host\'s sentence stays as a message until it is dismissed; Record stays off',
+      'Booth after REAPER was started from its connect notice but the busy app turned the project away (?mockDaw=busy, Record turned on and the project linked first): the connect dialog (reopened for it) says "REAPER started, but this app turned its project away: Narration Studio is busy, so the current project was left unchanged. Finish or cancel what is running, then press Open in REAPER and connect again.", and the host\'s sentence stays as a message until it is dismissed; Record stays off',
     ...REFLOW,
   },
   {

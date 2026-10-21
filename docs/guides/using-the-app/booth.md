@@ -70,31 +70,35 @@ When the reason is one you can fix from the Booth, a box above the footer shows 
 
   ![Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings](../../images/ui/booth-record-refused.webp)
 
-- **Connect REAPER to record** (or **REAPER is not answering**). The app records in REAPER through a small script, the
-  launcher, that runs inside REAPER. Load it once: in REAPER, choose **Actions > Show action list > New action > Load
-  ReaScript** and pick the launcher file the box shows (**Copy path** copies it). Load it again after you update the app,
-  because the file moves with each update. Then, with the chapter's project open in REAPER, run
-  **Script: NarrationStudio_Launcher.lua**. The app connects and Record turns on. **Open in REAPER and
-  connect** opens the linked project with the launcher in one go, or connects the REAPER you already have open, and from then on Launch REAPER always starts it. If no
-  REAPER project is linked yet, the first step links it.
+- **REAPER not connected** (or **REAPER not answering**). The app records in REAPER through a small script, the
+  launcher, that runs inside REAPER. A quiet mark above the footer says so, and a dialog opens by itself once, after the app
+  has had a few seconds to connect on its own; the X closes it and the mark opens it again. The dialog gives the host's
+  reason, what still works, and the steps: load the launcher once (in REAPER, choose **Actions > Show action list > New
+  action > Load ReaScript** and pick the launcher file it shows; **Copy path** copies it; load it again after you update the app,
+  because the file moves with each update), then, with the chapter's project open in REAPER, run
+  **Script: NarrationStudio_Launcher.lua**. **Open in REAPER and connect** opens the linked project with the launcher in
+  one go, or connects the REAPER you already have open. If no REAPER project is linked yet it is off, with **Link in Settings**
+  beside the reason. A refusal or a start that never answers is written in the dialog.
 
-  ![Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason](../../images/ui/booth-record-setup.webp)
+  ![Booth - the REAPER not connected dialog, with the two steps, Open in REAPER and connect and Check again](../../images/ui/booth-record-setup.webp)
 
-  Both boxes say what they are waiting for ("Waiting for REAPER to connect") and when the app last looked ("Last checked 4 s
+  ![Booth - the dialog closed: the REAPER not connected mark above the footer, which reopens it](../../images/ui/booth-record-connect-closed.webp)
+
+  The dialog says what it is waiting for ("Waiting for REAPER to connect") and when the app last looked ("Last checked 4 s
   ago"). The Booth asks again by itself every few seconds while it waits, when you come back to its window, and when you press
-  **Check again**. If REAPER stops answering, the box says so instead of showing an old answer as fact. In a short window the
-  steps fold into one line, **Steps to connect**, so the text keeps room to read.
+  **Check again**. If REAPER stops answering, the dialog says it cannot tell instead of showing an old answer as fact.
 
   If the app is busy (an import, a build or a download is running) when REAPER starts and hands over its project, the app
-  keeps the project it has and says so, in the box and in a message that stays until you dismiss it. Finish or cancel what is
-  running, then press **Open in REAPER and connect** again.
+  keeps the project it has and says so in the dialog, which opens again for it. Finish or cancel what is running, then press
+  **Open in REAPER and connect** again.
 
-  ![Booth - REAPER started from the Connect box, but the app was busy and turned its project away: the box says so and what to do](../../images/ui/booth-record-turned-away.webp)
+  ![Booth - REAPER started from the dialog, but the app was busy and turned its project away: the dialog says so and what to do](../../images/ui/booth-record-turned-away.webp)
 
 - **REAPER has a different project open.** REAPER answers, but the project it has open is not the one linked here, so a take
   would not land where the book expects it. **Link the open project** opens the project picker (choose the file REAPER has
   open); or open the linked project in REAPER and press **Check again**. The Booth also asks again every few seconds while the
-  box is up, and by itself every 15 seconds otherwise, because REAPER sends no message when another project is opened.
+  box is up, and by itself every 15 seconds otherwise, because REAPER sends no message when another project is opened. The
+  box, like the Recording experimental box above it, says what it waits for and when the app last looked.
 
   ![Booth - REAPER has a different project open: the box offers Link the open project, DAW settings and Check again](../../images/ui/booth-record-other-project.webp)
 

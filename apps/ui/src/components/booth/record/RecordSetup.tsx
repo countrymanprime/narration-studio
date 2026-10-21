@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { DawCapabilities } from '../../../api/contracts/daw';
+import type { DawCapabilities, DawKind } from '../../../api/contracts/daw';
 import { apiErrorMessage } from '../../../api/errorMessage';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useToastClearance } from '../../../hooks/useToastClearance';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
 import { CheckLine } from '../../layout/CheckLine';
+import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
+import { ConnectionResolveDialog } from '../../connection/ConnectionResolveDialog';
+import { useOpenOnce } from '../../connection/useOpenOnce';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
 
 /** How long a linked project's connect notice waits for the app to connect on its own before it shows the steps. */
 const CONNECT_GRACE_MS = 20_000;
-
-/** A window short enough that the notice gives way to the text (the same height the explanation hides at). */
-const SHORT_WINDOW = '(max-height: 760px)';
 
 /**
  * The notice's frame. It shares the window with the text: it never takes more than 45% of its height, and scrolls inside when it needs more.
@@ -89,7 +88,19 @@ export function RecordSetup({
   const check = { checkedAt, readFailed, onCheckAgain };
   if (plan.kind === 'turn-on') return <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />;
   if (plan.kind === 'other-project') return <OtherProject plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />;
-  return <Connect plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} factsFailed={factsFailed} graceMs={graceMs} />;
+  return (
+    <Connect
+      plan={plan}
+      say={say}
+      onSettings={onSettings}
+      onChanged={onChanged}
+      check={check}
+      factsFailed={factsFailed}
+      graceMs={graceMs}
+      message={capabilities.capabilities.record?.message}
+      daw={capabilities.daw}
+    />
+  );
 }
 
 type CheckProps = { checkedAt?: number | null; readFailed?: boolean; onCheckAgain?: () => void };
@@ -227,30 +238,35 @@ function Connect({
   check,
   factsFailed,
   graceMs,
+  message,
+  daw,
 }: {
   plan: Extract<RecordSetupPlan, { kind: 'connect' }>;
+  daw: DawKind;
   say: Say;
   onSettings: () => void;
   onChanged: () => void;
   check: CheckProps;
   factsFailed?: boolean;
   graceMs: number;
+  /** The host's own sentence for why Record is off, when it sent one. */
+  message?: string;
 }) {
   const system = usePort('system');
-  const project = usePort('project');
-  const [busy, run] = useBusy();
   const { guide } = plan;
   const name = guide.dawName;
   // A launch hands its project to this app, which turns it away while it is busy (the host's `system:attached` with a reason). Nothing else on the
-  // page would say why the notice is still here, so the notice says it, and what to do, until a project is taken or the narrator checks again.
+  // page would say why the dialog is still needed, so the dialog says it, and what to do, until a project is taken or the narrator checks again.
   const [turnedAway, setTurnedAway] = useState<string | null>(null);
-  // A linked project connects on its own (the app runs the launcher in the open DAW), so the steps wait until that has had its time.
+  // A linked project connects on its own (the app runs the launcher in the open DAW), so the dialog waits until that has had its time.
   const [settling, setSettling] = useState(plan.linked && graceMs > 0);
   useEffect(() => {
     if (!plan.linked) return;
     const timer = window.setTimeout(() => setSettling(false), graceMs);
     return () => window.clearTimeout(timer);
   }, [plan.linked, graceMs]);
+  const dialog = useOpenOnce(`reaper-off:${name}`, settling && !turnedAway);
+  const reopen = dialog.reopen;
   useEffect(
     () =>
       system.subscribeProjectAttach((state) => {
@@ -259,41 +275,22 @@ function Connect({
       }),
     [system],
   );
-  // In a short window the steps fold into one line the narrator opens, so the notice leaves the text its room.
-  const short = useMediaQuery(SHORT_WINDOW, false);
+  // A project turned away is news the narrator has to see, whether or not they closed the dialog before.
+  useEffect(() => {
+    if (turnedAway) reopen();
+  }, [turnedAway, reopen]);
   const copy = () =>
     void navigator.clipboard
       .writeText(plan.launcherPath)
       .then(() => say('Launcher file path copied.'))
       .catch(() => say('Could not copy the launcher file path.', 'error'));
-  const openAndConnect = () =>
-    run(async () => {
-      try {
-        await system.saveSettings('DAW', 'global', guide.launch.settings);
-        const started = await project.launchDaw();
-        say(`${name} is starting (${started.path}). Record turns on here once it connects.`, undefined, START_TOPIC);
-        onChanged();
-      } catch (error) {
-        say(`${name} could not be started: ${apiErrorMessage(error)}`, 'error', START_TOPIC);
-      }
-    });
-  const linkStep = factsFailed ? (
-    'Could not read whether a project file is linked. Press Check again.'
-  ) : (
-    <>
-      {guide.link}{' '}
-      <Button variant="secondary" size="sm" onClick={onSettings}>
-        Link in Settings
-      </Button>
-    </>
-  );
   const installStep = (
     <li>
       {guide.install}
       {plan.launcherPath ? ':' : `: ${guide.installFile}.`}
       {plan.launcherPath && (
         <span className="mt-1 flex flex-wrap items-center gap-2">
-          <code className="rounded bg-[var(--surface)] px-2 py-1 text-xs break-all text-[var(--text)]">{plan.launcherPath}</code>
+          <code className="rounded bg-[var(--surface-2)] px-2 py-1 text-xs break-all text-[var(--text)]">{plan.launcherPath}</code>
           <Button variant="secondary" size="sm" onClick={copy}>
             Copy path
           </Button>
@@ -302,69 +299,56 @@ function Connect({
       <span className="mt-1 block">{guide.installAgain}</span>
     </li>
   );
-  if (plan.linked && settling && !turnedAway) {
-    return (
-      <NoticeFrame title={`Connecting to ${name}…`}>
-        <p className="text-[var(--text-muted)]">The project is linked, so this app is connecting on its own.</p>
-        {check.onCheckAgain && (
-          <CheckLine waiting={`Waiting for ${name} to ${plan.notAnswering ? 'answer' : 'connect'}`} unknown={`${name} is connected`} {...check} />
-        )}
-        <div>
-          <Button variant="secondary" size="sm" onClick={() => setSettling(false)}>
-            Show the steps
-          </Button>
-        </div>
-      </NoticeFrame>
-    );
-  }
+  const label = turnedAway
+    ? `${name} started, project turned away`
+    : settling
+      ? `Connecting to ${name}…`
+      : plan.notAnswering
+        ? `${name} not answering`
+        : `${name} not connected`;
   return (
-    <NoticeFrame
-      title={turnedAway ? `${name} started, but its project was turned away` : plan.notAnswering ? `${name} is not answering` : `Connect ${name} to record`}
-    >
-      {turnedAway && (
-        <p role="alert" className="text-[var(--danger-text)]">
-          {name} started, but this app turned its project away: {turnedAway} Finish or cancel what is running, then press {guide.launch.label} again.
-        </p>
-      )}
-      {short ? (
-        // In a short window the steps fold into one line the narrator opens; the one that needs a button now (the link) stays out in the open.
-        <>
-          {!plan.linked && <p className="text-[var(--text-muted)]">{linkStep}</p>}
-          <details key="short" className="text-[var(--text-muted)]">
-            <summary className="cursor-pointer text-[var(--text)]">Steps to connect</summary>
-            <ol className="mt-2 list-decimal space-y-2 pl-5">
-              {installStep}
-              <li>{guide.run}</li>
-            </ol>
-          </details>
-        </>
-      ) : (
-        <ol className="list-decimal space-y-2 pl-5 text-[var(--text-muted)]">
-          {!plan.linked && <li>{linkStep}</li>}
-          {installStep}
-          <li>{guide.run}</li>
-        </ol>
-      )}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" onClick={() => void openAndConnect()} pending={busy} disabled={!plan.linked}>
-          {guide.launch.label}
-        </Button>
-        {/* What the button does gives way in a short window; why it is off ("Link the project file first.") never does. */}
-        <span className={`text-[var(--text-muted)] ${plan.linked ? '[@media(max-height:760px)]:hidden' : ''}`}>
-          {plan.linked ? guide.launch.note : 'Link the project file first.'}
-        </span>
+    <>
+      <div className="mx-5 mb-2 flex">
+        <ConnectionIndicator id="brec-setup" label={label} onOpen={dialog.reopen} />
       </div>
-      {check.onCheckAgain && (
-        <CheckLine
-          waiting={`Waiting for ${name} to ${plan.notAnswering ? 'answer' : 'connect'}`}
-          unknown={`${name} is ${plan.notAnswering ? 'answering' : 'connected'}`}
-          {...check}
+      {dialog.open && (
+        <ConnectionResolveDialog
+          variant="reaper-off"
+          daw={daw}
+          name={name}
+          waitingFor={plan.notAnswering ? 'answer' : 'connect'}
+          sentence={
+            turnedAway
+              ? `${name} started, but its project was turned away.`
+              : (message ?? `${name} is ${plan.notAnswering ? 'not answering' : 'not connected'}.`)
+          }
+          stillWorks="You can still read the script and rehearse. Record turns on here once it connects."
+          checkedAt={check.checkedAt ?? null}
+          readFailed={check.readFailed}
           onCheckAgain={() => {
             setTurnedAway(null);
             check.onCheckAgain?.();
           }}
-        />
+          onCaps={() => onChanged()}
+          onLaunched={(path) => say(`${name} is starting (${path}). Record turns on here once it connects.`, undefined, START_TOPIC)}
+          startLabel={guide.launch.label}
+          linked={factsFailed ? undefined : plan.linked}
+          onLink={onSettings}
+          onClose={dialog.close}
+        >
+          {turnedAway && (
+            <p role="alert" className="text-[var(--danger-text)]">
+              {name} started, but this app turned its project away: {turnedAway} Finish or cancel what is running, then press {guide.launch.label} again.
+            </p>
+          )}
+          {factsFailed && <p className="text-[var(--text-muted)]">Could not read whether a project file is linked. Press Check again.</p>}
+          <p className="text-[var(--text-muted)]">{plan.linked ? guide.launch.note : null}</p>
+          <ol className="list-decimal space-y-2 pl-5 text-[var(--text-muted)]">
+            {installStep}
+            <li>{guide.run}</li>
+          </ol>
+        </ConnectionResolveDialog>
       )}
-    </NoticeFrame>
+    </>
   );
 }

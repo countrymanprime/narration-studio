@@ -14,7 +14,7 @@ async function openBooth(page: Page, query = RECORD_ON, recordReady = true): Pro
   await page.goto(`/${query}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
-  await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
   if (recordReady) await expect(record(page)).toBeEnabled();
 }
 
