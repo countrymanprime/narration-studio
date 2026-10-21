@@ -48,7 +48,7 @@ export function importDescription(requiresReset: boolean): string {
 function Tile({ on, children }: { on: boolean; children: ReactNode }) {
   return (
     <div
-      className={`flex h-[3.25rem] items-center overflow-hidden rounded-[var(--radius-card)] border px-2.5 py-1.5 ${on ? 'bg-[var(--surface-2)]' : 'opacity-60'}`}
+      className={`flex h-[3.25rem] items-center overflow-hidden rounded-[var(--radius-card)] border px-2.5 py-1.5 ${on ? 'bg-[var(--surface-2)]' : 'text-[var(--text-muted)]'}`}
       style={{ borderColor: 'var(--border)' }}
     >
       {children}
@@ -154,6 +154,7 @@ export function ImportReview({
       onOpenChange={(next) => setOpen('narration', next)}
       className={groupClass('narration')}
       panelClassName={panelClass}
+      panelFocusable
     >
       {/* Two columns of tiles. The open group scrolls in the box around it, so this list never carries a scrollbar of its own. */}
       <div className="gap-2 py-2 sm:grid sm:grid-cols-2 sm:content-start">
@@ -256,6 +257,7 @@ export function ImportReview({
                 onOpenChange={(next) => setOpen('characters', next)}
                 className={groupClass('characters')}
                 panelClassName={panelClass}
+                panelFocusable
               >
                 <div className="pb-2">
                   <p className="mb-2 text-xs text-[var(--text-muted)]">Checked names become reviewable Character entries after import.</p>
@@ -308,6 +310,7 @@ export function ImportReview({
                 onOpenChange={(next) => setOpen('repairs', next)}
                 className={groupClass('repairs')}
                 panelClassName={panelClass}
+                panelFocusable
               >
                 <ul className="list-disc space-y-1 pt-1 pb-3 pl-9 text-xs break-words text-[var(--text-muted)]">
                   {notices.map((notice, index) => (
@@ -326,9 +329,9 @@ export function ImportReview({
           className="h-[8.5rem] flex-none overflow-hidden rounded-[var(--radius-card)] border bg-[var(--surface)] p-3"
           style={{ borderColor: 'var(--border)' }}
         >
-          <h4 className="text-sm font-semibold">
+          <h3 className="text-sm font-semibold">
             <HeadingLines heading={reviewedHeading(previewed, selection)} />
-          </h4>
+          </h3>
           <p className="mt-1 line-clamp-3 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
         </section>
       )}
