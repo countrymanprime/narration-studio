@@ -4,7 +4,7 @@
 
 local H = require('harness')
 
-local LABEL = 'Narration Utils: repair clicks'
+local LABEL = 'Narration Studio: repair clicks'
 local RAMP = 0.002
 local DIP_DB = 30
 

@@ -5,7 +5,7 @@
 
 local H = require('harness')
 
-local UNDO_LABEL = 'Narration Utils: delete words'
+local UNDO_LABEL = 'Narration Studio: delete words'
 local CUTS_KEY = 'narration_utils_cuts'
 
 -- A chapter track with an intro (0-8), the item the words are in (10-30) and a later item (32-37), and a second track

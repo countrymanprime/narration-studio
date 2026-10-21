@@ -81,7 +81,7 @@ describe('ChapterTrackPanel playback and Select in REAPER', () => {
 
     await waitFor(() =>
       expect(notify).toHaveBeenCalledWith(
-        'REAPER is not connected to this app. To select a track in REAPER, open this app from the Narration Utils action in REAPER.',
+        'REAPER is not connected to this app. To select a track in REAPER, open this app from the Narration Studio action in REAPER.',
         'error',
       ),
     );

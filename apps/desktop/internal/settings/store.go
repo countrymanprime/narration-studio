@@ -1,4 +1,4 @@
-// Package settings preserves Narration Utils' three-layer JSON settings
+// Package settings preserves Narration Studio' three-layer JSON settings
 // contract: project overrides, then per-user global settings, then repository
 // defaults. It intentionally reads existing files without rewriting schemas.
 package settings

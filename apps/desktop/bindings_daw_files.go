@@ -145,7 +145,7 @@ func filePathRefusal(path string, picked bool) (dawport.Result, bool) {
 }
 
 func fileStandaloneSentence(name string) string {
-	return fmt.Sprintf("%s is not connected to this app. Open this app from the Narration Utils action in %s.", name, name)
+	return fmt.Sprintf("%s is not connected to this app. Open this app from the Narration Studio action in %s.", name, name)
 }
 
 // fileRefusal words an error a file role returned, from name, the adapter's display name.
@@ -155,11 +155,11 @@ func fileRefusal(name string, err error) dawport.Result {
 	}
 	switch {
 	case errors.Is(err, bridge.ErrNoAnswer), errors.Is(err, context.DeadlineExceeded):
-		return dawport.Refused(fmt.Sprintf("%s is not answering. Check that %s is open and the Narration Utils action is running, then try again.", name, name))
+		return dawport.Refused(fmt.Sprintf("%s is not answering. Check that %s is open and the Narration Studio action is running, then try again.", name, name))
 	case errors.Is(err, bridge.ErrUnavailable):
 		return dawport.Refused(fileStandaloneSentence(name))
 	case errors.Is(err, bridge.ErrScriptOutdated):
-		return dawport.Refused(fmt.Sprintf("The Narration Utils script in %s is older than this app. Import it again from this app's %s folder.", name, name))
+		return dawport.Refused(fmt.Sprintf("The Narration Studio script in %s is older than this app. Import it again from this app's %s folder.", name, name))
 	case errors.Is(err, bridge.ErrRecording):
 		return dawport.Refused(fmt.Sprintf("%s is recording. Stop recording first.", name))
 	case errors.Is(err, bridge.ErrNotMediaFile):

@@ -22,7 +22,7 @@ const (
 	// messageNotLast is the refusal when REAPER's next undo point is not the app's action of that kind.
 	messageNotLast             = "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER."
 	messageUndoSteps           = "The number of steps to undo must be 1 to 12, so nothing was undone."
-	messageUndoScriptOutdated  = "The Narration Utils script in REAPER is older than this app and cannot undo the app's actions, so nothing was undone. Import the script again from this app's REAPER folder."
+	messageUndoScriptOutdated  = "The Narration Studio script in REAPER is older than this app and cannot undo the app's actions, so nothing was undone. Import the script again from this app's REAPER folder."
 	messageUndoRecordingInDAW  = "REAPER is recording. Stop recording first."
 	messageUndoPartialTemplate = "Undid %d of the %d %s in REAPER. The rest are no longer REAPER's last actions, so they were left alone. Use Edit > Undo in REAPER for them."
 )

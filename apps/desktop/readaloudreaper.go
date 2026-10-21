@@ -47,7 +47,7 @@ type readAloudReaperState struct {
 }
 
 const (
-	messageReaperOff       = "REAPER is not connected to this app. To record with reading, open this app from the Narration Utils action in REAPER."
+	messageReaperOff       = "REAPER is not connected to this app. To record with reading, open this app from the Narration Studio action in REAPER."
 	messageExperimentalOff = "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it."
 )
 

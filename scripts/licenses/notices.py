@@ -492,7 +492,7 @@ def render_report(
     out.append(_section("Copyleft components"))
     if copyleft:
         out.append(
-            "These components are under a copyleft licence. Narration Utils is itself AGPL-3.0-or-later, so they are used under terms it\n"
+            "These components are under a copyleft licence. Narration Studio is itself AGPL-3.0-or-later, so they are used under terms it\n"
             "is compatible with, and their source is available: from the address on each entry, at the version named there, and with this\n"
             "program's own source above.\n\n" + "\n".join(f"  - {c.name} {c.version}: {names[c]}" for c in copyleft) + "\n"
         )

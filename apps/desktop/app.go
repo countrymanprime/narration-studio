@@ -1436,7 +1436,7 @@ func unresolvedLaunchReason(next config) (string, bool) {
 // startupProjectFileReason is the narrator-facing explanation emitted when a
 // REAPER launch could not be resolved to any project: an unsaved REAPER
 // project has no file to match at all, and a saved one may simply not be
-// linked to a Narration Utils project yet. Either way the picker (already
+// linked to a Narration Studio project yet. Either way the picker (already
 // shown whenever projectFolder is empty) is where the narrator resolves it.
 func startupProjectFileReason(projectFile string) string {
 	if projectFile == "" {

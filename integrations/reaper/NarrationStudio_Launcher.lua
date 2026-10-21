@@ -1,4 +1,4 @@
--- Narration Utils - the sole REAPER action for the suite.
+-- Narration Studio - the sole REAPER action for the suite.
 -- Launches the native Go/Wails app (narration-utils, narration-utils.exe on Windows). Closing the app's window is the only thing that stops it. Python only runs as a
 -- short-lived subprocess the app spawns for Story Bible builds and
 -- transcript comparisons, never as a supervised server. REAPER itself has
@@ -21,7 +21,7 @@ local ok_bridge, bridge = pcall(dofile, join(SHARED, 'narration_ui_bridge.lua'))
 if not ok_core or not ok_proc or not ok_bridge then
   -- The first failure names the file that could not be loaded (a missing or broken bridge feature file, say).
   local failure = (not ok_core and common) or (not ok_proc and process) or bridge
-  reaper.ShowMessageBox('Could not load Narration Utils shared libraries from:\n' .. SHARED .. '\n\n' .. tostring(failure), 'Narration Utils', 0)
+  reaper.ShowMessageBox('Could not load Narration Studio shared libraries from:\n' .. SHARED .. '\n\n' .. tostring(failure), 'Narration Studio', 0)
   return
 end
 
@@ -77,14 +77,14 @@ reaper.RecursiveCreateDirectory(join(session_dir, 'commands'), 0)
 
 if not release_mode and not common.file_exists(shared_python) then
   reaper.ShowMessageBox(
-    'Narration Utils has not been set up in this checkout yet.\n\n'
+    'Narration Studio has not been set up in this checkout yet.\n\n'
       .. 'From the repository root, run:\n\n'
       .. '  pnpm run bootstrap\n\n'
       .. 'It creates the local Python environment and builds the workspace.\n'
       .. 'Optional spaCy models and Piper voices are not downloaded at setup.\n\n'
       .. 'Diagnostic session:\n'
       .. session_dir,
-    'Narration Utils setup required',
+    'Narration Studio setup required',
     0
   )
   return
@@ -92,8 +92,8 @@ end
 
 if not common.file_exists(app_exe) then
   reaper.ShowMessageBox(
-    'The Narration Utils app has not been built yet.\n\n' .. 'From this checkout, run:\n  pnpm run bootstrap\n\n' .. 'Then launch Narration Utils again.',
-    'Narration Utils setup required',
+    'The Narration Studio app has not been built yet.\n\n' .. 'From this checkout, run:\n  pnpm run bootstrap\n\n' .. 'Then launch Narration Studio again.',
+    'Narration Studio setup required',
     0
   )
   return
@@ -146,7 +146,7 @@ end
 if
   not process.run_hidden(session_dir, command, { wait = false, show_window = true, cwd = release_mode and common.dirname(app_exe, BUNDLE_ROOT) or REPO_ROOT })
 then
-  reaper.ShowMessageBox('Could not open Narration Utils.', 'Narration Utils', 0)
+  reaper.ShowMessageBox('Could not open Narration Studio.', 'Narration Studio', 0)
   return
 end
 

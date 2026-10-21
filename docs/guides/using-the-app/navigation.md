@@ -185,7 +185,7 @@ all (such as a MIDI item). To hear a chapter, open it on [Editing](editing.md).
 ### REAPER tools
 
 When the project has tracks, the REAPER tools sit in a row under the project. **Link chapters…** and
-**Prepare chapter render…** change the project open in REAPER, through the Narration Utils script
+**Prepare chapter render…** change the project open in REAPER, through the Narration Studio script
 the launcher runs there; nothing is written until you press the dialog's action button. The app connects
 to the launcher in the REAPER you have open without you running it by hand.
 

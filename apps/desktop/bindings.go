@@ -298,7 +298,7 @@ func (h *Host) ProjectSwitch(path, name string) (string, error) {
 	return reportAttach(ctx, attached, reason)
 }
 
-// pickerSwitchDAW is the `daw` a picker switch attaches with. An Audacity launch (the installer's "Narration Utils for Audacity"
+// pickerSwitchDAW is the `daw` a picker switch attaches with. An Audacity launch (the installer's "Narration Studio for Audacity"
 // shortcut starts the app with `--daw Audacity` and no folder) stays one: the narrator's DAW is
 // still Audacity whichever folder they pick, and no bridge is tied to a project. Any other launch becomes "Standalone", a REAPER
 // one included, because the picked project is not the one REAPER has open.

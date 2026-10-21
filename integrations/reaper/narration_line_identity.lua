@@ -104,7 +104,7 @@ local function stamp_item_lines(session_dir, run_id, path, overwrite)
       reaper.GetSetMediaItemInfo_String(entry.item, LINE_ID_KEY, entry.row.id, true)
       reaper.GetSetMediaItemInfo_String(entry.item, LINE_TEXT_KEY, entry.row.text, true)
     end
-    reaper.Undo_EndBlock2(0, 'Narration Utils: stamp manuscript line IDs', -1)
+    reaper.Undo_EndBlock2(0, 'Narration Studio: stamp manuscript line IDs', -1)
     reaper.UpdateArrange()
   end
   report_unresolved(session_dir, 'LINES_STALE', run_id, plan.missing)

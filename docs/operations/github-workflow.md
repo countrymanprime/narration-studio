@@ -13,7 +13,7 @@ decisions and documentation; GitHub is where work is tracked and discussed.
 | Decisions | [`docs/adr/`](../adr/README.md) | Linked from issues and pull requests, never copied |
 | Documentation | `docs/` | Not mirrored anywhere. The **wiki is disabled** on purpose: it is an unreviewed second copy that drifts from the docs that change with the code. A curated public site is generated from `docs/` on every build and never kept as a copy ([`tools/docs-site`](ci-and-releases.md#the-public-docs-site), [The public docs site](ci-and-releases.md#the-public-docs-site)); Pages is not enabled yet (owner settings below). |
 | Planned work | [`docs/prds/`](../prds/README.md) | Issues link the PRD and phase they deliver; the PRD is deleted once the work is steady state |
-| Work in flight | Issues and pull requests | The **Narration Utils** project board |
+| Work in flight | Issues and pull requests | The **Narration Studio** project board |
 
 Never edit milestones or labels by hand in the GitHub UI: the next sync reverts a label or milestone that is
 listed in the files above. To change one, edit the file (or `roadmap.json`) in a pull request. Labels and
@@ -45,7 +45,7 @@ remove it when a maintainer has looked at the issue.
 
 ## Project board
 
-One project, **Narration Utils**, owned by the maintainer and linked from the repository's Projects tab.
+One project, **Narration Studio**, owned by the maintainer and linked from the repository's Projects tab.
 
 - **Fields:** the built-in *Status* (Backlog, Ready, In progress, In review, Done), plus the built-in
   *Milestone* and *Labels*. There is deliberately no separate *Area* field; that would duplicate the `area:*`
@@ -67,7 +67,7 @@ a long-lived token is a secret this repository does not need.
 2. Create and link it:
 
    ```bash
-   gh project create --owner countrymanprime --title "Narration Utils"
+   gh project create --owner countrymanprime --title "Narration Studio"
    gh project link <number> --owner countrymanprime --repo countrymanprime/narration-studio
    ```
 
