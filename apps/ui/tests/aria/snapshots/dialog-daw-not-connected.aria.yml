@@ -1,6 +1,6 @@
 - main:
   - region "Script editor":
-    - toolbar "Playback and selection": Click a word to place the cursor, drag or Shift+arrows to select
+    - toolbar "Playback and selection"
 - status
 - alert
 - status
