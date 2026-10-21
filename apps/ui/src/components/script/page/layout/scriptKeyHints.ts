@@ -20,7 +20,7 @@ export const SCRIPT_FOOTER_SPEC: readonly HintSpec[] = [
   { id: 'editing.chapter.prev', with: ['editing.chapter.next'], label: 'chapter' },
   { id: 'bookmark.here', label: 'bookmark' },
   { id: 'bookmark.prev', with: ['bookmark.next'], label: 'bookmarks' },
-  { id: 'script.find', label: 'find' },
+  { id: 'jump.page', label: 'search' },
 ];
 
 /** The caps of commands drawn as one chord: a key with the modifiers of the one before is drawn without them ("Alt [ ]"). Null when a command has no gesture. */

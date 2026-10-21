@@ -155,7 +155,7 @@ export const CheckedRowsAndKeyHints: Story = {
         ],
       },
       { key: 'jump', label: 'Jump menu…', shortcut: ['Ctrl', 'K'], onSelect: fn() },
-      { key: 'find', label: 'Find a page, chapter or command', shortcut: ['Ctrl', 'F'], onSelect: fn() },
+      { key: 'search', label: 'Search this page', shortcut: ['Ctrl', 'F'], onSelect: fn() },
     ],
   },
   play: async ({ canvasElement }) => {

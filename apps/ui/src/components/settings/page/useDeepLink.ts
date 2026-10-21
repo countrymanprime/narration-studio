@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 export function useDeepLink(target: string | null, ready: boolean, done: () => void, setLit: (rowId: string | null) => void): void {
   useEffect(() => {
     if (!target || !ready) return undefined;
-    const element = document.querySelector<HTMLElement>(`[data-row="${CSS.escape(target)}"]`);
+    const element = document.querySelector<HTMLElement>(`[data-row="${CSS.escape(target)}"], [data-page-setting="${CSS.escape(target)}"]`);
     if (!element) return undefined;
     element.scrollIntoView?.({ block: 'center' });
     // The row's own control first; a row with a custom body has none by that id, so the first thing in its control column.

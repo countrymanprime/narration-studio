@@ -1542,7 +1542,7 @@ describe('App shell mounts', () => {
     const page = main.querySelector('.scroll-chrome-hidden') as HTMLElement;
     fireEvent.contextMenu(page);
     const menu = await screen.findByRole('menu');
-    for (const name of ['Go to', 'View', 'Jump menu…', 'Find a page, chapter or command']) {
+    for (const name of ['Go to', 'View', 'Jump menu…', 'Search this page']) {
       expect(within(menu).getByRole('menuitem', { name: new RegExp(`^${name}`) })).toBeTruthy();
     }
     // The key hints the mock draws beside the two search rows, and the current page checked under Go to.
@@ -1829,6 +1829,37 @@ describe('App page change signal', () => {
     fireEvent.keyDown(document, { key: 'ArrowRight', code: 'ArrowRight', altKey: true });
     await screen.findByRole('heading', { name: 'Script' });
     await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
+  });
+
+  it('ctrl-f-searches-the-page: on Script it opens the menu scoped to the page, and a chapter is listed once, under On this page', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
+    await screen.findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 4000 });
+    fireEvent.keyDown(document.body, { key: 'f', code: 'KeyF', ctrlKey: true });
+    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
+    expect(document.getElementById(field.getAttribute('aria-describedby')!)!.textContent).toMatch(/Script page. Searching this page only/);
+    fireEvent.change(field, { target: { value: 'rabbit' } });
+    const names = () => screen.getAllByRole('option').map((option) => option.textContent ?? '');
+    await waitFor(() => expect(names().some((name) => /Down the Rabbit-Hole/.test(name))).toBe(true));
+    expect(names().some((name) => /^Go to /.test(name))).toBe(false);
+    expect(screen.queryByRole('search')).toBeNull();
+    // The overlay service is shared by the file's tests, so the menu is closed before the next one opens its own.
+    fireEvent.keyDown(field, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+  });
+
+  it('ctrl-k-lists-the-page-first: the whole menu opens with On this page before Commands', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
+    await screen.findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 4000 });
+    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+    await screen.findByRole('combobox', { name: 'Jump menu' });
+    const headings = () => Array.from(document.querySelectorAll('[role="listbox"] [role="presentation"]')).map((node) => node.textContent);
+    expect(headings()).toContain('Commands');
+    expect(headings()[0]).toBe('On this page');
   });
 
   it('leaves focus in the page after the jump menu picks one', async () => {

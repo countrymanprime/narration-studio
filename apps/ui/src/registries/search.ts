@@ -5,6 +5,8 @@ export type SearchHit = {
   group: string;
   title: string;
   sub?: string;
+  /** The title split around the matched term, so the menu can mark the match. `pre + hit + post` is the title. */
+  snippet?: { pre: string; hit: string; post: string };
   run: () => void;
 };
 

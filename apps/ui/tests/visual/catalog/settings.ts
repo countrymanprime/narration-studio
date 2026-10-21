@@ -6,6 +6,12 @@ import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CL
 export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
+    state: 'jump-menu',
+    description: 'Settings, the jump menu typed "microphone": the setting row under its category in On this page, before any command',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'page-top',
     description:
       'Settings arriving on Recording & DAW at its defaults: the Settings heading with Search settings and the All / Changed / In this project filter, the category list with its three groups and Set on a page, and the Recording tool section with "Record with" (REAPER, Audacity, Built-in recorder) and its connection card, then the Microphone',

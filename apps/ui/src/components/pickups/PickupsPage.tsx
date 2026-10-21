@@ -18,6 +18,7 @@ import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
 import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
+import { usePickupsPageCommands } from './usePickupsPageCommands';
 
 /** A chapter named as the manuscript heads it, label then title ("Chapter 3 A Caucus-Race and a Long Tale"), as the mock's `chName` and the Editing page. */
 function headingName(chapter: Parameters<typeof chapterHeading>[0]): string {
@@ -69,6 +70,8 @@ export function PickupsPage({
   const [read, setRead] = useState<PickupsRead>({ kind: 'loading' });
   const [scopeChoice, setScope] = useState(ALL_SCOPE);
   const [current, setCurrent] = useState('');
+  /* The jump menu's pick of a line: the table selects it. `n` makes a second pick of the same line count. */
+  const [reveal, setReveal] = useState<{ id: string; n: number } | null>(null);
   /* Back from the Booth lands on the line that was opened (the table selects it once the list is there). */
   const [returnTo] = useState(pickupToReturnTo);
   const [seconds, setSeconds] = useState<Measured<number>>(LOADING);
@@ -210,6 +213,23 @@ export function PickupsPage({
     await changing(pickupsApi.pickupsList());
   };
 
+  usePickupsPageCommands({
+    pickups: hasManuscript ? list.pickups : [],
+    chapters,
+    scope,
+    inView,
+    chaptersToCheck: list.leftOut.map((chapter) => chapter.chapterId),
+    daw: { available: review.available, message: review.message },
+    markers: { available: markers.available, message: markers.message },
+    dawName,
+    onScope: choose,
+    onReveal: (id) => setReveal((before) => ({ id, n: (before?.n ?? 0) + 1 })),
+    onCheck: (ids) => openCheckRecordings(ids),
+    onOpenInBooth: (picked) => goTo(boothSessionPath(picked)),
+    onAddMarkers: addMarkers,
+    onError: (error) => overlay.toast(reasonSentence(error), { tone: 'error' }),
+  });
+
   if (!hasManuscript) return <NeedManuscript title="Pickups" onImport={() => goTo('/')} />;
 
   const openInBooth = (picked: PickupItem[]) => {
@@ -223,6 +243,7 @@ export function PickupsPage({
         <PickupsTable
           pickups={list.pickups}
           returnTo={returnTo}
+          reveal={reveal}
           read={read}
           checking={checking}
           onReload={() => {
