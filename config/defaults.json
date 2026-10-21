@@ -89,6 +89,7 @@
     "cascade_first_pass_model": "tiny",
     "cascade_recheck_model": "large-v3-turbo",
     "cascade_unsure_below": "0.5",
+    "cascade_pipeline": "true",
     "parallel_workers": "0",
     "chunk_seconds": "300",
     "chunk_overlap_seconds": "6",

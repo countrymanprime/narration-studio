@@ -1789,9 +1789,12 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"cascade_recheck_model", "Re-check Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
 		// Also re-check passages whose words Whisper scored under this; 0 re-checks only what is missing.
 		{"cascade_unsure_below", "Also re-check passages Whisper is unsure of (word score under; 0 = off)", "number", nil},
+		// With a score line set, the larger model re-checks each item's doubtful passages while the first pass is still on the next
+		// items, in one process. Off runs the first pass over every item before the larger model starts.
+		{"cascade_pipeline", "Run the larger model alongside the first pass", "bool", nil},
 		// How a long item is cut up and how many Whisper processes work on the pieces. They change how fast
 		// the same words are made, not which ones count, so changing one never makes a result stale.
-		{"parallel_workers", "Parallel Whisper processes (0 = chosen from the model)", "number", nil},
+		{"parallel_workers", "Items checked at once (0 = chosen from the model and the processors)", "number", nil},
 		{"chunk_seconds", "Chunk length in seconds (0 = each item whole)", "choice", []string{"0", "60", "120", "300", "600", "900"}},
 		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
 		// Chapters a Check recordings run checks at once; they share the processors.

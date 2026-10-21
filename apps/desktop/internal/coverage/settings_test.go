@@ -23,7 +23,7 @@ func TestResolveSettingsWithNothingSetIsTheShippedDefaults(t *testing.T) {
 	got := ResolveSettings(lookupFrom(nil))
 	want := Settings{
 		Alignment: AlignmentParams{MaxMisreadRun: 8, MinAnchorRun: 3}, Thresholds: Thresholds{MinParagraphPresent: 0.8, MaxMissingRun: 3},
-		Cascade:  CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5},
+		Cascade:  CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5, Pipeline: true},
 		Parallel: Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1},
 	}
 	if got != want || got != DefaultSettings {
@@ -35,8 +35,20 @@ func TestResolveSettingsReadsTheCascade(t *testing.T) {
 	got := ResolveSettings(lookupFrom(map[string]string{
 		SettingCascadeEnabled: "true", SettingCascadeFirstPassModel: "small", SettingCascadeRecheckModel: "large-v3",
 	}))
-	if got.Cascade != (CascadeSettings{Enabled: true, FirstPassModel: "small", RecheckModel: "large-v3", UnsureBelow: DefaultSettings.Cascade.UnsureBelow}) {
+	if got.Cascade != (CascadeSettings{Enabled: true, FirstPassModel: "small", RecheckModel: "large-v3", UnsureBelow: DefaultSettings.Cascade.UnsureBelow, Pipeline: true}) {
 		t.Fatalf("Cascade = %+v", got.Cascade)
+	}
+}
+
+func TestResolveSettingsPipelinesTheCascadeUnlessTurnedOff(t *testing.T) {
+	if !ResolveSettings(lookupFrom(nil)).Cascade.Pipeline {
+		t.Fatal("the pipelined cascade is on unless the narrator turns it off")
+	}
+	if ResolveSettings(lookupFrom(map[string]string{SettingCascadePipeline: "false"})).Cascade.Pipeline {
+		t.Fatal("cascade_pipeline=false must turn the pipelining off")
+	}
+	if !ResolveSettings(lookupFrom(map[string]string{SettingCascadePipeline: "maybe"})).Cascade.Pipeline {
+		t.Fatal("a value that is not true or false falls back to the default, on")
 	}
 }
 
