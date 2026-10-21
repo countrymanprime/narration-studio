@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { IconButton } from '../../primitives/IconButton';
 import { isLow, summarize } from '../model';
@@ -8,9 +9,10 @@ import type { ScriptPlayback } from './useScriptPlayback';
 
 /**
  * The bar at the foot of the script: transport, what is selected, and what the selection can do. The actions are whatever the other slices
- * registered (`registerSelectionAction`); with none registered the right-hand side is empty. `end` is the chapter's length in seconds.
+ * registered (`registerSelectionAction`); with none registered the right-hand side is empty. `end` is the chapter's length in seconds; `output` is the
+ * output controls (speed, mute, volume and device), drawn after the clock.
  */
-export function SelectionBar({ playback, end, narrow = false }: { playback: ScriptPlayback; end: number; narrow?: boolean }) {
+export function SelectionBar({ playback, end, narrow = false, output }: { playback: ScriptPlayback; end: number; narrow?: boolean; output?: ReactNode }) {
   const { doc, state, selected } = useEditingPage();
   const actions = useSelectionActions('bar');
   const keys = state.sel ? selected : [];
@@ -38,6 +40,7 @@ export function SelectionBar({ playback, end, narrow = false }: { playback: Scri
           <span className="text-[var(--text-muted)]"> / {clock(end)}</span>
         </span>
       </div>
+      {output}
       <div aria-live="polite" className="flex min-w-0 flex-[1_1_200px] flex-wrap items-center gap-2.5">
         {has ? (
           <>

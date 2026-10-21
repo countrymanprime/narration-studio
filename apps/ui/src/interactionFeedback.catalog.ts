@@ -145,6 +145,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/listening/useListeningMic.ts#1':
     'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does.',
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
+  'src/components/engine/outputPrefs.ts#1':
+    "Saving Editing's volume, mute, speed and output to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.",
   'src/components/booth/takeTone.ts#1':
     'Saving the start-tone choice to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.',
   'src/components/booth/takeTone.ts#2':

@@ -53,6 +53,15 @@ The bar at the foot plays the chapter in the app, from its recorded audio with e
 DAW closed. It shows the time, and what is selected with its start, end and length. The key hints under it come from
 your keyboard settings ([Settings](settings.md)), so a key you rebound shows its new key.
 
+Beside the clock, the **Output** group sets what you hear, not what is recorded. **Silence output** mutes the app's sound; it is not the
+**Mute** that silences the selected words in the recording. **Show volume and output device** opens a popover with the speed (0.75× to 2×, with the pitch of the voice kept), the volume and the output device: the system
+default, or one of this computer's outputs. A speed other than 1× is also written beside the buttons. The choices apply to the chapter and to a take you play on this page, and are kept for this
+computer, not for the project. A saved output that is not connected stays chosen with "(not connected)", the sound plays on the system default meanwhile, and **Check again** reads the list; a
+computer that names no outputs turns the choice off and says so. With REAPER connected and **Set the monitor level** on in [Settings](settings.md), the popover also has REAPER's monitor level,
+which sets REAPER's own output when REAPER plays and does not change the app's sound.
+
+![Editing - the Output popover open over the bar: the speed, the volume, the output device and REAPER's monitor level](../../images/ui/editing-output.webp)
+
 The word playing is lit, and the text scrolls to keep it in sight until you scroll by hand; the next play scrolls it
 again. When you play the project in the DAW instead, the lit word follows the DAW's play position, as long as the DAW
 reports one and the app is not playing its own audio. When the DAW stops, its last word stays lit until you move the
