@@ -11,7 +11,7 @@ import { barLayout } from './ribbonBars';
 import { activePid, ribbonLayout, type RibbonLayout } from './ribbonLayout';
 import { pickEntries, useRibbonPeaks } from './useRibbonPeaks';
 import { RangeNotes, RangeOverlay } from './RangeOverlay';
-import { spanOfKeys, wordAtTime, wordsCovered, type Span } from './rangeMath';
+import { wordAtTime, wordsCovered, type Span } from './rangeMath';
 import { PanStrip, ZoomRow } from './RibbonControls';
 import { useRangeInteraction } from './useRangeInteraction';
 import { useRibbonView } from './useRibbonView';
@@ -237,8 +237,8 @@ function ActiveRibbon({
   const peaks = useRibbonPeaks(chapterId);
   const layout = useMemo(() => ribbonLayout(doc, pid, selected, playT), [doc, pid, selected, playT]);
   const words = useMemo(() => doc.paras.find((p) => p.p.id === pid)?.items ?? [], [doc, pid]);
-  // The range is what the narrator drew, else the span of the words that are selected.
-  const range = useMemo(() => state.span ?? spanOfKeys(words, selected), [state.span, words, selected]);
+  // The range is only what the narrator drew: selecting a word does not draw one.
+  const range = state.span ?? null;
   // While a drag runs the page follows only when the words it covers change, so the script is not redrawn at every pixel.
   const lastKeys = useRef('');
   const onRange = useCallback(
