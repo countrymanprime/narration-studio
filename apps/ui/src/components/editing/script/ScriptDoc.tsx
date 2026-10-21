@@ -8,6 +8,9 @@ import { Paragraph } from './Paragraph';
 import { playable, playingKey } from './playing';
 import { useAnnounceCursor } from './useAnnounceCursor';
 
+/** How far the pointer must travel from the press before it is a drag selection and not a click. */
+const DRAG_SLOP_PX = 4;
+
 const keyAt = (t: EventTarget | null): string | null => (t instanceof Element ? (t.closest<HTMLElement>('[data-k]')?.dataset.k ?? null) : null);
 
 export const NO_TEXT = 'This chapter has no text yet.';
@@ -32,7 +35,8 @@ export interface ScriptDocProps {
 /** The script, one row for each paragraph, with what was heard marked on its words. Reads and writes the page state through `useEditingPage`. */
 export function ScriptDoc({ reason, explained = false, onCheckRecording, onParagraphRender }: ScriptDocProps) {
   const { doc, state, dispatch, selected } = useEditingPage();
-  const drag = useRef<string | null>(null);
+  // The word a press began on and where, until the button is up. The press becomes a drag only once the pointer has moved DRAG_SLOP_PX.
+  const drag = useRef<{ key: string; x: number; y: number; moved: boolean } | null>(null);
   const words = useMemo(() => playable(doc), [doc]);
   const nowKey = playingKey(words, state.playT);
   const nowPid = nowKey ? doc.items[doc.index.get(nowKey) ?? -1]?.pid : undefined;
@@ -68,15 +72,19 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
       drag.current = null;
     } else if (e.shiftKey) dispatch({ type: 'extend', key });
     else {
-      drag.current = key;
+      drag.current = { key, x: e.clientX, y: e.clientY, moved: false };
       dispatch({ type: 'place', key });
       if (opensCard(doc, key)) dispatch({ type: 'openFlag', key });
     }
   };
   const onOver = (e: MouseEvent<HTMLDivElement>): void => {
-    if (!drag.current || e.buttons !== 1) return;
+    const press = drag.current;
+    if (!press || e.buttons !== 1) return;
+    // A click wobbles: a slow page can deliver that wobble over the next word before the button-up, and it must stay a click.
+    if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) < DRAG_SLOP_PX) return;
+    press.moved = true;
     const key = keyAt(e.target);
-    if (key && key !== headKey) dispatch({ type: 'select', anchor: drag.current, head: key });
+    if (key && key !== headKey) dispatch({ type: 'select', anchor: press.key, head: key });
   };
 
   return (
