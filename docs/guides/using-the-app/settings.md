@@ -127,7 +127,7 @@ Changing it asks first. Choosing a model that is not on this computer shows **No
 
 **Live reading in the Booth** holds the **Live engine** (Whisper, or Moonshine on Windows) and the **Live model** (`tiny`
 or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Recording check** holds the **Two-pass check**, its **First-pass model** and
-**Re-check model**, **Parallel processes** and **Chunk length** ([how it works](../../utilities/recording-coverage.md#the-model-cascade)).
+**Re-check model**, **Run both models together**, **Parallel processes** and **Chunk length** ([how it works](../../utilities/recording-coverage.md#the-model-cascade)).
 
 ![Settings - Speech to text, asking before the transcription model changes](../../images/ui/settings-speech-confirm.webp)
 
