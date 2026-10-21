@@ -421,3 +421,29 @@ describe('Dialog headerless', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+describe('Dialog body scrolling', () => {
+  const bodyOf = () => screen.getByText('Body text').parentElement!;
+
+  it('scrolls its body, as a focusable region, by default', () => {
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Scrolls" actions={null}>
+        <p>Body text</p>
+      </Dialog>,
+    );
+    expect(bodyOf().className).toContain('overflow-y-auto');
+    expect(bodyOf().getAttribute('tabindex')).toBe('0');
+  });
+
+  it('with bodyScroll off, the body is a column that does not scroll and is not a tab stop, so its content scrolls one thing itself', () => {
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Fixed" bodyScroll={false} actions={null}>
+        <p>Body text</p>
+      </Dialog>,
+    );
+    expect(bodyOf().className).not.toContain('overflow-y-auto');
+    expect(bodyOf().className).toContain('flex-col');
+    expect(bodyOf().className).toContain('overflow-y-hidden');
+    expect(bodyOf().hasAttribute('tabindex')).toBe(false);
+  });
+});

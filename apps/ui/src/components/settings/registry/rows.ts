@@ -136,6 +136,19 @@ export const ROWS: readonly SettingMeta[] = [
     advanced: true,
     syn: 'record punch markers regions fx chains',
   },
+  {
+    id: 'daw.syncActivity',
+    cat: 'recording',
+    section: 'Chapter sync',
+    label: 'Sync activity',
+    scope: 'project',
+    def: '',
+    desc: 'What each chapter sync did, newest first. Undo removes a link sync made, and sync never makes it again.',
+    used: ['production'],
+    needs: 'reaper',
+    advanced: true,
+    syn: 'chapter sync log history undo link diagnostics track',
+  },
 
   // ---- Speech to text
   {
@@ -561,6 +574,18 @@ export const ROWS: readonly SettingMeta[] = [
     field: { tool: 'General', key: 'notifications' },
     desc: 'Shows a Windows notification when a check or export ends while you are in another program.',
     used: ['production', 'proof', 'master'],
+  },
+  {
+    id: 'app.importClose',
+    cat: 'app',
+    section: 'Importing',
+    label: 'Close the manuscript import when it finishes',
+    scope: 'computer',
+    def: 'true',
+    field: { tool: 'General', key: 'close_import_when_done' },
+    desc: 'Closes the import window as soon as the manuscript is written. Turn it off to read the import log first.',
+    used: ['production'],
+    syn: 'import dialog auto close finish complete',
   },
   {
     id: 'app.debug',

@@ -4,7 +4,7 @@
 
 local H = require('harness')
 
-local LABEL = 'Narration Utils: lower stretches'
+local LABEL = 'Narration Studio: lower stretches'
 local RAMP = 0.01
 
 local ITEM = '{AAAAAAAA-0000-4000-8000-000000000001}'

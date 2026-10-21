@@ -113,7 +113,7 @@ local function create_regions(session_dir, run_id, path, hex, update)
     for _, entry in ipairs(plan.move) do
       reaper.SetProjectMarker4(0, entry.region.number, true, entry.row.first, entry.row.last, entry.row.title, 0, 0)
     end
-    reaper.Undo_EndBlock2(0, 'Narration Utils: create regions', -1)
+    reaper.Undo_EndBlock2(0, 'Narration Studio: create regions', -1)
     reaper.UpdateArrange()
   end
   event(session_dir, 'REGIONS_CREATED', run_id, created, plan.existing, invalid, #plan.move, plan.ambiguous, failed)

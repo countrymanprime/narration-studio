@@ -250,7 +250,7 @@ func render(ctx context.Context, renderer dawport.FXRenderer, runID string, requ
 			}
 		},
 		Invalid: func(_ dawport.Event, reason error) {
-			finish(renderAnswer{err: fmt.Errorf("the DAW sent an answer this app could not read (%w): import the Narration Utils script from this app's REAPER folder again", reason)})
+			finish(renderAnswer{err: fmt.Errorf("the DAW sent an answer this app could not read (%w): import the Narration Studio script from this app's REAPER folder again", reason)})
 		},
 	})
 	defer unsubscribe()

@@ -32,7 +32,7 @@ type Config struct {
 	Python  string
 	Backend string
 	// ProjectFile resolves the saved .rpp the narrator chose for the project
-	// (the audio engine panel's selection). It must be directly inside Project.
+	// (the audio engine panel's selection). It may be anywhere.
 	ProjectFile func() (string, error)
 	// LoadManuscript returns the canonical manuscript (manuscript.Service.Load).
 	LoadManuscript func() (map[string]any, error)
@@ -315,8 +315,8 @@ func (s *Service) notify(state State) {
 }
 
 // savedProject resolves, checks and parses the saved .rpp: the only basis a
-// coverage run or result has (Q6). The file must be directly inside the
-// project folder, as tracks.Discover finds it.
+// coverage run or result has (Q6). The file is read wherever it is: in the project
+// folder at any depth, or in a separate DAW folder, as the link allows.
 func (s *Service) savedProject() (tracks.Project, evidence.LedgerProjectFile, error) {
 	if s.config.ProjectFile == nil {
 		return tracks.Project{}, evidence.LedgerProjectFile{}, unknown(ReasonNoProjectFile, "no REAPER project file is chosen for this project")
@@ -325,9 +325,8 @@ func (s *Service) savedProject() (tracks.Project, evidence.LedgerProjectFile, er
 	if err != nil {
 		return tracks.Project{}, evidence.LedgerProjectFile{}, unknownf(ReasonNoProjectFile, "choose the saved REAPER project file in the audio engine panel first (%v)", err)
 	}
-	relative, err := filepath.Rel(s.config.Project, path)
-	if err != nil || relative != filepath.Base(relative) || relative == "." || relative == ".." || !strings.EqualFold(filepath.Ext(relative), ".rpp") {
-		return tracks.Project{}, evidence.LedgerProjectFile{}, unknown(ReasonNoProjectFile, "the chosen REAPER project file is not in the project folder")
+	if !strings.EqualFold(filepath.Ext(path), ".rpp") {
+		return tracks.Project{}, evidence.LedgerProjectFile{}, unknown(ReasonNoProjectFile, "the chosen file is not a REAPER project file (.rpp)")
 	}
 	info, err := os.Stat(path)
 	if err != nil {

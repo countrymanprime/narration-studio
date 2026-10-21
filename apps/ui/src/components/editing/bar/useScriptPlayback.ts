@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { overlay } from '../../../overlay/overlayService';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
-import { firstFrom, summarize, type ChapterDoc } from '../model';
+import { firstFrom, runwayEnd, summarize, type ChapterDoc } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
 import { useAppliedOutput, type OutputPrefs } from '../../engine/outputPrefs';
 import { playable, playingKey } from '../script/playing';
@@ -185,8 +185,9 @@ export function useScriptPlayback({
     }
     if (!d.aligned) return say('Nothing has been transcribed yet.');
     if (s.sel) {
-      const sum = summarize(d, selectedFrom(d, s), [], (x) => x);
-      if (sum.audible.length) return playFrom(sum.start, sum.end);
+      const keys = selectedFrom(d, s);
+      const sum = summarize(d, keys, [], (x) => x);
+      if (sum.audible.length) return playFrom(sum.start, runwayEnd(d, keys[keys.length - 1], sum.end));
     }
     const from = firstFrom(d, s.cursor);
     if (!from || from.t0 == null) return say(NOTHING_FROM_HERE);
@@ -195,8 +196,9 @@ export function useScriptPlayback({
 
   const playSelection = useCallback(() => {
     const { doc: d, state: s, notify: say } = live.current;
-    const sum = summarize(d, selectedFrom(d, s), [], (x) => x);
-    if (sum.audible.length) playFrom(sum.start, sum.end);
+    const keys = selectedFrom(d, s);
+    const sum = summarize(d, keys, [], (x) => x);
+    if (sum.audible.length) playFrom(sum.start, runwayEnd(d, keys[keys.length - 1], sum.end));
     else say('Nothing was recorded for these words.');
   }, [playFrom]);
 

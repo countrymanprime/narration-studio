@@ -100,6 +100,10 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
   'src/components/storybible/entryList.ts#1':
     "Saving the Story Bible list's sort choice to localStorage: with storage unavailable the choice lasts until the page closes, and the list is already sorted as asked.",
+  'src/components/production/ManuscriptImport.tsx#1':
+    "Only sets where the review's 'Close when the import finishes' box starts; a failed read leaves it on, its default.",
+  'src/components/editing/ribbon/useRibbonPeaks.ts#1':
+    "The background read of the other chapters only warms the shared read; a failure is dropped there and not kept, and the chapter's own ribbon asks again and says why it has no waveform.",
   'src/hooks/useChapterSync.ts#1':
     "Seeds useChapterSync's state before the next chaptersync:state event; a failed seed just leaves the state undefined a moment longer.",
   'src/useCapability.ts#1':

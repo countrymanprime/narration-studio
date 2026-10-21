@@ -61,9 +61,7 @@ export function SelectionBar({ playback, end, narrow = false, output }: { playba
             )}
             {low > 0 ? <StatusBadge tone="warning" label={`${low} low confidence`} /> : null}
           </>
-        ) : (
-          <span className="text-[var(--text-muted)]">Click a word to place the cursor, drag or Shift+arrows to select</span>
-        )}
+        ) : null}
       </div>
       <div className="flex flex-none items-center gap-2">
         {actions.map((a) => (

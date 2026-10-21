@@ -29,11 +29,11 @@ describe('the info icon (Tooltip)', () => {
   it('takes the name a page gives it, so two icons can be told apart', () => {
     render(
       <>
-        <Tooltip text={TEXT} label="About front matter" />
+        <Tooltip text={TEXT} label="About this" />
         <Tooltip text={TEXT} label="About reference material" />
       </>,
     );
-    expect(screen.getByRole('button', { name: 'About front matter' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'About this' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'About reference material' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'More information' })).toBeNull();
   });

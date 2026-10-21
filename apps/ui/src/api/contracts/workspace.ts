@@ -88,6 +88,9 @@ export type WorkspaceAlignmentResult = {
   /** True when the newest current or stale result has no stored alignment yet (a report from before the sidecar
    * wrote COVERAGE_TOKEN lines): align-again re-aligns it from cached words alone, without running the check. */
   needsAlignAgain: boolean;
+  /** The chapter's heading, which a narrator reads aloud before the first paragraph: the page sets it against what was heard too. Absent for a credits row and from a host that predates it. */
+  title?: string;
+  subtitle?: string;
   paragraphs: WorkspaceParagraph[];
   tokens: WorkspaceToken[];
   extras: WorkspaceExtra[];

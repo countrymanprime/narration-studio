@@ -174,7 +174,7 @@ func (s *Service) CanSwitchProject() bool {
 // previewPayload is what the review shows of a draft. The importer's repairs (notices) travel in it only when there are some, so the review can
 // say what was guessed at without the narrator reading the preview log for it.
 func previewPayload(draft importer.Draft) map[string]any {
-	preview := map[string]any{"format": draft.Format, "sourceName": draft.SourceName, "paragraphCount": len(draft.Paragraphs), "chapterTitles": draft.ChapterTitles, "sections": draft.Sections, "characterCandidates": draft.CharacterCandidates}
+	preview := map[string]any{"format": draft.Format, "sourceName": draft.SourceName, "paragraphCount": len(draft.Paragraphs), "chapterTitles": draft.ChapterTitles, "sections": draft.Sections, "characterCandidates": candidatesWithAppearances(draft)}
 	if len(draft.Notices) > 0 {
 		preview["notices"] = draft.Notices
 	}
@@ -559,10 +559,26 @@ func canonicalize(draft importer.Draft, name, storedPath, sha string, kinds map[
 		}
 		kindByTitle[section.Title] = kind
 	}
+	// Front matter is never a chapter: its lines are set aside (frontMatter) for the credits to read, and the book is written without it. A
+	// book that is nothing but front matter would be an empty manuscript, so then its sections are written as the chapters they are.
+	if !hasBookSection(kindByTitle) {
+		for title, kind := range kindByTitle {
+			if kind == "opening" {
+				kindByTitle[title] = "narration"
+			}
+		}
+	}
 	chapters := []map[string]any{}
 	chapterIndexes := map[string]int{}
 	paragraphs := []map[string]any{}
+	frontMatter := []string{}
 	for _, source := range draft.Paragraphs {
+		if kindByTitle[source.Chapter] == "opening" {
+			if line := strings.TrimSpace(source.Text); line != "" && len(frontMatter) < maxFrontMatterLines {
+				frontMatter = append(frontMatter, line)
+			}
+			continue
+		}
 		index, ok := chapterIndexes[source.Chapter]
 		if !ok {
 			index = len(chapters)
@@ -599,7 +615,23 @@ func canonicalize(draft importer.Draft, name, storedPath, sha string, kinds map[
 	if metadata := sourceMetadataFields(draft.SourceMetadata); metadata != nil {
 		canonical["sourceMetadata"] = metadata
 	}
+	if len(frontMatter) > 0 {
+		canonical["frontMatter"] = frontMatter
+	}
 	return canonical, nil
+}
+
+// maxFrontMatterLines bounds the front matter kept for the credits: a title page, a copyright page and a dedication are a few dozen lines.
+const maxFrontMatterLines = 120
+
+// hasBookSection is whether any section is something other than front matter.
+func hasBookSection(kinds map[string]string) bool {
+	for _, kind := range kinds {
+		if kind != "opening" {
+			return true
+		}
+	}
+	return false
 }
 
 // sourceMetadataFields renders draft.SourceMetadata

@@ -1436,7 +1436,7 @@ func unresolvedLaunchReason(next config) (string, bool) {
 // startupProjectFileReason is the narrator-facing explanation emitted when a
 // REAPER launch could not be resolved to any project: an unsaved REAPER
 // project has no file to match at all, and a saved one may simply not be
-// linked to a Narration Utils project yet. Either way the picker (already
+// linked to a Narration Studio project yet. Either way the picker (already
 // shown whenever projectFolder is empty) is where the narrator resolves it.
 func startupProjectFileReason(projectFile string) string {
 	if projectFile == "" {
@@ -1697,7 +1697,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// defaulting to 0, since published room-tone guidance disagrees.
 	// debug_logging turns on the run log's debug-level decision records: global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
-	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
+	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
 	"Manuscript": {{"color_note", "Note color", "color", nil}},
 	// default_pronunciation_source is which pronunciation source a new
 	// name's pronunciation prefers, both at build time and when the narrator adds an alias: "" (Automatic) keeps the

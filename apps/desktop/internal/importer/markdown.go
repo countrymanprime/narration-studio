@@ -164,7 +164,7 @@ func markdownWithProgress(path string, headingLevel int, progress Progress) (Dra
 	for _, notice := range notices {
 		progress.report(70, "%s", notice)
 	}
-	progress.report(80, "Classifying front matter, chapters and reference sections")
+	progress.report(80, "Sorting chapters and reference sections")
 	draft, err := newDraft("markdown", filepath.Base(path), paragraphs, titles, headingLevels, nil)
 	draft.SourceMetadata = sourceMetadata
 	if err == nil {

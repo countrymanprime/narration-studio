@@ -31,9 +31,10 @@ describe('RemovedFromRecordingList', () => {
     expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy();
   });
 
-  it('labels front matter distinctly from a non-chapter', () => {
+  it('words a chapter an earlier import kept for the opening pages as not a chapter too', () => {
     render(<RemovedFromRecordingList chapters={[chapter({ contentKind: 'opening' })]} restoringId="" onRestore={() => {}} />);
-    expect(screen.getByText(/removed today as front matter/)).toBeTruthy();
+    expect(screen.getByText(/removed today as not a chapter/)).toBeTruthy();
+    expect(screen.queryByText(/front matter/i)).toBeNull();
   });
 
   it('calls onRestore with the chapter id', () => {

@@ -1,3 +1,5 @@
+import { usePort } from '../../../ports/usePort';
+import { forgetPeaks } from '../ribbon/useRibbonPeaks';
 import { useCallback, useState, type ReactNode } from 'react';
 import { overlay } from '../../../overlay/overlayService';
 import type { ManuscriptChapter } from '../../../types';
@@ -28,10 +30,13 @@ export function useRecordingCheck({
   const [checking, setChecking] = useState(false);
   const runs = useCoverageRuns();
   const open = useCallback(() => setChecking(true), []);
+  const workspace = usePort('workspace');
   const close = useCallback(() => {
     setChecking(false);
+    // A check can re-align the chapter, so its kept waveform is read again next time.
+    if (chapter) forgetPeaks(workspace, chapter.id);
     onClosed();
-  }, [onClosed]);
+  }, [onClosed, workspace, chapter]);
   const panel =
     checking && chapter ? (
       <RecordingCheck
