@@ -198,7 +198,7 @@ under it. It gives no estimate of how long the check will take. The line by the 
 
 With Settings' **Two-pass check** turned on ([Settings](settings.md)), a check instead runs a fast
 first pass, then re-checks only whatever it reports missing with a stronger model: the progress
-names each pass ("First pass (tiny)", then "Re-checking 3 passages (large-v3-turbo)"), and the
+names each pass ("First pass (tiny), re-checking as it goes (large-v3-turbo)" while both models work, then "Re-checking 3 passages (large-v3-turbo)" for anything still missing), and the
 finished result reads "Checked ... with the tiny Whisper model; 3 passages re-checked with the
 large-v3-turbo Whisper model", with each re-checked pickup marked "Confirmed missing by ...". If
 the re-check model is not installed yet, the app offers the download or **Check with tiny only**,
