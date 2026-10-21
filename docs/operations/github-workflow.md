@@ -31,10 +31,24 @@ remove it when a maintainer has looked at the issue.
 
 ## Labels
 
-- **Type:** `bug`, `enhancement`, `documentation`, `question`, `accessibility`, plus GitHub's defaults.
-- **Area:** `area:ui`, `area:shell`, `area:python`, `area:reaper`, `area:ci-release`, `area:docs`. On pull
-  requests these are applied automatically from the changed paths; add them to issues by hand.
-- **State:** `needs-triage`, `blocked`. `security` marks a security-relevant change.
+One scheme, three kinds of label. A name never appears twice, with or without a prefix.
+
+- **Area** (`area:*`): which part of the repository a pull request touches: `area:ui`, `area:site`, `area:shell`
+  (Go, `apps/desktop`), `area:python` (sidecars, `libs/python`), `area:reaper`, `area:audacity`, `area:tests`,
+  `area:ci-release` (workflows, scripts, repo tooling, `config/`, `.claude/`), `area:docs`. On pull requests
+  [`labeler.yml`](../../.github/labeler.yml) applies them from the changed paths, for every author including
+  Dependabot; a path may carry more than one. Every tracked path falls under a glob. Add them to issues by hand.
+  There is no `go`, `python` or `ci` label: Go is `area:shell`.
+- **Origin or kind:** `dependencies` (set by [`dependabot.yml`](../../.github/dependabot.yml) on every ecosystem and
+  nothing else, so Dependabot's own `go`, `javascript`, `python:uv` and `github_actions` labels are no longer
+  added), `security` (hand-applied; no workflow sets it), `risk:high` (set by `pr-risk.yml`), `bug`, `enhancement`,
+  `documentation`, `question`, `accessibility`, plus GitHub's defaults.
+- **State:** `needs-triage`, `blocked`.
+
+To add a label, add it to `labels.json`; to label a path, add a glob to `labeler.yml` under an existing or new
+`area:*` label. Tests in `scripts/github/sync-labels.test.mjs` fail if `labeler.yml` or `dependabot.yml` names a label
+`labels.json` lacks, or if two labels differ only by an `area:` prefix. The sync never deletes a label, so retiring one
+is an owner step: `gh label delete <name> --yes` (deleting removes it from old pull requests too).
 
 ## Pull requests
 

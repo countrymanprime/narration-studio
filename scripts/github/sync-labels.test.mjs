@@ -68,3 +68,37 @@ test('the committed .github/labels.json is valid and covers every area the label
     assert.ok(names.has(area), `${area} is assigned by labeler.yml but missing from labels.json`);
   }
 });
+
+function dependabotLabels() {
+  const text = readFileSync(new URL('../../.github/dependabot.yml', import.meta.url), 'utf8');
+  const found = [];
+  for (const [, inline] of text.matchAll(/^\s+labels:\s*\[([^\]]*)\]/gm)) {
+    found.push(...inline.split(',').map((name) => name.trim().replace(/^["']|["']$/g, '')).filter(Boolean));
+  }
+  for (const [, block] of text.matchAll(/^\s+labels:\s*\n((?:\s+- .+\n?)+)/gm)) {
+    found.push(...block.split('\n').map((line) => line.replace(/^\s+- /, '').trim().replace(/^["']|["']$/g, '')).filter(Boolean));
+  }
+  return found;
+}
+
+test('every label .github/dependabot.yml applies exists in labels.json, and every ecosystem sets labels', () => {
+  const labels = JSON.parse(readFileSync(new URL('../../.github/labels.json', import.meta.url), 'utf8'));
+  const names = new Set(labels.map((label) => label.name));
+  const applied = dependabotLabels();
+  assert.ok(applied.length > 0, 'dependabot.yml sets no labels: Dependabot would add its own per-ecosystem labels');
+  for (const name of applied) assert.ok(names.has(name), `${name} is applied by dependabot.yml but missing from labels.json`);
+  const text = readFileSync(new URL('../../.github/dependabot.yml', import.meta.url), 'utf8');
+  const ecosystems = text.match(/^\s+- package-ecosystem:/gm).length;
+  const withLabels = text.match(/^\s+labels:/gm)?.length ?? 0;
+  assert.equal(withLabels, ecosystems, 'every package-ecosystem entry needs its own labels: key');
+});
+
+test('labels.json holds no two labels that differ only by an area: prefix', () => {
+  const labels = JSON.parse(readFileSync(new URL('../../.github/labels.json', import.meta.url), 'utf8'));
+  const bare = new Map();
+  for (const { name } of labels) {
+    const key = name.toLowerCase().replace(/^area:/, '');
+    if (bare.has(key)) assert.fail(`"${bare.get(key)}" and "${name}" differ only by an area: prefix`);
+    bare.set(key, name);
+  }
+});
