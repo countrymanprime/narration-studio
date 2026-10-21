@@ -11,13 +11,11 @@ import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
-import { chapterCount, entryFlagged, kindSwatch, reviewCount } from './entryList';
+import { chapterCount, entryFlagged, reviewCount } from './entryList';
 import { DEFAULT_KINDS, chooseSort, filterEntries, kindCounts, loadEntrySort, saveEntrySort, sortRows, type ColumnKey, type EntrySort } from './entryTable';
 import { evidenceLinks } from './evidenceLinks';
 import { ActionsMenu } from './ActionsMenu';
 import { EntryTable } from './EntryTable';
-import { FilterChip } from './FilterChip';
-import { NeedsVerificationChip } from './suggested/panel/NeedsVerificationChip';
 import { ScanStatus } from './suggested/panel/ScanStatus';
 import { useSuggestions } from './suggested/panel/useSuggestions';
 import { openImportDialog } from './suggested/import/openImportDialog';
@@ -32,16 +30,12 @@ import { addressPath, readAddress } from '../../navigation/address';
 import { SamplePlayerAnnouncement } from '../voicesamples/SamplePlayButton';
 import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
-import { SeriesTab } from '../series/SeriesTab';
 import { Icon } from '../primitives/Icon';
 import { SearchField } from '../primitives/SearchField';
-import { Tab, TabList, TabPanel, Tabs } from '../primitives/Tabs';
+import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
 import { useJustChanged } from '../primitives/changeHighlight';
 import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
-
-const ENTRIES_TAB = 'Entries';
-const SERIES_TAB = 'Series';
 
 // A brand-new entity has no backend record at all until a category is chosen
 // (see GuideDetail's isNewDraft handling) - this is a purely local stand-in
@@ -96,7 +90,6 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const [entriesRead, setEntriesRead] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState(ENTRIES_TAB);
   const [kind, setKind] = useState('All');
   // The host's list of types: the chips, and the colour each chip and row is drawn in (SN-B95). Until it is read there is only "All".
   const [types, setTypes] = useState<GuideType[]>([]);
@@ -108,8 +101,10 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
   const found = useSuggestions();
   const { suggestions } = found;
-  const [reviewOnly, setReviewOnly] = useState(false);
-  const [verifyOnly, setVerifyOnly] = useState(false);
+  // Which entries the Show menu keeps: every one, those that need review, or those with a suggestion to verify.
+  const [show, setShow] = useState<'all' | 'review' | 'verify'>('all');
+  const reviewOnly = show === 'review';
+  const verifyOnly = show === 'verify';
   // A suggestion with no entry yet, chosen from the loose rows above the entries: the detail shows its row instead of an entry.
   const [looseId, setLooseId] = useState<string | null>(null);
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
@@ -214,8 +209,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const clearFilters = () => {
     setQuery('');
     setKind('All');
-    setReviewOnly(false);
-    setVerifyOnly(false);
+    setShow('all');
   };
   const chooseColumn = (column: ColumnKey) => {
     const next = chooseSort(sort, column);
@@ -298,13 +292,6 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
 
   if (loadError) return <LoadError title="Story Bible" message={loadError} retry={() => void load(entityId)} />;
 
-  // The Series view is a tab here, not a navigation entry of its own; the kinds are chips over the table.
-  const viewTabs = (
-    <TabList label="Story Bible views" activation="automatic">
-      <Tab value={ENTRIES_TAB}>{ENTRIES_TAB}</Tab>
-      <Tab value={SERIES_TAB}>{SERIES_TAB}</Tab>
-    </TabList>
-  );
   const scanWithStart = { ...found.scan, start: scanStart.startScan };
   const empty =
     visible.length === 0 ? (
@@ -322,163 +309,147 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
 
   return (
     <CommandScope kind="page">
-      <Tabs value={tab} onChange={setTab} className="flex h-full flex-col gap-4 overflow-hidden max-xl:h-auto max-xl:overflow-visible">
-        <div className="flex-none space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <Heading title="Story Bible" />
-            {tab === ENTRIES_TAB && (
-              <div className="flex items-center gap-2">
-                <Button onClick={addEntity}>
-                  <Icon name="add" /> Add entry
-                </Button>
-                <ActionsMenu
-                  scan={scanWithStart}
-                  onImport={() => openImportDialog({ onChanged: () => void load() })}
-                  onVoiceData={() => setVoiceDataOpen(true)}
+      <div className="flex h-full flex-col gap-4 overflow-hidden max-lg:h-auto max-lg:overflow-visible">
+        <div className="flex flex-none items-center justify-between gap-2">
+          <Heading title="Story Bible" />
+          <div className="flex items-center gap-2">
+            <Button onClick={addEntity}>
+              <Icon name="add" /> Add entry
+            </Button>
+            <ActionsMenu scan={scanWithStart} onImport={() => openImportDialog({ onChanged: () => void load() })} onVoiceData={() => setVoiceDataOpen(true)} />
+          </div>
+        </div>
+        <div className="grid min-h-0 flex-1 gap-4 max-lg:h-auto lg:grid-cols-[minmax(17rem,35%)_minmax(0,1fr)] [&>*]:max-lg:min-h-96">
+          <section aria-label="Entries" className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden max-lg:max-h-[32rem]`}>
+            <div className="flex flex-col gap-2 border-b border-[var(--border)] p-4">
+              <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Find in any column" />
+              <div className="grid grid-cols-2 gap-2">
+                <Select
+                  label="Kind"
+                  fullWidth
+                  value={activeKind}
+                  onChange={setKind}
+                  options={[
+                    { value: 'All', label: `All kinds · ${counts.get('All') ?? 0}` },
+                    ...types.map((type) => ({ value: type.name, label: `${type.name} · ${counts.get(type.name) ?? 0}` })),
+                  ]}
                 />
+                <Select
+                  label="Show"
+                  fullWidth
+                  value={show}
+                  onChange={(value) => setShow(value === 'review' || value === 'verify' ? value : 'all')}
+                  options={[
+                    { value: 'all', label: 'All entries' },
+                    ...(toReview > 0 || reviewOnly ? [{ value: 'review', label: `Needs review · ${toReview}` }] : []),
+                    ...(toVerifyAll > 0 || verifyOnly ? [{ value: 'verify', label: `Needs verification · ${toVerifyAll}` }] : []),
+                  ]}
+                />
+              </div>
+              {/* Under the filters, so a scan starting or ending moves the table, never the buttons and chips the pointer is on. */}
+              <ScanStatus scan={scanWithStart} />
+            </div>
+            {unknownEntity !== undefined && (
+              <div role="alert" aria-label="Link not opened" className="mx-4 mt-2 flex flex-col gap-2 rounded border border-[var(--border)] p-3 text-sm">
+                <p className="m-0">This link points to an entry that is not in the Story Bible. It may have been deleted or merged since the link was made.</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setUnknownEntity(undefined)}>Dismiss</Button>
+                  <Button onClick={() => routerNavigate('/', { replace: true })}>Go to Production</Button>
+                </div>
               </div>
             )}
-          </div>
-          {viewTabs}
-        </div>
-        {tab === SERIES_TAB ? (
-          <Panel label="Series" flush className="min-h-0 flex-1 overflow-hidden">
-            <SeriesTab notify={notify} />
-          </Panel>
-        ) : (
-          <div className="grid min-h-0 flex-1 gap-4 max-xl:h-auto xl:grid-cols-[minmax(0,1fr)_minmax(24rem,28rem)] [&>*]:max-xl:min-h-96">
-            <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden max-xl:max-h-[32rem]`}>
-              <div className="flex flex-col gap-2 border-b border-[var(--border)] p-4">
-                <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Find in any column" />
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Kind">
-                  <FilterChip label="All" count={counts.get('All') ?? 0} on={activeKind === 'All'} onPress={() => setKind('All')} />
-                  {types.map((type) => (
-                    <FilterChip
-                      key={type.name}
-                      label={type.name}
-                      swatch={kindSwatch(types, type.name)}
-                      count={counts.get(type.name) ?? 0}
-                      on={activeKind === type.name}
-                      onPress={() => setKind(type.name)}
-                    />
-                  ))}
-                </div>
-                {(toReview > 0 || reviewOnly || toVerifyAll > 0 || verifyOnly) && (
-                  <div className="flex flex-wrap gap-2" role="group" aria-label="Filter entries">
-                    {(toReview > 0 || reviewOnly) && (
-                      <FilterChip label={`Needs review · ${toReview}`} on={reviewOnly} onPress={() => setReviewOnly((on) => !on)} />
-                    )}
-                    <NeedsVerificationChip count={toVerifyAll} on={verifyOnly} onToggle={setVerifyOnly} />
-                  </div>
+            {(typesFailed || chaptersFailed) && (
+              <div className="flex flex-col gap-1 px-4 pt-2">
+                {typesFailed && (
+                  <ReadNotice
+                    what="the entry types"
+                    effect="The kind chips are hidden and every entry is drawn in one colour."
+                    checkAgain={() => setReadNonce((n) => n + 1)}
+                  />
                 )}
-                {/* Under the filters, so a scan starting or ending moves the table, never the buttons and chips the pointer is on. */}
-                <ScanStatus scan={scanWithStart} />
+                {chaptersFailed && (
+                  <ReadNotice
+                    what="the chapters"
+                    effect="Appears in is empty and a quote cannot open its line."
+                    checkAgain={() => setReadNonce((n) => n + 1)}
+                  />
+                )}
               </div>
-              {unknownEntity !== undefined && (
-                <div role="alert" aria-label="Link not opened" className="mx-4 mt-2 flex flex-col gap-2 rounded border border-[var(--border)] p-3 text-sm">
-                  <p className="m-0">
-                    This link points to an entry that is not in the Story Bible. It may have been deleted or merged since the link was made.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => setUnknownEntity(undefined)}>Dismiss</Button>
-                    <Button onClick={() => routerNavigate('/', { replace: true })}>Go to Production</Button>
-                  </div>
-                </div>
-              )}
-              {(typesFailed || chaptersFailed) && (
-                <div className="flex flex-col gap-1 px-4 pt-2">
-                  {typesFailed && (
-                    <ReadNotice
-                      what="the entry types"
-                      effect="The kind chips are hidden and every entry is drawn in one colour."
-                      checkAgain={() => setReadNonce((n) => n + 1)}
-                    />
-                  )}
-                  {chaptersFailed && (
-                    <ReadNotice
-                      what="the chapters"
-                      effect="Appears in is empty and a quote cannot open its line."
-                      checkAgain={() => setReadNonce((n) => n + 1)}
-                    />
-                  )}
-                </div>
-              )}
-              {entriesRead ? (
-                <EntryTable
-                  rows={sorted}
-                  loose={loose}
-                  types={types}
-                  suggestions={suggestions}
-                  sort={sort}
-                  onSort={chooseColumn}
-                  openId={pendingNewEntity || looseChosen ? undefined : selectedId}
-                  looseId={looseChosen?.id ?? null}
-                  changedId={justChanged}
-                  onOpen={(id) => {
-                    selectRow(id);
-                    // Below the two-pane width the entry opens under the table: bring it into view so the press visibly does something.
-                    if (window.matchMedia?.('(max-width: 1279px)').matches) detailRef.current?.scrollIntoView?.({ block: 'start' });
-                  }}
-                  onOpenLoose={setLooseId}
-                  empty={empty}
-                />
-              ) : (
-                <div className="min-h-0 flex-1 overflow-hidden p-2">
-                  <GuideListSkeleton />
-                </div>
-              )}
-            </TabPanel>
-            <div ref={detailRef} className="flex min-h-0 min-w-0">
-              {!entriesRead ? (
-                <GuideDetailSkeleton />
-              ) : looseChosen ? (
-                <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
-                  <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
-                </Panel>
-              ) : (
-                <GuideDetail
-                  // One detail per entry, so what an action left pending on one entry never shows on the next.
-                  key={newEntityDraft ? 'new-draft' : (selected?.id ?? 'none')}
-                  entity={newEntityDraft ?? selected}
-                  isNewDraft={Boolean(newEntityDraft)}
-                  command={command}
-                  onCommandTaken={() => setCommand(undefined)}
-                  onDiscardNewDraft={() => setPendingNewEntity(undefined)}
-                  onCreatedNewDraft={(id) => {
-                    setPendingNewEntity(undefined);
-                    void load(id);
-                  }}
-                  entities={rows}
-                  reload={load}
-                  notify={notify}
-                  goToManuscript={goToManuscript}
-                  samplePlayer={samplePlayer}
-                  toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
-                  chapters={chapters}
-                  suggested={
-                    selected && (
-                      <>
-                        <AcceptedClaims entryId={selected.id} suggestions={suggestions} {...links} />
-                        <SuggestionList
-                          title="Suggested"
-                          suggestions={reviewable(suggestions, selected.id)}
-                          sources={found.sources}
-                          onChanged={decided}
-                          contextOf={() => ({ entryName: selected.canonical_name, chapters: chapterCount(selected) })}
-                          {...links}
-                        />
-                      </>
-                    )
-                  }
-                />
-              )}
-            </div>
+            )}
+            {entriesRead ? (
+              <EntryTable
+                rows={sorted}
+                loose={loose}
+                types={types}
+                sort={sort}
+                onSort={chooseColumn}
+                openId={pendingNewEntity || looseChosen ? undefined : selectedId}
+                looseId={looseChosen?.id ?? null}
+                changedId={justChanged}
+                onOpen={(id) => {
+                  selectRow(id);
+                  // Below the two-pane width the entry opens under the table: bring it into view so the press visibly does something.
+                  if (window.matchMedia?.('(max-width: 1023px)').matches) detailRef.current?.scrollIntoView?.({ block: 'start' });
+                }}
+                onOpenLoose={setLooseId}
+                empty={empty}
+              />
+            ) : (
+              <div className="min-h-0 flex-1 overflow-hidden p-2">
+                <GuideListSkeleton />
+              </div>
+            )}
+          </section>
+          <div ref={detailRef} className="flex min-h-0 min-w-0">
+            {!entriesRead ? (
+              <GuideDetailSkeleton />
+            ) : looseChosen ? (
+              <Panel title={summaryOf(looseChosen.payload)} scroll className="min-h-0 flex-1">
+                <SuggestionList title="Suggested" suggestions={[looseChosen]} sources={found.sources} onChanged={decided} {...links} />
+              </Panel>
+            ) : (
+              <GuideDetail
+                // One detail per entry, so what an action left pending on one entry never shows on the next.
+                key={newEntityDraft ? 'new-draft' : (selected?.id ?? 'none')}
+                entity={newEntityDraft ?? selected}
+                isNewDraft={Boolean(newEntityDraft)}
+                command={command}
+                onCommandTaken={() => setCommand(undefined)}
+                onDiscardNewDraft={() => setPendingNewEntity(undefined)}
+                onCreatedNewDraft={(id) => {
+                  setPendingNewEntity(undefined);
+                  void load(id);
+                }}
+                entities={rows}
+                reload={load}
+                notify={notify}
+                goToManuscript={goToManuscript}
+                samplePlayer={samplePlayer}
+                toVerify={selected ? verifyOf(suggestions, selected.id) : 0}
+                chapters={chapters}
+                suggested={
+                  selected && (
+                    <>
+                      <AcceptedClaims entryId={selected.id} suggestions={suggestions} {...links} />
+                      <SuggestionList
+                        title="Suggested"
+                        suggestions={reviewable(suggestions, selected.id)}
+                        sources={found.sources}
+                        onChanged={decided}
+                        contextOf={() => ({ entryName: selected.canonical_name, chapters: chapterCount(selected) })}
+                        {...links}
+                      />
+                    </>
+                  )
+                }
+              />
+            )}
           </div>
-        )}
+        </div>
         {scanStart.dialogs}
         <VoiceDataPanel open={voiceDataOpen} onClose={() => setVoiceDataOpen(false)} notify={notify} entities={rows} types={types} player={samplePlayer} />
         <SamplePlayerAnnouncement text={samplePlayer.announcement} />
-      </Tabs>
+      </div>
     </CommandScope>
   );
 }

@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
-import { statusTone } from '../../kinds/statusTone';
 import { useCommand } from '../../input/useCommand';
 import { categoryLabel } from '../../state';
 import type { GuideEntity, GuideType } from '../../types';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../primitives/changeHighlight';
-import { StatusBadge } from '../primitives/StatusBadge';
 import { Swatch } from '../primitives/Swatch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
-import { chapterCount, kindSwatch, typeUnknown } from './entryList';
-import { COLUMNS, sortAria, statusOf, type ColumnKey, type EntrySort } from './entryTable';
+import { kindSwatch, typeUnknown } from './entryList';
+import { COLUMNS, sortAria, type ColumnKey, type EntrySort } from './entryTable';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
 
 // The body rows are one height (`--row-height`, 39 px, and a cell never wraps), so the rows in view follow from the scroll position and a long book
@@ -27,7 +25,6 @@ export type EntryTableProps = {
   /** Suggestions with no entry yet, drawn above the entries. */
   loose?: readonly ExtractionSuggestion[];
   types: readonly GuideType[];
-  suggestions: readonly ExtractionSuggestion[];
   sort: EntrySort;
   onSort: (column: ColumnKey) => void;
   /** The entry open in the detail pane. */
@@ -42,38 +39,13 @@ export type EntryTableProps = {
   empty: ReactNode;
 };
 
-// Aliases and Occurrences give way first when the table is narrow (a container query on the scroll area, so it follows the table's width and not the window's).
-const OCCURRENCES_SHOWN = 'hidden @xl:table-cell';
-const ALIASES_SHOWN = 'hidden @3xl:table-cell';
-const HIDE_NARROW: Partial<Record<ColumnKey, string>> = { aliases: ALIASES_SHOWN, mentions: OCCURRENCES_SHOWN };
-const COLUMN_SHOWN: Partial<Record<ColumnKey, string>> = { aliases: 'hidden @3xl:table-column', mentions: 'hidden @xl:table-column' };
-const COL_WIDTH: Record<ColumnKey, string> = {
-  name: '',
-  kind: 'w-[8.5rem]',
-  aliases: 'w-[26%]',
-  mentions: 'w-[6.5rem]',
-  chapters: 'w-[5.5rem]',
-  status: 'w-[6.5rem]',
-};
+const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[7.5rem]', aliases: 'w-[32%]' };
 
 /**
  * The Story Bible's entries as a data table: a header that sorts, one row per entry, one tab stop moved by the arrow keys, and only the rows in view
  * drawn once the book is long. It reports what the narrator did (a sort, an entry opened) and owns nothing else.
  */
-export function EntryTable({
-  rows,
-  loose = [],
-  types,
-  suggestions,
-  sort,
-  onSort,
-  openId,
-  looseId = null,
-  changedId = null,
-  onOpen,
-  onOpenLoose,
-  empty,
-}: EntryTableProps) {
+export function EntryTable({ rows, loose = [], types, sort, onSort, openId, looseId = null, changedId = null, onOpen, onOpenLoose, empty }: EntryTableProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const [focusedId, setFocusedId] = useState<string>();
   // The row to focus once it has been drawn: a jump to an end of a windowed list lands on a row that was not in the DOM.
@@ -171,26 +143,20 @@ export function EntryTable({
       <Table label="Story Bible entries" rowCount={windowed ? rows.length + loose.length + 1 : undefined} className="table-fixed">
         <colgroup>
           {COLUMNS.map((column) => (
-            <col key={column.key} className={`${COL_WIDTH[column.key]} ${COLUMN_SHOWN[column.key] ?? ''}`} />
+            <col key={column.key} className={COL_WIDTH[column.key] ?? ''} />
           ))}
         </colgroup>
         <TableHead sticky>
           <TableRow>
             {COLUMNS.map((column) => (
-              <TableHeader
-                key={column.key}
-                align={column.numeric ? 'right' : 'left'}
-                sorted={sortAria(sort, column.key)}
-                onSort={() => onSort(column.key)}
-                className={HIDE_NARROW[column.key] ?? ''}
-              >
+              <TableHeader key={column.key} align={column.numeric ? 'right' : 'left'} sorted={sortAria(sort, column.key)} onSort={() => onSort(column.key)}>
                 {column.label}
               </TableHeader>
             ))}
           </TableRow>
         </TableHead>
         <TableBody navigable onKeyDown={onKeyDown} onFocus={onFocus}>
-          <LooseSuggestionRows suggestions={loose} selectedId={looseId} tabStopId={firstLooseStop} columns={columns} onSelect={onOpenLoose} />
+          <LooseSuggestionRows suggestions={loose} selectedId={looseId} tabStopId={firstLooseStop} onSelect={onOpenLoose} />
           {start > 0 && (
             <tr aria-hidden="true" style={{ height: start * ROW_PX }}>
               <td colSpan={columns} />
@@ -201,7 +167,6 @@ export function EntryTable({
               key={row.id}
               entry={row}
               types={types}
-              suggestions={suggestions}
               index={loose.length + start + offset + 2}
               open={openId === row.id}
               changed={changedId === row.id}
@@ -230,7 +195,6 @@ export function EntryTable({
 function EntryRow({
   entry,
   types,
-  suggestions,
   index,
   open,
   changed,
@@ -239,14 +203,12 @@ function EntryRow({
 }: {
   entry: GuideEntity;
   types: readonly GuideType[];
-  suggestions: readonly ExtractionSuggestion[];
   index: number;
   open: boolean;
   changed: boolean;
   tabStop: boolean;
   onOpen: () => void;
 }) {
-  const status = statusOf(entry, suggestions);
   const kind = entry.category === 'Draft' ? categoryLabel(entry.category) : typeUnknown(entry) ? 'Type not set' : entry.category;
   return (
     <TableRow
@@ -268,21 +230,10 @@ function EntryRow({
           <span className="truncate">{kind}</span>
         </span>
       </TableCell>
-      <TableCell muted className={`overflow-hidden ${ALIASES_SHOWN}`}>
+      <TableCell muted className="overflow-hidden">
         <span dir="auto" className="block truncate">
           {entry.aliases.map((alias) => alias.text).join(', ')}
         </span>
-      </TableCell>
-      <TableCell numeric className={OCCURRENCES_SHOWN}>
-        {entry.occurrence_count}
-      </TableCell>
-      <TableCell numeric>{chapterCount(entry)}</TableCell>
-      <TableCell className="whitespace-nowrap">
-        {status.rank >= 2 ? (
-          <StatusBadge tone={statusTone('needs_review')} label={status.label} className="whitespace-nowrap" />
-        ) : status.rank === 1 ? (
-          <span className="text-[var(--text-muted)]">{status.label}</span>
-        ) : null}
       </TableCell>
     </TableRow>
   );

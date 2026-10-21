@@ -13,7 +13,7 @@ import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
 import { overlay } from '../../overlay/overlayService';
 import { ENTRY_SORT_STORAGE_KEY } from './entryTable';
-import { cellsOf, entryRows, entryTable, rowName, rowNames } from './entryTableTestKit';
+import { cellsOf, chooseKind, chooseShow, entryRows, entryTable, rowName, rowNames } from './entryTableTestKit';
 import { Guide } from './Guide';
 import { GuideDetail } from './GuideDetail';
 
@@ -252,7 +252,7 @@ describe('a-header-sorts-the-table-and-the-choice-is-kept', () => {
   it('survives clicking headers faster than the table can draw', async () => {
     renderGuide();
     await screen.findAllByText('Alice');
-    for (const name of ['Kind', 'Chapters', 'Occurrences', 'Name', 'Name', 'Status', 'Kind']) sortBy(name);
+    for (const name of ['Kind', 'Aliases', 'Name', 'Name', 'Kind', 'Aliases']) sortBy(name);
     expect(entryRows().length).toBeGreaterThan(3);
     expect(
       within(entryTable())
@@ -262,24 +262,22 @@ describe('a-header-sorts-the-table-and-the-choice-is-kept', () => {
   });
 });
 
-describe('each-row-shows-its-names-and-its-chapters-and-its-occurrences', () => {
-  it('a row has the aliases, the occurrences and the chapter count in their own cells', async () => {
+describe('each-row-shows-its-kind-and-its-aliases', () => {
+  it('a row has the kind and the aliases in their own cells', async () => {
     renderGuide();
     await screen.findAllByText('Alice');
     const alice = cellsOf(entryRows().find((row) => rowName(row) === 'Alice')!).map((cell) => cell.textContent);
     expect(alice[1]).toBe('Character');
-    expect(alice[3]).toMatch(/^\d+$/);
-    expect(alice[4]).toMatch(/^\d+$/);
     const rabbit = cellsOf(entryRows().find((row) => rowName(row) === 'White Rabbit')!)[2]!.textContent!;
     expect(rabbit.split(', ').length).toBeGreaterThan(0);
     expect(rabbit).not.toBe('');
   });
 });
 
-// SNB-3b: the "Needs review" chip beside the category tabs, and the pill on a row. The mock host flags nothing to start with; its
+// SNB-3b: the "Needs review" choice of the Show menu over the table. The mock host flags nothing to start with; its
 // suggestions put 2 to verify on White Rabbit and none on the other entries.
-describe('needs-review-chip-and-row-pill', () => {
-  const chip = () => screen.queryByRole('button', { name: /^Needs review · \d+$/ });
+describe('needs-review-show-menu', () => {
+  const choice = () => screen.queryByRole('option', { name: /^Needs review · \d+$/ });
   async function renderBible(prepare: (api: ReturnType<typeof createMockApi>) => Promise<void> | void = () => undefined) {
     window.localStorage.clear();
     const api = createMockApi();
@@ -302,65 +300,34 @@ describe('needs-review-chip-and-row-pill', () => {
   const flagHatter = (api: ReturnType<typeof createMockApi>) => api.guideFlagReview('mad-hatter');
   const rowFor = (name: string) => entryRows().find((row) => rowName(row) === name)!;
 
-  it('chip-with-the-count-filters: counts the flagged and the to-verify entries once and filters to them', async () => {
+  it('show-menu-with-the-count-filters: counts the flagged and the to-verify entries once and filters to them', async () => {
     await renderBible(flagHatter);
-    const button = await screen.findByRole('button', { name: 'Needs review · 2' });
-    expect(button.getAttribute('aria-pressed')).toBe('false');
+    await screen.findByRole('option', { name: 'Needs review · 2' });
     expect(rowNames().length).toBeGreaterThan(3);
-    fireEvent.click(button);
-    expect(screen.getByRole('button', { name: 'Needs review · 2' }).getAttribute('aria-pressed')).toBe('true');
+    chooseShow('review');
     expect([...rowNames()].sort()).toEqual(['Hatter', 'White Rabbit']);
-    fireEvent.click(screen.getByRole('button', { name: 'Needs review · 2' }));
+    chooseShow('all');
     expect(rowNames().length).toBeGreaterThan(3);
   });
 
-  it('the chip is absent at 0 unless the filter is on', async () => {
+  it('the choice is absent at 0 unless the filter is on', async () => {
     await renderBible(noSuggestions);
-    expect(chip()).toBeNull();
+    expect(choice()).toBeNull();
     cleanup();
     await renderBible(async (api) => {
       noSuggestions(api);
       await flagHatter(api);
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    await screen.findByRole('option', { name: 'Needs review · 1' });
+    chooseShow('review');
     expect(rowNames()).toEqual(['Hatter']);
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    const stays = await screen.findByRole('button', { name: 'Needs review · 0' });
-    expect(stays.getAttribute('aria-pressed')).toBe('true');
+    await screen.findByRole('option', { name: 'Needs review · 0' });
+    expect((screen.getByRole('combobox', { name: 'Show' }) as HTMLSelectElement).value).toBe('review');
     expect(screen.getByText('No entries match.')).toBeTruthy();
-    fireEvent.click(stays);
-    await waitFor(() => expect(chip()).toBeNull());
-  });
-
-  it('row-pill-says-verify-or-review', async () => {
-    await renderBible(flagHatter);
-    expect(within(rowFor('White Rabbit')).getByText('Verify · 2')).toBeTruthy();
-    expect(within(rowFor('Alice')).queryByText(/Review|Verify/)).toBeNull();
-    expect(within(rowFor('Hatter')).getByText('Review')).toBeTruthy();
-    expect(within(rowFor('Caterpillar')).queryByText(/Review|Verify/)).toBeNull();
-  });
-
-  it('a flagged entry with something to verify says Verify, and Review once nothing is left', async () => {
-    const api = await renderBible(async (host) => void (await host.guideFlagReview('white-rabbit')));
-    expect(within(rowFor('White Rabbit')).getByText('Verify · 2')).toBeTruthy();
-    const open = await api.extractionList();
-    await Promise.all(open.filter((s) => s.entryId === 'white-rabbit' && s.status === 'needs-verification').map((s) => api.extractionReject(s.id)));
-    cleanup();
-    vi.spyOn(api, 'extractionList');
-    render(
-      <MemoryRouter>
-        <ApiProvider api={api}>
-          <StudioProvider>
-            <CommandRouter>
-              <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
-            </CommandRouter>
-          </StudioProvider>
-        </ApiProvider>
-      </MemoryRouter>,
-    );
-    await screen.findAllByText('Alice');
-    expect(within(rowFor('White Rabbit')).getByText('Review')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await waitFor(() => expect(choice()).toBeNull());
   });
 
   it('mark-reviewed-clears-the-entry-and-its-names: the count follows', async () => {
@@ -369,12 +336,11 @@ describe('needs-review-chip-and-row-pill', () => {
       await flagHatter(host);
       await host.guideFlagReview('caterpillar');
     });
-    await screen.findByRole('button', { name: 'Needs review · 2' });
+    await screen.findByRole('option', { name: 'Needs review · 2' });
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    await screen.findByRole('button', { name: 'Needs review · 1' });
+    await screen.findByRole('option', { name: 'Needs review · 1' });
     expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review).toEqual({ entry: false, aliases: [] });
-    expect(within(rowFor('Hatter')).queryByText('Review')).toBeNull();
   });
 
   it('blocked-while-anything-needs-verification: White Rabbit cannot be marked reviewed until its suggestions are decided', async () => {
@@ -388,18 +354,19 @@ describe('needs-review-chip-and-row-pill', () => {
     expect(mark).not.toHaveBeenCalled();
   });
 
-  it('mark-reviewed-can-be-undone: Undo flags the entry again and the chip counts it', async () => {
+  it('mark-reviewed-can-be-undone: Undo flags the entry again and the Show menu counts it', async () => {
     const toast = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
     const api = await renderBible(async (host) => {
       noSuggestions(host);
       await flagHatter(host);
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    await screen.findByRole('option', { name: 'Needs review · 1' });
+    chooseShow('review');
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    await screen.findByRole('button', { name: 'Needs review · 0' });
+    await screen.findByRole('option', { name: 'Needs review · 0' });
     await toast.mock.calls[0][1]();
-    await screen.findByRole('button', { name: 'Needs review · 1' });
+    await screen.findByRole('option', { name: 'Needs review · 1' });
     expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review?.entry).toBe(true);
     toast.mockRestore();
   });
@@ -429,9 +396,9 @@ describe('needs-review-chip-and-row-pill', () => {
       flag = vi.spyOn(api, 'guideFlagReview');
       mark = vi.spyOn(api, 'guideMarkReviewed');
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    await screen.findByRole('option', { name: 'Needs review · 1' });
+    chooseShow('review');
     expect(rowNames()).toEqual(['Alice']);
-    expect(within(entryTable()).getByText('Review')).toBeTruthy();
     expect([flag, mark].map((spy) => spy.mock.calls.length)).toEqual([0, 0]);
   });
 
@@ -439,10 +406,10 @@ describe('needs-review-chip-and-row-pill', () => {
   // are now kind chips, so the test checks that an entry in the Needs Review category lists under All and under no kind chip.
   it('needs-review-category-tab-still-works: the category tab filters by category, not by the flags', async () => {
     await renderBible(flagHatter);
-    expect(screen.queryByRole('button', { name: /^Needs Review$/ })).toBeNull();
+    expect(screen.queryByRole('option', { name: /^Needs Review/ })).toBeNull();
     expect(rowNames()).toContain('March Hare');
-    fireEvent.click(within(screen.getByRole('group', { name: 'Kind' })).getByRole('button', { name: /^Character/ }));
+    chooseKind('Character');
     expect(rowNames()).not.toContain('March Hare');
-    expect(screen.getByRole('button', { name: /^Needs review · \d+$/ })).toBeTruthy();
+    expect(choice()).toBeTruthy();
   });
 });

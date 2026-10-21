@@ -12,7 +12,7 @@ import type { NarrationApi } from '../../types';
 import { ANALYSIS_TOOLS, createFakeTools } from '../settings/analysis/fixtures';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
-import { entryRows, rowName } from './entryTableTestKit';
+import { chooseShow, entryRows, rowName } from './entryTableTestKit';
 import { Guide } from './Guide';
 import { unattached, verifyCount } from './suggested/row/selectors';
 
@@ -79,11 +79,11 @@ describe('story-bible-route-mounts-the-new-pieces', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More actions' }));
   });
 
-  it('the Needs verification chip filters the entries and lists the suggestions with no entry yet above them; choosing one shows its row', async () => {
+  it('the Show menu Needs verification choice filters the entries and lists the suggestions with no entry yet above them; choosing one shows its row', async () => {
     const api = await renderGuide();
     const list = await api.extractionList();
-    const chip = await screen.findByRole('button', { name: `Needs verification · ${verifyCount(list)}` });
-    await userEvent.click(chip);
+    await screen.findByRole('option', { name: `Needs verification · ${verifyCount(list)}` });
+    chooseShow('verify');
     const loose = [...document.querySelectorAll<HTMLElement>('[data-loose]')];
     expect(loose).toHaveLength(unattached(list).length);
     expect(entryRow('Alice')).toBeUndefined();

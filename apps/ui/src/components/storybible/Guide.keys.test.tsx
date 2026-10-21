@@ -31,7 +31,7 @@ async function renderGuide() {
     </MemoryRouter>,
   );
   await screen.findAllByText('Alice');
-  await screen.findByRole('button', { name: /^Place/ });
+  await screen.findByRole('combobox', { name: 'Kind' });
   return entryRows();
 }
 

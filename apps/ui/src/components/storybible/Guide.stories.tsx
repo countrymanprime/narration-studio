@@ -44,17 +44,17 @@ type Story = StoryObj<typeof meta>;
 export const List: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await expect(await view.findByRole('button', { name: /^Place/ })).toBeTruthy();
+    await expect(await view.findByRole('combobox', { name: 'Kind' })).toBeTruthy();
     await expect(within(await view.findByRole('table', { name: 'Story Bible entries' })).getAllByRole('row').length).toBeGreaterThan(4);
   },
 };
 
-/** A kind chip on: only the entries of that kind are listed. */
-export const KindChipOn: Story = {
+/** A kind chosen: only the entries of that kind are listed. */
+export const KindChosen: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await userEvent.click(await view.findByRole('button', { name: /^Place/ }));
-    await expect(view.getByRole('button', { name: /^Place/ }).getAttribute('aria-pressed')).toBe('true');
+    await userEvent.selectOptions(await view.findByRole('combobox', { name: 'Kind' }), 'Place');
+    await expect(view.getByRole('combobox', { name: 'Kind' })).toHaveValue('Place');
   },
 };
 

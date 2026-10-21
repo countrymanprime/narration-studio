@@ -13,13 +13,11 @@ export type SortKey = { column: ColumnKey; dir: SortDirection };
 /** The header clicks in force, newest first: the first key sorts, the second breaks its ties. The name and then the id break the rest. */
 export type EntrySort = readonly SortKey[];
 
+/** The columns the table draws. The sort also knows the counts and the status, for a choice an earlier version saved. */
 export const COLUMNS: readonly { key: ColumnKey; label: string; numeric: boolean }[] = [
   { key: 'name', label: 'Name', numeric: false },
   { key: 'kind', label: 'Kind', numeric: false },
   { key: 'aliases', label: 'Aliases', numeric: false },
-  { key: 'mentions', label: 'Occurrences', numeric: true },
-  { key: 'chapters', label: 'Chapters', numeric: true },
-  { key: 'status', label: 'Status', numeric: false },
 ];
 
 /** The types a fresh Story Bible starts with, in their order: what the kind sort uses until the host's list is read. */
@@ -29,7 +27,8 @@ export const DEFAULT_SORT: EntrySort = [{ column: 'name', dir: 'asc' }];
 export const ENTRY_SORT_STORAGE_KEY = 'narration.storyBible.sort';
 const MAX_KEYS = 2;
 
-const isColumn = (value: unknown): value is ColumnKey => COLUMNS.some((column) => column.key === value);
+const SORTABLE: readonly ColumnKey[] = ['name', 'kind', 'aliases', 'mentions', 'chapters', 'status'];
+const isColumn = (value: unknown): value is ColumnKey => SORTABLE.includes(value as ColumnKey);
 
 /** Lower case with the Latin accents removed, so "Éowyn" and "eowyn" are one name. Emoji and right-to-left letters pass through whole (recomposed after the accents go). */
 export const foldText = (text: string): string =>
@@ -96,7 +95,7 @@ export function sortRows(entries: readonly GuideEntity[], sort: EntrySort, conte
 export function chooseSort(sort: EntrySort, column: ColumnKey): EntrySort {
   const first = sort[0];
   if (first?.column === column) return [{ column, dir: first.dir === 'asc' ? 'desc' : 'asc' }, ...sort.slice(1)];
-  const numeric = COLUMNS.find((c) => c.key === column)?.numeric ?? false;
+  const numeric = column === 'mentions' || column === 'chapters';
   const added: SortKey = { column, dir: numeric ? 'desc' : 'asc' };
   return [added, ...sort.filter((key) => key.column !== column)].slice(0, MAX_KEYS);
 }

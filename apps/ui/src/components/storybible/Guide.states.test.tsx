@@ -115,14 +115,13 @@ describe('the list at its edges', () => {
     expect(rows()).toEqual([]);
   });
 
-  it('one entry is drawn with its counts', async () => {
+  it('one entry is drawn', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'guideEntities').mockResolvedValue([entry('solo', 'Solo')]);
     mount(api);
     await vi.waitFor(() => expect(rowNames()).toEqual(['Solo']));
     expect(rows()).toHaveLength(1);
     expect(cellsOf(rows()[0]!)[2]!.textContent).toBe('');
-    expect(cellsOf(rows()[0]!)[4]!.textContent).toMatch(/^\d+$/);
   });
 
   it('draws long, right-to-left, emoji and duplicate names without losing a row', async () => {

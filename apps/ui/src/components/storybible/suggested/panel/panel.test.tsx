@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-X42: the Needs verification chip, the loose suggestions, the entry pill and the scan and import buttons, ported from the Studio Next
+// SN-X42: the Needs verification filter, the loose suggestions, the entry pill and the scan and import buttons, ported from the Studio Next
 // mock's tests/extraction.test.tsx (the Story Bible page cases) and tests/analysis-tools.test.tsx (the scan cases).
 import { act, cleanup, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -17,7 +17,7 @@ import { EntryVerifyPill } from './EntryVerifyPill';
 import { ActionsMenu } from '../../ActionsMenu';
 import { Table, TableBody } from '../../../primitives/Table';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
-import { NeedsVerificationChip } from './NeedsVerificationChip';
+import { Select } from '../../../primitives/Select';
 import { ScanStatus } from './ScanStatus';
 import { filterEntries } from './selectors';
 import { useSuggestions } from './useSuggestions';
@@ -52,10 +52,18 @@ function Panel({ pollMs = 10, entries = [] as { id: string; name: string }[] }) 
     <div>
       <ActionsMenu scan={scan} onImport={() => {}} onVoiceData={() => {}} />
       <ScanStatus scan={scan} />
-      <NeedsVerificationChip count={verifyCount(suggestions)} on={on} onToggle={setOn} />
+      <Select
+        label="Show"
+        value={on ? 'verify' : 'all'}
+        onChange={(value) => setOn(value === 'verify')}
+        options={[
+          { value: 'all', label: 'All entries' },
+          { value: 'verify', label: `Needs verification · ${verifyCount(suggestions)}` },
+        ]}
+      />
       <Table label="Entries">
         <TableBody>
-          <LooseSuggestionRows suggestions={loose} selectedId={chosen} columns={6} onSelect={setChosen} />
+          <LooseSuggestionRows suggestions={loose} selectedId={chosen} onSelect={setChosen} />
         </TableBody>
       </Table>
       <ul aria-label="Entry names">
@@ -80,34 +88,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// Issue 1715: the mock draws "Needs verification" and "Needs review" as the same chip; the Pill's uppercase bordered button was the old workspace's.
-describe('the-verify-chip-is-the-lists-filter-chip', () => {
-  it('draws the same 28 px fully rounded chip as the other filters over the list, not an uppercase button', () => {
-    render(<NeedsVerificationChip count={3} on={false} onToggle={() => {}} />);
-    const chip = screen.getByRole('button', { name: 'Needs verification · 3' });
-    expect(chip.className).toContain('h-7');
-    expect(chip.className).toContain('rounded-full');
-    expect(chip.className).not.toContain('uppercase');
-    expect(chip.className).not.toContain('tracking-');
-  });
-});
-
-describe('verify-chip-filters-and-counts', () => {
-  it('shows "Needs verification · N" with aria-pressed, only while N > 0 or the filter is on', async () => {
-    const n = verifyCount(await api.extractionList());
-    expect(n).toBeGreaterThan(0);
-    const toggle = vi.fn();
-    const { rerender } = render(<NeedsVerificationChip count={n} on={false} onToggle={toggle} />);
-    const chip = screen.getByRole('button', { name: `Needs verification · ${n}` });
-    expect(chip.getAttribute('aria-pressed')).toBe('false');
-    await userEvent.click(chip);
-    expect(toggle).toHaveBeenCalledWith(true);
-    rerender(<NeedsVerificationChip count={0} on={false} onToggle={toggle} />);
-    expect(screen.queryByRole('button')).toBeNull();
-    rerender(<NeedsVerificationChip count={0} on onToggle={toggle} />);
-    expect(screen.getByRole('button', { name: 'Needs verification · 0' }).getAttribute('aria-pressed')).toBe('true');
-  });
-
+describe('the-show-menu-filters-to-what-needs-verifying-and-counts', () => {
   it('keeps entries with something to verify when on, and the count follows an accept', async () => {
     const list = await api.extractionList();
     const withVerify = list.find((s) => s.entryId && s.status === 'needs-verification')!.entryId!;
@@ -123,10 +104,10 @@ describe('verify-chip-filters-and-counts', () => {
     render(wrap(<Panel />));
     const u = userEvent.setup();
     const n = verifyCount(list);
-    await u.click(await screen.findByRole('button', { name: `Needs verification · ${n}` }));
+    await u.selectOptions(await screen.findByRole('combobox', { name: 'Show' }), 'verify');
     await u.click(document.querySelector<HTMLElement>('[data-loose]')!);
     await u.click(within(document.querySelector('[data-suggested]')!).getByRole('button', { name: /^Accept/ }));
-    await screen.findByRole('button', { name: `Needs verification · ${n - 1}` });
+    await screen.findByRole('option', { name: `Needs verification · ${n - 1}` });
   });
 });
 
@@ -137,9 +118,9 @@ describe('loose-suggestions-list-above-the-entries', () => {
     expect(loose.length).toBeGreaterThan(0);
     render(wrap(<Panel />));
     const u = userEvent.setup();
-    await screen.findByRole('button', { name: /^Needs verification/ });
+    await screen.findByRole('option', { name: /^Needs verification/ });
     expect(document.querySelectorAll('[data-loose]')).toHaveLength(0);
-    await u.click(screen.getByRole('button', { name: /^Needs verification/ }));
+    await u.selectOptions(screen.getByRole('combobox', { name: 'Show' }), 'verify');
     const rows = [...document.querySelectorAll<HTMLElement>('[data-loose]')];
     expect(rows.map((r) => r.dataset.loose)).toEqual(loose.map((s) => s.id));
     loose.forEach((s, i) => {
@@ -270,7 +251,7 @@ describe('scan-cancel-keeps-what-finished', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel scan' })).toBeNull());
     // Cancel was the button pressed and it is gone, so the keyboard comes back to the menu button.
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More actions' })));
-    expect(screen.getByRole('button', { name: /^Needs verification/ })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /^Needs verification/ })).toBeTruthy();
   });
 });
 
@@ -291,7 +272,7 @@ describe('scan-failure-names-the-reason', () => {
     });
     act(() => h.end('success'));
     await screen.findByText('GLiNER: the model could not be loaded.');
-    expect(screen.getByRole('button', { name: /^Needs verification/ })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /^Needs verification/ })).toBeTruthy();
   });
 });
 

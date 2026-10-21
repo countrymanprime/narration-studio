@@ -38,7 +38,6 @@ function setup(rows: GuideEntity[], over: Partial<EntryTableProps> = {}) {
   const props: EntryTableProps = {
     rows: sortRows(rows, DEFAULT_SORT, { kinds: KINDS, suggestions: [] }),
     types: TYPES,
-    suggestions: [],
     sort: DEFAULT_SORT,
     onSort: vi.fn(),
     onOpen: vi.fn(),
@@ -58,54 +57,41 @@ function setup(rows: GuideEntity[], over: Partial<EntryTableProps> = {}) {
 const bodyRows = () => screen.getAllByRole('row').slice(1);
 
 describe('the-headers-sort-and-announce-the-sort', () => {
-  it('names six columns and marks the sorted one, the others none', () => {
+  it('names three columns and marks the sorted one, the others none', () => {
     setup([entry('a', 'Alice')]);
     const headers = screen.getAllByRole('columnheader');
-    expect(headers.map((header) => header.textContent?.replace(/\s*[↑↓]$/, '').trim())).toEqual([
-      'Name',
-      'Kind',
-      'Aliases',
-      'Occurrences',
-      'Chapters',
-      'Status',
-    ]);
-    expect(headers.map((header) => header.getAttribute('aria-sort'))).toEqual(['ascending', 'none', 'none', 'none', 'none', 'none']);
+    expect(headers.map((header) => header.textContent?.replace(/\s*[↑↓]$/, '').trim())).toEqual(['Name', 'Kind', 'Aliases']);
+    expect(headers.map((header) => header.getAttribute('aria-sort'))).toEqual(['ascending', 'none', 'none']);
   });
   it('announces descending and moves with the sort it is given', () => {
     setup([entry('a', 'Alice')], {
       sort: [
-        { column: 'chapters', dir: 'desc' },
+        { column: 'kind', dir: 'desc' },
         { column: 'name', dir: 'asc' },
       ],
     });
-    expect(screen.getByRole('columnheader', { name: /^Chapters/ }).getAttribute('aria-sort')).toBe('descending');
+    expect(screen.getByRole('columnheader', { name: /^Kind/ }).getAttribute('aria-sort')).toBe('descending');
     expect(screen.getByRole('columnheader', { name: /^Name/ }).getAttribute('aria-sort')).toBe('none');
   });
   it('reports the column pressed, from the mouse and the keyboard', async () => {
     const { props } = setup([entry('a', 'Alice')]);
     await userEvent.click(screen.getByRole('button', { name: 'Kind' }));
-    screen.getByRole('button', { name: 'Occurrences' }).focus();
+    screen.getByRole('button', { name: 'Aliases' }).focus();
     await userEvent.keyboard('{Enter}');
     expect(props.onSort).toHaveBeenNthCalledWith(1, 'kind');
-    expect(props.onSort).toHaveBeenNthCalledWith(2, 'mentions');
+    expect(props.onSort).toHaveBeenNthCalledWith(2, 'aliases');
   });
 });
 
 describe('a-row-per-entry', () => {
-  it('shows the name, kind, names, occurrences, chapters and status of each entry', () => {
+  it('shows the name, kind and aliases of each entry', () => {
     setup([
       entry('h', 'Hatter', {
         aliases: [{ text: 'Mad Hatter' }, { text: 'Tarrant' }] as GuideEntity['aliases'],
-        occurrence_count: 12,
-        appearances: [
-          { chapterId: '1', chapter: '1', sceneIndex: 0 },
-          { chapterId: '2', chapter: '2', sceneIndex: 0 },
-        ],
-        locked: true,
       }),
     ]);
     const cells = within(bodyRows()[0]!).getAllByRole('cell');
-    expect(cells.map((cell) => cell.textContent)).toEqual(['Hatter', 'Character', 'Mad Hatter, Tarrant', '12', '2', 'Locked']);
+    expect(cells.map((cell) => cell.textContent)).toEqual(['Hatter', 'Character', 'Mad Hatter, Tarrant']);
   });
   it('draws the type colour beside the kind, amber for an entry whose kind is not set, and says so', () => {
     setup([entry('a', 'Alice'), entry('n', 'Nobody', { category: 'Needs Review' })]);
@@ -113,12 +99,6 @@ describe('a-row-per-entry', () => {
     expect(alice![1]!.querySelector<HTMLElement>('[aria-hidden="true"]')!.style.background).toBe('var(--character)');
     expect(nobody![1]!.textContent).toBe('Type not set');
     expect(nobody![1]!.querySelector<HTMLElement>('[aria-hidden="true"]')!.style.background).toBe('var(--warn)');
-    expect(nobody![5]!.textContent).toBe('Review');
-  });
-  it('says Verify with the count while suggestions wait', () => {
-    const waiting = [{ id: 's', entryId: 'a', status: 'needs-verification' }] as ExtractionSuggestion[];
-    setup([entry('a', 'Alice')], { suggestions: waiting });
-    expect(within(bodyRows()[0]!).getAllByRole('cell')[5]!.textContent).toBe('Verify · 1');
   });
   it('reads a name in its own direction and keeps emoji', () => {
     setup([entry('r', 'أليس'), entry('e', '🐇 Rabbit')]);

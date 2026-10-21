@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // SN-B94 (G2): the search box over the entries narrows the list by name and by alias.
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -9,7 +9,7 @@ import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
-import { rowNames } from './entryTableTestKit';
+import { chooseKind, rowNames } from './entryTableTestKit';
 import { Guide } from './Guide';
 
 afterEach(cleanup);
@@ -61,7 +61,7 @@ describe('the-search-box-narrows-the-list', () => {
 
   it('searches within the kind chip that is on', async () => {
     await renderGuide();
-    await userEvent.click(within(screen.getByRole('group', { name: 'Kind' })).getByRole('button', { name: /^Place/ }));
+    chooseKind('Place');
     await userEvent.type(screen.getByRole('textbox', { name: 'Search entries' }), 'alice');
     expect(names()).toEqual([]);
   });

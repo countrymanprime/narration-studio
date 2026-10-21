@@ -12,20 +12,6 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickNav(page, 'Story Bible');
     await page.getByRole('group', { name: 'Loading the Story Bible entries' }).waitFor();
   },
-  'series-tab-loading': async (page) => {
-    await page.goto('/?mockHold=series');
-    await settlePage(page);
-    await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'tab', 'Series');
-    await page.getByRole('group', { name: 'Loading the series' }).waitFor();
-  },
-  'series-tab-load-failed': async (page) => {
-    await page.goto('/?mockSeries=fails');
-    await settlePage(page);
-    await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'tab', 'Series');
-    await page.getByRole('button', { name: 'Retry' }).waitFor();
-  },
   'review-filter': async (page) => {
     // The mock host flags nothing, so the entries it lists are sent with White Rabbit (the entry and its name "Rabbit") and Hatter flagged,
     // the way the host sends them; its suggestions leave two to verify on White Rabbit.
@@ -40,7 +26,7 @@ export const storybibleDrivers: Record<string, Driver> = {
     await page.goto('/');
     await settlePage(page);
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'button', /^Needs review · \d+$/);
+    await page.getByRole('combobox', { name: 'Show' }).selectOption('review');
     await entryRows(page).filter({ hasText: 'White Rabbit' }).click();
     await page.getByRole('button', { name: 'Mark Rabbit reviewed' }).waitFor();
   },
@@ -78,19 +64,19 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'category-all': async (page) => {
     await goToPage(page, 'Story Bible');
-    await kindChip(page, 'All').waitFor();
+    await page.getByRole('combobox', { name: 'Kind' }).waitFor();
   },
   'category-character': async (page) => {
     await goToPage(page, 'Story Bible');
-    await kindChip(page, 'Character').click();
+    await page.getByRole('combobox', { name: 'Kind' }).selectOption('Character');
   },
   'category-place': async (page) => {
     await goToPage(page, 'Story Bible');
-    await kindChip(page, 'Place').click();
+    await page.getByRole('combobox', { name: 'Kind' }).selectOption('Place');
   },
   'category-organization': async (page) => {
     await goToPage(page, 'Story Bible');
-    await kindChip(page, 'Organization').click();
+    await page.getByRole('combobox', { name: 'Kind' }).selectOption('Organization');
   },
   'search-narrowed': async (page) => {
     await goToPage(page, 'Story Bible');
@@ -162,12 +148,12 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'verification-filter': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('button', { name: /^Needs verification · \d+$/ }).click();
+    await page.getByRole('combobox', { name: 'Show' }).selectOption('verify');
     await page.locator('[data-loose]').first().waitFor();
   },
   'loose-suggestion': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('button', { name: /^Needs verification · \d+$/ }).click();
+    await page.getByRole('combobox', { name: 'Show' }).selectOption('verify');
     await page.locator('[data-loose]').first().click();
     await page.locator('[data-suggested]').waitFor();
   },
@@ -297,19 +283,6 @@ export const storybibleDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Remove voice samples…');
     await confirmDialog(page, 'Remove voice samples').waitFor();
   },
-  'series-tab-empty': async (page) => {
-    await page.goto('/?mockSeries=not-in-series');
-    await settlePage(page);
-    await clickNav(page, 'Story Bible');
-    await clickVisible(page, 'tab', 'Series');
-    await page.getByText(/no other books in this series yet/i).waitFor();
-  },
-  'series-tab-populated': async (page) => {
-    await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'tab', 'Series');
-    await page.getByText('Wonderland', { exact: true }).waitFor();
-    await page.getByText('Alice ref, Looking-Glass Ch. 1').waitFor();
-  },
 };
 
 /** Presses an item of the page's More actions menu: the scan, the import and Voice data sit behind that one icon button. */
@@ -320,9 +293,6 @@ async function chooseAction(page: Page, name: string): Promise<void> {
 
 /** The entry rows of the Story Bible table. */
 const entryRows = (page: Page) => page.getByRole('table', { name: 'Story Bible entries' }).locator('[data-entry-id]');
-
-/** One kind chip over the list (All, or a type of the Story Bible). */
-const kindChip = (page: Page, name: string) => page.getByRole('group', { name: 'Kind' }).getByRole('button', { name: new RegExp(`^${name}\\b`) });
 
 /** Opens an entry in edit mode, unlocking it first when the fixture locks it. */
 async function openForEditing(page: Page, name: string): Promise<void> {

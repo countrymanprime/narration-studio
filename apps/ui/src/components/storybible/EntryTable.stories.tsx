@@ -51,11 +51,10 @@ function Harness({ rows, ...over }: { rows: GuideEntity[] } & Partial<EntryTable
   return (
     <CommandRouter>
       <CommandScope kind="page">
-        <div className={`${PANEL_FRAME_CLASS} flex h-96 max-w-4xl flex-col overflow-hidden`}>
+        <div className={`${PANEL_FRAME_CLASS} flex h-96 max-w-md flex-col overflow-hidden`}>
           <EntryTable
-            rows={sortRows(rows, sort, { kinds: KINDS, suggestions: over.suggestions ?? [] })}
+            rows={sortRows(rows, sort, { kinds: KINDS, suggestions: [] })}
             types={TYPES}
-            suggestions={[]}
             sort={sort}
             onSort={(column) => setSort(chooseSort(sort, column))}
             openId={openId}
@@ -73,23 +72,21 @@ function Harness({ rows, ...over }: { rows: GuideEntity[] } & Partial<EntryTable
 const meta = {
   title: 'Story Bible/Entry table',
   component: EntryTable,
-  args: { rows: [], types: TYPES, suggestions: [], sort: DEFAULT_SORT, onSort: fn(), onOpen: fn(), onOpenLoose: fn(), empty: '' },
+  args: { rows: [], types: TYPES, sort: DEFAULT_SORT, onSort: fn(), onOpen: fn(), onOpenLoose: fn(), empty: '' },
 } satisfies Meta<typeof EntryTable>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** A few entries: kind with its colour, aliases, occurrences, chapters and a status for a locked entry, one needing review and one with a suggestion to verify. */
-export const Entries: Story = {
-  render: () => <Harness rows={FEW} suggestions={[{ id: 's', entryId: 'alice', status: 'needs-verification' } as unknown as ExtractionSuggestion]} />,
-};
+/** A few entries: name, kind with its colour, and aliases. */
+export const Entries: Story = { render: () => <Harness rows={FEW} /> };
 
 /** A press on a header sorts by it and announces it; a second press flips it. Enter opens the focused row. */
 export const SortAndOpen: Story = {
   render: () => <Harness rows={FEW} />,
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await userEvent.click(view.getByRole('button', { name: 'Chapters' }));
-    await expect(view.getByRole('columnheader', { name: /^Chapters/ })).toHaveAttribute('aria-sort', 'descending');
+    await userEvent.click(view.getByRole('button', { name: 'Kind' }));
+    await expect(view.getByRole('columnheader', { name: /^Kind/ })).toHaveAttribute('aria-sort', 'ascending');
     await expect(view.getAllByRole('row')[1]).toHaveTextContent('Alice');
     view.getAllByRole('row')[1]!.focus();
     await userEvent.keyboard('{ArrowDown}{Enter}');

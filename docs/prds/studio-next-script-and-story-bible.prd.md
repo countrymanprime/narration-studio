@@ -45,7 +45,7 @@ If pronunciation is "a value and where it came from", every source (dictionary, 
 
 - Query and confirm for names and aliases; the author query CSV; stale-anchor detection; repo stress, breath and pause markup; evidence excerpts; derived prep completeness or progress; chapter results in Find; the speaker coverage strip; prep sheet export.
 - Additional LLM-parsed properties (research only), click-through counts, live selectors, a shared name-row component (maybe list).
-- Any change to the Series tab or the series voice bible (no equivalent in the mock; untouched, DQ-12), chapter bookmarks per line (line bookmarks were removed earlier).
+- Any change to the Series tab or the series voice bible (no equivalent in the mock; untouched, DQ-12), chapter bookmarks per line (line bookmarks were removed earlier). **Superseded 2026-10-21 (owner): this app produces one book at a time, so the Series tab is removed from the Story Bible page and no series page or reference is to be built or kept. The series host, API and data still in the repo are to be removed in a follow-up.**
 
 ## Success Metrics
 
@@ -65,8 +65,9 @@ Owner rulings of 2026-10-11; none is open.
 | SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | `docs/design/design-system.md` apply only where the mock shows the same layout |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | SNB-8 swaps the routes and deletes the old pages |
 | DQ-11 | No query/confirmed workflow; pronunciation has a source | The query status, query CSV export and import and the open-queries rail badge are removed with the swap; `docs/utilities/manuscript-guide.md, apps/ui/src/components/layout/useNavCounts.ts` are superseded to that extent |
-| SNB-D1 (owner request, 2026-10-21) | The Story Bible's entries are a sortable, filterable table, not the mock's 320 px list of two-line rows | Supersedes the mock's `Bible.tsx` left pane (search, sort menu, kind chips, `chlist` rows): the table sits beside the entry (stacked under 1280 px), the kind chips keep their place over it with counts, the sort is the column headers, and Scan, Import and Voice data move behind one More actions button beside the primary Add entry. The mock is not edited |
-| DQ-12 / SN0-Q5 | Series voice bible and Series tab: no equivalent in the mock | Untouched; not extended, removed or re-skinned |
+| SNB-D1 (owner request, 2026-10-21) | The Story Bible's entries are a small sortable, filterable table (Name, Kind, Aliases) at most 45% of the page, with the open entry as the main area, not the mock's 320 px list of two-line rows | Supersedes the mock's `Bible.tsx` left pane (search, sort menu, kind chips, `chlist` rows): the table sits beside the entry (stacked under 1024 px), a Kind menu and a Show menu replace the chips, the sort is the column headers, and Scan, Import and Voice data move behind one More actions button beside the primary Add entry. The mock is not edited |
+| SNB-D2 (owner ruling, 2026-10-21) | The app is for producing one book at a time: no Series tab, page or reference | The Story Bible page has no tabs. Supersedes DQ-12 / SN0-Q5 |
+| DQ-12 / SN0-Q5 | Series voice bible and Series tab: no equivalent in the mock | Untouched; not extended, removed or re-skinned **Superseded 2026-10-21 (owner): this app produces one book at a time, so the Series tab is removed from the Story Bible page and no series page or reference is to be built or kept. The series host, API and data still in the repo are to be removed in a follow-up.** |
 | SNB-Q2 | The host reports the sources (CMU, eSpeak, Wiktextract, Merriam-Webster when keyed); the default stays per [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) (default taken, standing instruction) | `PronunciationPort.sources()` |
 | SNB-Q3 | Bookmarks are a project sidecar `bookmarks.json`, validated on read, like markup (default taken) | `internal/bookmarks` |
 | SNB-Q4 | Replacing the manuscript clears bookmarks, as the mock's `finishImport` does, and the replace confirmation lists them (default taken) | Host test |
