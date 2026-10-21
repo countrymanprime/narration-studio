@@ -1,5 +1,6 @@
 # Applied by .github/workflows/labeler.yml. Every label named here must exist in
-# .github/labels.json (a test enforces that).
+# .github/labels.json (a test enforces that). These are the only labels that say which part of the repository a pull
+# request touches; Dependabot sets only `dependencies` (.github/dependabot.yml). A path may match more than one label.
 area:ui:
   - changed-files:
       - any-glob-to-any-file: apps/ui/**
@@ -16,9 +17,7 @@ area:python:
   - changed-files:
       - any-glob-to-any-file:
           - libs/python/**
-          - sidecars/manuscript-guide/**
-          - sidecars/manuscript-teleprompter/**
-          - sidecars/transcript-compare/**
+          - sidecars/**
           - pyproject.toml
           - uv.lock
 
@@ -26,18 +25,45 @@ area:reaper:
   - changed-files:
       - any-glob-to-any-file: integrations/reaper/**
 
+area:audacity:
+  - changed-files:
+      - any-glob-to-any-file: integrations/audacity/**
+
+area:tests:
+  - changed-files:
+      - any-glob-to-any-file: tests/**
+
 area:ci-release:
   - changed-files:
       - any-glob-to-any-file:
           - .github/**
           - .husky/**
+          - .claude/**
+          - .vscode/**
           - scripts/**
+          - config/**
           - nx.json
           - project.json
           - commitlint.config.cjs
+          - lint-staged.config.mjs
+          - knip.jsonc
+          - stylua.toml
+          - package.json
+          - pnpm-lock.yaml
+          - pnpm-workspace.yaml
+          - .editorconfig
+          - .gitattributes
+          - .gitignore
+          - .prettierrc.json
+          - .prettierignore
+          - .markdownlint-cli2.jsonc
+          - .lychee.toml
+          - .lycheeignore
 
 area:docs:
   - changed-files:
       - any-glob-to-any-file:
           - docs/**
+          - tools/**
           - '*.md'
+          - LICENSE
