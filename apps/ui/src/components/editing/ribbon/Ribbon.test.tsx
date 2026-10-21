@@ -234,7 +234,7 @@ describe('Ribbon header', () => {
       return el as HTMLElement;
     });
     const mmss = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
-    expect(head.textContent).toBe(`T-7active take · ${mmss(para.start ?? 0)} to ${mmss(para.end ?? 0)}`);
+    expect(head.textContent).toBe(`T-7active take · ${mmss(para.start ?? 0)} to ${mmss(ribbonLayout(doc, 'p-2', [], null)!.t1)}`);
   });
   it('says recording, with a dash for the id, when the line has no take', async () => {
     const doc = marksDoc();

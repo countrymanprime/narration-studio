@@ -1,4 +1,4 @@
-import { flagged, isLow, itemAt, type ChapterDoc, type DocItem } from '../model';
+import { flagged, isLow, itemAt, runwayEnd, type ChapterDoc, type DocItem } from '../model';
 import type { PageState } from '../script/scriptState';
 
 /** Which kind of flagged word a tinted span covers: extra words, a misread, or a low-confidence word. */
@@ -39,7 +39,10 @@ export function activePid(doc: ChapterDoc, s: PageState): string | null {
 export function ribbonLayout(doc: ChapterDoc, pid: string, selected: readonly string[], playT: number | null): RibbonLayout | null {
   const para = doc.paras.find((p) => p.p.id === pid);
   if (!para || para.start == null || para.end == null || !(para.end > para.start)) return null;
-  const { start: t0, end: t1 } = para;
+  const { start: t0 } = para;
+  // The window runs a little past the last word, so its ramp-down is drawn, and stops short of the next line.
+  const lastWord = para.items.filter(heard).at(-1);
+  const t1 = lastWord ? runwayEnd(doc, lastWord.key, para.end) : para.end;
   const clip = (a: number, b: number): { t0: number; t1: number } | null => (b < t0 || a > t1 ? null : { t0: Math.max(t0, a), t1: Math.min(t1, b) });
   const words = para.items.filter((i) => heard(i) && !i.cut);
   const ticks = words.map((i) => i.t0 as number);

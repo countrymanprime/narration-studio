@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { itemAt, selKeys } from '../model';
+import { itemAt, RUNWAY_SECONDS, selKeys } from '../model';
 import { marksDoc } from '../script/scriptFixtures';
 import { activePid, ribbonLayout } from './ribbonLayout';
 import type { PageState } from '../script/scriptState';
@@ -25,13 +25,26 @@ describe('activePid', () => {
   });
 });
 
+describe('ribbonLayout runway', () => {
+  const doc = marksDoc();
+  it('runs a little past the last word of the line, so the ramp-down is drawn, and stops before the next line', () => {
+    const para = doc.paras[0];
+    const next = doc.paras[1];
+    const layout = ribbonLayout(doc, para.p.id, [], null)!;
+    expect(layout.t1).toBeGreaterThan(para.end as number);
+    expect(layout.t1).toBeLessThan(next.start as number);
+  });
+});
+
 describe('ribbonLayout', () => {
   const doc = marksDoc();
   const para = doc.paras[0];
   it('spans the paragraph and ticks every heard word boundary', () => {
     const l = ribbonLayout(doc, 'p-1', [], null)!;
     expect(l.t0).toBe(para.start);
-    expect(l.t1).toBe(para.end);
+    // The window runs the runway past the last word (the ramp-down), and no further.
+    expect(l.t1).toBeGreaterThan(para.end as number);
+    expect(l.t1 - (para.end as number)).toBeLessThanOrEqual(RUNWAY_SECONDS + 1e-9);
     // one tick per heard word, and one closing the last
     expect(l.ticks.length).toBe(para.items.filter((i) => i.t0 != null && !i.cut && i.st !== 'miss').length + 1);
   });
