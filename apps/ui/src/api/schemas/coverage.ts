@@ -61,7 +61,7 @@ export const COVERAGE_EVALUATOR_REASONS = [
 const refusalReasonSchema = z.enum(COVERAGE_REFUSAL_REASONS);
 const reasonSchema = z.union([refusalReasonSchema, z.enum(COVERAGE_EVALUATOR_REASONS)]);
 
-const coveragePassSchema = z.enum(['first_pass', 'recheck_windows', 'recheck_whole', 'realign']);
+const coveragePassSchema = z.enum(['first_pass', 'pipeline', 'recheck_windows', 'recheck_whole', 'realign']);
 
 export const coverageStateSchema = z.object({
   runId: z.string().optional(),

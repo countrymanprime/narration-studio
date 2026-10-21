@@ -10,6 +10,7 @@ import { wailsClient } from './api/wailsClient';
 import { enableUiLog } from './api/uiLog';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
+import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
 import { scenarioFromToday } from './api/productionMock';
 import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
@@ -153,6 +154,9 @@ const mockMicsStress = MIC_STRESS.find((name) => name === mockParams.get('mockMi
 // `?mockNoDevices=1` boots the teleprompter with an empty device listing, so the
 // blocked "No microphone found" state (no typed fallback) can be seen without a host.
 const mockNoDevices = mockParams.has('mockNoDevices');
+// `?mockAudioOutputs=none|long|refused` changes the computer's audio outputs the Editing page's Output popover and Settings > Voice sample output list:
+// none named (the choice is off), long and right-to-left names, or an audio system that refuses every named one. Without it the mock names two outputs.
+const mockAudioOutputs = MOCK_AUDIO_OUTPUT_MODES.find((mode) => mode === mockParams.get('mockAudioOutputs'));
 // `?mockCredits=filled` boots the project with its credits values set (title, author, narrator), so the credits read on the
 // teleprompter with every token resolved can be seen without saving them in Settings first.
 // `?mockCredits=extras` does that too and adds a chapter announcement template and a retail sample on lines 1-3 of
@@ -649,6 +653,7 @@ const mockInitial = {
     mockDawRecording ? { transport: { playing: true, recording: true, position: 12 } } : undefined,
   ),
 };
+if (import.meta.env.VITE_USE_MOCK_API === '1') installMockAudioOutputs(mockAudioOutputs);
 const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
 if (hostApi === wailsClient) enableUiLog();
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.

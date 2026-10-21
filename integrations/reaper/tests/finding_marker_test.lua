@@ -10,7 +10,7 @@ local TAKE = '{AAAAAAAA-0000-4000-8000-0000000000A1}'
 local OTHER = '{BBBBBBBB-0000-4000-8000-000000000002}'
 local MISSING = '{FFFFFFFF-0000-4000-8000-00000000FFFF}'
 local NAME = "MISREAD: 'pink eyes' as 'pink ice'"
-local UNDO_LABEL = 'Narration Utils: add approved marker'
+local UNDO_LABEL = 'Narration Studio: add approved marker'
 
 -- One track, the finding's item at 100 s (30 s long, source offset 10, rate 1) and a neighbour right after it.
 local function scene()

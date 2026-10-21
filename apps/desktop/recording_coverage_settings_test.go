@@ -17,6 +17,7 @@ import (
 var nonNumberRecordingCoverageFields = map[string]string{
 	settingBackgroundChecks:               "bool",
 	coverage.SettingCascadeEnabled:        "bool",
+	coverage.SettingCascadePipeline:       "bool",
 	coverage.SettingCascadeFirstPassModel: "choice",
 	coverage.SettingCascadeRecheckModel:   "choice",
 	coverage.SettingChunkSeconds:          "choice",

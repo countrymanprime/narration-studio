@@ -193,7 +193,7 @@ func (h *Host) backgroundRequest(svc hostServices, chapterID string) (coverage.R
 	}
 	request := coverage.Request{
 		ChapterID: chapterID, Transcription: coverage.Transcription{Model: choices.FirstPass, ModelDir: modelDir},
-		Alignment: coverageSettings(svc.settings).Alignment, Parallel: choices.Parallel, Background: true,
+		Alignment: coverageSettings(svc.settings).Alignment, Parallel: choices.Parallel, Pipeline: choices.Pipeline, Background: true,
 	}
 	if choices.Recheck != "" {
 		if recheck, required, err := resolveCoverageRecheck(models, choices.Recheck); err == nil && required == nil {

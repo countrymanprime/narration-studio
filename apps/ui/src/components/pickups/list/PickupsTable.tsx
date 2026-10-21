@@ -297,7 +297,7 @@ export function PickupsTable({
                         event.currentTarget.focus();
                       }}
                       onKeyDown={(event) => rowKey(event, pickup)}
-                      className={`${ROW_HEIGHT} focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${pickup.id === selected ? 'bg-[var(--row-selected)]' : ''}`}
+                      className={`${ROW_HEIGHT} cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${pickup.id === selected ? 'bg-[var(--row-selected)]' : ''}`}
                     >
                       <TableCell>
                         <Checkbox checked={pickup.included && !pickup.done} disabled={pickup.done} onChange={(checked) => setIncluded(pickup.id, checked)}>

@@ -339,10 +339,42 @@ html[data-motion='reduce'] {
   textarea {
     font: inherit;
   }
-  button {
+  /* Anything that can be pressed shows it: a native control, or an element that stands in for one through its role. A control that is
+     off says so with a not-allowed cursor, whether it is disabled or aria-disabled. */
+  button,
+  summary,
+  select,
+  a[href],
+  label:has(> input[type='checkbox']),
+  label:has(> input[type='radio']),
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='range'],
+  [role='button'],
+  [role='link'],
+  [role='tab'],
+  [role='option'],
+  [role='menuitem'],
+  [role='menuitemcheckbox'],
+  [role='menuitemradio'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='treeitem'],
+  tr[tabindex]:not([tabindex='-1']),
+  tr[tabindex='-1'][aria-selected] {
     cursor: pointer;
   }
-  button:disabled {
+  /* The reader opens a flagged word, a note or a Story Bible name from one click handler on the page (Reader.tsx onClick), so those
+     marks are not buttons the rule above can find: they are named here. */
+  [data-reader] [data-a],
+  [data-reader] [data-ent] {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  [aria-disabled='true'] {
     cursor: not-allowed;
   }
   /* Tailwind's preflight draws a placeholder at 50% of the field's text colour, about 3.2:1 in the light theme. A placeholder
@@ -351,6 +383,18 @@ html[data-motion='reduce'] {
   textarea::placeholder {
     color: var(--text-muted);
     opacity: 1;
+  }
+  /* Scroll bars are thin and drawn in the theme's colours, everywhere. A vertical scroll box keeps room for its bar (stable gutter), so
+     its content, a sticky header or a padded edge is never under the bar. A surface that hides its bar on purpose (.scroll-chrome-hidden,
+     .guide-list-scroll below) says so with a class, which wins over this. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .overflow-y-auto,
+  .overflow-auto,
+  .overflow-y-scroll {
+    scrollbar-gutter: stable;
   }
 }
 /* A toast arrives the way a tooltip does: it fades in and rises by --motion-shift (Toast.tsx, `motion-ok:` only). */

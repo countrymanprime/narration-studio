@@ -100,6 +100,10 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
   'src/components/storybible/entryTable.ts#1':
     "Saving the Story Bible table's sort choice to localStorage: with storage unavailable the choice lasts until the page closes, and the table is already sorted as asked.",
+  'src/components/production/ManuscriptImport.tsx#1':
+    "Only sets where the review's 'Close when the import finishes' box starts; a failed read leaves it on, its default.",
+  'src/components/editing/ribbon/useRibbonPeaks.ts#1':
+    "The background read of the other chapters only warms the shared read; a failure is dropped there and not kept, and the chapter's own ribbon asks again and says why it has no waveform.",
   'src/hooks/useChapterSync.ts#1':
     "Seeds useChapterSync's state before the next chaptersync:state event; a failed seed just leaves the state undefined a moment longer.",
   'src/useCapability.ts#1':
@@ -145,6 +149,8 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/listening/useListeningMic.ts#1':
     'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does.',
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
+  'src/components/engine/outputPrefs.ts#1':
+    "Saving Editing's volume, mute, speed and output to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.",
   'src/components/booth/takeTone.ts#1':
     'Saving the start-tone choice to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.',
   'src/components/booth/takeTone.ts#2':

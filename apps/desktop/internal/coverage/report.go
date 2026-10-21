@@ -129,6 +129,36 @@ type Report struct {
 	Extras []ExtraLine `json:"extras"`
 	// Unsure is what the first pass doubted; only the planner reads it, and no stored report or payload carries it.
 	Unsure []UnsureLine `json:"-"`
+	// Rechecked is what a pipelined first pass already re-checked with the larger model, item by item; only the stored Recheck label
+	// reads it, so no stored report or payload carries it either.
+	Rechecked []RecheckedLine `json:"-"`
+}
+
+// RecheckedLine is one COVERAGE_RECHECKED line: the passages of one item the pipelined sidecar process re-checked with the larger
+// model itself (`--recheck-model`), how many seconds of audio they were, and whether they were the item's whole played range.
+type RecheckedLine struct {
+	ItemIndex int     `json:"itemIndex"`
+	ItemGUID  string  `json:"itemGuid"`
+	Windows   int     `json:"windows"`
+	Seconds   float64 `json:"seconds"`
+	Whole     bool    `json:"whole"`
+}
+
+// recheckedTotal is every RecheckedLine added up.
+type recheckedTotal struct {
+	Windows int
+	Seconds float64
+	Whole   bool
+}
+
+func (r Report) rechecked() recheckedTotal {
+	var total recheckedTotal
+	for _, line := range r.Rechecked {
+		total.Windows += line.Windows
+		total.Seconds += line.Seconds
+		total.Whole = total.Whole || line.Whole
+	}
+	return total
 }
 
 // PresentFraction is the chapter's share of body words read: what fills
@@ -191,6 +221,9 @@ func parseReport(raw []byte, chapterID string) (Report, error) {
 		case "COVERAGE_UNSURE":
 			report.Unsure = append(report.Unsure, UnsureLine{})
 			target = &report.Unsure[len(report.Unsure)-1]
+		case "COVERAGE_RECHECKED":
+			report.Rechecked = append(report.Rechecked, RecheckedLine{})
+			target = &report.Rechecked[len(report.Rechecked)-1]
 		case "COVERAGE_TOKEN":
 			report.Tokens = append(report.Tokens, TokenLine{})
 			target = &report.Tokens[len(report.Tokens)-1]

@@ -9,11 +9,20 @@ import type { NarrationApi } from '../types';
 // The page asks this for words and never knows the recogniser; a later source replaces the adapter and no caller changes.
 // `snap` moves a cut point to the nearest zero crossing within 2 ms, computed by the host from the item's audio.
 
-/** One word heard, in seconds of its item's source. A word of the script carries its paragraph and ordinal; an added
+/** The id of the chapter's heading paragraph (its title and subtitle): the page puts it before the first paragraph, and the heading words the
+ * check heard belong to it. */
+export const HEADING_PARAGRAPH = 'heading';
+
+/** The paragraph a token belongs to: its own, the heading for a heading token (the sidecar sends those with no paragraph), or none. */
+export function tokenParagraph(token: Pick<WorkspaceAlignmentResult['tokens'][number], 'p' | 'status'>): string | undefined {
+  return token.p ?? (token.status === 'heading' ? HEADING_PARAGRAPH : undefined);
+}
+
+/** One word heard, in seconds of its item's source. A word of the script carries its paragraph and ordinal (a heading word, the heading's); an added
  * word (said, not in the script) carries neither, and `timing` says how its times were found. */
 export interface HeardWord {
   text: string;
-  /** The script word this is, absent for an added word or a heading word. */
+  /** The script word this is, absent for an added word. */
   paragraphId?: string;
   ordinal?: number;
   /** The manifest item the word was heard on (WorkspaceItem.index). */
@@ -88,7 +97,7 @@ function heardFrom(result: WorkspaceAlignmentResult): HeardAnswer {
     if (token.item !== undefined && token.start !== undefined && token.end !== undefined) {
       words.push({
         text: token.heard ?? token.text,
-        ...(token.p !== undefined ? { paragraphId: token.p, ordinal: token.w } : {}),
+        ...(tokenParagraph(token) !== undefined ? { paragraphId: tokenParagraph(token), ordinal: token.w } : {}),
         item: token.item,
         off0: token.start,
         off1: token.end,

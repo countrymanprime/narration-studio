@@ -42,6 +42,14 @@ describe('the settings registry', () => {
   });
 });
 
+describe('the Sync activity row', () => {
+  it('is an advanced Recording & DAW row for REAPER, found by search', () => {
+    const row = ROWS.find((candidate) => candidate.id === 'daw.syncActivity');
+    expect(row).toMatchObject({ cat: 'recording', section: 'Chapter sync', advanced: true, needs: 'reaper' });
+    expect(search('chapter sync log').some((hit) => hit.row?.id === 'daw.syncActivity')).toBe(true);
+  });
+});
+
 describe('search', () => {
   it('finds a setting by a word that is not in its name', () => {
     expect(search('whisper').some((hit) => hit.row?.id === 'stt.model')).toBe(true);

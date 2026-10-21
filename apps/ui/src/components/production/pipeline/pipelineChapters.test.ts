@@ -32,10 +32,10 @@ describe('pipelineChapters', () => {
     expect(ids).toEqual(['credits-opening', 'c1', 'c2', 'credits-closing']);
   });
 
-  it("lists the manuscript's own opening-credits chapter in place of the opening entry, and leaves out what is not narration", () => {
-    const own = chapter('own', { contentKind: 'opening' });
-    const ids = pipelineChapters([own, chapter('c1'), chapter('ref', { contentKind: 'reference' })], { closing: entry('closing') }).map((c) => c.id);
-    expect(ids).toEqual(['own', 'c1', 'credits-closing']);
+  it('lists only the narration chapters: a chapter an earlier import kept for the opening pages, or a reference section, is never a row', () => {
+    const kept = chapter('kept', { contentKind: 'opening' });
+    const ids = pipelineChapters([kept, chapter('c1'), chapter('ref', { contentKind: 'reference' })], { closing: entry('closing') }).map((c) => c.id);
+    expect(ids).toEqual(['c1', 'credits-closing']);
   });
 
   it('draws a credits row through the one pipeline format with its own stage, length and Prepped dot', () => {
