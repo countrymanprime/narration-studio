@@ -242,9 +242,11 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
       };
       const chapter = deps.chapters().find((candidate) => candidate.id === chapterId);
       if (!chapter) return base;
+      // The chapter's heading, as the host sends it, for the page to set against what was heard.
+      const heading = { ...(chapter.title ? { title: chapter.title } : {}), ...(chapter.subtitle ? { subtitle: chapter.subtitle } : {}) };
       const chapterParagraphs = deps.paragraphs().filter((paragraph) => paragraph.chapterId === chapterId);
       // Nothing checked yet: the chapter still reads its script, with nothing heard (as the host answers).
-      if (result.state === 'never') return { ...base, paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })) };
+      if (result.state === 'never') return { ...base, ...heading, paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })) };
       const liveItem = mockLiveItem(deps, chapterId);
       const { tokens, extras } = mockTokens(chapterParagraphs, result.result, liveItem?.index);
       const resolvedExtras = extras.map((extra) => ({
@@ -255,6 +257,7 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
       }));
       return {
         ...base,
+        ...heading,
         paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })),
         tokens: tokens.map((token) => ({ ...token, conf: null, confReason: NO_WORD_SCORES })),
         extras: resolvedExtras,
