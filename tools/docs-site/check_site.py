@@ -2,7 +2,7 @@
 
 MkDocs' strict build checks the Markdown it was given; this checks what it produced, and does not trust the generator. Every
 `href` and `src` in every HTML file that points inside the site must resolve to a file of the output folder, and every
-`#fragment` to an `id` on the page it names. Links to other sites are not followed.
+`#fragment` to an `id` on the page it names (a `#/route` fragment is a client-side route of the demo app, not an id, and is not checked). Links to other sites are not followed.
 
     python tools/docs-site/check_site.py tools/docs-site/build/site --base /narration-studio/ \\
         --site-url https://countrymanprime.github.io/narration-studio/ --require storybook/index.html
@@ -110,7 +110,7 @@ def check_site(site: Path, *, base: str = "/", site_url: str = "", require: tupl
             target = None if inner.startswith("../") else _target_file(site, inner)
             if target is None:
                 problems.append(f"{here}: {reference} does not resolve to a file of the site")
-            elif fragment and target.suffix == ".html" and fragment not in pages.get(target, _Page()).ids:
+            elif fragment and not fragment.startswith("/") and target.suffix == ".html" and fragment not in pages.get(target, _Page()).ids:
                 problems.append(f"{here}: {reference} names no #{fragment} on the page it links to")
     return problems
 
