@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { drawRibbon, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
 import type { PeakColumn } from './peaksWindow';
-import { BAR_GAP, BAR_RADIUS, PULSE, barLayout, halfHeight } from './ribbonBars';
+import { BAR_GAP, BAR_RADIUS, barLayout, halfHeight } from './ribbonBars';
 import type { RibbonLayout } from './ribbonLayout';
 
 const colors: RibbonColors = {
@@ -93,7 +93,7 @@ const layout = (over: Partial<RibbonLayout> = {}): RibbonLayout => ({
 });
 const flat = (n: number, level = 60): PeakColumn[] => Array.from({ length: n }, () => [-level, level] as PeakColumn);
 const moving = (nowMs: number, sinceUpdateMs = 0): RibbonFrame => ({ nowMs, sinceUpdateMs, animate: true });
-const TOP_OF_BEAT = 1000 / PULSE.hz / 2;
+const TOP_OF_BEAT = 208;
 
 describe('drawRibbon bars', () => {
   it('draws one rounded bar for each column on the site gap, symmetric about the middle line, filling the width', () => {
@@ -165,20 +165,15 @@ describe('drawRibbon motion', () => {
     expect(live[40]).toBe(still[40]);
   });
 
-  it('decays away from the playhead: over a beat the tallest each bar gets is lower the further it is, on each side', () => {
-    // The pulse is a wave, so at any one instant the bars are not in order of distance; over a whole beat the crest each one reaches is.
-    const tallest: number[] = [];
-    for (let t = 0; t < TOP_OF_BEAT * 2; t += 4) {
-      heights(moving(t)).forEach((h, i) => {
-        tallest[i] = Math.max(tallest[i] ?? 0, h);
-      });
-    }
-    for (let i = 20; i > 14; i -= 1) expect(tallest[i]).toBeGreaterThanOrEqual(tallest[i - 1]);
-    for (let i = 21; i < 25; i += 1) expect(tallest[i]).toBeGreaterThanOrEqual(tallest[i + 1]);
+  it('decays away from the playhead: nearer bars are taller than further ones, on each side', () => {
+    const live = heights(moving(0));
+    for (let i = 20; i > 14; i -= 1) expect(live[i]).toBeGreaterThanOrEqual(live[i - 1]);
+    for (let i = 21; i < 25; i += 1) expect(live[i]).toBeGreaterThanOrEqual(live[i + 1]);
   });
 
-  it('pulses: the same bar is a different height at different points of the beat', () => {
-    expect(heights(moving(0))[20]).toBeLessThan(heights(moving(TOP_OF_BEAT))[20]);
+  it('does not bounce: with the playhead held, the same bar is the same height at any moment', () => {
+    expect(heights(moving(0))[20]).toBe(heights(moving(TOP_OF_BEAT))[20]);
+    expect(heights(moving(0))[20]).toBe(heights(moving(123))[20]);
   });
 
   it('a still frame (reduced motion, or stopped) draws every bar at rest, with the played split kept', () => {

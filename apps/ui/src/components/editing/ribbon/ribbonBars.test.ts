@@ -9,7 +9,6 @@ import {
   barLayout,
   barPosition,
   barScale,
-  beat,
   halfHeight,
   playheadAt,
   pulseEnvelope,
@@ -59,6 +58,16 @@ describe('halfHeight', () => {
   });
 });
 
+describe('halfHeight with a gain', () => {
+  it('draws a quiet column larger by the gain, and keeps the loudest inside the headroom', () => {
+    expect(halfHeight([-30, 30], 28, 4)).toBeCloseTo(halfHeight([-30, 30], 28) * 4, 6);
+    expect(halfHeight([-127, 127], 28, 4)).toBeCloseTo(28 * PEAK_HEADROOM, 6);
+  });
+  it('is the same as before with no gain', () => {
+    expect(halfHeight([-30, 30], 28, 1)).toBe(halfHeight([-30, 30], 28));
+  });
+});
+
 describe('pulseEnvelope', () => {
   it('is 1 under the playhead and 0 at and beyond the reach on both sides', () => {
     expect(pulseEnvelope(0)).toBe(1);
@@ -91,78 +100,47 @@ describe('pulseEnvelope', () => {
   });
 });
 
-describe('beat', () => {
-  it('stays between 0 and 1, starts at 0 and repeats every 1/hz seconds', () => {
-    expect(beat(0)).toBeCloseTo(0, 9);
-    const period = 1000 / PULSE.hz;
-    expect(beat(period / 2)).toBeCloseTo(1, 9);
-    expect(beat(period)).toBeCloseTo(0, 9);
-    for (let t = 0; t < 2000; t += 37) {
-      expect(beat(t)).toBeGreaterThanOrEqual(0);
-      expect(beat(t)).toBeLessThanOrEqual(1);
-    }
-  });
-});
-
 describe('barScale', () => {
-  it('grows the bar under the playhead by up to PULSE.grow at the top of a beat', () => {
-    const top = 1000 / PULSE.hz / 2;
-    expect(barScale(0, top, false)).toBeCloseTo(1 + PULSE.grow, 6);
-    // at the bottom of a beat it still holds the steady share
-    expect(barScale(0, 0, false)).toBeCloseTo(1 + PULSE.grow * (1 - PULSE.depth), 6);
+  it('grows the bar under the playhead by PULSE.grow, 50% taller', () => {
+    expect(PULSE.grow).toBe(0.5);
+    expect(barScale(0, false)).toBeCloseTo(1.5, 9);
   });
-  it('is 1 for a bar out of reach, whatever the beat', () => {
-    for (const t of [0, 100, 208, 999]) {
-      expect(barScale(50, t, false)).toBe(1);
-      expect(barScale(-50, t, false)).toBe(1);
-    }
+  it('is 1 for a bar out of reach', () => {
+    expect(barScale(50, false)).toBe(1);
+    expect(barScale(-50, false)).toBe(1);
   });
-  it('is always 1 when motion is reduced: no bump, no beat', () => {
-    for (const d of [-5, -1, 0, 1, 2.5]) for (const t of [0, 100, 208]) expect(barScale(d, t, true)).toBe(1);
+  it('is always 1 when motion is reduced', () => {
+    for (const d of [-5, -1, 0, 1, 2.5]) expect(barScale(d, true)).toBe(1);
   });
   it('is never below 1 and never above 1 + grow', () => {
-    for (let d = -9; d <= 9; d += 0.5)
-      for (let t = 0; t < 1000; t += 41) {
-        const s = barScale(d, t, false);
-        expect(s).toBeGreaterThanOrEqual(1);
-        expect(s).toBeLessThanOrEqual(1 + PULSE.grow + 1e-9);
-      }
+    for (let d = -12; d <= 12; d += 0.25) {
+      const s = barScale(d, false);
+      expect(s).toBeGreaterThanOrEqual(1);
+      expect(s).toBeLessThanOrEqual(1 + PULSE.grow + 1e-9);
+    }
   });
 });
 
-describe('the pulse as a wave around the playhead', () => {
-  const period = 1000 / PULSE.hz;
-  /** The moment in one beat at which a bar `d` bars from the playhead is at its tallest. */
-  const peakAt = (d: number): number => {
-    let best = 0;
-    let at = 0;
-    for (let t = 0; t < period; t += 1) {
-      const s = barScale(d, t, false);
-      if (s > best + 1e-9) {
-        best = s;
-        at = t;
-      }
-    }
-    return at;
-  };
-  const peak = (d: number): number => Math.max(...Array.from({ length: Math.ceil(period) }, (_, t) => barScale(d, t, false)));
-
-  it('lets the bar under the playhead grow the full 50% at the top of its beat', () => {
-    expect(PULSE.grow).toBe(0.5);
-    expect(peak(0)).toBeCloseTo(1.5, 2);
+// A wave that passes: nothing oscillates in time. The bump sits on the playhead and moves with it, so a bar grows as the playhead approaches,
+// is tallest as it is under it, and shrinks again as the playhead leaves.
+describe('the wave that passes with the playhead', () => {
+  it('lets the bars around the playhead grow by smaller amounts, the further the smaller, on each side', () => {
+    expect(barScale(1, false)).toBeLessThan(barScale(0, false));
+    expect(barScale(2.5, false)).toBeLessThan(barScale(1, false));
+    expect(barScale(-1, false)).toBeLessThan(barScale(0, false));
+    expect(barScale(-4, false)).toBeLessThan(barScale(-1, false));
+    expect(barScale(2.5, false)).toBeGreaterThan(1);
   });
-  it('lets the bars around it grow by smaller amounts, the further the smaller', () => {
-    expect(peak(1)).toBeLessThan(peak(0));
-    expect(peak(2.5)).toBeLessThan(peak(1));
-    expect(peak(2.5)).toBeGreaterThan(1);
-  });
-  it('sends the crest outward: a bar further from the playhead peaks later in the beat, on both sides', () => {
-    expect(peakAt(1.5)).toBeGreaterThan(peakAt(0));
-    expect(peakAt(1.5)).toBeCloseTo(peakAt(-1.5), -1);
-  });
-  it('is drastic: the bar under the playhead swings between little and the full growth', () => {
-    expect(barScale(0, 0, false)).toBeLessThan(1 + PULSE.grow * 0.25);
-    expect(barScale(0, period / 2, false)).toBeGreaterThan(1 + PULSE.grow * 0.95);
+  it('grows a bar as the playhead comes up to it and shrinks it as the playhead goes by', () => {
+    // d is the bar's distance ahead of the playhead; the playhead moving on makes d fall from the reach ahead to minus the reach behind.
+    const passing: number[] = [];
+    for (let d = PULSE.ahead; d >= -PULSE.behind; d -= 0.25) passing.push(barScale(d, false));
+    const top = passing.indexOf(Math.max(...passing));
+    for (let i = 1; i <= top; i += 1) expect(passing[i]).toBeGreaterThanOrEqual(passing[i - 1]);
+    for (let i = top + 1; i < passing.length; i += 1) expect(passing[i]).toBeLessThanOrEqual(passing[i - 1]);
+    expect(passing[top]).toBeCloseTo(1 + PULSE.grow, 9);
+    expect(passing[0]).toBe(1);
+    expect(passing[passing.length - 1]).toBe(1);
   });
   it('leaves room for the growth: the tallest bar can reach 50% longer without being clipped', () => {
     expect(PEAK_HEADROOM * (1 + PULSE.grow)).toBeLessThanOrEqual(1 + 1e-9);

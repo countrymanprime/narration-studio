@@ -5,6 +5,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import { useEditingPage } from '../script/EditingPageState';
 import { RibbonView } from '../ribbon/Ribbon';
 import { activePid, ribbonLayout } from '../ribbon/ribbonLayout';
+import { peakGain } from '../ribbon/peaksWindow';
 import { pickEntries, useRibbonPeaks } from '../ribbon/useRibbonPeaks';
 import { MiniWave } from '../takes/MiniWave';
 import type { LinePassage, LineTake } from '../takes/types';
@@ -119,7 +120,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
           <span className="text-[var(--text-muted)]">{passage?.takes.find((t) => t.active)?.label ?? 'Recording'}</span>
         </div>
         <div ref={audio} data-tl-audio className="min-w-0 flex-1 touch-none" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}>
-          <RibbonView layout={audioLayout} {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })} />
+          <RibbonView layout={audioLayout} gain={peakGain(peaks)} {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })} />
         </div>
       </div>
       {layout.lanes.map(({ take, start, length }) => (

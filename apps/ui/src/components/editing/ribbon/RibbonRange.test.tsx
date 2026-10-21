@@ -74,12 +74,31 @@ const drag = (target: HTMLElement, from: number, to: number, init: Record<string
   fireEvent.pointerMove(target, { clientX: to, pointerId: 1, ...init });
   fireEvent.pointerUp(target, { clientX: to, pointerId: 1, ...init });
 };
-const select = (anchor: string, head: string) => act(() => state.dispatch({ type: 'select', anchor, head }));
+// Words selected as a drawn range does: selecting words alone draws none (see the first tests).
+const select = (anchor: string, head: string) =>
+  act(() => {
+    const items = doc.paras.find((p) => p.p.id === 'p-1')?.items ?? [];
+    const first = items.find((w) => w.key === anchor);
+    const last = items.find((w) => w.key === head);
+    state.dispatch({ type: 'selectSpan', span: { start: first?.t0 ?? 0, end: last?.t1 ?? 0 }, anchor, head });
+  });
 
 describe('the range on the waveform', () => {
-  it('with a word selected the range is that word, with handles at its edges', async () => {
+  it('a word placed or selected without a drag draws no range, handles or readout', async () => {
     mount();
     await ready();
+    expect(screen.queryByRole('slider')).toBeNull();
+    act(() => state.dispatch({ type: 'select', anchor: 'p-1:2', head: 'p-1:3' }));
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(screen.queryByTestId('range-partial')).toBeNull();
+    expect(screen.queryByText(/^Range /)).toBeNull();
+  });
+
+  it('a range drawn on the waveform has handles at its edges', async () => {
+    mount();
+    await ready();
+    select('p-1:0', 'p-1:0');
+    await waitFor(() => expect(startHandle()).toBeTruthy());
     expect(now(startHandle())).toBeCloseTo(5, 6);
     expect(now(endHandle())).toBeCloseTo(5.3, 6);
   });
@@ -129,17 +148,16 @@ describe('the range on the waveform', () => {
     expect(now(endHandle())).toBeCloseTo(5.5, 2);
   });
 
-  it('a tap with no drag puts the cursor on the word under it, and the range is that word', async () => {
+  it('a tap with no drag puts the cursor on the word under it and draws no range', async () => {
     mount();
     await ready();
     select('p-1:2', 'p-1:3');
     await waitFor(() => expect(startHandle()).toBeTruthy());
     // 6.35 s is in "sitting", 6.2 to 6.5
     drag(surface(), xAt(6.35), xAt(6.35));
-    await waitFor(() => expect(now(startHandle())).toBeCloseTo(6.2, 6));
-    expect(now(endHandle())).toBeCloseTo(6.5, 6);
+    await waitFor(() => expect(state.state.cursor).toBe('p-1:4'));
+    expect(screen.queryByRole('slider')).toBeNull();
     expect(state.state.sel).toBeNull();
-    expect(state.state.cursor).toBe('p-1:4');
     expect(state.state.span ?? null).toBeNull();
   });
 
@@ -149,8 +167,7 @@ describe('the range on the waveform', () => {
     fireEvent.pointerDown(surface(), { clientX: 100, button: 2, pointerId: 1 });
     fireEvent.pointerMove(surface(), { clientX: 500, pointerId: 1 });
     fireEvent.pointerUp(surface(), { clientX: 500, pointerId: 1 });
-    expect(now(startHandle())).toBeCloseTo(5, 6);
-    expect(now(endHandle())).toBeCloseTo(5.3, 6);
+    expect(screen.queryByRole('slider')).toBeNull();
   });
 
   it('a handle moves its own edge and the words follow', async () => {
@@ -242,6 +259,7 @@ describe('the keyboard', () => {
   it('a nudge keeps the minimum width and the paragraph bounds', async () => {
     mount();
     await ready();
+    select('p-1:0', 'p-1:0');
     fireEvent.keyDown(startHandle(), { key: 'ArrowLeft', shiftKey: true });
     expect(now(startHandle())).toBeCloseTo(5, 6);
     fireEvent.keyDown(startHandle(), { key: 'ArrowRight', shiftKey: true });
@@ -264,6 +282,7 @@ describe('the keyboard', () => {
   it('other keys are left alone for the page', async () => {
     mount();
     await ready();
+    select('p-1:0', 'p-1:0');
     expect(fireEvent.keyDown(startHandle(), { key: 'Delete' })).toBe(true);
     expect(fireEvent.keyDown(startHandle(), { key: 'm' })).toBe(true);
   });

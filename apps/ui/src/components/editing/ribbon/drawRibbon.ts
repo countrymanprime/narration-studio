@@ -66,6 +66,7 @@ export function drawRibbon(
   columns: PeakColumn[],
   colors: RibbonColors,
   frame: RibbonFrame = STILL_FRAME,
+  gain = 1,
 ): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
@@ -96,7 +97,7 @@ export function drawRibbon(
   }
 
   const head = layout.playhead == null ? null : frame.animate ? playheadAt(layout.playhead, frame.sinceUpdateMs, layout.t1) : layout.playhead;
-  drawBars(ctx, width, height, columns, colors, head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length), frame);
+  drawBars(ctx, width, height, columns, colors, head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length), frame, gain);
 
   ctx.save();
   ctx.globalAlpha = 0.7;
@@ -150,13 +151,14 @@ function drawBars(
   colors: RibbonColors,
   headBar: number | null,
   frame: RibbonFrame,
+  gain: number,
 ): void {
   const mid = height / 2;
   const { pitch, barWidth } = barLayout(width, columns.length);
   const radius = Math.min(BAR_RADIUS, barWidth / 2);
   const halfAt = (i: number): number => {
-    const half = halfHeight(columns[i], mid);
-    return headBar == null ? half : Math.min(mid - 0.5, half * barScale(i + 0.5 - headBar, frame.nowMs, !frame.animate));
+    const half = halfHeight(columns[i], mid, gain);
+    return headBar == null ? half : Math.min(mid - 0.5, half * barScale(i + 0.5 - headBar, !frame.animate));
   };
   // One path and one fill for each colour, not one stroke for each bar.
   const fillBars = (colour: string, from: number, to: number): void => {
