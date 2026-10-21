@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"sync"
+	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
@@ -82,6 +83,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapUndoLast:        undoLastRole{r(dawport.CapUndoLast)},
 		dawport.CapMonitorLevel:    monitorLevelRole{r(dawport.CapMonitorLevel)},
 		dawport.CapFollowPosition:  placeRole{r(dawport.CapFollowPosition)},
+		dawport.CapTransportSync:   transportSyncRole{r(dawport.CapTransportSync)},
 		dawport.CapInputLevel:      inputLevelRole{r(dawport.CapInputLevel)},
 	}
 	return f
@@ -405,6 +407,47 @@ func (r placeRole) GoTo(_ context.Context, trackID string, target dawport.PlaceT
 	}
 	return nil
 }
+
+type transportSyncRole struct{ role }
+
+// SetCursor, PlayFrom, Stop and Watch answer as REAPER's set_cursor, play_from, stop_play and watch_transport do: the time given back, a time that is
+// not usable an error with nothing sent, and a lease of at most ten seconds.
+func (r transportSyncRole) OnPosition(func(dawport.TransportPosition)) {}
+func (r transportSyncRole) SetCursor(_ context.Context, seconds float64) (float64, error) {
+	if err := r.do("SetCursor"); err != nil {
+		return 0, err
+	}
+	if seconds != seconds || seconds < 0 {
+		return 0, errTime
+	}
+	return seconds, nil
+}
+func (r transportSyncRole) PlayFrom(_ context.Context, seconds float64) (float64, error) {
+	if err := r.do("PlayFrom"); err != nil {
+		return 0, err
+	}
+	if seconds != seconds || seconds < 0 {
+		return 0, errTime
+	}
+	return seconds, nil
+}
+func (r transportSyncRole) Stop(context.Context) (float64, error) {
+	if err := r.do("Stop"); err != nil {
+		return 0, err
+	}
+	return 0, nil
+}
+func (r transportSyncRole) Watch(_ context.Context, lease time.Duration) (time.Duration, error) {
+	if err := r.do("Watch"); err != nil {
+		return 0, err
+	}
+	if lease <= 0 {
+		return 0, errTime
+	}
+	return min(lease, 10*time.Second), nil
+}
+
+var errTime = errors.New("the time is not a usable number of seconds")
 
 type monitorLevelRole struct{ role }
 

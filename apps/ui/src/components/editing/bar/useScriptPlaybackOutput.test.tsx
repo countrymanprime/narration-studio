@@ -10,6 +10,8 @@
 //   audio system refuses                                  'says so when the audio system refuses the output'
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { DEFAULT_OUTPUT, deviceProblem, type OutputPrefs } from '../../engine/outputPrefs';
 import { EditingPageProvider } from '../script/EditingPageState';
@@ -48,18 +50,17 @@ function Harness({ output }: { output: OutputPrefs }) {
   playback = useScriptPlayback({ playlist: [SEGMENT], mediaUrl: (f) => `media/${f}`, notify: vi.fn(), output, onOutputDevice });
   return null;
 }
-const mount = (output: OutputPrefs) =>
-  render(
+// The playback hook reads the DAW sync port; with no DAW sync asked for it does nothing.
+const api = createMockApi();
+const page = (output: OutputPrefs) => (
+  <ApiProvider api={api}>
     <EditingPageProvider doc={marksDoc()}>
       <Harness output={output} />
-    </EditingPageProvider>,
-  );
-const rerender = (view: ReturnType<typeof mount>, output: OutputPrefs) =>
-  view.rerender(
-    <EditingPageProvider doc={marksDoc()}>
-      <Harness output={output} />
-    </EditingPageProvider>,
-  );
+    </EditingPageProvider>
+  </ApiProvider>
+);
+const mount = (output: OutputPrefs) => render(page(output));
+const rerender = (view: ReturnType<typeof mount>, output: OutputPrefs) => view.rerender(page(output));
 const flush = () => act(async () => void (await Promise.resolve()));
 
 let outputs: { kind: string; deviceId: string; label: string }[];

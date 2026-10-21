@@ -62,7 +62,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { doubledCut, doubledStart, itemIndexOf, wordAt, type ChapterRead } from './chapterSource';
+import { closedCutsOf, doubledCut, doubledStart, itemIndexOf, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -181,12 +181,20 @@ export function EditingBody(props: EditingBodyProps) {
   const check = useRecordingCheck({ chapter: props.checkChapter, onClosed: props.onReread, goToParagraph: props.onGoToParagraph });
 
   // Playback: the chapter on the document's clock, and a take on its own.
+  const closedCuts = useMemo(() => closedCutsOf(read), [read]);
   const { prefs: output, change: changeOutput } = useOutputPrefs();
   const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
-  const playback = useScriptPlayback({ playlist, mediaUrl: tracks.mediaUrl, output, onOutputDevice: setDeviceProblem });
+  const playback = useScriptPlayback({
+    playlist,
+    mediaUrl: tracks.mediaUrl,
+    sync: { items: read.workspace.items, cuts: closedCuts, caps },
+    output,
+    onOutputDevice: setDeviceProblem,
+  });
   useAnnouncePlayback(playback.playing);
-  // The DAW's own play lights its word too, and the text follows whichever lit it.
-  useDawPlayPosition({ items: read.workspace.items, playlist, caps, playback });
+  // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
+  // play head itself (useDawTransportSync), so the heartbeat read stands down.
+  useDawPlayPosition({ items: read.workspace.items, playlist, caps: playback.syncActive ? null : caps, playback });
   useFollowScroll(root, playback);
   const takePlayer = useRangePlayer(tracks.mediaUrl, { pre: 0, post: 0 }, output);
   const [playingTake, setPlayingTake] = useState<string | null>(null);

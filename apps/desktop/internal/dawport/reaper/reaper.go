@@ -52,11 +52,14 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapTrackSelect: dawport.Experimental,
 	// follow_position is read_place's and go_to's (narration_track_select.lua): Experimental until the owner sees the Booth open on the track REAPER is on.
 	dawport.CapFollowPosition: dawport.Experimental,
-	dawport.CapRecord:         dawport.Experimental,
-	dawport.CapPunch:          dawport.Experimental,
-	dawport.CapRegions:        dawport.Experimental,
-	dawport.CapTakes:          dawport.Experimental,
-	dawport.CapFXChains:       dawport.Experimental,
+	// transport_sync is set_cursor's, play_from's, stop_play's and watch_transport's (narration_transport.lua): Experimental until the owner hears the
+	// Editing page play through REAPER and sees the cursor and play head follow each way.
+	dawport.CapTransportSync: dawport.Experimental,
+	dawport.CapRecord:        dawport.Experimental,
+	dawport.CapPunch:         dawport.Experimental,
+	dawport.CapRegions:       dawport.Experimental,
+	dawport.CapTakes:         dawport.Experimental,
+	dawport.CapFXChains:      dawport.Experimental,
 	// Built, never wired to a binding, so never gated: Experimental keeps it off until it is verified.
 	dawport.CapItemGain: dawport.Experimental,
 	// The mastering port's DAW row (masterrender.go): Experimental until the owner's
@@ -101,6 +104,10 @@ var commandCapability = map[string]dawport.Capability{
 	"select_track":        dawport.CapTrackSelect,
 	"read_place":          dawport.CapFollowPosition,
 	"go_to":               dawport.CapFollowPosition,
+	"set_cursor":          dawport.CapTransportSync,
+	"play_from":           dawport.CapTransportSync,
+	"stop_play":           dawport.CapTransportSync,
+	"watch_transport":     dawport.CapTransportSync,
 	"arm_only":            dawport.CapRecord,
 	"record_start":        dawport.CapRecord,
 	"record_stop":         dawport.CapRecord,
@@ -211,6 +218,8 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 	actions := bridge.NewActions(client, Gate(allowed))
 	heartbeat := daw.NewReachability(client)
 	commands := events{client: client}
+	positions := daw.NewPositionFeed()
+	client.Subscribe(bridge.Subscription{Tags: []string{"TRANSPORT"}, Handle: positions.Record})
 	return &Adapter{
 		heartbeat: heartbeat,
 		roles: map[dawport.Capability]any{
@@ -229,6 +238,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapTrackState:      actions,
 			dawport.CapTrackSelect:     actions,
 			dawport.CapFollowPosition:  placeFollower{actions, allowed},
+			dawport.CapTransportSync:   transportSyncer{actions, allowed, positions},
 			dawport.CapRecord:          actions,
 			dawport.CapPunch:           puncher{actions, allowed},
 			dawport.CapRegions:         actions,

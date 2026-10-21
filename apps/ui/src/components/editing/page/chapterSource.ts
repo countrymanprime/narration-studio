@@ -5,6 +5,8 @@ import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace'
 import { HEADING_PARAGRAPH, tokenParagraph, type HeardAnswer, type HeardWord } from '../../../ports/alignment';
 import type { PlaylistSegment } from '../../proof/playlist';
 import type { ChapterDoc, HeardWord as ModelWord } from '../model';
+import type { DocCut } from '../model/cuts';
+import type { ClosedCut } from '../follow/clockMap';
 import { duplicateRead } from '../model/duplicates';
 import type { RangeLocator } from '../range/common/locate';
 import { docCutsOf } from '../range/common/locate';
@@ -142,6 +144,35 @@ export function playlistOf(doc: ChapterDoc, read: ChapterRead): PlaylistSegment[
     });
   }
   return out;
+}
+
+/**
+ * The closing cuts the clock map takes out of the project, in the source seconds of the item their paragraph was heard on. `places` says, for each
+ * paragraph, the item it was heard on and the source second its time 0 is. Only a cut that took words out and closed its gap counts: a gap cut
+ * moves nothing, a wordless cut (a trimmed gap) belongs to no paragraph, and a cut inside a take is placed from the take's start, which the page's
+ * playlist does not keep, so it is left out and the words after it have no project time (docs/design/editing-daw-transport-sync.md).
+ */
+export function closedCutsFrom(cuts: readonly DocCut[], places: ReadonlyMap<string, { itemGuid: string; origin: number }>): ClosedCut[] {
+  const out: ClosedCut[] = [];
+  for (const cut of cuts) {
+    if (cut.mode !== 'close' || cut.takeId || !cut.keys.length) continue;
+    const key = cut.keys[0];
+    const place = places.get(key.slice(0, key.lastIndexOf(':')));
+    if (place && cut.off1 > cut.off0) out.push({ itemGuid: place.itemGuid, from: place.origin + cut.off0, to: place.origin + cut.off1 });
+  }
+  return out;
+}
+
+/** The chapter's closing cuts for the clock map (`closedCutsFrom`), from what the page read. */
+export function closedCutsOf(read: ChapterRead): ClosedCut[] {
+  const spans = heardSpans(read.answer, read.workspace.paragraphs[0]?.id);
+  const guids = new Map(read.workspace.items.map((it) => [it.index, it.itemGuid]));
+  const places = new Map<string, { itemGuid: string; origin: number }>();
+  for (const [pid, span] of spans) {
+    const itemGuid = guids.get(span.item);
+    if (itemGuid) places.set(pid, { itemGuid, origin: span.origin });
+  }
+  return closedCutsFrom(docCutsOf(read.cuts), places);
 }
 
 /** The chapter's length now: where its last heard word ends. */

@@ -208,6 +208,7 @@ import {
   dawLastActionSchema,
   dawMonitorLevelSchema,
   dawPlaceSchema,
+  dawPositionSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -3439,6 +3440,35 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await off.dawGoToChapter('c-0001', 'end', 0)).refused).toBe(refused.message);
   });
 
+  it('dawTransportSync and daw_position_changed: the host goldens parse, every key is required, and the mock answers and streams as the host does', async () => {
+    for (const name of ['daw-position-playing.json', 'daw-position-recording.json', 'daw-position-stopped-other-project.json'])
+      expectMatches(dawPositionSchema, readGolden(name), name);
+    expectMatches(dawResultSchema, readGolden('daw-transport-sync-ok.json'), 'daw-transport-sync-ok.json');
+    expectMatches(dawResultSchema, readGolden('daw-transport-sync-refused.json'), 'daw-transport-sync-refused.json');
+    const whole = { playing: true, recording: false, playPosition: 1, editCursor: 2, sameProject: true };
+    expect(dawPositionSchema.safeParse(whole).success).toBe(true);
+    for (const key of Object.keys(whole))
+      expect(dawPositionSchema.safeParse(Object.fromEntries(Object.entries(whole).filter(([k]) => k !== key))).success, key).toBe(false);
+    expect(dawPositionSchema.safeParse({ ...whole, playPosition: -1 }).success).toBe(false);
+    expect(dawPositionSchema.safeParse({ ...whole, extra: 1 }).success).toBe(false);
+
+    const api = createMockApi({}, { daw: { toggles: { transport_sync: 'on' } } });
+    const heard: unknown[] = [];
+    const stop = api.subscribeDawPosition((position) => heard.push(position));
+    expect(await api.dawTransportSync('watch', 0)).toEqual({ ok: true, changed: false, message: '', undoSteps: 0 });
+    expect(await api.dawTransportSync('play', 12.5)).toEqual({ ok: true, changed: true, message: '', undoSteps: 0 });
+    expect(heard.at(-1)).toEqual({ playing: true, recording: false, playPosition: 12.5, editCursor: 12.5, sameProject: true });
+    for (const position of heard) expectMatches(dawPositionSchema, position, 'mock daw_position_changed');
+    expect((await api.dawTransportSync('cursor', -1)).refused).toBe('That place is not a usable number of seconds.');
+    stop();
+
+    const off = createMockApi();
+    const refused = await off.dawTransportSync('play', 3);
+    expectMatches(dawResultSchema, refused, 'mock transport sync, experimental off');
+    expect(refused.ok).toBe(false);
+    expect(refused.refused).toBe((await off.dawCapabilities()).capabilities.transport_sync.message);
+  });
+
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-this.json'))).toBe('this');
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-unknown.json'))).toBe('unknown');
@@ -4212,6 +4242,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawSetMonitorLevel',
       'dawPlace',
       'dawGoToChapter',
+      'dawTransportSync',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',
@@ -4399,6 +4430,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeRetakeLanes',
       'subscribeDawCapabilities',
       'subscribeDawTransport',
+      'subscribeDawPosition',
       'subscribeDawProjectState',
       'subscribeAudacityLink',
       'subscribeRecorderState',
