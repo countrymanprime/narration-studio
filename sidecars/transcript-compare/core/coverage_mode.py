@@ -880,7 +880,7 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None, rechec
             event="coverage.pipeline",
             first=[budget.first.workers, budget.first.threads],
             recheck=[budget.recheck.workers, budget.recheck.threads],
-            serial=budget.serial,
+            cpus=budget.cpus,
         )
         first = transcriber or _default_transcriber(engine, args, budget.first, shared_instance=budget.shared_instance)
         recheck = recheck_transcriber or shared_transcriber(

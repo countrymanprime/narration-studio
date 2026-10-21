@@ -130,16 +130,15 @@ def _words_files(tmp_path):
     items=st.integers(1, 40),
     device=st.sampled_from(["cpu", "cuda"]),
 )
-def test_the_two_models_never_use_more_threads_than_the_computer_has(cpu, requested, first, recheck, items, device):
+def test_each_models_workers_times_threads_fit_the_computer_and_the_gate_has_its_processors(cpu, requested, first, recheck, items, device):
     budget = pipeline.plan_budget(cpu, requested, first, recheck, items, device, MODEL_CAPS)
+    gate = pipeline.CpuGate(budget.cpus)
 
-    assert budget.first.workers >= 1 and budget.first.threads >= 1
-    assert budget.recheck.workers >= 1 and budget.recheck.threads >= 1
-    if budget.serial:
-        assert cpu == 1
-        return
-    used = budget.first.workers * budget.first.threads + budget.recheck.workers * budget.recheck.threads
-    assert used <= cpu
+    assert budget.cpus == cpu
+    for model in (budget.first, budget.recheck):
+        assert model.workers >= 1 and 1 <= model.threads <= cpu
+        assert model.workers * model.threads <= cpu
+        assert gate.tokens_for(model.threads) <= cpu
 
 
 @given(cpu=st.integers(1, 64), requested=st.integers(0, 16), model=st.sampled_from(sorted(MODEL_CAPS)), items=st.integers(1, 40))
@@ -164,16 +163,6 @@ def test_the_large_model_is_capped_by_memory_whatever_is_asked():
     assert biggest.recheck.workers == 1
 
 
-def test_the_cpus_are_split_by_what_each_model_costs():
-    cheap_first = pipeline.plan_budget(16, 0, "tiny", "large-v3", 40, "cpu", MODEL_CAPS)
-    dear_first = pipeline.plan_budget(16, 0, "medium", "large-v3", 40, "cpu", MODEL_CAPS)
-
-    def first_share(budget):
-        return budget.first.workers * budget.first.threads
-
-    assert first_share(dear_first) > first_share(cheap_first)
-
-
 def test_a_gpu_runs_one_worker_per_model_and_shares_each_instance():
     budget = pipeline.plan_budget(16, 8, "tiny", "large-v3-turbo", 40, "cuda", MODEL_CAPS)
 
@@ -181,10 +170,48 @@ def test_a_gpu_runs_one_worker_per_model_and_shares_each_instance():
     assert budget.shared_instance is True
 
 
-def test_one_cpu_runs_the_two_models_one_after_the_other():
-    budget = pipeline.plan_budget(1, 0, "tiny", "large-v3-turbo", 40, "cpu", MODEL_CAPS)
+def test_the_gate_never_holds_more_tokens_than_it_has_and_lets_a_waiter_in_when_they_come_back():
+    gate = pipeline.CpuGate(4)
+    held, peak, lock = [0], [0], threading.Lock()
 
-    assert budget.serial is True
+    def work(tokens):
+        with gate.hold(tokens, lambda: None):
+            with lock:
+                held[0] += tokens
+                peak[0] = max(peak[0], held[0])
+            time.sleep(0.02)
+            with lock:
+                held[0] -= tokens
+
+    threads = [threading.Thread(target=work, args=(tokens,)) for tokens in (2, 2, 2, 1, 1, 3, 4, 1) * 3]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(WAIT * 4)
+
+    assert not any(thread.is_alive() for thread in threads)
+    assert peak[0] <= 4 and gate.peak <= 4 and gate.peak >= 2
+
+
+def test_a_cancel_reaches_a_call_waiting_for_the_gate():
+    gate = pipeline.CpuGate(1)
+    stopped = threading.Event()
+
+    def holder():
+        with gate.hold(1, lambda: None):
+            stopped.wait(WAIT)
+
+    first = threading.Thread(target=holder)
+    first.start()
+    time.sleep(0.05)
+
+    def cancelled():
+        raise compare.Cancelled
+
+    with pytest.raises(compare.Cancelled), gate.hold(1, cancelled):
+        pass
+    stopped.set()
+    first.join()
 
 
 def test_auto_leaves_each_item_worker_two_threads_on_four_cpus():
@@ -393,6 +420,25 @@ def test_one_cpu_never_runs_two_transcriptions_at_once(tmp_path, progress, cpus)
     mode.run(_cascade_args(tmp_path, manuscript, manifest), compare, transcriber=guarded(_first_pass(truth)), recheck_transcriber=guarded(_recheck(truth)))
 
     assert peak[0] == 1
+
+
+def test_the_threads_in_flight_never_pass_the_computers_processors(tmp_path, progress, cpus, monkeypatch):
+    cpus(4)
+    manuscript, manifest, truth = _corpus(tmp_path)
+    gates = []
+    real = pipeline.CpuGate
+    monkeypatch.setattr(pipeline, "CpuGate", lambda size: gates.append(real(size)) or gates[-1])
+
+    def slow(inner):
+        def call(item, on_seconds):
+            time.sleep(0.03)
+            return inner(item, on_seconds)
+
+        return call
+
+    mode.run(_cascade_args(tmp_path, manuscript, manifest), compare, transcriber=slow(_first_pass(truth)), recheck_transcriber=slow(_recheck(truth)))
+
+    assert len(gates) == 1 and 1 <= gates[0].peak <= 4
 
 
 def test_workers_in_flight_never_pass_what_the_budget_gave_each_model(tmp_path, progress, cpus):

@@ -3,10 +3,12 @@
 Two things live here, both inside one sidecar process:
 
 - The **budget**: how many items each model transcribes at once and how many CPU threads each of those
-  gets, so that `workers * threads` summed over both models never passes the computer's processors.
-  A model is loaded once per process and shared by its workers (faster-whisper's `num_workers`), so a
-  worker costs threads, not a second copy of the weights. A GPU takes one worker per model and one call
-  at a time (`shared_instance`).
+  gets. Each model is planned as if it had the computer to itself, and a `CpuGate` holds the threads in
+  use at any moment, across both models, to the computer's processors, first come, first served. So a
+  model uses whatever the other leaves idle (the first pass has finished, or nothing is queued for
+  the large model) and neither starves the other. A model is loaded once per process and shared by
+  its workers (faster-whisper's `num_workers`), so a worker costs threads, not a second copy of the
+  weights. A GPU takes one worker per model and one call at a time (`shared_instance`).
 - The **pipeline**: the small model's workers transcribe the items; as each item's words file is
   final, its doubtful passages (`coverage_mode.unsure_runs`) go to the large model's workers, which
   splice them into the same file. The chapter is aligned once, when both are done.
@@ -19,8 +21,10 @@ from __future__ import annotations
 
 import os
 import threading
-from collections.abc import Callable, Sequence
+from collections import deque
+from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import ModuleType
@@ -32,13 +36,8 @@ WHOLE_CHAPTER_FRACTION = 0.60
 """MC3's window rules, the same numbers as `plan.go` (`windowEdgePadSeconds`, `windowMinSeconds`,
 `windowMergeGapSeconds`, `windowWholeChapterFraction`); `tests/fixtures/recheck_windows.json` is read by both test suites so they cannot drift."""
 
-MODEL_COST = {"tiny": 1, "base": 2, "small": 5, "medium": 15, "large-v3-turbo": 8, "large-v3": 20}
-"""Relative CPU cost of one second of audio per model, rough orders of magnitude used only to split the processors between the two models."""
-
-DEFAULT_COST = 5
 DOUBT_SHARE = 0.15
-"""The share of a chapter the large model is expected to see: it weighs the large model's cost when the processors are split, and
-reserves room in the progress denominator until the real share is known."""
+"""The share of a chapter the large model is expected to see: it reserves room in the progress denominator until the real share is known."""
 
 POLL_SECONDS = 0.1
 """How often a running pool is checked for finished work and for a cancel."""
@@ -59,12 +58,12 @@ class ModelBudget:
 
 @dataclass(frozen=True)
 class PipelineBudget:
-    """Both models' shares. `serial` (one processor) runs everything on one worker, one job at a time. `shared_instance` (a GPU) has
-    every worker of a model take turns on one loaded model."""
+    """Both models' budgets, each planned as if the model had the computer to itself; `cpus` is the size of the `CpuGate` that shares it.
+    With `shared_instance` (a GPU) every worker of a model takes turns on one loaded model."""
 
     first: ModelBudget
     recheck: ModelBudget
-    serial: bool = False
+    cpus: int
     shared_instance: bool = False
 
 
@@ -82,20 +81,66 @@ def plan_item_workers(cpus: int, requested: int, model: str, items: int, device:
 
 
 def plan_budget(cpus: int, requested: int, first_model: str, recheck_model: str, items: int, device: str, max_by_model: dict[str, int]) -> PipelineBudget:
-    """The two models' shares of `cpus`. The processors are split by what each model costs on the part of the chapter it sees; each
-    model then plans its own workers inside its share. The large model never goes past its memory cap, whatever was asked."""
-    shared = device == "cuda"
-    if cpus < 2:
-        return PipelineBudget(ModelBudget(1, 1), ModelBudget(1, 1), serial=True, shared_instance=shared)
-    first_cost = MODEL_COST.get(first_model, DEFAULT_COST)
-    recheck_cost = MODEL_COST.get(recheck_model, 2 * DEFAULT_COST) * DOUBT_SHARE
-    first_cpus = min(cpus - 1, max(1, round(cpus * first_cost / (first_cost + recheck_cost))))
-    first = plan_item_workers(first_cpus, requested, first_model, items, device, max_by_model)
-    recheck = plan_item_workers(cpus - first_cpus, requested, recheck_model, items, device, max_by_model)
-    cap = max_by_model.get(recheck_model, 2)
-    if recheck.workers > cap:
-        recheck = ModelBudget(cap, max(1, (cpus - first_cpus) // cap))
-    return PipelineBudget(first, recheck, shared_instance=shared)
+    """The two models' budgets on `cpus` processors. Each is planned alone (`plan_item_workers`), so each call has the threads that fill
+    the computer with that model's workers; the gate is what keeps both together inside it. The large model never goes past its memory
+    cap, whatever was asked. On one processor the gate runs the two models' calls one at a time."""
+    cpus = max(1, cpus)
+    recheck_cap = max_by_model.get(recheck_model, 2)
+    first = plan_item_workers(cpus, requested, first_model, items, device, max_by_model)
+    recheck = plan_item_workers(cpus, min(requested, recheck_cap), recheck_model, items, device, max_by_model)
+    return PipelineBudget(first, recheck, cpus, shared_instance=device == "cuda")
+
+
+class CpuGate:
+    """The computer's processors as tokens. A call holds the tokens for its threads while it runs, so the threads in use never pass the
+    computer, whatever the budgets add up to. Calls come in first come, first served: neither model can starve the other."""
+
+    def __init__(self, cpus: int):
+        self._size = max(1, cpus)
+        self._free = self._size
+        self._line: deque[object] = deque()
+        self._cv = threading.Condition()
+        self.peak = 0
+        """The most tokens held at once."""
+
+    def tokens_for(self, threads: int) -> int:
+        """The tokens a call of `threads` threads holds: never more than the gate has."""
+        return max(1, min(threads, self._size))
+
+    @contextmanager
+    def hold(self, threads: int, check: Callable[[], None]) -> Iterator[None]:
+        """Wait for `threads` tokens, calling `check` (the cancel test) while waiting, and hold them for the body."""
+        tokens = self.tokens_for(threads)
+        ticket = object()
+        with self._cv:
+            self._line.append(ticket)
+            try:
+                while not (self._line[0] is ticket and self._free >= tokens):
+                    self._cv.wait(POLL_SECONDS)
+                    check()
+            except BaseException:
+                self._line.remove(ticket)
+                self._cv.notify_all()
+                raise
+            self._line.popleft()
+            self._free -= tokens
+            self.peak = max(self.peak, self._size - self._free)
+            self._cv.notify_all()
+        try:
+            yield
+        finally:
+            with self._cv:
+                self._free += tokens
+                self._cv.notify_all()
+
+    def wrap(self, transcriber, threads: int, check: Callable[[], None]):
+        """`transcriber` that holds the gate's tokens for `threads` threads while it runs."""
+
+        def gated(item, on_seconds):
+            with self.hold(threads, check):
+                return transcriber(item, on_seconds)
+
+        return gated
 
 
 # ---------------------------------------------------------------------------
@@ -206,11 +251,18 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
     current = {item.index: mode._ItemResult(item, None, None, ()) for item in items if item.muted}
     summaries: dict[int, dict] = {}
     asked = {"seconds": 0.0}
-    gate = DoubtGate(sum(item.length for item in playing))
+    doubt = DoubtGate(sum(item.length for item in playing))
     below = float(args.unsure_below)
     locks = {item.index: threading.Lock() for item in playing}
+    gate = CpuGate(budget.cpus)
+
+    def check() -> None:
+        engine.check_cancelled(args.progress)
+
+    first = gate.wrap(first, budget.first.threads, check)
+    recheck = gate.wrap(recheck, budget.recheck.threads, check)
     first_pool = ThreadPoolExecutor(budget.first.workers, thread_name_prefix="first-pass")
-    recheck_pool = first_pool if budget.serial else ThreadPoolExecutor(budget.recheck.workers, thread_name_prefix="re-check")
+    recheck_pool = ThreadPoolExecutor(budget.recheck.workers, thread_name_prefix="re-check")
     queue = Pending(engine, args.progress)
     first_done = set()
 
@@ -242,10 +294,10 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
 
     def plan(item, result):
         runs = mode.unsure_runs(result, below)
-        windows, tripped = gate.windows_for(item, runs)
+        windows, tripped = doubt.windows_for(item, runs)
         scheduled = []
         if windows:
-            scheduled.append((item, windows, gate.escalated))
+            scheduled.append((item, windows, doubt.escalated))
         if tripped:  # the large model is about to redo most of the chapter: finish the items already past the gate whole too
             scheduled.extend(
                 (earlier, [(earlier.start_offset, earlier.end)], True) for earlier in playing if earlier.index in first_done and earlier is not item
