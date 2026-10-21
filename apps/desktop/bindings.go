@@ -532,7 +532,13 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	}
 	// Clear project data removes the voice samples too (a replace keeps them), so a page that shows them must read again.
 	had := voiceSamplesPresent(h.services().config.projectFolder)
-	err := h.services().manuscript.Clear()
+	svc := h.services()
+	err := svc.manuscript.Clear()
+	if err == nil {
+		// The DAW connection is project data too: the link is dropped and, when the folder holds exactly one REAPER file, found again.
+		err = clearDawConnection(h.persist, svc.settings, svc.config.projectFolder)
+		h.pollDawCapabilities()
+	}
 	if err == nil && had {
 		h.emitVoiceSamplesChanged()
 	}
