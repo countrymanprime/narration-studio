@@ -81,8 +81,8 @@ describe('ScopedSetting controls', () => {
     expect(screen.getByRole('switch', { name: 'Notify me' }).getAttribute('aria-checked')).toBe('false');
   });
 
-  it('explains the Experimental REAPER actions switch instead of the generic note', async () => {
-    renderSetting({ ...FIELD, key: 'experimental_reaper_actions', label: 'Experimental REAPER actions', kind: 'bool', choices: [], effectiveValue: 'false' });
+  it('explains the Experimental DAW actions switch instead of the generic note', async () => {
+    renderSetting({ ...FIELD, key: 'experimental_reaper_actions', label: 'Experimental DAW actions', kind: 'bool', choices: [], effectiveValue: 'false' });
     fireEvent.click(screen.getByRole('button', { name: 'More information' }));
     expect(await screen.findByText(/not yet verified in a real REAPER are refused while this is off/)).toBeTruthy();
   });

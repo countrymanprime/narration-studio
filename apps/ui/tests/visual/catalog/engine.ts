@@ -55,6 +55,12 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'wrong-project',
+    description:
+      'The engine panel with REAPER answering on a different project than the linked one (?mockDawMismatch=1): the REAPER project card says so, then "Waiting for REAPER to open the linked project.", "Last checked N s ago." and a Check again',
+  },
+  {
+    page: 'engine',
     state: 'chapter-link-confirmed',
     description:
       'The engine panel, the Chapter links list at the foot of the page - the first chapter confirmed to a track shows Linked with the track name, Change and Clear',

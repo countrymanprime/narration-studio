@@ -12,6 +12,7 @@ import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import type { Notify } from '../primitives/Toast';
 import { useStageRecommendations } from '../stages/useStageRecommendations';
 import { AudacityLinkCard } from './AudacityLinkCard';
+import { CheckLine } from '../layout/CheckLine';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
 import { ChapterTagsDialog } from './ChapterTagsDialog';
@@ -35,6 +36,10 @@ export type EngineLinkState = {
   dawReachable: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches: boolean;
+  /** When those three facts were last read from the host (Unix ms); null before the first read. */
+  checkedAt: number | null;
+  /** The visible Check again: reads the facts from the host now. */
+  onCheckAgain: () => void;
   /** The shared "link a REAPER project file" action (also used by Settings' DAW category and an import). */
   onLinkDawFile: () => void;
   linkingDawFile: boolean;
@@ -241,9 +246,17 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
           </div>
         )}
         {mismatch && (
-          <p role="status" style={{ color: 'var(--warn-text)' }}>
-            REAPER has a different project open than the one linked here. Link the open project, or switch REAPER to the linked file.
-          </p>
+          <>
+            <p role="status" style={{ color: 'var(--warn-text)' }}>
+              REAPER has a different project open than the one linked here. Link the open project, or switch REAPER to the linked file.
+            </p>
+            <CheckLine
+              waiting="Waiting for REAPER to open the linked project"
+              unknown="REAPER has the linked project open"
+              checkedAt={link.checkedAt}
+              onCheckAgain={link.onCheckAgain}
+            />
+          </>
         )}
         {!discovery && <p role="status">Looking for the REAPER project file…</p>}
         {discovery && discovery.candidates.length === 0 && (

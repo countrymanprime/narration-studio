@@ -194,6 +194,8 @@ function AppRoutes() {
   // The compare run's phase, read by the pop-recovery effect below without resubscribing it on every transcript event.
   const transcriptPhaseRef = useRef<string>('idle');
   const [data, setData] = useState<Bootstrap>();
+  // When the bootstrap was last read, for the engine panel's "Last checked" beside the DAW facts it carries.
+  const [dataReadAt, setDataReadAt] = useState<number | null>(null);
   const hasManuscript = Boolean(data?.manuscript);
   // One queue for the whole app: messages stack instead of replacing each other, an identical one that is showing starts its time again, and
   // an error stays until it is dismissed. `notify` and `dismiss` keep their identity, so a page effect that lists them never re-runs.
@@ -258,6 +260,7 @@ function AppRoutes() {
       const next = await api.bootstrap();
       setDiagnosticId(next.diagnosticId);
       setData(next);
+      setDataReadAt(Date.now());
     } catch (error) {
       // Every caller runs this from an event or a `void`, so a failure has nowhere to go but the narrator.
       setNotice(describeApiError(error), 'error');
@@ -339,6 +342,7 @@ function AppRoutes() {
           loaded = true;
           setDiagnosticId(next.diagnosticId);
           setData(next);
+          setDataReadAt(Date.now());
         }
       } catch (error) {
         // A payload that did not match its schema says so in plain words and keeps the technical text for "Copy details"
@@ -1051,6 +1055,8 @@ function AppRoutes() {
                 dawFileLinked: data.dawFileLinked,
                 dawReachable: data.dawReachable,
                 dawProjectMatches: data.dawProjectMatches,
+                checkedAt: dataReadAt,
+                onCheckAgain: () => void refreshBootstrap(),
                 onLinkDawFile: () => void linkDawFile(),
                 linkingDawFile: dawLink.isBusy,
               }}

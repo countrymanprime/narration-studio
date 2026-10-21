@@ -29,7 +29,7 @@ import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { overlay } from '../../../overlay/overlayService';
 import { SettingsPage } from '../page/SettingsPage';
-import { DAW_SENTENCE } from './SampleOutputBody';
+import { DAW_SENTENCE, dawSentence } from './SampleOutputBody';
 
 type Device = { kind: string; deviceId: string; label: string };
 const out = (deviceId: string, label: string): Device => ({ kind: 'audiooutput', deviceId, label });
@@ -182,6 +182,15 @@ describe('Voice sample output: following "Record with"', () => {
     expect(within(row()).queryByText(DAW_SENTENCE)).toBeNull();
     fireEvent.click(within(group).getByRole('radio', { name: /^REAPER/ }));
     await within(row()).findByText(DAW_SENTENCE);
+  });
+});
+
+describe('Voice sample output: the DAW is named', () => {
+  it("says Audacity's own audio device, not REAPER's, under an Audacity project", async () => {
+    await renderRow(createMockApi({}, { dawChoice: { chosen: 'Audacity' }, daw: { daw: 'Audacity' }, recording: { engine: 'daw' } }));
+    await within(row()).findByText(dawSentence('Audacity'));
+    expect(row().textContent).not.toMatch(/REAPER/);
+    expect(dawSentence('Audacity')).toBe("Voice samples play on this computer's default output. Audacity's own audio device is not used or changed.");
   });
 });
 

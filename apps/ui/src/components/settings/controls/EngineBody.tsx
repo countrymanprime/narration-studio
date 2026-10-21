@@ -5,6 +5,7 @@ import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
+import { useSecondsSince } from '../../layout/CheckLine';
 import { engineChanged } from '../data/engineSignal';
 import { AudacityLinkCard } from '../../engine/AudacityLinkCard';
 import { useAudacityLink } from '../../engine/useAudacityLink';
@@ -29,7 +30,7 @@ function optionDescription(option: DawChoiceOption): ReactNode {
     lines.push(
       <span key="record">
         {record.message}
-        {record.reason === 'experimental_off' && ' Turn on Experimental REAPER actions under Advanced, below.'}
+        {record.reason === 'experimental_off' && ' Turn on Experimental DAW actions under Advanced, below.'}
       </span>,
     );
   }
@@ -134,8 +135,9 @@ export function EngineBody() {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [test, setTest] = useState<{ phase: 'idle' | 'testing' | 'ok' | 'bad'; text: string; file?: string | null }>({ phase: 'idle', text: '' });
+  const [test, setTest] = useState<{ phase: 'idle' | 'testing' | 'ok' | 'bad'; text: string; file?: string | null; at?: number }>({ phase: 'idle', text: '' });
   const live = useRef(true);
+  const testedFor = useSecondsSince(test.at);
 
   const read = useCallback(
     () =>
@@ -197,8 +199,8 @@ export function EngineBody() {
     const file = next.daw === 'REAPER' ? next.linkedFile : null;
     setTest(
       next.state === 'connected'
-        ? { phase: 'ok', text: `Connected. Answered in ${Math.max(1, Math.round(performance.now() - began))} ms.`, file }
-        : { phase: 'bad', text: `No answer from ${next.daw}.`, file },
+        ? { phase: 'ok', text: `Connected. Answered in ${Math.max(1, Math.round(performance.now() - began))} ms.`, file, at: Date.now() }
+        : { phase: 'bad', text: `No answer from ${next.daw}.`, file, at: Date.now() },
     );
   };
 
@@ -284,6 +286,9 @@ export function EngineBody() {
             <span role="status" className="text-[var(--text-muted)]">
               {test.phase === 'testing' || test.file === linkedFile ? test.text : ''}
             </span>
+            {test.at !== undefined && test.phase !== 'testing' && test.file === linkedFile && (
+              <span className="text-[var(--text-muted)]">Last checked {testedFor} s ago.</span>
+            )}
           </div>
         </div>
       )}

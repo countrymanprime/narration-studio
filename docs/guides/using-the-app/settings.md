@@ -51,13 +51,15 @@ when nothing is there. **Escape** clears the search.
 **Record with** chooses where this project's takes are recorded: **REAPER**, **Audacity** or the **Built-in
 recorder** (see [Choose REAPER](#choose-reaper)). The choice is saved with the project. A refused choice (no project open,
 a take running, or the built-in recorder not available) says why under the radios, and the choice stays where it was.
-Under it, **Connection** says what the app can reach right now, with **Test connection**.
+Under it, **Connection** says what the app can reach right now, with **Test connection**; after a test it says when it last checked ("Last checked 12 s ago").
 
 With **Audacity** chosen, **Connection** is **Audacity connection** instead: a status, one sentence that says what to do next, when Audacity was last heard from, and a **Set up Audacity** checklist. Audacity must be Audacity 3 with its scripting turned on, and the first start of a new Audacity cannot load scripting, so it takes two starts: **Start Audacity**, close it, **Turn on scripting** (the app edits Audacity's settings; it refuses while Audacity is open), then **Start Audacity** again. Once Audacity answers, **Link the open Audacity project** marks the project open in Audacity as this project's, with one label in a track named "Narration Utils"; **Choose Audacity project file** records the `.aup3` so **Start Audacity** opens it; **Unlink** forgets both and leaves the label in Audacity. **Check again** asks Audacity now. If Audacity may be waiting on a dialog, the card says so; close the dialog in Audacity and the app reconnects by itself. The same status shows on the header's engine chip and in the engine panel.
 
 Also here: **Microphone** (a list of the computer's inputs, with **Refresh the list**; the Booth uses the same
-one), and, for REAPER only, **Start the launcher script with REAPER**, and under Advanced **REAPER program**,
-**Experimental REAPER actions** and **Capabilities**. These are settings of this computer; a project has no override for them.
+one); with REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
+for Audacity or the built-in recorder); and, under Advanced for any recorder, **Experimental DAW actions** and
+**Capabilities**. These are settings of this computer; a project has no override for them. **Voice sample output** names the
+recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
 
@@ -106,8 +108,8 @@ the last 5 seconds, and the card says whether its open project matches the linke
   value that is not a path to `reaper` or `reaper.exe` is refused where you type it, and the old one stays.
 - **Start the launcher script with REAPER** (off by default): REAPER runs the Narration Utils launcher when the app
   starts it.
-- **Experimental REAPER actions** (Advanced, off by default): the DAW actions not yet verified in REAPER stay refused
-  while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
+- **Experimental DAW actions** (Advanced, off by default, for REAPER and Audacity alike): the DAW actions not yet verified
+  stay refused while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
 - **Capabilities** (Advanced): a table of what the app can ask the recording tool to do, each with **Auto**, **On** or
   **Off** and a **Now** column: the level (**Supported**, **Experimental**, **Not yet available** or **Unsupported**),
   the tool's own reason when it is unavailable, and a warning on any action that replaces audio that cannot be brought back.

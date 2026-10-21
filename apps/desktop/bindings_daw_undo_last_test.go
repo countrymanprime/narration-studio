@@ -148,7 +148,7 @@ func TestDawUndoLastRefusesWithTheResolversSentenceAndAsksNothing(t *testing.T) 
 // last action is not the cut, the undo_last capability's refusal, and DawLastAction's this and unknown. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/daw-undo-last-*.json and daw-last-action-*.json.
 func TestDawUndoLastContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental REAPER actions are off. Turn them on in Settings to undo the app's last action."}
+	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to undo the app's last action."}
 	cases := map[string]struct {
 		support dawport.Support
 		answer  dawport.Result

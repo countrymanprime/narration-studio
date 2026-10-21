@@ -413,13 +413,8 @@ func (h *Host) audacityLinkFacts(svc hostServices) (linked, reachable, matches, 
 	return link.Linked, link.State == string(audacitylink.StateAnswering), link.OpenProject == string(audacitylink.ProjectLinked), true
 }
 
-// inAudacityWords says a sentence worded for REAPER in Audacity's name, for the bindings that serve both. The Experimental switch keeps
-// its own name, which is the setting's label whichever DAW it gates.
+// inAudacityWords says a sentence worded for REAPER in Audacity's name, for the bindings that serve both. The Experimental switch's name
+// ("Experimental DAW actions") names no DAW, so it passes through unchanged.
 func inAudacityWords(message string) string {
-	const keep = "Experimental REAPER actions"
-	parts := strings.Split(message, keep)
-	for i, part := range parts {
-		parts[i] = strings.ReplaceAll(part, "REAPER", "Audacity")
-	}
-	return strings.Join(parts, keep)
+	return strings.ReplaceAll(message, "REAPER", "Audacity")
 }

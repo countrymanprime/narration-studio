@@ -175,7 +175,7 @@ func TestDawReduceRangeGainRefusesWithTheResolversSentenceAndSendsNothing(t *tes
 // stale refusal and the range_gain capability's refusal. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/daw-reduce-range-gain-*.json.
 func TestDawReduceRangeGainContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental REAPER actions are off. Turn them on in Settings to lower stretches of a take."}
+	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to lower stretches of a take."}
 	cases := map[string]struct {
 		support dawport.Support
 		answer  dawport.Result

@@ -9,6 +9,7 @@ import { playTestSound } from '../../voicesamples/testSound';
 import { overlay } from '../../../overlay/overlayService';
 import { onEngineChanged } from '../data/engineSignal';
 import { useSettingsStore } from '../data/SettingsStore';
+import { useProjectDaw } from '../data/useProjectDaw';
 import { rowOf } from '../registry/rows';
 
 type Listing = { phase: 'loading' } | ({ phase: 'ready'; checkedAt: number } & OutputListing);
@@ -18,7 +19,9 @@ const RECHECK_MS = 5000;
 
 /** The words under the control: what it changes and what it does not. */
 const NOTE = 'Where voice samples play. Takes and read-aloud keep using the microphone and output you chose elsewhere.';
-export const DAW_SENTENCE = "Voice samples play on this computer's default output. REAPER's own audio device is not used or changed.";
+/** What the row says with a DAW: samples play in the app, and the DAW's own audio device is left alone. */
+export const dawSentence = (daw: string): string => `Voice samples play on this computer's default output. ${daw}'s own audio device is not used or changed.`;
+export const DAW_SENTENCE = dawSentence('REAPER');
 
 /**
  * The body of "Voice sample output" (the approved mock's section 4, docs/research/mockups/voice-samples/): where this project's voice samples play,
@@ -29,6 +32,7 @@ export const DAW_SENTENCE = "Voice samples play on this computer's default outpu
 export function SampleOutputBody() {
   const row = rowOf('daw.sampleOutput')!;
   const store = useSettingsStore();
+  const daw = useProjectDaw('REAPER');
   const recording = usePort('recording');
   const [engine, setEngine] = useState<RecordingEngine | undefined>();
   const [hasProject, setHasProject] = useState(true);
@@ -97,7 +101,7 @@ export function SampleOutputBody() {
   if (engine === 'daw' && hasProject) {
     return (
       <div className="flex max-w-full min-w-0 flex-col items-start gap-2">
-        <p className="m-0 max-w-full text-sm break-words sm:max-w-[52ch]">{DAW_SENTENCE}</p>
+        <p className="m-0 max-w-full text-sm break-words sm:max-w-[52ch]">{dawSentence(daw)}</p>
         <div className="flex items-center gap-2">
           {testButton}
           <span className="text-[0.8125rem] text-[var(--text-muted)]">Plays on the default output</span>

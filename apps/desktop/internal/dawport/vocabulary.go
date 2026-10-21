@@ -37,7 +37,7 @@ type Toggle string
 
 const (
 	// ToggleAuto (and any value this build does not know, including empty): on when Supported; when Experimental, on only while
-	// the old "Experimental REAPER actions" switch is on.
+	// the old "Experimental DAW actions" switch is on.
 	ToggleAuto Toggle = "auto"
 	ToggleOn   Toggle = "on"
 	ToggleOff  Toggle = "off"

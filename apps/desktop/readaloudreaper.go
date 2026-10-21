@@ -48,7 +48,7 @@ type readAloudReaperState struct {
 
 const (
 	messageReaperOff       = "REAPER is not connected to this app. To record with reading, open this app from the Narration Utils action in REAPER."
-	messageExperimentalOff = "Reading REAPER's tracks is an experimental action. Turn on Experimental REAPER actions in Settings to use it."
+	messageExperimentalOff = "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it."
 )
 
 // trackStateReader is the Track state role's read of chapter_track_state, as the binding needs it (a fake in tests):

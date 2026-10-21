@@ -393,6 +393,13 @@
   },
   {
     "page": "engine",
+    "state": "wrong-project",
+    "viewport": "desktop",
+    "docName": "engine-panel-wrong-project",
+    "caption": "The audio engine panel - REAPER has a different project open: the card says what it waits for, when it last checked, and has Check again"
+  },
+  {
+    "page": "engine",
     "state": "chapter-link-confirmed",
     "viewport": "desktop",
     "docName": "engine-panel-chapter-links",

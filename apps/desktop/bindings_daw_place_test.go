@@ -148,7 +148,7 @@ func TestDawPlaceContractGoldensAreCurrent(t *testing.T) {
 	svc := host.services()
 	on := &fakePlaceFollower{place: dawport.Place{TrackID: readAloudTrack, Selected: 1, Cursor: 12.5}}
 	contractfile.Check(t, "daw-place-ok", dawPlaceIn(t.Context(), svc, "REAPER", available(), on))
-	contractfile.Check(t, "daw-place-refused", dawPlaceIn(t.Context(), svc, "REAPER", dawport.Support{Message: "Experimental REAPER actions are off. Turn them on in Settings to follow the narrator's place."}, on))
+	contractfile.Check(t, "daw-place-refused", dawPlaceIn(t.Context(), svc, "REAPER", dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to follow the narrator's place."}, on))
 	done, err := dawGoToChapterIn(t.Context(), svc, "REAPER", available(), on, ids[0], "end", 0)
 	if err != nil {
 		t.Fatal(err)

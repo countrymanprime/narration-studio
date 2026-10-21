@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useProjectDaw } from '../data/useProjectDaw';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { InsetCard } from '../../primitives/InsetCard';
@@ -84,7 +85,8 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     setFocusRow(next.row);
   }, [initialCategory]);
 
-  const daw = data.daw || 'REAPER';
+  // The tool this project records with, which can differ from the one the window was launched for: Record with changes it here.
+  const daw = useProjectDaw(data.daw || 'REAPER');
   const loaded = Boolean(store.settings.global);
   const shown = useCallback(
     (row: SettingMeta): boolean => {

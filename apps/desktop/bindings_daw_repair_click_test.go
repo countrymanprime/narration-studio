@@ -165,7 +165,7 @@ func TestDawRepairClickRefusesWithTheResolversSentenceAndSendsNothing(t *testing
 // TestDawRepairClickContractGoldenIsCurrent pins the binding's answers: clicks repaired in REAPER (one undo step), REAPER's stale
 // refusal and the click_repair capability's refusal. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-repair-click-*.json.
 func TestDawRepairClickContractGoldenIsCurrent(t *testing.T) {
-	refusedCapability := dawport.Support{Message: "Experimental REAPER actions are off. Turn them on in Settings to repair clicks in a take."}
+	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to repair clicks in a take."}
 	cases := map[string]struct {
 		support dawport.Support
 		answer  dawport.Result

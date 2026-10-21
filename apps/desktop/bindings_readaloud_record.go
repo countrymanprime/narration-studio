@@ -102,7 +102,7 @@ func readAloudConnectionRefusal(name, connection string) ReadAloudRecording {
 // readAloudExperimentalOffRefusal is the refusal while the record (or, for a punch, the punch) capability is switched off: it
 // speaks of recording, which is what the narrator pressed, and names both switches that turn it on.
 func readAloudExperimentalOffRefusal(name string) ReadAloudRecording {
-	return readAloudRefused(readAloudExperimentalOff, fmt.Sprintf("Recording in %s is an experimental action. Turn on Experimental %s actions, or Record alone, in Settings to use it.", name, name))
+	return readAloudRefused(readAloudExperimentalOff, fmt.Sprintf("Recording in %s is an experimental action. Turn on Experimental DAW actions, or Record alone, in Settings to use it.", name))
 }
 
 // readAloudRecordRefusal turns what ArmOnly, RecordStart or RecordStop answered into the reason and the sentence the

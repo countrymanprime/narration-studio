@@ -543,7 +543,7 @@ func TestHideTakesRefusesWhileRecordingAndPassesOnACallThatNeverAnswered(t *test
 
 // A capability the resolver refuses is a refused Result in the refusal's own sentence, and nothing is written.
 func TestHideTakesIsGatedByTheResolver(t *testing.T) {
-	sentence := "Experimental REAPER actions are off. Turn them on in Settings to choose takes."
+	sentence := "Experimental DAW actions are off. Turn them on in Settings to choose takes."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
@@ -610,7 +610,7 @@ func TestSplitTakeIsExperimentalAndAnswersADawResult(t *testing.T) {
 		}
 	}
 
-	sentence := "Experimental REAPER actions are off. Turn them on in Settings to choose takes."
+	sentence := "Experimental DAW actions are off. Turn them on in Settings to choose takes."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
@@ -678,7 +678,7 @@ func TestReduceRangeGainIsExperimentalAndAnswersADawResult(t *testing.T) {
 		}
 	}
 
-	refusedSentence := "Experimental REAPER actions are off. Turn them on in Settings to lower stretches."
+	refusedSentence := "Experimental DAW actions are off. Turn them on in Settings to lower stretches."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
@@ -752,7 +752,7 @@ func TestRepairClickIsExperimentalAndAnswersADawResult(t *testing.T) {
 		}
 	}
 
-	refusedSentence := "Experimental REAPER actions are off. Turn them on in Settings to repair clicks."
+	refusedSentence := "Experimental DAW actions are off. Turn them on in Settings to repair clicks."
 	var asked []dawport.Capability
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		asked = append(asked, c)
@@ -837,7 +837,7 @@ func TestRollThatStoppedButDidNotRecordAgainSaysTheRecordingEnded(t *testing.T) 
 }
 
 func TestRollIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental REAPER actions are off. Turn them on in Settings to roll."
+	sentence := "Experimental DAW actions are off. Turn them on in Settings to roll."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
 	})
@@ -950,7 +950,7 @@ func TestDeleteRangeRefusesABadRequestWithoutSendingIt(t *testing.T) {
 }
 
 func TestDeleteRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental REAPER actions are off. Turn them on in Settings to cut words and audio."
+	sentence := "Experimental DAW actions are off. Turn them on in Settings to cut words and audio."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
 	})
@@ -1080,7 +1080,7 @@ func TestFXRangeRefusesABadRequestWithoutSendingIt(t *testing.T) {
 }
 
 func TestFXRangeIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental REAPER actions are off. Turn them on in Settings to add an effect to words."
+	sentence := "Experimental DAW actions are off. Turn them on in Settings to add an effect to words."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
 	})
@@ -1195,7 +1195,7 @@ func TestStackTakesRefusesABadRequestWithoutSendingIt(t *testing.T) {
 }
 
 func TestStackTakesIsGatedByTheResolverAndSendsNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental REAPER actions are off. Turn them on in Settings to stack takes."
+	sentence := "Experimental DAW actions are off. Turn them on in Settings to stack takes."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
 	})
@@ -1406,7 +1406,7 @@ func TestFXRangeEditRefusals(t *testing.T) {
 }
 
 func TestFXRangeEditsAreGatedByTheResolverAndSendNothingWhenRefused(t *testing.T) {
-	sentence := "Experimental REAPER actions are off. Turn them on in Settings to add an effect to words."
+	sentence := "Experimental DAW actions are off. Turn them on in Settings to add an effect to words."
 	adapter, dir := newAdapter(t, func(c dawport.Capability) error {
 		return &dawport.NotSupportedError{Capability: c, Support: dawport.Support{Reason: dawport.ReasonExperimentalOff, Message: sentence}}
 	})

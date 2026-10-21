@@ -135,7 +135,7 @@ func refuse(err error) Outcome {
 	case errors.Is(err, bridge.ErrUnavailable):
 		return refused(ReasonStandalone, "REAPER is not connected to this app. To choose a take, open this app from the Narration Utils action in REAPER.")
 	case errors.Is(err, bridge.ErrExperimentalOff):
-		return refused(ReasonExperimentalOff, "Choosing a take is an Experimental REAPER action and it is switched off: turn on Experimental REAPER actions in Settings.")
+		return refused(ReasonExperimentalOff, "Choosing a take is an Experimental REAPER action and it is switched off: turn on Experimental DAW actions in Settings.")
 	}
 	return refused(ReasonFailed, "REAPER could not do that: "+err.Error()+".")
 }

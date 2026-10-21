@@ -1762,7 +1762,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	"DAW": append([]fieldSchema{
 		{"reaper_path", "REAPER executable (override)", "text", nil},
 		{"auto_start_launcher", "Start the launcher script automatically", "bool", nil},
-		{"experimental_reaper_actions", "Experimental REAPER actions", "bool", nil},
+		{"experimental_reaper_actions", "Experimental DAW actions", "bool", nil},
 		{"fx_favourites", "Favourite effects (FX chains and plug-ins)", "tags", nil},
 		// The Audacity backups' window and retention, with the Studio Next mock's labels and ranges (BackupsTab.tsx).
 		{"backups.window_seconds", "Audio kept either side of a punch or an edit (s)", "number", nil},

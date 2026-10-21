@@ -11,7 +11,15 @@ import type { NarrationApi } from '../../types';
 
 afterEach(cleanup);
 
-const LINKED: EngineLinkState = { dawFileLinked: true, dawReachable: false, dawProjectMatches: false, onLinkDawFile: () => {}, linkingDawFile: false };
+const LINKED: EngineLinkState = {
+  dawFileLinked: true,
+  dawReachable: false,
+  dawProjectMatches: false,
+  checkedAt: null,
+  onCheckAgain: () => {},
+  onLinkDawFile: () => {},
+  linkingDawFile: false,
+};
 
 function renderPanel(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, link: Partial<EngineLinkState> = {}) {
   const api = createMockApi(overrides, initial);
@@ -129,6 +137,25 @@ describe('EnginePanel', () => {
   it('says when REAPER has a different project open than the linked one', async () => {
     renderPanel({}, {}, { dawReachable: true, dawProjectMatches: false });
     expect(await screen.findByText(/REAPER has a different project open than the one linked here/)).toBeTruthy();
+  });
+
+  it('the wrong-project notice says when it last checked and has a Check again that reads again', async () => {
+    const onCheckAgain = vi.fn();
+    renderPanel({}, {}, { dawReachable: true, dawProjectMatches: false, checkedAt: Date.now() - 4000, onCheckAgain });
+    const card = await screen.findByRole('region', { name: 'REAPER project' });
+    await within(card).findByText(/REAPER has a different project open/);
+    expect(within(card).getByText(/^Last checked [4-5] s ago\.$/)).toBeTruthy();
+    within(card).getByRole('button', { name: 'Check again' }).click();
+    expect(onCheckAgain).toHaveBeenCalledTimes(1);
+  });
+
+  it('says "Not checked yet" before the first read, and shows no Check again when nothing is wrong', async () => {
+    renderPanel({}, {}, { dawReachable: true, dawProjectMatches: false, checkedAt: null });
+    expect(await screen.findByText('Not checked yet.')).toBeTruthy();
+    cleanup();
+    renderPanel({}, {}, { dawReachable: true, dawProjectMatches: true });
+    await screen.findByText('Alice.rpp');
+    expect(screen.queryByRole('button', { name: 'Check again' })).toBeNull();
   });
 
   it('is not in the page while closed', () => {
