@@ -80,7 +80,7 @@ describe('pulseEnvelope', () => {
   it('trails further behind the playhead than it leads ahead', () => {
     expect(pulseEnvelope(-3)).toBeGreaterThan(pulseEnvelope(3));
     expect(pulseEnvelope(-3)).toBeGreaterThan(0.2);
-    expect(pulseEnvelope(2.9)).toBeLessThan(0.01);
+    expect(pulseEnvelope(PULSE.ahead - 0.1)).toBeLessThan(0.01);
   });
   it('eases: half way to the reach is half the height', () => {
     expect(pulseEnvelope(PULSE.ahead / 2)).toBeCloseTo(0.5, 6);
@@ -127,6 +127,45 @@ describe('barScale', () => {
         expect(s).toBeGreaterThanOrEqual(1);
         expect(s).toBeLessThanOrEqual(1 + PULSE.grow + 1e-9);
       }
+  });
+});
+
+describe('the pulse as a wave around the playhead', () => {
+  const period = 1000 / PULSE.hz;
+  /** The moment in one beat at which a bar `d` bars from the playhead is at its tallest. */
+  const peakAt = (d: number): number => {
+    let best = 0;
+    let at = 0;
+    for (let t = 0; t < period; t += 1) {
+      const s = barScale(d, t, false);
+      if (s > best + 1e-9) {
+        best = s;
+        at = t;
+      }
+    }
+    return at;
+  };
+  const peak = (d: number): number => Math.max(...Array.from({ length: Math.ceil(period) }, (_, t) => barScale(d, t, false)));
+
+  it('lets the bar under the playhead grow the full 50% at the top of its beat', () => {
+    expect(PULSE.grow).toBe(0.5);
+    expect(peak(0)).toBeCloseTo(1.5, 2);
+  });
+  it('lets the bars around it grow by smaller amounts, the further the smaller', () => {
+    expect(peak(1)).toBeLessThan(peak(0));
+    expect(peak(2.5)).toBeLessThan(peak(1));
+    expect(peak(2.5)).toBeGreaterThan(1);
+  });
+  it('sends the crest outward: a bar further from the playhead peaks later in the beat, on both sides', () => {
+    expect(peakAt(1.5)).toBeGreaterThan(peakAt(0));
+    expect(peakAt(1.5)).toBeCloseTo(peakAt(-1.5), -1);
+  });
+  it('is drastic: the bar under the playhead swings between little and the full growth', () => {
+    expect(barScale(0, 0, false)).toBeLessThan(1 + PULSE.grow * 0.25);
+    expect(barScale(0, period / 2, false)).toBeGreaterThan(1 + PULSE.grow * 0.95);
+  });
+  it('leaves room for the growth: the tallest bar can reach 50% longer without being clipped', () => {
+    expect(PEAK_HEADROOM * (1 + PULSE.grow)).toBeLessThanOrEqual(1 + 1e-9);
   });
 });
 
