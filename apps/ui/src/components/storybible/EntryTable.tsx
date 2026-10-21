@@ -39,7 +39,7 @@ export type EntryTableProps = {
   empty: ReactNode;
 };
 
-const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[45%]' };
+const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[8rem]' };
 
 /**
  * The Story Bible's entries as a data table: a header that sorts, one row per entry, one tab stop moved by the arrow keys, and only the rows in view
