@@ -5,7 +5,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 
 const SCRIPT = '[data-script]';
-const WORDS = `${SCRIPT} [data-kind="w"][data-k]`;
+// The first paragraph is the chapter's heading (title and subtitle), which the narrator may or may not speak; the words counted are the text's.
+const WORDS = `${SCRIPT} [data-pid]:not([data-pid="heading"]) [data-kind="w"][data-k]`;
 
 async function openEditing(page: Page): Promise<void> {
   await page.goto('/editing/chapter-1');

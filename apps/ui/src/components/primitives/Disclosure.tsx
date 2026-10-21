@@ -18,6 +18,7 @@ export function Disclosure({
   onOpenChange,
   aside,
   panelClassName = '',
+  panelFocusable = false,
   className = '',
   children,
 }: {
@@ -29,6 +30,8 @@ export function Disclosure({
   aside?: ReactNode;
   /** Classes for the panel, for a group that fills the room it is given and scrolls inside it (the import review's accordion). */
   panelClassName?: string;
+  /** Makes the panel a tab stop, for one that scrolls: a scrolling region must be reachable by keyboard. */
+  panelFocusable?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -49,7 +52,9 @@ export function Disclosure({
         </BaseCollapsible.Trigger>
         {aside}
       </div>
-      <BaseCollapsible.Panel className={panelClassName || undefined}>{children}</BaseCollapsible.Panel>
+      <BaseCollapsible.Panel className={panelClassName || undefined} tabIndex={panelFocusable ? 0 : undefined}>
+        {children}
+      </BaseCollapsible.Panel>
     </BaseCollapsible.Root>
   );
 }
