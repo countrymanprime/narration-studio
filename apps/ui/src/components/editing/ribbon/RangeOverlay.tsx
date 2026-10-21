@@ -4,7 +4,7 @@ import { MIN_RANGE, fineClock, rangeLabel, type Covered, type Span } from './ran
 import type { RangeInteraction } from './useRangeInteraction';
 
 /** The width of a handle, in pixels. It hangs outside the edge it moves, so the two never cover each other. */
-const HANDLE = 12;
+const HANDLE = 6;
 
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 const pct = (n: number): string => `${Math.round(n * 100)}%`;
@@ -48,7 +48,7 @@ export function RangeOverlay({
         aria-valuetext={`${edge === 'start' ? 'Start' : 'End'} ${fineClock(here)}, range ${label}`}
         data-handle={edge}
         data-offscreen={off || undefined}
-        className={`absolute top-0 h-full w-3 cursor-ew-resize touch-none bg-[var(--accent)] opacity-70 hover:opacity-100 focus-visible:opacity-100 ${edge === 'start' ? 'rounded-l' : 'rounded-r'} ${off ? 'opacity-30' : ''}`}
+        className={`absolute top-0 h-full w-1.5 cursor-ew-resize touch-none bg-[var(--accent)] opacity-70 hover:opacity-100 focus-visible:opacity-100 ${edge === 'start' ? 'rounded-l' : 'rounded-r'} ${off ? 'opacity-30' : ''}`}
         // The start handle hangs left of its edge and the end handle right of it; at the paragraph's own ends they slide in rather than out of the box.
         style={{ left: edge === 'start' ? `clamp(0px, calc(${x}% - ${HANDLE}px), calc(100% - ${HANDLE}px))` : `clamp(0px, ${x}%, calc(100% - ${HANDLE}px))` }}
         {...props}
