@@ -44,9 +44,9 @@ export type EntryTableProps = {
 
 // Aliases and Occurrences give way first when the table is narrow (a container query on the scroll area, so it follows the table's width and not the window's).
 const OCCURRENCES_SHOWN = 'hidden @xl:table-cell';
-const ALIASES_SHOWN = 'hidden @2xl:table-cell';
+const ALIASES_SHOWN = 'hidden @3xl:table-cell';
 const HIDE_NARROW: Partial<Record<ColumnKey, string>> = { aliases: ALIASES_SHOWN, mentions: OCCURRENCES_SHOWN };
-const COLUMN_SHOWN: Partial<Record<ColumnKey, string>> = { aliases: 'hidden @2xl:table-column', mentions: 'hidden @xl:table-column' };
+const COLUMN_SHOWN: Partial<Record<ColumnKey, string>> = { aliases: 'hidden @3xl:table-column', mentions: 'hidden @xl:table-column' };
 const COL_WIDTH: Record<ColumnKey, string> = {
   name: '',
   kind: 'w-[8.5rem]',

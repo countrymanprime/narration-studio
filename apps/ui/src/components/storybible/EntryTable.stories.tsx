@@ -88,8 +88,8 @@ export const SortAndOpen: Story = {
   render: () => <Harness rows={FEW} />,
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await userEvent.click(view.getByRole('button', { name: 'Occurrences' }));
-    await expect(view.getByRole('columnheader', { name: /^Occurrences/ })).toHaveAttribute('aria-sort', 'descending');
+    await userEvent.click(view.getByRole('button', { name: 'Chapters' }));
+    await expect(view.getByRole('columnheader', { name: /^Chapters/ })).toHaveAttribute('aria-sort', 'descending');
     await expect(view.getAllByRole('row')[1]).toHaveTextContent('Alice');
     view.getAllByRole('row')[1]!.focus();
     await userEvent.keyboard('{ArrowDown}{Enter}');
