@@ -93,7 +93,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
         </div>
       )}
       <div
-        className="relative min-h-0 flex-1 overflow-auto py-[18px] pr-7 pl-2 text-[24px] leading-[1.5] outline-none select-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
+        className="relative min-h-0 flex-1 overflow-auto py-[18px] pr-7 pl-0 text-[24px] leading-[1.5] outline-none select-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
         tabIndex={0}
         role="textbox"
         aria-readonly="true"
