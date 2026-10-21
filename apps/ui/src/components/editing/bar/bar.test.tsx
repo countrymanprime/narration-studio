@@ -188,9 +188,10 @@ describe('the selection summary', () => {
     expect(screen.getByText('Cut')).toBeTruthy();
   });
 
-  it('asks for a click when nothing is selected', () => {
+  it('says nothing when nothing is selected: the key hints below name how to select', () => {
     mount();
-    expect(screen.getByText(/Click a word to place the cursor/)).toBeTruthy();
+    expect(screen.queryByText(/Click a word to place the cursor/)).toBeNull();
+    expect(screen.getByRole('toolbar', { name: 'Playback and selection' }).querySelector('[aria-live]')?.textContent).toBe('');
   });
 });
 

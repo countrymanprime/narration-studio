@@ -85,6 +85,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-sync-activity',
+    description:
+      'Settings, Recording & DAW with Advanced open (?mockChapterSync=activity): the Sync activity row under Chapter sync, newest first, with Undo on the link sync made',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'recording-reaper-path-invalid',
     description:
       'Settings, Recording & DAW, Advanced: a REAPER program path that does not end in reaper.exe is refused in the row with "This is not the path to reaper.exe..." and the old value stays',

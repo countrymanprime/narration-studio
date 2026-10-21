@@ -182,7 +182,7 @@ c.run('1a-fake', false, function()
   local take = reaper.AddTakeToMediaItem(item)
   reaper.SetMediaItemTake_Source(take, reaper.PCM_Source_CreateFromFile(c.out() .. '/media/take_b.wav'))
   reaper.SetActiveTake(first)
-  reaper.Undo_EndBlock2(0, 'Narration Utils: spike roll', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: spike roll', -1)
   c.describe('after', track)
   c.log('earlier_take_still_active', reaper.GetActiveTake(item) == first)
   c.undo_walk()
@@ -194,7 +194,7 @@ end)
 Invoke-Spike -Id 1a-fake -Script spike_1a_fake.lua
 ```
 
-Expected: after: 1 item, 2 takes, active take 1; `UNDO_POINTS 1 Narration Utils: spike roll`; after_undo: 1 take.
+Expected: after: 1 item, 2 takes, active take 1; `UNDO_POINTS 1 Narration Studio: spike roll`; after_undo: 1 take.
 
 ### 1a-real: recording on the audio interface
 
@@ -301,7 +301,7 @@ c.run('1b', false, function()
     local pos = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
     if pos >= to - 1e-9 then reaper.SetMediaItemInfo_Value(item, 'D_POSITION', pos - gap) end
   end
-  reaper.Undo_EndBlock2(0, 'Narration Utils: spike cut', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: spike cut', -1)
 
   c.log('tail_returned', tail ~= nil)
   for _, t in ipairs({ { 'after words', words }, { 'after cuts', cuts }, { 'after room', room } }) do c.describe(t[1], t[2]) end
@@ -386,7 +386,7 @@ c.run('1c', false, function()
     local index = reaper.TakeFX_AddByName(middle_take, form[2], -1)
     c.log('form', form[1], 'returned', index, 'fx_count_delta', reaper.TakeFX_GetCount(middle_take) - before)
   end
-  reaper.Undo_EndBlock2(0, 'Narration Utils: spike chain on range', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: spike chain on range', -1)
 
   c.log('fx_on_middle', reaper.TakeFX_GetCount(middle_take), 'fx_on_original_piece', reaper.TakeFX_GetCount(take))
   c.describe('after', track)
@@ -399,7 +399,7 @@ end)
 Invoke-Spike -Id 1c -Script spike_1c_chain.lua
 ```
 
-Expected: `UNDO_POINTS 1 Narration Utils: spike chain on range`; after_undo: one 3 s item. The three `form` lines say which name form (if any) added FX; `-1` means "add only if not present", so the second and third forms add nothing if the first already added ReaEQ. Rerun with only one form uncommented per run if the first form hides the others, and put each run's report in the output files.
+Expected: `UNDO_POINTS 1 Narration Studio: spike chain on range`; after_undo: one 3 s item. The three `form` lines say which name form (if any) added FX; `-1` means "add only if not present", so the second and third forms add nothing if the first already added ReaEQ. Rerun with only one form uncommented per run if the first form hides the others, and put each run's report in the output files.
 
 ## 1d Stack (SND-S4)
 
@@ -440,7 +440,7 @@ c.run('1d', false, function()
     reaper.DeleteTrackMediaItem(track, item)
   end
   reaper.SetActiveTake(first_take)
-  reaper.Undo_EndBlock2(0, 'Narration Utils: spike stack', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: spike stack', -1)
 
   c.describe('after', track)
   c.log('first_item_length', reaper.GetMediaItemInfo_Value(first_item, 'D_LENGTH'))
@@ -485,19 +485,19 @@ c.run('1e', false, function()
   -- A: our block is on top, so the label check passes and one Undo reverts exactly that block.
   reaper.Undo_BeginBlock2(0)
   reaper.SetMediaItemInfo_Value(item, 'D_POSITION', 1)
-  reaper.Undo_EndBlock2(0, 'Narration Utils: spike block', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: spike block', -1)
   c.log('A top_label', reaper.Undo_CanUndo2(0), 'pos', pos())
-  if reaper.Undo_CanUndo2(0) == 'Narration Utils: spike block' then reaper.Undo_DoUndo2(0) end
+  if reaper.Undo_CanUndo2(0) == 'Narration Studio: spike block' then reaper.Undo_DoUndo2(0) end
   c.log('A after undo pos', pos(), 'top_label', reaper.Undo_CanUndo2(0), 'redo_label', reaper.Undo_CanRedo2(0))
 
   -- B: a user edit lands on top of our block: the label check must refuse.
   reaper.Undo_BeginBlock2(0)
   reaper.SetMediaItemInfo_Value(item, 'D_POSITION', 1)
-  reaper.Undo_EndBlock2(0, 'Narration Utils: spike block', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: spike block', -1)
   reaper.SetMediaItemInfo_Value(item, 'D_POSITION', 2)
   reaper.Undo_OnStateChange2(0, 'User: move item')
   local top = reaper.Undo_CanUndo2(0)
-  c.log('B top_label', top, 'would_undo', top == 'Narration Utils: spike block')
+  c.log('B top_label', top, 'would_undo', top == 'Narration Studio: spike block')
 
   -- C: Edit > Undo (action 40029) is the same as the API call.
   reaper.Main_OnCommand(40029, 0)
@@ -511,7 +511,7 @@ end)
 Invoke-Spike -Id 1e -Script spike_1e_undo.lua
 ```
 
-Expected: A: top label `Narration Utils: spike block`, position 1 then back to 0, redo label equals the block's; B: top label `User: move item`, `would_undo=false`; C: position 1 (the user edit undone, ours still applied), top label `Narration Utils: spike block`.
+Expected: A: top label `Narration Studio: spike block`, position 1 then back to 0, redo label equals the block's; B: top label `User: move item`, `would_undo=false`; C: position 1 (the user edit undone, ours still applied), top label `Narration Studio: spike block`.
 
 ### 1e-live: a hand edit
 

@@ -248,7 +248,7 @@ export function createChapterTracksMock(
     },
     chapterRegionsCreate: async (openingTrackGuid, closingTrackGuid, update) => {
       await manuscriptReady;
-      if (initial.regionsCreateAlwaysErrors) throw new Error('REAPER refused to write the regions: the Narration Utils script is not responding');
+      if (initial.regionsCreateAlwaysErrors) throw new Error('REAPER refused to write the regions: the Narration Studio script is not responding');
       const state = s.tracksDiscovery.candidates.length === 0 ? 'none' : s.tracksDiscovery.selected ? 'ready' : 'choose';
       const plan = mockChapterRegionPlan(
         mockChapterTrackLinks(s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, state),
@@ -273,7 +273,7 @@ export function createChapterTracksMock(
         return {
           outcome: 'refused',
           reason: 'standalone',
-          message: 'REAPER is not connected to this app. To select a track in REAPER, open this app from the Narration Utils action in REAPER.',
+          message: 'REAPER is not connected to this app. To select a track in REAPER, open this app from the Narration Studio action in REAPER.',
         };
       }
       if (initial.reaperState === 'experimental_off') {

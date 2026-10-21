@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { ChapterDoc } from '../model';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
+import { frameSubscribers } from './frameLoop';
 import { Ribbon, RibbonView } from './Ribbon';
 import { ribbonLayout } from './ribbonLayout';
 
@@ -97,14 +98,23 @@ describe('Ribbon placement', () => {
     expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-2');
   });
 
-  it('prefers the cursor, then the selection head, then the playing word', async () => {
+  it('sits under the selection head when nothing is playing', async () => {
+    const doc = marksDoc();
+    page(doc, withPeaks(peaks(0, 20)), (d) => {
+      d({ type: 'select', anchor: 'p-1:0', head: 'p-1:2' });
+    });
+    click();
+    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-1'));
+  });
+
+  it('follows the playing paragraph while the text advances, without waiting for playback to stop', async () => {
     const doc = marksDoc();
     page(doc, withPeaks(peaks(0, 20)), (d) => {
       d({ type: 'select', anchor: 'p-1:0', head: 'p-1:2' });
       d({ type: 'play', t: (doc.paras[1].start ?? 0) + 0.05 });
     });
     click();
-    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-1'));
+    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-2'));
   });
 });
 
@@ -225,7 +235,7 @@ describe('Ribbon header', () => {
       return el as HTMLElement;
     });
     const mmss = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
-    expect(head.textContent).toBe(`T-7active take · ${mmss(para.start ?? 0)} to ${mmss(para.end ?? 0)}`);
+    expect(head.textContent).toBe(`T-7active take · ${mmss(para.start ?? 0)} to ${mmss(ribbonLayout(doc, 'p-2', [], null)!.t1)}`);
   });
   it('says recording, with a dash for the id, when the line has no take', async () => {
     const doc = marksDoc();
@@ -244,5 +254,107 @@ describe('Ribbon header', () => {
       return el as HTMLElement;
     });
     expect(head.textContent).toMatch(/^—recording · /);
+  });
+});
+
+describe('RibbonView animation', () => {
+  const doc = marksDoc();
+  const l = ribbonLayout(doc, 'p-1', [], null)!;
+  const playingAt = (t: number | null) => ({ ...l, playhead: t });
+  const mid = (l.t0 + l.t1) / 2;
+  let frames: Map<number, FrameRequestCallback>;
+  const step = (now: number) => {
+    const due = [...frames.values()];
+    frames.clear();
+    act(() => due.forEach((cb) => cb(now)));
+  };
+  beforeEach(() => {
+    frames = new Map();
+    let n = 0;
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      frames.set(++n, cb);
+      return n;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete document.documentElement.dataset.motion;
+  });
+  const bars = () => calls.filter((c) => c.op === 'roundRect');
+
+  it('schedules no frames while nothing is playing, and stops when playback stops', async () => {
+    const { rerender } = render(<RibbonView layout={l} peaks={peaks(0, 20)} />);
+    await waitFor(() => expect(bars().length).toBeGreaterThan(0));
+    expect(frames.size).toBe(0);
+    expect(frameSubscribers()).toBe(0);
+
+    rerender(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+    expect(frames.size).toBe(1);
+
+    rerender(<RibbonView layout={playingAt(null)} peaks={peaks(0, 20)} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(0));
+    expect(frames.size).toBe(0);
+  });
+
+  it('redraws only its own canvas on each frame, with the bars near the playhead taller than at rest', async () => {
+    render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+    const heightsOf = () => bars().map((c) => c.args[3]);
+    calls.length = 0;
+    step(1000 / 2.4 / 2);
+    const grown = heightsOf();
+    expect(grown.length).toBeGreaterThan(0);
+    expect(Math.max(...grown)).toBeGreaterThan(Math.min(...grown));
+    // a frame draws the bars once: no new canvas size, and one rAF is queued for the next
+    expect(frames.size).toBe(1);
+  });
+
+  it('draws the still look and runs no loop when the narrator reduces motion', async () => {
+    document.documentElement.dataset.motion = 'reduce';
+    render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    await waitFor(() => expect(bars().length).toBeGreaterThan(0));
+    expect(frameSubscribers()).toBe(0);
+    expect(frames.size).toBe(0);
+    const heights = new Set(bars().map((c) => c.args[3]));
+    // a flat tone: every bar the same height, none grown
+    expect(heights.size).toBe(1);
+  });
+
+  it('stops the loop and settles to the still look when motion is reduced mid-playback', async () => {
+    render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+    act(() => {
+      document.documentElement.dataset.motion = 'reduce';
+    });
+    await waitFor(() => expect(frameSubscribers()).toBe(0));
+    expect(frames.size).toBe(0);
+  });
+
+  it('data-motion="play" keeps the loop going even though the system asks for less', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), addEventListener: () => {}, removeEventListener: () => {} }));
+    document.documentElement.dataset.motion = 'play';
+    render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+  });
+
+  it('unmounting leaves no frame scheduled', async () => {
+    const { unmount } = render(<RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />);
+    await waitFor(() => expect(frameSubscribers()).toBe(1));
+    unmount();
+    expect(frameSubscribers()).toBe(0);
+    expect(frames.size).toBe(0);
+  });
+
+  it('two ribbons playing together share one frame request', async () => {
+    render(
+      <>
+        <RibbonView layout={playingAt(mid)} peaks={peaks(0, 20)} />
+        <RibbonView layout={playingAt(mid + 0.2)} peaks={peaks(0, 20)} />
+      </>,
+    );
+    await waitFor(() => expect(frameSubscribers()).toBe(2));
+    expect(frames.size).toBe(1);
   });
 });

@@ -85,7 +85,7 @@ function statusOf(choice: DawChoice, opts: { projectMatches?: boolean }): Status
       detail: `${linked}${daw} is not running. ${
         choice.launcherAutoStart
           ? 'Start it here and it connects.'
-          : `Start it here, then run the Narration Utils action in ${daw} to connect, or turn on "Start the launcher script with REAPER" below.`
+          : `Start it here, then run the Narration Studio action in ${daw} to connect, or turn on "Start the launcher script with REAPER" below.`
       }`,
     };
   }

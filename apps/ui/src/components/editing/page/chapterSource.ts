@@ -2,7 +2,7 @@ import type { EditCut } from '../../../api/contracts/editCuts';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import type { WordFx } from '../../../api/contracts/wordFx';
 import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
-import type { HeardAnswer, HeardWord } from '../../../ports/alignment';
+import { HEADING_PARAGRAPH, tokenParagraph, type HeardAnswer, type HeardWord } from '../../../ports/alignment';
 import type { PlaylistSegment } from '../../proof/playlist';
 import type { ChapterDoc, HeardWord as ModelWord } from '../model';
 import type { DocCut } from '../model/cuts';
@@ -70,25 +70,34 @@ export function audioOf(link: 'linked' | 'unlinked' | 'missing' | 'unknown', tra
   return { kind: link === 'linked' ? 'empty' : link };
 }
 
+/**
+ * The text the page sets against what was heard: the chapter's heading first, the title and subtitle a narrator reads aloud (so saying them is
+ * not saying extra words, and not saying them is not a word missed), then the paragraphs. A credits row has no heading.
+ */
+function scriptOf(
+  workspace: WorkspaceAlignmentResult,
+  phrasesOf: (paragraphId: string) => readonly QuotedPhrase[],
+): Array<{ id: string; text: string; phrases?: readonly QuotedPhrase[] }> {
+  const heading = [workspace.title, workspace.subtitle].filter(Boolean).join('. ');
+  const paragraphs = workspace.paragraphs.map((p) => ({ id: p.id, text: p.text, phrases: phrasesOf(p.id) }));
+  return heading ? [{ id: HEADING_PARAGRAPH, text: heading }, ...paragraphs] : paragraphs;
+}
+
 /** The chapter's document with its cuts, effects and accepted words. */
 export function docOf(read: ChapterRead, phrasesOf: (paragraphId: string) => readonly QuotedPhrase[] = () => []): ChapterDoc {
   const answer: HeardAnswer = read.audio.kind === 'ready' ? read.answer : { heard: null, reason: NO_AUDIO_REASON, reasons: [] };
-  return docFromHeard(
-    read.workspace.paragraphs.map((p) => ({ id: p.id, text: p.text, phrases: phrasesOf(p.id) })),
-    answer,
-    {
-      cuts: docCutsOf(read.cuts),
-      effects: read.effects.filter((e) => !e.stale).map((e) => ({ id: e.id, keys: [...e.keys] })),
-      accepted: read.accepted,
-    },
-  );
+  return docFromHeard(scriptOf(read.workspace, phrasesOf), answer, {
+    cuts: docCutsOf(read.cuts),
+    effects: read.effects.filter((e) => !e.stale).map((e) => ({ id: e.id, keys: [...e.keys] })),
+    accepted: read.accepted,
+  });
 }
 
 const paraOf = (doc: ChapterDoc, at: number) => doc.paras.find((p) => p.start != null && p.end != null && at >= p.start && at <= p.end) ?? null;
 
 /** Where the page's words are for the DAW: script words by their alignment token, moments by the item they were heard on. */
 export function locatorOf(doc: ChapterDoc, read: ChapterRead): RangeLocator {
-  const tokens = new Map(read.workspace.tokens.filter((t) => t.p !== undefined).map((t) => [`${t.p}:${t.w}`, t.i]));
+  const tokens = new Map(read.workspace.tokens.filter((t) => tokenParagraph(t) !== undefined).map((t) => [`${tokenParagraph(t)}:${t.w}`, t.i]));
   const spans = heardSpans(read.answer, read.workspace.paragraphs[0]?.id);
   const guids = new Map(read.workspace.items.map((it) => [it.index, it.itemGuid]));
   return {

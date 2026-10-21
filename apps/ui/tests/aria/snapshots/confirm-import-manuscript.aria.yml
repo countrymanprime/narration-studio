@@ -2,21 +2,43 @@
 - /children: equal
 # The two toast live regions stay in the tree on purpose: Base UI leaves live regions exposed behind a modal, so an error raised
 # from inside a dialog is still announced. They are empty here, and the page's pair is portalled to <body> (Toast.tsx), so it sits beside the overlay host's, not under <main>.
-- main
+- main:
+  - status
 - status
 - alert
 - status
 - alert
 - status
-# Step 2 of the import (the mock's "Check the chapter outline"): the pieces are pinned, not every row of the outline, which the review's own tests cover.
+# Step 2 of the import: the import options, then the chapters as switches (the one open group of the accordion), the other groups as
+# their headers, and the sample of the selected chapter. Footer: Back, the close-when-finished box, and the confirm.
 - alertdialog "Import Alice.docx · step 2 of 2":
   - heading "Import Alice.docx · step 2 of 2" [level=2]
   - button "Close"
-  - paragraph: /DOCX · \d+ paragraphs.*This replaces the active manuscript and clears Story Bible/
-  - heading "Check the chapter outline" [level=3]
-  - group "Review what was found"
-  - region "Preview of the selected heading"
-  - group "Import options"
-  - button "Cancel"
+  - paragraph: This replaces the active manuscript and clears Story Bible, notes, bookmarks, statuses, and saved comparison results.
+  - text: 5 chapters 221 paragraphs 3 character suggestions
+  - group "Import options":
+    - text: Import options
+    - checkbox "Subtitles" [checked]
+    - text: Subtitles
+    - button "About subtitles": i
+  - group "Review what was found":
+    - text: Review what was found
+    - button "Chapters 5 of 5 chapters included" [expanded]
+    - switch "Chapter One 1,862 words Down the Rabbit-Hole" [checked]
+    - text: Chapter One 1,862 words Down the Rabbit-Hole
+    - switch "Chapter Two 1,655 words The Pool of Tears" [checked]
+    - text: Chapter Two 1,655 words The Pool of Tears
+    - switch "Chapter Three 1,410 words" [checked]
+    - text: Chapter Three 1,410 words
+    - switch "Chapter Four 1,733 words In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling" [checked]
+    - text: Chapter Four 1,733 words In Which Alice Considers a Great Many Things About Cats, Dinah, Bats and the Improbable Business of Falling
+    - switch "Chapter Five 1,980 words" [checked]
+    - text: Chapter Five 1,980 words
+    - button "Character suggestions 3 of 3 checked"
+  - region "Preview of the selected heading":
+    - heading "Chapter One Down the Rabbit-Hole" [level=3]
+    - paragraph: "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading…"
   - button "Back"
+  - checkbox "Close when the import finishes" [checked]
+  - text: Close when the import finishes
   - button "Replace and reset"

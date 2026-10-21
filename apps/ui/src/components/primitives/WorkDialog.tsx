@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { WorkJob } from '../../types';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
@@ -5,6 +6,8 @@ import { ProgressBar } from './ProgressBar';
 import { SectionLabel } from './SectionLabel';
 
 const active = new Set<WorkJob['phase']>(['preparing', 'committing', 'running']);
+/** How far from the bottom the log can be and still count as at the bottom. */
+const FOLLOW_SLACK_PX = 24;
 
 // Shown while a job runs with no Cancel (the Story Bible rebuild, an import that is writing): the dialog stays blocking, so
 // it says why nothing can be pressed and what will change. It is the dialog's description, so a screen reader hears it on open.
@@ -27,6 +30,18 @@ export function WorkDialog({
   background?: () => void;
 }) {
   const running = active.has(job.phase);
+  // The live activity follows its newest line, so a running job looks like what it is: something moving. Scrolling up to read stops that, and
+  // coming back to the bottom starts it again.
+  const logBox = useRef<HTMLDivElement>(null);
+  const following = useRef(true);
+  const onLogScroll = () => {
+    const box = logBox.current;
+    if (box) following.current = box.scrollHeight - box.scrollTop - box.clientHeight < FOLLOW_SLACK_PX;
+  };
+  useEffect(() => {
+    const box = logBox.current;
+    if (box && following.current) box.scrollTop = box.scrollHeight;
+  }, [job.logs.length]);
   // A running job that has reported no progress yet (percent 0) is indeterminate: no value, and the bar slides.
   const indeterminate = running && job.percent === 0;
   const showCancel = Boolean(cancel) && running;
@@ -79,6 +94,8 @@ export function WorkDialog({
           Live activity
         </SectionLabel>
         <div
+          ref={logBox}
+          onScroll={onLogScroll}
           tabIndex={0}
           className="h-36 overflow-x-hidden overflow-y-auto border border-[var(--border)] bg-[var(--surface-2)] font-['IBM_Plex_Mono',ui-monospace,monospace] focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset"
         >

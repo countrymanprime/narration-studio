@@ -9,8 +9,9 @@ import { CreditsSetupBanner } from '../credits/CreditsSetupBanner';
 import { CreditsSetupDialog } from '../credits/CreditsSetupDialog';
 import { NEUTRAL_PROFILE, PLATFORM_PROFILES } from '../schedule/profiles';
 import { Button } from '../primitives/Button';
+import { Checkbox } from '../primitives/Checkbox';
 import { ImportChooseDialog, type DroppedManuscript } from './ImportChooseDialog';
-import { ImportReview, ImportSummary } from './ImportReview';
+import { ImportReview, importDescription } from './ImportReview';
 import { subtitleOverridesToCommit, type ReviewGroupKey, type ReviewGroupOpen } from './importReviewModel';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Dialog } from '../primitives/Dialog';
@@ -73,6 +74,27 @@ export function useManuscriptImport({
   const profileToSave = useRef<string | null>(null);
   const asksProfile = !found && profiles !== undefined && profiles.projectChoice === null;
   const reviewing = importJob?.phase === 'ready';
+  // General.close_import_when_done, an app setting (on by default): the finished import closes itself unless the narrator unchecks the box
+  // in the review. The ref carries the answer to the success effect below, which runs after the review is gone.
+  const [closeWhenDone, setCloseWhenDone] = useState(true);
+  const closeWhenDoneRef = useRef(true);
+  useEffect(() => {
+    if (!reviewing) return;
+    void api
+      .settingsForScope('global')
+      .then((tools) => {
+        const field = tools.General?.find((candidate) => candidate.key === 'close_import_when_done');
+        const on = (field?.effectiveValue ?? 'true') !== 'false';
+        closeWhenDoneRef.current = on;
+        setCloseWhenDone(on);
+      })
+      .catch(() => undefined);
+  }, [api, reviewing]);
+  const changeCloseWhenDone = (next: boolean) => {
+    closeWhenDoneRef.current = next;
+    setCloseWhenDone(next);
+    void api.saveSettings('General', 'global', { close_import_when_done: String(next) }).catch((error) => notify(apiErrorMessage(error), 'error'));
+  };
   useEffect(() => {
     if (!reviewing || found) return;
     void api
@@ -119,7 +141,8 @@ export function useManuscriptImport({
     if (importJob?.phase !== 'success') return;
     void refreshBootstrap();
     void saveProfile();
-  }, [importJob?.phase, refreshBootstrap, saveProfile]);
+    if (closeWhenDoneRef.current) setImportJob(undefined);
+  }, [importJob?.phase, refreshBootstrap, saveProfile, setImportJob]);
   const beginImportPreview = async (jobId: string) => {
     setHeadingLevel(1);
     setImportSelection({});
@@ -255,33 +278,32 @@ export function useManuscriptImport({
         />
       )}
       {importJob?.phase === 'ready' && importJob.preview && (
-        // Step 2 of 2 (the mock's "Check the chapter outline"): Cancel drops the job; Back drops it too and returns to step 1; the confirm
-        // writes the manuscript. An alertdialog, as every confirm: Escape cancels, a press on the backdrop does nothing.
+        // Step 2 of 2: one secondary action (Back drops the job and returns to step 1) and the confirm, which writes the manuscript.
+        // The Close button in the header drops the job too, so there is no separate Cancel. An alertdialog, as every confirm: Escape cancels, a press on the backdrop does nothing.
         <Dialog
           title={`Import ${importJob.preview.sourceName} · step 2 of 2`}
           variant="alert"
+          bodyScroll={false}
           dismissOnOutsidePress={false}
           onClose={cancelImport}
-          description={<ImportSummary preview={importJob.preview} selection={importSelection} requiresReset={replacing || Boolean(importJob.requiresReset)} />}
+          description={importDescription(replacing || Boolean(importJob.requiresReset))}
           actions={
             <>
-              <Button variant="secondary" onClick={cancelImport}>
-                Cancel
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  cancelImport();
+                  setStep1Open(true);
+                }}
+              >
+                Back
               </Button>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    cancelImport();
-                    setStep1Open(true);
-                  }}
-                >
-                  Back
-                </Button>
-                <Button variant={replacing || importJob.requiresReset ? 'danger' : 'primary'} onClick={() => void commitImport()}>
-                  {replacing || importJob.requiresReset ? 'Replace and reset' : 'Import reviewed manuscript'}
-                </Button>
-              </div>
+              <Checkbox checked={closeWhenDone} onChange={changeCloseWhenDone}>
+                Close when the import finishes
+              </Checkbox>
+              <Button variant={replacing || importJob.requiresReset ? 'danger' : 'primary'} onClick={() => void commitImport()}>
+                {replacing || importJob.requiresReset ? 'Replace and reset' : 'Import'}
+              </Button>
             </>
           }
         >

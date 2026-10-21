@@ -105,13 +105,13 @@ type Story = StoryObj<typeof meta>;
 const nothing: PageAction[] = [{ type: 'place', key: 'p-1:2' }];
 const selection: PageAction[] = [{ type: 'select', anchor: 'p-1:3', head: 'p-1:5' }];
 
-// Nothing selected: the transport and the line that says how to select.
+// Nothing selected: the transport alone; the key hints under the bar say how to select.
 export const NothingSelected: Story = {
   args: { playback: idle, end: 843 },
   render: () => frame(nothing, false),
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('toolbar', { name: 'Playback and selection' })).toBeTruthy();
-    await expect(canvasElement.textContent).toMatch(/Click a word to place the cursor/);
+    await expect(canvasElement.textContent).not.toMatch(/Click a word to place the cursor/);
   },
 };
 

@@ -6,7 +6,7 @@ local H = require('harness')
 local ITEM = '{AAAAAAAA-0000-4000-8000-000000000001}'
 local STALE = '{FFFFFFFF-0000-4000-8000-00000000FFFF}'
 local HIDDEN = 'narration_utils_take_hidden_volume'
-local LABEL = 'Narration Utils: hide other takes'
+local LABEL = 'Narration Studio: hide other takes'
 
 local function new_session()
   local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })

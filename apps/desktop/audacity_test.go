@@ -132,7 +132,7 @@ func TestOnlyAReaperLaunchExplainsAMissingProjectFolder(t *testing.T) {
 	}
 }
 
-// The installer's "Narration Utils for Audacity" shortcut starts the app with `--daw Audacity` and no project folder, so the narrator picks the project in the app. The picker's switch keeps the launch an Audacity one; any other launch,
+// The installer's "Narration Studio for Audacity" shortcut starts the app with `--daw Audacity` and no project folder, so the narrator picks the project in the app. The picker's switch keeps the launch an Audacity one; any other launch,
 // a REAPER one included, becomes "Standalone" as before, because the project the narrator picked is not the one REAPER has open.
 func TestAPickerSwitchKeepsAnAudacityLaunchAnAudacityOne(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())

@@ -42,6 +42,8 @@ export interface ScriptParagraph {
   text: string;
   units: ScriptUnit[];
   take?: ScriptTake;
+  /** Said or not, it is not a fault: when nothing of it was heard it is shown as plain text, never as words not read (the chapter heading). */
+  optional?: boolean;
 }
 
 interface HeardRequest {
@@ -271,7 +273,8 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
         }
       } else {
         const o = origin[pl.pi] ?? BETWEEN;
-        const heard = eng.heard({ id: p.id, text: p.text, len: slot[pl.pi] });
+        let heard = eng.heard({ id: p.id, text: p.text, len: slot[pl.pi] });
+        if (p.optional && heard && !heard.words.length) heard = null;
         segs = [{ from: 0, to: script.length, heard, abs: (off) => curTime(cuts, o + off), rel: (off) => off }];
       }
     }

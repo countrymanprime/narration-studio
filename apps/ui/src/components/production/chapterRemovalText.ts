@@ -1,9 +1,9 @@
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 
-/** How a removed chapter's new kind reads in a sentence:
- * "removed today as not a chapter" / "as front matter". `narration` never appears here - a chapter holding it isn't removed. */
-export function removalKindLabel(kind: ManuscriptContentKind): string {
-  return kind === 'opening' ? 'front matter' : 'not a chapter';
+/** How a removed chapter's new kind reads in a sentence: "removed today as not a chapter". A chapter is only ever removed as that, so every kind
+ * reads the same; `narration` never appears here - a chapter holding it isn't removed. */
+export function removalKindLabel(_kind: ManuscriptContentKind): string {
+  return 'not a chapter';
 }
 
 const isSameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();

@@ -7,6 +7,7 @@ import type { Keymap } from '../../../input/keymap';
 import { useCommand } from '../../../input/useCommand';
 import { overlay } from '../../../overlay/overlayService';
 import { useJournal } from '../../../studio/StudioProvider';
+import { useOutputPrefs } from '../../engine/outputPrefs';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { KeyHints } from '../../primitives/KeyHints';
 import { keepsBackups, registerBackupsSection } from '../backups/registerBackupsSection';
@@ -62,6 +63,7 @@ import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
 import { closedCutsOf, doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
+import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
 import { installBackupSteps, tokensIn } from '../backups/backupBefore';
@@ -180,13 +182,21 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Playback: the chapter on the document's clock, and a take on its own.
   const closedCuts = useMemo(() => closedCutsOf(read), [read]);
-  const playback = useScriptPlayback({ playlist, mediaUrl: tracks.mediaUrl, sync: { items: read.workspace.items, cuts: closedCuts, caps } });
+  const { prefs: output, change: changeOutput } = useOutputPrefs();
+  const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
+  const playback = useScriptPlayback({
+    playlist,
+    mediaUrl: tracks.mediaUrl,
+    sync: { items: read.workspace.items, cuts: closedCuts, caps },
+    output,
+    onOutputDevice: setDeviceProblem,
+  });
   useAnnouncePlayback(playback.playing);
   // The DAW's own play lights its word too, and the text follows whichever lit it. With the transport synced the page hears the DAW's cursor and
   // play head itself (useDawTransportSync), so the heartbeat read stands down.
   useDawPlayPosition({ items: read.workspace.items, playlist, caps: playback.syncActive ? null : caps, playback });
   useFollowScroll(root, playback);
-  const takePlayer = useRangePlayer(tracks.mediaUrl, { pre: 0, post: 0 });
+  const takePlayer = useRangePlayer(tracks.mediaUrl, { pre: 0, post: 0 }, output);
   const [playingTake, setPlayingTake] = useState<string | null>(null);
   const playTake = useCallback(
     (take: LineTake) => {
@@ -535,7 +545,12 @@ export function EditingBody(props: EditingBodyProps) {
             {check.panel}
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
             {cut.plan?.kind === 'refused' ? <EditOffNotice reason={cut.plan.reason} /> : null}
-            <SelectionBar playback={playback} end={total} narrow={compact} />
+            <SelectionBar
+              playback={playback}
+              end={total}
+              narrow={compact}
+              output={<EditingOutput prefs={output} onChange={changeOutput} deviceProblem={deviceProblem} caps={caps} />}
+            />
             <div className="sticky bottom-0 z-[5]">
               <KeyHints hints={hints} id="keyhints" />
             </div>

@@ -18,9 +18,9 @@ The policy below applies to every candidate before it reaches a catalog. The rec
 | Class | Examples | Commercial audiobook workflow | Repository/integration consequence |
 | --- | --- | --- | --- |
 | Permissive | MIT, BSD-2/3-Clause, Apache-2.0 | Allowed. | Keep copyright/license notices in the dependency record. Apache-2.0 also carries notice and patent terms. |
-| Attribution | CC BY 4.0 model packs | Allowed. | Display and retain the exact required attribution and model card. Do not imply Narration Utils owns the model. |
+| Attribution | CC BY 4.0 model packs | Allowed. | Display and retain the exact required attribution and model card. Do not imply Narration Studio owns the model. |
 | Weak copyleft | LGPL | Allowed. | Prefer a separately installed executable or dynamically linked library; preserve notices and allow replacement of the LGPL component if distributing a combined application. |
-| Strong copyleft | GPL | Allowed for using the tool to make a paid audiobook. The audiobook is not made GPL by that use. | Narration Utils is itself AGPL-3.0-or-later ([Contributing](../../CONTRIBUTING.md)) and already ships GPL-family code in the frozen Story Bible sidecar (Piper, phonemizer, eSpeak NG data), so a GPL-3.0-or-later component is compatible: keep its notices and make the corresponding source available. GPL-2.0-only is not compatible. Prefer a separate executable for a tool the release does not need. |
+| Strong copyleft | GPL | Allowed for using the tool to make a paid audiobook. The audiobook is not made GPL by that use. | Narration Studio is itself AGPL-3.0-or-later ([Contributing](../../CONTRIBUTING.md)) and already ships GPL-family code in the frozen Story Bible sidecar (Piper, phonemizer, eSpeak NG data), so a GPL-3.0-or-later component is compatible: keep its notices and make the corresponding source available. GPL-2.0-only is not compatible. Prefer a separate executable for a tool the release does not need. |
 | Unclear, restricted, or non-commercial | Missing license, `NC`, research-only, gated terms inconsistent with commercial use | Not approved. | Do not download automatically, list as a supported option, or use in shipped tests until the exact artifact is cleared. |
 
 ### Required dependency record
@@ -35,7 +35,7 @@ Before an optional dependency is added, record all of the following for it:
 - every runtime dependency that is downloaded by first run;
 - whether it is invoked as a separate process, Python package, or linked
   library; and
-- removal path, update policy, test result, and the Narration Utils feature it
+- removal path, update policy, test result, and the Narration Studio feature it
   enables.
 
 An update checker may report that an upstream release exists, but it must not

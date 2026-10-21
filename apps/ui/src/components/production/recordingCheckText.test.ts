@@ -143,6 +143,10 @@ describe('recording check text', () => {
     const base: CoverageState = { phase: 'running', percent: 10, message: '' };
     expect(passLabel(base)).toBeUndefined();
     expect(passLabel({ ...base, pass: 'first_pass', firstPassModel: 'tiny', recheckModel: 'large-v3-turbo' })).toBe('First pass (tiny)');
+    expect(passLabel({ ...base, pass: 'pipeline', firstPassModel: 'tiny', recheckModel: 'large-v3-turbo' })).toBe(
+      'First pass (tiny), re-checking as it goes (large-v3-turbo)',
+    );
+    expect(passLabel({ ...base, pass: 'pipeline', firstPassModel: 'tiny' })).toBe('First pass (tiny), re-checking as it goes');
     expect(passLabel({ ...base, pass: 'recheck_windows', recheckWindows: 3, recheckModel: 'large-v3-turbo' })).toBe('Re-checking 3 passages (large-v3-turbo)');
     expect(passLabel({ ...base, pass: 'recheck_whole', recheckModel: 'large-v3-turbo' })).toBe('Re-checking the whole chapter (large-v3-turbo)');
     expect(passLabel({ ...base, pass: 'realign' })).toBe('Combining the two passes');

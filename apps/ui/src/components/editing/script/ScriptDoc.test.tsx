@@ -153,14 +153,31 @@ describe('click-shift-click-drag-and-double-click', () => {
     const drag = (from: string, to: string): string[] => {
       cleanup();
       show(marksDoc());
-      fireEvent.mouseDown(word(from));
-      fireEvent.mouseOver(word(to), { buttons: 1 });
+      fireEvent.mouseDown(word(from), { clientX: 100, clientY: 100 });
+      fireEvent.mouseOver(word(to), { buttons: 1, clientX: 140, clientY: 100 });
       fireEvent.mouseUp(document);
       return [...document.querySelectorAll<HTMLElement>('[data-sel]')].map((e) => e.dataset.k!);
     };
     const forward = drag(keys[1], keys[5]);
     expect(forward).toEqual(keys.slice(1, 6));
     expect(drag(keys[5], keys[1])).toEqual(forward);
+  });
+  it('a click with a little movement over the next word is still a click, not a drag', () => {
+    // A slow page can deliver the pointer's small wobble over a neighbouring word before the button-up: only a real drag selects.
+    show(marksDoc());
+    fireEvent.mouseDown(word(keys[1]), { clientX: 100, clientY: 100 });
+    fireEvent.mouseOver(word(keys[2]), { buttons: 1, clientX: 102, clientY: 101 });
+    fireEvent.mouseUp(document);
+    expect(state()).toMatchObject({ cursor: keys[1], sel: null });
+    expect(document.querySelectorAll('[data-sel]')).toHaveLength(0);
+  });
+  it('moving past the slop starts the drag from the word that was pressed', () => {
+    show(marksDoc());
+    fireEvent.mouseDown(word(keys[1]), { clientX: 100, clientY: 100 });
+    fireEvent.mouseOver(word(keys[2]), { buttons: 1, clientX: 102, clientY: 101 });
+    expect(state().sel).toBeNull();
+    fireEvent.mouseOver(word(keys[4]), { buttons: 1, clientX: 130, clientY: 100 });
+    expect(state().sel).toEqual({ anchor: keys[1], head: keys[4] });
   });
   it('a drag does nothing once the button is up', () => {
     show(marksDoc());
