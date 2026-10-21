@@ -8,8 +8,8 @@ import { chapterCount, entryFlagged, entryNeedsReview, nameCount, typeUnknown } 
 import { verifyOf } from './suggested/row/selectors';
 
 export type ColumnKey = 'name' | 'kind' | 'aliases' | 'mentions' | 'chapters' | 'status';
-export type SortDirection = 'asc' | 'desc';
-export type SortKey = { column: ColumnKey; dir: SortDirection };
+type SortDirection = 'asc' | 'desc';
+type SortKey = { column: ColumnKey; dir: SortDirection };
 /** The header clicks in force, newest first: the first key sorts, the second breaks its ties. The name and then the id break the rest. */
 export type EntrySort = readonly SortKey[];
 

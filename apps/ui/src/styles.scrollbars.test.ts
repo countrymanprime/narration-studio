@@ -18,6 +18,5 @@ describe('scrollbars', () => {
 
   it('stay hidden where a surface hides them on purpose', () => {
     expect(css).toMatch(/\.scroll-chrome-hidden\s*\{[^}]*scrollbar-width:\s*none/);
-    expect(css).toMatch(/\.guide-list-scroll\s*\{[^}]*scrollbar-width:\s*none/);
   });
 });

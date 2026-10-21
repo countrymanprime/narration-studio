@@ -143,6 +143,16 @@ export function TableRow({
   );
 }
 
+// Holds the place of rows a caller does not draw (the rows above and below a windowed list), `height` px tall and `columns` wide. It is
+// hidden from assistive technology: `Table rowCount` and `TableRow rowIndex` say where the drawn rows stand.
+export function TableSpacer({ height, columns }: { height: number; columns: number }) {
+  return (
+    <tr aria-hidden="true" style={{ height }}>
+      <td colSpan={columns} className="p-0" />
+    </tr>
+  );
+}
+
 const CELL_ALIGN = { left: 'text-left', right: 'text-right' } as const;
 
 // A column header, muted (4.5:1 or better on the panel and page backgrounds; the faint text token missed it). `align="right"` for a numeric column, and the cells under it say so too. With `onSort` it is a sortable

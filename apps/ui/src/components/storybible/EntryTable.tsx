@@ -5,7 +5,7 @@ import { categoryLabel } from '../../state';
 import type { GuideEntity, GuideType } from '../../types';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../primitives/changeHighlight';
 import { Swatch } from '../primitives/Swatch';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../primitives/Table';
 import { kindSwatch, typeUnknown } from './entryList';
 import { COLUMNS, sortAria, type ColumnKey, type EntrySort } from './entryTable';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
@@ -14,7 +14,7 @@ import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
 // draws a screenful plus a margin instead of every entry.
 const ROW_PX = 39;
 /** A book of this many entries or fewer is drawn whole. */
-export const WINDOW_AFTER = 100;
+const WINDOW_AFTER = 100;
 const OVERSCAN = 10;
 /** The height used for the scroll area until it has been measured (and where nothing is laid out, as in a unit test). */
 const GUESS_HEIGHT = 600;
@@ -157,11 +157,7 @@ export function EntryTable({ rows, loose = [], types, sort, onSort, openId, loos
         </TableHead>
         <TableBody navigable onKeyDown={onKeyDown} onFocus={onFocus}>
           <LooseSuggestionRows suggestions={loose} selectedId={looseId} tabStopId={firstLooseStop} onSelect={onOpenLoose} />
-          {start > 0 && (
-            <tr aria-hidden="true" style={{ height: start * ROW_PX }}>
-              <td colSpan={columns} />
-            </tr>
-          )}
+          {start > 0 && <TableSpacer height={start * ROW_PX} columns={columns} />}
           {drawn.map((row, offset) => (
             <EntryRow
               key={row.id}
@@ -174,11 +170,7 @@ export function EntryTable({ rows, loose = [], types, sort, onSort, openId, loos
               onOpen={() => onOpen(row.id)}
             />
           ))}
-          {end < rows.length && (
-            <tr aria-hidden="true" style={{ height: (rows.length - end) * ROW_PX }}>
-              <td colSpan={columns} />
-            </tr>
-          )}
+          {end < rows.length && <TableSpacer height={(rows.length - end) * ROW_PX} columns={columns} />}
           {nothing && (
             <TableRow>
               <TableCell colSpan={columns} className="py-3 whitespace-normal text-[var(--text-muted)]">

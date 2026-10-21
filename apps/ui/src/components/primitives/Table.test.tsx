@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './Table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from './Table';
 
 afterEach(cleanup);
 
@@ -309,5 +309,24 @@ describe('a table that draws only some of its rows', () => {
     );
     expect(screen.getByRole('table').getAttribute('aria-rowcount')).toBe('500');
     expect(screen.getAllByRole('row').map((row) => row.getAttribute('aria-rowindex'))).toEqual(['300', '301']);
+  });
+});
+
+describe('the spacer that holds the place of undrawn rows', () => {
+  it('is as tall as the rows it stands for, spans the columns and is hidden from a screen reader', () => {
+    render(
+      <Table label="Entries">
+        <TableBody>
+          <TableSpacer height={390} columns={3} />
+          <TableRow>
+            <TableCell>x</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const spacer = document.querySelector<HTMLElement>('tr[aria-hidden="true"]')!;
+    expect(spacer.style.height).toBe('390px');
+    expect(spacer.querySelector('td')!.getAttribute('colspan')).toBe('3');
+    expect(screen.getAllByRole('row')).toHaveLength(1);
   });
 });
