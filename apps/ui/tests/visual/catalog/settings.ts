@@ -8,6 +8,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'jump-menu',
     description: 'Settings, the jump menu typed "microphone": the setting row under its category in On this page, before any command',
+    ...REFLOW,
   },
   {
     page: 'settings',
