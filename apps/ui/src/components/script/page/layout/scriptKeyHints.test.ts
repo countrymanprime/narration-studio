@@ -20,14 +20,14 @@ describe('the key hints under the Script reader', () => {
       [['Alt', '↑', '↓'], 'chapter'],
       [['B'], 'bookmark'],
       [['Alt', '[', ']'], 'bookmarks'],
-      [['Ctrl', 'F'], 'find'],
+      [['Ctrl', 'F'], 'search'],
     ]);
   });
 
   it('a rebound key shows its new gesture, and a command with no gesture leaves its hint out', () => {
-    const rebound = { ...keymap, 'bookmark.here': [gesture('keyboard', 'KeyM')], 'script.find': [] };
+    const rebound = { ...keymap, 'bookmark.here': [gesture('keyboard', 'KeyM')], 'jump.page': [] };
     const hints = scriptKeyHints(rebound);
     expect(hints.find((hint) => hint.label === 'bookmark')?.keys).toEqual(['M']);
-    expect(hints.some((hint) => hint.label === 'find')).toBe(false);
+    expect(hints.some((hint) => hint.label === 'search')).toBe(false);
   });
 });

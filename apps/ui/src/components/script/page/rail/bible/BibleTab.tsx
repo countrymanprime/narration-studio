@@ -5,6 +5,7 @@ import { usePronunciationSources } from '../../../../storybible/source/usePronun
 import { chapterName } from '../../../../../chapterName';
 import { useChapters, useEntries, useParagraphs, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import type { WordsHost } from '../words/wordsHost';
+import { openFind } from '../../tools/find/findState';
 import { BiblePanel } from './BiblePanel';
 import { useBibleKindChoices } from './kinds';
 
@@ -44,7 +45,7 @@ export function BibleTab({ chapterId, host, onOpenStoryBible }: BibleTabProps) {
         return chapter ? chapterName(chapter, 'short') : undefined;
       }}
       onPick={(id) => update({ entryId: id, miss: null, missSel: null })}
-      onFind={(name) => update((state) => ({ find: { ...state.find, open: true, q: name, i: 0 }, findNonce: state.findNonce + 1 }))}
+      onFind={(name) => update(openFind(name))}
       onAddNote={() => overlay.toast('Select text in the reader, then choose Mark.')}
       onOpenStoryBible={onOpenStoryBible}
       onCreate={async (kind) => {

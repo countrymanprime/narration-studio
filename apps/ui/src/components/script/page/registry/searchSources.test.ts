@@ -2,11 +2,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
-import type { GuideEntity } from '../../../../api/contracts/storyBible';
 import { createSearchRegistry } from '../../../../registries/search';
-import { entriesSource, findInManuscript, manuscriptSource, marksSource, wordsSource, type ManuscriptLine } from './searchSources';
+import { manuscriptSource, marksSource, wordsSource, type ManuscriptLine } from './searchSources';
 
-const chapters = [{ id: 'c1', title: 'One', subtitle: 'The Fall' }];
 const line = (index: number, text: string): ManuscriptLine => ({ chapterId: 'c1', id: `p${index}`, index, text });
 const types: MarkType[] = [{ key: 'tone', name: 'Tone', colour: 'copper', style: 'underline', asks: false }];
 const mark = (id: string, quote: string, text: string): Mark =>
@@ -26,40 +24,33 @@ const mark = (id: string, quote: string, text: string): Mark =>
   }) as Mark;
 
 describe('search-sources', () => {
-  it('the manuscript answers with the first matches, their chapter and line, and a row for the rest', () => {
+  it('the manuscript answers under In the script with each match marked, where it is, and the rest behind one row', () => {
     const onFind = vi.fn();
-    const lines = Array.from({ length: 8 }, (_, i) => line(i, `Alice walked ${i}`));
-    const hits = manuscriptSource({ lines: () => lines, chapters, onFind })('alice');
-    expect(hits).toHaveLength(7);
-    expect(hits[0]).toMatchObject({ group: 'In the manuscript', title: 'Alice walked 0', sub: 'One — The Fall · line 1' });
-    expect(hits[6]).toMatchObject({ group: 'In the manuscript', title: 'Show all 8 matches' });
+    const lines = Array.from({ length: 60 }, (_, i) => line(i, `Alice walked ${i}`));
+    const locationOf = (spot: { chapterId: string; paragraphId: string }) => `One · ${spot.paragraphId}`;
+    const hits = manuscriptSource({ lines: () => lines, locationOf, onFind })('alice');
+    expect(hits).toHaveLength(51);
+    expect(hits[0]).toMatchObject({
+      group: 'In the script',
+      title: 'Alice walked 0',
+      sub: 'One · p0',
+      snippet: { pre: '', hit: 'Alice', post: ' walked 0' },
+    });
+    expect(hits[50]).toMatchObject({ group: 'In the script', title: '10 more matches. Show them in the script.' });
     hits[2].run();
     expect(onFind).toHaveBeenCalledWith('alice', 2);
-    hits[6].run();
-    expect(onFind).toHaveBeenLastCalledWith('alice', 0);
+    hits[50].run();
+    expect(onFind).toHaveBeenLastCalledWith('alice', 50);
   });
 
-  it('a long line is cut around the match', () => {
+  it('the manuscript uses the Script page search: a one-letter term finds nothing, and a long line is cut around the match', () => {
     const text = `${'a '.repeat(40)}needle${' b'.repeat(40)}`;
-    const [hit] = manuscriptSource({ lines: () => [line(0, text)], chapters, onFind: () => {} })('needle');
-    expect(hit.title.startsWith('…')).toBe(true);
-    expect(hit.title.endsWith('…')).toBe(true);
-    expect(hit.title).toContain('needle');
-  });
-
-  it('finds every occurrence, ignoring case', () => {
-    expect(findInManuscript([line(0, 'Tea, tea and TEA')], 'tea').map((m) => m.start)).toEqual([0, 5, 13]);
-  });
-
-  it('the entries answer by name and by alias, with their kind', () => {
-    const onShow = vi.fn();
-    const entry = { id: 'e1', canonical_name: 'Queen of Hearts', category: 'Character', aliases: [{ text: 'The Queen' }] } as GuideEntity;
-    const source = entriesSource(() => [entry], onShow);
-    expect(source('queen')[0]).toMatchObject({ group: 'Story Bible', title: 'Queen of Hearts', sub: 'Character' });
-    expect(source('the queen')).toHaveLength(1);
-    expect(source('rabbit')).toEqual([]);
-    source('hearts')[0].run();
-    expect(onShow).toHaveBeenCalledWith('e1');
+    expect(manuscriptSource({ lines: () => [line(0, text)], locationOf: () => '', onFind: () => {} })('n')).toEqual([]);
+    const [hit] = manuscriptSource({ lines: () => [line(0, text)], locationOf: () => '', onFind: () => {} })('needle');
+    expect(hit.snippet!.pre.startsWith('…')).toBe(true);
+    expect(hit.snippet!.post.endsWith('…')).toBe(true);
+    expect(hit.snippet!.hit).toBe('needle');
+    expect(hit.title).toBe(`${hit.snippet!.pre}${hit.snippet!.hit}${hit.snippet!.post}`);
   });
 
   it('the marks answer by quote and by note, with their type, and show five', () => {

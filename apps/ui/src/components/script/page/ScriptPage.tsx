@@ -59,10 +59,8 @@ import { ThreadsTab } from './rail/threads/ThreadsTab';
 import { WordsTab } from './rail/words/WordsTab';
 import type { ReaderSelection } from './registry/contextProvider';
 import { useScriptRegistry } from './registry/useScriptRegistry';
-import { FindBar } from './tools/find/FindBar';
 import { openFind } from './tools/find/findState';
 import { searchManuscript, type FindMatch } from './tools/find/searchManuscript';
-import { useFind } from './tools/find/useFind';
 import { getSelection, type ToolSelection } from './tools/select/getSelection';
 import { lookupTarget } from './tools/select/lookupTarget';
 import { MarkComposer } from './tools/select/MarkComposer';
@@ -365,8 +363,12 @@ function ScriptWorkspace({
     },
     [entries.entries, update, openRailIfDrawer],
   );
+  // The registry reads the match count when the menu opens or F3 is pressed, so it is a ref, not a dependency that registers the page again.
+  const matchesRef = useRef(0);
   useScriptRegistry({
     lines,
+    locationOf: lineOf,
+    matchCount: () => matchesRef.current,
     kinds,
     currentChapterId: () => inViewRef.current,
     stops,
@@ -374,8 +376,7 @@ function ScriptWorkspace({
       const picked = getSelection();
       return picked && !picked.multi ? picked : null;
     },
-    openFind: (term, index) =>
-      update((state) => ({ ...openFind(term)(state), ...(index === undefined ? {} : { find: { ...state.find, open: true, list: true, q: term, i: index } }) })),
+    openFind: (term, index) => update(openFind(term, index)),
     showMark,
     showWord,
     showEntry,
@@ -401,12 +402,11 @@ function ScriptWorkspace({
     () => (findState.open ? searchManuscript(paragraphs.all, findState.q) : []),
     [findState.open, findState.q, paragraphs.all],
   );
-  const find = useFind(matches.length);
+  matchesRef.current = matches.length;
   const readerFind = useMemo(
     () => (findState.open ? { matches, current: Math.min(findState.i, matches.length - 1) } : null),
     [findState.open, findState.i, matches],
   );
-  const scroller = () => document.querySelector<HTMLElement>('section[aria-label="Reader"] [role="region"]');
 
   /* ---------- The reader's slots ---------- */
 
@@ -493,7 +493,6 @@ function ScriptWorkspace({
         onClick={() => toggleDrawer('rail')}
       />
       <IconButton action="bookmarks" label="Bookmarks" onClick={showBookmarks} />
-      <IconButton action="find" label="Find in the manuscript (Ctrl+F)" onClick={() => update(openFind())} />
       <TextSettingsPopover prefs={prefs} onChange={setPrefs} />
     </>
   );
@@ -592,23 +591,7 @@ function ScriptWorkspace({
                 after={closingCard}
                 sectionNames={sectionNames}
                 toolbar={toolbar}
-                underHeader={
-                  <>
-                    <SkipToRail onOpenRail={() => update({ drawer: 'rail' })} />
-                    <FindBar
-                      find={find.find}
-                      nonce={find.nonce}
-                      matches={matches}
-                      locationOf={lineOf}
-                      onQuery={find.onQuery}
-                      onStep={find.onStep}
-                      onPick={find.onPick}
-                      onToggleList={find.onToggleList}
-                      onClose={find.onClose}
-                      returnFocus={() => scroller()?.focus()}
-                    />
-                  </>
-                }
+                underHeader={<SkipToRail onOpenRail={() => update({ drawer: 'rail' })} />}
                 onPickSpeaker={onPickSpeaker}
                 onShowAnnotation={(id) => {
                   const mark = marks.marks.find((row) => row.id === id);

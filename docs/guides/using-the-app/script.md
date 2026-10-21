@@ -17,8 +17,8 @@ three parts side by side:
   type's colour, the same as in the Booth, and a name still marked Needs Review or Draft is amber. A word flagged for
   pronunciation has a blue dotted underline. A speaker's lines carry a chip with their name in the speaker's own
   colour: a dashed border means the speaker is only suggested, and a grey dashed chip with a question mark means nobody
-  is set. Find matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has **Bookmarks**, **Find**
-  (Ctrl+F) and the **text settings** (font, size, line spacing, 1.7 at first, and column width).
+  is set. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has **Bookmarks**
+  and the **text settings** (font, size, line spacing, 1.7 at first, and column width). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
 - **The rail** on the right, with five tabs: **Words**, **Story Bible**, **Notes**, **Queries** and **Bookmarks**.
 
 While the manuscript is being read, the page shows the same three columns as grey blocks; if it cannot be read, the page says so with **Retry**.
@@ -27,7 +27,7 @@ A bar under the reader lists its keys: select text to mark it, add a note or que
 **←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter (the
 credits included) and say where you land, such as "Chapter 2, The Pool of Tears, ¶ 1 of 26"; **B**
 bookmarks the line, says "Bookmark added." and opens the bookmark's label and note (the selection toolbar's **Bookmark here** adds it with Undo instead), or says the spot already has one; **Alt+[** **Alt+]** go to
-the previous or next bookmark; **Ctrl+F** opens Find. A key you rebind
+the previous or next bookmark; **Ctrl+F** searches the script; **F3** **Shift+F3** step the matches. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
 
 Each chapter card has its own prep buttons and **Record in Booth**, so a keyboard user would pass four stops per chapter on the
@@ -36,7 +36,20 @@ Enter moves focus to the open tab of the rail (or opens the rail, where it is a 
 
 ![Script - the Skip to the side panel button under the reader header, with focus on it](../../images/ui/script-skip-to-side-panel.webp)
 
-![Script - Find on "Alice": the count, the matches lit in the text and the results list](../../images/ui/script-find.webp)
+## Searching the script
+
+`Ctrl+F` opens the [jump menu](navigation.md#jump-to-or-run) searching only this page. Type at least two letters and the menu lists, in this order:
+what the page offers that matches (**On this page**: chapters, Story Bible entries and the mark types), then **In the script**, **My marks** and **My words**.
+Each match in the script shows the words around it with the matched part marked, and the chapter and paragraph it is in (**Chapter 3 · ¶ 12**);
+the first 50 are listed and a last row says how many more there are. It reads the chapters the page has loaded.
+
+Choose a match (`Enter` or a click) and the menu closes: every match of the word is lit in the text, the one you chose is ringed and brought into view.
+**F3** and **Shift+F3** move to the next and previous match, wrapping at the ends; the same steps, with "3 of 12 for “alice”", and **Clear the search** are under **Search** in
+the jump menu while a search is showing. `Esc` clears the search. `Ctrl+K` opens the whole menu, with **On this page** first, and `Backspace` on an empty field in `Ctrl+F` widens the search to every page and command.
+
+![Script - Ctrl+F then "Alice": the menu lists the matches under In the script, the matched word marked](../../images/ui/script-search.webp)
+
+**Find in the manuscript** on a Story Bible entry and **Find** in the right-click menu light the matches in the text the same way, without opening the menu.
 
 At 1280 px and narrower the rail opens as a drawer over the text from the header's side panel button, and below 1180 px the
 chapter list does the same from its **Chapters** button. A drawer opens inside the page, under the navigation, so the
@@ -69,7 +82,7 @@ Select words in the reader and a dark toolbar appears over them:
 
 Right-click the text for the same actions, in labelled groups: **Mark as** (your marks and **Pronunciation (a word)**),
 **Add to the Story Bible as** (left out when the words are already an entry's name or alias, where the entry's own row finds them),
-then **Look up**, **Find**, **Copy**, **Bookmark here** and **Record from here**. Where you click adds more: on a speaker's line, **Speaker: …** to change who
+then **Look up**, **Find** (lights the matches in the text), **Copy**, **Bookmark here** and **Record from here**. Where you click adds more: on a speaker's line, **Speaker: …** to change who
 speaks it; on one of your marks, open it, change its type, resolve or reopen a query, or delete it; on a marked word,
 **Show in Words** or **Remove from my words**. Right-click a chapter in the list or its card in the reader to go to it,
 record it in the Booth or set its prep state, and a word on the **Words** tab to show it or remove it. Click a marked
@@ -137,7 +150,7 @@ chapter's), then the credits text with the project's values filled in. A token w
 brackets, in the amber of an entry still to review, and the card lists the unresolved tokens with a **Fill in** that opens the same "Set up
 the credits" dialog Production offers — see [Production](production.md#importing-the-manuscript) for what it asks
 and when. A banner above Opening credits does the same while any token stays unresolved and setup has not been
-dismissed for the project. The credits are read-only and are not chapters: Find does not search them. Record the
+dismissed for the project. The credits are read-only and are not chapters: the search does not look in them. Record the
 credits as their own files, as ACX expects, not inside a chapter file: a chapter's Proof view compares a
 chapter's recording with that chapter's text only, so credits recorded inside it are reported as extra
 words. Each credits card has a **Record in Booth** button once it has anything to read (see below).

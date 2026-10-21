@@ -95,16 +95,29 @@ export const scriptDrivers: Record<string, Driver> = {
       .waitFor({ state: 'detached' })
       .catch(() => undefined);
   },
-  find: async (page) => {
+  // The jump menu on the Script: the page's own groups first, under "On this page".
+  'jump-menu': async (page) => {
     await goToPage(page, 'Script');
-    await page.getByRole('button', { name: 'Find in the manuscript (Ctrl+F)' }).click();
-    await page.getByRole('textbox', { name: 'Find in the manuscript' }).fill('Alice');
-    // The results list opens on focus once there are matches; Results opens it when it has not.
-    const results = page.getByRole('region', { name: 'Search results' });
-    const toggle = page.getByRole('button', { name: 'Results' });
-    await page.getByRole('status').filter({ hasText: /\d/ }).first().waitFor();
-    if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
-    await results.waitFor();
+    await page.keyboard.press('Control+k');
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor();
+    await page.getByRole('option', { name: /^Chapters/ }).waitFor();
+  },
+  // Ctrl+F searches the page: the term is typed into the menu and the manuscript's matches come back under "In the script".
+  'search-menu': async (page) => {
+    await goToPage(page, 'Script');
+    await page.keyboard.press('Control+f');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Alice');
+    await page.getByRole('listbox', { name: 'Jump menu results' }).getByRole('option').first().waitFor();
+    await page.getByText('In the script', { exact: true }).waitFor();
+  },
+  'search-shown': async (page) => {
+    await goToPage(page, 'Script');
+    await page.keyboard.press('Control+f');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Alice');
+    await page.getByText('In the script', { exact: true }).waitFor();
+    await page.keyboard.press('Enter');
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
+    await page.locator('mark[data-kind="search"]').first().waitFor();
   },
   'selection-tools': async (page) => {
     await goToPage(page, 'Script');

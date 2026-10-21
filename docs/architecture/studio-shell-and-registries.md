@@ -25,11 +25,11 @@ All paths are under `apps/ui/src/`.
 
 `COMMAND_CATALOG` in `input/commands.catalog.ts` is the one list of commands that have a key. A row is a `CommandDescriptor`: `id`, `label`, `scope`, `defaults` (gestures), and optionally `noisy`, `group`, `hint`, `surfaces`, `shadows` and `fieldsKeep`.
 
-- **Scope** is `global`, `page`, `booth` or `dialog`. The catalogue has 68 rows: 14 global, 40 page, 14 booth, none dialog.
-- **Surface** is `jumpMenu`, `help` or `settings`. All 68 rows list on `help` and `settings`; 10 list on `jumpMenu`: `nav.back`, `nav.forward`, `nav.settings`, `zoom.in, `zoom.out`, `zoom.reset`, `companion.open`, `help.shortcuts`, `history.open`, `undo.last`. A page key is not a jump menu row because the menu could not run it from another page.
+- **Scope** is `global`, `page`, `booth` or `dialog`. The catalogue has 69 rows: 15 global, 41 page, 14 booth, none dialog.
+- **Surface** is `jumpMenu`, `help` or `settings`. All 69 rows list on `help` and `settings`; 10 list on `jumpMenu`: `nav.back`, `nav.forward`, `nav.settings`, `zoom.in, `zoom.out`, `zoom.reset`, `companion.open`, `help.shortcuts`, `history.open`, `undo.last`. A page key is not a jump menu row because the menu could not run it from another page.
 - **Groups** (the jump menu heading and the help and Settings grouping): Go to, Zoom, Editing, Bookmarks, Script, Story Bible, Proof, Booth, View, Edit.
 - **Id format** is `area.thing` or `area.thing.direction` (`editing.word.extend.prev`, `proof.decide.waive`). An id is the key the narrator's saved bindings use, so a renamed id loses the binding.
-- **Shell rows** `jump.open` (Ctrl/Cmd+K and Ctrl/Cmd+F), `history.open` (Ctrl+Shift+H) and `undo.last` (Ctrl+Z, `fieldsKeep`) are global. `script.find` and `proof.find` take Ctrl+F on their page and name `jump.open` in `shadows`, so Ctrl+F opens the jump menu on every other page.
+- **Shell rows** `jump.open` (Ctrl/Cmd+K), `jump.page` (Ctrl/Cmd+F, the menu scoped to the page), `history.open` (Ctrl+Shift+H) and `undo.last` (Ctrl+Z, `fieldsKeep`) are global. `proof.find` takes Ctrl+F on Proof and names `jump.page` in `shadows`, so Ctrl+F searches the page on every other page.
 - **Behaviour** is attached with `useCommand(id, handler, enabled)` (`input/useCommand.ts`). A feature never listens for a key.
 
 | Rule | Enforced by |
@@ -58,27 +58,39 @@ A command that exists only while data does ("Go to chapter 3") is a provided com
 
 Tests: `input/commandProviders.test.ts`, `components/layout/useGoToCommands.test.tsx`.
 
+## Page commands
+
+A page offers the jump menu what it has now, under "On this page" (`input/pageCommands.ts`). `usePageCommands({ id, label, supersedes? }, items, load?)` registers a `PageItem` list (`id`, `label`, `group?`, `keywords?`, `hint?`, `icon?`, `disabledReason?`, `run`) while the page is mounted. `items` is read each time the menu opens, so it follows the page's state; an item that cannot run stays in with its `disabledReason`. `load` returns items that need the host: the menu opens first and adds them when the promise resolves, and a rejection is logged and skipped. `supersedes` names global groups the page replaces ("Chapters"), so a chapter is listed once. `currentPageContext()` merges the registrations and throws for a duplicate id.
+
+| Page | Registered in |
+| --- | --- |
+| Script | `components/script/page/registry/useScriptRegistry.ts` |
+| Settings | `components/settings/page/SettingsPage.tsx`, items built by `pageItems.ts` |
+
+Test: `input/pageCommands.test.tsx`.
+
 ## Jump menu
 
 `openJumpMenu` (`components/layout/JumpMenu.tsx`) opens the menu through the overlay service as a headerless dialog that closes on a press outside. The header button "Jump to or run…" and `jump.open` call it.
 
 | Input | List |
 | --- | --- |
-| Nothing typed | One row per group with its count; choosing a group lists its commands, and "All commands" or Backspace on an empty field goes back |
-| A term | Search hits first, then catalogue and provided commands whose label or hint contains every word of the term |
-| A term starting with `>` | Commands only, no search hits |
+| Nothing typed | One row per page group under "On this page", then one row per command group under "Commands"; choosing a group lists its rows, and the back row or Backspace on an empty field goes back |
+| A term | The page's items whose label, group, hint or keywords contain every word (a label that starts with the term first), then search hits, then the catalogue and provided commands that match. `components/layout/jumpMenuModel.ts` ranks them |
+| A term starting with `>` | The page's items and commands, no search hits |
+| `scope: 'page'` (`jump.page`, Ctrl+F) | Page items and search hits only; Backspace on an empty field widens to everything. With no page registered the whole menu opens |
 
-The text field keeps focus and names the active option with `aria-activedescendant`; the list is a `Listbox` primitive. A catalogue row draws the first gesture of the narrator's keymap as key caps. The menu reads memory only, so it opens and filters without waiting for the host ([The standard](interaction-feedback.md#the-standard)). A catalogue row runs through `shellCommands` in `App.tsx`, the same action as its key or header button.
+The text field keeps focus and names the active option with `aria-activedescendant`; the list is a `Listbox` primitive. A catalogue row draws the first gesture of the narrator's keymap as key caps. The field is described by the page's name and a live region says the result count. The menu reads memory only, so it opens and filters without waiting for the host ([The standard](interaction-feedback.md#the-standard)). A catalogue row runs through `shellCommands` in `App.tsx`, the same action as its key or header button.
 
-Test: `components/layout/JumpMenu.test.tsx`.
+Tests: `components/layout/JumpMenu.test.tsx`, `JumpMenu.pageContext.test.tsx`; stories in `JumpMenu.stories.tsx`.
 
 ## Search sources
 
-A `SearchSource` is `(term) => SearchHit[]` with `SearchHit = { group, title, sub?, run }`. `registries/search.ts` keeps them: `registerSearchSource` and `useSearchSource` add one, `searchAll(term)` asks every source in registration order. A term under two characters asks nobody, and a source that throws is skipped with a console warning so the others still answer.
+A `SearchSource` is `(term) => SearchHit[]` with `SearchHit = { group, title, sub?, snippet?, run }`; `snippet` splits the title around the match so the menu marks it. `registries/search.ts` keeps them: `registerSearchSource` and `useSearchSource` add one, `searchAll(term)` asks every source in registration order. A term under two characters asks nobody, and a source that throws is skipped with a console warning so the others still answer.
 
 | Source | Registered in |
 | --- | --- |
-| Manuscript text, Story Bible entries, marks, prep words | `components/script/page/registry/useScriptRegistry.ts` |
+| Manuscript text ("In the script", through `searchManuscript`), marks, prep words | `components/script/page/registry/useScriptRegistry.ts` |
 | Bookmarks | `components/script/bookmarks/model/useBookmarkCommands.ts` |
 
 Test: `registries/search.test.ts`.

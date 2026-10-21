@@ -64,7 +64,7 @@ export type ReaderProps = {
   sectionNames?: ReadonlyMap<string, string>;
   /** The sticky header's buttons. */
   toolbar?: ReactNode;
-  /** Drawn between the sticky header and the text: the Find bar, as the mock's reader has it. */
+  /** Drawn between the sticky header and the text. */
   underHeader?: ReactNode;
   onPickSpeaker?: (cueId: string, anchor: DOMRect) => void;
   onShowAnnotation?: (id: string) => void;
