@@ -99,7 +99,7 @@ type State struct {
 	// Pass, FirstPassModel, RecheckModel and RecheckWindows are the model cascade's own live progress:
 	// set only for a run that asked for a re-check (Request.Recheck.Model non-empty), so the dialog can name which
 	// pass is running and how many passages the plan found without waiting for the stored result. Pass is one of
-	// "first_pass", "recheck_windows", "recheck_whole" or "realign" (stage.label()).
+	// "first_pass", "pipeline" (both models working at once), "recheck_windows", "recheck_whole" or "realign" (job.passLabel()).
 	Pass           string `json:"pass,omitempty"`
 	FirstPassModel string `json:"firstPassModel,omitempty"`
 	RecheckModel   string `json:"recheckModel,omitempty"`
@@ -126,9 +126,19 @@ type Request struct {
 	// UnsureBelow, above 0, has the first pass report the passages whose words Whisper scored under it, so the
 	// re-check can take them as well as what is missing. 0 reports none.
 	UnsureBelow float64
+	// Pipeline runs the first pass and the re-check of the passages it doubts in one sidecar process, the larger model starting on an
+	// item as soon as the smaller one has finished it (docs/design/recording-check-pipeline.md). It needs Recheck and UnsureBelow; without
+	// either, or false, the stages run one after the other as before, which is also the oracle the pipelined result is checked against.
+	Pipeline bool
 	// Concurrent is how many runs may be in progress when this one starts, itself included: the narrator's Check
 	// recordings run of several chapters sets it above 1. 0 or 1 starts only when nothing else is running.
 	Concurrent int
+}
+
+// pipelined reports whether the first pass is the one-process cascade: a re-check model, a score line to find the doubtful passages
+// by, and the narrator's (or the default) permission.
+func (r Request) pipelined() bool {
+	return r.Pipeline && r.Recheck.Model != "" && r.UnsureBelow > 0
 }
 
 // Service runs coverage analyses and reads results back. It runs one at a time unless a Start asks for more
@@ -477,6 +487,12 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 	args = append(args, running.request.Parallel.args()...)
 	if running.stage == stageFirstPass && running.request.UnsureBelow > 0 {
 		args = append(args, "--unsure-below", strconv.FormatFloat(running.request.UnsureBelow, 'f', -1, 64))
+		if running.request.pipelined() {
+			args = append(args, "--recheck-model", running.request.Recheck.Model)
+			if running.request.Recheck.ModelDir != "" {
+				args = append(args, "--recheck-model-dir", running.request.Recheck.ModelDir)
+			}
+		}
 	}
 	if s.config.Backend != "" {
 		args = append([]string{s.config.Backend}, args...)

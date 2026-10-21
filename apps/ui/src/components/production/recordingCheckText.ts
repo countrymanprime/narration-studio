@@ -212,6 +212,8 @@ export function passLabel(state: CoverageState): string | undefined {
   switch (state.pass) {
     case 'first_pass':
       return state.firstPassModel ? `First pass (${state.firstPassModel})` : 'First pass';
+    case 'pipeline':
+      return `${state.firstPassModel ? `First pass (${state.firstPassModel})` : 'First pass'}, re-checking as it goes${state.recheckModel ? ` (${state.recheckModel})` : ''}`;
     case 'recheck_windows':
       return `Re-checking ${plural(state.recheckWindows ?? 0, 'passage')}${state.recheckModel ? ` (${state.recheckModel})` : ''}`;
     case 'recheck_whole':
