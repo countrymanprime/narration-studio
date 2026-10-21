@@ -61,3 +61,37 @@ describe('pickEntries', () => {
     expect(pickEntries(ready(entry(0, [1])), 5, 6)).toEqual({ reason: 'This line lies outside the audio the host read.' });
   });
 });
+
+// Two items can have the same stretch of their own recording, so time alone cannot say which item's audio a line is: the line's item does.
+describe("pickEntries by the line's item", () => {
+  const state: RibbonPeaks = {
+    status: 'ready',
+    result: {
+      chapterId: 'c-1',
+      items: [
+        { index: 0, peaks: entry(0, [10, 10, 10, 10]) },
+        { index: 1, peaks: entry(0, [90, 90, 90, 90]) },
+        { index: 2, reason: "this item's source audio was not found" },
+      ],
+    },
+  };
+
+  it("uses the line's own item and not another that covers the same time", () => {
+    const got = pickEntries(state, 1, 3, 1);
+    expect('peaks' in got && got.peaks.map((p) => p.startSeconds)).toEqual([0]);
+    expect('peaks' in got && peaksWindowAll(got.peaks, 1, 3, 2)!.map((c) => c[1])).toEqual([90, 90]);
+  });
+
+  it("says why when the line's item has no waveform, rather than drawing another item's", () => {
+    expect(pickEntries(state, 1, 3, 2)).toEqual({ reason: "this item's source audio was not found" });
+  });
+
+  it("says the line is outside the item's audio when the window misses it", () => {
+    expect(pickEntries(state, 10, 12, 0)).toEqual({ reason: 'This line lies outside the audio the host read.' });
+  });
+
+  it('keeps the time match when the line has no known item', () => {
+    const got = pickEntries(state, 1, 3);
+    expect('peaks' in got && got.peaks).toHaveLength(2);
+  });
+});
