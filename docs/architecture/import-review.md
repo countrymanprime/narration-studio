@@ -15,7 +15,7 @@ The dialog is built to the mock's import flow (`docs/research/mockups/studio-nex
 | Header label, title and subtitle above the body | The dialog title carries "Import manuscript · step 1 of 2"; the heading and hint are in the body | The shared `Dialog` has one title row. |
 | Step 1 of 2 for an import, 3 for a replace | Step 1 of 2 for both | A replace has no step 3: the host clears what was built on the manuscript, so there is no "what changes" to show (see below). |
 
-**Step 2, "Check the chapter outline" (built to the mock's structure).** The dialog is named "Import <file> · step 2 of 2" and has the mock's heading, a row of pills (chapters, paragraphs, character suggestions, repairs), two columns (the outline on the left, the options on the right), a **Back** button and **Import reviewed manuscript** (**Replace and reset** when it replaces a manuscript).
+**Step 2 (built to the mock's structure, then changed; the table below says how).** The dialog is named "Import <file> · step 2 of 2" and has a row of pills (chapters, paragraphs, character suggestions, repairs), the import options, then one bordered accordion of Chapters, Character suggestions and Repairs, each chapter and character a card with a switch, then the sample. The footer is **Back** on the left, **Close when the import finishes** in the middle and **Import** on the right (**Replace and reset** when it replaces a manuscript).
 
 | Mock | App | Why |
 | --- | --- | --- |

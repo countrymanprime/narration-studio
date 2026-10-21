@@ -289,23 +289,21 @@ export function useManuscriptImport({
           description={importDescription(replacing || Boolean(importJob.requiresReset))}
           actions={
             <>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  cancelImport();
+                  setStep1Open(true);
+                }}
+              >
+                Back
+              </Button>
               <Checkbox checked={closeWhenDone} onChange={changeCloseWhenDone}>
                 Close when the import finishes
               </Checkbox>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    cancelImport();
-                    setStep1Open(true);
-                  }}
-                >
-                  Back
-                </Button>
-                <Button variant={replacing || importJob.requiresReset ? 'danger' : 'primary'} onClick={() => void commitImport()}>
-                  {replacing || importJob.requiresReset ? 'Replace and reset' : 'Import reviewed manuscript'}
-                </Button>
-              </div>
+              <Button variant={replacing || importJob.requiresReset ? 'danger' : 'primary'} onClick={() => void commitImport()}>
+                {replacing || importJob.requiresReset ? 'Replace and reset' : 'Import'}
+              </Button>
             </>
           }
         >

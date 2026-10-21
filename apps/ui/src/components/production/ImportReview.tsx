@@ -44,6 +44,18 @@ export function importDescription(requiresReset: boolean): string {
     ? 'This replaces the active manuscript and clears Story Bible, notes, bookmarks, statuses, and saved comparison results.'
     : 'Switch off any chapter to leave it out of the recording.';
 }
+/** A card that holds one switch row: every chapter and character has the same shape, and one switched off is dimmed. */
+function Tile({ on, children }: { on: boolean; children: ReactNode }) {
+  return (
+    <div
+      className={`h-[3.25rem] overflow-hidden rounded-[var(--radius-card)] border px-2.5 py-1.5 ${on ? 'bg-[var(--surface-2)]' : 'opacity-60'}`}
+      style={{ borderColor: 'var(--border)' }}
+    >
+      {children}
+    </div>
+  );
+}
+
 /**
  * A chapter's heading as the review writes it everywhere (a row, the sample): the title on one line and, under it, the subtitle smaller and
  * dimmer with no dash. A heading in a label style ("CHAPTER VIII. Croquet") keeps its label set apart; a line turned back into text has no
@@ -143,29 +155,31 @@ export function ImportReview({
       className={groupClass('narration')}
       panelClassName={panelClass}
     >
-      {/* Two columns. The whole review scrolls in one place (the box around it), so this list never carries a scrollbar of its own. */}
-      <div className="gap-x-8 pt-1 pr-1 pb-3 pl-5 sm:grid sm:grid-cols-2 sm:content-start">
+      {/* Two columns of tiles. The open group scrolls in the box around it, so this list never carries a scrollbar of its own. */}
+      <div className="gap-2 py-2 sm:grid sm:grid-cols-2 sm:content-start">
         {chapters.map((section) => {
           const heading = reviewedHeading(section, selection);
           const name = sectionName(section, selection);
           return (
-            <div key={section.id} className="mb-1.5" onMouseEnter={() => setPreviewId(section.id)} onFocus={() => setPreviewId(section.id)}>
-              {/* The whole row is the switch's label: the title and its subtitle on a second, smaller and dimmer line. */}
-              <Switch checked={chapterIncluded(section, selection)} onChange={(included) => setIncluded(section, included)} className="w-full">
-                <span className="block min-w-0" title={name}>
-                  <HeadingLines
-                    heading={heading}
-                    truncate
-                    trailing={
-                      section.wordCount !== undefined && (
-                        <span className="flex-none text-xs text-[var(--text-muted)] tabular-nums">
-                          {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
-                        </span>
-                      )
-                    }
-                  />
-                </span>
-              </Switch>
+            <div key={section.id} className="mb-2 sm:mb-0" onMouseEnter={() => setPreviewId(section.id)} onFocus={() => setPreviewId(section.id)}>
+              <Tile on={chapterIncluded(section, selection)}>
+                {/* The whole row is the switch's label: the title and its subtitle on a second, smaller and dimmer line. */}
+                <Switch checked={chapterIncluded(section, selection)} onChange={(included) => setIncluded(section, included)} className="w-full">
+                  <span className="block min-w-0" title={name}>
+                    <HeadingLines
+                      heading={heading}
+                      truncate
+                      trailing={
+                        section.wordCount !== undefined && (
+                          <span className="flex-none text-xs text-[var(--text-muted)] tabular-nums">
+                            {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
+                          </span>
+                        )
+                      }
+                    />
+                  </span>
+                </Switch>
+              </Tile>
             </div>
           );
         })}
@@ -243,7 +257,7 @@ export function ImportReview({
                 className={groupClass('characters')}
                 panelClassName={panelClass}
               >
-                <div className="pt-1 pb-3 pl-5">
+                <div className="pb-2">
                   <p className="mb-2 text-xs text-[var(--text-muted)]">Checked names become reviewable Character entries after import.</p>
                   <div className="mb-2 flex gap-2">
                     <Button
@@ -256,28 +270,30 @@ export function ImportReview({
                       Select none
                     </Button>
                   </div>
-                  <div className="gap-x-8 sm:grid sm:grid-cols-2 sm:content-start">
+                  <div className="gap-2 sm:grid sm:grid-cols-3 sm:content-start">
                     {candidates.map((candidate) => (
-                      <div key={candidate.id} className="mb-1.5">
-                        <Switch
-                          checked={checkedIds.includes(candidate.id)}
-                          className="w-full"
-                          onChange={(next) => {
-                            const selected = new Set(checkedIds);
-                            if (next) selected.add(candidate.id);
-                            else selected.delete(candidate.id);
-                            onSelectionChange((current) => ({ ...current, characterCandidateIds: [...selected] }));
-                          }}
-                        >
-                          <span className="block min-w-0">
-                            <span className="block truncate">{candidate.name}</span>
-                            {candidate.appearances !== undefined && (
-                              <span className="block text-xs text-[var(--text-muted)] tabular-nums">
-                                {candidate.appearances.toLocaleString('en-US')} {plural(candidate.appearances, 'appearance')}
-                              </span>
-                            )}
-                          </span>
-                        </Switch>
+                      <div key={candidate.id} className="mb-2 sm:mb-0">
+                        <Tile on={checkedIds.includes(candidate.id)}>
+                          <Switch
+                            checked={checkedIds.includes(candidate.id)}
+                            className="w-full"
+                            onChange={(next) => {
+                              const selected = new Set(checkedIds);
+                              if (next) selected.add(candidate.id);
+                              else selected.delete(candidate.id);
+                              onSelectionChange((current) => ({ ...current, characterCandidateIds: [...selected] }));
+                            }}
+                          >
+                            <span className="block min-w-0">
+                              <span className="block truncate">{candidate.name}</span>
+                              {candidate.appearances !== undefined && (
+                                <span className="block text-xs text-[var(--text-muted)] tabular-nums">
+                                  {candidate.appearances.toLocaleString('en-US')} {plural(candidate.appearances, 'appearance')}
+                                </span>
+                              )}
+                            </span>
+                          </Switch>
+                        </Tile>
                       </div>
                     ))}
                   </div>
