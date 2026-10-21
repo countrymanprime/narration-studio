@@ -20,6 +20,13 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'range',
+    description:
+      'Editing, a range drawn on the line’s waveform with an edge inside a word and the view zoomed in once - the handles, the pan strip, the partial word and the sub-word preview',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
     state: 'delete-dialog',
     description: 'Editing, Delete on four selected words - the question names how many words and their audio go, and what the DAW will do',
   },

@@ -94,6 +94,30 @@ clears the mark (with Undo in the message that confirms it).
 
 ![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and the line's audio](../../images/ui/editing-selection.webp)
 
+## Choosing a range on the waveform
+
+The line's audio under the cursor is also a place to choose by time. **Drag** on it to draw a range with a handle on each edge; the
+words it covers are selected in the script (a word is selected when the range lies over at least half of it), and selecting words in the
+script sets the range to their span. **Drag a handle** to move one edge, or **drag inside the range** to move all of it; a range
+stays inside the line and never gets narrower than 50 ms. Hold **Alt** while dragging to snap to the nearest word boundary (the start or
+end of any heard word). A tap without a drag puts the cursor on the word under it.
+
+With a handle focused, **←** and **→** move that edge by a hundredth of what is showing (at least 10 ms), **Shift** by ten times
+that, and **Alt** to the next word boundary. The handles are sliders named "Start of range" and "End of range"; each announces its time, the range, its length
+and its words, and the range is announced when it is set.
+
+**Zoom in** and **Zoom out** step the view from the whole line down to one second; **Ctrl+wheel** (or a trackpad pinch) zooms about the
+pointer, and a sideways wheel or **Shift+wheel** pans. A thin strip under a zoomed waveform pans by drag or by **←** and **→** (Shift for a
+whole window), with **+** and **-** zooming. The view follows the playhead; moving it by hand while the line plays stops that until playback
+stops. One second is the closest view because the host keeps 50 peaks a second, 20 ms each: closer, the picture would only get bigger. When
+a bar is wider than 10 px the waveform says what a bar is.
+
+**Delete** and **Add FX** still work on whole words, because the DAW takes a range as its first and last word. When an edge is inside a word, the line under the
+waveform names the word and how much of it the range covers, and the question before a cut or an effect shows "Sub-word edge, shown as a preview" with
+both ranges; the cut or effect goes on the whole words. Making it exact needs a time-based command in the DAW bridge, which is not built.
+
+![Editing - a range drawn on the line's waveform with an edge inside a word, zoomed in: the two handles, the pan strip, the partly covered word and the sub-word preview](../../images/ui/editing-range.webp)
+
 ## Deleting words and their audio
 
 **Delete words and audio** (Delete) asks first. The question names the words, where the cut starts and ends (moved to
