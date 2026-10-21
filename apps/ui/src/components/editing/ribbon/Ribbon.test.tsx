@@ -97,14 +97,23 @@ describe('Ribbon placement', () => {
     expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-2');
   });
 
-  it('prefers the cursor, then the selection head, then the playing word', async () => {
+  it('sits under the selection head when nothing is playing', async () => {
+    const doc = marksDoc();
+    page(doc, withPeaks(peaks(0, 20)), (d) => {
+      d({ type: 'select', anchor: 'p-1:0', head: 'p-1:2' });
+    });
+    click();
+    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-1'));
+  });
+
+  it('follows the playing paragraph while the text advances, without waiting for playback to stop', async () => {
     const doc = marksDoc();
     page(doc, withPeaks(peaks(0, 20)), (d) => {
       d({ type: 'select', anchor: 'p-1:0', head: 'p-1:2' });
       d({ type: 'play', t: (doc.paras[1].start ?? 0) + 0.05 });
     });
     click();
-    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-1'));
+    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-2'));
   });
 });
 

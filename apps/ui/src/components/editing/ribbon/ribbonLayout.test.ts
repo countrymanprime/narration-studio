@@ -8,11 +8,17 @@ const state = (s: Partial<PageState>): PageState => ({ cursor: null, sel: null, 
 
 describe('activePid', () => {
   const doc = marksDoc();
-  it('is the cursor paragraph, then the selection head, then the playing word', () => {
-    expect(activePid(doc, state({ cursor: 'p-2:1', sel: { anchor: 'p-1:0', head: 'p-1:1' }, playT: 5.1 }))).toBe('p-2');
-    expect(activePid(doc, state({ sel: { anchor: 'p-1:0', head: 'p-2:1' }, playT: 5.1 }))).toBe('p-2');
+  it('is the cursor paragraph, then the selection head, when nothing is playing', () => {
+    expect(activePid(doc, state({ cursor: 'p-2:1', sel: { anchor: 'p-1:0', head: 'p-1:1' } }))).toBe('p-2');
+    expect(activePid(doc, state({ sel: { anchor: 'p-1:0', head: 'p-2:1' } }))).toBe('p-2');
+  });
+  it('follows the playing word while playback runs, wherever the cursor was left', () => {
     const first = doc.items[0];
-    expect(activePid(doc, state({ playT: (first.t0 ?? 0) + 0.01 }))).toBe(itemAt(doc, (first.t0 ?? 0) + 0.01)?.pid);
+    const playing = itemAt(doc, (first.t0 ?? 0) + 0.01)?.pid;
+    expect(activePid(doc, state({ playT: (first.t0 ?? 0) + 0.01 }))).toBe(playing);
+    const elsewhere = doc.items.find((i) => i.pid !== playing)!;
+    expect(activePid(doc, state({ cursor: elsewhere.key, playT: (first.t0 ?? 0) + 0.01 }))).toBe(playing);
+    expect(activePid(doc, state({ sel: { anchor: elsewhere.key, head: elsewhere.key }, playT: (first.t0 ?? 0) + 0.01 }))).toBe(playing);
   });
   it('is null with no cursor, selection or playing word', () => {
     expect(activePid(doc, state({}))).toBeNull();

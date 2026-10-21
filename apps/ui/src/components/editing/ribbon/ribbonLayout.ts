@@ -25,10 +25,14 @@ export interface RibbonLayout {
 const heard = (i: DocItem): boolean => i.t0 != null && i.t1 != null && i.st !== 'miss';
 const secs = (n: number): string => `${n.toFixed(1)} seconds`;
 
-/** The paragraph the ribbon sits under: the cursor's, else the selection head's, else the playing word's. Null when none. */
+/**
+ * The paragraph the ribbon sits under: the playing word's while playback runs (the ribbon follows the audio as the text advances), else the
+ * cursor's, else the selection head's. Null when none.
+ */
 export function activePid(doc: ChapterDoc, s: PageState): string | null {
   const pidOf = (key: string | null | undefined): string | null => (key && doc.index.has(key) ? doc.items[doc.index.get(key) as number].pid : null);
-  return pidOf(s.cursor) ?? pidOf(s.sel?.head) ?? (s.playT == null ? null : (itemAt(doc, s.playT)?.pid ?? null));
+  const playing = s.playT == null ? null : (itemAt(doc, s.playT)?.pid ?? null);
+  return playing ?? pidOf(s.cursor) ?? pidOf(s.sel?.head);
 }
 
 /** What the ribbon draws for one paragraph. Null when the paragraph has no audio span. */
