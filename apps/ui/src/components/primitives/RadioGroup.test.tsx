@@ -9,7 +9,7 @@ afterEach(cleanup);
 
 const OPTIONS = [
   { value: 'reference', label: 'Not a chapter', description: 'A part title, an epigraph or a false split. Hidden from navigation too.' },
-  { value: 'opening', label: 'Front matter', description: "Stays in the manuscript's navigation, not recorded as a chapter." },
+  { value: 'opening', label: 'Keep for later', description: 'Stays in the manuscript, not recorded.' },
 ] as const;
 
 function Controlled({ onChange = () => undefined }: { onChange?: (next: 'reference' | 'opening') => void }) {
@@ -32,7 +32,7 @@ describe('RadioGroup', () => {
     render(<Controlled />);
     expect(screen.getByRole('radiogroup', { name: 'What is it?' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Not a chapter' }).getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByRole('radio', { name: 'Front matter' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('radio', { name: 'Keep for later' }).getAttribute('aria-checked')).toBe('false');
     expect(screen.getByText(/A part title, an epigraph/)).toBeTruthy();
     expect(screen.getByText(/Stays in the manuscript/)).toBeTruthy();
   });
@@ -41,17 +41,17 @@ describe('RadioGroup', () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
     render(<Controlled onChange={onChange} />);
-    await user.click(screen.getByRole('radio', { name: 'Front matter' }));
+    await user.click(screen.getByRole('radio', { name: 'Keep for later' }));
     expect(onChange).toHaveBeenCalledWith('opening');
-    expect(screen.getByRole('radio', { name: 'Front matter' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Keep for later' }).getAttribute('aria-checked')).toBe('true');
     expect(screen.getByRole('radio', { name: 'Not a chapter' }).getAttribute('aria-checked')).toBe('false');
   });
 
   it('switches on the label text being pressed', async () => {
     const user = userEvent.setup();
     render(<Controlled />);
-    await user.click(screen.getByText('Front matter'));
-    expect(screen.getByRole('radio', { name: 'Front matter' }).getAttribute('aria-checked')).toBe('true');
+    await user.click(screen.getByText('Keep for later'));
+    expect(screen.getByRole('radio', { name: 'Keep for later' }).getAttribute('aria-checked')).toBe('true');
   });
 
   it('moves with the arrow keys', async () => {
@@ -59,12 +59,12 @@ describe('RadioGroup', () => {
     render(<Controlled />);
     await user.tab();
     await user.keyboard('{ArrowDown}');
-    expect(screen.getByRole('radio', { name: 'Front matter' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Keep for later' }).getAttribute('aria-checked')).toBe('true');
   });
 
   it('draws an unselected option with --surface-3 and a --border rim', () => {
     render(<Controlled />);
-    const unselected = screen.getByRole('radio', { name: 'Front matter' });
+    const unselected = screen.getByRole('radio', { name: 'Keep for later' });
     expect(unselected.className).toContain('bg-[var(--surface-3)]');
     expect(unselected.className).toContain('border-[var(--border)]');
     expect(unselected.className).not.toContain('bg-[var(--surface)]');

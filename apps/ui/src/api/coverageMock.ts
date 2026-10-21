@@ -95,7 +95,7 @@ const COVERAGE_REFUSAL_MESSAGES: Record<CoverageRefusalReason, string> = {
   project_unreadable: 'The saved REAPER project file could not be read.',
   no_manuscript: 'Import a manuscript before checking a recording.',
   chapter_not_found: 'That chapter is not part of the current manuscript.',
-  not_narration: 'Only narration chapters are checked, not front matter or reference sections.',
+  not_narration: 'Only chapters are checked, not reference sections.',
   unmapped: 'Confirm which REAPER track holds this chapter first.',
   multiple_tracks: 'More than one REAPER track is linked to this chapter; keep one.',
   mapped_track_missing: 'The REAPER track linked to this chapter is no longer in the saved project.',

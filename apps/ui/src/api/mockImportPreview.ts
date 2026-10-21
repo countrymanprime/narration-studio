@@ -163,7 +163,7 @@ export function mockImportPreviewLog(preview: ManuscriptImportPreview, headingLe
   return [
     ...read,
     ...(preview.notices ?? []),
-    'Classifying front matter, chapters and reference sections',
+    'Sorting chapters and reference sections',
     `Found ${chapters} chapters in ${sections.length} sections`,
     `Preview ready: ${preview.paragraphCount} paragraphs, ${chapters} chapters, ${suggestions} character suggestions`,
   ];

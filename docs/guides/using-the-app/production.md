@@ -127,9 +127,8 @@ changes nothing else: no undo point, and REAPER's own selection is all it touche
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
 
 **Remove from recording…**, under **Chapter**, takes a mis-imported heading (a part title, an
-epigraph, or front matter that was read in as a chapter) out of the pipeline, the totals, the reader
-and the Booth. Choose **Not a chapter** to hide it from navigation too, or **Front matter** to keep
-it in the manuscript's navigation without recording it. Nothing is deleted - its text stays in the
+epigraph or a false split that was read in as a chapter) out of the pipeline, the totals, the reader,
+the Booth and the navigation, as **Not a chapter**. Nothing is deleted - its text stays in the
 manuscript and its track link is cleared - and the last narration chapter can't be removed. A
 removed chapter is listed under **Removed from recording**, below the pipeline, with **Restore** to
 bring it back with its status and any notes intact.
@@ -319,7 +318,7 @@ file a line such as an epigraph goes back into the chapter's text so it is narra
 its name. Switch a chapter off to leave it out of the recording. The chapter's subtitle sits under its
 name on a smaller, dimmer line, with the number of words under that. A heading with a label shows the
 label in bold and the chapter's name after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8:
-Croquet"). Front matter and reference material are never listed or asked about: they stay out of the
+Croquet"). The book's title pages and reference material are never listed or asked about: they stay out of the
 chapters, and the title and author in them are offered when you set up the credits. The character
 suggestions are switches too, each with the number of times the character's first name appears in the
 story; **Select all** and **Select none** change them at once. **Review what was found** is always in
