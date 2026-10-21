@@ -6,6 +6,8 @@ import { clock } from '../../bar/clock';
 import type { Range, SelSummary } from '../../model';
 import { tokensOf, type RangeLocator } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';
+import { appliedSpan, subWordNote } from '../common/spanRequest';
+import type { Span } from '../../ribbon/rangeMath';
 
 export interface CutOptions {
   /** `close` moves the later audio up by the cut's length; `gap` leaves room tone and moves nothing. */
@@ -59,6 +61,11 @@ export interface CutAsk {
   options: CutOptions;
   mute: boolean;
   locator: RangeLocator;
+  /**
+   * The exact time range the narrator drew, when it came from the waveform. The DAW takes words by their tokens, so it never sees this: the
+   * words are `summary`'s, and a range with an edge inside a word is said so in the answer (`subWordNote`) instead of being cut as drawn.
+   */
+  span?: Span;
 }
 
 export interface CutDeps {
@@ -97,7 +104,7 @@ const CUT_KIND = 'cut_range';
  * these cuts (docs/architecture/ui-state-and-journal.md#the-journal-and-undo).
  */
 export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<CutDone> {
-  const { chapterId, summary, options, mute, locator } = ask;
+  const { chapterId, summary, options, mute, locator, span } = ask;
   const mode = mute ? 'gap' : options.mode;
   const label = cutLabel(summary.audible.length, summary.start, mute);
   return {
@@ -172,7 +179,10 @@ export function cutCommand(deps: CutDeps, plan: Acting, ask: CutAsk): Command<Cu
           return partly(`${why(e)} ${plan.dawName} made the cut: undo it there (Edit > Undo).`);
         }
       }
-      return ids.length ? { ok: true, value: { ids, message, undoSteps } } : refusal('nothing_cut', message || CUT_ALREADY);
+      const note = span ? subWordNote(span, appliedSpan(summary.audible)) : '';
+      return ids.length
+        ? { ok: true, value: { ids, message: note ? `${message} ${note}` : message, undoSteps } }
+        : refusal('nothing_cut', message || CUT_ALREADY);
     },
     async undo({ ids, undoSteps }) {
       // A cut the DAW made is taken back there first, and only if its history still ends with these cuts (the journal asked, and the DAW checks again);
