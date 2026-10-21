@@ -53,7 +53,7 @@ local TOOLS = {
     matches = function(name)
       return lower(name) == 'script: magnolius_declick.lua'
     end,
-    missing = 'Magnolius DeClick is not installed in REAPER. Install it yourself (ReaPack, or Actions > Load ReaScript); Narration Utils never installs it.',
+    missing = 'Magnolius DeClick is not installed in REAPER. Install it yourself (ReaPack, or Actions > Load ReaScript); Narration Studio never installs it.',
   },
 }
 

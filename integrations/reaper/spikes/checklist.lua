@@ -209,7 +209,7 @@ local body = function()
   check('2. stamp: LINES_STAMPED|t1|1|0|0|0', join_events(events) == 'LINES_STAMPED|t1|1|0|0|0', join_events(events))
   check('2. stamp: item carries id and text', ext(items[1], 'line_id') == 'line-000001' and ext(items[1], 'line_text') == 'First line.')
   local label = reaper.Undo_CanUndo2(0)
-  check('2. stamp: undo entry "Narration Utils: stamp manuscript line IDs"', label == 'Narration Utils: stamp manuscript line IDs', label)
+  check('2. stamp: undo entry "Narration Studio: stamp manuscript line IDs"', label == 'Narration Studio: stamp manuscript line IDs', label)
   -- Undo and redo replace REAPER's item objects, so every item is looked up by GUID again afterwards.
   local function refresh()
     local by_guid = items_by_guid()

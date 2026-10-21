@@ -40,6 +40,16 @@ describe('KpiRow', () => {
     expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toMatch(/of 15:12 est\./);
   });
 
+  it('lets every tile button fill its whole cell, so the hover highlight covers the card and not a patch of it', () => {
+    row();
+    for (const name of [/Finished audio/, /Recording/, /Editing \+ proof/, /Open pickups/]) {
+      const button = screen.getByRole('button', { name });
+      // The hint wrapper sits between the cell and the button: it has to fill the cell too, or the button's `size-full` has nothing to fill.
+      expect(button.parentElement!.className).toContain('size-full');
+      expect(button.className).toContain('size-full');
+    }
+  });
+
   it('names the ratio behind an estimate in the tooltip', async () => {
     row();
     await userEvent.hover(screen.getByRole('button', { name: /Recording/ }));

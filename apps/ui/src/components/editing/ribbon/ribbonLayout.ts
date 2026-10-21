@@ -1,4 +1,4 @@
-import { flagged, isLow, itemAt, type ChapterDoc, type DocItem } from '../model';
+import { flagged, isLow, itemAt, runwayEnd, type ChapterDoc, type DocItem } from '../model';
 import type { PageState } from '../script/scriptState';
 
 /** Which kind of flagged word a tinted span covers: extra words, a misread, or a low-confidence word. */
@@ -25,17 +25,24 @@ export interface RibbonLayout {
 const heard = (i: DocItem): boolean => i.t0 != null && i.t1 != null && i.st !== 'miss';
 const secs = (n: number): string => `${n.toFixed(1)} seconds`;
 
-/** The paragraph the ribbon sits under: the cursor's, else the selection head's, else the playing word's. Null when none. */
+/**
+ * The paragraph the ribbon sits under: the playing word's while playback runs (the ribbon follows the audio as the text advances), else the
+ * cursor's, else the selection head's. Null when none.
+ */
 export function activePid(doc: ChapterDoc, s: PageState): string | null {
   const pidOf = (key: string | null | undefined): string | null => (key && doc.index.has(key) ? doc.items[doc.index.get(key) as number].pid : null);
-  return pidOf(s.cursor) ?? pidOf(s.sel?.head) ?? (s.playT == null ? null : (itemAt(doc, s.playT)?.pid ?? null));
+  const playing = s.playT == null ? null : (itemAt(doc, s.playT)?.pid ?? null);
+  return playing ?? pidOf(s.cursor) ?? pidOf(s.sel?.head);
 }
 
 /** What the ribbon draws for one paragraph. Null when the paragraph has no audio span. */
 export function ribbonLayout(doc: ChapterDoc, pid: string, selected: readonly string[], playT: number | null): RibbonLayout | null {
   const para = doc.paras.find((p) => p.p.id === pid);
   if (!para || para.start == null || para.end == null || !(para.end > para.start)) return null;
-  const { start: t0, end: t1 } = para;
+  const { start: t0 } = para;
+  // The window runs a little past the last word, so its ramp-down is drawn, and stops short of the next line.
+  const lastWord = para.items.filter(heard).at(-1);
+  const t1 = lastWord ? runwayEnd(doc, lastWord.key, para.end) : para.end;
   const clip = (a: number, b: number): { t0: number; t1: number } | null => (b < t0 || a > t1 ? null : { t0: Math.max(t0, a), t1: Math.min(t1, b) });
   const words = para.items.filter((i) => heard(i) && !i.cut);
   const ticks = words.map((i) => i.t0 as number);

@@ -3,7 +3,7 @@ items {BAF42550-8910-438E-9F93-3A884D4E2805} {62494E5C-A70E-4B4A-8946-2B9EF89548
 registered commands: close,create_chapter_regions,export_compare_markers,inspect_compare_results,jump_to_compare_marker,prepare_compare,read_line_ids,stamp_item_lines
 PASS  2. stamp: LINES_STAMPED|t1|1|0|0|0  [LINES_STAMPED|t1|1|0|0|0]
 PASS  2. stamp: item carries id and text
-PASS  2. stamp: undo entry "Narration Utils: stamp manuscript line IDs"  [Narration Utils: stamp manuscript line IDs]
+PASS  2. stamp: undo entry "Narration Studio: stamp manuscript line IDs"  [Narration Studio: stamp manuscript line IDs]
 PASS  2. stamp: Undo removes the stamp  [nil]
 PASS  2. stamp: Redo restores the stamp  [line-000001]
 INFO  undo label after a marker point: CHECKLIST marker

@@ -41,7 +41,7 @@ It writes `audacity-pass-results.md` into the scratch folder and prints the same
 | A3 | `GetInfo` Tracks and Labels on the empty project | PASS, "0 tracks, 0 labels" |
 | A4 | `Import2` a 12 s tone the test writes; `GetInfo` Clips | PASS: one clip |
 | A5 | One label whose text has `’ ‘ — “ ” ∖ é % & < > { } ' =`; read it back | PASS: the text comes back unchanged. This is the escaping check |
-| A6 | Import three findings as labels, then the same three again | PASS: 3 added, then 0 added and 3 skipped, all on one label track named "Narration Utils" |
+| A6 | Import three findings as labels, then the same three again | PASS: 3 added, then 0 added and 3 skipped, all on one label track named "Narration Studio" |
 | A7 | Mark `pass-2` reviewed | PASS: its label reads `[nu:pass-2 reviewed] …`, and the label count is unchanged |
 | A8 | Go to `pass-3`'s label | PASS (Part B checks the selection) |
 | A9 | Cursor to 3 s | PASS |
@@ -58,7 +58,7 @@ Leave the scratch project open after Part A. Each run overwrites `audacity-pass-
 
 | Step | Do | Expected |
 | --- | --- | --- |
-| B1 | Look at the label track | One track, "Narration Utils", with five labels: `pass-0` to `pass-3` and "pass marker". `pass-2` reads "reviewed". No label shows `\` or a stray `"` |
+| B1 | Look at the label track | One track, "Narration Studio", with five labels: `pass-0` to `pass-3` and "pass marker". `pass-2` reads "reviewed". No label shows `\` or a stray `"` |
 | B2 | Run Part A again without closing the project | It stops at A3: "the open project is not empty". Nothing in the project changed |
 | B3 | If Audacity can stay running with no project window (on Windows, closing the last window usually quits it; skip B3 then), run Part A | A1 fails quickly with "Audacity has no project open", not after a 5 s timeout ([audacity/audacity#11471](https://github.com/audacity/audacity/issues/11471)) |
 | B4 | Open a new, empty project and a modal dialog (Edit > Preferences), then run Part A | Either A1 fails after about 5 s with "Audacity did not answer in time", or Audacity answers under the dialog. Record which. Then close the dialog and run Part A again on a new empty project: it passes. This is the reconnect check |
@@ -75,7 +75,7 @@ Part A's run goes on to Part C on the same scratch project and the same 12 s ton
 | C1 | Cut 2 to 3 s, closing up: backup, then one `Delete` (a `SplitDelete` first leaves the gap in place) | PASS: the tone ends at 11 s; a muted backup track |
 | C2 | Cut 4 to 4.5 s, leaving a gap: backup, `SplitDelete` | PASS: the tone still ends at 11 s, silent from 4 to 4.5 s |
 | C3 | Your macro on 5 to 6 s: backup, `Split`, then the macro's menu command `Macro_<name>` (no `ApplyMacro` command exists) | PASS, or SKIP with no macro named. A macro name may hold letters, digits, spaces, hyphens and underscores; any other character is refused |
-| C4 | Stack the read at 8 to 9 s on 6 s: backup, a take track, `Paste`, `Split`, `Delete` (with "Editing a clip can move other clips" on for the edit), mute the take track | PASS: the tone ends at 9 s; a muted track `Narration Utils take pass-take-2 from 8.000 s, backup {ID}` holds 6 to 7 s, and the chapter track is not muted |
+| C4 | Stack the read at 8 to 9 s on 6 s: backup, a take track, `Paste`, `Split`, `Delete` (with "Editing a clip can move other clips" on for the edit), mute the take track | PASS: the tone ends at 9 s; a muted track `Narration Studio take pass-take-2 from 8.000 s, backup {ID}` holds 6 to 7 s, and the chapter track is not muted |
 | C5 | Un-stack it: backup, `Paste` from the stack's backup track, `RemoveTracks` | PASS: the tone ends at 11 s again; the take track is gone |
 | C6 | Roll at 10 s: `Stop`, backup, `PunchAndRoll`, then `Stop` after 2 s | PASS: Audacity records from 10 s |
 | C7 | A cut on a track that is not there | PASS: refused as stale, nothing sent |
@@ -88,7 +88,7 @@ A real Audacity 3.7.7 on Linux ran the first, second and fourth checks below and
 
 | Check | Expected |
 | --- | --- |
-| Clone a two-minute window either side of 150 s of a 300 s tone, damage the original, restore, compare | The restored export hashes equal to the original; a track named `Narration Utils backup {ID}`, muted, holds 30 to 270 s |
+| Clone a two-minute window either side of 150 s of a 300 s tone, damage the original, restore, compare | The restored export hashes equal to the original; a track named `Narration Studio backup {ID}`, muted, holds 30 to 270 s |
 | `Paste` into the new empty track with the cursor at the window's start | The pasted audio starts at that time, not at 0 |
 | The undo history after a backup and after a restore | Recorded as found; the role reports `undoSteps` 0 and 1 |
 | A stereo track | The backup track is stereo and the restore matches |
@@ -145,7 +145,7 @@ What a hosted runner cannot show: a real input device, how it sounds, how the Wi
 
 | # | Do | Expected |
 | --- | --- | --- |
-| T31-17 | Edit > Preferences > Interface > Language: Deutsch, restart, run Part A | Passes. The menus are German, replies still end `BatchCommand finished: OK`, and the label track the app makes is named `Narration Utils` (the default name `Textmarken 1` is German) |
+| T31-17 | Edit > Preferences > Interface > Language: Deutsch, restart, run Part A | Passes. The menus are German, replies still end `BatchCommand finished: OK`, and the label track the app makes is named `Narration Studio` (the default name `Textmarken 1` is German) |
 
 **Windows only, by ear**
 

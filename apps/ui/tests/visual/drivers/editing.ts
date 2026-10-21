@@ -58,6 +58,16 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Zoom in' }).click();
     await page.getByRole('slider', { name: 'Visible part' }).waitFor();
   },
+  'output-popover': async (page) => {
+    await openEditing(page, EDITS);
+    await bar(page).getByRole('button', { name: 'Show volume and output device' }).click();
+    await page.getByRole('dialog', { name: 'Output' }).waitFor();
+  },
+  'output-no-outputs': async (page) => {
+    await openEditing(page, `${EDITS}&mockAudioOutputs=none`);
+    await bar(page).getByRole('button', { name: 'Show volume and output device' }).click();
+    await page.getByRole('dialog', { name: 'Output' }).getByRole('button', { name: 'Check again' }).waitFor();
+  },
   'delete-dialog': async (page) => {
     await openEditing(page, EDITS);
     await selectWords(page);

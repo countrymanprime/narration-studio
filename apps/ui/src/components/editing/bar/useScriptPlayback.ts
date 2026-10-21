@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { overlay } from '../../../overlay/overlayService';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
-import { firstFrom, summarize, type ChapterDoc } from '../model';
+import { firstFrom, runwayEnd, summarize, type ChapterDoc } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
+import { useAppliedOutput, type OutputPrefs } from '../../engine/outputPrefs';
 import { playable, playingKey } from '../script/playing';
 import { selectedKeysOf, type PageState } from '../script/scriptState';
 
@@ -33,6 +34,10 @@ export interface ScriptPlaybackOptions {
   playlist: PlaylistSegment[];
   mediaUrl: (sourceFile: string) => string;
   notify?: (text: string) => void;
+  /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
+  output?: OutputPrefs;
+  /** Hears why the chosen output could not be used, or null when it took, each time the choice changes. */
+  onOutputDevice?: (problem: string | null) => void;
 }
 
 /**
@@ -40,7 +45,13 @@ export interface ScriptPlaybackOptions {
  * on `timeupdate` (the technique of the old chapter hook, which this does not import). The playhead is the page's `playT`; the lit word and
  * the time in the bar follow it. Nothing here throws into the page: a file that will not load stops playback and says why.
  */
-export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overlay.toast(text) }: ScriptPlaybackOptions): ScriptPlayback {
+export function useScriptPlayback({
+  playlist,
+  mediaUrl,
+  notify = (text) => overlay.toast(text),
+  output,
+  onOutputDevice,
+}: ScriptPlaybackOptions): ScriptPlayback {
   const { doc, state, dispatch } = useEditingPage();
   const [follow, setFollowState] = useState(true);
   const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
@@ -52,7 +63,8 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     live.current = { doc, state, playlist, mediaUrl, notify, dispatch };
   });
 
-  const audio = (): HTMLAudioElement => (audioRef.current ??= new Audio());
+  const audio = useCallback((): HTMLAudioElement => (audioRef.current ??= new Audio()), []);
+  useAppliedOutput(audio, output, onOutputDevice);
 
   const halt = useCallback(() => {
     audioRef.current?.pause();
@@ -78,23 +90,26 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     } catch {
       fail();
     }
-  }, [fail]);
+  }, [audio, fail]);
 
   /** Loads the segment that owns `t` and puts the audio on it; false when no recorded file covers it. */
-  const cue = useCallback((t: number): boolean => {
-    const { playlist: list, mediaUrl: url } = live.current;
-    if (t < 0 || t >= totalDuration(list)) return false;
-    const found = segmentAtElapsed(list, t);
-    if (!found) return false;
-    const el = audio();
-    if (loaded.current !== found.segment.sourceFile) {
-      el.src = url(found.segment.sourceFile);
-      loaded.current = found.segment.sourceFile;
-    }
-    segment.current = found.index;
-    el.currentTime = found.segment.sourceStart + (t - found.segment.elapsedStart);
-    return true;
-  }, []);
+  const cue = useCallback(
+    (t: number): boolean => {
+      const { playlist: list, mediaUrl: url } = live.current;
+      if (t < 0 || t >= totalDuration(list)) return false;
+      const found = segmentAtElapsed(list, t);
+      if (!found) return false;
+      const el = audio();
+      if (loaded.current !== found.segment.sourceFile) {
+        el.src = url(found.segment.sourceFile);
+        loaded.current = found.segment.sourceFile;
+      }
+      segment.current = found.index;
+      el.currentTime = found.segment.sourceStart + (t - found.segment.elapsedStart);
+      return true;
+    },
+    [audio],
+  );
 
   const go = useCallback(
     (t: number): boolean => {
@@ -158,7 +173,7 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
       el.removeEventListener('error', fail);
       el.pause();
     };
-  }, [halt, fail, start]);
+  }, [audio, halt, fail, start]);
 
   const toggle = useCallback(() => {
     const { doc: d, state: s, notify: say, dispatch: send } = live.current;
@@ -170,8 +185,9 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     }
     if (!d.aligned) return say('Nothing has been transcribed yet.');
     if (s.sel) {
-      const sum = summarize(d, selectedFrom(d, s), [], (x) => x);
-      if (sum.audible.length) return playFrom(sum.start, sum.end);
+      const keys = selectedFrom(d, s);
+      const sum = summarize(d, keys, [], (x) => x);
+      if (sum.audible.length) return playFrom(sum.start, runwayEnd(d, keys[keys.length - 1], sum.end));
     }
     const from = firstFrom(d, s.cursor);
     if (!from || from.t0 == null) return say(NOTHING_FROM_HERE);
@@ -180,8 +196,9 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
 
   const playSelection = useCallback(() => {
     const { doc: d, state: s, notify: say } = live.current;
-    const sum = summarize(d, selectedFrom(d, s), [], (x) => x);
-    if (sum.audible.length) playFrom(sum.start, sum.end);
+    const keys = selectedFrom(d, s);
+    const sum = summarize(d, keys, [], (x) => x);
+    if (sum.audible.length) playFrom(sum.start, runwayEnd(d, keys[keys.length - 1], sum.end));
     else say('Nothing was recorded for these words.');
   }, [playFrom]);
 

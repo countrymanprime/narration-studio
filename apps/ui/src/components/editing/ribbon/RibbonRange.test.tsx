@@ -25,10 +25,11 @@ const peaks: WorkspacePeaks = (() => {
   return { startSeconds: 0, bucketsPerSecond: 50, buckets: n, minMax: btoa(String.fromCharCode(...bytes)), sampleRate: 48000, channels: 1 };
 })();
 
-// Paragraph p-1 (rangeFixtures.ts) runs 5.0 to 7.7 s: Alice 5.0-5.3, was 5.3-5.6, tired 5.6-5.9, of 5.9-6.2, sitting 6.2-6.5, quietly 6.5-6.8, by 6.8-7.1, her 7.1-7.4, sister 7.4-7.7.
-// The waveform is 1000 px wide in these tests, so one pixel is 2.7 ms while the whole paragraph shows.
+// Paragraph p-1 (rangeFixtures.ts) runs 5.0 to 7.7 s: Alice 5.0-5.3, was 5.3-5.6, tired 5.6-5.9, of 5.9-6.2, sitting 6.2-6.5, quietly 6.5-6.8, by 6.8-7.1, her 7.1-7.4, sister 7.4-7.75.
+// The line's window runs to 8.1 s: the last word's 7.75 s plus the 0.35 s runway the page keeps after a paragraph (editing/model/runway.ts).
+// The waveform is 1000 px wide in these tests, so one pixel is 3.1 ms while the whole window shows.
 const T0 = 5;
-const LEN = 2.7;
+const LEN = 3.1;
 const xAt = (t: number, view = { start: T0, len: LEN }): number => ((t - view.start) / view.len) * 1000;
 
 let state: ReturnType<typeof useEditingPage>;
@@ -122,7 +123,7 @@ describe('the range on the waveform', () => {
     mount();
     await ready();
     drag(surface(), xAt(7.0), 99999);
-    await waitFor(() => expect(now(endHandle())).toBeCloseTo(7.7, 6));
+    await waitFor(() => expect(now(endHandle())).toBeCloseTo(8.1, 6));
     drag(surface(), xAt(5.5), -99999);
     await waitFor(() => expect(now(startHandle())).toBeCloseTo(5, 6));
     expect(now(endHandle())).toBeCloseTo(5.5, 2);
@@ -192,8 +193,8 @@ describe('the range on the waveform', () => {
     select('p-1:2', 'p-1:3');
     await waitFor(() => expect(startHandle()).toBeTruthy());
     drag(document.querySelector('[data-range-body]') as HTMLElement, xAt(5.9), 99999);
-    await waitFor(() => expect(now(endHandle())).toBeCloseTo(7.7, 6));
-    expect(now(startHandle())).toBeCloseTo(7.1, 6);
+    await waitFor(() => expect(now(endHandle())).toBeCloseTo(8.1, 6));
+    expect(now(startHandle())).toBeCloseTo(7.5, 6);
   });
 });
 
@@ -279,7 +280,7 @@ describe('what a screen reader hears', () => {
     expect(startHandle().getAttribute('aria-orientation')).toBe('horizontal');
     expect(Number(startHandle().getAttribute('aria-valuemin'))).toBe(5);
     expect(Number(startHandle().getAttribute('aria-valuemax'))).toBeCloseTo(6.296 - 0.05, 2);
-    expect(Number(endHandle().getAttribute('aria-valuemax'))).toBeCloseTo(7.7, 6);
+    expect(Number(endHandle().getAttribute('aria-valuemax'))).toBeCloseTo(8.1, 6);
     expect(screen.getByRole('group', { name: /^Range 0:05\.54 to 0:06\.30, 0\.8 seconds, 2 words/ })).toBeTruthy();
   });
 
@@ -330,7 +331,7 @@ describe('partial words are shown as they are', () => {
     await ready();
     drag(surface(), xAt(7.5), xAt(7.55));
     await waitFor(() => expect(state.state.sel).toEqual({ anchor: 'p-1:8', head: 'p-1:8' }));
-    expect(screen.getByTestId('range-partial').textContent).toBe('Covers 17% of “sister” (selected).');
+    expect(screen.getByTestId('range-partial').textContent).toBe('Covers 14% of “sister” (selected).');
   });
 
   it('says so when a range covers no words, which a gap between words allows', () => {
@@ -345,19 +346,19 @@ describe('partial words are shown as they are', () => {
 });
 
 describe('zoom', () => {
-  it('has zoom out and zoom in buttons that step 2.7 s, 2 s, 1 s and stop there', async () => {
+  it('has zoom out and zoom in buttons that step 3.1 s, 2 s, 1 s and stop there', async () => {
     mount();
     await ready();
     const label = () => document.querySelector('[data-view-label]')?.textContent;
-    expect(label()).toBe('0:05.00 to 0:07.70');
+    expect(label()).toBe('0:05.00 to 0:08.10');
     const zin = screen.getByRole('button', { name: 'Zoom in' });
     fireEvent.click(zin);
-    expect(label()).toBe('0:05.35 to 0:07.35');
+    expect(label()).toBe('0:05.55 to 0:07.55');
     fireEvent.click(zin);
-    expect(label()).toBe('0:05.85 to 0:06.85');
+    expect(label()).toBe('0:06.05 to 0:07.05');
     expect(zin.getAttribute('aria-disabled') ?? zin.hasAttribute('disabled')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }));
-    expect(label()).toBe('0:05.35 to 0:07.35');
+    expect(label()).toBe('0:05.55 to 0:07.55');
   });
 
   it('draws the range and reads the pointer against the zoomed view', async () => {
@@ -365,7 +366,7 @@ describe('zoom', () => {
     await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
-    const view = { start: 5.85, len: 1 };
+    const view = { start: 6.05, len: 1 };
     drag(surface(), xAt(6.1, view), xAt(6.4, view));
     await waitFor(() => expect(now(startHandle())).toBeCloseTo(6.1, 2));
     expect(now(endHandle())).toBeCloseTo(6.4, 2);
@@ -377,7 +378,7 @@ describe('zoom', () => {
     await ready();
     const label = () => document.querySelector('[data-view-label]')?.textContent;
     expect(fireEvent.wheel(surface(), { deltaY: 100, clientX: 500 })).toBe(true);
-    expect(label()).toBe('0:05.00 to 0:07.70');
+    expect(label()).toBe('0:05.00 to 0:08.10');
     expect(fireEvent.wheel(surface(), { deltaY: -100, ctrlKey: true, clientX: 0 })).toBe(false);
     // the time at the left edge stays at the left edge
     expect(label()).toBe('0:05.00 to 0:07.00');
@@ -388,13 +389,13 @@ describe('zoom', () => {
     await ready();
     const label = () => document.querySelector('[data-view-label]')?.textContent;
     fireEvent.wheel(surface(), { deltaX: 100 });
-    expect(label()).toBe('0:05.00 to 0:07.70');
+    expect(label()).toBe('0:05.00 to 0:08.10');
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     fireEvent.wheel(surface(), { deltaY: 100, shiftKey: true });
-    expect(label()).toBe('0:05.95 to 0:06.95');
+    expect(label()).toBe('0:06.15 to 0:07.15');
     fireEvent.wheel(surface(), { deltaX: -100 });
-    expect(label()).toBe('0:05.85 to 0:06.85');
+    expect(label()).toBe('0:06.05 to 0:07.05');
   });
 
   it('a view slider pans by key and by drag, and is there only when zoomed', async () => {
@@ -404,14 +405,14 @@ describe('zoom', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     const pan = screen.getByRole('slider', { name: 'Visible part' });
-    expect(pan.getAttribute('aria-valuetext')).toBe('Showing 0:05.85 to 0:06.85');
+    expect(pan.getAttribute('aria-valuetext')).toBe('Showing 0:06.05 to 0:07.05');
     expect(fireEvent.keyDown(pan, { key: 'ArrowRight' })).toBe(false);
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:05.95 to 0:06.95');
+    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:06.15 to 0:07.15');
     fireEvent.keyDown(pan, { key: 'ArrowLeft', shiftKey: true });
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:05.00 to 0:06.00');
+    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:05.15 to 0:06.15');
     const track = document.querySelector('[data-ribbon-pan]') as HTMLElement;
     drag(track, 0, 1000);
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:06.70 to 0:07.70');
+    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:07.10 to 0:08.10');
   });
 
   it('plus and minus on the view slider zoom', async () => {
@@ -419,9 +420,9 @@ describe('zoom', () => {
     await ready();
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     fireEvent.keyDown(screen.getByRole('slider', { name: 'Visible part' }), { key: '+' });
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:05.85 to 0:06.85');
+    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:06.05 to 0:07.05');
     fireEvent.keyDown(screen.getByRole('slider', { name: 'Visible part' }), { key: '-' });
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:05.35 to 0:07.35');
+    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:05.55 to 0:07.55');
   });
 
   it('follows the playhead out of a zoomed view, until the narrator pans away while it plays', async () => {
@@ -431,7 +432,7 @@ describe('zoom', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     const label = () => document.querySelector('[data-view-label]')?.textContent;
     act(() => state.dispatch({ type: 'play', t: 6.2 }));
-    expect(label()).toBe('0:05.85 to 0:06.85');
+    expect(label()).toBe('0:06.05 to 0:07.05');
     act(() => state.dispatch({ type: 'play', t: 7.2 }));
     expect(label()).toBe('0:06.70 to 0:07.70');
     fireEvent.keyDown(screen.getByRole('slider', { name: 'Visible part' }), { key: 'ArrowLeft', shiftKey: true });
@@ -440,7 +441,7 @@ describe('zoom', () => {
     expect(label()).toBe('0:05.70 to 0:06.70');
     act(() => state.dispatch({ type: 'play', t: null }));
     act(() => state.dispatch({ type: 'play', t: 7.3 }));
-    expect(label()).toBe('0:06.70 to 0:07.70');
+    expect(label()).toBe('0:06.80 to 0:07.80');
   });
 
   it('says what a bar is when the zoom is finer than the peaks, and not when it is not', async () => {
@@ -486,7 +487,7 @@ describe('states', () => {
     await ready();
     drag(surface(), xAt(5.54), xAt(6.296));
     await waitFor(() => expect(state.state.span).toBeTruthy());
-    act(() => state.dispatch({ type: 'place', key: 'p-2:0' }));
+    act(() => state.dispatch({ type: 'place', key: 'p-0:0' }));
     await waitFor(() => expect(state.state.span ?? null).toBeNull());
     expect(within(document.body).queryByRole('slider', { name: 'Start of range' })).toBeNull();
   });

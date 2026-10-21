@@ -50,7 +50,7 @@ Every folder above that has a `project.json` is an Nx project (all except `docs/
 
 ## Product and technical names
 
-The user-facing name is Narration Studio: the window title, About, Settings, update messages, installer texts, reports and docs. The name `narration-utils` stays wherever a file, key or host already holds it: the executable and release asset names, module paths, config and data folders, settings file names, the `NarrationUtils` uninstall key, notification ids, REAPER's undo labels, and the Audacity label track named "Narration Utils" (`LabelTrackName`), which projects look up by name. Renaming any of those would orphan installed copies or existing projects.
+The user-facing name is Narration Studio: the window title, About, Settings, update messages, installer texts, reports and docs. The name `narration-utils` stays wherever a file, key or host already holds it: the executable and release asset names, module paths, config and data folders, settings file names, the `NarrationUtils` uninstall key, notification ids, REAPER's undo labels, and the Audacity label track named "Narration Studio" (`LabelTrackName`), which projects look up by name. Renaming any of those would orphan installed copies or existing projects.
 
 Two names that existing installs held are being phased out instead: REAPER's launcher is now `NarrationStudio_Launcher.lua`, with `NarrationUtils_Launcher.lua` kept as a shim so an action already loaded keeps working, and the default projects folder is `~/NarrationStudio`, with an existing `~/NarrationUtils` still used when it is the only one. The shim and the fallback go when the old name is retired ([REAPER reference](../reference/daw/reaper.md)).
 

@@ -254,6 +254,11 @@ type fakeSidecar struct {
 
 	realignExitCode     int // non-zero: an --align-only stage fails with this code after writing an ERROR line
 	realignErrorMessage string
+
+	// The pipelined cascade (--recheck-model): the passages the one process re-checked itself, reported as a COVERAGE_RECHECKED line
+	// on the last analyzed item. 0 windows reports none.
+	pipelineWindows int
+	pipelineSeconds float64
 }
 
 type fakeChild struct {
@@ -424,6 +429,10 @@ func (f *fakeSidecar) run(args []string) int {
 	if _, asked := values["--unsure-below"]; asked && f.unsure && last != nil && len(f.results) == 0 {
 		results += fmt.Sprintf(`COVERAGE_UNSURE|{"itemIndex":%d,"itemGuid":%q,"start":%g,"end":%g,"words":1,"minScore":0.1}`+"\n",
 			last.Index, last.ItemGUID, last.StartOffset, last.StartOffset+0.3)
+	}
+	if _, pipelined := values["--recheck-model"]; pipelined && f.pipelineWindows > 0 && last != nil && len(f.results) == 0 {
+		results += fmt.Sprintf(`COVERAGE_RECHECKED|{"itemIndex":%d,"itemGuid":%q,"windows":%d,"seconds":%g,"whole":false}`+"\n",
+			last.Index, last.ItemGUID, f.pipelineWindows, f.pipelineSeconds)
 	}
 	if err := writeAtomically(values["--out"], []byte(results)); err != nil {
 		return 1

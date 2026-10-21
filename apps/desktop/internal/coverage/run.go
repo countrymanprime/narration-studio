@@ -89,11 +89,20 @@ func (st stage) label() string {
 	}
 }
 
+// passLabel is the wire name of the pass the run is in. A pipelined first stage is both models working on the chapter at once, so
+// it has a name of its own rather than "first_pass".
+func (j *job) passLabel() string {
+	if j.stage == stageFirstPass && j.request.pipelined() {
+		return "pipeline"
+	}
+	return j.stage.label()
+}
+
 func (j *job) initialState() State {
 	started := j.startedAt
 	state := State{RunID: j.runID, ChapterID: j.basis.ChapterID, Phase: PhaseRunning, Stage: "START", Message: "Starting the recording check...", StartedAt: &started, Background: j.request.Background}
 	if j.request.Recheck.Model != "" {
-		state.Pass, state.FirstPassModel, state.RecheckModel = j.stage.label(), j.request.Transcription.Model, j.request.Recheck.Model
+		state.Pass, state.FirstPassModel, state.RecheckModel = j.passLabel(), j.request.Transcription.Model, j.request.Recheck.Model
 	}
 	return state
 }
@@ -361,20 +370,22 @@ func (s *Service) storedResult(running *job, recordID string, report Report) Sto
 }
 
 // recheckSummary is the model cascade's own label for storage (MC5): nil when no re-check was asked for or
-// needed ("no second pass when nothing is missing"), otherwise the re-check model, whether it ran windows or the
+// needed (the pipelined first pass's own re-checks count with the second stage's) ("no second pass when nothing is missing"), otherwise the re-check model, whether it ran windows or the
 // whole chapter, and how many windows or how many seconds of audio it covered. The whole-chapter case reads its
 // seconds from the final, realigned report - the sidecar's own count of what it played - rather than re-deriving it
 // from the plan, which only ever measured the first pass's own items.
 func recheckSummary(running *job, report Report) *Recheck {
-	if !running.recheck.needed() {
+	early := running.firstReport.rechecked()
+	if !running.recheck.needed() && early.Windows == 0 {
 		return nil
 	}
-	seconds := totalLength(running.recheck.Windows)
-	if running.recheck.WholeChapter {
+	seconds := totalLength(running.recheck.Windows) + early.Seconds
+	whole := running.recheck.WholeChapter || early.Whole
+	if whole {
 		seconds = report.Summary.Items.PlayedSeconds
 	}
 	return &Recheck{
-		Model: running.request.Recheck.Model, WholeChapter: running.recheck.WholeChapter,
-		Windows: len(running.recheck.Windows), Seconds: seconds,
+		Model: running.request.Recheck.Model, WholeChapter: whole,
+		Windows: len(running.recheck.Windows) + early.Windows, Seconds: seconds,
 	}
 }

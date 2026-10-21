@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { itemAt, selKeys } from '../model';
+import { itemAt, RUNWAY_SECONDS, selKeys } from '../model';
 import { marksDoc } from '../script/scriptFixtures';
 import { activePid, ribbonLayout } from './ribbonLayout';
 import type { PageState } from '../script/scriptState';
@@ -8,14 +8,31 @@ const state = (s: Partial<PageState>): PageState => ({ cursor: null, sel: null, 
 
 describe('activePid', () => {
   const doc = marksDoc();
-  it('is the cursor paragraph, then the selection head, then the playing word', () => {
-    expect(activePid(doc, state({ cursor: 'p-2:1', sel: { anchor: 'p-1:0', head: 'p-1:1' }, playT: 5.1 }))).toBe('p-2');
-    expect(activePid(doc, state({ sel: { anchor: 'p-1:0', head: 'p-2:1' }, playT: 5.1 }))).toBe('p-2');
+  it('is the cursor paragraph, then the selection head, when nothing is playing', () => {
+    expect(activePid(doc, state({ cursor: 'p-2:1', sel: { anchor: 'p-1:0', head: 'p-1:1' } }))).toBe('p-2');
+    expect(activePid(doc, state({ sel: { anchor: 'p-1:0', head: 'p-2:1' } }))).toBe('p-2');
+  });
+  it('follows the playing word while playback runs, wherever the cursor was left', () => {
     const first = doc.items[0];
-    expect(activePid(doc, state({ playT: (first.t0 ?? 0) + 0.01 }))).toBe(itemAt(doc, (first.t0 ?? 0) + 0.01)?.pid);
+    const playing = itemAt(doc, (first.t0 ?? 0) + 0.01)?.pid;
+    expect(activePid(doc, state({ playT: (first.t0 ?? 0) + 0.01 }))).toBe(playing);
+    const elsewhere = doc.items.find((i) => i.pid !== playing)!;
+    expect(activePid(doc, state({ cursor: elsewhere.key, playT: (first.t0 ?? 0) + 0.01 }))).toBe(playing);
+    expect(activePid(doc, state({ sel: { anchor: elsewhere.key, head: elsewhere.key }, playT: (first.t0 ?? 0) + 0.01 }))).toBe(playing);
   });
   it('is null with no cursor, selection or playing word', () => {
     expect(activePid(doc, state({}))).toBeNull();
+  });
+});
+
+describe('ribbonLayout runway', () => {
+  const doc = marksDoc();
+  it('runs a little past the last word of the line, so the ramp-down is drawn, and stops before the next line', () => {
+    const para = doc.paras[0];
+    const next = doc.paras[1];
+    const layout = ribbonLayout(doc, para.p.id, [], null)!;
+    expect(layout.t1).toBeGreaterThan(para.end as number);
+    expect(layout.t1).toBeLessThan(next.start as number);
   });
 });
 
@@ -25,7 +42,9 @@ describe('ribbonLayout', () => {
   it('spans the paragraph and ticks every heard word boundary', () => {
     const l = ribbonLayout(doc, 'p-1', [], null)!;
     expect(l.t0).toBe(para.start);
-    expect(l.t1).toBe(para.end);
+    // The window runs the runway past the last word (the ramp-down), and no further.
+    expect(l.t1).toBeGreaterThan(para.end as number);
+    expect(l.t1 - (para.end as number)).toBeLessThanOrEqual(RUNWAY_SECONDS + 1e-9);
     // one tick per heard word, and one closing the last
     expect(l.ticks.length).toBe(para.items.filter((i) => i.t0 != null && !i.cut && i.st !== 'miss').length + 1);
   });

@@ -27,7 +27,7 @@ const meta = {
     onChange: fn(),
     options: [
       { value: 'reference', label: 'Not a chapter', description: 'A part title, an epigraph or a false split. Hidden from navigation too.' },
-      { value: 'opening', label: 'Front matter', description: "Stays in the manuscript's navigation, not recorded as a chapter." },
+      { value: 'opening', label: 'Keep for later', description: 'Stays in the manuscript, not recorded.' },
     ],
   },
   render: (args) => <ControlledRadioGroup {...args} />,
@@ -43,9 +43,9 @@ export const Default: Story = {};
 export const ClickSelects: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('radio', { name: 'Front matter' }));
+    await userEvent.click(canvas.getByRole('radio', { name: 'Keep for later' }));
     await expect(args.onChange).toHaveBeenLastCalledWith('opening');
-    await expect(canvas.getByRole('radio', { name: 'Front matter' })).toBeChecked();
+    await expect(canvas.getByRole('radio', { name: 'Keep for later' })).toBeChecked();
     await expect(canvas.getByRole('radio', { name: 'Not a chapter' })).not.toBeChecked();
   },
 };
@@ -64,15 +64,15 @@ export const DisabledOption: Story = {
   args: {
     options: [
       { value: 'reference', label: 'Not a chapter', description: 'A part title, an epigraph or a false split. Hidden from navigation too.' },
-      { value: 'opening', label: 'Front matter', description: "Stays in the manuscript's navigation, not recorded as a chapter.", disabled: true },
+      { value: 'opening', label: 'Keep for later', description: 'Stays in the manuscript, not recorded.', disabled: true },
     ],
   },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByText('Front matter'));
+    await userEvent.click(canvas.getByText('Keep for later'));
     await expect(args.onChange).not.toHaveBeenCalled();
-    await expect(canvas.getByRole('radio', { name: 'Front matter' })).not.toBeChecked();
-    await expect(canvas.getByRole('radio', { name: 'Front matter' })).toHaveAccessibleDescription(/Stays in the manuscript/);
+    await expect(canvas.getByRole('radio', { name: 'Keep for later' })).not.toBeChecked();
+    await expect(canvas.getByRole('radio', { name: 'Keep for later' })).toHaveAccessibleDescription(/Stays in the manuscript/);
   },
 };
 
