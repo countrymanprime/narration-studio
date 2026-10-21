@@ -43,7 +43,15 @@ export function useManuscriptImport({
   go: (page: string) => void;
   notify: Notify;
   refreshBootstrap: () => Promise<void>;
-}): { chooseButton: ReactNode; dialogs: ReactNode; creditsBanner: ReactNode } {
+}): {
+  chooseButton: ReactNode;
+  dialogs: ReactNode;
+  creditsBanner: ReactNode;
+  /** Opens step 1, as the choose button does (the jump menu's Import manuscript). */
+  open: () => void;
+  /** A choose or review dialog is already open, or the host is reading a file. */
+  busy: boolean;
+} {
   const api = useApi();
   const found = Boolean(data.manuscript);
   // A project that holds a manuscript is replaced, not imported into: the review says what that clears before it asks, not after.
@@ -337,5 +345,5 @@ export function useManuscriptImport({
       )}
     </>
   );
-  return { chooseButton, dialogs, creditsBanner };
+  return { chooseButton, dialogs, creditsBanner, open: () => setStep1Open(true), busy: step1Open || importJob !== undefined };
 }

@@ -23,6 +23,7 @@ import { useStageRecommendations } from '../stages/useStageRecommendations';
 import { chapterCheckStatus } from './chapterCheckStatus';
 import { RecordingCheckRules } from './RecordingCheckRules';
 import { useManuscriptImport } from './ManuscriptImport';
+import { useProductionPageCommands } from './useProductionPageCommands';
 import { planStart, recordedSeries, weekFigures } from './measured/measured.selectors';
 import { useMeasured } from './measured/useMeasured';
 import { CheckCountsCard } from './overview/CheckCountsCard';
@@ -297,6 +298,32 @@ export function ProductionPage({
     onChanged();
   }, stages.busy);
 
+  const record = caps
+    ? {
+        ok: Boolean(caps.capabilities.record?.available),
+        reason: caps.capabilities.record?.message ?? '',
+        // Switched off is the one refusal the narrator fixes in Settings; the others (not connected, not answering) are fixed in the DAW.
+        inSettings: caps.capabilities.record?.reason === 'experimental_off' || caps.capabilities.record?.reason === 'turned_off',
+      }
+    : { ok: false, reason: 'Checking the audio engine…' };
+  const narrationIds = new Set(narrated.map((c) => c.id));
+  const counts = checkCounts(sync?.chapters ?? [], narrationIds);
+  const toCheck = [...counts.stale, ...counts.never];
+
+  const recordingChapter = narrated.find((c) => c.status === 'recording');
+
+  useProductionPageCommands({
+    found,
+    rows: pipelineRows,
+    ready: Boolean(overview),
+    check: { chapterIds: toCheck, unavailable: caps && !caps.reachable ? `${caps.daw} is not running.` : undefined, open: (ids) => openCheckRecordings(ids) },
+    stages: { reading: stages.state.phase === 'loading', refresh: () => void refreshStages() },
+    report: () => openReportDialog({ projectName: data.projectName, asOf: fmtD(today) }),
+    session: { run: () => goToBooth(recordingChapter?.id), disabledReason: record.ok ? undefined : record.reason },
+    timer: { running: Boolean(overview?.running), stopping: timer.stopping, stop: () => void timer.stop(nameOf) },
+    importing: { open: manuscriptImport.open, busy: manuscriptImport.busy },
+  });
+
   if (!found) {
     return (
       <>
@@ -306,21 +333,10 @@ export function ProductionPage({
     );
   }
 
-  const record = caps
-    ? {
-        ok: Boolean(caps.capabilities.record?.available),
-        reason: caps.capabilities.record?.message ?? '',
-        // Switched off is the one refusal the narrator fixes in Settings; the others (not connected, not answering) are fixed in the DAW.
-        inSettings: caps.capabilities.record?.reason === 'experimental_off' || caps.capabilities.record?.reason === 'turned_off',
-      }
-    : { ok: false, reason: 'Checking the audio engine…' };
   const due = plan?.deadline ? parseIso(plan.deadline) : null;
   const k = calc(scheduleChapters(narrated), today, due, openPickups);
   const start = planStart(today);
   const log = measured.answers?.takeLog ?? { ok: false as const, reason: 'Reading the take log…' };
-  const narrationIds = new Set(narrated.map((c) => c.id));
-  const counts = checkCounts(sync?.chapters ?? [], narrationIds);
-  const recordingChapter = narrated.find((c) => c.status === 'recording');
   const finishedOf = (words: number) => (words / WPH) * 3600;
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
