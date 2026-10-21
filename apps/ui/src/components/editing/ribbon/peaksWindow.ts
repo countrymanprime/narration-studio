@@ -1,4 +1,5 @@
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
+import type { RibbonPeaks } from './useRibbonPeaks';
 
 /** One column of the window: the lowest and highest sample, each -127..127. */
 export type PeakColumn = readonly [min: number, max: number];
@@ -85,4 +86,29 @@ export function peaksWindowAll(entries: readonly WorkspacePeaks[], t0: number, t
     out.push(covered ? [lo, hi] : [0, 0]);
   }
   return out;
+}
+
+/** The most a waveform is scaled up for display: past this a recording is near silence and scaling it up only draws its noise. */
+export const PEAK_GAIN_LIMIT = 12;
+
+const gains = new WeakMap<object, number>();
+
+/**
+ * How much the chapter's waveform is scaled up for display: its loudest bucket, over every item, fills full scale. A recording that peaks near
+ * a quarter of full scale is a row of dots at the raw level, where a DAW shows it larger. The lines keep their loudness against each other
+ * (one gain for the chapter). 1 when there is nothing to draw, never below 1, never above `PEAK_GAIN_LIMIT`.
+ */
+export function peakGain(state: RibbonPeaks): number {
+  if (state.status !== 'ready') return 1;
+  const kept = gains.get(state.result);
+  if (kept !== undefined) return kept;
+  let loudest = 0;
+  for (const item of state.result.items) {
+    if (!item.peaks || item.peaks.buckets < 1) continue;
+    const data = decodeEntry(item.peaks);
+    for (let i = 0; i < data.length; i += 1) loudest = Math.max(loudest, Math.abs(data[i]));
+  }
+  const gain = loudest <= 0 ? 1 : Math.min(PEAK_GAIN_LIMIT, Math.max(1, 127 / loudest));
+  gains.set(state.result, gain);
+  return gain;
 }

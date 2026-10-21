@@ -37,9 +37,10 @@ function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Ma
   return out;
 }
 
-/** The index of the alignment item a paragraph was heard in (the one its first word came from), or undefined when it was not heard. The ribbon draws that item's waveform. */
-export function itemIndexOf(read: ChapterRead, paragraphId: string): number | undefined {
-  return heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId)?.item;
+/** The indexes of the alignment items a paragraph was heard in (a paragraph is often several items cut from one recording), or none when it was not heard. The ribbon draws those items' waveforms. */
+export function itemIndexesOf(read: ChapterRead, paragraphId: string): number[] {
+  const words = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId)?.words ?? [];
+  return [...new Set(words.map((w) => w.item))];
 }
 
 /**

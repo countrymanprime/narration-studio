@@ -62,7 +62,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { closedCutsOf, doubledCut, doubledStart, itemIndexOf, wordAt, type ChapterRead } from './chapterSource';
+import { closedCutsOf, doubledCut, doubledStart, itemIndexesOf, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -580,7 +580,7 @@ export function EditingBody(props: EditingBodyProps) {
               </InHost>
             ) : null}
             {pid === current && doc.aligned ? (
-              <Ribbon chapterId={chapterId} pid={pid} take={line?.takes.find((t) => t.active)?.label ?? null} item={itemIndexOf(read, pid)} />
+              <Ribbon chapterId={chapterId} pid={pid} take={line?.takes.find((t) => t.active)?.label ?? null} items={itemIndexesOf(read, pid)} />
             ) : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
