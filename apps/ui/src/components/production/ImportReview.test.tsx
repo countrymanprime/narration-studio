@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ImportReview, ImportSummary } from './ImportReview';
+import { ImportReview } from './ImportReview';
 import type { ReviewGroupOpen } from './importReviewModel';
 import { mockImportPreview, type MockImportKind } from '../../api/mockImportPreview';
 import { HEADING_LABELS, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
@@ -30,7 +30,6 @@ function Harness({
   const [groupOpen, setGroupOpen] = useState<ReviewGroupOpen>({});
   return (
     <>
-      <ImportSummary preview={preview} selection={selection} requiresReset={false} />
       <ImportReview
         preview={preview}
         selection={selection}
@@ -81,7 +80,7 @@ describe('ImportReview', () => {
     expect(screen.queryByText(/front matter/i)).toBeNull();
     expect(screen.queryByText(/reference material/i)).toBeNull();
     expect(screen.queryByRole('switch', { name: /Front Matter|Glossary|Characters/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: /^About / })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^About (front matter|reference material)/i })).toBeNull();
     expect(screen.queryByText(/narration chapter/i)).toBeNull();
   });
 
@@ -107,7 +106,7 @@ describe('ImportReview', () => {
     const user = userEvent.setup();
     renderReview();
     await user.click(groupButton(/^Story Bible character suggestions/));
-    expect(screen.getByRole('checkbox', { name: /^Alice/ })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: /^Alice/ })).toBeTruthy();
     expect(screen.queryByText('Characters')).toBeNull();
   });
 
@@ -126,42 +125,70 @@ describe('ImportReview', () => {
     await user.click(chapterSwitch(/^Chapter Three/));
     expect(chapterSwitch(/^Chapter Three/).getAttribute('aria-checked')).toBe('false');
     expect(groupButton(/^Chapters 4 of 5 chapters included$/)).toBeTruthy();
-    expect(screen.getByText(/^DOCX · 221 paragraphs · 4 chapters\.$/)).toBeTruthy();
+    expect(within(screen.getByLabelText('What was found')).getByText('4 chapters')).toBeTruthy();
+    // Only the chapters are switches here: the character suggestions are folded while every one is checked.
     expect(screen.getAllByRole('switch')).toHaveLength(5);
     await user.click(chapterSwitch(/^Chapter Three/));
     expect(groupButton(/^Chapters 5 of 5 chapters included$/)).toBeTruthy();
+    expect(within(screen.getByLabelText('What was found')).getByText('5 chapters')).toBeTruthy();
   });
 
-  it('sets the chapters in two columns that scroll inside their own box, so the sample below stays in view', () => {
+  it('sets the chapters in two columns with no scrollbar of their own: the one scroller is the box around the whole review', () => {
     renderReview();
     const list = chapterSwitch(/^Chapter One/).closest('.sm\\:grid-cols-2');
     expect(list).not.toBeNull();
-    expect(list!.className).toContain('overflow-y-auto');
-    expect(list!.className).toMatch(/max-h-/);
-    // The sample is pinned to the foot of the dialog's own scroll, so hovering a row always has somewhere to show it.
-    expect(screen.getByRole('region', { name: 'Preview of the selected heading' }).className).toContain('sticky');
+    expect(list!.className).not.toMatch(/overflow-y-|max-h-/);
+    const scroller = list!.closest('.overflow-y-auto');
+    expect(scroller).not.toBeNull();
+    expect(scroller!.className).toContain('min-h-0');
+    expect(scroller!.className).toContain('flex-1');
+    // Exactly one element scrolls in the review.
+    expect(document.body.querySelectorAll('.overflow-y-auto')).toHaveLength(1);
+  });
+
+  it('puts the options above the list and the sample below the one scroller, never inside it', () => {
+    renderReview('markdown');
+    const options = screen.getByText('Import options');
+    const list = chapterSwitch(/^Chapter One/);
+    const sample = screen.getByRole('region', { name: 'Preview of the selected heading' });
+    expect(options.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const scroller = list.closest('.overflow-y-auto')!;
+    expect(scroller.contains(options)).toBe(false);
+    expect(scroller.contains(sample)).toBe(false);
+    expect(scroller.compareDocumentPosition(sample) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sample.className).toContain('flex-none');
+    expect(sample.className).not.toContain('sticky');
   });
 
   it('counts the character suggestions live, opens them once one is unchecked, and selects all or none', async () => {
     const user = userEvent.setup();
     renderReview();
     await user.click(groupButton(/^Story Bible character suggestions/));
-    await user.click(screen.getByRole('checkbox', { name: /^The White Rabbit/ }));
+    await user.click(screen.getByRole('switch', { name: /^The White Rabbit/ }));
     expect(groupButton(/^Story Bible character suggestions 2 of 3 checked$/).getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText(/2 of 3 character suggestions checked/)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Select none' }));
     expect(groupButton(/^Story Bible character suggestions 0 of 3 checked$/)).toBeTruthy();
     for (const name of ['Alice', 'The White Rabbit', 'The Duchess'])
-      expect(screen.getByRole('checkbox', { name: new RegExp(`^${name}`) }).getAttribute('aria-checked')).toBe('false');
+      expect(screen.getByRole('switch', { name: new RegExp(`^${name}`) }).getAttribute('aria-checked')).toBe('false');
     await user.click(screen.getByRole('button', { name: 'Select all' }));
     expect(groupButton(/^Story Bible character suggestions 3 of 3 checked$/)).toBeTruthy();
+  });
+
+  it('shows how often each character appears, in place of a description, and says one appearance in the singular', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    await user.click(groupButton(/^Story Bible character suggestions/));
+    expect(screen.getByRole('switch', { name: /^Alice.*412 appearances$/ })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: /^The White Rabbit.*38 appearances$/ })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: /^The Duchess.*1 appearance$/ })).toBeTruthy();
+    expect(screen.queryByText(/A curious girl who follows a White Rabbit/)).toBeNull();
   });
 
   it('says what the importer repaired, and shows nothing about repairs when it repaired nothing', () => {
     const { unmount } = renderReview('repaired');
     expect(groupButton(/^Repairs 2 made to the source$/).getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText(/CHAPTER ONEDown the Rabbit-Hole/)).toBeTruthy();
-    expect(screen.getByText(/2 repairs made to the source/)).toBeTruthy();
+    expect(within(screen.getByLabelText('What was found')).getByText('2 repairs')).toBeTruthy();
     unmount();
     renderReview('docx');
     expect(screen.queryByRole('button', { name: /^Repairs/ })).toBeNull();
@@ -239,14 +266,6 @@ describe('ImportReview subtitles', () => {
     renderReview('text');
     await user.click(subtitlesBox());
     expect(within(outline()).getByTitle('Chapter One · “Curiouser and curiouser!” cried Alice is read as text')).toBeTruthy();
-  });
-});
-
-describe('ImportSummary', () => {
-  it('leads with the format, size and chapters, then what else exists, and adds what a replacement clears', () => {
-    render(<ImportSummary preview={mockImportPreview('docx')} selection={{}} requiresReset />);
-    expect(screen.getByText(/^DOCX · 221 paragraphs · 5 chapters\. This replaces the active manuscript and clears Story Bible/)).toBeTruthy();
-    expect(screen.getByText('3 of 3 character suggestions checked')).toBeTruthy();
   });
 });
 

@@ -4,7 +4,6 @@ import type { ManuscriptImportPreview } from '../../types';
 import {
   chapterIncluded,
   chapterRows,
-  describeReview,
   headingName,
   effectiveKind,
   groupSections,
@@ -157,37 +156,6 @@ describe('plural', () => {
     expect(plural(0, 'chapter')).toBe('chapters');
     expect(plural(2, 'chapter')).toBe('chapters');
     expect(plural(2, 'entry', 'entries')).toBe('entries');
-  });
-});
-
-describe('describeReview', () => {
-  it('names the format, the paragraphs and the chapters in the headline, with the rest on a second line', () => {
-    expect(describeReview(preview, reviewCounts(preview, {}))).toEqual({
-      headline: 'DOCX · 221 paragraphs · 5 chapters.',
-      detail: '3 of 3 character suggestions checked',
-    });
-  });
-
-  it('says one, not "1 chapters", and leaves out what was not found', () => {
-    const small: ManuscriptImportPreview = {
-      format: 'markdown',
-      sourceName: 'a.md',
-      paragraphCount: 1,
-      chapterTitles: ['One'],
-      sections: [{ id: 's1', title: 'One', contentKind: 'narration', paragraphCount: 1 }],
-    };
-    expect(describeReview(small, reviewCounts(small, {}))).toEqual({ headline: 'MARKDOWN · 1 paragraph · 1 chapter.', detail: '' });
-  });
-
-  it('counts the repairs, and one suggestion in the singular', () => {
-    const repaired = mockImportPreview('repaired');
-    const single = { ...repaired, characterCandidates: repaired.characterCandidates?.slice(0, 1) };
-    expect(describeReview(single, reviewCounts(single, {})).detail).toBe('1 of 1 character suggestion checked · 2 repairs made to the source');
-  });
-
-  it('a PDF, which has no sections, keeps the proposed chapter count', () => {
-    const pdf: ManuscriptImportPreview = { format: 'pdf', sourceName: 'a.pdf', paragraphCount: 3, chapterTitles: ['One', 'Two'] };
-    expect(describeReview(pdf, reviewCounts(pdf, {}))).toEqual({ headline: 'PDF · 3 paragraphs · 2 proposed chapters.', detail: '' });
   });
 });
 

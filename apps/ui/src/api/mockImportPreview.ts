@@ -121,6 +121,7 @@ export function mockImportPreview(kind: MockImportKind = 'docx'): ManuscriptImpo
         id: 'candidate-section-0007-001',
         name: 'Alice',
         description: 'A curious girl who follows a White Rabbit',
+        appearances: 412,
         sourceSectionId: 'section-0007',
         properties: [
           { key: 'Species', value: 'Human' },
@@ -131,9 +132,10 @@ export function mockImportPreview(kind: MockImportKind = 'docx'): ManuscriptImpo
         id: 'candidate-section-0007-002',
         name: 'The White Rabbit',
         description: 'Always late, and always looking at his watch',
+        appearances: 38,
         sourceSectionId: 'section-0007',
       },
-      { id: 'candidate-section-0007-003', name: 'The Duchess', description: '', sourceSectionId: 'section-0007' },
+      { id: 'candidate-section-0007-003', name: 'The Duchess', description: '', sourceSectionId: 'section-0007', appearances: 1 },
     ],
     ...(kind === 'repaired' ? { notices: [...REPAIR_NOTICES] } : {}),
   };

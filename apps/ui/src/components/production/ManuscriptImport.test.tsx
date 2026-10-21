@@ -45,25 +45,29 @@ async function openReview(prepare: (api: NarrationApi) => void = () => {}, impor
 const openSuggestions = (dialog: ReturnType<typeof within>) => fireEvent.click(dialog.getByRole('button', { name: /^Story Bible character suggestions/ }));
 
 describe('the import review dialog, as the narrator meets it', () => {
-  it('states the format and size, and lists the chapters the importer found, each with its switch on', async () => {
+  it('lists the chapters the importer found, each with its switch on, and states the size once, in the chips', async () => {
     const { dialog } = await openReview();
-    expect(dialog.getByText(/^DOCX · 221 paragraphs · /)).toBeTruthy();
+    expect(within(dialog.getByLabelText('What was found')).getByText('221 paragraphs')).toBeTruthy();
+    expect(dialog.queryByText(/^DOCX · /)).toBeNull();
     const included = (name: RegExp) => dialog.getByRole('switch', { name }).getAttribute('aria-checked');
     for (const name of [/^Chapter One/, /^Chapter Two/, /^Chapter Three/, /^Chapter Four/, /^Chapter Five/]) expect(included(name)).toBe('true');
     // Front matter and reference sections are not listed: they stay as the importer sorted them.
     for (const title of ['Characters', 'Glossary', 'Front Matter']) expect(dialog.queryByRole('switch', { name: new RegExp(title) })).toBeNull();
+    // The character suggestions are folded while every one is checked, so only the chapters are switches yet.
     expect(dialog.getAllByRole('switch')).toHaveLength(5);
     // The one select left is the delivery profile a first import of a project with none chosen also asks for; it is read after the dialog opens.
     await dialog.findByRole('combobox', { name: 'Delivery profile' });
     expect(dialog.getAllByRole('combobox')).toHaveLength(1);
   });
 
-  it('shows the character suggestions checked, with their descriptions', async () => {
+  it('shows the character suggestions as switches, all on, each with how often it appears', async () => {
     const { dialog } = await openReview();
     openSuggestions(dialog);
     for (const name of ['Alice', 'The White Rabbit', 'The Duchess'])
-      expect(dialog.getByRole('checkbox', { name: new RegExp(`^${name}`) }).getAttribute('aria-checked')).toBe('true');
-    expect(dialog.getByText(/A curious girl who follows a White Rabbit/)).toBeTruthy();
+      expect(dialog.getByRole('switch', { name: new RegExp(`^${name}`) }).getAttribute('aria-checked')).toBe('true');
+    expect(dialog.getByText('412 appearances')).toBeTruthy();
+    expect(dialog.getByText('1 appearance')).toBeTruthy();
+    expect(dialog.queryByText(/A curious girl who follows a White Rabbit/)).toBeNull();
   });
 
   it('commits the sections as they came when nothing was changed, and every suggestion by its id', async () => {
@@ -100,9 +104,9 @@ describe('the import review dialog, as the narrator meets it', () => {
     let commit = vi.fn();
     const { dialog } = await openReview((api) => void (commit = vi.spyOn(api, 'manuscriptImportCommit')));
     openSuggestions(dialog);
-    fireEvent.click(dialog.getByRole('checkbox', { name: /^The White Rabbit/ }));
-    expect(dialog.getByRole('checkbox', { name: /^The White Rabbit/ }).getAttribute('aria-checked')).toBe('false');
-    expect(dialog.getByRole('checkbox', { name: /^Alice/ }).getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(dialog.getByRole('switch', { name: /^The White Rabbit/ }));
+    expect(dialog.getByRole('switch', { name: /^The White Rabbit/ }).getAttribute('aria-checked')).toBe('false');
+    expect(dialog.getByRole('switch', { name: /^Alice/ }).getAttribute('aria-checked')).toBe('true');
     fireEvent.click(dialog.getByRole('button', { name: 'Import reviewed manuscript' }));
     await waitFor(() => expect(commit).toHaveBeenCalled());
     expect(commit.mock.calls[0]?.[1].selection?.characterCandidateIds).toEqual(['candidate-section-0007-001', 'candidate-section-0007-003']);
@@ -111,7 +115,7 @@ describe('the import review dialog, as the narrator meets it', () => {
   it('checks a suggestion again after it was cleared', async () => {
     const { dialog } = await openReview();
     openSuggestions(dialog);
-    const rabbit = () => dialog.getByRole('checkbox', { name: /^The White Rabbit/ });
+    const rabbit = () => dialog.getByRole('switch', { name: /^The White Rabbit/ });
     fireEvent.click(rabbit());
     fireEvent.click(rabbit());
     expect(rabbit().getAttribute('aria-checked')).toBe('true');
@@ -188,23 +192,29 @@ describe('the import review dialog, as the narrator meets it', () => {
     expect((await api.manuscriptImportCommit(jobId!, { confirmedReset: true })).phase).toBe('success');
   });
 
-  it('cancelling asks the host to drop the job and closes the dialog', async () => {
+  it('closing with the header X asks the host to drop the job and closes the dialog', async () => {
     let cancel = vi.fn();
     const { dialog } = await openReview((api) => void (cancel = vi.spyOn(api, 'manuscriptImportCancel')));
-    fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
+    expect(dialog.queryByRole('button', { name: 'Cancel' })).toBeNull();
+    fireEvent.click(dialog.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(cancel).toHaveBeenCalledWith('mock-import');
   });
 });
 
 describe('the summary and the groups of the review', () => {
-  it('says in the dialog message what was found, and follows a chapter switched off', async () => {
+  it('counts what was found once, in the chips, and follows a chapter switched off', async () => {
     const { dialog } = await openReview();
-    expect(dialog.getByText(/^DOCX · 221 paragraphs · 5 chapters\./)).toBeTruthy();
-    expect(dialog.getByText('3 of 3 character suggestions checked')).toBeTruthy();
+    const chips = within(dialog.getByLabelText('What was found'));
+    expect(chips.getByText('5 chapters')).toBeTruthy();
+    expect(dialog.queryByText(/^DOCX · /)).toBeNull();
     fireEvent.click(dialog.getByRole('switch', { name: /^Chapter Three/ }));
-    expect(dialog.getByText(/^DOCX · 221 paragraphs · 4 chapters\./)).toBeTruthy();
-    expect(dialog.getByText('3 of 3 character suggestions checked')).toBeTruthy();
+    expect(chips.getByText('4 chapters')).toBeTruthy();
+  });
+
+  it('tells a replacement what it clears, and otherwise how to leave a chapter out', async () => {
+    const { dialog } = await openReview();
+    expect(dialog.getByText('Switch off any chapter to leave it out of the recording.')).toBeTruthy();
   });
 
   it('keeps the chapters folded when another Markdown heading level is read', async () => {
@@ -221,7 +231,7 @@ describe('the summary and the groups of the review', () => {
     fireEvent.click(dialog.getByRole('button', { name: /^Chapters/ }));
     fireEvent.click(dialog.getByRole('button', { name: /^Chapters/ }));
     fireEvent.click(dialog.getByRole('switch', { name: /^Chapter Three/ }));
-    fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(dialog.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: 'Import manuscript' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Choose a file…' }));
@@ -234,7 +244,7 @@ describe('the summary and the groups of the review', () => {
     const { dialog } = await openReview(() => {}, 'repaired');
     expect(dialog.queryByText('Preview activity')).toBeNull();
     expect(dialog.queryByRole('progressbar')).toBeNull();
-    expect(dialog.getByText(/2 repairs made to the source/)).toBeTruthy();
+    expect(within(dialog.getByLabelText('What was found')).getByText('2 repairs')).toBeTruthy();
     expect(dialog.getByText(/CHAPTER TWOThe Pool of Tears/)).toBeTruthy();
   });
 });
@@ -242,7 +252,9 @@ describe('the summary and the groups of the review', () => {
 describe('the subtitle of each chapter in the review', () => {
   it('shows the subtitle of a chapter on a second line below its title, and no second line when the heading had none', async () => {
     const { dialog } = await openReview();
-    const second = (title: string) => dialog.getByText(title).closest('label')!.querySelector('.block.text-xs');
+    // The subtitle is the muted line under the title; the word count under it is a muted line of its own.
+    const row = (title: string) => dialog.getByRole('switch', { name: new RegExp(`^${title}`) }).closest('label')!;
+    const second = (title: string) => row(title).querySelector('.block.text-xs:not(.tabular-nums)');
     expect(second('Chapter One')?.textContent).toBe('Down the Rabbit-Hole');
     expect(second('Chapter Two')?.textContent).toBe('The Pool of Tears');
     expect(second('Chapter Three')).toBeNull();
@@ -250,8 +262,9 @@ describe('the subtitle of each chapter in the review', () => {
 
   it('keeps the whole title and subtitle in the title attribute of the row, for a name cut short', async () => {
     const { dialog } = await openReview();
-    expect(dialog.getByText('Chapter One').closest('[title]')!.getAttribute('title')).toBe('Chapter One — Down the Rabbit-Hole');
-    expect(dialog.getByText('Chapter Three').closest('[title]')!.getAttribute('title')).toBe('Chapter Three');
+    const titled = (name: RegExp) => dialog.getByRole('switch', { name }).closest('label')!.querySelector('[title]')!.getAttribute('title');
+    expect(titled(/^Chapter One/)).toBe('Chapter One — Down the Rabbit-Hole');
+    expect(titled(/^Chapter Three/)).toBe('Chapter Three');
   });
 
   it('names the switch of a row for the subtitle too, so two chapters with one title can be told apart', async () => {
@@ -479,20 +492,21 @@ describe('step 1: choose your manuscript (the Studio Next mock)', () => {
     return { api, dialog: await screen.findByRole('dialog', { name: replacing ? /^Replace manuscript · step 1 of 2/ : /^Import manuscript · step 1 of 2/ }) };
   }
 
-  it('opens before anything else and says what it takes and that the manuscript stays read-only', async () => {
+  it('opens before anything else and says what it takes, with no note about the manuscript being read-only', async () => {
     const { api, dialog } = await openStep1();
     const select = vi.spyOn(api, 'selectManuscript');
     expect(within(dialog).getByRole('heading', { name: 'Choose your manuscript' })).toBeTruthy();
     expect(within(dialog).getByText('Use a .docx, .md or .txt file. A copy is kept in your project.')).toBeTruthy();
-    expect(within(dialog).getByText('The manuscript is read-only. Your marks and notes are stored separately.')).toBeTruthy();
+    expect(within(dialog).queryByText(/read-only/)).toBeNull();
     expect(within(dialog).getByText('Drop a manuscript here')).toBeTruthy();
     expect(select).not.toHaveBeenCalled();
   });
 
-  it('Cancel closes it and nothing reaches the host', async () => {
+  it('the header X closes it, there is no Cancel, and nothing reaches the host', async () => {
     const { api, dialog } = await openStep1();
     const select = vi.spyOn(api, 'selectManuscript');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(within(dialog).queryByRole('button', { name: 'Cancel' })).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /step 1 of 2/ })).toBeNull());
     expect(select).not.toHaveBeenCalled();
   });
@@ -559,10 +573,10 @@ describe('step 1: choose your manuscript (the Studio Next mock)', () => {
 });
 
 describe('step 2: check the chapter outline (the Studio Next mock)', () => {
-  it('is named for the file and its step, and says what was found in pills above the outline', async () => {
+  it('is named for the file and its step, and says what was found once, in pills above the options', async () => {
     const { dialog } = await openReview();
     expect(screen.getByRole('alertdialog', { name: 'Import Alice.docx · step 2 of 2' })).toBeTruthy();
-    expect(dialog.getByRole('heading', { name: 'Check the chapter outline' })).toBeTruthy();
+    expect(dialog.queryByRole('heading', { name: 'Check the chapter outline' })).toBeNull();
     const pills = within(dialog.getByLabelText('What was found'));
     expect(pills.getByText(/^\d+ chapters?$/)).toBeTruthy();
     expect(pills.getByText(/^221 paragraphs$/)).toBeTruthy();
@@ -611,5 +625,26 @@ describe('closing the import when it finishes', () => {
   it('starts unchecked when the saved setting is off', async () => {
     const { dialog } = await openReview((api) => void api.saveSettings('General', 'global', { close_import_when_done: 'false' }));
     await waitFor(async () => expect((await checkbox(dialog)).getAttribute('aria-checked')).toBe('false'));
+  });
+});
+
+describe('the sample under the review', () => {
+  it('writes the first chapter heading the way the list does: the title, then the subtitle on a muted line, with no dash', async () => {
+    const { dialog } = await openReview();
+    const sample = within(dialog.getByRole('region', { name: 'Preview of the selected heading' }));
+    const heading = sample.getByRole('heading');
+    expect(heading.textContent).toBe('Chapter OneDown the Rabbit-Hole');
+    const lines = heading.querySelectorAll('span.block');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]!.textContent).toBe('Down the Rabbit-Hole');
+    expect(lines[1]!.className).toContain('text-xs');
+    expect(lines[1]!.className).toContain('text-[var(--text-muted)]');
+  });
+
+  it('follows the pointer over another chapter', async () => {
+    const { dialog } = await openReview();
+    const sample = within(dialog.getByRole('region', { name: 'Preview of the selected heading' }));
+    fireEvent.mouseEnter(dialog.getByRole('switch', { name: /^Chapter Two/ }).closest('div')!);
+    expect(sample.getByRole('heading').textContent).toBe('Chapter TwoThe Pool of Tears');
   });
 });

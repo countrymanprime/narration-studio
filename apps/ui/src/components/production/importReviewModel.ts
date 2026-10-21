@@ -136,24 +136,3 @@ export function isGroupOpen(key: ReviewGroupKey, chosen: ReviewGroupOpen, counts
 export function plural(count: number, singular: string, many = `${singular}s`): string {
   return count === 1 ? singular : many;
 }
-
-/**
- * The two lines that say what was found. The headline counts the chapters that will be written, and the second line lists the rest that
- * exists. A PDF has no sections, so it keeps the host's title count.
- */
-export function describeReview(preview: ManuscriptImportPreview, counts: ReviewCounts): { headline: string; detail: string } {
-  const hasSections = (preview.sections ?? []).length > 0;
-  const chapters = hasSections
-    ? `${counts.narration} ${plural(counts.narration, 'chapter')}`
-    : `${preview.chapterTitles.length || 1} proposed ${plural(preview.chapterTitles.length || 1, 'chapter')}`;
-  const detail = [
-    counts.suggestionsTotal > 0
-      ? `${counts.suggestionsChecked} of ${counts.suggestionsTotal} character ${plural(counts.suggestionsTotal, 'suggestion')} checked`
-      : '',
-    counts.repairs > 0 ? `${counts.repairs} ${plural(counts.repairs, 'repair')} made to the source` : '',
-  ].filter(Boolean);
-  return {
-    headline: `${preview.format.toUpperCase()} · ${preview.paragraphCount} ${plural(preview.paragraphCount, 'paragraph')} · ${chapters}.`,
-    detail: detail.join(' · '),
-  };
-}

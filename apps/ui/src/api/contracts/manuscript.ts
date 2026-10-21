@@ -98,6 +98,8 @@ export type ManuscriptCharacterCandidate = {
   name: string;
   description: string;
   sourceSectionId: string;
+  /** How often the character's first name stands alone in the story, counted by the host (whole words, any script). Absent from a host that predates it. */
+  appearances?: number;
   /** Labelled facts captured from the manuscript's cast block ("Codename": "Wren"), in source order. Omitted when there are none. */
   properties?: Array<{ key: string; value: string }>;
 };

@@ -19,13 +19,13 @@ The dialog is built to the mock's import flow (`docs/research/mockups/studio-nex
 
 | Mock | App | Why |
 | --- | --- | --- |
-| One flat table of headings, with a Words column | Headings grouped by what each will be (Narration chapters, Front matter, Reference material), each row with its word count | The groups are the app's way to review the importer's kind decisions: the chapters it got right fold away in a long book. |
-| A preview pane with the selected heading's first lines | The same, in the right column, for the heading whose title was pressed (the first until then) | Built to the mock. The text is the section's first paragraph, cut at 170 characters (`firstText`). |
+| One flat table of headings, with a Words column | Chapters only, in two columns, each with a switch to the left of its name, the subtitle on a smaller, dimmer line under it and the word count under that | A switch is the same control for every chapter and a long book wraps to a second column. Front matter and reference material are never listed: they stay as the importer sorted them. |
+| A preview pane with the selected heading's first lines | The same, pinned under the list in the same title and subtitle lines, for the chapter the pointer is over or focused last (the first until then) | Built to the mock, moved to the foot so the list and the sample are in view together. The text is the section's first paragraph, cut at 170 characters (`firstText`). |
 | "Items need review" pill | "N repairs" pill, shown only when the importer repaired something | The app has no other "needs review" measure. |
-| One "Subtitle detected" banner for one heading | A banner for the book (how many headings have a second line, and the default), plus a Subtitle box on each row | A book has many such headings, and each can be wrong on its own. |
-| "Review character suggestions after import" checkbox | A list of the suggested names, each checked, with Select all and Select none | The narrator chooses which names become Story Bible entries before they exist. |
-| Cancel in the header, Back in the footer | Cancel and Back both in the footer, Cancel left | The shared `Dialog` puts its actions in one row; Escape and the header X cancel as well. |
-| None | A content type select on each row, the Markdown heading level, "Build the Story Bible after import" and the Repairs list | App-only behaviour with no mock equivalent, kept ([Importing the manuscript](../guides/using-the-app/production.md#importing-the-manuscript)). |
+| One "Subtitle detected" banner for one heading | One **Subtitles** checkbox in Import options for the whole book | There is no per-chapter choice; the commit still sends the sections whose subtitle is off (`subtitleOverrides`). |
+| "Review character suggestions after import" checkbox | A list of the suggested names as switches in two columns, each with the number of times its first name appears in the story (`appearances`, counted by the host), with Select all and Select none | The narrator chooses which names become Story Bible entries before they exist. |
+| Cancel in the header, Back in the footer | Close in the header, Back and the import in the footer, and **Close when the import finishes** (`General.close_import_when_done`) | One secondary action per step. Escape and the header X cancel. |
+| None | The Markdown heading level, "Build the Story Bible after import" (not drawn: nothing passes it) and the Repairs list | App-only behaviour with no mock equivalent, kept ([Importing the manuscript](../guides/using-the-app/production.md#importing-the-manuscript)). |
 
 **Replace.** The mock's replace flow ends with a step "What this changes in your project" that keeps marks and notes on unchanged text. The real replace clears the Story Bible, notes, bookmarks, statuses and saved comparison results (`requiresReset`), so the app keeps its warning in the review dialog and its **Replace and reset** button. Owner decision, 2026-10-18.
 
@@ -33,16 +33,17 @@ The dialog is built to the mock's import flow (`docs/research/mockups/studio-nex
 
 What the narrator sees and does in the dialog (the summary lines, the groups, the subtitle choice, the import options) is in [the Production guide](../guides/using-the-app/production.md#importing-the-manuscript). The rules behind it are in `importReviewModel.ts` (below):
 
-- The headline counts **narration chapters only**. Front matter, reference material, the character suggestions and the repairs are on the second line, and a line with nothing to say is left out. A PDF (the host rejects new ones, but an old preview shape exists) has no sections, so it keeps the host's title count as "proposed chapters". Replacing a manuscript adds what is cleared to the first line.
-- One `Disclosure` per kind, in this order: Narration chapters, Front matter (written as `opening`), Reference material (written as `reference`), Story Bible character suggestions, Repairs. A group with no rows is not drawn. Each note (the info icon on Front matter and Reference material) is one short string that is true for its group.
-- Which group starts open (`isGroupOpen`): Narration chapters while there are at most `MANY_NARRATION_CHAPTERS` (8), the character suggestions once one is unchecked, Repairs while there are at most 3, every other group always. A group the narrator opened or closed by hand keeps that.
-- A row is the section's title, its subtitle in a fainter colour, a **Subtitle** checkbox when it has one, and a select for its kind. A long line is cut short with an ellipsis and the whole line is in the row's `title` attribute; the select's accessible name is the heading as it will be written.
+- There is no summary line: the chips say what was found (chapters, paragraphs, character suggestions, repairs), and the dialog's message is only what a replacement clears, or how to switch a chapter off (`importDescription`).
+- Import options come first, then one box that scrolls and holds the three groups (Chapters, Story Bible character suggestions, Repairs), then the sample. The review dialog sets `bodyScroll={false}`, so that box carries the only scrollbar. A group with no rows is not drawn.
+- Which group starts open (`isGroupOpen`): Chapters while there are at most `MANY_NARRATION_CHAPTERS` (8), the character suggestions once one is unchecked, Repairs while there are at most 3. A group the narrator opened or closed by hand keeps that.
+- Front matter (`opening`) and reference material are not groups: `chapterRows` lists only the sections the importer proposed as chapters, and a row switched off is written as `reference`. Reference-sourced character suggestions appear under the characters only.
+- A row is a switch whose label is the heading (`HeadingLines`: the title, then the subtitle under it with no dash, then the words). A long line is cut short with an ellipsis and the whole line is in the row's `title` attribute.
 
 ## Correcting a subtitle
 
 The importer reads every line after a heading's first as its subtitle, which is wrong for a title the author wrapped onto two lines and for an epigraph straight under a plain-text heading ([the heading misreads note](../research/import-heading-misreads.md), cases F1 and F3). The narrator corrects it before anything is written:
 
-- **The default**, "Read a heading's second line as its subtitle", is on (the importer's guess). Turned off, every row's subtitle is off, except a row the narrator set by hand, which keeps its own answer.
+- **Subtitles** is on (the importer's guess). Turned off, every chapter's subtitle is off.
 - **Each row with a subtitle** has a checkbox named for its line ("Subtitle — Down the Rabbit-Hole"), starting from the default.
 - **Off means what the host says for that section** (`subtitleOff` in the preview). `title`: the line joins the title, and the row shows the joined title ("Chapter One Down the Rabbit-Hole"). `body`, a plain-text heading's second line: the line becomes the chapter's first paragraph and is narrated, and the row says so ("Chapter One · “Curiouser and curiouser!” cried Alice is read as text").
 - The commit sends `subtitleOverrides`, `false` for each section whose subtitle is off (`subtitleOverridesToCommit`), and the host applies it to the draft before the manuscript is canonicalized (`importer.ApplySubtitleOverrides`). A section id the preview does not have fails the commit before anything is cleared or written.
@@ -64,12 +65,9 @@ The preview log ("Preview activity") is not on the review screen; the commit dia
 | Piece | Where | Role |
 | --- | --- | --- |
 | `useManuscriptImport` | `apps/ui/src/components/production/ManuscriptImport.tsx`  | Holds the choices (`importSelection`: kinds, suggestions, the subtitle default and rows), which groups the narrator opened or closed by hand (`groupOpen`) and the heading level, sends the choices with the commit, and passes the dialog message. Both the choices and `groupOpen` are dropped when a new file is chosen, and kept across a heading-level re-read (the dialog is swapped for a progress dialog meanwhile, so state below it would be lost). |
-| `ImportSummary`, `ImportReview` | `components/production/ImportReview.tsx` | The dialog message and the dialog body. Controlled: they show the state they are given and report a change. |
-| `importReviewModel.ts` | `components/production/` | The pure half: the kind a section will be written as, the counts, which group starts open, plurals and the two summary lines. The message, the group headers and the rows all read the same function, so they cannot disagree. |
-| `Disclosure` | `components/primitives/Disclosure.tsx` | The group: the whole title row is the button and its summary is part of its name. An `aside` beside the button holds the info icon (a control inside a button is not valid). |
-| `Tooltip` (the info icon) | `components/primitives/Tooltip.tsx` | A button with the note as its description and a popover; `label` names it ("About reference material"). Escape closes it wherever focus is. |
-
-Reclassifying a row moves it to the group of its new kind. The select is put back in focus in its new place (so a keyboard narrator keeps their place), and the group it moved into opens.
+| `importDescription`, `ImportReview` | `components/production/ImportReview.tsx` | The dialog message and the dialog body. Controlled: they show the state they are given and report a change. |
+| `importReviewModel.ts` | `components/production/` | The pure half: the kind a section will be written as, the counts, which group starts open, and plurals. The message, the group headers and the rows all read the same function, so they cannot disagree. |
+| `Disclosure` | `components/primitives/Disclosure.tsx` | The group: the whole title row is the button and its summary is part of its name. |
 
 **No build after import.** The review draws no "Build the Story Bible after import" checkbox and an import starts no build: the narrator scans the manuscript or imports entries from the Story Bible page. `ImportReview` keeps an optional `buildStoryBible` prop that nothing passes. ([Story Bible build after import](story-bible-concurrent-build.md), history.)
 
@@ -79,4 +77,4 @@ Reclassifying a row moves it to the group of its new kind. The select is put bac
 - Vitest: `ManuscriptImport.test.tsx` (the dialog with the mock host: sections, kinds, commit payloads, heading-level re-read, reset, cancel, subtitles, the summary, the groups kept across a re-read and reset for a new file), `ImportReview.test.tsx`, `importReviewModel.test.ts`, and `App.test.tsx` for the import flow end to end.
 - Mock: `mockImportPreview.ts` (a Word book with every kind of section, a Markdown variant behind `?mockImportPreview=markdown`, `?mockImportPreview=repaired`, and a plain-text variant behind `?mockImportPreview=text` whose first chapter's subtitle is an epigraph). The mock passes the same schemas as the host.
 - Visual (`apps/ui/tests/visual`): `production/import-confirm`, `import-confirm-markdown`, `import-review-collapsed`, `import-review-characters`, `import-review-repaired`, `import-review-subtitles-off` (the default off, one row back on) and `import-review-text-subtitle` (an epigraph read as text). A long subtitle in the mock (Chapter Four) keeps the truncation under the overflow gate at every viewport.
-- Aria (`tests/aria/dialogs.spec.ts`): the dialog's role tree, and that the note on Reference material closes on the first Escape (opened by hover) and the dialog on the second.
+- Aria (`tests/aria/dialogs.spec.ts`): the dialog's role tree.

@@ -11,7 +11,7 @@ import { NEUTRAL_PROFILE, PLATFORM_PROFILES } from '../schedule/profiles';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { ImportChooseDialog, type DroppedManuscript } from './ImportChooseDialog';
-import { ImportReview, ImportSummary } from './ImportReview';
+import { ImportReview, importDescription } from './ImportReview';
 import { subtitleOverridesToCommit, type ReviewGroupKey, type ReviewGroupOpen } from './importReviewModel';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Dialog } from '../primitives/Dialog';
@@ -278,23 +278,21 @@ export function useManuscriptImport({
         />
       )}
       {importJob?.phase === 'ready' && importJob.preview && (
-        // Step 2 of 2 (the mock's "Check the chapter outline"): Cancel drops the job; Back drops it too and returns to step 1; the confirm
-        // writes the manuscript. An alertdialog, as every confirm: Escape cancels, a press on the backdrop does nothing.
+        // Step 2 of 2: one secondary action (Back drops the job and returns to step 1) and the confirm, which writes the manuscript.
+        // The Close button in the header drops the job too, so there is no separate Cancel. An alertdialog, as every confirm: Escape cancels, a press on the backdrop does nothing.
         <Dialog
           title={`Import ${importJob.preview.sourceName} · step 2 of 2`}
           variant="alert"
+          bodyScroll={false}
           dismissOnOutsidePress={false}
           onClose={cancelImport}
-          description={<ImportSummary preview={importJob.preview} selection={importSelection} requiresReset={replacing || Boolean(importJob.requiresReset)} />}
+          description={importDescription(replacing || Boolean(importJob.requiresReset))}
           actions={
             <>
-              <Button variant="secondary" onClick={cancelImport}>
-                Cancel
-              </Button>
+              <Checkbox checked={closeWhenDone} onChange={changeCloseWhenDone}>
+                Close when the import finishes
+              </Checkbox>
               <div className="flex items-center gap-3">
-                <Checkbox checked={closeWhenDone} onChange={changeCloseWhenDone}>
-                  Close when the import finishes
-                </Checkbox>
                 <Button
                   variant="secondary"
                   onClick={() => {
