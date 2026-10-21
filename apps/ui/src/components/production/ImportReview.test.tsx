@@ -160,6 +160,19 @@ describe('ImportReview', () => {
     expect(sample.className).not.toContain('sticky');
   });
 
+  it('boxes the list, pins each group header while it scrolls, and keeps the sample one size', () => {
+    renderReview();
+    const header = screen.getByRole('button', { name: /^Chapters/ }).parentElement!;
+    expect(header.className).toContain('sticky');
+    expect(header.className).toContain('top-0');
+    const scroller = header.closest('.overflow-y-auto')!;
+    expect(scroller.className).toContain('border');
+    const sample = screen.getByRole('region', { name: 'Preview of the selected heading' });
+    // A fixed height, so a longer first line never changes the box (and the scroll bar above it) while the pointer moves down the list.
+    expect(sample.className).toContain('h-[8.5rem]');
+    expect(sample.className).toContain('overflow-hidden');
+  });
+
   it('counts the character suggestions live, opens them once one is unchecked, and selects all or none', async () => {
     const user = userEvent.setup();
     renderReview();

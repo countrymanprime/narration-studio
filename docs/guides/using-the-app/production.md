@@ -323,8 +323,9 @@ Croquet"). Front matter and reference material are never listed or asked about: 
 chapters, and the title and author in them are offered when you set up the credits. The character
 suggestions are switches too, each with the number of times the character's first name appears in the
 story; **Select all** and **Select none** change them at once. The chapters, the suggestions and the
-repairs scroll together in one box. Resting the pointer on a chapter shows how it begins in the sample
-pinned under the box, set in the same title and subtitle lines.
+repairs scroll together in one bordered box, and a group's title row stays at the top of the box while
+you scroll through it, so you can close it from wherever you are. Resting the pointer on a chapter shows how it begins in the sample
+pinned under the box, a fixed size so the scroll bar never jumps, set in the same title and subtitle lines.
 
 The footer has one secondary action, **Back**, and the import itself. The Close button at the top
 cancels. **Close when the import finishes** (on by default, an app setting also under Settings, App &

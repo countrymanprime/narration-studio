@@ -122,7 +122,8 @@ export function ImportReview({
       summary={`${counts.narration} of ${chapters.length} ${plural(chapters.length, 'chapter')} included`}
       open={open('narration')}
       onOpenChange={(next) => onGroupOpenChange('narration', next)}
-      className="border-t border-[var(--border)]"
+      stickyHeader
+      className="border-[var(--border)] not-first:border-t"
     >
       {/* Two columns. The whole review scrolls in one place (the box around it), so this list never carries a scrollbar of its own. */}
       <div className="gap-x-8 pt-1 pr-1 pb-3 pl-5 sm:grid sm:grid-cols-2 sm:content-start">
@@ -200,7 +201,7 @@ export function ImportReview({
       {/* The options sit above the list, where an expanded list cannot push them out of sight. */}
       {options}
       {/* The one scrollbar of the review: the list and everything under it scroll here, between the options above and the sample below. */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-[var(--radius-card)] border px-3 pb-1" style={{ borderColor: 'var(--border)' }}>
         {preview.format === 'pdf' && preview.chapterTitles.length > 0 && <p className="text-xs">Detected chapters: {preview.chapterTitles.join(' · ')}</p>}
         {(sections.length > 0 || candidates.length > 0 || notices.length > 0) && (
           <fieldset className="min-w-0">
@@ -214,6 +215,7 @@ export function ImportReview({
                 summary={`${counts.suggestionsChecked} of ${counts.suggestionsTotal} checked`}
                 open={open('characters')}
                 onOpenChange={(next) => onGroupOpenChange('characters', next)}
+                stickyHeader
                 className="border-t border-[var(--border)]"
               >
                 <div className="pt-1 pb-3 pl-5">
@@ -263,6 +265,7 @@ export function ImportReview({
                 summary={`${notices.length} made to the source`}
                 open={open('repairs')}
                 onOpenChange={(next) => onGroupOpenChange('repairs', next)}
+                stickyHeader
                 className="border-t border-[var(--border)]"
               >
                 <ul className="list-disc space-y-1 pt-1 pb-3 pl-9 text-xs break-words text-[var(--text-muted)]">
@@ -279,13 +282,13 @@ export function ImportReview({
         // The first lines of the chapter the pointer is over (or the one focused last), in the same title and subtitle lines as the list.
         <section
           aria-label="Preview of the selected heading"
-          className="flex-none rounded-[var(--radius-card)] border bg-[var(--surface)] p-3"
+          className="h-[8.5rem] flex-none overflow-hidden rounded-[var(--radius-card)] border bg-[var(--surface)] p-3"
           style={{ borderColor: 'var(--border)' }}
         >
           <h4 className="text-sm font-semibold">
             <HeadingLines heading={reviewedHeading(previewed, selection)} />
           </h4>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
+          <p className="mt-1 line-clamp-3 text-sm text-[var(--text-muted)]">{previewed.firstText ?? 'The first lines of the selected section appear here.'}</p>
         </section>
       )}
     </div>
