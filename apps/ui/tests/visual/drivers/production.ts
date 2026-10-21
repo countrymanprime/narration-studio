@@ -141,6 +141,8 @@ export const productionDrivers: Record<string, Driver> = {
   },
   'import-activity-log': async (page) => {
     await clickReplaceManuscript(page);
+    // The import closes itself when it finishes unless this box is cleared; this state is the finished log, so it is cleared first.
+    await page.getByRole('checkbox', { name: 'Close when the import finishes' }).click();
     await clickVisible(page, 'button', 'Replace and reset');
     await page.getByText('Manuscript imported', { exact: true }).first().waitFor();
   },
@@ -159,12 +161,12 @@ export const productionDrivers: Record<string, Driver> = {
   'import-review-characters': async (page) => {
     const review = await openImportReview(page);
     await review.getByRole('button', { name: /^Character suggestions/ }).click();
-    await review.getByRole('checkbox', { name: /^The White Rabbit/ }).click();
+    await review.getByRole('switch', { name: /^The White Rabbit/ }).click();
   },
   'import-review-repaired': async (page) => {
     const review = await openImportReview(page, 'repaired');
-    // The chapters are folded so the repairs, the last group, are on screen without scrolling the dialog.
-    await review.getByRole('button', { name: /^Chapters/ }).click();
+    // The groups are an accordion: opening Repairs, the last one, closes the chapters and puts the repairs on screen.
+    await review.getByRole('button', { name: /^Repairs/ }).click();
   },
   'recording-check-never': async (page) => {
     const dialog = await openRecordingCheck(page, 'Chapter 7');

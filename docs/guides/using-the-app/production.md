@@ -314,6 +314,8 @@ sections). **Subtitles** reads a heading's second line as the chapter's subtitle
 turn it off and a title that was wrapped onto two lines is joined back together, and in a plain-text
 file a line such as an epigraph goes back into the chapter's text so it is narrated.
 
+![Import manuscript, step 2 of 2: the import options above one accordion of chapters, character suggestions and repairs, with a sample of the selected chapter below](../../images/ui/production-import-confirm.webp)
+
 **Chapters** lists every chapter the importer found in two columns, each with a switch to the left of
 its name. Switch a chapter off to leave it out of the recording. The chapter's subtitle sits under its
 name on a smaller, dimmer line, with the number of words under that. A heading with a label shows the
