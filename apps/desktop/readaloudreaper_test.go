@@ -9,6 +9,7 @@ import (
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport/dawporttest"
 )
@@ -154,6 +155,26 @@ func TestANilReaderIsStandalone(t *testing.T) {
 
 	if state.Status != readAloudUnavailable || state.Reason != reaperStandalone {
 		t.Fatalf("state = %+v", state)
+	}
+}
+
+// The opening and closing credits are read and recorded like a chapter, so a credits row linked to a track reads as one: it is never
+// refused as "not part of the current manuscript".
+func TestACreditsRowLinkedToATrackIsReadLikeAChapter(t *testing.T) {
+	host, _ := newReadAloudReaperHost(t)
+	for _, kind := range []string{"opening", "closing"} {
+		id := coverage.CreditsChapterID(kind)
+		linkChapter(t, host, id, readAloudTrack)
+		reader := &fakeTrackStates{state: bridge.TrackState{ArmedCount: 1, TrackArmed: true}}
+
+		state, err := readAloudReaperStateIn(context.Background(), host.services(), reader, id)
+
+		if err != nil {
+			t.Fatalf("%s credits: %v", kind, err)
+		}
+		if state.Status == readAloudUnavailable || state.TrackGUID != readAloudTrack || len(reader.asked) != 1 {
+			t.Fatalf("%s credits: state = %+v, asked %v", kind, state, reader.asked)
+		}
 	}
 }
 
