@@ -76,7 +76,7 @@ the same way, a phrase at a time. Every other key does its job once, however lon
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
 audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
-and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it, headed by the take that plays (or "recording") and the stretch it draws. Right-click a word for its
+and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it, headed by the take that plays (or "recording") and the stretch it draws. The audio is drawn as rounded bars, the same as the waveform on the public site: the bar's height is how loud that moment is, and the bars grow from the middle line, so a quiet stretch is a row of dots. While the line plays, the bars it has played are in the accent colour and the ones still to come are grey, and the few bars around the playhead swell and ease back with the beat. With **Motion** set to reduce in Settings (or Windows asking for it), nothing moves: the bars keep the played and unplayed colours and the playhead, and stay still. Right-click a word for its
 menu: play the selection, copy, delete or mute the words, **Add FX** and **Mark as** (each opens a list beside it), remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 

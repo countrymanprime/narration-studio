@@ -3,12 +3,19 @@ import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 /** One column of the window: the lowest and highest sample, each -127..127. */
 export type PeakColumn = readonly [min: number, max: number];
 
+/** Entries already decoded, so a resize or a new window over the same chapter does not decode its base64 again. Dropped with the entry. */
+const decoded = new WeakMap<object, Int8Array>();
+
 /** Decodes a peaks entry's base64 minMax into signed bytes: index 2k and 2k+1 are bucket k's minimum and maximum. */
 function decodeEntry(peaks: Pick<WorkspacePeaks, 'minMax'>): Int8Array {
+  const known = decoded.get(peaks);
+  if (known) return known;
   const binary = atob(peaks.minMax);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return new Int8Array(bytes.buffer);
+  const out = new Int8Array(bytes.buffer);
+  decoded.set(peaks, out);
+  return out;
 }
 
 /** Seconds the entry covers, as `[from, to)` on the same clock as the document's word times. */
