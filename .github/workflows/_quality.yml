@@ -89,7 +89,7 @@ jobs:
   js-static:
     needs: scope
     if: needs.scope.outputs.static == 'true'
-    # The static checks of the UI project and Knip, about a minute: they used to share a runner with the Vitest run, which is
+    # The static checks of the UI and site projects and Knip, about a minute: they used to share a runner with the Vitest run, which is
     # 90% of the old `js` job's 13 minutes and now has jobs of its own (js-test-shard, js-test).
     timeout-minutes: 10
     runs-on: ubuntu-latest
@@ -107,6 +107,12 @@ jobs:
         with:
           targets: lint format architecture test-node
           projects: narration-utils-ui
+      # The public site (apps/site) is its own Nx project: its static checks, typecheck, node:test suites (the build scripts) and its Vitest run (the
+      # extension code it plugs into the app) used to run inside the UI project and `repo-scripts`. It is affected by a change to the UI, which it builds on.
+      - uses: ./.github/actions/nx-run
+        with:
+          targets: lint format architecture typecheck test-node test
+          projects: narration-utils-site
       # Knip reads every workspace, so a change anywhere can leave an unused file or export: `always`.
       - uses: ./.github/actions/nx-run
         with:

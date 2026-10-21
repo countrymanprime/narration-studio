@@ -1,4 +1,5 @@
 import { logUi } from './api/uiLog';
+import { appExtension } from './appExtension';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Bootstrap } from './types';
@@ -101,12 +102,10 @@ const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not
 // dialogs claim the scope generically.
 const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'));
 
-// The public site (`vite build --mode site`, .env.site) is a static folder that must open from any sub-path and from a sandboxed frame, where
-// the server cannot rewrite `/proof` to index.html: it routes by the address hash and uses relative asset URLs. The popGuard below reads
-// the pathname, so it reads the hash route there.
-const HASH_ROUTER = import.meta.env.VITE_ROUTER === 'hash';
-const Router = HASH_ROUTER ? HashRouter : BrowserRouter;
-const routePath = (): string => (HASH_ROUTER ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
+// A build on a static host (the public site, apps/site) cannot rewrite `/proof` to index.html and may open from any sub-path or a sandboxed frame:
+// its extension (appExtension.ts) asks for routes by the address hash. The popGuard below reads the pathname, so it reads the hash route there.
+const hashRouting = (): boolean => appExtension().hashRouting === true;
+const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
 
 // A `popstate` the app did not start (the keyboard's or the system's Back) from dirty Settings is stopped before the router sees it: once
 // the route changed, Settings would unmount and its edits be gone before any prompt. History is put back where it was and the same
@@ -142,13 +141,12 @@ if (typeof window !== 'undefined') {
 }
 
 export function App({ journal }: { journal?: Journal } = {}) {
-  // Every build except the demo serves from the site root (base: '/', vite.config.ts), so this is a
-  // no-op basename there. The demo serves under /narration-utils/demo/: without a matching basename
-  // react-router compares its routes ('/', '/proof', ...) against the full pathname and matches
-  // nothing, so every page renders blank apart from the app shell (found by loading the built demo
-  // and reading the console: "No routes matched location ...").
+  // Every build serves from the site root (base: '/', vite.config.ts), so this is a no-op basename; the Pages demo of apps/site serves under
+  // /narration-utils/demo/, and without a matching basename react-router compares its routes ('/', '/proof', ...) against the full pathname and
+  // matches nothing, so every page renders blank apart from the app shell. A hash-routed build has no basename.
+  const Router = hashRouting() ? HashRouter : BrowserRouter;
   return (
-    <Router {...(HASH_ROUTER ? {} : { basename: import.meta.env.BASE_URL })}>
+    <Router {...(hashRouting() ? {} : { basename: import.meta.env.BASE_URL })}>
       {/* The journal and the overlay host are mounted once, here: a page asks the overlay for a confirm, a dialog or a toast by calling the service. */}
       <StudioProvider journal={journal}>
         {/* Positioned, so the host's visually hidden announcer lays out against the app and not the document. */}

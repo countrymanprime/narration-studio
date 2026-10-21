@@ -47,31 +47,44 @@ function rootRelative(file) {
   return relative(root, isAbsolute(file) ? file : join(root, file)).replaceAll('\\', '/');
 }
 
-function uiFormattingFiles(files) {
-  return files.filter((file) => file.startsWith('apps/ui/') && !file.startsWith('apps/ui/wailsjs/') && /\.(?:[cm]?[jt]sx?|json|css)$/.test(file));
+// The two web apps are checked with their own prettier and ESLint, from their own folder. The public site's build scripts, page styles and page
+// scripts (apps/site/build, common, docs, landing) are plain Node and browser text that neither tool covers, as they never were under scripts/site.
+const WEB_APPS = [
+  { dir: 'apps/ui', covers: (file) => !file.startsWith('apps/ui/wailsjs/') },
+  { dir: 'apps/site', covers: (file) => /^apps\/site\/(demo|tests)\//.test(file) || /^apps\/site\/[^/]+$/.test(file) },
+];
+
+function inWebApp(app, file) {
+  return file.startsWith(`${app.dir}/`) && app.covers(file);
 }
 
-function uiLintFiles(files) {
-  return files.filter((file) => file.startsWith('apps/ui/') && !file.startsWith('apps/ui/wailsjs/') && /\.(?:[cm]?[jt]sx?)$/.test(file));
+function webFormattingFiles(app, files) {
+  return files.filter((file) => inWebApp(app, file) && /\.(?:[cm]?[jt]sx?|json|css)$/.test(file));
+}
+
+function webLintFiles(app, files) {
+  return files.filter((file) => inWebApp(app, file) && /\.(?:[cm]?[jt]sx?)$/.test(file));
+}
+
+// Runs prettier (and ESLint) over the staged files of each web app, from the app's folder. `write` fixes; otherwise it only checks.
+function runWebApps(files, write) {
+  for (const app of WEB_APPS) {
+    const formatting = webFormattingFiles(app, files);
+    if (!formatting.length) continue;
+    const cwd = join(root, app.dir);
+    run(uiBinary('prettier'), [write ? '--write' : '--check', ...formatting.map((file) => relative(app.dir, file))], { cwd });
+    const lint = webLintFiles(app, files);
+    if (lint.length) run(uiBinary('eslint'), [...(write ? ['--fix'] : ['--max-warnings', '0']), ...lint.map((file) => relative(app.dir, file))], { cwd });
+  }
 }
 
 function fixStaged(files, fixer) {
   const rootFiles = files.map(rootRelative);
-  const ui = uiFormattingFiles(rootFiles);
-  const uiLint = uiLintFiles(rootFiles);
   const pythonFiles = rootFiles.filter((file) => file.endsWith('.py'));
   const goFiles = rootFiles.filter((file) => file.startsWith('apps/desktop/') && file.endsWith('.go'));
   const luaFiles = rootFiles.filter((file) => file.endsWith('.lua'));
 
-  if (fixer === 'ui' && ui.length) {
-    const uiRoot = join(root, 'apps', 'ui');
-    const uiFiles = ui.map((file) => relative(uiRoot, join(root, file)));
-    run(uiBinary('prettier'), ['--write', ...uiFiles], { cwd: uiRoot });
-    if (uiLint.length) {
-      const uiLintFiles = uiLint.map((file) => relative(uiRoot, join(root, file)));
-      run(uiBinary('eslint'), ['--fix', ...uiLintFiles], { cwd: uiRoot });
-    }
-  }
+  if (fixer === 'ui') runWebApps(rootFiles, true);
   if (fixer === 'python' && pythonFiles.length) {
     run(python(), ['-m', 'ruff', 'format', ...pythonFiles]);
     run(python(), ['-m', 'ruff', 'check', '--fix', ...pythonFiles]);
@@ -82,21 +95,11 @@ function fixStaged(files, fixer) {
 
 function checkStagedFiles(files, checker) {
   const rootFiles = files.map(rootRelative);
-  const ui = uiFormattingFiles(rootFiles);
-  const uiLint = uiLintFiles(rootFiles);
   const pythonFiles = rootFiles.filter((file) => file.endsWith('.py'));
   const goFiles = rootFiles.filter((file) => file.startsWith('apps/desktop/') && file.endsWith('.go'));
   const luaFiles = rootFiles.filter((file) => file.endsWith('.lua'));
 
-  if (checker === 'ui' && ui.length) {
-    const uiRoot = join(root, 'apps', 'ui');
-    const uiFiles = ui.map((file) => relative(uiRoot, join(root, file)));
-    run(uiBinary('prettier'), ['--check', ...uiFiles], { cwd: uiRoot });
-    if (uiLint.length) {
-      const uiLintFiles = uiLint.map((file) => relative(uiRoot, join(root, file)));
-      run(uiBinary('eslint'), ['--max-warnings', '0', ...uiLintFiles], { cwd: uiRoot });
-    }
-  }
+  if (checker === 'ui') runWebApps(rootFiles, false);
   if (checker === 'python' && pythonFiles.length) {
     run(python(), ['-m', 'ruff', 'format', '--check', ...pythonFiles]);
     run(python(), ['-m', 'ruff', 'check', ...pythonFiles]);
@@ -109,21 +112,11 @@ function checkStagedFiles(files, checker) {
 }
 
 function runStaged(files) {
-  const ui = uiFormattingFiles(files);
-  const uiLint = uiLintFiles(files);
   const pythonFiles = files.filter((file) => file.endsWith('.py'));
   const goFiles = files.filter((file) => file.startsWith('apps/desktop/') && file.endsWith('.go'));
   const luaFiles = files.filter((file) => file.endsWith('.lua'));
 
-  if (ui.length) {
-    const uiRoot = join(root, 'apps', 'ui');
-    const uiFiles = ui.map((file) => relative('apps/ui', file));
-    run(uiBinary('prettier'), ['--check', ...uiFiles], { cwd: uiRoot });
-    if (uiLint.length) {
-      const uiLintFiles = uiLint.map((file) => relative('apps/ui', file));
-      run(uiBinary('eslint'), ['--max-warnings', '0', ...uiLintFiles], { cwd: uiRoot });
-    }
-  }
+  runWebApps(files, false);
   if (pythonFiles.length) {
     run(python(), ['-m', 'ruff', 'format', '--check', ...pythonFiles]);
     run(python(), ['-m', 'ruff', 'check', ...pythonFiles]);
@@ -196,7 +189,7 @@ if (mode !== 'check') {
   process.exit(2);
 }
 
-// The full gate: every project's lint, format, knip, test, test-node and build target, one at a time, never from
+// The full gate: every project's lint, format, architecture, typecheck, knip, test, test-node and build target, one at a time, never from
 // the Nx cache (a green gate must mean the checks ran). CI runs the same targets with
 // `nx affected` (see .github/actions/nx-run).
 // Code changed without the docs that describe it (scripts/ci/docs-impact.mjs). It diffs against origin/main, so a
@@ -207,6 +200,6 @@ run('node', ['scripts/ci/guide-impact.mjs']);
 // Filler phrases and dead backticked paths in the Markdown this change touches (docs-slop.mjs, docs-references.mjs).
 run('node', ['scripts/ci/docs-slop.mjs']);
 run('node', ['scripts/ci/docs-references.mjs', '--strict']);
-run('pnpm', ['exec', 'nx', 'run-many', '-t', 'lint', 'format', 'architecture', 'knip', 'test', 'test-node', 'build', '--skip-nx-cache', '--parallel=1', '--nx-bail', '--output-style=stream']);
+run('pnpm', ['exec', 'nx', 'run-many', '-t', 'lint', 'format', 'architecture', 'typecheck', 'knip', 'test', 'test-node', 'build', '--skip-nx-cache', '--parallel=1', '--nx-bail', '--output-style=stream']);
 // Last: record that the full gate passed on this exact tree (scripts/ci/gate-stamp.mjs). Nothing blocks on it; it is a record.
 run('node', ['scripts/ci/gate-stamp.mjs', 'record']);

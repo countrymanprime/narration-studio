@@ -23,7 +23,7 @@
 
 /* Motion (docs/design/motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by these
    tokens. `motion-ok:` applies only when Windows has not asked for reduced motion and <html> has no data-motion="reduce", or when
-   <html data-motion="play"> is set: the public demo's "Play animations" switch (DemoBanner), which nothing else sets;
+   <html data-motion="play"> is set: the public demo's "Play animations" switch (apps/site), which nothing else sets;
    `motion-safe:` reads the media query alone, so `src/motion.test.ts` fails on it. The motion rules select `html`, not `:root`:
    paletteContrast.test.ts reads every `:root` rule as a colour theme. */
 @custom-variant motion-ok {

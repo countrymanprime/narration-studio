@@ -41,8 +41,8 @@ test('project names are unique and the release project keeps its name', () => {
 });
 
 test('the root project depends on every project whose commits already counted toward the release version', () => {
-  // The UI and desktop projects were separate before the split and never counted; everything else did.
-  const excluded = new Set(['narration-utils', 'narration-utils-ui', 'narration-utils-shell']);
+  // The UI and desktop projects were separate before the split and never counted; everything else did. The site is not part of the released app.
+  const excluded = new Set(['narration-utils', 'narration-utils-ui', 'narration-utils-shell', 'narration-utils-site']);
   const root = projects.find((project) => project.root === '');
   const expected = projects.map((project) => project.config.name).filter((name) => !excluded.has(name)).sort();
 

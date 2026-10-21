@@ -8,6 +8,8 @@ __pycache__/
 node_modules/
 .vite/
 apps/ui/dist/
+apps/site/demo/dist/
+apps/site/test-results/
 apps/ui/screenshots/
 apps/ui/playwright-report/
 apps/ui/test-results/

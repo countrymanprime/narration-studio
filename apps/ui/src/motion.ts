@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { appExtension } from './appExtension';
 
 /**
  * Whether motion should stop: Windows asked for reduced motion, or `<html data-motion="reduce">` is set, and the public demo's
@@ -17,13 +18,13 @@ export type MotionPreference = 'system' | 'reduce';
 // Kept by this browser window, as the theme is (theme/theme.ts); index.html applies it before first paint.
 export const MOTION_STORAGE_KEY = 'narration-ui-motion';
 
-// The public demo's "Play animations" switch (DemoBanner): a visitor whose device asks for reduced motion can still see the app move. Its own
-// key, so Settings -> Motion and the real app are untouched; the demo build alone reads it (`VITE_DEMO`, as index.html's inline script does).
+// The public demo's "Play animations" switch (apps/site): a visitor whose device asks for reduced motion can still see the app move. Its own
+// key, so Settings -> Motion and the real app are untouched; only a build whose extension asks for it (`playAnimations`, appExtension.ts) reads it.
 export const PLAY_MOTION_STORAGE_KEY = 'narration-ui-demo-play-motion';
 
-/** Whether this is the public demo, the only build where the Play animations switch exists. Read per call so a test can stub the env. */
+/** Whether this build offers the Play animations switch (the public demo). Read per call so a test can register an extension. */
 function playSwitchAvailable(): boolean {
-  return import.meta.env.VITE_DEMO === '1';
+  return appExtension().playAnimations === true;
 }
 
 // The choice made in this window, so it holds until the page reloads when there is no storage to keep it (the demo inside the site's sandboxed

@@ -3,6 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { registerAppExtension, resetAppExtension } from './appExtension';
 import {
   MOTION_STORAGE_KEY,
   PLAY_MOTION_STORAGE_KEY,
@@ -193,14 +194,14 @@ describe("the demo's Play animations switch", () => {
   afterEach(() => {
     localStorage.clear();
     vi.restoreAllMocks();
-    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    resetAppExtension();
     delete document.documentElement.dataset.motion;
   });
   const windowsAsks = () => vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce') }));
 
-  it('is off by default and does nothing outside the demo build', () => {
-    vi.stubEnv('VITE_DEMO', undefined);
+  it('is off by default and does nothing in a build whose extension does not offer it', () => {
+    resetAppExtension();
     localStorage.setItem(PLAY_MOTION_STORAGE_KEY, '1');
     expect(readStoredPlay()).toBe(false);
     setPlayAnimations(true);
@@ -208,8 +209,8 @@ describe("the demo's Play animations switch", () => {
     expect(localStorage.getItem(PLAY_MOTION_STORAGE_KEY)).toBe('1');
   });
 
-  it('in the demo plays motion although the device asks for reduced motion, and switches back', () => {
-    vi.stubEnv('VITE_DEMO', '1');
+  it('in a build that offers the switch plays motion although the device asks for reduced motion, and switches back', () => {
+    registerAppExtension({ playAnimations: true });
     windowsAsks();
     expect(readStoredPlay()).toBe(false);
     expect(reducedMotion()).toBe(true);
@@ -225,7 +226,7 @@ describe("the demo's Play animations switch", () => {
   });
 
   it("wins over Settings' Reduce while on, and Reduce returns when it is switched off", () => {
-    vi.stubEnv('VITE_DEMO', '1');
+    registerAppExtension({ playAnimations: true });
     localStorage.setItem(MOTION_STORAGE_KEY, 'reduce');
     applyMotion('reduce');
     expect(document.documentElement.dataset.motion).toBe('reduce');
@@ -238,7 +239,7 @@ describe("the demo's Play animations switch", () => {
   });
 
   it('still plays for this window when storage throws, and reads on until switched off', () => {
-    vi.stubEnv('VITE_DEMO', '1');
+    registerAppExtension({ playAnimations: true });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('full');
     });
@@ -250,7 +251,7 @@ describe("the demo's Play animations switch", () => {
   });
 
   it('reads off when storage throws and this window has not switched it on', () => {
-    vi.stubEnv('VITE_DEMO', '1');
+    registerAppExtension({ playAnimations: true });
     setPlayAnimations(false);
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');

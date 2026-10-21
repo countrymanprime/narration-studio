@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { handedTheme, onSiteMessage } from '../components/layout/siteWindow';
+import { appExtension } from '../appExtension';
 import { applyResolvedTheme, readStoredPreference, resolveTheme, systemTheme, THEME_STORAGE_KEY, type ResolvedTheme, type ThemePreference } from './theme';
 
 type ThemeContextValue = {
@@ -14,7 +14,7 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreference] = useState<ThemePreference>(() => handedTheme() ?? readStoredPreference());
+  const [preference, setPreference] = useState<ThemePreference>(() => appExtension().hostTheme?.initial() ?? readStoredPreference());
   const [resolved, setResolved] = useState<ResolvedTheme>(() => resolveTheme(preference));
 
   useEffect(() => {
@@ -40,12 +40,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => media.removeEventListener('change', handleChange);
   }, [preference]);
 
-  // Inside the public site's window frame the app follows the site's theme switch; its own theme setting still works until the site's changes again.
+  // Embedded in a page that owns the theme (appExtension.ts), the app follows the page's switch; its own theme setting still works until the page's changes again.
   useEffect(() => {
-    if (import.meta.env.VITE_SITE !== '1' || !handedTheme()) return;
-    return onSiteMessage((message) => {
-      if (message.kind === 'theme') setPreference(message.theme);
-    });
+    const host = appExtension().hostTheme;
+    if (!host?.initial()) return;
+    return host.subscribe(setPreference);
   }, []);
 
   return <ThemeContext.Provider value={{ preference, resolved, setPreference }}>{children}</ThemeContext.Provider>;
