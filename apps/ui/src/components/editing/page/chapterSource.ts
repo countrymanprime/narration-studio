@@ -2,9 +2,11 @@ import type { EditCut } from '../../../api/contracts/editCuts';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import type { WordFx } from '../../../api/contracts/wordFx';
 import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace';
-import type { HeardAnswer, HeardWord } from '../../../ports/alignment';
+import { HEADING_PARAGRAPH, tokenParagraph, type HeardAnswer, type HeardWord } from '../../../ports/alignment';
 import type { PlaylistSegment } from '../../proof/playlist';
 import type { ChapterDoc, HeardWord as ModelWord } from '../model';
+import type { DocCut } from '../model/cuts';
+import type { ClosedCut } from '../follow/clockMap';
 import { duplicateRead } from '../model/duplicates';
 import type { RangeLocator } from '../range/common/locate';
 import { docCutsOf } from '../range/common/locate';
@@ -33,6 +35,11 @@ function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Ma
     else out.set(current, { item: w.item, origin: w.off0 - LEAD, words: [w] });
   }
   return out;
+}
+
+/** The index of the alignment item a paragraph was heard in (the one its first word came from), or undefined when it was not heard. The ribbon draws that item's waveform. */
+export function itemIndexOf(read: ChapterRead, paragraphId: string): number | undefined {
+  return heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId)?.item;
 }
 
 /**
@@ -68,25 +75,34 @@ export function audioOf(link: 'linked' | 'unlinked' | 'missing' | 'unknown', tra
   return { kind: link === 'linked' ? 'empty' : link };
 }
 
+/**
+ * The text the page sets against what was heard: the chapter's heading first, the title and subtitle a narrator reads aloud (so saying them is
+ * not saying extra words, and not saying them is not a word missed), then the paragraphs. A credits row has no heading.
+ */
+function scriptOf(
+  workspace: WorkspaceAlignmentResult,
+  phrasesOf: (paragraphId: string) => readonly QuotedPhrase[],
+): Array<{ id: string; text: string; phrases?: readonly QuotedPhrase[] }> {
+  const heading = [workspace.title, workspace.subtitle].filter(Boolean).join('. ');
+  const paragraphs = workspace.paragraphs.map((p) => ({ id: p.id, text: p.text, phrases: phrasesOf(p.id) }));
+  return heading ? [{ id: HEADING_PARAGRAPH, text: heading }, ...paragraphs] : paragraphs;
+}
+
 /** The chapter's document with its cuts, effects and accepted words. */
 export function docOf(read: ChapterRead, phrasesOf: (paragraphId: string) => readonly QuotedPhrase[] = () => []): ChapterDoc {
   const answer: HeardAnswer = read.audio.kind === 'ready' ? read.answer : { heard: null, reason: NO_AUDIO_REASON, reasons: [] };
-  return docFromHeard(
-    read.workspace.paragraphs.map((p) => ({ id: p.id, text: p.text, phrases: phrasesOf(p.id) })),
-    answer,
-    {
-      cuts: docCutsOf(read.cuts),
-      effects: read.effects.filter((e) => !e.stale).map((e) => ({ id: e.id, keys: [...e.keys] })),
-      accepted: read.accepted,
-    },
-  );
+  return docFromHeard(scriptOf(read.workspace, phrasesOf), answer, {
+    cuts: docCutsOf(read.cuts),
+    effects: read.effects.filter((e) => !e.stale).map((e) => ({ id: e.id, keys: [...e.keys] })),
+    accepted: read.accepted,
+  });
 }
 
 const paraOf = (doc: ChapterDoc, at: number) => doc.paras.find((p) => p.start != null && p.end != null && at >= p.start && at <= p.end) ?? null;
 
 /** Where the page's words are for the DAW: script words by their alignment token, moments by the item they were heard on. */
 export function locatorOf(doc: ChapterDoc, read: ChapterRead): RangeLocator {
-  const tokens = new Map(read.workspace.tokens.filter((t) => t.p !== undefined).map((t) => [`${t.p}:${t.w}`, t.i]));
+  const tokens = new Map(read.workspace.tokens.filter((t) => tokenParagraph(t) !== undefined).map((t) => [`${tokenParagraph(t)}:${t.w}`, t.i]));
   const spans = heardSpans(read.answer, read.workspace.paragraphs[0]?.id);
   const guids = new Map(read.workspace.items.map((it) => [it.index, it.itemGuid]));
   return {
@@ -128,6 +144,35 @@ export function playlistOf(doc: ChapterDoc, read: ChapterRead): PlaylistSegment[
     });
   }
   return out;
+}
+
+/**
+ * The closing cuts the clock map takes out of the project, in the source seconds of the item their paragraph was heard on. `places` says, for each
+ * paragraph, the item it was heard on and the source second its time 0 is. Only a cut that took words out and closed its gap counts: a gap cut
+ * moves nothing, a wordless cut (a trimmed gap) belongs to no paragraph, and a cut inside a take is placed from the take's start, which the page's
+ * playlist does not keep, so it is left out and the words after it have no project time (docs/design/editing-daw-transport-sync.md).
+ */
+export function closedCutsFrom(cuts: readonly DocCut[], places: ReadonlyMap<string, { itemGuid: string; origin: number }>): ClosedCut[] {
+  const out: ClosedCut[] = [];
+  for (const cut of cuts) {
+    if (cut.mode !== 'close' || cut.takeId || !cut.keys.length) continue;
+    const key = cut.keys[0];
+    const place = places.get(key.slice(0, key.lastIndexOf(':')));
+    if (place && cut.off1 > cut.off0) out.push({ itemGuid: place.itemGuid, from: place.origin + cut.off0, to: place.origin + cut.off1 });
+  }
+  return out;
+}
+
+/** The chapter's closing cuts for the clock map (`closedCutsFrom`), from what the page read. */
+export function closedCutsOf(read: ChapterRead): ClosedCut[] {
+  const spans = heardSpans(read.answer, read.workspace.paragraphs[0]?.id);
+  const guids = new Map(read.workspace.items.map((it) => [it.index, it.itemGuid]));
+  const places = new Map<string, { itemGuid: string; origin: number }>();
+  for (const [pid, span] of spans) {
+    const itemGuid = guids.get(span.item);
+    if (itemGuid) places.set(pid, { itemGuid, origin: span.origin });
+  }
+  return closedCutsFrom(docCutsOf(read.cuts), places);
 }
 
 /** The chapter's length now: where its last heard word ends. */

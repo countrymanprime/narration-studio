@@ -48,7 +48,7 @@ H.test('create_regions adds a coloured region per row in one undo step', functio
   H.eq(s:events(), { { 'REGIONS_CREATED', 't1', '2', '0', '0', '0', '0', '0' } })
   H.eq(regions(s), { { 1, 0, 30, 'Chapter 1' }, { 2, 30, 61.5, 'Chapter 2' } })
   H.eq(s.fake.markers[1].color, 0x1000000 + 0xFF + 0x88 * 256)
-  H.eq(s.fake:undo_labels(), { 'Narration Utils: create regions' })
+  H.eq(s.fake:undo_labels(), { 'Narration Studio: create regions' })
 end)
 
 H.test('create_regions adds credits rows like any other: the host names them like the chapter table rows', function()
@@ -93,7 +93,7 @@ H.test('create_regions with the update flag moves the one region with that title
   H.eq(s:events(), { { 'REGIONS_CREATED', 't1', '0', '1', '0', '1', '0', '0' } })
   H.eq(regions(s), { { 1, 0, 30, 'Chapter 1' }, { 2, 30, 64.5, 'Chapter 2' } })
   H.eq(s.fake.markers[2].color, 12345, 'the narrator colour stays')
-  H.eq(s.fake:undo_labels(), { 'Narration Utils: create regions' })
+  H.eq(s.fake:undo_labels(), { 'Narration Studio: create regions' })
 end)
 
 H.test('create_regions with the update flag leaves a title held by several regions alone and creates nothing for it', function()

@@ -29,9 +29,9 @@ const CEILING: Record<string, number> = {
   // read is the ChapterTrackPanel call's prop handoff (`subtitle={...?.subtitle}`), so the slide-over title can draw the
   // chapter's full name through chapterName(..., context('Track')).
   [join('src', 'components', 'production', 'useChapterTools.tsx')]: 1,
-  // The joined-title row goes through chapterName()/TitleSubtitle; one read is the prop handoff to
-  // TitleSubtitle (`subtitle={heading.subtitle}`), and one is the Subtitle checkbox's own accessible-name suffix
-  // ("Subtitle — {section.subtitle}"), which shows the raw second line, not a formatted chapter name.
+  // The chapter row draws the title as the heading's own style writes it; both reads are the second line under it
+  // (`{heading.subtitle && ... <span>{heading.subtitle}</span>}`), which shows the subtitle on its own line, smaller and dimmer,
+  // not a formatted chapter name joined with a dash.
   [join('src', 'components', 'production', 'ImportReview.tsx')]: 2,
 };
 

@@ -138,7 +138,7 @@ func txtWithProgress(path string, progress Progress) (Draft, error) {
 		notices = append(notices, fmt.Sprintf("No chapter headings were found; the whole file was imported as one chapter, %q.", name))
 	}
 
-	progress.report(80, "Classifying front matter, chapters and reference sections")
+	progress.report(80, "Sorting chapters and reference sections")
 	draft, err := newDraft("txt", filepath.Base(path), paragraphs, titles, headingLevels, nil)
 	draft.Notices = notices
 	if err == nil {

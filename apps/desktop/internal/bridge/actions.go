@@ -78,6 +78,10 @@ const (
 var experimentalCommands = map[string]bool{
 	"chapter_track_state": true,
 	"select_track":        true,
+	"set_cursor":          true,
+	"play_from":           true,
+	"stop_play":           true,
+	"watch_transport":     true,
 	"arm_only":            true,
 	"record_start":        true,
 	"record_stop":         true,
@@ -119,7 +123,8 @@ var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK
 	"REGIONS_CREATED", "PLAY_POSITION", "PUNCHED", "ROLLED", "RANGE_CUT", "RANGE_FX_APPLIED", "RANGE_FX_REMOVED", "TAKES_STACKED", "TAKES_UNSTACKED", "MASTER_CHAIN_FX", "MASTER_CHAIN_READ", "TAKE_SPLIT",
 	"FILE_PREVIEW_STARTED", "FILE_PREVIEW_STOPPED", "FILE_REVEALED", "RANGE_GAIN_REDUCED", "CLICKS_REPAIRED",
 	"RANGE_FX_PARAM", "RANGE_FX_PARAMS", "RANGE_FX_PARAM_SET", "RANGE_FX_BYPASSED",
-	"RANGE_FX_COMPARE", "RANGE_FX_COMPARE_STOPPED", "LAST_ACTION", "UNDONE_LAST", "MONITOR_LEVEL", "PLACE", "PLACE_SET", "ERROR"}
+	"RANGE_FX_COMPARE", "RANGE_FX_COMPARE_STOPPED", "LAST_ACTION", "UNDONE_LAST", "MONITOR_LEVEL", "PLACE", "PLACE_SET",
+	"CURSOR_SET", "TRANSPORT_PLAYING", "TRANSPORT_STOPPED", "TRANSPORT_WATCHING", "ERROR"}
 
 // Gate is asked, with the command's name, before Actions sends it. nil lets the command go; an error refuses it and
 // nothing is written. A refusal matching ErrExperimentalOff (errors.Is) reaches the caller as ErrExperimentalOff itself;
@@ -327,7 +332,7 @@ func (a *Actions) invalid(event Event, reason error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if run, ok := a.pending[event.RunID]; ok {
-		finish(run, answerSet{err: fmt.Errorf("REAPER sent an answer this app could not read (%v): import the Narration Utils script from this app's REAPER folder again", reason)})
+		finish(run, answerSet{err: fmt.Errorf("REAPER sent an answer this app could not read (%v): import the Narration Studio script from this app's REAPER folder again", reason)})
 	}
 }
 

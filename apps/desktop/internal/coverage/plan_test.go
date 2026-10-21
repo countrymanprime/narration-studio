@@ -301,3 +301,47 @@ func TestPlanRecheckFallsBackToTheWholeChapterWhenDoubtIsEverywhere(t *testing.T
 		t.Fatalf("plan = %+v", plan)
 	}
 }
+
+// The sidecar pipelines the padding and merging of doubtful windows itself (coverage_pipeline.pad_window, merge_windows); both
+// suites read this table, so the two copies of MC3's rules cannot drift apart.
+func TestWindowRulesAgreeWithTheSidecarsCopy(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "sidecars", "transcript-compare", "tests", "fixtures", "recheck_windows.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var table struct {
+		Pad []struct {
+			In  [4]float64 `json:"in"`
+			Out [2]float64 `json:"out"`
+		} `json:"pad"`
+		Merge []struct {
+			In  [][2]float64 `json:"in"`
+			Out [][2]float64 `json:"out"`
+		} `json:"merge"`
+	}
+	if err := json.Unmarshal(raw, &table); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range table.Pad {
+		got := padWindow(window{Start: c.In[0], End: c.In[1]}, c.In[2], c.In[3])
+		if got.Start != c.Out[0] || got.End != c.Out[1] {
+			t.Errorf("padWindow(%v) = [%v, %v], want %v", c.In, got.Start, got.End, c.Out)
+		}
+	}
+	for _, c := range table.Merge {
+		var in []window
+		for _, w := range c.In {
+			in = append(in, window{WordsFile: "item-0.json", Start: w[0], End: w[1]})
+		}
+		got := mergeWindows(in)
+		if len(got) != len(c.Out) {
+			t.Errorf("mergeWindows(%v) = %v, want %v", c.In, got, c.Out)
+			continue
+		}
+		for i := range got {
+			if got[i].Start != c.Out[i][0] || got[i].End != c.Out[i][1] {
+				t.Errorf("mergeWindows(%v)[%d] = [%v, %v], want %v", c.In, i, got[i].Start, got[i].End, c.Out[i])
+			}
+		}
+	}
+}

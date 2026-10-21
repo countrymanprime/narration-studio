@@ -18,13 +18,12 @@ function creditsChapter(entry: CreditsEntry): ProductionChapter {
 }
 
 /**
- * The pipeline's rows in the mock's order: the opening credits, the narration chapters, then the closing credits. A manuscript that
- * brought its own opening-credits chapter lists that chapter first instead of the opening entry, as the Script list does.
+ * The pipeline's rows in the mock's order: the opening credits, the narration chapters, then the closing credits. Only narration chapters are
+ * rows: a chapter an earlier import kept for the book's opening pages (kind `opening`) is never listed.
  */
 export function pipelineChapters(chapters: readonly ProductionChapter[], credits: { opening?: CreditsEntry; closing?: CreditsEntry }): ProductionChapter[] {
   const isNarration = (chapter: ProductionChapter) => !chapter.contentKind || chapter.contentKind === 'narration';
   return [
-    ...chapters.filter((chapter) => chapter.contentKind === 'opening'),
     ...(credits.opening ? [creditsChapter(credits.opening)] : []),
     ...chapters.filter(isNarration),
     ...(credits.closing ? [creditsChapter(credits.closing)] : []),

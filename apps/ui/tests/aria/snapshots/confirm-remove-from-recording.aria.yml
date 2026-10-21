@@ -12,8 +12,5 @@
   - heading "Remove Chapter 1 from recording?" [level=2]
   - button "Close"
   - paragraph: It leaves the chapter table, totals, the reader and the teleprompter. Its text stays in the manuscript, and its track link is cleared. You can restore it below the table.
-  - radiogroup "What is it?":
-    - radio "Not a chapter" [checked]
-    - radio "Front matter"
   - button "Cancel"
   - button "Remove from recording"

@@ -12,13 +12,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'default',
     description:
-      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and "Link a different REAPER project file", the six REAPER tools, Chapter sync, the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
-  },
-  {
-    page: 'engine',
-    state: 'sync-activity',
-    description:
-      'The engine panel, Chapter sync (?mockChapterSync=activity): "On · last synced … from the saved Alice.rpp · 1 chapter linked automatically, 1 by you" and the Sync activity list, newest first, with Undo on the link sync made',
+      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and "Link a different REAPER project file", the six REAPER tools, Chapter sync (its "Tracks that are not chapters" line across the full width), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
   },
   {
     page: 'engine',

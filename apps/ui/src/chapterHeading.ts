@@ -22,5 +22,5 @@ export function chapterHeading(chapter: Named): ChapterHeading {
 /** What the card's top row says: "Credits" for the opening pages, otherwise the chapter's label. */
 export const cardLabel = (chapter: Named): string => (isCredits(chapter) ? 'Credits' : chapterHeading(chapter).label);
 
-/** What the boundary above a card calls the chapter before it: "End of chapter 7", or "End of front matter". */
+/** What the boundary above a card calls the chapter before it: "End of chapter 7", or "End of opening credits". */
 export const endedName = (chapter: Named): string => (isCredits(chapter) ? chapterName(chapter).toLowerCase() : chapterName(chapter, 'short'));

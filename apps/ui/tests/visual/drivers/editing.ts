@@ -49,6 +49,32 @@ export const editingDrivers: Record<string, Driver> = {
     await openEditing(page, EDITS);
     await selectWords(page);
   },
+  range: async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    // Draw a range on the line's waveform that ends inside words, then zoom in once.
+    const surface = page.locator('[data-ribbon-surface]');
+    await surface.waitFor();
+    const box = await surface.boundingBox();
+    if (!box) throw new Error('The line’s waveform has no box to draw on.');
+    await page.mouse.move(box.x + box.width * 0.31, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.66, box.y + box.height / 2, { steps: 6 });
+    await page.mouse.up();
+    await page.getByRole('slider', { name: 'Start of range' }).waitFor();
+    await page.getByRole('button', { name: 'Zoom in' }).click();
+    await page.getByRole('slider', { name: 'Visible part' }).waitFor();
+  },
+  'output-popover': async (page) => {
+    await openEditing(page, EDITS);
+    await bar(page).getByRole('button', { name: 'Show volume and output device' }).click();
+    await page.getByRole('dialog', { name: 'Output' }).waitFor();
+  },
+  'output-no-outputs': async (page) => {
+    await openEditing(page, `${EDITS}&mockAudioOutputs=none`);
+    await bar(page).getByRole('button', { name: 'Show volume and output device' }).click();
+    await page.getByRole('dialog', { name: 'Output' }).getByRole('button', { name: 'Check again' }).waitFor();
+  },
   'delete-dialog': async (page) => {
     await openEditing(page, EDITS);
     await selectWords(page);

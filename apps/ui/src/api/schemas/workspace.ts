@@ -85,6 +85,8 @@ export const workspaceAlignmentResultSchema = z.object({
   reasons: listFromNull(reasonSchema),
   basis: optionalFromNull(z.object({ label: z.string(), modifiedAt: z.string(), stale: z.boolean() })),
   needsAlignAgain: z.boolean(),
+  title: z.string().optional(),
+  subtitle: z.string().optional(),
   paragraphs: listFromNull(paragraphSchema),
   tokens: listFromNull(tokenSchema),
   extras: listFromNull(extraSchema),

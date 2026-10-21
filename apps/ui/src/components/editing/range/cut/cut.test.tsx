@@ -27,6 +27,7 @@ import { summarize, type ChapterDoc } from '../../model';
 import { EditingPageProvider, useEditingPage } from '../../script/EditingPageState';
 import { marksDoc } from '../../script/scriptFixtures';
 import { docCutsOf } from '../common/locate';
+import { subWordNote } from '../common/spanRequest';
 import { cutPlanText } from '../common/rangePlan';
 import { DeleteButton } from './CutButtons';
 import { fakeCutLog, locator } from './cutFixtures';
@@ -590,5 +591,34 @@ describe('Delete words and audio', () => {
     const buttons = within(d).getAllByRole('button');
     expect(buttons.map((b) => b.textContent)).toEqual(expect.arrayContaining(['Cancel', 'Delete 2 words and audio']));
     expect(document.activeElement).toBe(within(d).getByRole('button', { name: 'Cancel' }));
+  });
+
+  describe('a range drawn on the waveform', () => {
+    const drawn = async (span: { start: number; end: number }) => {
+      await act(async () => page.dispatch({ type: 'selectSpan', span, anchor: 'p-1:0', head: 'p-1:1' }));
+    };
+
+    it('an edge inside a word is a labelled preview in the question, and the DAW is asked for the whole words by token', async () => {
+      mount();
+      await flush();
+      await drawn({ start: 0.7, end: 1.2 });
+      act(() => cut.remove());
+      await waitFor(() => expect(screen.getByRole('dialog', { name: 'Delete 2 words and their audio?' })).toBeTruthy());
+      expect(dialogText('data-cut-subword')).toBe(subWordNote({ start: 0.7, end: 1.2 }, { start: 0.65, end: 1.25 }));
+      await confirm(/Delete 2 words and audio/);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toMatchObject({ firstToken: 0, lastToken: 1 });
+      expect(Object.keys(calls[0])).not.toContain('start');
+      expect(toastUndo.mock.calls[0][0]).toContain('Sub-word edge, shown as a preview');
+    });
+
+    it("a range on the words' own edges adds no preview", async () => {
+      mount();
+      await flush();
+      await drawn({ start: 0.65, end: 1.25 });
+      act(() => cut.remove());
+      await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+      expect(dialog().querySelector('[data-cut-subword]')).toBeNull();
+    });
   });
 });

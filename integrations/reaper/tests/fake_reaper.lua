@@ -1,5 +1,5 @@
 -- A fake `reaper` API table for the bridge harness: an in-memory project (tracks, items, takes, markers, regions,
--- item extension data, an undo log, a `defer` queue) exposing only the ReaScript functions the Narration Utils
+-- item extension data, an undo log, a `defer` queue) exposing only the ReaScript functions the Narration Studio
 -- scripts call. It mimics REAPER's return shapes (for example `EnumProjectMarkers3` returns idx + 1, `P_EXT` reads
 -- return `false, ''` for a missing key), so a test drives the same code path REAPER would. It does not model audio.
 --
@@ -509,7 +509,7 @@ function Fake:add_project_api(api)
     return fake.os_name or 'Win64'
   end
   function api.time_precise()
-    fake.clock = (fake.clock or 1000) + 1
+    fake.clock = (fake.clock or 1000) + (fake.clock_step or 1)
     return fake.clock
   end
   function api.ShowMessageBox(text, title, kind)
@@ -602,7 +602,7 @@ function Fake:add_project_api(api)
     fake.undo[#fake.undo + 1] = { label = label }
   end
   -- The top of the undo history (narration_undo.lua). Undo_CanUndo2 names the next point's label, as REAPER 7.80 named a
-  -- block's right after it closed (S0: "Narration Utils: stamp manuscript line IDs"), and nil when there is none, as the
+  -- block's right after it closed (S0: "Narration Studio: stamp manuscript line IDs"), and nil when there is none, as the
   -- ReaScript reference says ("NULL if not"; not seen in a run: the QA pass, #1495). Undo_DoUndo2 undoes the top point and
   -- answers 1, or 0 with nothing to undo; a block's point puts its tracks and items back (Fake:restore), and a point a test
   -- pushed with no snapshot (a narrator's edit, say) only leaves the history. Each call is recorded in fake.calls.

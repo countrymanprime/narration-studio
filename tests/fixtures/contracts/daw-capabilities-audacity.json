@@ -210,6 +210,12 @@
       "message": "Experimental: switched off in Settings.",
       "reason": "experimental_off"
     },
+    "transport_sync": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Play and follow the project's transport is not available with Audacity yet.",
+      "reason": "not_yet"
+    },
     "undo_last": {
       "available": false,
       "level": "not_yet_available",

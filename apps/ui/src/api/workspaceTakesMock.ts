@@ -37,9 +37,9 @@ export const USE_TAKE_MESSAGES = {
   notOffered: "That take isn't one of this passage's takes any more, so nothing was changed. The list has been read again.",
   stale: "This take's item is no longer in the REAPER project, so nothing was changed. Run the check again to find the takes where they are now.",
   recording: 'REAPER is recording, so nothing was changed. Stop recording first.',
-  scriptOutdated: "The Narration Utils script in REAPER is older than this app. Import it again from this app's REAPER folder, then try again.",
-  standalone: 'REAPER is not connected to this app. To choose a take, open this app from the Narration Utils action in REAPER.',
-  notRunning: 'REAPER is not answering. Check that REAPER is open and the Narration Utils action is running, then try again.',
+  scriptOutdated: "The Narration Studio script in REAPER is older than this app. Import it again from this app's REAPER folder, then try again.",
+  standalone: 'REAPER is not connected to this app. To choose a take, open this app from the Narration Studio action in REAPER.',
+  notRunning: 'REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.',
   alreadyPlaying: 'That take is already the one playing, so nothing changed.',
   madeActive:
     'Made that take active in REAPER, in one undo step: Undo in REAPER puts the previous take back. Save the project in REAPER to bring the check up to date.',

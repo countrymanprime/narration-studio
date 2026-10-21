@@ -2,6 +2,7 @@
   "General": {
     "log_verbosity": "normal",
     "notifications": "true",
+    "close_import_when_done": "true",
     "credits_room_tone_seconds": "0",
     "debug_logging": "false"
   },
@@ -74,6 +75,7 @@
     "capability.undo_last": "auto",
     "capability.monitor_level": "auto",
     "capability.follow_position": "auto",
+    "capability.transport_sync": "auto",
     "capability.input_level": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"
@@ -88,6 +90,7 @@
     "cascade_first_pass_model": "tiny",
     "cascade_recheck_model": "large-v3-turbo",
     "cascade_unsure_below": "0.5",
+    "cascade_pipeline": "true",
     "parallel_workers": "0",
     "chunk_seconds": "300",
     "chunk_overlap_seconds": "6",

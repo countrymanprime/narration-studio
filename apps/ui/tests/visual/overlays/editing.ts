@@ -19,6 +19,7 @@ export const editingCases: OverlayCase[] = [
       await page.locator('[role="menu"]:visible').last().waitFor({ timeout: 2000 });
     },
   },
+  fromState('editing', 'output-popover', 'popover'),
   fromState('editing', 'fx-menu', 'menu'),
   fromState('editing', 'word-menu-fx', 'menu'),
   fromState('editing', 'fx-dialog'),

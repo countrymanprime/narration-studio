@@ -45,7 +45,7 @@
     "license": "LGPL-3.0-or-later",
     "homepage": "https://ffmpeg.org",
     "source": "transcript-compare, manuscript-teleprompter (through PyAV 18.1.0, which faster-whisper uses to decode audio)",
-    "note": "PyAV's wheel carries its own build of FFmpeg 8.1.2 and the libraries it links: libdav1d (BSD-2-Clause), libmp3lame (LGPL-2.0-or-later), opencore-amr (Apache-2.0), libopus (BSD-3-Clause), SVT-AV1 (BSD-3-Clause-Clear), libvpx (BSD-3-Clause), libwebp (BSD-3-Clause), libvpl (MIT), libx264 and libx265 (GPL, per their projects), zlib (Zlib), libiconv (LGPL-2.1-or-later), and the MinGW runtime (libgcc, libstdc++, libwinpthread; GPL-3.0-or-later with the GCC Runtime Library Exception, and MIT). Measured on 2026-09-21 by calling avutil_license() in the PyAV 18.1.0 wheel: FFmpeg reports 'LGPL version 3 or later'. NOT verified: whether enabling libx264 and libx265 makes this build GPL, and the exact licence of libx265; both are compatible with AGPL-3.0-or-later unless a component is GPL-2.0-only. Sources: https://github.com/PyAV-Org/PyAV (build scripts) and https://ffmpeg.org/download.html; each component's own site has its source. Only decoding is used by Narration Utils."
+    "note": "PyAV's wheel carries its own build of FFmpeg 8.1.2 and the libraries it links: libdav1d (BSD-2-Clause), libmp3lame (LGPL-2.0-or-later), opencore-amr (Apache-2.0), libopus (BSD-3-Clause), SVT-AV1 (BSD-3-Clause-Clear), libvpx (BSD-3-Clause), libwebp (BSD-3-Clause), libvpl (MIT), libx264 and libx265 (GPL, per their projects), zlib (Zlib), libiconv (LGPL-2.1-or-later), and the MinGW runtime (libgcc, libstdc++, libwinpthread; GPL-3.0-or-later with the GCC Runtime Library Exception, and MIT). Measured on 2026-09-21 by calling avutil_license() in the PyAV 18.1.0 wheel: FFmpeg reports 'LGPL version 3 or later'. NOT verified: whether enabling libx264 and libx265 makes this build GPL, and the exact licence of libx265; both are compatible with AGPL-3.0-or-later unless a component is GPL-2.0-only. Sources: https://github.com/PyAV-Org/PyAV (build scripts) and https://ffmpeg.org/download.html; each component's own site has its source. Only decoding is used by Narration Studio."
   },
   {
     "name": "OpenBLAS and the MinGW runtime vendored in the numpy wheel (numpy.libs)",
@@ -61,7 +61,7 @@
     "license": "GPL-3.0-or-later",
     "homepage": "https://github.com/espeak-ng/espeak-ng",
     "source": "manuscript-guide",
-    "note": "The piper-tts wheel bundles eSpeak NG and its data to phonemize text. Licence: GPL-3.0-or-later (with parts under other licences named in the eSpeak NG repository's COPYING files). Source: https://github.com/espeak-ng/espeak-ng and https://github.com/OHF-voice/piper1-gpl. Narration Utils is AGPL-3.0-or-later, which is compatible."
+    "note": "The piper-tts wheel bundles eSpeak NG and its data to phonemize text. Licence: GPL-3.0-or-later (with parts under other licences named in the eSpeak NG repository's COPYING files). Source: https://github.com/espeak-ng/espeak-ng and https://github.com/OHF-voice/piper1-gpl. Narration Studio is AGPL-3.0-or-later, which is compatible."
   },
   {
     "name": "Silero VAD model (silero_vad_v6.onnx) inside the faster-whisper wheel",

@@ -641,6 +641,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   General: [
     choice('log_verbosity', 'Log verbosity', ['quiet', 'normal', 'verbose'], 'normal'),
     bool('notifications', "Notify me when a long task finishes while I'm away", 'true'),
+    bool('close_import_when_done', 'Close the manuscript import when it finishes', 'true'),
     bool('debug_logging', 'Debug logging', 'false'),
     {
       key: 'narrator_name',
@@ -890,7 +891,13 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       step: 0.05,
       unit: '',
     }),
-    recordingCheck('parallel_workers', 'Parallel Whisper processes (0 = chosen from the model)', '0', { min: 0, max: 32, step: 1, unit: 'processes' }),
+    bool('cascade_pipeline', 'Run the larger model alongside the first pass', 'true'),
+    recordingCheck('parallel_workers', 'Items checked at once (0 = chosen from the model and the processors)', '0', {
+      min: 0,
+      max: 32,
+      step: 1,
+      unit: 'processes',
+    }),
     choice('chunk_seconds', 'Chunk length in seconds (0 = each item whole)', ['0', '60', '120', '300', '600', '900'], '300'),
     recordingCheck('chunk_overlap_seconds', 'Crossover between neighbouring chunks', '6', { min: 0, max: 60, step: 1, unit: 's' }),
     recordingCheck('parallel_chapters', 'Chapters checked at once', '1', { min: 1, max: 8, step: 1, unit: 'chapters' }),
@@ -1117,7 +1124,7 @@ export const WIRE_LINE_IDENTITY_ERROR: LineIdentityState = {
   runId: '1790000000000002',
   phase: 'error',
   message:
-    'The Narration Utils script in REAPER sent a message this app could not read. Import the script from this app’s REAPER folder again, then try again.',
+    'The Narration Studio script in REAPER sent a message this app could not read. Import the script from this app’s REAPER folder again, then try again.',
   stamp: { ...idleLineIdentityStamp },
   lines: [],
   linesRead: 0,
@@ -1173,7 +1180,7 @@ export const WIRE_PICKUPS_ERROR: PickupsState = {
   runId: '1790000000000003',
   phase: 'error',
   message:
-    'The Narration Utils script in REAPER sent a message this app could not read. Import the script from this app’s REAPER folder again, then try again.',
+    'The Narration Studio script in REAPER sent a message this app could not read. Import the script from this app’s REAPER folder again, then try again.',
   remaining: 0,
   total: 0,
   csv: '',
