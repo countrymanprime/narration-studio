@@ -53,7 +53,9 @@ export const List: Story = {
 export const KindChosen: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await userEvent.selectOptions(await view.findByRole('combobox', { name: 'Kind' }), 'Place');
+    // The kinds are read after the page opens, so wait for the one to choose.
+    await view.findByRole('option', { name: /^Place/ });
+    await userEvent.selectOptions(view.getByRole('combobox', { name: 'Kind' }), 'Place');
     await expect(view.getByRole('combobox', { name: 'Kind' })).toHaveValue('Place');
   },
 };
