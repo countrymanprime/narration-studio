@@ -148,6 +148,10 @@ function M.run(session_dir, registry)
       end
     end
     heartbeat()
+    -- A host that holds a watch lease (watch_transport, narration_transport.lua) is sent the transport as it changes.
+    if registry.transport_watch_tick then
+      registry.transport_watch_tick(ctx)
+    end
     if active then
       reaper.defer(tick)
     end

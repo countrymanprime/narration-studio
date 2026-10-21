@@ -1864,7 +1864,9 @@
     "file": "narration_media_file.lua",
     "find": "  if path:match('^[\\\\/][\\\\/]') then\n    return false\n  end\n",
     "replace": "",
-    "equivalent_on": ["win32"],
+    "equivalent_on": [
+      "win32"
+    ],
     "why": "no path that starts with two slashes passes the drive-letter check where the separator is a backslash"
   },
   {
@@ -2424,5 +2426,53 @@
     "file": "narration_levels.lua",
     "find": "  local master = master_with_output()\n",
     "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, 'Narration Utils: monitor level', -1)\n  local master = master_with_output()\n"
+  },
+  {
+    "name": "stop_play stops a recording too",
+    "file": "narration_transport.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  if reaper.GetPlayState() > 0 then\n    reaper.OnStopButton()",
+    "replace": "  if reaper.GetPlayState() > 0 then\n    reaper.OnStopButton()"
+  },
+  {
+    "name": "set_cursor seeks playback",
+    "file": "narration_transport.lua",
+    "find": "  reaper.SetEditCurPos(seconds, true, false)\n  event(session_dir, 'CURSOR_SET'",
+    "replace": "  reaper.SetEditCurPos(seconds, true, true)\n  event(session_dir, 'CURSOR_SET'"
+  },
+  {
+    "name": "play_from on a paused REAPER does not stop first",
+    "file": "narration_transport.lua",
+    "find": "    if play_state ~= 0 then\n      -- Paused",
+    "replace": "    if false then\n      -- Paused"
+  },
+  {
+    "name": "the watch lease is not clamped",
+    "file": "narration_transport.lua",
+    "find": "  lease = math.min(lease, MAX_LEASE_SECONDS)",
+    "replace": "  lease = lease"
+  },
+  {
+    "name": "an expired watch lease keeps streaming",
+    "file": "narration_transport.lua",
+    "find": "  if now >= watch.expires then\n    state.watch = nil\n    return\n  end",
+    "replace": "  if false then\n    state.watch = nil\n    return\n  end"
+  },
+  {
+    "name": "a cursor wobble under a millisecond is sent",
+    "file": "narration_transport.lua",
+    "find": "local CURSOR_EPSILON = 0.001",
+    "replace": "local CURSOR_EPSILON = 0"
+  },
+  {
+    "name": "the playing position is sent on every tick",
+    "file": "narration_transport.lua",
+    "find": "local POSITION_INTERVAL_SECONDS = 0.25",
+    "replace": "local POSITION_INTERVAL_SECONDS = 0"
+  },
+  {
+    "name": "a negative time moves the cursor",
+    "file": "narration_transport.lua",
+    "find": "text:match('^%d+$') or text:match('^%d+%.%d+$')",
+    "replace": "text:match('^-?%d+$') or text:match('^-?%d+%.%d+$')"
   }
 ]
