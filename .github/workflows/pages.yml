@@ -1,50 +1,48 @@
 name: Pages
-# PAUSED (owner decision D75, 2026-09-27): nothing is published until the main app's development is done and
-# the site is reworked. The workflow does not run on a pull request (the `Links (offline)` and `Markdown lint
-# (changed files)` steps of `Docs / Docs checks` in .github/workflows/docs.yml check links and style without building the site). Only
-# `workflow_dispatch` starts it: a manual run builds, and deploys only when its `publish` input is ticked on main.
+# Publishes the public site (apps/site, built by apps/site/build/build-demo-site.mjs into dist-site/) to GitHub Pages:
+# the landing page at the root, the condensed guides under /docs/, the windowed demo of the app under /demo/ and the
+# Storybook component atlas under /storybook/. It is served at https://countrymanprime.github.io/narration-studio/ once the
+# owner sets Settings > Pages > Source to "GitHub Actions" (an owner-only setting, see docs/operations/github-workflow.md);
+# until then the deploy job fails with GitHub's "Pages is not enabled" message and the build job still proves the site builds.
 #
-# Publishes the public site to GitHub Pages, by hand: the docs (tools/docs-site, docs/operations/ci-and-releases.md#the-public-docs-site, built from docs/ by MkDocs)
-# at the root, the Storybook component atlas (apps/ui) under /storybook/, and a browser-runnable demo of the app
-# (apps/ui built with VITE_USE_MOCK_API=1, through apps/site) under /demo/. It is served at
-# https://<owner>.github.io/narration-studio/ once the owner sets Settings > Pages > Source to "GitHub Actions" (an
-# owner-only setting, see docs/operations/github-workflow.md); until then the deploy job fails with GitHub's "Pages is not
-# enabled" message and the build job still proves the site builds.
+# Every link inside the site is relative, so the build needs no base path; the link check below runs with the project
+# sub-path /narration-studio/ to prove nothing reaches for the host's root. SITE_PUBLISHED=1 drops the "preview, not
+# published" notice that other builds of the site carry (apps/site/build/shell.mjs).
 #
-# To resume after D75: restore both triggers below.
-#   on:
-#     push:
-#       branches: [main]
-#     pull_request:
-#       paths:
-#         - docs/**
-#         - tools/docs-site/**
-#         - apps/ui/.storybook/**
-#         - apps/ui/vite.config.ts
-#         - apps/site/demo/**
-#         - apps/ui/src/appExtension.tsx
-#         - pyproject.toml
-#         - uv.lock
-#         - .github/workflows/pages.yml
-#     workflow_dispatch:
-#       inputs:
-#         publish: { ... }
-#
-# A restored pull request run has a read-only token, no secret, uploads nothing and never reaches the deploy job, which
-# also refuses any ref but main (a manual start from a branch builds and stops). A fork's pull request gets a read-only
-# token by GitHub's own rule. The token is read-only everywhere except the deploy job, which alone holds `pages: write`
-# (create the deployment) and `id-token: write` (prove to Pages that the artifact came from this workflow run).
+# A pull request builds and checks the site but uploads nothing and never reaches the deploy job, which also refuses any
+# ref but main (a manual start from a branch builds and stops). The token is read-only everywhere except the deploy job,
+# which alone holds `pages: write` (create the deployment) and `id-token: write` (prove to Pages that the artifact came
+# from this workflow run).
 on:
+  push:
+    branches: [main]
+    paths:
+      - apps/site/**
+      - apps/ui/src/**
+      - apps/ui/.storybook/**
+      - apps/ui/package.json
+      - apps/ui/vite.config.ts
+      - docs/images/ui/**
+      - docs/guides/**
+      - tools/docs-site/check_site.py
+      - pnpm-lock.yaml
+      - .github/workflows/pages.yml
+  pull_request:
+    paths:
+      - apps/site/**
+      - apps/ui/src/**
+      - apps/ui/.storybook/**
+      - apps/ui/package.json
+      - apps/ui/vite.config.ts
+      - docs/images/ui/**
+      - docs/guides/**
+      - tools/docs-site/check_site.py
+      - pnpm-lock.yaml
+      - .github/workflows/pages.yml
   workflow_dispatch:
-    inputs:
-      publish:
-        description: Deploy the built site to GitHub Pages (paused by D75; only on main)
-        type: boolean
-        default: false
 permissions: {}
-# One deployment at a time, and a running one finishes: cancelling a deploy half way leaves the site stale. Only
-# workflow_dispatch starts this workflow now, so there is one group; the `pull_request` branch of this expression is
-# dead until the trigger above is restored, and restoring it needs no change here.
+# One deployment at a time, and a running one finishes: cancelling a deploy half way leaves the site stale. A pull request
+# run only builds, so a newer push to the same pull request cancels the older run.
 concurrency:
   group: pages-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -64,38 +62,28 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-          python-sync-args: --only-group docs
-      - name: Build Storybook
-        run: pnpm --dir apps/ui run build-storybook
-      # The mock build (apps/site/demo/.env.demo, VITE_USE_MOCK_API=1) run through Vite's `demo` mode so its own base path
-      # resolves assets under /narration-studio/demo/. No backend, no secret: same
-      # mock API and fixture data the Playwright visual suite and Storybook already build against. The build lives in apps/site,
-      # which loads the app (apps/ui) with the demo banner registered.
-      - name: Build the demo
-        run: pnpm --dir apps/site run build:pages-demo
-      # A strict MkDocs build of docs/ (a dead link or heading link fails it) and the link check over the built HTML.
-      # Links to pages the include list leaves out point at this commit on GitHub. This is the `docs-site:build-site`
-      # target, kept out of `pnpm check` and the `_quality.yml` gate while Pages is paused — this workflow
-      # is the one place it still runs, since it needs the built site to add Storybook and the demo beside it below.
-      - name: Build the docs site
+          need-python: 'false'
+      # The whole site: the app in its site mode (mock host, one self-contained page), the guides, and Storybook. No backend,
+      # no secret. The build fails if any page loads something from another host or by an absolute path.
+      - name: Build the site
         env:
-          DOCS_SITE_REF: ${{ github.sha }}
-        run: pnpm exec nx run docs-site:build-site --skip-nx-cache
-      - name: Add Storybook and the demo beside the docs and check every link, including the ones to them
+          SITE_PUBLISHED: '1'
+        run: pnpm --dir apps/site run build:site
+      # check_site.py reads only the standard library. It follows every link and image of the built pages as Pages would
+      # serve them under /narration-studio/ and fails on a dead one.
+      - name: Check every link, served under /narration-studio/
         run: |
-          set -euo pipefail
-          cp -r apps/ui/storybook-static tools/docs-site/build/site/storybook
-          cp -r apps/site/demo/dist/demo tools/docs-site/build/site/demo
-          .venv/bin/python tools/docs-site/check_site.py tools/docs-site/build/site --base /narration-studio/ \
-            --site-url https://countrymanprime.github.io/narration-studio/ --require storybook/index.html --require index.html \
-            --require demo/index.html
-      - if: github.event_name == 'workflow_dispatch' && inputs.publish
+          python3 -I tools/docs-site/check_site.py dist-site --base /narration-studio/ \
+            --site-url https://countrymanprime.github.io/narration-studio/ \
+            --require index.html --require docs/index.html --require demo/index.html --require demo/app.html \
+            --require storybook/index.html --require storybook/sb/index.html
+      - if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: tools/docs-site/build/site
+          path: dist-site
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-latest
     permissions:

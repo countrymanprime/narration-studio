@@ -1,6 +1,6 @@
 # The public demo site
 
-How to build and run the public site: a landing page, the real app in its mock mode as a live demo, the docs and the Storybook, in one folder that needs no backend. Nothing here is published. GitHub Pages stays paused ([The Pages workflow](ci-and-releases.md#the-pages-workflow), owner decision D75), and `pages.yml` keeps its triggers.
+How to build and run the public site: a landing page, the real app in its mock mode as a live demo, the docs and the Storybook, in one folder that needs no backend. `pages.yml` deploys the folder to GitHub Pages from `main` ([The Pages workflow](ci-and-releases.md#the-pages-workflow)); no other command here publishes it.
 
 ## Where it lives
 
@@ -36,7 +36,7 @@ node apps/site/build/serve.mjs dist-site --base /site/ --port 4180   # the same,
 node apps/site/build/build-demo-site.mjs --skip-storybook                        # the landing page, the docs and the demo only
 ```
 
-The same through Nx: `pnpm exec nx run narration-utils-site:build-site` and `:serve-site`. The project's other targets are `lint`, `format`, `architecture` (the import rules above), `typecheck`, `test` (Vitest over `demo/src`), `test-node` (the build scripts' suites) and `test-site` (the smoke test below). `pnpm check` and the `quality / js-static` job run all of them except `test-site` and `build-site`; the site build is not part of the gate while publishing is on hold.
+The same through Nx: `pnpm exec nx run narration-utils-site:build-site` and `:serve-site`. The project's other targets are `lint`, `format`, `architecture` (the import rules above), `typecheck`, `test` (Vitest over `demo/src`), `test-node` (the build scripts' suites) and `test-site` (the smoke test below). `pnpm check` and the `quality / js-static` job run all of them except `test-site` and `build-site`; the site build is not part of the gate: `pages.yml` builds and link-checks it on a pull request that touches the site.
 
 `dist-site/` is ignored by git. Copy it anywhere: the landing page, each docs page, the demo page and the app are each one file with nothing fetched from outside it (the demo page loads only `app.html` beside it), and the links between the pieces (`demo/index.html`, `storybook/index.html`, and the full-tab banner's **Site** and **Storybook** links back) are relative. The Storybook is a folder of files, as Storybook builds it.
 
@@ -112,10 +112,6 @@ pnpm --dir apps/site run test:site
 
 The manual workflow `.github/workflows/site-preview.yml` runs `pnpm run site:build` and uploads `dist-site/` as the `demo-site` artifact (14 days). It has a read-only token, no secret, no `pages: write` and no `id-token: write`.
 
-## What the owner flips to publish
+## What the owner does to publish
 
-Not done by any pull request:
-
-1. Settings > Pages > Source: **GitHub Actions** (owner-only, [repository settings](github-workflow.md#repository-settings-that-only-the-owner-can-change)).
-2. Restore the triggers in `pages.yml` as its header comment lists them, or add a step that runs `pnpm run site:build` and uploads `dist-site/` with `actions/upload-pages-artifact` in place of the MkDocs output.
-3. Start `pages.yml` on `main` with `publish` ticked.
+Not done by any pull request: Settings > Pages > Source: **GitHub Actions** (owner-only, [repository settings](github-workflow.md#repository-settings-that-only-the-owner-can-change)). The first deploy then runs on the next push to `main` that touches the site, or when `pages.yml` is started by hand on `main`. The repository must be named `narration-studio`: the link check and the site URL name it.

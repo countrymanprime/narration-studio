@@ -91,3 +91,9 @@ def test_a_link_that_differs_only_in_case_is_dead_because_the_publishing_server_
     write(tmp_path, "guide/index.html", page("<p>g</p>"))
     write(tmp_path, "index.html", page('<a href="Guide/">g</a>'))
     assert check_site.check_site(tmp_path) == ["index.html: Guide/ does not resolve to a file of the site"]
+
+
+def test_a_hash_route_fragment_is_a_client_route_not_an_id(tmp_path):
+    write(tmp_path, "index.html", page('<a href="demo/#/booth">booth</a><a href="demo/#nope">x</a>'))
+    write(tmp_path, "demo/index.html", page("<h1>Demo</h1>"))
+    assert check_site.check_site(tmp_path) == ["index.html: demo/#nope names no #nope on the page it links to"]

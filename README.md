@@ -22,10 +22,9 @@ verifies and removes the voices and models the app has downloaded (Settings > Mo
 [Using the app](docs/guides/using-the-app/README.md) for a full screenshot walkthrough. The UI's component library is a
 Storybook atlas (`pnpm --dir apps/ui run storybook`, checked in CI by the `ui-atlas` job); its generated reference is in
 [`docs/ui/atlas/`](docs/ui/atlas/index.md) and the design rules in the [design system reference](docs/design/design-system.md).
-The public website (docs, live Storybook and a browser demo of the app, built by
-[`tools/docs-site`](docs/operations/ci-and-releases.md#the-public-docs-site)) is **paused** until the main app's development is
-done and the site is reworked (owner decision D75, [the Pages workflow](docs/operations/ci-and-releases.md#the-pages-workflow));
-read the docs here in `docs/` meanwhile.
+The public website (a landing page, the condensed guides, a live demo of the app and the Storybook atlas) is built from
+[`apps/site`](docs/operations/public-demo-site.md) and deployed to GitHub Pages from `main` by
+[the Pages workflow](docs/operations/ci-and-releases.md#the-pages-workflow); the full docs are here in `docs/`.
 
 ![Production, the figures, the chapter pipeline and Next up](docs/images/ui/production-home.webp)
 
