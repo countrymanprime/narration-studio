@@ -7,6 +7,7 @@ import { sourceIcon } from '../../../../storybible/source/sourceIcons';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
 import type { LineRange } from '../../data/scriptCommands';
 import { useEntries, useParagraphs, useScriptPrep, useScriptView } from '../../data/useScriptData';
+import { RailOptionRow } from '../RailOptionRow';
 import { DefinitionSourceMenu } from './DefinitionSourceMenu';
 import { WordCard } from './WordCard';
 import { statusLabel, statusTone } from './wordStatus';
@@ -26,11 +27,9 @@ export function WordsTab({ chapterId, host, selection }: { chapterId: string; ho
   const list = useMemo(() => prep.chapterWords(chapterId, entries, paragraphs.value ?? []), [prep, chapterId, entries, paragraphs.value]);
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <SectionLabel>Definitions from</SectionLabel>
-        <span className="flex-1" />
+      <RailOptionRow label="Definitions from">
         <DefinitionSourceMenu current={host.definitionSource} onPick={host.setDefinitionSource} />
-      </div>
+      </RailOptionRow>
       {word && <WordCard key={word} word={word} host={host} selection={selection} />}
       <SectionLabel as="div">In this chapter</SectionLabel>
       {list.length > 0 ? (

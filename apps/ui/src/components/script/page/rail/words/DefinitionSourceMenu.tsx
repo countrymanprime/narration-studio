@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../../../../primitives/Button';
+import { Icon } from '../../../../primitives/Icon';
 import { Popover } from '../../../../primitives/Popover';
 import { DEFINITION_SOURCES, type DefinitionSource } from './wordsHost';
 
@@ -15,6 +16,7 @@ export function DefinitionSourceMenu({ current, onPick }: { current: DefinitionS
       trigger={
         <Button variant="secondary" size="sm" aria-label={`Definition source: ${DEFINITION_SOURCES[current]}`}>
           Source: {DEFINITION_SOURCES[current]}
+          <Icon name="openMenu" />
         </Button>
       }
     >
