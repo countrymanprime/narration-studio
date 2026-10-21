@@ -15,7 +15,7 @@ export const MIN_BAR_HEIGHT = 4;
 /** The site's `border-radius: 3px`, never more than half the bar's width. */
 export const BAR_RADIUS = 3;
 /** The loudest bar fills this much of the height, so a growing bar near the playhead has room to grow. */
-export const PEAK_HEADROOM = 0.85;
+export const PEAK_HEADROOM = 1 / 1.5;
 
 export interface BarLayout {
   /** How many bars fit across the width. */
@@ -46,12 +46,14 @@ export function halfHeight(column: PeakColumn, mid: number): number {
 /** How the bars near the playhead move. Distances are in bars so the look is the same for a one second window and a one minute window. */
 export const PULSE = {
   /** The bump reaches this many bars behind the playhead (already played) and ahead of it (about to play). */
-  behind: 7,
-  ahead: 3,
+  behind: 8,
+  ahead: 6,
   /** The bar under the playhead grows by up to this share of its height at the top of a beat. */
   grow: 0.5,
   /** How much of that growth is the beat; the rest is steady. 0 holds the bump still, 1 lets it fall to nothing between beats. */
-  depth: 0.4,
+  depth: 0.9,
+  /** The ripple's wavelength in bars: the crest leaves the playhead and reaches a bar this far off one beat later. */
+  wavelength: 6,
   /** Beats per second. */
   hz: 2.4,
 } as const;
@@ -69,10 +71,15 @@ export function beat(nowMs: number): number {
   return 0.5 - 0.5 * Math.cos(2 * Math.PI * PULSE.hz * (nowMs / 1000));
 }
 
+/** The beat as a wave: a bar `d` bars from the playhead is behind the playhead's own beat by `|d| / PULSE.wavelength` of a beat, so the crest runs outward. */
+export function ripple(d: number, nowMs: number): number {
+  return 0.5 - 0.5 * Math.cos(2 * Math.PI * (PULSE.hz * (nowMs / 1000) - Math.abs(d) / PULSE.wavelength));
+}
+
 /** The factor a bar `d` bars from the playhead is taller by at `nowMs`. 1 for a bar out of reach and always 1 when motion is reduced. */
 export function barScale(d: number, nowMs: number, reduced: boolean): number {
   if (reduced) return 1;
-  return 1 + PULSE.grow * pulseEnvelope(d) * (1 - PULSE.depth + PULSE.depth * beat(nowMs));
+  return 1 + PULSE.grow * pulseEnvelope(d) * (1 - PULSE.depth + PULSE.depth * ripple(d, nowMs));
 }
 
 /** The host publishes the position a few times a second; between updates the drawing moves the playhead on at the playing rate, but never further than this. */
