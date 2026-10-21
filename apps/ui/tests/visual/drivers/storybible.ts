@@ -163,7 +163,7 @@ export const storybibleDrivers: Record<string, Driver> = {
   'verification-filter': async (page) => {
     await goToPage(page, 'Story Bible');
     await page.getByRole('button', { name: /^Needs verification · \d+$/ }).click();
-    await page.getByRole('list', { name: 'Suggestions not in the Story Bible yet' }).waitFor();
+    await page.locator('[data-loose]').first().waitFor();
   },
   'loose-suggestion': async (page) => {
     await goToPage(page, 'Story Bible');
@@ -180,7 +180,7 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'import-dialog': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('button', { name: 'Import entries (CSV or JSON)' }).click();
+    await chooseAction(page, 'Import entries');
     await page.getByRole('dialog', { name: 'Import entries' }).waitFor();
   },
   'delete-confirm': async (page) => {
@@ -236,13 +236,13 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'voice-data-panel': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'button', 'Voice data');
+    await chooseAction(page, 'Voice data');
     await page.getByRole('dialog', { name: 'Voice data' }).waitFor();
     await page.getByRole('combobox', { name: 'Approve a region for Narration' }).waitFor();
   },
   'remove-voice-data-confirm': async (page) => {
     await goToPage(page, 'Story Bible');
-    await clickVisible(page, 'button', 'Voice data');
+    await chooseAction(page, 'Voice data');
     await clickVisible(page, 'button', 'Remove voice data…');
     await confirmDialog(page, 'Remove voice data').waitFor();
   },
@@ -285,14 +285,14 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'voice-data-samples': async (page) => {
     await openWithSamples(page, 'bible');
-    await clickVisible(page, 'button', 'Voice data');
+    await chooseAction(page, 'Voice data');
     const panel = page.getByRole('dialog', { name: 'Voice data' });
     await panel.getByText('Narration, calm').waitFor();
     await panel.getByRole('region', { name: 'Samples for a character that is no longer in the Story Bible' }).getByText('Growling').waitFor();
   },
   'remove-voice-samples-confirm': async (page) => {
     await openWithSamples(page, 'bible');
-    await clickVisible(page, 'button', 'Voice data');
+    await chooseAction(page, 'Voice data');
     await page.getByRole('dialog', { name: 'Voice data' }).getByText('Narration, calm').waitFor();
     await clickVisible(page, 'button', 'Remove voice samples…');
     await confirmDialog(page, 'Remove voice samples').waitFor();
@@ -312,11 +312,17 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
 };
 
-/** The entry rows of the Story Bible list, each a button of two lines. */
-const entryRows = (page: Page) => page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button');
+/** Presses an item of the page's More actions menu: the scan, the import and Voice data sit behind that one icon button. */
+async function chooseAction(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name: 'More actions' }).click();
+  await page.getByRole('menuitem', { name }).click();
+}
+
+/** The entry rows of the Story Bible table. */
+const entryRows = (page: Page) => page.getByRole('table', { name: 'Story Bible entries' }).locator('[data-entry-id]');
 
 /** One kind chip over the list (All, or a type of the Story Bible). */
-const kindChip = (page: Page, name: string) => page.getByRole('group', { name: 'Kind' }).getByRole('button', { name, exact: true });
+const kindChip = (page: Page, name: string) => page.getByRole('group', { name: 'Kind' }).getByRole('button', { name: new RegExp(`^${name}\\b`) });
 
 /** Opens an entry in edit mode, unlocking it first when the fixture locks it. */
 async function openForEditing(page: Page, name: string): Promise<void> {

@@ -12,6 +12,7 @@ import type { NarrationApi } from '../../types';
 import { ANALYSIS_TOOLS, createFakeTools } from '../settings/analysis/fixtures';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
+import { entryRows, rowName } from './entryTableTestKit';
 import { Guide } from './Guide';
 import { unattached, verifyCount } from './suggested/row/selectors';
 
@@ -45,23 +46,37 @@ async function renderGuide(overrides: Partial<NarrationApi> = {}) {
   return api;
 }
 
-const entryRow = (name: string) =>
-  within(screen.getByRole('list', { name: 'Story Bible entries' }))
-    .queryAllByRole('button')
-    .find((row) => row.textContent?.includes(name));
+const entryRow = (name: string) => entryRows().find((row) => rowName(row) === name);
+/** Opens the actions menu (the scan, the import and Voice data sit behind one icon button) and presses an item. */
+const chooseAction = async (name: string) => {
+  await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+  await userEvent.click(await screen.findByRole('menuitem', { name }));
+};
 
 describe('story-bible-route-mounts-the-new-pieces', () => {
-  it('the header has Scan and Import, and no pronunciation queries button', async () => {
+  it('the header has one primary action and one menu, which holds Scan, Import and Voice data, and no pronunciation queries button', async () => {
     await renderGuide();
-    expect(screen.getByRole('button', { name: 'Scan the manuscript for suggestions' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Import entries (CSV or JSON)' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add entry' })).toBeTruthy();
+    // Only the menu button is there until it is opened: the secondary actions are not a row of icon buttons.
+    expect(screen.queryByRole('button', { name: /Scan the manuscript|Import entries|Voice data/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Scan the manuscript', 'Import entries', 'Voice data']);
     expect(screen.queryByRole('button', { name: 'Pronunciation queries' })).toBeNull();
   });
 
   it('Import opens the import dialog', async () => {
     await renderGuide();
-    await userEvent.click(screen.getByRole('button', { name: 'Import entries (CSV or JSON)' }));
+    await chooseAction('Import entries');
     expect(await screen.findByRole('dialog', { name: 'Import entries' })).toBeTruthy();
+  });
+
+  it('Voice data opens its panel, and closing it returns the keyboard to the menu button', async () => {
+    await renderGuide();
+    await chooseAction('Voice data');
+    const panel = await screen.findByRole('dialog', { name: 'Voice data' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Voice data' })).toBeNull());
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More actions' }));
   });
 
   it('the Needs verification chip filters the entries and lists the suggestions with no entry yet above them; choosing one shows its row', async () => {
@@ -69,7 +84,7 @@ describe('story-bible-route-mounts-the-new-pieces', () => {
     const list = await api.extractionList();
     const chip = await screen.findByRole('button', { name: `Needs verification · ${verifyCount(list)}` });
     await userEvent.click(chip);
-    const loose = within(screen.getByRole('list', { name: 'Suggestions not in the Story Bible yet' })).getAllByRole('button');
+    const loose = [...document.querySelectorAll<HTMLElement>('[data-loose]')];
     expect(loose).toHaveLength(unattached(list).length);
     expect(entryRow('Alice')).toBeUndefined();
     await userEvent.click(loose[0]!);
@@ -102,12 +117,12 @@ describe('the first scan from the page', () => {
     };
     return { overrides, extractionScan };
   };
-  const scanButton = () => screen.getByRole('button', { name: 'Scan the manuscript for suggestions' });
+  const scanButton = () => chooseAction('Scan the manuscript');
 
   it('Scan with nothing installed opens the prompt; with a tool installed it starts the scan with that source', async () => {
     const none = withTools([]);
     await renderGuide(none.overrides);
-    await userEvent.click(scanButton());
+    await scanButton();
     expect(await screen.findByRole('dialog', { name: 'Scan the manuscript' })).toBeTruthy();
     expect(none.extractionScan).not.toHaveBeenCalled();
     cleanup();
@@ -116,7 +131,7 @@ describe('the first scan from the page', () => {
 
     const gliner = withTools(['gliner']);
     await renderGuide(gliner.overrides);
-    await userEvent.click(scanButton());
+    await scanButton();
     await waitFor(() => expect(gliner.extractionScan).toHaveBeenCalledWith(['rules', 'gliner']));
     expect(screen.queryByRole('dialog', { name: 'Scan the manuscript' })).toBeNull();
   });

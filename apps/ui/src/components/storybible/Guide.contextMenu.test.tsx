@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The right-click menu of an entry row (the mock's registerContext for the Bible page): what it offers, and that each item does what the
 // entry's own button does.
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -10,6 +10,7 @@ import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { contextItemsFor } from '../../registries/context';
 import { StudioProvider } from '../../studio/StudioProvider';
+import { entryRows, rowName } from './entryTableTestKit';
 import { Guide } from './Guide';
 
 afterEach(cleanup);
@@ -45,10 +46,7 @@ async function mount(flag?: string) {
   await screen.findAllByText('Alice');
   return api;
 }
-const row = (name: string) =>
-  within(screen.getByRole('list', { name: 'Story Bible entries' }))
-    .getAllByRole('button')
-    .find((button) => button.querySelector('[data-line="name"] .truncate')?.textContent === name)!;
+const row = (name: string) => entryRows().find((entryRow) => rowName(entryRow) === name)!;
 const items = (name: string) => contextItemsFor(row(name))!;
 const labels = (name: string) => items(name).map((item) => item.label);
 
@@ -70,7 +68,7 @@ describe('the entry row menu', () => {
       .find((item) => item.label === 'Open')!
       .onSelect();
     expect(await screen.findByRole('heading', { name: 'Hatter' })).toBeTruthy();
-    expect(row('Hatter').getAttribute('aria-current')).toBe('true');
+    expect(row('Hatter').getAttribute('aria-selected')).toBe('true');
   });
 
   it("Find in the manuscript opens the Script's Find on the name", async () => {

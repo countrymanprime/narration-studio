@@ -12,7 +12,8 @@ import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
 import { overlay } from '../../overlay/overlayService';
-import { ENTRY_SORT_STORAGE_KEY } from './entryList';
+import { ENTRY_SORT_STORAGE_KEY } from './entryTable';
+import { cellsOf, entryRows, entryTable, rowName, rowNames } from './entryTableTestKit';
 import { Guide } from './Guide';
 import { GuideDetail } from './GuideDetail';
 
@@ -91,10 +92,8 @@ function renderGuide() {
   );
   return { api, ...spies };
 }
-const entryRows = () => within(screen.getByRole('list', { name: 'Story Bible entries' })).queryAllByRole('button');
-const rowNames = () => entryRows().map((row) => row.querySelector('.truncate')?.textContent);
 const addEntity = async () => {
-  fireEvent.click(await screen.findByRole('button', { name: 'Add entity' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
   await screen.findByDisplayValue(/New entity/);
 };
 
@@ -119,7 +118,7 @@ describe('save-keeps-it-and-leaving-an-unsaved-draft-for-another-entry-drops-it'
     await screen.findAllByText('Alice');
     const before = rowNames();
     await addEntity();
-    fireEvent.click(entryRows().find((row) => row.textContent?.includes('White Rabbit'))!);
+    fireEvent.click(entryRows().find((row) => rowName(row) === 'White Rabbit')!);
     expect(rowNames()).toEqual(before);
     expect(create).not.toHaveBeenCalled();
   });
@@ -190,7 +189,7 @@ describe('a new entry', () => {
     await screen.findAllByText('Alice');
     await addEntity();
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Tweedledum' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add entity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
     await waitFor(() => expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('New entity'));
     expect(screen.queryByDisplayValue('Tweedledum')).toBeNull();
     expect(create).not.toHaveBeenCalled();
@@ -214,13 +213,24 @@ describe('cancel-after-a-merge-does-not-bring-the-merged-entry-back', () => {
   });
 });
 
-describe('the-control-sorts-the-list-and-the-choice-is-kept', () => {
-  it('sorts by chapters, saves the choice and restores it on reopen', async () => {
+describe('a-header-sorts-the-table-and-the-choice-is-kept', () => {
+  const header = (name: RegExp) => within(entryTable()).getByRole('columnheader', { name });
+  const sortBy = (name: string) => fireEvent.click(within(entryTable()).getByRole('button', { name }));
+  it('sorts by a clicked header, flips it on a second click, saves the choice and restores it on reopen', async () => {
     renderGuide();
     await screen.findAllByText('Alice');
     expect(rowNames()).toEqual([...rowNames()].sort((a, b) => a!.localeCompare(b!)));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Sort entries' }), { target: { value: 'type' } });
-    expect(window.localStorage.getItem(ENTRY_SORT_STORAGE_KEY)).toBe('type');
+    expect(header(/^Name/).getAttribute('aria-sort')).toBe('ascending');
+    sortBy('Kind');
+    expect(header(/^Kind/).getAttribute('aria-sort')).toBe('ascending');
+    expect(header(/^Name/).getAttribute('aria-sort')).toBe('none');
+    sortBy('Kind');
+    expect(header(/^Kind/).getAttribute('aria-sort')).toBe('descending');
+    expect(JSON.parse(window.localStorage.getItem(ENTRY_SORT_STORAGE_KEY)!)).toEqual([
+      { column: 'kind', dir: 'desc' },
+      { column: 'name', dir: 'asc' },
+    ]);
+    const order = rowNames();
     cleanup();
     const api = createMockApi();
     render(
@@ -235,20 +245,34 @@ describe('the-control-sorts-the-list-and-the-choice-is-kept', () => {
       </MemoryRouter>,
     );
     await screen.findAllByText('Alice');
-    expect((screen.getByRole('combobox', { name: 'Sort entries' }) as HTMLSelectElement).value).toBe('type');
+    expect(header(/^Kind/).getAttribute('aria-sort')).toBe('descending');
+    expect(rowNames()).toEqual(order);
+  });
+
+  it('survives clicking headers faster than the table can draw', async () => {
+    renderGuide();
+    await screen.findAllByText('Alice');
+    for (const name of ['Kind', 'Chapters', 'Occurrences', 'Name', 'Name', 'Status', 'Kind']) sortBy(name);
+    expect(entryRows().length).toBeGreaterThan(3);
+    expect(
+      within(entryTable())
+        .getAllByRole('columnheader')
+        .filter((cell) => cell.getAttribute('aria-sort') !== 'none'),
+    ).toHaveLength(1);
   });
 });
 
-describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () => {
-  it('a row has a name count and a chapter count, and the list has no occurrences column', async () => {
+describe('each-row-shows-its-names-and-its-chapters-and-its-occurrences', () => {
+  it('a row has the aliases, the occurrences and the chapter count in their own cells', async () => {
     renderGuide();
     await screen.findAllByText('Alice');
-    const alice = entryRows().find((row) => row.textContent?.includes('Alice'))!;
-    expect(alice.textContent).toMatch(/Character · 1 name · /);
-    const rabbit = entryRows().find((row) => row.textContent?.includes('White Rabbit'))!;
-    expect(rabbit.textContent).toMatch(/2 names/);
-    expect(alice.textContent).toMatch(/· \d+ chapters?$/);
-    expect(alice.textContent).not.toMatch(/Occurrences|Mentions|Lines/);
+    const alice = cellsOf(entryRows().find((row) => rowName(row) === 'Alice')!).map((cell) => cell.textContent);
+    expect(alice[1]).toBe('Character');
+    expect(alice[3]).toMatch(/^\d+$/);
+    expect(alice[4]).toMatch(/^\d+$/);
+    const rabbit = cellsOf(entryRows().find((row) => rowName(row) === 'White Rabbit')!)[2]!.textContent!;
+    expect(rabbit.split(', ').length).toBeGreaterThan(0);
+    expect(rabbit).not.toBe('');
   });
 });
 
@@ -276,7 +300,7 @@ describe('needs-review-chip-and-row-pill', () => {
   }
   const noSuggestions = (api: ReturnType<typeof createMockApi>) => void vi.spyOn(api, 'extractionList').mockResolvedValue([] as ExtractionSuggestion[]);
   const flagHatter = (api: ReturnType<typeof createMockApi>) => api.guideFlagReview('mad-hatter');
-  const rowFor = (name: string) => entryRows().find((row) => row.querySelector('.truncate')?.textContent === name)!;
+  const rowFor = (name: string) => entryRows().find((row) => rowName(row) === name)!;
 
   it('chip-with-the-count-filters: counts the flagged and the to-verify entries once and filters to them', async () => {
     await renderBible(flagHatter);
@@ -407,7 +431,7 @@ describe('needs-review-chip-and-row-pill', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
     expect(rowNames()).toEqual(['Alice']);
-    expect(within(screen.getByRole('list', { name: 'Story Bible entries' })).getByText('Review')).toBeTruthy();
+    expect(within(entryTable()).getByText('Review')).toBeTruthy();
     expect([flag, mark].map((spy) => spy.mock.calls.length)).toEqual([0, 0]);
   });
 
@@ -417,7 +441,7 @@ describe('needs-review-chip-and-row-pill', () => {
     await renderBible(flagHatter);
     expect(screen.queryByRole('button', { name: /^Needs Review$/ })).toBeNull();
     expect(rowNames()).toContain('March Hare');
-    fireEvent.click(within(screen.getByRole('group', { name: 'Kind' })).getByRole('button', { name: 'Character' }));
+    fireEvent.click(within(screen.getByRole('group', { name: 'Kind' })).getByRole('button', { name: /^Character/ }));
     expect(rowNames()).not.toContain('March Hare');
     expect(screen.getByRole('button', { name: /^Needs review · \d+$/ })).toBeTruthy();
   });

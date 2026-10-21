@@ -1,46 +1,24 @@
 import { LoadError } from '../layout/LoadError';
-import { statusTone } from '../../kinds/statusTone';
 import { describeApiError } from '../../api/errorMessage';
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLock, faMicrophone, faPlus } from '@fortawesome/free-solid-svg-icons';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { GuideEntity, GuideType } from '../../types';
-import { categoryLabel } from '../../state';
 import { CommandScope } from '../../input/router';
-import { useCommand } from '../../input/useCommand';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
-import { TooltipTarget } from '../primitives/Tooltip';
-import { StatusBadge } from '../primitives/StatusBadge';
-import { Swatch } from '../primitives/Swatch';
-import {
-  nameCount,
-  typeUnknown,
-  chapterCount,
-  ENTRY_SORT_OPTIONS,
-  entryFlagged,
-  entryNeedsReview,
-  kindSwatch,
-  loadEntrySort,
-  matchesQuery,
-  reviewCount,
-  reviewPill,
-  saveEntrySort,
-  sortEntries,
-  type EntrySortKey,
-} from './entryList';
+import { chapterCount, entryFlagged, kindSwatch, reviewCount } from './entryList';
+import { DEFAULT_KINDS, chooseSort, filterEntries, kindCounts, loadEntrySort, saveEntrySort, sortRows, type ColumnKey, type EntrySort } from './entryTable';
 import { evidenceLinks } from './evidenceLinks';
-import { ImportButton } from './suggested/panel/ImportButton';
-import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
+import { ActionsMenu } from './ActionsMenu';
+import { EntryTable } from './EntryTable';
 import { FilterChip } from './FilterChip';
 import { NeedsVerificationChip } from './suggested/panel/NeedsVerificationChip';
-import { ScanButton, ScanStatus } from './suggested/panel/ScanButton';
+import { ScanStatus } from './suggested/panel/ScanStatus';
 import { useSuggestions } from './suggested/panel/useSuggestions';
 import { openImportDialog } from './suggested/import/openImportDialog';
 import { AcceptedClaims } from './suggested/row/AcceptedClaims';
@@ -55,12 +33,11 @@ import { SamplePlayerAnnouncement } from '../voicesamples/SamplePlayButton';
 import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { SeriesTab } from '../series/SeriesTab';
-import { IconButton } from '../primitives/IconButton';
+import { Icon } from '../primitives/Icon';
 import { SearchField } from '../primitives/SearchField';
-import { Select } from '../primitives/Select';
 import { Tab, TabList, TabPanel, Tabs } from '../primitives/Tabs';
 import type { Notify } from '../primitives/Toast';
-import { CHANGE_HIGHLIGHT_CLASSES, useJustChanged } from '../primitives/changeHighlight';
+import { useJustChanged } from '../primitives/changeHighlight';
 import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
 
 const ENTRIES_TAB = 'Entries';
@@ -123,13 +100,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const [kind, setKind] = useState('All');
   // The host's list of types: the chips, and the colour each chip and row is drawn in (SN-B95). Until it is read there is only "All".
   const [types, setTypes] = useState<GuideType[]>([]);
-  const [focusedId, setFocusedId] = useState<string>();
-  const rowButtons = useRef(new Map<string, HTMLButtonElement>());
   const detailRef = useRef<HTMLDivElement>(null);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
   // The page's one voice-sample player: every entry's Voice samples section and the Voice data panel share it, so only one sample plays.
   const samplePlayer = useSamplePlayer();
-  const [sort, setSort] = useState<EntrySortKey>(loadEntrySort);
+  const [sort, setSort] = useState<EntrySort>(loadEntrySort);
   // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
   const found = useSuggestions();
   const { suggestions } = found;
@@ -226,18 +201,24 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const kinds = useMemo(() => types.map((type) => type.name), [types]);
   // A kind the narrator renamed or removed in Settings leaves its chip with it, so the list falls back to every entry.
   const activeKind = kinds.includes(kind) ? kind : 'All';
-  const filtered = visible
-    .filter((row) => activeKind === 'All' || row.category === activeKind)
-    .filter((row) => !reviewOnly || entryNeedsReview(row, suggestions))
-    .filter((row) => !verifyOnly || verifyOf(suggestions, row.id) > 0)
-    .filter((row) => matchesQuery(row, query));
-  const sorted = sortEntries(filtered, sort, kinds.length > 0 ? kinds : undefined);
+  const tableKinds = kinds.length > 0 ? kinds : DEFAULT_KINDS;
+  const filters = { kind: activeKind, query, reviewOnly, verifyOnly, suggestions };
+  const filtered = filterEntries(visible, filters);
+  const sorted = sortRows(filtered, sort, { kinds: tableKinds, suggestions });
+  const counts = kindCounts(visible);
   const selected = rows.find((row) => row.id === selectedId);
   const toVerifyAll = verifyCount(suggestions);
   const loose = verifyOnly ? unattached(suggestions) : [];
   const looseChosen = loose.find((suggestion) => suggestion.id === looseId);
-  const chooseSort = (key: string) => {
-    const next = ENTRY_SORT_OPTIONS.find((option) => option.value === key)?.value ?? 'name';
+  const filtering = query.trim() !== '' || activeKind !== 'All' || reviewOnly || verifyOnly;
+  const clearFilters = () => {
+    setQuery('');
+    setKind('All');
+    setReviewOnly(false);
+    setVerifyOnly(false);
+  };
+  const chooseColumn = (column: ColumnKey) => {
+    const next = chooseSort(sort, column);
     setSort(next);
     saveEntrySort(next);
   };
@@ -315,35 +296,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   }, []);
   useContextProvider(entryMenu);
 
-  // Up and Down step focus through the entries. The router leaves a key to a focused button (targets.ts), so the list takes it itself while a row
-  // has focus (`onKeyDown` below); the catalogue's page-scope rows, rebindable and listed on the sheet, step from the entry open when focus is elsewhere.
-  const moveFocus = (delta: -1 | 1) => {
-    const active = sorted.findIndex((row) => rowButtons.current.get(row.id) === document.activeElement);
-    const open = sorted.findIndex((row) => row.id === selectedId);
-    const from = active >= 0 ? active : open;
-    const next = sorted[from < 0 ? 0 : Math.min(sorted.length - 1, Math.max(0, from + delta))];
-    if (next) rowButtons.current.get(next.id)?.focus();
-  };
-  useCommand('storybible.entry.next', () => moveFocus(1));
-  useCommand('storybible.entry.prev', () => moveFocus(-1));
-  const onListKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
-    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (event.key === 'Home' || event.key === 'End') {
-      event.preventDefault();
-      const edge = event.key === 'Home' ? sorted[0] : sorted[sorted.length - 1];
-      if (edge) rowButtons.current.get(edge.id)?.focus();
-      return;
-    }
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-    event.preventDefault();
-    moveFocus(event.key === 'ArrowDown' ? 1 : -1);
-  };
-  // The list has one tab stop: the entry focus last rested on, else the one open, else the first.
-  const stopId = sorted.find((row) => row.id === focusedId)?.id ?? sorted.find((row) => row.id === selectedId)?.id ?? sorted[0]?.id;
-
   if (loadError) return <LoadError title="Story Bible" message={loadError} retry={() => void load(entityId)} />;
 
-  // The Series view is a tab here, not a navigation entry of its own; the kinds are chips over the list.
+  // The Series view is a tab here, not a navigation entry of its own; the kinds are chips over the table.
   const viewTabs = (
     <TabList label="Story Bible views" activation="automatic">
       <Tab value={ENTRIES_TAB}>{ENTRIES_TAB}</Tab>
@@ -351,57 +306,58 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     </TabList>
   );
   const scanWithStart = { ...found.scan, start: scanStart.startScan };
-  const actions = (
-    <div className="flex items-center gap-2">
-      <ScanButton scan={scanWithStart} />
-      <ImportButton onImport={() => openImportDialog({ onChanged: () => void load() })} />
-      <TooltipTarget text="Add entity">
-        <IconButton label="Add entity" onClick={addEntity}>
-          <FontAwesomeIcon icon={faPlus} />
-        </IconButton>
-      </TooltipTarget>
-    </div>
-  );
+  const empty =
+    visible.length === 0 ? (
+      'No entries yet. Add one, or scan the manuscript from More actions.'
+    ) : (
+      <>
+        <span>No entries match.</span>{' '}
+        {filtering && (
+          <Button variant="link" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        )}
+      </>
+    );
 
   return (
     <CommandScope kind="page">
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        className="flex h-full flex-col gap-4 overflow-hidden max-md:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [@media(max-width:1023px)_and_(max-height:899px)]:overflow-visible"
-      >
-        {tab === SERIES_TAB && (
-          <div className="flex-none space-y-4">
+      <Tabs value={tab} onChange={setTab} className="flex h-full flex-col gap-4 overflow-hidden max-xl:h-auto max-xl:overflow-visible">
+        <div className="flex-none space-y-4">
+          <div className="flex items-center justify-between gap-2">
             <Heading title="Story Bible" />
-            {viewTabs}
+            {tab === ENTRIES_TAB && (
+              <div className="flex items-center gap-2">
+                <Button onClick={addEntity}>
+                  <Icon name="add" /> Add entry
+                </Button>
+                <ActionsMenu
+                  scan={scanWithStart}
+                  onImport={() => openImportDialog({ onChanged: () => void load() })}
+                  onVoiceData={() => setVoiceDataOpen(true)}
+                />
+              </div>
+            )}
           </div>
-        )}
+          {viewTabs}
+        </div>
         {tab === SERIES_TAB ? (
           <Panel label="Series" flush className="min-h-0 flex-1 overflow-hidden">
             <SeriesTab notify={notify} />
           </Panel>
         ) : (
-          <div className="grid min-h-0 flex-1 gap-4 max-md:h-auto lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:max-md:min-h-96 [@media(max-width:1023px)_and_(max-height:899px)]:h-auto [&>*]:[@media(max-width:1023px)_and_(max-height:899px)]:min-h-96">
-            <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden`}>
-              <div className="flex items-center justify-between gap-2 px-4 pt-3">
-                <Heading title="Story Bible" />
-                {actions}
-              </div>
-              <div className="px-4 pt-2">{viewTabs}</div>
+          <div className="grid min-h-0 flex-1 gap-4 max-xl:h-auto xl:grid-cols-[minmax(0,1fr)_minmax(24rem,28rem)] [&>*]:max-xl:min-h-96">
+            <TabPanel value={tab} className={`${PANEL_FRAME_CLASS} flex min-h-0 flex-col overflow-hidden max-xl:max-h-[32rem]`}>
               <div className="flex flex-col gap-2 border-b border-[var(--border)] p-4">
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Find an entry" />
-                  </div>
-                  <Select label="Sort entries" value={sort} onChange={chooseSort} options={ENTRY_SORT_OPTIONS} className="w-auto min-w-[7.5rem] flex-none" />
-                </div>
+                <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Find in any column" />
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Kind">
-                  <FilterChip label="All" on={activeKind === 'All'} onPress={() => setKind('All')} />
+                  <FilterChip label="All" count={counts.get('All') ?? 0} on={activeKind === 'All'} onPress={() => setKind('All')} />
                   {types.map((type) => (
                     <FilterChip
                       key={type.name}
                       label={type.name}
                       swatch={kindSwatch(types, type.name)}
+                      count={counts.get(type.name) ?? 0}
                       on={activeKind === type.name}
                       onPress={() => setKind(type.name)}
                     />
@@ -415,11 +371,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                     <NeedsVerificationChip count={toVerifyAll} on={verifyOnly} onToggle={setVerifyOnly} />
                   </div>
                 )}
-                {/* Under the filters, so a scan starting or ending moves the list, never the buttons and chips the pointer is on. */}
+                {/* Under the filters, so a scan starting or ending moves the table, never the buttons and chips the pointer is on. */}
                 <ScanStatus scan={scanWithStart} />
               </div>
               {unknownEntity !== undefined && (
-                <div role="alert" aria-label="Link not opened" className="mx-4 mb-2 flex flex-col gap-2 rounded border border-[var(--border)] p-3 text-sm">
+                <div role="alert" aria-label="Link not opened" className="mx-4 mt-2 flex flex-col gap-2 rounded border border-[var(--border)] p-3 text-sm">
                   <p className="m-0">
                     This link points to an entry that is not in the Story Bible. It may have been deleted or merged since the link was made.
                   </p>
@@ -430,7 +386,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 </div>
               )}
               {(typesFailed || chaptersFailed) && (
-                <div className="flex flex-col gap-1 px-4 pb-2">
+                <div className="flex flex-col gap-1 px-4 pt-2">
                   {typesFailed && (
                     <ReadNotice
                       what="the entry types"
@@ -447,70 +403,30 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   )}
                 </div>
               )}
-              <div className="guide-list-scroll min-h-0 overflow-y-auto p-2">
-                {!entriesRead && <GuideListSkeleton />}
-                {entriesRead && loose.length > 0 && (
-                  <ul aria-label="Suggestions not in the Story Bible yet" className="m-0 mb-2 list-none p-0">
-                    <LooseSuggestionRows suggestions={loose} selectedId={looseChosen?.id ?? null} onSelect={setLooseId} />
-                  </ul>
-                )}
-                {entriesRead && (
-                  <ul onKeyDown={onListKeyDown} aria-label="Story Bible entries" className="m-0 flex list-none flex-col gap-0.5 p-0">
-                    {sorted.map((row) => {
-                      const open = !pendingNewEntity && selectedId === row.id;
-                      const pill = reviewPill(row, suggestions);
-                      return (
-                        <li key={row.id}>
-                          {/* native-control-ok: a roving-focus list row of two lines (name and pill, swatch and counts) that Button's padded chrome does not fit */}
-                          <button
-                            type="button"
-                            ref={(node) => {
-                              if (node) rowButtons.current.set(row.id, node);
-                              else rowButtons.current.delete(row.id);
-                            }}
-                            data-entry-id={row.id}
-                            data-just-changed={justChanged === row.id ? '' : undefined}
-                            tabIndex={row.id === stopId ? 0 : -1}
-                            aria-current={open || undefined}
-                            onFocus={() => setFocusedId(row.id)}
-                            onClick={() => {
-                              selectRow(row.id);
-                              // Below the two-column width the entry opens under the list: bring it into view so the click visibly does something.
-                              if (window.matchMedia?.('(max-width: 1023px) and (max-height: 899px)').matches)
-                                detailRef.current?.scrollIntoView?.({ block: 'start' });
-                            }}
-                            className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left ${open ? 'bg-[var(--accent-soft)] text-[var(--accent-strong)]' : 'text-[var(--text)] hover:bg-[var(--surface-2)]'} ${justChanged === row.id ? CHANGE_HIGHLIGHT_CLASSES : ''}`}
-                          >
-                            <span data-line="name" className="flex w-full min-w-0 items-center gap-2 text-[0.9375rem] font-bold">
-                              <span className="truncate">{row.canonical_name}</span>
-                              {row.locked && <FontAwesomeIcon icon={faLock} className="text-[10px]" style={{ color: 'var(--non-text)' }} />}
-                              {pill && <StatusBadge tone={statusTone('needs_review')} label={pill} className="ml-auto shrink-0 whitespace-nowrap" />}
-                            </span>
-                            <span data-line="kind" className="flex items-center gap-1.5 text-sm font-normal" style={{ color: 'var(--text-muted)' }}>
-                              <Swatch colour={kindSwatch(types, row.category)} />
-                              <span>
-                                {row.category === 'Draft' ? categoryLabel(row.category) : typeUnknown(row) ? 'Type not set' : row.category}
-                                {row.category !== 'Draft' &&
-                                  ` · ${nameCount(row)} ${nameCount(row) === 1 ? 'name' : 'names'} · ${chapterCount(row)} ${chapterCount(row) === 1 ? 'chapter' : 'chapters'}`}
-                              </span>
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                    {sorted.length === 0 && (
-                      <li className="p-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-                        No entries match.
-                      </li>
-                    )}
-                  </ul>
-                )}
-              </div>
-              <div className="flex-none border-t border-[var(--border)] px-4 py-2">
-                <Button variant="secondary" onClick={() => setVoiceDataOpen(true)}>
-                  <FontAwesomeIcon icon={faMicrophone} /> Voice data
-                </Button>
-              </div>
+              {entriesRead ? (
+                <EntryTable
+                  rows={sorted}
+                  loose={loose}
+                  types={types}
+                  suggestions={suggestions}
+                  sort={sort}
+                  onSort={chooseColumn}
+                  openId={pendingNewEntity || looseChosen ? undefined : selectedId}
+                  looseId={looseChosen?.id ?? null}
+                  changedId={justChanged}
+                  onOpen={(id) => {
+                    selectRow(id);
+                    // Below the two-pane width the entry opens under the table: bring it into view so the press visibly does something.
+                    if (window.matchMedia?.('(max-width: 1279px)').matches) detailRef.current?.scrollIntoView?.({ block: 'start' });
+                  }}
+                  onOpenLoose={setLooseId}
+                  empty={empty}
+                />
+              ) : (
+                <div className="min-h-0 flex-1 overflow-hidden p-2">
+                  <GuideListSkeleton />
+                </div>
+              )}
             </TabPanel>
             <div ref={detailRef} className="flex min-h-0 min-w-0">
               {!entriesRead ? (

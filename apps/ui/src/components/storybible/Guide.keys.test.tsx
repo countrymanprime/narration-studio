@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// SN-B94 (G12): the arrow keys move through the entry list, as catalogue commands of the page scope and not a listener of the page's own.
-import { cleanup, render, screen, within } from '@testing-library/react';
+// SN-B94 (G12): the arrow keys move through the entry table, as catalogue commands of the page scope when focus is elsewhere and as the table's own keys when a row has it.
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,7 @@ import { COMMAND_CATALOG } from '../../input/commands.catalog';
 import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
+import { entryRows } from './entryTableTestKit';
 import { Guide } from './Guide';
 
 afterEach(cleanup);
@@ -30,9 +31,8 @@ async function renderGuide() {
     </MemoryRouter>,
   );
   await screen.findAllByText('Alice');
-  await screen.findByRole('button', { name: 'Place' });
-  const out = within(screen.getByRole('list', { name: 'Story Bible entries' })).getAllByRole('button');
-  return out;
+  await screen.findByRole('button', { name: /^Place/ });
+  return entryRows();
 }
 
 describe('home-and-end-go-to-the-ends-of-the-list', () => {
@@ -84,7 +84,7 @@ describe('arrow-keys-move-through-the-list', () => {
   it('keeps one tab stop in the list, on the selected entry', async () => {
     const rows = await renderGuide();
     expect(rows.filter((row) => row.tabIndex === 0)).toHaveLength(1);
-    expect(rows.find((row) => row.tabIndex === 0)!.getAttribute('aria-current')).toBe('true');
+    expect(rows.find((row) => row.tabIndex === 0)!.getAttribute('aria-selected')).toBe('true');
   });
 
   it('is two rows of the key catalogue on the page scope, listed on the sheet and in Settings', () => {

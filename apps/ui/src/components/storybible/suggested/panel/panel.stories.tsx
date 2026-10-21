@@ -3,11 +3,12 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import type { ExtractionScanJob, ExtractionSuggestion } from '../../../../api/contracts/extraction';
 import { createMockApi } from '../../../../api/mockApi';
+import { Table, TableBody } from '../../../primitives/Table';
+import { ActionsMenu } from '../../ActionsMenu';
 import { EntryVerifyPill } from './EntryVerifyPill';
-import { ImportButton } from './ImportButton';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
 import { NeedsVerificationChip } from './NeedsVerificationChip';
-import { ScanButton, ScanStatus } from './ScanButton';
+import { ScanStatus } from './ScanStatus';
 import { unattached } from '../row/selectors';
 import type { ExtractionScan } from './useSuggestions';
 
@@ -81,9 +82,11 @@ function Loose({ pick }: { pick?: boolean }) {
   if (!list) return null;
   return (
     <Surface>
-      <ul>
-        <LooseSuggestionRows suggestions={list} selectedId={pick ? (chosen ?? list[0]?.id ?? null) : chosen} onSelect={setChosen} />
-      </ul>
+      <Table label="Suggestions with no entry yet">
+        <TableBody>
+          <LooseSuggestionRows suggestions={list} selectedId={pick ? (chosen ?? list[0]?.id ?? null) : chosen} columns={6} onSelect={setChosen} />
+        </TableBody>
+      </Table>
     </Surface>
   );
 }
@@ -117,9 +120,10 @@ const scanStory = (scan: ExtractionScan): Story => ({
   render: () => (
     <Surface>
       <div className="flex items-start gap-2">
-        <ScanButton scan={scan} />
-        <ScanStatus scan={scan} />
-        <ImportButton onImport={fn()} />
+        <ActionsMenu scan={scan} onImport={fn()} onVoiceData={fn()} />
+        <div className="min-w-0 flex-1">
+          <ScanStatus scan={scan} />
+        </div>
       </div>
     </Surface>
   ),
@@ -128,7 +132,7 @@ const scanStory = (scan: ExtractionScan): Story => ({
 export const ScanIdle: Story = {
   ...scanStory(scanOf(job({}))),
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Scan the manuscript for suggestions' })).not.toHaveAttribute('aria-busy');
+    await expect(within(canvasElement).getByRole('button', { name: 'More actions' })).toBeVisible();
     await expect(within(canvasElement).queryByRole('button', { name: 'Cancel scan' })).toBeNull();
   },
 };

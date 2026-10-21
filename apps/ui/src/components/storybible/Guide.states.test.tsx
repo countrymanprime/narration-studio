@@ -12,6 +12,7 @@ import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
 import type { GuideEntity } from '../../types';
+import { cellsOf, entryRows, entryTable, rowName, rowNames } from './entryTableTestKit';
 import { Guide } from './Guide';
 
 afterEach(cleanup);
@@ -43,8 +44,7 @@ const entry = (id: string, name: string, over: Partial<GuideEntity> = {}): Guide
   aliases: [],
   ...over,
 });
-const rows = () => within(screen.getByRole('list', { name: 'Story Bible entries' })).queryAllByRole('button');
-const rowNames = () => rows().map((row) => row.querySelector('[data-line="name"]')!.textContent);
+const rows = entryRows;
 
 // A story-bible job ending anywhere in the app reloads the entries: the page's one reload trigger that is not a decision.
 function endStoryBibleJob(api: ReturnType<typeof createMockApi>): () => void {
@@ -109,17 +109,20 @@ describe('the list at its edges', () => {
     const api = createMockApi();
     vi.spyOn(api, 'guideEntities').mockResolvedValue([]);
     mount(api);
-    expect(await screen.findByText('No entries match.')).toBeTruthy();
+    // An empty book says so and where to start; it does not say a search found nothing.
+    expect(await screen.findByText(/^No entries yet\./)).toBeTruthy();
+    expect(screen.queryByText('No entries match.')).toBeNull();
     expect(rows()).toEqual([]);
   });
 
-  it('one entry is drawn with its singular counts', async () => {
+  it('one entry is drawn with its counts', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'guideEntities').mockResolvedValue([entry('solo', 'Solo')]);
     mount(api);
     await vi.waitFor(() => expect(rowNames()).toEqual(['Solo']));
     expect(rows()).toHaveLength(1);
-    expect(rows()[0].textContent).toMatch(/1 name/);
+    expect(cellsOf(rows()[0]!)[2]!.textContent).toBe('');
+    expect(cellsOf(rows()[0]!)[4]!.textContent).toMatch(/^\d+$/);
   });
 
   it('draws long, right-to-left, emoji and duplicate names without losing a row', async () => {
@@ -143,13 +146,14 @@ describe('the list at its edges', () => {
     expect(document.querySelector('img[src="x"]')).toBeNull();
   });
 
-  it('a huge book (3,000 entries) draws every row and a search still narrows it', async () => {
+  it('a huge book (3,000 entries) draws the rows in view, counts them all, and a search still narrows it', async () => {
     const list = Array.from({ length: 3000 }, (_, index) => entry(`e${index}`, `Entry ${index}`));
     const api = createMockApi();
     vi.spyOn(api, 'guideEntities').mockResolvedValue(list);
     mount(api);
-    await vi.waitFor(() => expect(rows()).toHaveLength(3000), { timeout: 15000 });
-    expect(rows()).toHaveLength(3000);
+    await vi.waitFor(() => expect(screen.getByRole('table', { name: 'Story Bible entries' }).getAttribute('aria-rowcount')).toBe('3001'), { timeout: 15000 });
+    expect(rows().length).toBeGreaterThan(0);
+    expect(rows().length).toBeLessThan(100);
     fireEvent.change(screen.getByRole('textbox', { name: 'Search entries' }), { target: { value: 'Entry 2999' } });
     expect(rowNames()).toEqual(['Entry 2999']);
   }, 60000);
@@ -172,7 +176,7 @@ describe('the list at its edges', () => {
 
 describe('a new entry', () => {
   const addEntity = async () => {
-    await userEvent.click(await screen.findByRole('button', { name: 'Add entity' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
     return (await screen.findByDisplayValue(/New entity/)) as HTMLInputElement;
   };
   const chooseCharacter = async () => {
@@ -204,7 +208,7 @@ describe('a new entry', () => {
     const api = createMockApi();
     mount(api);
     await screen.findAllByText('Alice');
-    const add = await screen.findByRole('button', { name: 'Add entity' });
+    const add = await screen.findByRole('button', { name: 'Add entry' });
     await userEvent.dblClick(add);
     expect(screen.getAllByDisplayValue(/New entity/)).toHaveLength(1);
   });
@@ -269,7 +273,7 @@ describe('stale and leaving mid-action', () => {
     const reload = endStoryBibleJob(api);
     mount(api);
     await screen.findAllByText('Alice');
-    fireEvent.click(rows().find((row) => row.textContent?.startsWith('Hatter'))!);
+    fireEvent.click(rows().find((row) => rowName(row) === 'Hatter')!);
     await screen.findByRole('heading', { name: 'Hatter' });
     read.mockResolvedValue(all.filter((entry) => entry.canonical_name !== 'Hatter'));
     reload();
@@ -292,7 +296,7 @@ describe('the entries are being read', () => {
     expect(region()?.getAttribute('aria-busy')).toBe('true');
     expect(within(region()!).getByRole('status').textContent).toBe('Reading the Story Bible…');
     expect(screen.queryByText('No entries match.')).toBeNull();
-    expect(screen.queryByRole('list', { name: 'Story Bible entries' })).toBeNull();
+    expect(screen.queryByRole('table', { name: 'Story Bible entries' })).toBeNull();
     await new Promise((resolve) => setTimeout(resolve, 60));
     expect(region()).toBeTruthy();
   });
@@ -301,14 +305,14 @@ describe('the entries are being read', () => {
     mount(createMockApi());
     await screen.findAllByText('Alice');
     expect(region()).toBeNull();
-    expect(screen.getByRole('list', { name: 'Story Bible entries' })).toBeTruthy();
+    expect(entryTable()).toBeTruthy();
   });
 
-  it('says "No entries match." only once the read has ended with none', async () => {
+  it('says the book is empty only once the read has ended with none', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'guideEntities').mockResolvedValue([]);
     mount(api);
-    expect(await screen.findByText('No entries match.')).toBeTruthy();
+    expect(await screen.findByText(/^No entries yet\./)).toBeTruthy();
     expect(region()).toBeNull();
   });
 
