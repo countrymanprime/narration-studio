@@ -100,3 +100,39 @@ describe('WorkDialog', () => {
     expect(classes.filter((c) => /^(animate|transition)-/.test(c))).toEqual([]);
   });
 });
+
+describe('WorkDialog live activity', () => {
+  // jsdom lays nothing out, so a log box reports the size the test gives it.
+  const sized = (box: HTMLElement, scrollHeight: number, clientHeight = 100) => {
+    Object.defineProperty(box, 'scrollHeight', { configurable: true, value: scrollHeight });
+    Object.defineProperty(box, 'clientHeight', { configurable: true, value: clientHeight });
+  };
+  const logBox = () => screen.getByText('first').parentElement!;
+  const withLogs = (logs: string[]) => <WorkDialog title="Import manuscript" job={job({ logs })} close={vi.fn()} cancel={vi.fn()} />;
+
+  it('follows the newest line, so the log moves while a job runs', () => {
+    const view = render(withLogs(['first']));
+    const box = logBox() as HTMLElement;
+    sized(box, 500);
+    view.rerender(withLogs(['first', 'second']));
+    expect(box.scrollTop).toBe(500);
+    sized(box, 800);
+    view.rerender(withLogs(['first', 'second', 'third']));
+    expect(box.scrollTop).toBe(800);
+  });
+
+  it('stops following once the narrator scrolls up to read, and follows again when they return to the bottom', () => {
+    const view = render(withLogs(['first']));
+    const box = logBox() as HTMLElement;
+    sized(box, 500);
+    box.scrollTop = 0;
+    fireEvent.scroll(box);
+    view.rerender(withLogs(['first', 'second']));
+    expect(box.scrollTop).toBe(0);
+    box.scrollTop = 400;
+    fireEvent.scroll(box);
+    sized(box, 900);
+    view.rerender(withLogs(['first', 'second', 'third']));
+    expect(box.scrollTop).toBe(900);
+  });
+});
