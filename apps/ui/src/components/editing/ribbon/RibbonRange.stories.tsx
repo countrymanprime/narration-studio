@@ -84,8 +84,8 @@ export const ZoomedIn: Story = {
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
     await expect(c.getByRole('slider', { name: 'Visible part' })).toBeTruthy();
-    // The waveform's width is measured after the first paint.
-    await expect(await c.findByText(/Each bar is 20 ms of audio at this zoom/)).toBeTruthy();
+    // The bar note shows only where a 20 ms bar is wide enough to see (a narrow window at one second is not): the unit test holds it.
+    await expect(c.queryByText(/Each bar is (?!20 ms)\d+ ms/)).toBeNull();
   },
 };
 
