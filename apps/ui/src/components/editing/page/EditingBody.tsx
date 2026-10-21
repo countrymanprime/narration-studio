@@ -19,7 +19,6 @@ import { useCleanupDeps } from '../cleanup/useCleanupDeps';
 import { Drawer, flagTotal } from '../drawer/Drawer';
 import { DrawerLayout } from '../drawer/DrawerLayout';
 import { resolveTab, tabsFor, type DrawerTab } from '../drawer/drawerTabs';
-import { useDrawerCommands } from '../drawer/useDrawerCommands';
 import { useTabCounts } from '../drawer/useTabCounts';
 import { effectsCount } from '../effects/EffectsTab';
 import { registerEffectsSection } from '../effects/registerEffectsSection';
@@ -74,6 +73,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
+import { useEditingActionCommands } from './useEditingPageCommands';
 import { useRecordingCheck } from './useRecordingCheck';
 import { ScriptNotesProvider } from '../script/paragraphNotes';
 import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
@@ -355,7 +355,6 @@ export function EditingBody(props: EditingBodyProps) {
   const offered = tabsFor(backups, stripFits);
   const tab = resolveTab(panels.drawer.want, offered);
   const tabCounts = useTabCounts(chapterId, backups);
-  useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
   const fxMarkers = useMemo(
     () => ({ effects: read.effects, onSelect: (f: WordFx) => void selectWords(f.keys), onRemove: (f: WordFx) => void fx.remove(f) }),
@@ -434,6 +433,8 @@ export function EditingBody(props: EditingBodyProps) {
       chapterStep,
     },
   });
+
+  useEditingActionCommands({ doc, selected, cuts: read.cuts, cut, fx, checkRecording: check.open, tabs: offered, openTab, keymap });
 
   // The keys hook binds nothing for a chapter with no text, so the page keeps the chapter step working there.
   const empty = doc.items.length === 0;

@@ -8,7 +8,6 @@ import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
-import { providedCommands } from '../../../input/commandProviders';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
 import { EditingPageProvider } from '../script/EditingPageState';
@@ -18,7 +17,6 @@ import { DrawerLayout } from './DrawerLayout';
 import { registerDrawerSection } from './drawerSections';
 import { backupsOffered, resolveTab, STRIP_MIN_WIDTH, tabsFor } from './drawerTabs';
 import { useBackupsOffered, useDrawerState, useStripFits } from './useDrawer';
-import { useDrawerCommands } from './useDrawerCommands';
 
 afterEach(() => {
   cleanup();
@@ -39,7 +37,6 @@ function Harness({ width, onReview = () => {}, children }: { width: number; onRe
   const fits = useStripFits();
   const backups = useBackupsOffered();
   const d = useDrawerState(fits, backups);
-  useDrawerCommands(d.offered, d.openTab);
   return (
     <div style={{ width }} data-width={width}>
       <button type="button" id="drawertoggle" onClick={d.toggle}>
@@ -261,22 +258,6 @@ describe('sections-register-by-tab-and-order', () => {
     await open();
     await userEvent.click(screen.getByRole('tab', { name: /Effects/ }));
     expect(within(screen.getByRole('tabpanel')).queryAllByRole('region')).toHaveLength(0);
-  });
-});
-
-describe('jump-menu-commands', () => {
-  it('offers Editing: Clean up, Effects and Backups (when offered) and each opens the drawer on its tab', async () => {
-    mount(1280);
-    await waitFor(() => expect(providedCommands().map((c) => c.label)).toEqual(['Editing: Clean up', 'Editing: Effects', 'Editing: Backups']));
-    act(() =>
-      providedCommands()
-        .find((c) => c.label === 'Editing: Effects')!
-        .run(),
-    );
-    expect(screen.getByRole('tab', { name: /Effects/ }).getAttribute('aria-selected')).toBe('true');
-    cleanup();
-    mount(1280, withBackups('unsupported'));
-    expect(providedCommands().map((c) => c.label)).toEqual(['Editing: Clean up', 'Editing: Effects']);
   });
 });
 

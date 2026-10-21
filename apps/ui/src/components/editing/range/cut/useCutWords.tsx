@@ -36,6 +36,8 @@ export interface CutWords {
   /** The Delete and M key handlers for `useEditingKeys`, on the page's selection. */
   remove: () => void;
   mute: () => void;
+  /** Why Delete and Mute are off for a selection, or ''. */
+  refusalOf: (summary: SelSummary) => string;
 }
 
 const NO_ANSWER = 'Could not ask the DAW what it can do.';
@@ -219,5 +221,5 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
 
   const remove = useCallback(() => ask(selected, false), [ask, selected]);
   const mute = useCallback(() => ask(selected, true), [ask, selected]);
-  return { plan, ask, restore, remove, mute };
+  return { plan, ask, restore, remove, mute, refusalOf };
 }
