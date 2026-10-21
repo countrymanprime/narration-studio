@@ -20,6 +20,19 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'output-popover',
+    description:
+      'Editing, the Output button pressed - the popover over the bar with the speed, the volume, the output device and the DAW’s monitor level, and the silence button beside it',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'output-no-outputs',
+    description: 'Editing, the Output popover on a computer that names no outputs - the device choice is off with its reason and Check again',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
     state: 'delete-dialog',
     description: 'Editing, Delete on four selected words - the question names how many words and their audio go, and what the DAW will do',
   },
