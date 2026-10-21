@@ -14,7 +14,7 @@ const MARKS_GROUP = 'My marks';
 const WORDS_GROUP = 'My words';
 
 /** Matches the menu lists before one row says how many more there are. */
-export const MANUSCRIPT_SHOWN = 50;
+const MANUSCRIPT_SHOWN = 50;
 const MARKS_SHOWN = 5;
 /** Characters of a mark's note kept in its title. */
 const NOTE_SHOWN = 48;

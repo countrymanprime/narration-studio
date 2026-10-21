@@ -6,7 +6,7 @@ import type { IconName } from '../../icons.catalog';
 // and filter them. The component holds only the typed term, the group and the active row.
 
 /** Where a row came from, which is also its rank: the page's own items, then the page's search hits, then the global commands. */
-export type Source = 'page' | 'hit' | 'command';
+type Source = 'page' | 'hit' | 'command';
 
 /** A group a row opens: a page group or a global command group. */
 export type GroupRef = { source: 'page' | 'command'; name: string };
@@ -37,7 +37,7 @@ export type Entry = {
 export const PAGE_HEADING = 'On this page';
 export const COMMANDS_HEADING = 'Commands';
 /** The group of a page item that names none. */
-export const DEFAULT_PAGE_GROUP = 'Actions';
+const DEFAULT_PAGE_GROUP = 'Actions';
 
 export const pageHeading = (group: string) => `${PAGE_HEADING} · ${group}`;
 
@@ -77,13 +77,13 @@ export function pageGroupRows(entries: readonly Entry[]): Entry[] {
 const textOf = (entry: Entry) =>
   `${entry.title} ${entry.source === 'page' ? entry.groupName : ''} ${entry.hint ?? ''} ${entry.keywords?.join(' ') ?? ''}`.toLowerCase();
 
-export const matches = (entry: Entry, tokens: readonly string[]) => {
+const matches = (entry: Entry, tokens: readonly string[]) => {
   const text = textOf(entry);
   return tokens.every((token) => text.includes(token));
 };
 
 /** A title that starts with the term before one that only holds it; the order inside each stays the source's. */
-export function startsFirst<T extends { title: string }>(rows: readonly T[], term: string): T[] {
+function startsFirst<T extends { title: string }>(rows: readonly T[], term: string): T[] {
   const lead = (row: T) => (row.title.toLowerCase().startsWith(term) ? 0 : 1);
   return rows
     .map((row, index) => ({ row, index }))

@@ -4,9 +4,6 @@
 
 import type { ScriptViewState } from '../../data/scriptView';
 
-/** The search showing in the reader. */
-export type FindState = { open: boolean; q: string; i: number };
-
 type Patch = (state: ScriptViewState) => Partial<ScriptViewState>;
 
 /** Shows the search for `term` with the match at `index` current. */

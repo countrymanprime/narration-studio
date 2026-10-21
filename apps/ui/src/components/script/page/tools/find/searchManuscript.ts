@@ -4,7 +4,7 @@
 import type { ManuscriptParagraph } from '../../../../../api/contracts/manuscript';
 
 /** A term shorter than this (after trimming) searches nothing. */
-export const MIN_FIND_LENGTH = 2;
+const MIN_FIND_LENGTH = 2;
 
 /** Text around a match, split so the match can be marked. */
 export type FindSnippet = { pre: string; hit: string; post: string };
