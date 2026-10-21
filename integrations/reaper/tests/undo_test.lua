@@ -5,9 +5,9 @@
 
 local H = require('harness')
 
-local CUT = 'Narration Utils: delete words'
+local CUT = 'Narration Studio: delete words'
 local FOREIGN = 'Move items'
-local OTHER_OURS = 'Narration Utils: repair clicks'
+local OTHER_OURS = 'Narration Studio: repair clicks'
 local RECORDING = 'REAPER is recording. Stop recording first.'
 local BAD_KIND = 'That is not an action this app can undo.'
 local BAD_STEPS = 'The number of undo steps must be a whole number from 1 to 12.'
@@ -71,7 +71,7 @@ end)
 H.test('last_action: another of the app own labels on top is other: only the exact label counts', function()
   local s, p = project()
   cut(s, p, 14, 16)
-  for _, label in ipairs({ OTHER_OURS, CUT .. ' ', 'narration utils: delete words', 'Narration Utils: delete' }) do
+  for _, label in ipairs({ OTHER_OURS, CUT .. ' ', 'narration utils: delete words', 'Narration Studio: delete' }) do
     narrator_edit(s, label)
     s:send('last_action', 'l1', 'cut_range')
     H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'cut_range', 'other' } }, label)
@@ -149,7 +149,7 @@ end)
 H.test('undo_last: another of the app own labels on top is never undone', function()
   local s, p = project()
   cut(s, p, 14, 16)
-  for _, label in ipairs({ OTHER_OURS, 'Narration Utils: delete words (2)', 'narration utils: delete words' }) do
+  for _, label in ipairs({ OTHER_OURS, 'Narration Studio: delete words (2)', 'narration utils: delete words' }) do
     narrator_edit(s, label)
     s:send('undo_last', 'u1', 'cut_range', '3')
     H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'cut_range', '3', '0' } }, label)

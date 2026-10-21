@@ -1111,6 +1111,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
         });
       },
     });
+    // The import closes itself when it finishes unless the narrator turned that off; this one reads the activity first.
+    await api.saveSettings('General', 'global', { close_import_when_done: 'false' });
     render(
       <ThemeProvider>
         <ApiProvider api={api}>
@@ -1131,13 +1133,18 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(preview).toHaveBeenCalledWith('mock-import', { markdownHeadingLevel: 1 });
     // The review says what was found and what the importer repaired; the log and progress bar belong to the commit dialog that follows.
     const review = within(screen.getByRole('alertdialog', { name: /^Import Alice\.docx/ }));
-    expect(review.getByText('DOCX · 240 paragraphs · 1 narration chapter.')).toBeTruthy();
-    expect(review.getByText(/1 repair made to the source/)).toBeTruthy();
+    const chips = within(review.getByLabelText('What was found'));
+    expect(chips.getByText('240 paragraphs')).toBeTruthy();
+    expect(chips.getByText('1 chapter')).toBeTruthy();
+    expect(chips.getByText('1 repair')).toBeTruthy();
+    fireEvent.click(review.getByRole('button', { name: /^Repairs/ }));
     expect(review.getByText(/had no gap between its number and title/)).toBeTruthy();
     expect(review.queryByText('Preview activity')).toBeNull();
     expect(document.querySelector('.progressbar')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Import reviewed manuscript' }));
+    // The review reads the saved setting when it opens; the box says so before the import is pressed.
+    await waitFor(() => expect(review.getByRole('checkbox', { name: 'Close when the import finishes' }).getAttribute('aria-checked')).toBe('false'));
+    fireEvent.click(screen.getByRole('button', { name: 'Import' }));
     const activity = await screen.findByRole('dialog', { name: 'Import manuscript' });
     expect(activity.querySelector('.progressbar')).toBeTruthy();
     expect(await screen.findByText('Writing the project-owned manuscript…')).toBeTruthy();

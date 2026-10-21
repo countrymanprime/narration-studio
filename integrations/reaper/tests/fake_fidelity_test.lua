@@ -125,7 +125,7 @@ H.test('a track not in fixed-lane mode reads I_FREEMODE 0 and one lane that play
 end)
 
 H.test('Undo_CanUndo2 names a closed block, and one Undo_DoUndo2 takes it off the history', function()
-  -- S0: the stamp block was the undo entry "Narration Utils: stamp manuscript line IDs" right after it closed, and one Undo
+  -- S0: the stamp block was the undo entry "Narration Studio: stamp manuscript line IDs" right after it closed, and one Undo
   -- undid it. Nothing to undo answering nil, and Undo_DoUndo2 answering 1, are the ReaScript reference's ("NULL if not",
   -- "nonzero if success"), not a run.
   local reaper_api, fake = api()
@@ -133,8 +133,8 @@ H.test('Undo_CanUndo2 names a closed block, and one Undo_DoUndo2 takes it off th
   H.eq(reaper_api.Undo_CanUndo2(0), nil)
   reaper_api.Undo_BeginBlock2(0)
   reaper_api.GetSetMediaItemInfo_String(item, 'P_EXT:narration_utils_line_id', 'line-000001', true)
-  reaper_api.Undo_EndBlock2(0, 'Narration Utils: stamp manuscript line IDs', -1)
-  H.eq(reaper_api.Undo_CanUndo2(0), 'Narration Utils: stamp manuscript line IDs')
+  reaper_api.Undo_EndBlock2(0, 'Narration Studio: stamp manuscript line IDs', -1)
+  H.eq(reaper_api.Undo_CanUndo2(0), 'Narration Studio: stamp manuscript line IDs')
   H.eq(reaper_api.Undo_DoUndo2(0), 1)
   H.eq(reaper_api.Undo_CanUndo2(0), nil)
   H.eq(reaper_api.Undo_DoUndo2(0), 0)
@@ -166,7 +166,7 @@ H.test('7.82/Linux: TakeFX_SetEnabled adds an undo point per change outside an u
   H.eq(fake.undo[1].label:match('^FX bypass toggle'), 'FX bypass toggle')
   reaper_api.Undo_BeginBlock2(0)
   reaper_api.TakeFX_SetEnabled(take, 0, false)
-  reaper_api.Undo_EndBlock2(0, 'Narration Utils: bypass effect', -1)
+  reaper_api.Undo_EndBlock2(0, 'Narration Studio: bypass effect', -1)
   H.eq(#fake.undo, 3, "inside a block the change is the block's own point")
-  H.eq(fake.undo[3].label, 'Narration Utils: bypass effect')
+  H.eq(fake.undo[3].label, 'Narration Studio: bypass effect')
 end)

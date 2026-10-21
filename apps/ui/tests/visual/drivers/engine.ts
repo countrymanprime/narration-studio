@@ -8,12 +8,6 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     await page.getByRole('table', { name: 'Chapter links' }).waitFor();
   },
-  'sync-activity': async (page) => {
-    await page.goto('/?mockChapterSync=activity');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await page.getByRole('button', { name: /^Undo: Linked/ }).waitFor();
-  },
   'from-tracks-link': async (page) => {
     await page.goto('/tracks');
     await settlePage(page);
@@ -124,7 +118,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Link chapters…');
-    const message = page.getByText(/Narration Utils script/).first();
+    const message = page.getByText(/Narration Studio script/).first();
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },

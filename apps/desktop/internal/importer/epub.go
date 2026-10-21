@@ -501,7 +501,7 @@ func epubWithProgress(filePath string, progress Progress) (Draft, error) {
 		notices = append(notices, fmt.Sprintf("No chapters were found in the table of contents or headings; the whole book was imported as one chapter, %q.", name))
 	}
 
-	progress.report(80, "Classifying front matter, chapters and reference sections")
+	progress.report(80, "Sorting chapters and reference sections")
 	draft, err := newDraft("epub", filepath.Base(filePath), paragraphs, titles, headingLevels, kindOverrides)
 	draft.Notices = notices
 	if err == nil {

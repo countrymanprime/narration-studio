@@ -1,9 +1,14 @@
 version: 2
+# Every entry sets `labels: [dependencies]` and nothing else. Without a `labels:` key Dependabot adds `dependencies` plus
+# its own per-ecosystem label (`javascript`, `python:uv`, `go`, `github_actions`), which duplicated the area scheme. The area
+# label (`area:ui`, `area:shell`, ...) comes from .github/labeler.yml by changed path, so it stays right when a bump
+# touches more than one project. Every name here must exist in .github/labels.json (a test enforces that).
 updates:
   # One npm entry covers the pnpm workspace, including apps/ui. A second entry for /apps/ui opened duplicate pull
   # requests that changed only apps/ui/package.json and failed the frozen-lockfile install, because Dependabot
   # cannot update the workspace lockfile from a member directory.
   - package-ecosystem: npm
+    labels: [dependencies]
     directory: /
     schedule:
       interval: weekly
@@ -21,6 +26,7 @@ updates:
       - dependency-name: typescript
         versions: [">=7.0.0"]
   - package-ecosystem: uv
+    labels: [dependencies]
     directory: /
     schedule:
       interval: weekly
@@ -31,6 +37,7 @@ updates:
       python-dependencies:
         update-types: [minor, patch]
   - package-ecosystem: gomod
+    labels: [dependencies]
     directory: /apps/desktop
     schedule:
       interval: weekly
@@ -41,6 +48,7 @@ updates:
       go-dependencies:
         update-types: [minor, patch]
   - package-ecosystem: github-actions
+    labels: [dependencies]
     directory: /
     schedule:
       interval: weekly

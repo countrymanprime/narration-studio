@@ -128,13 +128,12 @@ export const productionStates: StateEntry[] = [
   {
     page: 'production',
     state: 'import-review-subtitles-off',
-    description:
-      'Production, import review with "Read a heading\'s second line as its subtitle" turned off and one row turned back on: the other subtitles are joined to their titles',
+    description: "Production, import review with Subtitles turned off: every heading's second line is joined to its title and none is drawn on a second line",
   },
   {
     page: 'production',
     state: 'import-review-text-subtitle',
-    description: "Production, import review of a plain-text file with the first chapter's subtitle turned off: the epigraph under the heading is read as text",
+    description: 'Production, import review of a plain-text file with Subtitles turned off: the epigraph under the first heading is read as text',
   },
 
   {

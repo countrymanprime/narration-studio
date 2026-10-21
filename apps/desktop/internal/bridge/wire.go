@@ -200,6 +200,15 @@ var eventSpecs = map[string]eventSpec{
 	"UNDONE_LAST": {required: []fieldSpec{text("run"), text("kind"), count("steps"), count("undone")}},
 	// monitor_level (narration_levels.lua): the monitor level now held, a whole number from 0 to 100, read back after a set.
 	"MONITOR_LEVEL": {required: []fieldSpec{text("run"), count("level")}},
+	// set_cursor, play_from, stop_play and watch_transport (narration_transport.lua, the Editing page's transport sync): the edit cursor now held,
+	// the time the transport plays from, the edit cursor after a stop, and the lease granted in whole seconds. TRANSPORT is the stream a lease
+	// buys: a broadcast with an empty run, like PROJECT_STATUS, sent when the play state changes or the cursor moves and about four times a second
+	// while REAPER plays: playState is GetPlayState's bit field and the times are project seconds.
+	"CURSOR_SET":         {required: []fieldSpec{text("run"), number("cursor")}},
+	"TRANSPORT_PLAYING":  {required: []fieldSpec{text("run"), number("position")}},
+	"TRANSPORT_STOPPED":  {required: []fieldSpec{text("run"), number("cursor")}},
+	"TRANSPORT_WATCHING": {required: []fieldSpec{text("run"), count("lease")}},
+	"TRANSPORT":          {required: []fieldSpec{text("run"), count("playState"), number("playPosition"), number("editCursor")}},
 	// read_place and go_to (narration_track_select.lua): PLACE is the one selected track (guid empty when none or several), how many are
 	// selected and the edit cursor in seconds; PLACE_SET is the track now selected and the cursor now held, in seconds. Neither opens an undo block.
 	"PLACE":     {required: []fieldSpec{text("run"), text("guid"), count("selected"), number("cursor")}},

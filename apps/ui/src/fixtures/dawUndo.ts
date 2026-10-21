@@ -8,27 +8,27 @@ import { DAW_RESULT_MAX_UNDO_STEPS } from '../api/contracts/daw';
 /** The label each mocked DAW edit leaves on the history, as the Lua command closes its undo block. */
 export const MOCK_DAW_UNDO_LABELS = {
   /** narration_range.lua's UNDO_DELETE_WORDS (narration_bridge_core.lua's cut_range): delete_range, for a cut and a trim. */
-  cut: 'Narration Utils: delete words',
-  addChain: 'Narration Utils: add chain to range',
-  removeChain: 'Narration Utils: remove chain from range',
-  setParam: 'Narration Utils: change effect setting',
-  bypass: 'Narration Utils: bypass effect',
-  enable: 'Narration Utils: turn effect back on',
-  reduceGain: 'Narration Utils: lower stretches',
-  repairClicks: 'Narration Utils: repair clicks',
+  cut: 'Narration Studio: delete words',
+  addChain: 'Narration Studio: add chain to range',
+  removeChain: 'Narration Studio: remove chain from range',
+  setParam: 'Narration Studio: change effect setting',
+  bypass: 'Narration Studio: bypass effect',
+  enable: 'Narration Studio: turn effect back on',
+  reduceGain: 'Narration Studio: lower stretches',
+  repairClicks: 'Narration Studio: repair clicks',
   /** narration_takes.lua */
-  hideTakes: 'Narration Utils: hide other takes',
-  stack: 'Narration Utils: stack takes',
-  unstack: 'Narration Utils: unstack takes',
-  split: 'Narration Utils: split take',
+  hideTakes: 'Narration Studio: hide other takes',
+  stack: 'Narration Studio: stack takes',
+  unstack: 'Narration Studio: unstack takes',
+  split: 'Narration Studio: split take',
   /** narration_workspace.lua */
-  useTake: 'Narration Utils: use take',
+  useTake: 'Narration Studio: use take',
   /** narration_navigation.lua */
-  addMarker: 'Narration Utils: add approved marker',
+  addMarker: 'Narration Studio: add approved marker',
   /** narration_pickups.lua */
-  importPickups: 'Narration Utils: import pickups',
-  resolvePickup: 'Narration Utils: resolve pickup',
-  reopenPickup: 'Narration Utils: reopen pickup',
+  importPickups: 'Narration Studio: import pickups',
+  resolvePickup: 'Narration Studio: resolve pickup',
+  reopenPickup: 'Narration Studio: reopen pickup',
 } as const;
 
 /** The one label each action kind may undo (narration_bridge_core.lua's table). */

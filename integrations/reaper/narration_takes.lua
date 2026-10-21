@@ -159,15 +159,15 @@ local function hide_takes(session_dir, run_id, item_text, keep_text)
     reaper.SetActiveTake(keep)
   end
   reaper.UpdateItemInProject(item)
-  reaper.Undo_EndBlock2(0, 'Narration Utils: hide other takes', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: hide other takes', -1)
   reaper.UpdateArrange()
   event(session_dir, 'TAKES_HIDDEN', run_id, item_guid(item), #to_hide, 1)
 end
 
 -- stack_takes and unstack_takes ------------------------------------------------------------------------------------
 
-local UNDO_STACK = 'Narration Utils: stack takes'
-local UNDO_UNSTACK = 'Narration Utils: unstack takes'
+local UNDO_STACK = 'Narration Studio: stack takes'
+local UNDO_UNSTACK = 'Narration Studio: unstack takes'
 -- What a stacked take records: the read's item GUID, its take GUID, its track GUID, its start and its offset from the
 -- first read's start, '|'-separated.
 local STACK_KEY = 'P_EXT:narration_utils_stacked_from'
@@ -738,7 +738,7 @@ end
 
 -- split_take ------------------------------------------------------------------------------------------------------
 
-local UNDO_SPLIT = 'Narration Utils: split take'
+local UNDO_SPLIT = 'Narration Studio: split take'
 -- What the new take records: the item and take it was cut from and the cut's offset from the item's start, '|'-separated.
 local SPLIT_KEY = 'P_EXT:narration_utils_split_from'
 local SPLIT_UNREADABLE = 'The split request is not readable, so nothing changed.'

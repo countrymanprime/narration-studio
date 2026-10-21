@@ -103,6 +103,7 @@ def _args(tmp_path, manuscript, manifest, **overrides):
         "device": "cpu",
         "max_misread_run": None,
         "min_anchor_run": None,
+        "parallel_workers": 1,  # these tests read the run in item order; the pool has its own (test_coverage_pipeline.py)
     }
     values.update(overrides)
     return argparse.Namespace(**values)

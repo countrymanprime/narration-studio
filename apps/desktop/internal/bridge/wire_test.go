@@ -102,6 +102,12 @@ var realEvents = map[string][]string{
 	// integrations/reaper/tests/track_select_test.lua (read_place, go_to).
 	"PLACE":     {"PLACE", "p1", "{00000001-0000-4000-8000-000000000001}", "1", "12.5"},
 	"PLACE_SET": {"PLACE_SET", "g1", "{00000001-0000-4000-8000-000000000001}", "60"},
+	// integrations/reaper/tests/transport_sync_test.lua (set_cursor, play_from, stop_play, watch_transport). TRANSPORT is a broadcast: its run is empty.
+	"CURSOR_SET":         {"CURSOR_SET", "c1", "12.500000"},
+	"TRANSPORT_PLAYING":  {"TRANSPORT_PLAYING", "p1", "40.250000"},
+	"TRANSPORT_STOPPED":  {"TRANSPORT_STOPPED", "s1", "5.000000"},
+	"TRANSPORT_WATCHING": {"TRANSPORT_WATCHING", "w1", "5"},
+	"TRANSPORT":          {"TRANSPORT", "", "1", "2.000000", "9.500000"},
 	// integrations/reaper/tests/split_take_test.lua (split_take).
 	"TAKE_SPLIT": {"TAKE_SPLIT", "p1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "{00000001-0000-4000-8000-000000000001}", "15.500", "1"},
 }
@@ -282,6 +288,20 @@ func TestAProjectStatusHeartbeatCarriesAnOptionalTransport(t *testing.T) {
 	} {
 		if err := CheckEvent(bad); err == nil {
 			t.Fatalf("CheckEvent(%v) = nil, want an error for a transport field that is not a number", bad)
+		}
+	}
+}
+
+func TestATransportEventNeedsAPlayStateAndTwoNumbers(t *testing.T) {
+	for name, fields := range map[string][]string{
+		"no fields after the run":  {"TRANSPORT", ""},
+		"no cursor":                {"TRANSPORT", "", "1", "2.0"},
+		"a play state that is not": {"TRANSPORT", "", "playing", "2.0", "9.5"},
+		"a position that is not":   {"TRANSPORT", "", "1", "later", "9.5"},
+		"a cursor that is not":     {"TRANSPORT", "", "1", "2.0", "here"},
+	} {
+		if err := CheckEvent(fields); err == nil {
+			t.Errorf("%s must be refused", name)
 		}
 	}
 }

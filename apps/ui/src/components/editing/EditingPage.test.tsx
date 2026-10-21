@@ -756,7 +756,6 @@ describe('EditingPage', () => {
     // Cursor, card and playhead are gone; the old chapter's keys did not come back with it.
     expect(cursorKey()).toBeNull();
     expect(document.querySelector('[data-flagcard]')).toBeNull();
-    expect(bar().textContent).toContain('Click a word to place the cursor');
     expect(bar().textContent).toContain('0:00 /');
     // A selection does not survive a step either.
     fireEvent.mouseDown(word('p1:1'), { button: 0 });

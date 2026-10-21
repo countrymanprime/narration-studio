@@ -3,6 +3,8 @@ package coverage
 import (
 	"encoding/json"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -121,6 +123,45 @@ func TestAlignmentOfAChapterNeverCheckedAnswersNeverWithItsScript(t *testing.T) 
 	}
 	if len(view.Paragraphs) != 1 || view.Paragraphs[0] != (AlignmentParagraph{ID: "p-000001", Text: "Alice was beginning to get very tired."}) {
 		t.Fatalf("a never-checked chapter still reads its script: %+v", view.Paragraphs)
+	}
+}
+
+// A narrator reads the chapter's heading aloud, so the page sets the title and subtitle against what was heard: the view carries them, from
+// the manuscript, whether or not the chapter was ever checked. A credits row has no heading to read and carries none.
+func TestAlignmentCarriesTheChaptersTitleAndSubtitle(t *testing.T) {
+	p := newTestProject(t)
+	path := filepath.Join(p.dir, "narration-utils", "manuscript", "manuscript.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var data map[string]any
+	if err := json.Unmarshal(raw, &data); err != nil {
+		t.Fatal(err)
+	}
+	first := data["chapters"].([]any)[0].(map[string]any)
+	first["subtitle"] = "Down the Rabbit-Hole"
+	raw, err = json.Marshal(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	title, _ := first["title"].(string)
+	service := p.service(&fakeSidecar{results: alignedResults})
+
+	never := alignmentOf(t, service)
+	if never.Title != title || never.Subtitle != "Down the Rabbit-Hole" {
+		t.Fatalf("never checked: title %q subtitle %q, want %q and the subtitle", never.Title, never.Subtitle, title)
+	}
+	run(t, service, testRequest())
+	checked := alignmentOf(t, service)
+	if checked.Title != title || checked.Subtitle != "Down the Rabbit-Hole" {
+		t.Fatalf("checked: title %q subtitle %q", checked.Title, checked.Subtitle)
+	}
+	if title, subtitle := service.chapterHeading(CreditsChapterID("opening")); title != "" || subtitle != "" {
+		t.Fatalf("a credits row has no heading to read, got %q / %q", title, subtitle)
 	}
 }
 

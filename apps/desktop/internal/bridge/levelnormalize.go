@@ -223,5 +223,5 @@ func (c *LevelMatchClient) invalid(event Event, reason error) {
 	if event.RunID == "" {
 		return
 	}
-	c.finish(event.RunID, levelMatchAnswer{err: fmt.Errorf("REAPER sent an answer this app could not read (%v): import the Narration Utils script from this app's REAPER folder again", reason)})
+	c.finish(event.RunID, levelMatchAnswer{err: fmt.Errorf("REAPER sent an answer this app could not read (%v): import the Narration Studio script from this app's REAPER folder again", reason)})
 }

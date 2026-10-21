@@ -9,7 +9,7 @@
     "cleanup_tools": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "click_repair": {
@@ -60,7 +60,7 @@
     "heartbeat": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "input_level": {
@@ -78,7 +78,7 @@
     "line_identity": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "macro_render": {
@@ -90,7 +90,7 @@
     "markers": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "master_chain_read": {
@@ -108,13 +108,13 @@
     "navigate": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "pickups": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "project_read": {
@@ -124,7 +124,7 @@
     "project_state": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "punch": {
@@ -156,7 +156,7 @@
     "render_config": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "render_with_fx": {
@@ -168,13 +168,13 @@
     "retake_lanes": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "review": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "stack_takes": {
@@ -187,7 +187,7 @@
     "take_create": {
       "available": false,
       "level": "supported",
-      "message": "REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.",
+      "message": "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.",
       "reason": "standalone"
     },
     "takes": {
@@ -203,6 +203,12 @@
       "reason": "experimental_off"
     },
     "track_state": {
+      "available": false,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "reason": "experimental_off"
+    },
+    "transport_sync": {
       "available": false,
       "level": "experimental",
       "message": "Experimental: switched off in Settings.",

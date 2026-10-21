@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import { peaksWindow } from './peaksWindow';
 
@@ -50,5 +50,41 @@ describe('peaksWindow', () => {
   it('is null for an empty span or no columns', () => {
     expect(peaksWindow(peaks, 3, 3, 4)).toBeNull();
     expect(peaksWindow(peaks, 2, 3, 0)).toBeNull();
+  });
+});
+
+describe('peaksWindow decoding', () => {
+  it('decodes an entry once however many windows are taken from it', () => {
+    const peaks = entry([
+      [-10, 10],
+      [-20, 20],
+      [-30, 30],
+      [-40, 40],
+    ]);
+    const atob = vi.spyOn(globalThis, 'atob');
+    const a = peaksWindow(peaks, 2, 2.4, 4);
+    const b = peaksWindow(peaks, 2, 2.4, 2);
+    const c = peaksWindow(peaks, 2.1, 2.4, 3);
+    expect(atob).toHaveBeenCalledTimes(1);
+    expect(a).toEqual([
+      [-10, 10],
+      [-20, 20],
+      [-30, 30],
+      [-40, 40],
+    ]);
+    expect(b).toEqual([
+      [-20, 20],
+      [-40, 40],
+    ]);
+    expect(c).not.toBeNull();
+    atob.mockRestore();
+  });
+
+  it('decodes a new entry object again, so a changed chapter is never drawn from a stale cache', () => {
+    const atob = vi.spyOn(globalThis, 'atob');
+    peaksWindow(entry([[-1, 1]]), 2, 2.1, 1);
+    peaksWindow(entry([[-2, 2]]), 2, 2.1, 1);
+    expect(atob).toHaveBeenCalledTimes(2);
+    atob.mockRestore();
   });
 });

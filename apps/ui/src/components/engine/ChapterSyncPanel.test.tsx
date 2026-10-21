@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import { WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
 
 afterEach(cleanup);
@@ -87,24 +86,11 @@ describe('ChapterSyncPanel', () => {
     await screen.findByText(/^On · last synced .+ from the saved Alice\.rpp · 1 chapter linked automatically, 1 by you$/);
   });
 
-  it('lists the Sync activity, newest first, with Undo on a link sync made that still stands', async () => {
-    const api = createMockApi({}, { chapterSync: 'activity' });
-    const undo = vi.spyOn(api, 'chapterSyncUndo');
-    const notify = vi.fn();
-    const onChanged = vi.fn();
-    render(<ApiProvider api={api}>{<ChapterSyncPanel notify={notify} onChanged={onChanged} />}</ApiProvider>);
-    const heading = await screen.findByRole('heading', { name: 'Sync activity' });
-    const lines = Array.from(heading.parentElement!.querySelectorAll('li')).map((item) => item.textContent);
-    expect(lines).toHaveLength(3);
-    expect(lines[0]).toMatch(/ · Linked “Chapter 1” to .+ \(Undo\)$/);
-    expect(lines[1]).toMatch(/ · New track “Room tone”, not a chapter$/);
-    expect(lines[2]).toMatch(/ · First sync: 1 chapter linked$/);
-    fireEvent.click(screen.getByRole('button', { name: /^Undo: Linked “Chapter 1”/ }));
-    await waitFor(() => expect(undo).toHaveBeenCalledWith(WIRE_TRACKS_PROJECT.tracks[0].guid));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Link undone. Sync will not make it again.'));
-    expect(onChanged).toHaveBeenCalled();
-    // The link is gone, so its line no longer offers Undo.
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Undo:/ })).toBeNull());
+  it('does not list the Sync activity: that log is in Settings', async () => {
+    render(<ApiProvider api={createMockApi({}, { chapterSync: 'activity' })}>{<ChapterSyncPanel notify={() => {}} onChanged={() => {}} />}</ApiProvider>);
+    await screen.findByText(/On · last synced/);
+    expect(screen.queryByText('Sync activity')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Undo:/ })).toBeNull();
   });
 
   it('counts the tracks that are not chapters and says when REAPER holds unsaved changes', async () => {

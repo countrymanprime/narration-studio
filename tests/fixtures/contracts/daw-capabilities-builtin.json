@@ -205,6 +205,12 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
+    "transport_sync": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "undo_last": {
       "available": false,
       "level": "not_yet_available",

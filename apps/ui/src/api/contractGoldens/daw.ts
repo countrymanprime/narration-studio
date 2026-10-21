@@ -12,6 +12,7 @@ import {
   dawLastActionSchema,
   dawMonitorLevelSchema,
   dawPlaceSchema,
+  dawPositionSchema,
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
@@ -117,6 +118,13 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-place-refused.json': dawPlaceSchema,
   'daw-go-to-chapter-done.json': dawResultSchema,
   'daw-go-to-chapter-refused.json': dawResultSchema,
+  // DawTransportSync and daw_position_changed (internal/transportsync): a done and a refused answer, and the position event playing, recording and
+  // stopped with another project open.
+  'daw-transport-sync-ok.json': dawResultSchema,
+  'daw-transport-sync-refused.json': dawResultSchema,
+  'daw-position-playing.json': dawPositionSchema,
+  'daw-position-recording.json': dawPositionSchema,
+  'daw-position-stopped-other-project.json': dawPositionSchema,
   // narration-utils/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,

@@ -1973,6 +1973,15 @@ def main():
         help="With --coverage: report passages whose words Whisper gave a probability under this (0 to 1) as COVERAGE_UNSURE lines (default: none)",
     )
     ap.add_argument(
+        "--recheck-model",
+        default=None,
+        help="With --coverage and --unsure-below: pipeline the model cascade in this one process: as the first pass (--model) finishes each item, "
+        "this larger model re-checks its doubtful passages and splices them into the item's words file; one alignment runs when both are done",
+    )
+    ap.add_argument(
+        "--recheck-model-dir", default=None, help="With --recheck-model: the local, already-verified directory of that model (the host's asset manager)"
+    )
+    ap.add_argument(
         "--capabilities",
         action="store_true",
         help="Print every row this process has registered in ENGINES (batch ASR), by name (one JSON object: "
@@ -2092,6 +2101,10 @@ def _main_coverage(ap, args):
     if args.chunk_seconds < 0 or args.parallel_workers < 0:
         ap.error("--chunk-seconds and --parallel-workers cannot be negative")
 
+    if args.recheck_model and not args.unsure_below:
+        ap.error("--recheck-model needs --unsure-below above 0: the pipeline re-checks the passages the first pass doubts")
+    if args.recheck_model and (args.recheck or args.align_only):
+        ap.error("--recheck-model cannot be used with --recheck or --align-only")
     if args.recheck:
         if args.align_only:
             ap.error("--align-only cannot be used with --recheck")

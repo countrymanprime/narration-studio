@@ -49,8 +49,9 @@ export type CoveragePhase = 'idle' | 'running' | 'complete' | 'cancelled' | 'fai
 
 /** The one check the host runs at a time, or the last one that ended. Sent by CoverageState and the `coverage:state` event. */
 /** Which sidecar pass is running now: set only for a run that asked for a
- * re-check. "first_pass" is every run's own first launch; the other three only ever follow it. */
-export type CoveragePass = 'first_pass' | 'recheck_windows' | 'recheck_whole' | 'realign';
+ * re-check. "first_pass" is every run's own first launch, or "pipeline" when that launch also re-checks what it doubts with the
+ * larger model as it goes; the other three only ever follow it. */
+export type CoveragePass = 'first_pass' | 'pipeline' | 'recheck_windows' | 'recheck_whole' | 'realign';
 
 export type CoverageState = {
   runId?: string;

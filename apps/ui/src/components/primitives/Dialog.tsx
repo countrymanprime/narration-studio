@@ -31,6 +31,9 @@ type DialogProps = {
   // Draws no header row and no Close button, for a surface whose first row is its own field (the jump menu, D98). The title
   // still names the dialog, visually hidden; Escape closes through `onClose` or `onEscape`. The body has no padding.
   headerless?: boolean;
+  // false: the body does not scroll and is a column the content lays out itself, so a dialog with one long list can scroll just that list (the
+  // manuscript import review). Default true: the body scrolls when its content is tall.
+  bodyScroll?: boolean;
   // Whether a press on the backdrop (or anywhere outside the popup) calls `onClose`. Required, so each dialog decides (issue 1706):
   // true for reference or transient surfaces with nothing to lose (the shortcut sheet, a detail view, a picker that applies each
   // choice at once, the jump menu); false for a confirm, a form with input, or a job, where a stray click must not discard
@@ -81,6 +84,7 @@ export function Dialog({
   variant = 'dialog',
   size = 'default',
   headerless = false,
+  bodyScroll = true,
   dismissOnOutsidePress,
   actions,
   actionsAlign = 'between',
@@ -172,8 +176,8 @@ export function Dialog({
             {/* tabIndex: the body scrolls when content is tall, and a scrolling region must be reachable by keyboard. */}
             <div
               ref={bodyRef}
-              tabIndex={0}
-              className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto ${headerless ? '' : 'p-[1.1rem]'} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
+              tabIndex={bodyScroll ? 0 : undefined}
+              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : 'p-[1.1rem]'} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
               {hasContent(description) && (
                 <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="text-sm text-[var(--text-muted)]">

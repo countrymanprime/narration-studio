@@ -3,7 +3,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 
-const WORDS = '[data-script] [data-kind="w"][data-k]';
+// The text's words, not the chapter heading paragraph's.
+const WORDS = '[data-script] [data-pid]:not([data-pid="heading"]) [data-kind="w"][data-k]';
 const CHIP = '[data-tchip]';
 
 /** `TAG#id` of the focused element, or its accessible name when it has no id: what a failure should print. */
