@@ -6,6 +6,8 @@ import { clock } from '../../bar/clock';
 import { curTime, type CutSpan, type Range, type SelSummary } from '../../model';
 import { tokensOf, type RangeLocator } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';
+import { appliedSpan, subWordNote } from '../common/spanRequest';
+import type { Span } from '../../ribbon/rangeMath';
 
 /** The fade at each new split, in milliseconds (the mock's FX_FADE_MS). */
 export const FX_FADE_MS = 8;
@@ -106,6 +108,8 @@ export interface FxAsk {
   /** The plan said it needs that. */
   needsOver: boolean;
   fadeMs?: number;
+  /** The exact time range drawn on the waveform; the DAW still takes the words' tokens, so an edge inside a word is said so in the answer. */
+  span?: Span;
 }
 
 export interface FxDeps {
@@ -186,7 +190,8 @@ export function applyFxCommand(deps: FxDeps, plan: Acting, ask: FxAsk): Command<
           guid: `${chapterId}/${tokens.firstToken}-${tokens.lastToken}/${chain.id}`,
         });
         deps.onEffects(change.effects);
-        return { ok: true, value: { id: change.changed[0] ?? '', message } };
+        const note = ask.span ? subWordNote(ask.span, appliedSpan(range.items)) : '';
+        return { ok: true, value: { id: change.changed[0] ?? '', message: note ? `${message} ${note}` : message } };
       } catch (e) {
         return refusal('record_failed', viaDaw ? `${why(e)} ${plan.dawName} added the effect: undo it there (Edit > Undo).` : why(e));
       }

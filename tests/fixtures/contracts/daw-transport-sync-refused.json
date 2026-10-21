@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "REAPER does not have this book's project open, so its transport was left alone. Open the project in REAPER, then try again.",
+  "undoSteps": 0,
+  "refused": "REAPER does not have this book's project open, so its transport was left alone. Open the project in REAPER, then try again."
+}

@@ -27,6 +27,7 @@ import { buildWordMenu } from '../../menu/wordMenuRegistry';
 import { summarize, type ChapterDoc } from '../../model';
 import { EditingPageProvider, useEditingPage } from '../../script/EditingPageState';
 import { marksDoc } from '../../script/scriptFixtures';
+import { subWordNote } from '../common/spanRequest';
 import { docCutsOf } from '../common/locate';
 import { FxMarker } from './FxButtons';
 import { beforeFx, fxPlanFor, fxSpan, NEEDS_CONFIRM, NO_AUDIO, NO_BACKUP, ONLY_SAID, SPANS_TWO_PARAGRAPHS, SPANS_TWO_TAKES } from './fxCommand';
@@ -645,5 +646,17 @@ describe('over the cap or on top of an effect', () => {
     );
     expect(await command.run()).toEqual({ ok: false, refusal: { code: 'needs_confirm', reason: NEEDS_CONFIRM } });
     expect(dawStub.applyFxToRange).not.toHaveBeenCalled();
+  });
+
+  it('a range drawn on the waveform with an edge inside a word is a labelled preview in the question and in the answer, and the DAW still gets tokens', async () => {
+    mount();
+    await flush();
+    await act(async () => page.dispatch({ type: 'selectSpan', span: { start: 0.7, end: 1.2 }, anchor: 'p-1:0', head: 'p-1:1' }));
+    await openMenu();
+    fireEvent.click(menuItem('Podcast Voice.RfxChain'));
+    await screen.findByRole('dialog');
+    expect(dialogText('data-fx-subword')).toBe(subWordNote({ start: 0.7, end: 1.2 }, { start: 0.65, end: 1.25 }));
+    await confirmAdd();
+    expect(toastUndo.mock.calls[0][0]).toContain('Sub-word edge, shown as a preview');
   });
 });

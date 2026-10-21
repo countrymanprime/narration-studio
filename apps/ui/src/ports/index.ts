@@ -63,6 +63,7 @@ import type {
   DawUndoLastApi,
   DawLevelsApi,
   DawPlaceApi,
+  DawTransportSyncApi,
   DawStackTakesApi,
   MasterFilesApi,
 } from '../api/contracts/daw';
@@ -145,6 +146,7 @@ export type {
   DawUndoLastApi,
   DawLevelsApi,
   DawPlaceApi,
+  DawTransportSyncApi,
   DawBackupsApi,
   DawFilesApi,
   MasterFilesApi,
@@ -226,6 +228,7 @@ export interface PortMap {
   dawUndoLast: DawUndoLastApi;
   dawLevels: DawLevelsApi;
   dawPlace: DawPlaceApi;
+  dawTransportSync: DawTransportSyncApi;
   dawBackups: DawBackupsApi;
   dawFiles: DawFilesApi;
   masterFiles: MasterFilesApi;

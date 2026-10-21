@@ -165,10 +165,16 @@ describe('drawRibbon motion', () => {
     expect(live[40]).toBe(still[40]);
   });
 
-  it('decays away from the playhead: nearer bars are taller than further ones, on each side', () => {
-    const live = heights(moving(TOP_OF_BEAT));
-    for (let i = 20; i > 14; i -= 1) expect(live[i]).toBeGreaterThanOrEqual(live[i - 1]);
-    for (let i = 21; i < 23; i += 1) expect(live[i]).toBeGreaterThanOrEqual(live[i + 1]);
+  it('decays away from the playhead: over a beat the tallest each bar gets is lower the further it is, on each side', () => {
+    // The pulse is a wave, so at any one instant the bars are not in order of distance; over a whole beat the crest each one reaches is.
+    const tallest: number[] = [];
+    for (let t = 0; t < TOP_OF_BEAT * 2; t += 4) {
+      heights(moving(t)).forEach((h, i) => {
+        tallest[i] = Math.max(tallest[i] ?? 0, h);
+      });
+    }
+    for (let i = 20; i > 14; i -= 1) expect(tallest[i]).toBeGreaterThanOrEqual(tallest[i - 1]);
+    for (let i = 21; i < 25; i += 1) expect(tallest[i]).toBeGreaterThanOrEqual(tallest[i + 1]);
   });
 
   it('pulses: the same bar is a different height at different points of the beat', () => {

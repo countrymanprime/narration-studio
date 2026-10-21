@@ -103,6 +103,30 @@ clears the mark (with Undo in the message that confirms it).
 
 ![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and the line's audio](../../images/ui/editing-selection.webp)
 
+## Choosing a range on the waveform
+
+The line's audio under the cursor is also a place to choose by time. **Drag** on it to draw a range with a handle on each edge; the
+words it covers are selected in the script (a word is selected when the range lies over at least half of it), and selecting words in the
+script sets the range to their span. **Drag a handle** to move one edge, or **drag inside the range** to move all of it; a range
+stays inside the line and never gets narrower than 50 ms. Hold **Alt** while dragging to snap to the nearest word boundary (the start or
+end of any heard word). A tap without a drag puts the cursor on the word under it.
+
+With a handle focused, **←** and **→** move that edge by a hundredth of what is showing (at least 10 ms), **Shift** by ten times
+that, and **Alt** to the next word boundary. The handles are sliders named "Start of range" and "End of range"; each announces its time, the range, its length
+and its words, and the range is announced when it is set.
+
+**Zoom in** and **Zoom out** step the view from the whole line down to one second; **Ctrl+wheel** (or a trackpad pinch) zooms about the
+pointer, and a sideways wheel or **Shift+wheel** pans. A thin strip under a zoomed waveform pans by drag or by **←** and **→** (Shift for a
+whole window), with **+** and **-** zooming. The view follows the playhead; moving it by hand while the line plays stops that until playback
+stops. One second is the closest view because the host keeps 50 peaks a second, 20 ms each: closer, the picture would only get bigger. When
+a bar is wider than 10 px the waveform says what a bar is.
+
+**Delete** and **Add FX** still work on whole words, because the DAW takes a range as its first and last word. When an edge is inside a word, the line under the
+waveform names the word and how much of it the range covers, and the question before a cut or an effect shows "Sub-word edge, shown as a preview" with
+both ranges; the cut or effect goes on the whole words. Making it exact needs a time-based command in the DAW bridge, which is not built.
+
+![Editing - a range drawn on the line's waveform with an edge inside a word, zoomed in: the two handles, the pan strip, the partly covered word and the sub-word preview](../../images/ui/editing-range.webp)
+
 ## Deleting words and their audio
 
 **Delete words and audio** (Delete) asks first. The question names the words, where the cut starts and ends (moved to
@@ -226,6 +250,17 @@ timeline button (S) shows and hides; on a narrower window it is a tab of the dra
 ![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW](../../images/ui/editing-drawer-effects-inspector.webp)
 
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
+
+## Playing with REAPER
+
+With **Play and follow the project's transport** on (Settings > DAW; it is an experimental action, so it also needs Experimental DAW actions, or its own switch set to On) and REAPER open on this book's project, the page and REAPER's transport follow each other:
+
+- Clicking a word, or moving the cursor to it, puts REAPER's edit cursor at that word. Moving REAPER's edit cursor puts the page's cursor on the word there.
+- **Play** (Space) starts REAPER from the cursor and the app stays silent: the sound comes through REAPER's output and level. The lit word and the ribbon follow REAPER's play head, about four times a second. **Stop** stops both.
+- Pressing Play or Stop in REAPER lights the word it is on, or stops the page, the same way.
+- A word with no place in the project (the audio before a trim, a stretch after a cut, a gap between paragraphs) moves nothing, and REAPER's cursor on such a place moves nothing on the page.
+
+If REAPER refuses (it is recording, say), a message gives its reason and the app plays the audio itself, as it does when REAPER is not connected, has another project open, or the switch is off. If REAPER stops answering while it plays for the page, playback stops and says so.
 
 ## When the DAW is not connected
 

@@ -22,7 +22,7 @@ export interface DawPlayPositionOptions {
 }
 
 /** Whether the page is visible now, and on each change. */
-function useVisible(): boolean {
+export function useVisible(): boolean {
   const [visible, setVisible] = useState(() => document.visibilityState !== 'hidden');
   useEffect(() => {
     const on = (): void => setVisible(document.visibilityState !== 'hidden');

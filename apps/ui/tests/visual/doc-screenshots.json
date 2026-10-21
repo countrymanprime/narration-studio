@@ -631,6 +631,13 @@
   },
   {
     "page": "editing",
+    "state": "range",
+    "viewport": "desktop",
+    "docName": "editing-range",
+    "caption": "Editing - a range drawn on the line's waveform with an edge inside a word, zoomed in: the two handles, the pan strip, the partly covered word and the sub-word preview"
+  },
+  {
+    "page": "editing",
     "state": "delete-dialog",
     "viewport": "desktop",
     "docName": "editing-delete-dialog",
