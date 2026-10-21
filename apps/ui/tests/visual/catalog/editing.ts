@@ -20,6 +20,13 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'range',
+    description:
+      'Editing, a range drawn on the line’s waveform with an edge inside a word and the view zoomed in once - the handles, the pan strip, the partial word and the sub-word preview',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
     state: 'output-popover',
     description:
       'Editing, the Output button pressed - the popover over the bar with the speed, the volume, the output device and the DAW’s monitor level, and the silence button beside it',

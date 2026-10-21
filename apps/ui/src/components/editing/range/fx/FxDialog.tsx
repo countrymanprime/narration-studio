@@ -8,6 +8,8 @@ import { clock } from '../../bar/clock';
 import { summarize, type ChapterDoc, type CutSpan, type SelSummary } from '../../model';
 import { snapText, type RangeLocator, type SnappedEnd } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';
+import { SubWordRow } from '../common/SubWordRow';
+import type { Span } from '../../ribbon/rangeMath';
 import { FxPieces } from './FxPieces';
 import { FX_JOINS, fxButton, fxPlanText } from './fxText';
 import type { FxOver } from './fxCommand';
@@ -26,6 +28,8 @@ export interface FxDialogProps {
   chainId?: string;
   chapterName: string;
   locator: RangeLocator;
+  /** The exact range drawn on the waveform, when the words came from it: an edge inside a word is shown as a preview, since the DAW splits at whole words. */
+  span?: Span;
   /** Moves one end (seconds now) to a zero crossing through the alignment port. */
   snap: (at: number) => Promise<SnappedEnd>;
   /** What the snapped range comes to for "Add anyway": an overlap or the Effects tab's cap, or null. */
@@ -52,6 +56,7 @@ export function FxDialog({
   chainId,
   chapterName,
   locator,
+  span,
   snap,
   overOf,
   compareReason,
@@ -99,6 +104,7 @@ export function FxDialog({
         <dd className="m-0 font-mono" data-fx-split-at>
           {r ? `${clock(r.start)} and ${clock(r.end)} · ${sec(r.end - r.start)} in the middle` : '—'}
         </dd>
+        <SubWordRow span={span} items={sum.audible} attr="data-fx-subword" />
         {ends ? (
           <>
             <dt className="pt-0.5">
