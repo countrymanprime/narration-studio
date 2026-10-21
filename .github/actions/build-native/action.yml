@@ -45,20 +45,57 @@ runs:
     # The Windows setup program is compiled with NSIS by scripts/release/wails-build.mjs --installer (definition in
     # apps/desktop/build/windows/installer, docs/operations/ci-and-releases.md#the-windows-setup-program and 0200). The hosted runner does not ship makensis, so it is installed here at a
     # pinned version. The build fails if makensis is missing or no installer came out, so a runner image change cannot silently drop it.
+    # The first choice is the official NSIS zip from SourceForge, checked against a pinned SHA-256 (the digest SourceForge lists for the file);
+    # Chocolatey is the fallback, because its community feed answered 503 to every request for four minutes on 2026-10-19 and failed the build.
     - name: Install NSIS (makensis) for the Windows setup program
       if: inputs.platform == 'windows-x64'
       shell: bash
       env:
         NSIS_VERSION: 3.11.0
+        NSIS_ZIP_URL: https://downloads.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip
+        NSIS_ZIP_DIR: nsis-3.11
+        NSIS_ZIP_SHA256: c7d27f780ddb6cffb4730138cd1591e841f4b7edb155856901cdf5f214394fa1
       run: |
+        install_dir="/c/Program Files (x86)/NSIS"
+        install_from_zip() {
+          local zip="$RUNNER_TEMP/nsis.zip" unzipped="$RUNNER_TEMP/nsis-unzipped" attempt
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --location --max-time 180 --output "$zip" "$NSIS_ZIP_URL" \
+              && echo "$NSIS_ZIP_SHA256  $zip" | sha256sum --check --status; then
+              rm -rf "$unzipped"
+              powershell -NoProfile -Command "Expand-Archive -LiteralPath '$(cygpath -w "$zip")' -DestinationPath '$(cygpath -w "$unzipped")' -Force" || return 1
+              mkdir -p "$install_dir"
+              cp -R "$unzipped/$NSIS_ZIP_DIR/." "$install_dir/"
+              return 0
+            fi
+            echo "NSIS zip download or SHA-256 check failed (attempt $attempt of 3)"
+            sleep $((attempt * 10))
+          done
+          return 1
+        }
+        install_from_choco() {
+          # The feed answers 503 now and then and choco then says the version "may not exist"; a bounded retry rides out a short outage.
+          local attempt
+          for attempt in 1 2 3; do
+            choco install nsis --version="$NSIS_VERSION" --no-progress -y && return 0
+            echo "choco install nsis failed (attempt $attempt of 3)"
+            sleep $((attempt * 20))
+          done
+          return 1
+        }
         if command -v makensis > /dev/null 2>&1; then
           echo "makensis was already on PATH: $(command -v makensis)"
+        elif install_from_zip; then
+          echo "Installed NSIS $NSIS_VERSION from the official zip (SHA-256 $NSIS_ZIP_SHA256)"
         else
-          choco install nsis --version="$NSIS_VERSION" --no-progress -y
+          echo "::warning::The official NSIS zip could not be fetched and verified; falling back to Chocolatey"
+          install_from_choco || { echo "::error::Neither the official NSIS zip nor Chocolatey gave nsis $NSIS_VERSION"; exit 1; }
         fi
-        # The installer puts makensis in Program Files (x86); the build step below adds that folder to its own PATH.
-        PATH="$PATH:/c/Program Files (x86)/NSIS"
-        echo "makensis version: $(makensis -VERSION)"
+        # NSIS installs into Program Files (x86); the build step below adds that folder to its own PATH.
+        PATH="$PATH:$install_dir"
+        # An assignment, not an echo of the substitution: a missing or broken makensis fails this step here instead of later.
+        nsis_reported="$(makensis -VERSION)" || { echo "::error::makensis is not usable after the install"; exit 1; }
+        echo "makensis version: $nsis_reported"
     # The PyInstaller freeze of the three sidecars is a pure function of its inputs: the sidecar and shared Python sources, the locked
     # dependencies, the freeze script and the interpreter. The key hashes all of them, so a hit is the same freeze a cold run would make
     # (docs/operations/ci-and-releases.md "The sidecar freeze cache"). It is a build output, never a test verdict: the smoke test and
