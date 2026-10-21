@@ -127,9 +127,8 @@ changes nothing else: no undo point, and REAPER's own selection is all it touche
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
 
 **Remove from recording…**, under **Chapter**, takes a mis-imported heading (a part title, an
-epigraph, or front matter that was read in as a chapter) out of the pipeline, the totals, the reader
-and the Booth. Choose **Not a chapter** to hide it from navigation too, or **Front matter** to keep
-it in the manuscript's navigation without recording it. Nothing is deleted - its text stays in the
+epigraph or a false split that was read in as a chapter) out of the pipeline, the totals, the reader,
+the Booth and the navigation, as **Not a chapter**. Nothing is deleted - its text stays in the
 manuscript and its track link is cleared - and the last narration chapter can't be removed. A
 removed chapter is listed under **Removed from recording**, below the pipeline, with **Restore** to
 bring it back with its status and any notes intact.
@@ -307,40 +306,34 @@ it can import. If it cannot use the file, it says why under the zone; press **Ch
 
 ![Replace manuscript, step 1 of 2: Choose your manuscript, with the drop zone and Choose a file…](../../images/ui/production-import-choose.webp)
 
-Choosing the file opens step 2 of 2, **Check the chapter outline**. Each heading in the outline shows how many words it holds, and pressing its title shows how it begins in the preview beside the outline. The step previews the detected format,
-paragraph count, and proposed chapters before anything changes. Each section is named the way the
-manuscript writes its headings: a heading with a label shows the label in bold and the chapter's name
-after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8: Croquet"), and any other heading shows its
-subtitle after the title ("Chapter One — Down the Rabbit-Hole") when it had one, so you can check that
-the importer split the title from the subtitle where you meant it to. A long name is cut short in the
-row, and hovering it shows the whole line. If a heading's second line is not really a
-subtitle, clear that row's **Subtitle** box: a title that was wrapped onto two lines is joined back
-together ("The Girl Who Fell Through the Ice"), and in a plain-text file a line such as an epigraph
-goes back into the chapter's text so it is narrated (the row says it "is read as text"). The
-**Read a heading's second line as its subtitle** option in Import options does the same for every
-row at once; a row you changed by hand keeps your choice.
+Choosing the file opens step 2 of 2. The chips at the top count what was found: chapters, paragraphs,
+character suggestions and, when the importer repaired a heading, repairs. **Import options** come
+next, above the list so an open list never hides them. For a Markdown file it holds the chapter
+heading level (choosing another level reads the file again and drops the choices you made for the old
+sections). **Subtitles** reads a heading's second line as the chapter's subtitle for the whole book;
+turn it off and a title that was wrapped onto two lines is joined back together, and in a plain-text
+file a line such as an epigraph goes back into the chapter's text so it is narrated.
 
-![Import manuscript, step 2 of 2: Check the chapter outline, with each heading's words and a preview of how the selected one begins](../../images/ui/production-import-confirm.webp)
+![Import manuscript, step 2 of 2: the import options above one accordion of chapters, character suggestions and repairs, with a sample of the selected chapter below](../../images/ui/production-import-confirm.webp)
 
-The message at the top says what was found: the format, the number of paragraphs and of narration
-chapters, then how many front matter and reference sections, character suggestions and repairs the
-importer made. Only narration chapters, the sections that become audiobook chapters, count as
-chapters. When you are replacing a manuscript, the first line also says what will be cleared.
-Below it the sections are grouped by what each will be: **Narration chapters**,
-**Front matter** and **Reference material**. Change a row's kind and it moves to its new group at
-once, the group it moved into opens, the kind menu keeps the keyboard focus in its new place, and
-the counts follow. The small "i" next to Front matter and Reference material says what
-that kind is left out of (the audiobook totals and Proof, and for reference material the chapter
-list too) and that it stays readable in the manuscript. Groups that need a decision start open:
-front matter, reference material, the character suggestions once you uncheck one, and up to three
-repairs. More than eight narration chapters start closed, since a long list the importer got right
-needs no decision. Open or close any group with its heading. The character suggestions have Select
-all and Select none. If the importer had to repair a heading (a title and a subtitle that were run
-together), the repairs are listed at the end.
+**Chapters** lists every chapter the importer found in two columns, each with a switch to the left of
+its name. Switch a chapter off to leave it out of the recording. The chapter's subtitle sits under its
+name on a smaller, dimmer line, with the number of words under that. A heading with a label shows the
+label in bold and the chapter's name after it ("CHAPTER VIII. Croquet", "8. Croquet" or "Chapter 8:
+Croquet"). The book's title pages and reference material are never listed or asked about: they stay out of the
+chapters, and the title and author in them are offered when you set up the credits. The character
+suggestions are switches too, each with the number of times the character's first name appears in the
+story; **Select all** and **Select none** change them at once. **Review what was found** is always in
+view, and under it **Chapters**, **Character suggestions** and, when the importer repaired a heading,
+**Repairs** are an accordion in one bordered box: every group's header is always in view, and opening one
+closes the others, so the open group takes the room and scrolls (the only scroll bar), with the closed
+headers above and below it. Resting the pointer on a chapter shows how it begins in the sample
+pinned under the box, a fixed size so it never jumps, set in the same title and subtitle lines.
 
-The **Import options** group holds, for a Markdown file, the chapter heading level (choosing another
-level reads the file again and drops the choices you made for the old sections), then the subtitle
-option. The import dialog stays open with its activity log until you press Close. It does not build the Story Bible: open
+The footer has one secondary action, **Back**, and the import itself. The Close button at the top
+cancels. **Close when the import finishes** (on by default, an app setting also under Settings, App &
+updates) closes the import window as soon as the manuscript is written; turn it off to read the
+activity log until you press Close. The import does not build the Story Bible: open
 [Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
 
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its

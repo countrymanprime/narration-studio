@@ -94,7 +94,7 @@ func (s *Service) SetFindings(store *findings.Store, lookup ManuscriptLookup) {
 // handleInvalid ends the run in progress with a message that names the event and the field that could not be read (never a value).
 // The advice is the fix for the usual cause: the REAPER script the narrator imported is older or newer than this app.
 func (s *Service) handleInvalid(event dawport.Event, reason error) {
-	message := fmt.Sprintf("The Narration Utils script in REAPER sent a message this app could not read (%v). Import the script from this app's REAPER folder again, then start a new comparison.", reason)
+	message := fmt.Sprintf("The Narration Studio script in REAPER sent a message this app could not read (%v). Import the script from this app's REAPER folder again, then start a new comparison.", reason)
 	s.mu.Lock()
 	if !runInProgress(s.state) {
 		s.mu.Unlock()

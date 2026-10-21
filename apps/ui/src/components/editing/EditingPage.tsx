@@ -1,3 +1,4 @@
+import { usePrefetchPeaks } from './ribbon/useRibbonPeaks';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { chapterHeading } from '../../chapterHeading';
 import { CommandScope } from '../../input/router';
@@ -113,6 +114,11 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
 
   const list = useMemo(() => (chapters ?? []).map((c) => ({ id: c.id, name: headingName(c) })), [chapters]);
   const chapter = list.find((c) => c.id === chosen) ?? list[0];
+  // The other chapters' waveforms are read in the background, in order, and kept until the app closes.
+  usePrefetchPeaks(
+    list.map((c) => c.id),
+    chapter?.id,
+  );
   const choose = useCallback(
     (id: string) => {
       setChosen(id);

@@ -193,7 +193,7 @@
     "state": "import-confirm",
     "viewport": "desktop",
     "docName": "production-import-confirm",
-    "caption": "Import manuscript, step 2 of 2: Check the chapter outline, with each heading's words and a preview of how the selected one begins"
+    "caption": "Import manuscript, step 2 of 2: the import options above one accordion of chapters, character suggestions and repairs, with a sample of the selected chapter below"
   },
   {
     "page": "proof-chapter",

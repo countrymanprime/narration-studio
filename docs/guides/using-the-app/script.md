@@ -118,16 +118,17 @@ The reader follows the Light, Dark or System theme.
 Importing keeps the storytelling formatting from a Word, Markdown, plain-text or EPUB manuscript —
 italics, bold and underline — and line breaks inside a paragraph (verse, addresses), so the reader
 matches the original. Chapter titles and subtitles that Word (or an EPUB's own table of contents)
-stores separately are shown as a title with its subtitle. An EPUB's front matter, table of
+stores separately are shown as a title with its subtitle. An EPUB's title pages, table of
 contents and back matter (endnotes, glossary, and the like) are recognized from the book's own
-markup and kept out of the narration chapters, the same as a Word document's front matter. A
+markup and never imported as chapters; the title and author in them are offered when you set up
+the credits. A Word document's title pages are treated the same way. A
 plain-text file with no chapter markings, or an EPUB with no table of contents or headings,
 still imports as one narration chapter rather than failing or importing nothing narratable — the
 import log says so. Pages your manuscript heads as a Title Page, Half Title, Copyright, "Praise for…", "Also by…" or Opening Credits
-import as **Front matter**, because an audiobook doesn't read them. A Dedication, Epigraph, Foreword, Preface,
-Introduction, Prologue, Acknowledgements or About the Author stays a narration chapter, and you can change any
-row's kind in the import review. Front matter doesn't replace the Opening credits row below: that row stays above
-Chapter 1 unless the manuscript has its own chapter titled Opening Credits. Replace the manuscript (**Replace manuscript…** under Manuscript in [Settings](settings.md)) to pick this up in an older project.
+are not imported, because an audiobook doesn't read them; the title and author in them go to the credits. A Dedication,
+Epigraph, Foreword, Preface, Introduction, Prologue, Acknowledgements or About the Author stays a chapter, and you can
+switch any chapter off in the import review. Those pages don't replace the Opening credits row below: that row stays above
+Chapter 1. Replace the manuscript (**Replace manuscript…** under Manuscript in [Settings](settings.md)) to pick this up in an older project.
 
 **Opening credits** sit above the first chapter and **Closing credits** after the last chapter's text, when the
 credit template library (Settings, This Project, [Credits](settings.md#credits)) has an opening or a
@@ -147,11 +148,10 @@ words. Each credits card has a **Record in Booth** button once it has anything t
 The [retail sample](settings.md#retail-sample), once picked, is marked where it is: a **Retail sample**
 tag above each chapter it is in, and a bar in the margin beside each of its lines.
 
-A heading that isn't really a chapter (a part title, an epigraph, or front matter your source read in
+A heading that isn't really a chapter (a part title, an epigraph or a false split your source read in
 as one) is removed from recording from its track panel on [Production](production.md#a-chapters-track), not from here: choosing
-**Not a chapter** takes it out of this chapter list and search too, and **Front matter** keeps it in the
-list without recording it. Either way its text is untouched and **Restore** on Production brings it back as a
-narration chapter.
+**Not a chapter** takes it out of this chapter list and search too. Its text is untouched and **Restore** on Production brings it back as a
+chapter.
 
 ![Script, the retail sample marked on lines 1 to 3 of Chapter 3](../../images/ui/script-retail-sample.webp)
 

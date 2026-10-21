@@ -661,10 +661,10 @@ func TestOnSecondInstanceRefreshesSessionDirFromNewArgs(t *testing.T) {
 
 func TestWriteReaperLauncherPathRefreshesMovedExecutable(t *testing.T) {
 	root := t.TempDir()
-	if err := writeReaperLauncherPath(root, `C:\old\Narration Utils.exe`); err != nil {
+	if err := writeReaperLauncherPath(root, `C:\old\Narration Studio.exe`); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeReaperLauncherPath(root, `D:\moved\Narration Utils.exe`); err != nil {
+	if err := writeReaperLauncherPath(root, `D:\moved\Narration Studio.exe`); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(root, "reaper", "narration-utils-app-path.txt")
@@ -672,7 +672,7 @@ func TestWriteReaperLauncherPathRefreshesMovedExecutable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := string(bytes), "D:\\moved\\Narration Utils.exe\n"; got != want {
+	if got, want := string(bytes), "D:\\moved\\Narration Studio.exe\n"; got != want {
 		t.Fatalf("launcher target = %q, want %q", got, want)
 	}
 }

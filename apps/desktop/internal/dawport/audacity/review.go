@@ -144,7 +144,7 @@ func (r *Review) prepare(ctx context.Context, runID, project string) error {
 	}
 	manuscript := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
 	if _, err := os.Stat(manuscript); err != nil {
-		return errors.New("Import a manuscript in Narration Utils before starting Transcript Compare.") //nolint:staticcheck // a sentence the narrator reads
+		return errors.New("Import a manuscript in Narration Studio before starting Transcript Compare.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	tracks, err := r.session.client.Tracks(ctx)
 	if err != nil {

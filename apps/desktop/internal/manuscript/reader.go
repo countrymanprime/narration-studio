@@ -80,6 +80,9 @@ func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 	}
 	result := make([]map[string]any, 0, len(objects(data["chapters"])))
 	for _, chapter := range objects(data["chapters"]) {
+		if isFrontMatter(chapter) {
+			continue
+		}
 		payload := chapterPayload(chapter, notes, recorded, paragraphs, true)
 		if length, known := lengths[text(chapter, "id")]; known {
 			if length.Unavailable != "" {
@@ -91,6 +94,21 @@ func (s *Service) chapters(measure bool) ([]map[string]any, error) {
 		result = append(result, payload)
 	}
 	return result, nil
+}
+
+// isFrontMatter is a chapter an earlier import wrote for the book's front matter (contentKind "opening"). Front matter is never shown as a
+// chapter; the data stays in manuscript.json because the credits read the title and author from it.
+func isFrontMatter(chapter map[string]any) bool { return text(chapter, "contentKind") == "opening" }
+
+// frontMatterChapterIDs is the ids of the chapters isFrontMatter names, for the paragraphs under them.
+func frontMatterChapterIDs(data map[string]any) map[string]bool {
+	ids := map[string]bool{}
+	for _, chapter := range objects(data["chapters"]) {
+		if isFrontMatter(chapter) {
+			ids[text(chapter, "id")] = true
+		}
+	}
+	return ids
 }
 
 func (s *Service) Paragraphs(chapterID string) ([]map[string]any, error) {
@@ -116,10 +134,17 @@ func (s *Service) Reader() (map[string]any, error) {
 	recorded := s.recordedFractions()
 	chapters := []map[string]any{}
 	for _, chapter := range objects(data["chapters"]) {
+		if isFrontMatter(chapter) {
+			continue
+		}
 		chapters = append(chapters, chapterPayload(chapter, notes, recorded, nil, false))
 	}
+	hidden := frontMatterChapterIDs(data)
 	paragraphs := []map[string]any{}
 	for _, paragraph := range objects(data["paragraphs"]) {
+		if hidden[text(paragraph, "chapterId")] {
+			continue
+		}
 		paragraphs = append(paragraphs, paragraphPayload(paragraph))
 	}
 	return map[string]any{"chapters": chapters, "paragraphs": paragraphs, "notes": notes["notes"]}, nil
@@ -134,8 +159,12 @@ func (s *Service) Search(query string) ([]map[string]any, error) {
 		return nil, err
 	}
 	needle := strings.ToLower(query)
+	hidden := frontMatterChapterIDs(data)
 	result := []map[string]any{}
 	for _, paragraph := range objects(data["paragraphs"]) {
+		if hidden[text(paragraph, "chapterId")] {
+			continue
+		}
 		body := text(paragraph, "text")
 		byteOffset := strings.Index(strings.ToLower(body), needle)
 		if byteOffset < 0 {

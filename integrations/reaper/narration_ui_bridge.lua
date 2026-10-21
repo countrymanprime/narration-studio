@@ -1,4 +1,4 @@
--- File-session adapter for the React-owned Narration Utils workspace.
+-- File-session adapter for the React-owned Narration Studio workspace.
 -- No UI lives here: this module only reads REAPER selection state, applies
 -- take markers, and moves the edit cursor on commands from the Go host.
 --

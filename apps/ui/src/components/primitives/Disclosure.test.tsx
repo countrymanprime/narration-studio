@@ -31,6 +31,17 @@ function Harness({ startOpen = false, onOpenChange = () => {} }: { startOpen?: b
 }
 
 describe('Disclosure', () => {
+  it('puts panelClassName on the panel and keeps its title row out of the way of a scrolling panel', () => {
+    render(
+      <Disclosure title="Chapters" open onOpenChange={() => {}} panelClassName="min-h-0 flex-1 overflow-y-auto">
+        <p>Chapter One</p>
+      </Disclosure>,
+    );
+    const panel = screen.getByText('Chapter One').parentElement!;
+    expect(panel.className).toContain('overflow-y-auto');
+    expect(screen.getByRole('button', { name: 'Chapters' }).parentElement!.className).toContain('flex-none');
+  });
+
   it('is one button named for its title and summary, and collapsed it holds nothing of its panel', () => {
     render(<Harness />);
     const trigger = screen.getByRole('button', { name: 'Reference material 2 sections' });

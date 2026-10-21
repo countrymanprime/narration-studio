@@ -23,7 +23,7 @@ export const COVERAGE_REASON_TEXT: Record<CoverageReason, string> = {
   project_unreadable: 'The saved REAPER project file could not be read. Save it again in REAPER.',
   no_manuscript: 'Import a manuscript first.',
   chapter_not_found: 'This chapter is no longer in the manuscript.',
-  not_narration: 'Only narration chapters are checked, not front matter or reference sections.',
+  not_narration: 'Only chapters are checked, not reference sections.',
   unmapped: 'Link this chapter to the REAPER track it is recorded on first.',
   multiple_tracks: 'This chapter is linked to more than one REAPER track. Keep one link on the Tracks page.',
   mapped_track_missing: 'The REAPER track this chapter is linked to is no longer in the saved project. Clear the link and link it again on the Tracks page.',

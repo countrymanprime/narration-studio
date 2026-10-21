@@ -576,6 +576,18 @@ export const ROWS: readonly SettingMeta[] = [
     used: ['production', 'proof', 'master'],
   },
   {
+    id: 'app.importClose',
+    cat: 'app',
+    section: 'Importing',
+    label: 'Close the manuscript import when it finishes',
+    scope: 'computer',
+    def: 'true',
+    field: { tool: 'General', key: 'close_import_when_done' },
+    desc: 'Closes the import window as soon as the manuscript is written. Turn it off to read the import log first.',
+    used: ['production'],
+    syn: 'import dialog auto close finish complete',
+  },
+  {
     id: 'app.debug',
     cat: 'app',
     section: 'Diagnostics',

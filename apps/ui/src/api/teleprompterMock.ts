@@ -196,7 +196,7 @@ function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperSt
       return {
         status: 'unavailable',
         reason: 'standalone',
-        message: 'REAPER is not connected to this app. To record with reading, open this app from the Narration Utils action in REAPER.',
+        message: 'REAPER is not connected to this app. To record with reading, open this app from the Narration Studio action in REAPER.',
         playing: false,
         recording: false,
       };
@@ -218,7 +218,7 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 's
     return {
       outcome: 'refused',
       reason: 'standalone',
-      message: 'REAPER is not connected to this app. To record with reading, open this app from the Narration Utils action in REAPER.',
+      message: 'REAPER is not connected to this app. To record with reading, open this app from the Narration Studio action in REAPER.',
     };
   if (seed === 'experimental_off')
     return {

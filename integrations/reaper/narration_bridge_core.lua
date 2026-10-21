@@ -145,7 +145,7 @@ end
 -- (dawport's action kinds). narration_range.lua writes them and narration_undo.lua undoes only a point whose label is
 -- exactly one of them: the table is fixed here, so no string the host sends can widen what may be undone.
 local UNDO_LABELS = {
-  cut_range = 'Narration Utils: delete words',
+  cut_range = 'Narration Studio: delete words',
 }
 local function undo_label(kind)
   if type(kind) ~= 'string' then

@@ -298,7 +298,7 @@ func (h *Host) ProjectSwitch(path, name string) (string, error) {
 	return reportAttach(ctx, attached, reason)
 }
 
-// pickerSwitchDAW is the `daw` a picker switch attaches with. An Audacity launch (the installer's "Narration Utils for Audacity"
+// pickerSwitchDAW is the `daw` a picker switch attaches with. An Audacity launch (the installer's "Narration Studio for Audacity"
 // shortcut starts the app with `--daw Audacity` and no folder) stays one: the narrator's DAW is
 // still Audacity whichever folder they pick, and no bridge is tied to a project. Any other launch becomes "Standalone", a REAPER
 // one included, because the picked project is not the one REAPER has open.
@@ -532,7 +532,13 @@ func (h *Host) ManuscriptClearProjectData(confirmed bool) (string, error) {
 	}
 	// Clear project data removes the voice samples too (a replace keeps them), so a page that shows them must read again.
 	had := voiceSamplesPresent(h.services().config.projectFolder)
-	err := h.services().manuscript.Clear()
+	svc := h.services()
+	err := svc.manuscript.Clear()
+	if err == nil {
+		// The DAW connection is project data too: the link is dropped and, when the folder holds exactly one REAPER file, found again.
+		err = clearDawConnection(h.persist, svc.settings, svc.config.projectFolder)
+		h.pollDawCapabilities()
+	}
 	if err == nil && had {
 		h.emitVoiceSamplesChanged()
 	}

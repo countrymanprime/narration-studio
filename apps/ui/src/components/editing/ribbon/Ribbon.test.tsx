@@ -97,14 +97,23 @@ describe('Ribbon placement', () => {
     expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-2');
   });
 
-  it('prefers the cursor, then the selection head, then the playing word', async () => {
+  it('sits under the selection head when nothing is playing', async () => {
+    const doc = marksDoc();
+    page(doc, withPeaks(peaks(0, 20)), (d) => {
+      d({ type: 'select', anchor: 'p-1:0', head: 'p-1:2' });
+    });
+    click();
+    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-1'));
+  });
+
+  it('follows the playing paragraph while the text advances, without waiting for playback to stop', async () => {
     const doc = marksDoc();
     page(doc, withPeaks(peaks(0, 20)), (d) => {
       d({ type: 'select', anchor: 'p-1:0', head: 'p-1:2' });
       d({ type: 'play', t: (doc.paras[1].start ?? 0) + 0.05 });
     });
     click();
-    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-1'));
+    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-2'));
   });
 });
 
@@ -225,7 +234,7 @@ describe('Ribbon header', () => {
       return el as HTMLElement;
     });
     const mmss = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
-    expect(head.textContent).toBe(`T-7active take · ${mmss(para.start ?? 0)} to ${mmss(para.end ?? 0)}`);
+    expect(head.textContent).toBe(`T-7active take · ${mmss(para.start ?? 0)} to ${mmss(ribbonLayout(doc, 'p-2', [], null)!.t1)}`);
   });
   it('says recording, with a dash for the id, when the line has no take', async () => {
     const doc = marksDoc();

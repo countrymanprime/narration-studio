@@ -8,7 +8,7 @@ export type RadioOption<Value extends string> = { value: Value; label: ReactNode
  * A labelled choice of one from a short, named list (docs/design/design-system.md#base-ui-wrappers: Base UI styled with the app's tokens, never imported
  * directly by app code). Unlike Select, every option's label and its help text are always visible at once - for a
  * handful of options where seeing them side by side matters ("Not a chapter" versus
- * "Front matter" in the remove-from-recording confirm), not for a long list.
+ * "Keep for later" beside "Not a chapter"), not for a long list.
  */
 export function RadioGroup<Value extends string>({
   label,

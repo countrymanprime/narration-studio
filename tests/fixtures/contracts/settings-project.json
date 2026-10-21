@@ -738,6 +738,16 @@
     },
     {
       "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "true",
+      "isSet": false,
+      "key": "close_import_when_done",
+      "kind": "bool",
+      "label": "Close the manuscript import when it finishes",
+      "value": ""
+    },
+    {
+      "choices": null,
       "effectiveSource": "hardcoded",
       "effectiveValue": "",
       "isSet": false,

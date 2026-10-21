@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
+	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
@@ -47,7 +48,7 @@ type readAloudReaperState struct {
 }
 
 const (
-	messageReaperOff       = "REAPER is not connected to this app. To record with reading, open this app from the Narration Utils action in REAPER."
+	messageReaperOff       = "REAPER is not connected to this app. To record with reading, open this app from the Narration Studio action in REAPER."
 	messageExperimentalOff = "Reading REAPER's tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it."
 )
 
@@ -108,22 +109,27 @@ func readAloudReaperStateIn(ctx context.Context, svc hostServices, reader trackS
 }
 
 // chapterLinksFor is the chapter's display title and its confirmed track GUIDs, or an error for a chapter the manuscript
-// does not have.
+// does not have. The opening and closing credits count as chapters.
 func chapterLinksFor(svc hostServices, chapterID string) (string, []string, error) {
 	documentID, store, err := mappingContext(svc)
 	if err != nil {
 		return "", nil, err
 	}
-	chapters, err := svc.manuscript.ChaptersUnmeasured()
-	if err != nil {
-		return "", nil, err
-	}
 	title, found := "", false
-	for _, chapter := range chapters {
-		if id, _ := chapter["id"].(string); id == chapterID {
-			raw, _ := chapter["title"].(string)
-			title, found = displayTitle(raw), true
-			break
+	// The opening and closing credits are recorded like a chapter but are never in the manuscript's chapter list.
+	if kind, ok := coverage.CreditsKind(chapterID); ok {
+		title, found = creditsScriptTitles[kind], true
+	} else {
+		chapters, err := svc.manuscript.ChaptersUnmeasured()
+		if err != nil {
+			return "", nil, err
+		}
+		for _, chapter := range chapters {
+			if id, _ := chapter["id"].(string); id == chapterID {
+				raw, _ := chapter["title"].(string)
+				title, found = displayTitle(raw), true
+				break
+			}
 		}
 	}
 	if !found {

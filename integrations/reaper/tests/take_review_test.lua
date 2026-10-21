@@ -92,7 +92,7 @@ H.test('create_take adds a take, aligns D_STARTOFFS, writes provenance, and pres
   H.eq(new_take.ext[SOURCE_FILE_KEY], candidate_path)
   H.eq(new_take.ext[SOURCE_RANGE_KEY], '1.500000|4.500000')
 
-  H.eq(s.fake:undo_labels(), { 'Narration Utils: add take' })
+  H.eq(s.fake:undo_labels(), { 'Narration Studio: add take' })
   H.eq(s.fake.arrange_updates, 1)
 end)
 

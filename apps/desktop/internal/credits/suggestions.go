@@ -64,7 +64,9 @@ type manuscriptDoc struct {
 		ID          string `json:"id"`
 		ContentKind string `json:"contentKind"`
 	} `json:"chapters"`
-	Paragraphs []struct {
+	// FrontMatter is the lines the import set aside instead of writing a chapter for them: a title page, a byline, a copyright page.
+	FrontMatter []string `json:"frontMatter,omitempty"`
+	Paragraphs  []struct {
 		ChapterID string `json:"chapterId"`
 		Text      string `json:"text"`
 		Index     int    `json:"index"`
@@ -95,9 +97,15 @@ func readManuscriptDoc(projectFolder string) (manuscriptDoc, bool) {
 	return doc, true
 }
 
-// openingChapterLines returns the paragraph text of every "opening" content-kind chapter, in the manuscript's own
-// paragraph order - the whole front matter, not just a "Cover" section.
+// openingChapterLines returns the book's front matter: the lines the import set aside, then, for a manuscript imported before that, the
+// paragraph text of every "opening" content-kind chapter in the manuscript's own paragraph order - the whole front matter, not just a
+// "Cover" section.
 func openingChapterLines(doc manuscriptDoc) []string {
+	lines := append([]string(nil), doc.FrontMatter...)
+	return append(lines, legacyOpeningChapterLines(doc)...)
+}
+
+func legacyOpeningChapterLines(doc manuscriptDoc) []string {
 	openingChapters := map[string]bool{}
 	for _, chapter := range doc.Chapters {
 		if chapter.ContentKind == "opening" {
