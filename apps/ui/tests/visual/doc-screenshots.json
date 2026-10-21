@@ -798,6 +798,20 @@
     "caption": "The jump menu open over the page: type to find a page, a chapter or a command"
   },
   {
+    "page": "editing",
+    "state": "jump-menu",
+    "viewport": "desktop",
+    "docName": "nav-jump-menu-editing",
+    "caption": "Editing - the jump menu typed \"selected\": the selection actions under On this page, each off with its reason"
+  },
+  {
+    "page": "settings",
+    "state": "jump-menu",
+    "viewport": "desktop",
+    "docName": "nav-jump-menu-settings",
+    "caption": "Settings - the jump menu typed \"microphone\": the setting under its category in On this page"
+  },
+  {
     "page": "shell",
     "state": "zoom-level",
     "viewport": "desktop",

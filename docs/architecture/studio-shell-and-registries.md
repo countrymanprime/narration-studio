@@ -65,6 +65,11 @@ A page offers the jump menu what it has now, under "On this page" (`input/pageCo
 | Page | Registered in |
 | --- | --- |
 | Script | `components/script/page/registry/useScriptRegistry.ts` |
+| Production | `components/production/useProductionPageCommands.ts` |
+| Booth | `components/booth/page/useBoothPageCommands.ts` |
+| Editing | `components/editing/page/useEditingPageCommands.ts` |
+| Proof | `components/proof/useProofPageCommands.ts` |
+| Pickups | `components/pickups/usePickupsPageCommands.ts` |
 | Settings | `components/settings/page/SettingsPage.tsx`, items built by `pageItems.ts` |
 
 Test: `input/pageCommands.test.tsx`.

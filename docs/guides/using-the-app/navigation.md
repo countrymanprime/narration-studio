@@ -77,8 +77,17 @@ The menu knows the page you are on. What the page offers right now is listed fir
 
 | Page | Offers |
 | --- | --- |
+| Production | **Chapters** (scrolls to its row), **Checks** (check recordings, read the stage suggestions again), **Actions** (export the status report, start a session, stop the timer, off while none runs) |
 | Script | **Chapters**; **Story Bible** entries (found by any of their names); **Mark types** (mark the selected text; off until some is selected); **Search**, while a search is showing ([Searching the script](script.md#searching-the-script)) |
+| Booth | **Chapters** (off during a take), **Transport** (record or stop, punch and roll, next and back one phrase), the pickup steps when a pickup session is open |
+| Editing | **Chapters**; **Selection** (delete, mute and add FX, off with the reason until words are selected or when the DAW cannot); **Checks** (check the recording); **Drawer** tabs the DAW offers |
+| Proof | **Chapters** with their open-note counts; **Selected note** (needs pickup, fix in edit, waive, defer; off until a note is selected); **Checks** |
+| Pickups | the open **Pickups** lines (shows and selects the line), **Chapter** (show every chapter or only one), **Actions** (check recordings, open in the Booth, add as markers in the DAW) |
 | Settings | **Categories**, and every setting by its label under its category, including the settings that live on another page; a setting that does not apply to this project's recording tool is off with the reason |
+
+![Editing - the jump menu typed "selected": the selection actions under On this page, each off with its reason](../../images/ui/nav-jump-menu-editing.webp)
+
+![Settings - the jump menu typed "microphone": the setting under its category in On this page](../../images/ui/nav-jump-menu-settings.webp)
 
 `Ctrl+F` opens the same menu searching only the page: its items and its text, no pages or commands. `Backspace` on an empty field widens it to everything. On a page that offers nothing, `Ctrl+F` opens the whole menu. [Proof](proof.md) keeps `Ctrl+F` for its notes. Items that need the DAW or the host are added a moment after the menu opens, and the menu never waits for them.
 

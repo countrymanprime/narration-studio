@@ -115,7 +115,8 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.keyboard.press('Control+f');
     await page.getByRole('combobox', { name: 'Jump menu' }).fill('Alice');
     await page.getByText('In the script', { exact: true }).waitFor();
-    await page.keyboard.press('Enter');
+    // A Story Bible entry named Alice is listed first; a match in the text names its chapter and paragraph.
+    await page.getByRole('option', { name: /¶/ }).first().click();
     await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
     await page.locator('mark[data-kind="search"]').first().waitFor();
   },
