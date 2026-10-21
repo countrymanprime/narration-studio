@@ -70,7 +70,7 @@ cursor.
 A chapter has to be linked to a track (see [Linking chapters to tracks](navigation.md#linking-chapters-to-tracks)) for
 its words to carry the times they were heard at. A chapter with no audio to edit shows the script plain, with no word marked
 "not read". When the cause is a link (no track linked, or the linked track is not in the saved project), a dialog opens by
-itself, once for the chapter: it names the chapter, lists the REAPER tracks the app found with the best match chosen, and
+itself, once for the chapter: it names the chapter, offers the REAPER tracks the app found in a dropdown, with the best match chosen, and
 **Link track** links the one you pick, after which the page reads the chapter at once. If you close it with the X, the
 **Not linked to a track** mark in the header opens it again. The page also reads the chapter again whenever you come back
 to its window, so a link made in REAPER or the audio engine panel shows without a reload. When the track is empty, or with the
@@ -261,7 +261,7 @@ read, select and play; the actions that change the DAW (delete, mute, effects, k
 With no track linked to the chapter there is nothing to edit yet. The legend reads **No audio to edit**, the script shows no
 word as not read, and the dialog described above lists the tracks to link.
 
-![Editing with no track linked - the dialog naming the chapter and listing the REAPER tracks with the best match chosen](../../images/ui/editing-unlinked.webp)
+![Editing with no track linked - the dialog naming the chapter and with its track dropdown, the best match chosen](../../images/ui/editing-unlinked.webp)
 
 ![Editing with no track linked, dialog closed - the Not linked to a track mark, and the legend](../../images/ui/editing-unlinked-closed.webp)
 

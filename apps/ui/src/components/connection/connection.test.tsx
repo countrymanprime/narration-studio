@@ -8,7 +8,7 @@ import { createMockApi } from '../../api/mockApi';
 import { DAW_SETUPS } from '../../fixtures/daw';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
-import { trackChoices } from './ChapterLinkDialog';
+import { trackChoices } from '../mapping/trackChoices';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
 import { resetOpenOnce, useOpenOnce } from './useOpenOnce';
 
@@ -103,6 +103,16 @@ describe('trackChoices', () => {
     expect(trackChoices(match({ status: 'ambiguous', track: null })).some((t) => t.best)).toBe(false);
     expect(trackChoices(match({ status: 'none', track: null, candidates: [] })).some((t) => t.best)).toBe(false);
     expect(trackChoices(match({ tracks: [], track: null, candidates: [] }))).toEqual([]);
+  });
+
+  it('says which chapter holds a track now, unless it is the chapter being linked', () => {
+    const links = [
+      { trackGuid: '{T-1}', chapterId: 'c9', chapterTitle: 'Chapter 9', confirmedAt: '' },
+      { trackGuid: '{T-2}', chapterId: 'c3', chapterTitle: 'Chapter 3', confirmedAt: '' },
+    ];
+    const choices = trackChoices(match(), links, 'c3');
+    expect(choices.find((c) => c.guid === '{T-1}')?.heldBy).toBe('Chapter 9');
+    expect(choices.find((c) => c.guid === '{T-2}')?.heldBy).toBeUndefined();
   });
 
   it('falls back to the first candidate for an uncertain match with no track', () => {
@@ -215,7 +225,7 @@ describe('the not-linked dialog', () => {
     }));
     const props = link();
     view(<ConnectionResolveDialog {...props} />, { chapterTrackMatch: async () => match(), chapterTrackSet });
-    await screen.findByRole('radiogroup');
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
     await userEvent.click(screen.getByRole('button', { name: 'Link track' }));
     await waitFor(() => expect(chapterTrackSet).toHaveBeenCalledWith('c3', '{T-2}'));
     await waitFor(() => expect(props.onLinked).toHaveBeenCalledOnce());
@@ -224,8 +234,8 @@ describe('the not-linked dialog', () => {
   it('links the track the narrator picks instead, and not twice on a double press', async () => {
     const chapterTrackSet = vi.fn(() => new Promise<never>(() => {}));
     view(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: async () => match(), chapterTrackSet } as Partial<NarrationApi>);
-    await screen.findByRole('radiogroup');
-    await userEvent.click(screen.getByRole('radio', { name: 'Chapter 2' }));
+    const select = await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    await userEvent.selectOptions(select, '{T-1}');
     const button = screen.getByRole('button', { name: 'Link track' });
     await userEvent.click(button);
     await userEvent.click(button);
@@ -238,12 +248,12 @@ describe('the not-linked dialog', () => {
     const props = link({ onCheckedAgain });
     const chapterTrackMatch = vi.fn(async () => match());
     view(<ConnectionResolveDialog {...props} />, { chapterTrackMatch });
-    await screen.findByRole('radiogroup');
-    await userEvent.click(screen.getByRole('radio', { name: 'Chapter 2' }));
+    const select = await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    await userEvent.selectOptions(select, '{T-1}');
     await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
     await waitFor(() => expect(chapterTrackMatch).toHaveBeenCalledTimes(2));
     expect(onCheckedAgain).toHaveBeenCalledOnce();
-    expect(screen.getByRole('radio', { name: 'Chapter 2' }).getAttribute('aria-checked')).toBe('true');
+    expect((screen.getByRole('combobox', { name: 'Track for Chapter 3' }) as HTMLSelectElement).value).toBe('{T-1}');
   });
 
   it('offers no way to create a track: the host has no call for it', async () => {

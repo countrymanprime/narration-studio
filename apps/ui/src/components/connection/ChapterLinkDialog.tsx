@@ -3,18 +3,9 @@ import type { ChapterTrackMatch, ChapterTrackSetResult, TrackMapping } from '../
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useSecondsSince } from '../layout/CheckLine';
-import { RadioGroup, type RadioOption } from '../primitives/RadioGroup';
+import { bestChoice, trackChoices } from '../mapping/trackChoices';
+import { TrackSelect } from '../mapping/TrackSelect';
 import { ResolveShell } from './ResolveShell';
-
-/** The tracks to offer, the matcher's candidates first (best first) and then every other track in project order, with the one to preselect. */
-export function trackChoices(match: ChapterTrackMatch): { guid: string; name: string; best: boolean }[] {
-  const named = new Map(match.tracks.map((t) => [t.guid, t.name || `Track ${t.index + 1}`]));
-  const ranked = match.candidates.filter((c) => named.has(c.trackGuid)).map((c) => c.trackGuid);
-  const order = [...ranked, ...match.tracks.map((t) => t.guid).filter((g) => !ranked.includes(g))];
-  // A tie is not a best match: the narrator picks. Every other status names its closest track.
-  const best = match.status === 'ambiguous' || match.status === 'none' ? null : (match.track?.trackGuid ?? ranked[0] ?? null);
-  return order.map((guid) => ({ guid, name: named.get(guid) ?? guid, best: guid === best }));
-}
 
 type Read = { status: 'loading' } | { status: 'failed'; message: string } | { status: 'ready'; match: ChapterTrackMatch; links: TrackMapping[]; at: number };
 
@@ -60,7 +51,7 @@ export function ChapterLinkDialog({ chapterId, chapterName, sentence, dawName, m
         if (!live) return;
         setRead({ status: 'ready', match, links, at: Date.now() });
         // Keeps the narrator's own pick across a check; otherwise starts on the best match.
-        setChosen((current) => (current && match.tracks.some((t) => t.guid === current) ? current : (trackChoices(match).find((t) => t.best)?.guid ?? null)));
+        setChosen((current) => (current && match.tracks.some((t) => t.guid === current) ? current : bestChoice(trackChoices(match, links))));
       },
       (error: unknown) => live && setRead({ status: 'failed', message: apiErrorMessage(error) }),
     );
@@ -76,15 +67,8 @@ export function ChapterLinkDialog({ chapterId, chapterName, sentence, dawName, m
   }, [onCheckedAgain]);
   const readSeconds = useSecondsSince(read.status === 'ready' ? read.at : null);
 
-  const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match) : []), [read]);
-  const options: RadioOption<string>[] = choices.map((track) => {
-    const holder = read.status === 'ready' ? read.links.find((l) => l.trackGuid === track.guid && l.chapterId !== chapterId) : undefined;
-    return {
-      value: track.guid,
-      label: track.name,
-      description: holder ? `Linked to ${holder.chapterTitle}. Linking it here moves it.` : track.best ? 'Best match for this chapter' : undefined,
-    };
-  });
+  const choices = useMemo(() => (read.status === 'ready' ? trackChoices(read.match, read.links, chapterId) : []), [read, chapterId]);
+  const held = choices.find((c) => c.guid === chosen && c.heldBy);
 
   const link = () => {
     if (!chosen || linking) return;
@@ -122,7 +106,16 @@ export function ChapterLinkDialog({ chapterId, chapterName, sentence, dawName, m
           The saved {dawName} project has no tracks yet. Add a track for {chapterName} in {dawName}, save the project, then check again.
         </p>
       )}
-      {read.status === 'ready' && !noTracks && <RadioGroup label={`Track for ${chapterName}`} value={chosen ?? ''} onChange={setChosen} options={options} />}
+      {read.status === 'ready' && !noTracks && (
+        <>
+          <TrackSelect label={`Track for ${chapterName}`} choices={choices} value={chosen ?? ''} onChange={setChosen} fullWidth />
+          {held && (
+            <p className="text-[var(--text-muted)]">
+              {held.name} is linked to {held.heldBy}. Linking it here moves it.
+            </p>
+          )}
+        </>
+      )}
       {refused && (
         <p role="alert" className="text-[var(--danger-text)]">
           {refused}

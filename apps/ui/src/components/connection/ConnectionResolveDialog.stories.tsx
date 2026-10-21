@@ -172,9 +172,9 @@ export const ChapterSeveralTracks: Story = {
   args: { props: linking, api: { chapterTrackMatch: async () => match(), chapterTrackMapList: async () => ({ documentId: 'd', mappings: [] }) } },
   play: async () => {
     const open = await dialog();
-    const group = await within(open).findByRole('radiogroup', { name: 'Track for Chapter 3' });
-    await expect(within(group).getAllByRole('radio')[0]).toBeChecked();
-    await expect(within(group).getByText('Best match for this chapter')).toBeVisible();
+    const select = await within(open).findByRole('combobox', { name: 'Track for Chapter 3' });
+    await expect(select).toHaveValue('{T-2}');
+    await expect(within(select).getByRole('group', { name: 'Best match' })).toBeInTheDocument();
     await expect(linking.onLinked).not.toHaveBeenCalled();
   },
 };
@@ -208,9 +208,10 @@ export const ChapterNoBestMatch: Story = {
   args: { props: linking, api: { chapterTrackMatch: async () => match({ status: 'ambiguous', track: null, candidates: [best] }) } },
   play: async () => {
     const open = await dialog();
-    await within(open).findByRole('radiogroup');
+    const select = await within(open).findByRole('combobox');
+    await expect(select).toHaveValue('\u0000placeholder');
     await expect(within(open).getByRole('button', { name: 'Link track' })).toHaveAttribute('aria-disabled', 'true');
-    await userEvent.click(within(open).getAllByRole('radio')[1]);
+    await userEvent.selectOptions(select, '{T-1}');
     await waitFor(() => expect(within(open).getByRole('button', { name: 'Link track' })).not.toHaveAttribute('aria-disabled'));
   },
 };
@@ -223,7 +224,7 @@ export const ChapterLinkRefused: Story = {
   },
   play: async () => {
     const open = await dialog();
-    await within(open).findByRole('radiogroup');
+    await within(open).findByRole('combobox');
     await userEvent.click(within(open).getByRole('button', { name: 'Link track' }));
     await expect((await within(open).findByRole('alert')).textContent).toContain('That chapter is not in the manuscript.');
   },
@@ -242,7 +243,7 @@ export const ChapterTrackLinkedElsewhere: Story = {
     },
   },
   play: async () => {
-    await expect(await within(await dialog()).findByText('Linked to Chapter 9. Linking it here moves it.')).toBeVisible();
+    await expect(await within(await dialog()).findByText('Chapter 3 is linked to Chapter 9. Linking it here moves it.')).toBeVisible();
   },
 };
 

@@ -203,7 +203,7 @@ export const editingDrivers: Record<string, Driver> = {
     await openUnlinked(page);
     const dialog = page.getByRole('dialog', { name: /is not linked to a track/ });
     await dialog.waitFor();
-    await dialog.getByRole('radiogroup').waitFor();
+    await dialog.getByRole('combobox').waitFor();
     // Nothing is boxed "not read" in a recording that is not there.
     if (await page.locator('[data-mark="miss"]').count()) throw new Error('Words are marked "not read" in a chapter with no audio.');
   },

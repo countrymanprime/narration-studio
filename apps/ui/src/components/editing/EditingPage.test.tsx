@@ -227,18 +227,15 @@ describe('EditingPage', () => {
       });
       await script();
       const open = await dialog();
-      const group = await within(open).findByRole('radiogroup', { name: 'Track for Chapter One' });
+      const select = (await within(open).findByRole('combobox', { name: 'Track for Chapter One' })) as HTMLSelectElement;
+      // The best match heads the list under its own heading and is the one chosen; every other track follows.
+      expect(select.value).toBe('{T-B}');
       expect(
-        within(group)
-          .getAllByRole('radio')
-          .map((r) => r.getAttribute('aria-checked')),
-      ).toEqual(['true', 'false', 'false']);
-      expect(
-        within(group)
-          .getAllByRole('radio')
-          .map((r) => r.closest('label')?.textContent),
+        within(select)
+          .getAllByRole('option')
+          .map((o) => o.textContent),
       ).toEqual(['Chapter One', 'Intro', 'Chapter Two']);
-      expect(within(group).getByText('Best match for this chapter')).toBeTruthy();
+      expect(within(select).getByRole('group', { name: 'Best match' })).toBeTruthy();
       fireEvent.click(within(open).getByRole('button', { name: 'Link track' }));
       await waitFor(() => expect(chapterTrackSet).toHaveBeenCalledWith('c1', '{T-B}'));
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -256,7 +253,7 @@ describe('EditingPage', () => {
       });
       await script();
       const open = await dialog();
-      await within(open).findByRole('radiogroup');
+      await within(open).findByRole('combobox');
       fireEvent.click(within(open).getByRole('button', { name: 'Link track' }));
       expect((await within(open).findByRole('alert')).textContent).toContain('The chapter is not in the manuscript.');
     });
@@ -272,7 +269,7 @@ describe('EditingPage', () => {
       await script();
       const open = await dialog();
       expect(await within(open).findByText(/has no tracks yet/)).toBeTruthy();
-      expect(within(open).queryByRole('radiogroup')).toBeNull();
+      expect(within(open).queryByRole('combobox')).toBeNull();
       tracks = false;
       fireEvent.click(within(open).getByRole('button', { name: 'Check again' }));
       expect((await within(open).findByRole('alert')).textContent).toContain('The project file could not be read.');
