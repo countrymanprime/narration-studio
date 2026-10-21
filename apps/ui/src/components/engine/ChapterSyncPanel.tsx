@@ -9,19 +9,12 @@ import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
-import {
-  chapterSyncActivityRows,
-  chapterSyncBackgroundWaitText,
-  chapterSyncPanelNotChaptersText,
-  chapterSyncPanelReasonText,
-  chapterSyncSummaryText,
-  chapterSyncTimeLabel,
-} from './chapterSyncText';
+import { chapterSyncBackgroundWaitText, chapterSyncPanelNotChaptersText, chapterSyncPanelReasonText, chapterSyncSummaryText } from './chapterSyncText';
 
 /**
  * Chapter sync's own section of the engine panel the on/off state and last-sync summary, the Needs you list with an inline Link
- * (chapterTrackSet, the same binding as Chapter links below), the tracks sync could not place, and the Sync activity with Undo
- * on a link sync made. Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
+ * (chapterTrackSet, the same binding as Chapter links below), and the tracks sync could not place. The Sync activity log is in
+ * Settings (Recording & DAW › Advanced). Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
  * decision, not a second copy of it here.
  */
 export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChanged: () => void }) {
@@ -31,7 +24,6 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
   const [toggling, setToggling] = useState(false);
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [linkingChapterId, setLinkingChapterId] = useState('');
-  const [undoingTrackGuid, setUndoingTrackGuid] = useState('');
 
   const loadPreview = useCallback(async () => {
     try {
@@ -88,27 +80,8 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
     }
   };
 
-  // Undo removes one automatic link and remembers the pair so sync never makes it again; the host answers with the
-  // state, and chaptersync:state follows, so the list redraws on its own.
-  const undo = async (trackGuid: string) => {
-    setUndoingTrackGuid(trackGuid);
-    try {
-      await api.chapterSyncUndo(trackGuid);
-      notify('Link undone. Sync will not make it again.');
-      onChanged();
-    } catch (error) {
-      notify(describeApiError(error), 'error');
-    } finally {
-      setUndoingTrackGuid('');
-    }
-  };
-
   const notChapters = preview ? chapterSyncPanelNotChaptersText(preview.unmatched, preview.pickupTracks) : '';
   const notChaptersCount = preview ? preview.unmatched.length + preview.pickupTracks.length : 0;
-  // A link line offers Undo only while the chapter still holds that automatic link: Undo on a link already changed or cleared
-  // would be refused by the host, so it is not offered.
-  const stillAuto = (trackGuid: string) => state.chapters.some((chapter) => chapter.trackGuid === trackGuid && chapter.origin === 'auto');
-  const activity = chapterSyncActivityRows(state.activity, (guid) => state.chapters.find((chapter) => chapter.trackGuid === guid)?.trackName ?? '');
 
   return (
     <Panel
@@ -164,45 +137,12 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
           })}
         </div>
       )}
-      {(notChapters || activity.length > 0) && (
-        <div className="mt-3 grid gap-4 border-t border-[var(--border)] pt-3 text-sm sm:grid-cols-2">
-          {notChapters && (
-            <div className="min-w-0">
-              <SectionLabel as="h3" className="mb-1">
-                Tracks that are not chapters ({notChaptersCount})
-              </SectionLabel>
-              <p className="[overflow-wrap:anywhere]">{notChapters}</p>
-            </div>
-          )}
-          {activity.length > 0 && (
-            <div className="min-w-0">
-              <SectionLabel as="h3" className="mb-1">
-                Sync activity
-              </SectionLabel>
-              <ul className="space-y-0.5" style={{ color: 'var(--text-muted)' }}>
-                {activity.map((row) => (
-                  <li key={row.key} className="[overflow-wrap:anywhere]">
-                    {chapterSyncTimeLabel(row.at)} · {row.text}
-                    {row.undoTrackGuid && stillAuto(row.undoTrackGuid) && (
-                      <>
-                        {' ('}
-                        <Button
-                          variant="link"
-                          style={{ color: 'var(--text)' }}
-                          disabled={undoingTrackGuid === row.undoTrackGuid}
-                          aria-label={`Undo: ${row.text}`}
-                          onClick={() => void undo(row.undoTrackGuid)}
-                        >
-                          Undo
-                        </Button>
-                        {')'}
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {notChapters && (
+        <div className="mt-3 min-w-0 border-t border-[var(--border)] pt-3 text-sm">
+          <SectionLabel as="h3" className="mb-1">
+            Tracks that are not chapters ({notChaptersCount})
+          </SectionLabel>
+          <p className="[overflow-wrap:anywhere]">{notChapters}</p>
         </div>
       )}
     </Panel>

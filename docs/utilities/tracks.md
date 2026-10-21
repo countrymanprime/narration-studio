@@ -55,7 +55,7 @@ The track list, playback and the chapter links list are read-only: they never ed
 Covered by `apps/desktop/internal/tracks`, `chaptermatch` (with `sidecars/transcript-compare/tests/test_chapter_track_parity.py` on the Python side), `lineidentity`, `pickups`, `renderconfig`, `cleanuptools`, `retakelanes` and `chaptertags`, and `apps/desktop/media_test.go` (Go); the bridge harness in `integrations/reaper/tests` for the Lua commands (`line_identity_test.lua`, `pickups_test.lua`, `render_test.lua`, `cleanup_test.lua`, `retake_lanes_test.lua`); the tests beside each component in `apps/ui/src/components/engine/` and `App.test.tsx` (UI); and the `engine` states in the Playwright visual suite:
 
 - the panel: default, from-tracks-link, rpp-picker, no-rpp, no-daw-link;
-- chapter sync: sync-off, sync-activity;
+- chapter sync: sync-off (its Sync activity log is the Settings state recording-sync-activity);
 - chapter links: chapter-link-confirmed, chapter-link-missing, editing-check-unmapped;
 - Link chapters: link-chapters-preview, link-chapters-success, link-chapters-conflict, link-chapters-error;
 - Prepare chapter render: render-config-prefilled, render-config-success, render-config-no-regions, render-config-error;

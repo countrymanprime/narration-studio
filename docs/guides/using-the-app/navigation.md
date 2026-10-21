@@ -326,13 +326,7 @@ recognize as any chapter's is listed under "Tracks that are not chapters" so it 
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.
 
-**Sync activity** lists what each sync did, newest first: the first sync, each chapter a later sync
-linked when you saved in REAPER, and each new track that isn't a chapter. A link sync made has
-**Undo** beside it while the chapter still holds it; Undo removes that link and sync never makes the
-same one again. Chapter sync only reads the saved project: nothing in REAPER changes, and a chapter
-you link yourself is never overwritten.
-
-![The audio engine panel's chapter sync with its summary and Sync activity](../../images/ui/engine-panel-sync-activity.webp)
+The log of what each sync did, with **Undo** on a link sync made, is in Settings: [Recording & DAW > Sync activity](settings.md).
 
 ---
 
