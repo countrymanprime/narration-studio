@@ -89,6 +89,45 @@ func TestAFreshRunTranscribesEveryItemAndWritesACompleteRecordAndResult(t *testi
 	}
 }
 
+// The linked REAPER file can be anywhere the narrator keeps it, in the project folder at any depth or in a separate DAW folder: the check
+// reads the file it is pointed at, so where it lives never refuses a run.
+func TestAFileOutsideTheProjectFolderIsChecked(t *testing.T) {
+	p := newTestProject(t)
+	data, err := os.ReadFile(p.rpp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, dir := range map[string]string{
+		"a separate folder":          t.TempDir(),
+		"a subfolder of the project": filepath.Join(p.dir, "REAPER", "Book"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			moved := filepath.Join(dir, "Book.rpp")
+			if err := os.WriteFile(moved, data, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			// The project names its audio relative to itself, as REAPER writes it, so the audio sits beside the moved file.
+			if err := os.CopyFS(filepath.Join(dir, "media"), os.DirFS(filepath.Join(p.dir, "media"))); err != nil {
+				t.Fatal(err)
+			}
+			config := Config{Project: p.dir, Python: "python", ProjectFile: func() (string, error) { return moved, nil }, LoadManuscript: p.loadManuscript}
+			service := New(config, (&fakeSidecar{present: 8}).launcher(), nil)
+
+			state := run(t, service, testRequest())
+
+			if state.Phase != PhaseComplete {
+				t.Fatalf("state = %+v, want a complete run", state)
+			}
+			if got := latestRecord(t, p).ProjectFile.Path; got != moved {
+				t.Fatalf("record names %q, want the file it read, %q", got, moved)
+			}
+		})
+	}
+}
+
 func TestTheSidecarIsGivenOnlyPathsBuiltFromTheSavedProject(t *testing.T) {
 	p := newTestProject(t)
 	sidecar := &fakeSidecar{}
@@ -402,8 +441,11 @@ func TestRefusalsAreTypedAndRunNothing(t *testing.T) {
 		{"no manuscript", func(p *testProject, _ *Config, _ *Request) {
 			_ = os.Remove(filepath.Join(p.dir, "narration-utils", "manuscript", "manuscript.json"))
 		}, ReasonNoManuscript},
-		{"a project file outside the folder", func(_ *testProject, config *Config, _ *Request) {
+		{"a project file elsewhere that does not exist", func(_ *testProject, config *Config, _ *Request) {
 			config.ProjectFile = func() (string, error) { return filepath.Join(os.TempDir(), "elsewhere.rpp"), nil }
+		}, ReasonProjectUnreadable},
+		{"a chosen file that is not a REAPER project", func(p *testProject, config *Config, _ *Request) {
+			config.ProjectFile = func() (string, error) { return filepath.Join(p.dir, "notes.txt"), nil }
 		}, ReasonNoProjectFile},
 		{"no project file chosen", func(_ *testProject, config *Config, _ *Request) {
 			config.ProjectFile = func() (string, error) { return "", errors.New("choose a project file") }

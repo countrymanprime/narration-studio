@@ -80,7 +80,7 @@ local function set_active_take(session_dir, run_id, item_text, take_text)
   reaper.Undo_BeginBlock2(0)
   reaper.SetActiveTake(take)
   reaper.UpdateItemInProject(item)
-  reaper.Undo_EndBlock2(0, 'Narration Utils: use take', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: use take', -1)
   reaper.UpdateArrange()
   event(session_dir, 'ACTIVE_TAKE_SET', run_id, item_guid(item), take_guid(take), 1)
 end
@@ -210,7 +210,7 @@ local function apply_fx_chain(session_dir, run_id, track_text, name)
     return reaper.TrackFX_AddByName(track, candidate, false, -1)
   end, name, path)
   local added = reaper.TrackFX_GetCount(track) - before
-  reaper.Undo_EndBlock2(0, 'Narration Utils: apply FX chain ' .. name .. ' to ' .. label, -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: apply FX chain ' .. name .. ' to ' .. label, -1)
   reaper.UpdateArrange()
   if index < 0 or added <= 0 then
     event(session_dir, 'ERROR', run_id, 'REAPER did not load the FX chain.')

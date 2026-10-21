@@ -5,7 +5,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import { useEditingPage } from '../script/EditingPageState';
 import { RibbonView } from '../ribbon/Ribbon';
 import { activePid, ribbonLayout } from '../ribbon/ribbonLayout';
-import { pickEntry, useRibbonPeaks } from '../ribbon/useRibbonPeaks';
+import { pickEntries, useRibbonPeaks } from '../ribbon/useRibbonPeaks';
 import { MiniWave } from '../takes/MiniWave';
 import type { LinePassage, LineTake } from '../takes/types';
 import { stripLayout, wordAtTime } from './stripLayout';
@@ -108,7 +108,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
     drag.current = null;
   };
   const audioLayout = { ...base, t0, t1, playhead: layout.playhead, band: layout.band && { t0: layout.band.t0, t1: layout.band.t1 } };
-  const entry = pickEntry(peaks, t0, t1);
+  const entry = pickEntries(peaks, t0, t1);
 
   return (
     <section id="timeline" aria-label="Waveform and takes, following the line the cursor is on" className={region}>

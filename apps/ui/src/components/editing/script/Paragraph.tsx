@@ -34,7 +34,7 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
       data-pid={dp.p.id}
       data-active={active ? '' : undefined}
       data-unrecorded={dp.recorded ? undefined : ''}
-      className={`mb-2 grid max-w-[1000px] grid-cols-[76px_minmax(0,1fr)] gap-x-1.5 border-l-[3px] py-1 ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : 'border-transparent'}`}
+      className={`mb-2 grid grid-cols-[76px_minmax(0,1000px)] gap-x-1.5 border-l-[3px] py-1 ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : 'border-transparent'}`}
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 4.5rem' }}
     >
       <div data-gutter className="flex flex-col items-end gap-1 pt-[0.7em] pr-2">

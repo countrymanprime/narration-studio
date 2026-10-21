@@ -6,22 +6,15 @@ import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 afterEach(cleanup);
 
 describe('RemoveFromRecordingDialog', () => {
-  it('titles itself with the chapter, explains what stays, and defaults to Not a chapter', () => {
+  it('titles itself with the chapter and explains what stays, with nothing to choose between', () => {
     render(<RemoveFromRecordingDialog chapterTitle="PART TWO" busy={false} onConfirm={() => {}} onCancel={() => {}} />);
     expect(screen.getByRole('alertdialog', { name: 'Remove PART TWO from recording?' })).toBeTruthy();
     expect(screen.getByText(/Its text stays in the manuscript, and its track link is/)).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'Not a chapter' })).toHaveProperty('ariaChecked', 'true');
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(screen.queryByText(/front matter/i)).toBeNull();
   });
 
-  it('confirms with the chosen kind', () => {
-    const onConfirm = vi.fn();
-    render(<RemoveFromRecordingDialog chapterTitle="PART TWO" busy={false} onConfirm={onConfirm} onCancel={() => {}} />);
-    fireEvent.click(screen.getByRole('radio', { name: 'Front matter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Remove from recording' }));
-    expect(onConfirm).toHaveBeenCalledWith('opening');
-  });
-
-  it('defaults to reference and confirms it unchanged', () => {
+  it('confirms as not a chapter (reference), the only kind a chapter is removed as', () => {
     const onConfirm = vi.fn();
     render(<RemoveFromRecordingDialog chapterTitle="PART TWO" busy={false} onConfirm={onConfirm} onCancel={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: 'Remove from recording' }));

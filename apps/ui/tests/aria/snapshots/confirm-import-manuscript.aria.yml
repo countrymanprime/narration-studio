@@ -8,15 +8,14 @@
 - status
 - alert
 - status
-# Step 2 of the import (the mock's "Check the chapter outline"): the pieces are pinned, not every row of the outline, which the review's own tests cover.
+# Step 2 of the import: the pieces are pinned, not every row of the outline, which the review's own tests cover.
 - alertdialog "Import Alice.docx · step 2 of 2":
   - heading "Import Alice.docx · step 2 of 2" [level=2]
   - button "Close"
-  - paragraph: /DOCX · \d+ paragraphs.*This replaces the active manuscript and clears Story Bible/
-  - heading "Check the chapter outline" [level=3]
+  - paragraph: /This replaces the active manuscript and clears Story Bible/
+  - group "Import options"
   - group "Review what was found"
   - region "Preview of the selected heading"
-  - group "Import options"
-  - button "Cancel"
+  - checkbox "Close when the import finishes"
   - button "Back"
   - button "Replace and reset"

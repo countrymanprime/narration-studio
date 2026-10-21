@@ -52,3 +52,37 @@ export function peaksWindow(peaks: WorkspacePeaks, t0: number, t1: number, colum
   }
   return out;
 }
+
+/**
+ * The window `[t0, t1]` as `columns` columns over every entry it touches: a line can run across several audio items (a take, a cut), and its
+ * waveform is all of them. A column no entry covers is `[0, 0]`. Null when no entry overlaps the window (or it is empty).
+ */
+export function peaksWindowAll(entries: readonly WorkspacePeaks[], t0: number, t1: number, columns: number): PeakColumn[] | null {
+  const span = t1 - t0;
+  if (!(span > 0) || columns < 1) return null;
+  const live = entries
+    .filter((p) => p.buckets >= 1 && p.bucketsPerSecond > 0)
+    .map((p) => ({ p, data: decodeEntry(p), from: entrySpan(p)[0], to: entrySpan(p)[1] }))
+    .filter(({ from, to }) => t1 > from && t0 < to);
+  if (live.length === 0) return null;
+  const out: PeakColumn[] = [];
+  for (let c = 0; c < columns; c += 1) {
+    const a = t0 + (c / columns) * span;
+    const b = t0 + ((c + 1) / columns) * span;
+    let lo = 127;
+    let hi = -127;
+    let covered = false;
+    for (const { p, data, from, to } of live) {
+      if (b <= from || a >= to) continue;
+      const first = Math.max(0, Math.floor((a - p.startSeconds) * p.bucketsPerSecond + 1e-9));
+      const last = Math.min(p.buckets - 1, Math.max(first, Math.ceil((b - p.startSeconds) * p.bucketsPerSecond - 1e-9) - 1));
+      for (let k = first; k <= last; k += 1) {
+        lo = Math.min(lo, data[2 * k]);
+        hi = Math.max(hi, data[2 * k + 1]);
+        covered = true;
+      }
+    }
+    out.push(covered ? [lo, hi] : [0, 0]);
+  }
+  return out;
+}

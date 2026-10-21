@@ -34,7 +34,7 @@ H.test('apply_item_gain raises the item volume by the given dB in one undo step'
   s:send('apply_item_gain', 'g1', payload(s, 'p.txt', { row(ITEM, '6.0206', 'f-1') }))
   H.eq(s:events(), { { 'GAIN_ITEM', 'g1', ITEM, '1.000000', '2.000000' }, { 'GAIN_APPLIED', 'g1', '1' } })
   H.truthy(math.abs(item.vol - 2) < 0.0001, 'the item volume doubled')
-  H.eq(s.fake:undo_labels(), { 'Narration Utils: apply level-match gain' })
+  H.eq(s.fake:undo_labels(), { 'Narration Studio: apply level-match gain' })
   H.eq(s.fake.arrange_updates, 1)
   H.truthy(track.items[1] == item, 'the item was changed in place, not replaced')
 end)

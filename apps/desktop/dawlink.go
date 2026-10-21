@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-utils/shell/internal/settings"
 )
 
 // ProjectLinkDawFile is the one shared binding behind the audio engine panel
@@ -122,4 +124,39 @@ func linkDawFile(reporter *persist.Reporter, projectFolder, rppPath string) (map
 		)
 	}
 	return result, nil
+}
+
+// clearDawConnection is the DAW half of Clear project data: the manifest's link to a REAPER file and the saved choice among several
+// (Tracks.selectedRpp) are dropped, so nothing of the old connection survives the new import. The chapter-to-track links go with the
+// manuscript they belong to (manuscript.resetDerived). The one REAPER file directly in the project folder, when there is exactly one, is
+// adopted again at once (project.EnsureDawLink); with none or several the narrator links it again, after the manuscript is back. The
+// engine choice (REAPER, Audacity, built-in) is a preference, not a connection, and stays.
+func clearDawConnection(reporter *persist.Reporter, store *settings.Store, folder string) error {
+	if folder == "" {
+		return nil
+	}
+	manifest, ok, err := project.Load(reporter, folder)
+	if err != nil {
+		return fmt.Errorf("could not read the project manifest: %w", err)
+	}
+	if ok && manifest != nil {
+		manifest.DawProjectFile = nil
+		link, changed, ensureErr := project.EnsureDawLink(folder, manifest, "")
+		var several *project.AmbiguousRppError
+		if ensureErr != nil && !errors.As(ensureErr, &several) {
+			return fmt.Errorf("could not look for the REAPER project file: %w", ensureErr)
+		}
+		if ensureErr == nil && changed {
+			manifest.DawProjectFile = &link
+		}
+		if err := manifest.Save(folder); err != nil {
+			return fmt.Errorf("could not clear the DAW project link: %w", err)
+		}
+	}
+	if store != nil {
+		if err := store.Save("Tracks", "project", map[string]*string{"selectedRpp": nil}); err != nil {
+			return fmt.Errorf("could not clear the saved REAPER project choice: %w", err)
+		}
+	}
+	return nil
 }

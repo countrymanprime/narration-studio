@@ -5,10 +5,10 @@ import { useEditingPage } from '../script/EditingPageState';
 import { reducedMotion } from '../../../motion';
 import { drawRibbon, readRibbonColors, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
 import { subscribeFrames } from './frameLoop';
-import { peaksWindow } from './peaksWindow';
+import { peaksWindowAll } from './peaksWindow';
 import { barLayout } from './ribbonBars';
 import { activePid, ribbonLayout, type RibbonLayout } from './ribbonLayout';
-import { pickEntry, useRibbonPeaks } from './useRibbonPeaks';
+import { pickEntries, useRibbonPeaks } from './useRibbonPeaks';
 
 const HEIGHT = 56;
 /** Width used where nothing can measure the canvas (a test environment without ResizeObserver). */
@@ -24,7 +24,8 @@ export function RibbonView({
   head,
 }: {
   layout: RibbonLayout;
-  peaks?: WorkspacePeaks;
+  /** The audio the line covers: one entry, or every item it runs across. */
+  peaks?: WorkspacePeaks | readonly WorkspacePeaks[];
   reason?: string;
   /** The header row above the waveform: the active take's name (null for a line heard in the recording) and the span it draws. Omitted, no row. */
   head?: { take: string | null };
@@ -63,7 +64,7 @@ export function RibbonView({
   const columns = useMemo(() => {
     if (!peaks || width <= 0) return null;
     // One column for each bar, so the window is reduced once per span and width, not once per frame.
-    return peaksWindow(peaks, layout.t0, layout.t1, barLayout(width).count);
+    return peaksWindowAll(Array.isArray(peaks) ? peaks : [peaks as WorkspacePeaks], layout.t0, layout.t1, barLayout(width).count);
   }, [peaks, layout.t0, layout.t1, width]);
   const empty = peaks ? columns === null && width > 0 : true;
 
@@ -107,7 +108,7 @@ export function RibbonView({
 
   const why = reason ?? 'This line lies outside the audio the host read.';
   return (
-    <div ref={boxRef} className="my-1 rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]" data-ribbon-pid={layout.pid}>
+    <div ref={boxRef} className="my-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]" data-ribbon-pid={layout.pid}>
       {head ? (
         <div data-ribbon-head className="flex items-baseline gap-2 px-3 pt-1.5 text-xs text-[var(--text-muted)]">
           <span className="font-mono font-semibold text-[var(--text)]">{head.take ?? '—'}</span>
@@ -162,6 +163,6 @@ function ActiveRibbon({
   const peaks = useRibbonPeaks(chapterId);
   const layout = useMemo(() => ribbonLayout(doc, pid, selected, playT), [doc, pid, selected, playT]);
   if (!layout) return null;
-  const entry = pickEntry(peaks, layout.t0, layout.t1);
+  const entry = pickEntries(peaks, layout.t0, layout.t1);
   return <RibbonView layout={layout} head={{ take }} {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })} />;
 }

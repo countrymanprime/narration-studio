@@ -327,7 +327,7 @@ func (a *Actions) invalid(event Event, reason error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if run, ok := a.pending[event.RunID]; ok {
-		finish(run, answerSet{err: fmt.Errorf("REAPER sent an answer this app could not read (%v): import the Narration Utils script from this app's REAPER folder again", reason)})
+		finish(run, answerSet{err: fmt.Errorf("REAPER sent an answer this app could not read (%v): import the Narration Studio script from this app's REAPER folder again", reason)})
 	}
 }
 
