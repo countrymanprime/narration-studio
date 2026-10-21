@@ -174,7 +174,7 @@ func (s *Service) CanSwitchProject() bool {
 // previewPayload is what the review shows of a draft. The importer's repairs (notices) travel in it only when there are some, so the review can
 // say what was guessed at without the narrator reading the preview log for it.
 func previewPayload(draft importer.Draft) map[string]any {
-	preview := map[string]any{"format": draft.Format, "sourceName": draft.SourceName, "paragraphCount": len(draft.Paragraphs), "chapterTitles": draft.ChapterTitles, "sections": draft.Sections, "characterCandidates": draft.CharacterCandidates}
+	preview := map[string]any{"format": draft.Format, "sourceName": draft.SourceName, "paragraphCount": len(draft.Paragraphs), "chapterTitles": draft.ChapterTitles, "sections": draft.Sections, "characterCandidates": candidatesWithAppearances(draft)}
 	if len(draft.Notices) > 0 {
 		preview["notices"] = draft.Notices
 	}
