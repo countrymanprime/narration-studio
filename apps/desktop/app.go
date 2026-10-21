@@ -272,6 +272,15 @@ type Host struct {
 	// placeFollower is the DAW port's follow_position role over the same bridge client: DawPlace and DawGoToChapter (bindings_daw_place.go)
 	// read and move the narrator's place in the project. Nil (a true nil interface) with no bridge client or no such role.
 	placeFollower dawport.PlaceFollower
+	// transportSyncer is the DAW port's transport_sync role over the same bridge client: DawTransportSync (bindings_daw_transportsync.go) drives
+	// REAPER's cursor and transport through it, and it streams the positions daw_position_changed carries. Nil with no bridge client or no such role.
+	transportSyncer dawport.TransportSyncer
+	// dawSyncProject is the .rpp the last DawTransportSync call resolved as this book's project, so each streamed position can say whether REAPER
+	// has it open without reading the disk 4 times a second.
+	dawSyncProject struct {
+		mu   sync.Mutex
+		path string
+	}
 	// backupKeeper is the DAW port's backups role: on an Audacity launch with a project open, the Audacity adapter's,
 	// over the project's one scripting pipe client (h.audacity), opened on the first request and closed when the next project
 	// replaces it.
@@ -785,10 +794,14 @@ func (h *Host) configureLocked(next config) {
 		h.lastActionUndoer, _ = dawAdapter.Role(dawport.CapUndoLast).(dawport.LastActionUndoer)
 		h.monitorLeveler, _ = dawAdapter.Role(dawport.CapMonitorLevel).(dawport.MonitorLeveler)
 		h.placeFollower, _ = dawAdapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)
+		h.transportSyncer, _ = dawAdapter.Role(dawport.CapTransportSync).(dawport.TransportSyncer)
+		if h.transportSyncer != nil {
+			h.transportSyncer.OnPosition(h.emitDawPosition)
+		}
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
-		h.monitorLeveler, h.placeFollower = nil, nil
+		h.monitorLeveler, h.placeFollower, h.transportSyncer = nil, nil, nil
 		// An Audacity project's place and track-selection roles are the Audacity adapter's, over the project's one pipe client.
 		if h.audacity != nil {
 			h.placeFollower, _ = h.audacity.adapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)

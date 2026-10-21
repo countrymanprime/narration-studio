@@ -208,6 +208,12 @@
       "message": "Experimental: switched off in Settings.",
       "reason": "experimental_off"
     },
+    "transport_sync": {
+      "available": false,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "reason": "experimental_off"
+    },
     "undo_last": {
       "available": false,
       "level": "experimental",

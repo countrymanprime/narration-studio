@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
@@ -286,6 +287,25 @@ type PlaceTarget struct {
 type PlaceFollower interface {
 	ReadPlace(ctx context.Context) (Place, error)
 	GoTo(ctx context.Context, trackID string, target PlaceTarget) error
+}
+
+// TransportPosition is the engine's transport as it streamed it: the play state, the play head and the edit cursor, in project seconds.
+type TransportPosition = daw.Position
+
+// TransportSyncer lets the app drive and follow the engine's transport: SetCursor puts the cursor at a project time without seeking playback,
+// PlayFrom starts the transport at a time (a playing engine is seeked), Stop stops it, and Watch takes or renews a lease on the engine's position
+// stream (the host hears it as daw_position_changed) for at most the lease, which the engine may shorten and answers. Each returns the time the engine
+// reports (the cursor held, the time it plays from, the cursor after a stop, the lease granted). None adds an undo step or selects a track, and none
+// touches a recording: a refusal is a capability refusal error (RefusedFrom) or the engine's own sentence. A time that is not usable is an error with
+// nothing sent.
+type TransportSyncer interface {
+	// OnPosition sets the function told each position the engine streams while a Watch lease holds (nil stops telling). It runs on the host's
+	// bridge loop, so it must not block or make a request of the engine.
+	OnPosition(handler func(TransportPosition))
+	SetCursor(ctx context.Context, seconds float64) (float64, error)
+	PlayFrom(ctx context.Context, seconds float64) (float64, error)
+	Stop(ctx context.Context) (float64, error)
+	Watch(ctx context.Context, lease time.Duration) (time.Duration, error)
 }
 
 // FilePreviewer plays a stretch of a file on disk through the engine's own preview, and stops it. It never inserts the file,

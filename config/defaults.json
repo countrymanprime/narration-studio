@@ -74,6 +74,7 @@
     "capability.undo_last": "auto",
     "capability.monitor_level": "auto",
     "capability.follow_position": "auto",
+    "capability.transport_sync": "auto",
     "capability.input_level": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"

@@ -373,6 +373,20 @@
       "effectiveSource": "repo_default",
       "effectiveValue": "auto",
       "isSet": false,
+      "key": "capability.transport_sync",
+      "kind": "choice",
+      "label": "Play and follow the project's transport",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
       "key": "capability.record",
       "kind": "choice",
       "label": "Record",

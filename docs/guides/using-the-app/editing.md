@@ -218,6 +218,17 @@ timeline button (S) shows and hides; on a narrower window it is a tab of the dra
 
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 
+## Playing with REAPER
+
+With **Play and follow the project's transport** on (Settings > DAW; it is an experimental action, so it also needs Experimental DAW actions, or its own switch set to On) and REAPER open on this book's project, the page and REAPER's transport follow each other:
+
+- Clicking a word, or moving the cursor to it, puts REAPER's edit cursor at that word. Moving REAPER's edit cursor puts the page's cursor on the word there.
+- **Play** (Space) starts REAPER from the cursor and the app stays silent: the sound comes through REAPER's output and level. The lit word and the ribbon follow REAPER's play head, about four times a second. **Stop** stops both.
+- Pressing Play or Stop in REAPER lights the word it is on, or stops the page, the same way.
+- A word with no place in the project (the audio before a trim, a stretch after a cut, a gap between paragraphs) moves nothing, and REAPER's cursor on such a place moves nothing on the page.
+
+If REAPER refuses (it is recording, say), a message gives its reason and the app plays the audio itself, as it does when REAPER is not connected, has another project open, or the switch is off. If REAPER stops answering while it plays for the page, playback stops and says so.
+
 ## When the DAW is not connected
 
 A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, with **Check again**

@@ -118,7 +118,7 @@ import type { DawReduceRangeGainApi } from './api/contracts/daw';
 import type { DawRepairClickApi } from './api/contracts/daw';
 import type { DawUndoLastApi } from './api/contracts/daw';
 import type { DawLevelsApi } from './api/contracts/daw';
-import type { DawPlaceApi } from './api/contracts/daw';
+import type { DawPlaceApi, DawTransportSyncApi } from './api/contracts/daw';
 import type { DawBackupsApi } from './api/contracts/daw';
 import type { DawFilesApi } from './api/contracts/daw';
 import type { MasterFilesApi } from './api/contracts/daw';
@@ -198,6 +198,7 @@ export interface NarrationApi
     DawUndoLastApi,
     DawLevelsApi,
     DawPlaceApi,
+    DawTransportSyncApi,
     DawBackupsApi,
     DawFilesApi,
     MasterFilesApi,
