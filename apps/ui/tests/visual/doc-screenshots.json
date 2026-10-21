@@ -617,6 +617,13 @@
   },
   {
     "page": "editing",
+    "state": "output-popover",
+    "viewport": "desktop",
+    "docName": "editing-output",
+    "caption": "Editing - the Output popover open over the bar: the speed, the volume, the output device and REAPER's monitor level"
+  },
+  {
+    "page": "editing",
     "state": "selection",
     "viewport": "desktop",
     "docName": "editing-selection",
