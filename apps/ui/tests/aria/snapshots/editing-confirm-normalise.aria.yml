@@ -4,7 +4,7 @@
 # overlay announcer (it says what is selected) and the Editing page's bar (a live region that says what is selected), and the toast pair, which is portalled to <body> (Toast.tsx), not under <main>.
 - main:
   - region "Script editor":
-    - toolbar "Playback and selection": Click a word to place the cursor, drag or Shift+arrows to select
+    - toolbar "Playback and selection"
 - status
 - alert
 - status

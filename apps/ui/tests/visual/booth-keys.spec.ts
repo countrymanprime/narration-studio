@@ -35,7 +35,9 @@ async function behindTheOverlay(page: Page) {
     rec: !!Array.from(document.querySelectorAll('span,div')).find((e) => e.children.length === 0 && e.textContent?.trim() === 'REC'),
     cursor: document.querySelector('[data-highlight="Cursor"]')?.closest('[data-word]')?.getAttribute('data-word') ?? null,
     chapter: document.querySelector('[aria-label^="Chapter:"]')?.getAttribute('aria-label') ?? null,
+    // A status inside an open dialog is the dialog's own (the jump menu announces its result count as keys are typed), not the page behind it.
     toasts: Array.from(document.querySelectorAll('[role="status"]'))
+      .filter((e) => !e.closest('[role="dialog"]'))
       .map((e) => e.textContent?.trim() ?? '')
       .filter(Boolean)
       .join('|'),
