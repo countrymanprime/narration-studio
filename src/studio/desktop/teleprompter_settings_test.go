@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/settings"
 )
 
 // The Teleprompter device setting: a global-only machine fact, so it survives an app restart and is never a

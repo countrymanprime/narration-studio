@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/contractfile"
+	"desktop/internal/coverage"
+	"desktop/internal/findings"
+	"desktop/internal/proofing"
+	"desktop/internal/settings"
+	"desktop/internal/stages"
 )
 
 // stagesHost is a coverage project (coverage_test.go) whose one chapter is in recording, with the Whisper model

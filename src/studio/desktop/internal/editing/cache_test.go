@@ -3,8 +3,8 @@ package editing
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/evidence"
+	"desktop/internal/measure"
 )
 
 func TestWriteReadScanRoundTrips(t *testing.T) {

@@ -1,6 +1,6 @@
 package dawcatalog
 
-import "github.com/countrymanprime/narration-studio/shell/internal/daw"
+import "desktop/internal/daw"
 
 // DefaultDetectors returns the production Detector for every catalog entry
 // this package can auto-detect today. REAPER is wired directly to

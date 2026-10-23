@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
+	"desktop/internal/contractfile"
+	"desktop/internal/recording"
+	"desktop/internal/recording/recordingtest"
 )
 
 // recorderHost is a host with a project, acting as Windows (where the wasapi row runs), whose recorder records through a

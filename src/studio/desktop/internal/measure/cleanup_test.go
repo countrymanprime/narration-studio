@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // The cleanup fixtures cover a breath after a plosive, a click inside silence, a long dramatic pause and a silence near

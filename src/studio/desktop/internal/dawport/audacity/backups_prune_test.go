@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
 )
 
 // prune-honours-retention (SN-D82): the host prunes when the project opens (bindings_daw_backups.go), with the narrator's

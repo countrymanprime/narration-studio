@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/assets"
+	"desktop/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 

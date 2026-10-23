@@ -9,11 +9,11 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagetakes"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/bridge"
+	"desktop/internal/coverage"
+	"desktop/internal/dawport"
+	"desktop/internal/passagetakes"
+	"desktop/internal/runlog"
 )
 
 // fxRangeTimeout bounds one apply_fx_range or remove_fx_range request, with the list_fx_chains read before an apply: each is

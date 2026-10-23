@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/contractfile"
+	"desktop/internal/measure"
 )
 
 // What DiagnosticsAnalyze, DiagnosticsState and DiagnosticsCancel send: the idle check with

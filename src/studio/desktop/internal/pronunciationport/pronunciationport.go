@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/port"
 )
 
 // Source names, as the sidecar's --source flag spells them.

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/layout"
 )
 
 func importReaderFixture(t *testing.T) (*Service, string, string) {

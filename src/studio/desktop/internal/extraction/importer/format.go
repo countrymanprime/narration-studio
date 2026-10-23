@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"desktop/internal/extraction"
 )
 
 // The caps on an imported file. They bound what a hostile file can make the parser allocate.

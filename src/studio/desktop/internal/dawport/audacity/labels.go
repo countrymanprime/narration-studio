@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"desktop/internal/audacitybridge"
 )
 
 // A finding's identity lives in its label's text: `[nu:<id>] <words>`, or

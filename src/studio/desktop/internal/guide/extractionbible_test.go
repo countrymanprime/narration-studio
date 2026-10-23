@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/extraction/apply"
+	"desktop/internal/process"
+	"desktop/internal/settings"
 )
 
 // recordingSidecar is a fake sidecar process: it appends its arguments, one command per line with the parts joined by a unit separator,

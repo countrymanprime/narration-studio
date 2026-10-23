@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/editing"
-	"github.com/countrymanprime/narration-studio/shell/internal/levelnormalize"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
+	"desktop/internal/editing"
+	"desktop/internal/levelnormalize"
+	"desktop/internal/measure"
 )
 
 // The Editing view's item-gain action: the first non-test caller of bridge.LevelMatchClient

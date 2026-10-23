@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/character"
+	"desktop/internal/character"
 )
 
 func writeReferences(t *testing.T, project string, refs []character.Reference) {

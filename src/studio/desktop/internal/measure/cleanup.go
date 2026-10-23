@@ -5,7 +5,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // The silence cleanup analyzer: candidates for cutting from a read, each classed as silence (dead air past a hold at

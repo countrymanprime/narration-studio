@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/production"
-	"github.com/countrymanprime/narration-studio/shell/internal/productionreport"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/production"
+	"desktop/internal/productionreport"
 )
 
 // The Production page's status report export. The page sends only the narrator's choice of sections (the Include

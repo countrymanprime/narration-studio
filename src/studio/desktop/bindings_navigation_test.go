@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/bridge"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/reaper"
+	"desktop/internal/findings"
 )
 
 const (

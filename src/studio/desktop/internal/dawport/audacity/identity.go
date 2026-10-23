@@ -5,7 +5,7 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"desktop/internal/audacitybridge"
 )
 
 // A project's link lives in its Audacity project as one label, `[nu:project <id>]`, at the start of the "Narration Studio" label

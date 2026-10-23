@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-studio/shell/internal/retakelanes"
-	"github.com/countrymanprime/narration-studio/shell/internal/takecompare"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/coverage"
+	"desktop/internal/findings"
+	"desktop/internal/passagemap"
+	"desktop/internal/retakelanes"
+	"desktop/internal/takecompare"
+	"desktop/internal/tracks"
 )
 
 const (

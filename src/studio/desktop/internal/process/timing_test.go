@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/runlog"
 )
 
 // sayCommand prints a line and exits 0; its argument holds a canary the timing record must not carry.

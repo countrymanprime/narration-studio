@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"desktop/internal/audacitybridge"
 )
 
 // PipePaths are mod-script-pipe's two FIFOs on Linux: the module creates both in /tmp, named for the user.

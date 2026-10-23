@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/bookmarks"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"desktop/internal/bookmarks"
+	"desktop/internal/manuscript"
 )
 
 // The narrator's bookmarks: a spot in the manuscript, a paragraph and a UTF-16 offset in its text, with an

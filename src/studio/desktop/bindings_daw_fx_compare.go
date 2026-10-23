@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/dawport"
 )
 
 const (

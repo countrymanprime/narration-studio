@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/contractfile"
+	"desktop/internal/project"
 )
 
 // The Production page's status report export (ProductionStatusReport): the host builds it from exactly

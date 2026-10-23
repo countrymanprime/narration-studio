@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/project"
 )
 
 // Watching the saved REAPER project. While a

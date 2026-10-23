@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"desktop/internal/coverage"
 )
 
 func TestPowerFromReadsTheACLineAndANoBatteryDesktop(t *testing.T) {

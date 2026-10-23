@@ -16,7 +16,7 @@ import (
 	"strings"
 	"unicode/utf16"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // AnalyzerName is the findings analyzer (and sidecar folder) live flags are stored under.

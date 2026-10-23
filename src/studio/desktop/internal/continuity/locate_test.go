@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/character"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/character"
+	"desktop/internal/measure"
+	"desktop/internal/tracks"
 )
 
 // guideJSON is the shape manuscript_guide.py writes:

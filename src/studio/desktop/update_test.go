@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/contractfile"
+	"desktop/internal/update"
 )
 
 const updateTestRepository = "countrymanprime/narration-studio"

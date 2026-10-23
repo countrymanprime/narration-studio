@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/credits"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/credits"
+	"desktop/internal/project"
 )
 
 // The credits setup prompt's host half:

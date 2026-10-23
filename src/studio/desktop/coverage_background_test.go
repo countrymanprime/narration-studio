@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/coverage"
+	"desktop/internal/dawport"
 )
 
 // fakeBackgroundHeartbeat is a dawport.Heartbeat a test can point at a chosen transport, for background-check gating

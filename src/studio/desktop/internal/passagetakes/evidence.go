@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/coverage"
+	"desktop/internal/measure"
+	"desktop/internal/tracks"
 )
 
 // Take evidence (SNE-5a): for each candidate Resolve offers, the share of the passage's script words the take

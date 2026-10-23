@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
+	"desktop/internal/pathfixtures"
 )
 
 // The path guard (definition of done, rule 1): the recent-projects list runs the shared fixture set in internal/pathfixtures.

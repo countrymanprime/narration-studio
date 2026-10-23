@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
+	"desktop/internal/legacyname"
 )
 
 // protection is how this build seals a value: DPAPI, current-user scope (ADR 0002 Q10).

@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/takecompare"
+	"desktop/internal/findings"
+	"desktop/internal/manuscript"
+	"desktop/internal/takecompare"
 )
 
 // fakeTakeCompareRunner answers --take-divergence with the sidecar's own pinned results, after writing a progress line.

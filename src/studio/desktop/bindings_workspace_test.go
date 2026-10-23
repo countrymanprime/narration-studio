@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"desktop/internal/coverage"
 )
 
 // fakeAlignedCoverageSidecar stands in for `compare.py --coverage` once it also writes the chapter's word alignment

@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/manuscript"
+	"desktop/internal/runlog"
 )
 
 // jobEndedEvent is the one event every host job ends with. The UI shows the completion from it whatever page the narrator is

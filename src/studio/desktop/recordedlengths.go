@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/evidence"
+	"desktop/internal/manuscript"
+	"desktop/internal/settings"
+	"desktop/internal/tracks"
 )
 
 // recordedLengths is the manuscript service's recorded-length provider:

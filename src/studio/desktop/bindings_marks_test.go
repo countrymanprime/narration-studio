@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/marks"
+	"desktop/internal/marks"
 )
 
 func decodeMark(t *testing.T) func(string, error) marks.Resolved {

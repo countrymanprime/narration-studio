@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/voicesample"
+	"desktop/internal/coverage"
+	"desktop/internal/editlog"
+	"desktop/internal/manuscript"
+	"desktop/internal/voicesample"
 )
 
 // The narrator's voice samples: stretches of a take marked as how a character sounds, each copied into

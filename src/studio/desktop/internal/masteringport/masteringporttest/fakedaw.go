@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
+	"desktop/internal/dawport"
+	"desktop/internal/masteringport"
 )
 
 // FakeDAW is the DAW the suite masters ModeDAWRegion rows through: a dawport.Adapter that declares

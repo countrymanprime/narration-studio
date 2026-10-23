@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/hostlog"
+	"desktop/internal/runlog"
 )
 
 func TestSystemReportDiagnosticWritesTheClientReportToTheHostLog(t *testing.T) {

@@ -22,11 +22,11 @@ test('applyPathMap prefers the most specific rename', () => {
   assert.equal(applyPathMap('tools/manuscript-guide/core/x.py', renames), 'src/studio/sidecars/manuscript-guide/core/x.py');
 });
 
-test('applyPathMap leaves look-alikes, prose and the Go module path alone', () => {
+test('applyPathMap leaves look-alikes, prose and Go import paths alone', () => {
   const untouched = [
     'reshared/ui and shared/uikit',
     'the shell is a Go program',
-    'github.com/countrymanprime/narration-studio/shell/internal/bridge',
+    'desktop/internal/bridge',
     'tools/docs-site/README.md',
     'narration-studio-shell',
   ];

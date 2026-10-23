@@ -7,7 +7,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
+	"desktop/internal/legacyname"
 )
 
 // A project last opened by a build from before the rename opens with its own data, now under the new folder name.

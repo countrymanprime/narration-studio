@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/coverage"
+	"desktop/internal/findings"
 )
 
 type fixture struct {

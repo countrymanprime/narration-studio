@@ -10,12 +10,12 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagetakes"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/coverage"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
+	"desktop/internal/passagetakes"
 )
 
 // DawApplyFxToRange and DawRemoveFxFromRange (SND-6c) over deleteRangeHost's coverage-backed launch: coverageProject's

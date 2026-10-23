@@ -6,11 +6,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
-	"github.com/countrymanprime/narration-studio/shell/internal/transcript"
+	"desktop/internal/evidence"
+	"desktop/internal/findings"
+	"desktop/internal/stages"
+	"desktop/internal/tracks"
+	"desktop/internal/transcript"
 )
 
 const (

@@ -8,11 +8,11 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-studio/shell/internal/masteringport/masteringporttest"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/dawport"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/masteringport"
+	"desktop/internal/masteringport/masteringporttest"
+	"desktop/internal/port"
 )
 
 func audacityRow(t *testing.T) masteringport.Mastering {

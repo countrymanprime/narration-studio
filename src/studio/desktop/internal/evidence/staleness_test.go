@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/tracks"
 )
 
 // --- fixtures ---

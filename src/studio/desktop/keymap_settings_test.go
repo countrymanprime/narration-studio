@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/settings"
 )
 
 // Keymap.overrides: the narrator's remap changes from the input registry's default keymap, global scope only (a

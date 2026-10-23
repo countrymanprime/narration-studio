@@ -1,6 +1,6 @@
 package asrporttest
 
-import "github.com/countrymanprime/narration-studio/shell/internal/asrport"
+import "desktop/internal/asrport"
 
 // Fake is a test-only engine: it is what its caller says it is.
 type Fake struct{ name, assetKind string }

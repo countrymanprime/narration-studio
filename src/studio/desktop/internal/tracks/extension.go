@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
+	"desktop/internal/legacyname"
 )
 
 // extensionData reads a <EXTI> (item) or <EXT> (take) chunk into a plain

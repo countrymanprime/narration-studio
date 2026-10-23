@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/reaper"
 )
 
 // pickupListRole wraps client in the REAPER adapter and takes its PickupList role, the way the composition root does

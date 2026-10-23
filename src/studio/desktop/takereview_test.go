@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/takereview"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/reaper"
+	"desktop/internal/findings"
+	"desktop/internal/settings"
+	"desktop/internal/takereview"
 )
 
 // fakeTakeReviewRunner is a takereview.SidecarRunner test double: it never

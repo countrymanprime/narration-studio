@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
-	"github.com/countrymanprime/narration-studio/shell/internal/captureport/captureporttest"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/captureport"
+	"desktop/internal/captureport/captureporttest"
+	"desktop/internal/port"
 )
 
 func TestEveryRegisteredBackendPassesTheSuite(t *testing.T) {

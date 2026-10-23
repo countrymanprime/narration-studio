@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/takecompare"
+	"desktop/internal/findings"
+	"desktop/internal/runlog"
+	"desktop/internal/takecompare"
 )
 
 // Comparing the takes of one group of repeated reads, as a job: the Review page starts it from a take-review group, polls the sidecar's own progress

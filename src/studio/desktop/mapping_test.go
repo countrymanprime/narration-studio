@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/evidence"
+	"desktop/internal/layout"
+	"desktop/internal/manuscript"
+	"desktop/internal/settings"
 )
 
 // newTestHostForMapping builds a Host over a project with a committed

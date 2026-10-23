@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/project"
 )
 
 func TestCheckDate(t *testing.T) {

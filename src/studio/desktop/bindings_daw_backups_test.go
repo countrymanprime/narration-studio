@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/audacity"
 )
 
 // DawBackupAround, DawRestoreBackup and DawBackups (SN-D82), and the two backups settings. What Audacity does with a backup is

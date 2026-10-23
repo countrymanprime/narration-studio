@@ -13,8 +13,8 @@ package editing
 import (
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/evidence"
+	"desktop/internal/tracks"
 )
 
 // ItemScopeInput is what WriteLedgerRecord and CurrentItemRecord need to

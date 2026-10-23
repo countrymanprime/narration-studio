@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/scriptprep"
+	"desktop/internal/manuscript"
+	"desktop/internal/scriptprep"
 )
 
 // The Script page's preparation record: each chapter's prep state and the words flagged for pronunciation, each with how it is

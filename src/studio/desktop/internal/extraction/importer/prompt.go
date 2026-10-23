@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"desktop/internal/extraction"
 )
 
 // ExampleJSON and ExampleCSV are the same Story Bible in both formats. They are shown beside the format, put into the

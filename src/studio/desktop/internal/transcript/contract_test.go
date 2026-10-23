@@ -3,7 +3,7 @@ package transcript
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 // The payloads the host sends to the UI as `Bootstrap.transcript` and the `transcript:state` event. The UI's

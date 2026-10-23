@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport/pronunciationporttest"
+	"desktop/internal/port"
+	"desktop/internal/pronunciationport"
+	"desktop/internal/pronunciationport/pronunciationporttest"
 )
 
 func TestEveryRegisteredSourcePassesTheSuite(t *testing.T) {

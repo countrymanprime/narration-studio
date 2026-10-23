@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/audacitybridge"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
 )
 
 func TestProjectLabelRoundTrip(t *testing.T) {

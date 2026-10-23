@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	editingpkg "github.com/countrymanprime/narration-studio/shell/internal/editing"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	editingpkg "desktop/internal/editing"
+	"desktop/internal/settings"
 )
 
 // editingPolicy reads the Editing settings section: every value

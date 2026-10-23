@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/measure"
+	"desktop/internal/settings"
 )
 
 // The silence cleanup analyzer's own thresholds (src/studio/desktop/internal/measure/cleanup.go): a narrator's settings resolve to measure.CleanupOptions the same way coverageSettings

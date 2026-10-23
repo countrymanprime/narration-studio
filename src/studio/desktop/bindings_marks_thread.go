@@ -1,6 +1,6 @@
 package main
 
-import "github.com/countrymanprime/narration-studio/shell/internal/marks"
+import "desktop/internal/marks"
 
 // A mark's thread: replies after the mark's own text, each by the narrator ("you"), the author or the proofer, with the
 // host's time. Each call is one command the UI journals with its inverse: a reply's is deleting the last message, an edit's

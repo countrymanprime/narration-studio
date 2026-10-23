@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/stages"
+	"desktop/internal/tracks"
 )
 
 func chapterContext() stages.ChapterContext {

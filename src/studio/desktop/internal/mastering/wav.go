@@ -8,7 +8,7 @@ import (
 	"io"
 	"math"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 const (

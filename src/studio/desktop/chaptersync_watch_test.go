@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
+	"desktop/internal/bridge"
+	"desktop/internal/daw"
 )
 
 // Watching the saved .rpp. The tests drive

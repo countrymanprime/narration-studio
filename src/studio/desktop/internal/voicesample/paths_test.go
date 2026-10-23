@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
+	"desktop/internal/pathfixtures"
 )
 
 // everything lists every file and folder under root, so a test can say that nothing was made.

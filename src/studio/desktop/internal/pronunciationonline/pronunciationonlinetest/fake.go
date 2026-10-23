@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/credentialstore"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
+	"desktop/internal/credentialstore"
+	"desktop/internal/pronunciationonline"
 )
 
 // Call is one request the fake received: the word and the key it would have sent.

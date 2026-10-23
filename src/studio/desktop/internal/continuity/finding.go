@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/acoustic"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/acoustic"
+	"desktop/internal/findings"
 )
 
 // ChainShiftDB is how far outside the references' own range a line's noise

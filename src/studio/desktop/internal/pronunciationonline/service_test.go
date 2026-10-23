@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline/pronunciationonlinetest"
+	"desktop/internal/pronunciationonline"
+	"desktop/internal/pronunciationonline/pronunciationonlinetest"
 )
 
 const rawKey = "0b5c1a3e-7d2f-4e6a-9c8b-2f1e0d9c8b7a"

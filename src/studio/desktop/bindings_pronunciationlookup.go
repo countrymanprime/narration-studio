@@ -1,6 +1,6 @@
 package main
 
-import "github.com/countrymanprime/narration-studio/shell/internal/pronunciationlookup"
+import "desktop/internal/pronunciationlookup"
 
 // PronunciationLookupOpen opens source's fixed lookup-page template for word in the narrator's default browser (the
 // BrowserLookup role of docs/architecture/provider-ports.md), and nothing else: it never fetches, scrapes or caches the

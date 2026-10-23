@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/character"
+	"desktop/internal/character"
 )
 
 // Cue is one dialogue cue from the Manuscript Guide: a

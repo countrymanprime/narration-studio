@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
 )
 
 func waitUntil(t *testing.T, condition func() bool) {

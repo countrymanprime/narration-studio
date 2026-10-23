@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"desktop/internal/editlog"
 )
 
 // The three cuts bindings' payloads, the goldens the UI's schemas are checked against: a record (a closed cut after a gap

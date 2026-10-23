@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
+	"desktop/internal/legacyname"
 )
 
 // DefaultDirName is the folder created under the user's home directory as the

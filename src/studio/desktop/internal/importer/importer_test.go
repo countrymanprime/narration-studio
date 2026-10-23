@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/layout"
 )
 
 func fixture(name string) string {

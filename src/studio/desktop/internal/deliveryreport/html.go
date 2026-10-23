@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // report.html.tmpl is the whole page: inline styles, no script, nothing fetched, so it opens anywhere without the app.

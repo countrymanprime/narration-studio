@@ -19,7 +19,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 // detectorClassFor names the measure.CleanupClass the shipped detector uses

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
+	"desktop/internal/manuscript"
+	"desktop/internal/passagemap"
 )
 
 // The Booth's passage map (docs/architecture/manuscript-teleprompter.md#the-passage-map): when a recording stops, the UI

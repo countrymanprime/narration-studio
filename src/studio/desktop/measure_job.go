@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
+	"desktop/internal/runlog"
 )
 
 // Measuring the narrator's rendered chapter files as a job. The narrator picks WAV files in the operating system's picker (MeasurePickFiles); MeasureAnalyze measures

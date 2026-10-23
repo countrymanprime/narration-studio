@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
 )
 
 // The steps of a stack, in the Studio Next mock's words (STACK_PLAN.steps), and of an un-stack.

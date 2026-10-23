@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/production"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/contractfile"
+	"desktop/internal/production"
+	"desktop/internal/project"
 )
 
 // The production plan bindings: deadline, contracted amount and milestones on the

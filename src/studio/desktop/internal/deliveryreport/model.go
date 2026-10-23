@@ -1,8 +1,8 @@
 package deliveryreport
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // notice is the report's first words: what it is, and what it is not.

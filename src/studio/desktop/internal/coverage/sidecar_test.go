@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/evidence"
+	"desktop/internal/layout"
+	"desktop/internal/process"
 )
 
 // realSidecar finds the checkout's Python environment and compare.py, or

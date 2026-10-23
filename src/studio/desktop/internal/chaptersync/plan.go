@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/chaptermatch"
+	"desktop/internal/evidence"
+	"desktop/internal/tracks"
 )
 
 // Input is everything one sync plans against. Links are the stored links of

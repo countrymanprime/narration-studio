@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/dawport"
+	"desktop/internal/port"
 )
 
 // DAW is the row that masters with the project's own track and master FX, in the DAW.

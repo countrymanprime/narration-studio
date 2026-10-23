@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/tracks"
 )
 
 func mustResolveTrack(t *testing.T, trackGUID string, chapters []Chapter, project tracks.Project, confirmed map[string]string) TrackResult {

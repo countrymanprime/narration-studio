@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/proofing"
+	"desktop/internal/stages"
 )
 
 // renderTestService is newTestService's own fixture (a two-item track

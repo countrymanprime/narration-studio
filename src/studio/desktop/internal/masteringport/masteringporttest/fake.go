@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/masteringport"
+	"desktop/internal/port"
 )
 
 // Fake is the mock row (D67): it "masters" a WAV by copying it, then answers masteringport.Judge's verdict on the copy, as every row

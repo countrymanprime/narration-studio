@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/project"
+	"desktop/internal/settings"
 )
 
 func linkedProject(t *testing.T) (folder, rpp string) {

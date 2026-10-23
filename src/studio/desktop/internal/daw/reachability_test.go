@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"desktop/internal/bridge"
 )
 
 func TestReachabilityWithNoHeartbeatIsUnreachable(t *testing.T) {

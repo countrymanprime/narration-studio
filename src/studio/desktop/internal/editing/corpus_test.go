@@ -19,8 +19,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/findings"
+	"desktop/internal/stages"
 )
 
 // editingCorpusCase is one labeled synthetic scenario: build is what a

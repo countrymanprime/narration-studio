@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/assets"
+	"desktop/internal/layout"
 )
 
 func TestCatalogExposesOnlyVerifiedState(t *testing.T) {

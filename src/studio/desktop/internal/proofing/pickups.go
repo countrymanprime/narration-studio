@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/findings"
+	"desktop/internal/stages"
 )
 
 // PickupsSignalID is the always-required proofing signal.

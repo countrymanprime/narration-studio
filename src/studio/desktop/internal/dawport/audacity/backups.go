@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
+	"desktop/internal/persist"
 )
 
 // DefaultBackupWindow is how much audio a backup takes either side of the edit, in seconds, when no setting gives one (the

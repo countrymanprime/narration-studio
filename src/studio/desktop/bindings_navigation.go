@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
+	"desktop/internal/findings"
 )
 
 // The Review page's REAPER bindings: Go to, Loop and Stop on

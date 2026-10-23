@@ -75,19 +75,19 @@ linters:
           # Transcript Compare service (which exports markers). It checks direct imports only.
           files: ["**/internal/measure/**", "**/internal/findings/**"]
           deny:
-            - pkg: github.com/countrymanprime/narration-studio/shell/internal/manuscript
+            - pkg: desktop/internal/manuscript
               desc: "analyzers report findings and do not touch the manuscript store"
-            - pkg: github.com/countrymanprime/narration-studio/shell/internal/guide
+            - pkg: desktop/internal/guide
               desc: "analyzers report findings and do not edit the Story Bible"
-            - pkg: github.com/countrymanprime/narration-studio/shell/internal/settings
+            - pkg: desktop/internal/settings
               desc: "analyzers report findings and do not write settings"
-            - pkg: github.com/countrymanprime/narration-studio/shell/internal/recents
+            - pkg: desktop/internal/recents
               desc: "analyzers report findings and do not write the recents list"
-            - pkg: github.com/countrymanprime/narration-studio/shell/internal/bridge
+            - pkg: desktop/internal/bridge
               desc: "the REAPER bridge executes project actions; an analyzer must not reach it"
-            - pkg: github.com/countrymanprime/narration-studio/shell/internal/process
+            - pkg: desktop/internal/process
               desc: "analyzers do not launch sidecars or other processes"
-            - pkg: github.com/countrymanprime/narration-studio/shell/internal/transcript
+            - pkg: desktop/internal/transcript
               desc: "Transcript Compare exports markers into the project; an analyzer must not depend on it"
     gosec:
       excludes:

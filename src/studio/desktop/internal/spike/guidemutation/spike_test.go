@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/guide"
+	"desktop/internal/process"
+	"desktop/internal/settings"
 )
 
 func repoRoot(t *testing.T) string {

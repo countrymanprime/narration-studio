@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/character"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/character"
+	"desktop/internal/findings"
 )
 
 // Config is what Analyze needs: the four roles and the outlier rule.

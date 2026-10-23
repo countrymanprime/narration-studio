@@ -14,8 +14,8 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/layout"
+	"desktop/internal/process"
 )
 
 // A smoke test that cannot fail proves nothing, so most of these tests break one thing in an otherwise healthy resource tree and require

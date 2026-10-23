@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/bridge"
+	"desktop/internal/findings"
+	"desktop/internal/settings"
 )
 
 // The Proof page's marker: one take marker in REAPER for one finding, in one click and for any finding the

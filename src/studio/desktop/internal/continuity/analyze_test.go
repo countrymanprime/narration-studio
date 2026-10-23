@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/character"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/character"
+	"desktop/internal/findings"
 )
 
 func TestTheNarratorsNormalVoiceRaisesNoFlag(t *testing.T) {

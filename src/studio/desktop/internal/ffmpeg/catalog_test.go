@@ -20,9 +20,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/assets"
+	"desktop/internal/encodeport"
+	"desktop/internal/layout"
 )
 
 // A PyPI file URL is content-addressed: /packages/<2 hex>/<2 hex>/<60 hex>/<file>. Nothing can replace the bytes behind one.

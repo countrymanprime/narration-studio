@@ -4,8 +4,8 @@ import (
 	"context"
 	"slices"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/extractionport"
+	"desktop/internal/port"
 )
 
 // Fake is a test-only extraction source: it is what its fields say, and its extractor offers Raws.

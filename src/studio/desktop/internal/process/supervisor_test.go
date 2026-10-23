@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/runlog"
 )
 
 func echoExitCommand() (string, []string) {

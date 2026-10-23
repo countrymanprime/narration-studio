@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/contractfile"
+	"desktop/internal/update"
 )
 
 // releaseFiles is a fake GitHub that serves the release list, one release's zip and its checksum, and counts what was asked for.

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/settings"
 )
 
 // The number kind: a finite decimal written as plain

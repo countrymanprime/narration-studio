@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/marks"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/findings"
+	"desktop/internal/marks"
+	"desktop/internal/measure"
 )
 
 // Scale is one synthetic project size. Every density is per 1,000 script words.

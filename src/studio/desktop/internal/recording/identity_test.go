@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/recording"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
+	"desktop/internal/recording"
+	"desktop/internal/recording/recordingtest"
 )
 
 func TestComposeAndParseLineID(t *testing.T) {

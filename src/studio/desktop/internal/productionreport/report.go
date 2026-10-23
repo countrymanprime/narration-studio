@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/production"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/production"
+	"desktop/internal/project"
 )
 
 // SchemaVersion is the version of the JSON report this package writes.

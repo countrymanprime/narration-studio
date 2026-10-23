@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/runlog"
 )
 
 const streamHelperEnv = "PROCESS_STREAM_HELPER_MODE"

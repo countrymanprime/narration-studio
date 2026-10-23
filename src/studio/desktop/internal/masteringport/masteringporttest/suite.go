@@ -23,10 +23,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/dawport"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/masteringport"
+	"desktop/internal/port"
 )
 
 // Run fails t once per broken promise of entry.

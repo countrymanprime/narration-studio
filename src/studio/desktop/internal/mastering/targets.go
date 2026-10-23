@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"desktop/internal/deliveryprofile"
 )
 
 // The metrics the chain masters to, as internal/deliveryprofile names them. A rule is found by its metric, not its ID,

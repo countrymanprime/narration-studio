@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/voicesample"
+	"desktop/internal/contractfile"
+	"desktop/internal/editlog"
+	"desktop/internal/voicesample"
 )
 
 const (

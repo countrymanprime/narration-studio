@@ -6,8 +6,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/builtin"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/builtin"
 )
 
 // The Booth's Record when the project records with the built-in recorder. It is the same pair of bindings

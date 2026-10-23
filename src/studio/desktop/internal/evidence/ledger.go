@@ -37,7 +37,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // ledgerSchemaVersion is the schema version every record written by this

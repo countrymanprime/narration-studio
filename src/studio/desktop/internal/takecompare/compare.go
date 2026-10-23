@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
+	"desktop/internal/tracks"
 )
 
 // manifestSchemaVersion is the --take-divergence manifest schema this package writes.

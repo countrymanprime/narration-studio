@@ -3,7 +3,7 @@ package repeats
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 func TestToFindingsSkipsGroupsWithFewerThanTwoMembers(t *testing.T) {

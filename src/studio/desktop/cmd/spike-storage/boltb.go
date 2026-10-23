@@ -10,10 +10,10 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/findings"
+	"desktop/internal/persist"
 )
 
 func boltPath(dir string) string { return filepath.Join(projectRoot(dir), "index-bolt.db") }

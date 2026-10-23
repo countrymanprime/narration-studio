@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"desktop/internal/assets"
 )
 
 // Phase is where an update download is: the words the UI polls for.

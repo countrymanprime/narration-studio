@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/extractionporttest"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/contractfile"
+	"desktop/internal/extraction"
+	"desktop/internal/extractionport"
+	"desktop/internal/extractionport/extractionporttest"
+	"desktop/internal/port"
 )
 
 func TestEveryRegisteredSourcePassesTheSuite(t *testing.T) {

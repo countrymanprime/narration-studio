@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/dawport"
 )
 
 // editAudacity is the backups' fake Audacity (pipeAudacity) with the edit commands the steps send: Split (no change to the fake's

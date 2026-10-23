@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 func reviewFinding(id, analyzer, chapter string, severity findings.Severity, confidence *float64) findings.Finding {

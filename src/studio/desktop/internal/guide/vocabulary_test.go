@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/process"
+	"desktop/internal/settings"
 )
 
 // vocabularyCandidatesOf writes a guide file and returns the candidates the service derives from it.

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/findings"
+	"desktop/internal/persist"
 )
 
 // Backend is what the benchmark drives. Every method answers a count so the backends can be checked against each other.

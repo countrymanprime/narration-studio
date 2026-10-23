@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // scanReadyHost is a take-review host over a project whose "Chapter 1" track has two items (the fewest a scan runs

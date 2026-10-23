@@ -18,10 +18,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
+	"desktop/internal/stages"
 )
 
 // proofingCorpusCase is one labeled synthetic scenario: build wires the

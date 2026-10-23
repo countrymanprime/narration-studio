@@ -21,8 +21,8 @@ package audacity
 import (
 	"maps"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
 )
 
 func init() { dawport.Register(dawport.KindAudacity, Factory) }

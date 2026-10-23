@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/settings"
 )
 
 // coverageEngineFamilyWhisper is the only engine family a recording check can run: Moonshine is the Booth's live

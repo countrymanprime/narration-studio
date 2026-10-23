@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/teleprompter"
 )
 
 // fakeDevices stands in for the teleprompter sidecar's --list-devices.

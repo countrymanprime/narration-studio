@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/dawport"
+	"desktop/internal/editlog"
+	"desktop/internal/persist"
 )
 
 // Version is the only samples.json version this package reads or writes.

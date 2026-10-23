@@ -12,8 +12,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+	"desktop/internal/port"
+	"desktop/internal/pronunciationport"
 )
 
 // host is a lower-case host name with at least one dot and no scheme, port or path, as PronunciationDescriptor checks it in Python.

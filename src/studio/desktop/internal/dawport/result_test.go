@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/contractfile"
+	"desktop/internal/port"
 )
 
 func marshalResult(t *testing.T, r Result) map[string]any {

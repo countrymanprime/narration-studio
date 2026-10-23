@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode/utf16"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"desktop/internal/extraction"
 )
 
 // Source says where a suggestion came from. Rules suggestions carry SourceRules.

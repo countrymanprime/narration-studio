@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/evidence"
+	"desktop/internal/process"
 )
 
 // exitCancelled is the sidecar's cancel exit code.

@@ -16,9 +16,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const LAYOUT_FILE = join(HERE, 'layout.json');
 export const REPO_ROOT = join(HERE, '..', '..');
 
-// A path starts where the previous character is not part of a name, and never inside the Go
-// module path (github.com/countrymanprime/narration-studio/shell/...), which the layout keeps.
-const PATH_START = '(?<![A-Za-z0-9_.-])(?<!narration-studio/)';
+// A path starts where the previous character is not part of a name, and never inside the Go module path the host had
+// before it was `desktop` (github.com/<owner>/<repository>/shell/...), which dated research still names.
+const PATH_START = '(?<![A-Za-z0-9_.-])(?<!narration-studio/|<repository>/)';
 // A directory name ends where the next character is not part of a name. A `from` that already
 // ends in a slash is a directory prefix and needs no end check.
 const NAME_END = '(?![A-Za-z0-9_-])';

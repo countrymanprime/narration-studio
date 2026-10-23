@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
-	"github.com/countrymanprime/narration-studio/shell/internal/transcript"
+	"desktop/internal/evidence"
+	"desktop/internal/measure"
+	"desktop/internal/proofing"
+	"desktop/internal/stages"
+	"desktop/internal/transcript"
 )
 
 // TestMeasuringAChosenRenderRecordsItForItsChapter through the host: a render chosen for a chapter, measured

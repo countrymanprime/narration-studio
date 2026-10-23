@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/runlog"
 )
 
 // firstOutput notes how long after the spawn a child first wrote to stdout. It is an io.Writer so Run and Start can tee their

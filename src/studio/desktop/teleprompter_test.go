@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/moonshine"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"desktop/internal/asrport"
+	"desktop/internal/contractfile"
+	"desktop/internal/layout"
+	"desktop/internal/moonshine"
+	"desktop/internal/process"
+	"desktop/internal/teleprompter"
 )
 
 const fakeTeleprompterEnv = "SHELL_FAKE_TELEPROMPTER"

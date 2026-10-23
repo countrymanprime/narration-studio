@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/packager"
+	"desktop/internal/contractfile"
+	"desktop/internal/packager"
 )
 
 // packageHost is a host with an export job already holding encoded files, ready to package.

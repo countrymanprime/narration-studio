@@ -17,10 +17,10 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/bridge"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
+	"desktop/internal/tracks"
 )
 
 func init() { dawport.Register(dawport.KindREAPER, Factory) }

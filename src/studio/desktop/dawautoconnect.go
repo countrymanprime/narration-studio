@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/daw"
+	"desktop/internal/persist"
 )
 
 // The app connects to the REAPER the narrator already has open without a click. A project that records with REAPER and has its

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 var clock = time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)

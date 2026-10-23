@@ -14,8 +14,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/layout"
+	"desktop/internal/persist"
 )
 
 type Values map[string]string

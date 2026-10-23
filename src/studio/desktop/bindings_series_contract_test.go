@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/character"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/series"
+	"desktop/internal/character"
+	"desktop/internal/contractfile"
+	"desktop/internal/series"
 )
 
 // What SeriesVoiceBible sends the UI (reference data only: every acoustic-drift binding is benched).

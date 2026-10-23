@@ -1,4 +1,4 @@
-module github.com/countrymanprime/narration-studio/shell
+module desktop
 
 go 1.27.2
 

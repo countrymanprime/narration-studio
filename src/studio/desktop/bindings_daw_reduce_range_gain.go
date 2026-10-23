@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/dawport"
 )
 
 // reduceRangeGainTimeout bounds one reduce_range_gain request with the chapter_track_state read before it: a single undo block in

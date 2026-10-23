@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
+	"desktop/internal/legacyname"
 )
 
 // SuggestFromManuscript seeds Title and Author suggestions from the current project's imported manuscript: a thin

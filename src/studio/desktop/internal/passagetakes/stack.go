@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/dawport"
+	"desktop/internal/passagemap"
+	"desktop/internal/tracks"
 )
 
 // Stacking retries (SND-7b, docs/reference/daw/capabilities.md; the Studio Next mock's selectors/stacking.ts): the later reads of a passage

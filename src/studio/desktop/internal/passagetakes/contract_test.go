@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-studio/shell/internal/takecompare"
+	"desktop/internal/contractfile"
+	"desktop/internal/coverage"
+	"desktop/internal/findings"
+	"desktop/internal/passagemap"
+	"desktop/internal/takecompare"
 )
 
 // pin writes (UPDATE_CONTRACTS=1) or checks the payload the host really sends for a binding, as

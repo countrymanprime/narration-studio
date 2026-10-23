@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
 )
 
 // coverageProject writes a project folder with one saved .rpp (one track, one

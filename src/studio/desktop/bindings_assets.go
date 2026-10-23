@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/assets"
+	"desktop/internal/update"
 )
 
 // AssetsList is every approved asset of every kind with its state, size, publisher, licence and provenance links, where it is installed,

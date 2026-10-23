@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/audacitybridge"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
+	"desktop/internal/project"
 )
 
 // audacityLinkFixture is a host whose project records with Audacity, over a fake Audacity: its pipe, its settings file, whether it

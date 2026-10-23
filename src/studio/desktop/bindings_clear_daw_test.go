@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/project"
 )
 
 // clearHost is a project with a manuscript, the named REAPER files directly in its folder, and the manifest linked to link (a path

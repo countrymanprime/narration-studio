@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/daw"
+	"desktop/internal/persist"
+	"desktop/internal/project"
 )
 
 // DawLaunch starts REAPER on the current project's linked DAW file: it resolves

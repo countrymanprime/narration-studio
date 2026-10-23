@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline/merriamwebster"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline/pronunciationonlinetest"
+	"desktop/internal/contractfile"
+	"desktop/internal/pronunciationonline"
+	"desktop/internal/pronunciationonline/merriamwebster"
+	"desktop/internal/pronunciationonline/pronunciationonlinetest"
 )
 
 const onlineTestKey = "0b5c1a3e-7d2f-4e6a-9c8b-2f1e0d9c8b7a"

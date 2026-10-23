@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/runlog"
+	"desktop/internal/update"
 )
 
 // The phases of an update download, the words the UI polls for (src/studio/ui/src/api/contracts/update.ts).

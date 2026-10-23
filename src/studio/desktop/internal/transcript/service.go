@@ -19,11 +19,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/dawport"
+	"desktop/internal/findings"
+	"desktop/internal/persist"
+	"desktop/internal/process"
+	"desktop/internal/settings"
 )
 
 type Config struct{ Project, SessionDir, Python, Backend string }

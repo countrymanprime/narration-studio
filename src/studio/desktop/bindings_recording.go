@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording"
-	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"desktop/internal/captureport"
+	"desktop/internal/dawport"
+	"desktop/internal/manuscript"
+	"desktop/internal/port"
+	"desktop/internal/recording"
+	"desktop/internal/teleprompter"
 )
 
 // The built-in recorder's bindings: the Booth records with the project's DAW or with the built-in recorder, a

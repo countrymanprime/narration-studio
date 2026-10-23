@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
+	"desktop/internal/contractfile"
+	"desktop/internal/project"
+	"desktop/internal/recording/recordingtest"
 )
 
 func decodeDawChoice(t *testing.T) func(string, error) DawChoice {

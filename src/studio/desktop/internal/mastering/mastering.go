@@ -17,8 +17,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/measure"
 )
 
 const (

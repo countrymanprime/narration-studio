@@ -1,6 +1,6 @@
 package main
 
-import "github.com/countrymanprime/narration-studio/shell/internal/editlog"
+import "desktop/internal/editlog"
 
 // The narrator's word effects: the host's memory of the chains the DAW put on ranges of words (applyFxToRange),
 // so an effect's underline survives a restart. An effect's times are in the chapter recording as it was before any cut, like

@@ -15,8 +15,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/assets"
+	"desktop/internal/layout"
 )
 
 // TestTheProductionCatalogParsesAndIsPending checks config/wiktextract-assets.json itself: it must parse (one archive per

@@ -171,7 +171,7 @@ import { dictionaryLookupResultSchema } from './schemas/dictionary';
 import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
 import { exportJobSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import type { NarrationApi } from '../types';
-import * as host from '../../wailsjs/github.com/countrymanprime/narration-studio/shell/host';
+import * as host from '../../wailsjs/desktop/host';
 import { Events } from '@wailsio/runtime';
 import { logUi } from './uiLog';
 

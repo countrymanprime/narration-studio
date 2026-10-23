@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
+	"desktop/internal/process"
+	"desktop/internal/recording"
+	"desktop/internal/recording/recordingtest"
 )
 
 // The test binary stands in for the teleprompter sidecar: with fakeSidecarEnv set it behaves like `live_asr.py` in

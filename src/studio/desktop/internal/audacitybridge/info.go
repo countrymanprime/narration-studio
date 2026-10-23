@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
+	"desktop/internal/legacyname"
 )
 
 // LabelInfo is one label as GetInfo: Type=Labels reports it. Index is the number SetLabel's Label parameter takes: labels are

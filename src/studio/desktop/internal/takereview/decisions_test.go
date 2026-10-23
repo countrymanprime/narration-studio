@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/repeats"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/findings"
+	"desktop/internal/repeats"
+	"desktop/internal/runlog"
+	"desktop/internal/tracks"
 )
 
 // decisionRecords reads path's JSON lines and returns the ones whose event field is want.

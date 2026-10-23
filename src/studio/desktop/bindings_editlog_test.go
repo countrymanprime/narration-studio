@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"desktop/internal/editlog"
 )
 
 func editLogHost(t *testing.T) (*Host, string) {

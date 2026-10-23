@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"desktop/internal/dawport"
+	"desktop/internal/manuscript"
 )
 
 // Config is the project and session paths the service needs.

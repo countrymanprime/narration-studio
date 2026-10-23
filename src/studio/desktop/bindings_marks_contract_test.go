@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/marks"
+	"desktop/internal/marks"
 )
 
 // The four bindings' payloads, the goldens the UI's schemas are checked against: an added question, the list in reading

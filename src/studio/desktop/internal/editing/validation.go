@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/measure"
+	"desktop/internal/stages"
 )
 
 // ClickAnalyzerVersion and BreathAnalyzerVersion identify the click and breath

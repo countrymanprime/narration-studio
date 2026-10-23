@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/takereview"
+	"desktop/internal/takereview"
 )
 
 // takeReviewCreateTakeTimeout bounds the confirm dialog's own wait, one notch above

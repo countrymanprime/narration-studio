@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/update"
 )
 
 // A project's own settings file must not decide how the app updates: a project the narrator opens, or is sent, could otherwise

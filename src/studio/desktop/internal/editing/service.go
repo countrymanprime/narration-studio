@@ -18,12 +18,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/dawport"
+	"desktop/internal/evidence"
+	"desktop/internal/findings"
+	"desktop/internal/persist"
+	"desktop/internal/proofing"
+	"desktop/internal/tracks"
 )
 
 // AnalyzerVersion is the empty-space (silence) analyzer's version, stamped on

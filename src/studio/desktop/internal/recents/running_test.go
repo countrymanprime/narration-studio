@@ -3,7 +3,7 @@ package recents
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 type openFile string

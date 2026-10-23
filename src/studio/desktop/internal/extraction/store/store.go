@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/extraction"
+	"desktop/internal/persist"
 )
 
 // Version is the only suggestions.json version this package reads or writes.

@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 // The audio engine panel's project as TracksList sends it, parsed from the fixture .rpp with its resolved media. The absolute

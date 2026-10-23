@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 const fingerprint = "sha256:0f1e2d3c"

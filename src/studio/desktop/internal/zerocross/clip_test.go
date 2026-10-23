@@ -8,7 +8,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 // pcm24 writes frames as 24-bit PCM over channels identical channels, the format an audiobook recording uses.

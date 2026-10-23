@@ -24,8 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
 )
 
 // ---- the FIFO transport (the app is Windows-only, so PipeTransport has no Linux pipe) -----------------------------------------------

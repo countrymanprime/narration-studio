@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
+	"desktop/internal/hostlog"
+	"desktop/internal/legacyname"
 )
 
 // migrateUserFolders moves the per-user folders an install from before the rename left (settings, logs, downloaded models, the

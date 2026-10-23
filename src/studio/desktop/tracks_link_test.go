@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/layout"
+	"desktop/internal/project"
+	"desktop/internal/settings"
 )
 
 // projectLinkedTo makes a project folder whose manifest links rpp (nil link when rpp is empty).

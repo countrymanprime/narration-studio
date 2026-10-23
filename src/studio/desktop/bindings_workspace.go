@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/coverage"
+	"desktop/internal/dawport"
 )
 
 // The chapter workspace's REAPER navigation: Go to for a chapter token, over the same bridge.Navigator, the same

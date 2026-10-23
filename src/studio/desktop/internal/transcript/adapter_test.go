@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/dawport"
+	"desktop/internal/settings"
 )
 
 // fakeReview is a DAW that is not REAPER: it records what the review workflow asked of it and delivers the events a test queues,

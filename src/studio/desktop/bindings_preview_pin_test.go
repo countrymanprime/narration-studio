@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 func decodePin(t *testing.T) func(string, error) map[string]any {

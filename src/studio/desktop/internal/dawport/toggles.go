@@ -3,7 +3,7 @@ package dawport
 import (
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"desktop/internal/bridge"
 )
 
 // The narrator's per-capability settings live in the settings store's DAW section, beside the old single switch: one row per

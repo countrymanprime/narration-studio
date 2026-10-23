@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/pickups"
+	"desktop/internal/pickups"
 )
 
 // The bindings for the pickup list: CSV parse

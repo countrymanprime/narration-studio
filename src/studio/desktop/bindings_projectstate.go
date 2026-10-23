@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/projectstate"
+	"desktop/internal/projectstate"
 )
 
 // The change-driven re-compare indicator's bindings: an

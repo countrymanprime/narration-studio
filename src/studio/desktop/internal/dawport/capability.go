@@ -3,7 +3,7 @@ package dawport
 import (
 	"reflect"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/port"
 )
 
 // Capability is one thing an engine can do for the host, named as it appears on the wire and in the settings key

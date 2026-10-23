@@ -3,7 +3,7 @@ package coverage
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/evidence"
 )
 
 // pipelinedRequest is cascadeRequest with the one-process cascade asked for: the first pass reports its doubts (UnsureBelow) and

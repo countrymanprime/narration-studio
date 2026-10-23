@@ -16,9 +16,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // SchemaVersion is the version of the JSON report this package writes.

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/ttsport"
+	"desktop/internal/port"
+	"desktop/internal/ttsport"
 )
 
 // The Piper.tts_provider choices are the TTS registry's engines for the host's platform, which today is the

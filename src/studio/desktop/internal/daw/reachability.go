@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"desktop/internal/bridge"
 )
 
 // heartbeatTimeout is how long since the last PROJECT_STATUS event still counts as "REAPER is running". It only has to outlast one missed tick of both sides: narration_ui_bridge.lua's own heartbeat interval

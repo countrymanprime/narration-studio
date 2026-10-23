@@ -3,10 +3,10 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/builtin"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/audacity"
+	"desktop/internal/dawport/builtin"
+	"desktop/internal/dawport/reaper"
 )
 
 // DawCapabilities and its live event daw_capabilities_changed are the UI's one picture of what the

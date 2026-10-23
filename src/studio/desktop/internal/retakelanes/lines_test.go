@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/tracks"
 )
 
 // fixture parses a project REAPER 7.80 wrote during spike S7 (src/studio/desktop/internal/tracks/testdata/reaper/README.md).

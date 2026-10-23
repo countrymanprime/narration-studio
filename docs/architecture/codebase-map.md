@@ -63,8 +63,8 @@ The product's name before the rename is written in exactly three migration files
 - `src/studio/desktop/` is the Go/Wails desktop host, on Wails v3 beta ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)). It exposes generated, typed Wails
   bindings and native events only; it has no loopback HTTP surface, port, or
   browser fallback. `main.go` creates the application and its one window, and every other call into Wails
-  (events, the window, file dialogs, the browser, quitting) goes through `wailsapp.go`. Its Go module path is still
-  `github.com/countrymanprime/narration-studio/shell`; nothing imports it.
+  (events, the window, file dialogs, the browser, quitting) goes through `wailsapp.go`. Its Go module path is
+  `desktop`, with no product or repository name in it, so a rename does not touch it; nothing outside the folder imports it.
 - `src/studio/ui/` is the React application. It communicates only through the
   typed API facade; feature components do not import HTTP transport code.
 - `src/studio/sidecars/*/core/` remain stable Python CLI entrypoints for DAW integrations.

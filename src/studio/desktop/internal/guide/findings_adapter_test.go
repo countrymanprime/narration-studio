@@ -3,7 +3,7 @@ package guide
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // fixtureEntity builds an entity exactly as Service.Entities normalizes one,

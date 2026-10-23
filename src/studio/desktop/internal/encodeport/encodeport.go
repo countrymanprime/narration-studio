@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/port"
 )
 
 // Spec is what an Encoder is asked to write. A zero field other than Format leaves the choice to the encoder (its default

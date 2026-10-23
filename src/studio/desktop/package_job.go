@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/packager"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/packager"
+	"desktop/internal/runlog"
+	"desktop/internal/update"
 )
 
 // The packaging half of the Master & QC export flow packager.Assemble over the files ExportStart already mastered and encoded, into a folder the narrator chooses with the operating

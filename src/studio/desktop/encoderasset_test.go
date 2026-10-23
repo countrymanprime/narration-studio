@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/ffmpeg"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/ffmpeg"
+	"desktop/internal/layout"
 )
 
 // The FFmpeg build the MP3 encoder runs is one more kind in the asset registry: the generic bindings list, install, verify

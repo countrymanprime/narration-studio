@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/dawport"
 )
 
 func TestFakeHandsOutARoleOnlyForWhatItDeclaresUsable(t *testing.T) {

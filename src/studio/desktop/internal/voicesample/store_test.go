@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // keptAside lists the samples.json.corrupt-* copies next to the store.

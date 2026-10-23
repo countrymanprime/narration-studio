@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/bridge"
+	"desktop/internal/daw"
+	"desktop/internal/findings"
 )
 
 // What FindingsReaperStatus, FindingsGoTo, FindingsLoop and FindingsStopLoop send, over the

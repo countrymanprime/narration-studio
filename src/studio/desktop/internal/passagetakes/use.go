@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/takereview"
+	"desktop/internal/bridge"
+	"desktop/internal/takereview"
 )
 
 // What Use answers.

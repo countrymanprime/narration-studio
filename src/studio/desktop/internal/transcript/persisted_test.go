@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/bridge"
+	"desktop/internal/persist"
 )
 
 func TestACorruptLastComparisonIsLoggedAndTreatedAsNone(t *testing.T) {

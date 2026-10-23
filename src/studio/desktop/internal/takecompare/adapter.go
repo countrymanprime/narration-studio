@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // confidenceReason says why a comparison has no confidence score: it is evidence side by side, not a judgement.

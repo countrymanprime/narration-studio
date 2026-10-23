@@ -20,9 +20,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/encodeport"
+	"desktop/internal/port"
 )
 
 // invalidTitleChars are characters Windows refuses in a file or path segment name, so a chapter title can never

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/coverage"
+	"desktop/internal/dawport"
 )
 
 // Whether REAPER is ready to record a chapter with reading: one read-only

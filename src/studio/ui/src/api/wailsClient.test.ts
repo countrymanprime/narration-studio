@@ -27,7 +27,7 @@ function standInEvents(eventsOn: EventsOn): void {
   fake.eventsOn = eventsOn;
 }
 
-vi.mock('../../wailsjs/github.com/countrymanprime/narration-studio/shell/host', async (importOriginal) => {
+vi.mock('../../wailsjs/desktop/host', async (importOriginal) => {
   const generated = await importOriginal<Record<string, unknown>>();
   return Object.fromEntries(
     Object.keys(generated).map((name) => [

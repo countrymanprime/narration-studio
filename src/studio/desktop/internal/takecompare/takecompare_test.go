@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/findings"
+	"desktop/internal/tracks"
 )
 
 // goldenResults is the results file the sidecar really writes for three takes of one span (a clean read, a misread and

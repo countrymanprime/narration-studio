@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 // Session is the Audacity work the review workflow needs, over one pipe client: the port's navigate and markers roles, and the

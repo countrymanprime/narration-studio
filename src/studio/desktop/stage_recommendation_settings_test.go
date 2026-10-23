@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/coverage"
+	"desktop/internal/stages"
 )
 
 // The narrator's StageRecommendations settings (docs/architecture/stage-recommendations.md) choose which declared

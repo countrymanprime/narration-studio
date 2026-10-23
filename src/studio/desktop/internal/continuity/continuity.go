@@ -21,10 +21,10 @@
 package continuity
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/acoustic"
-	"github.com/countrymanprime/narration-studio/shell/internal/character"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/acoustic"
+	"desktop/internal/character"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // AnalyzerName is the findings analyzer (and findings-store folder) name.

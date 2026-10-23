@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/chaptersync"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/chaptersync"
+	"desktop/internal/evidence"
+	"desktop/internal/layout"
 )
 
 func importAlice(t *testing.T, service *Service, reset bool) string {

@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/liveflags"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"desktop/internal/contractfile"
+	"desktop/internal/findings"
+	"desktop/internal/liveflags"
+	"desktop/internal/manuscript"
 )
 
 const flagsManuscript = `{"schemaVersion":1,"documentId":"alice-1","importedAt":"2026-09-01T09:30:00Z","importer":{"format":"docx"},` +

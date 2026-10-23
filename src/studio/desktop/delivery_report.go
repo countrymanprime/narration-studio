@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryreport"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/deliveryreport"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // Master & QC's report export. The page sends only the

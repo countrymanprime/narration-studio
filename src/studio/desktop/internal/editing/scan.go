@@ -5,10 +5,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/evidence"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
+	"desktop/internal/tracks"
 )
 
 func projectModTime(path string) (time.Time, error) {

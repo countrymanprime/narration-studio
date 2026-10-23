@@ -3,7 +3,7 @@ package coverage
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/evidence"
 )
 
 // cascadeRequest is testRequest with the model cascade turned on. The host resolves this from

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/bridge"
+	"desktop/internal/daw"
+	"desktop/internal/project"
 )
 
 func TestDawLinkFactsWithNoProjectFolderIsAllFalse(t *testing.T) {

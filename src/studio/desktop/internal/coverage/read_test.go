@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/evidence"
 )
 
 func TestAModelOrLanguageChangeKeepsTheResultCurrentAndLabelled(t *testing.T) {

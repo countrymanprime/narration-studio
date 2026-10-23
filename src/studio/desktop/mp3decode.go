@@ -5,8 +5,8 @@ import (
 	"errors"
 	"runtime"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/encodeport"
+	"desktop/internal/measure"
 )
 
 // Wiring internal/measure's Decoder capability to the catalogued FFmpeg row internal/encodeport

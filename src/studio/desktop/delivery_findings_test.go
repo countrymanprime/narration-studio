@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
+	"desktop/internal/settings"
 )
 
 // Delivery findings on the Review page : each measurement saves the

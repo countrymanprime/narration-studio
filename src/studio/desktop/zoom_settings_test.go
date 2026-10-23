@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/settings"
 )
 
 // Appearance.zoom is the remembered webview zoom level, global scope only: it belongs to this computer's window, not a

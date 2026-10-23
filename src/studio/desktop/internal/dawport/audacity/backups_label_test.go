@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/dawport"
 )
 
 // A row's label and restored time (SN-D82, for the Backups tab's list): added within version 1, so a file without them still reads.

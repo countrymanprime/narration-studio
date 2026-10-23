@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/contractfile"
+	"desktop/internal/findings"
 )
 
 // pinChapterSyncState checks state against its golden payload, with times and the project folder made stable.

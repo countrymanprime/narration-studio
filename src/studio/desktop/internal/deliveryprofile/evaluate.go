@@ -4,8 +4,8 @@ import (
 	"math"
 	"slices"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // analyzerName is the analyzer the delivery findings are raised under: the measurement's, as before profiles.

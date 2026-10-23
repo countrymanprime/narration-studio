@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/encodeport"
+	"desktop/internal/port"
 )
 
 func encoderEntry(name string) port.Entry[encodeport.Encoder] {

@@ -1,6 +1,6 @@
 package main
 
-import "github.com/countrymanprime/narration-studio/shell/internal/editlog"
+import "desktop/internal/editlog"
 
 // The stack record and the retry choice, kept in <project>/narration-studio/editing/stacks.json apart from the
 // passage list. A stack is the host's memory of the takes the DAW stacked on a passage's first read and where each began

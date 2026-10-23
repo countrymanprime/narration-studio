@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/contractfile"
+	"desktop/internal/evidence"
 )
 
 // editingProject writes a project folder with one saved .rpp (one track, one item), a manuscript and a confirmed
