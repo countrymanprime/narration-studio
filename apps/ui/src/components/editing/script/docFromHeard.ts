@@ -67,15 +67,20 @@ const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({
   ...(p.id === HEADING_PARAGRAPH ? { optional: true } : {}),
 });
 
-/** The port's words, grouped by the paragraph they were heard in: a word said and not in the script goes with the script word before it. */
-function groupByParagraph(words: readonly PortWord[], first: string | undefined): Map<string, PortWord[]> {
-  const out = new Map<string, PortWord[]>();
+/**
+ * The port's words, grouped by the paragraph they were heard in: a word said and not in the script goes with the script word before it, except
+ * a restart (a run that says the script words after it again), which goes with the script word after it, the line it restarts.
+ */
+export function groupByParagraph<W extends Pick<PortWord, 'paragraphId' | 'repeats'>>(words: readonly W[], first: string | undefined): Map<string, W[]> {
+  const out = new Map<string, W[]>();
   let current = first;
-  for (const w of words) {
+  words.forEach((w, k) => {
     if (w.paragraphId !== undefined) current = w.paragraphId;
-    if (current === undefined) continue;
-    out.set(current, [...(out.get(current) ?? []), w]);
-  }
+    const restarts = w.paragraphId === undefined && w.repeats === 'next' ? words.slice(k + 1).find((n) => n.paragraphId !== undefined)?.paragraphId : undefined;
+    const pid = restarts ?? current;
+    if (pid === undefined) return;
+    out.set(pid, [...(out.get(pid) ?? []), w]);
+  });
   return out;
 }
 
@@ -97,6 +102,7 @@ function alignerFor(heard: NonNullable<Extract<HeardAnswer, { heard: unknown }>[
         off1: Math.max(0, w.off1 - origin),
         conf: w.conf ?? 1,
         ...(w.added ? { added: true } : {}),
+        ...(w.repeats ? { repeats: w.repeats } : {}),
       }));
       return { words, len: words[words.length - 1].off1 + LEAD };
     },

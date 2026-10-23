@@ -125,6 +125,7 @@ function mockTokens(
   let index = 0;
   let elapsed = 0;
   let misheardPlaced = false;
+  let repeatPlaced = false;
   for (const paragraph of paragraphs) {
     const words = paragraph.text.split(/\s+/).filter(Boolean);
     const wholeParagraphSkipped = skipIds.has(paragraph.id);
@@ -158,6 +159,22 @@ function mockTokens(
       }
       index += 1;
     });
+    // One deterministic repeat (issue #2251 item 30): the paragraph's last three words said again after "sorry", the
+    // second take the Editing page shows as "Read twice" and Proof as "Said twice".
+    const allRead = !wholeParagraphSkipped && !wholeParagraphTail && !halfReadShort;
+    if (!repeatPlaced && misheardPlaced && allRead && words.length >= 4 && itemIndex !== undefined) {
+      const again = words.slice(-3);
+      extras.push({
+        text: ['sorry', ...again].join(' '),
+        tokens: again.length + 1,
+        start: { itemIndex, itemGuid: '', sourceTime: elapsed },
+        end: { itemIndex, itemGuid: '', sourceTime: elapsed + (again.length + 1) * SECONDS_PER_WORD },
+        afterToken: index - 1,
+        repeatOf: { start: index - again.length, end: index, first: 1, last: again.length + 1, text: again.join(' ') },
+      });
+      elapsed += (again.length + 1) * SECONDS_PER_WORD;
+      repeatPlaced = true;
+    }
   }
   return { tokens, extras };
 }

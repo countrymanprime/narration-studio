@@ -63,6 +63,26 @@ export function duplicateRead(script: string, heard: readonly HeardWord[]): Dupl
   };
 }
 
+/** The fewest script words a run of extra words must say again to be a second read, unless they are the whole line: fewer can be a
+ * stutter or an echo. The recording check's sidecar uses the same rule (`recording_coverage.repeat_of`). */
+export const REPEAT_MIN_WORDS = 3;
+
+/**
+ * Whether a run of extra words says the script beside it again: it ends with the script words up to `prev` (a retake, an aside may come
+ * first) or begins with the script words from `next` (a restart, an aside may follow), at least `REPEAT_MIN_WORDS` of them or the whole
+ * line. `prev` and `next` are indexes into `script`, null at either end.
+ */
+export function saysScriptAgain(run: readonly string[], script: readonly string[], prev: number | null, next: number | null): boolean {
+  const r = run.map(normKey);
+  const s = script.map(normKey);
+  let back = 0;
+  if (prev !== null) while (back < r.length && back <= prev && r[r.length - 1 - back] === s[prev - back]) back++;
+  let ahead = 0;
+  if (next !== null) while (ahead < r.length && next + ahead < s.length && r[ahead] === s[next + ahead]) ahead++;
+  const k = Math.max(back, ahead);
+  return k >= REPEAT_MIN_WORDS || (k > 0 && k === s.length);
+}
+
 /** A read of a passage: seconds into the chapter and how long it lasts. */
 interface CuttableTake {
   id: string;

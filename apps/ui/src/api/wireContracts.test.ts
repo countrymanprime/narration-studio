@@ -359,6 +359,11 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     expect([parsed.result?.gaps, parsed.result?.unfinished]).toEqual([[], { start: 0, end: 0 }]);
   });
 
+  it('an extra gap that says the chapter text again names what it repeats; any other gap has no repeatOf', () => {
+    const [gap] = parseWire(coverageResultSchema, readGolden('coverage-result-repeat.json'), ctx('coverage result')).result?.gaps ?? [];
+    expect(gap).toMatchObject({ kind: 'extra', text: 'sorry beginning to get', repeatOf: 'beginning to get' });
+  });
+
   it('a gap has a known kind and a confidence that is null or comes with its reason', () => {
     const golden = z.looseObject({ result: z.looseObject({}) }).parse(readGolden('coverage-result-current.json'));
     const gap = {
@@ -2766,6 +2771,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const unknown = await api.workspaceAlignment('no-such-chapter');
     expectMatches(workspaceAlignmentResultSchema, unknown, 'mock workspace alignment, never');
     expect(unknown).toMatchObject({ state: 'never', paragraphs: [], tokens: [] });
+  });
+
+  it('an extra run that says the chapter text again names the tokens and its own words; an older run reads as no repeat', () => {
+    const golden = z.looseObject({ extras: z.array(z.record(z.string(), z.unknown())) }).parse(readGolden('workspace-alignment-repeat.json'));
+    const [extra] = workspaceAlignmentResultSchema.parse(golden).extras;
+    expect(extra.repeatOf).toEqual({ start: 5, end: 7, first: 1, last: 3, text: 'very tired.' });
+    const older = { ...golden, extras: golden.extras.map(({ repeatOf: _repeatOf, ...rest }) => rest) };
+    expect(workspaceAlignmentResultSchema.parse(older).extras[0].repeatOf).toBeUndefined();
+    const plain = workspaceAlignmentResultSchema.parse(readGolden('workspace-alignment-current.json'));
+    expect(plain.extras.every((run) => run.repeatOf === undefined)).toBe(true);
+    const bad = (repeatOf: Record<string, unknown>) => ({ ...golden, extras: [{ ...golden.extras[0], repeatOf }] });
+    expect(workspaceAlignmentResultSchema.safeParse(bad({ start: 6, end: 5, first: 1, last: 3, text: 'x' })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(bad({ start: 5, end: 7, first: 2, last: 2, text: 'x' })).success).toBe(false);
   });
 
   it('the heard words: a score is null with a reason, only an extra run is added, and the mock carries both', async () => {

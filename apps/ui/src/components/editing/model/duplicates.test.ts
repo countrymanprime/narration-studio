@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { HeardWord } from './align';
-import { DUP_HEAD_WORDS, DUP_MIN_PAUSE, duplicateRead, splitDuplicateTake } from './duplicates';
+import { DUP_HEAD_WORDS, DUP_MIN_PAUSE, duplicateRead, saysScriptAgain, splitDuplicateTake } from './duplicates';
 import { canStack, type StackPassage } from './stacking';
 
 const SCRIPT = '“Serpent!” screamed the Pigeon, and flapped away.';
@@ -107,5 +107,29 @@ describe('splitDuplicateTake: the two takes a cut makes', () => {
     expect(canStack(whole)).toBe(false);
     const split = splitDuplicateTake({ id: 'T05-12', start: 600, len: 25 }, 612.5);
     expect(canStack({ ...whole, takes: split })).toBe(true);
+  });
+});
+
+describe('saysScriptAgain: extra words that say the script beside them again (issue #2251 item 30)', () => {
+  const script = 'Alice was beginning to get very tired'.split(' ');
+  it.each([
+    ['a retake of the last three words', 'get very tired', 6, null, true],
+    ['a retake after an aside', 'sorry to get very', 5, null, true],
+    ['a restart before an aside', 'Alice was beginning sorry', null, 0, true],
+    ['two words only', 'very tired', 6, null, false],
+    ['words from elsewhere in the line', 'Alice was beginning', 6, null, false],
+    ['nothing on either side', 'Alice was beginning', null, null, false],
+    ['an empty run', '', 6, 0, false],
+  ] as const)('%s', (_name, run, prev, next, want) => {
+    expect(saysScriptAgain(run.split(' ').filter(Boolean), script, prev, next)).toBe(want);
+  });
+  it('counts a whole one- or two-word line said again', () => {
+    expect(saysScriptAgain(['Yes.'], ['Yes.'], 0, null)).toBe(true);
+    expect(saysScriptAgain(['Down,', 'down'], ['Down,', 'down.'], 1, null)).toBe(true);
+  });
+  it('compares without case or punctuation, in any script', () => {
+    expect(saysScriptAgain(['مرحبا', 'بك', 'صديقي'], ['قال', 'مرحبا', 'بك', 'صديقي'], 3, null)).toBe(true);
+    expect(saysScriptAgain(['🐢', 'slow', 'and'], ['🐢', 'slow', 'and', 'steady'], null, 0)).toBe(true);
+    expect(saysScriptAgain(['SLOW', 'and', 'Steady!'], ['🐢', 'slow', 'and', 'steady'], 3, null)).toBe(true);
   });
 });
