@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Merging (the mock's Names box and mergeEntries, SN-B92 G14 and G15, ruling SB-3): a name that another entry already has is not added as a
 // copy, the Names box offers to merge that entry in instead, and the merge is one step that its toast's Undo takes back.
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -10,6 +10,7 @@ import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import { overlay } from '../../overlay/overlayService';
 import { StudioProvider } from '../../studio/StudioProvider';
+import { entryRows, rowName, rowNames } from './entryTableTestKit';
 import { Guide } from './Guide';
 import { GuideDetail } from './GuideDetail';
 
@@ -40,10 +41,9 @@ async function renderGuide() {
   return { api, merge, unmerge, edit, toast };
 }
 const box = () => screen.getByRole('textbox', { name: 'Add a name' });
-const rows = () => within(screen.getByRole('list', { name: 'Story Bible entries' })).queryAllByRole('button');
-const rowNames = () => rows().map((row) => row.querySelector('.truncate')?.textContent);
+const rows = entryRows;
 const open = async (name: string) => {
-  fireEvent.click(rows().find((row) => row.querySelector('.truncate')?.textContent === name)!);
+  fireEvent.click(rows().find((row) => rowName(row) === name)!);
   await screen.findByRole('heading', { name });
 };
 // Types a name another entry has, in the Names box of the entry being edited, and asks to add it.

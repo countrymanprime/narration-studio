@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './Table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from './Table';
 
 afterEach(cleanup);
 
@@ -229,5 +229,104 @@ describe('Table', () => {
     expect(inset).toContain('text-[0.875rem]');
     expect(inset).not.toContain('-mx-');
     expect(screen.getByRole('table', { name: 'Flush' }).className).toContain('-mx-[var(--panel-pad,1rem)]');
+  });
+});
+
+describe('a table that moves focus between its rows', () => {
+  function renderNavigable(onKeyDown?: () => void) {
+    render(
+      <Table label="Entries">
+        <TableBody navigable onKeyDown={onKeyDown}>
+          {['a', 'b', 'c'].map((id, index) => (
+            <TableRow key={id} onActivate={() => undefined} tabStop={index === 1}>
+              <TableCell>
+                {id} <button type="button">act {id}</button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>,
+    );
+    return screen.getAllByRole('row');
+  }
+
+  it('gives one row the tab stop and the others none', () => {
+    const rows = renderNavigable();
+    expect(rows.map((row) => row.tabIndex)).toEqual([-1, 0, -1]);
+  });
+
+  it('moves focus with Up and Down and stops at the ends', async () => {
+    const rows = renderNavigable();
+    rows[1]!.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(rows[2]);
+    await userEvent.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(rows[2]);
+    await userEvent.keyboard('{ArrowUp}{ArrowUp}{ArrowUp}');
+    expect(document.activeElement).toBe(rows[0]);
+  });
+
+  it('jumps to the first and last rendered row with Home and End', async () => {
+    const rows = renderNavigable();
+    rows[1]!.focus();
+    await userEvent.keyboard('{End}');
+    expect(document.activeElement).toBe(rows[2]);
+    await userEvent.keyboard('{Home}');
+    expect(document.activeElement).toBe(rows[0]);
+  });
+
+  it('leaves the arrow keys to a control inside a row', async () => {
+    const rows = renderNavigable();
+    const button = screen.getByRole('button', { name: 'act b' });
+    button.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(button);
+    expect(rows).toHaveLength(3);
+  });
+
+  it('passes every key to the caller too', async () => {
+    const onKeyDown = vi.fn();
+    const rows = renderNavigable(onKeyDown);
+    rows[1]!.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('a table that draws only some of its rows', () => {
+  it('says how many rows there are and which one each drawn row is', () => {
+    render(
+      <Table label="Entries" rowCount={500}>
+        <TableBody>
+          <TableRow rowIndex={300}>
+            <TableCell>x</TableCell>
+          </TableRow>
+          <TableRow rowIndex={301} onActivate={() => undefined}>
+            <TableCell>y</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    expect(screen.getByRole('table').getAttribute('aria-rowcount')).toBe('500');
+    expect(screen.getAllByRole('row').map((row) => row.getAttribute('aria-rowindex'))).toEqual(['300', '301']);
+  });
+});
+
+describe('the spacer that holds the place of undrawn rows', () => {
+  it('is as tall as the rows it stands for, spans the columns and is hidden from a screen reader', () => {
+    render(
+      <Table label="Entries">
+        <TableBody>
+          <TableSpacer height={390} columns={3} />
+          <TableRow>
+            <TableCell>x</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const spacer = document.querySelector<HTMLElement>('tr[aria-hidden="true"]')!;
+    expect(spacer.style.height).toBe('390px');
+    expect(spacer.querySelector('td')!.getAttribute('colspan')).toBe('3');
+    expect(screen.getAllByRole('row')).toHaveLength(1);
   });
 });
