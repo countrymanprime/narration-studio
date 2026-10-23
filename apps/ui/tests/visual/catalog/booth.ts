@@ -37,24 +37,28 @@ export const boothStates: StateEntry[] = [
     state: 'refusal-pressed',
     description:
       'The same Booth after Record was pressed (issue 2251 item 3: a press that cannot start a take is answered in front of the narrator): the "Recording in REAPER is experimental" dialog explains it and offers Turn on Record, Check again and DAW settings, with what it waits for and when it last checked; nothing records',
+    ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-unlinked',
     description:
       'Booth on a chapter with no linked track (?mockDawExperimentalOn=1&mockRecordCapabilityOn=1&mockReaperState=no_link, issue 2251 items 3 and 4): the "Chapter 1 is not linked to a track" dialog opens by itself, saying Record cannot start until the chapter has a track, with the project\'s tracks to choose from (best match preselected), Link track, the offer to create a new track named after the chapter, Check again and when it last checked',
+    ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-unlinked-closed',
     description:
       'The same Booth after the dialog was closed: the "Not linked to a track" chip above the footer reopens it, Record looks off and the footer says the chapter has no track to record on and that Record links one; a press of Record reopens the dialog',
+    ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-unlinked-created',
     description:
       'The same Booth after Create a new track: REAPER added a track named after the chapter and it is linked; the message says so and that the REAPER project should be saved, the chip is gone and Record is ready',
+    ...REFLOW,
   },
   {
     page: 'booth',
