@@ -151,7 +151,7 @@ describe("the browser mock's REAPER follows the host's navigation rules", () => 
   it('goes to and loops a finding with an item, and Stop puts back what the loop changed', async () => {
     const api = createFindingsMock(WIRE_FINDINGS);
     await expect(api.findingsGoTo('1a2b3c4d5e6f708192a3b4c5')).resolves.toEqual({ outcome: 'navigated', projectTime: 12.4 });
-    await expect(api.findingsLoop('1a2b3c4d5e6f708192a3b4c5')).resolves.toEqual({ outcome: 'looping', loopStart: 10.4, loopEnd: 14.4 });
+    await expect(api.findingsLoop('1a2b3c4d5e6f708192a3b4c5')).resolves.toEqual({ outcome: 'looping', loopStart: 9.4, loopEnd: 15.4 });
     await expect(api.findingsReaperStatus()).resolves.toEqual({ connection: 'connected', loopingFindingId: '1a2b3c4d5e6f708192a3b4c5' });
     await expect(api.findingsStopLoop()).resolves.toEqual({ outcome: 'stopped', restored: 3, kept: 0 });
     await expect(api.findingsReaperStatus()).resolves.toEqual({ connection: 'connected' });

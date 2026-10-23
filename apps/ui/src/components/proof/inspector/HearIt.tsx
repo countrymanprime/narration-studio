@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useApi } from '../../../api/ApiContext';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePendingAction } from '../../../hooks/usePendingAction';
+import { usePort } from '../../../ports/usePort';
 import type { FindingNavigation } from '../../../api/contracts/findings';
 import type { Finding, NarrationApi } from '../../../types';
 import { useRangePlayer } from '../../engine/useRangePlayer';
@@ -13,7 +13,7 @@ export const HEAR_AROUND_SECONDS = 3;
 export const HEAR_LABEL = 'Hear it';
 export const STOP_HEARING_LABEL = 'Stop hearing it';
 
-/** The two host calls Hear it makes; the app player streams through the api's `mediaUrl`. */
+/** The two host calls Hear it makes; the app player streams through the tracks port's `mediaUrl`. */
 export type HearItApi = Pick<NarrationApi, 'findingsLoop' | 'findingsStopLoop'>;
 
 const ROLL = { pre: HEAR_AROUND_SECONDS, post: HEAR_AROUND_SECONDS };
@@ -55,8 +55,8 @@ export function HearIt({
   /** What happened, for the row's status line; `undefined` clears it. */
   onResult: (result: { message: string; failed: boolean } | undefined) => void;
 }) {
-  const media = useApi();
-  const player = useRangePlayer(media.mediaUrl, ROLL);
+  const tracks = usePort('tracks');
+  const player = useRangePlayer(tracks.mediaUrl, ROLL);
   const action = usePendingAction();
   const [playing, setPlaying] = useState<Playing>(null);
   const report = useRef(onResult);
