@@ -10,7 +10,7 @@
 
 const COMPANION = 'the Companion window has no page in the mock and stays as built (DQ-13, SN0-Q5)';
 const VOICE_BIBLE =
-  'a Story Bible feature the mock does not draw (series voice bible, properties, dialogue cues, Commons and online pronunciation lookup), kept as built (DQ-12, SN0-Q5)';
+  'a Story Bible feature the mock does not draw (properties, dialogue cues, Commons and online pronunciation lookup), kept as built (DQ-12, SN0-Q5)';
 const ENGINE = 'the engine panel (DAW link, chapter sync, render) has no page in the mock and stays as built';
 const PICKER = 'the project picker and the start-up screens come before any Studio Next page and stay as built';
 const CREDITS = 'the credits cards stay in the Script page and the manuscript import (the SN-B8 default)';
@@ -40,7 +40,6 @@ export const KEPT: Readonly<Record<string, string>> = {
   'src/components/layout/TimerChip.tsx': TIMER,
   'src/components/project/NewProjectDialog.tsx': PICKER,
   'src/components/project/ProjectPicker.tsx': PICKER,
-  'src/components/series/SeriesTab.tsx': VOICE_BIBLE,
   'src/components/storybible/CommonsAudioLookup.tsx': VOICE_BIBLE,
   'src/components/storybible/DialogueCueAttribution.tsx': VOICE_BIBLE,
   'src/components/storybible/OnlinePronunciationLookup.tsx': VOICE_BIBLE,

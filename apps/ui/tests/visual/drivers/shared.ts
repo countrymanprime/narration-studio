@@ -81,7 +81,7 @@ export async function askForThePreviewVoice(page: Page, url: string): Promise<vo
   await page.goto(url);
   await settlePage(page);
   await clickNav(page, 'Story Bible');
-  await page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button').first().click();
+  await page.getByRole('table', { name: 'Story Bible entries' }).locator('[data-entry-id]').first().click();
   await page.getByRole('button', { name: 'Play preview' }).first().click();
 }
 

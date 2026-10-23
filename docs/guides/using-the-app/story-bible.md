@@ -3,10 +3,10 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. Each entry is a row of two lines: its name, then its kind in the kind's colour (the colour you set for the type in Settings; an entry whose kind the host could not tell is marked **Review**) with how many names it has (its own and each alias) and how many chapters it appears in. The kind chips over the list filter it, the search box finds an entry by any of its names, the menu beside it sorts by name, type or chapters, and the Up and Down keys move through the rows. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. The page fills the main area, the list 320 px wide beside the entry. The three buttons on the title's row scan the manuscript (while a scan runs the same button becomes **Cancel scan**, and its progress shows under the filters, so nothing else moves), import entries, and add an entry; the **Entries** and **Series** tabs sit below them, and **Voice data** sits under the list. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Retry**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
-While the entries are being read, the list and the detail pane show grey blocks under the title, tabs and search; "No entries match" appears only once the read has ended with none, and an unreadable Story Bible says so with **Retry**. The **Series** tab shows the same blocks while it is read. If the series cannot be read, the tab says "This page could not be loaded" with the reason and **Retry**; Retry shows the blocks again while it reads, then the tab or the reason again.
+with pronunciation, aliases, and narration notes. The page is a small table of entries on the left, about 30% of the width, and the open entry beside it as the main area (the entry under the table on a window narrower than 1024 px). The table has two columns: **Name** and **Kind** (in the kind's colour, which you set for the type in Settings; an entry whose kind the host could not tell says "Type not set"). Press a header to sort by it and again to reverse it; the arrow shows the direction, and the column you sorted by before breaks ties. The sort is kept for next time. Over the table, the search box finds an entry by its name or any of its other names, every word you type having to match, the **Kind** menu keeps one kind and counts each, and the **Show** menu keeps the entries that need review or have suggestions to verify (it offers those only while there are some). Press a row to open its entry. Up and Down move between rows, Home and End go to the first and last, and Enter opens the row; Tab leaves the table. A book of hundreds of entries draws only the rows in view. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. **Add entry** at the top right is the page's one main action. The button beside it, **More actions**, holds **Scan the manuscript**, **Import entries** and **Voice data**. While a scan runs, its progress and **Cancel scan** show under the filters, so nothing else moves, and the menu has no scan item. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Retry**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
+While the entries are being read, the table and the detail pane show grey blocks. A book with no entries says "No entries yet" and where to start; a search or filter that finds nothing says "No entries match." with **Clear filters**; an unreadable Story Bible says so with **Retry**. This app produces one book at a time, so the page has no series view.
 
-![Story Bible - a search for "hatter" narrowing the list by name and alias](../../images/ui/storybible-search.webp)
+![Story Bible - a search for "hatter" narrowing the table by name and alias](../../images/ui/storybible-search.webp)
 
 ![Story Bible filtered to the Character kind](../../images/ui/storybible-characters.webp)
 
@@ -38,8 +38,8 @@ Script lists them too.
 
 Entries the scan isn't sure what kind they are get the **Needs Review** kind, in amber (the colour of anything still to check);
 choose the right kind from the menu beside the name. An entry or a name the scan flagged shows a
-**Review** pill in the list and **Needs review** with a **Mark reviewed** button in its header. The
-**Needs review** chip under the kind chips shows only these entries and the ones with suggestions waiting.
+**Review** badge in its header and **Needs review** with a **Mark reviewed** button in its header. The
+**Needs review** choice of the **Show** menu keeps only these entries and the ones with suggestions waiting.
 An entry with suggestions still to verify shows **Mark reviewed** switched off, with the reason, until each is verified or rejected.
 
 ![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
@@ -120,7 +120,7 @@ Wikimedia Commons.
 
 ## Suggestions: scan and import
 
-**Scan the manuscript** (the wand button at the top) reads the book and suggests new entries and facts about the ones
+**Scan the manuscript** (in **More actions**) reads the book and suggests new entries and facts about the ones
 you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
 asks whether to use the basic scan now, download better analysis, or import from a file instead; nothing downloads
 until you agree. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
@@ -129,8 +129,8 @@ before it adds anything. Nothing builds the Story Bible on its own, not even a m
 ![Story Bible - the Import entries dialog (CSV or JSON)](../../images/ui/storybible-import.webp)
 
 A suggestion the app is sure of is accepted on its own; one it is not sure of waits for you. **Needs verification**
-beside the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
-entry yet. An entry with suggestions waiting shows a **Verify** pill in the list, its accepted facts, and a **Suggested**
+in the filters shows only the entries with suggestions waiting, and lists above them the suggestions that have no
+entry yet. An entry with suggestions waiting has a **Verify** count in the **Show** menu, its accepted facts, and a **Suggested**
 list where you accept, edit or reject each one, with the quote it rests on (press the quote to go to the line in the
 Script; a quote whose line the book no longer has is plain text that says so). An entry cannot be marked reviewed while it has suggestions waiting.
 
@@ -157,7 +157,7 @@ left `unknown` rather than guessed). Pick a different speaker, or **Unknown**, f
 beside a cue to correct it. A correction survives the next scan - it is never
 silently overwritten by a fresh, possibly-wrong, extraction.
 
-The **Voice data** button under the entry list opens a panel
+**Voice data**, in **More actions**, opens a panel
 for what isn't about one character: **Narration voice samples** and a reference for **plain narration**
 (useful as a baseline separate from any character), the space the project's voice samples use, **Remove voice samples…**, and
 **Remove voice data…**, which revokes every approved reference in the project - for every character and for narration - in one
@@ -205,19 +205,6 @@ and any a merge could not move because the other entry already had 20; they are 
 every sample in the project, with its audio, after you confirm, and says how many it removed and how much space came back.
 
 ![Story Bible - the Voice data slide-over with Narration voice samples, the space the samples use, and the sample of a character who left the Story Bible](../../images/ui/storybible-voice-data-samples.webp)
-
-## Series voice bible
-
-If you're narrating a series, the **Series** tab (beside the **Entries** tab) shows a character's
-approved reference clips across every book of the series, each labeled by the book it came from.
-Name a series to start: type a name and press **Create series**. A series with only this one book
-in it still shows - honestly - "no other books in this series yet"; add a sibling book's project
-folder below (**Browse…**, or type its path) and press **Add** once it has approved references of
-its own. **Remove** takes a book out of the series without touching that book's own project data.
-
-There is no acoustic comparison here either - no drift evidence against another book, and no
-audition. It's the same reference-clip bookkeeping as the Character entry's own Reference clips
-section, just pooled across the books that share a character.
 
 | Message | What it means | What to do |
 | --- | --- | --- |

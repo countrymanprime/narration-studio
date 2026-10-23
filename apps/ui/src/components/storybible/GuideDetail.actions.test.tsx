@@ -12,7 +12,8 @@ import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
 import { overlay } from '../../overlay/overlayService';
-import { ENTRY_SORT_STORAGE_KEY } from './entryList';
+import { ENTRY_SORT_STORAGE_KEY } from './entryTable';
+import { cellsOf, chooseKind, chooseShow, entryRows, entryTable, rowName, rowNames } from './entryTableTestKit';
 import { Guide } from './Guide';
 import { GuideDetail } from './GuideDetail';
 
@@ -91,10 +92,8 @@ function renderGuide() {
   );
   return { api, ...spies };
 }
-const entryRows = () => within(screen.getByRole('list', { name: 'Story Bible entries' })).queryAllByRole('button');
-const rowNames = () => entryRows().map((row) => row.querySelector('.truncate')?.textContent);
 const addEntity = async () => {
-  fireEvent.click(await screen.findByRole('button', { name: 'Add entity' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
   await screen.findByDisplayValue(/New entity/);
 };
 
@@ -119,7 +118,7 @@ describe('save-keeps-it-and-leaving-an-unsaved-draft-for-another-entry-drops-it'
     await screen.findAllByText('Alice');
     const before = rowNames();
     await addEntity();
-    fireEvent.click(entryRows().find((row) => row.textContent?.includes('White Rabbit'))!);
+    fireEvent.click(entryRows().find((row) => rowName(row) === 'White Rabbit')!);
     expect(rowNames()).toEqual(before);
     expect(create).not.toHaveBeenCalled();
   });
@@ -190,7 +189,7 @@ describe('a new entry', () => {
     await screen.findAllByText('Alice');
     await addEntity();
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Tweedledum' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add entity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
     await waitFor(() => expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe('New entity'));
     expect(screen.queryByDisplayValue('Tweedledum')).toBeNull();
     expect(create).not.toHaveBeenCalled();
@@ -214,13 +213,24 @@ describe('cancel-after-a-merge-does-not-bring-the-merged-entry-back', () => {
   });
 });
 
-describe('the-control-sorts-the-list-and-the-choice-is-kept', () => {
-  it('sorts by chapters, saves the choice and restores it on reopen', async () => {
+describe('a-header-sorts-the-table-and-the-choice-is-kept', () => {
+  const header = (name: RegExp) => within(entryTable()).getByRole('columnheader', { name });
+  const sortBy = (name: string) => fireEvent.click(within(entryTable()).getByRole('button', { name }));
+  it('sorts by a clicked header, flips it on a second click, saves the choice and restores it on reopen', async () => {
     renderGuide();
     await screen.findAllByText('Alice');
     expect(rowNames()).toEqual([...rowNames()].sort((a, b) => a!.localeCompare(b!)));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Sort entries' }), { target: { value: 'type' } });
-    expect(window.localStorage.getItem(ENTRY_SORT_STORAGE_KEY)).toBe('type');
+    expect(header(/^Name/).getAttribute('aria-sort')).toBe('ascending');
+    sortBy('Kind');
+    expect(header(/^Kind/).getAttribute('aria-sort')).toBe('ascending');
+    expect(header(/^Name/).getAttribute('aria-sort')).toBe('none');
+    sortBy('Kind');
+    expect(header(/^Kind/).getAttribute('aria-sort')).toBe('descending');
+    expect(JSON.parse(window.localStorage.getItem(ENTRY_SORT_STORAGE_KEY)!)).toEqual([
+      { column: 'kind', dir: 'desc' },
+      { column: 'name', dir: 'asc' },
+    ]);
+    const order = rowNames();
     cleanup();
     const api = createMockApi();
     render(
@@ -235,27 +245,36 @@ describe('the-control-sorts-the-list-and-the-choice-is-kept', () => {
       </MemoryRouter>,
     );
     await screen.findAllByText('Alice');
-    expect((screen.getByRole('combobox', { name: 'Sort entries' }) as HTMLSelectElement).value).toBe('type');
+    expect(header(/^Kind/).getAttribute('aria-sort')).toBe('descending');
+    expect(rowNames()).toEqual(order);
   });
-});
 
-describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () => {
-  it('a row has a name count and a chapter count, and the list has no occurrences column', async () => {
+  it('survives clicking headers faster than the table can draw', async () => {
     renderGuide();
     await screen.findAllByText('Alice');
-    const alice = entryRows().find((row) => row.textContent?.includes('Alice'))!;
-    expect(alice.textContent).toMatch(/Character · 1 name · /);
-    const rabbit = entryRows().find((row) => row.textContent?.includes('White Rabbit'))!;
-    expect(rabbit.textContent).toMatch(/2 names/);
-    expect(alice.textContent).toMatch(/· \d+ chapters?$/);
-    expect(alice.textContent).not.toMatch(/Occurrences|Mentions|Lines/);
+    for (const name of ['Kind', 'Name', 'Name', 'Kind', 'Name', 'Kind']) sortBy(name);
+    expect(entryRows().length).toBeGreaterThan(3);
+    expect(
+      within(entryTable())
+        .getAllByRole('columnheader')
+        .filter((cell) => cell.getAttribute('aria-sort') !== 'none'),
+    ).toHaveLength(1);
   });
 });
 
-// SNB-3b: the "Needs review" chip beside the category tabs, and the pill on a row. The mock host flags nothing to start with; its
+describe('each-row-shows-its-name-and-its-kind', () => {
+  it('a row has the name and the kind in their own cells, and no alias or count', async () => {
+    renderGuide();
+    await screen.findAllByText('Alice');
+    const alice = cellsOf(entryRows().find((row) => rowName(row) === 'Alice')!).map((cell) => cell.textContent);
+    expect(alice).toEqual(['Alice', 'Character']);
+  });
+});
+
+// SNB-3b: the "Needs review" choice of the Show menu over the table. The mock host flags nothing to start with; its
 // suggestions put 2 to verify on White Rabbit and none on the other entries.
-describe('needs-review-chip-and-row-pill', () => {
-  const chip = () => screen.queryByRole('button', { name: /^Needs review · \d+$/ });
+describe('needs-review-show-menu', () => {
+  const choice = () => screen.queryByRole('option', { name: /^Needs review · \d+$/ });
   async function renderBible(prepare: (api: ReturnType<typeof createMockApi>) => Promise<void> | void = () => undefined) {
     window.localStorage.clear();
     const api = createMockApi();
@@ -276,67 +295,36 @@ describe('needs-review-chip-and-row-pill', () => {
   }
   const noSuggestions = (api: ReturnType<typeof createMockApi>) => void vi.spyOn(api, 'extractionList').mockResolvedValue([] as ExtractionSuggestion[]);
   const flagHatter = (api: ReturnType<typeof createMockApi>) => api.guideFlagReview('mad-hatter');
-  const rowFor = (name: string) => entryRows().find((row) => row.querySelector('.truncate')?.textContent === name)!;
+  const rowFor = (name: string) => entryRows().find((row) => rowName(row) === name)!;
 
-  it('chip-with-the-count-filters: counts the flagged and the to-verify entries once and filters to them', async () => {
+  it('show-menu-with-the-count-filters: counts the flagged and the to-verify entries once and filters to them', async () => {
     await renderBible(flagHatter);
-    const button = await screen.findByRole('button', { name: 'Needs review · 2' });
-    expect(button.getAttribute('aria-pressed')).toBe('false');
+    await screen.findByRole('option', { name: 'Needs review · 2' });
     expect(rowNames().length).toBeGreaterThan(3);
-    fireEvent.click(button);
-    expect(screen.getByRole('button', { name: 'Needs review · 2' }).getAttribute('aria-pressed')).toBe('true');
+    chooseShow('review');
     expect([...rowNames()].sort()).toEqual(['Hatter', 'White Rabbit']);
-    fireEvent.click(screen.getByRole('button', { name: 'Needs review · 2' }));
+    chooseShow('all');
     expect(rowNames().length).toBeGreaterThan(3);
   });
 
-  it('the chip is absent at 0 unless the filter is on', async () => {
+  it('the choice is absent at 0 unless the filter is on', async () => {
     await renderBible(noSuggestions);
-    expect(chip()).toBeNull();
+    expect(choice()).toBeNull();
     cleanup();
     await renderBible(async (api) => {
       noSuggestions(api);
       await flagHatter(api);
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    await screen.findByRole('option', { name: 'Needs review · 1' });
+    chooseShow('review');
     expect(rowNames()).toEqual(['Hatter']);
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    const stays = await screen.findByRole('button', { name: 'Needs review · 0' });
-    expect(stays.getAttribute('aria-pressed')).toBe('true');
+    await screen.findByRole('option', { name: 'Needs review · 0' });
+    expect((screen.getByRole('combobox', { name: 'Show' }) as HTMLSelectElement).value).toBe('review');
     expect(screen.getByText('No entries match.')).toBeTruthy();
-    fireEvent.click(stays);
-    await waitFor(() => expect(chip()).toBeNull());
-  });
-
-  it('row-pill-says-verify-or-review', async () => {
-    await renderBible(flagHatter);
-    expect(within(rowFor('White Rabbit')).getByText('Verify · 2')).toBeTruthy();
-    expect(within(rowFor('Alice')).queryByText(/Review|Verify/)).toBeNull();
-    expect(within(rowFor('Hatter')).getByText('Review')).toBeTruthy();
-    expect(within(rowFor('Caterpillar')).queryByText(/Review|Verify/)).toBeNull();
-  });
-
-  it('a flagged entry with something to verify says Verify, and Review once nothing is left', async () => {
-    const api = await renderBible(async (host) => void (await host.guideFlagReview('white-rabbit')));
-    expect(within(rowFor('White Rabbit')).getByText('Verify · 2')).toBeTruthy();
-    const open = await api.extractionList();
-    await Promise.all(open.filter((s) => s.entryId === 'white-rabbit' && s.status === 'needs-verification').map((s) => api.extractionReject(s.id)));
-    cleanup();
-    vi.spyOn(api, 'extractionList');
-    render(
-      <MemoryRouter>
-        <ApiProvider api={api}>
-          <StudioProvider>
-            <CommandRouter>
-              <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
-            </CommandRouter>
-          </StudioProvider>
-        </ApiProvider>
-      </MemoryRouter>,
-    );
-    await screen.findAllByText('Alice');
-    expect(within(rowFor('White Rabbit')).getByText('Review')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await waitFor(() => expect(choice()).toBeNull());
   });
 
   it('mark-reviewed-clears-the-entry-and-its-names: the count follows', async () => {
@@ -345,12 +333,11 @@ describe('needs-review-chip-and-row-pill', () => {
       await flagHatter(host);
       await host.guideFlagReview('caterpillar');
     });
-    await screen.findByRole('button', { name: 'Needs review · 2' });
+    await screen.findByRole('option', { name: 'Needs review · 2' });
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    await screen.findByRole('button', { name: 'Needs review · 1' });
+    await screen.findByRole('option', { name: 'Needs review · 1' });
     expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review).toEqual({ entry: false, aliases: [] });
-    expect(within(rowFor('Hatter')).queryByText('Review')).toBeNull();
   });
 
   it('blocked-while-anything-needs-verification: White Rabbit cannot be marked reviewed until its suggestions are decided', async () => {
@@ -364,18 +351,19 @@ describe('needs-review-chip-and-row-pill', () => {
     expect(mark).not.toHaveBeenCalled();
   });
 
-  it('mark-reviewed-can-be-undone: Undo flags the entry again and the chip counts it', async () => {
+  it('mark-reviewed-can-be-undone: Undo flags the entry again and the Show menu counts it', async () => {
     const toast = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
     const api = await renderBible(async (host) => {
       noSuggestions(host);
       await flagHatter(host);
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    await screen.findByRole('option', { name: 'Needs review · 1' });
+    chooseShow('review');
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    await screen.findByRole('button', { name: 'Needs review · 0' });
+    await screen.findByRole('option', { name: 'Needs review · 0' });
     await toast.mock.calls[0][1]();
-    await screen.findByRole('button', { name: 'Needs review · 1' });
+    await screen.findByRole('option', { name: 'Needs review · 1' });
     expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review?.entry).toBe(true);
     toast.mockRestore();
   });
@@ -405,9 +393,9 @@ describe('needs-review-chip-and-row-pill', () => {
       flag = vi.spyOn(api, 'guideFlagReview');
       mark = vi.spyOn(api, 'guideMarkReviewed');
     });
-    fireEvent.click(await screen.findByRole('button', { name: 'Needs review · 1' }));
+    await screen.findByRole('option', { name: 'Needs review · 1' });
+    chooseShow('review');
     expect(rowNames()).toEqual(['Alice']);
-    expect(within(screen.getByRole('list', { name: 'Story Bible entries' })).getByText('Review')).toBeTruthy();
     expect([flag, mark].map((spy) => spy.mock.calls.length)).toEqual([0, 0]);
   });
 
@@ -415,10 +403,10 @@ describe('needs-review-chip-and-row-pill', () => {
   // are now kind chips, so the test checks that an entry in the Needs Review category lists under All and under no kind chip.
   it('needs-review-category-tab-still-works: the category tab filters by category, not by the flags', async () => {
     await renderBible(flagHatter);
-    expect(screen.queryByRole('button', { name: /^Needs Review$/ })).toBeNull();
+    expect(screen.queryByRole('option', { name: /^Needs Review/ })).toBeNull();
     expect(rowNames()).toContain('March Hare');
-    fireEvent.click(within(screen.getByRole('group', { name: 'Kind' })).getByRole('button', { name: 'Character' }));
+    chooseKind('Character');
     expect(rowNames()).not.toContain('March Hare');
-    expect(screen.getByRole('button', { name: /^Needs review · \d+$/ })).toBeTruthy();
+    expect(choice()).toBeTruthy();
   });
 });

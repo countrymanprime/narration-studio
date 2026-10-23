@@ -7,7 +7,7 @@
     { "id": "production", "paths": ["apps/ui/src/components/production/**"], "guide": ["production.md"] },
     { "id": "schedule", "paths": ["apps/ui/src/components/schedule/**"], "guide": ["schedule.md"] },
     { "id": "script", "paths": ["apps/ui/src/components/script/**"], "guide": ["script.md"] },
-    { "id": "story-bible", "paths": ["apps/ui/src/components/storybible/**", "apps/ui/src/components/series/**"], "guide": ["story-bible.md"] },
+    { "id": "story-bible", "paths": ["apps/ui/src/components/storybible/**"], "guide": ["story-bible.md"] },
     { "id": "booth", "paths": ["apps/ui/src/components/booth/**", "apps/ui/src/components/connection/**"], "guide": ["booth.md"] },
     { "id": "editing", "paths": ["apps/ui/src/components/editing/**", "apps/ui/src/components/connection/**"], "guide": ["editing.md"] },
     { "id": "proof", "paths": ["apps/ui/src/components/proof/**"], "guide": ["proof.md"] },
