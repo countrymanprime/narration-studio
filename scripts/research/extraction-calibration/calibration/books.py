@@ -122,7 +122,7 @@ def fetch(book: dict[str, Any], data_dir: Path, repo: Path, today: str | None = 
         raw_bytes = (repo / book["file"]).read_bytes()
         where = book["file"]
     else:
-        request = urllib.request.Request(book["url"], headers={"User-Agent": "narration-studio-calibration"})
+        request = urllib.request.Request(book["url"], headers={"User-Agent": "extraction-calibration"})
         with urllib.request.urlopen(request, timeout=60) as response:
             raw_bytes = response.read(MAX_BYTES + 1)
         if len(raw_bytes) > MAX_BYTES:

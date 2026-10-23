@@ -528,8 +528,8 @@ on 2026-10-21. The MkDocs site of `tools/docs-site` ([below](#the-public-docs-si
   Checked by serving `dist-site/` with `node src/web/build/serve.mjs dist-site --base /narration-studio/` (404 for anything outside the
   base) and loading the landing page, a docs page, the demo and Storybook in Chromium: no failed request, no page error. The fonts are bundled, so
   the site makes no third-party request.
-- **The repository must be named `narration-studio`.** The URL, the link check's `--base` and `--site-url` name it; a rename changes
-  them ([repository rename](repository-rename.md)).
+- **The sub-path is the repository's name.** The link check's `--base` and `--site-url` come from the workflow's repository context, and the
+  demo's base and the docs site's addresses from `config/brand.json`'s `repository` ([repository rename](repository-rename.md)).
 - **Owner step.** Settings > Pages > Source must be **GitHub Actions** ([the table](github-workflow.md#repository-settings-that-only-the-owner-can-change)).
   Until then `deploy` fails with GitHub's "Pages is not enabled" message and `build` passes. The first deploy runs on the merge of the pull
   request that enabled this workflow; afterwards re-run the latest run once the setting is on.

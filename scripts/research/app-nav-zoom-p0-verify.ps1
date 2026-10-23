@@ -7,7 +7,7 @@
   not wired into the shipped binary, not run by any always-on CI job.
 
 .DESCRIPTION
-  Launches the self-contained narration-studio.exe with an isolated app-data folder (so nothing here
+  Launches the app's self-contained executable with an isolated app-data folder (so nothing here
   reads or writes the owner's real settings or recent-projects list) and WebView2's remote debugging
   port enabled, then:
     - confirms the packaged GUI actually opens a window on a hosted windows-latest runner at all
@@ -246,7 +246,7 @@ try {
     $proc = Start-App -ProfileDir $profileDir
 }
 catch {
-    Add-Check -Name 'launch' -Result 'error' -Detail "narration-studio.exe could not even be started: $_"
+    Add-Check -Name 'launch' -Result 'error' -Detail "The app could not even be started: $_"
     $script:Checks | ConvertTo-Json -Depth 10 | Set-Content -Path $ReportPath
     exit 1
 }

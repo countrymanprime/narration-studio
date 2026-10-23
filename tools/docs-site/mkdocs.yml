@@ -1,7 +1,7 @@
 # The public docs site: MkDocs and the Material theme, built from the repository's own docs/ folder.
 # Nothing under tools/docs-site is content: `docs_dir` is docs/ itself, `include.txt` says which of its pages are published,
 # and hooks.py rewrites the links that leave the published set. Build it with `pnpm exec nx run docs-site:build-site`.
-# site_name is the display name in config/brand.json (MkDocs cannot read it); `pnpm run rename-app` updates it.
+# site_name, site_url and the repository links come from config/brand.json (MkDocs cannot read it): `pnpm run brand:sync` writes them.
 site_name: Narration Studio
 site_description: Documentation for a local-first toolkit for audiobook narration.
 site_url: https://countrymanprime.github.io/narration-studio/

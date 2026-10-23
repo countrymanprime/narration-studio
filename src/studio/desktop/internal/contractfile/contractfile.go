@@ -6,6 +6,7 @@ package contractfile
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -66,7 +67,8 @@ func checkIn(t testing.TB, dir, name string, value any) {
 	if err := encoder.Encode(value); err != nil {
 		t.Fatalf("marshal %s: %v", name, err)
 	}
-	encoded := buffer.Bytes()
+	// The product's display name is written as a placeholder (brand.Golden), so a rename changes no contract file.
+	encoded := brand.Golden(buffer.Bytes())
 	path := filepath.Join(dir, name+".json")
 	if os.Getenv(UpdateEnv) != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {

@@ -424,7 +424,7 @@ def t17(t):
     sel_tracks(p, [0])
     _, whole = export(t, "orig-before.wav", [0], 30, 270)
     ref = wavtools.pcm_hash(whole)
-    idx = clone_window(t, 0, 30, 270, "Narration Studio backup {TEST}")
+    idx = clone_window(t, 0, 30, 270, "App backup {TEST}")
     tracks = p.tracks()
     t.note("tracks after the clone", str([(x["name"], x.get("start"), x.get("end"), x["channels"], x["mute"]) for x in tracks]))
     clips = [c for c in p.clips() if c["track"] == idx]
@@ -468,7 +468,7 @@ def t17(t):
     # Stereo source.
     reset_project(p)
     new_tone_steps(t, "stereo", 60, channels=2)
-    idx = clone_window(t, 0, 10, 50, "Narration Studio backup {STEREO}", stereo=True)
+    idx = clone_window(t, 0, 10, 50, "App backup {STEREO}", stereo=True)
     sc = p.tracks()[idx]["channels"]
     t.check("a stereo source gets a stereo backup track", sc == 2, f"{sc} channels")
     # A backup track that is gone: its audio is not there to restore.
@@ -626,7 +626,7 @@ def t19(t):
     # The stack's take: an empty track pasted at the first read's spot, then muted; the chapter takes the rest.
     p.select_none()
     p.do("NewMonoTrack")
-    p.do('SetTrackStatus: Name="Narration Studio take t2"')
+    p.do('SetTrackStatus: Name="App take t2"')
     sel_tracks(p, [0])
     p.select_time(8.0, 9.0)
     p.do("Copy")

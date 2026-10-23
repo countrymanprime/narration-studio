@@ -61,7 +61,17 @@ Not found: an AppUserModelID (the app sets none; Windows derives one from the pr
 
 ### The guard
 
-`scripts/ci/old-name.mjs` already fails the gate on the old name in any spelling, with no exception (#2264). The retired names live in the guard as patterns, not in the brand file, so the brand file and the generated modules never hold them and need no exemption. The guard grows to read the current name from the brand file and fail on it, in every spelling, in tracked paths and text, in the built site and in release assets. The brand file, the generated modules and a short allowlist, each entry with its reason, are exempt, as are links to the brand's own repository, which `rename-app` rewrites. It reports while the places above move to the brand, and fails the gate once they have.
+`scripts/ci/old-name.mjs` fails the gate on the old name in any spelling, with no exception (#2264). The retired names live in that guard as patterns, not in the brand file, so the brand file and the generated modules never hold them.
+
+`scripts/ci/brand-name.mjs` fails on the current name from the brand file, in every spelling and across a wrapped line, in a tracked file's path or text. `brand-name.test.mjs` runs it in the `repo-scripts` check. It does not judge:
+
+- the brand file and the files `brand:sync` writes (`TARGETS` in `scripts/brand/sync.mjs`);
+- a brand region (`<!-- brand:name -->...<!-- /brand -->`);
+- the identity file names (the REAPER launcher and its startup script);
+- the repository's own addresses (`github.com/<owner>/<repository>`, its Pages URL and the `/<repository>/` sub-path), which name the repository, not the product;
+- `ALLOWED`: dated research, ADRs, the changelog, recorded spike output, contract fixtures and saved REAPER projects that hold identity values, each with its reason.
+
+A golden file that would hold the name holds `{{brand.name}}` instead: `brand.Golden` swaps it in Go tests before the comparison. Workflows read the repository's name from the workflow context (`github.event.repository.name`), and the docs site's addresses are a `brand:sync` target. The built site and the release assets are checked for the old name only.
 
 ### The rename
 

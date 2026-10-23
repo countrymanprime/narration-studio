@@ -2,7 +2,7 @@
 
 The MP3s are not committed. `sources.json` names each file's archive.org URL and checksums; `fetch` downloads
 any that are missing or wrong into the sources directory and keeps a file only when its SHA-256 matches. The directory
-is `NARRATION_LIBRIVOX_DIR`, or `~/.cache/narration-studio/librivox-alice` when that is unset, outside the repository.
+is `NARRATION_LIBRIVOX_DIR`, or `~/.cache/narration-fixtures/librivox-alice` when that is unset, outside the repository.
 """
 
 from __future__ import annotations
@@ -17,11 +17,11 @@ from pathlib import Path
 from alice_text import HERE
 
 SOURCES_ENV = "NARRATION_LIBRIVOX_DIR"
-DEFAULT_DIR = Path.home() / ".cache" / "narration-studio" / "librivox-alice"
+DEFAULT_DIR = Path.home() / ".cache" / "narration-fixtures" / "librivox-alice"
 ATTEMPTS = 3
 RETRY_SECONDS = 5
 TIMEOUT_SECONDS = 120
-USER_AGENT = "narration-studio test fixtures (https://github.com/countrymanprime/narration-studio)"
+USER_AGENT = "narration test fixtures (https://github.com/countrymanprime/narration-studio)"
 
 
 def load_sources(root: Path = HERE) -> dict[str, dict]:

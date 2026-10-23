@@ -1,6 +1,10 @@
 // The built public site (src/web/build/build-demo-site.mjs): the landing page, the real UI in its mock mode and Storybook, served from a
 // sub-path. What a visitor does first: open the demo, decide a note, see it in Pickups.
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+
+// The product's display name, from config/brand.json, as the site build writes it.
+const NAME: string = JSON.parse(readFileSync(new URL('../../../config/brand.json', import.meta.url), 'utf8')).name;
 
 // The sub-path the site is served from (playwright.config.ts) and the repository its links name (the build's GITHUB_REPOSITORY, as shell.mjs reads it).
 const SITE_BASE = process.env.SITE_BASE ?? '/site/';
@@ -36,7 +40,7 @@ function watchRequests(page: Page): { outside: string[]; failed: string[]; error
 
 test('the landing page carries the free-software tagline in its title, social tags, trust line and stats', async ({ page }) => {
   await page.goto('./');
-  const title = 'Narration Studio: All pro. All free.';
+  const title = `${NAME}: All pro. All free.`;
   await expect(page).toHaveTitle(title);
   for (const key of ['og:title', 'twitter:title']) {
     await expect(page.locator(`meta[property="${key}"], meta[name="${key}"]`)).toHaveAttribute('content', title);
@@ -386,7 +390,7 @@ test('the demo page keeps the site header and shows the app in a sandboxed windo
 
   const app = appFrame(page);
   await expect(app.getByRole('heading', { name: 'Production', level: 1 })).toBeVisible();
-  await expect(page.locator('#win-title')).toHaveText('Narration Studio · Production');
+  await expect(page.locator('#win-title')).toHaveText(`${NAME} · Production`);
   // The app draws no banner and no floating badge in the window: the title bar says it.
   await expect(app.getByRole('note').filter({ hasText: 'Demo' })).toHaveCount(0);
   await expect(app.locator('[data-simulated-daw]')).toHaveCount(0);
@@ -410,7 +414,7 @@ test('the demo page keeps the site header and shows the app in a sandboxed windo
 test('the window follows the app route both ways and links the guide of the page on screen', async ({ page }) => {
   await page.goto('demo/index.html#/proof');
   const app = appFrame(page);
-  await expect(page.locator('#win-title')).toHaveText('Narration Studio · Proof');
+  await expect(page.locator('#win-title')).toHaveText(`${NAME} · Proof`);
   await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../docs/proof.html');
   await expect(page.getByRole('link', { name: 'Open in a new tab' })).toHaveAttribute('href', 'app.html#/proof');
   // A route the app opens is the page's address, and an address the visitor types opens in the app.
@@ -423,7 +427,7 @@ test('the window follows the app route both ways and links the guide of the page
   await expect(page.getByRole('link', { name: 'How to use this page' })).toHaveAttribute('href', '../docs/pickups.html');
   await page.evaluate(() => (window.location.hash = '/delivery'));
   await expect(app.getByRole('heading', { name: 'Delivery', level: 1 })).toBeVisible();
-  await expect(page.locator('#win-title')).toHaveText('Narration Studio · Delivery');
+  await expect(page.locator('#win-title')).toHaveText(`${NAME} · Delivery`);
 });
 
 test("the app's keys work in the window once the pointer is over it or the title bar was used, and Ctrl+K elsewhere is the site search", async ({ page }) => {

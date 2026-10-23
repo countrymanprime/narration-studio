@@ -4,7 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
+import { loadBrand } from '../brand/brand.mjs';
 import { checkFolder, checkTracked, findOldName, zipEntryNames } from './old-name.mjs';
+
+// The current name and its file names, from config/brand.json: they must pass.
+const BRAND = loadBrand();
+const EXE = `${BRAND.identity.executable}.exe`;
+const PREFIX = BRAND.identity.releaseAssetPrefix;
 
 // The old name is assembled here so this file does not hold it either.
 const OLD = ['narration', 'utils'];
@@ -32,7 +38,7 @@ test('every spelling of the old name is found, in a path and in text', () => {
 });
 
 test('the product name and look-alikes pass', () => {
-  for (const text of ['narration-studio', 'Narration Studio', 'narration utilities', 'narration_util', 'narrationstudio', 'test-utils']) {
+  for (const text of [PREFIX, BRAND.name, BRAND.name.replaceAll(' ', '').toLowerCase(), 'narration utilities', 'narration_util', 'test-utils']) {
     assert.deepEqual(findOldName(text), [], text);
   }
 });
@@ -56,17 +62,17 @@ test('the old name split across a wrapped line is found, on the line where it st
 });
 
 test('a zip is checked by the names inside it', () => {
-  assert.deepEqual(zipEntryNames(storedZip(['narration-studio.exe', `${OLD.join('-')}.exe`])), ['narration-studio.exe', `${OLD.join('-')}.exe`]);
+  assert.deepEqual(zipEntryNames(storedZip([EXE, `${OLD.join('-')}.exe`])), [EXE, `${OLD.join('-')}.exe`]);
   assert.equal(zipEntryNames(Buffer.from('bytes of a file')), null);
   const dir = mkdtempSync(join(tmpdir(), 'old-name-zip-'));
-  writeFileSync(join(dir, 'narration-studio-1.0.0-windows-x64.zip'), storedZip([`${OLD.join('-')}.exe`]));
-  assert.deepEqual(checkFolder(dir), [`narration-studio-1.0.0-windows-x64.zip!${OLD.join('-')}.exe: the name holds the old name`]);
+  writeFileSync(join(dir, `${PREFIX}-1.0.0-windows-x64.zip`), storedZip([`${OLD.join('-')}.exe`]));
+  assert.deepEqual(checkFolder(dir), [`${PREFIX}-1.0.0-windows-x64.zip!${OLD.join('-')}.exe: the name holds the old name`]);
 });
 
 test('a built folder is checked by file name and by text, and a binary file only by name', () => {
   const dir = mkdtempSync(join(tmpdir(), 'old-name-'));
   mkdirSync(join(dir, 'docs'));
-  writeFileSync(join(dir, 'index.html'), '<title>Narration Studio</title>');
+  writeFileSync(join(dir, 'index.html'), `<title>${BRAND.name}</title>`);
   writeFileSync(join(dir, 'docs', 'page.html'), `<p>${OLD.join(' ')}</p>`);
   writeFileSync(join(dir, `${OLD.join('-')}-1.0.0-windows-x64.zip`), Buffer.from([0x50, 0x4b, 0, 1]));
   writeFileSync(join(dir, 'app.bin'), Buffer.concat([Buffer.from([0]), Buffer.from(OLD.join('-'))]));

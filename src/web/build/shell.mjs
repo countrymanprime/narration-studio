@@ -11,13 +11,18 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { loadBrand } from '../../../scripts/brand/brand.mjs';
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const ui = join(root, 'src', 'studio', 'ui');
 const commonDir = join(root, 'src', 'web', 'common');
 
 // The repository the site links (Download, Full guide on GitHub, View source): the one the build runs in, so a renamed repository needs no edit here.
-// Outside Actions, and for a value that is not `owner/name`, the current name is used.
-const FALLBACK_SLUG = 'countrymanprime/narration-studio';
+// Outside Actions, and for a value that is not `owner/name`, the brand's repository (config/brand.json) is used.
+const BRAND = loadBrand();
+/** The product's display name, from config/brand.json; landing/index.html writes it as __NAME__. */
+export const NAME = BRAND.name;
+const FALLBACK_SLUG = BRAND.repository.slug;
 const envSlug = (process.env.GITHUB_REPOSITORY ?? '').trim();
 export const REPO = `https://github.com/${/^[\w.-]+\/[\w.-]+$/.test(envSlug) ? envSlug : FALLBACK_SLUG}`;
 const RELEASES = `${REPO}/releases`;
@@ -29,7 +34,7 @@ const SECTIONS = [
   { id: 'storybook', label: 'Storybook', href: 'storybook/index.html' },
 ];
 /** The notice above the top bar, for a build that is not the published site (site-preview.yml's artifact). pages.yml sets SITE_PUBLISHED=1, which drops it. */
-const NOTICE = process.env.SITE_PUBLISHED === '1' ? '' : 'Preview of the Narration Studio site, built from the repository. It is not published.';
+const NOTICE = process.env.SITE_PUBLISHED === '1' ? '' : `Preview of the ${NAME} site, built from the repository. It is not published.`;
 
 const escapeHtml = (text) => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const dataUri = (file, type) => `data:${type};base64,${readFileSync(file).toString('base64')}`;
@@ -95,7 +100,7 @@ ${fonts}
 ${css}</style>`;
   const header = `${NOTICE ? `<div id="top-strip" class="strip">${escapeHtml(NOTICE)} <button type="button" id="strip-x">Dismiss</button></div>\n\n` : ''}<header class="top">
   <div class="bar">
-    <a class="brand" href="${base}index.html" aria-label="Narration Studio, home"><span class="mark" aria-hidden="true"><b></b><b></b><b></b><b></b></span>Narration Studio</a>
+    <a class="brand" href="${base}index.html" aria-label="${escapeHtml(NAME)}, home"><span class="mark" aria-hidden="true"><b></b><b></b><b></b><b></b></span>${escapeHtml(NAME)}</a>
     <nav class="nav" id="nav" aria-label="Main">
       ${nav}
     </nav>
@@ -108,7 +113,7 @@ ${css}</style>`;
   </div>
 </header>`;
   const footer = `<footer class="foot">
-  <span class="display" style="font-size:20px;color:var(--text);text-transform:uppercase">Narration Studio</span>
+  <span class="display" style="font-size:20px;color:var(--text);text-transform:uppercase">${escapeHtml(NAME)}</span>
   <a href="${REPO}" target="_blank" rel="noopener">GitHub</a>
   <a href="${RELEASES}" target="_blank" rel="noopener">Releases</a>
   <a href="${base}docs/index.html">Docs</a>
@@ -131,7 +136,10 @@ ${js}</script>`;
 /** A page template with the shell put in at its `<!--shell:head-->`, `<!--shell:header-->` and `<!--shell:footer-->` markers. */
 export function fillShell(template, options) {
   const parts = shellParts(options);
-  let html = template.replaceAll('__REPO__', REPO);
+  let html = template
+    .replaceAll('__REPO__', REPO)
+    .replaceAll('__NAME__', escapeHtml(NAME))
+    .replaceAll('__ASSET_PREFIX__', escapeHtml(BRAND.identity.releaseAssetPrefix));
   for (const name of ['head', 'header', 'footer']) {
     const marker = `<!--shell:${name}-->`;
     if (!html.includes(marker)) throw new Error(`the page template has no ${marker}`);

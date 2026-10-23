@@ -171,8 +171,8 @@ def t32(t):
     names = [x["name"] for x in p.tracks()]
     t.note("default audio track name", str(names), names=names)
     t.check("a new audio track keeps the English default name 'Audio 1' in the German interface (it is not translated)", "Audio 1" in names, str(names))
-    p.do('SetTrackStatus: Name="Narration Studio"')
-    t.check("a name the app sets is kept as sent", "Narration Studio" in [x["name"] for x in p.tracks()], str([x["name"] for x in p.tracks()]))
+    p.do('SetTrackStatus: Name="App label track"')
+    t.check("a name the app sets is kept as sent", "App label track" in [x["name"] for x in p.tracks()], str([x["name"] for x in p.tracks()]))
     p.select_none()
     p.select_time(1, 1)
     p.do("AddLabel")

@@ -111,6 +111,19 @@ export const TARGETS = [
       return `${JSON.stringify(product, null, 2)}\n`;
     },
   },
+  {
+    // The docs site's name and addresses: MkDocs reads no JSON, so only these lines follow the brand and the rest is left as it is.
+    path: 'tools/docs-site/mkdocs.yml',
+    render: (brand, current) => {
+      if (current == null) throw new Error('tools/docs-site/mkdocs.yml is missing: the sync patches it and cannot write it.');
+      const { owner, name, url } = brand.repository;
+      return current
+        .replace(/^site_name: .*$/m, `site_name: ${brand.name}`)
+        .replace(/^site_url: .*$/m, `site_url: https://${owner}.github.io/${name}/`)
+        .replace(/^(\s*repo_url: ).*$/m, `$1${url}`)
+        .replace(/^(\s*link: )https:\/\/github\.com\/.*$/m, `$1${url}`);
+    },
+  },
 ];
 
 // A brand region in a Markdown or HTML file: `<!-- brand:<key> -->value<!-- /brand -->`. The key is a path into the derived

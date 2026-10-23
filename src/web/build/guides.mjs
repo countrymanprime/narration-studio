@@ -9,6 +9,9 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 import { basename, join, posix } from 'node:path';
 import MarkdownIt from 'markdown-it';
 import { REPO, searchItems, sitePage } from './shell.mjs';
+import { loadBrand } from '../../../scripts/brand/brand.mjs';
+
+const NAME = loadBrand().name;
 
 const SOURCE_DIR = 'src/web/docs';
 const GUIDE_DIR = 'docs/guides/using-the-app';
@@ -276,7 +279,7 @@ export function buildGuides({ root, out, withStorybook }) {
     const { meta, rendered } = pages[page];
     const { body } = docsPage({ page, meta, rendered, flat, withStorybook, search });
     const html = sitePage({
-      title: `${meta.title} · Narration Studio docs`,
+      title: `${meta.title} · ${NAME} docs`,
       meta: `<meta name="description" content="${escapeHtml(meta.lead)}">`,
       base: '../',
       current: 'docs',

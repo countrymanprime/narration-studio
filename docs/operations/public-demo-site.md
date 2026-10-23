@@ -114,4 +114,4 @@ The manual workflow `.github/workflows/site-preview.yml` runs `pnpm run site:bui
 
 ## What the owner does to publish
 
-Not done by any pull request: Settings > Pages > Source: **GitHub Actions** (owner-only, [repository settings](github-workflow.md#repository-settings-that-only-the-owner-can-change)). The first deploy then runs on the next push to `main` that touches the site, or when `pages.yml` is started by hand on `main`. The repository must be named `narration-studio`: the link check and the site URL name it.
+Not done by any pull request: Settings > Pages > Source: **GitHub Actions** (owner-only, [repository settings](github-workflow.md#repository-settings-that-only-the-owner-can-change)). The first deploy then runs on the next push to `main` that touches the site, or when `pages.yml` is started by hand on `main`. The link check reads the sub-path from the repository's name, so a renamed repository needs no workflow edit; update `repository` in `config/brand.json` for the demo's base and the docs site's addresses ([repository rename](repository-rename.md)).

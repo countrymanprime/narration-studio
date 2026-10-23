@@ -73,11 +73,14 @@ jobs:
       - name: Check the site never says the product's old name
         run: node scripts/ci/old-name.mjs dir dist-site
       # check_site.py reads only the standard library. It follows every link and image of the built pages as Pages would
-      # serve them under /narration-studio/ and fails on a dead one.
-      - name: Check every link, served under /narration-studio/
+      # serve them under the repository's sub-path and fails on a dead one.
+      - name: Check every link, served under the repository's sub-path
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORY: ${{ github.event.repository.name }}
         run: |
-          python3 -I tools/docs-site/check_site.py dist-site --base /narration-studio/ \
-            --site-url https://countrymanprime.github.io/narration-studio/ \
+          python3 -I tools/docs-site/check_site.py dist-site --base "/$REPOSITORY/" \
+            --site-url "https://$OWNER.github.io/$REPOSITORY/" \
             --require index.html --require docs/index.html --require demo/index.html --require demo/app.html \
             --require storybook/index.html --require storybook/sb/index.html
       - if: github.event_name != 'pull_request'
