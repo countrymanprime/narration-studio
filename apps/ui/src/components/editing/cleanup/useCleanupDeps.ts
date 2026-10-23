@@ -4,6 +4,7 @@ import type { EditCut } from '../../../api/contracts/editCuts';
 import { usePort } from '../../../ports/usePort';
 import { origTime } from '../model/cuts';
 import type { CleanupDeps, RangeTrim } from './cleanupApply';
+import type { CleanupRow } from './cleanupRows';
 
 /** The fade at a trimmed gap's seam, in milliseconds: one of the cut fades the chapter's cuts take. */
 export const TRIM_FADE_MS = 6;
@@ -73,9 +74,19 @@ export function useCleanupDeps({ cuts, onCuts }: CleanupCuts): CleanupDeps | und
       latest.current = { ...latest.current, cuts: change.cuts };
       latest.current.onCuts(change.cuts);
     };
+    // A trim is recorded with the guid `<chapter>/<item>@<start>` (above): a gap is trimmed when a cut of its item starts inside it.
+    const trimmed = ({ itemGuid, sec, end }: Pick<CleanupRow, 'itemGuid' | 'sec' | 'end'>): boolean =>
+      itemGuid !== undefined &&
+      latest.current.cuts.some((cut) => {
+        const at = cut.guid.lastIndexOf('@');
+        if (cut.pid !== '' || at < 0 || !cut.guid.slice(0, at).endsWith(`/${itemGuid}`)) return false;
+        const start = Number(cut.guid.slice(at + 1));
+        return Number.isFinite(start) && start >= sec && start <= end;
+      });
     return {
       trim,
       record,
+      trimmed,
       ...(reducible ? { reduce: (request) => daw.reduceRangeGain(request) } : {}),
       ...(repairable ? { repair: (request) => daw.repairClick(request) } : {}),
     } satisfies CleanupDeps;
