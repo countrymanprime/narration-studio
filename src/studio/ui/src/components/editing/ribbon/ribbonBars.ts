@@ -2,7 +2,7 @@ import type { PeakColumn } from './peaksWindow';
 
 /*
  * The ribbon's bars: thin rounded bars on a 1 px gap, each one centred on the middle line, so the shape is symmetric and reads as peaks and
- * valleys. The look began as the public site's animated waveform (apps/site/landing/index.html, `.wave`, 5 px bars and a 3 px gap); the owner
+ * valleys. The look began as the public site's animated waveform (src/web/landing/index.html, `.wave`, 5 px bars and a 3 px gap); the owner
  * asked for thinner bars and taller peaks (#2251, items 31 and 34), so a bar is now 2 px and silence is a hairline, not a row of dots. The bars
  * are spread so they fill the width exactly. Everything here is pure: the canvas code (drawRibbon.ts) only draws what it returns.
  */

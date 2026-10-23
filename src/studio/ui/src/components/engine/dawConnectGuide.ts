@@ -3,7 +3,7 @@ import type { DawKind } from '../../api/contracts/daw';
 /**
  * How a DAW connects to this app, in that DAW's own words, for a page that must not word a DAW itself (the Booth's setup notice).
  * Only REAPER has a bridge: the app puts it in REAPER's Scripts folder and REAPER starts it each time it opens
- * (apps/desktop/internal/reaperinstall, docs/architecture/daw-integration.md), so the narrator links the project file and the app
+ * (src/studio/desktop/internal/reaperinstall, docs/architecture/daw-integration.md), so the narrator links the project file and the app
  * does the rest. Each string says what the app does, never a step for the narrator to take in REAPER.
  */
 export type DawConnectGuide = {

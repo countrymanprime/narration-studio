@@ -107,6 +107,6 @@ diagnostics. See [its README](audio/librivox-alice/README.md) and `tests/fixture
 ## repeat-rule/
 
 `parity-cases.json`: the cases for "a run of extra words says the script beside it again" (issue #2251 item 30), which the
-sidecar (`sidecars/transcript-compare/core/recording_coverage.py`, `repeat_of`) and the Editing page
-(`apps/ui/src/components/editing/model/duplicates.ts`, `saysScriptAgain`) both implement. `test_coverage.py` and
+sidecar (`src/studio/sidecars/transcript-compare/core/recording_coverage.py`, `repeat_of`) and the Editing page
+(`src/studio/ui/src/components/editing/model/duplicates.ts`, `saysScriptAgain`) both implement. `test_coverage.py` and
 `duplicates.test.ts` read the file, so the two copies of the rule cannot drift apart.

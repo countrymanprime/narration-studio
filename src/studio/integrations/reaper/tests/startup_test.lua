@@ -1,5 +1,5 @@
 -- NarrationStudio_Startup.lua, the script REAPER runs at every start from Scripts/__startup.lua (the app adds that line,
--- apps/desktop/internal/reaperinstall). It runs the bridge without starting the app, so the app finds REAPER by the bridge's
+-- src/studio/desktop/internal/reaperinstall). It runs the bridge without starting the app, so the app finds REAPER by the bridge's
 -- heartbeat; the launcher action then reuses that bridge instead of starting a second one.
 
 local H = require('harness')

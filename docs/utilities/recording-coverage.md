@@ -42,7 +42,7 @@ until there is a track to check. The row is still clickable in every state: open
 shows the same in-place track-link prompt a refused check always has.
 
 A chapter whose recording changed since its check is also re-checked in the background
-([coverage_background.go](../../apps/desktop/coverage_background.go), [background.go](../../apps/desktop/internal/coverage/background.go)):
+([coverage_background.go](../../src/studio/desktop/coverage_background.go), [background.go](../../src/studio/desktop/internal/coverage/background.go)):
 one at a time, the oldest change first, and only when the setting **Check recordings in the background** is on, the narrator has
 answered its first-time notice (`RecordingCoverage.background_checks_confirmed`; until then `background.wait` is `confirm` and
 nothing starts), no other job the narrator started runs, the model is installed, the computer is on mains power, REAPER is closed
@@ -64,7 +64,7 @@ A background check is not the narrator's own Check recording:
 `chaptersync:state`'s `background` says why none runs (`wait`), how many changed chapters wait (`queued`) and the model pair
 (`firstPassModel`, `recheckModel`). The app shows a running background check, and the chapters that wait with their reason, at
 the bottom left of every page with Pause (turns background checks off) and Cancel (this check; it starts again only when the chapter
-changes) ([BackgroundChecks.tsx](../../apps/ui/src/components/recordingcheck/background/BackgroundChecks.tsx)).
+changes) ([BackgroundChecks.tsx](../../src/studio/ui/src/components/recordingcheck/background/BackgroundChecks.tsx)).
 
 A check, background or not, transcribes only audio no check has covered with the same models: [Incremental checks](#incremental-checks).
 
@@ -73,18 +73,18 @@ A check, background or not, transcribes only audio no check has covered with the
 A check never sends audio to a model that has already transcribed it with the same settings:
 
 - **The ledger is the words files.** Each item's words are cached per source and played range in the evidence cache under a key that names both
-  models, the language, the hotwords and the VAD setting (`wordsParamHash`, [params.go](../../apps/desktop/internal/coverage/params.go)). A first pass
+  models, the language, the hotwords and the VAD setting (`wordsParamHash`, [params.go](../../src/studio/desktop/internal/coverage/params.go)). A first pass
   reuses a cached file that covers the item's range (`covers`), so only new or widened items are transcribed. A changed model is a new key and a changed
   recording a new source, so either is checked again.
 - **What the larger model checked is recorded and kept.** A re-check splice gives its range to the larger model in the file's `spans`; a whole-chapter
-  re-check leaves files that model made. `checked_ranges` ([coverage_mode.py](../../sidecars/transcript-compare/core/coverage_mode.py)) and
-  `readCheckedRanges` ([checked.go](../../apps/desktop/internal/coverage/checked.go)) read them back, and:
+  re-check leaves files that model made. `checked_ranges` ([coverage_mode.py](../../src/studio/sidecars/transcript-compare/core/coverage_mode.py)) and
+  `readCheckedRanges` ([checked.go](../../src/studio/desktop/internal/coverage/checked.go)) read them back, and:
   - the pipeline asks the larger model only for doubtful passages outside those ranges, and its whole-chapter escalation skips items it already checked
-    whole ([coverage_pipeline.py](../../sidecars/transcript-compare/core/coverage_pipeline.py));
+    whole ([coverage_pipeline.py](../../src/studio/sidecars/transcript-compare/core/coverage_pipeline.py));
   - a first pass that is not the pipeline names the larger model with `--checked-by`, so it reuses that model's whole-chapter words and does not report
     passages it re-checked as unsure again;
   - the host's planner drops windows already checked before it weighs the whole-chapter fallback (`planRecheckUnchecked`,
-    [plan.go](../../apps/desktop/internal/coverage/plan.go)), and the windows-only `--recheck` skips them too.
+    [plan.go](../../src/studio/desktop/internal/coverage/plan.go)), and the windows-only `--recheck` skips them too.
 
   A passage the larger model is still unsure of stays as it heard it: its doubt is final until the audio or a model changes.
 
@@ -92,7 +92,7 @@ A check never sends audio to a model that has already transcribed it with the sa
 
 ```mermaid
 flowchart LR
-  home["Production: Check recording"] -->|CoverageStart| svc["apps/desktop/internal/coverage"]
+  home["Production: Check recording"] -->|CoverageStart| svc["src/studio/desktop/internal/coverage"]
   svc -->|reads| rpp["saved .rpp, confirmed track map"]
   svc -->|manifest, words files| side["compare.py --coverage"]
   side -->|COVERAGE lines| svc
@@ -100,7 +100,7 @@ flowchart LR
   ledger -->|thresholds on read| out["Production result, recordedFraction, recording signal"]
 ```
 
-- **The manifest comes from the saved project, not from REAPER.** `apps/desktop/internal/coverage` reads the `.rpp`
+- **The manifest comes from the saved project, not from REAPER.** `src/studio/desktop/internal/coverage` reads the `.rpp`
   the audio engine panel selected, the chapter's one confirmed track (`chapter-track-map.json`, analysis evidence ledger), and
   each item's active take and played range, `[SOFFS, SOFFS + LENGTH × PLAYRATE]`, in position order. Muted items are
   listed and skipped. A chapter that cannot be checked gets a typed reason and nothing runs: not linked, several
@@ -137,7 +137,7 @@ flowchart LR
     shows it as **Read twice**. `null` for an aside and absent from a result stored before it.
 
   `--align-only` re-aligns from the cached words files and never transcribes. The host reads them through the `WorkspaceAlignment` binding
-  (`apps/desktop/bindings_coverage.go`, `coverage.AlignmentView`). A chapter with no stored result answers state `never` with the
+  (`src/studio/desktop/bindings_coverage.go`, `coverage.AlignmentView`). A chapter with no stored result answers state `never` with the
   chapter's paragraphs and no tokens, extras or items, so the Editing page can show the script before any check has run.
   Every run writes one ledger record
   (`complete`, `partial` on cancel, or `failed`). A complete run's report is stored under
@@ -145,7 +145,7 @@ flowchart LR
   it reads a report, so a threshold change never transcribes or aligns again.
 - **Progress is real and a check runs only on a press.** Progress is the seconds transcribed over the seconds to
   transcribe. Cancel keeps the finished items. One check runs at a time, and a run ends with one `job:ended` event
-  ([bindings_coverage.go](../../apps/desktop/bindings_coverage.go),
+  ([bindings_coverage.go](../../src/studio/desktop/bindings_coverage.go),
   [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording)).
 - **A result is current, stale or never.** It goes stale when the saved project changes under it: an item added,
   removed, trimmed, moved, muted or switched to another take, or an audio file changed. It also goes stale when the
@@ -155,7 +155,7 @@ flowchart LR
   carries `judgement`: met or not met by the narrator's thresholds, with the gap that fails first. It comes from
   `coverage.Judge`, the same function the stage signal uses, so the two cannot disagree. It is set for any complete
   result with a report, a stale one included (as of the last check)
-  ([judgement.go](../../apps/desktop/internal/coverage/judgement.go)). `recordedFraction` on the chapter
+  ([judgement.go](../../src/studio/desktop/internal/coverage/judgement.go)). `recordedFraction` on the chapter
   payload is the present share of a current complete check only; it no longer feeds the board's **Recorded** column,
   which instead reads `recordedSeconds`, a real duration from the chapter's linked track in the saved project, unrelated
   to any check (superseding Q12 below).
@@ -178,7 +178,7 @@ flowchart LR
   `different_text` (a larger gap of other speech).
 - **Extra** speech, such as retakes, false starts and asides, is counted and never held against the narrator. A
   paragraph read only out of place, like a pickup recorded at the end, is missing where it belongs.
-- **Gaps** are derived on read from the stored report ([gaps.go](../../apps/desktop/internal/coverage/gaps.go)),
+- **Gaps** are derived on read from the stored report ([gaps.go](../../src/studio/desktop/internal/coverage/gaps.go)),
   as `gaps` and `unfinished` on the result. Only a gap between the first and last read paragraph is a line to redo.
 
   | Region kind | Gap kind |
@@ -198,7 +198,7 @@ flowchart LR
 ### Settings
 
 The `RecordingCoverage` settings tool, layered project over global over the built-in defaults like every other tool
-([settings_number.go](../../apps/desktop/settings_number.go)):
+([settings_number.go](../../src/studio/desktop/settings_number.go)):
 
 | Setting | Default | Kind | What it decides |
 | --- | --- | --- | --- |
@@ -260,7 +260,7 @@ flowchart LR
   past 60%, chosen because Whisper's cost is per roughly-30-second block, so a shorter
   window costs about the same as a 25-second one).
 - **The re-check** runs `cascade_recheck_model` (default `large-v3-turbo`) either as `compare.py --recheck` over
-  the planned windows only, splicing the result into the same words files with per-span model provenance (`sidecars/transcript-compare/core/coverage_mode.py`), or as one more whole-chapter pass. A windowed re-check is followed by `--align-only`, re-reading the
+  the planned windows only, splicing the result into the same words files with per-span model provenance (`src/studio/sidecars/transcript-compare/core/coverage_mode.py`), or as one more whole-chapter pass. A windowed re-check is followed by `--align-only`, re-reading the
   now-spliced words with no further transcription; either way the chapter is judged by the same rules and
   thresholds as a plain check, over merged words.
 - **The stored result names both models.** `StoredResult.Model`/`ReportView.model` keep naming the first pass only,
@@ -316,7 +316,7 @@ flowchart LR
   `COVERAGE_UNSURE` line for each passage of words scored under it: a run of at least two such words, or one word under half the line, joined across up to two
   confident words. `planRecheck` adds a window for each, bounded to the item's played range, beside the windows of the missing regions, and merges and pads
   them by the same rules (MC3). A word with no score (a file written before scores) is never doubted. Scores never score a gap.
-- **One decision about what runs.** `resolveCoverageChoices` (`apps/desktop/coverage_choices.go`) reads the settings and the run's options once. The
+- **One decision about what runs.** `resolveCoverageChoices` (`src/studio/desktop/coverage_choices.go`) reads the settings and the run's options once. The
   Check recordings dialog and a press from a chapter's panel call it, so the same chapter is checked the same way wherever the narrator starts it. The
   dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice. A background check takes the chunking and the doubt line from it and
   its own model pair and processors from the background settings above, and never downloads a model.
@@ -371,11 +371,11 @@ This table is the key to the labels that code comments, tests and the text above
 
 ## Tests and tooling
 
-- `sidecars/transcript-compare/tests/`: `test_coverage.py` (the definitions), `test_coverage_mode.py` (the sidecar
+- `src/studio/sidecars/transcript-compare/tests/`: `test_coverage.py` (the definitions), `test_coverage_mode.py` (the sidecar
   mode with a fake transcriber), `test_marker_golden.py` (markers unchanged), `coverage_harness.py` and
-  [the fixture set](../../sidecars/transcript-compare/tests/fixtures/coverage/README.md), `coverage_spike.py` and
+  [the fixture set](../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md), `coverage_spike.py` and
   `coverage_calibration.py`, each pinned by its own test file.
-- `apps/desktop/internal/coverage`: service tests with a fake sidecar (fresh, all-cached, one-item edit, cancel, every
+- `src/studio/desktop/internal/coverage`: service tests with a fake sidecar (fresh, all-cached, one-item edit, cancel, every
   refusal and staleness cause), the signal table, settings and a provider test through `stages.Collect`. A test runs
   the real sidecar over cached words when the checkout has a Python environment. `corpus_test.go` stores the
   sidecar's pinned output for every fixture case (`fixtures/coverage/results.golden.json`, written by

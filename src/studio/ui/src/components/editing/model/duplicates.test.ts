@@ -137,7 +137,7 @@ describe('saysScriptAgain: extra words that say the script beside them again (is
 });
 
 describe('saysScriptAgain answers the parity cases the sidecar answers too (tests/fixtures/repeat-rule)', () => {
-  const file = fileURLToPath(new URL('../../../../../../tests/fixtures/repeat-rule/parity-cases.json', import.meta.url));
+  const file = fileURLToPath(new URL('../../../../../../../tests/fixtures/repeat-rule/parity-cases.json', import.meta.url));
   const { cases } = JSON.parse(readFileSync(file, 'utf8')) as {
     cases: Array<{ name: string; run: string; script: string; prev: number | null; next: number | null; repeat: boolean }>;
   };

@@ -172,7 +172,7 @@ export type DawChoiceSource = 'launch' | 'chosen' | 'linked' | 'found' | 'defaul
  * `linked` (its project file is linked; starting it from the app connects it), `not_linked`, `app` (the built-in recorder) or `none`. */
 export type DawChoiceState = 'connected' | 'starting' | 'not_running' | 'linked' | 'not_linked' | 'app' | 'none';
 
-/** Where the app's bridge in REAPER stands (apps/desktop/reaperbridge.go): whether its files are in REAPER's Scripts folder, whether
+/** Where the app's bridge in REAPER stands (src/studio/desktop/reaperbridge.go): whether its files are in REAPER's Scripts folder, whether
  * REAPER runs it when it opens (Scripts/__startup.lua), and the sentence to show when either is false or a start failed. */
 export type ReaperBridgeStatus = { installed: boolean; startsWithReaper: boolean; problem: string | null };
 

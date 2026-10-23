@@ -38,7 +38,7 @@ export function createChapterTracksMock(
         ? '2026-09-24T09:00:00Z'
         : null;
   const chapterSyncRejected = new Set<string>();
-  // Background recording checks (apps/desktop/coverage_background.go): the `backgroundChecks` seed, then what the narrator saves.
+  // Background recording checks (src/studio/desktop/coverage_background.go): the `backgroundChecks` seed, then what the narrator saves.
   const background: ChapterSyncBackground = {
     enabled: true,
     wait:

@@ -1,6 +1,6 @@
 # Editing: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -286,8 +286,8 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 
 - Page / state: editing, drawer-timeline
 - Widths: 1280, 1024, 768 (round 1 found no drawer). I could not open these shots (the read returned no image). I checked `probe:editing/drawer-timeline/w1024.json`: no element mentioning a drawer, tablist or "Waveform and takes". So the DOM at 1024 has no open drawer; the capture is the default page with the cursor placed.
-- What is wrong: the state meant to show the Timeline drawer at narrow widths never shows it, so that layout has no review or visual-suite coverage. The driver (`apps/ui/tests/visual/drivers/editing.ts:168-181`) branches at 1360, but the layout breakpoint for the drawer-as-overlay is 1281 (`drawer/DrawerLayout.tsx:12`); at 1280 and 1024 the branch clicks "Clean up and effects" then tab "Timeline", which `drawer-effects/w1280.png` shows exists. Cause of the missing drawer not found; likely the click toggles the drawer closed (it was already open from a preceding state) or the tab click closes it.
-- Where: `apps/ui/tests/visual/drivers/editing.ts:168-181`; `page/EditingBody.tsx:404-413` (`showTimeline` toggles closed when drawer is open on timeline).
+- What is wrong: the state meant to show the Timeline drawer at narrow widths never shows it, so that layout has no review or visual-suite coverage. The driver (`src/studio/ui/tests/visual/drivers/editing.ts:168-181`) branches at 1360, but the layout breakpoint for the drawer-as-overlay is 1281 (`drawer/DrawerLayout.tsx:12`); at 1280 and 1024 the branch clicks "Clean up and effects" then tab "Timeline", which `drawer-effects/w1280.png` shows exists. Cause of the missing drawer not found; likely the click toggles the drawer closed (it was already open from a preceding state) or the tab click closes it.
+- Where: `src/studio/ui/tests/visual/drivers/editing.ts:168-181`; `page/EditingBody.tsx:404-413` (`showTimeline` toggles closed when drawer is open on timeline).
 - Severity: looks wrong (unverified layout)
 - Fix: wait for the drawer region in the driver (`#drawer`) as `drawer-effects` does, and re-capture.
 - Evidence: `editing/drawer-timeline/w1024.png` (not seen by me), probe json above.

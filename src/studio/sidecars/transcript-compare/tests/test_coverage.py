@@ -354,8 +354,8 @@ def test_a_run_before_anything_was_heard_can_repeat_the_words_after_it():
 
 
 def test_the_repeat_rule_answers_the_shared_parity_cases():
-    # The Editing page runs the same rule (apps/ui/src/components/editing/model/duplicates.ts saysScriptAgain) on the same file.
-    path = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "repeat-rule" / "parity-cases.json"
+    # The Editing page runs the same rule (src/studio/ui/src/components/editing/model/duplicates.ts saysScriptAgain) on the same file.
+    path = Path(__file__).resolve().parents[5] / "tests" / "fixtures" / "repeat-rule" / "parity-cases.json"
     for case in json.loads(path.read_text(encoding="utf-8"))["cases"]:
         script = case["script"].split()
         found = cov.repeat_of(case["run"].split(), script, [0] * len(script), case["prev"], case["next"])

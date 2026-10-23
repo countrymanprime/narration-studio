@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// bridgeFiles is a small stand-in for the embedded integrations/reaper folder.
+// bridgeFiles is a small stand-in for the embedded src/studio/integrations/reaper folder.
 func bridgeFiles(startup string) fstest.MapFS {
 	return fstest.MapFS{
 		StartupScript:          {Data: []byte(startup)},

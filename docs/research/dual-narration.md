@@ -12,35 +12,35 @@ Dated 2026-10-23. Research for item 37 of [#2251](https://github.com/countrymanp
 
 | Where | What it holds | Source |
 | - | - | - |
-| Setting `General.narrator_name` | One text value, the default for the `[Narrator]` credits token | `apps/desktop/app.go` (setting list), `apps/desktop/creditsbindings.go` |
-| Project credits values | `Values.Narrator`, a string that overrides the setting for one project | `apps/desktop/internal/credits/values.go` |
-| Credit templates | Shipped bodies end "narrated by [Narrator]" / "Read by [Narrator]" | `apps/desktop/internal/credits/templates.go` |
-| Project manifest | `project.json` has a name, a single linked DAW project, credits, deadline, one `Payment` and one `ContractedAmount`. No narrator list | `apps/desktop/internal/project/manifest.go` |
+| Setting `General.narrator_name` | One text value, the default for the `[Narrator]` credits token | `src/studio/desktop/app.go` (setting list), `src/studio/desktop/creditsbindings.go` |
+| Project credits values | `Values.Narrator`, a string that overrides the setting for one project | `src/studio/desktop/internal/credits/values.go` |
+| Credit templates | Shipped bodies end "narrated by [Narrator]" / "Read by [Narrator]" | `src/studio/desktop/internal/credits/templates.go` |
+| Project manifest | `project.json` has a name, a single linked DAW project, credits, deadline, one `Payment` and one `ContractedAmount`. No narrator list | `src/studio/desktop/internal/project/manifest.go` |
 
 A narrator is a string used to fill a credit. Nothing in the host or the UI knows who recorded a chapter, a line or a take.
 
 ### Voices, characters and the Story Bible
 
-- **Characters** are Story Bible entities (`ManuscriptGuide/manuscript_guide.json`, [data-files.md](../reference/data-files.md)). A type has a `speaks` flag; entries of a speaking type can have a speaker colour (`apps/desktop/internal/guide/types.go`, `SetTypeSpeaks`).
-- **Gender** is not a field. It exists as a free `Gender` property (`Female` or `Male`) that BookNLP extraction offers (`apps/desktop/internal/extractionport/booknlp/booknlp.go`, `GenderKey`, `GenderValues`). The [BookNLP spike](studio-next-booknlp-spike.md) says it ships behind "not yet available", so for now a gender is whatever the narrator types into an entry's properties.
-- **Dialogue cues** are the speaker data: each quoted span has `chapterId`, `paragraphId`, `quote_start`, `quote_end`, `speaker_entity_id`, `speaker_source` and `corrected` (`DialogueCue` in `apps/desktop/internal/guide/service.go`). A cue the narrator corrected survives a rebuild (`CorrectCue`). Three or more speakers in a scene, or no tag, stay `unknown` ([Story Bible guide](../guides/using-the-app/story-bible.md)).
-- **Voice samples** are clips of "how a character sounds", keyed by character id, with the reserved id `narration` for plain narration (`NarrationCharacterID` in `apps/desktop/internal/voicesample/voicesample.go`; 20 per character; `voice-samples/samples.json`). The Booth speaker picker plays them ([Booth guide](../guides/using-the-app/booth.md#voice-samples)).
-- **Approved references** are regions of the REAPER project approved as a character's reference, again with `narration` as a subject (`apps/desktop/internal/character/character.go`). Continuity baselines are built per subject (`apps/desktop/internal/continuity/analyze.go`, `SubjectStatus`).
-- **Series voice bible** lists a character's approved clips across the books of a series, labelled by book (`apps/desktop/internal/series/voicebible.go`).
+- **Characters** are Story Bible entities (`ManuscriptGuide/manuscript_guide.json`, [data-files.md](../reference/data-files.md)). A type has a `speaks` flag; entries of a speaking type can have a speaker colour (`src/studio/desktop/internal/guide/types.go`, `SetTypeSpeaks`).
+- **Gender** is not a field. It exists as a free `Gender` property (`Female` or `Male`) that BookNLP extraction offers (`src/studio/desktop/internal/extractionport/booknlp/booknlp.go`, `GenderKey`, `GenderValues`). The [BookNLP spike](studio-next-booknlp-spike.md) says it ships behind "not yet available", so for now a gender is whatever the narrator types into an entry's properties.
+- **Dialogue cues** are the speaker data: each quoted span has `chapterId`, `paragraphId`, `quote_start`, `quote_end`, `speaker_entity_id`, `speaker_source` and `corrected` (`DialogueCue` in `src/studio/desktop/internal/guide/service.go`). A cue the narrator corrected survives a rebuild (`CorrectCue`). Three or more speakers in a scene, or no tag, stay `unknown` ([Story Bible guide](../guides/using-the-app/story-bible.md)).
+- **Voice samples** are clips of "how a character sounds", keyed by character id, with the reserved id `narration` for plain narration (`NarrationCharacterID` in `src/studio/desktop/internal/voicesample/voicesample.go`; 20 per character; `voice-samples/samples.json`). The Booth speaker picker plays them ([Booth guide](../guides/using-the-app/booth.md#voice-samples)).
+- **Approved references** are regions of the REAPER project approved as a character's reference, again with `narration` as a subject (`src/studio/desktop/internal/character/character.go`). Continuity baselines are built per subject (`src/studio/desktop/internal/continuity/analyze.go`, `SubjectStatus`).
+- **Series voice bible** lists a character's approved clips across the books of a series, labelled by book (`src/studio/desktop/internal/series/voicebible.go`).
 
 Voice here means a character's sound as the one narrator performed it. No "voice" belongs to a person.
 
 ### Chapters, tracks and the pipeline
 
-- A chapter has an id and a status of five stages (`apps/desktop/internal/stages/`); notes live in `manuscript-notes.json` (`apps/desktop/internal/manuscript/reader.go`).
-- A chapter links to exactly one REAPER track by `ChapterID` and `TrackGUID` (`apps/desktop/internal/chaptersync/plan.go`; [Production guide](../guides/using-the-app/production.md#a-chapters-track)).
-- **Production** logs timer sessions by chapter and stage with no narrator field (`Session` in `apps/desktop/internal/production/production.go`).
-- **Schedule** has one deadline, one payment type and one amount (`Plan` in `apps/desktop/internal/production/plan.go`). Work left is words ÷ 9,300 per finished hour, then fixed multiples, at one pace of 1.5 hours a day ([Schedule guide](../guides/using-the-app/schedule.md#how-it-is-worked-out)).
+- A chapter has an id and a status of five stages (`src/studio/desktop/internal/stages/`); notes live in `manuscript-notes.json` (`src/studio/desktop/internal/manuscript/reader.go`).
+- A chapter links to exactly one REAPER track by `ChapterID` and `TrackGUID` (`src/studio/desktop/internal/chaptersync/plan.go`; [Production guide](../guides/using-the-app/production.md#a-chapters-track)).
+- **Production** logs timer sessions by chapter and stage with no narrator field (`Session` in `src/studio/desktop/internal/production/production.go`).
+- **Schedule** has one deadline, one payment type and one amount (`Plan` in `src/studio/desktop/internal/production/plan.go`). Work left is words ÷ 9,300 per finished hour, then fixed multiples, at one pace of 1.5 hours a day ([Schedule guide](../guides/using-the-app/schedule.md#how-it-is-worked-out)).
 - **Booth** reads one chapter's text and records it as one take stream. Its "Voices in this scene" panel lists characters, not narrators ([Booth guide](../guides/using-the-app/booth.md)).
-- **Recording check** (`apps/desktop/internal/coverage/`) compares a chapter's recording with the whole chapter's text, so a line another narrator read would count as missing.
-- **Proof and Pickups** list findings and lines by chapter and paragraph (`apps/desktop/internal/pickuplist/pickuplist.go`, `Pickup`); none says who read the line.
-- **Master & QC** measures each file against one delivery profile and draws **Book consistency**, the spread of the files' RMS (`docs/guides/using-the-app/master-and-qc.md`). Mastering aims at the middle of the profile's RMS window for every file (`apps/desktop/internal/mastering/targets.go`).
-- **Delivery** packages one file per chapter plus credits and a retail sample (`apps/desktop/internal/packager/packager.go`); the profile's rules, such as `acx.rms` and `acx.room_tone_tail`, are per file ([ACX delivery requirements](../reference/acx-delivery-requirements.md#rules)).
+- **Recording check** (`src/studio/desktop/internal/coverage/`) compares a chapter's recording with the whole chapter's text, so a line another narrator read would count as missing.
+- **Proof and Pickups** list findings and lines by chapter and paragraph (`src/studio/desktop/internal/pickuplist/pickuplist.go`, `Pickup`); none says who read the line.
+- **Master & QC** measures each file against one delivery profile and draws **Book consistency**, the spread of the files' RMS (`docs/guides/using-the-app/master-and-qc.md`). Mastering aims at the middle of the profile's RMS window for every file (`src/studio/desktop/internal/mastering/targets.go`).
+- **Delivery** packages one file per chapter plus credits and a retail sample (`src/studio/desktop/internal/packager/packager.go`); the profile's rules, such as `acx.rms` and `acx.room_tone_tail`, are per file ([ACX delivery requirements](../reference/acx-delivery-requirements.md#rules)).
 
 ### What assumes one narrator
 
@@ -90,7 +90,7 @@ Both live in `<project>/narration-utils/`, beside the manifest, per [principle 1
 }
 ```
 
-Ids are opaque and stable (never the name). `colour` reuses the speaker-colour range 1 to 7 (`SpeakerColors` in `apps/desktop/internal/guide/service.go`) so a narrator reads the same way on every page. The first narrator added is the default. At most a small fixed number of narrators (proposal: 8, checked on write).
+Ids are opaque and stable (never the name). `colour` reuses the speaker-colour range 1 to 7 (`SpeakerColors` in `src/studio/desktop/internal/guide/service.go`) so a narrator reads the same way on every page. The first narrator added is the default. At most a small fixed number of narrators (proposal: 8, checked on write).
 
 **`assignments.json`** (the rule set; it names chapter and entity ids, so it is derived-adjacent):
 
@@ -138,7 +138,7 @@ Item 22 asks where attribution prompts are and makes the app attribute speakers.
 
 ### Who recorded what: identity, not position
 
-Recorded audio's narrator is **the track it is on**, not a stored claim about a time range ([principle 7](../architecture/principles.md)). The chapter-to-track link ([`apps/desktop/internal/chaptersync/plan.go`](../../apps/desktop/internal/chaptersync/plan.go)) gains an optional `narratorId`. In `by_chapter` mode the chapter's single track belongs to that chapter's narrator and nothing else moves. In the splice modes a chapter has one track per narrator, and the delivered chapter file is those tracks joined in manuscript order. Tracks with no `narratorId` belong to the default narrator.
+Recorded audio's narrator is **the track it is on**, not a stored claim about a time range ([principle 7](../architecture/principles.md)). The chapter-to-track link ([`src/studio/desktop/internal/chaptersync/plan.go`](../../src/studio/desktop/internal/chaptersync/plan.go)) gains an optional `narratorId`. In `by_chapter` mode the chapter's single track belongs to that chapter's narrator and nothing else moves. In the splice modes a chapter has one track per narrator, and the delivered chapter file is those tracks joined in manuscript order. Tracks with no `narratorId` belong to the default narrator.
 
 That joining is the hard part and is a DAW question, not a data one. The REAPER bridge records and edits by chapter track today; a two-track chapter needs new bridge commands and harness tests first ([`.claude/rules/reaper-bridge.md`](../../.claude/rules/reaper-bridge.md), `reaper-command-add`), and an in-REAPER check by the owner. Not designed here; it is phase 4.
 
@@ -157,8 +157,8 @@ Each is an additive optional field; an older file reads as the default narrator 
 
 Per [`.claude/rules/wire-contracts.md`](../../.claude/rules/wire-contracts.md) and `wire-contract-change`, anything the host reads back from disk or sends to the UI needs the full set:
 
-- A Zod schema in `apps/ui/src/api/schemas/`, a golden payload written by a Go test into `tests/fixtures/contracts/` (regenerated with `UPDATE_CONTRACTS=1`), a row in `apps/ui/src/api/wireContracts.test.ts`, a mock that passes the schema.
-- A row each for `narrators.json` and `assignments.json` in [data-files.md](../reference/data-files.md): location, writer, reader, schema link, retention. Proposed retention: `narrators.json` is kept through a manuscript replace and **Clear project data** (it is the narrator's own data, like the voice samples' clips); `assignments.json` is cleared on replace by adding it to `resetDerived` in `apps/desktop/internal/manuscript/service.go`, because it names chapter and entity ids that a new manuscript does not share.
+- A Zod schema in `src/studio/ui/src/api/schemas/`, a golden payload written by a Go test into `tests/fixtures/contracts/` (regenerated with `UPDATE_CONTRACTS=1`), a row in `src/studio/ui/src/api/wireContracts.test.ts`, a mock that passes the schema.
+- A row each for `narrators.json` and `assignments.json` in [data-files.md](../reference/data-files.md): location, writer, reader, schema link, retention. Proposed retention: `narrators.json` is kept through a manuscript replace and **Clear project data** (it is the narrator's own data, like the voice samples' clips); `assignments.json` is cleared on replace by adding it to `resetDerived` in `src/studio/desktop/internal/manuscript/service.go`, because it names chapter and entity ids that a new manuscript does not share.
 - Both files use `persist` (`persist.NarratorData`): a corrupt file is kept aside as `<name>.corrupt-<timestamp>`, a newer version is refused and never overwritten, writes go to a temporary name and are renamed.
 - Limits to check on write and on read: a narrator name 1 to 80 characters on one line; ids matching a fixed pattern; every `narratorId` in `assignments.json` present in the roster (an unknown id reads as the default narrator and is shown as a stale rule, not dropped).
 - Bindings (proposed names): `CastNarratorsList`, `CastNarratorSave`, `CastNarratorRemove`, `CastAssignmentsGet`, `CastAssignmentsSet`, `CastResolve(chapterId)`. Removing a narrator who has recorded takes is refused; the roster entry is retired instead.
