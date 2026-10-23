@@ -12,6 +12,7 @@
     "assets:seed": "go -C src/studio/desktop run ./cmd/seed-assets",
     "brand:sync": "node scripts/brand/sync.mjs",
     "brand:check": "node scripts/brand/sync.mjs --check",
+    "rename-app": "node scripts/brand/rename-app.mjs",
     "check": "node scripts/quality.mjs check",
     "check:fast": "node scripts/quality.mjs staged",
     "eval:skills": "node scripts/ci/skill-evals.mjs",

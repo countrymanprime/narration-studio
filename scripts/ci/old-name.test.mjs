@@ -5,12 +5,15 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { loadBrand } from '../brand/brand.mjs';
-import { checkFolder, checkTracked, findOldName, zipEntryNames } from './old-name.mjs';
+import { checkFolder, checkTracked, findOldName, loadRetired, zipEntryNames } from './old-name.mjs';
 
 // The current name and its file names, from config/brand.json: they must pass.
 const BRAND = loadBrand();
 const EXE = `${BRAND.identity.executable}.exe`;
 const PREFIX = BRAND.identity.releaseAssetPrefix;
+// The names retired with no exception. A name a rename retired (`history`) may still be spelled by the identity values, which
+// checkTracked and checkFolder leave out; findOldName on its own does not.
+const STRICT = loadRetired().filter((entry) => !entry.history);
 
 // The old name is assembled here so this file does not hold it either.
 const OLD = ['narration', 'utils'];
@@ -39,7 +42,7 @@ test('every spelling of the old name is found, in a path and in text', () => {
 
 test('the product name and look-alikes pass', () => {
   for (const text of [PREFIX, BRAND.name, BRAND.name.replaceAll(' ', '').toLowerCase(), 'narration utilities', 'narration_util', 'test-utils']) {
-    assert.deepEqual(findOldName(text), [], text);
+    assert.deepEqual(findOldName(text, STRICT), [], text);
   }
 });
 
@@ -52,13 +55,13 @@ test('the old name split across a wrapped line is found, on the line where it st
     `${first}  \r\n   ${second.toUpperCase()}`,
   ]) {
     assert.deepEqual(
-      findOldName(`zero\n${text}`).map((hit) => hit.line),
+      findOldName(`zero\n${text}`, STRICT).map((hit) => hit.line),
       [2],
       JSON.stringify(text),
     );
   }
-  assert.deepEqual(findOldName(`${first}\n\n${second}`), [], 'a blank line between is two sentences');
-  assert.deepEqual(findOldName(`${first} Studio\n${second}`), []);
+  assert.deepEqual(findOldName(`${first}\n\n${second}`, STRICT), [], 'a blank line between is two sentences');
+  assert.deepEqual(findOldName(`${first} Words\n${second}`, STRICT), []);
 });
 
 test('a zip is checked by the names inside it', () => {
@@ -110,3 +113,28 @@ function storedZip(names) {
   return Buffer.concat([...locals, directory, end]);
 }
 
+
+// Retiring the current name, as `pnpm run rename-app` would, with its words taken from the brand.
+const retiredNow = [...loadRetired(), { words: BRAND.name.toLowerCase().split(' '), retired: '2026-10-23', history: true }];
+const dotted = BRAND.name.toLowerCase().replaceAll(' ', '.');
+
+test('a name a rename retired is found in the code, but not in the brand file, its outputs, history or identity file names', () => {
+  const texts = new Map([
+    ['docs/a.md', `Open ${BRAND.name}.`],
+    ['scripts/b.mjs', `const exe = '${EXE}';`],
+    ['config/brand.json', `"name": "${BRAND.name}"`],
+    ['src/studio/ui/src/brand.gen.ts', `name: '${BRAND.name}'`],
+    ['docs/research/c.md', BRAND.name],
+    ['docs/d.md', `copy ${BRAND.identity.reaperLauncher} from ${BRAND.repository.url}`],
+    [`src/studio/integrations/reaper/${BRAND.identity.reaperLauncher}`, ''],
+  ]);
+  assert.deepEqual(checkTracked([...texts.keys()], texts, retiredNow, BRAND), [`docs/a.md:1: Open ${BRAND.name}.`, `scripts/b.mjs:1: const exe = '${EXE}';`]);
+});
+
+test('a built folder may ship the identity values under a name a rename retired, and nothing else', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'old-name-history-'));
+  writeFileSync(join(dir, `${PREFIX}-1.0.0-windows-x64.zip`), storedZip([EXE, BRAND.identity.reaperLauncher]));
+  writeFileSync(join(dir, 'notes.md'), `Run ${EXE} from ${BRAND.identity.installFolder}.`);
+  writeFileSync(join(dir, 'about.html'), `<p>${dotted}</p>`);
+  assert.deepEqual(checkFolder(dir, retiredNow, BRAND), [`about.html:1: <p>${dotted}</p>`]);
+});

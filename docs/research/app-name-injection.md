@@ -61,7 +61,7 @@ Not found: an AppUserModelID (the app sets none; Windows derives one from the pr
 
 ### The guard
 
-`scripts/ci/old-name.mjs` fails the gate on the old name in any spelling, with no exception (#2264). The retired names live in that guard as patterns, not in the brand file, so the brand file and the generated modules never hold them.
+`scripts/ci/old-name.mjs` fails the gate on a retired name in any spelling. The retired names are in `scripts/ci/retired-names.json`, each as its words, not in the brand file, so the brand file and the generated modules never hold them. The first old name (#2264) has no exception. A name `rename-app` retires has `"history": true`: the brand file, the generated files, the identity file names, the repository's addresses and the history `brand-name.mjs` allows may still hold it, and a built folder may ship the identity values, which keep its spelling.
 
 `scripts/ci/brand-name.mjs` fails on the current name from the brand file, in every spelling and across a wrapped line, in a tracked file's path or text. `brand-name.test.mjs` runs it in the `repo-scripts` check. It does not judge:
 
@@ -75,4 +75,6 @@ A golden file that would hold the name holds `{{brand.name}}` instead: `brand.Go
 
 ### The rename
 
-`pnpm run rename-app -- "<New Name>"` (with `--dry-run`) adds the current name to the guard's retired-name patterns, writes the new one, runs `brand:sync` and prints what it cannot do. That list is the GitHub repository's own name, and the screenshots, which `scripts/dev/guide-screenshots.mjs` retakes. A CI rehearsal renames a copy of the repository to "Zebra Audio Lab" and runs the generators, the guard and the tests that read the name, so a rename that needs a second edit fails before it is needed.
+`pnpm run rename-app -- "<New Name>"` (with `--dry-run`, `scripts/brand/rename-app.mjs`) writes the new name, adds the outgoing one to `retired-names.json`, runs `brand:sync` and prints what it cannot do: the screenshots, which `scripts/dev/guide-screenshots.mjs` retakes, a CHANGELOG entry, the GitHub repository's own name, and the identity values that keep the outgoing spelling. [Renaming the app](../operations/renaming-the-app.md) is the how-to.
+
+The `rename rehearsal` CI job (`scripts/brand/rehearse-rename.mjs`) renames each pull request's checkout to "Zebra Audio Lab" and runs the sync check, both guards, `go vet ./...` and the tests that read the name; main-health runs it with `--full` (every Go, UI, shared-library Python and Lua test, the built site and the strict docs build). Tests that need a made-up brand use another name, or assemble it from its words, so the rehearsal's name never matches a literal.

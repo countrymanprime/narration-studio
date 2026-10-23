@@ -1,16 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { loadBrand } from '../brand/brand.mjs';
+import { loadBrand, nameForms } from '../brand/brand.mjs';
 import { checkTracked, namePattern } from './brand-name.mjs';
 
-// A made-up brand, so the cases below hold whatever the product is called.
+// A made-up brand, so the cases below hold whatever the product is called. Its name is assembled here, so this file holds no
+// spelling of it and still passes once a rename (or the CI rehearsal) makes it the real name.
+const WORDS = ['Zebra', 'Audio', 'Lab'];
+const NAME = WORDS.join(' ');
+const { slug, snake, constant, pascal } = nameForms(NAME);
 const real = loadBrand();
 const brand = {
   ...real,
-  name: 'Zebra Audio Lab',
-  repository: { ...real.repository, owner: 'stripes', name: 'zebra-audio-lab' },
-  identity: { ...real.identity, reaperLauncher: 'ZebraAudioLab_Launcher.lua', reaperResourceFolder: 'ZebraAudioLab' },
+  name: NAME,
+  repository: { ...real.repository, owner: 'stripes', name: slug },
+  identity: { ...real.identity, reaperLauncher: `${pascal}_Launcher.lua`, reaperResourceFolder: pascal },
 };
 const check = (texts, allow = new Map()) => checkTracked(brand, [...texts.keys()], texts, allow);
 
@@ -19,36 +23,36 @@ test('no tracked file holds the product name outside the brand file, its outputs
 });
 
 test('every spelling of the name is found, also across a wrapped line', () => {
-  for (const text of ['Zebra Audio Lab', 'zebra-audio-lab', 'zebra_audio_lab', 'ZebraAudioLab', 'ZEBRA_AUDIO_LAB', 'zebra.audio.lab', 'Zebra\n// Audio Lab']) {
-    assert.equal([...`see ${text} here`.matchAll(namePattern(brand.name))].length, 1, JSON.stringify(text));
+  for (const text of [NAME, slug, snake, constant, pascal, WORDS.join('.').toLowerCase(), `${WORDS[0]}\n// ${WORDS.slice(1).join(' ')}`]) {
+    assert.equal([...`see ${text} here`.matchAll(namePattern(NAME))].length, 1, JSON.stringify(text));
   }
-  for (const text of ['Zebra Audio', 'Zebra Audio Library', 'zebras audio lab']) {
-    assert.equal([...text.matchAll(namePattern(brand.name))].length, 0, text);
+  for (const text of [WORDS.slice(0, 2).join(' '), `${WORDS.slice(0, 2).join(' ')} Library`, `${WORDS[0]}s ${WORDS.slice(1).join(' ')}`]) {
+    assert.equal([...text.matchAll(namePattern(NAME))].length, 0, text);
   }
 });
 
 test('the name in a file is reported with its line, and in a path', () => {
-  assert.deepEqual(check(new Map([['docs/a.md', 'one\nOpen Zebra Audio Lab.\n']])), ['docs/a.md:2: Open Zebra Audio Lab.']);
-  assert.deepEqual(check(new Map([['docs/zebra-audio-lab.md', '']])), ['docs/zebra-audio-lab.md: the path holds the product name']);
+  assert.deepEqual(check(new Map([['docs/a.md', `one\nOpen ${NAME}.\n`]])), [`docs/a.md:2: Open ${NAME}.`]);
+  assert.deepEqual(check(new Map([[`docs/${slug}.md`, '']])), [`docs/${slug}.md: the path holds the product name`]);
 });
 
 test('brand regions, repository addresses, the Pages sub-path and identity file names are not judged', () => {
   const text = [
-    'Open <!-- brand:name -->Zebra Audio Lab<!-- /brand -->.',
-    'https://github.com/stripes/zebra-audio-lab/issues and git@github.com:stripes/zebra-audio-lab.git',
-    'https://stripes.github.io/zebra-audio-lab/ and stripes/zebra-audio-lab',
-    'serve --base /zebra-audio-lab/',
-    'copy ZebraAudioLab_Launcher.lua and ZebraAudioLab_Startup.lua',
+    `Open <!-- brand:name -->${NAME}<!-- /brand -->.`,
+    `https://github.com/stripes/${slug}/issues and git@github.com:stripes/${slug}.git`,
+    `https://stripes.github.io/${slug}/ and stripes/${slug}`,
+    `serve --base /${slug}/`,
+    `copy ${pascal}_Launcher.lua and ${pascal}_Startup.lua`,
   ].join('\n');
   assert.deepEqual(check(new Map([['docs/a.md', text]])), []);
-  assert.deepEqual(check(new Map([['src/reaper/ZebraAudioLab_Launcher.lua', '']])), []);
+  assert.deepEqual(check(new Map([[`src/reaper/${pascal}_Launcher.lua`, '']])), []);
 });
 
 test('the brand file, the files sync writes and an allowed folder may hold it', () => {
   const texts = new Map([
-    ['config/brand.json', 'Zebra Audio Lab'],
-    ['src/studio/ui/src/brand.gen.ts', 'Zebra Audio Lab'],
-    ['docs/history/old.md', 'Zebra Audio Lab'],
+    ['config/brand.json', NAME],
+    ['src/studio/ui/src/brand.gen.ts', NAME],
+    ['docs/history/old.md', NAME],
   ]);
   assert.deepEqual(check(texts, new Map([['docs/history/', 'dated']])), []);
 });

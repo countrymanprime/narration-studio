@@ -29,7 +29,7 @@ export const ALLOWED = new Map([
   ['src/studio/desktop/internal/tracks/testdata/', 'REAPER projects as REAPER saved them, holding the P_EXT keys (an identity value) the bridge wrote'],
 ]);
 
-/** The pattern of a display name in every spelling, across a wrapped line in text: "Zebra Audio Lab" -> zebra[-_ .]?audio... */
+/** The pattern of a display name in every spelling, across a wrapped line in text: "Ocelot Tape Works" -> ocelot[-_ .]?tape... */
 export function namePattern(name, flags = 'gi') {
   const words = name.split(' ').map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   return new RegExp(words.join('(?:[-_ .]|[ \\t]*\\r?\\n[ \\t>*#/-]*)?'), flags);

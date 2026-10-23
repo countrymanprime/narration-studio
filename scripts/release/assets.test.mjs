@@ -364,11 +364,12 @@ test('verifyAssets rejects a file that is not one of the release assets or their
   writeFileSync(join(dir, `${BRAND.name}-amd64-installer.exe`), 'the raw name Wails gives an installer, never a release asset');
   writeFileSync(join(dir, `${assetName('windows-x64', V)}.bak`), 'a stray copy');
 
-  assert.deepEqual(verifyAssets(dir, V), [
+  // Sorted: where the name sorts against "Setup.exe" depends on the brand.
+  assert.deepEqual(verifyAssets(dir, V).sort(), [
     `Unexpected file ${BRAND.name}-amd64-installer.exe: promote publishes every file, and only the release assets are built and attested by the workflows`,
     'Unexpected file Setup.exe: promote publishes every file, and only the release assets are built and attested by the workflows',
     `Unexpected file ${PREFIX}-0.2.7-windows-x64.zip.bak: promote publishes every file, and only the release assets are built and attested by the workflows`,
-  ]);
+  ].sort());
 });
 
 test('verifyAttestations keeps the end of a long gh error, where the reason is', () => {
