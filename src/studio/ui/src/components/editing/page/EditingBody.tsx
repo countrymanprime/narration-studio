@@ -38,7 +38,7 @@ import type { RangeLocator } from '../range/common/locate';
 import { useCutWords } from '../range/cut/useCutWords';
 import { useFxWords } from '../range/fx/useFxWords';
 import { itemClocks } from '../ribbon/docClock';
-import { Ribbon } from '../ribbon/Ribbon';
+import { WaveDock } from '../ribbon/WaveDock';
 import { activePid } from '../ribbon/ribbonLayout';
 import { useEditingPage } from '../script/EditingPageState';
 import { NO_TEXT, ScriptDoc } from '../script/ScriptDoc';
@@ -62,7 +62,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { closedCutsOf, doubledCut, doubledStart, itemIndexesOf, wordAt, type ChapterRead } from './chapterSource';
+import { closedCutsOf, doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -227,6 +227,7 @@ export function EditingBody(props: EditingBodyProps) {
   // Takes: kept, hidden, prepared; open under their line.
   const current = activePid(doc, state);
   const currentLine = current ? (lines.byId.get(current) ?? null) : null;
+  const dockTake = currentLine?.takes.find((t) => t.active)?.label ?? null;
   const keep = useKeepTakes(journal);
   const passageOf = useCallback((sel: WordMenuSelection) => lineOfKey(sel.doc, lines.byId, sel.keys[0]), [lines.byId]);
   const currentRef = useRef(currentLine);
@@ -297,7 +298,7 @@ export function EditingBody(props: EditingBodyProps) {
   // Ranges: delete and mute, FX, accept.
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
-  const accept = useAcceptWords({ journal, chapterId, onChange: props.onAccepted });
+  const accept = useAcceptWords({ journal, chapterId, doc, onChange: props.onAccepted });
   // Mark the selected words as how a character sounds: the dialog plays a range of its own, so the page's playback stops as it opens.
   const voice = useVoiceSample({ chapterId, workspace: read.workspace, items: read.items, mediaUrl: tracks.mediaUrl, stopPlayback: playback.stop });
   // The dots after the last word of each marked range, with a play control for each sample: a sample plays in the app's own audio, so the page's own playback stops when one starts.
@@ -463,8 +464,6 @@ export function EditingBody(props: EditingBodyProps) {
     hidden: new Set(currentLine ? hide.hiddenIds(currentLine.id) : []),
     playingId: takePlayer.isPlaying ? playingTake : null,
     onPlay: playTake,
-    chapterId,
-    clocks,
   };
   const cursorItem = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1] : undefined;
   const cursorOnFlag = cursorItem !== undefined && flagged(doc).some((x) => x.key === cursorItem.key);
@@ -550,6 +549,15 @@ export function EditingBody(props: EditingBodyProps) {
             {check.panel}
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
             {cut.plan?.kind === 'refused' ? <EditOffNotice reason={cut.plan.reason} /> : null}
+            {doc.paras.length ? (
+              <WaveDock
+                chapterId={chapterId}
+                clocks={clocks}
+                take={dockTake}
+                playFrom={playlist.length ? (start, end) => playback.playFrom(start, end) : undefined}
+                reason={reason ?? undefined}
+              />
+            ) : null}
             <SelectionBar
               playback={playback}
               end={total}
@@ -583,15 +591,6 @@ export function EditingBody(props: EditingBodyProps) {
               <InHost root={root} selector={`${rowOf(pid)} [data-gutter]`} name={`badge-${pid}`} className="contents" watch={doc}>
                 <TakeBadge count={line.takes.length} open={open} controls={`takes-${pid}`} active={pid === current} onToggle={() => setLineOpen(pid, !open)} />
               </InHost>
-            ) : null}
-            {pid === current && doc.aligned ? (
-              <Ribbon
-                chapterId={chapterId}
-                pid={pid}
-                take={line?.takes.find((t) => t.active)?.label ?? null}
-                items={itemIndexesOf(read, pid)}
-                clocks={clocks}
-              />
             ) : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
@@ -687,7 +686,13 @@ function useOpenAt(
     const para = doc.paras.find((p) => p.p.id === id);
     if (!para) return;
     const first = para.items.find((i) => i.kind === 'w');
-    if (first && !chosen.current) dispatch({ type: 'place', key: first.key });
+    // A line said twice (issue #2251 item 30), as Proof's recording check links it, opens on its second read with the Read twice card.
+    const second = para.items.filter((i) => i.dup);
+    if (second.length && !chosen.current) {
+      chosen.current = true;
+      dispatch({ type: 'select', anchor: second[0].key, head: second[second.length - 1].key });
+      dispatch({ type: 'openFlag', key: `dup:${para.p.id}` });
+    } else if (first && !chosen.current) dispatch({ type: 'place', key: first.key });
     if (!lines.byId.has(id)) return;
     done.current.passage = true;
     setLineOpen(id, true);
@@ -702,6 +707,18 @@ function useOpenAt(
         done.current.finding = true;
         const span = f.manuscript?.span;
         if (!span?.paragraph_id) return;
+        // A line said twice (issue #2251 item 30) opens its Read twice card, on the second read; a restart is on the line after the note's.
+        if (f.category === 'duplicate_read') {
+          const at = doc.paras.findIndex((p) => p.p.id === span.paragraph_id);
+          const para = [doc.paras[at], doc.paras[at + 1]].find((p) => p?.items.some((i) => i.dup));
+          const second = para?.items.filter((i) => i.dup) ?? [];
+          if (para && second.length) {
+            chosen.current = true;
+            dispatch({ type: 'select', anchor: second[0].key, head: second[second.length - 1].key });
+            dispatch({ type: 'openFlag', key: `dup:${para.p.id}` });
+            return;
+          }
+        }
         // The note's own words: the finding's expected text in its paragraph (its ordinal says which repeat), else the one word its ordinal names.
         const words = f.manuscript?.expected ? findingWords(doc, span.paragraph_id, f.manuscript.expected, span.ordinal ?? 0) : [];
         const single = span.ordinal === undefined ? undefined : `${span.paragraph_id}:${span.ordinal}`;

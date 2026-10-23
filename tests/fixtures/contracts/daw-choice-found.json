@@ -1,4 +1,5 @@
 {
+  "bridge": null,
   "chosen": null,
   "daw": "REAPER",
   "experimental": false,
@@ -42,5 +43,6 @@
   ],
   "reachable": false,
   "source": "found",
+  "starting": null,
   "state": "not_linked"
 }

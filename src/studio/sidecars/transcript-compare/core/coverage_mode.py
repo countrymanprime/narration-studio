@@ -16,7 +16,8 @@ skipped, Q5 and Q10), this mode:
    Whisper was not sure of, which the host may re-check with a larger model); then
    the word alignment the edit and proof workspace reads: one
    `COVERAGE_TOKEN|` per chapter token and one `COVERAGE_EXTRA|` per run of words heard that the
-   chapter does not account for. The results file is written atomically, so it exists only when
+   chapter does not account for, with `repeatOf` set when the run says the chapter text beside it
+   again (a second take, `recording_coverage.repeat_of`). The results file is written atomically, so it exists only when
    the run finished.
 
 With `--align-only` the mode never transcribes: it re-aligns from the words files alone and fails
@@ -310,6 +311,32 @@ def covers(words: ItemWords, item: ManifestItem, model: str | None = None) -> bo
     return in_range and (model is None or words.model == model)
 
 
+def checked_by(args) -> str | None:
+    """The larger model whose work a run keeps: the pipeline's `--recheck-model`, or `--checked-by` for a stage the host runs on its own.
+    A range that model has already transcribed is checked; a check of unchanged audio never sends it there again."""
+    return getattr(args, "recheck_model", None) or getattr(args, "checked_by", None) or None
+
+
+def checked_ranges(words: ItemWords, model: str | None) -> list[tuple[float, float]]:
+    """The ranges of a words file `model` transcribed: the whole file when it made it, else the spans a re-check gave it."""
+    if not model:
+        return []
+    return [(span.start, span.end) for span in words.spans_or_default() if span.model == model]
+
+
+def inside_ranges(start: float, end: float, ranges: Sequence[tuple[float, float]]) -> bool:
+    """Whether `[start, end]` lies within one of `ranges` (the edge tolerance of `covers`)."""
+    return any(low <= start + RANGE_TOLERANCE_SECONDS and high >= end - RANGE_TOLERANCE_SECONDS for low, high in ranges)
+
+
+def unchecked_runs(result: _ItemResult, below: float, model: str | None) -> list[dict]:
+    """`unsure_runs` without the passages `model` has already re-checked: the larger model's own doubt is the final word on them."""
+    if result.words is None:
+        return []
+    ranges = checked_ranges(result.words, model)
+    return [run for run in unsure_runs(result, below) if not inside_ranges(run["start"], run["end"], ranges)]
+
+
 def played_words(words: ItemWords, item: ManifestItem) -> list[Word]:
     """The words whose midpoint lies in the item's played range."""
     return [word for word in words.words if item.start_offset <= (word[1] + word[2]) / 2 <= item.end]
@@ -470,7 +497,7 @@ def _words_for(item: ManifestItem, path: Path, transcriber: Transcriber, progres
     """Reuse the item's words file if it covers the item with this run's model, otherwise
     transcribe and write it. The write is atomic: a words file that exists is whole."""
     cached = read_words_file(path)
-    if cached is not None and covers(cached, item, args.model):
+    if cached is not None and _covers_for(cached, item, args):
         return _ItemResult(item, "reused", cached, tuple(played_words(cached, item)))
     engine.check_cancelled(args.progress)
     progress.report("DECODE", progress.pct, f"Decoding item {label}...")
@@ -493,7 +520,7 @@ def _collect_words(items: Sequence[ManifestItem], words_dir: Path, transcriber: 
     playing = [item for item in items if not item.muted]
     pending = []
     for item in playing:
-        hit = _is_covered(words_dir, item, args.model)
+        hit = _is_covered(words_dir, item, args)
         engine.log("checked the item's cached words", level="debug", event="coverage.cache", item_index=item.index, item_guid=item.item_guid, hit=hit)
         if not hit:
             pending.append(item)
@@ -529,9 +556,15 @@ def _collect_words(items: Sequence[ManifestItem], words_dir: Path, transcriber: 
     return [results[item.index] for item in items]
 
 
-def _is_covered(words_dir: Path, item: ManifestItem, model: str) -> bool:
+def _covers_for(words: ItemWords, item: ManifestItem, args) -> bool:
+    """Whether a words file serves this run: made by its own model, or by the larger model that already checked it (`checked_by`)."""
+    larger = checked_by(args)
+    return covers(words, item, args.model) or (larger is not None and covers(words, item, larger))
+
+
+def _is_covered(words_dir: Path, item: ManifestItem, args) -> bool:
     cached = read_words_file(words_dir / item.words_file)
-    return cached is not None and covers(cached, item, model)
+    return cached is not None and _covers_for(cached, item, args)
 
 
 @dataclass(frozen=True)
@@ -760,7 +793,8 @@ def _alignment_lines(aligned: coverage_model.AlignedChapter, alignment: dict, ti
                 payload["heard"] = timeline.words[word][0]
         lines.append(_line("COVERAGE_TOKEN", payload))
     heard_at = [(token.audio, i) for i, token in enumerate(tokens) if token.audio is not None]
-    for start, end in extras:
+    repeats = coverage_model.repeats(aligned, tokens, extras)
+    for (start, end), repeat in zip(extras, repeats, strict=True):
         first, last = index_map[start], index_map[end - 1]
         before = [i for audio, i in heard_at if audio < start]
         payload = {
@@ -769,13 +803,22 @@ def _alignment_lines(aligned: coverage_model.AlignedChapter, alignment: dict, ti
             "start": timeline.word_edge(first, 1),
             "end": timeline.word_edge(last, 2),
             "afterToken": before[-1] if before else None,
+            "repeatOf": None
+            if repeat is None
+            else {
+                "start": repeat.start,
+                "end": repeat.end,
+                "first": repeat.first,
+                "last": repeat.last,
+                "text": " ".join(aligned.doc_words[repeat.start : repeat.end]),
+            },
         }
         lines.append(_line("COVERAGE_EXTRA", payload))
     return lines
 
 
-def _require_cached(items: Sequence[ManifestItem], words_dir: Path, model: str) -> None:
-    missing = [item for item in items if not item.muted and not _is_covered(words_dir, item, model)]
+def _require_cached(items: Sequence[ManifestItem], words_dir: Path, args) -> None:
+    missing = [item for item in items if not item.muted and not _is_covered(words_dir, item, args)]
     if missing:
         raise AlignOnlyError(
             f"Align again needs every item's words, but item {missing[0].index} has none cached for the part it plays. Run the recording check to transcribe it."
@@ -832,7 +875,7 @@ def _default_transcriber(engine: ModuleType, args, budget: coverage_pipeline.Mod
 def _item_workers(args, engine: ModuleType, model: str, pending: int) -> coverage_pipeline.ModelBudget:
     """How many items of `pending` this run transcribes at once with `model`, from the processors and `--parallel-workers`."""
     return coverage_pipeline.plan_item_workers(
-        coverage_pipeline.cpu_count(),
+        coverage_pipeline.cpus_for(args),
         getattr(args, "parallel_workers", 0) or 0,
         model,
         pending,
@@ -859,15 +902,15 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None, rechec
     equivalences = engine.register_project_equivalences(args.manuscript)
     chapter = _chapter(engine, args.manuscript, args.chapter_id)
     if getattr(args, "align_only", False):
-        _require_cached(items, Path(args.words_dir), args.model)
+        _require_cached(items, Path(args.words_dir), args)
         transcriber = _refuse_transcription
 
     rechecked: list[dict] = []
     words_dir = Path(args.words_dir)
-    pending = sum(not item.muted and not _is_covered(words_dir, item, args.model) for item in items)
+    pending = sum(not item.muted and not _is_covered(words_dir, item, args) for item in items)
     if _pipelined(args):
         budget = coverage_pipeline.plan_budget(
-            coverage_pipeline.cpu_count(),
+            coverage_pipeline.cpus_for(args),
             getattr(args, "parallel_workers", 0) or 0,
             args.model,
             args.recheck_model,
@@ -905,7 +948,7 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None, rechec
     engine.write_progress(args.progress, "WRITE", WRITE_PCT, "Writing results...")
     analysis = {"model": args.model, "language": args.language, "equivalencesHash": _file_hash(equivalences) if equivalences else None}
     below = getattr(args, "unsure_below", None) or 0.0
-    unsure = [] if _pipelined(args) else [passage for result in results for passage in unsure_runs(result, below)]
+    unsure = [] if _pipelined(args) else [passage for result in results for passage in unchecked_runs(result, below, checked_by(args))]
     report = _report(chapter, coverage, results, alignment, timeline, analysis, unsure, rechecked) + "".join(
         _alignment_lines(aligned, alignment, timeline, words, params)
     )
@@ -1020,9 +1063,17 @@ def run_recheck(args, engine: ModuleType, transcriber: Transcriber | None = None
     by_file: dict[str, list[Window]] = {}
     for window in windows:
         by_file.setdefault(window.words_file, []).append(window)
-    for words_file in by_file:
-        if read_words_file(words_dir / words_file) is None:
+    unchecked: dict[str, list[Window]] = {}
+    for words_file, file_windows in by_file.items():
+        cached = read_words_file(words_dir / words_file)
+        if cached is None:
             raise WindowsError(f"The coverage windows file names {words_file!r}, which has no words cached to splice into.")
+        # A window this model has already transcribed is checked: splicing it again would cost the same work for the same words.
+        done = checked_ranges(cached, args.model)
+        if remaining := [window for window in file_windows if not inside_ranges(window.start, window.end, done)]:
+            unchecked[words_file] = remaining
+    by_file = unchecked
+    windows = [window for file_windows in by_file.values() for window in file_windows]
 
     pool = _item_workers(args, engine, args.model, len(by_file))
     transcribe = transcriber or _default_transcriber(engine, args, pool)

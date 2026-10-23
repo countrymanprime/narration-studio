@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import type { EntityColour } from '../../../kinds/entityColour';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { SuspectedFlag } from '../suspected/suspectedLinesModel';
-import type { ComingUpWord, NearbyVoice } from './nearby';
+import type { ComingUpWord, ChapterVoice } from './nearby';
 
 /** What the narrator clicked in the text: a Story Bible entry and/or a note on a marked word, shown read-only. */
 export type BoothReference = {
@@ -26,7 +26,7 @@ export type SessionNumbersData = {
 export type BoothSideData = {
   chapterId: string;
   reference: BoothReference | null;
-  voices: readonly NearbyVoice[];
+  voices: readonly ChapterVoice[];
   comingUp: readonly ComingUpWord[];
   numbers: SessionNumbersData;
   flags: readonly SuspectedFlag[];

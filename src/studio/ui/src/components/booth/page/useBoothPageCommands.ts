@@ -24,6 +24,8 @@ export interface BoothCommands {
   /** A pickup session the address opened: its lines, and the step between them. */
   pickups: { active: boolean; lines: number; step: (direction: 1 | -1) => void };
   keymap: Keymap;
+  /** The rows for the search showing (next, previous, clear); none when no search shows. */
+  search?: () => PageItem[];
 }
 
 /**
@@ -33,21 +35,24 @@ export interface BoothCommands {
  */
 export function useBoothPageCommands(page: BoothCommands): void {
   usePageCommands({ id: 'booth', label: 'Booth', supersedes: ['Chapters'] }, () => {
-    const { chapters, current, choose, recording, recordRefusal, hasText, toggleTake, punchAndRoll, movePhrase, exit, pickups, keymap } = page;
+    const { chapters, current, choose, recording, recordRefusal, hasText, toggleTake, punchAndRoll, movePhrase, exit, pickups, keymap, search } = page;
     const keyOf = (id: CommandId): string | undefined => {
       const first = keymap[id]?.[0];
       return first ? gestureKeys(first).join('+') : undefined;
     };
     const noText = hasText ? undefined : 'There is nothing to read here yet.';
-    const items: PageItem[] = chapters.map((chapter): PageItem => ({
-      id: `chapter.${chapter.id}`,
-      label: chapter.name,
-      group: 'Chapters',
-      hint: chapter.id === current ? 'Open now' : undefined,
-      icon: 'goToChapter',
-      disabledReason: recording ? WHILE_RECORDING : undefined,
-      run: () => choose(chapter.id),
-    }));
+    const items: PageItem[] = [...(search?.() ?? [])];
+    items.push(
+      ...chapters.map((chapter): PageItem => ({
+        id: `chapter.${chapter.id}`,
+        label: chapter.name,
+        group: 'Chapters',
+        hint: chapter.id === current ? 'Open now' : undefined,
+        icon: 'goToChapter',
+        disabledReason: recording ? WHILE_RECORDING : undefined,
+        run: () => choose(chapter.id),
+      })),
+    );
     items.push(
       {
         id: 'transport.record',

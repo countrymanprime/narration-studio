@@ -21,7 +21,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-builtin',
     description:
-      'Settings, Recording & DAW with the built-in recorder chosen (?mockDawExperimentalOn=1): "Built-in recorder. Recordings live in the app." is the checked radio and the connection card says nothing needs connecting',
+      'Settings, Recording & DAW with the built-in recorder chosen (?mockDawExperimentalOn=1) after its confirm: "Built-in recorder. Recordings live in the app." is the checked radio and the connection card says nothing needs connecting',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -69,9 +69,25 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-linked',
     description:
-      'Settings, Recording & DAW after Link Alice.rpp: "REAPER linked: Alice.rpp" is not running, with the launcher switch named, Change linked file and Start REAPER',
+      'Settings, Recording & DAW after Link Alice.rpp: "REAPER linked: Alice.rpp" is not running ("Start it here and it connects", the launcher switch named as off), the bridge line, Change linked file and Start REAPER',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'recording-starting',
+    description:
+      'Settings, Recording & DAW while the app opens REAPER on the linked project (?mockDawChoice=starting): "Starting REAPER", "The app opened REAPER and connects on its own once REAPER has the project open. Opened 4 s ago." and the bridge line, no steps in REAPER',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+    ...FREEZES_THE_CLOCK,
+  },
+  {
+    page: 'settings',
+    state: 'recording-builtin-confirm',
+    description:
+      'Settings, Recording & DAW with REAPER linked and the Built-in recorder radio pressed: the "Stop recording with REAPER?" confirm saying where new takes go, that takes in REAPER stay there and stop being read, that the link is kept, with Keep REAPER and Switch to the built-in recorder',
+    ...REFLOW,
   },
   {
     page: 'settings',

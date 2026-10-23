@@ -19,6 +19,10 @@ export type DawChoiceMockSeed = {
   /** Whether REAPER's bridge was opened (the launcher ran): with REAPER not answering, `not_running` rather than `linked`. */
   bridge?: boolean;
   launcherAutoStart?: boolean;
+  /** The app opened REAPER and is waiting for its bridge: state `starting`. */
+  starting?: boolean;
+  /** The bridge's problem sentence, for a bridge the app could not install or a start that never answered. */
+  bridgeProblem?: string;
 };
 
 export const DAW_CHOICE_MOCK_SEEDS = {
@@ -32,6 +36,14 @@ export const DAW_CHOICE_MOCK_SEEDS = {
   'not-running': { linkedFile: 'Alice.rpp', bridge: true },
   // REAPER chosen for an empty folder on a computer without it.
   'not-installed': { linkedFile: null, foundFiles: [], reaperInstalled: false, chosen: 'REAPER' },
+  // The app opened REAPER on the linked project and waits for its bridge to answer.
+  starting: { linkedFile: 'Alice.rpp', bridge: false, starting: true },
+  // REAPER was opened but its bridge never answered.
+  'bridge-problem': {
+    linkedFile: 'Alice.rpp',
+    bridge: false,
+    bridgeProblem: 'The app opened REAPER, but REAPER’s bridge has not answered. If REAPER shows a dialog, answer it; the app connects once the bridge runs.',
+  },
 } satisfies Record<string, DawChoiceMockSeed>;
 
 export type DawChoiceMockName = keyof typeof DAW_CHOICE_MOCK_SEEDS;
@@ -46,7 +58,7 @@ const REAPER_NOT_CONNECTED: DawCapabilitySupport = {
   level: 'experimental',
   available: false,
   reason: 'standalone',
-  message: 'REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.',
+  message: 'REAPER is not connected to this app. Open REAPER; the app connects to it by itself.',
 };
 const AUDACITY_NOT_YET: DawCapabilitySupport = {
   level: 'not_yet_available',
@@ -80,6 +92,8 @@ export function createDawChoiceMock(
   const linkedName = () => (deps.link ? (deps.link.linked() ? (linkedFile ?? foundFiles[0] ?? 'Alice.rpp') : null) : linkedFile);
   const foundFiles = seed.foundFiles ?? (linkedFile ? [linkedFile] : []);
   let chosen: ChoosableDaw | null = seed.chosen ?? null;
+  // A start the app made four seconds before the mock was made, so "Opened 4 s ago" reads the same under a fixed clock.
+  const startedSince = new Date(Date.now() - 4000).toISOString();
 
   const current = async (): Promise<DawChoice> => {
     const [capabilities, recorder] = await Promise.all([deps.capabilities(), deps.recording.recorderState()]);
@@ -93,6 +107,8 @@ export function createDawChoiceMock(
     else if (reachable) state = 'connected';
     else if (daw !== 'REAPER' || (deps.bridge ? deps.bridge() : seed.bridge)) state = 'not_running';
     else state = linkedName() ? 'linked' : 'not_linked';
+    const startingNow = Boolean(seed.starting) && daw === 'REAPER' && !reachable;
+    if (startingNow) state = 'starting';
     return wireClone({
       hasProject: true,
       daw,
@@ -112,6 +128,8 @@ export function createDawChoiceMock(
             ? capabilities.capabilities.record
             : idleRecord(option, experimental),
       })),
+      starting: startingNow ? { since: startedSince } : null,
+      bridge: daw === 'REAPER' ? { installed: true, startsWithReaper: true, problem: seed.bridgeProblem ?? null } : null,
     });
   };
 

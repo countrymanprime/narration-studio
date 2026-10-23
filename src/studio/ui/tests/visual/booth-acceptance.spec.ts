@@ -176,8 +176,8 @@ test("row 15: the side panel lists its sections in the mock's order and the togg
   const sections = await page.locator('#booth-side h3, aside h3').allTextContents();
   const index = (name: RegExp) => sections.findIndex((s) => name.test(s));
   expect(index(/last punch/i)).toBeGreaterThanOrEqual(0);
-  expect(index(/voices in this scene/i)).toBeGreaterThan(index(/last punch/i));
-  expect(index(/coming up/i)).toBeGreaterThan(index(/voices in this scene/i));
+  expect(index(/in this chapter/i)).toBeGreaterThan(index(/last punch/i));
+  expect(index(/coming up/i)).toBeGreaterThan(index(/in this chapter/i));
   await toggle.click();
   await toggle.click();
   await expect(

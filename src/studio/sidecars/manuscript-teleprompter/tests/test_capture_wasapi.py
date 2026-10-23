@@ -2,6 +2,7 @@
 and records a take, driven through a fake `sounddevice` that plays a synthetic tone from its own thread, as PortAudio
 calls its callback from the audio thread. CI has no microphone; the spike report (docs/research) has the measured runs."""
 
+import itertools
 import sys
 import threading
 import wave
@@ -40,7 +41,8 @@ class _Status:
 
 class FakeSounddevice:
     """The slice of `sounddevice` the adapter uses: two host APIs, their devices, and an InputStream whose thread
-    delivers `blocks` blocks of the synthetic tone (then goes inactive, as an unplugged device does)."""
+    delivers `blocks` blocks of the synthetic tone (then goes inactive, as an unplugged device does), or, with `blocks=None`,
+    delivers until it is stopped, as a plugged-in device does."""
 
     PortAudioError = OSError
 
@@ -94,7 +96,7 @@ class _FakeStream:
         self.started += 1
 
         def run():
-            for n in range(self.sd.blocks):
+            for n in itertools.count() if self.sd.blocks is None else range(self.sd.blocks):
                 if self._halt.is_set():
                     break
                 block = synthetic_tone(n * self.sd.block, self.sd.block, self.samplerate, self.channels)
@@ -240,7 +242,9 @@ def test_a_device_that_will_not_open_leaves_an_empty_valid_file_and_raises(tmp_p
 
 
 def test_stopping_a_take_releases_the_device_once(tmp_path):
-    sd = FakeSounddevice([_device(MIC)], blocks=10_000)
+    # A device that delivers until stopped: a finite one can run out before stop() on a busy runner, and its end is then
+    # rightly reported as the device stopping (test_chunks_raise_when_the_device_goes_away_or_falls_silent).
+    sd = FakeSounddevice([_device(MIC)], blocks=None)
     recorder = _backend(sd).record(MIC, tmp_path / "take.wav")
     result = recorder.stop()
     recorder.stop()

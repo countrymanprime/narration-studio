@@ -178,6 +178,9 @@ describe('Voice sample output: following "Record with"', () => {
     await within(row()).findByText(DAW_SENTENCE);
     const group = await screen.findByRole('radiogroup', { name: 'Record with' });
     fireEvent.click(within(group).getByRole('radio', { name: /^Built-in recorder/ }));
+    // The project's REAPER file is linked, so the switch waits on the confirm that says what changes.
+    const confirm = await screen.findByRole('alertdialog', { name: 'Stop recording with REAPER?' });
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Switch to the built-in recorder' }));
     expect(await picker()).toBeTruthy();
     expect(within(row()).queryByText(DAW_SENTENCE)).toBeNull();
     fireEvent.click(within(group).getByRole('radio', { name: /^REAPER/ }));

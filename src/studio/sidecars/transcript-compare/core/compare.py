@@ -18,7 +18,7 @@ NEED_CHAPTER line alone, or a SUMMARY/DIFF/MARKER* block:
     DIFF|<diff_file_path>
     MARKER|<item_index>|<srcpos_seconds>|<kind>|<name>|<doc_text>|<audio_text>|
            <chapter_title>|<paragraph>|<script_context>|<audio_context>|
-           <confidence>|<timing_gap_seconds>
+           <confidence>|<timing_gap_seconds>|<repeat_of>
 
 kind is one of MISREAD / SKIPPED / EXTRA. doc_text/audio_text may be empty
 (e.g. SKIPPED has no audio_text, EXTRA has no doc_text). confidence is one
@@ -29,7 +29,11 @@ means the words ran together with no pause (weaker evidence this is a
 genuine misread/skip/insertion rather than a token-split artifact of the
 diff itself), not proof either way. NEED_CHAPTER means the track name
 didn't confidently match any heading - the caller should re-invoke with
---chapter-title set to one of the listed titles.
+--chapter-title set to one of the listed titles. repeat_of is set only on an
+EXTRA whose words say the chapter text beside it again (a second take, issue
+#2251 item 30; recording_coverage.repeat_of): the chapter words it repeats, as
+written. It is empty otherwise, and a reader that splits 12 fields keeps it
+inside timing_gap_seconds' field, so it is appended, never reordered.
 
 Two additive modes write their own tagged lines instead: --find-repeats
 (SPAN_GROUP/SPAN_MEMBER) and --coverage (recording coverage: a JSON manifest
@@ -65,6 +69,10 @@ import numpy as np
 _SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
+# The sibling modules (recording_coverage, coverage_mode...) when compare.py is loaded by path, as the tests do.
+_CORE = Path(__file__).resolve().parent
+if str(_CORE) not in sys.path:
+    sys.path.append(str(_CORE))
 
 from narration_common import manuscript as canonical_manuscript
 from narration_common.chapter_names import chapter_display_name
@@ -1171,6 +1179,8 @@ def _marker_timing_confidence(j1, j2, index_map, transcript_words):
 
 
 def diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, transcript_words, min_words):
+    import recording_coverage  # a sibling module: compare.py's own directory is on sys.path, frozen or not
+
     filtered_tokens = []
     index_map = []
     for i, (w, _s, _e) in enumerate(transcript_words):
@@ -1182,6 +1192,7 @@ def diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, 
 
     chapter_norm, chapter_index_map = merge_number_words(chapter_tokens, list(range(len(chapter_tokens))))
     filtered_tokens, index_map = merge_number_words(filtered_tokens, index_map)
+    norm_unit_idx = [chapter_unit_idx[orig_i] if orig_i < len(chapter_unit_idx) else 0 for orig_i in chapter_index_map]
 
     sm = difflib.SequenceMatcher(None, chapter_norm, filtered_tokens, autojunk=False)
     opcodes = _fuse_hyphen_split_opcodes(sm.get_opcodes(), chapter_norm, filtered_tokens)
@@ -1254,6 +1265,15 @@ def diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, 
         else:
             continue
 
+        repeat_text = ""
+        if tag == "insert":
+            repeat = recording_coverage.repeat_of(
+                filtered_tokens[j1:j2], chapter_norm, norm_unit_idx, i1 - 1 if i1 > 0 else None, i1 if i1 < len(chapter_norm) else None
+            )
+            if repeat is not None:
+                originals = dict.fromkeys(chapter_index_map[k] for k in range(repeat.start, repeat.end))
+                repeat_text = " ".join(chapter_raw_words[k] for k in originals if k < len(chapter_raw_words))
+
         source_token = i1 if i1 < len(chapter_norm) else max(0, i1 - 1)
         source_original = chapter_index_map[source_token] if chapter_index_map else 0
         confidence, timing_gap = _marker_timing_confidence(j1, j2, index_map, transcript_words)
@@ -1271,6 +1291,7 @@ def diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, 
                 j2,
                 confidence,
                 timing_gap,
+                clean_marker_field(repeat_text),
             )
         )
 
@@ -1300,7 +1321,7 @@ def diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, 
     # re-express it in chapter_norm (merged) position, the space the
     # opcodes above actually use, so the audio-line renderer can reuse this
     # exact alignment instead of guessing sentence boundaries independently.
-    chapter_norm_unit_idx = [chapter_unit_idx[orig_i] for orig_i in chapter_index_map]
+    chapter_norm_unit_idx = norm_unit_idx
     # doc_tokens and audio_tokens are the two sequences the opcodes index;
     # recording coverage (core/recording_coverage.py) reads them from this same
     # alignment so coverage and markers can never disagree.
@@ -1884,7 +1905,7 @@ def run(args):
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         f.write(f"SUMMARY|{summary}\n")
         f.write(f"DIFF|{diff_path}\n")
-        for t, kind, name, doc_text, audio_text, unit_index, marker_i1, marker_i2, marker_j1, marker_j2, confidence, timing_gap in markers:
+        for t, kind, name, doc_text, audio_text, unit_index, marker_i1, marker_i2, marker_j1, marker_j2, confidence, timing_gap, repeat_of in markers:
             item_index, srcpos = locate_in_segments(t, segments)
             paragraph = resolve_global_paragraph(chapter, sentence_units[unit_index][1] if 0 <= unit_index < len(sentence_units) else 0)
             script_context, audio_context = build_marker_context(
@@ -1905,7 +1926,7 @@ def run(args):
                 audio_context = audio_text
             timing_gap_field = f"{timing_gap:.3f}" if timing_gap is not None else ""
             f.write(
-                f"MARKER|{item_index}|{srcpos:.3f}|{kind}|{name}|{doc_text}|{audio_text}|{clean_marker_field(chapter['title'])}|{paragraph}|{clean_marker_field(script_context)}|{clean_marker_field(audio_context)}|{confidence}|{timing_gap_field}\n"
+                f"MARKER|{item_index}|{srcpos:.3f}|{kind}|{name}|{doc_text}|{audio_text}|{clean_marker_field(chapter['title'])}|{paragraph}|{clean_marker_field(script_context)}|{clean_marker_field(audio_context)}|{confidence}|{timing_gap_field}|{repeat_of}\n"
             )
 
     log(f"Wrote {len(markers)} marker row(s) to {args.out}")
@@ -1980,6 +2001,19 @@ def main():
     )
     ap.add_argument(
         "--recheck-model-dir", default=None, help="With --recheck-model: the local, already-verified directory of that model (the host's asset manager)"
+    )
+    ap.add_argument(
+        "--checked-by",
+        default=None,
+        help="With --coverage: the model cascade's larger model, when this stage is not the pipeline: a words file it made whole serves this "
+        "run as it is, and a passage it already re-checked is not reported unsure again, so a check of unchanged audio never redoes its work",
+    )
+    ap.add_argument(
+        "--cpus",
+        type=int,
+        default=0,
+        help="With --coverage: the most processors this run plans its workers for (0 = all of them); a background check leaves the rest to "
+        "the Booth's live tracking",
     )
     ap.add_argument(
         "--capabilities",
@@ -2098,8 +2132,10 @@ def _main_coverage(ap, args):
         ap.error("--unsure-below must be from 0 to 1")
     if args.chunk_overlap_seconds is not None and args.chunk_overlap_seconds < 0:
         ap.error("--chunk-overlap-seconds cannot be negative")
-    if args.chunk_seconds < 0 or args.parallel_workers < 0:
-        ap.error("--chunk-seconds and --parallel-workers cannot be negative")
+    if args.chunk_seconds < 0 or args.parallel_workers < 0 or args.cpus < 0:
+        ap.error("--chunk-seconds, --parallel-workers and --cpus cannot be negative")
+    if args.checked_by and (args.recheck or args.recheck_model):
+        ap.error("--checked-by is for a first pass or an align-only re-run, not with --recheck or --recheck-model")
 
     if args.recheck_model and not args.unsure_below:
         ap.error("--recheck-model needs --unsure-below above 0: the pipeline re-checks the passages the first pass doubts")

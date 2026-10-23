@@ -1,7 +1,7 @@
 import type { Mark, Marks } from '../../../api/contracts/marks';
 import type { GuideEntity, GuideType } from '../../../api/contracts/storyBible';
 import type { BoothUnit, ReadingParagraph } from '../reading/boothUnits';
-import { voicesNearby, comingUpWords } from './nearby';
+import { voicesInChapter, comingUpWords } from './nearby';
 import type { BoothSideData } from './sections';
 
 const note = (text: string) => ({ text, evidence: {} });
@@ -99,7 +99,7 @@ export function sideData(overrides: Partial<BoothSideData> = {}): BoothSideData 
   return {
     chapterId: 'c1',
     reference: null,
-    voices: voicesNearby(units, 1, entities, guideTypes),
+    voices: voicesInChapter(paragraphs, units, entities, guideTypes),
     comingUp: comingUpWords(units, 0, entities),
     numbers: { recordedSeconds: 75, punches: 0 },
     flags: [],

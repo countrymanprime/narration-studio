@@ -32,14 +32,21 @@ The text fills the middle, fading into the page at the top and bottom edges, wit
 marked on [Script](script.md) drawn in their mark's colour and the line style you chose for it (a tint, a box, or a solid, double,
 dotted or wavy underline), as they are on Script; a mark's note shows under its paragraph with a bar in the mark's colour. A
 speaker chip takes its character's colour; a suggested speaker's chip is dashed, and a quote nobody is matched to has a grey dashed
-**?** chip. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **Voices in this
-scene** chips alike. The word you
+**?** chip. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **In this
+chapter** chips alike. Paragraphs sit one line apart, as the lines inside them do, and each starts with an indent, so a page of short paragraphs or
+back-and-forth dialogue shows many more lines at the same text size. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move
 the view without moving your place.
 
+### Finding text in the chapter
+
+**Ctrl+F** opens the jump menu, as on every page. Type two or more letters and the matches in the chapter on screen are listed under **In this chapter**, each with the words around it and its paragraph (**¶ 12**), the same search as on [Script](script.md). Choosing one marks every match in the text, rings the one you chose, and moves your place to it. While a take is recording your place belongs to your voice, so choosing a match only scrolls the text there and the recording is not disturbed; the text returns to your place when you click a word or step, as after the mouse wheel. While a search shows, the jump menu also offers **Next match**, **Previous match** and **Clear the search**.
+
+![Booth after a search for "the": every match in the text is tinted and the chosen one is ringed and being read](../../images/ui/booth-search.webp)
+
 Clicking a Story Bible name, a marked word or a note shows it in the side panel's **Reference**, read-only: the entry, or the
 mark with its note and its replies. A click on another word or on empty space clears it. The side panel also has the suspected
-lines of this take, **Last punch**, **Voices in this scene** (the characters nearby, with their voice notes and their
+lines of this take, **Last punch**, **In this chapter** (the characters the chapter names or gives lines to, in the order they first appear, with their voice notes and their
 [voice samples](#voice-samples)), **Coming up** (the next names with a pronunciation) and **This session** (how long you have recorded and
 how many punches). In a [pickup session](#a-pickup-session) the pickup lines come first.
 
@@ -70,13 +77,12 @@ When the reason is one you can fix from the Booth, a box above the footer shows 
 
   ![Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings](../../images/ui/booth-record-refused.webp)
 
-- **Connect REAPER to record** (or **REAPER is not answering**). The app records in REAPER through a small script, the
-  launcher, that runs inside REAPER. Load it once: in REAPER, choose **Actions > Show action list > New action > Load
-  ReaScript** and pick the launcher file the box shows (**Copy path** copies it). Load it again after you update the app,
-  because the file moves with each update. Then, with the chapter's project open in REAPER, run
-  **Script: NarrationStudio_Launcher.lua**. The app connects and Record turns on. **Open in REAPER and
-  connect** opens the linked project with the launcher in one go, or connects the REAPER you already have open, and from then on Launch REAPER always starts it. If no
-  REAPER project is linked yet, the first step links it.
+- **Connect REAPER to record** (or **REAPER is not answering**). The app records in REAPER through its bridge, a small
+  script that runs inside REAPER. You load nothing: the app puts the bridge in REAPER's Scripts folder by itself, and
+  REAPER starts it each time it opens. When REAPER opens with the chapter's project, the app connects and Record turns on.
+  When the project opens in the app and REAPER is not running, the app opens REAPER on the linked project by itself.
+  **Open in REAPER and connect** does the same on demand, or connects the REAPER you already have open. If no REAPER
+  project is linked yet, the first step links it. The Booth never offers the built-in recorder while REAPER is linked.
 
   ![Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason](../../images/ui/booth-record-setup.webp)
 
@@ -187,13 +193,15 @@ to start), the footer says why. The text starts following your voice before the 
 
 When your DAW is connected and following is on, the Booth and the DAW stay together at the start:
 
-- **Opened with no chapter** (from the sidebar, say): the Booth opens on the chapter whose track is selected in the DAW. With no track selected, several selected, or a track no chapter is linked to, it opens where it would have.
+- **Opened with no chapter** (from the sidebar, say): the Booth opens on the chapter you last left in this project, at the word you left it on (see [Where you stopped](#where-you-stopped)). With none kept, or the chapter gone from the book, it opens on the chapter whose track is selected in the DAW; with no track selected, several selected, or a track no chapter is linked to, it opens where it would have.
 - **Opened at a chapter** (from the Script, Pickups or a bookmark): the DAW goes to that chapter's track as well. With only a chapter, its cursor goes to the end of the track; with a line, to that line's place in the track, so you can punch from it.
 - **Start from here** and **Punch and roll** from a line move the text there, move the DAW's cursor to that spot, and start recording from it, so you never have to find the place in the DAW with the microphone live.
 
 The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message.
 
 ## Where you stopped
+
+The Booth keeps the chapter and the word you were on, per project, on this computer. Open it from the sidebar and it returns to that place; leaving a chapter by the picker keeps the new chapter instead. A chapter named by a link (from Script, Pickups or a bookmark) wins over the kept place. If the browser's storage is blocked the Booth opens as before.
 
 When the chapter's track already has a recording, the top bar offers **Resume at ¶ n** and says where it read that from: the
 DAW now, the saved project, or the Booth's own record of your last reading. Choosing it moves your place to where the recording
@@ -211,13 +219,13 @@ in chapter 19 as in chapter 3.
   **Everyone else**. A character with samples shows how many, and a play button at the right of the row plays its primary sample (the starred one in the
   Story Bible); a character with none says "no sample". The picker has the arrow keys now: **Up** and **Down** move the highlighted row and
   **Enter** chooses it. **Ctrl+Enter** plays the highlighted character's primary sample without choosing it, and **Esc** stops it.
-- **Side panel.** Each voice in **Voices in this scene** is one row: its speaker chip in the character's own colour, the Story Bible's note on how they talk, and the
+- **Side panel.** Each character in **In this chapter** is one row: its speaker chip in the character's own colour, the Story Bible's note on how they talk, and the
   speaker button at the right, **Hear the reference clip**, which plays the primary sample. A voice with a sample also has a count below the row; press the count to list every
   sample with its length, and press one to hear it. A voice with none keeps the button, switched off, and its hint says "No voice sample yet. Mark one in Editing." Press the button, or a sample, again to stop it.
 
 ![Booth - the speaker picker with a count and a play button on each character who has voice samples](../../images/ui/booth-voice-samples-picker.webp)
 
-![Booth - Voices in this scene with voice samples: a play button and count on each voice, one opened to list its samples](../../images/ui/booth-voice-samples-panel.webp)
+![Booth - In this chapter with voice samples: a play button and count on each voice, one opened to list its samples](../../images/ui/booth-voice-samples-panel.webp)
 
 A sample plays through the computer's own speakers or headphones, never through the DAW, and it does not move the text or REAPER's cursor. Only one plays
 at a time, and playing another stops the first. While the text is following your voice, listening pauses for the sample: the Booth asks the session to
@@ -255,7 +263,7 @@ into another chapter when needed; during a take they move only within the chapte
 
 **Open N in Booth** on [Pickups](pickups.md#pickup-session) opens the Booth on the chosen lines, at the first line's chapter. A
 **Pickups · N open** chip on the top bar counts the lines still open, and the side panel lists them first, each with its chapter
-and time; a recorded one has a tick. Click a line, or press **N** and **Shift+N**, to go to the next or previous one, in another
+and time on a card of its own: a chip says **Open** or **Recorded**, and the line you are on is framed. Click a line, or press **N** and **Shift+N**, to go to the next or previous one, in another
 chapter when needed (not during a take). A line the recording check found is tagged **Automatic**; dismissing it removes it from
 [Pickups](pickups.md) as well.
 
@@ -267,7 +275,7 @@ recorded") with **Undo**.
 ## Suspected lines
 
 While you read, the Booth marks places where listening suspects something went differently from the script, such as skipped
-words or a restart. They are listed in the side panel, where **Dismiss** removes one from the list. Every
+words or a restart. They are listed in the side panel as cards, a chip naming what was suspected above the line, where **Dismiss** removes one from the list. Every
 one is only suspected: Transcript Compare over the recording is the authority.
 
 ## The credits
@@ -299,6 +307,27 @@ place in the panel and is coming later.
 While its chapters are being read, the panel shows its title and grey blocks, and if the credits you asked for have no text it opens the Booth instead.
 
 ![The Companion, the Booth's small window beside your DAW](../../images/ui/booth-companion.webp)
+
+## Checking what you recorded
+
+With **Check recordings in the background** on (Settings > Speech to text > Background checks), the app listens back to each
+take you record and marks skipped or misread words for [Editing](editing.md) and [Pickups](pickups.md), so you do not have to
+press **Check recording** chapter by chapter.
+
+- **It asks first.** The first time a recorded chapter is ready to check, **Check recordings in the background?** names the
+  models it would use (`tiny`, with `small` double-checking what `tiny` was unsure of). Nothing is checked until you choose
+  **Check in the background**; **Not now** turns background checks off.
+- **It waits for you.** It never runs while REAPER is recording. About 45 seconds after you stop a take, it checks what you
+  just read, while you read ahead, and the Booth keeps following your voice.
+- **It checks only new audio.** Earlier takes are not checked again unless you change a model or the recording changes.
+- **It stays out of the way.** It uses half of this computer's processors, a quarter while the Booth follows your reading, and
+  runs below everything else.
+- **You can see and stop it.** Its progress shows at the bottom left on every page, with the chapter, how far it has got and
+  how many chapters wait. **Pause** turns background checks off (the message that follows has **Resume**), and **Cancel** stops
+  this check until the chapter changes again. **Hide** folds it to a one-line chip; in the Booth it starts folded, so it never
+  covers the text you read, and pressing the chip opens it.
+
+![The first-time notice before the app checks recordings in the background](../../images/ui/background-check-notice.webp)
 
 ## Leaving the Booth
 

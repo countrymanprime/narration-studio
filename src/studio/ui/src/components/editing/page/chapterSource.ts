@@ -10,7 +10,7 @@ import type { ClosedCut } from '../follow/clockMap';
 import { duplicateRead } from '../model/duplicates';
 import type { RangeLocator } from '../range/common/locate';
 import { docCutsOf } from '../range/common/locate';
-import { docFromHeard, type QuotedPhrase } from '../script/docFromHeard';
+import { docFromHeard, groupByParagraph, type QuotedPhrase } from '../script/docFromHeard';
 
 /** Seconds of lead-in `docFromHeard` puts before a paragraph's first heard word. */
 const LEAD = 0.15;
@@ -22,25 +22,12 @@ interface HeardSpan {
   words: readonly HeardWord[];
 }
 
-/** The heard words by paragraph, as `docFromHeard` groups them: a word said and not in the script goes with the script word before it. */
+/** The heard words by paragraph, as `docFromHeard` groups them (`groupByParagraph`). */
 function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Map<string, HeardSpan> {
   const out = new Map<string, HeardSpan>();
   if (!answer.heard) return out;
-  let current = firstParagraph;
-  for (const w of answer.heard.words) {
-    if (w.paragraphId !== undefined) current = w.paragraphId;
-    if (current === undefined) continue;
-    const span = out.get(current);
-    if (span) out.set(current, { ...span, words: [...span.words, w] });
-    else out.set(current, { item: w.item, origin: w.off0 - LEAD, words: [w] });
-  }
+  for (const [pid, words] of groupByParagraph(answer.heard.words, firstParagraph)) out.set(pid, { item: words[0].item, origin: words[0].off0 - LEAD, words });
   return out;
-}
-
-/** The indexes of the alignment items a paragraph was heard in (a paragraph is often several items cut from one recording), or none when it was not heard. The ribbon draws those items' waveforms. */
-export function itemIndexesOf(read: ChapterRead, paragraphId: string): number[] {
-  const words = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId)?.words ?? [];
-  return [...new Set(words.map((w) => w.item))];
 }
 
 /**
@@ -179,12 +166,29 @@ export function closedCutsOf(read: ChapterRead): ClosedCut[] {
 /** The chapter's length now: where its last heard word ends. */
 export const lengthOf = (doc: ChapterDoc): number => doc.items.reduce((a, i) => (i.t1 != null && !i.cut ? Math.max(a, i.t1) : a), 0);
 
+/**
+ * Where a run the recording check found says the line again splits the line into two reads (issue #2251 item 30): a retake (it repeats the
+ * words before it) is cut before the run, so an aside said first goes with the second read; a restart (it repeats the words after it) is cut
+ * after the run. Undefined when the paragraph has no such run, null when the run has no word on the far side to cut against.
+ */
+function repeatSplit(heard: readonly HeardWord[], words: readonly ModelWord[]): { startsAt: number; cutAt: number } | null | undefined {
+  const first = heard.findIndex((w) => w.repeats !== undefined);
+  if (first < 0) return undefined;
+  let last = first;
+  while (last + 1 < heard.length && heard[last + 1].repeats === heard[first].repeats) last++;
+  const [before, after] = heard[first].repeats === 'previous' ? [first - 1, first] : [last, last + 1];
+  if (before < 0 || after >= words.length) return null;
+  return { startsAt: words[after].off0, cutAt: Math.round(((words[before].off1 + words[after].off0) / 2) * 1000) / 1000 };
+}
+
 /** How a take that reads its paragraph twice splits: where the second read starts and where to cut, in seconds from the start of the take. Null when it reads the paragraph once. */
 function doubledRead(read: ChapterRead, paragraphId: string): { startsAt: number; cutAt: number } | null {
   const para = read.workspace.paragraphs.find((p) => p.id === paragraphId);
   const span = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId);
   if (!para || !span) return null;
   const words: ModelWord[] = span.words.map((w) => ({ text: w.text, off0: w.off0 - span.origin, off1: w.off1 - span.origin, conf: w.conf ?? 1 }));
+  const repeated = repeatSplit(span.words, words);
+  if (repeated !== undefined) return repeated;
   const dup = duplicateRead(para.text, words);
   return dup ? { startsAt: dup.startsAt, cutAt: dup.cutAt } : null;
 }

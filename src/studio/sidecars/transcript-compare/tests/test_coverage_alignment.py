@@ -140,6 +140,27 @@ def test_words_heard_that_the_chapter_does_not_account_for_are_extra_runs(tmp_pa
     after = tokens[extra["afterToken"]]
     assert (after["p"], after["w"]) == ("p-000001", len(P1.split()) - 1)
     assert all(token["status"] in ("heading", "read") for token in tokens)
+    assert extra["repeatOf"] is None  # an aside, not chapter text said again
+
+
+def test_a_sentence_said_twice_is_an_extra_run_that_names_the_chapter_words_it_repeats(tmp_path, progress):
+    # Issue #2251 item 30: the end of P1 said again after "again please" is a second take, not words outside the script.
+    manuscript = _project(tmp_path)
+    words_dir = tmp_path / "words"
+    words_dir.mkdir()
+    again = " ".join(P1.split()[-4:])
+    _words_file(words_dir / "item-0.json", f"{TITLE} {SUBTITLE} {P1} again please {again} {P2} {P3}", 0.0, 60.0)
+    manifest = _write_manifest(tmp_path / "manifest.json", [_item(0, "{A}", "a.wav", 0.0, 60.0)])
+    lines = _run(tmp_path, manuscript, manifest)
+    (extra,) = lines["COVERAGE_EXTRA"]
+    # Either copy may be the one the alignment left over; the run names the four words either way.
+    assert sorted(extra["text"].split()) == sorted(f"again please {again}".split())
+    repeat = extra["repeatOf"]
+    assert repeat["last"] - repeat["first"] == 4 and repeat["end"] - repeat["start"] == 4
+    assert extra["text"].split()[repeat["first"] : repeat["last"]] == again.split()
+    tokens = lines["COVERAGE_TOKEN"]
+    assert [token["text"] for token in tokens[repeat["start"] : repeat["end"]]] == P1.split()[-4:]
+    assert repeat["text"] == again
 
 
 def test_a_fully_read_chapter_has_no_extra_lines(tmp_path, progress):

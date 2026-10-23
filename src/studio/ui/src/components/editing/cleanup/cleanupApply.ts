@@ -2,7 +2,7 @@ import type { DawResult } from '../../../api/contracts/daw';
 import type { Command } from '../../../studio/journal/createJournal';
 import type { ClickRepairRequest, RangeGainRequest } from '../../../ports/daw';
 import { actionText, appliedLabel, measureText, type CleanupKind, type CleanupParams } from './cleanupOps';
-import { trimRange, type CleanupRow } from './cleanupRows';
+import { trimRange, type CleanupRow, type TrimmedCheck } from './cleanupRows';
 
 // Preview and Apply. Nothing is called until Apply: the preview is a pure function of the selected rows. An apply is one journal
 // entry. Each trim hides its piece on the muted Cuts track through the DAW, resolved by the item's GUID and never by position, and
@@ -37,6 +37,8 @@ export interface CleanupDeps {
   reduce?: (request: RangeGainRequest) => Promise<DawResult>;
   /** The DAW's repair of clicks in a take (Clicks). */
   repair?: (request: ClickRepairRequest) => Promise<DawResult>;
+  /** Whether the chapter's cuts already hold a trim of a gap, so the list shows it done and Apply leaves it. */
+  trimmed?: TrimmedCheck;
 }
 
 interface PreviewLine {

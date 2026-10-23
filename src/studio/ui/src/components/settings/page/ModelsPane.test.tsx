@@ -198,7 +198,10 @@ describe('Settings: Models & downloads', () => {
     const small = await ready('whisper/small');
     fireEvent.click(within(small).getByRole('button', { name: 'Remove Small' }));
     const dialog = await screen.findByRole('alertdialog', { name: 'Remove Small?' });
-    expect(dialog.textContent).toContain('It is chosen for: Transcription model and Transcription model (this project)');
+    // The background check's double-check model defaults to Small too (#2251).
+    expect(dialog.textContent).toContain(
+      'It is chosen for: Transcription model, Transcription model (this project) and Double-check model for background checks',
+    );
     fireEvent.click(within(dialog).getByRole('button', { name: 'Remove' }));
     await waitFor(() => expect(within(asset('whisper/small')).getByText('Not installed')).toBeTruthy());
     await waitFor(() => expect(save).toHaveBeenCalledWith('TranscriptCompare', 'project', { model_size: 'tiny' }));

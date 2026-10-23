@@ -231,12 +231,12 @@ const (
 
 // The refusals in the narrator's words. Each says what happened and what to do; nothing in REAPER changed.
 const (
-	messageStandalone     = "REAPER is not connected to this app. To go to findings in REAPER, open this app from the Narration Studio action in REAPER."
-	messageNotRunning     = "REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again."
+	messageStandalone     = "REAPER is not connected to this app. To go to findings in REAPER, open REAPER; the app connects to it by itself."
+	messageNotRunning     = "REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself."
 	messageNoItem         = "This finding has no REAPER item to go to, because it came from an older check. Run the check again to record one."
 	messageNoSourceTime   = "This finding has no time in its audio to loop. Go to it instead."
 	messageRecording      = "REAPER is recording, so nothing was moved. Stop recording first."
-	messageScriptOutdated = "The Narration Studio script in REAPER is older than this app. Import it again from this app's REAPER folder, then try again."
+	messageScriptOutdated = "The Narration Studio script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again."
 	messageStaleSuffix    = ", so nothing was moved. Run the check again to find it where it is now."
 
 	// What Audacity answers where REAPER's item and take are not there to use (docs/reference/daw/capabilities.md#navigate).

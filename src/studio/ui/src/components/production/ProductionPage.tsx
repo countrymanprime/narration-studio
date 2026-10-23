@@ -380,15 +380,7 @@ export function ProductionPage({
   return (
     <div className="flex flex-col gap-4">
       {caps && !caps.reachable && caps.daw !== 'none' && (
-        <DawBanner
-          reachable={false}
-          daw={caps.daw}
-          onRetry={retryDaw}
-          onConnect={connectDaw}
-          connecting={connecting}
-          settling={settling}
-          onUseBuiltIn={() => go('/settings')}
-        />
+        <DawBanner reachable={false} daw={caps.daw} onRetry={retryDaw} onConnect={connectDaw} connecting={connecting} settling={settling} />
       )}
       <PageHeader
         loading={load.status === 'loading'}

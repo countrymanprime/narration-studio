@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Booth page with voice samples: the picker and the side panel read the project's samples through one hook, and the guards read the page's own
 // recording state. The cells that belong to one control are in samples/useBoothSamples.test.tsx, reading/SpeakerChip.test.tsx and
-// side/VoicesNearby.test.tsx; this file proves the page joins them.
+// side/VoicesInChapter.test.tsx; this file proves the page joins them.
 //
 //   a speaker with samples      'the picker and the side panel show the speaker's samples and play the primary'
 //   no samples                  'a project with no samples draws nothing about them'
