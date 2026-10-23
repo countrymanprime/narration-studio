@@ -101,17 +101,15 @@ jobs:
       - name: Download two published builds
         shell: bash
         run: scripts/release/fetch-release-assets.sh "$RUNNER_TEMP/releases" "$INPUT_NEW_TAG" "$INPUT_PREVIOUS_TAG"
-      - name: Read the product's names from the brand file
-        shell: bash
-        run: node scripts/brand/env.mjs >> "$GITHUB_ENV"
       - name: Run the rehearsal against the two real program builds
         shell: bash
         working-directory: src/studio/desktop
         env:
           GOFLAGS: -mod=readonly
         run: |
-          export REHEARSAL_OLD="$(cygpath -w "$RUNNER_TEMP/releases/previous/$BRAND_EXECUTABLE.exe")"
-          export REHEARSAL_NEW="$(cygpath -w "$RUNNER_TEMP/releases/new/$BRAND_EXECUTABLE.exe")"
+          exe="$(node ../../../scripts/brand/env.mjs BRAND_EXECUTABLE)"
+          export REHEARSAL_OLD="$(cygpath -w "$RUNNER_TEMP/releases/previous/$exe.exe")"
+          export REHEARSAL_NEW="$(cygpath -w "$RUNNER_TEMP/releases/new/$exe.exe")"
           echo "Rehearsal: $PREVIOUS_TAG -> $NEW_TAG" | tee -a "$GITHUB_STEP_SUMMARY"
           go test -tags rehearsal -run Rehearsal -v -count=1 ./internal/update 2>&1 | tee "$RUNNER_TEMP/rehearsal.log"
           { echo '```'; tail -n 25 "$RUNNER_TEMP/rehearsal.log"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

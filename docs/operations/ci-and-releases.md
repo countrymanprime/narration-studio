@@ -108,7 +108,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `pages.yml` (`Pages`) | push to `main` and pull requests that touch the site's paths, manual | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only off a pull request, on `main` | `build` on a pull request that touches the site: it builds `dist-site/` and checks its links, and uploads and deploys nothing |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old | not a pull request check |
 | `main-health.yml` (`Main health`) | every three hours (minute 37), manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
-| `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
+| `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened) | `Test ratchet`: prints each deleted test file, added skip or focus marker and lowered coverage floor, and raises a warning annotation. It never fails, and no label clears or changes it | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
 | `pr-risk.yml` (`PR risk`) | same-repository pull request (opened, synchronize, reopened) | `rate`: adds or removes the `risk:high` label | not a check that gates anything; a `risk:high` pull request is not merged without the owner |
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
 
@@ -296,7 +296,7 @@ A narrator installs from `<asset prefix>-<version>-windows-x64-setup.exe` (the p
   release version and whose names `pnpm run brand:sync` keeps equal to `config/brand.json`. The program, the uninstall key, the setup
   file and the install folder are identity values in `brand.nsh`, which the same sync writes beside `project.nsi`: a rename of the
   product changes the names a narrator sees and not where an install lives. The workflows read the same values from
-  `node scripts/brand/env.mjs >> "$GITHUB_ENV"` (`BRAND_EXECUTABLE`, `BRAND_ENV_PREFIX` and the rest), so none spells the product's
+  `node scripts/brand/env.mjs BRAND_EXECUTABLE` (one value per call, never through `$GITHUB_ENV`), so none spells the product's
   name or an identity value.
 - **What CI showed on Wails v2** (the `Build (Windows)` job of pull request 224, 2026-09-21): `makensis` was not on the runner; the pinned step installed `nsis.install` 3.11.0 and printed `makensis version: v3.11`; Wails printed `Building 'amd64' installer: Done.`; the setup program was 196,676,207 bytes and the zip 195,290,110; the bootstrapper check printed `Valid, CN=Microsoft Corporation`. The NSIS step adds about 15 seconds and the installer build about a minute.
 - **Why per user.** The in-app updater renames the running program in its folder and never asks for elevation; under Program Files
@@ -732,7 +732,7 @@ removed, fails the run.
   `--update` raises whichever applies on the host. Use it only where the platforms really measure differently: a test that
   stands a file where a folder belongs reaches one more statement on Windows, where a path through a file reads as "not
   found", than elsewhere, where it fails with `ENOTDIR` first (`internal/findings` and `internal/stages`). The test ratchet
-  fails a lowered `nonWindowsFloor` as it does a lowered `floor`; dropping one only makes the gate stricter.
+  flags a lowered `nonWindowsFloor` as it does a lowered `floor`; dropping one only makes the gate stricter.
 - **Not gated on purpose:** UI components, host glue and sidecar-launch code (the list is in the floors file's
   `$comment`).
 - `vitest --coverage` also works by hand and writes `src/studio/ui/coverage/` (ignored).

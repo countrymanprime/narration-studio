@@ -756,8 +756,8 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0550](../guides/using-the-app/navigation.md#editing-check) | ARCH | Y | Proposed | keep | Editing reuses proofing's render store, adds a choice store and fingerprint-scoped ledger; module boundaries |
 | [0560](../architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from) | ARCH | N | Proposed | keep | Adds a sidecar align-word mode as a punch-time source; external integration approach |
 | [0565](../../src/studio/desktop/internal/series/voicebible.go) | UX | Y | Accepted | PRD series voice bible | Grouping, labels, display names, empty state and error reporting for one feature |
-| [0566](../guides/using-the-app/story-bible.md#series-voice-bible) | UX | N | Accepted | PRD series | Where series membership is managed and which picker it reuses |
-| [0567](../guides/using-the-app/story-bible.md#series-voice-bible) | UX | N | Accepted | PRD series | Series tab placement in Story Bible and what is left out of the UI |
+| [0566](../guides/using-the-app/story-bible.md) | UX | N | Accepted | PRD series | Where series membership is managed and which picker it reuses |
+| [0567](../guides/using-the-app/story-bible.md) | UX | N | Accepted | PRD series | Series tab placement in Story Bible and what is left out of the UI |
 | [0568](../../src/studio/desktop/internal/guide/readonly.go) | IMPL | N | Accepted | code comment in internal/guide/readonly.go | One read-only function's behaviour and missing-file rule |
 | [0575](../../src/studio/desktop/internal/editing/librivoxvalidation_test.go) | ENG | N | Proposed | docs/testing or test comment in librivoxvalidation_test.go | Validation-corpus test strategy for click detection; construction/test technique |
 | [0585](../operations/verification-tooling.md#mock-match) | ENG | N | Proposed | docs/testing visual (mock-match tool) | Report-only pixel-match tool scoring UI against mocks; test tooling |
