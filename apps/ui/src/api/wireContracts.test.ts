@@ -309,13 +309,19 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const before = (await api.findingsSummary()).total;
     const accepted = await api.coverageGapAccept(chapterId, first.id);
     expectMatches(findingSchema, accepted, 'mock accepted gap');
-    expect(accepted).toMatchObject({ category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    // The mock's first gap is a line said twice: a duplicate read (an edit), as the host files it (issue #2251 item 30).
+    expect(first.repeatOf).toBeDefined();
+    expect(accepted).toMatchObject({ category: 'duplicate_read', confidence: null, review: { status: 'accepted' }, evidence: { repeat_of: first.repeatOf } });
     expect((await api.findingsSummary()).total).toBe(before + 1);
     expect(await api.coverageGapAccept(chapterId, first.id)).toEqual(accepted);
     expect((await api.findingsSummary()).total).toBe(before + 1);
 
     await api.coverageGapIgnore(chapterId, second.id);
     expect((await api.findingsSummary()).total).toBe(before + 1);
+    // Any other gap stays a pickup.
+    const fresh = createMockApi({}, { coverage: { pickups: [chapterId] } });
+    expect(second.repeatOf).toBeUndefined();
+    expect(await fresh.coverageGapAccept(chapterId, second.id)).toMatchObject({ category: 'pickup' });
     const read = await api.coverageGapReviews(chapterId);
     expectMatches(coverageGapReviewsSchema, read, 'mock gap reviews');
     expect(read).toEqual({ [first.id]: 'accepted', [second.id]: 'ignored' });
@@ -358,6 +364,11 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const older = Object.fromEntries(Object.entries(golden.result).filter(([key]) => key !== 'gaps' && key !== 'unfinished'));
     const parsed = parseWire(coverageResultSchema, { ...golden, result: older }, ctx('coverage result'));
     expect([parsed.result?.gaps, parsed.result?.unfinished]).toEqual([[], { start: 0, end: 0 }]);
+  });
+
+  it('an extra gap that says the chapter text again names what it repeats; any other gap has no repeatOf', () => {
+    const [gap] = parseWire(coverageResultSchema, readGolden('coverage-result-repeat.json'), ctx('coverage result')).result?.gaps ?? [];
+    expect(gap).toMatchObject({ kind: 'extra', text: 'sorry beginning to get', repeatOf: 'beginning to get' });
   });
 
   it('a gap has a known kind and a confidence that is null or comes with its reason', () => {
@@ -2789,6 +2800,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const unknown = await api.workspaceAlignment('no-such-chapter');
     expectMatches(workspaceAlignmentResultSchema, unknown, 'mock workspace alignment, never');
     expect(unknown).toMatchObject({ state: 'never', paragraphs: [], tokens: [] });
+  });
+
+  it('an extra run that says the chapter text again names the tokens and its own words; an older run reads as no repeat', () => {
+    const golden = z.looseObject({ extras: z.array(z.record(z.string(), z.unknown())) }).parse(readGolden('workspace-alignment-repeat.json'));
+    const [extra] = workspaceAlignmentResultSchema.parse(golden).extras;
+    expect(extra.repeatOf).toEqual({ start: 5, end: 7, first: 1, last: 3, text: 'very tired.' });
+    const older = { ...golden, extras: golden.extras.map(({ repeatOf: _repeatOf, ...rest }) => rest) };
+    expect(workspaceAlignmentResultSchema.parse(older).extras[0].repeatOf).toBeUndefined();
+    const plain = workspaceAlignmentResultSchema.parse(readGolden('workspace-alignment-current.json'));
+    expect(plain.extras.every((run) => run.repeatOf === undefined)).toBe(true);
+    const bad = (repeatOf: Record<string, unknown>) => ({ ...golden, extras: [{ ...golden.extras[0], repeatOf }] });
+    expect(workspaceAlignmentResultSchema.safeParse(bad({ start: 6, end: 5, first: 1, last: 3, text: 'x' })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(bad({ start: 5, end: 7, first: 2, last: 2, text: 'x' })).success).toBe(false);
   });
 
   it('the heard words: a score is null with a reason, only an extra run is added, and the mock carries both', async () => {

@@ -73,8 +73,9 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
     };
   }, [daw]);
 
-  const rows = useMemo(() => proposals(findings, op, params[op]), [findings, op, params]);
-  const counts = useMemo(() => countsOf(findings, params), [findings, params]);
+  const trimmed = deps?.trimmed;
+  const rows = useMemo(() => proposals(findings, op, params[op], trimmed), [findings, op, params, trimmed]);
+  const counts = useMemo(() => countsOf(findings, params, trimmed), [findings, params, trimmed]);
   const on = selectedRows(rows, skip);
   const fixed = rows.filter((r) => r.done).length;
 

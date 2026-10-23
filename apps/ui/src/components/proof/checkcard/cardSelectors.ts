@@ -109,6 +109,8 @@ export type CardFinding = {
   status: ReviewStatus;
   /** An audio finding, kept to review it with the version of the evidence shown. */
   finding?: Finding;
+  /** For a gap that says the chapter text again (a second take, fixed on Editing): the line to open there. */
+  paragraphId?: string;
 };
 
 const GAP_TYPE: Record<string, { count: CountKey; type: string }> = {
@@ -127,21 +129,30 @@ const audioStatus = (finding: Finding): ReviewStatus =>
 
 /** The card's findings: the gaps of the report (kinds the card counts) and the chapter's audio findings, in time order. */
 export function cardFindings(result: CoverageResult | undefined, reviews: CoverageGapReviews, audio: readonly Finding[]): CardFinding[] {
-  const gaps: CardFinding[] = (result?.result?.gaps ?? []).flatMap((gap) => {
+  const gaps: CardFinding[] = (result?.result?.gaps ?? []).flatMap((gap): CardFinding[] => {
     const kind = GAP_TYPE[gap.kind];
     if (!kind) return [];
     const review = reviews[gap.id];
-    return [
-      {
-        id: gap.id,
-        source: 'gap' as const,
-        ...kind,
-        seconds: gap.position?.sourceTime ?? null,
-        text: gapText(gap),
-        suggested: 'Needs pickup' as const,
-        status: review === 'accepted' ? 'accepted' : review === 'ignored' ? 'ignored' : 'todo',
-      },
-    ];
+    const status: ReviewStatus = review === 'accepted' ? 'accepted' : review === 'ignored' ? 'ignored' : 'todo';
+    const seconds = gap.position?.sourceTime ?? null;
+    // Chapter text said again is a second take (issue #2251 item 30): the host files it as a duplicate read, an edit.
+    if (gap.kind === 'extra' && gap.repeatOf) {
+      const paragraphId = gap.paragraphIds[0];
+      return [
+        {
+          id: gap.id,
+          source: 'gap' as const,
+          count: kind.count,
+          type: 'Said twice',
+          seconds,
+          text: `“${gap.repeatOf}”`,
+          suggested: 'Fix in edit' as const,
+          status,
+          ...(paragraphId ? { paragraphId } : {}),
+        },
+      ];
+    }
+    return [{ id: gap.id, source: 'gap' as const, ...kind, seconds, text: gapText(gap), suggested: 'Needs pickup' as const, status }];
   });
   const heard: CardFinding[] = audio.flatMap((finding) => {
     const count = audioKind(finding);

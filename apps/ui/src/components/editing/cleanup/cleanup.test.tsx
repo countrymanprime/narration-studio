@@ -16,7 +16,7 @@ import { createJournal } from '../../../studio/journal/createJournal';
 import { drawSections } from '../drawer/drawerSections';
 import type { CleanupDeps, RangeTrim } from './cleanupApply';
 import { actionText, appliedLabel, levelOf, measureText, opSpec } from './cleanupOps';
-import { cleanupRows, countsOf, noiseFloorOf, proposals, trimRange } from './cleanupRows';
+import { cleanupRows, countsOf, noiseFloorOf, proposals, selectedRows, trimRange } from './cleanupRows';
 import { FINDINGS, finding } from './cleanupFixtures';
 import { CleanupTab } from './CleanupTab';
 import { fakeCutLog } from '../range/cut/cutFixtures';
@@ -58,14 +58,25 @@ describe('the operations and their levels', () => {
 
 describe('rows come from findings and candidates', () => {
   it('shows a finding and a candidate of one sound once, and a done one as done', () => {
-    const twin = [
-      finding({ id: 'a', start: 10, end: 12.4, cls: 'silence' }),
-      finding({ id: 'b', start: 10.01, end: 12.4, cls: 'silence', status: 'accepted' }),
-    ];
-    const rows = cleanupRows(twin, 'gaps');
+    const twin = [finding({ id: 'a', start: 10, end: 12.4, cls: 'silence' }), finding({ id: 'b', start: 10.01, end: 12.4, cls: 'silence' })];
+    const rows = cleanupRows(twin, 'gaps', (row) => row.sec === 10.01);
     expect(rows).toHaveLength(1);
     expect(rows[0]?.ids).toEqual(['a', 'b']);
     expect(rows[0]?.done).toBe(true);
+  });
+  // Accepted used to count as done; the findings contract says accepted is "real and needs fixing", still open (research note A3).
+  it('an accepted finding is still open: the list proposes it and Apply takes it', () => {
+    const rows = proposals([finding({ id: 'a', start: 10, end: 12.4, cls: 'silence', status: 'accepted' })], 'gaps', { limit: 1.2 });
+    expect(rows.map((r) => r.done)).toEqual([false]);
+    expect(selectedRows(rows, [])).toHaveLength(1);
+    expect(countsOf([finding({ id: 'a', start: 10, end: 12.4, cls: 'silence', status: 'accepted' })], standard).gaps).toBe(1);
+  });
+  it('a gap the chapter’s cuts already trimmed is done, so it is never trimmed twice', () => {
+    const gap = finding({ id: 'a', start: 10, end: 12.4, cls: 'silence', status: 'accepted' });
+    const trimmed = (row: { itemGuid?: string; sec: number; end: number }) => row.itemGuid === 'item-1' && row.sec === 10;
+    expect(cleanupRows([gap], 'gaps', trimmed)[0]?.done).toBe(true);
+    expect(countsOf([gap], standard, trimmed).gaps).toBe(0);
+    expect(cleanupRows([finding({ id: 'b', start: 20, end: 23, cls: 'silence' })], 'gaps', trimmed)[0]?.done).toBe(false);
   });
   it('invents nothing: no finding means no row, and a dismissed one is not a row', () => {
     expect(cleanupRows([], 'gaps')).toEqual([]);

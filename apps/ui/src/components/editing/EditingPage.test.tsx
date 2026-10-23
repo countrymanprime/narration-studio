@@ -706,6 +706,52 @@ describe('EditingPage', () => {
       await act(async () => {});
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('3 words')).toBeTruthy();
     });
+    // Issue #2251 item 30: Chapter One with "and walked away." said again after "sorry" at the end of p2, as the recording check reports it.
+    const withRepeat = async (chapterId: string) => {
+      const plain = await pageApi().workspaceAlignment(chapterId);
+      if (chapterId !== 'c1') return plain;
+      const at = (n: number) => ({ itemIndex: 0, itemGuid: plain.items[0].itemGuid, sourceTime: n });
+      const words = ['sorry', 'and', 'walked', 'away.'].map((text, k) => ({
+        text,
+        item: 0,
+        start: 5.1 + k * 0.4,
+        end: 5.45 + k * 0.4,
+        conf: 0.9,
+        added: true as const,
+        timing: 'spread' as const,
+      }));
+      const repeat = {
+        text: 'sorry and walked away.',
+        tokens: 4,
+        start: at(5.1),
+        end: at(6.65),
+        afterToken: 9,
+        repeatOf: { start: 7, end: 10, first: 1, last: 4, text: 'and walked away.' },
+        words,
+      };
+      return { ...plain, extras: [...plain.extras, repeat] };
+    };
+    // Proof's "Open in Editing" on a line said twice opens the Read twice card, on the live page (no take per line): from a note (a finding) and
+    // from the recording check's list (the line).
+    it('opens a duplicate read on the Read twice card of the line said twice', async () => {
+      const said = { id: 'f-twice', category: 'duplicate_read', manuscript: { chapter_id: 'c1', expected: 'and walked away.', span: { paragraph_id: 'p2' } } };
+      mount({ findingId: 'f-twice', api: { workspaceAlignment: withRepeat, findingsGet: async () => said } as never });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-flagcard="dup"]')).not.toBeNull());
+      const card = document.querySelector<HTMLElement>('[data-flagcard="dup"]')!;
+      expect(card.textContent).toContain('The recording reads the line twice.');
+      expect(within(card).getByRole('button', { name: /Hear both reads/ })).toBeTruthy();
+    });
+    it('opens a line said twice on its Read twice card, and a line read once on its first word', async () => {
+      mount({ chapterId: 'c1', passageId: 'p2', api: { workspaceAlignment: withRepeat } as never });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-flagcard="dup"]')).not.toBeNull());
+      cleanup();
+      mount({ chapterId: 'c1', passageId: 'p2' });
+      await script();
+      await waitFor(() => expect(cursorKey()).toBe('w-p2:0'));
+      expect(document.querySelector('[data-flagcard="dup"]')).toBeNull();
+    });
     // SN-E9: the editing check's "Clean up in Editing" opens the page with the drawer on Clean up.
     it('opens with the drawer on the tab it is given', async () => {
       mount({ drawer: 'cleanup' });

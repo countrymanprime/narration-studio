@@ -38,6 +38,14 @@ export const editingDrivers: Record<string, Driver> = {
   default: async (page) => {
     await openEditing(page, LINKED);
   },
+  // Issue #2251 item 30: the next flag key steps to the mock's line said twice and opens its Read twice card.
+  'read-twice': async (page) => {
+    await openEditing(page, LINKED);
+    const card = page.locator('[data-flagcard="dup"]');
+    await page.getByRole('textbox', { name: 'Script with what was heard' }).focus();
+    for (let step = 0; step < 10 && (await card.count()) === 0; step++) await page.keyboard.press(']');
+    await card.getByRole('button', { name: /Hear both reads/ }).waitFor();
+  },
   // The menu knows the page: with nothing selected the selection actions are listed off, each with its reason.
   'jump-menu': async (page) => {
     await openEditing(page, LINKED);

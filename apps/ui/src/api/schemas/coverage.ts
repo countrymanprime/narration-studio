@@ -156,6 +156,7 @@ const gapSchema = z.object({
   firstWord: z.string(),
   lastWord: z.string(),
   text: z.string().optional(),
+  repeatOf: z.string().optional(),
   position: optionalFromNull(regionPositionSchema),
   before: optionalFromNull(regionPositionSchema),
   after: optionalFromNull(regionPositionSchema),

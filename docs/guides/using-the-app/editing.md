@@ -112,7 +112,31 @@ and the selection is as you left it. Playback says "Playing" when it starts and 
 The key hints at the foot of the page name what **Enter** does where the cursor is: **Open flag card** on a flagged word, **Keep take (T picks which)** on any other word, and **Keep take** once T has opened the line's takes. Enter on a word that is not flagged keeps the take the keys are on, or the line's active take if T has not been pressed.
 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
-clears the mark (with Undo in the message that confirms it).
+clears the mark (with Undo in the message that confirms it). When [Proof](proof.md) has a note on the same words, keeping
+them as read marks that note **Fine as read** too, so it is cleared on Proof and leaves [Pickups](pickups.md); the message
+says so, and Undo puts the note back as it was. This holds for a note already decided **Needs pickup** too: its line
+leaves Pickups.
+
+**Mark for pickup** on a word that Proof has a note about decides that note **Needs pickup**, so the line on Pickups is the
+note's own and Pickups can take you back to it; the message says "Added to Pickups, with its note on Proof." A word with no
+such note, or one whose note is fixed in the edit (words said and not written), is added to Pickups as a line of its own.
+
+### A line said twice
+
+Words heard that say the script beside them again are a second take, not words outside the script: a retake of the end of a
+line ("once more", then the last words again), or a restart (the first words, "sorry", then the line in full). At least three
+words of the script must be said again, or a whole line, so a stutter is not one. The recording check finds them, and a take
+of its own is checked the same way. Their card says **Read twice** and when the second read starts, and offers:
+
+- **Stack as 2 takes**: splits the take at the pause before the second read, in the DAW. A line that is not one take the DAW
+  can split (a chapter recorded in one pass) says so and changes nothing.
+- **Hear both reads**: plays the second read with as long again on either side, so both reads are heard.
+- **Leave in place**: closes the card.
+- **Delete second read…**: asks first, then cuts the second read's words and audio.
+
+Proof lists the same words as **Said twice** with an **Open in Editing** link, which opens this card.
+
+![Editing - words said again found by the recording check: the Read twice card with Stack as 2 takes, Hear both reads, Leave in place and Delete second read](../../images/ui/editing-read-twice.webp)
 
 ![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and their band on the waveform](../../images/ui/editing-selection.webp)
 
@@ -269,7 +293,8 @@ with the kind's sample mark and **Review** to step through them) and, under **In
 breaths, clicks, plosives and noise. The tab's count adds the words found to the findings that pass the thresholds, and the
 Backups tab counts this chapter's backups.
 Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
-the findings you selected. Clean-up actions that are still
+the findings you selected. A gap reads **Fixed** once the chapter's cuts hold its trim (from here or from **Trim the gap**
+on Proof), so a gap is never trimmed twice. A finding decided **Needs pickup** or **Fix in edit** on Proof is still to be fixed, so it stays in the list. Clean-up actions that are still
 experimental stay off until you turn them on in [Settings](settings.md).
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
