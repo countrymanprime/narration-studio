@@ -38,7 +38,7 @@ An installed copy keeps its old Start Menu and desktop shortcuts until it is rei
 - `scripts/ci/brand-name.mjs` fails on the current name anywhere but the brand file, its generated files, brand regions,
   identity file names, the repository's own addresses and a short allowlist of history (dated research, ADRs, the changelog,
   recorded output and fixtures).
-- The `rename rehearsal` job (`scripts/brand/rehearse-rename.mjs`) renames each pull request's checkout to a made-up name and
-  runs the sync, both guards and the tests that read the name, so anything that spells the name fails before a real rename
-  needs it. main-health runs it with `--full`. Run it locally in a throwaway worktree:
-  `git worktree add --detach ../rehearsal HEAD`, then `node scripts/brand/rehearse-rename.mjs --in-place` there.
+- The `rename rehearsal` job (`scripts/brand/rehearse-rename.mjs`) renames a throwaway worktree of each pull request's commit
+  to a made-up name and runs the sync, both guards and the tests that read the name, so anything that spells the name fails
+  before a real rename needs it. main-health runs it with `--full`. It never writes to the checkout, so it runs locally as is:
+  `node scripts/brand/rehearse-rename.mjs` (it rehearses `HEAD`, so commit first).

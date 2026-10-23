@@ -388,11 +388,12 @@ jobs:
           projects: reaper
 
   rename-rehearsal:
-    # Renames the checkout to a made-up name with `pnpm run rename-app` and runs the brand sync, both name guards and the tests
-    # that read the name (scripts/brand/rehearse-rename.mjs), so a file that spells the product's name instead of reading it from
+    # Renames a throwaway git worktree of this commit (in the temp folder, with its own node_modules and .venv from the store and
+    # cache setup-toolchain filled) to a made-up name and runs the brand sync, both name guards and the tests that read the name
+    # (scripts/brand/rehearse-rename.mjs), so a file that spells the product's name instead of reading it from
     # config/brand.json fails here, not at the next real rename (#2251 item 41). Every pull request, whatever it touches: any file
     # can spell the name. A pull request runs the targeted set; main-health (a scheduled or manual run) runs `--full`: every Go,
-    # UI, shared-library Python and Lua test, the built site and the strict docs build. The rename stays in this runner.
+    # UI, shared-library Python and Lua test, the built site and the strict docs build. The checkout is never written to, and the job adds no permission or secret.
     needs: scope
     name: rename rehearsal
     timeout-minutes: 45
