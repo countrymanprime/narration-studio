@@ -192,6 +192,8 @@ export type CoverageGap = {
   lastWord: string;
   /** The extra words heard; only on an `extra` gap. */
   text?: string;
+  /** On an `extra` gap that says the chapter text again (a second take): the chapter words it repeats. */
+  repeatOf?: string;
   position?: CoverageRegionPosition;
   before?: CoverageRegionPosition;
   after?: CoverageRegionPosition;

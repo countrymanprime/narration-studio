@@ -276,3 +276,53 @@ describe('paragraphs away from the reading position are skipped by the browser u
     expect(est('c')).toBeGreaterThanOrEqual(1.5);
   });
 });
+
+describe('paragraph spacing and search marks', () => {
+  it('paragraphs-sit-a-line-apart-with-no-extra-gap-and-are-told-apart-by-an-indent', () => {
+    const { container } = setup();
+    const paragraphs = Array.from(container.querySelectorAll<HTMLElement>('[data-paragraph]'));
+    expect(paragraphs.length).toBeGreaterThan(1);
+    for (const paragraph of paragraphs) {
+      expect(paragraph.className).not.toMatch(/(^|\s)m[by]?-\[/);
+      expect(paragraph.className).toContain('indent-[1.5em]');
+    }
+  });
+
+  it('a-note-under-a-paragraph-is-not-indented-with-it', () => {
+    const { container } = setup();
+    const note = container.querySelector<HTMLElement>('[data-note]');
+    expect(note?.className).toContain('indent-0');
+  });
+
+  it('draws-the-matches-of-a-search-and-the-one-chosen-apart', () => {
+    const { container } = setup({
+      decorations: [
+        { kind: 'find', paragraphId: 'p1', start: 0, end: 3, current: false },
+        { kind: 'find', paragraphId: 'p2', start: 0, end: 3, current: true },
+      ],
+    });
+    expect(container.querySelectorAll('[data-find="match"]').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('[data-find="current"]').length).toBeGreaterThan(0);
+  });
+
+  it('show-brings-a-paragraph-into-view-without-moving-the-reading', () => {
+    sized();
+    const { view, text, onSeek, onBrowse } = setup();
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.dataset.paragraph === 'p1' ? 1500 : 100;
+    });
+    const before = translate(text);
+    act(() => view.current!.show('p1'));
+    expect(translate(text)).not.toBe(before);
+    expect(onBrowse).toHaveBeenCalledWith(true);
+    expect(onSeek).not.toHaveBeenCalled();
+  });
+
+  it('show-of-a-paragraph-that-is-not-there-does-nothing', () => {
+    sized();
+    const { view, text } = setup();
+    const before = text.style.transform;
+    act(() => view.current!.show('nope'));
+    expect(text.style.transform).toBe(before);
+  });
+});

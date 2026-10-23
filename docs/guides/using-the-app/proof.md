@@ -54,7 +54,13 @@ A chapter shows its **Recording check** card and its recording:
   linked, more than one, the linked track not in the saved project, or no saved project), with the audio engine panel
   where it can be fixed. **Show the findings** lists what the check found, each with the suggested
   decision: **Accept** turns one into a note with that decision, and **Ignore** keeps it out of your notes and is
-  remembered.
+  remembered. Words that say the script beside them again (a retake or a restart) are listed as **Said twice**, with the
+  words said again and **Fix in edit**, not as extra words: they are a second take. **Open in Editing** opens the line on
+  [Editing](editing.md#a-line-said-twice), where you hear both reads, delete one, or split the line into two takes when
+  it is one take the DAW can split.
+
+  ![Proof - the recording check's findings: a line said twice listed as Said twice, suggesting Fix in edit, with Open in Editing](../../images/ui/proof-check-findings.webp)
+
 - A kind of finding is the same colour everywhere in the app, here in the card's counts, the findings, the notes' Type
   column and the waveform pins: red when the words are wrong (misread, skipped, extra, repeat, a long silence), amber when
   the recording is in doubt (breath, click, noise, plosive) and blue for a pronunciation. The word on the chip says which.
@@ -111,6 +117,8 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 - what the script says and what was heard, with the difference marked;
 - **In the script**: the note's paragraph with its words marked, and the paragraphs before and after it, shorter and greyed,
   so you can see where the note sits without leaving Proof. When the script no longer has that paragraph, it says so;
+- for words said twice, **Said twice** with the words said again, and **Open in Editing**, which opens the line's
+  [Read twice card](editing.md#a-line-said-twice);
 - **Takes at this spot**, when the spot has more than one take: each take is a bordered card with **Play** (from its own recording, without
   the DAW), its length and whether it is active or kept; the kept take's card is tinted green. **Manage takes in Editing** opens the chapter on
   [Editing](editing.md) with the note's words selected and the takes of its line open, where takes are chosen;

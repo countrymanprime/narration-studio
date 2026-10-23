@@ -49,6 +49,20 @@ func TestContractCoverageResults(t *testing.T) {
 	pinResult(t, "coverage-result-unmapped", currentResult(t, service, DefaultAlignmentParams))
 }
 
+// TestContractCoverageResultWithARepeat pins an extra gap that says the chapter text again: Proof calls it "Said
+// twice" (issue #2251 item 30).
+func TestContractCoverageResultWithARepeat(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: repeatGapResults})
+	run(t, service, testRequest())
+	current := currentResult(t, service, DefaultAlignmentParams)
+	gaps := current.View(testChapter, DefaultThresholds).Result.Gaps
+	if len(gaps) != 1 || gaps[0].RepeatOf == nil {
+		t.Fatalf("the fixture needs one repeat gap: %+v", gaps)
+	}
+	pinResult(t, "coverage-result-repeat", current)
+}
+
 // TestContractCoverageResultWithARecheck pins the model cascade's own wire shape (MC5): StoredResult.Recheck
 // on a result the second pass resolved.
 func TestContractCoverageResultWithARecheck(t *testing.T) {
@@ -112,6 +126,19 @@ func TestContractWorkspaceAlignmentAddedWords(t *testing.T) {
 		t.Fatalf("the fixture needs three extra runs and an engine: %+v", view)
 	}
 	pinAlignment(t, "workspace-alignment-added-words", view)
+}
+
+// TestContractWorkspaceAlignmentRepeat pins an extra run that says the chapter text again: its repeatOf reaches the
+// page with the run's words (issue #2251 item 30).
+func TestContractWorkspaceAlignmentRepeat(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{results: repeatResults})
+	run(t, service, testRequest())
+	view := alignmentOf(t, service)
+	if len(view.Extras) != 1 || view.Extras[0].RepeatOf == nil {
+		t.Fatalf("the fixture needs one repeat: %+v", view.Extras)
+	}
+	pinAlignment(t, "workspace-alignment-repeat", view)
 }
 
 func TestAResultViewCarriesTheFractionOnlyWhenCurrent(t *testing.T) {

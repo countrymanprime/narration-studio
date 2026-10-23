@@ -54,6 +54,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'check-findings',
+    description:
+      'Proof, Chapter 1 linked, its recording check’s findings shown: a line said twice listed as Said twice with the words said again, Fix in edit and Open in Editing, above the gaps',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'check-never',
     description: 'Proof, Chapter 7 never checked: the check card with no check yet and Check recordings',
     ...REFLOW,

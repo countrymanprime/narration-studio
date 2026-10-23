@@ -13,6 +13,8 @@ export interface HeardWord {
   conf: number;
   /** Said, but not in the text the stretch was read from. */
   added?: boolean;
+  /** An added word of a run the check found says the script again (a second take): which side of the run it repeats. */
+  repeats?: 'previous' | 'next';
 }
 export interface Heard {
   words: HeardWord[];

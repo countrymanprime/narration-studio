@@ -1,0 +1,104 @@
+{
+  "basis": {
+    "label": "saved project, file modified 2026-09-21T10:00:00Z",
+    "modifiedAt": "2026-09-21T10:00:00Z",
+    "stale": false
+  },
+  "chapterId": "c-0001",
+  "judgement": {
+    "reason": "Text present: 7 of 7 words; every paragraph passes.",
+    "state": "met",
+    "thresholds": {
+      "maxMissingRun": 3,
+      "minParagraphPresent": 0.8
+    }
+  },
+  "reasons": [],
+  "record": {
+    "completedAt": "2026-09-21T10:00:00Z",
+    "id": "id-1",
+    "outcome": "complete",
+    "startedAt": "2026-09-21T10:00:00Z"
+  },
+  "recordedFraction": 1,
+  "result": {
+    "alignment": {
+      "maxMisreadRun": 8,
+      "minAnchorRun": 3
+    },
+    "bodyTokens": 7,
+    "extraTokens": 1,
+    "gaps": [
+      {
+        "after": {
+          "itemGuid": "{ITEM-A}",
+          "itemIndex": 0,
+          "sourceTime": 7.5
+        },
+        "before": {
+          "itemGuid": "{ITEM-A}",
+          "itemIndex": 0,
+          "sourceTime": 6.3
+        },
+        "confReason": "no_word_scores",
+        "confidence": null,
+        "firstWord": "sorry",
+        "id": "extra:p-000001:5",
+        "kind": "extra",
+        "lastWord": "get",
+        "paragraphIds": [
+          "p-000001"
+        ],
+        "position": {
+          "itemGuid": "{ITEM-A}",
+          "itemIndex": 0,
+          "sourceTime": 6.3
+        },
+        "repeatOf": "beginning to get",
+        "text": "sorry beginning to get",
+        "tokenCount": 4
+      }
+    ],
+    "items": [
+      {
+        "index": 0,
+        "itemGuid": "{ITEM-A}",
+        "language": "en",
+        "model": "small",
+        "playedSeconds": 10,
+        "status": "analyzed",
+        "wordCount": 5,
+        "words": "reused"
+      },
+      {
+        "index": 1,
+        "itemGuid": "{ITEM-B}",
+        "language": "en",
+        "model": "small",
+        "playedSeconds": 6,
+        "status": "analyzed",
+        "wordCount": 2,
+        "words": "reused"
+      }
+    ],
+    "longestMissingRun": 0,
+    "missingTokens": 0,
+    "model": "small",
+    "paragraphs": [
+      {
+        "id": "p-000001",
+        "longestMissingRun": 0,
+        "present": 7,
+        "tokens": 7
+      }
+    ],
+    "playedSeconds": 16,
+    "presentTokens": 7,
+    "regions": [],
+    "unfinished": {
+      "end": 0,
+      "start": 0
+    }
+  },
+  "state": "current"
+}

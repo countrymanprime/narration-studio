@@ -437,6 +437,70 @@ def align_tokens(aligned: AlignedChapter, params: AlignmentParams | None = None)
     return tuple(tokens), tuple(extras)
 
 
+MIN_REPEAT_TOKENS = 3
+"""The fewest chapter words an extra run must say again to be a repeat, unless they are a whole line:
+fewer can be a stutter or an echo ("the the")."""
+
+
+@dataclass(frozen=True)
+class Repeat:
+    """An extra run that says chapter text again, a second take of it (issue #2251 item 30): its words
+    `[first, last)` are the chapter's tokens `[start, end)`, the ones heard just before or just after it.
+    The rest of the run, if any, is an aside ("sorry", "once more")."""
+
+    start: int
+    end: int
+    first: int
+    last: int
+
+
+def repeat_of(run: Sequence[str], doc: Sequence[str], line_of: Sequence[object], before: int | None, after: int | None) -> Repeat | None:
+    """Whether a run of extra words says the chapter text beside it again, and which part of it.
+
+    `before` is the doc token heard just before the run and `after` the one heard just after it (None
+    at either end). The run is a retake when it ends with the words up to `before` (an aside may come
+    first), or a restart when it begins with the words from `after` (an aside may follow). The words
+    said again must be at least `MIN_REPEAT_TOKENS`, or a whole line (`line_of` names each doc token's
+    line). The longer match wins; a tie is a retake."""
+    best: Repeat | None = None
+    if before is not None:
+        k = 0
+        while k < len(run) and k <= before and run[len(run) - 1 - k] == doc[before - k]:
+            k += 1
+        if k:
+            best = Repeat(start=before + 1 - k, end=before + 1, first=len(run) - k, last=len(run))
+    if after is not None:
+        k = 0
+        while k < len(run) and after + k < len(doc) and run[k] == doc[after + k]:
+            k += 1
+        if k and (best is None or k > best.end - best.start):
+            best = Repeat(start=after, end=after + k, first=0, last=k)
+    if best is None:
+        return None
+    if best.end - best.start >= MIN_REPEAT_TOKENS or _whole_line(line_of, best.start, best.end):
+        return best
+    return None
+
+
+def _whole_line(line_of: Sequence[object], start: int, end: int) -> bool:
+    line = line_of[start]
+    if any(line_of[i] != line for i in range(start, end)):
+        return False
+    return (start == 0 or line_of[start - 1] != line) and (end == len(line_of) or line_of[end] != line)
+
+
+def repeats(aligned: AlignedChapter, tokens: Sequence[AlignedToken], extras: Sequence[tuple[int, int]]) -> tuple[Repeat | None, ...]:
+    """For each extra run of `align_tokens`, the `Repeat` it is, or None when it is not chapter text said again."""
+    heard = sorted((token.audio, i) for i, token in enumerate(tokens) if token.audio is not None)
+    out: list[Repeat | None] = []
+    for start, end in extras:
+        before = [i for audio, i in heard if audio < start]
+        after = [i for audio, i in heard if audio >= end]
+        run = aligned.audio_tokens[start:end]
+        out.append(repeat_of(run, aligned.doc_tokens, aligned.token_paragraph, before[-1] if before else None, after[0] if after else None))
+    return tuple(out)
+
+
 def compute_coverage(aligned: AlignedChapter, params: AlignmentParams | None = None) -> ChapterCoverage:
     """Present, missing and extra tokens, per-paragraph figures and regions for one alignment."""
     params = params or AlignmentParams()
