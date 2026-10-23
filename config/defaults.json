@@ -63,6 +63,7 @@
     "capability.render_with_fx": "auto",
     "capability.master_chain_read": "auto",
     "capability.track_select": "auto",
+    "capability.track_create": "auto",
     "capability.macro_render": "auto",
     "capability.cut_range": "auto",
     "capability.fx_range": "auto",

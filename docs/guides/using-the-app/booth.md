@@ -76,8 +76,8 @@ A chip above the footer names each problem the Booth can fix and opens its dialo
     creating it reminds you.
 
   Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording, not connected, or the Experimental
-  actions are off), the dialog says why and links nothing. Audacity cannot add a track from this app: the button is off and the
-  dialog says to add the track in Audacity and link it.
+  actions are off), the dialog says why and links nothing. Audacity 3 adds the track too (an Experimental action, like REAPER's);
+  Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
 
   ![Booth - the Chapter 1 is not linked to a track dialog, with the project's tracks, Link track, Create a new track and Check again](../../images/ui/booth-record-unlinked.webp)
 

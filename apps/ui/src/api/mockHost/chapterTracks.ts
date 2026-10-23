@@ -194,7 +194,7 @@ export function createChapterTracksMock(
       const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
       const title = chapter?.title ?? CREDITS_CHECK_TITLE[chapterId];
       if (!title) throw new Error('that chapter is not part of the current manuscript');
-      const refusal = mockCreateRefusal(initial.reaperState, title);
+      const refusal = mockCreateRefusal(initial.reaperState);
       if (refusal) return refusal;
       s.createdTracks += 1;
       const track = {
@@ -368,7 +368,7 @@ function mockSyncActivity(): ChapterSyncBatch[] {
 }
 
 /** ChapterTrackCreate's refusals for the `?mockReaperState=` seeds that stop it, in the host's words; null when the DAW adds the track. */
-function mockCreateRefusal(seed: MockApiSeed['reaperState'], title: string): ChapterTrackCreateResult | null {
+function mockCreateRefusal(seed: MockApiSeed['reaperState']): ChapterTrackCreateResult | null {
   if (seed === 'unavailable')
     return {
       outcome: 'refused',
@@ -381,7 +381,6 @@ function mockCreateRefusal(seed: MockApiSeed['reaperState'], title: string): Cha
       reason: 'experimental_off',
       message: 'Adding tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.',
     };
-  if (seed === 'recording_elsewhere')
-    return { outcome: 'refused', reason: 'recording', message: `REAPER is recording. Stop the take, then create the track for "${title}".` };
+  if (seed === 'recording_elsewhere') return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' };
   return null;
 }

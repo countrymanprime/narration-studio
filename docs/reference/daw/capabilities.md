@@ -151,6 +151,16 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Audacity 3.x:** Experimental. Re-reads the tracks, finds the one whose id matches and selects only it (`SelectTracks`, Mode Set). A track that is gone is a stale error and the selection is left as it was.
 - **Checked:** harness (`track_select_test.lua`); expected result is row A11; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)).
 
+### `track_create`
+
+- **Intent:** add a track for a chapter that has none, so the chapter can be linked to it and recorded.
+- **Role:** `TrackCreator`, synchronous.
+- **Result:** one new track at the end of the project's track list, named as asked (trimmed), with the engine's id for it, its name and its 0-based index. No other track changes and the project is not saved. One undo point. Each call adds a track: it is not idempotent. A blank name is refused before anything is sent, and the engine refuses while it records, so no track appears in the middle of a take. The host links the chapter to the id it answers (`ChapterTrackCreate`).
+- **REAPER:** `track_create` (`TRACK_CREATED`), Experimental, in `narration_track_create.lua`: `InsertTrackAtIndex(CountTracks(0), false)` and `P_NAME` in one undo block "Narration Studio: add track". A line break or tab inside the name becomes a space. Refused with `ERROR` while `GetPlayState` has the recording bit.
+- **Audacity 3.x:** Experimental. `NewMonoTrack` (`NewStereoTrack` when the last audio track is stereo), then `SetTrackStatus` with the name, which selects the new track alone ([Audacity 3.x](audacity-3.md)); one undo step, since `NewMonoTrack` adds one and `SetTrackStatus` none. The id is the one `track_select` and `track_state` find it by (`audacity:<name>`, `#n` when the name repeats). A name the pipe cannot carry (a double quote, a backslash, a control character) is refused before any track is added. A recording this app started is refused; one started in Audacity's own window cannot be seen, and the first command ends it, as for every Audacity role.
+- **Audacity 4.x:** not available: no scripting interface ([Audacity 4.x](audacity-4.md)).
+- **Checked:** harness (`track_create_test.lua`) and the Audacity adapter's fake pipe (`trackcreate_test.go`); expected result is row C19; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-utils/issues/510)). Not run in Audacity.
+
 ### `follow_position`
 
 - **Intent:** know which track the narrator is on and where their cursor is, and take them to a track at its end or at a time, so the Booth opens where the narrator is and moves the engine to the chapter and word it was opened at.

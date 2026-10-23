@@ -202,10 +202,7 @@ describe('the-footer-never-sends-the-narrator-to-the-audio-engine-panel', () => 
     expect(screen.queryByRole('button', { name: 'Open the audio engine panel' })).toBeNull();
   });
 
-  it('shows no panel button when there is no sentence, even if asked', () => {
-    footer(api(), { whyFixInEnginePanel: true });
-    expect(screen.queryByRole('button', { name: 'Open the audio engine panel' })).toBeNull();
-  });
+  // Removed 'shows no panel button when there is no sentence, even if asked': the footer has no way to ask for the panel any more.
 });
 
 describe('with-a-daw-levels-names-the-microphone-the-booth-listens-to', () => {
