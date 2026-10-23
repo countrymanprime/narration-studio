@@ -26,7 +26,7 @@ REAPER open on a different project, not when you start the app on its own.
 
 **New project** asks for a name. The line under the field lists what a name cannot be: any of `< > : " / \ | ? *`, ending with a period,
 or a reserved Windows name such as CON, NUL or COM1. **Location** shows the folder the project goes in: the default projects folder
-(`NarrationStudio` in your user folder) until you pick another with **Change location…**.
+(<!-- brand:identity.defaultProjectsFolder -->NarrationStudio<!-- /brand --> in your user folder) until you pick another with **Change location…**.
 
 ![New Project - the name rules, and the location line showing the default projects folder with Change location](../../images/ui/project-new-dialog.webp)
 
@@ -35,7 +35,7 @@ A new project opens on [Script](script.md), which says it has no manuscript yet.
 
 ## If you record in Audacity
 
-The installer adds a second Start Menu entry, **Narration Studio for Audacity**. Pin it next to Audacity's own shortcut. It opens
+The installer adds a second Start Menu entry, **<!-- brand:name -->Narration Studio<!-- /brand --> for Audacity**. Pin it next to Audacity's own shortcut. It opens
 the app in Audacity mode on the picker above, and the project you pick or create opens as an Audacity project. Audacity cannot
 start other programs, so there is no Audacity macro or plug-in to install.
 

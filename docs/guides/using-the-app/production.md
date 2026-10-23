@@ -291,7 +291,7 @@ ticked when the dialog opens. Ticking or unticking one rebuilds the preview, and
 ticked: a section you leave out is missing from both the HTML page and the JSON file. The JSON file records which sections were
 ticked, so a reader can tell a section left out from one that is empty.
 
-**Export** writes the HTML page and the JSON file into this project's `narration-studio/production/reports` folder, under a name built
+**Export** writes the HTML page and the JSON file into this project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/production/reports folder, under a name built
 from when you exported it, and an export never overwrites an earlier one.
 
 The contracted amount and effective rate are left out unless you tick their box: a

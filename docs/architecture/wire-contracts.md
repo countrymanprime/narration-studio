@@ -2,6 +2,8 @@
 
 **Status: implemented.** Every value that crosses into the UI, and every file the host reads back, is checked at that line, and a wrong shape fails loudly with a specific message. The decision is Wire contracts: how data is checked where it crosses a boundary (Zod 4 behind `parseWire`).
 
+`<data>` stands for values in `config/brand.json` ([Product and technical names](codebase-map.md#product-and-technical-names)).
+
 ## The boundaries and what checks each
 
 | Boundary | Checked by | Where |
@@ -48,7 +50,7 @@ The visual suite has states for each: `startup / invalid-payload`, `home / live-
 
 ## The host log
 
-`SystemReportDiagnostic` writes to `%APPDATA%\narration-studio\logs\host.log` (`src/studio/desktop/internal/hostlog`): one line per entry (time, a slug kind, a message of at most 2,000 characters with control characters removed), 1 MiB with one backup. The client reports each `WireError` as kind `wire_invalid`; the host reports persisted-file problems (`persisted_corrupt`, `persisted_unreadable`, `settings_value_ignored`), REAPER events it could not read (`reaper_event_invalid`), progress lines it ignored (`progress_line_ignored`) and teleprompter lines that were not events (`sidecar_line_dropped`). It records where, never what. Nothing is uploaded ([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)).
+`SystemReportDiagnostic` writes to `%APPDATA%\<data>\logs\host.log` (`src/studio/desktop/internal/hostlog`): one line per entry (time, a slug kind, a message of at most 2,000 characters with control characters removed), 1 MiB with one backup. The client reports each `WireError` as kind `wire_invalid`; the host reports persisted-file problems (`persisted_corrupt`, `persisted_unreadable`, `settings_value_ignored`), REAPER events it could not read (`reaper_event_invalid`), progress lines it ignored (`progress_line_ignored`) and teleprompter lines that were not events (`sidecar_line_dropped`). It records where, never what. Nothing is uploaded ([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)).
 
 ## Persisted files (`src/studio/desktop/internal/persist`)
 

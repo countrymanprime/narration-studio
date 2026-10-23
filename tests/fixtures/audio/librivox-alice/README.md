@@ -6,6 +6,8 @@ with known defects. The recordings are downloaded from archive.org when they are
 paragraph and sentence sits in them and the recipes for each test state
 .
 
+`<data>` stands for values in `config/brand.json` ([Product and technical names](../../../../docs/architecture/codebase-map.md#product-and-technical-names)).
+
 ## What is here
 
 | Path | What |
@@ -35,7 +37,7 @@ uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/au
 ```
 
 The first run downloads the seven recordings (about 45 MB) into `NARRATION_LIBRIVOX_DIR`, or
-`~/.cache/narration-studio/librivox-alice` when it is unset, and keeps each only if its SHA-256 matches `sources.json`.
+`~/.cache/<data>/librivox-alice` when it is unset, and keeps each only if its SHA-256 matches `sources.json`.
 After that a build takes about 10 seconds. `build.py fetch` only downloads. `--out` must be outside the repository
 (about 620 MB of WAV). Build one corpus with `coverage`, `characters` or `signal` in place of `all`. The build is
 deterministic: the same recordings give byte-identical files.

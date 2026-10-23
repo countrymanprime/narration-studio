@@ -7,6 +7,8 @@ script text against what was said. The workflow is documented in
 [Transcript Compare](../../../../docs/utilities/transcript-compare.md) and the
 [Proof guide](../../../../docs/guides/using-the-app/proof.md).
 
+`<app>` and `<data>` stand for values in `config/brand.json` ([Product and technical names](../../../../docs/architecture/codebase-map.md#product-and-technical-names)).
+
 ## Layout
 
 - `core/` — the DAW-agnostic Python backend (`compare.py`), plus
@@ -58,8 +60,8 @@ script text against what was said. The workflow is documented in
 ## Project files
 
 Settings are layered: a repo-wide default, a per-user **Global** value in
-`%APPDATA%\narration-studio\global-settings.json`, and an optional **This Project** override in
-`<project folder>\narration-studio\settings.json`. Both files are plain JSON, not REAPER ExtState.
+`%APPDATA%\<data>\global-settings.json`, and an optional **This Project** override in
+`<project folder>\<app>\settings.json`. Both files are plain JSON, not REAPER ExtState.
 
 Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 

@@ -1,4 +1,4 @@
-# narration-studio
+# <!-- brand:name -->Narration Studio<!-- /brand -->
 
 A group of utilities and plugins to assist with audio narration workflows. Each tool's business
 logic is DAW-agnostic; a thin per-DAW driver wires it into a specific host.
@@ -31,11 +31,11 @@ The public website (a landing page, the condensed guides, a live demo of the app
 ## Layout
 
 ```text
-narration-studio/
+./
   src/
     studio/                    the app and its integration points
       desktop/                 Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
-                               cmd/ (narration-studio, seed-assets, manuscript-import, spike-globalhotkeys, spike-storage), build/ (icons, the Windows setup program definition)
+                               cmd/ (app, seed-assets, manuscript-import, spike-globalhotkeys, spike-storage), build/ (icons, the Windows setup program definition)
       ui/                      React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
       sidecars/                Python programs frozen into the app and run on demand
         manuscript-guide/          core/ CLI backend, tests/
@@ -63,8 +63,8 @@ The layout and its test rule are recorded in
 
 ## Supported DAWs
 
-- **Reaper** — supported. Load `src/studio/integrations/reaper/NarrationStudio_Launcher.lua` as
-  the one action; it opens the centered Narration Studio workspace with every tool (Proof,
+- **Reaper** — supported. Load the launcher script, `src/studio/integrations/reaper/<launcher script>` (the file named by
+  `identity.reaperLauncher` in `config/brand.json`), as the one action; it opens the centered app workspace with every tool (Proof,
   Story Bible, Teleprompter, Tracks and the manuscript reader) and their global/project settings.
 - **Audacity 3.x** — adapter built from the published `mod-script-pipe` spec and tested against a fake pipe server; the
   owner's check in a running Audacity is pending ([verification pass](docs/operations/audacity-verification-pass.md)). The
@@ -83,29 +83,29 @@ with someone testing on those systems, non-Windows builds can come back.
 
 The supported way to get the app is a GitHub release. From the [releases page](https://github.com/countrymanprime/narration-studio/releases):
 
-1. Download `narration-studio-<version>-windows-x64-setup.exe`, for example `narration-studio-0.2.7-windows-x64-setup.exe` (and,
+1. Download the setup program, the file whose name ends in `-windows-x64-setup.exe`, for example <!-- brand:identity.releaseAssetPrefix -->narration-studio<!-- /brand -->-0.2.7-windows-x64-setup.exe (and,
    to check it, the `.sha256` file of the same name). Every file on a release carries its version in its name.
 2. Run it. It installs for your user account only, so it asks for no administrator rights, puts the program in
-   `%LOCALAPPDATA%\Programs\Narration Studio`, adds a Start Menu entry and, if you leave it ticked, a desktop shortcut, and
+   %LOCALAPPDATA%\Programs\\<!-- brand:identity.installFolder -->Narration Studio<!-- /brand -->, adds a Start Menu entry and, if you leave it ticked, a desktop shortcut, and
    installs the Microsoft WebView2 runtime only if your computer does not have it yet. A second Start Menu entry,
-   **Narration Studio for Audacity**, opens the app ready for a project you record in Audacity 3.x.
+   **<!-- brand:name -->Narration Studio<!-- /brand --> for Audacity**, opens the app ready for a project you record in Audacity 3.x.
 3. **The release is unsigned**, so Windows SmartScreen may say it "prevented an unrecognized app from starting". Choose
    **More info**, then **Run anyway**. The warning is about the missing signature, not about anything found in the file. To
    check the file yourself before you run it:
-   - the checksum, which only detects a damaged download: `(Get-FileHash .\narration-studio-0.2.7-windows-x64-setup.exe).Hash` in
-     PowerShell must equal the hash in the `.sha256` file;
+   - the checksum, which only detects a damaged download: `(Get-FileHash .\<setup file>).Hash` in
+     PowerShell, `<setup file>` being the file you downloaded, must equal the hash in the `.sha256` file;
    - where it was built, with the [GitHub CLI](https://cli.github.com):
-     `gh attestation verify narration-studio-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio`. Success names the
+     `gh attestation verify <setup file> --repo countrymanprime/narration-studio`. Success names the
      workflow, commit and run that built it (see [CI and releases](docs/operations/ci-and-releases.md#build-provenance)).
-4. Start **Narration Studio** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
+4. Start **<!-- brand:name -->Narration Studio<!-- /brand -->** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
 
 The app updates itself from these releases after you click (Settings > App & updates); it never installs an update on its
-own. That works because the install folder is yours to write to. `narration-studio-<version>-windows-x64.zip` on the release is
+own. That works because the install folder is yours to write to. The `.zip` file on the release is
 the update package the app fetches, not something to run by hand. A copy installed before the version was in the file names
 cannot find the new names: install the next release by hand once, and it updates itself from then on.
 
 **Uninstall** from Settings > Apps > Installed apps. That removes the program and its shortcuts and **leaves your settings**
-(`%APPDATA%\narration-studio`), **the voices and models you downloaded** (`%LOCALAPPDATA%\narration-studio`, also where the
+(%APPDATA%\\<!-- brand:identity.dataFolder -->narration-studio<!-- /brand -->), **the voices and models you downloaded** (%LOCALAPPDATA%\\<!-- brand:identity.dataFolder -->narration-studio<!-- /brand -->, also where the
 update staging lives) **and everything in your project folders** alone; the uninstall page says so. Delete those folders by hand
 if you want them gone.
 
@@ -146,12 +146,12 @@ This is the current **developer-checkout** workflow, not the intended release
 installation path. Compiled GitHub releases package their own sidecars and
 installer resources, and never call this command.
 
-A compiled release is one program, `narration-studio` (`narration-studio.exe` on Windows), that knows its own version
+A compiled release is one program, `<executable>` (`<executable>.exe` on Windows; `identity.executable` in `config/brand.json`), that knows its own version
 (Settings > App & updates). Once a day at most it asks GitHub whether a newer release of this repository exists (switch
 it off there), and on Windows, after your confirmed click, it downloads that release, checks it and replaces itself; it
 never downloads or installs anything on its own. See [in-app update](docs/architecture/in-app-update.md).
 
-A built program can check itself without opening a window: `narration-studio --smoke` unpacks its bundled resources, starts
+A built program can check itself without opening a window: `<executable> --smoke` unpacks its bundled resources, starts
 each frozen sidecar, checks the Story Bible sidecar's dictionary and speech data and the approved asset catalogs, and exits
 non-zero on any failure. CI runs it on the Windows build before packaging; see
 [CI and releases](docs/operations/ci-and-releases.md#the-packaged-app-smoke-test).
@@ -185,7 +185,7 @@ render, adding a take, and reporting the open project's state. See
 
 The tools keep their own DAW-agnostic Python backends. What they share:
 
-- **`<project folder>\narration-studio\manuscript\manuscript.json`** — the one intentional,
+- **`<project folder>\<app>\manuscript\manuscript.json`** (`<app>` is the app's folder in a project, `identity.projectFolder` in `config/brand.json`) — the one intentional,
   project-owned data contract between the tools. DOCX, Markdown, plain-text and EPUB files are
   imported once; their preserved source copies are provenance only and are never reparsed.
   Existing v1 PDF-derived canonical data remains readable, but new PDF import is fail-closed
@@ -210,7 +210,7 @@ committed `uv.lock` by `pnpm run bootstrap`.
 
 ## License
 
-Narration Studio is free software, licensed under the
+The app is free software, licensed under the
 [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later). It is built to
 help narrators for free and to stay that way: anyone who distributes it, or runs a modified
 copy as a network service, must offer the corresponding source under the same terms. See

@@ -4,6 +4,8 @@ Real manuscript content for exercising manuscript import (docx/markdown/pdf/txt/
 end-to-end, instead of synthetic one-off files. Not runtime dependencies -
 used from tests and for manual/ad-hoc verification.
 
+`<data>` stands for values in `config/brand.json` ([Product and technical names](../../docs/architecture/codebase-map.md#product-and-technical-names)).
+
 ## alice.epub
 
 An EPUB 3 book (with an EPUB 2 `toc.ncx` alongside its `nav.xhtml`, as many real
@@ -50,8 +52,8 @@ audio. Regenerate with the app's own installed voice and model:
 
 ```powershell
 uv run python src/studio/sidecars/manuscript-teleprompter/spikes/record_locate_tails.py `
-  --piper-model "$env:LOCALAPPDATA/narration-studio/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx" `
-  --model-dir "$env:LOCALAPPDATA/narration-studio/assets/whisper/faster-whisper/tiny/<commit>"
+  --piper-model "$env:LOCALAPPDATA/<data>/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx" `
+  --model-dir "$env:LOCALAPPDATA/<data>/assets/whisper/faster-whisper/tiny/<commit>"
 ```
 
 ## alice.txt

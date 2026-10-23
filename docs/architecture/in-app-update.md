@@ -2,6 +2,8 @@
 
 **Status: implemented on Windows.** The app knows its own version, looks for a newer release on this repository's GitHub releases, and, after one confirmed click, downloads it, checks it and replaces itself. Windows is the only platform with releases ([Supported platforms](../../README.md#supported-platforms)); anywhere else the app says it does not update itself. Verifying the release's build attestation inside the app is not built: it is [#199](https://github.com/countrymanprime/narration-studio/issues/199). The decisions are [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) (the source, channel, startup check and integrity level), [The version inside the program](../operations/ci-and-releases.md#the-version-inside-the-program) (the program name and the stamped version) and The install and the rollback (the swap and the rollback). Nothing is downloaded or replaced without the narrator's two confirmed clicks; the only request the app makes on its own is the release-list check below. What the narrator sees and clicks is in [the user guide](../guides/using-the-app/settings.md#about-and-updates).
 
+`<app>`, `<data>`, `<executable>`, `<asset prefix>` and `<install folder>` stand for values in `config/brand.json` ([Product and technical names](codebase-map.md#product-and-technical-names)).
+
 ## The whole update, step by step
 
 The check, the two clicks, the download, the swap and the rollback. The notes name the threat each control answers, as rows of the [threat model](threat-model.md#2-the-apps-own-update-securitymd-bullet-3): **spoofing** (2a), **tampering** (2b, 2c), **downgrade** (2d), **elevation** (2e) and the **denial of service** of a broken update (2f).
@@ -16,7 +18,7 @@ sequenceDiagram
   participant GH as GitHub: api.github.com, github.com, release-asset hosts
   participant FS as install folder and user cache: update/
   H->>U: Check, 12 s after the window, at most once a day
-  U->>GH: GET /repos/countrymanprime/narration-studio/releases (If-None-Match)
+  U->>GH: GET /repos/{owner}/{repo}/releases (If-None-Match)
   GH-->>U: the release list, or 304
   Note over U: spoofing 2a: repository compiled in, body capped, tags and assets validated, URLs built here
   U->>FS: check.json, re-validated on every read
@@ -28,7 +30,7 @@ sequenceDiagram
   H->>U: Stage(release)
   U->>GH: GET the .sha256, then the zip, HTTPS to GitHub hosts only, at most 5 redirects
   Note over U: tampering 2b: declared size, SHA-256 against the .sha256 and GitHub's digest
-  U->>FS: staged folder, one entry narration-studio.exe, staged.json
+  U->>FS: staged folder, one entry, the program, staged.json
   UI->>H: UpdateJobState, polling for real progress
   N->>UI: Install and restart, confirmed again
   UI->>H: UpdateInstall(jobId)
@@ -48,30 +50,30 @@ sequenceDiagram
 
 ## The version
 
-The root `package.json` version is the single source ([CI and releases](../operations/ci-and-releases.md#the-version-inside-the-program)); `scripts/release/wails-build.mjs` stamps it into `main.version` with `-ldflags`. It is bare semver (`0.2.7`): a release candidate and its promotion are the same bytes and report the same version. `Bootstrap.version` carries it and `narration-studio --version` prints it and exits without opening a window (the update flow asks a downloaded program this before it swaps it in). A build with no stamp (`go run`, `go test`, `wails dev`) is `0.0.0-dev` and is never offered an update.
+The root `package.json` version is the single source ([CI and releases](../operations/ci-and-releases.md#the-version-inside-the-program)); `scripts/release/wails-build.mjs` stamps it into `main.version` with `-ldflags`. It is bare semver (`0.2.7`): a release candidate and its promotion are the same bytes and report the same version. `Bootstrap.version` carries it and `<executable> --version` prints it and exits without opening a window (the update flow asks a downloaded program this before it swaps it in). A build with no stamp (`go run`, `go test`, `wails dev`) is `0.0.0-dev` and is never offered an update.
 
 ## Where it looks: the release list is a trust boundary
 
-`internal/update.Checker` asks `GET https://api.github.com/repos/countrymanprime/narration-studio/releases?per_page=30`, unauthenticated, with the repository compiled in (`update.Repository`): no setting, argument or response can point it elsewhere. It sends `Accept`, `X-GitHub-Api-Version`, `If-None-Match` and a `User-Agent` of `narration-studio/<version>`, and nothing about the narrator, the project or the machine.
+`internal/update.Checker` asks `GET https://api.github.com/repos/<owner>/<repository>/releases?per_page=30`, unauthenticated, with the repository compiled in (`update.Repository`): no setting, argument or response can point it elsewhere. It sends `Accept`, `X-GitHub-Api-Version`, `If-None-Match` and a `User-Agent` of `<app>/<version>`, and nothing about the narrator, the project or the machine.
 
 | When | What |
 | --- | --- |
-| Automatic | 12 s after the window is up, at most once a day (2 h after a failure), silent on any failure, off with `Updates.check_on_startup` (default on). The answer and its `ETag` are cached in `%LOCALAPPDATA%\narration-studio\update\check.json`, so an unchanged list is a `304` that costs nothing against the 60 requests an hour limit. |
+| Automatic | 12 s after the window is up, at most once a day (2 h after a failure), silent on any failure, off with `Updates.check_on_startup` (default on). The answer and its `ETag` are cached in `%LOCALAPPDATA%\<data>\update\check.json`, so an unchanged list is a `304` that costs nothing against the 60 requests an hour limit. |
 | Explicit | **Check now** (disabled while settings are unsaved: a check uses the saved ones). A rate-limit answer is remembered until it resets and holds for a click too. |
 | Never | On a platform with no release (only `windows/amd64` has one, [Supported platforms](../../README.md#supported-platforms)), or for a development build. |
 
-The response is validated in Go before anything uses it (`internal/update/manifest.go`, fuzzed and tested with hostile lists): a 4 MiB body cap, at most 60 entries read, a tag accepted only as `v<MAJOR>.<MINOR>.<PATCH>` or the same with `-rc` (each part at most six digits) whose `prerelease` flag agrees with it, exactly one asset with the name built from the platform and the tag's bare version (`narration-studio-<version>-windows-x64.zip`, [CI and releases](../operations/ci-and-releases.md)) and one `.sha256` of that name, plausible sizes (an asset up to 2 GiB, a checksum up to 4 KiB), a well-formed digest. A release that fails is dropped with a reason that names the problem and never the value; the others are kept. Every URL is **built** from the compiled-in repository, the tag and the known name (`https://github.com/<repo>/releases/download/<tag>/<name>`); nothing the list says about where to download is used. The cache file is re-validated like a fresh answer on every read.
+The response is validated in Go before anything uses it (`internal/update/manifest.go`, fuzzed and tested with hostile lists): a 4 MiB body cap, at most 60 entries read, a tag accepted only as `v<MAJOR>.<MINOR>.<PATCH>` or the same with `-rc` (each part at most six digits) whose `prerelease` flag agrees with it, exactly one asset with the name built from the platform and the tag's bare version (`<asset prefix>-<version>-windows-x64.zip`, [CI and releases](../operations/ci-and-releases.md)) and one `.sha256` of that name, plausible sizes (an asset up to 2 GiB, a checksum up to 4 KiB), a well-formed digest. A release that fails is dropped with a reason that names the problem and never the value; the others are kept. Every URL is **built** from the compiled-in repository, the tag and the known name (`https://github.com/<repo>/releases/download/<tag>/<name>`); nothing the list says about where to download is used. The cache file is re-validated like a fresh answer on every read.
 
 A release is an update only if its bare version is strictly greater than the running one (an RC and its promotion tie, so a narrator on the RC is not offered the promotion). The channel `candidates` (the default) or `stable` (promoted releases only) filters the list; `Updates.channel` is a global setting and a project's own file cannot change it.
 
 ## What is downloaded and how it is checked
 
-`internal/update.Stager` stages an update in `%LOCALAPPDATA%\narration-studio\update\staged\app-update\windows-x64\<version>\`, never over the running program and never in a project:
+`internal/update.Stager` stages an update in `%LOCALAPPDATA%\<data>\update\staged\app-update\windows-x64\<version>\`, never over the running program and never in a project:
 
 1. The release's `.sha256` (at most 4 KiB) is read first. It must be `sha256sum` output that names this release's zip, and must agree with the digest GitHub lists for the file when the release lists one.
 2. The disk is checked before anything is written (4 times the zip plus 64 MB) and again with the exact unpacked size.
 3. The zip is fetched through `assets.InstallWith` with real byte progress, only from GitHub over HTTPS (`github.com` and the release-asset hosts, at most 5 redirects), and read no further than its declared size, into a staging folder that is renamed into place only after the size and SHA-256 match.
-4. Exactly one entry named `narration-studio.exe` is unpacked (a regular file, non-empty, at most 1.5 GiB, copied in one bounded pass and renamed only when whole); any other entry, name, path, link or size is refused. A record (`staged.json`) keeps the program's size and SHA-256 and the zip checksum it came from; a staged program is reused only if the release still publishes that checksum.
+4. Exactly one entry named `<executable>.exe` is unpacked (a regular file, non-empty, at most 1.5 GiB, copied in one bounded pass and renamed only when whole); any other entry, name, path, link or size is refused. A record (`staged.json`) keeps the program's size and SHA-256 and the zip checksum it came from; a staged program is reused only if the release still publishes that checksum.
 
 **What this proves and what it does not.** TLS to GitHub, a checksum from the same release, a strictly newer version and names fixed at compile time. The `.sha256` beside a file only detects a damaged or partial download: it is not evidence of where the file came from. The build attestation is ([CI and releases](../operations/ci-and-releases.md#build-provenance)); a person can run `gh attestation verify` on the download, and verifying it inside the app is the follow-up (#199: `sigstore-go` was weighed at about 370 modules and 16 MB more binary and not adopted). The first stable release is unsigned (D7) and SmartScreen or antivirus software may object to it.
 
@@ -81,8 +83,8 @@ A release is an update only if its bare version is strictly greater than the run
 
 1. The staged program is copied beside the running one as `<name>.new` while it is hashed, and must match the size and SHA-256 it was staged with.
 2. The copy is run once with `--version` and must print the version the release names.
-3. `%LOCALAPPDATA%\narration-studio\update\pending.json` records `{from, to, executable, attempts}`.
-4. The running program is renamed to `<name>.old` (Windows allows renaming a running program, not overwriting it) and the copy takes its name and path, so the REAPER launcher's recorded path (`narration-studio-app-path.txt`, rewritten on every start from `os.Executable()`) stays valid.
+3. `%LOCALAPPDATA%\<data>\update\pending.json` records `{from, to, executable, attempts}`.
+4. The running program is renamed to `<name>.old` (Windows allows renaming a running program, not overwriting it) and the copy takes its name and path, so the REAPER launcher's recorded path (`<executable>-app-path.txt`, rewritten on every start from `os.Executable()`) stays valid.
 5. The copy is started detached, outside any job object, with `--relaunch-after <pid>` and the original arguments (`--project-folder`, `--session-dir`, `--daw`, and the rest); the old process closes itself a moment after `UpdateInstall` answers.
 
 `main` runs `update.Startup` before the window and the single-instance lock: it strips `--relaunch-after`, waits up to 30 s for that process to exit, and looks at the record. The first `Bootstrap` the new build serves is the confirmation (`update.Confirm`): it removes `<name>.old`, `<name>.failed` and the record. A launch that finds the record for its own version already on its second start, with the first start's process gone (it never confirmed), restores `.old`, keeps the failed build as `.failed`, starts the old program and exits; a launch that finds the first start's process still running is a second instance that will forward and exit, and changes nothing. Every rename is retried for about a second and a half (antivirus holds a new program open for a moment), the busy rule is checked again just before the swap, and only one install can run at a time. A failure at any step before the start puts everything back; if putting the old program back is impossible the record and `.old` are kept and the error names the file to rename. The record's `executable` is only compared with the running program, never used as a path, so a planted record cannot make the app touch another file.
@@ -95,9 +97,9 @@ A release is an update only if its bare version is strictly greater than the run
 
 ### Installed copies and the installer
 
-A first install comes from the Windows setup program (`narration-studio-<version>-windows-x64-setup.exe`), which is **per user** on purpose ([The Windows setup program](../operations/ci-and-releases.md#the-windows-setup-program)): it installs to `%LOCALAPPDATA%\Programs\Narration Studio`, a folder the narrator can write to, so the check above (`WritableDir`) passes and the update swaps the program in place, exactly as for an unpacked zip. The setup program is never what the updater downloads: it fetches `narration-studio-<version>-windows-x64.zip` and its `.sha256` by exact name, built from the release's tag, and ignores every other asset of a release. A per-machine copy (a zip unpacked under Program Files, or a folder an administrator owns) fails the writable check and gets `ErrNotWritable`'s answer with the download; the narrator updates it by running the new setup program or replacing the file. An update leaves `<name>.new`, `<name>.old` and `<name>.failed` beside the program only while it runs or after a rollback, and the uninstaller removes those too, so a rolled-back copy does not keep the install folder alive. Uninstalling does not touch `%LOCALAPPDATA%\narration-studio\update` (staged downloads and the pending record): that folder is part of the asset cache the uninstaller leaves.
+A first install comes from the Windows setup program (`<asset prefix>-<version>-windows-x64-setup.exe`), which is **per user** on purpose ([The Windows setup program](../operations/ci-and-releases.md#the-windows-setup-program)): it installs to `%LOCALAPPDATA%\Programs\<install folder>`, a folder the narrator can write to, so the check above (`WritableDir`) passes and the update swaps the program in place, exactly as for an unpacked zip. The setup program is never what the updater downloads: it fetches `<asset prefix>-<version>-windows-x64.zip` and its `.sha256` by exact name, built from the release's tag, and ignores every other asset of a release. A per-machine copy (a zip unpacked under Program Files, or a folder an administrator owns) fails the writable check and gets `ErrNotWritable`'s answer with the download; the narrator updates it by running the new setup program or replacing the file. An update leaves `<name>.new`, `<name>.old` and `<name>.failed` beside the program only while it runs or after a rollback, and the uninstaller removes those too, so a rolled-back copy does not keep the install folder alive. Uninstalling does not touch `%LOCALAPPDATA%\<data>\update` (staged downloads and the pending record): that folder is part of the asset cache the uninstaller leaves.
 
-**If the program is missing after a crash between the two renames** (a power cut, a killed process), rename `narration-studio.exe.old` back to `narration-studio.exe`.
+**If the program is missing after a crash between the two renames** (a power cut, a killed process), rename `<executable>.exe.old` back to `<executable>.exe`.
 
 ## Code map
 
@@ -116,12 +118,12 @@ Bindings: `UpdateStatus` (from the cache, no request), `UpdateCheck`, `UpdateOpe
 
 - Unit and property tests for versions and tags, table and fuzz tests for the release list and the relaunch arguments (seed corpora run in the gate, [Property tests and fuzzing](../operations/verification-tooling.md#property-tests-and-fuzzing)), `httptest` fake GitHub servers for every failure of the check and the download.
 - The install tests run **real programs**: `internal/update/testdata/fakeapp` (which uses the same `Startup` and `Confirm` as `main`) is replaced while it runs, relaunched with the original arguments after the old one is killed, and restored after two starts that never confirmed.
-- A rehearsal with two real builds is not in the gate (it opens the application's window): `go test -tags rehearsal -run Rehearsal ./internal/update` with `REHEARSAL_OLD` and `REHEARSAL_NEW` set to two `narration-studio.exe` builds (build the second with `go build -tags production -ldflags "-H windowsgui -X main.version=0.9.9" -o narration-studio-099.exe .` in `src/studio/desktop`; on Wails v3 there is no `wails build -o`, [ADR 0001](../adr/0001-the-app-is-written-in-go.md)). On 2026-09-21 it swapped a real 0.1.0 for a real 0.9.9 while 0.1.0 was running, and the new build loaded its window, asked for its `Bootstrap` and confirmed.
+- A rehearsal with two real builds is not in the gate (it opens the application's window): `go test -tags rehearsal -run Rehearsal ./internal/update` with `REHEARSAL_OLD` and `REHEARSAL_NEW` set to two `<executable>.exe` builds (build the second with `go build -tags production -ldflags "-H windowsgui -X main.version=0.9.9" -o app-099.exe .` in `src/studio/desktop`; on Wails v3 there is no `wails build -o`, [ADR 0001](../adr/0001-the-app-is-written-in-go.md)). On 2026-09-21 it swapped a real 0.1.0 for a real 0.9.9 while 0.1.0 was running, and the new build loaded its window, asked for its `Bootstrap` and confirmed.
 - Not proven by any test, because it needs a real release: the first update from one published release candidate to the next (the owner's first attested release, [#188](https://github.com/countrymanprime/narration-studio/issues/188), is the same milestone), and a launch from REAPER after an update.
 
 ## Why the zip holds one file
 
-The zip the updater downloads holds only `narration-studio.exe`, and `Stager.unpack` refuses any other entry. The third-party notices ([CI and releases](../operations/ci-and-releases.md#third-party-notices)) are therefore a separate release asset and not a second file in the zip: an installed client that predates a two-file zip would refuse the update, and the defence against a hostile archive is not loosened for a text file ([Third-party notices](../operations/ci-and-releases.md#third-party-notices)).
+The zip the updater downloads holds only `<executable>.exe`, and `Stager.unpack` refuses any other entry. The third-party notices ([CI and releases](../operations/ci-and-releases.md#third-party-notices)) are therefore a separate release asset and not a second file in the zip: an installed client that predates a two-file zip would refuse the update, and the defence against a hostile archive is not loosened for a text file ([Third-party notices](../operations/ci-and-releases.md#third-party-notices)).
 
 ## Limits
 

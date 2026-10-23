@@ -174,7 +174,7 @@ one on screen; **Reset** on a changed setting hands it back to the computer-wide
 ## Exporting a report
 
 **Export report**, in **Report** at the bottom of the page, is off until some files are measured, then writes the last check and the last diagnostics to two files
-in your project's `narration-studio/delivery` folder: an HTML page a reviewer can open in any browser without
+in your project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/delivery folder: an HTML page a reviewer can open in any browser without
 the app, and a JSON file with the same findings for tools. Each export gets its own name from the time it
 was made (`delivery-report-20260923-140000Z.html`), so an earlier report is never overwritten, and nothing
 is ever written next to your audio.
@@ -191,7 +191,7 @@ Files are named only by their file name unless you tick **Include each file's fu
 no manuscript text is ever written into the report. Export needs a project open and files measured, and
 is refused while a check or diagnostics run is running.
 
-![Export report wrote an HTML and a JSON report into the project's narration-studio/delivery folder, with file names only](../../images/ui/master-report-exported.webp)
+![Export report wrote an HTML and a JSON report into the project's delivery folder, with file names only](../../images/ui/master-report-exported.webp)
 
 ---
 

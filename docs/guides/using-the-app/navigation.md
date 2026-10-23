@@ -41,7 +41,7 @@ rail shows no note counts, since the notes and pickups the project still holds b
 
 The first `Tab` on any page lands on **Skip to content**, a link that is hidden until it has focus and then shows at the top left. Press `Enter` on it and focus moves into the page, past the sidebar and the header.
 
-When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left` or `Alt+Right`, `Ctrl+,` for [Settings](settings.md), or the drawer), the window title becomes the page's name, for example "Proof · Narration Studio", and a screen reader announces the name. Focus moves into the page, so the next `Tab` goes to the page's own controls rather than the item of the page you left. Opening a different chapter on the same page changes neither the title nor focus. From the drawer, focus goes back to the hamburger button as before, and the title and the announcement tell you where you are.
+When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left` or `Alt+Right`, `Ctrl+,` for [Settings](settings.md), or the drawer), the window title becomes the page's name, for example "Proof · <!-- brand:name -->Narration Studio<!-- /brand -->", and a screen reader announces the name. Focus moves into the page, so the next `Tab` goes to the page's own controls rather than the item of the page you left. Opening a different chapter on the same page changes neither the title nor focus. From the drawer, focus goes back to the hamburger button as before, and the title and the announcement tell you where you are.
 
 ## The header
 
@@ -205,7 +205,7 @@ all (such as a MIDI item). To hear a chapter, open it on [Editing](editing.md).
 ### REAPER tools
 
 When the project has tracks, the REAPER tools sit in a row under the project. **Link chapters…** and
-**Prepare chapter render…** change the project open in REAPER, through the Narration Studio bridge
+**Prepare chapter render…** change the project open in REAPER, through the app's bridge
 REAPER starts when it opens; nothing is written until you press the dialog's action button. The app puts the
 bridge in REAPER and connects to it without you running anything in REAPER.
 
