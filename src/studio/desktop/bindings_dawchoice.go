@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/daw"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/daw"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // The project's DAW choice (projectdaw.go): DawChoice answers what the project records with, why, and every engine the narrator

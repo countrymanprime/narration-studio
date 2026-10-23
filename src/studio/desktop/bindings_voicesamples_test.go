@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/voicesample"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/voicesample"
 )
 
 const (
@@ -298,7 +298,7 @@ func TestVoiceSampleMarkIsRefusedWhenTheCheckIsStale(t *testing.T) {
 	host, project := voiceSamplesHost(t)
 	record := currentRecordID(t, host)
 	// The manuscript changed after the chapter was checked.
-	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"),
+	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"),
 		`{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c-0001","title":"Chapter One","contentKind":"narration"}],"paragraphs":[{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice, again."}]}`)
 	answer := voiceAnswerOf(t)(host.VoiceSampleMark(aliceRequest(record, voiceCharacter)))
 	if answer.Status != "refused" || answer.Reason != voicesample.ReasonStaleAlignment {
@@ -353,7 +353,7 @@ func TestVoiceSamplesStorageSettingAcceptsOnlyProject(t *testing.T) {
 	if err := host.saveSettings("VoiceSamples", "project", map[string]*string{"storage": &project1}); err != nil {
 		t.Fatal(err)
 	}
-	writeNested(t, filepath.Join(project, "narration-utils", "settings.json"), `{"VoiceSamples":{"storage":"daw"}}`)
+	writeNested(t, filepath.Join(project, "narration-studio", "settings.json"), `{"VoiceSamples":{"storage":"daw"}}`)
 	if value, _ := store.Effective("VoiceSamples", "storage", ""); value != "project" {
 		t.Fatalf("a hand-edited daw reads as %q", value)
 	}

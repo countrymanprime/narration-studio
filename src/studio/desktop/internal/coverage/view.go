@@ -3,7 +3,7 @@ package coverage
 import (
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
 )
 
 // RefusalReasons are every Reason a refusal or the result reader can name, in

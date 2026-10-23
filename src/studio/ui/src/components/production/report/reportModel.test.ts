@@ -14,7 +14,7 @@ describe('amountOffered', () => {
 
 describe('reportPath', () => {
   it('keeps the folder’s own separators', () => {
-    expect(reportPath('narration-utils/production/reports', 'status-1', 'html')).toBe('narration-utils/production/reports/status-1.html');
+    expect(reportPath('narration-studio/production/reports', 'status-1', 'html')).toBe('narration-studio/production/reports/status-1.html');
     expect(reportPath('C:\\Books\\Dune\\reports', 'status-1', 'json')).toBe('C:\\Books\\Dune\\reports\\status-1.json');
     expect(reportPath('reports/', 'status-1', 'json')).toBe('reports/status-1.json');
   });

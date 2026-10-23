@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // fixtureCase is one row of tests/fixtures/chapter-names.json: a chapter's title and subtitle (null when the chapter

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
 )
 
 // Phase is where an update download is: the words the UI polls for.
@@ -51,7 +51,7 @@ func (p Progress) Percent() int {
 
 const (
 	// windowsExecutable is the one file the Windows release zip holds (scripts/release/assets.mjs).
-	windowsExecutable = "narration-utils.exe"
+	windowsExecutable = "narration-studio.exe"
 	// stagedProvider is the folder under the update root that holds one directory per platform and version.
 	stagedProvider = "app-update"
 	stagedRecord   = "staged.json"

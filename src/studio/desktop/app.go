@@ -15,57 +15,57 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/character"
-	"github.com/countrymanprime/narration-utils/shell/internal/cleanuptools"
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/credits"
-	"github.com/countrymanprime/narration-utils/shell/internal/daw"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawcatalog"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/editing"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/importer"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
-	"github.com/countrymanprime/narration-utils/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/lineidentity"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/pickups"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/production"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/projectstate"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationport"
-	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
-	"github.com/countrymanprime/narration-utils/shell/internal/recents"
-	"github.com/countrymanprime/narration-utils/shell/internal/recording"
-	"github.com/countrymanprime/narration-utils/shell/internal/renderconfig"
-	"github.com/countrymanprime/narration-utils/shell/internal/retakelanes"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/series"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
-	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
-	"github.com/countrymanprime/narration-utils/shell/internal/takereview"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
-	"github.com/countrymanprime/narration-utils/shell/internal/trace"
-	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
-	"github.com/countrymanprime/narration-utils/shell/internal/tts"
-	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
-	"github.com/countrymanprime/narration-utils/shell/internal/whisper"
-	"github.com/countrymanprime/narration-utils/shell/internal/wiktextract"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/character"
+	"github.com/countrymanprime/narration-studio/shell/internal/cleanuptools"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/credits"
+	"github.com/countrymanprime/narration-studio/shell/internal/daw"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawcatalog"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/editing"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/lineidentity"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/pickups"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/production"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/projectstate"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
+	"github.com/countrymanprime/narration-studio/shell/internal/recents"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording"
+	"github.com/countrymanprime/narration-studio/shell/internal/renderconfig"
+	"github.com/countrymanprime/narration-studio/shell/internal/retakelanes"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/series"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/takecompare"
+	"github.com/countrymanprime/narration-studio/shell/internal/takereview"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/trace"
+	"github.com/countrymanprime/narration-studio/shell/internal/transcript"
+	"github.com/countrymanprime/narration-studio/shell/internal/tts"
+	"github.com/countrymanprime/narration-studio/shell/internal/ttsport"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
+	"github.com/countrymanprime/narration-studio/shell/internal/wiktextract"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -557,12 +557,12 @@ func noticePayload(text string) map[string]any { return map[string]any{"text": t
 // lines.
 func recentProjectsPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-utils", "recent-projects.json")
+		return filepath.Join(value, "narration-studio", "recent-projects.json")
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-utils", "recent-projects.json")
+		return filepath.Join(value, "AppData", "Roaming", "narration-studio", "recent-projects.json")
 	}
-	return filepath.Join("AppData", "Roaming", "narration-utils", "recent-projects.json")
+	return filepath.Join("AppData", "Roaming", "narration-studio", "recent-projects.json")
 }
 
 // creditTemplatesPath resolves the per-user credit-templates file, alongside
@@ -571,12 +571,12 @@ func recentProjectsPath() string {
 // a few lines and user-level storage is not project-scoped.
 func creditTemplatesPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-utils", "credit-templates.json")
+		return filepath.Join(value, "narration-studio", "credit-templates.json")
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-utils", "credit-templates.json")
+		return filepath.Join(value, "AppData", "Roaming", "narration-studio", "credit-templates.json")
 	}
-	return filepath.Join("AppData", "Roaming", "narration-utils", "credit-templates.json")
+	return filepath.Join("AppData", "Roaming", "narration-studio", "credit-templates.json")
 }
 
 // seriesPath resolves the per-user series file, alongside
@@ -584,12 +584,12 @@ func creditTemplatesPath() string {
 // %APPDATA%-with-%USERPROFILE%-fallback chain rather than sharing it.
 func seriesPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-utils", "series.json")
+		return filepath.Join(value, "narration-studio", "series.json")
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-utils", "series.json")
+		return filepath.Join(value, "AppData", "Roaming", "narration-studio", "series.json")
 	}
-	return filepath.Join("AppData", "Roaming", "narration-utils", "series.json")
+	return filepath.Join("AppData", "Roaming", "narration-studio", "series.json")
 }
 
 // ServiceStartup is Wails v3's start hook for the Host service (main.go): it runs once, before the window loads the UI, with a
@@ -909,7 +909,7 @@ func (h *Host) configureLocked(next config) {
 	h.projectState = projectstate.New(projectstate.Config{SessionDir: h.config.sessionDir}, projectStateReader, h.emitProjectState)
 	teleprompterDir := h.config.sessionDir
 	if teleprompterDir == "" {
-		teleprompterDir = filepath.Join(os.TempDir(), "narration-utils")
+		teleprompterDir = filepath.Join(os.TempDir(), "narration-studio")
 	}
 	// NARRATION_TELEPROMPTER_EVAL=1 is the teleprompter evaluation aid:
 	// a developer/evaluation-only opt-in, same pattern as NARRATION_DEBUG (runlog), never a Settings toggle.
@@ -941,7 +941,7 @@ func (h *Host) packagedResources() string {
 	return root
 }
 
-// materializeResources unpacks the resources embedded in source into <userCache>/narration-utils/runtime/<key> and returns that folder.
+// materializeResources unpacks the resources embedded in source into <userCache>/narration-studio/runtime/<key> and returns that folder.
 // The folder is content-addressed and is only written when it is missing or incomplete, so it is safe to call at every start. The
 // packaged smoke test (smoke.go) calls it with the embedded resources of the real executable.
 func materializeResources(source fs.FS, userCache, executable string) (string, error) {
@@ -949,7 +949,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if err != nil {
 		return "", err
 	}
-	target := filepath.Join(userCache, "narration-utils", "runtime", key)
+	target := filepath.Join(userCache, "narration-studio", "runtime", key)
 	if _, err := os.Stat(filepath.Join(target, ".complete")); err == nil {
 		// The payload may be unchanged while the app executable moves (for
 		// example after a user relocates a portable install). Refresh this
@@ -1008,7 +1008,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 // stableLauncherDir is the one folder REAPER's launcher runs from, whatever version is installed: the content-addressed runtime
 // folder changes with every update, and a launcher path that moves meant re-adding the REAPER action after each one.
 func stableLauncherDir(userCache string) string {
-	return filepath.Join(userCache, "narration-utils", "reaper")
+	return filepath.Join(userCache, "narration-studio", "reaper")
 }
 
 // syncStableLauncher updates the embedded REAPER scripts in place under dir and points the launcher at executable. A file is
@@ -1039,7 +1039,7 @@ func syncStableLauncher(source fs.FS, dir, executable string) error {
 	if executable == "" {
 		return nil
 	}
-	return writeIfChanged(filepath.Join(dir, "narration-utils-app-path.txt"), []byte(executable+"\n"))
+	return writeIfChanged(filepath.Join(dir, "narration-studio-app-path.txt"), []byte(executable+"\n"))
 }
 
 func writeIfChanged(target string, content []byte) error {
@@ -1062,12 +1062,12 @@ func executablePath() string {
 }
 
 // writeCheckoutLauncherPointer writes the running program's path beside a checkout's launcher script, the file the launcher reads
-// first (NarrationUtils_Launcher.lua), so the REAPER action starts this program, which the single-instance check then forwards to.
+// first (NarrationStudio_Launcher.lua), so the REAPER action starts this program, which the single-instance check then forwards to.
 func writeCheckoutLauncherPointer(launcher, executable string) error {
 	if launcher == "" || executable == "" {
 		return nil
 	}
-	target := filepath.Join(filepath.Dir(launcher), "narration-utils-app-path.txt")
+	target := filepath.Join(filepath.Dir(launcher), "narration-studio-app-path.txt")
 	temporary := target + ".tmp"
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
@@ -1083,7 +1083,7 @@ func writeReaperLauncherPath(root, executable string) error {
 	if err := os.MkdirAll(directory, 0o755); err != nil {
 		return err
 	}
-	target := filepath.Join(directory, "narration-utils-app-path.txt")
+	target := filepath.Join(directory, "narration-studio-app-path.txt")
 	temporary := target + ".tmp"
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
@@ -1594,7 +1594,7 @@ func (h *Host) Bootstrap() map[string]any {
 	config := svc.config
 	var imported any
 	if config.projectFolder != "" {
-		if bytes, err := os.ReadFile(filepath.Join(config.projectFolder, "narration-utils", "manuscript", "manuscript.json")); err == nil {
+		if bytes, err := os.ReadFile(filepath.Join(config.projectFolder, "narration-studio", "manuscript", "manuscript.json")); err == nil {
 			var data map[string]any
 			if json.Unmarshal(bytes, &data) == nil {
 				importer, _ := data["importer"].(map[string]any)
@@ -2323,10 +2323,10 @@ func isHex(value string) bool {
 	return true
 }
 
-// evalExtraArgs reads the evaluation aid's extra sidecar flags from teleprompter-extra-args.txt in the temp folder's narration-utils folder (whitespace
+// evalExtraArgs reads the evaluation aid's extra sidecar flags from teleprompter-extra-args.txt in the temp folder's narration-studio folder (whitespace
 // separated) each time a session starts, so a developer can change them between runs. A missing or unreadable file is no flags.
 func evalExtraArgs() []string {
-	text, err := os.ReadFile(filepath.Join(os.TempDir(), "narration-utils", "teleprompter-extra-args.txt"))
+	text, err := os.ReadFile(filepath.Join(os.TempDir(), "narration-studio", "teleprompter-extra-args.txt"))
 	if err != nil {
 		return nil
 	}

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // The decode direction (measuring an encoded MP3): the same fake FFmpeg test binary that stands in for

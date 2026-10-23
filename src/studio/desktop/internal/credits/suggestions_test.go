@@ -35,7 +35,7 @@ func writeMinimalDocxWithCoreProps(t *testing.T, path, coreXML string) {
 
 func writeManuscript(t *testing.T, project string, doc map[string]any) {
 	t.Helper()
-	dir := filepath.Join(project, "narration-utils", "manuscript")
+	dir := filepath.Join(project, "narration-studio", "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -100,15 +100,15 @@ func TestStoredSourcePathRefusesAPathThatEscapesTheSourcesFolder(t *testing.T) {
 	project := t.TempDir()
 	for _, storedPath := range []string{
 		filepath.Join("..", "..", "etc", "passwd"),
-		filepath.Join("narration-utils", "manuscript", "manuscript.json"),
-		filepath.Join("narration-utils", "settings.json"),
+		filepath.Join("narration-studio", "manuscript", "manuscript.json"),
+		filepath.Join("narration-studio", "settings.json"),
 		"",
 	} {
 		if _, ok := storedSourcePath(project, storedPath); ok {
 			t.Fatalf("storedSourcePath(%q) = ok, want refused (outside sources/)", storedPath)
 		}
 	}
-	inside := filepath.Join("narration-utils", "manuscript", "sources", "src-1", "book.docx")
+	inside := filepath.Join("narration-studio", "manuscript", "sources", "src-1", "book.docx")
 	resolved, ok := storedSourcePath(project, inside)
 	if !ok || resolved != filepath.Join(project, inside) {
 		t.Fatalf("storedSourcePath(%q) = %q, %v, want it accepted", inside, resolved, ok)
@@ -116,10 +116,10 @@ func TestStoredSourcePathRefusesAPathThatEscapesTheSourcesFolder(t *testing.T) {
 }
 
 // realStoredPath is the shape commit() (src/studio/desktop/internal/manuscript/service.go) actually writes:
-// "narration-utils/manuscript/sources/<id>/<name>", relative to the project folder, not a bare file name under
-// "narration-utils/manuscript". A made-up bare name would hide the double-join defect.
+// "narration-studio/manuscript/sources/<id>/<name>", relative to the project folder, not a bare file name under
+// "narration-studio/manuscript". A made-up bare name would hide the double-join defect.
 func realStoredPath(name string) string {
-	return filepath.Join("narration-utils", "manuscript", "sources", "src-0001", name)
+	return filepath.Join("narration-studio", "manuscript", "sources", "src-0001", name)
 }
 
 // TestSuggestFromManuscriptPrefersFrontMatterOverDocPropsWhenBothArePresent pins the precedence: the front matter

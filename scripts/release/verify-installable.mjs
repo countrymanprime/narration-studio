@@ -9,7 +9,7 @@ import { REAPER_FILES } from './reaper-files.mjs';
 // Python. A release must provide platform-native equivalents before it can be
 // advertised as installable. This guard deliberately blocks publication until
 // the runtime build places both executables in Wails embedded resources.
-const runtime = resolve(process.env.NARRATION_UTILS_RUNTIME_DIR ?? 'src/studio/desktop/cmd/narration-utils/resources/runtime');
+const runtime = resolve(process.env.NARRATION_STUDIO_RUNTIME_DIR ?? 'src/studio/desktop/cmd/narration-studio/resources/runtime');
 const resources = resolve(runtime, '..');
 const executable = (name) => process.platform === 'win32' ? `${name}.exe` : name;
 const missing = ['manuscript-guide', 'transcript-compare', 'manuscript-teleprompter']
@@ -24,7 +24,7 @@ if (previewRuntimeMissing.length) {
 }
 // The frozen Story Bible sidecar must carry the data its Piper voice and its pronunciations read: PyInstaller has no hook for
 // piper/espeak-ng-data or for cmudict (its dictionary and its package metadata), so a freeze that misses them breaks previews.
-// `narration-utils --smoke` proves they load; this proves they are in the tree before it is embedded.
+// `narration-studio --smoke` proves they load; this proves they are in the tree before it is embedded.
 const guideDataMissing = [
   ['piper', 'espeak-ng-data'],
   ['cmudict', 'data'],
@@ -45,7 +45,7 @@ if (optionalToolsFrozen.length) {
 }
 // The Windows Teleprompter sidecar carries the Moonshine engine (moonshine-voice is pinned for Windows only in pyproject.toml). Its
 // package loads moonshine.dll, and the onnxruntime.dll beside it, with ctypes from its own folder, which PyInstaller cannot see:
-// prepare-resources.py collects them by hand. `narration-utils --smoke` proves they load (`manuscript-teleprompter --capabilities --verify`); this proves they are
+// prepare-resources.py collects them by hand. `narration-studio --smoke` proves they load (`manuscript-teleprompter --capabilities --verify`); this proves they are
 // in the tree before it is embedded.
 if (process.platform === 'win32') {
   const moonshineDir = resolve(runtime, 'manuscript-teleprompter', '_internal', 'moonshine_voice');

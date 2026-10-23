@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // seriesSchemaVersion is the only series.json version this package reads or writes.
@@ -235,7 +235,7 @@ func (s *Store) writeLocked(file seriesFile) error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
-		return fmt.Errorf("could not create the narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the narration-studio folder: %w", err)
 	}
 	file.SchemaVersion = seriesSchemaVersion
 	bytes, err := json.MarshalIndent(file, "", "  ")

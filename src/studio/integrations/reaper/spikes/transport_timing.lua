@@ -8,20 +8,20 @@
 -- What this does NOT prove: a physical mouse click or keyboard shortcut on REAPER's transport (a different input path than an
 -- action called from a script) and anything with a real audio device. Those stay with the owner (docs/operations/windows-qa-checklist.md 9.7).
 -- Unlike the other spikes this one starts the transport, so it is for a disposable CI runner with no audio hardware, never an
--- owner's machine; it still runs only in the isolated -cfgfile and writes only under NARRATION_UTILS_SPIKE_OUT.
+-- owner's machine; it still runs only in the isolated -cfgfile and writes only under NARRATION_STUDIO_SPIKE_OUT.
 -- Nothing is faked: if REAPER will not enter a state (no audio device, no armed input), the row says what GetPlayState returned.
 
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
 end
 
 local BS = string.char(92)
-local OUT = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
-local REPO_REAPER = assert(os.getenv('NARRATION_UTILS_REAPER_DIR'), 'set NARRATION_UTILS_REAPER_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
+local OUT = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
+local REPO_REAPER = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
 local function native(path)
   return (path:gsub('/', BS))
 end

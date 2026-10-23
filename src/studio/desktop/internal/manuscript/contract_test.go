@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // The payloads the manuscript bindings send to the UI, pinned for its contract tests. They come from a real import of
@@ -72,7 +72,7 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 		`","text":"Check the rhyme","anchorStart":1,"anchorEnd":6,"anchorText":"oses a","createdAt":"2026-09-21T10:00:00Z"}],` +
 		`"readerState":{"activeChapter":"` + first + `","activeSourceLine":2,"expandedChapters":["` + first + `"],"bookmarks":[{"id":"fedcba9876543210fedcba9876543210",` +
 		`"kind":"line","chapter":"Chapter One","chapterId":"` + first + `","paragraph":0,"paragraphId":"` + paragraphID + `","createdAt":"2026-09-21T10:00:00Z"}]}}`
-	if err := os.WriteFile(filepath.Join(project, "narration-utils", "manuscript-notes.json"), []byte(notesFile), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(project, "narration-studio", "manuscript-notes.json"), []byte(notesFile), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	pin(t, "manuscript-notes", service.Notes(first))

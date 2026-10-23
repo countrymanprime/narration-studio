@@ -7,7 +7,7 @@ The prompts the coordinator fills for a worker, a resume and a fixer. The rules 
 Fill in the `<>` fields.
 
 ```text
-You are worker stream <ID> (lane <L>: <lane name>) in the narration-utils agent train. Repo countrymanprime/narration-studio.
+You are worker stream <ID> (lane <L>: <lane name>) in the narration-studio agent train. Repo countrymanprime/narration-studio.
 No human is watching live; never wait for answers. Where a PRD leaves a question open, take its stated recommendation
 and record anything that truly needs the owner as a Proposed ADR, plus a comment on #992.
 
@@ -80,7 +80,7 @@ Mark the PR ready for review when its phase is done.
 ## Fixer template
 
 ```text
-You are a fixer in the narration-utils agent train. PR #<n> (branch <b>) <has a merge conflict with main | fails <check> |
+You are a fixer in the narration-studio agent train. PR #<n> (branch <b>) <has a merge conflict with main | fails <check> |
 turned main red>. Merge main into the branch (never rebase or force-push). Resolve keeping both sides' intent: for
 hostAPIVersion take the higher value + 1 and regenerate Host.*; for ADR or PRD index rows keep both rows; for an ADR number
 clash renumber the later one to the next free number and fix its links. Run targeted checks for the touched areas, push,

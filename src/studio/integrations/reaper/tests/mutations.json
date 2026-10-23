@@ -728,7 +728,7 @@
   {
     "name": "a folder outside the app's mastering folder is accepted",
     "file": "narration_master_render.lua",
-    "find": "if count < 4 or parts[count - 2] ~= 'narration-utils' or parts[count - 1] ~= 'mastering' then",
+    "find": "if count < 4 or parts[count - 2] ~= 'narration-studio' or parts[count - 1] ~= 'mastering' then",
     "replace": "if count < 1 then"
   },
   {

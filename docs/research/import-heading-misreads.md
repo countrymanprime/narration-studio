@@ -69,7 +69,7 @@ The file names are in `tests/fixtures/heading-misreads/`. "Intended" is title / 
 
 ## What Phase 5 did
 
-Phase 5 built the override ([Correcting a subtitle](../architecture/import-review.md#correcting-a-subtitle)). A section's subtitle turned off in the review joins the title when the line was inside a heading (F1) and returns to the body when it was the second line of a plain-text heading (F3); the host says which in the preview (`subtitleOff`). The four cases it fixes carry an `override` entry in `cases.json`, and `TestHeadingMisreadOverrides` applies it and expects `intended`; the same test checks that no override changes any case. F2 and F4 to F8 are unchanged and are listed in [#387](https://github.com/countrymanprime/narration-utils/issues/387); the EPUB `<h2>` that is dropped (F5) is its own bug, [#388](https://github.com/countrymanprime/narration-utils/issues/388).
+Phase 5 built the override ([Correcting a subtitle](../architecture/import-review.md#correcting-a-subtitle)). A section's subtitle turned off in the review joins the title when the line was inside a heading (F1) and returns to the body when it was the second line of a plain-text heading (F3); the host says which in the preview (`subtitleOff`). The four cases it fixes carry an `override` entry in `cases.json`, and `TestHeadingMisreadOverrides` applies it and expects `intended`; the same test checks that no override changes any case. F2 and F4 to F8 are unchanged and are listed in [#387](https://github.com/countrymanprime/narration-studio/issues/387); the EPUB `<h2>` that is dropped (F5) is its own bug, [#388](https://github.com/countrymanprime/narration-studio/issues/388).
 
 ## What #387 and #388 fixed (2026-09-25)
 

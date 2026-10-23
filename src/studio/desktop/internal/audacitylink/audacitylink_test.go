@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
 )
 
 type pinger struct{ err error }

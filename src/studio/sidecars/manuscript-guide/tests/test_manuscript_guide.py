@@ -46,7 +46,7 @@ def _write_manuscript(root: Path, chapter_title: str, paragraph_texts: list[str]
         "documentId": "test-document",
         "importedAt": "2026-01-01T00:00:00+00:00",
         "importer": {"format": "markdown", "version": guide.canonical_manuscript.IMPORTER_VERSION},
-        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": "narration-utils/manuscript/sources/fixture.md"},
+        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": "narration-studio/manuscript/sources/fixture.md"},
         "chapters": [
             {
                 "id": "c-0001",

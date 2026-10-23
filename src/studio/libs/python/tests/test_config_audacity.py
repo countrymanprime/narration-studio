@@ -27,8 +27,8 @@ def test_an_audacity_project_resolves_every_settings_tier(tmp_path, monkeypatch)
     project = tmp_path / "Book"
     project.mkdir()
     (project / "Book.aup3").write_bytes(b"not a real Audacity project")
-    _write_json(app_data / "narration-utils" / "global-settings.json", {"TranscriptCompare": {"model_size": "medium"}})
-    _write_json(project / "narration-utils" / "settings.json", {"TranscriptCompare": {"color_misread": "112233"}})
+    _write_json(app_data / "narration-studio" / "global-settings.json", {"TranscriptCompare": {"model_size": "medium"}})
+    _write_json(project / "narration-studio" / "settings.json", {"TranscriptCompare": {"color_misread": "112233"}})
 
     assert config.get("TranscriptCompare", "color_misread", str(project), "") == ("112233", "project")
     assert config.get("TranscriptCompare", "model_size", str(project), "") == ("medium", "global")
@@ -37,4 +37,4 @@ def test_an_audacity_project_resolves_every_settings_tier(tmp_path, monkeypatch)
 
     config.save_project_setting(str(project), "TranscriptCompare", "color_skipped", "445566")
     assert config.get("TranscriptCompare", "color_skipped", str(project), "") == ("445566", "project")
-    assert sorted(path.name for path in project.iterdir()) == ["Book.aup3", "narration-utils"]
+    assert sorted(path.name for path in project.iterdir()) == ["Book.aup3", "narration-studio"]

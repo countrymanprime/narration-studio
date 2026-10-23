@@ -7,14 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-utils/shell/internal/voicesample"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/voicesample"
 )
 
 // The narrator's voice samples: stretches of a take marked as how a character sounds, each copied into
-// <project>/narration-utils/voice-samples/ with a record of where it came from (internal/voicesample,
+// <project>/narration-studio/voice-samples/ with a record of where it came from (internal/voicesample,
 // docs/prds/character-voice-samples.prd.md). The bindings take ids, word keys and seconds, never a path. The host finds the
 // audio file in the saved REAPER project by item and take GUID; the page gets the words and a state for where a sample came
 // from, and never the file or the GUIDs.

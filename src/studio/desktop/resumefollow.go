@@ -6,8 +6,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // Following REAPER while the read-aloud dialog's resume prompt shows.

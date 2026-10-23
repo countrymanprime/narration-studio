@@ -16,11 +16,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationport"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 type Service struct {
@@ -62,7 +62,7 @@ func (s *Service) guidePath() string {
 	return filepath.Join(s.project, "ManuscriptGuide", "manuscript_guide.json")
 }
 func (s *Service) manuscript() string {
-	return filepath.Join(s.project, "narration-utils", "manuscript", "manuscript.json")
+	return filepath.Join(s.project, "narration-studio", "manuscript", "manuscript.json")
 }
 
 // SetPersist says where to report a Story Bible file that cannot be read.
@@ -764,7 +764,7 @@ const (
 	// previewCacheTag versions the cache key. Bump it when the key's inputs
 	// change so files rendered under the old key are never trusted again (v1
 	// ignored the voice id; v2 to v3 added the chosen pronunciation).
-	previewCacheTag = "narration-utils-tts-preview-v3"
+	previewCacheTag = "narration-studio-tts-preview-v3"
 	// wavHeaderBytes is the size of a canonical WAV header. A file no larger
 	// than that holds no samples, so it is never a usable preview.
 	wavHeaderBytes = 44

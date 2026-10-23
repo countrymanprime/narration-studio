@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
 )
 
 // lineStamperRole wraps client in the REAPER adapter and takes its LineStamper role, the way
@@ -34,7 +34,7 @@ func lineStamperRole(t *testing.T, client *bridge.Client) dawport.LineStamper {
 // recorded source checksum; pass "" to omit the source object entirely (an old or corrupt manuscript).
 func writeManuscript(t *testing.T, project, sha string) {
 	t.Helper()
-	dir := filepath.Join(project, "narration-utils", "manuscript")
+	dir := filepath.Join(project, "narration-studio", "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}

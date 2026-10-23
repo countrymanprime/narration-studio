@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // lastActionUndoer is the undo_last role over bridge's last_action and undo_last (narration_undo.lua), answering a LastAction and a

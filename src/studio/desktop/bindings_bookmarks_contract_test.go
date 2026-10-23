@@ -32,7 +32,7 @@ func TestBookmarksContractGoldens(t *testing.T) {
 	// stale, never moved, and the one whose line is gone goes last.
 	edited := strings.Replace(bookmarksManuscript, "The soldiers were silent.", "Silence.", 1)
 	edited = strings.Replace(edited, `,{"id":"p-000003","chapterId":"c-0002","index":2,"text":"Alice was not a bit hurt."}`, "", 1)
-	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), edited)
+	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), edited)
 	payload, err = host.BookmarksList()
 	checkBindingContract(t, "bookmarks-list", payload)
 	list := decodeBookmarks(t)(payload, err)

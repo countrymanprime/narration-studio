@@ -36,8 +36,8 @@ def _no_custom_equivalences(monkeypatch):
 def project(tmp_path, chapter_text=CHAPTER_TEXT):
     texts = [chapter_text] if isinstance(chapter_text, str) else list(chapter_text)
     """A project folder laid out as the host lays it out: the manuscript under
-    narration-utils/manuscript, the per-project word lists under TranscriptCompare."""
-    manuscript = tmp_path / "project" / "narration-utils" / "manuscript" / "manuscript.json"
+    narration-studio/manuscript, the per-project word lists under TranscriptCompare."""
+    manuscript = tmp_path / "project" / "narration-studio" / "manuscript" / "manuscript.json"
     manuscript.parent.mkdir(parents=True)
     manuscript.write_text(
         json.dumps(

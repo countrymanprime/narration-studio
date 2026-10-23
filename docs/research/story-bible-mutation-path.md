@@ -1,6 +1,6 @@
 # Story Bible mutations: warm Python worker, Go, or neither
 
-**Date:** 2026-10-18. **Related:** [#1897](https://github.com/countrymanprime/narration-utils/issues/1897) (sidecar start-up instrumentation, a parallel spike), [interaction latency baseline](interaction-latency-baseline.md).
+**Date:** 2026-10-18. **Related:** [#1897](https://github.com/countrymanprime/narration-studio/issues/1897) (sidecar start-up instrumentation, a parallel spike), [interaction latency baseline](interaction-latency-baseline.md).
 
 ## Question
 

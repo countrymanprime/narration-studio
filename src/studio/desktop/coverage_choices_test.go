@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
 )
 
 func waitUntil(t *testing.T, condition func() bool) {
@@ -375,7 +375,7 @@ func twoChapterProject(t *testing.T) string {
 	}
 	rpp += ">\n"
 	manuscript := `{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c-0001","title":"Chapter One","contentKind":"narration"},{"id":"c-0002","title":"Chapter Two","contentKind":"narration"}],"paragraphs":[{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice."},{"id":"p-000002","chapterId":"c-0002","index":1,"text":"Down."}]}`
-	for name, content := range map[string]string{"book.rpp": rpp, "narration-utils/manuscript/manuscript.json": manuscript} {
+	for name, content := range map[string]string{"book.rpp": rpp, "narration-studio/manuscript/manuscript.json": manuscript} {
 		if err := os.WriteFile(filepath.Join(project, filepath.FromSlash(name)), []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
 )
 
 // ExtractionBible lets the extraction apply step write the Story Bible through the commands the Service already has, so the lock rule

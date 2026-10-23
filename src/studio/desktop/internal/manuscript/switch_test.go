@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
 )
 
 // Switching project must point Load at the new project's manuscript and never serve the previous project's cached parse.
@@ -78,7 +78,7 @@ func TestClearRemovesTheManuscriptSoLoadFails(t *testing.T) {
 	if err := service.Clear(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-utils", "manuscript")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, "narration-studio", "manuscript")); !os.IsNotExist(err) {
 		t.Fatalf("manuscript directory should be gone, stat err = %v", err)
 	}
 	if _, err := service.Load(); err == nil {

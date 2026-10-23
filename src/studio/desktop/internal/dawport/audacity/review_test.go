@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-utils/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // reviewFixture is a project folder with a manuscript, and an Audacity project with one selected audio track.
@@ -32,7 +32,7 @@ func newReviewFixture(t *testing.T) *reviewFixture {
 	review := NewReview(NewSession(client))
 	review.exported = func(string) error { return nil } // the fake writes no file
 	project := t.TempDir()
-	manuscript := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	manuscript := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(manuscript), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestPrepareExportsTheSelectedTrackAndListsItForTheComparison(t *testing.T) 
 		t.Fatalf("event = %v", e.Fields)
 	}
 	manifest, manuscript, diff := e.Fields[2], e.Fields[3], e.Fields[5]
-	if manuscript != filepath.Join(f.project, "narration-utils", "manuscript", "manuscript.json") {
+	if manuscript != filepath.Join(f.project, "narration-studio", "manuscript", "manuscript.json") {
 		t.Errorf("manuscript = %q", manuscript)
 	}
 	if !strings.HasPrefix(diff, filepath.Join(f.project, "TranscriptCompare", "diffs")) || !strings.HasSuffix(diff, "_run1.diff") {
@@ -128,7 +128,7 @@ func TestPrepareSaysWhatIsMissing(t *testing.T) {
 		setup func(f *reviewFixture)
 		says  string
 	}{
-		{"no manuscript", func(f *reviewFixture) { _ = os.RemoveAll(filepath.Join(f.project, "narration-utils")) }, "Import a manuscript"},
+		{"no manuscript", func(f *reviewFixture) { _ = os.RemoveAll(filepath.Join(f.project, "narration-studio")) }, "Import a manuscript"},
 		{"no track selected", func(f *reviewFixture) { f.server.With(func(p *abt.Project) { p.Tracks[0].Selected = false }) }, "Select the chapter's audio track"},
 		{"only a label track selected", func(f *reviewFixture) {
 			f.server.With(func(p *abt.Project) {

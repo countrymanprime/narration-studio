@@ -7,8 +7,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // splitTakeTimeout bounds one split_take request with the chapter_track_state read before it: a single undo block in REAPER,

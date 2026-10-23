@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // stackOf is passage ps-1's two later reads stacked on its first read t-1, as the app sends it after REAPER accepted stackTakes:

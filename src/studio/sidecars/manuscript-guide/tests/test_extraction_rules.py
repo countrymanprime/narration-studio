@@ -62,7 +62,7 @@ def _write_manuscript(root: Path, chapters: list[tuple[str, list[str]]]) -> Path
         "documentId": "test-document",
         "importedAt": "2026-01-01T00:00:00+00:00",
         "importer": {"format": "markdown", "version": guide.canonical_manuscript.IMPORTER_VERSION},
-        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": "narration-utils/manuscript/sources/fixture.md"},
+        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": "narration-studio/manuscript/sources/fixture.md"},
         "chapters": chapter_rows,
         "paragraphs": paragraphs,
     }
@@ -320,9 +320,10 @@ class NothingInALockedEntryTests(unittest.TestCase):
 
 
 # The SHA-256 of the Story Bible `build` writes for the Alice fixture (rules only, pronunciation stubbed, the
-# timestamp and the absolute manuscript path left out), taken on main before this slice. A change to it means `suggest`
+# timestamp and the absolute manuscript path left out), taken on main before this slice and again when the product name in the
+# fixture manuscript changed (it moves `source.sha256` only). A change to it means `suggest`
 # changed the build.
-ALICE_BUILD_SHA256 = "509d824ce602cb908ac7b212c4f57108696a688b6facdc99a842a0721660e2b2"
+ALICE_BUILD_SHA256 = "fba60a5280f72ef610011a311c0cd8ad6513a14d1181b7d8f209acd5bd44296a"
 
 
 class BuildIsUnchangedTests(unittest.TestCase):

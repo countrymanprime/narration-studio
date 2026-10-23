@@ -3,8 +3,8 @@ package proofing
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 func markerItem(guid string, position float64, name string) tracks.Marker {

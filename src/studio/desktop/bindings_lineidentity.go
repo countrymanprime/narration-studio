@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/lineidentity"
+	"github.com/countrymanprime/narration-studio/shell/internal/lineidentity"
 )
 
 // The bindings for manuscript line identity, used by src/studio/ui's "Link chapters" flow: the wire-contract schema,

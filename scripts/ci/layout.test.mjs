@@ -26,9 +26,9 @@ test('applyPathMap leaves look-alikes, prose and the Go module path alone', () =
   const untouched = [
     'reshared/ui and shared/uikit',
     'the shell is a Go program',
-    'github.com/countrymanprime/narration-utils/shell/internal/bridge',
+    'github.com/countrymanprime/narration-studio/shell/internal/bridge',
     'tools/docs-site/README.md',
-    'narration-utils-shell',
+    'narration-studio-shell',
   ];
   for (const line of untouched) assert.equal(applyPathMap(line, renames), line);
 });
@@ -51,8 +51,8 @@ test('findStaleReferences also reports bare names, quoted segments and backslash
     ['ci.yml', ['run: go -C shell test ./...', 'working-directory: shell', '- run: pnpm --dir shell run build'].join('\n')],
     ['a.mjs', ["join(root, 'shared', 'ui')", "join(dir, 'shell')"].join('\n')],
     ['b.md', String.raw`open shared\python\x.py and shared/* too`],
-    ['c.md', String.raw`the old build put it at shell\build\bin\narration-utils-shell.exe`],
-    ['ok.md', 'the shell is a program; narration-utils-shell; shellcheck; go -C src/studio/desktop test'],
+    ['c.md', String.raw`the old build put it at shell\build\bin\narration-studio-shell.exe`],
+    ['ok.md', 'the shell is a program; narration-studio-shell; shellcheck; go -C src/studio/desktop test'],
     [
       'not-a-path.md',
       String.raw`REAPER's .rpp file association is HKEY_CLASSES_ROOT\Reaper.Project\shell\open64\command, or \shell\open\command on older builds`,

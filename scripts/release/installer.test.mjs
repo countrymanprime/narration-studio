@@ -28,9 +28,9 @@ test('the setup file has the unversioned release name the pipeline collects', ()
   assert.match(code, /^OutFile "\.\.\\\.\.\\bin\\\$\{SETUP_FILE\}"/m);
 });
 
-test('the installed program is narration-utils.exe, the name the launcher and the updater look for', () => {
+test('the installed program is narration-studio.exe, the name the launcher and the updater look for', () => {
   assert.equal(define('PRODUCT_EXECUTABLE'), `${wailsConfig.outputfilename}.exe`);
-  assert.equal(define('PRODUCT_EXECUTABLE'), 'narration-utils.exe');
+  assert.equal(define('PRODUCT_EXECUTABLE'), 'narration-studio.exe');
 });
 
 test('the install is per user: no elevation, an install folder in the profile and an uninstall entry under HKCU', () => {
@@ -102,17 +102,17 @@ test('the uninstaller never removes a folder recursively, so a folder the narrat
 });
 
 test('the uninstaller leaves settings, the asset cache, the WebView2 data and project sidecars alone', () => {
-  const touchesUserData = /\$(APPDATA|LOCALAPPDATA|DOCUMENTS|PROFILE)|%APPDATA%|%LOCALAPPDATA%|narration-utils"|RMDir\s+\/r|DeleteRegKey\s+HKCU\s+"Software\\Narration/i;
+  const touchesUserData = /\$(APPDATA|LOCALAPPDATA|DOCUMENTS|PROFILE)|%APPDATA%|%LOCALAPPDATA%|narration-studio"|RMDir\s+\/r|DeleteRegKey\s+HKCU\s+"Software\\Narration/i;
   const withoutMessages = uninstallSection
     .split('\n')
     .filter((line) => !/^\s*DetailPrint /.test(line))
     .join('\n');
   assert.doesNotMatch(withoutMessages, touchesUserData);
-  assert.match(uninstallSection, /DetailPrint "Left in place: [^"]*%APPDATA%\\narration-utils[^"]*%LOCALAPPDATA%\\narration-utils/);
+  assert.match(uninstallSection, /DetailPrint "Left in place: [^"]*%APPDATA%\\narration-studio[^"]*%LOCALAPPDATA%\\narration-studio/);
 });
 
 test('the uninstall page tells the narrator what is left behind before anything is removed', () => {
-  assert.match(definition, /!define MUI_UNCONFIRMPAGE_TEXT_TOP "[^"]*%APPDATA%\\narration-utils[^"]*%LOCALAPPDATA%\\narration-utils[^"]*project folders/);
+  assert.match(definition, /!define MUI_UNCONFIRMPAGE_TEXT_TOP "[^"]*%APPDATA%\\narration-studio[^"]*%LOCALAPPDATA%\\narration-studio[^"]*project folders/);
   assert.match(code, /!insertmacro MUI_UNPAGE_CONFIRM/);
 });
 

@@ -149,8 +149,8 @@
       >
       IMGRESOURCEFLAGS 8
       <EXTI
-        narration_utils_line_id line-000002
-        narration_utils_line_text "Changed line."
+        narration_studio_line_id line-000002
+        narration_studio_line_text "Changed line."
       >
       NAME "take 1"
       VOLPAN 1 0 1 -1
@@ -179,8 +179,8 @@
       >
       IMGRESOURCEFLAGS 8
       <EXTI
-        narration_utils_line_id line-000002
-        narration_utils_line_text "Changed line."
+        narration_studio_line_id line-000002
+        narration_studio_line_text "Changed line."
       >
       NAME "take 1"
       VOLPAN 1 0 1 -1
@@ -209,8 +209,8 @@
       >
       IMGRESOURCEFLAGS 8
       <EXTI
-        narration_utils_line_id line-000002
-        narration_utils_line_text "Changed line."
+        narration_studio_line_id line-000002
+        narration_studio_line_text "Changed line."
       >
       NAME "take 1"
       VOLPAN 1 0 1 -1
@@ -292,8 +292,8 @@
       >
       IMGRESOURCEFLAGS 8
       <EXTI
-        narration_utils_line_id line-000002
-        narration_utils_line_text "Changed line."
+        narration_studio_line_id line-000002
+        narration_studio_line_text "Changed line."
       >
       NAME "take 1"
       VOLPAN 1 0 1 -1

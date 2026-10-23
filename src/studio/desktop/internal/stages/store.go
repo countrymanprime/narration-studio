@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // decisionsSchemaVersion is the version every decisions file this package
@@ -74,7 +74,7 @@ type decisionsFile struct {
 // DecisionsFile is the decisions sidecar's path under a project. It is
 // exported so manuscript.resetDerived can clear it on a re-import or Clear.
 func DecisionsFile(project string) string {
-	return filepath.Join(project, "narration-utils", "stage-decisions.json")
+	return filepath.Join(project, "narration-studio", "stage-decisions.json")
 }
 
 // DecisionStore keeps the narrator's confirmations, dismissals and reverts
@@ -199,7 +199,7 @@ func (s *DecisionStore) readLocked(documentID string) (decisionsFile, error) {
 func (s *DecisionStore) writeLocked(file decisionsFile) error {
 	file.SchemaVersion = decisionsSchemaVersion
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

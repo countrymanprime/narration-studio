@@ -37,9 +37,9 @@ if ($Project) { $Project = Assert-Scratch '-Project' $Project }
 $exe = 'C:\Program Files\REAPER (x64)\reaper.exe'
 New-Item -ItemType Directory -Force $Cfg, $Out | Out-Null
 # The scripts read these (os.getenv): the scratch folders and the bridge sources under test.
-$env:NARRATION_UTILS_SPIKE_OUT = $Out
-$env:NARRATION_UTILS_SPIKE_CFG = $Cfg.TrimEnd('\')
-$env:NARRATION_UTILS_REAPER_DIR = (Resolve-Path $ReaperDir).Path
+$env:NARRATION_STUDIO_SPIKE_OUT = $Out
+$env:NARRATION_STUDIO_SPIKE_CFG = $Cfg.TrimEnd('\')
+$env:NARRATION_STUDIO_REAPER_DIR = (Resolve-Path $ReaperDir).Path
 # One quoted string, not an array: Start-Process does not quote array elements, so a path with a space would be split
 # and -cfgfile could be misread.
 $argText = '-cfgfile "' + (Join-Path $Cfg 'reaper.ini') + '" -nosplash -newinst -noactivate'

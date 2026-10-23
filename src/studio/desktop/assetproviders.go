@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
-	"github.com/countrymanprime/narration-utils/shell/internal/ffmpeg"
-	"github.com/countrymanprime/narration-utils/shell/internal/moonshine"
-	"github.com/countrymanprime/narration-utils/shell/internal/spacy"
-	"github.com/countrymanprime/narration-utils/shell/internal/tts"
-	"github.com/countrymanprime/narration-utils/shell/internal/whisper"
+	"github.com/countrymanprime/narration-studio/shell/internal/analysistools"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/dictionary"
+	"github.com/countrymanprime/narration-studio/shell/internal/ffmpeg"
+	"github.com/countrymanprime/narration-studio/shell/internal/moonshine"
+	"github.com/countrymanprime/narration-studio/shell/internal/spacy"
+	"github.com/countrymanprime/narration-studio/shell/internal/tts"
+	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
 )
 
 // ttsProvider serves the Piper preview voices.

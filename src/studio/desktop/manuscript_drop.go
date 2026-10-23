@@ -3,7 +3,7 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
 )
 
 // manuscriptDroppedEvent tells the window what became of a file dropped on the import's drop zone: {jobId, name} when the import began,

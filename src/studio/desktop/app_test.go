@@ -10,22 +10,22 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/recents"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
-	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
-	"github.com/countrymanprime/narration-utils/shell/internal/tts"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/recents"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/transcript"
+	"github.com/countrymanprime/narration-studio/shell/internal/tts"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func TestResourceKeyChangesWithEmbeddedContent(t *testing.T) {
-	first := fstest.MapFS{"cmd/narration-utils/resources/config.json": {Data: []byte(`{"version":1}`)}}
-	second := fstest.MapFS{"cmd/narration-utils/resources/config.json": {Data: []byte(`{"version":2}`)}}
+	first := fstest.MapFS{"cmd/narration-studio/resources/config.json": {Data: []byte(`{"version":1}`)}}
+	second := fstest.MapFS{"cmd/narration-studio/resources/config.json": {Data: []byte(`{"version":2}`)}}
 
 	firstKey, err := resourceKeyFor(first)
 	if err != nil {
@@ -73,7 +73,7 @@ func TestAnUnstampedBuildIsADevelopmentBuild(t *testing.T) {
 
 func TestBootstrapReportsCanonicalNarratableTotals(t *testing.T) {
 	project := t.TempDir()
-	path := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +305,7 @@ func TestCanAttachRejectsPreparedImportAndActiveTranscript(t *testing.T) {
 	}
 	host.manuscript = manuscript.New("")
 	project := t.TempDir()
-	canonical := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	canonical := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(canonical), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -667,7 +667,7 @@ func TestWriteReaperLauncherPathRefreshesMovedExecutable(t *testing.T) {
 	if err := writeReaperLauncherPath(root, `D:\moved\Narration Studio.exe`); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(root, "reaper", "narration-utils-app-path.txt")
+	path := filepath.Join(root, "reaper", "narration-studio-app-path.txt")
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -712,7 +712,7 @@ func TestTheProjectSettingsStoreReportsACorruptFileToTheNarrator(t *testing.T) {
 	host := NewHost()
 	var notices []string
 	host.persist.Notify = func(text string) { notices = append(notices, text) }
-	path := filepath.Join(appData, "narration-utils", "global-settings.json")
+	path := filepath.Join(appData, "narration-studio", "global-settings.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

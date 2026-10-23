@@ -23,7 +23,7 @@ import (
 	"unicode"
 	"unicode/utf16"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // SchemaVersion is the only bookmarks.json version this package reads or writes.
@@ -48,7 +48,7 @@ const (
 
 // File is where a project's bookmarks are kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-utils", "bookmarks.json")
+	return filepath.Join(project, "narration-studio", "bookmarks.json")
 }
 
 // Bookmark is one bookmark as stored. Offset is in UTF-16 code units into the paragraph's text (a JS string index, the
@@ -428,7 +428,7 @@ func (s *Service) write(file bookmarksFile) error {
 	file.SchemaVersion = SchemaVersion
 	path := File(s.config.Project)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

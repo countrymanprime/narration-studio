@@ -17,7 +17,7 @@ func audacityProject(t *testing.T) string {
 	t.Helper()
 	project := t.TempDir()
 	writeNested(t, filepath.Join(project, "Book.aup3"), "not a real Audacity project")
-	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), `{}`)
+	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), `{}`)
 	return project
 }
 
@@ -44,8 +44,8 @@ func TestAnAudacityLaunchResolvesEveryTierOfTheLayeredSettings(t *testing.T) {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	project := audacityProject(t)
-	writeNested(t, filepath.Join(appData, "narration-utils", "global-settings.json"), `{"TranscriptCompare": {"model_size": "medium"}}`)
-	writeNested(t, filepath.Join(project, "narration-utils", "settings.json"), `{"TranscriptCompare": {"color_misread": "112233"}}`)
+	writeNested(t, filepath.Join(appData, "narration-studio", "global-settings.json"), `{"TranscriptCompare": {"model_size": "medium"}}`)
+	writeNested(t, filepath.Join(project, "narration-studio", "settings.json"), `{"TranscriptCompare": {"color_misread": "112233"}}`)
 
 	host := NewHost()
 	host.configureLocked(parseConfigArgs(host.config.repoRoot, []string{"--project-folder", project, "--project-name", "Book", "--daw", "Audacity"}))

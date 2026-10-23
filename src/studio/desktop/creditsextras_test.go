@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/credits"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/credits"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // The credits extras: chapter announcements rendered per narration chapter
@@ -40,7 +40,7 @@ func writeExtrasManuscript(t *testing.T, folder string, wordsPer int) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(folder, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(folder, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

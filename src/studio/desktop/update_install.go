@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 )
 
 // quitDelay is how long the host waits after answering UpdateInstall before it closes: the answer has to reach the window first.

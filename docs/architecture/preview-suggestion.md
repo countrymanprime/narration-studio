@@ -9,7 +9,7 @@ composition, and the narrator's pin are in
 UI is the Preview panel in the Proof chapter view
 ([`src/studio/ui/src/components/proof/PreviewPanel.tsx`](../../src/studio/ui/src/components/proof/PreviewPanel.tsx); see
 [the Proof guide](../guides/using-the-app/proof.md)). The
-tracking issue is [#728](https://github.com/countrymanprime/narration-utils/issues/728).
+tracking issue is [#728](https://github.com/countrymanprime/narration-studio/issues/728).
 
 ## What the feature does
 
@@ -54,7 +54,7 @@ The narrator may pin one candidate to keep it, and move its edges by one paragra
 :
 
 - **One pin per book** (`preview.PinStore`, `store.go`): setting a new pin replaces whatever was pinned before, in
-  any chapter. The sidecar is `<project>/narration-utils/preview-pin.json`, an atomic write (temp file, rename)
+  any chapter. The sidecar is `<project>/narration-studio/preview-pin.json`, an atomic write (temp file, rename)
   like `chaptersync`'s own sidecar, and disposable like a reader bookmark - a file that cannot be
   read is treated as no pin, never surfaced as an error.
 - **Staleness** (`CheckStale`, `pin.go`): the pin stores each pinned paragraph's text at pin (or last adjustment)

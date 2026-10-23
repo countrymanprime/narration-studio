@@ -1,6 +1,6 @@
 # Manuscript Guide
 
-**Status: Implemented.** Planned work is [#1453](https://github.com/countrymanprime/narration-utils/issues/1453).
+**Status: Implemented.** Planned work is [#1453](https://github.com/countrymanprime/narration-studio/issues/1453).
 
 ## Current capability and problem
 

@@ -11,7 +11,7 @@ Reaper automation follow-through PRD (deleted) Phase 23, [narration_cleanup.lua]
 | The Repair Pops/Clicks action's numeric command ID | Not published, not in the binary as text | Unknown; the launcher does not need it (`src/studio/integrations/reaper/narration_cleanup.lua`) |
 | `kbd_enumerateActions(section, index)` returns the command ID and the action-list text, and 0 past the end; native since REAPER 6.71 | ReaScript API documentation (the SDK's `reaper_plugin_functions.h`, [X-Raym's API docs](https://www.extremraym.com/cloud/reascript-doc/)) | Per docs. The fake in `src/studio/integrations/reaper/tests/fake_reaper.lua` copies this shape |
 | `SectionFromUniqueID(0)` is the Main section | ReaScript API documentation | Per docs |
-| A loaded ReaScript is named `Script: <file name>` in the Action list | REAPER's behaviour for every script this project imports (`Script: NarrationUtils_Launcher.lua`) | Seen in REAPER |
+| A loaded ReaScript is named `Script: <file name>` in the Action list | REAPER's behaviour for every script this project imports (`Script: NarrationStudio_Launcher.lua`) | Seen in REAPER |
 | Magnolius DeClick is `Scripts/declick/Magnolius_DeClick.lua` in [m-dahlberg/magnolius-reaper](https://github.com/m-dahlberg/magnolius-reaper) (GPL-3.0), installed through ReaPack or "Load ReaScript"; it works on one selected audio item and needs ReaImGui | That repository's tree and `Scripts/declick/README.md`, read 2026-09-23 | Per docs |
 
 ## Pending: the scripted check in REAPER (needs the owner's approval)

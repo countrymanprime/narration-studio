@@ -2,7 +2,7 @@
 
 **Status: written, not run.** `src/studio/integrations/reaper/spikes/spike_s8_voice_label.lua` is ready, and syntax-checked and formatted, but it has not been run: it needs a real REAPER, and the container this was written in has none. Every answer in the table below is a **question**, with what the design assumes until the run says otherwise. Do not build on a cell until it carries a result.
 
-Phase 6 of the [character voice samples PRD](../prds/character-voice-samples.prd.md#where-a-sample-is-kept) ([#1963](https://github.com/countrymanprime/narration-utils/issues/1963)) keeps a sample as a REAPER region whose name carries the character and label, and reads it back from the saved project. This spike answers the "DAW region" open question there.
+Phase 6 of the [character voice samples PRD](../prds/character-voice-samples.prd.md#where-a-sample-is-kept) ([#1963](https://github.com/countrymanprime/narration-studio/issues/1963)) keeps a sample as a REAPER region whose name carries the character and label, and reads it back from the saved project. This spike answers the "DAW region" open question there.
 
 ## How to run it
 

@@ -1,5 +1,5 @@
 # golangci-lint v2 for the desktop app (Go module in this folder). Run through
-# `nx run narration-utils-shell:lint` (scripts/quality.mjs go-lint), which also runs gofmt and go vet.
+# `nx run narration-studio-shell:lint` (scripts/quality.mjs go-lint), which also runs gofmt and go vet.
 #
 # `standard` is the v2 default set: errcheck, govet, ineffassign, staticcheck (which in v2 also
 # carries the former gosimple and stylecheck checks) and unused. gosec is added on top. This is
@@ -75,19 +75,19 @@ linters:
           # Transcript Compare service (which exports markers). It checks direct imports only.
           files: ["**/internal/measure/**", "**/internal/findings/**"]
           deny:
-            - pkg: github.com/countrymanprime/narration-utils/shell/internal/manuscript
+            - pkg: github.com/countrymanprime/narration-studio/shell/internal/manuscript
               desc: "analyzers report findings and do not touch the manuscript store"
-            - pkg: github.com/countrymanprime/narration-utils/shell/internal/guide
+            - pkg: github.com/countrymanprime/narration-studio/shell/internal/guide
               desc: "analyzers report findings and do not edit the Story Bible"
-            - pkg: github.com/countrymanprime/narration-utils/shell/internal/settings
+            - pkg: github.com/countrymanprime/narration-studio/shell/internal/settings
               desc: "analyzers report findings and do not write settings"
-            - pkg: github.com/countrymanprime/narration-utils/shell/internal/recents
+            - pkg: github.com/countrymanprime/narration-studio/shell/internal/recents
               desc: "analyzers report findings and do not write the recents list"
-            - pkg: github.com/countrymanprime/narration-utils/shell/internal/bridge
+            - pkg: github.com/countrymanprime/narration-studio/shell/internal/bridge
               desc: "the REAPER bridge executes project actions; an analyzer must not reach it"
-            - pkg: github.com/countrymanprime/narration-utils/shell/internal/process
+            - pkg: github.com/countrymanprime/narration-studio/shell/internal/process
               desc: "analyzers do not launch sidecars or other processes"
-            - pkg: github.com/countrymanprime/narration-utils/shell/internal/transcript
+            - pkg: github.com/countrymanprime/narration-studio/shell/internal/transcript
               desc: "Transcript Compare exports markers into the project; an analyzer must not depend on it"
     gosec:
       excludes:
@@ -102,7 +102,7 @@ linters:
         # the gated LibriVox corpus test, whose corpus directory comes from NARRATION_SIGNAL_CORPUS.
         - G703
         # G301 wants directories created 0750 or tighter. The app creates its data and the
-        # project's narration-utils folders 0755 on purpose: a REAPER project can live on a share or be
+        # project's narration-studio folders 0755 on purpose: a REAPER project can live on a share or be
         # read by a second account, and every file in them is written 0600 (G306 stays on). Windows,
         # the supported platform, ignores the mode.
         - G301

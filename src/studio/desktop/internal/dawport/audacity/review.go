@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // Review is the review workflow's role over Audacity (docs/reference/daw/capabilities.md#review). The transcript service speaks to a
@@ -23,7 +23,7 @@ import (
 //
 // Audacity has no items and no takes, so the audio under review is the selected audio track, exported once to a WAV in SessionFolder
 // and listed as one manifest line; a finding's place is the track's start plus its position in that WAV. A finding is a label,
-// `[nu:<id>] <kind>: <words>`, on the "Narration Utils" label track, found again by its id and never by time.
+// `[nu:<id>] <kind>: <words>`, on the "Narration Studio" label track, found again by its id and never by time.
 type Review struct {
 	session *Session
 	// exported checks the file an export wrote; nil means "it exists and holds more than a WAV header", which is what an export of
@@ -61,10 +61,10 @@ const maxRuns = 8
 const reviewTimeout = 5 * time.Minute
 
 // SessionFolder is where the Audacity roles keep what they export and the files they trade with the services above them (a comparison's
-// audio and manifest, a pickup list), inside the project's own narration-utils folder. It is the Audacity counterpart of REAPER's
+// audio and manifest, a pickup list), inside the project's own narration-studio folder. It is the Audacity counterpart of REAPER's
 // session directory.
 func SessionFolder(project string) string {
-	return filepath.Join(project, "narration-utils", "audacity-session")
+	return filepath.Join(project, "narration-studio", "audacity-session")
 }
 
 // NewReview is the review role over session, with events of its own.
@@ -142,7 +142,7 @@ func (r *Review) prepare(ctx context.Context, runID, project string) error {
 	if !filepath.IsAbs(project) {
 		return errors.New("Save the project in the app before starting Transcript Compare.") //nolint:staticcheck // a sentence the narrator reads
 	}
-	manuscript := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	manuscript := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if _, err := os.Stat(manuscript); err != nil {
 		return errors.New("Import a manuscript in Narration Studio before starting Transcript Compare.") //nolint:staticcheck // a sentence the narrator reads
 	}

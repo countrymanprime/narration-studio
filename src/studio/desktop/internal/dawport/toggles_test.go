@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
 )
 
 // settingsOf is settings.Store.Effective over one tool's values, with the store's fallback when a key is missing.

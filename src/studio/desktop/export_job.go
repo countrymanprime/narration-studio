@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-utils/shell/internal/mastering"
-	"github.com/countrymanprime/narration-utils/shell/internal/packager"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/mastering"
+	"github.com/countrymanprime/narration-studio/shell/internal/packager"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
 )
 
 // The Master & QC export flow: the narrator picks rendered chapter (and credits, and retail sample) WAV files,
@@ -26,13 +26,13 @@ import (
 //
 // Every stage writes a NEW file and never the source, following chaptertags' and mastering's own "new copy, never
 // the source" rule. Mastered and encoded files are derived, intermediate data, so they live under the project's own
-// narration-utils/ sidecar tree (exportDir); the assembled package is the narrator's deliverable and is never
+// narration-studio/ sidecar tree (exportDir); the assembled package is the narrator's deliverable and is never
 // written there - PackageStart asks for an output folder with the operating system's own picker.
 
 // exportScratchDir is where a project's mastered and encoded intermediates are written, never the deliverable
-// itself: <project>/narration-utils/render-encode-master/<mastered|encoded>.
+// itself: <project>/narration-studio/render-encode-master/<mastered|encoded>.
 func exportScratchDir(projectFolder, stage string) string {
-	return filepath.Join(projectFolder, "narration-utils", "render-encode-master", stage)
+	return filepath.Join(projectFolder, "narration-studio", "render-encode-master", stage)
 }
 
 // The status words of one file in an export job.

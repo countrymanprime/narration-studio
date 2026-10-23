@@ -1,6 +1,6 @@
 # Audacity launcher feasibility (audacity-integration Phase 10)
 
-**Status: done, 2026-09-23. Desk research only: Audacity's manual and its source at the release tags named below. Nothing was run in Audacity.** This note answers the question Phase 10 of the Audacity integration PRD (deleted) has to settle before anything is built: can an Audacity-side artifact (a macro, a Nyquist plug-in, anything else Audacity loads) launch the app's executable with arguments on Windows, the way [`NarrationUtils_Launcher.lua`](../../src/studio/integrations/reaper/NarrationUtils_Launcher.lua) launches it from REAPER with `--daw REAPER` and the project folder?
+**Status: done, 2026-09-23. Desk research only: Audacity's manual and its source at the release tags named below. Nothing was run in Audacity.** This note answers the question Phase 10 of the Audacity integration PRD (deleted) has to settle before anything is built: can an Audacity-side artifact (a macro, a Nyquist plug-in, anything else Audacity loads) launch the app's executable with arguments on Windows, the way [`NarrationStudio_Launcher.lua`](../../src/studio/integrations/reaper/NarrationStudio_Launcher.lua) launches it from REAPER with `--daw REAPER` and the project folder?
 
 ## What it settles
 
@@ -13,7 +13,7 @@
 
 So Phase 10 as first written, "a saved Audacity macro that launches the app's executable with `--daw Audacity` and the project folder", cannot be built.
 
-**Outcome (owner, 2026-09-23):** alternative 1 below. The launcher is the installer's "Narration Utils for Audacity" Start Menu entry, no Audacity-side artifact ships, and the integration targets Audacity 3.x only for now ([Audacity boundary](../architecture/daw-integration.md#audacity-boundary), the PRD's revised Questions 3 and 7).
+**Outcome (owner, 2026-09-23):** alternative 1 below. The launcher is the installer's "Narration Studio for Audacity" Start Menu entry, no Audacity-side artifact ships, and the integration targets Audacity 3.x only for now ([Audacity boundary](../architecture/daw-integration.md#audacity-boundary), the PRD's revised Questions 3 and 7).
 
 ## Evidence
 
@@ -40,7 +40,7 @@ On paper this starts a program from a macro. In practice it cannot serve as the 
 - **It renders audio into the program's standard input.** The export needs a non-empty selection. Audacity writes a WAV stream to the program's stdin, and `Process` writes until the program exits or the pipe fails.
 - **It blocks Audacity until the program exits.** After writing, `Process` waits in a loop while `process.IsActive()`. Starting the app directly would freeze Audacity for as long as the app stays open. To avoid that, the command would have to be a shell trampoline (`cmd /c start "" "<exe>" --daw Audacity`). The export then succeeds only if the rendered audio fits in the pipe buffer before `cmd` exits. Otherwise the write fails and Audacity reports an export error.
 - **It cannot pass the project folder.** `%f` is the export file name, not the project, and macros have no variables (above).
-- **It puts the install path in the macro.** The executable's absolute path has to be written into the preference value, per user and per install, instead of being resolved at run time the way the REAPER launcher reads `narration-utils-app-path.txt`.
+- **It puts the install path in the macro.** The executable's absolute path has to be written into the preference value, per user and per install, instead of being resolved at run time the way the REAPER launcher reads `narration-studio-app-path.txt`.
 - **It adds a new trust boundary.** The artifact we would ship would be a macro that makes Audacity run a shell command line. That is harder to review and explain than a shortcut.
 - **It is unverified.** Nothing above was run in Audacity. It rests on how these commands happen to fit together, not on anything documented.
 
@@ -60,7 +60,7 @@ The [Audacity 4.0.0 release notes](https://github.com/audacity/audacity/releases
 
 Each of these gets the narrator into the app's workspace with `--daw Audacity` without Audacity starting anything.
 
-1. **An installer shortcut "Narration Utils for Audacity" (recommended).** `src/studio/desktop/build/windows/installer/project.nsi` already creates the Start Menu entry and an optional desktop shortcut. NSIS `CreateShortcut` takes command-line parameters, so a second entry can start `narration-utils.exe --daw Audacity`. The narrator pins it next to Audacity's own shortcut. The app then opens its project picker, the same fallback the REAPER launcher uses for an unsaved project. The release check becomes an `installer.test.mjs` assertion, next to the existing shortcut tests. It is cheap, reviewable and it works with Audacity 3 and 4. The narrator still picks the project folder once per session, which the REAPER launcher does not require.
+1. **An installer shortcut "Narration Studio for Audacity" (recommended).** `src/studio/desktop/build/windows/installer/project.nsi` already creates the Start Menu entry and an optional desktop shortcut. NSIS `CreateShortcut` takes command-line parameters, so a second entry can start `narration-studio.exe --daw Audacity`. The narrator pins it next to Audacity's own shortcut. The app then opens its project picker, the same fallback the REAPER launcher uses for an unsaved project. The release check becomes an `installer.test.mjs` assertion, next to the existing shortcut tests. It is cheap, reviewable and it works with Audacity 3 and 4. The narrator still picks the project folder once per session, which the REAPER launcher does not require.
 2. **An "Open for Audacity" choice inside the app.** The standalone launch that already ships, plus a way to switch the open project to Audacity mode. There is nothing new to install. It is the PRD's original recommendation (b) for Question 3.
 3. **Project discovery through the pipe, later.** Once the Phase 4 pipe client exists, an app started with `--daw Audacity` could ask a running Audacity 3.x which project is open, so the narrator would not need to pick it. Whether the scripting commands expose the open project's path is not established here. That belongs to spike S-A1.
 4. **The exporter side channel (not recommended).** Only if the owner accepts every drawback above, and only after an owner-present spike on a copy of the Audacity settings shows it works.

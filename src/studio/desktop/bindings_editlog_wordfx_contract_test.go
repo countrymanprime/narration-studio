@@ -21,7 +21,7 @@ func TestEditWordFxContractGoldens(t *testing.T) {
 
 	// The narrator re-imports without a reset and "silent." became "still.": that effect is stale, never moved.
 	edited := strings.Replace(bookmarksManuscript, "The soldiers were silent.", "The soldiers were still.", 1)
-	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), edited)
+	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), edited)
 	payload, err = host.EditingWordFxList("c-0001")
 	checkBindingContract(t, "edit-wordfx-list", payload)
 	if list := decodeWordFx(t)(payload, err); list.Effects[0].Stale || !list.Effects[2].Stale || list.Effects[2].StaleReason != "text_changed" || list.Effects[2].A != 20 {

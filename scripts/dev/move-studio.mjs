@@ -14,7 +14,7 @@
 //   2. The same written as path segments: `'apps', 'ui'` in a join call, `/ "sidecars"` in a Python path, `"libs", "python"`.
 //   3. Inside a moved folder or src/web: a relative path (`../../docs/x`, `'..', '..', 'docs'`, `Path(__file__).parents[3]`) that leaves its
 //      moved folder, so it still reaches its target from the new depth.
-// The Go module path (github.com/countrymanprime/narration-utils/shell) is not a directory path and does not change.
+// The Go module path (github.com/countrymanprime/narration-studio/shell) is not a directory path and does not change.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix } from 'node:path';

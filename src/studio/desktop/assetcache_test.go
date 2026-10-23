@@ -27,7 +27,7 @@ func TestTheAssetCacheLivesUnderTheUsersCacheFolder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join("narration-utils", "assets"); filepath.Base(filepath.Dir(base)) != "narration-utils" || filepath.Base(base) != "assets" {
+	if want := filepath.Join("narration-studio", "assets"); filepath.Base(filepath.Dir(base)) != "narration-studio" || filepath.Base(base) != "assets" {
 		t.Fatalf("assetCacheBase = %q, want a path ending %q", base, want)
 	}
 }

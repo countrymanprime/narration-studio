@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 )
 
 // startupUpdateDelay is how long the automatic update check waits after the window is up: the check is metadata only and must
@@ -31,7 +31,7 @@ func updateCachePath() string {
 	if err != nil {
 		base = os.TempDir()
 	}
-	return filepath.Join(base, "narration-utils", "update", "check.json")
+	return filepath.Join(base, "narration-studio", "update", "check.json")
 }
 
 // updateSettings reads the two Updates settings: whether to check on startup and which channel counts. Both are global settings

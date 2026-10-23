@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // clearHost is a project with a manuscript, the named REAPER files directly in its folder, and the manifest linked to link (a path
@@ -14,7 +14,7 @@ func clearHost(t *testing.T, inFolder []string, link string) (*Host, string) {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	folder := t.TempDir()
-	writeNested(t, filepath.Join(folder, "narration-utils", "manuscript", "manuscript.json"), bookmarksManuscript)
+	writeNested(t, filepath.Join(folder, "narration-studio", "manuscript", "manuscript.json"), bookmarksManuscript)
 	for _, name := range inFolder {
 		writeFile(t, filepath.Join(folder, name), "x")
 	}

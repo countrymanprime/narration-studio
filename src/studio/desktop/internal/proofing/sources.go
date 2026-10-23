@@ -5,10 +5,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/liveflags"
-	"github.com/countrymanprime/narration-utils/shell/internal/repeats"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/liveflags"
+	"github.com/countrymanprime/narration-studio/shell/internal/repeats"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // The analyzers whose findings are pickup sources. Transcript Compare's

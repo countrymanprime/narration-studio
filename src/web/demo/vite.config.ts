@@ -70,7 +70,7 @@ function sitePlugin(): Plugin {
 
 // The site's app is the real UI (src/studio/ui) in its mock mode, started by this folder's entry (src/entry.ts), which registers the site's extension (src/register.ts)
 // before it loads the app. The `demo` mode (`.env.demo`, `pnpm --dir src/web run build:pages-demo`) publishes the mock build under GitHub Pages'
-// `/narration-utils/demo/` subpath; the `site` mode (`.env.site`, src/web/build/build-demo-site.mjs) is the public site's copy: relative asset URLs and hash
+// `/narration-studio/demo/` subpath; the `site` mode (`.env.site`, src/web/build/build-demo-site.mjs) is the public site's copy: relative asset URLs and hash
 // routes, so the folder opens from any sub-path and from a sandboxed frame.
 export default defineConfig(({ mode }) => ({
   root: here,
@@ -78,7 +78,7 @@ export default defineConfig(({ mode }) => ({
   publicDir: join(ui, 'public'),
   resolve: { alias: { '@ui': join(ui, 'src') } },
   plugins: [react(), tailwindSources(), tailwindcss(), ...(mode === 'site' ? [sitePlugin()] : [])],
-  base: mode === 'demo' ? '/narration-utils/demo/' : './',
+  base: mode === 'demo' ? '/narration-studio/demo/' : './',
   build:
     mode === 'site'
       ? {

@@ -99,7 +99,7 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'report-exported',
     description:
-      'Master & QC with the files checked against ACX, then Export report - the HTML and JSON file names written to narration-utils/delivery, what the report counts, and that it holds file names only (scrolled to the Report panel)',
+      'Master & QC with the files checked against ACX, then Export report - the HTML and JSON file names written to narration-studio/delivery, what the report counts, and that it holds file names only (scrolled to the Report panel)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

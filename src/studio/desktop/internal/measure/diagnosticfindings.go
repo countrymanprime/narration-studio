@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
 )
 
 // diagnosticsAnalyzer names the windowed analyzers in their findings.

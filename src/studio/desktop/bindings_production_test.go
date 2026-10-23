@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/production"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/production"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // The production plan bindings: deadline, contracted amount and milestones on the
@@ -240,7 +240,7 @@ func TestProductionTimerStartsStopsAndRefusesASecondTimer(t *testing.T) {
 	if chapter["status"] != "recording" {
 		t.Fatalf("status = %v, want it untouched by the timer", chapter["status"])
 	}
-	if _, err := os.Stat(filepath.Join(host.config.projectFolder, "narration-utils", "production", "sessions.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(host.config.projectFolder, "narration-studio", "production", "sessions.json")); err != nil {
 		t.Fatalf("the time log was not written: %v", err)
 	}
 }

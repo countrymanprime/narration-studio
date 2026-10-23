@@ -32,5 +32,5 @@ func CacheBase() (string, error) {
 
 // CacheBaseIn is the asset cache inside a given per-user cache folder (what os.UserCacheDir returns).
 func CacheBaseIn(userCache string) string {
-	return filepath.Join(userCache, "narration-utils", "assets")
+	return filepath.Join(userCache, "narration-studio", "assets")
 }

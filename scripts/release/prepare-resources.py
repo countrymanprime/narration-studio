@@ -26,7 +26,7 @@ PYTHON_LIB_DIR = Path("src/studio/libs/python")
 CONFIG_DIR = Path("config")
 REAPER_DIR = Path("src/studio/integrations/reaper")
 SIDECARS_DIR = Path("src/studio/sidecars")
-RESOURCES_DIR = Path("src/studio/desktop/cmd/narration-utils/resources")
+RESOURCES_DIR = Path("src/studio/desktop/cmd/narration-studio/resources")
 
 RESOURCES = ROOT / RESOURCES_DIR
 RUNTIME = RESOURCES / "runtime"
@@ -158,7 +158,7 @@ def main() -> None:
         # Piper speaks through its bundled espeak-ng and needs piper/espeak-ng-data (about 19 MB, plus a few MB of other Piper data);
         # the CMU dictionary (cmudict, read by pronouncing) needs its data file and its package metadata (it reads its own version).
         # PyInstaller has no hook for either: without them a frozen preview could not speak, and the frozen guide logged "CMU
-        # pronunciation unavailable (No package metadata was found for cmudict)". `narration-utils --smoke` runs `manuscript-guide
+        # pronunciation unavailable (No package metadata was found for cmudict)". `narration-studio --smoke` runs `manuscript-guide
         # self-check` to prove both load. (The other log line, "eSpeak phonetic fallback unavailable", is the phonemizer package
         # wanting a system libespeak-ng that no build has, on a dev machine too; data files do not fix it.)
         # The optional GLiNER and BookNLP downloads (extraction_gliner.py, extraction_booknlp.py) are imported at run time
@@ -195,7 +195,7 @@ def main() -> None:
         # (capture_wasapi.py), so it is in the build: its DLL
         # (_sounddevice_data/portaudio-binaries, about 2 MB) is loaded with ctypes, and PyInstaller's own
         # sounddevice hook (pyinstaller-hooks-contrib) collects it. verify-installable.mjs checks all three
-        # DLLs are in the tree, and `narration-utils --smoke` runs `manuscript-teleprompter --capabilities --verify`
+        # DLLs are in the tree, and `narration-studio --smoke` runs `manuscript-teleprompter --capabilities --verify`
         # to prove Moonshine's load.
         Sidecar(
             "manuscript-teleprompter",

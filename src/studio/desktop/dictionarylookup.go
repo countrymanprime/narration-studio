@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
+	"github.com/countrymanprime/narration-studio/shell/internal/dictionary"
 )
 
 // SystemLookup looks one word from the manuscript reader up in the offline dictionary (docs/architecture/dictionary-thesaurus-integration.md: the Open English WordNet, read from Go in

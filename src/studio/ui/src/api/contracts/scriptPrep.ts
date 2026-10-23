@@ -1,6 +1,6 @@
 // The Script page's preparation record: each chapter's prep state and the words flagged for pronunciation, each with how it is
 // said and the id of the pronunciation source the value came from. It is kept in the project's
-// narration-utils/script-prep.json (src/studio/desktop/internal/scriptprep) and each flag is checked against the current text on every
+// narration-studio/script-prep.json (src/studio/desktop/internal/scriptprep) and each flag is checked against the current text on every
 // read, so a flag whose line is gone, whose range no longer fits or whose words changed comes back stale rather than moved
 
 /** A chapter's prep state, the Studio Next mock's PrepState: not started, in progress, prepped. */

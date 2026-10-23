@@ -8,8 +8,8 @@ local pipe_fields, event = core.pipe_fields, core.event
 -- Manuscript line identity lives in the project itself, as namespaced item
 -- extension data, so it survives moves, splits and copies. Nothing below
 -- touches item notes or take names: those belong to the narrator.
-local LINE_ID_KEY = 'P_EXT:narration_utils_line_id'
-local LINE_TEXT_KEY = 'P_EXT:narration_utils_line_text'
+local LINE_ID_KEY = 'P_EXT:narration_studio_line_id'
+local LINE_TEXT_KEY = 'P_EXT:narration_studio_line_text'
 local UNRESOLVED_EVENT_LIMIT = 50
 
 local function normalize_guid(guid)

@@ -34,7 +34,7 @@ import "strings"
 // own chunk model as OpenFinding is of the findings store's Finding record.
 type StampedItem struct {
 	ItemGUID string
-	// LineID is the item's raw narration_utils_line_id extension value, composeLineID's own "<entity id>@<source
+	// LineID is the item's raw narration_studio_line_id extension value, composeLineID's own "<entity id>@<source
 	// sha256>" format when the stamp is this scheme's; an older or foreign stamp (no "@", or from before this
 	// scheme existed) fails to parse and never resolves to any paragraph.
 	LineID string

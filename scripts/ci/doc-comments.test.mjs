@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PYTHON_RULES, filterToAdded, parseAddedLines, parseRuffJson, ruffArgs } from './doc-comments.mjs';
+import { PYTHON_RULES, filterToAdded, parseAddedLines, parseRuffJson, relativePatch, ruffArgs } from './doc-comments.mjs';
 
 const DIFF = [
   'diff --git a/src/studio/libs/python/a.py b/src/studio/libs/python/a.py',
@@ -110,4 +110,39 @@ test('parseRuffJson compares the root case-insensitively and throws for a file o
 
   assert.equal(parseRuffJson(json, 'C:/repo')[0].file, 'libs/a.py');
   assert.throws(() => parseRuffJson(json, 'D:/other'), /not under/);
+});
+
+test('relativePatch keeps the module folder\'s files, moved ones included, with paths relative to it', () => {
+  const diff = [
+    'diff --git a/apps/desktop/x.go b/src/studio/desktop/x.go',
+    'similarity index 90%',
+    'rename from apps/desktop/x.go',
+    'rename to src/studio/desktop/x.go',
+    '--- a/apps/desktop/x.go',
+    '+++ b/src/studio/desktop/x.go',
+    '@@ -1 +1 @@',
+    '-a',
+    '+b',
+    'diff --git a/src/studio/desktop/new.go b/src/studio/desktop/new.go',
+    'new file mode 100644',
+    '--- /dev/null',
+    '+++ b/src/studio/desktop/new.go',
+    '@@ -0,0 +1 @@',
+    '+package x',
+    'diff --git a/scripts/y.mjs b/scripts/y.mjs',
+    '--- a/scripts/y.mjs',
+    '+++ b/scripts/y.mjs',
+    '@@ -1 +1 @@',
+    '-a',
+    '+b',
+    '',
+  ].join('\n');
+
+  const patch = relativePatch(diff, 'src/studio/desktop');
+
+  assert.match(patch, /^diff --git a\/x\.go b\/x\.go$/m);
+  assert.match(patch, /^--- a\/x\.go\n\+\+\+ b\/x\.go$/m);
+  assert.match(patch, /^--- \/dev\/null\n\+\+\+ b\/new\.go$/m);
+  assert.doesNotMatch(patch, /y\.mjs/);
+  assert.deepEqual([...parseAddedLines(patch).keys()], ['x.go', 'new.go']);
 });

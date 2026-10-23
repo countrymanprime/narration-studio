@@ -1,5 +1,5 @@
 -- NarrationStudio_Launcher.lua loaded the way REAPER loads it, from an installed bundle layout
--- (<bundle>/resources/reaper/*.lua next to <bundle>/narration-utils), so a renamed or unlisted Lua file
+-- (<bundle>/resources/reaper/*.lua next to <bundle>/narration-studio), so a renamed or unlisted Lua file
 -- that the launcher `dofile`s fails here and not on a narrator's machine.
 
 local H = require('harness')
@@ -14,9 +14,9 @@ local function copy_scripts(target)
   end
 end
 
--- The program is `narration-utils`, and `narration-utils.exe` on Windows (the release zip holds exactly that file, scripts/release/assets.mjs).
+-- The program is `narration-studio`, and `narration-studio.exe` on Windows (the release zip holds exactly that file, scripts/release/assets.mjs).
 local function app_name(os_name)
-  return os_name:find('Win') and 'narration-utils.exe' or 'narration-utils'
+  return os_name:find('Win') and 'narration-studio.exe' or 'narration-studio'
 end
 
 -- Builds the bundle, points the fake REAPER's action context at the launcher and returns the fake and its paths.
@@ -56,7 +56,7 @@ H.test('the launcher starts the app with the session, project and DAW arguments,
   H.eq(#launches, 1)
   local command = launches[1].command
   local session_root = H.join(H.join(fake.resource_path, 'NarrationStudio'), 'sessions')
-  H.contains(command, H.join(H.join(H.join(scripts, '..'), '..'), 'narration-utils'), 'the app sits two folders above the scripts')
+  H.contains(command, H.join(H.join(H.join(scripts, '..'), '..'), 'narration-studio'), 'the app sits two folders above the scripts')
   H.contains(command, '--session-dir')
   H.contains(command, session_root .. package.config:sub(1, 1) .. 'hub_1001')
   H.contains(command, "--project-folder '" .. H.join(root, 'Projects') .. "'")
@@ -68,24 +68,14 @@ H.test('the launcher starts the app with the session, project and DAW arguments,
   H.eq(host.listdir(H.join(H.join(session_root, 'hub_1001'), 'commands')), {}, 'the command folder exists')
 end)
 
-H.test('the deprecated NarrationUtils_Launcher.lua still runs the launcher, so an action loaded before the rename keeps working', function()
-  local fake, _, scripts = bundle()
-  fake.action_path = H.join(scripts, 'NarrationUtils_Launcher.lua')
-  dofile(H.join(scripts, 'NarrationUtils_Launcher.lua'))
-  H.eq(#calls_named(fake, 'ShowMessageBox'), 0, 'no setup dialog')
-  H.eq(#calls_named(fake, 'ExecProcess'), 1, 'the app was started once')
-  H.contains(calls_named(fake, 'ExecProcess')[1].command, H.join(H.join(fake.resource_path, 'NarrationStudio'), 'sessions'), 'the session is in the new folder')
-  H.eq(#fake.deferred, 1, 'the bridge loop is running')
-end)
-
 H.test('the launcher reads the app path the app wrote beside it, whatever the program is called', function()
   local fake, root, scripts = bundle({ shell = false })
   local elsewhere = H.join(root, 'Program Files')
   host.makedirs(elsewhere)
-  H.write_file(H.join(elsewhere, 'narration-utils-shell'), 'x')
-  H.write_file(H.join(scripts, 'narration-utils-app-path.txt'), H.join(elsewhere, 'narration-utils-shell') .. '\n')
+  H.write_file(H.join(elsewhere, 'narration-studio-shell'), 'x')
+  H.write_file(H.join(scripts, 'narration-studio-app-path.txt'), H.join(elsewhere, 'narration-studio-shell') .. '\n')
   dofile(H.join(scripts, 'NarrationStudio_Launcher.lua'))
-  H.contains(calls_named(fake, 'ExecProcess')[1].command, H.join(elsewhere, 'narration-utils-shell'))
+  H.contains(calls_named(fake, 'ExecProcess')[1].command, H.join(elsewhere, 'narration-studio-shell'))
 end)
 
 H.test('an unsaved project launches with an empty project folder and a placeholder name', function()
@@ -170,17 +160,17 @@ local function launch_command(fake, scripts)
   return assert(H.read_file(script_path))
 end
 
-H.test('on Windows the bundle program is narration-utils.exe', function()
+H.test('on Windows the bundle program is narration-studio.exe', function()
   local fake, _, scripts = bundle({ os_name = 'Win64' })
   local command = launch_command(fake, scripts)
   H.eq(#calls_named(fake, 'ShowMessageBox'), 0, 'no setup dialog')
   H.truthy(command, 'the app was started')
-  H.contains(command, H.join(H.join(H.join(scripts, '..'), '..'), 'narration-utils.exe'))
+  H.contains(command, H.join(H.join(H.join(scripts, '..'), '..'), 'narration-studio.exe'))
 end)
 
 H.test('the old program name is not looked for any more', function()
   local fake, root, scripts = bundle({ shell = false })
-  H.write_file(H.join(root, 'narration-utils-shell'), 'a build from before the rename')
+  H.write_file(H.join(root, 'narration-studio-shell'), 'a build from before the rename')
   H.eq(launch_command(fake, scripts), nil, 'the old name does not start')
   H.eq(#calls_named(fake, 'ShowMessageBox'), 1)
 end)

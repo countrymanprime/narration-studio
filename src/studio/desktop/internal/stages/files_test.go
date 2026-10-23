@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // metProvider reports recording.text met for every chapter.
@@ -29,7 +29,7 @@ func (metProvider) Signals(context.Context, stages.ChapterContext, stages.Eviden
 
 func writeCanonical(t *testing.T, project string) {
 	t.Helper()
-	dir := filepath.Join(project, "narration-utils", "manuscript")
+	dir := filepath.Join(project, "narration-studio", "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestConfirmWritesOnlyTheStatusAndTheDecisionsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []string{"narration-utils/manuscript-notes.json", "narration-utils/stage-decisions.json"}
+	want := []string{"narration-studio/manuscript-notes.json", "narration-studio/stage-decisions.json"}
 	if got := changedFiles(before, snapshot(t, project)); !slices.Equal(got, want) {
 		t.Fatalf("Confirm changed %v, want exactly %v", got, want)
 	}

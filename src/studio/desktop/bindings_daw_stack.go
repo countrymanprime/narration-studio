@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/passagetakes"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/passagetakes"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // stackTakesTimeout bounds one stack_takes or unstack_takes request with the chapter_track_state read before it: each is a

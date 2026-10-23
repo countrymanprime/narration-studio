@@ -9,7 +9,7 @@ faster-whisper's README publishes `BatchedInferencePipeline` (`small`, int8, CPU
 1 m 42 s sequential against 51 s at `batch_size=8`, with RAM going from 1,477 MB to 3,608 MB. Those are the README's
 figures, not measurements from this repository. The recording check transcribes each item with
 `model.transcribe(..., vad_filter=True, word_timestamps=True, hotwords=...)`, one call at a time
-(`core/asr_batch.py`, `core/coverage_mode.py`), and since [#1811](https://github.com/countrymanprime/narration-utils/pull/1811)
+(`core/asr_batch.py`, `core/coverage_mode.py`), and since [#1811](https://github.com/countrymanprime/narration-studio/pull/1811)
 can also cut an item into 300 s chunks and run them in worker processes (`core/coverage_chunks.py`). The questions:
 
 1. Does the batched pipeline keep word timestamps, text and hotwords close enough that the calibrated settings (0.8 / 3 / 8 / 3,

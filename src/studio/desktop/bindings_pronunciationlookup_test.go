@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationlookup"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationlookup"
 )
 
 func TestPronunciationLookupOpenOpensTheSourcesOwnURL(t *testing.T) {

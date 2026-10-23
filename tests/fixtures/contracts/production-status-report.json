@@ -1,6 +1,6 @@
 {
   "contractedAmountIncluded": false,
-  "folder": "narration-utils/production/reports",
+  "folder": "narration-studio/production/reports",
   "htmlFile": "production-status-20260921-100000Z.html",
   "include": {
     "delivery": true,

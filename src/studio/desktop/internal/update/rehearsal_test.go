@@ -17,7 +17,7 @@ import (
 // TestRehearsalWithTwoRealBuilds is the update run against real builds of the application, on copies in a temporary folder. It is
 // not part of the gate (it opens the application's window for a few seconds); run it with
 //
-//	REHEARSAL_OLD=<older narration-utils.exe> REHEARSAL_NEW=<newer build, stamped with the version> \
+//	REHEARSAL_OLD=<older narration-studio.exe> REHEARSAL_NEW=<newer build, stamped with the version> \
 //	  go test -tags rehearsal -run Rehearsal -v ./internal/update
 //
 // The old build is started with launcher-style arguments and left running; Install swaps the new one in beside it and starts it, the
@@ -48,7 +48,7 @@ func TestRehearsalWithTwoRealBuilds(t *testing.T) {
 	// which must be empty; the settings folder is the temporary one.
 	t.Setenv("APPDATA", filepath.Join(root, "APPDATA"))
 	appDir := filepath.Join(root, "Program")
-	exe := filepath.Join(appDir, "narration-utils.exe")
+	exe := filepath.Join(appDir, "narration-studio.exe")
 	copyFile(t, oldBuild, exe)
 	project := filepath.Join(root, "Project")
 	if err := os.MkdirAll(project, 0o755); err != nil {
@@ -58,12 +58,12 @@ func TestRehearsalWithTwoRealBuilds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pending := filepath.Join(cache, "narration-utils", "update", "pending.json")
+	pending := filepath.Join(cache, "narration-studio", "update", "pending.json")
 	if exists(pending) {
 		t.Skip("an update launch record already exists in the real cache; not touching it")
 	}
 	t.Cleanup(func() { _ = os.Remove(pending) })
-	stagedPath := filepath.Join(root, "cache", "narration-utils.exe")
+	stagedPath := filepath.Join(root, "cache", "narration-studio.exe")
 	copyFile(t, newBuild, stagedPath)
 	bytes, err := os.ReadFile(stagedPath)
 	if err != nil {
@@ -107,7 +107,7 @@ func TestRehearsalWithTwoRealBuilds(t *testing.T) {
 	for exists(exe+oldSuffix) || exists(pending) {
 		if time.Now().After(deadline) {
 			out, _ := exec.Command("powershell", "-NoProfile", "-Command", "Get-Process | Where-Object { $_.Path -like '"+root+"*' } | Format-Table Id,ProcessName,Path -AutoSize | Out-String -Width 300").CombinedOutput()
-			logs, _ := filepath.Glob(filepath.Join(root, "*", "narration-utils", "*"))
+			logs, _ := filepath.Glob(filepath.Join(root, "*", "narration-studio", "*"))
 			note, _ := os.ReadFile(pending)
 			t.Fatalf("the new build did not confirm within 90 s (old file present %v, record present %v)\nprocesses of the copy:\n%s\nfiles: %v\nrecord: %s", exists(exe+oldSuffix), exists(pending), out, logs, note)
 		}

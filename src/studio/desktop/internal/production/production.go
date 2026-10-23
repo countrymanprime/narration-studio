@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // sessionsSchemaVersion is the only sessions.json version this package reads
@@ -45,7 +45,7 @@ var ErrTimerRunning = errors.New("a timer is already running")
 // derived data a manuscript re-import clears, the time log is kept: the
 // hours were worked whatever the manuscript later became.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-utils", "production")
+	return filepath.Join(project, "narration-studio", "production")
 }
 
 func sessionsPath(project string) string {

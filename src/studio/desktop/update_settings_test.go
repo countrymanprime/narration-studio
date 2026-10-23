@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 )
 
 // A project's own settings file must not decide how the app updates: a project the narrator opens, or is sent, could otherwise
@@ -13,10 +13,10 @@ import (
 func TestAProjectSettingsFileCannotChangeHowTheAppUpdates(t *testing.T) {
 	host := updateHost(t, newFakeReleaseServer(t), "0.2.6")
 	project := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(project, "narration-utils"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(project, "narration-studio"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(project, "narration-utils", "settings.json"), []byte(`{"Updates":{"check_on_startup":"false","channel":"stable"}}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(project, "narration-studio", "settings.json"), []byte(`{"Updates":{"check_on_startup":"false","channel":"stable"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	host.mu.Lock()

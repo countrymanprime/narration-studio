@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // projectFile writes a minimal saved .rpp with two named regions (with GUIDs)
@@ -418,8 +418,8 @@ func TestApproveFailsWhenReferencesFileIsCorruptJSON(t *testing.T) {
 	}
 }
 
-func TestDirIsUnderTheProjectsNarrationUtilsFolder(t *testing.T) {
-	if got, want := Dir("/proj"), filepath.Join("/proj", "narration-utils", "characters"); got != want {
+func TestDirIsUnderTheProjectsNarrationStudioFolder(t *testing.T) {
+	if got, want := Dir("/proj"), filepath.Join("/proj", "narration-studio", "characters"); got != want {
 		t.Fatalf("Dir(%q) = %q, want %q", "/proj", got, want)
 	}
 }

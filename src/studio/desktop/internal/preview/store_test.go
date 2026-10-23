@@ -84,11 +84,11 @@ func TestPinStoreClearOnAMissingFileIsNotAnError(t *testing.T) {
 	}
 }
 
-// TestPinFileIsUnderTheProjectsNarrationUtilsFolder locks in the on-disk path resetDerived (manuscript/service.go)
+// TestPinFileIsUnderTheProjectsNarrationStudioFolder locks in the on-disk path resetDerived (manuscript/service.go)
 // clears, so a rename here is caught by that test rather than silently orphaning old pin files.
-func TestPinFileIsUnderTheProjectsNarrationUtilsFolder(t *testing.T) {
+func TestPinFileIsUnderTheProjectsNarrationStudioFolder(t *testing.T) {
 	got := PinFile("/a/project")
-	want := filepath.Join("/a/project", "narration-utils", "preview-pin.json")
+	want := filepath.Join("/a/project", "narration-studio", "preview-pin.json")
 	if got != want {
 		t.Fatalf("PinFile = %q, want %q", got, want)
 	}

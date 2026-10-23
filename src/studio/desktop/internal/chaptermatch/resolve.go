@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // Chapter is one manuscript chapter: just its id and title, so this package

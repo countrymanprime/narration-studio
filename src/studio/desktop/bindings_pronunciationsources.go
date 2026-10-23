@@ -7,10 +7,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationport"
+	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
 )
 
 // The narrator's pronunciation sources and one source's candidate for one word (SNB-2b, docs/guides/using-the-app/story-bible.md#how-you-say-each-name). Both

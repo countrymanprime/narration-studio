@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
 )
 
 func importReaderFixture(t *testing.T) (*Service, string, string) {
@@ -113,7 +113,7 @@ func TestSearchMatchOffsetSurvivesMultiByteCharactersBeforeTheMatch(t *testing.T
 
 func writeManuscript(t *testing.T, project string, paragraphs []map[string]any) string {
 	t.Helper()
-	dir := filepath.Join(project, "narration-utils", "manuscript")
+	dir := filepath.Join(project, "narration-studio", "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestChapterIDByTitleAndParagraphIDResolveAgainstTheImportedManuscript(t *te
 
 func TestChapterIDByTitleFlagsATitleSharedByTwoChapters(t *testing.T) {
 	project := t.TempDir()
-	dir := filepath.Join(project, "narration-utils", "manuscript")
+	dir := filepath.Join(project, "narration-studio", "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}

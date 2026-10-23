@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // EvaluatorState is the staleness evaluator's top-level answer: current, stale

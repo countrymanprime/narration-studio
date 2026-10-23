@@ -1,6 +1,6 @@
 package main
 
-import "github.com/countrymanprime/narration-utils/shell/internal/editlog"
+import "github.com/countrymanprime/narration-studio/shell/internal/editlog"
 
 // The narrator's cuts: the host's memory of the words a deleteRange hid in the DAW, so struck words survive a
 // restart. A cut's times are in the chapter recording as it was before any cut; the app converts them and the host stores

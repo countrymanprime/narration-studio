@@ -3,8 +3,8 @@ package editing
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 func sec(v float64) *float64 { return &v }

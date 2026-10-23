@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
-	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
-	"github.com/countrymanprime/narration-utils/shell/internal/ttsport/ttsporttest"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/ttsport"
+	"github.com/countrymanprime/narration-studio/shell/internal/ttsport/ttsporttest"
 )
 
 func TestEveryRegisteredEnginePassesTheSuite(t *testing.T) {

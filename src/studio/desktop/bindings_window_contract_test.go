@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // What WindowZoom and WindowSetZoom send: one shape, the window's

@@ -21,10 +21,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // AnalyzerRenderMeasurement is the ledger analyzer id of a render measurement.
@@ -49,7 +49,7 @@ var ErrRendersUnreadable = errors.New("the proofing render choices file could no
 
 // Dir is this package's sidecar folder under a project; manuscript.resetDerived
 // clears it, since the associations name chapter ids a re-import renumbers.
-func Dir(project string) string { return filepath.Join(project, "narration-utils", "proofing") }
+func Dir(project string) string { return filepath.Join(project, "narration-studio", "proofing") }
 
 // RendersFile is the chapter-to-render association sidecar.
 func RendersFile(project string) string { return filepath.Join(Dir(project), "renders.json") }

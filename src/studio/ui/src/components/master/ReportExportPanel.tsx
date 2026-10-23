@@ -48,7 +48,7 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
     >
       <p className="text-sm" style={MUTED}>
         Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s
-        narration-utils/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your
+        narration-studio/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your
         audio is never changed.
       </p>
       {!measured && (

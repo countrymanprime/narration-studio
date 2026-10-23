@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport/encodeporttest"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport/encodeporttest"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 func TestEveryRegisteredEncoderPassesTheSuite(t *testing.T) {

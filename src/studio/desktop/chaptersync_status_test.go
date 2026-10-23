@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // Status without a click: chaptersync:state carries, for every narration chapter, its link, whether its recording check

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/builtin"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/reaper"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/builtin"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
 )
 
 // The DAW reference (docs/reference/daw) is pinned to the port's declarations: matrix.md is generated from them and

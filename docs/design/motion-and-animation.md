@@ -1,6 +1,6 @@
 # Motion and animation
 
-**Status: describes the current state.** The tokens and the reduced-motion gate below are slices 1 and 2, the Motion setting slice 3, the overlay behaviour slice 4, the "this changed" highlight slice 5 and the ring and job results slice 6, of [#1456](https://github.com/countrymanprime/narration-utils/issues/1456). Where to animate next, and why, is [the motion research note](../research/motion-and-animation-guidance.md) and the owner's decisions recorded on that issue.
+**Status: describes the current state.** The tokens and the reduced-motion gate below are slices 1 and 2, the Motion setting slice 3, the overlay behaviour slice 4, the "this changed" highlight slice 5 and the ring and job results slice 6, of [#1456](https://github.com/countrymanprime/narration-studio/issues/1456). Where to animate next, and why, is [the motion research note](../research/motion-and-animation-guidance.md) and the owner's decisions recorded on that issue.
 
 ## Tokens
 

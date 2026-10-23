@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
 )
 
 // A finding's identity lives in its label's text: `[nu:<id>] <words>`, or
@@ -19,7 +19,7 @@ const (
 	// maxLabelBytes keeps a label short enough to read in Audacity's label track and well inside one command.
 	maxLabelBytes = 200
 	// LabelTrackName is the label track the adapter adds its labels to, creating it when the project has none.
-	LabelTrackName = "Narration Utils"
+	LabelTrackName = "Narration Studio"
 )
 
 // validID is a finding ID the adapter will put in a label: the findings contract's IDs are short ASCII tokens, so anything else is

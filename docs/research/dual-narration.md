@@ -75,7 +75,7 @@ A project with no roster behaves exactly as today. The roster's absence means on
 
 ### Two new project files
 
-Both live in `<project>/narration-utils/`, beside the manifest, per [principle 11](../architecture/principles.md) (project data lives in files beside the project).
+Both live in `<project>/narration-studio/`, beside the manifest, per [principle 11](../architecture/principles.md) (project data lives in files beside the project).
 
 **`narrators.json`** (the roster; the narrator's own data):
 

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // acxRuleTable is the checked-in list of ACX's requirements (docs/reference/acx-delivery-requirements.md): every row is a

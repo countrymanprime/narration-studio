@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/importer"
 )
 
 // Front matter is never a chapter. The import keeps its lines on the side, for the credits to read the title and author from, and writes
@@ -76,7 +76,7 @@ const legacyFrontMatterManuscript = `{"schemaVersion":1,"documentId":"doc-1","ch
 // A manuscript imported before this kept its front matter as a chapter. The data stays (the credits read it), but nothing lists it.
 func TestAnImportedFrontMatterChapterIsNeverListed(t *testing.T) {
 	project := t.TempDir()
-	path := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

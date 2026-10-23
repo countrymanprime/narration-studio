@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/importer"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
 )
 
 // commitHeadingMisread imports one of the constructed heading cases with the narrator's subtitle choices and returns the canonical
@@ -94,7 +94,7 @@ func TestCommitRefusesASubtitleChoiceForASectionThePreviewDidNotHave(t *testing.
 	if failed.Phase != "error" || !strings.Contains(failed.Error, "subtitle choice") {
 		t.Fatalf("commit = %s %q, want an error about the subtitle choice", failed.Phase, failed.Error)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")); !os.IsNotExist(err) {
 		t.Fatalf("a refused choice must write no manuscript, stat err = %v", err)
 	}
 }

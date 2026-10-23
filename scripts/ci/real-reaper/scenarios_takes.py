@@ -69,7 +69,7 @@ def hide_takes(env: Env) -> str:
     first, second = item["takes"]
     assert first["volume"] == 0 and second["volume"] == 1, f"volumes {first['volume']}, {second['volume']}"
     assert second["active"] and not first["active"], "the kept take is not the active take"
-    saved = env.lua("return ci.take_ext(ci.take(args[1]), 'narration_utils_take_hidden_volume')", fx["first"])
+    saved = env.lua("return ci.take_ext(ci.take(args[1]), 'narration_studio_take_hidden_volume')", fx["first"])
     assert saved and abs(float(saved) - 0.5) < 1e-9, f"the take's saved volume {saved!r}"
     assert env.snapshot()["undo"] == "Narration Studio: hide other takes"
     # A narrator who makes the hidden take the active one hears nothing: D_VOL 0 is silent.
@@ -83,7 +83,7 @@ def hide_takes(env: Env) -> str:
     env.lua("ci.save_and_reload(ci.rpp) return true")
     after = the_item(env)["takes"]
     assert after[0]["volume"] == 0, "the hidden take is audible again after save and reload"
-    kept = env.lua("return ci.take_ext(ci.take(args[1]), 'narration_utils_take_hidden_volume')", after[0]["guid"])
+    kept = env.lua("return ci.take_ext(ci.take(args[1]), 'narration_studio_take_hidden_volume')", after[0]["guid"])
     assert kept and abs(float(kept) - 0.5) < 1e-9, f"the saved volume after reload {kept!r}"
     giveback = env.ok("hide_takes", fx["item"], fx["first"], until="TAKES_HIDDEN")
     assert giveback[3:5] == ["1", "1"], f"hiding the other way answered {giveback[3:5]}"
@@ -213,7 +213,7 @@ def stack_takes(env: Env) -> str:
     parked = items_on(state, "Cuts")
     assert [(i["position"], i["length"]) for i in parked] == [(6.0, 4.0)], f"Cuts track holds {[(i['position'], i['length']) for i in parked]}"
     assert [round(i["position"], 3) for i in items_on(state, "Chapter 2")] == [100.0], "another track's item moved"
-    record = env.lua("return ci.take_ext(reaper.GetTake(ci.item(args[1]), 1), 'narration_utils_stacked_from')", first["guid"])
+    record = env.lua("return ci.take_ext(reaper.GetTake(ci.item(args[1]), 1), 'narration_studio_stacked_from')", first["guid"])
     assert record.split("|")[1] == fx["retake"]["take"] and abs(float(record.split("|")[4]) - 6.0) < 1e-6, f"the take records {record!r}"
     assert state["undo"] == "Narration Studio: stack takes"
     assert len(env.snapshot()["tracks"]) == 3

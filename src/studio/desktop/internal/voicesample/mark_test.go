@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // 20 ms at 8 kHz is the sine's half period, so every multiple of 20 frames is already a zero crossing and a window cut there

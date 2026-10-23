@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawcatalog"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawcatalog"
 )
 
 // DawCatalogEntry is what DawCatalogList answers per catalog entry: the

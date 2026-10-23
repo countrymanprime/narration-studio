@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
 )
 
 // Runner is the part of process.Supervisor the sidecar adapter uses: every child it starts is in the app's Job Object,

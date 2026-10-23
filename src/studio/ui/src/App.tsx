@@ -144,7 +144,7 @@ if (typeof window !== 'undefined') {
 
 export function App({ journal }: { journal?: Journal } = {}) {
   // Every build serves from the site root (base: '/', vite.config.ts), so this is a no-op basename; the Pages demo of src/web serves under
-  // /narration-utils/demo/, and without a matching basename react-router compares its routes ('/', '/proof', ...) against the full pathname and
+  // /narration-studio/demo/, and without a matching basename react-router compares its routes ('/', '/proof', ...) against the full pathname and
   // matches nothing, so every page renders blank apart from the app shell. A hash-routed build has no basename.
   const Router = hashRouting() ? HashRouter : BrowserRouter;
   return (

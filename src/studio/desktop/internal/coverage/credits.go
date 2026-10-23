@@ -8,10 +8,10 @@ import (
 )
 
 // creditsManuscriptPath is where a credits check's synthetic single-chapter manuscript is written: two
-// directories below the project root, the same depth as the real narration-utils/manuscript/manuscript.json, so the
+// directories below the project root, the same depth as the real narration-studio/manuscript/manuscript.json, so the
 // sidecar's own project_data_dir (Path(manuscript_path).resolve().parents[2]) still resolves to
 // <project>/TranscriptCompare and the narrator's word equivalences and vocabulary hints still apply to a credits
-// check. It sits under narration-utils/analysis, this package's own write scope (see the package doc comment).
+// check. It sits under narration-studio/analysis, this package's own write scope (see the package doc comment).
 func creditsManuscriptPath(project string) string {
 	return filepath.Join(Dir(project), "credits-manuscript.json")
 }

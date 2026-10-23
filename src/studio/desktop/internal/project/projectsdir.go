@@ -10,12 +10,8 @@ import (
 // default projects directory.
 const DefaultDirName = "NarrationStudio"
 
-// LegacyDefaultDirName is the default folder's name before the product became Narration Studio (#1816). A narrator whose
-// projects are in it keeps using it; nothing moves it. Delete it, and the fallback in DefaultDir, when the name is retired.
-const LegacyDefaultDirName = "NarrationUtils"
-
 // DefaultDir resolves the Go-side computed default projects directory,
-// ~/NarrationStudio, or an existing ~/NarrationUtils when ~/NarrationStudio does not exist yet. It is deliberately not a value in
+// ~/NarrationStudio. It is deliberately not a value in
 // config/defaults.json: that file holds literal per-tool settings
 // (store_test.go's TestBuiltinDefaultsMatchRepoDefaultsFile keeps it in sync
 // with a hardcoded map), and a computed, per-machine home directory cannot be
@@ -43,19 +39,7 @@ func DefaultDir() (string, error) {
 	if home == "" {
 		return "", fmt.Errorf("could not resolve the user's home directory for a default projects directory")
 	}
-	dir := filepath.Join(home, DefaultDirName)
-	if isDir(dir) {
-		return dir, nil
-	}
-	if legacy := filepath.Join(home, LegacyDefaultDirName); isDir(legacy) {
-		return legacy, nil
-	}
-	return dir, nil
-}
-
-func isDir(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && info.IsDir()
+	return filepath.Join(home, DefaultDirName), nil
 }
 
 // EnsureDir creates dir, including any missing parents, if it does not exist

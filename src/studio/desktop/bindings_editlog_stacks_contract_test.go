@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
 )
 
 // The stack and retry-mode bindings' payloads, the goldens the UI's schemas are checked against: a record that adds a take

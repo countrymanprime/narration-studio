@@ -16,23 +16,23 @@
 
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local PACK = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)')
-local REAPER_DIR = assert(os.getenv('NARRATION_UTILS_REAPER_DIR'), 'set NARRATION_UTILS_REAPER_DIR (run-reaper.ps1 does)')
+local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
+local REAPER_DIR = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)')
 local SEP = package.config:sub(1, 1)
 local function path(name)
   return PACK .. SEP .. name
 end
 
-local LINE_ID_KEY = 'P_EXT:narration_utils_line_id'
-local TAKE_KEY = 'P_EXT:narration_utils_take_finding_id'
+local LINE_ID_KEY = 'P_EXT:narration_studio_line_id'
+local TAKE_KEY = 'P_EXT:narration_studio_take_finding_id'
 
 local report, passed, failed = {}, 0, 0
 local function log(...)
@@ -231,7 +231,7 @@ local ok, err = xpcall(function()
   check('A6.1 answers ACTIVE_TAKE_SET changed', answer[1] and answer[1][1] == 'ACTIVE_TAKE_SET' and answer[1][5] == '1', first(answer))
   multi = assert(find_item(multi_guid), 'the two-take item is gone')
   check('A6.2 take 2 plays', guid_of_take(reaper.GetActiveTake(multi)) == second_guid)
-  check('A6.3 one undo point "Narration Utils: use take"', undo_label() == 'Narration Utils: use take', "'" .. before .. "' -> '" .. undo_label() .. "'")
+  check('A6.3 one undo point "Narration Studio: use take"', undo_label() == 'Narration Studio: use take', "'" .. before .. "' -> '" .. undo_label() .. "'")
   check('A6.4 the item length is unchanged', reaper.GetMediaItemInfo_Value(multi, 'D_LENGTH') == 3)
   local label_after_first = undo_label()
   answer = send('set_active_take', 'r2', multi_guid, second_guid)
@@ -282,12 +282,12 @@ local ok, err = xpcall(function()
     first(answer)
   )
   check('A8.2 into the FX chain, not the input FX', reaper.TrackFX_GetRecCount(chapter1) == 0)
-  check('A8.3 one undo point for the track', undo_label() == 'Narration Utils: apply FX chain Voice/Test EQ.RfxChain to Chapter 1', undo_label())
+  check('A8.3 one undo point for the track', undo_label() == 'Narration Studio: apply FX chain Voice/Test EQ.RfxChain to Chapter 1', undo_label())
   check('A8.4 no item was added or removed', reaper.CountTrackMediaItems(chapter1) == chapter1_items)
   local master = reaper.GetMasterTrack(0)
   answer = send('apply_fx_chain', 'r7', 'master', 'Voice/Test EQ.RfxChain')
   check('A8.5 and onto the master track', answer[1] and answer[1][1] == 'FX_CHAIN_APPLIED' and reaper.TrackFX_GetCount(master) == 1, first(answer))
-  check('A8.6 one undo point for the master track', undo_label() == 'Narration Utils: apply FX chain Voice/Test EQ.RfxChain to the master track', undo_label())
+  check('A8.6 one undo point for the master track', undo_label() == 'Narration Studio: apply FX chain Voice/Test EQ.RfxChain to the master track', undo_label())
   reaper.Main_OnCommand(40029, 0)
   reaper.Main_OnCommand(40029, 0)
   chapter1, master = reaper.GetTrack(0, 0), reaper.GetMasterTrack(0)

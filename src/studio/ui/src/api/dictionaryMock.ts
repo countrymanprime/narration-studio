@@ -111,7 +111,7 @@ export function mockDictionaryLookup(word: string, installState: AssetInstallSta
       installState,
       downloadSize: MOCK_DICTIONARY_DOWNLOAD_SIZE,
       diskSize: MOCK_DICTIONARY_DISK_SIZE,
-      installPath: 'C:/Users/narrator/AppData/Local/narration-utils/assets/dictionary/oewn/oewn-2025/2025',
+      installPath: 'C:/Users/narrator/AppData/Local/narration-studio/assets/dictionary/oewn/oewn-2025/2025',
     };
   }
   return { status: 'ok', query, entries: structuredClone(MOCK_ENTRIES[query] ?? []), dictionary: MOCK_DICTIONARY };

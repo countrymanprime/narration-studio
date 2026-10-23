@@ -8,7 +8,7 @@ import (
 // A lane is only the item's YPOS line and the track's FREEMODE, ITEMLANES and LANESOLO lines. The parser reads them, so retakes on lanes are no longer seen as
 // overlapping items; LINKEDLANE (comp areas) and LANENAME are still not read.
 
-const lineIDKey = "narration_utils_line_id"
+const lineIDKey = "narration_studio_line_id"
 
 func TestAFixedLaneProjectParsesEveryTrack(t *testing.T) {
 	project := parseReaperFixture(t, "fixed-lanes.rpp")
@@ -142,8 +142,8 @@ func TestConvertingLanesToTakesKeepsThePlayingLaneActiveAndTheTakeProvenance(t *
 	}
 	for index, take := range item.Takes {
 		want := []string{"finding-e5-0", "finding-e5-1", "finding-e5-2"}[index]
-		if take.Ext["narration_utils_take_finding_id"] != want {
-			t.Errorf("take %d finding = %q, want %q", index, take.Ext["narration_utils_take_finding_id"], want)
+		if take.Ext["narration_studio_take_finding_id"] != want {
+			t.Errorf("take %d finding = %q, want %q", index, take.Ext["narration_studio_take_finding_id"], want)
 		}
 	}
 }

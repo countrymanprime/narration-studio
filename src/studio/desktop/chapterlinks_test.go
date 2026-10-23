@@ -201,7 +201,7 @@ func TestChapterTrackLinksReportsEachProjectStateWithoutFailing(t *testing.T) {
 
 func TestChapterTrackLinksListsNarrationChaptersOnly(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
-	path := filepath.Join(host.config.projectFolder, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(host.config.projectFolder, "narration-studio", "manuscript", "manuscript.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

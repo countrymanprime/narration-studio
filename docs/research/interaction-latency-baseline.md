@@ -1,6 +1,6 @@
 # Interaction latency baseline
 
-**Measured 2026-09-21.** Issue: [#202](https://github.com/countrymanprime/narration-utils/issues/202); see [interaction feedback](../architecture/interaction-feedback.md). how long the Story Bible operations and the heavier Go calls take, so the feedback standard ([The standard](../architecture/interaction-feedback.md#the-standard)) rests on numbers. The numbers are one machine's, and the frozen sidecar was measured from a build made for this run, not from a release.
+**Measured 2026-09-21.** Issue: [#202](https://github.com/countrymanprime/narration-studio/issues/202); see [interaction feedback](../architecture/interaction-feedback.md). how long the Story Bible operations and the heavier Go calls take, so the feedback standard ([The standard](../architecture/interaction-feedback.md#the-standard)) rests on numbers. The numbers are one machine's, and the frozen sidecar was measured from a build made for this run, not from a release.
 
 ## Method
 

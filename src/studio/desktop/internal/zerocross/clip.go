@@ -8,7 +8,7 @@ import (
 	"io"
 	"math"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // ErrUnsupported is the answer for a source that is not a WAV file whose audio can be copied as it is: not a RIFF/WAVE file,

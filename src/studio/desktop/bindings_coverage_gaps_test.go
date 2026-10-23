@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/gapreview"
 )
 
 // coverageManuscriptJSON is the manuscript coverageProject writes.
@@ -135,7 +135,7 @@ func TestCoverageGapRefusesAStaleOrNeverResultAndAnUnknownGap(t *testing.T) {
 		t.Fatal("an unknown chapter was accepted")
 	}
 	// The manuscript moved on: the result is stale.
-	writeNested(t, filepath.Join(f.project, "narration-utils", "manuscript", "manuscript.json"),
+	writeNested(t, filepath.Join(f.project, "narration-studio", "manuscript", "manuscript.json"),
 		strings.Replace(coverageManuscriptJSON, "Alice.", "Alice and Bob.", 1))
 	if view := decodeAnswer(t)(f.host.CoverageResult("c-0001")); view["state"] != "stale" {
 		t.Fatalf("result = %v", view["state"])

@@ -71,7 +71,7 @@ end)
 H.test('last_action: another of the app own labels on top is other: only the exact label counts', function()
   local s, p = project()
   cut(s, p, 14, 16)
-  for _, label in ipairs({ OTHER_OURS, CUT .. ' ', 'narration utils: delete words', 'Narration Studio: delete' }) do
+  for _, label in ipairs({ OTHER_OURS, CUT .. ' ', 'narration studio: delete words', 'Narration Studio: delete' }) do
     narrator_edit(s, label)
     s:send('last_action', 'l1', 'cut_range')
     H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'cut_range', 'other' } }, label)
@@ -149,7 +149,7 @@ end)
 H.test('undo_last: another of the app own labels on top is never undone', function()
   local s, p = project()
   cut(s, p, 14, 16)
-  for _, label in ipairs({ OTHER_OURS, 'Narration Studio: delete words (2)', 'narration utils: delete words' }) do
+  for _, label in ipairs({ OTHER_OURS, 'Narration Studio: delete words (2)', 'narration studio: delete words' }) do
     narrator_edit(s, label)
     s:send('undo_last', 'u1', 'cut_range', '3')
     H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'cut_range', '3', '0' } }, label)

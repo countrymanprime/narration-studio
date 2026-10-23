@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // DawProjectState and its live event daw_project_state_changed tell the UI the DAW project as last saved against the live

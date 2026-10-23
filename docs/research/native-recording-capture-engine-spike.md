@@ -1,6 +1,6 @@
 # Native Recording Capture Engine Spike: WASAPI Through PortAudio in the Sidecar
 
-**Status:** spike report, 2026-09-28. **Issue:** [#842](https://github.com/countrymanprime/narration-utils/issues/842). The decision it informs is [capture_wasapi.py](../../src/studio/sidecars/manuscript-teleprompter/core/capture_wasapi.py). The numbers below are from CI's Windows runner and a synthetic source. **Every real-microphone result is owner-pending** (D65): the exact check is at the end and on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+**Status:** spike report, 2026-09-28. **Issue:** [#842](https://github.com/countrymanprime/narration-studio/issues/842). The decision it informs is [capture_wasapi.py](../../src/studio/sidecars/manuscript-teleprompter/core/capture_wasapi.py). The numbers below are from CI's Windows runner and a synthetic source. **Every real-microphone result is owner-pending** (D65): the exact check is at the end and on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).
 
 **Question (PRD Q3 and Q7):** Can this stack capture a narrator's microphone to a correct WAV file with no dropouts, at an acceptable cost, and which engine should do it? What does that mean for monitoring?
 
@@ -23,7 +23,7 @@
 
 ## How it was measured
 
-A temporary CI job ran the probe once, on the `windows-latest` runner, on 2026-09-28 (PR [#846](https://github.com/countrymanprime/narration-utils/pull/846), commit `435e3df`). The job was removed afterwards. To run it again anywhere:
+A temporary CI job ran the probe once, on the `windows-latest` runner, on 2026-09-28 (PR [#846](https://github.com/countrymanprime/narration-studio/pull/846), commit `435e3df`). The job was removed afterwards. To run it again anywhere:
 
 ```powershell
 uv run --no-project --python 3.12 --with numpy==2.5.3 --with sounddevice==0.5.6 `

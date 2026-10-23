@@ -29,7 +29,7 @@ import (
 // moment that reason stops applying, so the list can only shrink honestly, not grow silently.
 
 const (
-	shellModule      = "github.com/countrymanprime/narration-utils/shell/"
+	shellModule      = "github.com/countrymanprime/narration-studio/shell/"
 	bridgePackageDir = "internal/bridge"
 	reaperAdapterDir = "internal/dawport/reaper"
 	dawadapterPkgDir = "internal/dawadapter"
@@ -343,13 +343,13 @@ type Actions struct{}
 `
 	const reaperSource = `package reaper
 
-import "github.com/countrymanprime/narration-utils/shell/internal/bridge"
+import "github.com/countrymanprime/narration-studio/shell/internal/bridge"
 
 type Adapter struct{ client *bridge.Client }
 `
 	const hostSource = `package main
 
-import "github.com/countrymanprime/narration-utils/shell/internal/bridge"
+import "github.com/countrymanprime/narration-studio/shell/internal/bridge"
 
 type Host struct {
 	bridge  *bridge.Client
@@ -410,13 +410,13 @@ const (
 `
 	const dawportSource = `package dawport
 
-import "github.com/countrymanprime/narration-utils/shell/internal/dawadapter"
+import "github.com/countrymanprime/narration-studio/shell/internal/dawadapter"
 
 func InsideDawport(kind dawadapter.Kind) bool { return kind == dawadapter.KindREAPER }
 `
 	const hostSource = `package main
 
-import "github.com/countrymanprime/narration-utils/shell/internal/dawadapter"
+import "github.com/countrymanprime/narration-studio/shell/internal/dawadapter"
 
 func Compares(kind dawadapter.Kind) bool  { return kind == dawadapter.KindREAPER }
 func Reversed(kind dawadapter.Kind) bool  { return dawadapter.KindAudacity != kind }

@@ -1,6 +1,6 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "name": "narration-utils-ui",
+  "name": "narration-studio-ui",
   "projectType": "application",
   "tags": ["toolchain:node"],
   "targets": {

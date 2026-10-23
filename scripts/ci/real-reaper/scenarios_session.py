@@ -212,7 +212,7 @@ def render_with_fx(env: Env) -> str:
     assert len(rows) == 1 and rows[0][2] == "master" and "Volume Adjustment" in rows[0][4] and rows[0][5] == "1", f"chain rows {rows}"
     assert listed[-1][2:4] == ["1", "0"]
     project = Path(env.fixture["rpp"]).parent
-    folder = project / "narration-utils" / "mastering" / "run1"
+    folder = project / "narration-studio" / "mastering" / "run1"
     folder.mkdir(parents=True)
     approval = secrets.token_hex(16)
     done = env.send("render_with_fx", approval, str(folder), "Region A\nRegion B", until={"FX_RENDERED"}, timeout=180)
@@ -244,12 +244,12 @@ def render_with_fx_refusals(env: Env) -> str:
     assert "not one the app made" in refusals[-1], refusals[-1]
     refusals.append(env.refused("render_with_fx", "nothex", str(outside), "Region A")[2])
     assert "approval" in refusals[-1], refusals[-1]
-    full = project / "narration-utils" / "mastering" / "full"
+    full = project / "narration-studio" / "mastering" / "full"
     full.mkdir(parents=True, exist_ok=True)
     (full / "keep.wav").write_bytes(b"x")
     refusals.append(env.refused("render_with_fx", secrets.token_hex(16), str(full), "Region A")[2])
     assert "not empty" in refusals[-1], refusals[-1]
-    fresh = project / "narration-utils" / "mastering" / "fresh"
+    fresh = project / "narration-studio" / "mastering" / "fresh"
     fresh.mkdir(exist_ok=True)
     refusals.append(env.refused("render_with_fx", secrets.token_hex(16), str(fresh), "No Such Region")[2])
     assert "no region named" in refusals[-1], refusals[-1]

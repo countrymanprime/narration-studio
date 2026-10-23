@@ -37,7 +37,7 @@ const (
 	// LauncherScript is the action that opens the app from REAPER.
 	LauncherScript = "NarrationStudio_Launcher.lua"
 	// AppPathFile holds the app's executable path; the launcher reads it.
-	AppPathFile = "narration-utils-app-path.txt"
+	AppPathFile = "narration-studio-app-path.txt"
 	// ManifestFile records what Install wrote.
 	ManifestFile = "install.json"
 	// startupFile is the script REAPER runs at startup from its Scripts folder.

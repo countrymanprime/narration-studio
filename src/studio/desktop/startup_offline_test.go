@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -340,7 +340,7 @@ func TestAFileInARetiredBootstrapFolderIsNeverAnInstalledAsset(t *testing.T) {
 func TestARetiredBootstrapFolderNextToTheRealCacheIsIgnoredAtLaunch(t *testing.T) {
 	cache := emptyUserProfile(t)
 	guard := closeTheNetwork(t)
-	appData := filepath.Dir(filepath.Dir(cache)) // the per-user cache folder that holds narration-utils/
+	appData := filepath.Dir(filepath.Dir(cache)) // the per-user cache folder that holds narration-studio/
 	for _, home := range []string{filepath.Join(appData, ".piper"), filepath.Join(appData, ".runtime"), filepath.Join(appData, ".bootstrap"), filepath.Join(cache, ".piper")} {
 		if err := os.MkdirAll(home, 0o755); err != nil {
 			t.Fatal(err)

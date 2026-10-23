@@ -38,7 +38,7 @@ func fixedNow() time.Time { return time.Date(2026, 10, 23, 9, 30, 0, 0, time.UTC
 
 func install(t *testing.T, resource string, files fstest.MapFS) Result {
 	t.Helper()
-	result, err := Install(Options{ResourceDir: resource, Files: files, Executable: "/opt/Narration Studio/narration-utils", Version: "1.2.3", Now: fixedNow})
+	result, err := Install(Options{ResourceDir: resource, Files: files, Executable: "/opt/Narration Studio/narration-studio", Version: "1.2.3", Now: fixedNow})
 	if err != nil {
 		t.Fatalf("Install: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestInstallWritesTheBridgeTheAppPathAndTheStartupBlock(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "README.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("only Lua files are installed")
 	}
-	if got := read(t, filepath.Join(dir, AppPathFile)); got != "/opt/Narration Studio/narration-utils\n" {
+	if got := read(t, filepath.Join(dir, AppPathFile)); got != "/opt/Narration Studio/narration-studio\n" {
 		t.Fatalf("app path: %q", got)
 	}
 	var recorded manifest

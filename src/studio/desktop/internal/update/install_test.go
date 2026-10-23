@@ -64,9 +64,9 @@ func fakeApp(t *testing.T, version string) string {
 
 func appFileName() string {
 	if runtime.GOOS == "windows" {
-		return "narration-utils.exe"
+		return "narration-studio.exe"
 	}
-	return "narration-utils"
+	return "narration-studio"
 }
 
 func copyFile(t *testing.T, from, to string) {
@@ -107,7 +107,7 @@ func install(t *testing.T, mode string) (installation, Staged) {
 		t.Fatal(err)
 	}
 	t.Setenv("FAKEAPP_PENDING", layout.pending)
-	stagedPath := filepath.Join(layout.cache, "narration-utils.exe")
+	stagedPath := filepath.Join(layout.cache, "narration-studio.exe")
 	copyFile(t, fakeApp(t, "2.0.0"), stagedPath)
 	bytes, _ := os.ReadFile(stagedPath)
 	sum := sha256.Sum256(bytes)

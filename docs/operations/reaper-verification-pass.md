@@ -9,7 +9,7 @@ The harness ([The DAW port](../architecture/daw-integration.md#the-daw-port), `s
 - REAPER runs isolated: `src/studio/integrations/reaper/spikes/run-reaper.ps1` starts it with `-cfgfile <temp>\reaper.ini`, so the owner's settings, scripts and projects are never read or written ([the spike rules](../../src/studio/integrations/reaper/spikes/README.md)).
 - Only a **copy** of a project is opened, in a temp folder, with its media copied beside it or replaced by synthetic tones (`make_media.py`). Never open, save into or delete anything under `C:\Users\Count\Documents\REAPER Media\Projects\Challenges\`. Record the original `.rpp`'s SHA-256 before and after, as spike S6 did.
 - Part A runs unattended with the audio device closed (`reaper.Audio_Quit()`). Part B records, so it needs the owner present and their approval for the one test recording on a copy, with a silent or virtual input.
-- The script loads the real bridge from the working tree (`NARRATION_UTILS_REAPER_DIR`) and drives each command through a fresh registry, the way `navigation_check.lua` does, writing `PASS`/`FAIL` per step and every value it read back into the report. The report goes into `src/studio/integrations/reaper/spikes/results/` with paths removed, and its findings into this page's record.
+- The script loads the real bridge from the working tree (`NARRATION_STUDIO_REAPER_DIR`) and drives each command through a fresh registry, the way `navigation_check.lua` does, writing `PASS`/`FAIL` per step and every value it read back into the report. The report goes into `src/studio/integrations/reaper/spikes/results/` with paths removed, and its findings into this page's record.
 - Record REAPER's version and the OS. A finding that differs from the harness's fake changes the fake in the same PR, so the harness keeps modelling what REAPER does.
 
 ## Part A: unattended, no audio device
@@ -22,7 +22,7 @@ One command, from the repository root on the owner's Windows machine with REAPER
 pwsh src/studio/integrations/reaper/spikes/run-pass-part-a.ps1
 ```
 
-It takes about two minutes and needs no input: it starts REAPER twice, each time isolated on its own scratch `-cfgfile` under a fresh `%TEMP%\narration-pass-a-<time>` folder, and closes each session after five minutes at most (`-TimeoutSec`). The first session runs `spike_ep0_workspace.lua` (rows A6 to A8); the second runs `pass_part_a.lua` (every other row) and merges the first one's report. The results land in `%TEMP%\narration-pass-a-<time>\main\pass-part-a-results.md` (the table to paste into [#510](https://github.com/countrymanprime/narration-utils/issues/510)) and `pass-part-a-log.txt` (every check and value), with paths removed, and both are copied to `src/studio/integrations/reaper/spikes/results/`. The last line it prints is the pass count and the path.
+It takes about two minutes and needs no input: it starts REAPER twice, each time isolated on its own scratch `-cfgfile` under a fresh `%TEMP%\narration-pass-a-<time>` folder, and closes each session after five minutes at most (`-TimeoutSec`). The first session runs `spike_ep0_workspace.lua` (rows A6 to A8); the second runs `pass_part_a.lua` (every other row) and merges the first one's report. The results land in `%TEMP%\narration-pass-a-<time>\main\pass-part-a-results.md` (the table to paste into [#510](https://github.com/countrymanprime/narration-studio/issues/510)) and `pass-part-a-log.txt` (every check and value), with paths removed, and both are copied to `src/studio/integrations/reaper/spikes/results/`. The last line it prints is the pass count and the path.
 
 What keeps it safe:
 
@@ -74,7 +74,7 @@ Needs the owner present and approval for one test recording on a copy of a proje
 
 ## Part C: the Studio Next DAW commands (not scripted yet)
 
-The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) (SN-D44 to SN-D72), and the file commands of SN-B98 (C10, C11). `run-pass-part-a.ps1` does not run them yet, and no row below has run in REAPER (2026-10-12); the owner deferred each to the QA pass, [#1495](https://github.com/countrymanprime/narration-utils/issues/1495), where the detail of what to confirm is listed. Each "Pass when" is the capability's result in [the capabilities reference](../reference/daw/capabilities.md); the harness test named proves the bridge's logic only. C2 records and C10 plays audio, so they need Part B's set-up and the owner present; the others run on Part A's scratch project with the device closed.
+The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) (SN-D44 to SN-D72), and the file commands of SN-B98 (C10, C11). `run-pass-part-a.ps1` does not run them yet, and no row below has run in REAPER (2026-10-12); the owner deferred each to the QA pass, [#1495](https://github.com/countrymanprime/narration-studio/issues/1495), where the detail of what to confirm is listed. Each "Pass when" is the capability's result in [the capabilities reference](../reference/daw/capabilities.md); the harness test named proves the bridge's logic only. C2 records and C10 plays audio, so they need Part B's set-up and the owner present; the others run on Part A's scratch project with the device closed.
 
 | # | Command | Steps | Pass when |
 | --- | --- | --- | --- |
@@ -135,7 +135,7 @@ Run on 2026-10-19, REAPER 7.82/linux-x86_64, Lua 5.4, `NARRATION_CI_AUDIO_MODE=j
 
 ### What the CI run cannot prove: the owner's steps
 
-The device is a sound server that plays and records silence, nothing is listened to, and the run is on Linux. These stay with the owner, on Windows with the real audio device, in an isolated `-cfgfile` and a copy of a project (the [rules](#rules) above). Each is a step to run and an expected result; paste the outcome into [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+The device is a sound server that plays and records silence, nothing is listened to, and the run is on Linux. These stay with the owner, on Windows with the real audio device, in an isolated `-cfgfile` and a copy of a project (the [rules](#rules) above). Each is a step to run and an expected result; paste the outcome into [#510](https://github.com/countrymanprime/narration-studio/issues/510).
 
 | Step | Capability | Do | Expect |
 | --- | --- | --- | --- |
@@ -268,4 +268,4 @@ For the owner, in REAPER with audio, on a copy of a real project. Start the sess
 
 ## Pending owner steps
 
-Tracked on the [owner queue, #510](https://github.com/countrymanprime/narration-utils/issues/510): run Part A (`pwsh src/studio/integrations/reaper/spikes/run-pass-part-a.ps1`, about two minutes, unattended) and paste `pass-part-a-results.md` into #510; be present for Part B and approve its one test recording on a copy of a project. The steps marked for the owner in the [line identity checklist](#line-identity-owner-checklist) (6 and 10) and the [going-to-a-finding checklist](#going-to-a-finding-owner-checklist) are pending with the owner too.
+Tracked on the [owner queue, #510](https://github.com/countrymanprime/narration-studio/issues/510): run Part A (`pwsh src/studio/integrations/reaper/spikes/run-pass-part-a.ps1`, about two minutes, unattended) and paste `pass-part-a-results.md` into #510; be present for Part B and approve its one test recording on a copy of a project. The steps marked for the owner in the [line identity checklist](#line-identity-owner-checklist) (6 and 10) and the [going-to-a-finding checklist](#going-to-a-finding-owner-checklist) are pending with the owner too.

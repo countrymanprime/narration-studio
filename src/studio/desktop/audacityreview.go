@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // gatedReview is the Audacity adapter's review role behind the resolver: the transcript service starts a comparison straight on

@@ -1,6 +1,6 @@
 package main
 
-import "github.com/countrymanprime/narration-utils/shell/internal/manuscript"
+import "github.com/countrymanprime/narration-studio/shell/internal/manuscript"
 
 // manuscriptLine is one current line of a chapter as the bindings that check stored anchors against the text read it.
 type manuscriptLine struct {

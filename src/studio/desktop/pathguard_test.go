@@ -11,10 +11,10 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/pathfixtures"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/recents"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/recents"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // The path guard (definition of done, rule 1): the host's own path resolvers run the shared fixture set in
@@ -140,8 +140,8 @@ func TestPathGuardLinkDawFile(t *testing.T) {
 					t.Fatalf("linking into the missing project folder %q created it", p.Dir)
 				}
 			}
-			if _, statErr := os.Stat("narration-utils"); p.Dir == "" && statErr == nil {
-				t.Fatal("linking wrote narration-utils/ into the working directory")
+			if _, statErr := os.Stat("narration-studio"); p.Dir == "" && statErr == nil {
+				t.Fatal("linking wrote narration-studio/ into the working directory")
 			}
 		case p.DirReadOnly:
 			if err == nil {

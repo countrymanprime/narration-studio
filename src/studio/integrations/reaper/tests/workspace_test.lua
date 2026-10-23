@@ -153,7 +153,7 @@ end)
 -- An item at 10..15 s whose take starts 2 s into its source.
 local function trimmed_item(s, track)
   local item = s.fake:add_item(track, { guid = ITEM, position = 10, length = 5, source = 'ch1.wav', startoffs = 2 })
-  item.ext['narration_utils_line_id'] = 'line-000001'
+  item.ext['narration_studio_line_id'] = 'line-000001'
   return item
 end
 

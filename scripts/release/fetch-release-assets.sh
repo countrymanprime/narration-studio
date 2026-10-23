@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Downloads and checks (size-complete set, SHA-256 against each .sha256) the Windows setup program and narration-utils.exe (unpacked from the zip) of two published releases for the Windows release-gate workflows.
+# Downloads and checks (size-complete set, SHA-256 against each .sha256) the Windows setup program and narration-studio.exe (unpacked from the zip) of two published releases for the Windows release-gate workflows.
 #
 #   fetch-release-assets.sh <dir> [new-tag] [previous-tag]
 #
@@ -31,7 +31,7 @@ for pair in "new:$new_tag" "previous:$previous_tag"; do
   node "$(dirname "$0")/assets.mjs" verify "$dir/$sub" "$version"
   # Relative paths: GNU tar (Git for Windows) reads "D:\..." as host D, and cannot read zips; PowerShell can.
   (cd "$dir/$sub" && powershell -NoProfile -Command "Expand-Archive -Force -Path (Get-ChildItem -Filter '*-windows-x64.zip').FullName -DestinationPath .")
-  test -f "$dir/$sub/narration-utils.exe"
+  test -f "$dir/$sub/narration-studio.exe"
   ls -l "$dir/$sub"
 done
 echo "NEW_TAG=$new_tag"

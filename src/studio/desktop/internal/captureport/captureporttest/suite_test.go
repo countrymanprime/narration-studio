@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 func fakeEntry(name string) port.Entry[captureport.Backend] {

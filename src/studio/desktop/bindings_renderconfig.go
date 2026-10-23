@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/renderconfig"
+	"github.com/countrymanprime/narration-studio/shell/internal/renderconfig"
 )
 
 // The per-chapter render configuration bindings: configure only, never render. h.emitRenderConfig (app.go) relays every

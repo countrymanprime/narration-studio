@@ -9,8 +9,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // DawCompareFxRange and DawStopFxCompare (SN-E113) over the fx_range launch of bindings_daw_fx_range_test.go: the words resolve

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
 )
 
 // The level meter: a second, separate sidecar child, `live_asr.py --meter`, that

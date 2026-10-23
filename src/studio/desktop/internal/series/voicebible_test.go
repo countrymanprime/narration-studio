@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/character"
+	"github.com/countrymanprime/narration-studio/shell/internal/character"
 )
 
 func writeCorruptReferences(t *testing.T, project string) {

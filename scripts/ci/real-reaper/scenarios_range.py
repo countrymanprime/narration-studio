@@ -115,7 +115,7 @@ def cut_room_tone(env: Env) -> str:
         f"no room tone pieces in the gap: {[(i['position'], i['length']) for i in items_on(state, 'Chapter 1')]}"
     )
     marked = env.lua(
-        "local n = 0 for i = 0, reaper.CountMediaItems(0) - 1 do local ok, v = reaper.GetSetMediaItemInfo_String(reaper.GetMediaItem(0, i), 'P_EXT:narration_utils_room_tone', '', false) if ok and v == '1' then n = n + 1 end end return n"
+        "local n = 0 for i = 0, reaper.CountMediaItems(0) - 1 do local ok, v = reaper.GetSetMediaItemInfo_String(reaper.GetMediaItem(0, i), 'P_EXT:narration_studio_room_tone', '', false) if ok and v == '1' then n = n + 1 end end return n"
     )
     assert marked == len(pieces), f"{marked} items carry the room-tone mark, {len(pieces)} pieces lie in the gap"
     gap = env.render_mix("room_tone", 4.0, 7.0)

@@ -8,16 +8,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryreport"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryreport"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // Master & QC's report export. The page sends only the
 // narrator's one choice, whether to include full paths; the host builds the report from what it already holds (the last
 // measurement and diagnostics check, the project's delivery profile, the project's review store, the installed assets) and writes
-// an HTML and a JSON file into the project's narration-utils/delivery folder. It never writes next to the audio, never
+// an HTML and a JSON file into the project's narration-studio/delivery folder. It never writes next to the audio, never
 // changes a source file, and never overwrites an earlier report.
 
 // maxReportNameAttempts bounds the search for a free file name when reports are exported within the same second.
@@ -68,7 +68,7 @@ func (h *Host) exportDeliveryReport(includePaths bool) (DeliveryReportExport, er
 	svc := h.services()
 	project := svc.config.projectFolder
 	if project == "" {
-		return DeliveryReportExport{}, errors.New("open a project first; the report is kept in its narration-utils/delivery folder")
+		return DeliveryReportExport{}, errors.New("open a project first; the report is kept in its narration-studio/delivery folder")
 	}
 	in, err := h.deliveryReportInput(svc, includePaths)
 	if err != nil {

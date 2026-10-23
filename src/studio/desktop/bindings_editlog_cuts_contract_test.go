@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
 )
 
 // The three cuts bindings' payloads, the goldens the UI's schemas are checked against: a record (a closed cut after a gap
@@ -22,7 +22,7 @@ func TestEditCutsContractGoldens(t *testing.T) {
 
 	// The narrator re-imports without a reset and "silent." became "still.": the gap's cut is stale, never moved.
 	edited := strings.Replace(bookmarksManuscript, "The soldiers were silent.", "The soldiers were still.", 1)
-	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), edited)
+	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), edited)
 	payload, err = host.EditingCutsList("c-0001")
 	checkBindingContract(t, "edit-cuts-list", payload)
 	if list := decodeCuts(t)(payload, err); list.Cuts[0].Stale || !list.Cuts[1].Stale || list.Cuts[1].StaleReason != "text_changed" || list.Cuts[1].A != 20 {

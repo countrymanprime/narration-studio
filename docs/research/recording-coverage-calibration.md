@@ -193,7 +193,7 @@ Q7 asks for `small` to be compared with one larger model. With the owner's go-ah
 from the catalog, hash-verified (`go run ./cmd/seed-assets whisper/large-v3-turbo`, the app's own managers). The 16
 cases were then spoken again with the same Piper voice and run through the sidecar with `small` and
 `large-v3-turbo`, and then `medium` (also installed with the owner's go-ahead), on the same machine, on 2026-09-23
-([#425](https://github.com/countrymanprime/narration-utils/issues/425)):
+([#425](https://github.com/countrymanprime/narration-studio/issues/425)):
 
 | Model | Cases | False met | False not met (shipped 0.8) | False not met (Proposed 0.95) | Words dropped / swapped / added (all cases) | 12.0 audio minutes, 16 checks |
 | --- | --- | --- | --- | --- | --- | --- |

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 var rollupNow = time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC)

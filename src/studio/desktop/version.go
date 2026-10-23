@@ -9,7 +9,7 @@ const developmentVersion = "0.0.0-dev"
 // scripts/release/wails-build.mjs for CI and for a local build alike, so a variable and not a constant.
 var version = developmentVersion
 
-// isVersionRequest reports whether the program was started only to say its version (`narration-utils --version`). The update
+// isVersionRequest reports whether the program was started only to say its version (`narration-studio --version`). The update
 // flow runs a downloaded executable this way before it replaces the running one, and nothing else is started: no window, no
 // single-instance hand-off, no sidecar.
 func isVersionRequest(arguments []string) bool {

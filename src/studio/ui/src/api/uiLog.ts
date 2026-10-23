@@ -1,4 +1,4 @@
-import * as host from '../../wailsjs/github.com/countrymanprime/narration-utils/shell/host';
+import * as host from '../../wailsjs/github.com/countrymanprime/narration-studio/shell/host';
 
 let enabled = false;
 

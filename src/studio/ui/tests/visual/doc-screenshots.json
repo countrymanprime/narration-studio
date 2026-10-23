@@ -830,7 +830,7 @@
     "state": "report-exported",
     "viewport": "desktop",
     "docName": "master-report-exported",
-    "caption": "Master & QC - Export report wrote an HTML and a JSON report into the project's narration-utils/delivery folder, with file names only"
+    "caption": "Master & QC - Export report wrote an HTML and a JSON report into the project's narration-studio/delivery folder, with file names only"
   },
   {
     "page": "master",

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // The golden files are written by this test, never by hand: run it with UPDATE_GOLDEN=1 after an intended change and
@@ -72,7 +72,7 @@ func sampleInput() Input {
 		SourceKind: &kind, Thresholds: &thresholds,
 		Review: func(string) (findings.ReviewState, bool) { return findings.ReviewState{}, false },
 		Assets: []Asset{
-			{Kind: "whisper", ID: "small", Name: "Whisper small", Version: "1.0", Publisher: "OpenAI", ProvenanceURL: "https://huggingface.co/openai/whisper-small", Path: `C:\Users\AdaLovelace\AppData\Local\narration-utils\whisper\small`},
+			{Kind: "whisper", ID: "small", Name: "Whisper small", Version: "1.0", Publisher: "OpenAI", ProvenanceURL: "https://huggingface.co/openai/whisper-small", Path: `C:\Users\AdaLovelace\AppData\Local\narration-studio\whisper\small`},
 			{Kind: "piper", ID: "en_US-ljspeech-high", Name: "LJSpeech", Version: "1.0.0"},
 		},
 	}

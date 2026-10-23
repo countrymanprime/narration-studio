@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // NarrationCharacterID is the reserved character id for plain narration as a
@@ -44,7 +44,7 @@ const what = "character reference approvals"
 // manuscript, and a replaced manuscript's chapters and characters are not
 // the ones a stale reference was approved against.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-utils", "characters")
+	return filepath.Join(project, "narration-studio", "characters")
 }
 
 func referencesPath(project string) string {

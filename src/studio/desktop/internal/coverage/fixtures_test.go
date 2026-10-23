@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
 )
 
 // --- a project on disk ---
@@ -101,7 +101,7 @@ func (p *testProject) writeManuscript(documentID, title, text string) {
 		data["paragraphs"] = append(data["paragraphs"].([]any), map[string]any{"id": "p-000003", "chapterId": testSecondChapter, "index": 2, "text": "Down the rabbit hole."})
 	}
 	encoded, _ := json.Marshal(data)
-	p.writeFile("narration-utils/manuscript/manuscript.json", string(encoded))
+	p.writeFile("narration-studio/manuscript/manuscript.json", string(encoded))
 }
 
 // addSecondChapter gives the project a second narration chapter, c-0003, with its own track, one item and a confirmed link,
@@ -118,7 +118,7 @@ func (p *testProject) addSecondChapter() {
 }
 
 func (p *testProject) loadManuscript() (map[string]any, error) {
-	raw, err := os.ReadFile(filepath.Join(p.dir, "narration-utils", "manuscript", "manuscript.json"))
+	raw, err := os.ReadFile(filepath.Join(p.dir, "narration-studio", "manuscript", "manuscript.json"))
 	if err != nil {
 		return nil, err
 	}

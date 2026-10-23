@@ -4,8 +4,8 @@ import (
 	"context"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline/merriamwebster"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline/merriamwebster"
 )
 
 // The online pronunciation lookup: Merriam-Webster, on the narrator's own key, one word at

@@ -1,6 +1,6 @@
 # Recording Check Model Cascade
 
-**Source:** owner conversation of 2026-09-23, after the Q7 model comparison of [#425](https://github.com/countrymanprime/narration-utils/issues/425) (item 1). Builds on the delivered recording check ([steady state](../utilities/recording-coverage.md), [calibration note](../research/recording-coverage-calibration.md), ADRs [0125](../utilities/recording-coverage.md) to [0132](../utilities/recording-coverage.md#settings)). Citations are `file:line` on `main` at dd006030. Phases 2 (region bounds) and 3 (re-check mode and splice) are built; nothing else is yet.
+**Source:** owner conversation of 2026-09-23, after the Q7 model comparison of [#425](https://github.com/countrymanprime/narration-studio/issues/425) (item 1). Builds on the delivered recording check ([steady state](../utilities/recording-coverage.md), [calibration note](../research/recording-coverage-calibration.md), ADRs [0125](../utilities/recording-coverage.md) to [0132](../utilities/recording-coverage.md#settings)). Citations are `file:line` on `main` at dd006030. Phases 2 (region bounds) and 3 (re-check mode and splice) are built; nothing else is yet.
 
 ## Problem Statement
 

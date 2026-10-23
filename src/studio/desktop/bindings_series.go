@@ -5,9 +5,9 @@ package main
 // from. There is no per-book drift evidence.
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/character"
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
-	"github.com/countrymanprime/narration-utils/shell/internal/series"
+	"github.com/countrymanprime/narration-studio/shell/internal/character"
+	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"github.com/countrymanprime/narration-studio/shell/internal/series"
 )
 
 // SeriesVoiceBible builds the current project's Series tab view: its series membership, and - only once the series has

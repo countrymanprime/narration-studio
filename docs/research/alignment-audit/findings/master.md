@@ -232,7 +232,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 
 - Page / state: master / report-exported, report-needs-files, `multi-export-*`, every state with the Report card
 - Widths: 768, 390 (theme: both)
-- What is wrong: the paragraph "...into this project's narration-/utils/delivery folder" wraps at the hyphen in the word `narration-utils`, so the folder name reads as two names, "narration-" at the end of one line and "utils/delivery" at the start of the next (at 390 and at 768 where the line break falls there).
+- What is wrong: the paragraph "...into this project's narration-/utils/delivery folder" wraps at the hyphen in the word `narration-studio`, so the folder name reads as two names, "narration-" at the end of one line and "utils/delivery" at the start of the next (at 390 and at 768 where the line break falls there).
 - Where: Report panel description (`masterqc/page/MasterPage.tsx`, Report section; exact line not opened), plain text with a breakable hyphen and slash
 - Severity: polish
 - Fix: wrap the folder in a `whitespace-nowrap` code span (a non-breaking hyphen, U+2011, for the display).

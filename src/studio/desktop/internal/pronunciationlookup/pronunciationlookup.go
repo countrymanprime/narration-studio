@@ -4,7 +4,7 @@
 // by a static import guard, pronunciationlookup_test.go's TestPackageNeverImportsNetHTTP).
 //
 // Each site's URL is one fixed template, recorded in docs/research/pronunciation-lookup-urls.md rather than an API
-// this package calls - narration-utils stays local-only. Until that note says the owner confirmed it, treat every
+// this package calls - narration-studio stays local-only. Until that note says the owner confirmed it, treat every
 // template here as unverified.
 package pronunciationlookup
 

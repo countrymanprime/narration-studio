@@ -52,7 +52,7 @@ Save the shared Lua below as `$root\lua\common.lua`. Every REAPER script `dofile
 ```lua
 -- common.lua: guard, fixture helpers, undo walk, report. Saved to <root>\lua\common.lua.
 local M = {}
-local out = os.getenv('NARRATION_UTILS_SPIKE_OUT')
+local out = os.getenv('NARRATION_STUDIO_SPIKE_OUT')
 local lines = {}
 
 function M.log(...)
@@ -64,9 +64,9 @@ end
 -- The S0/S6 guard. needs_device = true skips closing the audio device (spikes 1a real record and 1f only).
 function M.guard(needs_device)
   local bs = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
-  assert(out and out ~= '', 'NARRATION_UTILS_SPIKE_OUT is not set: start this script with run-reaper.ps1')
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  assert(out and out ~= '', 'NARRATION_STUDIO_SPIKE_OUT is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   local actual = reaper.GetResourcePath()
   assert(actual:gsub(bs, '/'):lower() == wanted:gsub(bs, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   if needs_device then
@@ -149,7 +149,7 @@ end
 return M
 ```
 
-Each spike's Lua starts with `local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')`. Save it to `$root\lua\<name>.lua` and run the `Invoke-Spike` line under it.
+Each spike's Lua starts with `local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')`. Save it to `$root\lua\<name>.lua` and run the `Invoke-Spike` line under it.
 
 ## 1a Roll (SND-S1)
 
@@ -172,7 +172,7 @@ Stand-in for a roll: in one undo block, add a new recording (a tone file) as a n
 Save as `$root\lua\spike_1a_fake.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1a-fake', false, function()
   local track = c.track('Spike roll')
   local item, first = c.item(track, 'take_a.wav', 0, 3)
@@ -212,7 +212,7 @@ Then, for each recording mode you want to test, run the script below once from a
 Save as `$root\lua\spike_1a_real.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1a-real', true, function()
   local track = c.track('Spike roll')
   c.item(track, 'take_a.wav', 0, 3)
@@ -270,7 +270,7 @@ Expected: record starts at the cursor (1.5 s), and the report shows whether the 
 Save as `$root\lua\spike_1b_cut.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1b', false, function()
   local words = c.track('Words')
   local cuts = c.track('Cuts')
@@ -334,7 +334,7 @@ Expected: after words: items at 0 (3 s), 3 (1 s), 4 (the 1 s tail, moved from 5)
 Save as `$root\lua\spike_1c_chain.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 -- The body of an .RfxChain, taken from REAPER's own <FXCHAIN> text for a scratch track that has the plug-in.
 local function chain_text_for(plugin)
   local index = reaper.CountTracks(0)
@@ -418,7 +418,7 @@ Expected: `UNDO_POINTS 1 Narration Studio: spike chain on range`; after_undo: on
 Save as `$root\lua\spike_1d_stack.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1d', false, function()
   local track = c.track('Spike reads')
   local first_item, first_take = c.item(track, 'take_a.wav', 0, 3)
@@ -475,7 +475,7 @@ Expected: after: 1 item with 3 takes, active take 1, length 3; `UNDO_POINTS 1`; 
 Save as `$root\lua\spike_1e_undo.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1e', false, function()
   local track = c.track('Spike undo')
   local item = c.item(track, 'take_a.wav', 0, 3)
@@ -520,7 +520,7 @@ API edits and hand edits may label differently. This run logs the top undo label
 Save as `$root\lua\spike_1e_live.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1e-live', false, function()
   local track = c.track('Spike undo')
   c.item(track, 'take_a.wav', 0, 3)
@@ -565,7 +565,7 @@ Expected: a label line for the mouse move (REAPER's own wording, for example a m
 Use the kept `cfg-device` folder from 1a-real (set the interface there once). Save as `$root\lua\spike_1f_playpos.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1f', true, function()
   assert(reaper.APIExists('GetPlayPosition2'), 'this REAPER cannot report GetPlayPosition2')
   local track = c.track('Spike play')

@@ -1,6 +1,6 @@
 # Rename audit: names that no longer fit
 
-Researched 2026-10-12 for the owner, on `main` at `5ee0877`. Tracking issue: [#1489](https://github.com/countrymanprime/narration-utils/issues/1489). The counts are for that commit and are not kept current.
+Researched 2026-10-12 for the owner, on `main` at `5ee0877`. Tracking issue: [#1489](https://github.com/countrymanprime/narration-studio/issues/1489). The counts are for that commit and are not kept current.
 
 **Question.** Which names in the repo now describe something other than what the code does? For each, what would a rename cost, and when should it run?
 
@@ -48,7 +48,7 @@ Rename only the folder, the exe, the Nx project, the entry module's docstring an
 
 ## Go packages
 
-Bindings are generated only for `Host` (`main.go:42`). Their `$Call.ByID` hashes come from the root package and the method name, so renaming an internal package changes no binding name. The one exception is a package whose struct appears in a `Host` signature: today `marks`, `liveflags`, `project` and `editlog` (generated folders under `src/studio/ui/wailsjs/github.com/countrymanprime/narration-utils/shell/internal/`). Renaming one of these regenerates the bindings, but no hand-written TS import breaks. The [`go-package-split`](../../.claude/skills/go-package-split/SKILL.md) skill covers the mechanics. Event strings such as `"pickups:state"` are literals and do not change.
+Bindings are generated only for `Host` (`main.go:42`). Their `$Call.ByID` hashes come from the root package and the method name, so renaming an internal package changes no binding name. The one exception is a package whose struct appears in a `Host` signature: today `marks`, `liveflags`, `project` and `editlog` (generated folders under `src/studio/ui/wailsjs/github.com/countrymanprime/narration-studio/shell/internal/`). Renaming one of these regenerates the bindings, but no hand-written TS import breaks. The [`go-package-split`](../../.claude/skills/go-package-split/SKILL.md) skill covers the mechanics. Event strings such as `"pickups:state"` are literals and do not change.
 
 | Current | What it does now | Proposed | Importers | Also names it | Risk |
 | --- | --- | --- | --- | --- | --- |
@@ -65,14 +65,14 @@ Bindings are generated only for `Host` (`main.go:42`). Their `$Call.ByID` hashes
 - **The port family:** `port` plus the `*port` packages, the [Provider ports](../architecture/provider-ports.md) convention. `extraction` vs `extractionport` and `mastering` vs `masteringport` are core vs port.
 - **Feature and domain names that still match the code:** `manuscript`, `importer`, `marks`, `bookmarks`, the `scriptprep`, `prepmarkup` and `prepcompleteness` trio, `teleprompter` (the live session, the same name as its events), `liveflags`, `recording`, `passagemap`, `passagetakes`, `production`, `productionreport`, `delivery*`, `stages`, `proofing`, `editing`, `findings`, `gapreview`, `pickuplist`, `series`, `credits`, `analysistools`, `takereview`, `takecompare`, `repeats`, `retakelanes`, `lineidentity`, `renderconfig`, `cleanuptools`, `projectstate`, the `chapter*` packages, `measure`, `levelnormalize`, `zerocross`, `evidence` ([fingerprint.go](../../src/studio/desktop/internal/evidence/fingerprint.go)).
 - **Narrow or ambiguous, but not wrong:**
-  - `coverage` measures recording coverage. The UI says "Recording check", and the persisted folder `narration-utils/coverage/` stays.
+  - `coverage` measures recording coverage. The UI says "Recording check", and the persisted folder `narration-studio/coverage/` stays.
   - `transcript` is the Transcript Compare state machine.
   - `editlog` is a record of accepted edits.
   - `layout` holds repo path constants; it shares a word with a UI folder in another language.
   - `packager` assembles the book package, and its doc tells it apart from `encodeport.Packager`.
   - `preview` is the Proof preview window; it matches the `Preview*` bindings.
 - **Infrastructure:** `assets`, `persist`, `hostlog`, `runlog`, `settings`, `recents`, `project`, `credentialstore`, `contractfile`, `update`, `latency`, `dictionary`, `pronunciationlookup`, `pronunciationonline`, `process`.
-- **The module path `.../shell` and the Nx project `narration-utils-shell`** are kept by [ADR 0001](../adr/0001-the-app-is-written-in-go.md) and `docs/architecture/codebase-map.md`. Renaming them would change every binding hash.
+- **The module path `.../shell` and the Nx project `narration-studio-shell`** are kept by [ADR 0001](../adr/0001-the-app-is-written-in-go.md) and `docs/architecture/codebase-map.md`. Renaming them would change every binding hash.
 
 Not names, but found on the way:
 - **Stale doc comments.** `process` (`supervisor.go:1`) still says "the two retained Python analysis sidecars". `transcript` still cites `dawadapter.Review`.
@@ -104,7 +104,7 @@ The component folders already use the mock's page keys: `production`, `schedule`
 
 ## REAPER Lua
 
-The 43 bridge commands use neutral verbs. The neutral layer is `dawport`'s role names, so the command names are adapter-internal and **fine as is**. That includes `master_chain_read`: its capability id is a persisted settings key (`config/defaults.json`, DAW section), which costs more than the reversed verb order is worth. `NarrationUtils_Launcher.lua` and its action keep their names under `docs/architecture/codebase-map.md`.
+The 43 bridge commands use neutral verbs. The neutral layer is `dawport`'s role names, so the command names are adapter-internal and **fine as is**. That includes `master_chain_read`: its capability id is a persisted settings key (`config/defaults.json`, DAW section), which costs more than the reversed verb order is worth. `NarrationStudio_Launcher.lua` and its action keep their names under `docs/architecture/codebase-map.md`.
 
 | Current | What it does now | Proposed | Lists that name it | Risk |
 | --- | --- | --- | --- | --- |
@@ -152,14 +152,14 @@ There is no generic file, folder or settings-key rename mechanism. A grep for `m
 | --- | --- | --- |
 | `<project>/ManuscriptGuide/` holding `manuscript_guide.json`, `audio/tts/` and `suggestions.json` | The Story Bible | `guide.ReadOnlyNames` (used by `internal/series/voicebible.go:126`) reads it from *other* projects, so the old path stays readable for as long as old projects exist. `manuscript/service.go:621` clears it by name |
 | `<project>/TranscriptCompare/` | (still the tool's name) | Also written by the REAPER Lua (`narration_compare.lua:102,134`) and hashed by the recording check (`coverage/params.go:75`) |
-| `narration-utils/teleprompter/*.reading.json`, `*.anchors.json`; findings analyzer `"teleprompter"` | The Booth | The analyzer id is the folder `findings/teleprompter/` |
-| `narration-utils/proofing/renders.json` | The Proof page | Data-file row; the `Proofing*` bindings use the same name |
+| `narration-studio/teleprompter/*.reading.json`, `*.anchors.json`; findings analyzer `"teleprompter"` | The Booth | The analyzer id is the folder `findings/teleprompter/` |
+| `narration-studio/proofing/renders.json` | The Proof page | Data-file row; the `Proofing*` bindings use the same name |
 | Findings analyzer `"transcript-compare"`; job kind `"transcript_compare"` (`jobs.go:31`) | | The analyzer feeds `findings.StableID` (`findings.go:296`), so renaming it changes every finding id and orphans the narrator's reviews. The job kind is in the run log and the `job:ended` contract |
 | Settings sections `ManuscriptGuide`, `Teleprompter`, `Piper`, `RecordingCoverage`; `DAW.experimental_reaper_actions`; `DAW.capability.master_chain_read` (`settings/store.go:66-71,180`, `config/defaults.json`) | Story Bible, Booth, the TTS provider choice, Recording check, the DAW-neutral resolver | They are stored in every user's `global-settings.json` and project `settings.json`, and Python reads them through `src/studio/sidecars/` (high) |
 
 This applies the reasoning of `docs/architecture/codebase-map.md`: keep the names that a file, a key or REAPER holds, and change only the label the user sees. The labels already say Story Bible, Booth and Recording check.
 
-One change costs nothing now and avoids a later rename. The extraction store (`internal/extraction/store/store.go:27`) put the new `suggestions.json` under `ManuscriptGuide/`. A new persisted file should go under `narration-utils/` instead of extending a legacy folder. This is a recommendation for later slices, not a rename.
+One change costs nothing now and avoids a later rename. The extraction store (`internal/extraction/store/store.go:27`) put the new `suggestions.json` under `ManuscriptGuide/`. A new persisted file should go under `narration-studio/` instead of extending a legacy folder. This is a recommendation for later slices, not a rename.
 
 ## Bindings and events
 
@@ -207,7 +207,7 @@ R6 and R7 each change a release or wire list, so each runs alone. R1 to R3 can s
 **How workers keep their briefs valid:**
 - **Record each move in the path map.** Every directory move adds a `renames` row to `scripts/ci/layout.json`, which already holds 15 such rows with `enforceRetired: true`. The layout guard then fails any later text that names the old path.
 - **Rewrite before merging.** A slice still open after the window runs `node scripts/ci/apply-path-map.mjs` on its branch and its issue body before merging `main` in. The coordinator applies the same map to the `owns` globs of open slice issues and re-runs `slice-lint`.
-- **Don't start a rename mid-series.** Until the window, new code follows the existing names, so one sweep renames everything. A new Go package, file or binding introduced before the window takes its final name from this note. A new persisted file goes under `narration-utils/`.
+- **Don't start a rename mid-series.** Until the window, new code follows the existing names, so one sweep renames everything. A new Go package, file or binding introduced before the window takes its final name from this note. A new persisted file goes under `narration-studio/`.
 - **Re-count at the window.** Re-run the counts in this note at the start of the window, since they are for `5ee0877`.
 
 ## Pending

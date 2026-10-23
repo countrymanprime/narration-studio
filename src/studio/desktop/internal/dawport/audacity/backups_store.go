@@ -16,11 +16,11 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // The backups table: one row per window of audio the adapter cloned to its own track in the Audacity project, kept in
-// the app's project folder as narration-utils/backups.json. The backup's audio lives in the Audacity project; the row is how the
+// the app's project folder as narration-studio/backups.json. The backup's audio lives in the Audacity project; the row is how the
 // app finds it again. The file is narrator data, read through persist: a corrupt one is kept aside and an empty table starts, one
 // written by a newer app is refused and never overwritten, and a write goes through a temporary file and a rename.
 
@@ -38,7 +38,7 @@ const backupsWhat = "Audacity backups"
 
 // BackupsFile is where a project's backups table is kept. Its only input is the app's project folder, never a path from the page.
 func BackupsFile(project string) string {
-	return filepath.Join(project, "narration-utils", "backups.json")
+	return filepath.Join(project, "narration-studio", "backups.json")
 }
 
 // Backup is one row of the table. GUID is the source track as the request named it (Audacity reports no track ids, so it is the
@@ -75,7 +75,7 @@ func newBackupID() string {
 }
 
 // BackupTrackName is the name of the Audacity track that holds a backup. The adapter finds the track again only by this exact name.
-func BackupTrackName(id string) string { return "Narration Utils backup " + id }
+func BackupTrackName(id string) string { return "Narration Studio backup " + id }
 
 // backupText reports whether s is a row's text: non-empty, valid UTF-8, bounded and free of control characters.
 func backupText(s string) bool {
@@ -194,7 +194,7 @@ func writeBackups(path string, table backupsTable) error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
 	}
 	raw, err := json.MarshalIndent(table, "", "  ")
 	if err != nil {

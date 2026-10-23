@@ -50,8 +50,8 @@ audio. Regenerate with the app's own installed voice and model:
 
 ```powershell
 uv run python src/studio/sidecars/manuscript-teleprompter/spikes/record_locate_tails.py `
-  --piper-model "$env:LOCALAPPDATA/narration-utils/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx" `
-  --model-dir "$env:LOCALAPPDATA/narration-utils/assets/whisper/faster-whisper/tiny/<commit>"
+  --piper-model "$env:LOCALAPPDATA/narration-studio/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx" `
+  --model-dir "$env:LOCALAPPDATA/narration-studio/assets/whisper/faster-whisper/tiny/<commit>"
 ```
 
 ## alice.txt

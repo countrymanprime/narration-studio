@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
 )
 
 // chapterKindResult is ManuscriptSetChapterKind's payload: the chapter as the chapter list now sends it (with

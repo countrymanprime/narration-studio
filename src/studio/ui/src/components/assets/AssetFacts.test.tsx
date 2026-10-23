@@ -16,7 +16,7 @@ const facts = {
   provenanceUrl: 'https://github.com/explosion/spacy-models/releases/tag/en_core_web_sm-3.8.0',
   downloadSize: 12_806_118,
   diskSize: 15_251_718,
-  installPath: 'C:/Users/narrator/AppData/Local/narration-utils/assets/spacy/en_core_web_sm/3.8.0',
+  installPath: 'C:/Users/narrator/AppData/Local/narration-studio/assets/spacy/en_core_web_sm/3.8.0',
 };
 
 describe('formatSize', () => {

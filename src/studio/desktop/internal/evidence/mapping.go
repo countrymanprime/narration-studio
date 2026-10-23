@@ -1,7 +1,7 @@
 // This file holds the narrator-confirmed trackGuid -> chapterId mapping store
 // plus the pure suggestion helper over the chapter-to-track matcher
 // (internal/chaptermatch). It is one JSON file per project,
-// narration-utils/chapter-track-map.json, keyed by the manuscript's documentId
+// narration-studio/chapter-track-map.json, keyed by the manuscript's documentId
 // and holding each mapping's chapter title and confirmedAt beside the id - the
 // stored title is what lets a re-import re-suggest a link instead of asking
 // again (see SuggestFromPrevious).
@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptermatch"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // mappingSchemaVersion is the schema version every file written by this
@@ -134,12 +134,12 @@ type mappingFileShape struct {
 }
 
 // MappingFile is the confirmed mapping's storage path under a project
-// (narration-utils/chapter-track-map.json, a single file, not a directory of records like LedgerDir/CacheDir - there is one active
+// (narration-studio/chapter-track-map.json, a single file, not a directory of records like LedgerDir/CacheDir - there is one active
 // mapping set per project at a time). It is exported so
 // manuscript.resetDerived can clear it without this package depending on
 // the manuscript package.
 func MappingFile(project string) string {
-	return filepath.Join(project, "narration-utils", "chapter-track-map.json")
+	return filepath.Join(project, "narration-studio", "chapter-track-map.json")
 }
 
 // MappingStore is the chapter-track mapping: the links the
@@ -511,7 +511,7 @@ func (s *MappingStore) writeLocked(file mappingFileShape) error {
 	sort.Slice(file.Mappings, func(i, j int) bool { return file.Mappings[i].TrackGUID < file.Mappings[j].TrackGUID })
 
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

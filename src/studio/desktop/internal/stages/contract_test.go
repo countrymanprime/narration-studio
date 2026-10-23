@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // Every cause an unknown signal can carry, pinned so the UI's schema lists the same words.

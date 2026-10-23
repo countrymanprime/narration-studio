@@ -18,7 +18,7 @@ Two commands in [`src/studio/integrations/reaper/narration_line_identity.lua`](.
 
 Behaviour that is deliberate:
 
-- Identity is stored as two namespaced item extension keys, `P_EXT:narration_utils_line_id` and `P_EXT:narration_utils_line_text`. Item notes and take names are never touched; they belong to the narrator.
+- Identity is stored as two namespaced item extension keys, `P_EXT:narration_studio_line_id` and `P_EXT:narration_studio_line_text`. Item notes and take names are never touched; they belong to the narrator.
 - Items are found by GUID only. A GUID that no longer resolves is reported as stale and no neighbouring item is used instead.
 - An item that already carries a different line ID is a conflict and is left alone unless the narrator explicitly overwrites.
 - Each write command is one undo step, and nothing is written (and no undo point created) when there is nothing to change. Re-running with the same payload is a no-op.

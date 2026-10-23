@@ -1,6 +1,6 @@
 {
   "contractedAmountIncluded": false,
-  "folder": "narration-utils/production/reports",
+  "folder": "narration-studio/production/reports",
   "html": "<!doctype html>\n",
   "include": {
     "delivery": true,

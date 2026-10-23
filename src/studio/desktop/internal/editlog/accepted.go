@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // AcceptedVersion is the only accepted.json version this package reads or writes.

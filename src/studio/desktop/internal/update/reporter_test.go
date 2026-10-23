@@ -1,6 +1,6 @@
 package update
 
-import "github.com/countrymanprime/narration-utils/shell/internal/persist"
+import "github.com/countrymanprime/narration-studio/shell/internal/persist"
 
 // nilReporterCapturing is a reporter that appends "kind: message" for every line the update package writes to the host log.
 func nilReporterCapturing(lines *[]string) *persist.Reporter {

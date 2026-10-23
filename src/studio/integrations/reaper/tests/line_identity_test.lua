@@ -2,8 +2,8 @@
 
 local H = require('harness')
 
-local ID_KEY = 'narration_utils_line_id'
-local TEXT_KEY = 'narration_utils_line_text'
+local ID_KEY = 'narration_studio_line_id'
+local TEXT_KEY = 'narration_studio_line_text'
 
 local function new_session()
   local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })

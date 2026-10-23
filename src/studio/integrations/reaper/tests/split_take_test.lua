@@ -5,7 +5,7 @@
 local H = require('harness')
 
 local LABEL = 'Narration Studio: split take'
-local SPLIT_KEY = 'narration_utils_split_from'
+local SPLIT_KEY = 'narration_studio_split_from'
 
 local ITEM = '{AAAAAAAA-0000-4000-8000-000000000001}'
 local TAKE = '{AAAAAAAA-0000-4000-8000-000000000002}'

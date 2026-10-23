@@ -1,4 +1,4 @@
-# narration-utils
+# narration-studio
 
 A group of utilities and plugins to assist with audio narration workflows. Each tool's business
 logic is DAW-agnostic; a thin per-DAW driver wires it into a specific host.
@@ -31,11 +31,11 @@ The public website (a landing page, the condensed guides, a live demo of the app
 ## Layout
 
 ```text
-narration-utils/
+narration-studio/
   src/
     studio/                    the app and its integration points
       desktop/                 Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
-                               cmd/ (narration-utils, seed-assets, manuscript-import, spike-globalhotkeys, spike-storage), build/ (icons, the Windows setup program definition)
+                               cmd/ (narration-studio, seed-assets, manuscript-import, spike-globalhotkeys, spike-storage), build/ (icons, the Windows setup program definition)
       ui/                      React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
       sidecars/                Python programs frozen into the app and run on demand
         manuscript-guide/          core/ CLI backend, tests/
@@ -83,7 +83,7 @@ with someone testing on those systems, non-Windows builds can come back.
 
 The supported way to get the app is a GitHub release. From the [releases page](https://github.com/countrymanprime/narration-studio/releases):
 
-1. Download `narration-utils-<version>-windows-x64-setup.exe`, for example `narration-utils-0.2.7-windows-x64-setup.exe` (and,
+1. Download `narration-studio-<version>-windows-x64-setup.exe`, for example `narration-studio-0.2.7-windows-x64-setup.exe` (and,
    to check it, the `.sha256` file of the same name). Every file on a release carries its version in its name.
 2. Run it. It installs for your user account only, so it asks for no administrator rights, puts the program in
    `%LOCALAPPDATA%\Programs\Narration Studio`, adds a Start Menu entry and, if you leave it ticked, a desktop shortcut, and
@@ -92,20 +92,20 @@ The supported way to get the app is a GitHub release. From the [releases page](h
 3. **The release is unsigned**, so Windows SmartScreen may say it "prevented an unrecognized app from starting". Choose
    **More info**, then **Run anyway**. The warning is about the missing signature, not about anything found in the file. To
    check the file yourself before you run it:
-   - the checksum, which only detects a damaged download: `(Get-FileHash .\narration-utils-0.2.7-windows-x64-setup.exe).Hash` in
+   - the checksum, which only detects a damaged download: `(Get-FileHash .\narration-studio-0.2.7-windows-x64-setup.exe).Hash` in
      PowerShell must equal the hash in the `.sha256` file;
    - where it was built, with the [GitHub CLI](https://cli.github.com):
-     `gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio`. Success names the
+     `gh attestation verify narration-studio-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio`. Success names the
      workflow, commit and run that built it (see [CI and releases](docs/operations/ci-and-releases.md#build-provenance)).
 4. Start **Narration Studio** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
 
 The app updates itself from these releases after you click (Settings > App & updates); it never installs an update on its
-own. That works because the install folder is yours to write to. `narration-utils-<version>-windows-x64.zip` on the release is
+own. That works because the install folder is yours to write to. `narration-studio-<version>-windows-x64.zip` on the release is
 the update package the app fetches, not something to run by hand. A copy installed before the version was in the file names
 cannot find the new names: install the next release by hand once, and it updates itself from then on.
 
 **Uninstall** from Settings > Apps > Installed apps. That removes the program and its shortcuts and **leaves your settings**
-(`%APPDATA%\narration-utils`), **the voices and models you downloaded** (`%LOCALAPPDATA%\narration-utils`, also where the
+(`%APPDATA%\narration-studio`), **the voices and models you downloaded** (`%LOCALAPPDATA%\narration-studio`, also where the
 update staging lives) **and everything in your project folders** alone; the uninstall page says so. Delete those folders by hand
 if you want them gone.
 
@@ -146,12 +146,12 @@ This is the current **developer-checkout** workflow, not the intended release
 installation path. Compiled GitHub releases package their own sidecars and
 installer resources, and never call this command.
 
-A compiled release is one program, `narration-utils` (`narration-utils.exe` on Windows), that knows its own version
+A compiled release is one program, `narration-studio` (`narration-studio.exe` on Windows), that knows its own version
 (Settings > App & updates). Once a day at most it asks GitHub whether a newer release of this repository exists (switch
 it off there), and on Windows, after your confirmed click, it downloads that release, checks it and replaces itself; it
 never downloads or installs anything on its own. See [in-app update](docs/architecture/in-app-update.md).
 
-A built program can check itself without opening a window: `narration-utils --smoke` unpacks its bundled resources, starts
+A built program can check itself without opening a window: `narration-studio --smoke` unpacks its bundled resources, starts
 each frozen sidecar, checks the Story Bible sidecar's dictionary and speech data and the approved asset catalogs, and exits
 non-zero on any failure. CI runs it on the Windows build before packaging; see
 [CI and releases](docs/operations/ci-and-releases.md#the-packaged-app-smoke-test).
@@ -185,7 +185,7 @@ render, adding a take, and reporting the open project's state. See
 
 The tools keep their own DAW-agnostic Python backends. What they share:
 
-- **`<project folder>\narration-utils\manuscript\manuscript.json`** — the one intentional,
+- **`<project folder>\narration-studio\manuscript\manuscript.json`** — the one intentional,
   project-owned data contract between the tools. DOCX, Markdown, plain-text and EPUB files are
   imported once; their preserved source copies are provenance only and are never reparsed.
   Existing v1 PDF-derived canonical data remains readable, but new PDF import is fail-closed

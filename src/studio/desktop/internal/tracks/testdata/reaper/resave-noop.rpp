@@ -503,8 +503,8 @@
       IGUID {27BBEA5C-C86C-46D7-8F6D-F924712C5305}
       IID 7
       <EXTI
-        narration_utils_line_id line-000001
-        narration_utils_line_text "The first line, with | a pipe."
+        narration_studio_line_id line-000001
+        narration_studio_line_text "The first line, with | a pipe."
       >
       NAME "stamped line"
       VOLPAN 1 0 1 -1
@@ -516,7 +516,7 @@
         FILE "C:\spike-machine\project\media/take_a.wav"
       >
       <EXT
-        narration_utils_take_note "take-level value"
+        narration_studio_take_note "take-level value"
       >
     >
     <ITEM
@@ -532,9 +532,9 @@
       IGUID {ADB9EB02-4E88-4C6E-9F62-9A2EA9EC0E11}
       IID 8
       <EXTI
-        narration_utils_line_id line-000002
-        narration_utils_line_text `She said "hello", then left.\ Café 100% done; it's fine.`
-        <BIN narration_utils_long
+        narration_studio_line_id line-000002
+        narration_studio_line_text `She said "hello", then left.\ Café 100% done; it's fine.`
+        <BIN narration_studio_long
           d29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3
           b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdv
           cmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29y
@@ -568,7 +568,7 @@
           d29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgd29yZCB3
           b3JkIHdvcmQgd29yZCB3b3JkIHdvcmQgZW5k
         >
-        <BIN narration_utils_multiline
+        <BIN narration_studio_multiline
           Zmlyc3QgbGluZQpzZWNvbmQgbGluZQ==
         >
       >

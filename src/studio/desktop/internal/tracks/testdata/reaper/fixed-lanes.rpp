@@ -146,7 +146,7 @@
       IGUID {B5899082-843D-47F2-A45A-7854502B289E}
       IID 1
       <EXTI
-        narration_utils_line_id line-000001
+        narration_studio_line_id line-000001
       >
       NAME "line 1 read 1"
       VOLPAN 1 0 1 -1
@@ -201,7 +201,7 @@
       IGUID {5BFE533C-6CC5-4CFB-B47C-4BEF702C4601}
       IID 2
       <EXTI
-        narration_utils_line_id line-000002
+        narration_studio_line_id line-000002
       >
       NAME "read 1"
       VOLPAN 1 0 1 -1
@@ -227,7 +227,7 @@
       IGUID {167820F8-12B5-4020-BB5B-ABB5E8483D9B}
       IID 3
       <EXTI
-        narration_utils_line_id line-000002
+        narration_studio_line_id line-000002
       >
       NAME "read 2 (overlaps read 1)"
       VOLPAN 1 0 1 -1
@@ -253,7 +253,7 @@
       IGUID {79493E68-6DFE-4300-B3E9-572F539CA4B1}
       IID 4
       <EXTI
-        narration_utils_line_id line-000003
+        narration_studio_line_id line-000003
       >
       NAME "read 3 (no overlap)"
       VOLPAN 1 0 1 -1
@@ -309,7 +309,7 @@
       IGUID {7616F4AA-B74D-4C1D-8AC5-109744199CDA}
       IID 5
       <EXTI
-        narration_utils_line_id line-000001
+        narration_studio_line_id line-000001
       >
       NAME "line 1 read 1"
       VOLPAN 1 0 1 -1
@@ -365,7 +365,7 @@
       IGUID {3A5856D7-D785-4C44-9F1F-6F1483D53D4E}
       IID 6
       <EXTI
-        narration_utils_line_id line-000002
+        narration_studio_line_id line-000002
       >
       NAME "read 1"
       VOLPAN 1 0 1 -1
@@ -391,7 +391,7 @@
       IGUID {A7FAFD90-ECF3-4FC4-A7C8-9606457581D5}
       IID 7
       <EXTI
-        narration_utils_line_id line-000002
+        narration_studio_line_id line-000002
       >
       NAME "read 2 (overlaps read 1)"
       VOLPAN 1 0 1 -1
@@ -417,7 +417,7 @@
       IGUID {34308271-B3DD-4894-A7A2-2FC3F32DE640}
       IID 8
       <EXTI
-        narration_utils_line_id line-000003
+        narration_studio_line_id line-000003
       >
       NAME "read 3 (no overlap)"
       VOLPAN 1 0 1 -1
@@ -473,7 +473,7 @@
       IGUID {828EFE25-6527-4730-ACA1-F78B8925A09F}
       IID 9
       <EXTI
-        narration_utils_line_id line-000001
+        narration_studio_line_id line-000001
       >
       NAME "line 1 read 1"
       VOLPAN 1 0 1 -1
@@ -530,7 +530,7 @@
       IGUID {28424EE6-CD83-45A7-BCB7-A46112C7336E}
       IID 10
       <EXTI
-        narration_utils_line_id line-000004
+        narration_studio_line_id line-000004
       >
       NAME "retake 1"
       VOLPAN 1 0 1 -1
@@ -556,7 +556,7 @@
       IGUID {1CA0B22E-8B79-4012-8E4B-FA1AB5879D2C}
       IID 11
       <EXTI
-        narration_utils_line_id line-000004
+        narration_studio_line_id line-000004
       >
       NAME "retake 2"
       VOLPAN 1 0 1 -1
@@ -582,7 +582,7 @@
       IGUID {6AE40BB3-97F2-4822-9548-C6C269993C80}
       IID 12
       <EXTI
-        narration_utils_line_id line-000004
+        narration_studio_line_id line-000004
       >
       NAME "retake 3"
       VOLPAN 1 0 1 -1
@@ -608,7 +608,7 @@
       IGUID {905F2E56-AD94-4914-8532-BAC201E57F6B}
       IID 13
       <EXTI
-        narration_utils_line_id line-000005
+        narration_studio_line_id line-000005
       >
       NAME "out of range lane"
       VOLPAN 1 0 1 -1
@@ -663,7 +663,7 @@
       IGUID {97E61A71-95A2-47DD-8D30-02ED8E359E87}
       IID 14
       <EXTI
-        narration_utils_line_id line-000006
+        narration_studio_line_id line-000006
       >
       NAME "target (active)"
       VOLPAN 1 0 1 -1
@@ -685,7 +685,7 @@
         FILE "media/take_b.wav"
       >
       <EXT
-        narration_utils_take_finding_id finding-0001
+        narration_studio_take_finding_id finding-0001
       >
       TAKE
       NAME "candidate added on a lane track"
@@ -741,7 +741,7 @@
       IGUID {DCFB6758-AE92-4375-A832-D9DAC2D4173C}
       IID 15
       <EXTI
-        narration_utils_line_id line-000006
+        narration_studio_line_id line-000006
       >
       NAME "target (active)"
       VOLPAN 1 0 1 -1
@@ -763,7 +763,7 @@
         FILE "media/take_b.wav"
       >
       <EXT
-        narration_utils_take_finding_id finding-0001
+        narration_studio_take_finding_id finding-0001
       >
     >
   >
@@ -811,7 +811,7 @@
       IGUID {58B979C8-6204-424F-8F35-7A833F5CE014}
       IID 18
       <EXTI
-        narration_utils_line_id line-000006
+        narration_studio_line_id line-000006
       >
       NAME "target (active)"
       VOLPAN 1 0 1 -1
@@ -837,7 +837,7 @@
       IGUID {022CBE90-D08B-4870-AB3C-5AF9AD0E0583}
       IID 19
       <EXTI
-        narration_utils_line_id line-000006
+        narration_studio_line_id line-000006
       >
       NAME candidate
       VOLPAN 1 0 1 -1
@@ -849,7 +849,7 @@
         FILE "media/take_b.wav"
       >
       <EXT
-        narration_utils_take_finding_id finding-0001
+        narration_studio_take_finding_id finding-0001
       >
     >
   >
@@ -897,7 +897,7 @@
       IGUID {D021C51F-D03B-4EC9-86D6-794D6FA8F8F4}
       IID 20
       <EXTI
-        narration_utils_line_id line-000006
+        narration_studio_line_id line-000006
       >
       NAME "target (active)"
       VOLPAN 1 0 1 -1
@@ -923,7 +923,7 @@
       IGUID {A2D2A25D-B1D7-4751-8751-08FE3B3B465C}
       IID 21
       <EXTI
-        narration_utils_line_id line-000006
+        narration_studio_line_id line-000006
       >
       NAME candidate
       VOLPAN 1 0 1 -1
@@ -935,7 +935,7 @@
         FILE "media/take_b.wav"
       >
       <EXT
-        narration_utils_take_finding_id finding-0001
+        narration_studio_take_finding_id finding-0001
       >
     >
   >
@@ -981,7 +981,7 @@
       IGUID {4BF4F8DC-CF16-4CF3-9F04-9689FD2E3BA3}
       IID 22
       <EXTI
-        narration_utils_line_id line-000009
+        narration_studio_line_id line-000009
       >
       NAME "retake 1"
       VOLPAN 1 0 1 -1
@@ -993,7 +993,7 @@
         FILE "media/take_a.wav"
       >
       <EXT
-        narration_utils_take_finding_id finding-e5-0
+        narration_studio_take_finding_id finding-e5-0
       >
       TAKE SEL
       NAME "retake 2"
@@ -1006,7 +1006,7 @@
         FILE "media/take_b.wav"
       >
       <EXT
-        narration_utils_take_finding_id finding-e5-1
+        narration_studio_take_finding_id finding-e5-1
       >
       TAKE
       NAME "retake 3"
@@ -1019,7 +1019,7 @@
         FILE "media/take_c.wav"
       >
       <EXT
-        narration_utils_take_finding_id finding-e5-2
+        narration_studio_take_finding_id finding-e5-2
       >
     >
   >
@@ -1067,7 +1067,7 @@
       IGUID {0DFFBA5C-C8FA-4C12-8D31-DFF1026ABA0A}
       IID 25
       <EXTI
-        narration_utils_line_id line-000007
+        narration_studio_line_id line-000007
       >
       NAME "retake 1"
       VOLPAN 1 0 1 -1
@@ -1093,7 +1093,7 @@
       IGUID {88A07AB3-A556-45D6-B9A8-87B052B8365D}
       IID 26
       <EXTI
-        narration_utils_line_id line-000007
+        narration_studio_line_id line-000007
       >
       NAME "retake 2"
       VOLPAN 1 0 1 -1
@@ -1119,7 +1119,7 @@
       IGUID {FE01F8CE-ADAB-44D6-9721-2CA5DC745915}
       IID 27
       <EXTI
-        narration_utils_line_id line-000007
+        narration_studio_line_id line-000007
       >
       NAME "retake 3"
       VOLPAN 1 0 1 -1
@@ -1145,7 +1145,7 @@
       IGUID {569C2D4F-E5E5-4075-8A97-06B7912F3FD9}
       IID 28
       <EXTI
-        narration_utils_line_id line-000007
+        narration_studio_line_id line-000007
       >
       NAME "retake 2"
       VOLPAN 1 0 1 -1
@@ -1203,7 +1203,7 @@
       IGUID {67CF871C-09DB-42CD-992D-825BC36D0C5E}
       IID 30
       <EXTI
-        narration_utils_line_id line-000010
+        narration_studio_line_id line-000010
       >
       NAME "retake 1"
       VOLPAN 1 0 1 -1
@@ -1229,7 +1229,7 @@
       IGUID {3C5140F7-CD35-49A0-9E69-3197AED06887}
       IID 31
       <EXTI
-        narration_utils_line_id line-000010
+        narration_studio_line_id line-000010
       >
       NAME "retake 2"
       VOLPAN 1 0 1 -1
@@ -1255,7 +1255,7 @@
       IGUID {405E0477-A4D2-4EF4-8A25-D7F76E5BBDEE}
       IID 32
       <EXTI
-        narration_utils_line_id line-000010
+        narration_studio_line_id line-000010
       >
       NAME "retake 3"
       VOLPAN 1 0 1 -1
@@ -1281,7 +1281,7 @@
       IGUID {28DCE23F-5742-4ECE-A4C1-26C5E3E94569}
       IID 33
       <EXTI
-        narration_utils_line_id line-000010
+        narration_studio_line_id line-000010
       >
       NAME "retake 3"
       VOLPAN 1 0 1 -1
@@ -1338,7 +1338,7 @@
       IGUID {EA1514F1-43D8-4D3C-B481-1C1047B10A12}
       IID 34
       <EXTI
-        narration_utils_line_id line-000008
+        narration_studio_line_id line-000008
       >
       NAME "retake 1"
       VOLPAN 1 0 1 -1
@@ -1364,7 +1364,7 @@
       IGUID {585585F2-5EE6-4CEA-8786-CD1EE04FDE73}
       IID 35
       <EXTI
-        narration_utils_line_id line-000008
+        narration_studio_line_id line-000008
       >
       NAME "retake 2"
       VOLPAN 1 0 1 -1
@@ -1390,7 +1390,7 @@
       IGUID {295D82DC-9737-4343-A50A-2910648ED231}
       IID 36
       <EXTI
-        narration_utils_line_id line-000008
+        narration_studio_line_id line-000008
       >
       NAME "retake 3"
       VOLPAN 1 0 1 -1

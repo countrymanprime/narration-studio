@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/credentialstore"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline"
+	"github.com/countrymanprime/narration-studio/shell/internal/credentialstore"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
 )
 
 const (

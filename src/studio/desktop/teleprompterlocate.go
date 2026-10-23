@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptermatch"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // teleprompterLocateTimeout bounds one tail-audio locate: a model load and a decode of at most

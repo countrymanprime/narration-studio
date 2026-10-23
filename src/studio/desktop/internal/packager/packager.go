@@ -20,9 +20,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // invalidTitleChars are characters Windows refuses in a file or path segment name, so a chapter title can never
@@ -62,7 +62,7 @@ type Request struct {
 	CreditsClosing *Item
 	RetailSample   *Item
 	// OutputDir is where the package is written: a narrator-chosen folder, never inside a project's own
-	// narration-utils/ sidecar tree. Assemble creates it if it does not exist, and never overwrites a name already
+	// narration-studio/ sidecar tree. Assemble creates it if it does not exist, and never overwrites a name already
 	// in it.
 	OutputDir string
 	// Tags, when a Packager row exists for a file's format, are embedded into every file Assemble writes (title,

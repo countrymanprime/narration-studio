@@ -9,7 +9,7 @@ personality notes; and can create local, catalog-managed Piper WAV previews. The
 It does not depend on Transcript Compare. The two tools share one project-level input only:
 
 ```text
-<project folder>\narration-utils\manuscript\manuscript.json
+<project folder>\narration-studio\manuscript\manuscript.json
 ```
 
 This tool never reads or writes Transcript Compare's settings or generated files.
@@ -25,8 +25,8 @@ This tool never reads or writes Transcript Compare's settings or generated files
 ## Settings
 
 Settings (spaCy, eSpeak, and the TTS provider/voice selection) are layered: a repo-wide default, a per-user
-**Global** value in `%APPDATA%\narration-utils\global-settings.json`, and an optional **This Project** override
-in `<project folder>\narration-utils\settings.json`, in that order. Both files are plain JSON, not REAPER ExtState.
+**Global** value in `%APPDATA%\narration-studio\global-settings.json`, and an optional **This Project** override
+in `<project folder>\narration-studio\settings.json`, in that order. Both files are plain JSON, not REAPER ExtState.
 
 ## Project files
 

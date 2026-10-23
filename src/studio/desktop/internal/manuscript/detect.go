@@ -21,7 +21,7 @@ func DetectSource(project string) string {
 	if project == "" {
 		return ""
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")); err == nil {
+	if _, err := os.Stat(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")); err == nil {
 		return ""
 	}
 	entries, err := os.ReadDir(project)

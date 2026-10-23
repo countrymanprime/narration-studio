@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
 )
 
 // TestPickupListContract pins PickupsList's answer for tests/fixtures/contracts/pickups-list-*.json (UPDATE_CONTRACTS=1

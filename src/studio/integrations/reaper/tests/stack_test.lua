@@ -8,8 +8,8 @@ local H = require('harness')
 
 local STACK_LABEL = 'Narration Studio: stack takes'
 local UNSTACK_LABEL = 'Narration Studio: unstack takes'
-local CUTS_KEY = 'narration_utils_cuts'
-local RECORD_KEY = 'narration_utils_stacked_from'
+local CUTS_KEY = 'narration_studio_cuts'
+local RECORD_KEY = 'narration_studio_stacked_from'
 
 local function guid(n)
   return string.format('{%08X-0000-4000-8000-%012X}', 0xA0000000 + n, n)

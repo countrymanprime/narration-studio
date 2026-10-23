@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // The credits row statuses: stored on the project manifest,

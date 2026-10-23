@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/recording/recordingtest"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
 )
 
 func decodeDawChoice(t *testing.T) func(string, error) DawChoice {
@@ -134,7 +134,7 @@ func TestDawChooseWinsAndPersists(t *testing.T) {
 	if host.recordingEngine(host.services()) != engineBuiltin {
 		t.Fatal("the record path does not follow the choice")
 	}
-	raw, err := os.ReadFile(filepath.Join(host.config.projectFolder, "narration-utils", "settings.json"))
+	raw, err := os.ReadFile(filepath.Join(host.config.projectFolder, "narration-studio", "settings.json"))
 	if err != nil || !strings.Contains(string(raw), `"engine": "builtin"`) {
 		t.Fatalf("project settings = %s, %v", raw, err)
 	}

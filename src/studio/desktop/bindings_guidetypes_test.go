@@ -8,7 +8,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // The type edits run in the host (guide.Service.typesInHost): the same five edits the sidecar's own test makes, through the bindings with

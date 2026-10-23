@@ -1,6 +1,6 @@
 # Settings for a multi-page desktop app with shared resources: best practice
 
-Researched 2026-10-17 for the Settings redesign, tracking issue [#1817](https://github.com/countrymanprime/narration-utils/issues/1817). The sources are as they read on that date and are not kept current.
+Researched 2026-10-17 for the Settings redesign, tracking issue [#1817](https://github.com/countrymanprime/narration-studio/issues/1817). The sources are as they read on that date and are not kept current.
 
 **Question.** What do the best settings experiences of multi-page desktop apps look like when several pages share one resource, such as one transcription model or one voice? What rules should Narration Studio adopt, and what should it avoid?
 

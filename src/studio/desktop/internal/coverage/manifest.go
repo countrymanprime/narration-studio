@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // manifestSchemaVersion is the sidecar's manifest version (coverage_mode.MANIFEST_SCHEMA_VERSION).

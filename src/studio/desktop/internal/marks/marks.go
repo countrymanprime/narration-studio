@@ -27,7 +27,7 @@ import (
 	"unicode"
 	"unicode/utf16"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // SchemaVersion is the only marks.json version this package reads or writes.
@@ -76,7 +76,7 @@ var typeKeyPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,40}$`)
 
 // File is where a project's marks are kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-utils", "marks.json")
+	return filepath.Join(project, "narration-studio", "marks.json")
 }
 
 // MarkType is one of the narrator's ways of marking up. Key names it in each mark; Asks makes its marks questions that track a
@@ -714,7 +714,7 @@ func (s *Service) write(file marksFile) error {
 	file.MigratedNotes = true
 	path := File(s.config.Project)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

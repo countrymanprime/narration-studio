@@ -151,7 +151,7 @@ func (o *InstallOptions) rename(oldPath, newPath string) error {
 
 // WritableDir reports nil when a file can be created, written and removed in dir.
 func WritableDir(dir string) error {
-	file, err := os.CreateTemp(dir, ".narration-utils-write-check-*")
+	file, err := os.CreateTemp(dir, ".narration-studio-write-check-*")
 	if err != nil {
 		return err
 	}

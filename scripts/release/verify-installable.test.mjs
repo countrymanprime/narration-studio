@@ -36,7 +36,7 @@ function healthyTree() {
 }
 
 function verify(runtime) {
-  const result = spawnSync(process.execPath, [script], { env: { ...process.env, NARRATION_UTILS_RUNTIME_DIR: runtime }, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [script], { env: { ...process.env, NARRATION_STUDIO_RUNTIME_DIR: runtime }, encoding: 'utf8' });
   return { status: result.status, output: `${result.stdout}${result.stderr}` };
 }
 

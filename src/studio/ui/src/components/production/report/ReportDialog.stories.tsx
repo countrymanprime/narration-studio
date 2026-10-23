@@ -11,7 +11,7 @@ const previewOf = (include: ProductionReportInclude): ProductionReportPreview =>
     include.money ? '<dt>Contracted amount</dt><dd>250.00</dd><dt>Effective rate</dt><dd>31.25</dd>' : ''
   }</dl></body></html>`,
   json: `${JSON.stringify({ hoursLogged: 41.5, bookPfh: 5.2, ...(include.money ? { contractedAmount: 250, effectiveRate: 31.25 } : {}) }, null, 2)}\n`,
-  folder: 'narration-utils/production/reports',
+  folder: 'narration-studio/production/reports',
   stem: 'production-status-20260921-100000Z',
   contractedAmountIncluded: include.money,
   include,

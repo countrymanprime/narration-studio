@@ -126,7 +126,7 @@ provider. Nothing is cached: each call is a fresh read.
 | `Dismiss(chapter, target, basisKey)` | The same checks; a suggestion already dismissed on this basis is left as it is | A `dismissed` record only |
 | `Revert(chapter)` | A live confirmation, else `ErrNothingToRevert` | A `reverted` record, then the status back to the confirmation's `from`, with the same rollback |
 
-Decisions are an append-only list in `<project>/narration-utils/stage-decisions.json`:
+Decisions are an append-only list in `<project>/narration-studio/stage-decisions.json`:
 
 ```json
 {

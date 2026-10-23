@@ -2,9 +2,9 @@
 
 local H = require('harness')
 
-local FINDING_ID_KEY = 'narration_utils_take_finding_id'
-local SOURCE_FILE_KEY = 'narration_utils_take_source_file'
-local SOURCE_RANGE_KEY = 'narration_utils_take_source_range'
+local FINDING_ID_KEY = 'narration_studio_take_finding_id'
+local SOURCE_FILE_KEY = 'narration_studio_take_source_file'
+local SOURCE_RANGE_KEY = 'narration_studio_take_source_range'
 
 local function new_session()
   local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
@@ -101,11 +101,11 @@ H.test('create_take does not collide with the item-level line identity key on th
   local candidate_path = s:path('candidate.wav')
   H.write_file(candidate_path, 'x')
   local item = s.fake:add_item(track, { guid = '{A}', source = 'a.wav' })
-  item.ext['narration_utils_line_id'] = 'line-000001'
+  item.ext['narration_studio_line_id'] = 'line-000001'
 
   s:send('create_take', 't1', payload(s, 'req.txt', '{A}', '', '0', '2', 'finding-1', candidate_path))
 
-  H.eq(item.ext['narration_utils_line_id'], 'line-000001')
+  H.eq(item.ext['narration_studio_line_id'], 'line-000001')
   H.eq(item.takes[2].ext[FINDING_ID_KEY], 'finding-1')
 end)
 

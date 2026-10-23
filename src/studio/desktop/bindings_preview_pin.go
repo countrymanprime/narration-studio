@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-utils/shell/internal/preview"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/preview"
 )
 
 // The preview pin (docs/architecture/preview-suggestion.md): letting the narrator settle on one suggested window and

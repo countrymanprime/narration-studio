@@ -16,16 +16,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // SchemaVersion is the version of the JSON report this package writes.
 const SchemaVersion = 2
 
 // Dir is the sidecar folder the host writes reports to, relative to the project folder; never next to the audio.
-const Dir = "narration-utils/delivery"
+const Dir = "narration-studio/delivery"
 
 // The statuses of one file in a report.
 const (

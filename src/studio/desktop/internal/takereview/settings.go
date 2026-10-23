@@ -3,8 +3,8 @@ package takereview
 import (
 	"strconv"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/repeats"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/repeats"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // settingsTool is the settings.Store tool name for this package's

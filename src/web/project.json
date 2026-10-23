@@ -3,7 +3,7 @@
   "name": "web",
   "projectType": "application",
   "tags": ["toolchain:node"],
-  "implicitDependencies": ["narration-utils-ui"],
+  "implicitDependencies": ["narration-studio-ui"],
   "targets": {
     "lint": {
       "executor": "nx:run-commands",

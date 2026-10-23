@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/asrport"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
 )
 
 // defaultGrace is how long a stopping sidecar gets to flush and exit on its
@@ -254,7 +254,7 @@ func (s *Service) plan(options map[string]string) (launch, error) {
 	if s.config.Project == "" {
 		return launch{}, errors.New("save the REAPER project and import a manuscript first")
 	}
-	manuscript := filepath.Join(s.config.Project, "narration-utils", "manuscript", "manuscript.json")
+	manuscript := filepath.Join(s.config.Project, "narration-studio", "manuscript", "manuscript.json")
 	if _, err := os.Stat(manuscript); err != nil {
 		return launch{}, errors.New("import a manuscript first")
 	}

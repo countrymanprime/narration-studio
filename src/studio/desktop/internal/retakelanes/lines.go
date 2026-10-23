@@ -11,11 +11,11 @@ package retakelanes
 import (
 	"sort"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // LineIDKey is the item extension key that names an item's manuscript line.
-const LineIDKey = "narration_utils_line_id"
+const LineIDKey = "narration_studio_line_id"
 
 // Retake is one item of a line on a fixed lane.
 type Retake struct {

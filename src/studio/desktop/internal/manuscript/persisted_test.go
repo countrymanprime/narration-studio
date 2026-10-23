@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 func TestCorruptNotesAreKeptAsideToldAndNeverReplacedSilentlyByTheNextNote(t *testing.T) {
@@ -16,7 +16,7 @@ func TestCorruptNotesAreKeptAsideToldAndNeverReplacedSilentlyByTheNextNote(t *te
 		Log:    func(kind, message string) { logs = append(logs, kind+" "+message) },
 		Notify: func(text string) { notices = append(notices, text) },
 	})
-	path := filepath.Join(service.project, "narration-utils", "manuscript-notes.json")
+	path := filepath.Join(service.project, "narration-studio", "manuscript-notes.json")
 	if err := os.WriteFile(path, []byte(`{"notes": [ {"text": "MY PRIVATE NOTE"`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestCorruptNotesAreKeptAsideToldAndNeverReplacedSilentlyByTheNextNote(t *te
 
 func TestNotesWithNoReporterAreStillKeptWhenCorrupt(t *testing.T) {
 	service, chapterID, _ := importReaderFixture(t)
-	path := filepath.Join(service.project, "narration-utils", "manuscript-notes.json")
+	path := filepath.Join(service.project, "narration-studio", "manuscript-notes.json")
 	if err := os.WriteFile(path, []byte(`nope`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestNotesWithNoReporterAreStillKeptWhenCorrupt(t *testing.T) {
 
 func TestANoteIsNotSavedOverANotesFileThatCannotBeRead(t *testing.T) {
 	service, chapterID, _ := importReaderFixture(t)
-	path := filepath.Join(service.project, "narration-utils", "manuscript-notes.json")
+	path := filepath.Join(service.project, "narration-studio", "manuscript-notes.json")
 	// A directory where the file should be: it exists, and reading it fails.
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		t.Fatal(err)

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // fakeAlignMissEnv, when set, makes the fake `--align-word` sidecar answer that the word is not in the stretch.

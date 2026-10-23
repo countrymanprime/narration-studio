@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // aliceBook is a two-chapter manuscript: "Off with her head!" is words 0 to 3 of p-000001.
@@ -264,7 +264,7 @@ func TestAcceptedFileIsNarratorData(t *testing.T) {
 		}
 	})
 	t.Run("the file sits in the project's editing folder", func(t *testing.T) {
-		if want := filepath.Join("p", "narration-utils", "editing", "accepted.json"); AcceptedFile("p") != want {
+		if want := filepath.Join("p", "narration-studio", "editing", "accepted.json"); AcceptedFile("p") != want {
 			t.Fatalf("AcceptedFile = %s, want %s", AcceptedFile("p"), want)
 		}
 	})

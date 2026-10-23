@@ -10,23 +10,23 @@
 
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local PACK = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)')
-local REAPER_DIR = assert(os.getenv('NARRATION_UTILS_REAPER_DIR'), 'set NARRATION_UTILS_REAPER_DIR (run-reaper.ps1 does)')
+local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
+local REAPER_DIR = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)')
 -- The candidate source file, made by make_media.py into the scratch -Out folder before REAPER starts (never a real
 -- narration recording): a short synthetic tone, so this smoke test attaches a real, playable file without touching
 -- any file under Documents\REAPER Media.
-local CANDIDATE_FILE = assert(os.getenv('NARRATION_UTILS_SMOKE_CANDIDATE'), 'set NARRATION_UTILS_SMOKE_CANDIDATE')
+local CANDIDATE_FILE = assert(os.getenv('NARRATION_STUDIO_SMOKE_CANDIDATE'), 'set NARRATION_STUDIO_SMOKE_CANDIDATE')
 -- The target item's own GUID inside the scratch copy of Challenges_001.rpp (known from the project file; this
 -- script never searches Documents\REAPER Media, it only reads the already-open, already-copied project).
-local TARGET_ITEM_GUID = assert(os.getenv('NARRATION_UTILS_SMOKE_TARGET_GUID'), 'set NARRATION_UTILS_SMOKE_TARGET_GUID')
+local TARGET_ITEM_GUID = assert(os.getenv('NARRATION_STUDIO_SMOKE_TARGET_GUID'), 'set NARRATION_STUDIO_SMOKE_TARGET_GUID')
 
 local report = {}
 local function log(...)
@@ -74,9 +74,9 @@ local function find_take_by_guid(item, guid)
   return nil
 end
 local function read_provenance(take)
-  local _, id = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_utils_take_finding_id', '', false)
-  local _, file = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_utils_take_source_file', '', false)
-  local _, range = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_utils_take_source_range', '', false)
+  local _, id = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_finding_id', '', false)
+  local _, file = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_source_file', '', false)
+  local _, range = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_source_range', '', false)
   return id, file, range
 end
 

@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 func repoRoot(t *testing.T) string {
@@ -118,7 +118,7 @@ type project struct {
 func newProject(t *testing.T, py string, chapters, perChapter int) project {
 	t.Helper()
 	dir := t.TempDir()
-	count, err := synthManuscript(filepath.Join(dir, "narration-utils", "manuscript", "manuscript.json"), chapters, perChapter)
+	count, err := synthManuscript(filepath.Join(dir, "narration-studio", "manuscript", "manuscript.json"), chapters, perChapter)
 	if err != nil {
 		t.Fatal(err)
 	}

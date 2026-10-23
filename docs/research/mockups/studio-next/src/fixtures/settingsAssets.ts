@@ -38,4 +38,4 @@ export const ASSETS: AssetSpec[] = [
   { id: 'ffmpeg', name: 'FFmpeg MP3 encoder', kind: 'tool', sizeMB: 31, host: 'github.com', used: ['delivery', 'master'], does: 'Writes MP3 files when you export.', base: 'installed' },
 ]
 export const assetOf = (id: string): AssetSpec | undefined => ASSETS.find((a) => a.id === id)
-export const CACHE_DIR = 'C:\\Users\\Alex\\AppData\\Local\\narration-utils\\assets'
+export const CACHE_DIR = 'C:\\Users\\Alex\\AppData\\Local\\narration-studio\\assets'

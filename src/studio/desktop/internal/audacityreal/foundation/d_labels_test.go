@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacityreal"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacityreal"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
 )
 
 func target(at float64) dawport.Target { return dawport.Target{SourceStart: &at} }

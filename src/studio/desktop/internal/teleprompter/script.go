@@ -21,7 +21,7 @@ type ChapterScript struct {
 // LoadChapterScript reads chapterID's script from the imported manuscript, reporting false when there is no
 // manuscript or no such chapter.
 func LoadChapterScript(project, chapterID string) (ChapterScript, bool) {
-	raw, err := os.ReadFile(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"))
+	raw, err := os.ReadFile(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"))
 	if err != nil {
 		return ChapterScript{}, false
 	}

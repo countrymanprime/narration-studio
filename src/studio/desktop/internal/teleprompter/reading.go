@@ -35,7 +35,7 @@ type Reading struct {
 
 // ReadingDir is where the readings live: beside the anchors file (anchors.go).
 func ReadingDir(project string) string {
-	return filepath.Join(project, "narration-utils", "teleprompter")
+	return filepath.Join(project, "narration-studio", "teleprompter")
 }
 
 var plainID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
@@ -61,7 +61,7 @@ func readingFileName(chapterID string) string {
 // title, subtitle and paragraphs, reporting false when the manuscript cannot
 // be read or has no such chapter.
 func chapterScriptHash(project, chapterID string) (string, bool) {
-	raw, err := os.ReadFile(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"))
+	raw, err := os.ReadFile(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"))
 	if err != nil {
 		return "", false
 	}

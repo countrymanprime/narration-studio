@@ -1,8 +1,8 @@
 package dawport
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // The shared vocabulary (Level, Reason, Support and the refusal) lives in internal/port, which the provider ports reuse. The names

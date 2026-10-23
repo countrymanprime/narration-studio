@@ -2,7 +2,7 @@
 
 Researched 2026-10-11 for the owner, who found that information keeps landing in the wrong document: ADRs about how the agent train works and about UI choices and implementation details, and a `SECURITY.md` bullet plus a threat-model row for every new project data file (for example `script-prep.json`). Point-in-time note: the counts are for `main` at `02cf2d4`.
 
-**ADR numbers (2026-10-18).** Appendix A classifies the 367 ADRs at `02cf2d4`; its links to a destination (for example 0251, 0755) already point at the document that holds the topic. [#1830](https://github.com/countrymanprime/narration-utils/pull/1830) (2026-10-17) removed every ADR except [0001](../adr/0001-the-app-is-written-in-go.md) and [0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) from `docs/adr/`, so any other number below names a file that no longer exists. To read one, run `git show 39f989b^:docs/adr/<file name>`; `git ls-tree 39f989b^ docs/adr/` lists the names. The rows stay as the record of that date.
+**ADR numbers (2026-10-18).** Appendix A classifies the 367 ADRs at `02cf2d4`; its links to a destination (for example 0251, 0755) already point at the document that holds the topic. [#1830](https://github.com/countrymanprime/narration-studio/pull/1830) (2026-10-17) removed every ADR except [0001](../adr/0001-the-app-is-written-in-go.md) and [0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) from `docs/adr/`, so any other number below names a file that no longer exists. To read one, run `git show 39f989b^:docs/adr/<file name>`; `git ls-tree 39f989b^ docs/adr/` lists the names. The rows stay as the record of that date.
 
 **Question.** For each document type in this repo, what does industry practice say belongs in it; which items in the repo's 638 tracked Markdown files are in the wrong place; what in the repo's instructions and gates puts them there; and what plan stops it and moves them?
 
@@ -214,16 +214,16 @@ Other threat-model findings:
 
 ### 2.5 Project data files
 
-The app writes about 25 files under `<project>/narration-utils/` and the legacy `ManuscriptGuide/` and `TranscriptCompare/` folders, plus per-user files under `%APPDATA%\narration-utils` (settings, recents, `series.json`, `delivery-profiles.json`, `credentials.json`, the Merriam-Webster cache, logs). No document lists them. Each file is described, if at all, by the ADR that introduced it, by a threat-model row and a `SECURITY.md` bullet, or by a section of an architecture doc or a sidecar README.
+The app writes about 25 files under `<project>/narration-studio/` and the legacy `ManuscriptGuide/` and `TranscriptCompare/` folders, plus per-user files under `%APPDATA%\narration-studio` (settings, recents, `series.json`, `delivery-profiles.json`, `credentials.json`, the Merriam-Webster cache, logs). No document lists them. Each file is described, if at all, by the ADR that introduced it, by a threat-model row and a `SECURITY.md` bullet, or by a section of an architecture doc or a sidecar README.
 
 | File | Only described in |
 | --- | --- |
-| `narration-utils/script-prep.json` | `docs/reference/data-files.md`, threat model, `SECURITY.md` |
-| `narration-utils/editing/accepted.json` | threat model, `SECURITY.md` |
-| `narration-utils/proofing/renders.json` | threat model |
-| `narration-utils/chapter-sync.json` | `docs/guides/using-the-app/navigation.md#chapter-sync` |
-| `narration-utils/characters/references.json` | `src/studio/desktop/internal/character/character.go` |
-| `narration-utils/analysis/credits-manuscript.json` | `src/studio/desktop/internal/coverage/credits.go` |
+| `narration-studio/script-prep.json` | `docs/reference/data-files.md`, threat model, `SECURITY.md` |
+| `narration-studio/editing/accepted.json` | threat model, `SECURITY.md` |
+| `narration-studio/proofing/renders.json` | threat model |
+| `narration-studio/chapter-sync.json` | `docs/guides/using-the-app/navigation.md#chapter-sync` |
+| `narration-studio/characters/references.json` | `src/studio/desktop/internal/character/character.go` |
+| `narration-studio/analysis/credits-manuscript.json` | `src/studio/desktop/internal/coverage/credits.go` |
 
 `docs/architecture/wire-contracts.md` "Persisted files" lists file classes and their corruption handling, not paths. A narrator cannot find out what the app keeps in their project, how to back it up, or which files are cleared when the manuscript is replaced, without reading ADRs. Section 1.6 gives the industry shape for this: a data inventory (what, where, purpose, retention) and a file-format reference.
 

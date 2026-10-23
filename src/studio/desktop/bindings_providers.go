@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/asrport"
-	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationport"
-	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
+	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
+	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+	"github.com/countrymanprime/narration-studio/shell/internal/ttsport"
 )
 
 // ProviderCapabilities is the UI's one picture of the providers this build can hand its sidecars: every row

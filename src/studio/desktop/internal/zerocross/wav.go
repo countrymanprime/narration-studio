@@ -10,7 +10,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // FileDecoder is the production Decoder: it seeks to the window inside a WAV file's data chunk and decodes only those

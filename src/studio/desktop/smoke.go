@@ -13,24 +13,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/asrport"
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport/booknlp"
-	"github.com/countrymanprime/narration-utils/shell/internal/ffmpeg"
-	"github.com/countrymanprime/narration-utils/shell/internal/moonshine"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationport"
-	"github.com/countrymanprime/narration-utils/shell/internal/spacy"
-	"github.com/countrymanprime/narration-utils/shell/internal/tts"
-	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
-	"github.com/countrymanprime/narration-utils/shell/internal/whisper"
-	"github.com/countrymanprime/narration-utils/shell/internal/wiktextract"
+	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dictionary"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/booknlp"
+	"github.com/countrymanprime/narration-studio/shell/internal/ffmpeg"
+	"github.com/countrymanprime/narration-studio/shell/internal/moonshine"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+	"github.com/countrymanprime/narration-studio/shell/internal/spacy"
+	"github.com/countrymanprime/narration-studio/shell/internal/tts"
+	"github.com/countrymanprime/narration-studio/shell/internal/ttsport"
+	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
+	"github.com/countrymanprime/narration-studio/shell/internal/wiktextract"
 )
 
-// The packaged-app smoke test: `narration-utils --smoke`. Wails is a GUI program, so a CI job cannot start it and look at a window; this
+// The packaged-app smoke test: `narration-studio --smoke`. Wails is a GUI program, so a CI job cannot start it and look at a window; this
 // mode runs before the window, the single-instance lock and the update relaunch logic exist, checks what a release must carry, prints a
 // short JSON report and exits: 0 when every check passed, 1 when one did not, 2 for a bad command line. It is what turns "the release
 // contains everything needed to start" (first-use dependency provisioning) from a claim into a check, on the executable that would ship.
@@ -57,7 +57,7 @@ import (
 const smokeFlag = "--smoke"
 
 // resourcesRoot is where the release resources sit inside the embedded file system (main.go).
-const resourcesRoot = "cmd/narration-utils/resources"
+const resourcesRoot = "cmd/narration-studio/resources"
 
 // smokeCommandTimeout bounds one sidecar command. A frozen sidecar starts in under a second; this is generous for a cold, scanned disk.
 const smokeCommandTimeout = 90 * time.Second
@@ -69,7 +69,6 @@ var smokeSidecars = []string{"manuscript-guide", "transcript-compare", "manuscri
 // scripts/release/reaper-files.mjs is the build-time copy of this list, and smoke_test.go holds both to the folder.
 var smokeReaperFiles = []string{
 	"NarrationStudio_Launcher.lua",
-	"NarrationUtils_Launcher.lua",
 	"NarrationStudio_Startup.lua",
 	"narration_bridge_core.lua",
 	"narration_cleanup.lua",
@@ -571,7 +570,7 @@ func checkReaper(root, executable string) (string, error) {
 	if executable == "" {
 		return fmt.Sprintf("%d scripts", len(smokeReaperFiles)), nil
 	}
-	pointer, err := os.ReadFile(filepath.Join(root, "reaper", "narration-utils-app-path.txt"))
+	pointer, err := os.ReadFile(filepath.Join(root, "reaper", "narration-studio-app-path.txt"))
 	if err != nil {
 		return "", fmt.Errorf("the launcher pointer to the app was not written: %w", err)
 	}

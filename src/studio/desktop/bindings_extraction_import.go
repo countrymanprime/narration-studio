@@ -6,10 +6,10 @@ import (
 	"slices"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/importer"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
 )
 
 // A Story Bible written outside the app, imported (the `storybible-import` format, docs/reference/storybible-import-format.md).

@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // cacheSchemaVersion is the schema version every entry written by this
@@ -87,11 +87,11 @@ type cacheEnvelope struct {
 }
 
 // CacheDir is the result cache's storage directory under a project
-// (narration-utils/analysis/cache/). It is exported so
+// (narration-studio/analysis/cache/). It is exported so
 // manuscript.resetDerived can clear it without this package depending on the
 // manuscript package.
 func CacheDir(project string) string {
-	return filepath.Join(project, "narration-utils", "analysis", "cache")
+	return filepath.Join(project, "narration-studio", "analysis", "cache")
 }
 
 // CacheStore is the per-item result cache: an opaque, keyed blob store under a

@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/character"
+	"github.com/countrymanprime/narration-studio/shell/internal/character"
 )
 
 // SiblingReference is one series-member project's approved character references, or why they could not be read.

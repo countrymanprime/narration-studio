@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/recording/recordingtest"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
 )
 
 // The two bindings' payloads, the goldens the UI's schema is checked against: a recorded run stamped with the built-in
@@ -24,7 +24,7 @@ func TestPassageMapContractGoldens(t *testing.T) {
 	// The narrator re-imports without a reset and the first paragraph is gone: the start and the roll (whose previous
 	// place was in it) are stale, never moved; the stop still fits.
 	edited := strings.Replace(previewManuscriptOK, `{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice walked through the forest, alone with her thoughts."},`, "", 1)
-	writeNested(t, filepath.Join(host.config.projectFolder, "narration-utils", "manuscript", "manuscript.json"), edited)
+	writeNested(t, filepath.Join(host.config.projectFolder, "narration-studio", "manuscript", "manuscript.json"), edited)
 	payload, err = host.PassageMapList("c-0001")
 	checkBindingContract(t, "passagemap-list", payload)
 	list := decodePassageMarks(t)(payload, err)

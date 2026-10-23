@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptermatch"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
 )
 
 // --- Confirm / List / Get round trip ---

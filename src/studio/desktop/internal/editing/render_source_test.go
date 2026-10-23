@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 const renderTestRate = 44100

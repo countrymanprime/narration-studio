@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
 )
 
 // fifoTransport opens mod-script-pipe's two FIFOs in /tmp, to-Audacity first as the Windows transport does. Audacity's server

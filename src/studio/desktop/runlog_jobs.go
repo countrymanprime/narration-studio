@@ -3,7 +3,7 @@ package main
 import (
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
 )
 
 // teleprompterSessionRunID is jobRuns' key for the one live teleprompter session that can run at a time (bindings.go

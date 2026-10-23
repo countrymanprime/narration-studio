@@ -22,7 +22,7 @@ The recorder is part of the app, so it is always there and answering (`reachable
 | `stack_takes`, `fx_range` | Not yet available | "Not available with the built-in recorder yet." Mode `app` once each has a role | The mock's `selectors/daw.ts` defaults the built-in recorder to mode `app` |
 | Every other capability | Unsupported | "Not available with the built-in recorder." | The mock's `BUILTIN_REASON` |
 
-`record`, `takes` and `cut_range` stay Experimental until the owner's microphone pass on [#510](https://github.com/countrymanprime/narration-utils/issues/510). Nothing it declares is destructive. The edit list is what the recorder plays and exports past; the export reading takes through it is not part of this change, so a cut is stored and shown on the take but not yet applied to an exported file.
+`record`, `takes` and `cut_range` stay Experimental until the owner's microphone pass on [#510](https://github.com/countrymanprime/narration-studio/issues/510). Nothing it declares is destructive. The edit list is what the recorder plays and exports past; the export reading takes through it is not part of this change, so a cut is stored and shown on the take but not yet applied to an exported file.
 
 ## How the Booth records with it
 

@@ -3,7 +3,6 @@
 // bridge or feature file cannot be added without being required here.
 export const REAPER_FILES = [
   'NarrationStudio_Launcher.lua',
-  'NarrationUtils_Launcher.lua',
   'NarrationStudio_Startup.lua',
   'narration_bridge_core.lua',
   'narration_cleanup.lua',

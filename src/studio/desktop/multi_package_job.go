@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-utils/shell/internal/packager"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/packager"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
 )
 
 // Multi-platform export: one mastered/encoded source produces packages for
@@ -226,7 +226,7 @@ func (h *Host) startMultiPackage(req MultiPackageRequest) (MultiPackageJob, erro
 		return h.multiPackageState(), nil
 	}
 	if inSidecarTree(projectFolder, rootDir) {
-		return MultiPackageJob{}, errors.New("a delivery package cannot be saved inside the project's narration-utils folder; choose a different folder")
+		return MultiPackageJob{}, errors.New("a delivery package cannot be saved inside the project's narration-studio folder; choose a different folder")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

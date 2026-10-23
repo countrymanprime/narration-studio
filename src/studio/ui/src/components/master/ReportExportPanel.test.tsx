@@ -32,7 +32,7 @@ describe('the report export', () => {
 
   it('writes the report once files are measured', async () => {
     const deliveryExportReport = vi.fn(async () => ({
-      folder: 'C:/p/narration-utils/delivery',
+      folder: 'C:/p/narration-studio/delivery',
       htmlFile: 'report.html',
       jsonFile: 'report.json',
       files: 1,

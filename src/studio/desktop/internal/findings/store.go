@@ -16,13 +16,13 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // Dir is the sidecar folder holding every analyzer's findings and the review
 // history, relative to the project folder. resetDerived clears it whenever
 // the manuscript it is anchored to is replaced or cleared.
-const Dir = "narration-utils/findings"
+const Dir = "narration-studio/findings"
 
 const reviewFileName = "review.json"
 
@@ -67,7 +67,7 @@ type Store struct {
 }
 
 // NewStore returns a Store rooted at project, the folder holding the .rpp
-// and the narration-utils sidecar.
+// and the narration-studio sidecar.
 func NewStore(project string) *Store { return &Store{project: project} }
 
 // SetPersist says where to report a findings file that cannot be read. A nil

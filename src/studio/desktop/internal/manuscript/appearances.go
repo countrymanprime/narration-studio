@@ -5,7 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/importer"
 )
 
 // previewCandidate is a character suggestion as the review shows it: the importer's own fields and how often the character's name

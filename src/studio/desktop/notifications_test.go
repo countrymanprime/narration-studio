@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // fakeNotificationSender is the seam over the Wails notification API, so these tests never touch the real OS registry
@@ -30,7 +30,7 @@ func (f *fakeNotificationSender) Send(title, body string) error {
 }
 
 // newTestHostForNotify gives Store both a repo and a project temp dir (never the real machine-global settings file:
-// Store.Save("global", ...) always writes %APPDATA%/narration-utils/global-settings.json, a real per-user file, so a
+// Store.Save("global", ...) always writes %APPDATA%/narration-studio/global-settings.json, a real per-user file, so a
 // test that wants notifications off saves at "project" scope instead, which Effective still finds ahead of the
 // fallback).
 func newTestHostForNotify(t *testing.T, sender *fakeNotificationSender) *Host {

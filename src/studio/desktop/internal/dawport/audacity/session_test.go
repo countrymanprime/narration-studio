@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-utils/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 func newSession(t *testing.T) (*Session, *abt.Server) {
@@ -75,7 +75,7 @@ func TestWriteLabelFile(t *testing.T) {
 	}
 }
 
-// Importing findings creates one label each on the "Narration Utils" track; importing them again adds nothing.
+// Importing findings creates one label each on the "Narration Studio" track; importing them again adds nothing.
 func TestImportFindingsIsIdempotent(t *testing.T) {
 	session, server := newSession(t)
 	server.With(func(p *abt.Project) {

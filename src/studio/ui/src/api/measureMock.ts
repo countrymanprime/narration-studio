@@ -352,7 +352,7 @@ export function createMeasureMock(
       const stem = `delivery-report-20260923-140000Z${exports > 1 ? `-${exports}` : ''}`;
       const all = [...judged().files.flatMap((file) => file.findings), ...checkedFiles.flatMap((file) => (file.status === 'checked' ? file.findings : []))];
       return {
-        folder: 'narration-utils/delivery',
+        folder: 'narration-studio/delivery',
         htmlFile: `${stem}.html`,
         jsonFile: `${stem}.json`,
         files: new Set([...job.files, ...checkedFiles].map((file) => file.path)).size,

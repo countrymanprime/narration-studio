@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const stageExecutableName = "narration-utils.exe"
+const stageExecutableName = "narration-studio.exe"
 
 // buildZip is a release zip holding the given entries; a name ending in "/" is a directory entry.
 func buildZip(t testing.TB, entries map[string][]byte) []byte {
@@ -146,7 +146,7 @@ func TestStageRefusesEachWayTheDownloadCanBeWrong(t *testing.T) {
 			f.checksum = func([]byte) string { return strings.Repeat("0", 64) + "  " + windowsZip + "\n" }
 		},
 		"a checksum for another file": func(f *releaseServer) {
-			f.checksum = func(b []byte) string { return sumHex(b) + "  narration-utils-0.2.7-linux-x64.tar.gz\n" }
+			f.checksum = func(b []byte) string { return sumHex(b) + "  narration-studio-0.2.7-linux-x64.tar.gz\n" }
 		},
 		"a checksum file that is not a checksum": func(f *releaseServer) {
 			f.checksum = func([]byte) string { return "<html>not found</html>" }
@@ -200,15 +200,15 @@ func TestStageRefusesAZipThatIsNotExactlyTheProgram(t *testing.T) {
 	cases := map[string]map[string][]byte{
 		"an extra file":                {stageExecutableName: executable, "readme.txt": []byte("hi")},
 		"the wrong name":               {"other.exe": executable},
-		"a path traversal":             {"../narration-utils.exe": executable},
-		"an absolute path":             {"/narration-utils.exe": executable},
-		"the program in a folder":      {"bin/narration-utils.exe": executable},
-		"a windows-style path":         {"..\\narration-utils.exe": executable},
-		"only a directory":             {"narration-utils.exe/": nil},
+		"a path traversal":             {"../narration-studio.exe": executable},
+		"an absolute path":             {"/narration-studio.exe": executable},
+		"the program in a folder":      {"bin/narration-studio.exe": executable},
+		"a windows-style path":         {"..\\narration-studio.exe": executable},
+		"only a directory":             {"narration-studio.exe/": nil},
 		"an empty program":             {stageExecutableName: {}},
 		"no entries at all":            {},
-		"the name in another case":     {"Narration-Utils.exe": executable},
-		"the name with a trailing dot": {"narration-utils.exe.": executable},
+		"the name in another case":     {"Narration-Studio.exe": executable},
+		"the name with a trailing dot": {"narration-studio.exe.": executable},
 	}
 	for name, entries := range cases {
 		fake := newReleaseServer(t, buildZip(t, entries))

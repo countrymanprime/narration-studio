@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-utils/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 func newTestClient(t *testing.T) (*audacitybridge.Client, *abt.Server) {
@@ -67,7 +67,7 @@ func TestRenderWithMacroImportsSelectsAppliesAndExports(t *testing.T) {
 	req := dawport.MacroRender{
 		Source:     `C:\book\ch01.wav`,
 		Macro:      "Mastering for ACX",
-		OutputPath: `C:\book\narration-utils\mastering\master-abc\out.wav`,
+		OutputPath: `C:\book\narration-studio\mastering\master-abc\out.wav`,
 		Approval:   "a-fresh-token",
 	}
 	result, err := role.RenderWithMacro(t.Context(), req)
@@ -83,7 +83,7 @@ func TestRenderWithMacroImportsSelectsAppliesAndExports(t *testing.T) {
 		"SelectTracks: Track=1 TrackCount=1 Mode=Set",
 		// Audacity 3.7.7 has no ApplyMacro command: a macro is the menu command Macro_<name>, spaces taken out.
 		"Macro_MasteringforACX:",
-		`Export2: Filename="C:/book/narration-utils/mastering/master-abc/out.wav" NumChannels=1`,
+		`Export2: Filename="C:/book/narration-studio/mastering/master-abc/out.wav" NumChannels=1`,
 	}
 	if got := server.Log(); !reflect.DeepEqual(got, want) {
 		t.Errorf("sent %q\nwant %q", got, want)

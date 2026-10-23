@@ -23,9 +23,9 @@ local function installed(options)
   local resource = H.join(root, 'REAPER')
   local scripts = H.join(H.join(resource, 'Scripts'), 'NarrationStudio')
   copy_scripts(scripts)
-  local app = H.join(root, 'narration-utils')
+  local app = H.join(root, 'narration-studio')
   H.write_file(app, 'not really an executable')
-  H.write_file(H.join(scripts, 'narration-utils-app-path.txt'), app .. '\n')
+  H.write_file(H.join(scripts, 'narration-studio-app-path.txt'), app .. '\n')
   local fake = Fake.new(host)
   fake.os_name = options.os_name or 'Linux64'
   fake.resource_path = resource

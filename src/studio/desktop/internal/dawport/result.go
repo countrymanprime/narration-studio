@@ -3,7 +3,7 @@ package dawport
 import (
 	"errors"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // MaxUndoSteps is the most undo points one result reports, the wire schema's bound (src/studio/ui/src/api/schemas/daw.ts).

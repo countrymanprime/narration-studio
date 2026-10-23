@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/importer"
-	"github.com/countrymanprime/narration-utils/shell/internal/pathfixtures"
+	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
 )
 
 // The path guard (definition of done, rule 1): every function here that resolves a manuscript path or the project folder it is
@@ -93,8 +93,8 @@ func TestPathGuardImportAndLoad(t *testing.T) {
 			if err == nil && committed.Phase == "success" {
 				t.Fatal("imported a manuscript into a read-only project folder")
 			}
-			if _, statErr := os.Stat(filepath.Join(p.Dir, "narration-utils")); statErr == nil {
-				t.Fatal("a refused import left narration-utils/ behind")
+			if _, statErr := os.Stat(filepath.Join(p.Dir, "narration-studio")); statErr == nil {
+				t.Fatal("a refused import left narration-studio/ behind")
 			}
 			return
 		}
@@ -127,8 +127,8 @@ func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 			if _, err := commit("", p.Manuscript, importer.Draft{}, nil, nil); err == nil {
 				t.Fatal("committed into the working directory for an empty project folder")
 			}
-			if _, err := os.Stat("narration-utils"); err == nil {
-				t.Fatal("an empty project folder wrote narration-utils/ into the working directory")
+			if _, err := os.Stat("narration-studio"); err == nil {
+				t.Fatal("an empty project folder wrote narration-studio/ into the working directory")
 			}
 			return
 		}
@@ -139,7 +139,7 @@ func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 			if err == nil {
 				t.Errorf("committed from %q, which is not a manuscript file", p.Manuscript)
 			}
-			if entries, _ := os.ReadDir(filepath.Join(scratch, "narration-utils")); len(entries) != 0 {
+			if entries, _ := os.ReadDir(filepath.Join(scratch, "narration-studio")); len(entries) != 0 {
 				t.Errorf("a refused commit from %q left %v behind", p.Manuscript, entries)
 			}
 		} else if err != nil {
@@ -150,7 +150,7 @@ func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 			t.Errorf("committed from a source that is not there")
 		}
 		if p.Usable && !p.DirReadOnly {
-			if entries, _ := os.ReadDir(filepath.Join(p.Dir, "narration-utils")); len(entries) != 0 {
+			if entries, _ := os.ReadDir(filepath.Join(p.Dir, "narration-studio")); len(entries) != 0 {
 				t.Errorf("a refused commit into %q left %v behind", p.Dir, entries)
 			}
 		}

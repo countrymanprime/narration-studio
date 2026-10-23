@@ -25,7 +25,7 @@ Delivery builds the package from the files you mastered and encoded in [Master &
 Build is on once every chapter passes and the files have been mastered and encoded in Master & QC. While it is off, a red line under it names the first chapter in the way and why.
 
 1. Press **Build ACX package** (named for the profile).
-2. Choose a folder in the window that opens. A package cannot be saved inside the project's own `narration-utils` folder.
+2. Choose a folder in the window that opens. A package cannot be saved inside the project's own `narration-studio` folder.
 3. Watch the bar, or press **Cancel**. A cancelled or failed build leaves no files in the folder.
 4. Read **Built**: how many files were written and where, with a **Written** mark for each. Press **Open the folder** to open it.
 

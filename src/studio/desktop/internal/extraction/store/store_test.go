@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
 )
 
 var at = time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC)

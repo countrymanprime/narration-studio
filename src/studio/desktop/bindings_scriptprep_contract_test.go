@@ -26,7 +26,7 @@ func TestScriptPrepContractGoldens(t *testing.T) {
 
 	// The narrator re-imports a manuscript where the soldiers' line changed: its flag is stale, never moved.
 	edited := strings.Replace(bookmarksManuscript, "The soldiers were silent.", "The guards were silent.", 1)
-	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), edited)
+	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), edited)
 	payload, err = host.ScriptPrepList()
 	checkBindingContract(t, "script-prep-list", payload)
 	list := decodeScriptPrep(t)(payload, err)

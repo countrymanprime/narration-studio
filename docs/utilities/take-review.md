@@ -86,4 +86,4 @@ falls back to the default rather than failing a scan):
 
 ## What is still open
 
-A scan of a real chapter with calibration, the owner's REAPER checks, timing measurements and later work are tracked in [#1455](https://github.com/countrymanprime/narration-utils/issues/1455).
+A scan of a real chapter with calibration, the owner's REAPER checks, timing measurements and later work are tracked in [#1455](https://github.com/countrymanprime/narration-studio/issues/1455).

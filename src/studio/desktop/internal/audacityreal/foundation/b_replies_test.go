@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/audacityreal"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacityreal"
 )
 
 // A3-T2: every command id the adapter sends, and the rest of the matrix's list, against GetInfo: Type=Commands.

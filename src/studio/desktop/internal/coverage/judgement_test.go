@@ -3,8 +3,8 @@ package coverage
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // The dialog's pass or fail (ResultView.Judgement) is the stage signal's, by construction and by test.

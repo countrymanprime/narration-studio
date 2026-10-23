@@ -7,9 +7,9 @@
 -- and the audio device is closed. A script that is started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   -- REAPER opens the default Windows audio device (WaveOut, Sound Mapper) on start even when the first-run prompt is
   -- answered No. Nothing is recorded or played, but close it at once and prove it is closed.
@@ -22,8 +22,8 @@ local function native(path)
   return (path:gsub('/', BS))
 end
 -- run-reaper.ps1 sets both: the scratch folder (holding media/) and the repository's src/studio/integrations/reaper folder.
-local CHK = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
-local REPO_REAPER = assert(os.getenv('NARRATION_UTILS_REAPER_DIR'), 'set NARRATION_UTILS_REAPER_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
+local CHK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
+local REPO_REAPER = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
 local report, failures = {}, 0
 
 local function log(text)
@@ -147,7 +147,7 @@ local function item_guid(item)
   return guid
 end
 local function ext(item, key)
-  local ok, value = reaper.GetSetMediaItemInfo_String(item, 'P_EXT:narration_utils_' .. key, '', false)
+  local ok, value = reaper.GetSetMediaItemInfo_String(item, 'P_EXT:narration_studio_' .. key, '', false)
   return ok and value or nil
 end
 local function stamped_count()
@@ -287,7 +287,7 @@ local body = function()
   if reaper.CountMediaItems(0) == items_before_paste then
     -- Fall back to what a paste does to the item: its state chunk (including extension data) copied onto another item.
     local _, chunk = reaper.GetItemStateChunk(items[1], '', false)
-    log('INFO  the item state chunk carries the extension block: ' .. tostring(chunk:find('narration_utils_line_id', 1, true) ~= nil))
+    log('INFO  the item state chunk carries the extension block: ' .. tostring(chunk:find('narration_studio_line_id', 1, true) ~= nil))
     local copy = reaper.AddMediaItemToTrack(reaper.GetTrack(0, 0))
     reaper.SetItemStateChunk(copy, chunk, false)
     after_paste = stamped_count()
@@ -346,8 +346,8 @@ local body = function()
 
   -- 10 (bridge side only). Transcript Compare commands with a hand-made results file -----------------------------------
   local project_folder = CHK
-  reaper.RecursiveCreateDirectory(native(project_folder .. '/narration-utils/manuscript'), 0)
-  write_file(native(project_folder .. '/narration-utils/manuscript/manuscript.json'), '{"version":1}')
+  reaper.RecursiveCreateDirectory(native(project_folder .. '/narration-studio/manuscript'), 0)
+  write_file(native(project_folder .. '/narration-studio/manuscript/manuscript.json'), '{"version":1}')
   reaper.SelectAllMediaItems(0, false)
   local target = map_after[guid_b]
   reaper.SetMediaItemSelected(target, true)

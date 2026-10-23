@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
 )
 
 // parityCases is tests/fixtures/chapter-track-match/parity-cases.json: what the

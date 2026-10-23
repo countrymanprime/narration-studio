@@ -307,7 +307,7 @@ func TestPathShapedTextIsStoredAsTextAndNeverOpened(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 || entries[0].Name() != "narration-utils" {
+	if len(entries) != 1 || entries[0].Name() != "narration-studio" {
 		t.Fatalf("the project folder holds more than the bookmarks file: %v", entries)
 	}
 }

@@ -49,7 +49,7 @@ func (s *Service) rewriteChapterKind(chapterID, kind string, now time.Time) (map
 	if s.project == "" {
 		return nil, "", errors.New("save the REAPER project and import a manuscript first")
 	}
-	path := filepath.Join(s.project, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(s.project, "narration-studio", "manuscript", "manuscript.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil, "", errors.New("import a manuscript first")

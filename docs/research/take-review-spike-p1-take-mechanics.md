@@ -11,7 +11,7 @@
 | **Q4 - source-offset alignment to a manuscript span start** | `D_STARTOFFS` on the take is the mechanism: setting it to 1.5 s pointed the take's read-head 1.5 s into its 4 s source, with the target item's own `D_LENGTH` (2 s) untouched. Read back exactly as set. | Phase 6 sequence (offset comes from the matched manuscript span's start inside the candidate's own source range) |
 | **Q4 - one-step undo** | `Undo_BeginBlock2` / `Undo_EndBlock2` around the take-add (source, name, and the provenance `P_EXT` writes together) produced exactly one undo point: one "Edit: Undo" removed the take and its provenance, one "Edit: Redo" restored both. | PRD "one undo step restores the project exactly" |
 | **Q4 - a REAPER quirk that will bite the real command** | Undo and redo **replace REAPER's item/take Lua objects project-wide**, confirmed again here (S0 first found this for the whole project on a full undo). It matters for take creation specifically: if the target item itself has no undo point of its own before the take-add (e.g. it was created and never saved in the same script run), REAPER folds the item's own creation into the *next* undo point, so undoing the take-add removes the item too, not just the take. A real project's items are always already saved, so this does not affect production behaviour, but it means the Lua command must never assume an old item/take pointer survives its own `Undo_EndBlock2`: re-resolve by GUID afterwards, same rule as the mutation commands already follow (`narration_line_identity.lua`). | Phase 6 implementation: re-resolve target item and new take by GUID after `Undo_EndBlock2`, do not keep the pre-add pointers |
-| **Q5 - is take-level `P_EXT` a viable provenance store?** | Yes. `GetSetMediaItemTakeInfo_String(take, 'P_EXT:<key>', value, true)` round-trips a namespaced key, is stored as an `<EXT` block inside the take's chunk (distinct from the item's own `<EXTI` block), survives `Undo_EndBlock2`/undo/redo as one unit with the take-add, and survives save and reload (re-resolved by GUID). It does not collide with the item-level `narration_utils_line_id` key from `docs/architecture/manuscript-line-identity.md`: both were set on the same item/take pair and both read back independently before and after reload. | ADR extending 0026 (this PR); phase 6 |
+| **Q5 - is take-level `P_EXT` a viable provenance store?** | Yes. `GetSetMediaItemTakeInfo_String(take, 'P_EXT:<key>', value, true)` round-trips a namespaced key, is stored as an `<EXT` block inside the take's chunk (distinct from the item's own `<EXTI` block), survives `Undo_EndBlock2`/undo/redo as one unit with the take-add, and survives save and reload (re-resolved by GUID). It does not collide with the item-level `narration_studio_line_id` key from `docs/architecture/manuscript-line-identity.md`: both were set on the same item/take pair and both read back independently before and after reload. | ADR extending 0026 (this PR); phase 6 |
 
 ## Method
 
@@ -27,10 +27,10 @@
 local take = reaper.AddTakeToMediaItem(item)                          -- new take, NOT made active
 reaper.SetMediaItemTake_Source(take, reaper.PCM_Source_CreateFromFile(candidate_path))
 reaper.SetMediaItemTakeInfo_Value(take, 'D_STARTOFFS', span_start_in_candidate_source)  -- source-offset alignment
-reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_utils_take_finding_id', finding_id, true)
-reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_utils_take_source_file', source_file, true)
-reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_utils_take_source_range', start .. '|' .. stop, true)
--- wrapped in reaper.Undo_BeginBlock2(0) ... reaper.Undo_EndBlock2(0, 'Narration Utils: add take', -1)
+reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_finding_id', finding_id, true)
+reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_source_file', source_file, true)
+reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_source_range', start .. '|' .. stop, true)
+-- wrapped in reaper.Undo_BeginBlock2(0) ... reaper.Undo_EndBlock2(0, 'Narration Studio: add take', -1)
 ```
 
 This is the exact sequence phase 6's Lua command (`create_take`, per the PRD's technical approach) should run: `AddTakeToMediaItem`, set source, set `D_STARTOFFS` from the matched span's start inside the candidate's own source, write the three provenance keys, all inside one `Undo_BeginBlock2`/`Undo_EndBlock2` block. Item length (`D_LENGTH`) is never touched. Active take is never touched (Q8's "narrator sets it in REAPER" recommendation is consistent with this: the mechanism naturally preserves the old active take without any extra code).
@@ -41,7 +41,7 @@ This is the exact sequence phase 6's Lua command (`create_take`, per the PRD's t
 <ITEM
   ...
   <EXTI
-    narration_utils_line_id line-000001
+    narration_studio_line_id line-000001
   >
   NAME "take A (target, active)"
   ...
@@ -56,9 +56,9 @@ NAME "candidate (same length)"
   FILE "media/take_b.wav"
 >
 <EXT
-  narration_utils_take_finding_id finding-0001
-  narration_utils_take_source_file take_b.wav
-  narration_utils_take_source_range 0.000000|3.000000
+  narration_studio_take_finding_id finding-0001
+  narration_studio_take_source_file take_b.wav
+  narration_studio_take_source_range 0.000000|3.000000
 >
 ```
 

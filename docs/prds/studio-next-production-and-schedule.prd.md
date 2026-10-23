@@ -132,13 +132,13 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADR | A12 Proposed (rulings DQ-3, DQ-4, DQ-14 recorded) | pending | - | SN0-1 | 0.3 | - |
-| 2 | Plan fields (host) | Payment, milestone fields, schema, golden, mock | in review ([#1040](https://github.com/countrymanprime/narration-utils/issues/1040)) | 4 | 1 | 0.9 | - |
-| 3 | Schedule page components | Table, dialog, templates, capability lookup; built with no route | done ([#1083](https://github.com/countrymanprime/narration-utils/issues/1083); routed by SN-P8, [#1295](https://github.com/countrymanprime/narration-utils/issues/1295)) | 4 | 2, SNF-3 | 1.0 | - |
+| 2 | Plan fields (host) | Payment, milestone fields, schema, golden, mock | in review ([#1040](https://github.com/countrymanprime/narration-studio/issues/1040)) | 4 | 1 | 0.9 | - |
+| 3 | Schedule page components | Table, dialog, templates, capability lookup; built with no route | done ([#1083](https://github.com/countrymanprime/narration-studio/issues/1083); routed by SN-P8, [#1295](https://github.com/countrymanprime/narration-studio/issues/1295)) | 4 | 2, SNF-3 | 1.0 | - |
 | 4 | Sourced numbers | `MeasurementsPort`, `Measured`, This week, chart line, room tone | done (SN-P41, SN-P42, SN-P43) | 2, 3 | SNS-4 | 1.2 | - |
-| 5 | Target pace popover | Info affordance and popover | done (SN-P52, [#1197](https://github.com/countrymanprime/narration-utils/issues/1197)) | 6 | 4 | 0.4 | - |
-| 6 | Readiness and report | Chip, slide-over, report dialog parity | done ([#1078](https://github.com/countrymanprime/narration-utils/issues/1078), SN-P622 [#1216](https://github.com/countrymanprime/narration-utils/issues/1216)) | 5 | SNS-2 | 0.9 | - |
-| 7 | Chapter-sync UI carry-over | Consent dialog, Tracks states, status without a click, pickups interplay | done (SN-P71, [#1154](https://github.com/countrymanprime/narration-utils/issues/1154)) | 6 | 1 | 1.0 | - |
-| 8 | Page swap | Production layout to the mock and the Schedule route and rail item; delete the old page and its equivalents (`PlanPanel`, `ChapterBoard`, `StatusReportPanel`, the old stage panel, their rows, guides and screenshots); the timer chip and PFH code stay | done ([#1295](https://github.com/countrymanprime/narration-utils/issues/1295); supersedes `src/studio/desktop/internal/production/overview.go` "shown, not projected" to the extent of DQ-4, `docs/architecture/principles.md` by DQ-14, and `docs/operations/verification-tooling.md#mock-match, docs/design/design-system.md` by DQ-1) | - | 3 to 7 | 0.5 | - |
+| 5 | Target pace popover | Info affordance and popover | done (SN-P52, [#1197](https://github.com/countrymanprime/narration-studio/issues/1197)) | 6 | 4 | 0.4 | - |
+| 6 | Readiness and report | Chip, slide-over, report dialog parity | done ([#1078](https://github.com/countrymanprime/narration-studio/issues/1078), SN-P622 [#1216](https://github.com/countrymanprime/narration-studio/issues/1216)) | 5 | SNS-2 | 0.9 | - |
+| 7 | Chapter-sync UI carry-over | Consent dialog, Tracks states, status without a click, pickups interplay | done (SN-P71, [#1154](https://github.com/countrymanprime/narration-studio/issues/1154)) | 6 | 1 | 1.0 | - |
+| 8 | Page swap | Production layout to the mock and the Schedule route and rail item; delete the old page and its equivalents (`PlanPanel`, `ChapterBoard`, `StatusReportPanel`, the old stage panel, their rows, guides and screenshots); the timer chip and PFH code stay | done ([#1295](https://github.com/countrymanprime/narration-studio/issues/1295); supersedes `src/studio/desktop/internal/production/overview.go` "shown, not projected" to the extent of DQ-4, `docs/architecture/principles.md` by DQ-14, and `docs/operations/verification-tooling.md#mock-match, docs/design/design-system.md` by DQ-1) | - | 3 to 7 | 0.5 | - |
 
 ### Phase Details
 
@@ -165,8 +165,8 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
 | SNP-1 | Phase 1 | SN0-1 | yes | ADR index |
-| SNP-2 | Phase 2 ([#1040](https://github.com/countrymanprime/narration-utils/issues/1040), in review) | SNP-1 | yes | Go and golden tests; wire row; mock passes |
-| SNP-3 | Phase 3 ([#1083](https://github.com/countrymanprime/narration-utils/issues/1083), in review) | SNP-2, SNF-3 | yes | Component tests; visual rows; aria |
+| SNP-2 | Phase 2 ([#1040](https://github.com/countrymanprime/narration-studio/issues/1040), in review) | SNP-1 | yes | Go and golden tests; wire row; mock passes |
+| SNP-3 | Phase 3 ([#1083](https://github.com/countrymanprime/narration-studio/issues/1083), in review) | SNP-2, SNF-3 | yes | Component tests; visual rows; aria |
 | SNP-4 | Phase 4 | SNS-4 | yes | Parity suite; scan for literals |
 | SNP-5 | Phase 5 | SNP-4 | yes | Popover test; visual row |
 | SNP-6 | Phase 6 | SNS-2 | yes | Ported tests; visual row |

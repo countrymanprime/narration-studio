@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // logged is a stopped session of the given length on chapter and stage.

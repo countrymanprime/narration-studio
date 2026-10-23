@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // collectJobEnds routes every job:ended event of h to the returned channel, so a test waits for the one it expects.
@@ -154,7 +154,7 @@ func TestAnUpdateDownloadEndsWithAJobEventWhetherItWorksOrNot(t *testing.T) {
 	noMoreJobEnds(t, events)
 
 	bad := newReleaseFiles(t)
-	bad.checksum = func([]byte) string { return strings.Repeat("0", 64) + "  narration-utils-0.2.7-windows-x64.zip\n" }
+	bad.checksum = func([]byte) string { return strings.Repeat("0", 64) + "  narration-studio-0.2.7-windows-x64.zip\n" }
 	failing := downloadHost(t, bad)
 	if _, err := failing.UpdateCheck(); err != nil {
 		t.Fatal(err)

@@ -4,9 +4,9 @@
 -- and the audio device is closed. A script that is started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   -- REAPER opens the default Windows audio device (WaveOut, Sound Mapper) on start even when the first-run prompt is
   -- answered No. Nothing is recorded or played, but close it at once and prove it is closed.
@@ -15,7 +15,7 @@ do
 end
 
 local BS = string.char(92)
-local dir_root = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
+local dir_root = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
 local dir = (dir_root .. '/enum'):gsub('/', BS)
 reaper.RecursiveCreateDirectory(dir, 0)
 local out = {}

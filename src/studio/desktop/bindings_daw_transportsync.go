@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/transportsync"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/transportsync"
 )
 
 // DawTransportSync and its live event daw_position_changed are the host's side of the Editing page's transport sync
