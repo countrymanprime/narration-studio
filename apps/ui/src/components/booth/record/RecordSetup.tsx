@@ -96,7 +96,7 @@ function useBusy(): [boolean, (work: () => Promise<void>) => Promise<void>] {
 }
 
 /** Where a notice's chip stands: above the footer, beside nothing, so a message rises above it (`useToastClearance`) and never covers it. */
-function NoticeChip({ id, label, onOpen }: { id: string; label: string; onOpen: () => void }) {
+export function NoticeChip({ id, label, onOpen }: { id: string; label: string; onOpen: () => void }) {
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
   return (
@@ -201,7 +201,7 @@ function OtherProject({
   const { dawName } = plan;
   const Name = dawName === 'the DAW' ? 'The DAW' : dawName;
   // A take would land in the wrong project: that is news, so the dialog opens by itself once, and on every press of Record.
-  const dialog = useOpenOnce(`other-project:${dawName}`);
+  const dialog = useOpenOnce(`other-project:${dawName}`, false, { forgetOnUnmount: true });
   useReopenOnAsk(asked, dialog.reopen);
   const linkOpen = () =>
     run(async () => {
@@ -332,9 +332,7 @@ function Connect({
         : `${name} not connected`;
   return (
     <>
-      <div className="mx-5 mb-2 flex">
-        <ConnectionIndicator id="brec-setup" label={label} onOpen={dialog.reopen} />
-      </div>
+      <NoticeChip id="brec-setup" label={label} onOpen={dialog.reopen} />
       {dialog.open && (
         <ConnectionResolveDialog
           variant="reaper-off"

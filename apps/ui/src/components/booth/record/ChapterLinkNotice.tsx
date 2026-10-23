@@ -1,8 +1,8 @@
 import type { ChapterTrackCreateResult } from '../../../api/contracts/chapterTrackMap';
 import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import { ChapterLinkDialog } from '../../connection/ChapterLinkDialog';
-import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
+import { NoticeChip } from './RecordSetup';
 
 type Created = Extract<ChapterTrackCreateResult, { outcome: 'created' }>['track'];
 
@@ -37,14 +37,12 @@ export function ChapterLinkNotice({
   onLinked: (created?: Created) => void;
   onCheckAgain: () => void;
 }) {
-  const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${several ? 'several' : 'none'}`, hold);
+  const dialog = useOpenOnce(`booth-unlinked:${chapterId}:${several ? 'several' : 'none'}`, hold, { forgetOnUnmount: true });
   const { reopen } = dialog;
   useReopenOnAsk(asked, reopen);
   return (
     <>
-      <div className="mx-5 mb-2 flex">
-        <ConnectionIndicator id="brec-link" label={several ? 'Linked to several tracks' : 'Not linked to a track'} onOpen={reopen} />
-      </div>
+      <NoticeChip id="brec-link" label={several ? 'Linked to several tracks' : 'Not linked to a track'} onOpen={reopen} />
       {dialog.open && (
         <ChapterLinkDialog
           chapterId={chapterId}

@@ -16,6 +16,14 @@ beforeEach(resetOpenOnce);
 afterEach(cleanup);
 
 describe('useOpenOnce', () => {
+  it('with forgetOnUnmount, a notice drawn again after its condition cleared opens again (another project opened twice)', () => {
+    const first = renderHook(() => useOpenOnce('other-project:REAPER', false, { forgetOnUnmount: true }));
+    expect(first.result.current.open).toBe(true);
+    first.unmount();
+    const second = renderHook(() => useOpenOnce('other-project:REAPER', false, { forgetOnUnmount: true }));
+    expect(second.result.current.open).toBe(true);
+  });
+
   it('opens by itself the first time a condition is seen, and the narrator closes and reopens it', () => {
     const { result } = renderHook(() => useOpenOnce('reaper-off:REAPER'));
     expect(result.current.open).toBe(true);

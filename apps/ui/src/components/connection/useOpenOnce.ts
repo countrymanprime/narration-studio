@@ -14,8 +14,20 @@ export function resetOpenOnce(): void {
  * means the condition is gone, which forgets the key so the next time it happens counts as new. While `hold` is true (another dialog is up, or the
  * app is still connecting on its own) nothing opens and the key stays unseen, so it opens when the hold ends if the condition still stands.
  */
-export function useOpenOnce(key: string | null, hold = false): { open: boolean; reopen: () => void; close: () => void } {
+export function useOpenOnce(
+  key: string | null,
+  hold = false,
+  { forgetOnUnmount = false }: { forgetOnUnmount?: boolean } = {},
+): { open: boolean; reopen: () => void; close: () => void } {
   const [state, setState] = useState<{ key: string | null; open: boolean }>({ key: null, open: false });
+  // A notice drawn only while its condition stands unmounts when the condition clears: with `forgetOnUnmount` that counts as the key going
+  // away, so the condition coming back (another project opened again, the chapter unlinked again) opens the dialog again.
+  useEffect(() => {
+    if (!forgetOnUnmount || key === null) return;
+    return () => {
+      opened.delete(key);
+    };
+  }, [key, forgetOnUnmount]);
 
   useEffect(() => {
     setState((prev) => {
