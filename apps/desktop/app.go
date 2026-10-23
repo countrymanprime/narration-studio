@@ -416,6 +416,14 @@ type Host struct {
 	// reaperRunning says whether REAPER is already running; nil means daw.IsRunning.
 	reaperRunning func() bool
 	reaperLocate  func() (path, source string, err error)
+	// reaperBridgeEnabled lets the host install its bridge into REAPER and start REAPER on its own (reaperbridge.go); only the app's
+	// real start and the tests that give the seams below set it. reaperResourceSeam is REAPER's resource folder and reaperFilesSeam the
+	// bridge files to install, for tests; nil means the real ones.
+	reaperBridgeEnabled atomic.Bool
+	reaperResourceSeam  func() string
+	reaperFilesSeam     fs.FS
+	reaperBridgeOnce    sync.Once
+	reaperBridge        *reaperBridgeState
 	// audacityLocate is DawChoice's seam for daw.LocateAudacityExecutable (bindings_dawchoice.go); nil means the real one.
 	audacityLocate func() (path, source string, err error)
 	// audacityRunning, audacityLaunch and audacityConfig are the link state's seams (bindings_audacity_link.go, dawlaunch.go): nil
@@ -487,6 +495,8 @@ type config struct {
 	compareBackend                          string
 	teleprompterPython, teleprompterBackend string
 	reaperLauncher                          string
+	// reaperStartupHooked is whether REAPER runs the bridge itself when it opens (reaperbridge.go), so a start needs no launcher argument.
+	reaperStartupHooked bool
 }
 
 func NewHost() *Host {
@@ -600,6 +610,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.chapterSyncWatchLoop(runtimeContext)
 	go h.backgroundCheckLoop(runtimeContext)
 	go h.punchAnchorLoop(runtimeContext)
+	h.reaperBridgeEnabled.Store(true)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
 	go h.cleanStaleDownloads()
