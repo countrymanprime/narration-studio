@@ -81,9 +81,44 @@ end
 -- quickly, rare enough not to grow events.log without bound over a long session.
 M.HEARTBEAT_INTERVAL_SECONDS = 1.5
 
+-- The bridge running in this REAPER publishes its session folder in a non-persistent ExtState, which every script in the same
+-- REAPER reads and which is gone when REAPER closes, so the launcher action reuses it instead of starting a second loop
+-- (NarrationStudio_Startup.lua starts one at every REAPER start). The marker file says the loop that wrote it has not stopped.
+M.SESSION_SECTION, M.SESSION_KEY, M.RUNNING_FILE = 'NarrationStudio', 'session', 'bridge-running.txt'
+
+-- The session folder of the bridge loop running in this REAPER, or nil when none runs.
+function M.live_session()
+  local session_dir = reaper.GetExtState(M.SESSION_SECTION, M.SESSION_KEY)
+  if session_dir == '' or not core.file_exists(core.join(session_dir, M.RUNNING_FILE)) then
+    return nil
+  end
+  return session_dir
+end
+
+-- A new session folder under <resource path>/NarrationStudio/sessions, with its commands folder; the app finds the sessions there.
+function M.new_session_dir()
+  local root = core.join(core.join(reaper.GetResourcePath(), 'NarrationStudio'), 'sessions')
+  local session_dir = core.join(root, 'hub_' .. tostring(reaper.time_precise()):gsub('[%.]', ''))
+  reaper.RecursiveCreateDirectory(core.join(session_dir, 'commands'), 0)
+  return session_dir
+end
+
 function M.run(session_dir, registry)
   registry = registry or M.new_registry()
   local commands_dir, active = core.join(session_dir, 'commands'), true
+  local running_file = core.join(session_dir, M.RUNNING_FILE)
+  local marker = io.open(running_file, 'w')
+  if marker then
+    marker:write('1\n')
+    marker:close()
+  end
+  reaper.SetExtState(M.SESSION_SECTION, M.SESSION_KEY, session_dir, false)
+  local function withdraw()
+    os.remove(running_file)
+    if reaper.GetExtState(M.SESSION_SECTION, M.SESSION_KEY) == session_dir then
+      reaper.DeleteExtState(M.SESSION_SECTION, M.SESSION_KEY, false)
+    end
+  end
   local ctx = {
     session_dir = session_dir,
     event = function(tag, ...)
@@ -154,6 +189,8 @@ function M.run(session_dir, registry)
     end
     if active then
       reaper.defer(tick)
+    else
+      withdraw()
     end
   end
   reaper.defer(tick)

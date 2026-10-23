@@ -2474,5 +2474,29 @@
     "file": "narration_transport.lua",
     "find": "text:match('^%d+$') or text:match('^%d+%.%d+$')",
     "replace": "text:match('^-?%d+$') or text:match('^-?%d+%.%d+$')"
+  },
+  {
+    "name": "the startup script starts a second bridge in a REAPER that already runs one",
+    "file": "NarrationStudio_Startup.lua",
+    "find": "if bridge.live_session() then\n  return\nend",
+    "replace": "if false then\n  return\nend"
+  },
+  {
+    "name": "the launcher starts a second bridge loop beside the running one",
+    "file": "NarrationStudio_Launcher.lua",
+    "find": "if not live_session then\n  bridge.run(session_dir)\nend",
+    "replace": "bridge.run(session_dir)"
+  },
+  {
+    "name": "a stopped bridge leaves its session published",
+    "file": "narration_ui_bridge.lua",
+    "find": "    else\n      withdraw()\n    end",
+    "replace": "    end"
+  },
+  {
+    "name": "a published session is reused without its running marker",
+    "file": "narration_ui_bridge.lua",
+    "find": "if session_dir == '' or not core.file_exists(core.join(session_dir, M.RUNNING_FILE)) then",
+    "replace": "if session_dir == '' then"
   }
 ]
