@@ -55,6 +55,9 @@ While REAPER or Audacity is linked, choosing the **Built-in recorder** first ask
 Audacity): new takes would go to the project's own folder, takes already in the DAW stay there and the Booth, Editing and
 Proof stop reading them, and the link is kept, so choosing the DAW again brings them back. **Keep REAPER** leaves the
 project as it was. Use it only when the DAW cannot be used at all.
+
+![Settings - Recording: the confirm before a project linked to REAPER switches to the built-in recorder](../../images/ui/settings-recording-builtin-confirm.webp)
+
 Under it, **Connection** says what the app can reach right now, with **Test connection**; after a test it says when it last checked ("Last checked 12 s ago").
 
 You set nothing up in REAPER. The app puts its bridge in REAPER's Scripts folder by itself, and REAPER starts it each
@@ -62,6 +65,8 @@ time it opens; the card says so under **Connection**, or says what stopped it. W
 REAPER is not running, the app opens REAPER on the linked project: **Connection** reads **Starting REAPER** with how
 long ago it opened, until REAPER answers. If you close REAPER later the app does not reopen it; **Start REAPER** does.
 If REAPER was already open before the app put its bridge there, the app runs the bridge in it for you.
+
+![Settings - Recording: the app opening REAPER on the linked project, connecting on its own](../../images/ui/settings-recording-starting.webp)
 
 With **Audacity** chosen, **Connection** is **Audacity connection** instead: a status, one sentence that says what to do next, when Audacity was last heard from, and a **Set up Audacity** checklist. Audacity must be Audacity 3 with its scripting turned on. While Audacity is closed the app turns scripting on by itself and then starts Audacity on the linked project, once each time the project opens. Two things it cannot do for you, and the sentence says so: Audacity saves its settings when it closes, so if it is open with scripting off you close it and the app does the rest; and the first start of a new Audacity makes its settings and cannot load scripting, so that first time you close Audacity once after it opens. **Turn on scripting** and **Start Audacity** are still there to do either by hand. Once Audacity answers, **Link the open Audacity project** marks the project open in Audacity as this project's, with one label in a track named "Narration Studio"; **Choose Audacity project file** records the `.aup3` so **Start Audacity** opens it; **Unlink** forgets both and leaves the label in Audacity. **Check again** asks Audacity now. If Audacity may be waiting on a dialog, the card says so; close the dialog in Audacity and the app reconnects by itself. The same status shows on the header's engine chip and in the engine panel.
 
