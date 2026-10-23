@@ -84,7 +84,7 @@ describe('a failed read says so, with a way forward', () => {
     mount(api);
     await screen.findAllByText('Alice');
     const note = await screen.findByText(/Could not read the entry types/);
-    expect(note.textContent).toContain('kind chips are hidden');
+    expect(note.textContent).toContain('Kind menu is hidden');
     expect(rowNames()).toContain('Alice');
     expect(await screen.findByText(/Could not read which entries can speak/)).toBeTruthy();
     types.mockRestore();

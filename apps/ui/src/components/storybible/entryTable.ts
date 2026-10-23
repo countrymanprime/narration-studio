@@ -107,11 +107,10 @@ export const sortAria = (sort: EntrySort, column: ColumnKey): 'ascending' | 'des
 
 export type EntryFilter = { kind: string; query: string; reviewOnly: boolean; verifyOnly: boolean; suggestions: readonly ExtractionSuggestion[] };
 
-/** The text of a row's columns, folded: what the filter box matches against. */
-const rowText = (entry: GuideEntity, suggestions: readonly ExtractionSuggestion[]): string =>
-  foldText([entry.canonical_name, entry.category, aliasText(entry), statusOf(entry, suggestions).label].join('\n'));
+/** The text the filter box matches against: the name and the other names, never a word the row does not draw (its kind or its status). */
+const rowText = (entry: GuideEntity): string => foldText([entry.canonical_name, aliasText(entry)].join('\n'));
 
-/** The rows that pass the kind chip, the review chips and the text: every word typed must be found in some column of the row. */
+/** The rows that pass the kind chip, the review chips and the text: every word typed must be found in the name or an alias. */
 export function filterEntries(entries: readonly GuideEntity[], filter: EntryFilter): GuideEntity[] {
   const words = foldText(filter.query).split(/\s+/).filter(Boolean);
   return entries.filter((entry) => {
@@ -119,7 +118,7 @@ export function filterEntries(entries: readonly GuideEntity[], filter: EntryFilt
     if (filter.reviewOnly && !entryNeedsReview(entry, filter.suggestions)) return false;
     if (filter.verifyOnly && verifyOf(filter.suggestions, entry.id) === 0) return false;
     if (words.length === 0) return true;
-    const text = rowText(entry, filter.suggestions);
+    const text = rowText(entry);
     return words.every((word) => text.includes(word));
   });
 }

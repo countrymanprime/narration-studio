@@ -363,7 +363,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 {typesFailed && (
                   <ReadNotice
                     what="the entry types"
-                    effect="The kind chips are hidden and every entry is drawn in one colour."
+                    effect="The Kind menu is hidden and every entry is drawn in one colour."
                     checkAgain={() => setReadNonce((n) => n + 1)}
                   />
                 )}

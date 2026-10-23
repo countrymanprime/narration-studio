@@ -217,11 +217,16 @@ describe('the-filter-narrows-the-rows', () => {
     expect(found({ query: 'tarr' })).toEqual(['h']);
     expect(found({ query: 'eowyn' })).toEqual(['e']);
   });
-  it('matches the text of any column, kind included', () => {
-    expect(found({ query: 'place' })).toEqual(['w']);
-    expect(found({ query: 'character' })).toEqual(['h', 'e']);
+  // A row found by text it does not draw would show no reason for being there: the kind and the status words are not searched.
+  it('matches the name and the other names only, not the kind or the status', () => {
+    expect(found({ query: 'place' })).toEqual([]);
+    expect(found({ query: 'character' })).toEqual([]);
+    expect(found({ query: 'verify' })).toEqual([]);
   });
-  it('needs every word to match, in any column', () => expect(found({ query: 'hatter character' })).toEqual(['h']));
+  it('needs every word to match, in the name or an alias', () => {
+    expect(found({ query: 'hatter' })).toEqual(['h']);
+    expect(found({ query: 'hatter eowyn' })).toEqual([]);
+  });
   it('finds right-to-left and emoji text', () => {
     expect(found({ query: 'أليس' })).toEqual(['r']);
     expect(found({ query: '🐇' })).toEqual(['z']);
