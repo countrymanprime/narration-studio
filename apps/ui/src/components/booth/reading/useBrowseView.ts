@@ -22,6 +22,8 @@ type Options = {
 };
 
 const LINE_PX = 40;
+/** How long after a jump to a far paragraph its place is worked out once more: the text's move (`--motion-slow`) has ended by then. */
+const SETTLE_MS = 700;
 const REST = 0.4;
 /** The gap kept between the word being read and the edge of the box when the box is too short for the word to rest 40% down. */
 const EDGE_PX = 8;
@@ -114,7 +116,10 @@ export function useBrowseView({ box, text, cur, wcur, browse, onBrowse, viewRef 
         onBrowse(Math.abs(away.current) > 1);
       };
       put();
+      // The paragraphs on the way are drawn as the text moves, so it is worked out again when the move ends (and, with no motion, a frame on).
+      content.addEventListener('transitionend', put, { once: true });
       if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(put));
+      setTimeout(put, SETTLE_MS);
     },
     [box, text, restingY, clampY, onBrowse],
   );
