@@ -3,13 +3,14 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { loadBrand } from '../brand/brand.mjs';
 import { REAPER_FILES } from './reaper-files.mjs';
 
 // The Go/Wails host embeds the two analysis tools and launches
 // Python. A release must provide platform-native equivalents before it can be
 // advertised as installable. This guard deliberately blocks publication until
 // the runtime build places both executables in Wails embedded resources.
-const runtime = resolve(process.env.NARRATION_STUDIO_RUNTIME_DIR ?? 'src/studio/desktop/cmd/narration-studio/resources/runtime');
+const runtime = resolve(process.env[`${loadBrand().identity.envPrefix}RUNTIME_DIR`] ?? 'src/studio/desktop/cmd/app/resources/runtime');
 const resources = resolve(runtime, '..');
 const executable = (name) => process.platform === 'win32' ? `${name}.exe` : name;
 const missing = ['manuscript-guide', 'transcript-compare', 'manuscript-teleprompter']
@@ -24,7 +25,7 @@ if (previewRuntimeMissing.length) {
 }
 // The frozen Story Bible sidecar must carry the data its Piper voice and its pronunciations read: PyInstaller has no hook for
 // piper/espeak-ng-data or for cmudict (its dictionary and its package metadata), so a freeze that misses them breaks previews.
-// `narration-studio --smoke` proves they load; this proves they are in the tree before it is embedded.
+// the program's `--smoke` proves they load; this proves they are in the tree before it is embedded.
 const guideDataMissing = [
   ['piper', 'espeak-ng-data'],
   ['cmudict', 'data'],
@@ -45,7 +46,7 @@ if (optionalToolsFrozen.length) {
 }
 // The Windows Teleprompter sidecar carries the Moonshine engine (moonshine-voice is pinned for Windows only in pyproject.toml). Its
 // package loads moonshine.dll, and the onnxruntime.dll beside it, with ctypes from its own folder, which PyInstaller cannot see:
-// prepare-resources.py collects them by hand. `narration-studio --smoke` proves they load (`manuscript-teleprompter --capabilities --verify`); this proves they are
+// prepare-resources.py collects them by hand. the program's `--smoke` proves they load (`manuscript-teleprompter --capabilities --verify`); this proves they are
 // in the tree before it is embedded.
 if (process.platform === 'win32') {
   const moonshineDir = resolve(runtime, 'manuscript-teleprompter', '_internal', 'moonshine_voice');

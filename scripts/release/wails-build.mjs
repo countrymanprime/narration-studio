@@ -11,7 +11,7 @@
 // runs the same steps its Windows Taskfile does, with no Taskfile: render the build assets from wails.json (`wails3 update
 // build-assets`), embed the icon, version and manifest (`wails3 generate syso`), `go build -tags production`, and, for `--installer`,
 // fetch the WebView2 bootstrapper and run makensis on src/studio/desktop/build/windows/installer/project.nsi. The UI must
-// already be in cmd/narration-studio/frontend/dist (scripts/copy-wails-frontend.mjs, or the ui-dist artifact in CI).
+// already be in cmd/app/frontend/dist (scripts/copy-wails-frontend.mjs, or the ui-dist artifact in CI).
 
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -121,7 +121,7 @@ function build(extra) {
   const program = join(BIN_DIR, programName(product, goos));
   if (installerRequested(extra) && goos !== 'windows') throw new Error('--installer builds the Windows setup program and runs only on Windows');
 
-  const assets = mkdtempSync(join(tmpdir(), 'narration-studio-build-assets-'));
+  const assets = mkdtempSync(join(tmpdir(), 'build-assets-'));
   const syso = resolve('wails_windows_amd64.syso');
   try {
     run('wails3', buildAssetsArguments(product, version, assets));

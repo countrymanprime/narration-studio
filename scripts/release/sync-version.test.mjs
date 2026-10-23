@@ -5,6 +5,12 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { readRootVersion, syncVersion, updateJson, updateWailsJsonVersion } from './sync-version.mjs';
+import { loadBrand } from '../brand/brand.mjs';
+
+const BRAND = loadBrand();
+const PREFIX = BRAND.identity.releaseAssetPrefix;
+const EXE = `${BRAND.identity.executable}.exe`;
+const esc = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function writeJson(file, value) {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
@@ -37,11 +43,11 @@ test('updateJson in check mode throws on mismatch and never writes', () => {
 });
 
 test('updateWailsJsonVersion syncs the nested info.productVersion field', () => {
-  const file = tempFile('wails.json', { name: 'Narration Studio', info: { companyName: 'Narration Studio', productVersion: '0.1.0' } });
+  const file = tempFile('wails.json', { name: `${BRAND.name}`, info: { companyName: `${BRAND.name}`, productVersion: '0.1.0' } });
   assert.equal(updateWailsJsonVersion(file, '0.2.0', false), true);
   const written = JSON.parse(readFileSync(file, 'utf8'));
   assert.equal(written.info.productVersion, '0.2.0');
-  assert.equal(written.info.companyName, 'Narration Studio');
+  assert.equal(written.info.companyName, `${BRAND.name}`);
   assert.equal(updateWailsJsonVersion(file, '0.2.0', false), false);
 });
 

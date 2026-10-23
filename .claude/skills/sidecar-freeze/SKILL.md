@@ -20,7 +20,7 @@ The release carries each Python sidecar as a PyInstaller `--onedir` freeze. A fr
 
 1. `scripts/release/prepare-resources.py` lists three `Sidecar` entries (`manuscript-guide`, `transcript-compare`, `manuscript-teleprompter`): an entry file, `--paths` (the shared `src/studio/libs/python` and the sidecar's `core/`), and per-sidecar `collect_data`, `copy_metadata`, `collect_binaries` and `exclude_modules`.
 2. Each runs `python -m PyInstaller --onedir` in `.release-build/<name>/`, all three at once, each with its own `PYINSTALLER_CONFIG_DIR` (`--clean` wipes a shared cache another freeze is reading). Output is streamed and tagged by sidecar; every failure is reported, not just the first.
-3. The result is copied to `src/studio/desktop/cmd/narration-studio/resources/runtime/<name>/`, which `go:embed` ships in `main.go`. Models and voices are not frozen: they are first-use downloads from the hashed catalogs in `config/*-assets.json`.
+3. The result is copied to `src/studio/desktop/cmd/app/resources/runtime/<name>/`, which `go:embed` ships in `main.go`. Models and voices are not frozen: they are first-use downloads from the hashed catalogs in `config/*-assets.json`.
 4. CI caches the finished freeze (`.github/actions/build-native`, [the freeze cache](../../../docs/operations/ci-and-releases.md#the-sidecar-freeze-cache)). The key hashes `src/studio/sidecars/`, `src/studio/libs/python/`, `pyproject.toml`, `uv.lock` and `prepare-resources.py`, so any of them changing refreezes. The smoke test, `verify-installable.mjs` and the notices run on every build, hit or miss. Run a cold freeze with `Prerelease` and `cold-freeze` ticked.
 
 ## What to do

@@ -93,14 +93,14 @@ jobs:
             echo 'checksums<<EOF'
             # Binary mode (-b) prints `<hash> *<file>` on Windows and Linux alike.
             (cd release-assets && sha256sum -b -- *) | sed 's| \*| *release-assets/|'
-            (cd src/studio/desktop/build/bin && sha256sum -b narration-studio.exe) | sed 's| \*| *bin/|'
+            (cd src/studio/desktop/build/bin && sha256sum -b "$BRAND_EXECUTABLE.exe") | sed 's| \*| *bin/|'
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
       - name: Stage the files to publish
         run: |
           mkdir -p publish/bin
           cp -r release-assets publish/
-          cp src/studio/desktop/build/bin/narration-studio.exe publish/bin/
+          cp "src/studio/desktop/build/bin/$BRAND_EXECUTABLE.exe" publish/bin/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-release
@@ -156,7 +156,7 @@ jobs:
         with:
           subject-path: |
             release-assets/*
-            bin/narration-studio.exe
+            bin/*
       # Keep the newest 10 RCs including the one being published, so nx still
       # finds the latest RC tag and bumps past it instead of re-stamping the same version.
       - name: Prune old release candidates

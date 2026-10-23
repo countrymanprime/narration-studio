@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import json
 import os
 import subprocess
 import sys
@@ -11,6 +12,9 @@ import threading
 from pathlib import Path
 
 import pytest
+
+# The launcher file name, an identity value from config/brand.json.
+LAUNCHER = json.loads((Path(__file__).resolve().parents[3] / "config" / "brand.json").read_text(encoding="utf-8"))["identity"]["reaperLauncher"]
 
 SCRIPT = Path(__file__).resolve().parents[1] / "prepare-resources.py"
 SIDECARS = {"manuscript-guide", "transcript-compare", "manuscript-teleprompter"}
@@ -207,7 +211,7 @@ def test_sidecar_flag_freezes_only_that_sidecar(script, monkeypatch):
 def test_the_reaper_package_ships_the_scripts_and_not_the_harness_or_the_spikes(script, monkeypatch):
     install(monkeypatch, script, FakePyInstaller())
     source = script.ROOT / script.REAPER_DIR
-    (source / "NarrationStudio_Launcher.lua").write_text("-- launcher", encoding="utf-8")
+    (source / LAUNCHER).write_text("-- launcher", encoding="utf-8")
     (source / "project.json").write_text("{}", encoding="utf-8")
     (source / "tests").mkdir()
     (source / "tests" / "protocol_test.lua").write_text("-- test", encoding="utf-8")
@@ -217,7 +221,7 @@ def test_the_reaper_package_ships_the_scripts_and_not_the_harness_or_the_spikes(
 
     script.main()
 
-    assert {path.name for path in script.REAPER.iterdir()} == {"NarrationStudio_Launcher.lua"}
+    assert {path.name for path in script.REAPER.iterdir()} == {LAUNCHER}
 
 
 def seed_freeze(module, name: str, *, tocs: bool = True) -> Path:

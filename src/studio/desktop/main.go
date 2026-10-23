@@ -17,14 +17,14 @@ import (
 // Keeping the copy inside the Go module makes release artifacts independent
 // of a checkout path.
 //
-//go:embed all:cmd/narration-studio/frontend/dist
+//go:embed all:cmd/app/frontend/dist
 var frontendAssets embed.FS
 
 // Release preparation places the immutable Python sidecars and their runtime
 // files here. They are embedded into the native application rather than read
 // from a checkout at runtime.
 //
-//go:embed all:cmd/narration-studio/resources
+//go:embed all:cmd/app/resources
 var resources embed.FS // its root inside the file system is resourcesRoot (smoke.go)
 
 func main() {

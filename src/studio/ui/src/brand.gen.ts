@@ -7,7 +7,7 @@ export const brand = {
   repository: {
     slug: 'countrymanprime/narration-studio',
     url: 'https://github.com/countrymanprime/narration-studio',
-    pagesUrl: 'https://countrymanprime.github.io/<app>/',
+    pagesUrl: 'https://countrymanprime.github.io/narration-studio/',
   },
   identity: {
     dataFolder: 'narration-studio',
@@ -23,5 +23,6 @@ export const brand = {
     audacityLabelTrack: 'Narration Studio',
     credentialEntropy: 'narration-studio credentialstore v1',
     envPrefix: 'NARRATION_STUDIO_',
+    productIdentifier: 'com.narrationstudio.app',
   },
 } as const;

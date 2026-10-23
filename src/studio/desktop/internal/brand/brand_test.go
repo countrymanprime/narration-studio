@@ -31,7 +31,7 @@ func TestGeneratedConstantsMatchTheBrandFile(t *testing.T) {
 		"executable": brand.Executable, "releaseAssetPrefix": brand.ReleaseAssetPrefix, "installFolder": brand.InstallFolder,
 		"uninstallKey": brand.UninstallKey, "reaperExtPrefix": brand.ReaperExtPrefix, "reaperLauncher": brand.ReaperLauncher,
 		"reaperResourceFolder": brand.ReaperResourceFolder, "audacityLabelTrack": brand.AudacityLabelTrack,
-		"credentialEntropy": brand.CredentialEntropy, "envPrefix": brand.EnvPrefix,
+		"credentialEntropy": brand.CredentialEntropy, "envPrefix": brand.EnvPrefix, "productIdentifier": brand.ProductIdentifier,
 	}
 	if len(identity) != len(file.Identity) {
 		t.Errorf("the brand file has %d identity values, the package %d", len(file.Identity), len(identity))

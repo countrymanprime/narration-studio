@@ -18,6 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import notices
 
+BRAND = json.loads((Path(__file__).resolve().parents[3] / "config" / "brand.json").read_text(encoding="utf-8"))
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 BS = chr(92)
 
@@ -247,9 +249,10 @@ class TestReport:
     def test_names_the_program_the_release_the_licence_and_where_the_source_is(self):
         text = notices.render_report(version="0.1.0", components=self.sample(), program_license="AGPL FULL TEXT", catalogs=[])
 
-        assert "narration-studio 0.1.0" in text
+        assert f"{notices.PROGRAM} 0.1.0" in text
         assert "AGPL-3.0-or-later" in text
-        assert "https://github.com/countrymanprime/narration-studio" in text
+        assert notices.REPOSITORY in text
+        assert notices.REPOSITORY == f"https://github.com/{BRAND['repository']['owner']}/{BRAND['repository']['name']}"
         assert "v0.1.0" in text
         assert "AGPL FULL TEXT" in text
 

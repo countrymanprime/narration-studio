@@ -61,7 +61,7 @@
     "license": "GPL-3.0-or-later",
     "homepage": "https://github.com/espeak-ng/espeak-ng",
     "source": "manuscript-guide",
-    "note": "The piper-tts wheel bundles eSpeak NG and its data to phonemize text. Licence: GPL-3.0-or-later (with parts under other licences named in the eSpeak NG repository's COPYING files). Source: https://github.com/espeak-ng/espeak-ng and https://github.com/OHF-voice/piper1-gpl. Narration Studio is AGPL-3.0-or-later, which is compatible."
+    "note": "The piper-tts wheel bundles eSpeak NG and its data to phonemize text. Licence: GPL-3.0-or-later (with parts under other licences named in the eSpeak NG repository's COPYING files). Source: https://github.com/espeak-ng/espeak-ng and https://github.com/OHF-voice/piper1-gpl. The app is AGPL-3.0-or-later, which is compatible."
   },
   {
     "name": "Silero VAD model (silero_vad_v6.onnx) inside the faster-whisper wheel",

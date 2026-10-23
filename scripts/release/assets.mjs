@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 // Names, packages and verifies what a release carries. Windows x64 is the only platform:
-// narration-studio-<version>-<platform>.<ext> plus a .sha256 beside it, and also the setup program
-// narration-studio-<version>-windows-x64-setup.exe and the notices narration-studio-<version>-THIRD-PARTY-NOTICES.txt, each with its own
-// .sha256. The version is in every name so that downloads of different releases can be told apart at a
+// <prefix>-<version>-<platform>.<ext> plus a .sha256 beside it, and also the setup program
+// <prefix>-<version>-windows-x64-setup.exe and the notices <prefix>-<version>-THIRD-PARTY-NOTICES.txt, each with its own
+// .sha256, where <prefix> is the brand's release asset prefix (config/brand.json, an identity value: an installed copy downloads its
+// update by this exact name, so it does not follow a rename). The version is in every name so that downloads of different releases can be told apart at a
 // glance. The archive is what the in-app updater downloads (src/studio/desktop/internal/update/manifest.go builds the same name); the setup
 // program is for a first install.
 // Checksums are per asset rather than one SHA256SUMS.txt, so a narrator checks the one file they downloaded.
@@ -14,17 +15,20 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync,
 import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { loadBrand } from '../brand/brand.mjs';
 import { checkFolder } from '../ci/old-name.mjs';
 
-const APP_BINARY = 'narration-studio';
+const { identity } = loadBrand();
+const APP_BINARY = identity.executable;
+const ASSET_PREFIX = identity.releaseAssetPrefix;
 
 // The setup program NSIS builds (src/studio/desktop/build/windows/installer/project.nsi names its OutFile the same, and a test keeps the
 // two equal). This is its name in the build folder, which carries no version; packaging gives it the released name (installerName).
-export const WINDOWS_INSTALLER = 'narration-studio-windows-x64-setup.exe';
+export const WINDOWS_INSTALLER = `${ASSET_PREFIX}-windows-x64-setup.exe`;
 
 // The third-party licences and the source offer of the release, under the name scripts/licenses/notices.py writes into the build folder
 // (docs/operations/ci-and-releases.md, "Third-party notices"); packaging gives it the released name (noticesName). It is its own asset, not a second file in the update zip: the in-app updater refuses a zip that holds
-// anything but narration-studio.exe, and a client that predates a two-file zip would refuse every update to it.
+// anything but the program itself, and a client that predates a two-file zip would refuse every update to it.
 export const NOTICES_FILE = 'THIRD-PARTY-NOTICES.txt';
 
 // The workflow that builds and attests an asset: the release job of prerelease.yml. Releases are built from main only.
@@ -53,7 +57,7 @@ export function requireInstaller(binDir, name = WINDOWS_INSTALLER) {
 // on a release before it can be promoted. `installer` is a second file of the platform, copied from the Wails output as it is: it is as
 // required as the archive, so a build that lost it cannot be promoted. macOS and Linux rows were removed by D74.
 export const PLATFORMS = {
-  // The self-contained exe is zipped (about 400 MB otherwise) and keeps the name the REAPER launcher looks for (narration-studio.exe);
+  // The self-contained exe is zipped (about 400 MB otherwise) and keeps the name the REAPER launcher looks for (the brand's executable);
   // that zip is what the in-app updater downloads. The setup program is what a narrator runs first.
   'windows-x64': {
     extension: '.zip',
@@ -89,7 +93,7 @@ function requireVersion(version) {
   return version;
 }
 
-const released = (version, name) => `narration-studio-${requireVersion(version)}-${name}`;
+const released = (version, name) => `${ASSET_PREFIX}-${requireVersion(version)}-${name}`;
 
 export const assetName = (platform, version) => released(version, `${platform}${platformEntry(platform).extension}`);
 export const checksumName = (platform, version) => `${assetName(platform, version)}.sha256`;
@@ -182,7 +186,7 @@ const runGh = (args) => execFileSync('gh', args, { encoding: 'utf8', stdio: ['ig
 // Returns a problem for every present asset or checksum that has no attestation from the workflow that should have built
 // it. Meant for promote, which has the network and the GitHub CLI; `verifyAssets` stays offline.
 export function verifyAttestations(dir, { repository, version, run = runGh } = {}) {
-  if (!repository) throw new Error('Verifying attestations needs the repository, for example countrymanprime/narration-studio.');
+  if (!repository) throw new Error('Verifying attestations needs the repository, for example owner/repository.');
   requireVersion(version);
   const problems = [];
   for (const [platform, { signerWorkflow }] of Object.entries(PLATFORMS)) {

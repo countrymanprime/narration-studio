@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { loadBrand } from '../brand/brand.mjs';
 import { WINDOWS_INSTALLER } from './assets.mjs';
 
 // Nothing on a developer machine or in a pull request can run makensis (it is only installed in the Windows build job), so these
@@ -19,7 +20,12 @@ const code = definition
   .split('\n')
   .filter((line) => !/^\s*#/.test(line))
   .join('\n');
-const define = (name) => code.match(new RegExp(`^\\s*!define ${name} "([^"]*)"`, 'm'))?.[1];
+const brand = loadBrand();
+// The identity values come from brand.nsh (written by `pnpm run brand:sync`); a define is read with any ${BRAND_*} in it resolved.
+const brandDefines = Object.fromEntries(
+  [...readFileSync(join(repository, installerDir, 'brand.nsh'), 'utf8').matchAll(/^!define (\w+) "([^"]*)"/gm)].map((match) => [match[1], match[2]]),
+);
+const define = (name) => code.match(new RegExp(`^\\s*!define ${name} "([^"]*)"`, 'm'))?.[1]?.replace(/\$\{(BRAND_\w+)\}/g, (_, key) => brandDefines[key]);
 const uninstallSection = code.slice(code.indexOf('Section "uninstall"'), code.lastIndexOf('SectionEnd'));
 const gitCheckIgnore = (path) => spawnSync('git', ['check-ignore', '-q', path], { cwd: repository }).status;
 
@@ -28,9 +34,17 @@ test('the setup file has the unversioned release name the pipeline collects', ()
   assert.match(code, /^OutFile "\.\.\\\.\.\\bin\\\$\{SETUP_FILE\}"/m);
 });
 
-test('the installed program is narration-studio.exe, the name the launcher and the updater look for', () => {
+test('the installed program is the brand\'s executable, the name the launcher and the updater look for', () => {
   assert.equal(define('PRODUCT_EXECUTABLE'), `${wailsConfig.outputfilename}.exe`);
-  assert.equal(define('PRODUCT_EXECUTABLE'), 'narration-studio.exe');
+  assert.equal(define('PRODUCT_EXECUTABLE'), `${brand.identity.executable}.exe`);
+  assert.match(code, /^!include "brand\.nsh"$/m);
+});
+
+test('the installer\'s identity values are the brand file\'s, so a rename moves neither the install nor its uninstall entry', () => {
+  assert.equal(define('UNINST_KEY_NAME'), brand.identity.uninstallKey);
+  assert.equal(brandDefines.BRAND_INSTALL_FOLDER, brand.identity.installFolder);
+  assert.equal(brandDefines.BRAND_DATA_FOLDER, brand.identity.dataFolder);
+  assert.match(code, /^InstallDir "\$LOCALAPPDATA\\Programs\\\$\{BRAND_INSTALL_FOLDER\}"/m);
 });
 
 test('the install is per user: no elevation, an install folder in the profile and an uninstall entry under HKCU', () => {
@@ -102,17 +116,17 @@ test('the uninstaller never removes a folder recursively, so a folder the narrat
 });
 
 test('the uninstaller leaves settings, the asset cache, the WebView2 data and project sidecars alone', () => {
-  const touchesUserData = /\$(APPDATA|LOCALAPPDATA|DOCUMENTS|PROFILE)|%APPDATA%|%LOCALAPPDATA%|narration-studio"|RMDir\s+\/r|DeleteRegKey\s+HKCU\s+"Software\\Narration/i;
+  const touchesUserData = /\$(APPDATA|LOCALAPPDATA|DOCUMENTS|PROFILE)|%APPDATA%|%LOCALAPPDATA%|\$\{BRAND_DATA_FOLDER\}"|RMDir\s+\/r|DeleteRegKey\s+HKCU\s+"Software\\/i;
   const withoutMessages = uninstallSection
     .split('\n')
     .filter((line) => !/^\s*DetailPrint /.test(line))
     .join('\n');
   assert.doesNotMatch(withoutMessages, touchesUserData);
-  assert.match(uninstallSection, /DetailPrint "Left in place: [^"]*%APPDATA%\\narration-studio[^"]*%LOCALAPPDATA%\\narration-studio/);
+  assert.match(uninstallSection, /DetailPrint "Left in place: [^"]*%APPDATA%\\\$\{BRAND_DATA_FOLDER\}[^"]*%LOCALAPPDATA%\\\$\{BRAND_DATA_FOLDER\}/);
 });
 
 test('the uninstall page tells the narrator what is left behind before anything is removed', () => {
-  assert.match(definition, /!define MUI_UNCONFIRMPAGE_TEXT_TOP "[^"]*%APPDATA%\\narration-studio[^"]*%LOCALAPPDATA%\\narration-studio[^"]*project folders/);
+  assert.match(definition, /!define MUI_UNCONFIRMPAGE_TEXT_TOP "[^"]*%APPDATA%\\\$\{BRAND_DATA_FOLDER\}[^"]*%LOCALAPPDATA%\\\$\{BRAND_DATA_FOLDER\}[^"]*project folders/);
   assert.match(code, /!insertmacro MUI_UNPAGE_CONFIRM/);
 });
 

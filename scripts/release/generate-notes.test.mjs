@@ -5,6 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { loadBrand } from '../brand/brand.mjs';
+
+const BRAND = loadBrand();
+const PREFIX = BRAND.identity.releaseAssetPrefix;
+const EXE = `${BRAND.identity.executable}.exe`;
+const esc = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const script = fileURLToPath(new URL('./generate-notes.mjs', import.meta.url));
 
@@ -30,19 +36,19 @@ test('the release notes point at the third-party notices and the source offer', 
   const notes = releaseNotes({});
 
   assert.match(notes, /## Licences and source/);
-  assert.match(notes, /`narration-studio-0\.1\.0-THIRD-PARTY-NOTICES\.txt`/);
+  assert.match(notes, new RegExp(`\`${esc(PREFIX)}-0\\.1\\.0-THIRD-PARTY-NOTICES\\.txt\``));
   assert.match(notes, /AGPL-3\.0-or-later/);
 });
 
 test('the release notes tell a narrator how to verify a download against the repository that built it', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-studio' });
+  const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
 
   assert.match(notes, /## Verifying this download/);
-  assert.match(notes, /gh attestation verify <file> --repo countrymanprime\/narration-studio/);
+  assert.match(notes, new RegExp(`gh attestation verify <file> --repo countrymanprime\\/${esc(PREFIX)}`));
 });
 
 test('the changes still come first and the verification section last', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-studio' });
+  const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
 
   assert.ok(notes.indexOf('## Features') > 0);
   assert.ok(notes.indexOf('## Features') < notes.indexOf('## Verifying this download'));
@@ -57,18 +63,18 @@ test('the verification section names a placeholder when the repository is not kn
 // The first stable release is unsigned (owner decision D7): the notes say so and say what a narrator will see, instead of leaving the
 // SmartScreen warning to look like a fault.
 test('the release notes say how to install on Windows and that the download is unsigned', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-studio' });
+  const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
 
   assert.match(notes, /## Installing on Windows/);
-  assert.match(notes, /`narration-studio-0\.1\.0-windows-x64-setup\.exe`/);
+  assert.match(notes, new RegExp(`\`${esc(PREFIX)}-0\\.1\\.0-windows-x64-setup\\.exe\``));
   assert.match(notes, /unsigned/i);
   assert.match(notes, /More info/);
   assert.match(notes, /Run anyway/);
-  assert.match(notes, /`narration-studio-0\.1\.0-windows-x64\.zip`/);
+  assert.match(notes, new RegExp(`\`${esc(PREFIX)}-0\\.1\\.0-windows-x64\\.zip\``));
 });
 
 test('the install section comes after the changes and before the verification section', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: 'countrymanprime/narration-studio' });
+  const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
 
   assert.ok(notes.indexOf('## Features') < notes.indexOf('## Installing on Windows'));
   assert.ok(notes.indexOf('## Installing on Windows') < notes.indexOf('## Verifying this download'));
