@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { REPOSITORY_ROOT, listFiles } from './brand.mjs';
 import { renameApp } from './rename-app.mjs';
 
-export const REHEARSAL_NAME = ['Zebra', 'Audio', 'Lab'].join(' ');
+const REHEARSAL_NAME = ['Zebra', 'Audio', 'Lab'].join(' ');
 
 const DESKTOP = 'src/studio/desktop';
 const UI = 'src/studio/ui';
@@ -35,7 +35,7 @@ function uiBrandTests(root) {
 }
 
 /** The checks after the rename: [label, command, args, cwd]. */
-export function steps(root = REPOSITORY_ROOT, full = false) {
+function steps(root = REPOSITORY_ROOT, full = false) {
   const always = [
     ['brand sync is clean', ...node('scripts/brand/sync.mjs', '--check')],
     ['the current name is only in the brand file and its outputs', ...node('scripts/ci/brand-name.mjs')],

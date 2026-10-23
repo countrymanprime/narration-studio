@@ -102,7 +102,7 @@ const builtNameHolds = (name, retired, brand) =>
   nameHolds(name, retired.filter((entry) => !entry.history)) || nameHolds(withoutIdentity(name, brand), retired.filter((entry) => entry.history));
 
 /** Problems in one built file, reported under name: its own name and, for a file that is not binary, its text. */
-export function checkBuiltFile(path, name, retired = loadRetired(), brand = loadBrand()) {
+function checkBuiltFile(path, name, retired = loadRetired(), brand = loadBrand()) {
   const problems = builtNameHolds(basename(name), retired, brand) ? [`${name}: the name holds the old name`] : [];
   const bytes = readFileSync(path);
   // A zip (the update package) is checked by the names it holds, which the updater unpacks; another binary (an image, a
