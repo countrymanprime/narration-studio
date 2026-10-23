@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"os"
@@ -435,7 +436,7 @@ func (h *Host) rulesCommand() (rules.Command, error) {
 	}
 	command := rules.Command{
 		Program:    config.manuscriptPython,
-		Manuscript: filepath.Join(config.projectFolder, "narration-studio", "manuscript", "manuscript.json"),
+		Manuscript: filepath.Join(config.projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json"),
 		Guide:      filepath.Join(config.projectFolder, "ManuscriptGuide", "manuscript_guide.json"),
 	}
 	if _, err := os.Stat(command.Program); err != nil {

@@ -241,7 +241,7 @@ describe('UpdatesPanel, installing', () => {
     renderPanel('install-refused');
     fireEvent.click(await screen.findByRole('button', { name: 'Install and restart' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Install and restart' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('Narration Studio is busy');
+    expect((await screen.findByRole('alert')).textContent).toContain('The app is busy');
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByRole('button', { name: 'Install and restart' })).toBeTruthy();
   });

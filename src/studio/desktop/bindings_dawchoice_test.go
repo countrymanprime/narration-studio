@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -134,7 +135,7 @@ func TestDawChooseWinsAndPersists(t *testing.T) {
 	if host.recordingEngine(host.services()) != engineBuiltin {
 		t.Fatal("the record path does not follow the choice")
 	}
-	raw, err := os.ReadFile(filepath.Join(host.config.projectFolder, "narration-studio", "settings.json"))
+	raw, err := os.ReadFile(filepath.Join(host.config.projectFolder, brand.ProjectFolder, "settings.json"))
 	if err != nil || !strings.Contains(string(raw), `"engine": "builtin"`) {
 		t.Fatalf("project settings = %s, %v", raw, err)
 	}

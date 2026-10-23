@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,7 +17,7 @@ import (
 // The Production page's status report export. The page sends only the narrator's choice of sections (the Include
 // checkboxes; the money one is off by default); the host builds the report from
 // exactly the same overview and plan the Production page just read (buildProductionOverview, bindings_production.go)
-// and writes an HTML and a JSON file into the project's narration-studio/production/reports folder. It never writes
+// and writes an HTML and a JSON file into the project's <app>/production/reports folder. It never writes
 // next to the audio, never changes the time log or the plan, and never overwrites an earlier report.
 
 // maxProductionReportNameAttempts bounds the search for a free file name when reports are exported within the same second.
@@ -61,7 +62,7 @@ type ProductionReportPreview struct {
 func (h *Host) buildProductionReport(include ProductionReportInclude) (project, generatedAt string, report productionreport.Report, err error) {
 	project = h.services().config.projectFolder
 	if project == "" {
-		return "", "", productionreport.Report{}, fmt.Errorf("open a project first; the report is kept in its narration-studio/production/reports folder")
+		return "", "", productionreport.Report{}, fmt.Errorf("open a project first; the report is kept in its " + brand.ProjectFolder + "/production/reports folder")
 	}
 	overview, milestones, err := h.buildProductionOverview()
 	if err != nil {

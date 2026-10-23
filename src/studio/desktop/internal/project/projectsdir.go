@@ -1,6 +1,7 @@
 package project
 
 import (
+	"desktop/internal/brand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,10 +9,10 @@ import (
 
 // DefaultDirName is the folder created under the user's home directory as the
 // default projects directory.
-const DefaultDirName = "NarrationStudio"
+const DefaultDirName = brand.DefaultProjectsFolder
 
 // DefaultDir resolves the Go-side computed default projects directory,
-// ~/NarrationStudio. It is deliberately not a value in
+// ~/<default projects folder>. It is deliberately not a value in
 // config/defaults.json: that file holds literal per-tool settings
 // (store_test.go's TestBuiltinDefaultsMatchRepoDefaultsFile keeps it in sync
 // with a hardcoded map), and a computed, per-machine home directory cannot be

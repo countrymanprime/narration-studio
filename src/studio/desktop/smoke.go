@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,7 +31,7 @@ import (
 	"desktop/internal/wiktextract"
 )
 
-// The packaged-app smoke test: `narration-studio --smoke`. Wails is a GUI program, so a CI job cannot start it and look at a window; this
+// The packaged-app smoke test: the program run with `--smoke`. Wails is a GUI program, so a CI job cannot start it and look at a window; this
 // mode runs before the window, the single-instance lock and the update relaunch logic exist, checks what a release must carry, prints a
 // short JSON report and exits: 0 when every check passed, 1 when one did not, 2 for a bad command line. It is what turns "the release
 // contains everything needed to start" (first-use dependency provisioning) from a claim into a check, on the executable that would ship.
@@ -68,8 +69,8 @@ var smokeSidecars = []string{"manuscript-guide", "transcript-compare", "manuscri
 // smokeReaperFiles are the REAPER scripts a release carries: every top-level Lua file of src/studio/integrations/reaper, the launcher first.
 // scripts/release/reaper-files.mjs is the build-time copy of this list, and smoke_test.go holds both to the folder.
 var smokeReaperFiles = []string{
-	"NarrationStudio_Launcher.lua",
-	"NarrationStudio_Startup.lua",
+	brand.ReaperLauncher,
+	brand.ReaperResourceFolder + "_Startup.lua",
 	"narration_brand.lua",
 	"narration_bridge_core.lua",
 	"narration_cleanup.lua",
@@ -572,7 +573,7 @@ func checkReaper(root, executable string) (string, error) {
 	if executable == "" {
 		return fmt.Sprintf("%d scripts", len(smokeReaperFiles)), nil
 	}
-	pointer, err := os.ReadFile(filepath.Join(root, "reaper", "narration-studio-app-path.txt"))
+	pointer, err := os.ReadFile(filepath.Join(root, "reaper", brand.Executable+"-app-path.txt"))
 	if err != nil {
 		return "", fmt.Errorf("the launcher pointer to the app was not written: %w", err)
 	}

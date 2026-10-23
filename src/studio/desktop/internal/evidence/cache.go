@@ -15,6 +15,7 @@
 package evidence
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -87,11 +88,11 @@ type cacheEnvelope struct {
 }
 
 // CacheDir is the result cache's storage directory under a project
-// (narration-studio/analysis/cache/). It is exported so
+// (<app>/analysis/cache/). It is exported so
 // manuscript.resetDerived can clear it without this package depending on the
 // manuscript package.
 func CacheDir(project string) string {
-	return filepath.Join(project, "narration-studio", "analysis", "cache")
+	return filepath.Join(project, brand.ProjectFolder, "analysis", "cache")
 }
 
 // CacheStore is the per-item result cache: an opaque, keyed blob store under a

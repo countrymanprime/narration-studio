@@ -159,7 +159,7 @@ func fileRefusal(name string, err error) dawport.Result {
 	case errors.Is(err, bridge.ErrUnavailable):
 		return dawport.Refused(fileStandaloneSentence(name))
 	case errors.Is(err, bridge.ErrScriptOutdated):
-		return dawport.Refused(fmt.Sprintf("The Narration Studio script in %s is older than this app. Restart %s so it loads the bridge this app installed.", name, name))
+		return dawport.Refused(fmt.Sprintf("The app's script in %s is older than this app. Restart %s so it loads the bridge this app installed.", name, name))
 	case errors.Is(err, bridge.ErrRecording):
 		return dawport.Refused(fmt.Sprintf("%s is recording. Stop recording first.", name))
 	case errors.Is(err, bridge.ErrNotMediaFile):

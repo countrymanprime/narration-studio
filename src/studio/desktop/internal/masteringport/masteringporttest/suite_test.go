@@ -2,6 +2,7 @@ package masteringporttest
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -117,7 +118,7 @@ func TestTheFakeDAWRefusesWhatTheBridgeRefuses(t *testing.T) {
 	project := t.TempDir()
 	daw := NewFakeDAW(project)
 	renderer := daw.Role(dawport.CapRenderWithFX).(dawport.FXRenderer)
-	runs := filepath.Join(project, "narration-studio", "mastering")
+	runs := filepath.Join(project, brand.ProjectFolder, "mastering")
 	full := filepath.Join(runs, "full")
 	if err := os.MkdirAll(full, 0o750); err != nil {
 		t.Fatal(err)

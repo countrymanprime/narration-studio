@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"embed"
 	"fmt"
 	"io"
@@ -12,7 +13,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// cmd/narration-studio/frontend/dist is populated from src/studio/ui/dist by the shell build script.
+// cmd/<app>/frontend/dist is populated from src/studio/ui/dist by the shell build script.
 // Keeping the copy inside the Go module makes release artifacts independent
 // of a checkout path.
 //
@@ -38,7 +39,7 @@ func main() {
 	host := NewHost()
 	host.startTrace()
 	app := application.New(application.Options{
-		Name: "Narration Studio",
+		Name: brand.Name,
 		// The Host is the one bound service: the page calls only its exported methods.
 		Services: []application.Service{application.NewService(host)},
 		// Wails finds index.html inside the embedded folder, as v2 did; /media is the host's own route (media.go).
@@ -65,7 +66,7 @@ func main() {
 func mainWindowOptions(zoom float64) application.WebviewWindowOptions {
 	return application.WebviewWindowOptions{
 		Name:                       mainWindowName,
-		Title:                      "Narration Studio",
+		Title:                      brand.Name,
 		Width:                      1280,
 		Height:                     860,
 		MinWidth:                   960,

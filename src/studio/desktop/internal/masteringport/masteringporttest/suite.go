@@ -13,6 +13,7 @@ package masteringporttest
 import (
 	"bytes"
 	"context"
+	"desktop/internal/brand"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -181,7 +182,7 @@ func dawProblems(name string, row masteringport.Mastering, daw *FakeDAW, dir str
 	if renders := daw.Renders(); len(renders) != 1 {
 		report("%q asked the DAW to render %d times; only the approved request to a free destination should render", name, len(renders))
 	}
-	runs := filepath.Join(dir, "narration-studio", "mastering")
+	runs := filepath.Join(dir, brand.ProjectFolder, "mastering")
 	if left, _ := os.ReadDir(runs); len(left) > 0 {
 		report("%q left its render folder behind in %s", name, runs)
 	}
@@ -217,7 +218,7 @@ func audacityProblems(name string, row masteringport.Mastering, daw *FakeAudacit
 	} else if renders[0].Macro == "" {
 		report("%q asked Audacity to render with no macro named", name)
 	}
-	runs := filepath.Join(dir, "narration-studio", "mastering")
+	runs := filepath.Join(dir, brand.ProjectFolder, "mastering")
 	if left, _ := os.ReadDir(runs); len(left) > 0 {
 		report("%q left its render folder behind in %s", name, runs)
 	}

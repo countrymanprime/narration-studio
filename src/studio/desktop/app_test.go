@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -73,7 +74,7 @@ func TestAnUnstampedBuildIsADevelopmentBuild(t *testing.T) {
 
 func TestBootstrapReportsCanonicalNarratableTotals(t *testing.T) {
 	project := t.TempDir()
-	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +306,7 @@ func TestCanAttachRejectsPreparedImportAndActiveTranscript(t *testing.T) {
 	}
 	host.manuscript = manuscript.New("")
 	project := t.TempDir()
-	canonical := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	canonical := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(canonical), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -369,7 +370,7 @@ func TestAttachProjectLockedRefusesWhenBusy(t *testing.T) {
 	if attached {
 		t.Fatal("busy host must refuse to attach")
 	}
-	if reason != "Narration Studio is busy, so the current project was left unchanged." {
+	if reason != "The app is busy, so the current project was left unchanged." {
 		t.Fatalf("reason = %q", reason)
 	}
 	if host.config != before {
@@ -661,18 +662,18 @@ func TestOnSecondInstanceRefreshesSessionDirFromNewArgs(t *testing.T) {
 
 func TestWriteReaperLauncherPathRefreshesMovedExecutable(t *testing.T) {
 	root := t.TempDir()
-	if err := writeReaperLauncherPath(root, `C:\old\Narration Studio.exe`); err != nil {
+	if err := writeReaperLauncherPath(root, `C:\old\`+brand.Name+`.exe`); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeReaperLauncherPath(root, `D:\moved\Narration Studio.exe`); err != nil {
+	if err := writeReaperLauncherPath(root, `D:\moved\`+brand.Name+`.exe`); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(root, "reaper", "narration-studio-app-path.txt")
+	path := filepath.Join(root, "reaper", brand.Executable+"-app-path.txt")
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := string(bytes), "D:\\moved\\Narration Studio.exe\n"; got != want {
+	if got, want := string(bytes), "D:\\moved\\"+brand.Name+".exe\n"; got != want {
 		t.Fatalf("launcher target = %q, want %q", got, want)
 	}
 }
@@ -712,7 +713,7 @@ func TestTheProjectSettingsStoreReportsACorruptFileToTheNarrator(t *testing.T) {
 	host := NewHost()
 	var notices []string
 	host.persist.Notify = func(text string) { notices = append(notices, text) }
-	path := filepath.Join(appData, "narration-studio", "global-settings.json")
+	path := filepath.Join(appData, brand.DataFolder, "global-settings.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

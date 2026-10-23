@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"io/fs"
 	"os"
@@ -106,7 +107,7 @@ func TestPronunciationOnlineNeverLogsTheKeyOrTheWord(t *testing.T) {
 			t.Errorf("a binding's error quotes the key or the word: %v", err)
 		}
 	}
-	logs := filepath.Join(appData, "narration-studio", "logs")
+	logs := filepath.Join(appData, brand.DataFolder, "logs")
 	read := 0
 	_ = filepath.WalkDir(logs, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || entry.IsDir() {

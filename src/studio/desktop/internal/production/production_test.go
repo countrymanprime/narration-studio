@@ -1,6 +1,7 @@
 package production
 
 import (
+	"desktop/internal/brand"
 	"errors"
 	"os"
 	"path/filepath"
@@ -284,7 +285,7 @@ func TestTheFileIsWrittenUnderTheProjectsProductionFolder(t *testing.T) {
 	if _, err := service.Start("ch-1", stages.StageRecording); err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(service.config.Project, "narration-studio", "production", "sessions.json")
+	want := filepath.Join(service.config.Project, brand.ProjectFolder, "production", "sessions.json")
 	if _, err := os.Stat(want); err != nil {
 		t.Fatalf("want %s written: %v", want, err)
 	}

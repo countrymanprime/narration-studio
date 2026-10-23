@@ -2,7 +2,7 @@
 // It holds Build, a pure planner that answers "what should be
 // linked" from the manuscript's chapters, the saved REAPER project, the stored
 // links and the last sync's snapshot, and Store, which keeps that snapshot in
-// narration-studio/chapter-sync.json. Nothing here writes a link: the sync
+// <app>/chapter-sync.json. Nothing here writes a link: the sync
 // service (src/studio/desktop/chaptersync.go) hands Plan.Requests to
 // evidence.MappingStore.AutoLink once the narrator has consented for the
 // project.

@@ -1,6 +1,7 @@
 package transcript
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,10 +16,10 @@ import (
 func testService(t *testing.T) (*Service, string) {
 	t.Helper()
 	project, session := t.TempDir(), t.TempDir()
-	if err := os.MkdirAll(filepath.Join(project, "narration-studio", "manuscript"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(project, brand.ProjectFolder, "manuscript"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), []byte(`{"version":1}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), []byte(`{"version":1}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	client, err := bridge.New(session)

@@ -129,7 +129,7 @@ func refuse(err error) Outcome {
 	case errors.Is(err, bridge.ErrRecording):
 		return refused(ReasonRecording, "REAPER is recording, so nothing was changed. Stop recording first.")
 	case errors.Is(err, bridge.ErrScriptOutdated):
-		return refused(ReasonScriptOutdated, "The Narration Studio script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again.")
+		return refused(ReasonScriptOutdated, "The app's script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again.")
 	case errors.Is(err, bridge.ErrNoAnswer):
 		return refused(ReasonNotRunning, "REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.")
 	case errors.Is(err, bridge.ErrUnavailable):

@@ -3,6 +3,7 @@
 package credentialstore
 
 import (
+	"desktop/internal/brand"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -13,7 +14,7 @@ const protection = "dpapi"
 
 // entropy ties a sealed value to this app: another program of the same Windows user calling CryptUnprotectData on the
 // blob also needs these bytes. It is not a secret, only a scope.
-var entropy = []byte("narration-studio credentialstore v1")
+var entropy = []byte(brand.CredentialEntropy)
 
 func blob(b []byte) *windows.DataBlob {
 	if len(b) == 0 {

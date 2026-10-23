@@ -62,7 +62,7 @@ type Request struct {
 	CreditsClosing *Item
 	RetailSample   *Item
 	// OutputDir is where the package is written: a narrator-chosen folder, never inside a project's own
-	// narration-studio/ sidecar tree. Assemble creates it if it does not exist, and never overwrites a name already
+	// <app>/ sidecar tree. Assemble creates it if it does not exist, and never overwrites a name already
 	// in it.
 	OutputDir string
 	// Tags, when a Packager row exists for a file's format, are embedded into every file Assemble writes (title,

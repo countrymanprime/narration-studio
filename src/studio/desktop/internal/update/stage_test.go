@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -18,7 +19,7 @@ import (
 	"time"
 )
 
-const stageExecutableName = "narration-studio.exe"
+const stageExecutableName = brand.Executable + ".exe"
 
 // buildZip is a release zip holding the given entries; a name ending in "/" is a directory entry.
 func buildZip(t testing.TB, entries map[string][]byte) []byte {
@@ -146,7 +147,9 @@ func TestStageRefusesEachWayTheDownloadCanBeWrong(t *testing.T) {
 			f.checksum = func([]byte) string { return strings.Repeat("0", 64) + "  " + windowsZip + "\n" }
 		},
 		"a checksum for another file": func(f *releaseServer) {
-			f.checksum = func(b []byte) string { return sumHex(b) + "  narration-studio-0.2.7-linux-x64.tar.gz\n" }
+			f.checksum = func(b []byte) string {
+				return sumHex(b) + "  " + brand.ReleaseAssetPrefix + "-0.2.7-linux-x64.tar.gz\n"
+			}
 		},
 		"a checksum file that is not a checksum": func(f *releaseServer) {
 			f.checksum = func([]byte) string { return "<html>not found</html>" }
@@ -200,15 +203,15 @@ func TestStageRefusesAZipThatIsNotExactlyTheProgram(t *testing.T) {
 	cases := map[string]map[string][]byte{
 		"an extra file":                {stageExecutableName: executable, "readme.txt": []byte("hi")},
 		"the wrong name":               {"other.exe": executable},
-		"a path traversal":             {"../narration-studio.exe": executable},
-		"an absolute path":             {"/narration-studio.exe": executable},
-		"the program in a folder":      {"bin/narration-studio.exe": executable},
-		"a windows-style path":         {"..\\narration-studio.exe": executable},
-		"only a directory":             {"narration-studio.exe/": nil},
+		"a path traversal":             {"../" + brand.Executable + ".exe": executable},
+		"an absolute path":             {"/" + brand.Executable + ".exe": executable},
+		"the program in a folder":      {"bin/" + brand.Executable + ".exe": executable},
+		"a windows-style path":         {"..\\" + brand.Executable + ".exe": executable},
+		"only a directory":             {brand.Executable + ".exe" + "/": nil},
 		"an empty program":             {stageExecutableName: {}},
 		"no entries at all":            {},
-		"the name in another case":     {"Narration-Studio.exe": executable},
-		"the name with a trailing dot": {"narration-studio.exe.": executable},
+		"the name in another case":     {strings.ToUpper(brand.Executable) + ".exe": executable},
+		"the name with a trailing dot": {brand.Executable + ".exe" + ".": executable},
 	}
 	for name, entries := range cases {
 		fake := newReleaseServer(t, buildZip(t, entries))
@@ -393,7 +396,7 @@ func TestTheRedirectPolicyFollowsGitHubOverHTTPSAndNothingElse(t *testing.T) {
 		return r
 	}
 	allowed := []string{
-		"https://github.com/countrymanprime/narration-studio/releases/download/v1.0.0/x.zip",
+		brand.RepositoryURL + "/releases/download/v1.0.0/x.zip",
 		"https://objects.githubusercontent.com/github-production-release-asset/1",
 		"https://release-assets.githubusercontent.com/github-production-release-asset/1",
 		"https://github-releases.githubusercontent.com/1/2",

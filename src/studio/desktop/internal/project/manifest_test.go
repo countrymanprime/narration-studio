@@ -1,6 +1,7 @@
 package project
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -63,7 +64,7 @@ func TestLoadOnAProjectWithNoManifestReturnsNotOkWithoutAnError(t *testing.T) {
 	}
 }
 
-func TestSaveWritesReadableIndentedJSONUnderTheNarrationStudioSidecarFolder(t *testing.T) {
+func TestSaveWritesReadableIndentedJSONUnderTheAppFolder(t *testing.T) {
 	project := t.TempDir()
 	manifest := New("Alice", time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC))
 
@@ -72,8 +73,8 @@ func TestSaveWritesReadableIndentedJSONUnderTheNarrationStudioSidecarFolder(t *t
 	}
 
 	path := Path(project)
-	if filepath.Dir(path) != filepath.Join(project, "narration-studio") {
-		t.Fatalf("Path() = %q, want it under %q", path, filepath.Join(project, "narration-studio"))
+	if filepath.Dir(path) != filepath.Join(project, brand.ProjectFolder) {
+		t.Fatalf("Path() = %q, want it under %q", path, filepath.Join(project, brand.ProjectFolder))
 	}
 	raw, err := os.ReadFile(path)
 	if err != nil {

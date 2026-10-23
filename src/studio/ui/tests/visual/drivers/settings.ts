@@ -432,7 +432,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await openUpdates(page, 'install-refused');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').getByRole('button', { name: 'Install and restart' }).click();
-    await page.getByRole('alert').filter({ hasText: 'Narration Studio is busy' }).waitFor();
+    await page.getByRole('alert').filter({ hasText: 'The app is busy' }).waitFor();
   },
   'about-install-blocked': async (page) => {
     await openUpdates(page, 'install-blocked');

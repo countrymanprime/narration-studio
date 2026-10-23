@@ -160,7 +160,7 @@ type WordsBlob struct {
 	Segments      []json.RawMessage `json:"segments"`
 }
 
-func projectRoot(dir string) string { return filepath.Join(dir, "narration-studio") }
+func projectRoot(dir string) string { return filepath.Join(dir, "app") }
 
 func takeKey(dir string, ch, take int, analyzer string) evidence.CacheEntryKey {
 	return evidence.CacheEntryKey{

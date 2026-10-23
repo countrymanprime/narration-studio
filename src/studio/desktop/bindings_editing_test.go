@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/binary"
 	"encoding/json"
 	"math"
@@ -53,7 +54,7 @@ func editingProject(t *testing.T, unmapped bool) string {
   >
 >
 `)
-	write("narration-studio/manuscript/manuscript.json", `{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c-0001","title":"Chapter One","contentKind":"narration"}],"paragraphs":[{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice."}]}`)
+	write(brand.ProjectFolder+"/manuscript/manuscript.json", `{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c-0001","title":"Chapter One","contentKind":"narration"}],"paragraphs":[{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice."}]}`)
 	if !unmapped {
 		if _, err := evidence.NewMappingStore(project).Confirm("doc-1", "{TRACK-1}", "c-0001", "Chapter One"); err != nil {
 			t.Fatal(err)

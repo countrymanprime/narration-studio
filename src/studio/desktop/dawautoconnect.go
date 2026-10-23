@@ -187,7 +187,7 @@ func errText(err error) string {
 	return err.Error()
 }
 
-// liveBridgeSession is the newest session folder under root (REAPER's <resource path>/NarrationStudio/sessions) whose event log
+// liveBridgeSession is the newest session folder under root (REAPER's <resource path>/<launcher folder>/sessions) whose event log
 // changed within autoConnectHubAge: the bridge's loop writes a status every second or so, so a recent write means a bridge is
 // running now. "" when none is.
 func liveBridgeSession(root string, now time.Time) string {

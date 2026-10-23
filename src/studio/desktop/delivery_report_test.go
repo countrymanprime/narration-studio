@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -159,10 +160,10 @@ func TestAHandEditedLimitIsReportedNotGuessedAt(t *testing.T) {
 	project := t.TempDir()
 	t.Setenv("APPDATA", t.TempDir())
 	store := settings.New(t.TempDir(), project)
-	if err := os.MkdirAll(filepath.Join(project, "narration-studio"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(project, brand.ProjectFolder), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(project, "narration-studio", "settings.json"), []byte(`{"Delivery":{"rms_dbfs_min":"loud"}}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder, "settings.json"), []byte(`{"Delivery":{"rms_dbfs_min":"loud"}}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	host := withProfileStore(t, &Host{config: config{projectFolder: project}, settings: store})
@@ -256,7 +257,7 @@ func TestAnExportWritesBothFilesInTheSidecarFolderWithoutPathsAndLeavesTheAudioA
 	if err != nil {
 		t.Fatal(err)
 	}
-	if export.Folder != "narration-studio/delivery" || !strings.HasPrefix(export.HTMLFile, "delivery-report-") || strings.TrimSuffix(export.HTMLFile, ".html") != strings.TrimSuffix(export.JSONFile, ".json") {
+	if export.Folder != brand.ProjectFolder+"/delivery" || !strings.HasPrefix(export.HTMLFile, "delivery-report-") || strings.TrimSuffix(export.HTMLFile, ".html") != strings.TrimSuffix(export.JSONFile, ".json") {
 		t.Fatalf("export = %+v", export)
 	}
 	if export.Files != 3 || export.PathsIncluded || export.Findings == 0 || export.OpenFindings != export.Findings {

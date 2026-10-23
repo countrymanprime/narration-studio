@@ -5,6 +5,7 @@ export const brand = {
   name: 'Narration Studio',
   slug: 'narration-studio',
   repository: {
+    slug: 'countrymanprime/narration-studio',
     url: 'https://github.com/countrymanprime/narration-studio',
     pagesUrl: 'https://countrymanprime.github.io/narration-studio/',
   },

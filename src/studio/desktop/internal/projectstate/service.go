@@ -128,7 +128,7 @@ func (s *Service) ownsRun(runID string) bool {
 }
 
 func (s *Service) handleInvalid(event dawport.Event, reason error) {
-	message := fmt.Sprintf("The Narration Studio script in REAPER sent a message this app could not read (%v). Import the script from this app's REAPER folder again, then try again.", reason)
+	message := fmt.Sprintf("The app's script in REAPER sent a message this app could not read (%v). Import the script from this app's REAPER folder again, then try again.", reason)
 	s.mu.Lock()
 	if s.state["phase"] != "checking" {
 		s.mu.Unlock()

@@ -2,6 +2,7 @@ package masteringporttest
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"os"
 	"path/filepath"
@@ -120,7 +121,7 @@ func (f *FakeAudacity) refusalLocked(req dawport.MacroRender) string {
 		return "no macro named"
 	}
 	folder := filepath.Dir(req.OutputPath)
-	rel, err := filepath.Rel(filepath.Join(f.project, "narration-studio", "mastering"), folder)
+	rel, err := filepath.Rel(filepath.Join(f.project, brand.ProjectFolder, "mastering"), folder)
 	if err != nil || rel == "." || strings.HasPrefix(rel, "..") || strings.ContainsRune(rel, filepath.Separator) {
 		return "an output path that is not inside a run folder inside the project"
 	}

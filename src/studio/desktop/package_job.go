@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"os"
@@ -18,7 +19,7 @@ import (
 )
 
 // The packaging half of the Master & QC export flow packager.Assemble over the files ExportStart already mastered and encoded, into a folder the narrator chooses with the operating
-// system's own picker - never inside the project's narration-studio/ sidecar tree, so a package is never written
+// system's own picker - never inside the project's <app>/ sidecar tree, so a package is never written
 // where exportScratchDir's own intermediates live. Assemble copies already-small, already-encoded files (never the
 // large WAVs the export job processes), so unlike ExportStart's own per-file progress, PackageStart reports only
 // running and done; docs/architecture/interaction-feedback.md#the-standard's 100 ms acknowledgement still holds because the copy runs in the background, not on
@@ -197,7 +198,7 @@ func (h *Host) startPackage(req PackageRequest) (PackageJob, error) {
 		return h.packageState(), nil
 	}
 	if inSidecarTree(projectFolder, outputDir) {
-		return PackageJob{}, errors.New("a delivery package cannot be saved inside the project's narration-studio folder; choose a different folder")
+		return PackageJob{}, errors.New("a delivery package cannot be saved inside the app's folder in the project; choose a different folder")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -326,7 +327,7 @@ func (h *Host) openPackageFolder() (PackageFolderResult, error) {
 	return PackageFolderResult{Folder: built.OutputDir}, nil
 }
 
-// inSidecarTree reports whether dir is the project's narration-studio folder or a folder inside it: a delivery
+// inSidecarTree reports whether dir is the app's folder in the project or a folder inside it: a delivery
 // package is the narrator's own deliverable, never derived app state, so it is refused there even when the
 // narrator's own picker chose it. With no open project (or a relative dir Abs could not resolve) it answers false:
 // nothing to protect.
@@ -334,7 +335,7 @@ func inSidecarTree(projectFolder, dir string) bool {
 	if projectFolder == "" {
 		return false
 	}
-	sidecar, ok := resolvedPath(filepath.Join(projectFolder, "narration-studio"))
+	sidecar, ok := resolvedPath(filepath.Join(projectFolder, brand.ProjectFolder))
 	if !ok {
 		return false
 	}

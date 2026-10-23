@@ -12,6 +12,7 @@ package audacity
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -588,7 +589,7 @@ func TestRealEditsCutAndStack(t *testing.T) {
 	tracks, _ := e.client.Tracks(e.ctx)
 	var take audacitybridge.TrackInfo
 	for _, x := range tracks {
-		if strings.HasPrefix(x.Name, "Narration Studio take take-2") {
+		if strings.HasPrefix(x.Name, brand.AudacityLabelTrack+" take take-2") {
 			take = x
 		}
 	}
@@ -616,7 +617,7 @@ func TestRealEditsCutAndStack(t *testing.T) {
 	r.check("the take track is gone", !still && func() bool {
 		ts, _ := e.client.Tracks(e.ctx)
 		for _, x := range ts {
-			if strings.HasPrefix(x.Name, "Narration Studio take") {
+			if strings.HasPrefix(x.Name, brand.AudacityLabelTrack+" take") {
 				return false
 			}
 		}

@@ -3,6 +3,7 @@ package manuscript
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -362,7 +363,7 @@ func (s *Service) beginCommit(id string, confirmedReset bool) (*ImportJob, error
 	if project == "" {
 		return nil, fmt.Errorf("save the REAPER project before importing a manuscript")
 	}
-	target := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	target := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if job.busy {
@@ -453,7 +454,7 @@ func (s *Service) Load() (map[string]any, error) {
 	if project == "" {
 		return nil, fmt.Errorf("save the REAPER project and import a manuscript first")
 	}
-	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("import a manuscript first")
@@ -498,7 +499,7 @@ func commit(project, source string, draft importer.Draft, kinds map[string]strin
 	}
 	defer func() { _ = input.Close() }() // read-only source
 	report(15, fmt.Sprintf("Copying %s (%d KB) into the project and computing its checksum", name, info.Size()/1024))
-	sourceDir := filepath.Join(project, "narration-studio", "manuscript", "sources", newID())
+	sourceDir := filepath.Join(project, brand.ProjectFolder, "manuscript", "sources", newID())
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 		return nil, fmt.Errorf("could not create manuscript storage: %w", err)
 	}
@@ -529,7 +530,7 @@ func commit(project, source string, draft importer.Draft, kinds map[string]strin
 		return nil, err
 	}
 	report(70, "Writing manuscript.json")
-	target := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	target := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return nil, err
 	}
@@ -660,7 +661,7 @@ func sourceMetadataFields(metadata *importer.SourceMetadata) map[string]any {
 func resetDerived(project string) error {
 	// Findings are anchored to manuscript chapter and paragraph ids, so a
 	// replace or Clear that invalidates those ids clears findings too.
-	for _, path := range []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, "narration-studio", "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project), editlog.AcceptedFile(project), editlog.CutsFile(project), editlog.WordFxFile(project), editlog.StacksFile(project), bookmarks.File(project), gapreview.File(project), pickuplist.File(project), passagemap.File(project), marks.File(project), scriptprep.File(project)} {
+	for _, path := range []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, brand.ProjectFolder, "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project), editlog.AcceptedFile(project), editlog.CutsFile(project), editlog.WordFxFile(project), editlog.StacksFile(project), bookmarks.File(project), gapreview.File(project), pickuplist.File(project), passagemap.File(project), marks.File(project), scriptprep.File(project)} {
 		if err := os.RemoveAll(path); err != nil {
 			return fmt.Errorf("could not clear project data: %w", err)
 		}
@@ -684,8 +685,8 @@ func (s *Service) Clear() error {
 	}
 	// The old script markup file (prep/markup.json) is no longer read since marks replaced it; an explicit clear still
 	// removes it with the rest of the project's data.
-	if err := os.RemoveAll(filepath.Join(project, "narration-studio", "prep", "markup.json")); err != nil {
+	if err := os.RemoveAll(filepath.Join(project, brand.ProjectFolder, "prep", "markup.json")); err != nil {
 		return fmt.Errorf("could not clear project data: %w", err)
 	}
-	return os.RemoveAll(filepath.Join(project, "narration-studio", "manuscript"))
+	return os.RemoveAll(filepath.Join(project, brand.ProjectFolder, "manuscript"))
 }

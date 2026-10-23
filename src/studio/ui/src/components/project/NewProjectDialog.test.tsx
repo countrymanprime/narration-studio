@@ -121,13 +121,13 @@ describe('NewProjectDialog', () => {
   });
 
   it('shows a refusal reason and does not close when the create is refused', async () => {
-    const createProject = vi.fn(async () => ({ switched: false, reason: 'Narration Studio is busy.' }));
+    const createProject = vi.fn(async () => ({ switched: false, reason: 'The app is busy.' }));
     const { onCreated, onClose } = renderDialog({ createProject });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Alice' } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(await screen.findByText('Narration Studio is busy.')).toBeTruthy();
+    expect(await screen.findByText('The app is busy.')).toBeTruthy();
     expect(onCreated).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });

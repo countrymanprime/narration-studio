@@ -1,6 +1,7 @@
 package manuscript
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -94,7 +95,7 @@ func TestCommitRefusesASubtitleChoiceForASectionThePreviewDidNotHave(t *testing.
 	if failed.Phase != "error" || !strings.Contains(failed.Error, "subtitle choice") {
 		t.Fatalf("commit = %s %q, want an error about the subtitle choice", failed.Phase, failed.Error)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")); !os.IsNotExist(err) {
 		t.Fatalf("a refused choice must write no manuscript, stat err = %v", err)
 	}
 }

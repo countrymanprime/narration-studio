@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"os"
@@ -31,7 +32,7 @@ func updateCachePath() string {
 	if err != nil {
 		base = os.TempDir()
 	}
-	return filepath.Join(base, "narration-studio", "update", "check.json")
+	return filepath.Join(base, brand.DataFolder, "update", "check.json")
 }
 
 // updateSettings reads the two Updates settings: whether to check on startup and which channel counts. Both are global settings

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -20,7 +21,7 @@ func newHostForPunchTest(t *testing.T) (*Host, string) {
 	t.Helper()
 	t.Setenv(fakeTeleprompterEnv, "1")
 	project := t.TempDir()
-	manuscriptPath := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	manuscriptPath := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(manuscriptPath), 0o755); err != nil {
 		t.Fatal(err)
 	}

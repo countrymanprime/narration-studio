@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -39,7 +40,7 @@ const (
 var renameDelay = 150 * time.Millisecond
 
 // ErrBusy is returned by Install when work started after the narrator's click that a restart would displace.
-var ErrBusy = userError("Narration Studio is busy, so the update was not installed. Finish or stop what is running (an import, a Story Bible build, a download, a comparison or a teleprompter session), then try again.")
+var ErrBusy = userError("The app is busy, so the update was not installed. Finish or stop what is running (an import, a Story Bible build, a download, a comparison or a teleprompter session), then try again.")
 
 func renameWithRetry(rename func(oldPath, newPath string) error, oldPath, newPath string) error {
 	var err error
@@ -62,17 +63,17 @@ func restoreProgram(rename func(oldPath, newPath string) error, executable strin
 		_ = renameWithRetry(rename, executable, failedPath)
 	}
 	if err := renameWithRetry(rename, oldPath, executable); err != nil {
-		return userError("The previous version of Narration Studio could not be put back. Rename " + oldPath + " to " + executable + " to get it back.")
+		return userError("The previous version of the app could not be put back. Rename " + oldPath + " to " + executable + " to get it back.")
 	}
 	if _, err := os.Lstat(executable); err != nil {
-		return userError("The previous version of Narration Studio could not be put back. Rename " + oldPath + " to " + executable + " to get it back.")
+		return userError("The previous version of the app could not be put back. Rename " + oldPath + " to " + executable + " to get it back.")
 	}
 	return nil
 }
 
 // ErrNotWritable is returned when the folder the program lives in cannot be written to (Program Files, a locked-down share): the
 // app never asks for elevation, so the narrator replaces the program by hand.
-var ErrNotWritable = userError("Narration Studio is installed where it is not allowed to replace itself. Download the update and replace the program yourself, or ask whoever manages this computer.")
+var ErrNotWritable = userError(brand.Name + " is installed where it is not allowed to replace itself. Download the update and replace the program yourself, or ask whoever manages this computer.")
 
 // Pending records an update that has been swapped in and has not yet started successfully, so the next launch can tell an update that
 // worked from one that did not.
@@ -151,7 +152,7 @@ func (o *InstallOptions) rename(oldPath, newPath string) error {
 
 // WritableDir reports nil when a file can be created, written and removed in dir.
 func WritableDir(dir string) error {
-	file, err := os.CreateTemp(dir, ".narration-studio-write-check-*")
+	file, err := os.CreateTemp(dir, ".write-check-*")
 	if err != nil {
 		return err
 	}

@@ -75,7 +75,7 @@ func TestWriteLabelFile(t *testing.T) {
 	}
 }
 
-// Importing findings creates one label each on the "Narration Studio" track; importing them again adds nothing.
+// Importing findings creates one label each on the app's label track; importing them again adds nothing.
 func TestImportFindingsIsIdempotent(t *testing.T) {
 	session, server := newSession(t)
 	server.With(func(p *abt.Project) {

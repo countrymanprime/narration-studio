@@ -2,6 +2,7 @@ package teleprompter
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -143,7 +144,7 @@ func newFixtureOn(t *testing.T, mode, platform string) *fixture {
 	t.Helper()
 	t.Setenv(fakeSidecarEnv, mode)
 	project := t.TempDir()
-	manuscriptDir := filepath.Join(project, "narration-studio", "manuscript")
+	manuscriptDir := filepath.Join(project, brand.ProjectFolder, "manuscript")
 	if err := os.MkdirAll(manuscriptDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +203,7 @@ func TestStartLaunchesTheSidecarWithTheHostContractFlags(t *testing.T) {
 
 	want := map[string]string{
 		"--engine": "whisper", "--model": "tiny", "--model-dir": "C:/models/tiny", "--chapter": "c1", "--mic": "Microphone Array",
-		"--manuscript": filepath.Join(f.project, "narration-studio", "manuscript", "manuscript.json"),
+		"--manuscript": filepath.Join(f.project, brand.ProjectFolder, "manuscript", "manuscript.json"),
 	}
 	for name, value := range want {
 		if got := flagValue(args, name); got != value {
@@ -306,7 +307,7 @@ func TestStartScriptRemovesTheScriptFileWhenTheSessionEnds(t *testing.T) {
 
 func TestStartScriptDoesNotNeedAnImportedManuscript(t *testing.T) {
 	f := newFixture(t, "stream")
-	if err := os.RemoveAll(filepath.Join(f.project, "narration-studio", "manuscript")); err != nil {
+	if err := os.RemoveAll(filepath.Join(f.project, brand.ProjectFolder, "manuscript")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -655,7 +656,7 @@ func TestStartDefaultsToTheTinyModel(t *testing.T) {
 
 func TestStartNeedsAnImportedManuscript(t *testing.T) {
 	f := newFixture(t, "stream")
-	if err := os.Remove(filepath.Join(f.project, "narration-studio", "manuscript", "manuscript.json")); err != nil {
+	if err := os.Remove(filepath.Join(f.project, brand.ProjectFolder, "manuscript", "manuscript.json")); err != nil {
 		t.Fatal(err)
 	}
 

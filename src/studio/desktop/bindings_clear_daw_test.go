@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"path/filepath"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ func clearHost(t *testing.T, inFolder []string, link string) (*Host, string) {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	folder := t.TempDir()
-	writeNested(t, filepath.Join(folder, "narration-studio", "manuscript", "manuscript.json"), bookmarksManuscript)
+	writeNested(t, filepath.Join(folder, brand.ProjectFolder, "manuscript", "manuscript.json"), bookmarksManuscript)
 	for _, name := range inFolder {
 		writeFile(t, filepath.Join(folder, name), "x")
 	}

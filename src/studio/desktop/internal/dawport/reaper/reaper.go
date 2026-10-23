@@ -25,7 +25,7 @@ import (
 
 func init() { dawport.Register(dawport.KindREAPER, Factory) }
 
-// ErrNoSession is returned when the launch has no REAPER session directory (NarrationStudio_Launcher.lua makes one), so there is no bridge to wrap.
+// ErrNoSession is returned when the launch has no REAPER session directory (the launcher script makes one), so there is no bridge to wrap.
 var ErrNoSession = errors.New("REAPER is not connected to this app: there is no REAPER session to talk to")
 
 // declares is the adapter's static declaration. Promoting a command once the owner's REAPER verification pass has confirmed it
@@ -483,7 +483,7 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 }
 
 // messageCutScriptOutdated answers a pad or room tone sent to a script older than them, which refused and cut nothing.
-const messageCutScriptOutdated = "The Narration Studio script in REAPER is older than this app and cannot pad a cut or fill it with room tone, so nothing was cut. Import the script again from this app's REAPER folder."
+const messageCutScriptOutdated = "The app's script in REAPER is older than this app and cannot pad a cut or fill it with room tone, so nothing was cut. Import the script again from this app's REAPER folder."
 
 // cutMessage words a cut as the mock does (studio-next/src/state/daw.ts, deleteRange).
 func cutMessage(words int) string {
@@ -541,7 +541,7 @@ func (r rangeGainReducer) ReduceRangeGain(ctx context.Context, request dawport.R
 
 const (
 	messageGainBad            = "The stretches to lower are not usable, so nothing was changed."
-	messageGainScriptOutdated = "The Narration Studio script in REAPER is older than this app and cannot lower a stretch, so nothing was changed. Import the script again from this app's REAPER folder."
+	messageGainScriptOutdated = "The app's script in REAPER is older than this app and cannot lower a stretch, so nothing was changed. Import the script again from this app's REAPER folder."
 )
 
 // gainMessage words stretches lowered by db.
@@ -597,7 +597,7 @@ func (r clickRepairer) RepairClick(ctx context.Context, request dawport.ClickRep
 
 const (
 	messageClickBad            = "The clicks to repair are not usable, so nothing was changed."
-	messageClickScriptOutdated = "The Narration Studio script in REAPER is older than this app and cannot repair a click, so nothing was changed. Import the script again from this app's REAPER folder."
+	messageClickScriptOutdated = "The app's script in REAPER is older than this app and cannot repair a click, so nothing was changed. Import the script again from this app's REAPER folder."
 )
 
 // clickMessage words clicks repaired.
@@ -815,7 +815,7 @@ func (r rangeFXApplier) fxEditRefused(piece appliedPiece, chain string, err erro
 
 const (
 	messageFXGone           = "That effect is no longer on those words in REAPER. Check the chapter again so the app finds where it is."
-	messageFXScriptOutdated = "The Narration Studio script in REAPER is older than this app and cannot read or change an effect on words, so nothing was changed. Import the script again from this app's REAPER folder."
+	messageFXScriptOutdated = "The app's script in REAPER is older than this app and cannot read or change an effect on words, so nothing was changed. Import the script again from this app's REAPER folder."
 )
 
 func (r rangeFXApplier) refused() (dawport.Result, bool) {

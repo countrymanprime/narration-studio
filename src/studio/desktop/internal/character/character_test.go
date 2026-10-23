@@ -1,6 +1,7 @@
 package character
 
 import (
+	"desktop/internal/brand"
 	"errors"
 	"os"
 	"path/filepath"
@@ -418,8 +419,8 @@ func TestApproveFailsWhenReferencesFileIsCorruptJSON(t *testing.T) {
 	}
 }
 
-func TestDirIsUnderTheProjectsNarrationStudioFolder(t *testing.T) {
-	if got, want := Dir("/proj"), filepath.Join("/proj", "narration-studio", "characters"); got != want {
+func TestDirIsUnderTheProjectsAppFolder(t *testing.T) {
+	if got, want := Dir("/proj"), filepath.Join("/proj", brand.ProjectFolder, "characters"); got != want {
 		t.Fatalf("Dir(%q) = %q, want %q", "/proj", got, want)
 	}
 }

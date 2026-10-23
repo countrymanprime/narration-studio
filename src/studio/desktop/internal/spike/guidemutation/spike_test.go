@@ -10,6 +10,7 @@ package guidemutation
 // "spikelatency" tag.
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -118,7 +119,7 @@ type project struct {
 func newProject(t *testing.T, py string, chapters, perChapter int) project {
 	t.Helper()
 	dir := t.TempDir()
-	count, err := synthManuscript(filepath.Join(dir, "narration-studio", "manuscript", "manuscript.json"), chapters, perChapter)
+	count, err := synthManuscript(filepath.Join(dir, brand.ProjectFolder, "manuscript", "manuscript.json"), chapters, perChapter)
 	if err != nil {
 		t.Fatal(err)
 	}

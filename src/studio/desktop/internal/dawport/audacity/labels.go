@@ -1,6 +1,7 @@
 package audacity
 
 import (
+	"desktop/internal/brand"
 	"fmt"
 	"io"
 	"regexp"
@@ -19,7 +20,7 @@ const (
 	// maxLabelBytes keeps a label short enough to read in Audacity's label track and well inside one command.
 	maxLabelBytes = 200
 	// LabelTrackName is the label track the adapter adds its labels to, creating it when the project has none.
-	LabelTrackName = "Narration Studio"
+	LabelTrackName = brand.AudacityLabelTrack
 )
 
 // validID is a finding ID the adapter will put in a label: the findings contract's IDs are short ASCII tokens, so anything else is

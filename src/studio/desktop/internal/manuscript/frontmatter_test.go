@@ -1,6 +1,7 @@
 package manuscript
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -76,7 +77,7 @@ const legacyFrontMatterManuscript = `{"schemaVersion":1,"documentId":"doc-1","ch
 // A manuscript imported before this kept its front matter as a chapter. The data stays (the credits read it), but nothing lists it.
 func TestAnImportedFrontMatterChapterIsNeverListed(t *testing.T) {
 	project := t.TempDir()
-	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

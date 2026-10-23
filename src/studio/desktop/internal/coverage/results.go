@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -23,7 +24,7 @@ var recordIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{1,64}$`)
 // it with the ledger and cache, since results name chapter and paragraph ids a
 // re-import resets.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-studio", "analysis", "coverage")
+	return filepath.Join(project, brand.ProjectFolder, "analysis", "coverage")
 }
 
 func resultsDir(project string) string { return filepath.Join(Dir(project), "results") }

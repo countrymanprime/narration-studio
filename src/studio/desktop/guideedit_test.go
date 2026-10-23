@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -89,7 +90,7 @@ func words(args []string) []string {
 // writeManuscript puts a manuscript with one narrated paragraph in the service's project, where the host searches for a new name.
 func writeManuscript(t *testing.T, project string) {
 	t.Helper()
-	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

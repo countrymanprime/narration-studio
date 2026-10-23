@@ -8,6 +8,7 @@ package teleprompter
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -254,7 +255,7 @@ func (s *Service) plan(options map[string]string) (launch, error) {
 	if s.config.Project == "" {
 		return launch{}, errors.New("save the REAPER project and import a manuscript first")
 	}
-	manuscript := filepath.Join(s.config.Project, "narration-studio", "manuscript", "manuscript.json")
+	manuscript := filepath.Join(s.config.Project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if _, err := os.Stat(manuscript); err != nil {
 		return launch{}, errors.New("import a manuscript first")
 	}

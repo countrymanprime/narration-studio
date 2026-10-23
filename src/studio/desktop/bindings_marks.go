@@ -8,7 +8,7 @@ import (
 )
 
 // The Script page's marks: a range of one paragraph marked with one of the narrator's mark types, with an optional note, or
-// a question when the type asks. The types and the marks are kept in <project>/narration-studio/marks.json and each mark is
+// a question when the type asks. The types and the marks are kept in <project>/<app>/marks.json and each mark is
 // checked against the current text on every read, so a mark whose line is gone, whose range no longer fits or whose words
 // changed comes back stale rather than moved (docs/reference/script-marks.md).
 

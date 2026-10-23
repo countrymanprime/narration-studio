@@ -5,6 +5,7 @@
 package layout
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 )
@@ -26,7 +27,7 @@ const (
 	EncoderCatalogFile       = ConfigDir + "/encoder-assets.json"
 	AnalysisCatalogFile      = ConfigDir + "/analysis-assets.json"
 	ReaperDir                = "src/studio/integrations/reaper"
-	LauncherFile             = ReaperDir + "/NarrationStudio_Launcher.lua"
+	LauncherFile             = ReaperDir + "/" + brand.ReaperLauncher
 	FixturesDir              = "tests/fixtures"
 	ManuscriptGuideBackend   = "src/studio/sidecars/manuscript-guide/core/manuscript_guide.py"
 	TranscriptCompareBackend = "src/studio/sidecars/transcript-compare/core/compare.py"

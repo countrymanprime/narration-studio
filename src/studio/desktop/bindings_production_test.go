@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -240,7 +241,7 @@ func TestProductionTimerStartsStopsAndRefusesASecondTimer(t *testing.T) {
 	if chapter["status"] != "recording" {
 		t.Fatalf("status = %v, want it untouched by the timer", chapter["status"])
 	}
-	if _, err := os.Stat(filepath.Join(host.config.projectFolder, "narration-studio", "production", "sessions.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(host.config.projectFolder, brand.ProjectFolder, "production", "sessions.json")); err != nil {
 		t.Fatalf("the time log was not written: %v", err)
 	}
 }

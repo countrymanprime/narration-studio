@@ -12,6 +12,7 @@ package proofing
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,7 +50,7 @@ var ErrRendersUnreadable = errors.New("the proofing render choices file could no
 
 // Dir is this package's sidecar folder under a project; manuscript.resetDerived
 // clears it, since the associations name chapter ids a re-import renumbers.
-func Dir(project string) string { return filepath.Join(project, "narration-studio", "proofing") }
+func Dir(project string) string { return filepath.Join(project, brand.ProjectFolder, "proofing") }
 
 // RendersFile is the chapter-to-render association sidecar.
 func RendersFile(project string) string { return filepath.Join(Dir(project), "renders.json") }

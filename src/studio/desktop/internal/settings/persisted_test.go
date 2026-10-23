@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,7 +25,7 @@ func storeWithReporter(t *testing.T) (*Store, *heard, string) {
 		Log:    func(kind, message string) { spoken.logs = append(spoken.logs, kind+" "+message) },
 		Notify: func(text string) { spoken.notices = append(spoken.notices, text) },
 	})
-	return store, spoken, filepath.Join(appData, "narration-studio", "global-settings.json")
+	return store, spoken, filepath.Join(appData, brand.DataFolder, "global-settings.json")
 }
 
 func writeSettings(t *testing.T, path, content string) {
@@ -124,7 +125,7 @@ func TestAStoreWithoutAReporterStillKeepsACorruptFile(t *testing.T) {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	t.Setenv("USERPROFILE", appData)
-	path := filepath.Join(appData, "narration-studio", "global-settings.json")
+	path := filepath.Join(appData, brand.DataFolder, "global-settings.json")
 	writeSettings(t, path, `{`)
 	_ = New(t.TempDir(), "").Global("General")
 	if kept := keptCopies(t, path); len(kept) != 1 {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,12 +26,12 @@ const deliverySettingsTool = "Delivery"
 // deliveryProfilesPath resolves the per-user delivery-profiles.json, beside credit-templates.json.
 func deliveryProfilesPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-studio", deliveryprofile.FileName)
+		return filepath.Join(value, brand.DataFolder, deliveryprofile.FileName)
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-studio", deliveryprofile.FileName)
+		return filepath.Join(value, "AppData", "Roaming", brand.DataFolder, deliveryprofile.FileName)
 	}
-	return filepath.Join("AppData", "Roaming", "narration-studio", deliveryprofile.FileName)
+	return filepath.Join("AppData", "Roaming", brand.DataFolder, deliveryprofile.FileName)
 }
 
 // DeliveryProfilesState is what Master & QC and Settings read: every profile the narrator can choose (built-ins

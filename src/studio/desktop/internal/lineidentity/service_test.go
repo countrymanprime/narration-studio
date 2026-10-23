@@ -1,6 +1,7 @@
 package lineidentity
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -34,7 +35,7 @@ func lineStamperRole(t *testing.T, client *bridge.Client) dawport.LineStamper {
 // recorded source checksum; pass "" to omit the source object entirely (an old or corrupt manuscript).
 func writeManuscript(t *testing.T, project, sha string) {
 	t.Helper()
-	dir := filepath.Join(project, "narration-studio", "manuscript")
+	dir := filepath.Join(project, brand.ProjectFolder, "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}

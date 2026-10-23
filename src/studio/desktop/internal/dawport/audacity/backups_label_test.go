@@ -2,6 +2,7 @@ package audacity
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"os"
 	"strings"
 	"testing"
@@ -59,7 +60,7 @@ func TestAVersionOneFileWithoutLabelsReadsAndOneWithABadLabelIsCorrupt(t *testin
 	path := BackupsFile(project)
 	write := func(row string) {
 		t.Helper()
-		if err := os.MkdirAll(project+"/narration-studio", 0o755); err != nil {
+		if err := os.MkdirAll(project+"/"+brand.ProjectFolder, 0o755); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(path, []byte(`{"schemaVersion":1,"backups":[`+row+`]}`), 0o600); err != nil {

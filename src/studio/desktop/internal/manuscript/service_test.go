@@ -1,6 +1,7 @@
 package manuscript
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -302,14 +303,14 @@ func TestPreviewPayloadCarriesTheRepairsTheImporterMade(t *testing.T) {
 // other derived, manuscript-anchored folders.
 func TestResetDerivedClearsTheFindingsDirectory(t *testing.T) {
 	project := t.TempDir()
-	findingsFile := filepath.Join(project, "narration-studio", "findings", "transcript_compare", "c-0001.json")
+	findingsFile := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
 	if err := os.MkdirAll(filepath.Dir(findingsFile), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(findingsFile, []byte("[]"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	settingsFile := filepath.Join(project, "narration-studio", "settings.json")
+	settingsFile := filepath.Join(project, brand.ProjectFolder, "settings.json")
 	if err := os.WriteFile(settingsFile, []byte("{}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -318,11 +319,11 @@ func TestResetDerivedClearsTheFindingsDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := os.Stat(filepath.Join(project, "narration-studio", "findings")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "findings")); !os.IsNotExist(err) {
 		t.Fatalf("expected the findings directory to be removed, stat err = %v", err)
 	}
 	if _, err := os.Stat(settingsFile); err != nil {
-		t.Fatalf("resetDerived must not touch narration-studio/settings.json: %v", err)
+		t.Fatalf("resetDerived must not touch "+brand.ProjectFolder+"/settings.json: %v", err)
 	}
 }
 

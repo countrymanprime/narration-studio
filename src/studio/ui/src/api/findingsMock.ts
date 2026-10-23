@@ -138,7 +138,7 @@ export const REAPER_MESSAGES = {
   noSourceTime: 'This finding has no time in its audio to loop. Go to it instead.',
   stale: "This finding's item is no longer in the REAPER project, so nothing was moved. Run the check again to find it where it is now.",
   recording: 'REAPER is recording, so nothing was moved. Stop recording first.',
-  outdated: 'The Narration Studio script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again.',
+  outdated: 'The app’s script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again.',
   // The approved marker's own words (src/studio/desktop/bindings_marker.go).
   markerNoItem: 'This finding has no REAPER item to mark, because it came from an older check. Run the check again to record one.',
   markerNoSourceTime: 'This finding has no time in its audio to put a marker at.',

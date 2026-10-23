@@ -2,6 +2,7 @@ package voicesample
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -257,7 +258,7 @@ func TestClipPathOnlyNamesFilesInTheClipsFolder(t *testing.T) {
 	project := t.TempDir()
 	good := strings.Repeat("0f", 16)
 	path, ok := ClipPath(project, good)
-	if !ok || path != filepath.Join(project, "narration-studio", "voice-samples", "clips", good+".wav") {
+	if !ok || path != filepath.Join(project, brand.ProjectFolder, "voice-samples", "clips", good+".wav") {
 		t.Fatalf("ClipPath = %q, %v", path, ok)
 	}
 	for _, id := range []string{"", "..", "../x", good + ".wav", strings.ToUpper(good), good[:31], good + "0", strings.Repeat("g", 32), "C:\\x", good[:30] + "/x", good[:31] + "\x00"} {

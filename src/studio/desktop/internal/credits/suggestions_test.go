@@ -2,6 +2,7 @@ package credits
 
 import (
 	"archive/zip"
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -35,7 +36,7 @@ func writeMinimalDocxWithCoreProps(t *testing.T, path, coreXML string) {
 
 func writeManuscript(t *testing.T, project string, doc map[string]any) {
 	t.Helper()
-	dir := filepath.Join(project, "narration-studio", "manuscript")
+	dir := filepath.Join(project, brand.ProjectFolder, "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -100,15 +101,15 @@ func TestStoredSourcePathRefusesAPathThatEscapesTheSourcesFolder(t *testing.T) {
 	project := t.TempDir()
 	for _, storedPath := range []string{
 		filepath.Join("..", "..", "etc", "passwd"),
-		filepath.Join("narration-studio", "manuscript", "manuscript.json"),
-		filepath.Join("narration-studio", "settings.json"),
+		filepath.Join(brand.ProjectFolder, "manuscript", "manuscript.json"),
+		filepath.Join(brand.ProjectFolder, "settings.json"),
 		"",
 	} {
 		if _, ok := storedSourcePath(project, storedPath); ok {
 			t.Fatalf("storedSourcePath(%q) = ok, want refused (outside sources/)", storedPath)
 		}
 	}
-	inside := filepath.Join("narration-studio", "manuscript", "sources", "src-1", "book.docx")
+	inside := filepath.Join(brand.ProjectFolder, "manuscript", "sources", "src-1", "book.docx")
 	resolved, ok := storedSourcePath(project, inside)
 	if !ok || resolved != filepath.Join(project, inside) {
 		t.Fatalf("storedSourcePath(%q) = %q, %v, want it accepted", inside, resolved, ok)
@@ -116,10 +117,10 @@ func TestStoredSourcePathRefusesAPathThatEscapesTheSourcesFolder(t *testing.T) {
 }
 
 // realStoredPath is the shape commit() (src/studio/desktop/internal/manuscript/service.go) actually writes:
-// "narration-studio/manuscript/sources/<id>/<name>", relative to the project folder, not a bare file name under
-// "narration-studio/manuscript". A made-up bare name would hide the double-join defect.
+// "<app>/manuscript/sources/<id>/<name>", relative to the project folder, not a bare file name under
+// "<app>/manuscript". A made-up bare name would hide the double-join defect.
 func realStoredPath(name string) string {
-	return filepath.Join("narration-studio", "manuscript", "sources", "src-0001", name)
+	return filepath.Join(brand.ProjectFolder, "manuscript", "sources", "src-0001", name)
 }
 
 // TestSuggestFromManuscriptPrefersFrontMatterOverDocPropsWhenBothArePresent pins the precedence: the front matter

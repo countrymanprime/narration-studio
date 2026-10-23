@@ -15,7 +15,7 @@ const monitorLevelTimeout = 3 * time.Second
 
 const (
 	monitorLevelNoAnswerSentence  = "%s did not answer the monitor level within %d seconds. Check the level before trying again."
-	monitorLevelOutdatedSentence  = "The Narration Studio script in %s is older than this app and cannot set the monitor level. Import the script again from this app's %s folder."
+	monitorLevelOutdatedSentence  = "The app's script in %s is older than this app and cannot set the monitor level. Import the script again from this app's %s folder."
 	monitorLevelNotDoneSentence   = "%s could not set the monitor level: %s."
 	monitorLevelNotReadSentence   = "%s could not read the monitor level: %s."
 	monitorLevelNoSuchLevelFormat = "the monitor level is 0 to %d, not %d"

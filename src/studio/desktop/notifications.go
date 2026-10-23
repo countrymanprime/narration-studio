@@ -40,7 +40,7 @@ func (s realNotificationSender) Initialize() error {
 
 // Send gives each notification its own id: Wails v3 replaces a shown notification that has the same id.
 func (s realNotificationSender) Send(title, body string) error {
-	return s.service.SendNotification(notifications.NotificationOptions{ID: fmt.Sprintf("narration-studio-%d", nextNotificationID()), Title: title, Body: body})
+	return s.service.SendNotification(notifications.NotificationOptions{ID: fmt.Sprintf("notification-%d", nextNotificationID()), Title: title, Body: body})
 }
 
 // SystemNotify raises one OS notification when General.notifications is on (N1-N4). It never surfaces an error to the

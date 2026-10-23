@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -80,7 +81,7 @@ func TestOpeningALinkedProjectInstallsTheBridgeAndStartsREAPEROnTheProjectAlone(
 	if _, err := time.Parse(time.RFC3339, choice.Starting.Since); err != nil {
 		t.Fatalf("since: %v", err)
 	}
-	if got := s.host.services().config.reaperLauncher; got != filepath.Join(s.resource, "Scripts", "NarrationStudio", reaperinstall.LauncherScript) {
+	if got := s.host.services().config.reaperLauncher; got != filepath.Join(s.resource, "Scripts", brand.ReaperResourceFolder, reaperinstall.LauncherScript) {
 		t.Fatalf("the launch uses the installed launcher: %s", got)
 	}
 }
@@ -99,7 +100,7 @@ func TestARunningREAPERWithNoBridgeGetsTheInstalledLauncher(t *testing.T) {
 	s.running = true
 	s.host.autoConnectOnce(time.Time{})
 	starts := s.startArgs()
-	want := filepath.Join(s.resource, "Scripts", "NarrationStudio", reaperinstall.LauncherScript)
+	want := filepath.Join(s.resource, "Scripts", brand.ReaperResourceFolder, reaperinstall.LauncherScript)
 	if len(starts) != 1 || len(starts[0]) != 1 || starts[0][0] != want {
 		t.Fatalf("the open REAPER runs the installed launcher: %v", starts)
 	}
@@ -143,7 +144,7 @@ func TestAREAPERThatWasNeverOpenedIsStartedWithTheLauncherAndTheBridgeWaits(t *t
 		t.Fatal("REAPER's folder is not made for it")
 	}
 	starts := s.startArgs()
-	if len(starts) != 1 || len(starts[0]) != 2 || filepath.Base(starts[0][1]) != "NarrationStudio_Launcher.lua" {
+	if len(starts) != 1 || len(starts[0]) != 2 || filepath.Base(starts[0][1]) != brand.ReaperLauncher {
 		t.Fatalf("with nothing installed the launcher rides along, as before: %v", starts)
 	}
 	choice := decodeDawChoice(t)(s.host.DawChoice())

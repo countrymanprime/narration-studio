@@ -2,6 +2,7 @@ package masteringport
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"os"
@@ -82,7 +83,7 @@ func (audacityChain) Master(ctx context.Context, req Request) (Result, error) {
 		return Result{}, err
 	}
 	runID = "master-" + runID
-	folder := filepath.Join(session.ProjectFolder, "narration-studio", "mastering", runID)
+	folder := filepath.Join(session.ProjectFolder, brand.ProjectFolder, "mastering", runID)
 	if err := os.MkdirAll(filepath.Dir(folder), 0o750); err != nil {
 		return Result{}, err
 	}

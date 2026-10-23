@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +16,7 @@ import (
 	"desktop/internal/update"
 )
 
-const updateTestRepository = "countrymanprime/narration-studio"
+const updateTestRepository = brand.RepositorySlug
 
 // fakeReleaseServer answers the release list the way GitHub does and counts the requests, so a test can say "no request was made".
 type fakeReleaseServer struct {
@@ -37,7 +38,7 @@ func newFakeReleaseServer(t *testing.T, tags ...string) *fakeReleaseServer {
 	}
 	var releases []release
 	for _, tag := range tags {
-		prefix := "narration-studio-" + strings.TrimSuffix(strings.TrimPrefix(tag, "v"), "-rc") + "-"
+		prefix := brand.ReleaseAssetPrefix + "-" + strings.TrimSuffix(strings.TrimPrefix(tag, "v"), "-rc") + "-"
 		releases = append(releases, release{Tag: tag, Prerelease: strings.HasSuffix(tag, "-rc"), PublishedAt: "2026-09-20T10:00:00Z", Assets: []asset{
 			{Name: prefix + "windows-x64.zip", Size: 400 << 20}, {Name: prefix + "windows-x64.zip.sha256", Size: 100},
 			{Name: prefix + "linux-x64.tar.gz", Size: 200 << 20}, {Name: prefix + "macos-arm64.zip", Size: 100 << 20},
@@ -66,7 +67,7 @@ func updateHost(t *testing.T, fake *fakeReleaseServer, current string) *Host {
 	host := NewHost()
 	host.version = current
 	installDir := t.TempDir()
-	host.executable = func() (string, error) { return filepath.Join(installDir, "narration-studio.exe"), nil }
+	host.executable = func() (string, error) { return filepath.Join(installDir, brand.Executable+".exe"), nil }
 	host.pendingPath = filepath.Join(t.TempDir(), "pending.json")
 	platform, _ := update.PlatformFor("windows", "amd64")
 	host.updates = &update.Checker{

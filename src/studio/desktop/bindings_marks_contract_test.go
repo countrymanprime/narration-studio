@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -24,7 +25,7 @@ func TestMarksContractGoldens(t *testing.T) {
 	// never moved, and the one whose line is gone goes last.
 	edited := strings.Replace(bookmarksManuscript, "The soldiers were silent.", "The guards were silent.", 1)
 	edited = strings.Replace(edited, `,{"id":"p-000003","chapterId":"c-0002","index":2,"text":"Alice was not a bit hurt."}`, "", 1)
-	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), edited)
+	writeNested(t, filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), edited)
 	payload, err = host.MarksList()
 	checkBindingContract(t, "marks-list", payload)
 	list := decodeMarks(t)(payload, err)

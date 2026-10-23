@@ -10,6 +10,7 @@ package deliveryreport
 
 import (
 	"cmp"
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -25,7 +26,7 @@ import (
 const SchemaVersion = 2
 
 // Dir is the sidecar folder the host writes reports to, relative to the project folder; never next to the audio.
-const Dir = "narration-studio/delivery"
+const Dir = brand.ProjectFolder + "/delivery"
 
 // The statuses of one file in a report.
 const (
@@ -118,7 +119,7 @@ func Build(in Input) Report {
 	return Report{
 		SchemaVersion: SchemaVersion,
 		GeneratedAt:   in.GeneratedAt,
-		App:           App{Name: "Narration Studio", Version: in.AppVersion},
+		App:           App{Name: brand.Name, Version: in.AppVersion},
 		Analyzers: []Analyzer{
 			{Name: "measure", Version: measure.AnalyzerVersion, Description: "Integrated loudness (ITU-R BS.1770-4), RMS, sample and true peak, noise floor and duration of each whole file"},
 			{Name: "diagnostics", Version: measure.AnalyzerVersion, Description: "Clipping, short-term loudness shifts, silences and room-tone changes, against the thresholds listed"},

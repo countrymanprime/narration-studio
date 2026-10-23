@@ -2,6 +2,7 @@ package teleprompter
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -50,7 +51,7 @@ func newLocateFixture(t *testing.T, mode string) locateFixture {
 	t.Helper()
 	t.Setenv(fakeSidecarEnv, mode)
 	project := t.TempDir()
-	manuscript := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	manuscript := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(manuscript), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +86,7 @@ func TestLocateRunsTheSidecarOnceAndReturnsItsLocateLine(t *testing.T) {
 	if located.Word == nil || *located.Word != 52 || *located.Last != 51 || !located.Confident || located.Sentence.Text != "Once or twice." {
 		t.Fatalf("located = %+v", located)
 	}
-	manuscript := filepath.Join(f.project, "narration-studio", "manuscript", "manuscript.json")
+	manuscript := filepath.Join(f.project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	want := strings.Join([]string{
 		"--locate", "--engine", "whisper", "--model", "tiny", "--model-dir", filepath.Join(f.project, "models", "tiny"),
 		"--manuscript", manuscript, "--chapter", "c1", "--wav", f.audio, "--tail-start", "812.400", "--tail-end", "842.400", "--language", "en",

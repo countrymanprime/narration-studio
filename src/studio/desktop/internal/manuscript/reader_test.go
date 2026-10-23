@@ -1,6 +1,7 @@
 package manuscript
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -113,7 +114,7 @@ func TestSearchMatchOffsetSurvivesMultiByteCharactersBeforeTheMatch(t *testing.T
 
 func writeManuscript(t *testing.T, project string, paragraphs []map[string]any) string {
 	t.Helper()
-	dir := filepath.Join(project, "narration-studio", "manuscript")
+	dir := filepath.Join(project, brand.ProjectFolder, "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +224,7 @@ func TestChapterIDByTitleAndParagraphIDResolveAgainstTheImportedManuscript(t *te
 
 func TestChapterIDByTitleFlagsATitleSharedByTwoChapters(t *testing.T) {
 	project := t.TempDir()
-	dir := filepath.Join(project, "narration-studio", "manuscript")
+	dir := filepath.Join(project, brand.ProjectFolder, "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}

@@ -1,7 +1,7 @@
 // This file holds the narrator-confirmed trackGuid -> chapterId mapping store
 // plus the pure suggestion helper over the chapter-to-track matcher
 // (internal/chaptermatch). It is one JSON file per project,
-// narration-studio/chapter-track-map.json, keyed by the manuscript's documentId
+// <app>/chapter-track-map.json, keyed by the manuscript's documentId
 // and holding each mapping's chapter title and confirmedAt beside the id - the
 // stored title is what lets a re-import re-suggest a link instead of asking
 // again (see SuggestFromPrevious).
@@ -14,6 +14,7 @@
 package evidence
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -134,12 +135,12 @@ type mappingFileShape struct {
 }
 
 // MappingFile is the confirmed mapping's storage path under a project
-// (narration-studio/chapter-track-map.json, a single file, not a directory of records like LedgerDir/CacheDir - there is one active
+// (<app>/chapter-track-map.json, a single file, not a directory of records like LedgerDir/CacheDir - there is one active
 // mapping set per project at a time). It is exported so
 // manuscript.resetDerived can clear it without this package depending on
 // the manuscript package.
 func MappingFile(project string) string {
-	return filepath.Join(project, "narration-studio", "chapter-track-map.json")
+	return filepath.Join(project, brand.ProjectFolder, "chapter-track-map.json")
 }
 
 // MappingStore is the chapter-track mapping: the links the
@@ -511,7 +512,7 @@ func (s *MappingStore) writeLocked(file mappingFileShape) error {
 	sort.Slice(file.Mappings, func(i, j int) bool { return file.Mappings[i].TrackGUID < file.Mappings[j].TrackGUID })
 
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
+		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

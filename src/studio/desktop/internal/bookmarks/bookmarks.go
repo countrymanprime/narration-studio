@@ -9,6 +9,7 @@ package bookmarks
 
 import (
 	"crypto/rand"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -48,7 +49,7 @@ const (
 
 // File is where a project's bookmarks are kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-studio", "bookmarks.json")
+	return filepath.Join(project, brand.ProjectFolder, "bookmarks.json")
 }
 
 // Bookmark is one bookmark as stored. Offset is in UTF-16 code units into the paragraph's text (a JS string index, the
@@ -428,7 +429,7 @@ func (s *Service) write(file bookmarksFile) error {
 	file.SchemaVersion = SchemaVersion
 	path := File(s.config.Project)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
+		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

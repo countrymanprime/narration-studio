@@ -2,6 +2,7 @@ package update
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -52,10 +53,10 @@ type Platform struct {
 	SelfReplace bool
 }
 
-// AssetName is the platform's archive in the release of this version: narration-studio-<version>-<platform>.<ext>
+// AssetName is the platform's archive in the release of this version: <release asset prefix>-<version>-<platform>.<ext>
 // The version is bare, so a candidate and its promotion publish the same file names.
 func (p Platform) AssetName(version Version) string {
-	return "narration-studio-" + version.String() + "-" + p.Key + p.Extension
+	return brand.ReleaseAssetPrefix + "-" + version.String() + "-" + p.Key + p.Extension
 }
 
 // ChecksumName is the .sha256 beside AssetName.

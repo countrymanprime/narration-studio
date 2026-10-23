@@ -3,6 +3,7 @@ package audacity
 import (
 	"bytes"
 	"crypto/rand"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +21,7 @@ import (
 )
 
 // The backups table: one row per window of audio the adapter cloned to its own track in the Audacity project, kept in
-// the app's project folder as narration-studio/backups.json. The backup's audio lives in the Audacity project; the row is how the
+// the app's project folder as <app>/backups.json. The backup's audio lives in the Audacity project; the row is how the
 // app finds it again. The file is narrator data, read through persist: a corrupt one is kept aside and an empty table starts, one
 // written by a newer app is refused and never overwritten, and a write goes through a temporary file and a rename.
 
@@ -38,7 +39,7 @@ const backupsWhat = "Audacity backups"
 
 // BackupsFile is where a project's backups table is kept. Its only input is the app's project folder, never a path from the page.
 func BackupsFile(project string) string {
-	return filepath.Join(project, "narration-studio", "backups.json")
+	return filepath.Join(project, brand.ProjectFolder, "backups.json")
 }
 
 // Backup is one row of the table. GUID is the source track as the request named it (Audacity reports no track ids, so it is the
@@ -75,7 +76,7 @@ func newBackupID() string {
 }
 
 // BackupTrackName is the name of the Audacity track that holds a backup. The adapter finds the track again only by this exact name.
-func BackupTrackName(id string) string { return "Narration Studio backup " + id }
+func BackupTrackName(id string) string { return brand.AudacityLabelTrack + " backup " + id }
 
 // backupText reports whether s is a row's text: non-empty, valid UTF-8, bounded and free of control characters.
 func backupText(s string) bool {
@@ -124,7 +125,7 @@ func lockBackups(path string) func() {
 
 // The sentences a table that cannot be used answers with.
 const (
-	messageBackupsNewer      = "The Audacity backups file was written by a newer version of Narration Studio, so it was left as it is. Update the app to use it."
+	messageBackupsNewer      = "The Audacity backups file was written by a newer version of the app, so it was left as it is. Update the app to use it."
 	messageBackupsUnreadable = "The Audacity backups file could not be read, so nothing was changed."
 )
 
@@ -194,7 +195,7 @@ func writeBackups(path string, table backupsTable) error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
+		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
 	raw, err := json.MarshalIndent(table, "", "  ")
 	if err != nil {

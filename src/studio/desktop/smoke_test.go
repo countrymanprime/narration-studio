@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -117,7 +118,7 @@ func (f *fakeRun) run(_ context.Context, program string, args ...string) (int, s
 
 func smokeOptionsFor(t *testing.T, tree fstest.MapFS, run *fakeRun) smokeOptions {
 	t.Helper()
-	return smokeOptions{Resources: tree, UserCache: t.TempDir(), Executable: filepath.Join(t.TempDir(), "narration-studio.exe"), Version: "9.9.9", Moonshine: true, Run: run.run}
+	return smokeOptions{Resources: tree, UserCache: t.TempDir(), Executable: filepath.Join(t.TempDir(), brand.Executable+".exe"), Version: "9.9.9", Moonshine: true, Run: run.run}
 }
 
 func failedChecks(report smokeReport) map[string]string {
@@ -590,9 +591,9 @@ func TestSmokeFailsWhenACatalogIsMissingOrEmpty(t *testing.T) {
 
 func TestSmokeFailsWhenAReaperScriptIsMissing(t *testing.T) {
 	tree := healthyTree(t)
-	delete(tree, resourcesRoot+"/reaper/NarrationStudio_Launcher.lua")
+	delete(tree, resourcesRoot+"/reaper/"+brand.ReaperLauncher)
 	report := smoke(context.Background(), smokeOptionsFor(t, tree, &fakeRun{}))
-	if detail := failedChecks(report)["reaper"]; report.OK || !strings.Contains(detail, "NarrationStudio_Launcher.lua") {
+	if detail := failedChecks(report)["reaper"]; report.OK || !strings.Contains(detail, brand.ReaperLauncher) {
 		t.Fatalf("a package without the launcher passed or did not name it: ok=%v %q", report.OK, detail)
 	}
 }
@@ -611,10 +612,10 @@ func TestSmokeFailsWhenTheAssetCacheCannotBeWritten(t *testing.T) {
 	}
 	// The cache is also checked on its own, with a healthy resource unpack, so a good unpack cannot hide an unwritable asset folder.
 	base := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(base, "narration-studio"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(base, brand.DataFolder), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(base, "narration-studio", "assets"), []byte("x"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(base, brand.DataFolder, "assets"), []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	options.UserCache = base
@@ -631,7 +632,7 @@ func TestSmokeLeavesTheLauncherPointingAtTheProgramThatRan(t *testing.T) {
 	}
 	// Someone else's pointer in the (content-addressed, already complete) folder: the next start refreshes it, and the smoke test looks
 	// at what the launcher would read after that. The pointer is rewritten at every start, so it must name this program.
-	pointer := filepath.Join(report.ResourceRoot, "reaper", "narration-studio-app-path.txt")
+	pointer := filepath.Join(report.ResourceRoot, "reaper", brand.Executable+"-app-path.txt")
 	body, err := os.ReadFile(pointer)
 	if err != nil || strings.TrimSpace(string(body)) != options.Executable {
 		t.Fatalf("the launcher pointer is %q (%v), want %q", body, err, options.Executable)

@@ -2,6 +2,7 @@ package masteringporttest
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -196,7 +197,7 @@ func (f *FakeDAW) refusalLocked(render dawport.FXRender) string {
 			return "an approval used twice"
 		}
 	}
-	rel, err := filepath.Rel(filepath.Join(f.project, "narration-studio", "mastering"), render.OutputFolder)
+	rel, err := filepath.Rel(filepath.Join(f.project, brand.ProjectFolder, "mastering"), render.OutputFolder)
 	if err != nil || rel == "." || strings.HasPrefix(rel, "..") || strings.ContainsRune(rel, filepath.Separator) {
 		return "a folder that is not a run folder inside the project"
 	}

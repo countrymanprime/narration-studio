@@ -1,6 +1,7 @@
 package chaptersync
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -24,7 +25,7 @@ const ActivityLimit = 20
 // clears it with the other derived data: chapter ids reset on a re-import, and
 // a first sync afterwards reports no stale "new" tracks.
 func File(project string) string {
-	return filepath.Join(project, "narration-studio", "chapter-sync.json")
+	return filepath.Join(project, brand.ProjectFolder, "chapter-sync.json")
 }
 
 // Activity is one sync that did something the narrator hears about (S12): the
@@ -149,7 +150,7 @@ func (s *Store) RecordPickupScan(scan PickupScan) error {
 func (s *Store) writeLocked(file fileShape) error {
 	file.SchemaVersion = snapshotSchemaVersion
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
+		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

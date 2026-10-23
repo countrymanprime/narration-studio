@@ -2,6 +2,7 @@ package masteringport_test
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"os"
 	"path/filepath"
@@ -49,7 +50,7 @@ func TestTheAudacityRowImportsAppliesTheMacroAndExports(t *testing.T) {
 		t.Errorf("approval %q is not a 128-bit hex token", renders[0].Approval)
 	}
 	runFolder := filepath.Dir(renders[0].OutputPath)
-	if rel, _ := filepath.Rel(filepath.Join(project, "narration-studio", "mastering"), runFolder); !regexp.MustCompile(`^master-[0-9a-f]{16}$`).MatchString(rel) {
+	if rel, _ := filepath.Rel(filepath.Join(project, brand.ProjectFolder, "mastering"), runFolder); !regexp.MustCompile(`^master-[0-9a-f]{16}$`).MatchString(rel) {
 		t.Errorf("run folder %q is not a new folder in the project's mastering folder", runFolder)
 	}
 	if _, err := os.Stat(runFolder); !errors.Is(err, os.ErrNotExist) {

@@ -3,6 +3,7 @@ package masteringport
 import (
 	"context"
 	"crypto/rand"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -145,7 +146,7 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 		return Result{}, err
 	}
 	runID = "master-" + runID
-	folder := filepath.Join(session.ProjectFolder, "narration-studio", "mastering", runID)
+	folder := filepath.Join(session.ProjectFolder, brand.ProjectFolder, "mastering", runID)
 	if err := os.MkdirAll(filepath.Dir(folder), 0o750); err != nil {
 		return Result{}, err
 	}
@@ -250,7 +251,7 @@ func render(ctx context.Context, renderer dawport.FXRenderer, runID string, requ
 			}
 		},
 		Invalid: func(_ dawport.Event, reason error) {
-			finish(renderAnswer{err: fmt.Errorf("the DAW sent an answer this app could not read (%w): import the Narration Studio script from this app's REAPER folder again", reason)})
+			finish(renderAnswer{err: fmt.Errorf("the DAW sent an answer this app could not read (%w): import the app's script from this app's REAPER folder again", reason)})
 		},
 	})
 	defer unsubscribe()

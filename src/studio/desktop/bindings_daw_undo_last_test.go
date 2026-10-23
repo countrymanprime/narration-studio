@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"maps"
 	"reflect"
@@ -70,7 +71,7 @@ func TestDawLastActionAsksTheRoleAndAnswersThisOtherOrUnknown(t *testing.T) {
 	if got, err := dawLastActionIn(t.Context(), available(), nil, "cut_range"); err != nil || got != dawport.LastActionUnknown {
 		t.Errorf("no role: DawLastAction = %q, %v; want unknown", got, err)
 	}
-	for _, kind := range []string{"", "fx_range", "Narration Studio: delete words"} {
+	for _, kind := range []string{"", "fx_range", brand.Name + ": delete words"} {
 		if _, err := dawLastActionIn(t.Context(), available(), role, kind); !errors.Is(err, dawport.ErrActionKind) || len(role.kinds) != 0 {
 			t.Errorf("kind %q: err = %v (asked %v); want ErrActionKind", kind, err, role.kinds)
 		}
@@ -96,7 +97,7 @@ func TestDawUndoLastPassesOnTheRolesAnswers(t *testing.T) {
 		t.Errorf("no role = %+v, %v", got, err)
 	}
 	role := &fakeUndoer{answer: undoneInREAPER()}
-	for _, kind := range []string{"", "fx_range", "Narration Studio: delete words"} {
+	for _, kind := range []string{"", "fx_range", brand.Name + ": delete words"} {
 		if _, err := dawUndoLastIn(t.Context(), "REAPER", available(), role, kind, 1); !errors.Is(err, dawport.ErrActionKind) || len(role.kinds) != 0 {
 			t.Errorf("kind %q: err = %v (asked %v); want ErrActionKind", kind, err, role.kinds)
 		}

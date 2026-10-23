@@ -2,11 +2,11 @@
 // so the narrator never loads or runs an action for the app to see REAPER.
 //
 // What it writes, all under REAPER's resource path:
-//   - Scripts/NarrationStudio/: the bridge's Lua files, the app's path for the launcher, and install.json, the record of what this
+//   - Scripts/<launcher folder>/: the bridge's Lua files, the app's path for the launcher, and install.json, the record of what this
 //     package wrote (version and one SHA-256 per file). A file whose content is not the one install.json records (the narrator
-//     edited it, or the record is missing) is copied to Scripts/NarrationStudio/backup/<time>/ before it is replaced.
-//   - Scripts/__startup.lua, which REAPER runs at startup: one marked block that runs NarrationStudio_Startup.lua. Every line outside
-//     the markers is the narrator's and is kept byte for byte; the file is copied to __startup.lua.narration-studio-<time>.bak the
+//     edited it, or the record is missing) is copied to Scripts/<launcher folder>/backup/<time>/ before it is replaced.
+//   - Scripts/__startup.lua, which REAPER runs at startup: one marked block that runs the startup script. Every line outside
+//     the markers is the narrator's and is kept byte for byte; the file is copied to __startup.lua.<executable>-<time>.bak the
 //     first time the block is added to a file that already existed.
 //
 // It never touches reaper.ini or reaper-kb.ini: the startup script adds the launcher to the action list from inside REAPER
@@ -17,6 +17,7 @@ package reaperinstall
 import (
 	"bytes"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -31,21 +32,22 @@ import (
 
 const (
 	// Folder is the app's folder under <resource>/Scripts.
-	Folder = "NarrationStudio"
+	Folder = brand.ReaperResourceFolder
 	// StartupScript is the file the __startup.lua block runs.
-	StartupScript = "NarrationStudio_Startup.lua"
+	StartupScript = brand.ReaperResourceFolder + "_Startup.lua"
 	// LauncherScript is the action that opens the app from REAPER.
-	LauncherScript = "NarrationStudio_Launcher.lua"
+	LauncherScript = brand.ReaperLauncher
 	// AppPathFile holds the app's executable path; the launcher reads it.
-	AppPathFile = "narration-studio-app-path.txt"
+	AppPathFile = brand.Executable + "-app-path.txt"
 	// ManifestFile records what Install wrote.
 	ManifestFile = "install.json"
 	// startupFile is the script REAPER runs at startup from its Scripts folder.
 	startupFile  = "__startup.lua"
 	backupFolder = "backup"
 
-	blockBegin = "-- >>> Narration Studio: the app adds and updates the lines down to the end marker; every other line is yours >>>"
-	blockEnd   = "-- <<< Narration Studio <<<"
+	// The markers name the launcher's folder, an identity value, so a block written before a rename is still found after it.
+	blockBegin = "-- >>> " + brand.ReaperResourceFolder + ": the app adds and updates the lines down to the end marker; every other line is yours >>>"
+	blockEnd   = "-- <<< " + brand.ReaperResourceFolder + " <<<"
 )
 
 // startupBlock runs the startup script in a protected call, so a missing or broken bridge never stops the narrator's own startup
@@ -54,7 +56,7 @@ var startupBlock = blockBegin + `
 do
   local ok, failure = pcall(dofile, reaper.GetResourcePath() .. '/Scripts/` + Folder + `/` + StartupScript + `')
   if not ok then
-    reaper.ShowConsoleMsg('Narration Studio could not start its REAPER bridge: ' .. tostring(failure) .. '\n')
+    reaper.ShowConsoleMsg('The app could not start its REAPER bridge: ' .. tostring(failure) .. '\n')
   end
 end
 ` + blockEnd + "\n"
@@ -79,7 +81,7 @@ type Options struct {
 
 // Result says what Install did.
 type Result struct {
-	// Dir is Scripts/NarrationStudio.
+	// Dir is Scripts/<launcher folder>.
 	Dir string `json:"dir"`
 	// Launcher and Startup are the installed launcher and startup script.
 	Launcher string `json:"launcher"`
@@ -238,7 +240,7 @@ func hookStartup(path, stamp string) (changed bool, backedUp string, err error) 
 	if found {
 		next = before + startupBlock + after
 	} else {
-		backedUp = path + ".narration-studio-" + stamp + ".bak"
+		backedUp = path + "." + brand.Executable + "-" + stamp + ".bak"
 		if err := copyFile(path, backedUp); err != nil {
 			return false, "", err
 		}

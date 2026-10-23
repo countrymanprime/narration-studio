@@ -8,6 +8,7 @@ package runlog
 import (
 	"context"
 	"crypto/rand"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -74,12 +75,12 @@ func New(path string, maxBytes int64) *Logger {
 // DefaultPath is the run log, next to host.log.
 func DefaultPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-studio", "logs", "run.jsonl")
+		return filepath.Join(value, brand.DataFolder, "logs", "run.jsonl")
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-studio", "logs", "run.jsonl")
+		return filepath.Join(value, "AppData", "Roaming", brand.DataFolder, "logs", "run.jsonl")
 	}
-	return filepath.Join("AppData", "Roaming", "narration-studio", "logs", "run.jsonl")
+	return filepath.Join("AppData", "Roaming", brand.DataFolder, "logs", "run.jsonl")
 }
 
 // Path is where the log is written, for messages that tell the narrator where to look.

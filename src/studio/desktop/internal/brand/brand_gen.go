@@ -8,6 +8,9 @@ const Name = "Narration Studio"
 // Slug is the display name in lower case with dashes.
 const Slug = "narration-studio"
 
+// RepositorySlug is the GitHub repository as owner/name.
+const RepositorySlug = "countrymanprime/narration-studio"
+
 // RepositoryURL is the GitHub repository.
 const RepositoryURL = "https://github.com/countrymanprime/narration-studio"
 
@@ -44,7 +47,7 @@ const ReaperLauncher = "NarrationStudio_Launcher.lua"
 // ReaperResourceFolder is the launcher's folder in REAPER's resource path (bridge sessions). Identity: it does not follow a rename.
 const ReaperResourceFolder = "NarrationStudio"
 
-// AudacityLabelTrack is the label track the app makes in narrators' Audacity projects and finds again by name. Identity: it does not follow a rename.
+// AudacityLabelTrack is the label track the app makes in narrators' Audacity projects and finds again by name, and the start of its take and backup track names. Identity: it does not follow a rename.
 const AudacityLabelTrack = "Narration Studio"
 
 // CredentialEntropy is the DPAPI entropy of stored credentials; another value cannot read them back. Identity: it does not follow a rename.

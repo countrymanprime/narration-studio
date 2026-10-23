@@ -1,6 +1,7 @@
 package reaper
 
 import (
+	"desktop/internal/brand"
 	"errors"
 	"reflect"
 	"strconv"
@@ -63,7 +64,7 @@ func TestLastActionAnswersThisOtherOrUnknown(t *testing.T) {
 	if got, err := undoer.LastAction(t.Context(), dawport.ActionCutRange); err != nil || got != dawport.LastActionUnknown {
 		t.Errorf("refused capability: LastAction = %q, %v; want unknown", got, err)
 	}
-	for _, kind := range []dawport.ActionKind{"", "fx_range", "Narration Studio: delete words"} {
+	for _, kind := range []dawport.ActionKind{"", "fx_range", brand.Name + ": delete words"} {
 		if got, err := undoer.LastAction(t.Context(), kind); !errors.Is(err, dawport.ErrActionKind) || got != dawport.LastActionUnknown {
 			t.Errorf("kind %q: LastAction = %q, %v; want ErrActionKind", kind, got, err)
 		}
@@ -136,7 +137,7 @@ func TestUndoLastRefusesBeforeAnythingIsSent(t *testing.T) {
 			t.Errorf("%d steps: UndoLast = %+v, %v", steps, got, err)
 		}
 	}
-	for _, kind := range []dawport.ActionKind{"", "fx_range", "Narration Studio: delete words"} {
+	for _, kind := range []dawport.ActionKind{"", "fx_range", brand.Name + ": delete words"} {
 		if _, err := undoer.UndoLast(t.Context(), kind, 1); !errors.Is(err, dawport.ErrActionKind) {
 			t.Errorf("kind %q: err = %v, want ErrActionKind", kind, err)
 		}

@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -64,9 +65,9 @@ func fakeApp(t *testing.T, version string) string {
 
 func appFileName() string {
 	if runtime.GOOS == "windows" {
-		return "narration-studio.exe"
+		return brand.Executable + ".exe"
 	}
-	return "narration-studio"
+	return brand.ProjectFolder
 }
 
 func copyFile(t *testing.T, from, to string) {
@@ -107,7 +108,7 @@ func install(t *testing.T, mode string) (installation, Staged) {
 		t.Fatal(err)
 	}
 	t.Setenv("FAKEAPP_PENDING", layout.pending)
-	stagedPath := filepath.Join(layout.cache, "narration-studio.exe")
+	stagedPath := filepath.Join(layout.cache, brand.Executable+".exe")
 	copyFile(t, fakeApp(t, "2.0.0"), stagedPath)
 	bytes, _ := os.ReadFile(stagedPath)
 	sum := sha256.Sum256(bytes)

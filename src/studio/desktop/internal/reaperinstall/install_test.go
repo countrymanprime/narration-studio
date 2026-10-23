@@ -1,6 +1,7 @@
 package reaperinstall
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -38,7 +39,7 @@ func fixedNow() time.Time { return time.Date(2026, 10, 23, 9, 30, 0, 0, time.UTC
 
 func install(t *testing.T, resource string, files fstest.MapFS) Result {
 	t.Helper()
-	result, err := Install(Options{ResourceDir: resource, Files: files, Executable: "/opt/Narration Studio/narration-studio", Version: "1.2.3", Now: fixedNow})
+	result, err := Install(Options{ResourceDir: resource, Files: files, Executable: "/opt/" + brand.Name + "/" + brand.Executable, Version: "1.2.3", Now: fixedNow})
 	if err != nil {
 		t.Fatalf("Install: %v", err)
 	}
@@ -67,7 +68,7 @@ func write(t *testing.T, path, content string) {
 func TestInstallWritesTheBridgeTheAppPathAndTheStartupBlock(t *testing.T) {
 	resource := fakeReaper(t)
 	result := install(t, resource, bridgeFiles("-- startup v1\n"))
-	dir := filepath.Join(resource, "Scripts", "NarrationStudio")
+	dir := filepath.Join(resource, "Scripts", brand.ReaperResourceFolder)
 	if result.Dir != dir || result.Launcher != filepath.Join(dir, LauncherScript) || result.Startup != filepath.Join(dir, StartupScript) {
 		t.Fatalf("paths: %+v", result)
 	}
@@ -77,7 +78,7 @@ func TestInstallWritesTheBridgeTheAppPathAndTheStartupBlock(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "README.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("only Lua files are installed")
 	}
-	if got := read(t, filepath.Join(dir, AppPathFile)); got != "/opt/Narration Studio/narration-studio\n" {
+	if got := read(t, filepath.Join(dir, AppPathFile)); got != "/opt/"+brand.Name+"/"+brand.Executable+"\n" {
 		t.Fatalf("app path: %q", got)
 	}
 	var recorded manifest
@@ -91,7 +92,7 @@ func TestInstallWritesTheBridgeTheAppPathAndTheStartupBlock(t *testing.T) {
 	if startup != startupBlock {
 		t.Fatalf("a new __startup.lua holds only the block:\n%s", startup)
 	}
-	if !strings.Contains(startup, "pcall(dofile, reaper.GetResourcePath() .. '/Scripts/NarrationStudio/NarrationStudio_Startup.lua')") {
+	if !strings.Contains(startup, "pcall(dofile, reaper.GetResourcePath() .. '/Scripts/"+brand.ReaperResourceFolder+"/"+StartupScript+"')") {
 		t.Fatalf("the block runs the startup script by REAPER's own resource path:\n%s", startup)
 	}
 	if !result.StartupHooked || len(result.BackedUp) != 0 {
@@ -125,7 +126,7 @@ func TestAnUpdateReplacesItsOwnFilesWithoutBackups(t *testing.T) {
 	if strings.Join(updated.Written, ",") != StartupScript+","+ManifestFile {
 		t.Fatalf("written: %v", updated.Written)
 	}
-	if got := read(t, filepath.Join(resource, "Scripts", "NarrationStudio", StartupScript)); got != "-- startup v2\n" {
+	if got := read(t, filepath.Join(resource, "Scripts", brand.ReaperResourceFolder, StartupScript)); got != "-- startup v2\n" {
 		t.Fatalf("startup script: %q", got)
 	}
 }
@@ -133,10 +134,10 @@ func TestAnUpdateReplacesItsOwnFilesWithoutBackups(t *testing.T) {
 func TestAFileTheNarratorEditedIsBackedUpBeforeItIsReplaced(t *testing.T) {
 	resource := fakeReaper(t)
 	install(t, resource, bridgeFiles("-- startup v1\n"))
-	launcher := filepath.Join(resource, "Scripts", "NarrationStudio", LauncherScript)
+	launcher := filepath.Join(resource, "Scripts", brand.ReaperResourceFolder, LauncherScript)
 	write(t, launcher, "-- my own change\n")
 	result := install(t, resource, bridgeFiles("-- startup v1\n"))
-	backup := filepath.Join(resource, "Scripts", "NarrationStudio", "backup", "20261023-093000", LauncherScript)
+	backup := filepath.Join(resource, "Scripts", brand.ReaperResourceFolder, "backup", "20261023-093000", LauncherScript)
 	if len(result.BackedUp) != 1 || result.BackedUp[0] != backup {
 		t.Fatalf("backed up: %v", result.BackedUp)
 	}
@@ -148,7 +149,7 @@ func TestAFileTheNarratorEditedIsBackedUpBeforeItIsReplaced(t *testing.T) {
 func TestFilesInTheFolderBeforeAnyInstallAreBackedUp(t *testing.T) {
 	resource := fakeReaper(t)
 	// A narrator who loaded an older copy into this folder by hand: there is no install.json to say the file is the app's.
-	write(t, filepath.Join(resource, "Scripts", "NarrationStudio", LauncherScript), "-- hand copy\n")
+	write(t, filepath.Join(resource, "Scripts", brand.ReaperResourceFolder, LauncherScript), "-- hand copy\n")
 	result := install(t, resource, bridgeFiles("-- startup v1\n"))
 	if len(result.BackedUp) != 1 || !strings.HasSuffix(result.BackedUp[0], LauncherScript) {
 		t.Fatalf("backed up: %v", result.BackedUp)
@@ -157,7 +158,7 @@ func TestFilesInTheFolderBeforeAnyInstallAreBackedUp(t *testing.T) {
 
 func TestOtherScriptsAreNeverTouched(t *testing.T) {
 	resource := fakeReaper(t)
-	mine := filepath.Join(resource, "Scripts", "NarrationStudio", "my_tweak.lua")
+	mine := filepath.Join(resource, "Scripts", brand.ReaperResourceFolder, "my_tweak.lua")
 	elsewhere := filepath.Join(resource, "Scripts", "Cockos", "lyrics.lua")
 	write(t, mine, "-- mine\n")
 	write(t, elsewhere, "-- cockos\n")
@@ -173,7 +174,7 @@ func TestAFileAVersionNoLongerShipsIsRemovedOnlyWhenUnchanged(t *testing.T) {
 	first["narration_old.lua"] = &fstest.MapFile{Data: []byte("-- old\n")}
 	first["narration_old_edited.lua"] = &fstest.MapFile{Data: []byte("-- old\n")}
 	install(t, resource, first)
-	dir := filepath.Join(resource, "Scripts", "NarrationStudio")
+	dir := filepath.Join(resource, "Scripts", brand.ReaperResourceFolder)
 	write(t, filepath.Join(dir, "narration_old_edited.lua"), "-- edited\n")
 	install(t, resource, bridgeFiles("-- startup v1\n"))
 	if _, err := os.Stat(filepath.Join(dir, "narration_old.lua")); !errors.Is(err, os.ErrNotExist) {
@@ -190,7 +191,7 @@ func TestTheNarratorsStartupLinesAreKeptAndBackedUpOnce(t *testing.T) {
 	own := "-- my startup\nreaper.Main_OnCommand(40001, 0)" // no final newline
 	write(t, path, own)
 	result := install(t, resource, bridgeFiles("-- startup v1\n"))
-	backup := path + ".narration-studio-20261023-093000.bak"
+	backup := path + "." + brand.ReleaseAssetPrefix + "-20261023-093000.bak"
 	if len(result.BackedUp) != 1 || result.BackedUp[0] != backup || read(t, backup) != own {
 		t.Fatalf("backup: %v", result.BackedUp)
 	}
@@ -258,7 +259,7 @@ func TestInstalledNeedsBothTheBlockAndTheScript(t *testing.T) {
 		t.Fatal("nothing installed yet")
 	}
 	install(t, resource, bridgeFiles("-- startup v1\n"))
-	if err := os.Remove(filepath.Join(resource, "Scripts", "NarrationStudio", StartupScript)); err != nil {
+	if err := os.Remove(filepath.Join(resource, "Scripts", brand.ReaperResourceFolder, StartupScript)); err != nil {
 		t.Fatal(err)
 	}
 	if Installed(resource) {
@@ -318,7 +319,7 @@ func TestAPortableREAPERKeepsItsResourcesBesideItsProgram(t *testing.T) {
 }
 
 func TestSessionsDir(t *testing.T) {
-	if SessionsDir("") != "" || SessionsDir("/r") != filepath.Join("/r", "NarrationStudio", "sessions") {
+	if SessionsDir("") != "" || SessionsDir("/r") != filepath.Join("/r", brand.ReaperResourceFolder, "sessions") {
 		t.Fatal(SessionsDir("/r"))
 	}
 }

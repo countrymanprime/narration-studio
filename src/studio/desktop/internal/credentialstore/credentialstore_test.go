@@ -2,6 +2,7 @@ package credentialstore
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,7 +61,7 @@ func TestASecretIsNeverReadFromJSON(t *testing.T) {
 }
 
 func TestSetThenGetGivesTheValueBack(t *testing.T) {
-	store := New(filepath.Join(t.TempDir(), "narration-studio", "credentials.json"))
+	store := New(filepath.Join(t.TempDir(), brand.DataFolder, "credentials.json"))
 	if present, err := store.Present("merriam_webster"); err != nil || present {
 		t.Fatalf("Present before Set = %v, %v; want false", present, err)
 	}

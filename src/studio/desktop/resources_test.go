@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,7 @@ func TestMaterializeResourcesUnpacksEveryFileIntoAContentAddressedFolder(t *test
 		t.Fatal(err)
 	}
 	key, _ := resourceKeyFor(tree)
-	if root != filepath.Join(cache, "narration-studio", "runtime", key) {
+	if root != filepath.Join(cache, brand.ProjectFolder, "runtime", key) {
 		t.Fatalf("root = %q, want the folder named by the content key %q", root, key)
 	}
 	for name, want := range map[string]string{"runtime/guide/guide.exe": "frozen", "config/tts-assets.json": "{}", "reaper/launcher.lua": "-- l"} {
@@ -61,17 +62,17 @@ func TestMaterializeResourcesChangesFolderWhenAnyResourceChanges(t *testing.T) {
 func TestMaterializeResourcesRefreshesTheLauncherPointerWhenTheAppMoves(t *testing.T) {
 	cache := t.TempDir()
 	tree := resourceTree(map[string]string{"reaper/launcher.lua": "-- l"})
-	root, err := materializeResources(tree, cache, filepath.Join(cache, "old", "narration-studio.exe"))
+	root, err := materializeResources(tree, cache, filepath.Join(cache, "old", brand.Executable+".exe"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	moved := filepath.Join(cache, "new", "narration-studio.exe")
+	moved := filepath.Join(cache, "new", brand.Executable+".exe")
 	// The unchanged payload is not written again, but the pointer to the executable is: a portable install may have been relocated.
 	again, err := materializeResources(tree, cache, moved)
 	if err != nil || again != root {
 		t.Fatalf("second call: %q, %v; want the same folder %q", again, err, root)
 	}
-	pointer, err := os.ReadFile(filepath.Join(root, "reaper", "narration-studio-app-path.txt"))
+	pointer, err := os.ReadFile(filepath.Join(root, "reaper", brand.Executable+"-app-path.txt"))
 	if err != nil || strings.TrimSpace(string(pointer)) != moved {
 		t.Fatalf("the launcher pointer is %q (%v), want %q", pointer, err, moved)
 	}
@@ -81,7 +82,7 @@ func TestMaterializeResourcesRebuildsAFolderThatWasNeverCompleted(t *testing.T) 
 	cache := t.TempDir()
 	tree := resourceTree(map[string]string{"runtime/guide/guide.exe": "frozen"})
 	key, _ := resourceKeyFor(tree)
-	target := filepath.Join(cache, "narration-studio", "runtime", key)
+	target := filepath.Join(cache, brand.ProjectFolder, "runtime", key)
 	// A start that died half way: a target with no .complete, and a staging folder with a stray file.
 	for _, dir := range []string{target, target + ".staging"} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -118,18 +119,18 @@ func TestMaterializeResourcesReportsWhyItCouldNotUnpack(t *testing.T) {
 
 func TestMaterializeResourcesKeepsTheLauncherInOneFolderAcrossUpdates(t *testing.T) {
 	cache := t.TempDir()
-	exe := filepath.Join(cache, "narration-studio.exe")
+	exe := filepath.Join(cache, brand.Executable+".exe")
 	stable := stableLauncherDir(cache)
 	for _, version := range []string{"-- v1", "-- v2"} {
-		tree := resourceTree(map[string]string{"reaper/NarrationStudio_Launcher.lua": version})
+		tree := resourceTree(map[string]string{"reaper/" + brand.ReaperLauncher: version})
 		if _, err := materializeResources(tree, cache, exe); err != nil {
 			t.Fatal(err)
 		}
-		got, err := os.ReadFile(filepath.Join(stable, "NarrationStudio_Launcher.lua"))
+		got, err := os.ReadFile(filepath.Join(stable, brand.ReaperLauncher))
 		if err != nil || string(got) != version {
 			t.Fatalf("launcher after %q = %q (%v)", version, got, err)
 		}
-		pointer, err := os.ReadFile(filepath.Join(stable, "narration-studio-app-path.txt"))
+		pointer, err := os.ReadFile(filepath.Join(stable, brand.Executable+"-app-path.txt"))
 		if err != nil || strings.TrimSpace(string(pointer)) != exe {
 			t.Fatalf("pointer = %q (%v), want %q", pointer, err, exe)
 		}

@@ -7,6 +7,7 @@
 package findings
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -22,7 +23,7 @@ import (
 // Dir is the sidecar folder holding every analyzer's findings and the review
 // history, relative to the project folder. resetDerived clears it whenever
 // the manuscript it is anchored to is replaced or cleared.
-const Dir = "narration-studio/findings"
+const Dir = brand.ProjectFolder + "/findings"
 
 const reviewFileName = "review.json"
 
@@ -67,7 +68,7 @@ type Store struct {
 }
 
 // NewStore returns a Store rooted at project, the folder holding the .rpp
-// and the narration-studio sidecar.
+// and the app's folder in the project.
 func NewStore(project string) *Store { return &Store{project: project} }
 
 // SetPersist says where to report a findings file that cannot be read. A nil

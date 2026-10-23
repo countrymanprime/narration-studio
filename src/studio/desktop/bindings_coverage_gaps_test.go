@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -135,7 +136,7 @@ func TestCoverageGapRefusesAStaleOrNeverResultAndAnUnknownGap(t *testing.T) {
 		t.Fatal("an unknown chapter was accepted")
 	}
 	// The manuscript moved on: the result is stale.
-	writeNested(t, filepath.Join(f.project, "narration-studio", "manuscript", "manuscript.json"),
+	writeNested(t, filepath.Join(f.project, brand.ProjectFolder, "manuscript", "manuscript.json"),
 		strings.Replace(coverageManuscriptJSON, "Alice.", "Alice and Bob.", 1))
 	if view := decodeAnswer(t)(f.host.CoverageResult("c-0001")); view["state"] != "stale" {
 		t.Fatalf("result = %v", view["state"])

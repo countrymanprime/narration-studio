@@ -8,6 +8,7 @@
 package character
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,7 +45,7 @@ const what = "character reference approvals"
 // manuscript, and a replaced manuscript's chapters and characters are not
 // the ones a stale reference was approved against.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-studio", "characters")
+	return filepath.Join(project, brand.ProjectFolder, "characters")
 }
 
 func referencesPath(project string) string {
