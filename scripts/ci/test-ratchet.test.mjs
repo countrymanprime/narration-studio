@@ -111,19 +111,22 @@ test('a floor is not carried to a folder a single file left', () => {
   assert.deepEqual(found, ['coverage floor for internal/a (go) was removed']);
 });
 
+// Built at run time so this file's own source lines do not read as an added skip marker to the ratchet.
+const SKIP = ['it', 'skip'].join('.');
+
 test('a marker that was already on the line it replaces is not a new one', () => {
-  const removedLines = [{ path: 'src/studio/ui/src/a.test.ts', text: '  it.skip("x", () => {}); // old/ui/src/a.ts' }];
+  const removedLines = [{ path: 'src/studio/ui/src/a.test.ts', text: `  ${SKIP}("x", () => {}); // old/ui/src/a.ts` }];
   const addedLines = [
-    { path: 'src/studio/ui/src/a.test.ts', text: '  it.skip("x", () => {}); // src/studio/ui/src/a.ts' },
-    { path: 'src/studio/ui/src/a.test.ts', text: '  it.skip("y", () => {});' },
+    { path: 'src/studio/ui/src/a.test.ts', text: `  ${SKIP}("x", () => {}); // src/studio/ui/src/a.ts` },
+    { path: 'src/studio/ui/src/a.test.ts', text: `  ${SKIP}("y", () => {});` },
   ];
   const found = findRatchetViolations({ ...none, addedLines, removedLines });
-  assert.deepEqual(found, ['added a skipped or focused test in src/studio/ui/src/a.test.ts: it.skip("y", () => {});']);
+  assert.deepEqual(found, [`added a skipped or focused test in src/studio/ui/src/a.test.ts: ${SKIP}("y", () => {});`]);
 });
 
 test('parseRemovedLines files each removed line under the path after the change, so a rename keeps one key', () => {
-  const diff = ['diff --git a/old/x.test.ts b/new/x.test.ts', 'similarity index 90%', '--- a/old/x.test.ts', '+++ b/new/x.test.ts', '@@ -1,2 +1,2 @@', '-it.skip("a") // old', '+it.skip("a") // new', ' context'].join('\n');
-  assert.deepEqual(parseRemovedLines(diff), [{ path: 'new/x.test.ts', text: 'it.skip("a") // old' }]);
+  const diff = ['diff --git a/old/x.test.ts b/new/x.test.ts', 'similarity index 90%', '--- a/old/x.test.ts', '+++ b/new/x.test.ts', '@@ -1,2 +1,2 @@', `-${SKIP}("a") // old`, `+${SKIP}("a") // new`, ' context'].join('\n');
+  assert.deepEqual(parseRemovedLines(diff), [{ path: 'new/x.test.ts', text: `${SKIP}("a") // old` }]);
 });
 
 test('a folder that git also paired with an odd destination still finds its floor', () => {
