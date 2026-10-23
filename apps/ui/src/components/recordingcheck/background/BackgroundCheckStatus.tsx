@@ -5,8 +5,8 @@ import { Button } from '../../primitives/Button';
 import { ProgressBar } from '../../primitives/ProgressBar';
 import { doneText, PAUSED_TEXT, queuedText, runningDetail, runningText } from './backgroundCheckText';
 
-/** The corner's place: bottom left, over the page like the toasts at the bottom right. */
-const CORNER = 'fixed bottom-[calc(1.25rem+var(--toast-clear,0px))] left-5 z-[var(--z-toast)] shadow-[var(--shadow)]';
+/** The corner's place: bottom left, over the page, the Booth and a slide-over, under a dialog (the toasts keep the bottom right). */
+const CORNER = 'fixed bottom-[calc(1.25rem+var(--toast-clear,0px))] left-5 z-[var(--z-popover)] shadow-[var(--shadow)]';
 
 /** What the corner shows: a check running, chapters waiting, everything done, or paused. */
 export type BackgroundCorner =

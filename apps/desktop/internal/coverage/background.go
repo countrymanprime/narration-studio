@@ -33,7 +33,7 @@ type BackgroundWait string
 const (
 	// WaitOff: the narrator turned background checks off (RecordingCoverage.background_checks).
 	WaitOff BackgroundWait = "off"
-	// WaitConfirm: checks are on but the narrator has not yet answered the first-time notice that says what a background
+	// WaitConfirm means checks are on but the narrator has not yet answered the first-time notice that says what a background
 	// check runs and why (RecordingCoverage.background_checks_confirmed); nothing starts unannounced.
 	WaitConfirm BackgroundWait = "confirm"
 	// WaitBusy: a check or another job the narrator started is running.
