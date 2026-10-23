@@ -47,7 +47,7 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-          pnpm-filter: narration-studio
+          pnpm-filter: workspace
       - name: Markdown lint (changed files)
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: node scripts/ci/lint-markdown-changed.mjs --summary

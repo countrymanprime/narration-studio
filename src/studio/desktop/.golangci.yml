@@ -1,5 +1,5 @@
 # golangci-lint v2 for the desktop app (Go module in this folder). Run through
-# `nx run narration-studio-shell:lint` (scripts/quality.mjs go-lint), which also runs gofmt and go vet.
+# `nx run desktop:lint` (scripts/quality.mjs go-lint), which also runs gofmt and go vet.
 #
 # `standard` is the v2 default set: errcheck, govet, ineffassign, staticcheck (which in v2 also
 # carries the former gosimple and stylecheck checks) and unused. gosec is added on top. This is

@@ -11,18 +11,21 @@
 -- Research tool, not product code. Run by run-reaper.ps1 (-Cfg an isolated resource folder, -Out a scratch folder
 -- holding media/ from make_media.py); it never opens or saves anything outside -Out.
 
+-- The product name and the identity values (../narration_brand.lua, generated from config/brand.json), so a P_EXT key or an undo
+-- label here is the one the bridge writes.
+local BRAND = dofile(((debug.getinfo(1, 'S').source:match('^@(.+)[\\/][^\\/]*$')) or '.') .. '/../narration_brand.lua')
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  local wanted = os.getenv('REAPER_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'REAPER_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
-local REAPER_DIR = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)')
+local PACK = assert(os.getenv('REAPER_SPIKE_OUT'), 'set REAPER_SPIKE_OUT (run-reaper.ps1 does)')
+local REAPER_DIR = assert(os.getenv('REAPER_SPIKE_BRIDGE_DIR'), 'set REAPER_SPIKE_BRIDGE_DIR (run-reaper.ps1 does)')
 local SEP = package.config:sub(1, 1)
 local function path(name)
   return PACK .. SEP .. name
@@ -247,7 +250,7 @@ local ok, err = xpcall(function()
   reaper.SetMediaItemInfo_Value(item, 'D_POSITION', 10)
 
   -- The GUIDs on COMPARE_MARKER, through the real compare commands with a hand-made results file.
-  local manuscript_dir = path('narration-studio') .. SEP .. 'manuscript'
+  local manuscript_dir = path(BRAND.identity.projectFolder) .. SEP .. 'manuscript'
   reaper.RecursiveCreateDirectory(manuscript_dir, 0)
   local manuscript = io.open(manuscript_dir .. SEP .. 'manuscript.json', 'wb')
   manuscript:write('{"version":1}')

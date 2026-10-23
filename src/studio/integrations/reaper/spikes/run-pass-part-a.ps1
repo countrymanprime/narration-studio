@@ -40,8 +40,8 @@ $ep0Report = Join-Path $ep0 'ep0-workspace-report.txt'
 & $runReaper -Cfg (Join-Path $Work 'cfg-ep0') -Out $ep0 -Script (Join-Path $PSScriptRoot 'spike_ep0_workspace.lua') -Done $ep0Report -TimeoutSec $TimeoutSec
 
 Write-Host 'Part A 2/2: every other row (pass_part_a.lua)'
-$env:NARRATION_STUDIO_PASS_EP0_REPORT = $ep0Report
-$env:NARRATION_STUDIO_PASS_REV = $rev
+$env:REAPER_PASS_EP0_REPORT = $ep0Report
+$env:REAPER_PASS_REV = $rev
 $done = Join-Path $main 'pass-part-a-done.txt'
 & $runReaper -Cfg (Join-Path $Work 'cfg-main') -Out $main -Script (Join-Path $PSScriptRoot 'pass_part_a.lua') -Done $done -TimeoutSec $TimeoutSec
 

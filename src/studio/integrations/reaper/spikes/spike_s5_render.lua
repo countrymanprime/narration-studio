@@ -3,16 +3,16 @@
 -- per-region ("chapter") rendering, the current IDs of the actions research section 2 and 6 named, and whether a
 -- render can be previewed/validated without writing files. Run by run-reaper.ps1 inside an isolated REAPER
 -- (-cfgfile), against a scratch project built here with the synthetic media from make_media.py. Renders only to the
--- scratch NARRATION_STUDIO_SPIKE_OUT folder (never the project's own folder); the caller deletes that folder after
+-- scratch REAPER_SPIKE_OUT folder (never the project's own folder); the caller deletes that folder after
 -- reading report.txt.
 
 -- Guard: refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1 passed, and the audio
 -- device is closed. A script that is started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  local wanted = os.getenv('REAPER_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'REAPER_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   -- REAPER opens the default Windows audio device (WaveOut, Sound Mapper) on start even when the first-run prompt is
   -- answered No. Nothing is recorded or played, but close it at once and prove it is closed.
@@ -21,7 +21,7 @@ do
 end
 
 local BS = string.char(92)
-local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
+local PACK = assert(os.getenv('REAPER_SPIKE_OUT'), 'set REAPER_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
 local function native(path)
   return (path:gsub('/', BS))
 end
@@ -198,7 +198,7 @@ local ok, err = xpcall(function()
   ------------------------------------------------------------------
   -- 6. Real render (the only file-writing step): action 42230, "File: Render project, using the most recent render
   --    settings" (documented as headless, no dialog). Output goes only to the scratch renders/ folder created above;
-  --    the caller deletes NARRATION_STUDIO_SPIKE_OUT afterward.
+  --    the caller deletes REAPER_SPIKE_OUT afterward.
   ------------------------------------------------------------------
   local before_real = list_dir(native(renders_dir))
   reaper.Main_OnCommand(42230, 0)
@@ -219,7 +219,7 @@ local ok, err = xpcall(function()
 
   ------------------------------------------------------------------
   -- 7. Clean up the rendered files now, inside REAPER, before quitting (belt-and-braces; the caller also deletes the
-  --    whole scratch NARRATION_STUDIO_SPIKE_OUT folder).
+  --    whole scratch REAPER_SPIKE_OUT folder).
   ------------------------------------------------------------------
   for _, name in ipairs(after_real) do
     local removed = os.remove(native(renders_dir) .. BS .. name)

@@ -6,17 +6,20 @@
 
 -- Guard: refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
 -- passed, and the audio device is closed.
+-- The product name and the identity values (../narration_brand.lua, generated from config/brand.json), so a P_EXT key or an undo
+-- label here is the one the bridge writes.
+local BRAND = dofile(((debug.getinfo(1, 'S').source:match('^@(.+)[\\/][^\\/]*$')) or '.') .. '/../narration_brand.lua')
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  local wanted = os.getenv('REAPER_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'REAPER_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
+local PACK = assert(os.getenv('REAPER_SPIKE_OUT'), 'set REAPER_SPIKE_OUT (run-reaper.ps1 does)')
 PACK = PACK:gsub(string.char(92), '/')
 local function native(path)
   return (path:gsub('/', string.char(92)))
@@ -95,16 +98,21 @@ local function add_candidate_take(item, file, take_name)
   return take
 end
 -- Provenance: namespaced take P_EXT plus the finding id. Mirrors docs/architecture/manuscript-line-identity.md's item-level key style
--- (narration_studio_<name>) but at take level and with a finding id key.
+-- (<prefix><name>) but at take level and with a finding id key.
 local function write_provenance(take, finding_id, source_file, range_start, range_end)
-  reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_finding_id', finding_id, true)
-  reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_source_file', source_file, true)
-  reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_source_range', string.format('%.6f|%.6f', range_start, range_end), true)
+  reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_finding_id', finding_id, true)
+  reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_source_file', source_file, true)
+  reaper.GetSetMediaItemTakeInfo_String(
+    take,
+    'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_source_range',
+    string.format('%.6f|%.6f', range_start, range_end),
+    true
+  )
 end
 local function read_provenance(take)
-  local _, id = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_finding_id', '', false)
-  local _, file = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_source_file', '', false)
-  local _, range = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_source_range', '', false)
+  local _, id = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_finding_id', '', false)
+  local _, file = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_source_file', '', false)
+  local _, range = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_source_range', '', false)
   return id, file, range
 end
 
@@ -125,7 +133,7 @@ local ok, err = xpcall(function()
   reaper.Undo_BeginBlock2(0)
   local track_a = add_track('A - same length')
   local item_a, take_a1 = add_target_item(track_a, 'take_a.wav', 0, 3, 'take A (target, active)')
-  reaper.Undo_EndBlock2(0, 'Narration Studio: spike setup A', -1)
+  reaper.Undo_EndBlock2(0, BRAND.name .. ': spike setup A', -1)
   local guid_item_a = item_guid(item_a)
   local before_active = reaper.GetActiveTake(item_a)
   local guid_before_active = take_guid(before_active)
@@ -135,7 +143,7 @@ local ok, err = xpcall(function()
   reaper.Undo_BeginBlock2(0)
   local candidate_a = add_candidate_take(item_a, 'take_b.wav', 'candidate (same length)')
   write_provenance(candidate_a, 'finding-0001', 'take_b.wav', 0.0, 3.0)
-  reaper.Undo_EndBlock2(0, 'Narration Studio: add take (spike A)', -1)
+  reaper.Undo_EndBlock2(0, BRAND.name .. ': add take (spike A)', -1)
   reaper.UpdateArrange()
   local guid_candidate_a = take_guid(candidate_a)
 
@@ -187,7 +195,7 @@ local ok, err = xpcall(function()
   log('before add: D_LENGTH', reaper.GetMediaItemInfo_Value(item_b, 'D_LENGTH'))
   reaper.Undo_BeginBlock2(0)
   local candidate_b = add_candidate_take(item_b, 'take_long.wav', 'candidate (5s, longer)')
-  reaper.Undo_EndBlock2(0, 'Narration Studio: add take (spike B)', -1)
+  reaper.Undo_EndBlock2(0, BRAND.name .. ': add take (spike B)', -1)
   local source_b = reaper.GetMediaItemTake_Source(candidate_b)
   local length_b, is_qn_b = reaper.GetMediaSourceLength(source_b)
   log('after add: D_LENGTH', reaper.GetMediaItemInfo_Value(item_b, 'D_LENGTH'), 'unchanged', reaper.GetMediaItemInfo_Value(item_b, 'D_LENGTH') == 3)
@@ -210,7 +218,7 @@ local ok, err = xpcall(function()
   log('before add: D_LENGTH', reaper.GetMediaItemInfo_Value(item_c, 'D_LENGTH'))
   reaper.Undo_BeginBlock2(0)
   local candidate_c = add_candidate_take(item_c, 'take_short.wav', 'candidate (1s, shorter)')
-  reaper.Undo_EndBlock2(0, 'Narration Studio: add take (spike C)', -1)
+  reaper.Undo_EndBlock2(0, BRAND.name .. ': add take (spike C)', -1)
   local source_c = reaper.GetMediaItemTake_Source(candidate_c)
   local length_c, is_qn_c = reaper.GetMediaSourceLength(source_c)
   log('after add: D_LENGTH', reaper.GetMediaItemInfo_Value(item_c, 'D_LENGTH'), 'unchanged', reaper.GetMediaItemInfo_Value(item_c, 'D_LENGTH') == 3)
@@ -237,15 +245,15 @@ local ok, err = xpcall(function()
   log('before offset set: D_STARTOFFS', reaper.GetMediaItemTakeInfo_Value(candidate_d, 'D_STARTOFFS'))
   reaper.SetMediaItemTakeInfo_Value(candidate_d, 'D_STARTOFFS', 1.5)
   write_provenance(candidate_d, 'finding-0002', 'take_aligned.wav', 1.5, 3.5)
-  reaper.Undo_EndBlock2(0, 'Narration Studio: add take (spike D, offset)', -1)
+  reaper.Undo_EndBlock2(0, BRAND.name .. ': add take (spike D, offset)', -1)
   log('after offset set: D_STARTOFFS', reaper.GetMediaItemTakeInfo_Value(candidate_d, 'D_STARTOFFS'))
   log('item D_LENGTH still the target span, unaffected by offset', reaper.GetMediaItemInfo_Value(item_d, 'D_LENGTH'))
 
   -----------------------------------------------------------------------
   section('E. Provenance does not collide with item-level line identity')
   -----------------------------------------------------------------------
-  reaper.GetSetMediaItemInfo_String(item_a, 'P_EXT:narration_studio_line_id', 'line-000001', true)
-  local _, line_id = reaper.GetSetMediaItemInfo_String(item_a, 'P_EXT:narration_studio_line_id', '', false)
+  reaper.GetSetMediaItemInfo_String(item_a, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'line_id', 'line-000001', true)
+  local _, line_id = reaper.GetSetMediaItemInfo_String(item_a, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'line_id', '', false)
   local id3 = read_provenance(candidate_a)
   log('item-level line id', line_id, 'take-level provenance still separate', id3)
 
@@ -279,7 +287,7 @@ local ok, err = xpcall(function()
     log('provenance survived reload intact', id4 == 'finding-0001' and file4 == 'take_b.wav' and range4 == '0.000000|3.000000')
   end
   if found_item then
-    local _, line_id_after = reaper.GetSetMediaItemInfo_String(found_item, 'P_EXT:narration_studio_line_id', '', false)
+    local _, line_id_after = reaper.GetSetMediaItemInfo_String(found_item, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'line_id', '', false)
     log('item-level line id after reload', line_id_after)
   end
 end, debug.traceback)

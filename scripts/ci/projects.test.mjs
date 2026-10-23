@@ -37,19 +37,19 @@ test('project names are unique and the release project keeps its name', () => {
   const names = projects.map((project) => project.config.name);
 
   assert.equal(new Set(names).size, names.length);
-  assert.ok(names.includes('narration-studio'), 'nx.json release.projects names narration-studio');
+  assert.ok(names.includes('workspace'), 'nx.json release.projects names the root project, workspace');
 });
 
 test('the root project depends on every project whose commits already counted toward the release version', () => {
   // The UI and desktop projects were separate before the split and never counted; everything else did. The site is not part of the released app.
-  const excluded = new Set(['narration-studio', 'narration-studio-ui', 'narration-studio-shell', 'web']);
+  const excluded = new Set(['workspace', 'ui', 'desktop', 'web']);
   const root = projects.find((project) => project.root === '');
   const expected = projects.map((project) => project.config.name).filter((name) => !excluded.has(name)).sort();
 
   assert.deepEqual([...(root.config.implicitDependencies ?? [])].sort(), expected);
 });
 
-// `narration-studio-shell` does not list `narration-studio-ui` in `implicitDependencies`: a UI change must not rerun the Go
+// `desktop` does not list `ui` in `implicitDependencies`: a UI change must not rerun the Go
 // tests. That is only true while no Go code reads from src/studio/ui. `package` is the one consumer of the UI build and says so
 // with `dependsOn`. If a Go file starts reading a path under src/studio/ui, the edge has to come back, so this fails first.
 const UI_PATH = /(^|[\\/])src[\\/]studio[\\/]ui([\\/]|$)|\.\.[\\/]ui([\\/]|$)/;
@@ -94,12 +94,12 @@ test('the Go host reads nothing under src/studio/ui, so the shell does not depen
   const reads = trackedFiles()
     .filter((file) => file.startsWith('src/studio/desktop/') && file.endsWith('.go'))
     .flatMap((file) => uiPathReads(readFileSync(file, 'utf8')).map((literal) => `${file}: ${JSON.stringify(literal)}`));
-  const shell = projects.find((project) => project.config.name === 'narration-studio-shell');
+  const shell = projects.find((project) => project.config.name === 'desktop');
 
-  assert.deepEqual(reads, [], 'a Go file reads from src/studio/ui: add narration-studio-ui back to the shell implicitDependencies in src/studio/desktop/project.json');
-  assert.ok(!(shell.config.implicitDependencies ?? []).includes('narration-studio-ui'), 'the shell lists the UI project, so every UI change reruns the Go tests');
+  assert.deepEqual(reads, [], 'a Go file reads from src/studio/ui: add ui back to the shell implicitDependencies in src/studio/desktop/project.json');
+  assert.ok(!(shell.config.implicitDependencies ?? []).includes('ui'), 'the shell lists the UI project, so every UI change reruns the Go tests');
   assert.ok(
-    shell.config.targets.package.dependsOn.some((dependency) => dependency.target === 'build' && dependency.projects?.includes('narration-studio-ui')),
+    shell.config.targets.package.dependsOn.some((dependency) => dependency.target === 'build' && dependency.projects?.includes('ui')),
     'package builds the native app from the UI dist, so it must depend on the UI build',
   );
 });

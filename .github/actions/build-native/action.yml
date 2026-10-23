@@ -25,7 +25,7 @@ runs:
     - uses: ./.github/actions/setup-toolchain
       with:
         need-pnpm: ${{ inputs.platform == 'windows-x64' && 'true' || 'false' }}
-        pnpm-filter: narration-studio-ui
+        pnpm-filter: ui
         need-stylua: 'false'
     - if: inputs.version != ''
       name: Apply the computed release version

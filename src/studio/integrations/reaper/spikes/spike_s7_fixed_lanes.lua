@@ -8,17 +8,20 @@
 
 -- Guard: refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1
 -- passed, and the audio device is closed.
+-- The product name and the identity values (../narration_brand.lua, generated from config/brand.json), so a P_EXT key or an undo
+-- label here is the one the bridge writes.
+local BRAND = dofile(((debug.getinfo(1, 'S').source:match('^@(.+)[\\/][^\\/]*$')) or '.') .. '/../narration_brand.lua')
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  local wanted = os.getenv('REAPER_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'REAPER_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
+local PACK = assert(os.getenv('REAPER_SPIKE_OUT'), 'set REAPER_SPIKE_OUT (run-reaper.ps1 does)')
 PACK = PACK:gsub(string.char(92), '/')
 local REPORT = PACK .. '/fixed-lanes-report.txt'
 local function native(path)
@@ -127,12 +130,12 @@ local function dump(label, track)
   log(table.concat(parts, ' '))
   for index = 0, reaper.CountTrackMediaItems(track) - 1 do
     local item = reaper.GetTrackMediaItem(track, index)
-    local _, line_id = reaper.GetSetMediaItemInfo_String(item, 'P_EXT:narration_studio_line_id', '', false)
+    local _, line_id = reaper.GetSetMediaItemInfo_String(item, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'line_id', '', false)
     local takes = {}
     for take_index = 0, reaper.CountTakes(item) - 1 do
       local take = reaper.GetTake(item, take_index)
       local _, take_name = reaper.GetSetMediaItemTakeInfo_String(take, 'P_NAME', '', false)
-      local _, finding = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:narration_studio_take_finding_id', '', false)
+      local _, finding = reaper.GetSetMediaItemTakeInfo_String(take, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_finding_id', '', false)
       takes[#takes + 1] = '"' .. take_name .. '"' .. (finding ~= '' and ('{finding=' .. finding .. '}') or '')
     end
     log(
@@ -191,7 +194,7 @@ local function add_item(track, file, position, length, take_name, line_id)
   reaper.SetMediaItemTake_Source(take, reaper.PCM_Source_CreateFromFile('media/' .. file))
   reaper.GetSetMediaItemTakeInfo_String(take, 'P_NAME', take_name, true)
   if line_id then
-    reaper.GetSetMediaItemInfo_String(item, 'P_EXT:narration_studio_line_id', line_id, true)
+    reaper.GetSetMediaItemInfo_String(item, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'line_id', line_id, true)
   end
   return item, take
 end
@@ -409,7 +412,7 @@ local ok, err = xpcall(function()
     local candidate = reaper.AddTakeToMediaItem(item)
     reaper.SetMediaItemTake_Source(candidate, reaper.PCM_Source_CreateFromFile('media/take_b.wav'))
     reaper.GetSetMediaItemTakeInfo_String(candidate, 'P_NAME', 'candidate', true)
-    reaper.GetSetMediaItemTakeInfo_String(candidate, 'P_EXT:narration_studio_take_finding_id', 'finding-0001', true)
+    reaper.GetSetMediaItemTakeInfo_String(candidate, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_finding_id', 'finding-0001', true)
     reaper.Undo_EndBlock2(0, 'spike: setup ' .. name, -1)
     return track, item
   end
@@ -471,7 +474,12 @@ local ok, err = xpcall(function()
   for lane = 0, 2 do
     local item = add_item(track_e5, ({ 'take_a.wav', 'take_b.wav', 'take_c.wav' })[lane + 1], 0, 3, 'retake ' .. (lane + 1), 'line-000009')
     reaper.SetMediaItemInfo_Value(item, 'I_FIXEDLANE', lane)
-    reaper.GetSetMediaItemTakeInfo_String(reaper.GetActiveTake(item), 'P_EXT:narration_studio_take_finding_id', 'finding-e5-' .. lane, true)
+    reaper.GetSetMediaItemTakeInfo_String(
+      reaper.GetActiveTake(item),
+      'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'take_finding_id',
+      'finding-e5-' .. lane,
+      true
+    )
   end
   reaper.SetMediaTrackInfo_Value(track_e5, 'C_LANEPLAYS:1', 1)
   reaper.Undo_EndBlock2(0, 'spike: setup E5', -1)
