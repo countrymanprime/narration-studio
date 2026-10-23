@@ -10,6 +10,7 @@ import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { addressPath, readAddress } from '../../navigation/address';
+import { entryRows } from './entryTableTestKit';
 import { Guide } from './Guide';
 
 afterEach(cleanup);
@@ -40,10 +41,7 @@ function renderAt(url: string) {
   );
 }
 
-const openRow = () =>
-  within(screen.getByRole('list', { name: 'Story Bible entries' }))
-    .getAllByRole('button')
-    .find((row) => row.getAttribute('aria-current') === 'true');
+const openRow = () => entryRows().find((row) => row.getAttribute('aria-selected') === 'true');
 const where = () => screen.getAllByTestId('where').at(-1)!.textContent;
 
 describe('arriving at #<entity id>', () => {

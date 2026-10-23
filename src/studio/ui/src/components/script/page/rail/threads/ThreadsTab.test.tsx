@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The Notes and Queries tabs over the browser mock host: the same marks in two views, the thread of a card and what its buttons do.
+// The Notes tab over the browser mock host: every mark of the chapter as a thread, the thread of a card and what its buttons do.
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
@@ -55,7 +55,7 @@ function mount(props: Partial<ThreadsTabProps> = {}) {
           <Probe />
           {/* The shell's focusable landmark, which a Retry that goes away hands focus to. */}
           <main tabIndex={-1}>
-            <ThreadsTab kind="notes" chapterId="chapter-1" lineOf={lineOf} onShowInText={onShowInText} {...props} />
+            <ThreadsTab chapterId="chapter-1" lineOf={lineOf} onShowInText={onShowInText} {...props} />
           </main>
         </TooltipProvider>
       </StudioProvider>
@@ -67,25 +67,23 @@ function mount(props: Partial<ThreadsTabProps> = {}) {
 const marks = async () => (await api.marksList()).marks;
 const card = (id: string) => within(document.querySelector<HTMLElement>(`[data-mark="${id}"]`)!);
 
-describe('notes-and-queries-are-two-views-of-threads', () => {
-  it('the Notes tab lists the chapter marks whose type does not ask, with the type select and quote', async () => {
-    const { note, query } = await seed();
+describe('every-mark-of-the-chapter-is-a-threaded-note', () => {
+  it('lists a plain mark with the type select and quote, and no status or copy button', async () => {
+    const { note } = await seed();
     mount();
     const found = await screen.findByRole('article', { name: /Word stress/ });
     expect(found.getAttribute('data-mark')).toBe(note.id);
-    expect(screen.queryByRole('article', { name: /Query for author/ })).toBeNull();
     const inCard = within(found);
     expect((inCard.getByRole('combobox', { name: 'Type' }) as HTMLSelectElement).value).toBe('stress');
     expect(inCard.getByText(`“${note.quote}”`)).toBeTruthy();
     expect(inCard.getByText('Lean on this word.')).toBeTruthy();
     expect(inCard.queryByText('Open')).toBeNull();
-    expect(inCard.queryByRole('button', { name: 'Copy the query' })).toBeNull();
-    expect(document.querySelector(`[data-mark="${query.id}"]`)).toBeNull();
+    expect(inCard.queryByRole('button', { name: 'Copy the note' })).toBeNull();
   });
 
-  it('the Queries tab lists the asking marks with a status pill and the whole thread', async () => {
+  it('lists a mark that asks beside it, with its status pill and the whole thread', async () => {
     const { query } = await seed();
-    mount({ kind: 'queries' });
+    mount();
     const found = await screen.findByRole('article', { name: /Query for author/ });
     const inCard = within(found);
     expect(found.getAttribute('data-mark')).toBe(query.id);
@@ -93,16 +91,13 @@ describe('notes-and-queries-are-two-views-of-threads', () => {
     expect(inCard.getByText('Is this the live animal?')).toBeTruthy();
     expect(inCard.getByText('They meant the live animals.')).toBeTruthy();
     expect(inCard.getByText('Author')).toBeTruthy();
-    expect(screen.queryByRole('article', { name: /Word stress/ })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Open 1' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('article', { name: /Word stress/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Open 1' })).toBeNull();
   });
 
-  it('says so when a tab is empty', async () => {
+  it('says so when the chapter has no notes', async () => {
     mount();
     expect(await screen.findByText('No notes in this chapter yet. Select text and choose Mark.')).toBeTruthy();
-    cleanup();
-    mount({ kind: 'queries' });
-    expect(await screen.findByText('No queries here.')).toBeTruthy();
   });
 
   it('a failed read shows the host sentence and Retry', async () => {
@@ -134,9 +129,8 @@ describe('a failed read and Retry', () => {
 describe('adds-to-a-thread-and-resolves-and-reopens', () => {
   it('Reply appends as the author, Resolve and Reopen toggle the status', async () => {
     const { query } = await seed();
-    const { user } = mount({ kind: 'queries' });
+    const { user } = mount();
     await screen.findByRole('article', { name: /Query for author/ });
-    setView({ qfilter: 'all' });
     await user.type(card(query.id).getByRole('textbox', { name: 'Reply or note' }), 'Also the stuffed ones.');
     await user.click(card(query.id).getByRole('button', { name: 'Reply' }));
     await waitFor(async () => expect((await marks())[1]?.thread.at(-1)).toMatchObject({ who: 'author', text: 'Also the stuffed ones.' }));
@@ -152,7 +146,7 @@ describe('adds-to-a-thread-and-resolves-and-reopens', () => {
 
   it('the who-select sends the reply as the narrator', async () => {
     const { query } = await seed();
-    const { user } = mount({ kind: 'queries' });
+    const { user } = mount();
     await screen.findByRole('article', { name: /Query for author/ });
     await user.click(card(query.id).getByRole('button', { name: 'My note' }));
     await user.type(card(query.id).getByRole('textbox', { name: 'Reply or note' }), 'Checked the text.');
@@ -163,7 +157,7 @@ describe('adds-to-a-thread-and-resolves-and-reopens', () => {
   it('an empty reply is refused with a sentence and no call', async () => {
     const { query } = await seed();
     const reply = vi.spyOn(api, 'marksReply');
-    const { user } = mount({ kind: 'queries' });
+    const { user } = mount();
     await screen.findByRole('article', { name: /Query for author/ });
     await user.click(card(query.id).getByRole('button', { name: 'Reply' }));
     expect(toast).toHaveBeenCalledWith('Write the reply or note first.');
@@ -174,7 +168,7 @@ describe('adds-to-a-thread-and-resolves-and-reopens', () => {
 describe('edits-a-message-and-deletes-one-with-undo', () => {
   it('Edit shows a labelled textarea; Save changes the message and Cancel leaves it', async () => {
     const { query } = await seed();
-    const { user } = mount({ kind: 'queries' });
+    const { user } = mount();
     await screen.findByRole('article', { name: /Query for author/ });
     const edit = () => card(query.id).getAllByRole('button', { name: 'Edit this message' }).at(-1)!;
     await user.click(edit());
@@ -195,7 +189,7 @@ describe('edits-a-message-and-deletes-one-with-undo', () => {
   it('Delete removes the message with a toast whose Undo restores it at its index', async () => {
     const { query } = await seed();
     const restore = vi.spyOn(api, 'marksRestoreMessage');
-    const { user } = mount({ kind: 'queries' });
+    const { user } = mount();
     await screen.findByRole('article', { name: /Query for author/ });
     await user.click(card(query.id).getAllByRole('button', { name: 'Delete the message' }).at(-1)!);
     await waitFor(async () => expect((await marks())[1]?.thread).toHaveLength(0));
@@ -212,20 +206,20 @@ describe('copy-the-query-puts-the-passage-and-the-question-on-the-clipboard', ()
   it('writes "{chapter line}: “{quote}”\\n{question}"', async () => {
     const { query } = await seed();
     const writeText = vi.fn().mockResolvedValue(undefined);
-    const { user } = mount({ kind: 'queries' });
+    const { user } = mount();
     clipboard(writeText); // after setup(), which installs a clipboard of its own
     await screen.findByRole('article', { name: /Query for author/ });
-    await user.click(card(query.id).getByRole('button', { name: 'Copy the query' }));
+    await user.click(card(query.id).getByRole('button', { name: 'Copy the note' }));
     expect(writeText).toHaveBeenCalledWith(`${lineOf(query)}: “${query.quote}”\nIs this the live animal?`);
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('Query copied.'));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Note copied.'));
   });
 
   it('a clipboard failure says so', async () => {
     const { query } = await seed();
-    const { user } = mount({ kind: 'queries' });
+    const { user } = mount();
     clipboard(vi.fn().mockRejectedValue(new Error('denied')));
     await screen.findByRole('article', { name: /Query for author/ });
-    await user.click(card(query.id).getByRole('button', { name: 'Copy the query' }));
+    await user.click(card(query.id).getByRole('button', { name: 'Copy the note' }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith('Could not copy to the clipboard.', { tone: 'error' }));
   });
 });

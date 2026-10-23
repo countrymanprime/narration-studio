@@ -8,9 +8,6 @@ import type { KeyHintItem } from '../../../primitives/KeyHints';
 
 type HintSpec = { id: CommandId; with?: readonly CommandId[]; label: string };
 
-/** What the footer says first: the selection tools, which no key opens. */
-const SELECT_HINT = 'Select text to mark it, add a note or query, or look it up.';
-
 /** The reader's own scrolling is the browser's, so no command holds these two caps. */
 const SCROLL_HINT: KeyHintItem = { keys: ['↑', '↓'], label: 'scroll' };
 
@@ -37,7 +34,7 @@ function chord(commandIds: readonly CommandId[], keymap: Keymap): string[] | nul
 
 /** The footer's hints from the narrator's keymap. */
 export function scriptKeyHints(keymap: Keymap): KeyHintItem[] {
-  const hints: KeyHintItem[] = [{ keys: [], label: SELECT_HINT }, SCROLL_HINT];
+  const hints: KeyHintItem[] = [SCROLL_HINT];
   for (const { id, with: more = [], label } of SCRIPT_FOOTER_SPEC) {
     const keys = chord([id, ...more], keymap);
     if (keys) hints.push({ keys, label, id: `hint-${id}` });

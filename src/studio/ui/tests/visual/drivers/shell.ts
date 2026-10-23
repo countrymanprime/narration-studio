@@ -9,7 +9,7 @@ export const shellDrivers: Record<string, Driver> = {
   'jump-menu-back-enabled': async (page) => {
     // Story Bible, not Script: Script's reader carries its own pre-existing nested-interactive debt (#155, catalogued as flake 3 on #509) this row has no reason to inherit.
     await goToPage(page, 'Story Bible');
-    await page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button').first().waitFor();
+    await page.getByRole('table', { name: 'Story Bible entries' }).locator('[data-entry-id]').first().waitFor();
     await openJumpMenuOnCommands(page, 'back');
     await page.getByRole('option', { name: /^Back/ }).waitFor();
     await page.getByRole('option', { name: /^Back/ }).and(page.locator(':not([aria-disabled="true"])')).waitFor();

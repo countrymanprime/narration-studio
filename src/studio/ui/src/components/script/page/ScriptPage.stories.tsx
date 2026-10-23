@@ -112,26 +112,6 @@ export const NotesTab: Story = {
   },
 };
 
-export const QueriesTab: Story = {
-  parameters: { view: { tab: 'queries', drawer: 'rail' } },
-  play: async ({ canvasElement }) => {
-    await firstChapter(canvasElement);
-    await expect(
-      within(canvasElement)
-        .getByRole('tab', { name: /^Queries$/i })
-        .getAttribute('aria-selected'),
-    ).toBe('true');
-  },
-};
-
-export const BookmarksTab: Story = {
-  parameters: { view: { tab: 'bookmarks', drawer: 'rail' } },
-  play: async ({ canvasElement }) => {
-    await firstChapter(canvasElement);
-    await expect(await within(canvasElement).findByText('No bookmarks yet.')).toBeTruthy();
-  },
-};
-
 // Below 1280 px the rail is a drawer over the text with a scrim; the reader header's side-panel button opens it.
 export const RailDrawer: Story = {
   parameters: { view: { drawer: 'rail' } },

@@ -397,7 +397,6 @@ const NON_TEXT_USES: Record<string, { count: number; what: string }> = {
   'components/layout/EngineChip.tsx': { count: 2, what: "the header chip dot when no DAW file is linked, and the Built-in chip's dot" },
   'components/primitives/HeaderChip.stories.tsx': { count: 1, what: "the QuietDot story's dot, the engine chip's when no DAW file is linked" },
   'components/primitives/Tooltip.tsx': { count: 1, what: 'the border of the info icon' },
-  'components/storybible/Guide.tsx': { count: 1, what: 'the lock icon beside a locked entry' },
   'components/engine/EnginePanel.tsx': { count: 1, what: 'the dot of a track that has no colour' },
   'styles.css': { count: 1, what: "LevelMeter's below-floor zone: --meter-floor is a derived alias of --non-text, not text" },
 };

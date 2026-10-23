@@ -1747,6 +1747,9 @@ var fieldSchemas = map[string][]fieldSchema{
 	// (the offline dictionary asset) or api (the online pronunciation service). Settings' Definitions panel and the Words tab's source menu
 	// both save it; a stored value outside the three reads as web (settings.closedChoices).
 	"Script": {{"definition_source", "Show definitions from", "choice", settings.DefinitionSources()}},
+	// seen is the first-use tips the narrator has dismissed, as the tips' ids separated by spaces (src/studio/ui/src/tips/): a tip is shown once per
+	// narrator, so it is global only (saveSettings refuses it at project scope). Deleting the value shows every tip again.
+	"Tips": {{"seen", "Tips already shown", "text", nil}},
 	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder. The DAW choices
 	// (daw, both) come with phase 6 of docs/prds/character-voice-samples.prd.md, so a save of either is refused until then.
 	"VoiceSamples": {
@@ -2013,6 +2016,9 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	}
 	if tool == "Teleprompter" && scope != "global" {
 		return fmt.Errorf("teleprompter settings are global: the microphone is wired to this computer, not this project")
+	}
+	if tool == "Tips" && scope != "global" {
+		return fmt.Errorf("tips are global: a tip shown once is shown once for the narrator, not once per project")
 	}
 	if tool == "Keymap" && scope != "global" {
 		return fmt.Errorf("keymap overrides are global: a narrator's pedal belongs to the booth, not the project")
