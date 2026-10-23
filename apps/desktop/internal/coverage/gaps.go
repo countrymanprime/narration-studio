@@ -54,6 +54,7 @@ type GapLine struct {
 	FirstWord    string          `json:"firstWord"`
 	LastWord     string          `json:"lastWord"`
 	Text         *string         `json:"text,omitempty"`
+	RepeatOf     *string         `json:"repeatOf,omitempty"`
 	Position     *RegionPosition `json:"position,omitempty"`
 	Before       *RegionPosition `json:"before,omitempty"`
 	After        *RegionPosition `json:"after,omitempty"`
@@ -148,6 +149,9 @@ func ClassifyGaps(report Report) ([]GapLine, Unfinished) {
 		}
 		if len(words) > 0 {
 			line.FirstWord, line.LastWord = words[0], words[len(words)-1]
+		}
+		if extra.RepeatOf != nil {
+			line.RepeatOf = &extra.RepeatOf.Text
 		}
 		found = append(found, placed{paragraph, *after + 1, line})
 	}
