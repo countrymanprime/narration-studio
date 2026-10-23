@@ -51,6 +51,13 @@ describe('surrounding-text-draws-the-paragraphs', () => {
     expect(section.querySelector('[data-around=after]')?.textContent).toBe('Oh dear!');
   });
 
+  it('marks with the note’s kind, and with the search mark for a kind that draws no text mark', () => {
+    const { rerender } = render(<SurroundingText kind="misread" around={{ at: 'a White Rabbit', mark: { start: 2, end: 14 } }} />);
+    expect(document.querySelector('[data-around=at] mark')?.getAttribute('data-kind')).toBe('misread');
+    rerender(<SurroundingText kind="noise" around={{ at: 'Ahem! said the Mouse', mark: { start: 0, end: 5 } }} />);
+    expect(document.querySelector('[data-around=at] mark')?.getAttribute('data-highlight')).toBe('Search');
+  });
+
   it('keeps right-to-left and emoji text as written', () => {
     render(<SurroundingText around={{ at: 'שלום 👋 world', mark: { start: 0, end: 4 } }} />);
     expect(document.querySelector('[data-around=at]')?.textContent).toBe('שלום 👋 world');
