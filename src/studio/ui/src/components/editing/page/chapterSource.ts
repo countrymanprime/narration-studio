@@ -37,12 +37,6 @@ function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Ma
   return out;
 }
 
-/** The indexes of the alignment items a paragraph was heard in (a paragraph is often several items cut from one recording), or none when it was not heard. The ribbon draws those items' waveforms. */
-export function itemIndexesOf(read: ChapterRead, paragraphId: string): number[] {
-  const words = heardSpans(read.answer, read.workspace.paragraphs[0]?.id).get(paragraphId)?.words ?? [];
-  return [...new Set(words.map((w) => w.item))];
-}
-
 /**
  * Whether the chapter has audio the page can edit. When it has none, why: no track is linked to it (`unlinked`), the linked track is not in the
  * saved project (`missing`), or the track holds nothing (`empty`).

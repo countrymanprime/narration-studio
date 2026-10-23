@@ -146,6 +146,9 @@ const mockRemoved = mockParams.get('mockRemoved') === '1';
 const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activity', 'background'] as const).find(
   (seed) => seed === mockParams.get('mockChapterSync'),
 );
+// `?mockBackgroundChecks=confirm|running|waiting`: background recording checks at boot (`confirm` shows the first-time notice, `running`
+// has a background check held at 42% with one chapter waiting, `waiting` has two chapters waiting while REAPER records).
+const mockBackgroundChecks = (['confirm', 'running', 'waiting'] as const).find((seed) => seed === mockParams.get('mockBackgroundChecks'));
 // `?mockBooth=huge-chapter|many-chapters|emoji|rtl|odd-titles` replaces the manuscript with the Booth's worst cases (fixtures/boothStress.ts): a
 // 100,000-word chapter, 5000 chapters, all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
 // or ones with quotes, newlines, right-to-left text and emoji in their names, to the teleprompter and the built-in recorder.
@@ -536,6 +539,7 @@ const mockInitial = {
   ...(mockResume ? { resume: mockResume } : {}),
   ...(mockRemoved ? { removedChapter: true } : {}),
   ...(mockChapterSync ? { chapterSync: mockChapterSync } : {}),
+  ...(mockBackgroundChecks ? { backgroundChecks: mockBackgroundChecks } : {}),
   ...(mockCreditsFilled ? { creditValues: { title: 'Alice’s Adventures in Wonderland', author: 'Lewis Carroll', narrator: 'Ada Finch' } } : {}),
   ...(mockCreditsSetupNarratorDefault ? { creditValues: { narrator: 'Jamie Rivers' } } : {}),
   ...(mockCreditsExtras ? { chapterAnnouncement: '[Chapter]{: [Chapter Title]}.', retailSample: { chapterIndex: 2, startLine: 1, endLine: 3 } } : {}),

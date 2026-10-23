@@ -196,6 +196,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | Hide, never delete (owner) | Mute or Cuts track | Delete | Non-destructive |
 | Suggest, never apply (owner) | Chip with evidence | Preselect | DQ-15 |
 | Model first (proposed) | Pure model slice before UI | UI first | Parallel safety and testability |
+| One docked waveform (owner, #2251 items 29, 31, 33, 34) | The page's one waveform sits above the transport, always in view, and scrolls the whole chapter; it supersedes the mock's ribbon under the active line (`studio-next/src/pages/editing/Ribbon.tsx`) and the strip's audio lane (the strip keeps its take lanes). Left button or one finger draws a range, the right button held, the wheel, two fingers, the end arrows and the arrow keys scroll it (no scrollbar), and the script marks and shows the lines it is scrolled to; a right click without a drag opens its own menu. Thin bars on a decibel scale against the chapter's reference level (`ribbonBars.ts`, `levelOf`) | The mock's ribbon under the line, which moved the script each time the cursor changed line and could be off screen; a linear peak scale, which drew quiet speech as dots | Owner's test of 2026-10-23 |
 
 ## Research Summary
 

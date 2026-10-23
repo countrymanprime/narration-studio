@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-utils/shell/internal/process"
 )
 
 // --- a project on disk ---
@@ -259,6 +260,8 @@ type fakeSidecar struct {
 	// on the last analyzed item. 0 windows reports none.
 	pipelineWindows int
 	pipelineSeconds float64
+
+	lowPriority []bool // per launch: whether it asked for a below-normal process
 }
 
 type fakeChild struct {
@@ -277,9 +280,10 @@ func (c *fakeChild) ExitCode() (int, bool) {
 }
 
 func (f *fakeSidecar) launcher() Launcher {
-	return func(_ context.Context, program string, args ...string) (Child, error) {
+	return func(ctx context.Context, program string, args ...string) (Child, error) {
 		f.mu.Lock()
 		f.launches = append(f.launches, append([]string{program}, args...))
+		f.lowPriority = append(f.lowPriority, process.LowPriority(ctx))
 		launchErr := f.launchErr
 		f.mu.Unlock()
 		if launchErr != nil {
@@ -338,7 +342,7 @@ func (f *fakeSidecar) run(args []string) int {
 	values := flags(args)
 	progress := values["--progress"]
 	if windowsPath := values["--recheck"]; windowsPath != "" {
-		return f.runRecheck(progress, windowsPath)
+		return f.runRecheck(progress, windowsPath, values["--words-dir"], values["--model"])
 	}
 	progressLine(progress, "START", 0, "Starting...")
 	raw, err := os.ReadFile(values["--manifest"])
@@ -443,8 +447,9 @@ func (f *fakeSidecar) run(args []string) int {
 
 // runRecheck stands in for `compare.py --coverage --recheck <windows.json>`: it never touches a
 // manifest, chapter or --out (coverage_mode.run_recheck's own contract), just records which words
-// files the windows file named, so a test can assert the planner's own windows reached the sidecar.
-func (f *fakeSidecar) runRecheck(progress, windowsPath string) int {
+// files the windows file named, so a test can assert the planner's own windows reached the sidecar, and gives each window's
+// range to model in the words file's spans, as splice_window does.
+func (f *fakeSidecar) runRecheck(progress, windowsPath, wordsDir, model string) int {
 	progressLine(progress, "START", 0, "Starting...")
 	if _, err := os.Stat(progress + ".cancel"); err == nil {
 		progressLine(progress, "CANCELLED", 0, "Cancelled by user")
@@ -467,6 +472,19 @@ func (f *fakeSidecar) runRecheck(progress, windowsPath string) int {
 		f.rechecked = append(f.rechecked, w.WordsFile)
 	}
 	f.mu.Unlock()
+	for _, w := range decoded.Windows {
+		path := filepath.Join(wordsDir, w.WordsFile)
+		var words map[string]any
+		if raw, err := os.ReadFile(path); err != nil || json.Unmarshal(raw, &words) != nil {
+			return 1
+		}
+		spans, _ := words["spans"].([]any)
+		words["spans"] = append(spans, map[string]any{"start": w.Start, "end": w.End, "model": model})
+		encoded, _ := json.Marshal(words)
+		if err := writeAtomically(path, encoded); err != nil {
+			return 1
+		}
+	}
 	progressLine(progress, "DONE", 100, "Finished")
 	return 0
 }
