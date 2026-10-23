@@ -30,6 +30,8 @@ export interface RangeInteraction {
   covered: ReturnType<typeof wordsCovered>;
   /** What a screen reader is told when a range is set, a sentence, empty until then. */
   announcement: string;
+  /** Lets a range being drawn go (a second finger landed to scroll): an unmoved press is dropped, a drawn one is kept as it stands. */
+  cancel: () => void;
   surface: {
     onPointerDown: (e: PointerEvent) => void;
     onPointerMove: (e: PointerEvent) => void;
@@ -85,7 +87,8 @@ export function useRangeInteraction({ surface, t0, view, bounds, words, range, o
   const timeAt = useCallback(
     (clientX: number): number => {
       const rect = surface?.getBoundingClientRect();
-      const along = rect && rect.width ? (clientX - rect.left) / rect.width : 0;
+      // A drag past either side stops at the edge of what is on screen: the waveform scrolls by its own gestures, not by drawing past it.
+      const along = rect && rect.width ? Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) : 0;
       return t0 + view.view.start + along * view.view.len;
     },
     [surface, t0, view.view.start, view.view.len],
@@ -133,6 +136,7 @@ export function useRangeInteraction({ surface, t0, view, bounds, words, range, o
   };
 
   const begin = (event: PointerEvent, next: Drag): void => {
+    // The left button or one finger draws; the right button scrolls (useScrollGestures).
     if (event.button !== 0) return;
     event.stopPropagation();
     drag.current = next;
@@ -141,24 +145,38 @@ export function useRangeInteraction({ surface, t0, view, bounds, words, range, o
   };
   const pointer = (down: (e: PointerEvent) => void) => ({
     onPointerDown: down,
+    // Only a drag this hook began stops here; anything else (a right-drag that began on the range) goes on to the waveform.
     onPointerMove: (e: PointerEvent) => {
+      if (!drag.current) return;
       e.stopPropagation();
       move(e);
     },
     onPointerUp: (e: PointerEvent) => {
+      if (!drag.current) return;
       e.stopPropagation();
       up(e);
     },
     onPointerCancel: (e: PointerEvent) => {
+      if (!drag.current) return;
       e.stopPropagation();
       up(e);
     },
   });
+  const cancel = (): void => {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    const final = draftRef.current;
+    draftRef.current = null;
+    setDraft(null);
+    if (final && !(d.kind === 'create' && !d.moved)) commit(final);
+  };
 
   return {
     shown,
     covered,
     announcement,
+    cancel,
     surface: pointer((e) => {
       const raw = timeAt(e.clientX);
       begin(e, { kind: 'create', anchor: snapIf(raw, e.altKey), raw, x0: e.clientX, moved: false });

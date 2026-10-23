@@ -9,7 +9,10 @@ import {
   barLayout,
   barPosition,
   barScale,
+  DISPLAY_RANGE_DB,
+  grownHalf,
   halfHeight,
+  levelOf,
   playheadAt,
   pulseEnvelope,
 } from './ribbonBars';
@@ -23,7 +26,7 @@ describe('barLayout', () => {
     }
   });
 
-  it('keeps the site gap and a bar between its base width and one pixel over it', () => {
+  it('keeps the gap and a bar between its base width and one pixel over it', () => {
     for (const width of [50, 200, 777, 1234]) {
       const { pitch, barWidth } = barLayout(width);
       expect(pitch - barWidth).toBeCloseTo(BAR_GAP, 6);
@@ -48,23 +51,59 @@ describe('halfHeight', () => {
   it('is symmetric about the middle: a column draws as the larger of its two peaks', () => {
     expect(halfHeight([-100, 20], 28)).toBe(halfHeight([-20, 100], 28));
   });
-  it('is at least half the minimum bar, so silence is still drawn', () => {
+  it('is a hairline for silence and for anything under the host floor of 1/127', () => {
     expect(halfHeight([0, 0], 28)).toBe(MIN_BAR_HEIGHT / 2);
     expect(halfHeight([-1, 1], 28)).toBe(MIN_BAR_HEIGHT / 2);
   });
-  it('leaves headroom for growth at full scale and clamps a stray value', () => {
+  it('fills the headroom at the reference level and clamps a stray value', () => {
     expect(halfHeight([-127, 127], 28)).toBeCloseTo(28 * PEAK_HEADROOM, 6);
     expect(halfHeight([-400, 400], 28)).toBeCloseTo(28 * PEAK_HEADROOM, 6);
+    expect(halfHeight([-30, 30], 28, { ref: 30 })).toBeCloseTo(28 * PEAK_HEADROOM, 6);
   });
 });
 
-describe('halfHeight with a gain', () => {
-  it('draws a quiet column larger by the gain, and keeps the loudest inside the headroom', () => {
-    expect(halfHeight([-30, 30], 28, 4)).toBeCloseTo(halfHeight([-30, 30], 28) * 4, 6);
-    expect(halfHeight([-127, 127], 28, 4)).toBeCloseTo(28 * PEAK_HEADROOM, 6);
+// The owner's chapter peaked at 30/127 with a median of 3/127 (#2246): drawn on a linear scale its speech was a row of dots (#2251, items 31
+// and 34). The bars are its level in decibels against the chapter's reference, over DISPLAY_RANGE_DB.
+describe('levelOf, the display scale', () => {
+  const owner = { ref: 30 };
+  it('is 1 at the reference and above it, and 0 at the host floor and below', () => {
+    expect(levelOf(30, owner)).toBe(1);
+    expect(levelOf(90, owner)).toBe(1);
+    expect(levelOf(1, owner)).toBe(0);
+    expect(levelOf(0, owner)).toBe(0);
+    expect(levelOf(-30, owner)).toBe(1);
   });
-  it('is the same as before with no gain', () => {
-    expect(halfHeight([-30, 30], 28, 1)).toBe(halfHeight([-30, 30], 28));
+  it('is the level in decibels against the reference over the display range', () => {
+    // a bucket of 3 is at least 2/127; 20·log10(2/29) is -23.2 dB, so 1 - 23.2/30 of the height
+    expect(levelOf(3, owner)).toBeCloseTo(1 + (20 * Math.log10(2 / 29)) / DISPLAY_RANGE_DB, 9);
+    expect(DISPLAY_RANGE_DB).toBe(30);
+  });
+  it('draws the median syllable of a quiet chapter several times taller than a linear scale does', () => {
+    // Linear, scaled so the loudest bucket fills the room (the rule before): 3/30 of it. On the display scale: about a quarter of it.
+    const linear = 3 / 30;
+    expect(levelOf(3, owner)).toBeGreaterThan(2 * linear);
+    expect(levelOf(10, owner)).toBeGreaterThan(0.6);
+  });
+  it('draws a chapter the same whatever its gain: 10 dB quieter with its reference 10 dB lower is the same picture', () => {
+    // (above the quietest buckets, where the host's 1/127 steps are coarse)
+    for (const v of [20, 40, 90, 127]) {
+      const quieter = Math.round(1 + (v - 1) / Math.sqrt(10));
+      expect(levelOf(quieter, { ref: Math.round(1 + 99 / Math.sqrt(10)) })).toBeCloseTo(levelOf(v, { ref: 100 }), 1);
+    }
+  });
+  it('rises with the level and never leaves 0..1', () => {
+    let last = -1;
+    for (let v = 0; v <= 127; v += 1) {
+      const l = levelOf(v, owner);
+      expect(l).toBeGreaterThanOrEqual(last);
+      expect(l).toBeGreaterThanOrEqual(0);
+      expect(l).toBeLessThanOrEqual(1);
+      last = l;
+    }
+  });
+  it('keeps a reference of 1 or less from dividing by nothing', () => {
+    expect(levelOf(2, { ref: 1 })).toBe(1);
+    expect(levelOf(2, { ref: 0 })).toBe(1);
   });
 });
 
@@ -142,8 +181,12 @@ describe('the wave that passes with the playhead', () => {
     expect(passing[0]).toBe(1);
     expect(passing[passing.length - 1]).toBe(1);
   });
-  it('leaves room for the growth: the tallest bar can reach 50% longer without being clipped', () => {
-    expect(PEAK_HEADROOM * (1 + PULSE.grow)).toBeLessThanOrEqual(1 + 1e-9);
+  it('grows the bar under the playhead half way to the lane edge, and never past it, however tall it was', () => {
+    expect(grownHalf(10, 30, 0, false)).toBeCloseTo(20, 9);
+    for (let half = 0; half <= 40; half += 2.5)
+      for (let d = -PULSE.behind; d <= PULSE.ahead; d += 0.5) expect(grownHalf(half, 30, d, false)).toBeLessThanOrEqual(30 + 1e-9);
+    expect(grownHalf(10, 30, 50, false)).toBe(10);
+    expect(grownHalf(10, 30, 0, true)).toBe(10);
   });
 });
 

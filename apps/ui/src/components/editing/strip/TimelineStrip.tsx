@@ -1,16 +1,12 @@
-import { useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useMemo } from 'react';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useEditingPage } from '../script/EditingPageState';
-import type { ItemClocks } from '../ribbon/docClock';
-import { RibbonView } from '../ribbon/Ribbon';
-import { activePid, ribbonLayout } from '../ribbon/ribbonLayout';
-import { peakGain } from '../ribbon/peaksWindow';
-import { pickEntries, useRibbonPeaks } from '../ribbon/useRibbonPeaks';
+import { activePid } from '../ribbon/ribbonLayout';
 import { MiniWave } from '../takes/MiniWave';
 import type { LinePassage, LineTake } from '../takes/types';
-import { stripLayout, wordAtTime } from './stripLayout';
+import { stripLayout } from './stripLayout';
 
 const mono = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 const pct = (t: number, t0: number, t1: number): string => `${(((t - t0) / (t1 - t0)) * 100).toFixed(2)}%`;
@@ -44,29 +40,22 @@ export interface TimelineStripProps {
   playingId: string | null;
   /** Plays the take's own source range through the playback hook; called again for the take that plays, it stops. */
   onPlay: (take: LineTake) => void;
-  chapterId: string;
-  /** Where each item's source seconds sit on the document clock (`itemClocks`): the peaks are in source seconds, the strip's axis is not. */
-  clocks: ItemClocks;
   /** Drawn in the drawer's Timeline tab, which is offered only where the strip does not fit: shown at every width, not only from 1360 px. */
   inDrawer?: boolean;
 }
 
 /**
- * The chapter's audio under the line the cursor is on, and one lane for each shown take of that line, all on one time axis with one playhead.
- * The selection is mirrored as a band; dragging on the audio selects the words under it (the selection keys do the same from the keyboard), and a
- * lane plays its take.
+ * One lane for each shown take of the line the cursor is on, all on one time axis with one playhead; the selection is mirrored as a band on the
+ * active take, and a lane plays its take. The line's audio is not drawn here: the page has one waveform, docked above the transport (#2251,
+ * item 29).
  */
-export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay, chapterId, clocks, inDrawer = false }: TimelineStripProps) {
-  const { doc, state, dispatch, selected: cursorOrSel } = useEditingPage();
+export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay, inDrawer = false }: TimelineStripProps) {
+  const { doc, state, selected: cursorOrSel } = useEditingPage();
   // The cursor's own word is not a selection: no band until a run is selected.
   const selected = useMemo(() => (state.sel ? cursorOrSel : []), [state.sel, cursorOrSel]);
-  const peaks = useRibbonPeaks(chapterId);
-  const audio = useRef<HTMLDivElement>(null);
-  const drag = useRef<string | null>(null);
   const pid = activePid(doc, state);
   const takes = useMemo(() => (passage?.takes ?? []).filter((t) => !hidden?.has(t.id)), [passage, hidden]);
   const layout = useMemo(() => (pid ? stripLayout(doc, pid, takes, starts, selected, state.playT) : null), [doc, pid, takes, starts, selected, state.playT]);
-  const base = useMemo(() => (pid && layout ? ribbonLayout(doc, pid, selected, null) : null), [doc, pid, layout, selected]);
 
   const head = (
     <div className="flex items-center gap-2 px-3 py-1.5">
@@ -84,7 +73,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
   // The drawer stacks a take's name over its badge, so the column is as wide as the longest name ("Retake on lane 2") on one line.
   const labelWidth = inDrawer ? 'w-[7.5rem]' : 'w-24';
   const region = `border-t border-[var(--border)] bg-[var(--surface)] text-[var(--text)]`;
-  if (!layout || !base) {
+  if (!layout) {
     return (
       <section id="timeline" aria-label="Waveform and takes, following the line the cursor is on" className={region}>
         {head}
@@ -93,39 +82,10 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
   }
 
   const { t0, t1 } = layout;
-  const at = (clientX: number): number => {
-    const r = audio.current?.getBoundingClientRect();
-    if (!r || r.width <= 0) return t0;
-    return t0 + Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * (t1 - t0);
-  };
-  const down = (e: ReactPointerEvent): void => {
-    const key = wordAtTime(doc, layout.pid, at(e.clientX));
-    drag.current = key;
-    if (key) dispatch({ type: 'place', key });
-  };
-  const move = (e: ReactPointerEvent): void => {
-    if (!drag.current || e.buttons !== 1) return;
-    const key = wordAtTime(doc, layout.pid, at(e.clientX));
-    if (key) dispatch({ type: 'select', anchor: drag.current, head: key });
-  };
-  const up = (): void => {
-    drag.current = null;
-  };
-  const audioLayout = { ...base, t0, t1, playhead: layout.playhead, band: layout.band && { t0: layout.band.t0, t1: layout.band.t1 } };
-  const entry = pickEntries(peaks, clocks, t0, t1);
 
   return (
     <section id="timeline" aria-label="Waveform and takes, following the line the cursor is on" className={region}>
       {head}
-      <div className="flex items-stretch gap-2 px-3" data-lane="audio">
-        <div className={`flex ${labelWidth} flex-none flex-col justify-center text-xs`}>
-          <span className="font-semibold">Audio</span>
-          <span className="text-[var(--text-muted)]">{passage?.takes.find((t) => t.active)?.label ?? 'Recording'}</span>
-        </div>
-        <div ref={audio} data-tl-audio className="min-w-0 flex-1 touch-none" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up}>
-          <RibbonView layout={audioLayout} gain={peakGain(peaks)} {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })} />
-        </div>
-      </div>
       {layout.lanes.map(({ take, start, length }) => (
         <div key={take.id} className="flex items-center gap-2 px-3 py-0.5" data-lane={take.id}>
           <div className={`flex ${labelWidth} flex-none text-xs ${inDrawer ? 'flex-col items-start gap-0.5' : 'items-center gap-1.5'}`}>

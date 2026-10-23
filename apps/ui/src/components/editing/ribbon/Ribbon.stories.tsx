@@ -1,21 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
+import { SPEECH_PEAKS_MINMAX, SPEECH_PEAKS_PER_SECOND } from '../../../api/fixtures/speechPeaks';
 import { marksDoc } from '../script/scriptFixtures';
 import { shiftPeaks } from './docClock';
 import { RibbonView } from './Ribbon';
 import { ribbonLayout } from './ribbonLayout';
 
-/** A steady tone-shaped entry over `seconds`, so the bars read the same on every run. */
+/** Sixty seconds of a real narrator's peaks (`api/fixtures/speechPeaks.ts`), so the bars in the atlas look like speech and read the same on every run. */
 function peaksOf(seconds: number): WorkspacePeaks {
-  const n = Math.round(seconds * 50);
-  const bytes = new Uint8Array(n * 2);
-  for (let i = 0; i < n; i += 1) {
-    const amp = Math.round(20 + 80 * Math.abs(Math.sin(i / 3.7)) * (0.4 + 0.6 * Math.abs(Math.sin(i / 17))));
-    bytes[2 * i] = 256 - amp;
-    bytes[2 * i + 1] = amp;
-  }
-  return { startSeconds: 0, bucketsPerSecond: 50, buckets: n, minMax: btoa(String.fromCharCode(...bytes)), sampleRate: 48000, channels: 1 };
+  const n = Math.min(Math.round(seconds * SPEECH_PEAKS_PER_SECOND), atob(SPEECH_PEAKS_MINMAX).length / 2);
+  return { startSeconds: 0, bucketsPerSecond: SPEECH_PEAKS_PER_SECOND, buckets: n, minMax: SPEECH_PEAKS_MINMAX, sampleRate: 48000, channels: 1 };
 }
 
 const doc = marksDoc();

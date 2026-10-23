@@ -17,11 +17,13 @@ export interface ParagraphProps {
   /** The key with its card open, only for its paragraph. */
   flag: string | null;
   active: boolean;
+  /** The line is on screen in the bottom waveform while it is scrolled by hand. */
+  inView?: boolean;
   onRender?: (pid: string) => void;
 }
 
 /** One row of the script: the time the line begins and its words. Memoised, so a cursor move draws the paragraph it left and the one it entered. */
-export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag, active, onRender }: ParagraphProps) {
+export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag, active, inView = false, onRender }: ParagraphProps) {
   useEffect(() => {
     onRender?.(dp.p.id);
   });
@@ -33,8 +35,9 @@ export const Paragraph = memo(function Paragraph({ dp, sel, cursor, nowKey, flag
     <div
       data-pid={dp.p.id}
       data-active={active ? '' : undefined}
+      data-in-view={inView ? '' : undefined}
       data-unrecorded={dp.recorded ? undefined : ''}
-      className={`mb-2 grid grid-cols-[76px_minmax(0,1000px)] gap-x-1.5 border-l-[3px] py-1 ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : 'border-transparent'}`}
+      className={`mb-2 grid grid-cols-[76px_minmax(0,1000px)] gap-x-1.5 border-l-[3px] py-1 ${active ? 'border-[var(--accent-strong)] bg-[var(--accent-soft)]/40' : inView ? 'border-[var(--info)] bg-[var(--info-soft)]/50' : 'border-transparent'}`}
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 4.5rem' }}
     >
       <div data-gutter className="flex flex-col items-end gap-1 pt-[0.7em] pr-2">

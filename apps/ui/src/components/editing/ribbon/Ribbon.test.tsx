@@ -10,7 +10,8 @@ import { EditingPageProvider, useEditingPage } from '../script/EditingPageState'
 import { marksDoc } from '../script/scriptFixtures';
 import { frameSubscribers } from './frameLoop';
 import { sameClock, shiftPeaks } from './docClock';
-import { Ribbon, RibbonView } from './Ribbon';
+import { RibbonView } from './Ribbon';
+import { WaveDock } from './WaveDock';
 import { ribbonLayout } from './ribbonLayout';
 
 afterEach(cleanup);
@@ -78,9 +79,7 @@ function page(doc: ChapterDoc, api = createMockApi(), run?: (d: ReturnType<typeo
   return render(
     <ApiProvider api={api}>
       <EditingPageProvider doc={doc}>
-        {doc.paras.map((p) => (
-          <Ribbon key={p.p.id} chapterId="chapter-1" pid={p.p.id} clocks={sameClock([0])} />
-        ))}
+        <WaveDock chapterId="chapter-1" clocks={sameClock([0])} take={null} />
         {run ? <Driver run={run} /> : null}
       </EditingPageProvider>
     </ApiProvider>,
@@ -92,23 +91,36 @@ const withPeaks = (p: WorkspacePeaks | undefined, reason?: string) => ({
 });
 const click = () => act(() => screen.getByText('go').click());
 
-describe('Ribbon placement', () => {
-  it('ribbon-sits-under-the-active-line-only', async () => {
+describe('one waveform, docked', () => {
+  const pidShown = () => document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid');
+  const viewLabel = () => document.querySelector('[data-view-label]')?.textContent;
+  const fine = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(2).padStart(5, '0')}`;
+
+  it('waveform-is-docked-once: one waveform for the page, on the first line before anything is chosen, and none under the lines', async () => {
     const doc = marksDoc();
     page(doc, withPeaks(peaks(0, 20)), (d) => d({ type: 'place', key: 'p-2:1' }));
-    expect(document.querySelectorAll('[data-ribbon-pid]')).toHaveLength(0);
-    click();
-    await waitFor(() => expect(document.querySelectorAll('[data-ribbon-pid]')).toHaveLength(1));
-    expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-2');
+    await waitFor(() => expect(document.querySelector('[data-ribbon-surface]')).not.toBeNull());
+    expect(document.querySelectorAll('[data-ribbon-pid]')).toHaveLength(1);
+    expect(document.querySelectorAll('canvas')).toHaveLength(1);
+    expect(pidShown()).toBe('p-1');
+    expect(viewLabel()).toBe(`${fine(doc.paras[0].start ?? 0)} to ${fine(ribbonLayout(doc, 'p-1', [], null)!.t1)}`);
   });
 
-  it('sits under the selection head when nothing is playing', async () => {
+  it('follows the cursor line: its window comes into view', async () => {
+    const doc = marksDoc();
+    page(doc, withPeaks(peaks(0, 20)), (d) => d({ type: 'place', key: 'p-2:1' }));
+    click();
+    await waitFor(() => expect(pidShown()).toBe('p-2'));
+    expect(viewLabel()).toBe(`${fine(doc.paras[1].start ?? 0)} to ${fine(ribbonLayout(doc, 'p-2', [], null)!.t1)}`);
+  });
+
+  it('follows the selection head when nothing is playing', async () => {
     const doc = marksDoc();
     page(doc, withPeaks(peaks(0, 20)), (d) => {
       d({ type: 'select', anchor: 'p-1:0', head: 'p-1:2' });
     });
     click();
-    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-1'));
+    await waitFor(() => expect(pidShown()).toBe('p-1'));
   });
 
   it('follows the playing paragraph while the text advances, without waiting for playback to stop', async () => {
@@ -118,7 +130,20 @@ describe('Ribbon placement', () => {
       d({ type: 'play', t: (doc.paras[1].start ?? 0) + 0.05 });
     });
     click();
-    await waitFor(() => expect(document.querySelector('[data-ribbon-pid]')?.getAttribute('data-ribbon-pid')).toBe('p-2'));
+    await waitFor(() => expect(pidShown()).toBe('p-2'));
+  });
+
+  it('keeps one height with audio, without audio and with a range, so nothing around it moves', async () => {
+    const doc = marksDoc();
+    page(doc, withPeaks(peaks(0, 20)));
+    await waitFor(() => expect(document.querySelector('[data-ribbon-surface]')).not.toBeNull());
+    const dock = () => document.querySelector('[data-wave-dock]') as HTMLElement;
+    const height = dock().style.height;
+    expect(height).toBe('128px');
+    cleanup();
+    page(doc, withPeaks(undefined, 'No waveform: the source is not a WAV.'));
+    await waitFor(() => expect(screen.getByText(/No audio to draw/)).toBeTruthy());
+    expect(dock().style.height).toBe(height);
   });
 });
 
@@ -220,44 +245,38 @@ describe('no-audio-state', () => {
   });
 });
 
-describe('Ribbon header', () => {
-  it('names the active take and the span the waveform draws', async () => {
+describe('the waveform header', () => {
+  it('names the active take', async () => {
     const doc = marksDoc();
-    const para = doc.paras[1];
     render(
       <ApiProvider api={withPeaks(peaks(0, 20))}>
         <EditingPageProvider doc={doc}>
-          <Driver run={(d) => d({ type: 'place', key: 'p-2:1' })} />
-          <Ribbon chapterId="chapter-1" pid="p-2" take="T-7" clocks={sameClock([0])} />
+          <WaveDock chapterId="chapter-1" take="T-7" clocks={sameClock([0])} />
         </EditingPageProvider>
       </ApiProvider>,
     );
-    click();
     const head = await waitFor(() => {
       const el = document.querySelector('[data-ribbon-head]');
       expect(el).not.toBeNull();
       return el as HTMLElement;
     });
-    const mmss = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
-    expect(head.textContent).toBe(`T-7active take · ${mmss(para.start ?? 0)} to ${mmss(ribbonLayout(doc, 'p-2', [], null)!.t1)}`);
+    expect(head.textContent).toBe('T-7active take');
   });
-  it('says recording, with a dash for the id, when the line has no take', async () => {
+  it('says recording when the line has no take', async () => {
     const doc = marksDoc();
     render(
       <ApiProvider api={withPeaks(peaks(0, 20))}>
         <EditingPageProvider doc={doc}>
-          <Driver run={(d) => d({ type: 'place', key: 'p-2:1' })} />
-          <Ribbon chapterId="chapter-1" pid="p-2" clocks={sameClock([0])} />
+          <WaveDock chapterId="chapter-1" take={null} clocks={sameClock([0])} />
         </EditingPageProvider>
       </ApiProvider>,
     );
-    click();
     const head = await waitFor(() => {
       const el = document.querySelector('[data-ribbon-head]');
       expect(el).not.toBeNull();
       return el as HTMLElement;
     });
-    expect(head.textContent).toMatch(/^—recording · /);
+    expect(head.textContent).toBe('Recording');
   });
 });
 
