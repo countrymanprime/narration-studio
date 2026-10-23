@@ -473,7 +473,7 @@ Both are smell detectors: a phrase list cannot judge a sentence, and a path chec
 `scripts/ci/doc-comments.mjs` fails when a change adds a public Python name without a docstring or an exported Go name without a doc comment. It is a ratchet by diff, not by count: only a violation on a line the change adds fails, so the existing backlog (385 exported Go names and 177 Python names on 2026-10-10) never blocks an unrelated change and new code cannot add to it. Editing the body of an old function does not flag it.
 
 - **Python:** ruff D100-D104 and D106 with the Google convention, filtered to added lines because ruff has no new-issues-only mode. It runs as the last `lint` command of `narration-common` and the three sidecars, so it runs wherever Python lint runs. Tests, spikes, `conftest.py`, `__init__` and magic methods are skipped.
-- **Go:** revive `exported` through `src/studio/desktop/.golangci-docs.yml` with golangci-lint's own `--new-from-merge-base`, at the end of `quality.mjs go-lint`. Test files are skipped and the stutter check is off.
+- **Go:** revive `exported` through `src/studio/desktop/.golangci-docs.yml` filtered to added lines by the script (golangci-lint's own `--new-from-merge-base` has no rename detection, so a moved file would count as new), at the end of `quality.mjs go-lint`. Test files are skipped and the stutter check is off.
 - **Base:** `origin/main`, or `origin/$GITHUB_BASE_REF` in CI. It exits 2 when git cannot find the merge base. Both jobs check out full history.
 - **Not covered:** TypeScript and Lua (see the docs-style references for why). Add them when a checker is in the toolchain.
 

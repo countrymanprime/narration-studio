@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PYTHON_RULES, filterToAdded, parseAddedLines, parseRuffJson, ruffArgs } from './doc-comments.mjs';
+import { PYTHON_RULES, filterToAdded, parseAddedLines, parseGolangciJson, parseRuffJson, ruffArgs } from './doc-comments.mjs';
 
 const DIFF = [
   'diff --git a/src/studio/libs/python/a.py b/src/studio/libs/python/a.py',
@@ -110,4 +110,25 @@ test('parseRuffJson compares the root case-insensitively and throws for a file o
 
   assert.equal(parseRuffJson(json, 'C:/repo')[0].file, 'libs/a.py');
   assert.throws(() => parseRuffJson(json, 'D:/other'), /not under/);
+});
+
+test('parseGolangciJson reads issues as repo-relative forward-slash paths under the module', () => {
+  const json = JSON.stringify({
+    Issues: [
+      { FromLinter: 'revive', Text: 'exported: exported type A should have comment or be unexported', Pos: { Filename: 'internal/x/a.go', Line: 7 } },
+      { FromLinter: 'revive', Text: 'exported: exported func B should have comment or be unexported', Pos: { Filename: 'internal\\y\\b.go', Line: 3 } },
+    ],
+    Report: {},
+  });
+  assert.deepEqual(parseGolangciJson(json, 'src/studio/desktop'), [
+    { file: 'src/studio/desktop/internal/x/a.go', line: 7, code: 'revive', message: 'exported: exported type A should have comment or be unexported' },
+    { file: 'src/studio/desktop/internal/y/b.go', line: 3, code: 'revive', message: 'exported: exported func B should have comment or be unexported' },
+  ]);
+  assert.deepEqual(parseGolangciJson(JSON.stringify({ Issues: null }), 'src/studio/desktop'), []);
+});
+
+test('a Go file moved without edits adds no doc-comment debt', () => {
+  const moved = ['diff --git a/old/desktop/a.go b/new/place/desktop/a.go', 'similarity index 100%', 'rename from old/desktop/a.go', 'rename to new/place/desktop/a.go'].join('\n');
+  const violations = parseGolangciJson(JSON.stringify({ Issues: [{ FromLinter: 'revive', Text: 'exported', Pos: { Filename: 'a.go', Line: 1 } }] }), 'new/place/desktop');
+  assert.deepEqual(filterToAdded(violations, parseAddedLines(moved)), []);
 });
