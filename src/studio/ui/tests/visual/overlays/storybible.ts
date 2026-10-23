@@ -3,20 +3,27 @@ import { goToPage } from '../drivers/shared';
 import { fromState, hoverCase, type OverlayCase } from '../helpers/overlayGuardFor';
 import { settlePage } from '../helpers/settle';
 
-// The Story Bible's own overlays (components/storybible/): the hints on the header's icon buttons, the kind menu of an entry in Edit, the menu of a
+// The Story Bible's own overlays (components/storybible/): the hint on the header's menu button and the menu it opens, the kind menu of an entry in Edit, the menu of a
 // voice sample and its Rename, Move and Delete dialogs, the right-click menu of an entry row, and the dialogs, the voice prompt and the Voice data panel that the catalog's
 // state drivers already reach. Not driven: the Sort and speaker-colour selects (native selects, whose popup the browser draws outside
 // the page where `elementFromPoint` cannot see it), the pronunciation source menu and the review slide-over (each needs a chain of
 // steps the mock reaches only inside a driver), and a toast raised while a dialog is open, which the guard would fail today (the
 // toast sits under dialogs: see the Story Bible PR).
 
-const firstRow = (page: Page) => page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button').first();
+const firstRow = (page: Page) => page.getByRole('table', { name: 'Story Bible entries' }).locator('[data-entry-id]').first();
 const header = (page: Page, label: string) => page.getByRole('button', { name: label });
 
 export const storyBibleCases: OverlayCase[] = [
-  hoverCase('hint on Scan', (page) => header(page, 'Scan the manuscript for suggestions')),
-  hoverCase('hint on Import entries', (page) => header(page, 'Import entries (CSV or JSON)')),
-  hoverCase('hint on Add entity', (page) => header(page, 'Add entity')),
+  hoverCase('hint on More actions', (page) => header(page, 'More actions')),
+  {
+    // The page's secondary actions (scan, import, Voice data) behind one icon button at the right edge of the header.
+    name: 'actions menu',
+    kind: 'menu',
+    open: async (page) => {
+      await header(page, 'More actions').click();
+      await page.getByRole('menuitem', { name: 'Voice data' }).waitFor();
+    },
+  },
   {
     // A right click on an entry row (the mock's registerContext for the Bible page).
     name: 'entry row menu',
@@ -62,7 +69,7 @@ export const storyBibleCases: OverlayCase[] = [
       await page.goto('/?mockVoiceSamples=bible');
       await settlePage(page);
       await goToPage(page, 'Story Bible');
-      await page.getByRole('list', { name: 'Story Bible entries' }).getByRole('button').filter({ hasText: 'Hatter' }).first().click();
+      await page.getByRole('table', { name: 'Story Bible entries' }).locator('[data-entry-id]').filter({ hasText: 'Hatter' }).first().click();
       const unlock = page.getByRole('button', { name: 'Unlock entry' });
       if (await unlock.count()) await unlock.click();
       await page.getByRole('button', { name: 'Edit this entry' }).click();

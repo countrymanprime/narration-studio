@@ -40,12 +40,10 @@ export const scriptDrivers: Record<string, Driver> = {
   },
   'rail-story-bible': async (page) => openRailTab(page, 'Story Bible'),
   'rail-notes': async (page) => openRailTab(page, 'Notes'),
-  'rail-queries': async (page) => openRailTab(page, 'Queries'),
-  'rail-bookmarks': async (page) => {
-    await goToPage(page, 'Script');
-    await selectReaderWord(page, 'Rabbit');
-    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Bookmark here' }).click();
-    await openRailTab(page, 'Bookmarks', false);
+  // The first-use tip over the reader, as the narrator meets it the first time Script opens.
+  'first-use-tip': async (page) => {
+    await goToPage(page, 'Script', { keepTips: true });
+    await page.getByRole('complementary', { name: 'Tip' }).waitFor();
   },
   'chapter-list': async (page) => {
     await goToPage(page, 'Script');
