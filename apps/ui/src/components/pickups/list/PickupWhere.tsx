@@ -5,7 +5,7 @@ import { useParagraphsAround } from '../../proof/around/useParagraphsAround';
 import { pickupKind, plainLine } from './pickupRows';
 
 /** The words a pickup is about: the marked part of its line (`<b>…</b>`), or the whole line. */
-export function pickupWords(pickup: Pick<PickupItem, 'script' | 'source'>): string {
+function pickupWords(pickup: Pick<PickupItem, 'script' | 'source'>): string {
   if (pickup.source === 'you') return pickup.script;
   const marked = /<b>(.*?)<\/b>/s.exec(pickup.script)?.[1];
   return plainLine(marked ?? pickup.script);
