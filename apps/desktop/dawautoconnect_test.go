@@ -23,7 +23,14 @@ func TestDecideAutoConnect(t *testing.T) {
 		{"no project does nothing", func(f *autoConnectFacts) { f.HasProject = false }, autoConnectNone, ""},
 		{"a project that records elsewhere does nothing", func(f *autoConnectFacts) { f.ReaperProject = false }, autoConnectNone, ""},
 		{"an unlinked project does nothing", func(f *autoConnectFacts) { f.Linked = false }, autoConnectNone, ""},
-		{"a REAPER that is not running is not started", func(f *autoConnectFacts) { f.ReaperRunning = false }, autoConnectNone, ""},
+		{"a REAPER that is not running is started", func(f *autoConnectFacts) { f.ReaperRunning = false }, autoConnectStart, ""},
+		{"a REAPER the app already started for this project is not started again", func(f *autoConnectFacts) {
+			f.ReaperRunning = false
+			f.Started = true
+			f.StartedAt = now.Add(-time.Hour)
+		}, autoConnectNone, ""},
+		{"a REAPER the app just started gets no launcher while its bridge comes up", func(f *autoConnectFacts) { f.Started = true; f.StartedAt = now.Add(-10 * time.Second) }, autoConnectNone, ""},
+		{"a REAPER the app started long ago with no bridge gets the launcher", func(f *autoConnectFacts) { f.Started = true; f.StartedAt = now.Add(-2 * reaperStartWait) }, autoConnectLaunch, ""},
 		{"a running REAPER with no bridge gets the launcher", func(f *autoConnectFacts) {}, autoConnectLaunch, ""},
 		{"a live bridge session is attached, not started again", func(f *autoConnectFacts) { f.LiveHub = "hub_1" }, autoConnectAttach, "hub_1"},
 		{"a live bridge session is attached even if REAPER's process is not seen", func(f *autoConnectFacts) { f.LiveHub = "hub_1"; f.ReaperRunning = false }, autoConnectAttach, "hub_1"},
@@ -41,11 +48,10 @@ func TestDecideAutoConnect(t *testing.T) {
 	}
 }
 
-// REAPER's launcher writes its session folders under <resource path>/NarrationStudio/sessions (NarrationStudio_Launcher.lua); the
+// REAPER's bridge writes its session folders under <resource path>/NarrationStudio/sessions (narration_ui_bridge.lua); the
 // folder it used before the rename is never where a live bridge is.
 func TestLiveBridgeSessionReadsTheNarrationStudioFolder(t *testing.T) {
 	appData := t.TempDir()
-	t.Setenv("APPDATA", appData)
 	now := time.Now()
 	writeHub := func(folder, hub string, at time.Time) {
 		dir := filepath.Join(appData, "REAPER", folder, "sessions", hub)
@@ -64,7 +70,7 @@ func TestLiveBridgeSessionReadsTheNarrationStudioFolder(t *testing.T) {
 	writeHub("NarrationStudio", "hub_old", now.Add(-time.Hour))
 	writeHub("NarrationUtils", "hub_legacy", now)
 
-	if got := liveBridgeSession(now); got != "hub_live" {
+	if got := liveBridgeSession(filepath.Join(appData, "REAPER", "NarrationStudio", "sessions"), now); got != "hub_live" {
 		t.Fatalf("liveBridgeSession = %q, want hub_live", got)
 	}
 }

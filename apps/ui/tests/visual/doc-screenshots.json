@@ -470,6 +470,20 @@
   },
   {
     "page": "settings",
+    "state": "recording-starting",
+    "viewport": "desktop",
+    "docName": "settings-recording-starting",
+    "caption": "Settings - Recording: the app opening REAPER on the linked project, connecting on its own"
+  },
+  {
+    "page": "settings",
+    "state": "recording-builtin-confirm",
+    "viewport": "desktop",
+    "docName": "settings-recording-builtin-confirm",
+    "caption": "Settings - Recording: the confirm before a project linked to REAPER switches to the built-in recorder"
+  },
+  {
+    "page": "settings",
     "state": "speech-costly-confirm",
     "viewport": "desktop",
     "docName": "settings-speech-confirm",

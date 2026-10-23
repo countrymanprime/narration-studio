@@ -173,8 +173,8 @@ func (d declaration) Explain(c dawport.Capability, r dawport.Reason) string {
 // The host's existing wording for a REAPER that is not connected or not answering (bindings_navigation.go, bridge.ErrUnavailable
 // and bridge.ErrNoAnswer), as whole sentences.
 const (
-	messageStandalone = "REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER."
-	messageNotRunning = "REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again."
+	messageStandalone = "REAPER is not connected to this app. Open REAPER; the app connects to it by itself."
+	messageNotRunning = "REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself."
 )
 
 // Adapter is REAPER over one session's file bridge. It holds that session's bridge client and one of each of today's bridge

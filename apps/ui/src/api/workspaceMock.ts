@@ -296,7 +296,7 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
       return reaperRefusal(mode) ?? { outcome: 'navigated', projectTime: token.start ?? 0 };
     },
     workspaceListFXChains: async (): Promise<WorkspaceFXChainsResult> => {
-      if (mode !== 'connected') throw new Error('REAPER is not connected to this app: open the app from the Narration Studio action in REAPER');
+      if (mode !== 'connected') throw new Error('REAPER is not connected to this app: open REAPER; the app connects to it by itself');
       return { names: deps.fxChains ?? DEFAULT_MOCK_FX_CHAINS, truncated: false };
     },
     workspacePeaks: async (chapterId) => {

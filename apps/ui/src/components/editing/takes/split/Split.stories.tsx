@@ -82,9 +82,7 @@ export const ButtonReady: Story = { render: () => <SplitButton onSplit={fn()} />
 
 // The DAW cannot cut now: the capability's own sentence is the button's hint.
 export const ButtonRefused: Story = {
-  render: () => (
-    <SplitButton reason="REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again." onSplit={fn()} />
-  ),
+  render: () => <SplitButton reason="REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself." onSplit={fn()} />,
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: 'Split into takes' })).toBeDisabled();
   },

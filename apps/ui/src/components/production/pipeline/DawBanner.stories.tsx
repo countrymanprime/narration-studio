@@ -5,7 +5,7 @@ import { DawBanner } from './DawBanner';
 const meta = {
   title: 'Production/DawBanner',
   component: DawBanner,
-  args: { reachable: false, daw: 'REAPER', onRetry: fn(), onUseBuiltIn: fn() },
+  args: { reachable: false, daw: 'REAPER', onRetry: fn() },
 } satisfies Meta<typeof DawBanner>;
 
 export default meta;
