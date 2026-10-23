@@ -223,7 +223,7 @@ const SLASHED = [
   [/(?<![\w.-])apps([\\/]+)site(?![\w-])/g, (_all, sep) => ['src', 'web'].join(sep)],
   // A name alone at the start of an indented line is a folder tree in a doc, not a path from the root.
   [/(?<![\w.-])(?<!studio[\\/]+)(?<!(?:^|\n)[ \t]+)libs([\\/]+)python(?![\w-])/g, (_all, sep) => ['src', 'studio', 'libs', 'python'].join(sep)],
-  [/(?<![\w.-])(?<!studio[\\/]+)tests([\\/]+)audacity3(?![\w-])/g, (_all, sep) => ['src', 'studio', 'tests', 'audacity3'].join(sep)],
+  [/(?<![\w.-])(?<!studio[\\/]+)(?<!(?:^|\n)[ \t]+)tests([\\/]+)audacity3(?![\w-])/g, (_all, sep) => ['src', 'studio', 'tests', 'audacity3'].join(sep)],
   [/(?<![\w.-])(?<!studio[\\/]+)(?<!(?:^|\n)[ \t]+)(sidecars|integrations)(?=(\\\/|\\{1,2}|\/))/g, (_all, name, sep) => ['src', 'studio', name].join(sep)],
 ];
 // The same as quoted segments, separated by a comma (a join call) or a slash (a Python path).
