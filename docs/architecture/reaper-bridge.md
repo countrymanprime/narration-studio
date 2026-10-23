@@ -106,7 +106,7 @@ To add a command:
 3. List the file in `FEATURE_FILES` in `narration_ui_bridge.lua`, in `scripts/release/reaper-files.mjs` and in `smokeReaperFiles` in `src/studio/desktop/smoke.go` (the installer check requires every file listed there, and `smoke_test.go` holds the two lists to the folder; `reaper-files.test.mjs` fails when the list and the folder disagree, and a registry test fails when a feature file exists that the bridge does not load).
 4. Add the command to the table below and to the registry test that pins the list of registered names.
 
-The feature files are `loadfile`d when the bridge module loads, so a missing or broken one fails the launcher's `dofile` and the narrator sees "Could not load Narration Studio shared libraries" before the app starts. The bridge finds its own folder from `debug.getinfo` and falls back to the running action's path.
+The feature files are `loadfile`d when the bridge module loads, so a missing or broken one fails the launcher's `dofile` and the narrator sees "Could not load the app's shared libraries" before the app starts. `narration_bridge_core.lua` first loads `narration_brand.lua` from its own folder and hands it to every feature file as `core.brand`: the P_EXT key prefix, the undo labels' product name, the session folder and the launcher's file names come from it, so they follow `config/brand.json`. The bridge finds its own folder from `debug.getinfo` and falls back to the running action's path.
 
 ## Commands
 
