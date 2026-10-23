@@ -7,7 +7,7 @@ Paths marked *(#2242)* exist only on that PR's branch, `story-bible-left-pane`.
 ## The data
 
 - **Size.** The rules-only scan of an 88,000-word book built 527 entries with 9,905 occurrences ([story-bible-mutation-path.md](story-bible-mutation-path.md)), about 19 mentions per entry on average. The Alice fixture builds 48 ([studio-next-gliner-spike.md](studio-next-gliner-spike.md)). The scan keeps a "Needs Review" entity only at 3 or more occurrences (`docs/architecture/story-bible-entity-accuracy.md`, "Build filter"). No one has measured the spread of mentions per entry. The long tail of one-off names comes from the scan's design (it keeps every multi-word name it classifies), not from a count.
-- **What a row can draw.** `GuideEntity` in `apps/ui/src/api/contracts/storyBible.ts` carries the name, aliases, category, `occurrence_count`, `appearances` (chapter per mention), `pronunciation` (`ipa`, `source`, `chosen`, `status`), `review`, `review_state` and `locked`. The Script page already has the entries in chapter order (`entriesInChapter`, `apps/ui/src/components/script/page/data/script.selectors.ts`).
+- **What a row can draw.** `GuideEntity` in `src/studio/ui/src/api/contracts/storyBible.ts` carries the name, aliases, category, `occurrence_count`, `appearances` (chapter per mention), `pronunciation` (`ipa`, `source`, `chosen`, `status`), `review`, `review_state` and `locked`. The Script page already has the entries in chapter order (`entriesInChapter`, `src/studio/ui/src/components/script/page/data/script.selectors.ts`).
 
 ## Jobs to be done
 
@@ -54,7 +54,7 @@ PR #2242 replaces the 320 px list of two-line rows with a Name and Kind table (`
 - **No pronunciation in the row.** The owner's item 16 says the play button is what matters. #2259 puts a Hear button on the Script rail's rows. #2242's rows have none.
 - **No chapter scope, and no link to the Script page's "In this chapter".** The PR body says the Script rail's list "shares no control with the old pane". Item 17 asks for one presentation of that list. #2259 builds it on the Script side (`InThisChapter.tsx` on #2259's branch). #2242 does not use it.
 - **No way to bring the main cast up.** Only Name and Kind sort. `entryTable.ts` *(#2242)* knows `mentions`, `chapters` and `status` sorts (lines 10 and 29) but keeps them only to read a sort an earlier version saved.
-- **Ctrl+F finds nothing on this page.** Ctrl+F opens the jump menu scoped to the page (`apps/ui/src/input/commands.catalog.ts`, `jump.page`). The Story Bible registers no page items, so its entries are listed there only while the Script page is mounted (`apps/ui/src/components/script/page/registry/useScriptRegistry.ts`). #2242 predates item 23 and does not address it.
+- **Ctrl+F finds nothing on this page.** Ctrl+F opens the jump menu scoped to the page (`src/studio/ui/src/input/commands.catalog.ts`, `jump.page`). The Story Bible registers no page items, so its entries are listed there only while the Script page is mounted (`src/studio/ui/src/components/script/page/registry/useScriptRegistry.ts`). #2242 predates item 23 and does not address it.
 - **No step from the search to the rows.** Down in the search does not move to the first row.
 
 ### What it gets wrong
@@ -73,7 +73,7 @@ PR #2242 replaces the 320 px list of two-line rows with a Name and Kind table (`
 | 19, icon buttons where it matters | Met for More actions; Kind and Show are selects |
 | 21, no always-visible instruction | Met |
 | 23, Ctrl+F opens the jump menu | The key works; the page offers nothing to find |
-| 24, one chapter-name format | Met: the list draws no chapter names, and Appears in uses `chapterName()` (`apps/ui/src/chapterName.ts`) |
+| 24, one chapter-name format | Met: the list draws no chapter names, and Appears in uses `chapterName()` (`src/studio/ui/src/chapterName.ts`) |
 
 ### Verdict
 
@@ -130,7 +130,7 @@ Each PR is small, updates `docs/guides/using-the-app/story-bible.md` and its scr
 | 6 | Minor fold (after question 1 is measured) | `storybible/EntryTable.tsx`, `storybible/entryTable.ts`, tests, visual catalog |
 | 7 | Whole book / This chapter with the chapter picker | `storybible/Guide.tsx`, `storybible/EntryTable.tsx`, a selector shared with `script.selectors.ts` `entriesInChapter`, `chapterName.ts` callers, tests, visual catalog |
 
-All paths are under `apps/ui/src/components/` unless they start with `apps/`, `docs/` or `tests/` (`tests/` is `apps/ui/tests/`). PRs 1 and 2 are independent of the rest. PR 3 needs #2259. PRs 4 to 7 touch the same files and go in order.
+All paths are under `src/studio/ui/src/components/` unless they start with `apps/`, `docs/` or `tests/` (`tests/` is `src/studio/ui/tests/`). PRs 1 and 2 are independent of the rest. PR 3 needs #2259. PRs 4 to 7 touch the same files and go in order.
 
 ## Not checked
 
