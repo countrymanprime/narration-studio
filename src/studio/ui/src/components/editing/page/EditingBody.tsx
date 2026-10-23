@@ -298,7 +298,7 @@ export function EditingBody(props: EditingBodyProps) {
   // Ranges: delete and mute, FX, accept.
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
-  const accept = useAcceptWords({ journal, chapterId, onChange: props.onAccepted });
+  const accept = useAcceptWords({ journal, chapterId, doc, onChange: props.onAccepted });
   // Mark the selected words as how a character sounds: the dialog plays a range of its own, so the page's playback stops as it opens.
   const voice = useVoiceSample({ chapterId, workspace: read.workspace, items: read.items, mediaUrl: tracks.mediaUrl, stopPlayback: playback.stop });
   // The dots after the last word of each marked range, with a play control for each sample: a sample plays in the app's own audio, so the page's own playback stops when one starts.
@@ -686,7 +686,13 @@ function useOpenAt(
     const para = doc.paras.find((p) => p.p.id === id);
     if (!para) return;
     const first = para.items.find((i) => i.kind === 'w');
-    if (first && !chosen.current) dispatch({ type: 'place', key: first.key });
+    // A line said twice (issue #2251 item 30), as Proof's recording check links it, opens on its second read with the Read twice card.
+    const second = para.items.filter((i) => i.dup);
+    if (second.length && !chosen.current) {
+      chosen.current = true;
+      dispatch({ type: 'select', anchor: second[0].key, head: second[second.length - 1].key });
+      dispatch({ type: 'openFlag', key: `dup:${para.p.id}` });
+    } else if (first && !chosen.current) dispatch({ type: 'place', key: first.key });
     if (!lines.byId.has(id)) return;
     done.current.passage = true;
     setLineOpen(id, true);
@@ -701,6 +707,18 @@ function useOpenAt(
         done.current.finding = true;
         const span = f.manuscript?.span;
         if (!span?.paragraph_id) return;
+        // A line said twice (issue #2251 item 30) opens its Read twice card, on the second read; a restart is on the line after the note's.
+        if (f.category === 'duplicate_read') {
+          const at = doc.paras.findIndex((p) => p.p.id === span.paragraph_id);
+          const para = [doc.paras[at], doc.paras[at + 1]].find((p) => p?.items.some((i) => i.dup));
+          const second = para?.items.filter((i) => i.dup) ?? [];
+          if (para && second.length) {
+            chosen.current = true;
+            dispatch({ type: 'select', anchor: second[0].key, head: second[second.length - 1].key });
+            dispatch({ type: 'openFlag', key: `dup:${para.p.id}` });
+            return;
+          }
+        }
         // The note's own words: the finding's expected text in its paragraph (its ordinal says which repeat), else the one word its ordinal names.
         const words = f.manuscript?.expected ? findingWords(doc, span.paragraph_id, f.manuscript.expected, span.ordinal ?? 0) : [];
         const single = span.ordinal === undefined ? undefined : `${span.paragraph_id}:${span.ordinal}`;

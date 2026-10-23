@@ -55,7 +55,8 @@ export function SelectionBar({ playback, end, narrow = false, output }: { playba
             {allCut ? (
               <StatusBadge tone="neutral" label="Cut" />
             ) : summary.allExtra ? (
-              <StatusBadge tone="danger" label="Not in the script" />
+              // Words said again are a second read (issue #2251 item 30), not words outside the script.
+              <StatusBadge tone="danger" label={summary.items.length > 0 && summary.items.every((i) => i.dup) ? 'Read twice' : 'Not in the script'} />
             ) : (
               <StatusBadge tone="info" label="In the script" />
             )}

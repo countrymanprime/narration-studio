@@ -103,6 +103,16 @@ export function FlagCard({ doc, dp, flag, score = { conf: null, reason: 'no_word
     hear(Math.max(0, it.t0 - HEAR_MARGIN), (it.t1 ?? it.t0) + HEAR_MARGIN);
   };
   const hearReason = !hear ? NO_AUDIO : it?.t0 == null ? 'Nothing was recorded for this word.' : undefined;
+  // Both reads of a doubled line: the second read with as long again on either side (the first read is next to it, before or after), kept
+  // inside the line.
+  const second = dupItems.filter((i) => i.t0 != null && !i.cut);
+  const bothReason = !hear ? NO_AUDIO : second.length ? undefined : 'Nothing was recorded for the second read.';
+  const hearBoth = (): void => {
+    if (!hear || !second.length) return;
+    const a = second[0].t0 ?? 0;
+    const b = second[second.length - 1].t1 ?? a;
+    hear(Math.max(dp.start ?? 0, a - (b - a) - HEAR_MARGIN), Math.min(dp.end ?? b, b + (b - a) + HEAR_MARGIN));
+  };
   const slot = <T extends unknown[]>(fn: ((...a: T) => void) | undefined, ...args: T): (() => void) | undefined => (fn ? () => fn(...args) : undefined);
 
   const deleteWords = slot(actions.deleteWords, isDup ? dupItems.map((i) => i.key) : keys);
@@ -130,7 +140,7 @@ export function FlagCard({ doc, dp, flag, score = { conf: null, reason: 'no_word
       </div>
       {isDup ? (
         <p className="m-0 text-[var(--text-muted)]">
-          {dp.take?.id ?? 'The take'} reads the line twice. The second read starts at {clockText(dupItems[0]?.t0 ?? 0)}.
+          {dp.take?.id ?? 'The recording'} reads the line twice. The second read starts at {clockText(dupItems[0]?.t0 ?? 0)}.
         </p>
       ) : null}
       {it && it.st !== 'miss' ? <Confidence it={it} score={score} /> : null}
@@ -139,6 +149,9 @@ export function FlagCard({ doc, dp, flag, score = { conf: null, reason: 'no_word
           <>
             <Button size="sm" {...gated(stack)}>
               Stack as 2 takes
+            </Button>
+            <Button size="sm" variant="secondary" disabled={!!bothReason} title={bothReason} onClick={hearBoth}>
+              <Icon name="play" /> Hear both reads
             </Button>
             <Button size="sm" variant="secondary" onClick={close}>
               Leave in place

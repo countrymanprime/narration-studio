@@ -32,7 +32,40 @@ const wrapperFor = (
 
 const NO_CUTS = { cuts: [], onCuts: () => undefined };
 
+const gapCut = (guid: string): EditCut =>
+  ({
+    id: guid,
+    chapterId: '5',
+    pid: '',
+    keys: [],
+    text: 'A gap of 1 s',
+    a: 0,
+    b: 1,
+    off0: 0,
+    off1: 1,
+    mode: 'close',
+    fadeMs: 6,
+    daw: 'REAPER',
+    guid,
+    undoSteps: 1,
+    words: [],
+    at: '',
+    paragraph: null,
+    stale: false,
+  }) as EditCut;
+
 describe('useCleanupDeps', () => {
+  it('knows a gap the chapter’s cuts already trimmed: same item, the trim starting inside the gap', async () => {
+    const { wrapper } = wrapperFor('reaper');
+    const cuts = { cuts: [gapCut('5/item-1@11.2')], onCuts: () => undefined };
+    const { result } = renderHook(() => useCleanupDeps(cuts), { wrapper });
+    await waitFor(() => expect(result.current).toBeDefined());
+    expect(result.current?.trimmed?.({ itemGuid: 'item-1', sec: 10, end: 12.4 })).toBe(true);
+    expect(result.current?.trimmed?.({ itemGuid: 'item-1', sec: 20, end: 23 })).toBe(false);
+    expect(result.current?.trimmed?.({ itemGuid: 'item-2', sec: 10, end: 12.4 })).toBe(false);
+    expect(result.current?.trimmed?.({ sec: 10, end: 12.4 })).toBe(false);
+  });
+
   it('lends reduce and repair only when the DAW reports range_gain and click_repair', async () => {
     const both = wrapperFor('reaper');
     const first = renderHook(() => useCleanupDeps(NO_CUTS), { wrapper: both.wrapper });

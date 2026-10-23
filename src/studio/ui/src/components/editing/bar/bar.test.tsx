@@ -179,6 +179,12 @@ describe('the selection summary', () => {
     const { unmount } = mount();
     dispatch({ type: 'select', anchor: extra.key, head: extra.key });
     expect(screen.getByText('Not in the script')).toBeTruthy();
+    // Words said again (issue #2251 item 30) are a second read.
+    extra.dup = true;
+    dispatch({ type: 'select', anchor: 'p-1:0', head: 'p-1:0' });
+    dispatch({ type: 'select', anchor: extra.key, head: extra.key });
+    expect(screen.getByText('Read twice')).toBeTruthy();
+    extra.dup = undefined;
     dispatch({ type: 'select', anchor: 'p-1:0', head: 'p-1:3' });
     expect(screen.getByText('1 low confidence')).toBeTruthy();
     unmount();

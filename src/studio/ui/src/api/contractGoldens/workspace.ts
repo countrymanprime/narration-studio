@@ -13,6 +13,7 @@ import { findingNavigationSchema } from '../schemas/findings';
 export const workspaceGoldens: Record<string, z.ZodType> = {
   'workspace-alignment-current.json': workspaceAlignmentResultSchema,
   'workspace-alignment-stale.json': workspaceAlignmentResultSchema,
+  'workspace-alignment-repeat.json': workspaceAlignmentResultSchema,
   'workspace-alignment-never.json': workspaceAlignmentResultSchema,
   'workspace-alignment-needs-align-again.json': workspaceAlignmentResultSchema,
   // src/studio/desktop/internal/coverage/workspace.go: extra runs' added words (spread, and unplaced across two items) and the engine.

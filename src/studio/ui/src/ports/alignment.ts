@@ -36,6 +36,9 @@ export interface HeardWord {
   added?: true;
   /** For an added word only: spread between its run's ends, or unplaced (at its start, no duration). */
   timing?: WorkspaceWordTiming;
+  /** For an added word of a run that says the script again (a second take, issue #2251 item 30): which side of the run
+   * the words it repeats are on. A run that repeats the next words (a restart) is placed just before them. */
+  repeats?: 'previous' | 'next';
 }
 
 interface Heard {
@@ -77,8 +80,12 @@ function heardFrom(result: WorkspaceAlignmentResult): HeardAnswer {
   // A payload from before src/studio/desktop/internal/coverage/workspace.go names no engine: its words cannot say who heard them.
   if (!result.engine) return { heard: null, reason: NEVER, reasons };
   const after = new Map<number, HeardWord[]>();
+  const before = new Map<number, HeardWord[]>();
   const leading: HeardWord[] = [];
   for (const extra of result.extras) {
+    const repeat = extra.repeatOf;
+    // A run repeats the words before it when they end where it was heard; otherwise it restarts the words after it.
+    const repeats = repeat ? (extra.afterToken !== undefined && repeat.end - 1 === extra.afterToken ? 'previous' : 'next') : undefined;
     const words: HeardWord[] = (extra.words ?? []).map((word) => ({
       text: word.text,
       item: word.item,
@@ -88,12 +95,15 @@ function heardFrom(result: WorkspaceAlignmentResult): HeardAnswer {
       ...(word.confReason !== undefined ? { confReason: word.confReason } : {}),
       added: true,
       timing: word.timing,
+      ...(repeats ? { repeats } : {}),
     }));
-    if (extra.afterToken === undefined) leading.push(...words);
+    if (repeat && repeats === 'next') before.set(repeat.start, [...(before.get(repeat.start) ?? []), ...words]);
+    else if (extra.afterToken === undefined) leading.push(...words);
     else after.set(extra.afterToken, [...(after.get(extra.afterToken) ?? []), ...words]);
   }
   const words = [...leading];
   for (const token of result.tokens) {
+    words.push(...(before.get(token.i) ?? []));
     if (token.item !== undefined && token.start !== undefined && token.end !== undefined) {
       words.push({
         text: token.heard ?? token.text,

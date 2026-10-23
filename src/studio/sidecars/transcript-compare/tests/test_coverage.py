@@ -2,6 +2,8 @@
 executable: docs/utilities/recording-coverage.md, docs/utilities/recording-coverage.md, Q1, Q3 and Q11."""
 
 import difflib
+import json
+from pathlib import Path
 
 import pytest
 from coverage_spike import compare, cov
@@ -300,17 +302,68 @@ def test_a_spoken_subtitle_in_the_heading_is_neither_missing_nor_extra():
     assert (result.present_tokens, result.body_tokens, result.extra_tokens, result.regions) == (12, 12, 0, ())
 
 
-def test_a_phrase_said_twice_is_today_an_extra_run_with_nothing_marking_it_a_second_take():
-    # Issue #2251 item 30, reproduced: the narrator says "golf hotel india" twice. The second copy is
-    # chapter text the narrator just read, yet coverage reports it only as an extra run, which the
-    # Editing page labels "Not in the script". This pins today's behaviour; the follow-up in
-    # docs/research/proof-pickups-editing-split.md (C) changes the run to a repeat of doc tokens 6 to 8
-    # and this test with it.
+def test_a_phrase_said_twice_is_a_repeat_of_the_chapter_text_it_says_again():
+    # Issue #2251 item 30: the narrator says "golf hotel india" twice. The second copy is chapter text
+    # the narrator just read, so the extra run is a repeat of doc tokens 6 to 8 (a second take), not
+    # words that are not in the script (docs/research/proof-pickups-editing-split.md, C1).
     aligned = _aligned([P1, P2], f"{P1} golf hotel india golf hotel india juliet kilo lima")
     result = cov.compute_coverage(aligned)
     assert (result.present_tokens, result.extra_tokens, result.regions) == (12, 3, ())
-    _tokens, extras = cov.align_tokens(aligned)
+    tokens, extras = cov.align_tokens(aligned)
     ((start, end),) = extras
-    heard_twice = aligned.audio_tokens[start:end]
-    assert heard_twice == ("golf", "hotel", "india")
-    assert heard_twice == aligned.doc_tokens[6:9]  # the extra words are the chapter's own, said again
+    assert aligned.audio_tokens[start:end] == ("golf", "hotel", "india")
+    assert cov.repeats(aligned, tokens, extras) == (cov.Repeat(start=6, end=9, first=0, last=3),)
+
+
+def _repeat_of(paragraphs, said):
+    aligned = _aligned(paragraphs, said)
+    tokens, extras = cov.align_tokens(aligned)
+    return aligned, extras, cov.repeats(aligned, tokens, extras)
+
+
+def test_a_retake_after_an_aside_is_a_repeat_of_the_words_before_it():
+    # "once more", then the end of the paragraph again: the aside is not part of the repeat.
+    aligned, ((start, end),), (repeat,) = _repeat_of([P1, P2], f"{P1} {P2} once more india juliet kilo lima")
+    assert aligned.audio_tokens[start:end] == ("once", "more", "india", "juliet", "kilo", "lima")
+    assert repeat == cov.Repeat(start=8, end=12, first=2, last=6)
+
+
+def test_a_false_start_then_an_aside_is_a_repeat_of_the_words_after_it():
+    # A restart: the first words of P2, "sorry", then P2 in full.
+    aligned, ((start, end),), (repeat,) = _repeat_of([P1, P2], f"{P1} golf hotel india sorry {P2}")
+    said = aligned.audio_tokens[start:end]
+    assert said[repeat.first : repeat.last] == aligned.doc_tokens[repeat.start : repeat.end]
+    assert repeat.end - repeat.start == 3
+
+
+def test_two_words_said_again_are_not_a_repeat_but_a_whole_two_word_line_is():
+    assert _repeat_of([P1, P2], f"{P1} golf hotel golf hotel india juliet kilo lima")[2] == (None,)
+    *_, (repeat,) = _repeat_of([P1, "golf hotel", P3], f"{P1} golf hotel golf hotel {P3}")
+    assert repeat is not None and repeat.end - repeat.start == 2
+
+
+def test_words_that_are_not_the_chapter_text_beside_them_are_no_repeat():
+    # Chapter words from elsewhere in the chapter, said here, are an aside, not a second take.
+    assert _repeat_of([P1, P2, P3], f"{P1} mike november oscar {P2} {P3}")[2] == (None,)
+    assert _repeat_of([P1, P2], f"{P1} what a lovely day {P2}")[2] == (None,)
+
+
+def test_a_run_before_anything_was_heard_can_repeat_the_words_after_it():
+    *_, (repeat,) = _repeat_of([P1], f"alpha bravo charlie {P1}")
+    assert repeat is not None and (repeat.start, repeat.end) in ((0, 3), (3, 6))
+
+
+def test_the_repeat_rule_answers_the_shared_parity_cases():
+    # The Editing page runs the same rule (apps/ui/src/components/editing/model/duplicates.ts saysScriptAgain) on the same file.
+    path = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "repeat-rule" / "parity-cases.json"
+    for case in json.loads(path.read_text(encoding="utf-8"))["cases"]:
+        script = case["script"].split()
+        found = cov.repeat_of(case["run"].split(), script, [0] * len(script), case["prev"], case["next"])
+        assert (found is not None) == case["repeat"], case["name"]
+
+
+def test_two_words_across_a_line_break_are_not_a_whole_line_said_again():
+    # "golf hotel" ends one two-word line and starts nothing on its own: the words straddle the break, so they are no repeat.
+    doc = ("alpha", "golf", "hotel", "india")
+    assert cov.repeat_of(("golf", "hotel"), doc, (0, 0, 1, 1), 2, None) is None
+    assert cov.repeat_of(("hotel", "india"), doc, (0, 0, 1, 1), 3, None) == cov.Repeat(start=2, end=4, first=0, last=2)

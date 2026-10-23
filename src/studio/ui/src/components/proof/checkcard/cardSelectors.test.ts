@@ -86,6 +86,15 @@ describe('counts by category', () => {
     expect(findings.find((f) => f.id === 'a')?.suggested).toBe('Needs pickup');
     expect(findings.find((f) => f.id === 'n')?.suggested).toBe('Fix in edit');
   });
+  // Issue #2251 item 30: an extra gap that says the chapter text again is a second take, fixed on Editing.
+  it('lists a repeat as said twice, suggesting an edit, with the line to open on Editing', () => {
+    const repeat = { ...gap('r', 'extra', 4), text: 'sorry the end', repeatOf: 'the end' };
+    const [row] = cardFindings(result('current', [], [repeat]), {}, []);
+    expect(row).toMatchObject({ type: 'Said twice', count: 'extra', text: '“the end”', suggested: 'Fix in edit', paragraphId: 'p1' });
+    const [plain] = cardFindings(result('current', [], [{ ...repeat, repeatOf: undefined }]), {}, []);
+    expect(plain).toMatchObject({ type: 'Extra', text: '“sorry the end”', suggested: 'Needs pickup' });
+    expect(plain.paragraphId).toBeUndefined();
+  });
   it('takes the status from the gap reviews and the finding review', () => {
     const decided = cardFindings(result('current', [], [gap('a', 'misread', 1), gap('b', 'missing', 2)]), { a: 'accepted', b: 'ignored' }, [
       audio('n', 'noise', 'dismissed'),

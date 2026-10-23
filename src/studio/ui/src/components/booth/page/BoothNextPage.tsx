@@ -49,7 +49,7 @@ import { saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord, markNote } from '../side/decorations';
-import { comingUpWords, voicesNearby } from '../side/nearby';
+import { comingUpWords, voicesInChapter } from '../side/nearby';
 import type { BoothReference } from '../side/sections';
 import { useBoothMarks } from '../side/useBoothMarks';
 import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
@@ -64,6 +64,8 @@ import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
+import { loadLastPlace, saveLastPlace, type LastPlace } from './lastPlace';
+import { useBoothFind } from './useBoothFind';
 import { useBoothPageCommands } from './useBoothPageCommands';
 
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
@@ -93,6 +95,8 @@ type Props = {
   onImport?: () => void;
   /** Where Exit Booth goes outside a pickup session; in one it goes to Pickups. */
   exitTo?: string;
+  /** The open project, which the Booth's last place is kept under; left out: no place is kept. */
+  projectFolder?: string;
 };
 
 /**
@@ -103,12 +107,12 @@ type Props = {
 /** How long a chapter asked for counts as the place the next step starts from, if it never arrives. */
 const PENDING_STEP_MS = 2000;
 
-export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOTH_LINKS.script }: Props) {
+export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOTH_LINKS.script, projectFolder = '' }: Props) {
   // The page title is visually hidden: the reading surface is the page (as the old Booth's).
   return (
     <>
       <h1 className="sr-only">Booth</h1>
-      {hasManuscript ? <BoothLoaded navigate={navigate} exitTo={exitTo} /> : <NeedManuscript title="Booth" onImport={onImport} />}
+      {hasManuscript ? <BoothLoaded navigate={navigate} exitTo={exitTo} projectFolder={projectFolder} /> : <NeedManuscript title="Booth" onImport={onImport} />}
     </>
   );
 }
@@ -119,7 +123,7 @@ function BoothExit({ onExit, children }: { onExit: () => void; children: ReactNo
   return <CommandScope kind="booth">{children}</CommandScope>;
 }
 
-function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; exitTo: string }) {
+function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: string) => void; exitTo: string; projectFolder: string }) {
   const [params, setParams] = useSearchParams();
   const asked = useMemo(() => readBoothQuery(params), [params]);
   // The pickup session the address opened; opening the Booth any other way is no session. It stays across chapter changes.
@@ -133,6 +137,23 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
   // The Booth opens on the chapter the DAW is on when the address names none, and moves the DAW to the chapter the address names.
   const openedByAddress = useRef(asked !== null && 'chapter' in asked);
   const chapterIds = useMemo(() => data.chapters?.map((item) => item.id), [data.chapters]);
+  // With no chapter asked for, the Booth opens on the chapter the narrator last left in this project, at the place they left; the DAW's chapter
+  // is the way in only when none is kept (or the chapter is gone). The place is read once, when the Booth opens.
+  const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
+  const [returning, setReturning] = useState<LastPlace | null>(null);
+  // A reload (or a link naming the chapter with no line) keeps the chapter in the address: the place kept for that chapter is still where it opens.
+  const [reloaded, setReloaded] = useState<LastPlace | null>(() =>
+    asked && 'chapter' in asked && !asked.from && kept?.chapterId === asked.chapter ? kept : null,
+  );
+  // Known once the chapters are read: the kept place, when its chapter is still in the book. Until then the Booth cannot say, and holds its save.
+  const planned = asked === null && kept && chapterIds?.includes(kept.chapterId) ? kept : null;
+  const undecided = asked === null && kept !== null && chapterIds === undefined;
+  useEffect(() => {
+    if (!planned) return;
+    setReturning(planned);
+    setParams(new URLSearchParams(boothQuery({ chapter: planned.chapterId }, pickupIds).slice(1)), { replace: true });
+  }, [planned, pickupIds, setParams]);
+  const goingBackTo = returning ?? reloaded ?? planned ?? (undecided ? kept : null);
   useFollowDawOnOpen({
     enabled: asked === null,
     chapterIds,
@@ -194,6 +215,12 @@ function BoothLoaded({ navigate, exitTo }: { navigate: (next: string) => void; e
         from={shown && 'chapter' in shown ? shown.from : undefined}
         requested={asked}
         moveDaw={openedByAddress.current}
+        projectFolder={projectFolder}
+        returnTo={goingBackTo ?? undefined}
+        onReturned={() => {
+          setReturning(null);
+          setReloaded(null);
+        }}
         adopt={setShown}
         data={data}
         choose={choose}
@@ -215,6 +242,11 @@ type SessionProps = {
   requested: BoothTarget | null;
   /** The Booth was opened at a chapter: the DAW is moved to it too. */
   moveDaw: boolean;
+  /** The project the place is kept under, and the place to go back to (the Booth opened on the chapter the narrator left). */
+  projectFolder: string;
+  returnTo?: LastPlace;
+  /** The place is back (or there was none): the page stops offering it, so a later visit to this chapter in the same Booth opens where it is. */
+  onReturned: () => void;
   adopt: (target: BoothTarget) => void;
   data: ReturnType<typeof useBoothData>;
   choose: (target: BoothTarget) => void;
@@ -229,7 +261,24 @@ type SessionProps = {
 };
 
 /** One chapter (or the credits) in the Booth. Keyed by it, so a new chapter starts with a clean take, position and session. */
-function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, navigate, exitTo, pickupIds, pickAt, onPick, measurements }: SessionProps) {
+function BoothSession({
+  source,
+  from,
+  requested,
+  moveDaw,
+  projectFolder,
+  returnTo,
+  onReturned,
+  adopt,
+  data,
+  choose,
+  navigate,
+  exitTo,
+  pickupIds,
+  pickAt,
+  onPick,
+  measurements,
+}: SessionProps) {
   const overlay = useOverlay();
   const journal = useJournal();
   const keymap = useUserKeymap();
@@ -318,11 +367,37 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
 
+  // Ctrl+F opens the jump menu; its search finds the text in this chapter and brings the match into view (during a take, without moving the reading).
+  const find = useBoothFind({ chapterId: recordId, paragraphs, recording: control.recording, seek, view: page.view });
+
+  // The place is kept as the reading moves, once the place the narrator left is back (a save before then would overwrite it with the start).
+  const [back, setBack] = useState(false);
+  useEffect(() => {
+    if (back) return;
+    if (!returnTo) return setBack(true);
+    // The chapter the narrator left is on its way (the address is being changed to it): the fallback chapter on screen until then keeps nothing.
+    if (returnTo.chapterId !== chapter?.id || units.length === 0) return;
+    if (returnTo.paragraphId) seek(returnTo.paragraphId, returnTo.word);
+    setBack(true);
+    onReturned();
+  }, [back, returnTo, chapter?.id, units.length, seek, onReturned]);
+  const placeParagraph = page.position?.paragraphId;
+  const placeWord = page.position?.word;
+  useEffect(() => {
+    if (!projectFolder || !chapter || !back || placeParagraph === undefined || placeWord === undefined) return;
+    saveLastPlace(projectFolder, { chapterId: chapter.id, paragraphId: placeParagraph, word: placeWord });
+  }, [projectFolder, chapter, back, placeParagraph, placeWord]);
+
   const side = useBoothSideOpen();
   const marks = useBoothMarks((message) => overlay.toast(message, { tone: 'error' }));
   const decorated = useMemo(
     () => (source.kind === 'chapter' ? boothDecorations(paragraphs, entities, marks, types) : { decorations: [], notes: [] }),
     [source, paragraphs, entities, marks, types],
+  );
+  // The names and marks, and the search's matches over them; the same array until one of them changes, since the text re-cuts its words on a new one.
+  const textDecorations = useMemo(
+    () => (find.decorations.length > 0 ? [...decorated.decorations, ...find.decorations] : decorated.decorations),
+    [decorated.decorations, find.decorations],
   );
   // What the side panel's Reference shows: a clicked Story Bible name, a marked word or a note under a paragraph, read-only.
   const referenced = useBoothReference(recordId);
@@ -385,6 +460,7 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
     choose(target);
   };
 
+  const inThisChapter = useMemo(() => voicesInChapter(paragraphs, units, entities, types), [paragraphs, units, entities, types]);
   const characters = useMemo(() => entities.filter((entity) => entity.category.toLowerCase() === 'character'), [entities]);
   // The speakers who speak in this chapter, for the picker's first group.
   const inChapter = useMemo(
@@ -454,6 +530,7 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
     exit: page.exit,
     pickups: { active: pickups.active, lines: pickups.lines.length, step: pickups.step },
     keymap,
+    search: find.items,
   });
 
   const words = paragraphs.reduce((sum, paragraph) => sum + wordCount(paragraph.text), 0);
@@ -548,7 +625,7 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
                   speakers={characters.map((entity) => entity.canonical_name)}
                   speakerColour={colourOf}
                   onSetSpeaker={setSpeaker}
-                  decorations={decorated.decorations}
+                  decorations={textDecorations}
                   notes={decorated.notes}
                   punchAt={page.punchAt}
                   pickupLines={pickups.bars}
@@ -580,7 +657,7 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
                   data={{
                     chapterId: recordId,
                     reference,
-                    voices: voicesNearby(units, at.cur, entities, types),
+                    voices: inThisChapter,
                     comingUp: comingUpWords(units, at.cur, entities),
                     numbers: page.numbers,
                     flags: page.flags,

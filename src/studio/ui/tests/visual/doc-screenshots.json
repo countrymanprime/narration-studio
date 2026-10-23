@@ -161,6 +161,13 @@
     "caption": "Proof - the Check recordings dialog before a run, with the options shared with every page"
   },
   {
+    "page": "proof",
+    "state": "check-findings",
+    "viewport": "desktop",
+    "docName": "proof-check-findings",
+    "caption": "Proof - the recording check's findings: a line said twice listed as Said twice, suggesting Fix in edit, with Open in Editing"
+  },
+  {
     "page": "production",
     "state": "stage-suggestion-options",
     "viewport": "desktop",
@@ -631,6 +638,13 @@
   },
   {
     "page": "editing",
+    "state": "read-twice",
+    "viewport": "desktop",
+    "docName": "editing-read-twice",
+    "caption": "Editing - words said again found by the recording check: the Read twice card with Stack as 2 takes, Hear both reads, Leave in place and Delete second read"
+  },
+  {
+    "page": "editing",
     "state": "range",
     "viewport": "desktop",
     "docName": "editing-range",
@@ -1068,7 +1082,7 @@
     "state": "voice-samples-panel",
     "viewport": "desktop",
     "docName": "booth-voice-samples-panel",
-    "caption": "Booth - Voices in this scene with voice samples: a play button and count on each voice, one opened to list its samples"
+    "caption": "Booth - In this chapter with voice samples: a play button and count on each voice, one opened to list its samples"
   },
   {
     "page": "booth",
@@ -1111,6 +1125,13 @@
     "viewport": "desktop",
     "docName": "booth-bookmark",
     "caption": "Booth - B pressed: the word being read is bookmarked, with a ribbon in the margin"
+  },
+  {
+    "page": "booth",
+    "state": "search-shown",
+    "viewport": "desktop",
+    "docName": "booth-search",
+    "caption": "Booth after a search for \"the\": every match in the text is tinted and the chosen one is ringed and being read"
   },
   {
     "page": "booth",

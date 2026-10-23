@@ -128,7 +128,13 @@ flowchart LR
   - one `COVERAGE_TOKEN` per chapter token: its paragraph, the ordinal of its word in the paragraph's text, and its status,
     which is `read`, `misread`, `heading` or the region kind the check counted it as; plus the item and source seconds
     where it was heard;
-  - one `COVERAGE_EXTRA` per run of heard words the chapter does not account for.
+  - one `COVERAGE_EXTRA` per run of heard words the chapter does not account for. Its `repeatOf` is set when the run says
+    the chapter text beside it again, a second take (issue #2251 item 30, `recording_coverage.repeat_of`): the run ends
+    with the words up to the last token heard before it (a retake, an aside such as "once more" may come first) or begins
+    with the words from the first token heard after it (a restart, an aside may follow), at least 3 words or a whole
+    paragraph. It names those chapter tokens (`start`, `end`), the run's own words that say them (`first`, `last`) and the
+    chapter text. The host files an extra gap with `repeatOf` as a `duplicate_read` (an edit), not a pickup, and Editing
+    shows it as **Read twice**. `null` for an aside and absent from a result stored before it.
 
   `--align-only` re-aligns from the cached words files and never transcribes. The host reads them through the `WorkspaceAlignment` binding
   (`src/studio/desktop/bindings_coverage.go`, `coverage.AlignmentView`). A chapter with no stored result answers state `never` with the

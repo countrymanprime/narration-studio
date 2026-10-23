@@ -74,6 +74,11 @@ export function noteTime(seconds: number): string {
 export const chapterLabel = (finding: Finding): string =>
   finding.manuscript?.chapter_title || finding.manuscript?.chapter_id || (deliveryEvidence(finding) ? deliveryFileName(finding) : undefined) || 'No chapter';
 
+/** The chapter words a duplicate read says again (issue #2251 item 30): Transcript Compare's EXTRA or the recording check's extra gap that
+ * repeats the text beside it. Undefined for any other finding. */
+export const repeatOf = (finding: Pick<Finding, 'category' | 'evidence'>): string | undefined =>
+  finding.category === 'duplicate_read' ? text(finding.evidence?.repeat_of) : undefined;
+
 /** One line that says what the finding is about, for the list: what was expected and what was heard, or the entry it names. */
 export function findingSummary(finding: Finding): string {
   const reads = takeReviewEvidence(finding);
@@ -82,6 +87,8 @@ export function findingSummary(finding: Finding): string {
   if (comparison) return `${comparison.members.length} reads of ${comparedSpanLabel(comparison).toLowerCase()}, side by side`;
   const delivery = deliveryEvidence(finding);
   if (delivery) return deliverySummary(delivery);
+  const again = repeatOf(finding);
+  if (again) return `Said twice: “${again}”`;
   const expected = finding.manuscript?.expected;
   const recorded = finding.manuscript?.recorded;
   if (expected && recorded) return `“${expected}” read as “${recorded}”`;
@@ -120,7 +127,9 @@ export function evidenceRows(finding: Finding): Array<{ label: string; value: st
   const rows: Array<{ label: string; value: string }> = [];
   const add = (label: string, value: string | undefined) => value && rows.push({ label, value });
   const kind = text(evidence.kind);
-  add('Kind', kind && (KIND_LABELS[kind] ?? humanize(kind.toLowerCase())));
+  const again = repeatOf(finding);
+  add('Kind', again ? 'Said twice' : kind && (KIND_LABELS[kind] ?? humanize(kind.toLowerCase())));
+  add('Said again', again);
   const condition = text(evidence.condition);
   add('Why', condition && (CONDITION_LABELS[condition] ?? humanize(condition)));
   add('Pronunciation confidence', text(evidence.pronunciation_confidence));
