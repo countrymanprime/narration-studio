@@ -270,6 +270,28 @@ function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { ga
     if (!kind || indexes.some((index) => index < first || index > last)) return [];
     return [{ ...region, id: `${kind}:${region.paragraphIds[0] ?? ''}:${indexes[0] ?? 0}`, kind, confidence: null, confReason: 'no_word_scores' }];
   });
+  // One line said twice, at the end of the first read paragraph (issue #2251 item 30): the host's extra gap with repeatOf, which Proof
+  // calls "Said twice". Only inside the read part, as the host's extras are.
+  const said = report.paragraphs[first];
+  if (first < last && said) {
+    const sourceTime = Math.round(report.playedSeconds * 0.05);
+    const itemGuid = report.items[0]?.itemGuid ?? '';
+    gaps.unshift({
+      id: `extra:${said.id}:${said.tokens}`,
+      kind: 'extra',
+      paragraphIds: [said.id],
+      tokenCount: 4,
+      firstWord: 'sorry',
+      lastWord: 'tired.',
+      text: 'sorry so very tired.',
+      repeatOf: 'so very tired.',
+      position: { itemIndex: 0, itemGuid, sourceTime },
+      before: { itemIndex: 0, itemGuid, sourceTime },
+      after: { itemIndex: 0, itemGuid, sourceTime: sourceTime + 2 },
+      confidence: null,
+      confReason: 'no_word_scores',
+    });
+  }
   return { gaps, unfinished: { start: first, end: report.paragraphs.length - 1 - last } };
 }
 
@@ -316,7 +338,8 @@ export function judgeMock(report: CoverageReport, thresholds = MOCK_THRESHOLDS):
 /** The finding an accepted gap becomes (apps/desktop/internal/gapreview): a pickup of the gap's line, accepted, with a null
  * confidence and its reason. */
 function gapFinding(chapterId: string, gap: CoverageGap, recordId: string): Finding {
-  const expected = gap.kind === 'extra' ? '' : gap.lastWord && gap.lastWord !== gap.firstWord ? `${gap.firstWord} … ${gap.lastWord}` : gap.firstWord;
+  const expected =
+    gap.repeatOf ?? (gap.kind === 'extra' ? '' : gap.lastWord && gap.lastWord !== gap.firstWord ? `${gap.firstWord} … ${gap.lastWord}` : gap.firstWord);
   return {
     schema_version: 1,
     id: `recording-check:${chapterId}:${gap.id}:${recordId}`,
@@ -329,12 +352,21 @@ function gapFinding(chapterId: string, gap: CoverageGap, recordId: string): Find
       ...(gap.text ? { recorded: gap.text } : {}),
       ...(gap.paragraphIds[0] ? { span: { paragraph_id: gap.paragraphIds[0] } } : {}),
     },
-    category: 'pickup',
+    // A line said twice is a duplicate read, fixed in the edit, as the host files it.
+    category: gap.repeatOf ? 'duplicate_read' : 'pickup',
     severity: 'info',
     confidence: gap.confidence,
     confidence_reason: gap.confReason,
     evidence_version: `${gap.kind}:${gap.tokenCount}:${gap.firstWord}:${gap.lastWord}`,
-    evidence: { kind: gap.kind, gap_id: gap.id, evidence_key: recordId, token_count: gap.tokenCount, first_word: gap.firstWord, last_word: gap.lastWord },
+    evidence: {
+      kind: gap.kind,
+      gap_id: gap.id,
+      evidence_key: recordId,
+      token_count: gap.tokenCount,
+      first_word: gap.firstWord,
+      last_word: gap.lastWord,
+      ...(gap.repeatOf ? { repeat_of: gap.repeatOf } : {}),
+    },
     review: { status: 'accepted', timestamp: MOCK_TIME },
   };
 }

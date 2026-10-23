@@ -524,6 +524,41 @@ describe('EditingPage', () => {
       await act(async () => {});
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('3 words')).toBeTruthy();
     });
+    // Issue #2251 item 30: Proof's "Open in Editing" on a line said twice opens the Read twice card, on the live page (no take per line).
+    it('opens a duplicate read on the Read twice card of the line said twice', async () => {
+      const said = { id: 'f-twice', category: 'duplicate_read', manuscript: { chapter_id: 'c1', expected: 'and walked away.', span: { paragraph_id: 'p2' } } };
+      const base = pageApi();
+      const workspaceAlignment = async (chapterId: string) => {
+        const plain = await base.workspaceAlignment(chapterId);
+        if (chapterId !== 'c1') return plain;
+        const at = (n: number) => ({ itemIndex: 0, itemGuid: plain.items[0].itemGuid, sourceTime: n });
+        const words = ['sorry', 'and', 'walked', 'away.'].map((text, k) => ({
+          text,
+          item: 0,
+          start: 5.1 + k * 0.4,
+          end: 5.45 + k * 0.4,
+          conf: 0.9,
+          added: true as const,
+          timing: 'spread' as const,
+        }));
+        const repeat = {
+          text: 'sorry and walked away.',
+          tokens: 4,
+          start: at(5.1),
+          end: at(6.65),
+          afterToken: 9,
+          repeatOf: { start: 7, end: 10, first: 1, last: 4, text: 'and walked away.' },
+          words,
+        };
+        return { ...plain, extras: [...plain.extras, repeat] };
+      };
+      mount({ findingId: 'f-twice', api: { workspaceAlignment, findingsGet: async () => said } as never });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-flagcard="dup"]')).not.toBeNull());
+      const card = document.querySelector<HTMLElement>('[data-flagcard="dup"]')!;
+      expect(card.textContent).toContain('The recording reads the line twice.');
+      expect(within(card).getByRole('button', { name: /Hear both reads/ })).toBeTruthy();
+    });
     // SN-E9: the editing check's "Clean up in Editing" opens the page with the drawer on Clean up.
     it('opens with the drawer on the tab it is given', async () => {
       mount({ drawer: 'cleanup' });

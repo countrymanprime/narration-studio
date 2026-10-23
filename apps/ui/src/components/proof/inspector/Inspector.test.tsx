@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -167,5 +167,33 @@ describe('open-in-script-and-booth-are-links-not-moves', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open this chapter in Booth' }));
     expect(t.onOpenScript).toHaveBeenCalledWith('chapter-2');
     expect(t.onOpenBooth).toHaveBeenCalledWith('chapter-2');
+  });
+});
+
+// Issue #2251 item 30: a phrase said twice is a second take, fixed on Editing; the note says so and opens the line there.
+describe('a-note-said-twice-opens-in-editing', () => {
+  const said = inspectorFinding({
+    category: 'duplicate_read',
+    manuscript: { chapter_id: 'c-1', expected: 'I could not help it', recorded: 'sorry I could not help it' },
+    evidence: { kind: 'EXTRA', repeat_of: 'I could not help it' },
+  });
+
+  it('says the words were said twice and opens the finding on Editing', () => {
+    const onOpenEditing = vi.fn();
+    setup(said, { onOpenEditing });
+    expect(screen.getByText('Said twice. The second take is on Editing, where you can keep both, compare them or delete one.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Open in Editing' }));
+    expect(onOpenEditing).toHaveBeenCalledWith('c-1', 'f1');
+  });
+
+  it('offers nothing for any other note, or with no chapter or no handler', () => {
+    setup(inspectorFinding({ manuscript: { chapter_id: 'c-1', expected: 'a', recorded: 'b' } }), { onOpenEditing: vi.fn() });
+    expect(screen.queryByRole('button', { name: 'Open in Editing' })).toBeNull();
+    cleanup();
+    setup({ ...said, manuscript: { expected: 'x', recorded: 'x x' } }, { onOpenEditing: vi.fn() });
+    expect(screen.queryByRole('button', { name: 'Open in Editing' })).toBeNull();
+    cleanup();
+    setup(said);
+    expect(screen.queryByRole('button', { name: 'Open in Editing' })).toBeNull();
   });
 });

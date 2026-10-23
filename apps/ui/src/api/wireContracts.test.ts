@@ -308,13 +308,19 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const before = (await api.findingsSummary()).total;
     const accepted = await api.coverageGapAccept(chapterId, first.id);
     expectMatches(findingSchema, accepted, 'mock accepted gap');
-    expect(accepted).toMatchObject({ category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    // The mock's first gap is a line said twice: a duplicate read (an edit), as the host files it (issue #2251 item 30).
+    expect(first.repeatOf).toBeDefined();
+    expect(accepted).toMatchObject({ category: 'duplicate_read', confidence: null, review: { status: 'accepted' }, evidence: { repeat_of: first.repeatOf } });
     expect((await api.findingsSummary()).total).toBe(before + 1);
     expect(await api.coverageGapAccept(chapterId, first.id)).toEqual(accepted);
     expect((await api.findingsSummary()).total).toBe(before + 1);
 
     await api.coverageGapIgnore(chapterId, second.id);
     expect((await api.findingsSummary()).total).toBe(before + 1);
+    // Any other gap stays a pickup.
+    const fresh = createMockApi({}, { coverage: { pickups: [chapterId] } });
+    expect(second.repeatOf).toBeUndefined();
+    expect(await fresh.coverageGapAccept(chapterId, second.id)).toMatchObject({ category: 'pickup' });
     const read = await api.coverageGapReviews(chapterId);
     expectMatches(coverageGapReviewsSchema, read, 'mock gap reviews');
     expect(read).toEqual({ [first.id]: 'accepted', [second.id]: 'ignored' });

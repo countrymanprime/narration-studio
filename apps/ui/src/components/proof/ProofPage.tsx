@@ -539,6 +539,7 @@ export function ProofPage({
                 onChanged={changed}
                 onOpenScript={goToScript}
                 onOpenBooth={goToBooth}
+                onOpenEditing={(chapterId, findingId) => goToEditing(chapterId, findingId)}
                 typeControl={
                   <TypeSelect
                     finding={selected}

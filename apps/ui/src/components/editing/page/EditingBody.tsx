@@ -701,6 +701,18 @@ function useOpenAt(
         done.current.finding = true;
         const span = f.manuscript?.span;
         if (!span?.paragraph_id) return;
+        // A line said twice (issue #2251 item 30) opens its Read twice card, on the second read; a restart is on the line after the note's.
+        if (f.category === 'duplicate_read') {
+          const at = doc.paras.findIndex((p) => p.p.id === span.paragraph_id);
+          const para = [doc.paras[at], doc.paras[at + 1]].find((p) => p?.items.some((i) => i.dup));
+          const second = para?.items.filter((i) => i.dup) ?? [];
+          if (para && second.length) {
+            chosen.current = true;
+            dispatch({ type: 'select', anchor: second[0].key, head: second[second.length - 1].key });
+            dispatch({ type: 'openFlag', key: `dup:${para.p.id}` });
+            return;
+          }
+        }
         // The note's own words: the finding's expected text in its paragraph (its ordinal says which repeat), else the one word its ordinal names.
         const words = f.manuscript?.expected ? findingWords(doc, span.paragraph_id, f.manuscript.expected, span.ordinal ?? 0) : [];
         const single = span.ordinal === undefined ? undefined : `${span.paragraph_id}:${span.ordinal}`;

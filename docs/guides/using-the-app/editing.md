@@ -108,6 +108,21 @@ The key hints at the foot of the page name what **Enter** does where the cursor 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it).
 
+### A line said twice
+
+Words heard that say the script beside them again are a second take, not words outside the script: a retake of the end of a
+line ("once more", then the last words again), or a restart (the first words, "sorry", then the line in full). At least three
+words of the script must be said again, or a whole line, so a stutter is not one. The recording check finds them, and a take
+of its own is checked the same way. Their card says **Read twice** and when the second read starts, and offers:
+
+- **Stack as 2 takes**: splits the take at the pause before the second read, in the DAW. A line that is not one take the DAW
+  can split (a chapter recorded in one pass) says so and changes nothing.
+- **Hear both reads**: plays the second read with as long again on either side, so both reads are heard.
+- **Leave in place**: closes the card.
+- **Delete second read…**: asks first, then cuts the second read's words and audio.
+
+Proof lists the same words as **Said twice** with an **Open in Editing** link, which opens this card.
+
 ![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and their band on the waveform](../../images/ui/editing-selection.webp)
 
 ## The waveform

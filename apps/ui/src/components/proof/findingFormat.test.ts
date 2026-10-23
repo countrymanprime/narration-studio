@@ -2,7 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { WIRE_FINDINGS, WIRE_TAKE_REVIEW_FINDINGS } from '../../api/mockFixtures';
 import { FINDING_CATEGORIES } from '../../api/contracts/findings';
 import type { Finding } from '../../types';
-import { analyzerLabel, categoryLabel, chapterLabel, confidenceLabel, evidenceRows, findingSummary, formatDecidedAt, formatTime } from './findingFormat';
+import {
+  analyzerLabel,
+  categoryLabel,
+  chapterLabel,
+  confidenceLabel,
+  evidenceRows,
+  findingSummary,
+  formatDecidedAt,
+  formatTime,
+  repeatOf,
+} from './findingFormat';
 
 /** A delivery finding as the host saves it for the Review page (tests/fixtures/contracts/findings-list-delivery-qc.json). */
 const deliveryFinding = (evidence: Record<string, unknown>): Finding => ({
@@ -48,6 +58,28 @@ describe('findingFormat', () => {
     expect(findingSummary(extra)).toBe('“and then” heard, not in the script');
     expect(findingSummary(entity)).toBe('“White Rabbit”');
     expect(findingSummary({ ...entity, manuscript: undefined })).toBe('Story Bible entry');
+  });
+
+  // Issue #2251 item 30: extra words that say the chapter text again are a second take, not words outside the script.
+  it('says a repeat is said twice, with what was said again, from Transcript Compare and from the recording check', () => {
+    const extra = WIRE_FINDINGS[2];
+    const again = {
+      ...extra,
+      category: 'duplicate_read',
+      manuscript: { ...extra.manuscript!, expected: 'Curiouser and' },
+      evidence: { ...extra.evidence, repeat_of: 'Curiouser and' },
+    };
+    expect(repeatOf(again)).toBe('Curiouser and');
+    expect(findingSummary(again)).toBe('Said twice: “Curiouser and”');
+    expect(evidenceRows(again).slice(0, 2)).toEqual([
+      { label: 'Kind', value: 'Said twice' },
+      { label: 'Said again', value: 'Curiouser and' },
+    ]);
+    const gap = { ...again, evidence: { kind: 'extra', repeat_of: 'Curiouser and' } };
+    expect(findingSummary(gap)).toBe('Said twice: “Curiouser and”');
+    // Only a duplicate read with the words it repeats is one: a take-review group or a stray key is not.
+    expect(repeatOf({ ...extra, evidence: { ...extra.evidence, repeat_of: 'x' } })).toBeUndefined();
+    expect(repeatOf({ ...again, evidence: { ...again.evidence, repeat_of: '  ' } })).toBeUndefined();
   });
 
   it('lists the evidence it knows how to word, in reading order, and leaves the rest out', () => {

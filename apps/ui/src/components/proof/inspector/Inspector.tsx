@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { MAX_REVIEW_NOTE_LENGTH, shownFindingNoteType } from '../../../api/contracts/findings';
 import type { Finding, FindingReviewStatus } from '../../../types';
+import { Button } from '../../primitives/Button';
 import { Field } from '../../primitives/Field';
 import { SectionLabel } from '../../primitives/SectionLabel';
-import { categoryLabel, noteTime } from '../findingFormat';
+import { categoryLabel, noteTime, repeatOf } from '../findingFormat';
 import { fixKindOf, savedMessage } from '../resolution';
 import { DecisionButtons } from './DecisionButtons';
 import { EvidenceChangedBanner } from './EvidenceChangedBanner';
@@ -65,6 +66,7 @@ export function Inspector({
   onChanged,
   onOpenScript,
   onOpenBooth,
+  onOpenEditing,
   spot,
   typeControl,
 }: {
@@ -77,6 +79,8 @@ export function Inspector({
   onChanged: (finding: Finding, decided: boolean) => void;
   onOpenScript: (chapterId: string) => void;
   onOpenBooth: (chapterId: string) => void;
+  /** Opens a note on Editing: a line said twice is fixed there. Absent: the note offers no link. */
+  onOpenEditing?: (chapterId: string, findingId: string) => void;
   spot?: ReactNode;
   typeControl?: ReactNode;
 }) {
@@ -101,6 +105,9 @@ export function Inspector({
     setOutcome(result.ok ? undefined : { message: result.message, failed: true });
   };
 
+  // A line said twice is a second take, fixed on Editing (issue #2251 item 30): the chapter to open it in.
+  const saidTwice = onOpenEditing && repeatOf(shown) ? shown.manuscript?.chapter_id : undefined;
+
   return (
     <aside aria-label="Note" className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -117,6 +124,14 @@ export function Inspector({
           <Quote label="Script" markup={quotes.script} which="script" />
           <Quote label="Heard" markup={quotes.heard} which="heard" />
         </div>
+      )}
+      {saidTwice && (
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          <span>Said twice. The second take is on Editing, where you can keep both, compare them or delete one.</span>
+          <Button variant="secondary" size="sm" disabled={inert} onClick={() => onOpenEditing?.(saidTwice, shown.id)}>
+            Open in Editing
+          </Button>
+        </p>
       )}
       {spot}
       {trimmableGap(shown) && <TrimGap finding={shown} inert={inert} onTrimmed={() => void decide('accepted')} />}
