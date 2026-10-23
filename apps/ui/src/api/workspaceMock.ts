@@ -24,6 +24,7 @@ import type {
   WorkspacePeaksEntry,
   WorkspaceToken,
 } from '../types';
+import { mockRepeatedWords } from './coverageMock';
 import { REAPER_MESSAGES, type MockReaper } from './findingsMock';
 import { SPEECH_PEAKS_MINMAX, SPEECH_PEAKS_PER_SECOND } from './fixtures/speechPeaks';
 
@@ -125,7 +126,6 @@ function mockTokens(
   let index = 0;
   let elapsed = 0;
   let misheardPlaced = false;
-  let repeatPlaced = false;
   for (const paragraph of paragraphs) {
     const words = paragraph.text.split(/\s+/).filter(Boolean);
     const wholeParagraphSkipped = skipIds.has(paragraph.id);
@@ -159,11 +159,12 @@ function mockTokens(
       }
       index += 1;
     });
-    // One deterministic repeat (issue #2251 item 30): the paragraph's last three words said again after "sorry", the
+    // The line said twice the coverage mock reports (issue #2251 item 30): its words said again after "sorry", at the end of the paragraph, the
     // second take the Editing page shows as "Read twice" and Proof as "Said twice".
+    const said = report?.gaps?.find((gap) => gap.repeatOf && gap.paragraphIds[0] === paragraph.id);
     const allRead = !wholeParagraphSkipped && !wholeParagraphTail && !halfReadShort;
-    if (!repeatPlaced && misheardPlaced && allRead && words.length >= 4 && itemIndex !== undefined) {
-      const again = words.slice(-3);
+    if (said && allRead && itemIndex !== undefined) {
+      const again = mockRepeatedWords(paragraph.text);
       extras.push({
         text: ['sorry', ...again].join(' '),
         tokens: again.length + 1,
@@ -173,7 +174,6 @@ function mockTokens(
         repeatOf: { start: index - again.length, end: index, first: 1, last: again.length + 1, text: again.join(' ') },
       });
       elapsed += (again.length + 1) * SECONDS_PER_WORD;
-      repeatPlaced = true;
     }
   }
   return { tokens, extras };

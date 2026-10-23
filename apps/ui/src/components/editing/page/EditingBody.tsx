@@ -686,7 +686,13 @@ function useOpenAt(
     const para = doc.paras.find((p) => p.p.id === id);
     if (!para) return;
     const first = para.items.find((i) => i.kind === 'w');
-    if (first && !chosen.current) dispatch({ type: 'place', key: first.key });
+    // A line said twice (issue #2251 item 30), as Proof's recording check links it, opens on its second read with the Read twice card.
+    const second = para.items.filter((i) => i.dup);
+    if (second.length && !chosen.current) {
+      chosen.current = true;
+      dispatch({ type: 'select', anchor: second[0].key, head: second[second.length - 1].key });
+      dispatch({ type: 'openFlag', key: `dup:${para.p.id}` });
+    } else if (first && !chosen.current) dispatch({ type: 'place', key: first.key });
     if (!lines.byId.has(id)) return;
     done.current.passage = true;
     setLineOpen(id, true);

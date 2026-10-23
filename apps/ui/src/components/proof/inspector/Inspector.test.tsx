@@ -181,6 +181,7 @@ describe('a-note-said-twice-opens-in-editing', () => {
   it('says the words were said twice and opens the finding on Editing', () => {
     const onOpenEditing = vi.fn();
     setup(said, { onOpenEditing });
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Said twice');
     expect(screen.getByText('Said twice. The second take is on Editing, where you can keep both, compare them or delete one.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Open in Editing' }));
     expect(onOpenEditing).toHaveBeenCalledWith('c-1', 'f1');

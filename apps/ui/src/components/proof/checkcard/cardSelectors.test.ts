@@ -90,7 +90,7 @@ describe('counts by category', () => {
   it('lists a repeat as said twice, suggesting an edit, with the line to open on Editing', () => {
     const repeat = { ...gap('r', 'extra', 4), text: 'sorry the end', repeatOf: 'the end' };
     const [row] = cardFindings(result('current', [], [repeat]), {}, []);
-    expect(row).toMatchObject({ type: 'Said twice', count: 'extra', text: '“the end”, said twice', suggested: 'Fix in edit', paragraphId: 'p1' });
+    expect(row).toMatchObject({ type: 'Said twice', count: 'extra', text: '“the end”', suggested: 'Fix in edit', paragraphId: 'p1' });
     const [plain] = cardFindings(result('current', [], [{ ...repeat, repeatOf: undefined }]), {}, []);
     expect(plain).toMatchObject({ type: 'Extra', text: '“sorry the end”', suggested: 'Needs pickup' });
     expect(plain.paragraphId).toBeUndefined();

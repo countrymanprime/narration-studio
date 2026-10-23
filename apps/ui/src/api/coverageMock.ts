@@ -89,6 +89,8 @@ type Deps = {
   endJob: (event: JobEnded) => void;
   /** Where an accepted gap's finding is saved: the findings mock the review page reads. */
   saveFinding: (finding: Finding) => void;
+  /** A paragraph's text, so the line said twice names its real words (the workspace mock says them again). */
+  paragraphText?: (paragraphId: string) => string | undefined;
   seed?: CoverageSeed;
 };
 
@@ -137,9 +139,9 @@ const MOCK_THRESHOLDS = { minParagraphPresent: 0.8, maxMissingRun: 3 };
 const plural = (count: number, noun: string) => (count === 1 ? `1 ${noun}` : `${count} ${noun}s`);
 
 /** A report of a chapter read with `fraction` of its words present; what is missing is its tail. */
-function reportFor(chapter: ManuscriptChapter, fraction: number): CoverageReport {
+function reportFor(chapter: ManuscriptChapter, fraction: number, textOf?: TextOf): CoverageReport {
   const report = baseReportFor(chapter, fraction);
-  return { ...report, ...classifyMock(report) };
+  return { ...report, ...classifyMock(report, textOf) };
 }
 
 function baseReportFor(chapter: ManuscriptChapter, fraction: number): Omit<CoverageReport, 'gaps' | 'unfinished'> {
@@ -185,9 +187,9 @@ function baseReportFor(chapter: ManuscriptChapter, fraction: number): Omit<Cover
 /** A report with two interior pickups (a skip and a short read) plus a small tail, so the summary's headline, "Recorded
  * to" line and Pickups list can all be seen together. Built from the
  * same proportional paragraph split as reportFor, so it stays sane for whichever chapter is seeded. */
-function pickupsReportFor(chapter: ManuscriptChapter): CoverageReport {
+function pickupsReportFor(chapter: ManuscriptChapter, textOf?: TextOf): CoverageReport {
   const report = basePickupsReportFor(chapter);
-  return { ...report, ...classifyMock(report) };
+  return { ...report, ...classifyMock(report, textOf) };
 }
 
 function basePickupsReportFor(chapter: ManuscriptChapter): Omit<CoverageReport, 'gaps' | 'unfinished'> {
@@ -258,7 +260,15 @@ function basePickupsReportFor(chapter: ManuscriptChapter): Omit<CoverageReport, 
 
 /** The host's `coverage.ClassifyGaps` for a mock report: a skip is missing, a short read is misread, an
  * unread start or end is unfinished and never a gap, and confidence is null with its reason. */
-function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { gaps: CoverageGap[]; unfinished: CoverageUnfinished } {
+type TextOf = (paragraphId: string) => string | undefined;
+
+/** The words the mock's line said twice says again: the last three of the paragraph, or stand-ins without its text. */
+export function mockRepeatedWords(text: string | undefined): string[] {
+  const words = (text ?? '').split(/\s+/).filter(Boolean);
+  return words.length >= 4 ? words.slice(-3) : ['so', 'very', 'tired.'];
+}
+
+function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>, textOf?: TextOf): { gaps: CoverageGap[]; unfinished: CoverageUnfinished } {
   const read = report.paragraphs.map((paragraph) => paragraph.present > 0);
   const first = read.indexOf(true);
   const last = read.lastIndexOf(true);
@@ -276,15 +286,16 @@ function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { ga
   if (first < last && said) {
     const sourceTime = Math.round(report.playedSeconds * 0.05);
     const itemGuid = report.items[0]?.itemGuid ?? '';
+    const again = mockRepeatedWords(textOf?.(said.id));
     gaps.unshift({
       id: `extra:${said.id}:${said.tokens}`,
       kind: 'extra',
       paragraphIds: [said.id],
-      tokenCount: 4,
+      tokenCount: again.length + 1,
       firstWord: 'sorry',
-      lastWord: 'tired.',
-      text: 'sorry so very tired.',
-      repeatOf: 'so very tired.',
+      lastWord: again[again.length - 1],
+      text: ['sorry', ...again].join(' '),
+      repeatOf: again.join(' '),
       position: { itemIndex: 0, itemGuid, sourceTime },
       before: { itemIndex: 0, itemGuid, sourceTime },
       after: { itemIndex: 0, itemGuid, sourceTime: sourceTime + 2 },
@@ -404,7 +415,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
     recheck: { model: 'large-v3-turbo', wholeChapter: false, windows: 1, seconds: Math.max(25, Math.round(report.missingTokens / (WORDS_PER_MINUTE / 60))) },
   });
   const reportOf = (chapter: ManuscriptChapter, fraction: number) => {
-    const report = pickupChapters.has(chapter.id) ? pickupsReportFor(chapter) : reportFor(chapter, fraction);
+    const report = pickupChapters.has(chapter.id) ? pickupsReportFor(chapter, deps.paragraphText) : reportFor(chapter, fraction, deps.paragraphText);
     return cascadeChapters.has(chapter.id) ? withCascade(report) : report;
   };
 

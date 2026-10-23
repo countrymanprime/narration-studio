@@ -13,7 +13,7 @@ const said: CardFinding = {
   count: 'extra',
   type: 'Said twice',
   seconds: 6.3,
-  text: '“the end”, said twice',
+  text: '“the end”',
   suggested: 'Fix in edit',
   status: 'todo',
   paragraphId: 'p-1',

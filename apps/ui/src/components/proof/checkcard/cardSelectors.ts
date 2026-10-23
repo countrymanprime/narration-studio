@@ -145,7 +145,7 @@ export function cardFindings(result: CoverageResult | undefined, reviews: Covera
           count: kind.count,
           type: 'Said twice',
           seconds,
-          text: `“${gap.repeatOf}”, said twice`,
+          text: `“${gap.repeatOf}”`,
           suggested: 'Fix in edit' as const,
           status,
           ...(paragraphId ? { paragraphId } : {}),

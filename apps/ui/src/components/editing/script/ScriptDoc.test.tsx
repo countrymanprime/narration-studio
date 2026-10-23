@@ -76,6 +76,21 @@ describe('marks-are-not-colour-alone', () => {
   });
 });
 
+// Issue #2251 item 30: words said again are a second read, drawn and named as a repeat, not as words outside the script.
+describe('a-second-read-is-a-repeat', () => {
+  it('draws the words of a doubled read with the repeat kind’s double underline and names them Read twice', () => {
+    const doc = marksDoc();
+    const um = doc.items.find((i) => i.st === 'extra')!;
+    um.dup = true;
+    show(doc);
+    expect(document.querySelector('[data-mark="extra"]')).toBeNull();
+    const again = document.querySelector<HTMLElement>('[data-mark="dup"]')!;
+    expect(again.textContent).toBe('um');
+    expect(again.style.textDecoration).toContain('double');
+    expect(again.getAttribute('aria-description')).toMatch(/^Read twice: said again, \d+:\d\d, 90%$/);
+  });
+});
+
 describe('a mark yields to the layers drawn on the same word', () => {
   it('keeps the extra bar under a selection and an effect underline, and lets a cursor ring replace the dashed box', () => {
     show(marksDoc({ effects: [{ id: 'fx1', keys: ['p-1:0'] }] }));
