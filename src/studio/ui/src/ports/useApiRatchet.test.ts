@@ -58,7 +58,6 @@ const CEILING: Record<string, number> = {
   'src/components/proof/ProofChapterPage.tsx': 1,
   'src/components/proof/spot/SpotTakes.tsx': 1,
   'src/components/proof/useProofingRender.ts': 1,
-  'src/components/series/SeriesTab.tsx': 1,
   'src/components/settings/CreditsPanel.tsx': 1,
   'src/components/settings/DeliveryProfilesPanel.tsx': 1,
   'src/components/settings/KeyboardPanel.tsx': 1,

@@ -32,9 +32,7 @@ describe('chapter card', () => {
     expect(screen.getByRole('heading', { name: 'The Salt Marsh' })).toBeTruthy();
     const minutes = Math.round((TWO.wordCount / WPH) * 60);
     await vi.waitFor(() =>
-      expect(screen.getByText(new RegExp(`2,044 words · about ${minutes} min finished audio · 0 marks · 1 open query`)).textContent).toContain(
-        'without pronunciation',
-      ),
+      expect(screen.getByText(new RegExp(`2,044 words · about ${minutes} min finished audio · 1 note`)).textContent).toContain('without pronunciation'),
     );
   });
 

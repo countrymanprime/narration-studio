@@ -75,17 +75,20 @@ afterEach(cleanup);
 
 /** A table row by its word: the row's name starts with the word, so a word inside another word's name does not match. */
 const named = (word: string) => new RegExp(`^${word}\\b`, 'i');
+/** The pronunciation play button of a row: there when the word has a pronunciation, absent when it has none. */
+const hear = (of: HTMLElement) => within(of).queryByRole('button', { name: /^Hear / });
 const row = (word: string) => screen.getByRole('row', { name: named(word) });
 
-describe('table-lists-the-chapters-words-with-their-status', () => {
-  it('lists each flagged word with its say-value, source icon and status; Enter or a click selects it', async () => {
+describe('list-shows-the-chapters-words-with-a-play-button', () => {
+  it('lists each flagged word with a play button and source icon, no phonetic text and no status; Enter or a click selects it', async () => {
     await api.scriptWordSay(words[0]!, 'uh-LIS', 'cmu');
     mount(fakeHost());
     const first = await screen.findByRole('row', { name: named(words[0]!) });
-    expect(within(first).getByText('uh-LIS')).toBeTruthy();
+    expect(within(first).queryByText('uh-LIS')).toBeNull();
     expect(within(first).getByLabelText('Source: CMU dictionary')).toBeTruthy();
-    expect(within(first).getByText('Set')).toBeTruthy();
-    expect(within(row(words[1]!)).getByText('Not set')).toBeTruthy();
+    expect(hear(first)).not.toBeNull();
+    expect(hear(row(words[1]!))).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: 'Status' })).toBeNull();
     expect(first.getAttribute('aria-selected')).toBe('false');
     await userEvent.click(first);
     expect(row(words[0]!).getAttribute('aria-selected')).toBe('true');
@@ -98,9 +101,9 @@ describe('table-lists-the-chapters-words-with-their-status', () => {
   it("lists the Story Bible names in the chapter text with the entry's pronunciation, read-only, as the Booth's Coming up does", async () => {
     mount(fakeHost());
     const rabbit = await screen.findByRole('row', { name: named('White Rabbit') });
-    expect(within(rabbit).getByText('Set')).toBeTruthy();
+    expect(hear(rabbit)).not.toBeNull();
     expect(within(rabbit).getByLabelText('Source: Story Bible')).toBeTruthy();
-    expect(within(rabbit).getByText(/ˈræbɪt/)).toBeTruthy();
+    expect(within(rabbit).queryByText(/ˈræbɪt/)).toBeNull();
     await userEvent.click(rabbit);
     expect(rabbit.getAttribute('aria-selected')).toBeNull();
     expect(screen.queryByRole('group', { name: 'Word: White Rabbit' })).toBeNull();
@@ -121,7 +124,7 @@ describe('word-card-saves-how-i-say-it', () => {
     await userEvent.type(input, 'kroh-KAY');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(say).toHaveBeenLastCalledWith(words[0], 'kroh-KAY', 'manual');
-    await waitFor(() => expect(within(row(words[0]!)).getByText('Set')).toBeTruthy());
+    await waitFor(() => expect(hear(row(words[0]!))).not.toBeNull());
     await userEvent.clear(input);
     await userEvent.type(input, 'kroh-KEE{Enter}');
     expect(say).toHaveBeenLastCalledWith(words[0], 'kroh-KEE', 'manual');
@@ -133,7 +136,7 @@ describe('word-card-saves-how-i-say-it', () => {
     await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
     await userEvent.click(await screen.findByRole('button', { name: 'Save' }));
     expect(say).not.toHaveBeenCalled();
-    expect(within(row(words[0]!)).getByText('Not set')).toBeTruthy();
+    expect(hear(row(words[0]!))).toBeNull();
   });
 });
 
@@ -352,7 +355,7 @@ describe('add-to-my-words', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
     expect(flag).toHaveBeenCalledWith(range.chapterId, range.paragraphId, range.start, range.end);
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull());
-    expect(within(row(word)).getByText('Not set')).toBeTruthy();
+    expect(hear(row(word))).toBeNull();
   });
 
   it('a flagged word has no plus button, and an unflagged word with no selection has none either', async () => {

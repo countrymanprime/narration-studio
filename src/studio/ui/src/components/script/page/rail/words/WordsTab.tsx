@@ -1,16 +1,13 @@
 import { useMemo } from 'react';
-import { SectionLabel } from '../../../../primitives/SectionLabel';
-import { StatusBadge } from '../../../../primitives/StatusBadge';
 import { Icon } from '../../../../primitives/Icon';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../primitives/Table';
 import { sourceIcon } from '../../../../storybible/source/sourceIcons';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
 import type { LineRange } from '../../data/scriptCommands';
 import { useEntries, useParagraphs, useScriptPrep, useScriptView } from '../../data/useScriptData';
+import { InThisChapter } from '../InThisChapter';
 import { RailOptionRow } from '../RailOptionRow';
 import { DefinitionSourceMenu } from './DefinitionSourceMenu';
 import { WordCard } from './WordCard';
-import { statusLabel, statusTone } from './wordStatus';
 import type { WordsHost } from './wordsHost';
 
 /**
@@ -31,51 +28,27 @@ export function WordsTab({ chapterId, host, selection }: { chapterId: string; ho
         <DefinitionSourceMenu current={host.definitionSource} onPick={host.setDefinitionSource} />
       </RailOptionRow>
       {word && <WordCard key={word} word={word} host={host} selection={selection} />}
-      <SectionLabel as="div">In this chapter</SectionLabel>
-      {list.length > 0 ? (
-        <Table label="Words in this chapter">
-          <TableHead>
-            <TableRow>
-              <TableHeader>Word</TableHeader>
-              <TableHeader>Say it</TableHeader>
-              <TableHeader>Status</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {list.map((row) => (
-              // A Story Bible name is read-only here: its pronunciation is the entry's, edited in the Story Bible.
-              <TableRow
-                key={row.word}
-                data={{ 'data-w': row.word }}
-                selected={word === row.word}
-                onActivate={row.fromBible ? undefined : () => update({ word: row.word })}
-              >
-                <TableCell>
-                  <b>{row.word}</b>
-                </TableCell>
-                <TableCell numeric align="left">
-                  <span className="inline-flex items-center gap-1.5">
-                    {row.say && (
-                      <span
-                        role="img"
-                        aria-label={`Source: ${row.fromBible ? 'Story Bible' : (sources.find((s) => s.id === (row.source || 'manual'))?.label ?? 'Source')}`}
-                      >
-                        <Icon name={row.fromBible ? 'book' : sourceIcon(row.source || 'manual')} />
-                      </span>
-                    )}
-                    <span>{row.say || '—'}</span>
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <StatusBadge tone={statusTone(row.status)} label={statusLabel(row.status)} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <p className="m-0 text-sm text-[var(--text-muted)]">No words marked for pronunciation in this chapter.</p>
-      )}
+      <InThisChapter
+        label="Words in this chapter"
+        empty="No words marked for pronunciation in this chapter."
+        rows={list.map((row) => ({
+          id: row.word,
+          name: row.word,
+          hear: Boolean(row.say),
+          detail: row.say ? (
+            <span
+              role="img"
+              aria-label={`Source: ${row.fromBible ? 'Story Bible' : (sources.find((s) => s.id === (row.source || 'manual'))?.label ?? 'Source')}`}
+            >
+              <Icon name={row.fromBible ? 'book' : sourceIcon(row.source || 'manual')} />
+            </span>
+          ) : undefined,
+          selected: word === row.word,
+          // A Story Bible name is read-only here: its pronunciation is the entry's, edited in the Story Bible.
+          onActivate: row.fromBible ? undefined : () => update({ word: row.word }),
+          data: { 'data-w': row.word },
+        }))}
+      />
     </div>
   );
 }

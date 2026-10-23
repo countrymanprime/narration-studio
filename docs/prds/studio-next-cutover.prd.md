@@ -36,7 +36,7 @@ If every agreed ruling has a named test and the owner has done the QA list, dele
 ## What We're NOT Building
 
 - New features; a re-litigation of any ruling; an ADR rewrite.
-- Touching the Series voice bible, the Series tab, the Companion or the stage timer, PFH and effective rate: no equivalent in the mock, so they stay exactly as built (SN0-Q4, SN0-Q5, DQ-13).
+- Touching the Series voice bible, the Series tab, the Companion or the stage timer, PFH and effective rate: no equivalent in the mock, so they stay exactly as built (SN0-Q4, SN0-Q5, DQ-13). **Superseded 2026-10-21 (owner): this app produces one book at a time, so the Series tab is removed from the Story Bible page and no series page or reference is to be built or kept. The series host, API and data still in the repo are to be removed in a follow-up.**
 - A mock for work that is not being built now.
 
 ## Success Metrics
@@ -93,7 +93,7 @@ A swap slice deletes the old page and every old equivalent of what the mock's pa
 | The Schedule panel of Production and the Delivery panel of Master & QC | The Production swap (SNP-8) and the Master swap (SNM-5) | DQ-14 |
 | Benchmark mocks and mock-match tooling, except what the Series voice bible and Companion pages need | Cutover (SNC-6) | SN0-Q1 |
 
-Not removed, re-skinned or extended: the Series voice bible and Series tab, the Companion, and the stage timer, PFH and effective rate.
+Not removed, re-skinned or extended: the Series voice bible and Series tab, the Companion, and the stage timer, PFH and effective rate. **Superseded 2026-10-21 (owner): this app produces one book at a time, so the Series tab is removed from the Story Bible page and no series page or reference is to be built or kept. The series host, API and data still in the repo are to be removed in a follow-up.**
 
 ### Supersedes / depends on ADRs
 
