@@ -14,6 +14,8 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync,
 import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { checkFolder } from '../ci/old-name.mjs';
+
 const APP_BINARY = 'narration-studio';
 
 // The setup program NSIS builds (src/studio/desktop/build/windows/installer/project.nsi names its OutFile the same, and a test keeps the
@@ -153,6 +155,8 @@ export function verifyAssets(dir, version) {
       problems.push(`Unexpected file ${name}: promote publishes every file, and only the release assets are built and attested by the workflows`);
     }
   }
+  // No asset is named after, or says, the product's old name (scripts/ci/old-name.mjs).
+  problems.push(...checkFolder(dir).map((problem) => `The product's old name: ${problem}`));
   return problems;
 }
 
