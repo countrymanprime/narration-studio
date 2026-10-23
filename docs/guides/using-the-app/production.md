@@ -31,7 +31,7 @@ The app connects to the REAPER you have open by itself. For the first ten second
 engine that is not connected yet shows a quiet "Connecting to REAPER…" line. If it has not connected by
 then, a line at the top says progress that comes from it may be out of date, with **Retry**,
 and **Connect REAPER**. The line goes by itself as soon as the engine connects. It never offers the built-in recorder:
-switching recorders is a choice in [Settings](settings.md#recording-daw).
+switching recorders is a choice in [Settings > Recording & DAW](settings.md).
 **Retry** checks again and says what it found; **Connect REAPER** runs the launcher in the REAPER you have
 open (or starts REAPER on the linked project) and waits up to ten seconds for it to answer.
 
