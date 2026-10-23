@@ -360,3 +360,10 @@ def test_the_repeat_rule_answers_the_shared_parity_cases():
         script = case["script"].split()
         found = cov.repeat_of(case["run"].split(), script, [0] * len(script), case["prev"], case["next"])
         assert (found is not None) == case["repeat"], case["name"]
+
+
+def test_two_words_across_a_line_break_are_not_a_whole_line_said_again():
+    # "golf hotel" ends one two-word line and starts nothing on its own: the words straddle the break, so they are no repeat.
+    doc = ("alpha", "golf", "hotel", "india")
+    assert cov.repeat_of(("golf", "hotel"), doc, (0, 0, 1, 1), 2, None) is None
+    assert cov.repeat_of(("hotel", "india"), doc, (0, 0, 1, 1), 3, None) == cov.Repeat(start=2, end=4, first=0, last=2)
