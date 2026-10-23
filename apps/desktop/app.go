@@ -278,7 +278,8 @@ type Host struct {
 	// dawSyncProject is the .rpp the last DawTransportSync call resolved as this book's project, so each streamed position can say whether REAPER
 	// has it open without reading the disk 4 times a second.
 	dawSyncProject struct {
-		mu   sync.Mutex
+		mu sync.Mutex
+		// +checklocks:mu
 		path string
 	}
 	// backupKeeper is the DAW port's backups role: on an Audacity launch with a project open, the Audacity adapter's,

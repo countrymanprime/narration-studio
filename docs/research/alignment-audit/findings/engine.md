@@ -521,7 +521,7 @@ Counts: looks wrong 8 (R3EN1-1 to -7, -12 counted at 390 so secondary), polish 4
 - Where: `primitives/SlideOver.tsx:69-76` (title `Drawer.Title` has no `min-w-0`/`flex-1`, `IconButton` has no `flex-none`; header is `min-h-[3.75rem] ... py-[0.85rem]`).
 - Severity: looks wrong
 - Fix: `flex-none` on the close button, `min-w-0 flex-1 break-words` on the title, and a fixed header height with a two-line clamp.
-- Evidence: `shell/history-panel-open/w1440.png` (divider y=63, close x=1386-1421), `production/chapter-track-panel-linked/w1440.png` (y=68, x=1390), `engine/editing-check-unmapped/w1440.png` (x=1394).
+- Evidence: `app-shell/history-panel-open/w1440.png` (divider y=63, close x=1386-1421), `production/chapter-track-panel-linked/w1440.png` (y=68, x=1390), `engine/editing-check-unmapped/w1440.png` (x=1394).
 - Shared: SlideOver (every slide-over)
 
 ### ENX-15 Dialog description runs into the next element with no gap

@@ -6,7 +6,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 
 ### R4SM-19 Why does the "Undo history" slide-over use a different title style from the page it covers?
 
-- Page / state: shell/history-panel-open
+- Page / state: app-shell/history-panel-open
 - Widths: 768 (theme: dark; light expected same)
 - Gut reaction: a small 14 px sans title in a 64 px band next to the 20 px condensed card titles on the page.
 - What is wrong: title style differs from every Panel title; its header rule (y 64) does not meet the top bar's rule (y 52) beside it (XSL-13); the body is two lines of equal weight ("Ctrl Z undoes the last one", "Nothing to undo yet.") then 900 px blank; the page behind is not dimmed.
@@ -136,7 +136,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `primitives/NavButton.tsx:12` (`[&_svg]:text-[1.25rem] [&_svg]:w-[1.375rem]!` applies to the lock svg too) against `:71` (`text-[0.6875rem]` intended)
 - Severity: looks wrong
 - Fix: scope the 20 px icon rule to the leading icon (`> svg:first-child`) so the lock is about 11 px, and dim the locked label
-- Evidence: `shell/nav-off-note/w1440.png` (locks x 176-192, y 117-660), `S/crops/xsh/lock1440.png`
+- Evidence: `app-shell/nav-off-note/w1440.png` (locks x 176-192, y 117-660), `S/crops/xsh/lock1440.png`
 - Shared: `NavButton`
 
 ### XSL-2 Why does the narrow rail forget which pages are locked and which have counts?
@@ -147,7 +147,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `layout/AppShell.tsx:285` (`max-[1360px]:[&_button>span]:invisible` hides every trailing span, badge and lock) and `primitives/NavButton.tsx:41`
 - Severity: looks wrong
 - Fix: draw count as a corner dot and lock as a small corner glyph on the collapsed icon
-- Evidence: `schedule/no-manuscript/w1024.png` (rail x 0-63), `shell/engine-builtin/w1280.png` (Proof/Pickups y 488/530)
+- Evidence: `schedule/no-manuscript/w1024.png` (rail x 0-63), `app-shell/engine-builtin/w1280.png` (Proof/Pickups y 488/530)
 - Shared: left rail
 - Supersedes: SHL-4
 
@@ -159,7 +159,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `layout/AppShell.tsx:297-309` (IconButton default), `:325` (`h-8 ... bg-[var(--bg)]`), `primitives/HeaderChip.tsx:21` (22 px)
 - Severity: looks wrong
 - Fix: one height (32) and one fill/border recipe for hamburger and Jump; pills 24 with a 32 hit area
-- Evidence: `S/crops/xsh/top768.png`, `shell/engine-builtin/w768.png`, `S/crops/xsh/top1440r.png`
+- Evidence: `S/crops/xsh/top768.png`, `app-shell/engine-builtin/w768.png`, `S/crops/xsh/top1440r.png`
 - Shared: AppShell header, `HeaderChip`
 
 ### XSL-4 Why is the command palette 1000 px wide with its counts and shortcuts hiding at the far right?
@@ -170,7 +170,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `primitives/Dialog.tsx:149` (`max-w-[70vw]`), used by `layout/JumpMenu.tsx:210-217`
 - Severity: looks wrong
 - Fix: cap the palette at about 40 rem and centre it
-- Evidence: `shell/jump-menu-open/w1440.png`, `.../w1920.png`, `.../jump-menu-back-enabled/w1440.png` (y 490)
+- Evidence: `app-shell/jump-menu-open/w1440.png`, `.../w1920.png`, `.../jump-menu-back-enabled/w1440.png` (y 490)
 - Shared: `Dialog`
 
 ### XSL-5 Why does the search box slide up and down as I type?
@@ -181,7 +181,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `primitives/Dialog.tsx:143` (`Parts.Viewport ... items-center`)
 - Severity: looks wrong
 - Fix: anchor the headerless dialog from the top (`items-start pt-[12vh]`)
-- Evidence: `shell/jump-menu-open/w1440.png`, `.../jump-menu-off-pages/w1440.png`, `.../jump-menu-back-enabled/w1440.png`
+- Evidence: `app-shell/jump-menu-open/w1440.png`, `.../jump-menu-off-pages/w1440.png`, `.../jump-menu-back-enabled/w1440.png`
 - Shared: Dialog headerless
 - Supersedes: SHL-2
 
@@ -193,7 +193,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `layout/JumpMenu.tsx:151` (`description: entry.disabledReason ?? entry.hint`) with `primitives/Listbox.tsx` rows
 - Severity: looks wrong
 - Fix: show the reason once under the group heading, drop the "zoom" hint, make the back row a muted link
-- Evidence: `shell/jump-menu-off-pages/w1440.png` (y 225-760), `.../zoom-menu-open/w1440.png` (y 245-715)
+- Evidence: `app-shell/jump-menu-off-pages/w1440.png` (y 225-760), `.../zoom-menu-open/w1440.png` (y 245-715)
 - Shared: JumpMenu + Listbox
 
 ### XSL-9 Why does the "unlock" note sit on top of the header?
@@ -204,7 +204,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `primitives/NavButton.tsx:81` (`Popover` anchored to the button) with the rail `aside` at `layout/AppShell.tsx:284` (`hidden ... min-[860px]:flex`); the capture likely presses the hidden rail button, so a real drawer press may anchor correctly (not confirmed)
 - Severity: looks wrong (unconfirmed for the real drawer path)
 - Fix: capture the drawer open and check; otherwise anchor to the drawer item
-- Evidence: `shell/nav-off-note/w768.png`, `.../w1440.png`
+- Evidence: `app-shell/nav-off-note/w768.png`, `.../w1440.png`
 - Shared: NavButton + Popover
 - Supersedes: SHL-6
 
@@ -216,7 +216,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `layout/AppShell.tsx:294` (header `px-3 max-md:gap-2`; no `min-w-0` or flex-none on the hamburger)
 - Severity: looks wrong (390 only, secondary)
 - Fix: hide the zoom chip text or the project name earlier, and `flex-none` the hamburger
-- Evidence: `shell/zoom-level/w390.png`, `S/crops/xsh/z390.png`
+- Evidence: `app-shell/zoom-level/w390.png`, `S/crops/xsh/z390.png`
 - Shared: AppShell header
 - Supersedes: SHL-1
 
@@ -245,7 +245,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 
 ### XSL-8 Why do the logo, the group names and the icons not share a left edge?
 
-- Page / state: shell / every state at >=1360; hover-expanded rail (global/nav-rail-open, shell/nav-off-note at 1024)
+- Page / state: shell / every state at >=1360; hover-expanded rail (global/nav-rail-open, app-shell/nav-off-note at 1024)
 - Widths: 1920, 1440 (rail 216); 1280, 1024 (hover) (theme: both)
 - What is wrong: logo x=16, group labels x=18, nav icons x=19-39 with the active bar at x=8; in the hover-expanded rail the icons move to x=22-42 and labels to x=53 while the group labels stay at x=18, so the labels now sit 4 px left of the icons.
 - Where: `layout/AppShell.tsx:285` (`max-[1360px]:[&_button]:pl-[0.78125rem]` has no hover reset), `:225-231` heading `px-[0.625rem]`, `primitives/NavButton.tsx:12` (`pl-[0.625rem]`)
@@ -262,7 +262,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `layout/AppShell.tsx:294` (`px-3 md:px-5`) vs `:353` (content `p-4`)
 - Severity: polish
 - Fix: one gutter for bar and content
-- Evidence: `shell/engine-builtin/w1440.png` (y 26 vs 86), `.../w768.png`
+- Evidence: `app-shell/engine-builtin/w1440.png` (y 26 vs 86), `.../w768.png`
 - Shared: AppShell
 - Supersedes: SHL-3
 
@@ -286,7 +286,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `primitives/SlideOver.tsx:69` (`min-h-[3.75rem]`) against `layout/AppShell.tsx:294` (`h-13`)
 - Severity: polish
 - Fix: size the header to 52 px, use the heading style, use `Kbd` for Ctrl Z, add the dialog backdrop
-- Evidence: `shell/history-panel-open/w1440.png` (y 51 vs 63), `.../w390.png`, `dark:shell/history-panel-open/desktop.png`
+- Evidence: `app-shell/history-panel-open/w1440.png` (y 51 vs 63), `.../w390.png`, `dark:app-shell/history-panel-open/desktop.png`
 - Shared: SlideOver
 - Supersedes: SHL-7
 
@@ -298,7 +298,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `primitives/ContextMenu.tsx:40` (`w-64`) and `:42` (`text-[0.82rem]`)
 - Severity: polish
 - Fix: shorten to "Find..." or widen to `w-72`; align type with the palette
-- Evidence: `shell/context-menu-open/w1440.png` (x 224-480, y 53-221)
+- Evidence: `app-shell/context-menu-open/w1440.png` (x 224-480, y 53-221)
 - Shared: ContextMenu
 - Supersedes: SHL-8
 
@@ -310,7 +310,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `layout/JumpMenu.tsx:160` (`p-2` around the field) against `primitives/Listbox.tsx` rows (`px-3`)
 - Severity: polish
 - Fix: match the field text inset to the rows
-- Evidence: `shell/jump-menu-open/w1440.png` (y 274 vs 317)
+- Evidence: `app-shell/jump-menu-open/w1440.png` (y 274 vs 317)
 - Shared: JumpMenu
 - Supersedes: SHL-9
 
@@ -322,7 +322,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `primitives/Dialog.tsx:152` (`maxHeight: '80dvh'`) + `Listbox`
 - Severity: polish
 - Fix: bottom padding on the list
-- Evidence: `shell/jump-menu-off-pages/w1024.png` (y 670-690)
+- Evidence: `app-shell/jump-menu-off-pages/w1024.png` (y 670-690)
 - Shared: Dialog headerless
 
 ### XSL-17 Why does the expanded rail cut the project name in half?
@@ -378,5 +378,5 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `primitives/NavButton.tsx:81` (`Popover side="right"`)
 - Severity: polish
 - Fix: size to content, 8 px from the item
-- Evidence: `shell/nav-off-note/w1440.png` (x 220-554, y 469-521)
+- Evidence: `app-shell/nav-off-note/w1440.png` (x 220-554, y 469-521)
 - Shared: Popover
