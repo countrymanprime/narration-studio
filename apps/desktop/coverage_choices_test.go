@@ -46,7 +46,8 @@ func TestWithNoOptionsAndTheCascadeOffACheckIsOnePassWithTheTranscriptCompareMod
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := coverageChoices{FirstPass: "medium", Parallel: coverage.DefaultSettings.Parallel}
+	// Pipeline carries the cascade_pipeline setting (on by default since #2238); with no second pass it changes nothing.
+	want := coverageChoices{FirstPass: "medium", Pipeline: coverage.DefaultSettings.Cascade.Pipeline, Parallel: coverage.DefaultSettings.Parallel}
 	if got != want {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}
