@@ -24,16 +24,16 @@ Only 21 findings break use, and most of those are at 390 px, which the app reach
 ## Method
 
 1. Read `CLAUDE.md`, `.claude/rules/ui-visual-verification.md` and `docs/design/design-system.md`.
-2. Captured every catalogued `{page, state}` of the real app on mock data with the repo's visual suite (`apps/ui/tests/visual/app.spec.ts`, 736 states, installed headless Chromium, no `playwright install`):
-   - light and dark at the repo viewports 1440, 1024 and 768 px and each row's extra viewports (`pnpm --dir apps/ui visual:page <pages>`; all 736 states passed in both themes, 2,872 PNGs);
-   - light at 1920, 1440, 1280, 1024, 768 and 390 px with the viewport list replaced for those runs only (a local edit of `apps/ui/tests/visual/viewports.ts`, reverted each time; nothing under `apps/` is in this pull request), 2,714 PNGs per run, run twice. Two states fail the suite's own gates at 390 px (Story Bible `alias-pronunciation-editing`: input "Name" 10 px wide; Master `to-spec-picked`: inputs "Title for Chapter 0N.wav" 34.8 px wide); both are findings.
+2. Captured every catalogued `{page, state}` of the real app on mock data with the repo's visual suite (`src/studio/ui/tests/visual/app.spec.ts`, 736 states, installed headless Chromium, no `playwright install`):
+   - light and dark at the repo viewports 1440, 1024 and 768 px and each row's extra viewports (`pnpm --dir src/studio/ui visual:page <pages>`; all 736 states passed in both themes, 2,872 PNGs);
+   - light at 1920, 1440, 1280, 1024, 768 and 390 px with the viewport list replaced for those runs only (a local edit of `src/studio/ui/tests/visual/viewports.ts`, reverted each time; nothing under `apps/` is in this pull request), 2,714 PNGs per run, run twice. Two states fail the suite's own gates at 390 px (Story Bible `alias-pronunciation-editing`: input "Name" 10 px wide; Master `to-spec-picked`: inputs "Title for Chapter 0N.wav" 34.8 px wide); both are findings.
 3. Wrote the alignment rules (next section) and a DOM scanner that checks them on every capture: 2,714 state-and-width records over 426 states, 39,197 raw hits in 1,286 distinct rule-and-selector groups. Hits are mechanical: many are false (inline reader words, intended clamps, content behind an overlay), so a reviewer judged each group real or false.
 4. Four rounds of reviewers, each opening PNGs one at a time and reading the owning source:
    - round 1: eight reviewers, lenient. Rejected.
    - round 2: thirteen reviewers re-did every page under the strict standard ("why does this look weird?", no "readable" dismissals).
    - round 3: fifteen reviewers worked through each slice's unopened state-and-width cells and judged every scanner group.
    - round 4: eleven reviewers filled the gaps round 3 left (cells lost to image-read failures, dark, the lower halves of pages via 2,600 px tall captures of the default state, and the Master, Booth, Settings, Story Bible, Proof-chapter and shell gaps).
-5. Counted tokens and spacing literals with `grep` over `apps/ui/src/components`.
+5. Counted tokens and spacing literals with `grep` over `src/studio/ui/src/components`.
 
 All reviewers were AI models reading screenshots; pixel offsets are approximate (reviewers using contact sheets say they do not claim offsets under about 10 px). The lead re-opened a handful of screenshots and checked the shared-primitive claims against `Dialog.tsx`, `Panel.tsx`, `Select.tsx`, `TextField.tsx`, `Slider.tsx` and `HeaderChip.tsx`. The owner's own screenshots of the Audio engine Chapter links table and the Story Bible names row (real project data, dark theme) show the same defects the mock-data captures do.
 
@@ -126,10 +126,10 @@ Ranked by what a narrator meets first: severity, then reach across pages, then w
 
 ### Tokens and spacing
 
-- The design system says new code should converge on `--space-*` (`--space-1` to `--space-6`, `apps/ui/src/styles.css:226-231`). No component references them: a search of `apps/ui/src` outside tests and stories finds the six definitions and no use.
-- `apps/ui/src/components` holds 607 arbitrary pixel or rem values in class names (excluding stories and tests), 91 of them for padding, margin or gap. The most repeated are `px-[1.1rem]` (7), `px-[0.55rem]` (6), `py-[0.6rem]` (5), `p-[1.1rem]` (5) and `gap-[0.625rem]` (5). `1.1rem` is `--space-6`, so `Dialog` writes the token's value as a literal, and its footer then uses `px-4` instead (the 1.6 px overhang).
+- The design system says new code should converge on `--space-*` (`--space-1` to `--space-6`, `src/studio/ui/src/styles.css:226-231`). No component references them: a search of `src/studio/ui/src` outside tests and stories finds the six definitions and no use.
+- `src/studio/ui/src/components` holds 607 arbitrary pixel or rem values in class names (excluding stories and tests), 91 of them for padding, margin or gap. The most repeated are `px-[1.1rem]` (7), `px-[0.55rem]` (6), `py-[0.6rem]` (5), `p-[1.1rem]` (5) and `gap-[0.625rem]` (5). `1.1rem` is `--space-6`, so `Dialog` writes the token's value as a literal, and its footer then uses `px-4` instead (the 1.6 px overhang).
 - Several findings are token drift made visible: 20 px bar insets against 16 px content, Editing's extra `px-4`, 10 px table cells in 16 px panels, and 3, 8 and 9 px one-off insets.
-- The app's CSS never sets `scrollbar-gutter` (no match in `apps/ui/src`), so a scrollbar that appears on content change shifts the layout in any host that draws classic scrollbars. The scanner found no content under a scrollbar in the headless captures.
+- The app's CSS never sets `scrollbar-gutter` (no match in `src/studio/ui/src`), so a scrollbar that appears on content change shifts the layout in any host that draws classic scrollbars. The scanner found no content under a scrollbar in the headless captures.
 
 ## What was not covered
 
@@ -1149,7 +1149,7 @@ Every finding by page: ID, severity, widths and title. The full text is in the p
 
 ## Screenshots
 
-Cropped light captures of the worst round-1 findings, each under 30 KB, still valid at the widths named. Others regenerate with `pnpm --dir apps/ui visual:page <page>`.
+Cropped light captures of the worst round-1 findings, each under 30 KB, still valid at the widths named. Others regenerate with `pnpm --dir src/studio/ui visual:page <page>`.
 
 | Finding | Image |
 | --- | --- |

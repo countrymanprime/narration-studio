@@ -1,6 +1,6 @@
 # Pickups: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -9,7 +9,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: pickups / default; delivery / default; settings / default (stacked widths excluded)
 - Widths: 1280, 1440, 1920 (theme: both)
 - What is wrong: "why does the page end halfway down the window?" At 1440 Pickups paints to y=461 of 1000 and Delivery to y=847; at 1920 Pickups ends at y=365, so more than two thirds of the window is empty grey beside an icon rail that runs full height. Not a defect in the content itself, but there is no visual end to the page (no footer line, no empty-state hint) and on Pickups the 3-row table and the 3-line session card are each their own island: table card 510 px wide beside a 225 px card, neither reaching a common bottom.
-- Where: `apps/ui/src/components/pickups/PickupsPage.tsx` grid (`items-start`), same as XPK-6
+- Where: `src/studio/ui/src/components/pickups/PickupsPage.tsx` grid (`items-start`), same as XPK-6
 - Severity: polish
 - Fix: let the Pickups table card fill the row height or give the page a bottom anchor; extends XPK-6 (that finding measured the different heights, this one is the empty page below them).
 - Evidence: `S/tall/pickups-w1440.png` y 0-1000 (content to y~461), `S/tall/pickups-w1920.png`

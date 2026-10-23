@@ -1,6 +1,6 @@
 # Booth: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -226,7 +226,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: booth / bookmarks-ribbon
 - Widths: 1440 and 1280 (light and dark); right at 1920 and 1024
 - What is wrong: "Why is the bookmark not next to the first line?" The bookmark is on "Alice was beginning..." (line 1, y~339 at 1280), but the flag is drawn at y=401-427 (beside line 3, about 62px low). At 1440 it is at y=411 beside line 2 (one line, about 54px low); at 1920 (y 237 beside line 1) and 1024 (beside line 1) it is correct. The offset differs with width, so the flag cannot be trusted to show where the mark is.
-- Where: `apps/ui/src/components/booth/bookmarks/BookmarkRibbons.tsx:111-139` (`measure()` reads the word's top once from `getBoundingClientRect` and re-measures only on column resize; a text-size or font reflow after the first measure leaves a stale `top`). Cause not confirmed in a running app.
+- Where: `src/studio/ui/src/components/booth/bookmarks/BookmarkRibbons.tsx:111-139` (`measure()` reads the word's top once from `getBoundingClientRect` and re-measures only on column resize; a text-size or font reflow after the first measure leaves a stale `top`). Cause not confirmed in a running app.
 - Severity: looks wrong (may be capture timing; the stale measure is real in the code path)
 - Fix: re-measure after fonts load and on every text-size change (also observe the text node, not just the column).
 - Evidence: `booth/bookmarks-ribbon/w1280.png` (flag y=401, Alice y=339), `.../w1440.png` (flag y=411, Alice line y~360 in the 1440 crop), crops `crops/r3bo/rib1280b.png`, `rib1440b.png`, `rib1024b.png` (aligned)
@@ -250,7 +250,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: booth / following (Suspected section in the side panel)
 - Widths: 1440, 1920 (also the drawer widths)
 - What is wrong: "Why do these lines each have a big box with an X?" Each 14px text row gets a 32x32 outlined X (x=1392-1424, y=95, 133, 171 at 1440; gap 6px) so the right edge is a column of three boxes, taller than the rows of text beside them (rows are 38px apart for 20px of text). The X buttons are the heaviest thing in the panel and look like the "double-stacked" icon buttons from round 1.
-- Where: `apps/ui/src/components/booth/suspected/SuspectedLines.tsx:93` (`IconButton ... size="sm"` inside `li.flex.items-center.gap-2.text-sm`).
+- Where: `src/studio/ui/src/components/booth/suspected/SuspectedLines.tsx:93` (`IconButton ... size="sm"` inside `li.flex.items-center.gap-2.text-sm`).
 - Severity: looks wrong
 - Fix: a 24px ghost X (no border) or a single "Dismiss all" plus per-row text button; keep the row height at the text height.
 - Evidence: `crops/r3bo/susp.png` (3x zoom), `booth/following/w1440.png` (x=1392, y=95-203)
@@ -262,7 +262,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: booth / model-required
 - Widths: 768, 390 (path break); all widths (no value column); light and dark
 - What is wrong: "It reads like a pasted log." The body is seven separate lines "Model: Small / Version: 536b... / Download: 464 MB - Systran / Disk needed / Saved to / License / Model card - Provenance" with a bold label and the value starting wherever the label ends (value x=216, 230, 218... at 1440 dark), no two-column definition grid; "Model card - Provenance" has no label at all. At 768 (dark tablet) the path wraps as "faster-whisper/s" then "mall" (an `overflow-wrap:anywhere` break inside the folder name) and at 390 the dialog is 271px with the same break.
-- Where: `apps/ui/src/components/booth/WhisperModelPrompt.tsx` (body lines; not read in detail, cause is the unstructured lines plus `Dialog.tsx` body `[overflow-wrap:anywhere]`).
+- Where: `src/studio/ui/src/components/booth/WhisperModelPrompt.tsx` (body lines; not read in detail, cause is the unstructured lines plus `Dialog.tsx` body `[overflow-wrap:anywhere]`).
 - Severity: looks wrong
 - Fix: a `dl` grid `max-content 1fr` with the label column right- or left-aligned, the path in a monospace box that wraps at `/`, and "Model card" as a labelled link row.
 - Evidence: `crops/r3bo/dk-model-required.png` (1440 dark: values at ragged x; bottom-right 768: "whisper/s|mall"), `crops/r3bo/p-model-required.png` (1920/1280 light)
@@ -344,7 +344,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: booth / record-connect, record-turned-away, refusal, daw-not-running, daw-not-linked, builtin-refusal, builtin-setup, record-other-project
 - Widths: 390 (worst), 768, 1024; light (dark same layout)
 - What is wrong: "Where did my script go?" The notice takes up to 45% of the window and the footer another ~155px at 390, so the reading pane is about 60px (one faded line "Alice was beginning" at y~175 on record-connect/390) and the notice's own list is cut mid-line at the bottom (y~575 "Settings then starts the link each time this app"). At 768 the text pane is about 400px with the active line near the fade.
-- Where: `apps/ui/src/components/booth/record/RecordSetup.tsx:27` (`max-h-[45%]`, inner `overflow-y-auto` :34); `frame/BoothFooter.tsx:84-110` (rows stack at 390); `reading/BoothText.tsx:214` 90px fades; nothing gives the text pane a minimum height.
+- Where: `src/studio/ui/src/components/booth/record/RecordSetup.tsx:27` (`max-h-[45%]`, inner `overflow-y-auto` :34); `frame/BoothFooter.tsx:84-110` (rows stack at 390); `reading/BoothText.tsx:214` 90px fades; nothing gives the text pane a minimum height.
 - Severity: breaks use
 - Fix: at reflow fold the notice to title + disclosure (the `short` mode already exists for height) and give the text pane a `min-h`.
 - Evidence: `booth/record-connect/w390.png` (text y=130-200, notice y=200-585), `.../refusal/w390.png`, `.../record-connect/w768.png` (notice y=530-830)

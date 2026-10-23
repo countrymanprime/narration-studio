@@ -95,7 +95,7 @@ export type ChapterSyncState = {
   background: ChapterSyncBackground;
 };
 
-/** Background recording checks (`apps/desktop/coverage_background.go`): on or off, why none runs now, how many changed chapters
+/** Background recording checks (`src/studio/desktop/coverage_background.go`): on or off, why none runs now, how many changed chapters
  * wait for a check besides one running, and the model pair a background check runs (`recheckModel` '' when it runs the first
  * pass alone), so the first-time notice and the progress can name them. */
 export type ChapterSyncBackground = {

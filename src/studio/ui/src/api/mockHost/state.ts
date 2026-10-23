@@ -136,7 +136,7 @@ export type MockApiSeed = {
    * activity list of three batches (the engine panel's activity state). Unset, sync is on and has run before with nothing new, so no dialog or
    * toast covers the other states. */
   chapterSync?: 'ask' | 'off' | 'linked' | 'unsaved' | 'pickups' | 'activity' | 'background';
-  /** Background recording checks at boot (`apps/desktop/coverage_background.go`): `confirm` has two changed chapters and the
+  /** Background recording checks at boot (`src/studio/desktop/coverage_background.go`): `confirm` has two changed chapters and the
    * first-time notice unanswered, so the notice shows; `running` has a background check of the first chapter in progress (the
    * coverage mock holds it at 42%) with one more chapter waiting; `waiting` has two chapters waiting while REAPER records.
    * Unset, checks are on, answered, and nothing waits. */

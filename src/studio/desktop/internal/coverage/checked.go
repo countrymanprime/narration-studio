@@ -8,7 +8,7 @@ import (
 
 // checkedRanges are, per words file, the source ranges the re-check model has already transcribed: the ledger an
 // incremental check reads (#2251). It lives in the words files themselves - their transcription model and the spans a
-// windows-only re-check splices in (sidecars/transcript-compare/core/coverage_mode.py's checked_ranges) - and the words
+// windows-only re-check splices in (src/studio/sidecars/transcript-compare/core/coverage_mode.py's checked_ranges) - and the words
 // cache keeps them per source under a key that names both models (wordsParamHash), so a model change starts a new
 // ledger and changed audio is a new source.
 type checkedRanges map[string][][2]float64

@@ -1,6 +1,6 @@
 # Proof: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -9,7 +9,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: proof / default, Inspector (selected note)
 - Widths: all (theme: both)
 - What is wrong: "are these two inputs I can type in?" "Nothing in the script" and "liceA" sit in 30 px tall boxes with a 1 px border, surface fill and 8 px padding, identical to the "Note with the decision" textarea 150 px below; the Heard value is bold and underlined so it also looks like a link, and the empty case is grey placeholder-style text ("Nothing in the script"). Nothing tells the narrator these are quotes, not fields.
-- Where: `apps/ui/src/components/proof/inspector/Inspector.tsx:39-45` (`<p>` with `rounded border bg-[var(--surface)] px-2 py-1.5`)
+- Where: `src/studio/ui/src/components/proof/inspector/Inspector.tsx:39-45` (`<p>` with `rounded border bg-[var(--surface)] px-2 py-1.5`)
 - Severity: polish
 - Fix: draw quotes as a left-ruled blockquote on the card background (no border/box), keeping the box only for editable fields.
 - Evidence: `S/tall/proof-w768.png` x 30-740, y 1560-1700; `S/tall/proof-w1440.png` (chunk 0, inspector x 1045-1420, y 160-250)
@@ -20,7 +20,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: proof / default, notes table, "Script vs heard" column
 - Widths: all (theme: both)
 - What is wrong: "why is one word boxed, one squiggled, one dotted?" Rows show a red wavy underline on a pink wash (Misread), a dashed red outline around "Oh dear!" (Skip) and a blue dotted underline under "White Rabbit" (Pronunciation); the Type chip beside each already says which it is, so the marks repeat the type in a different, unlabelled code, and the dashed box with a 4 px radius looks like a focusable control or a tag. May be intended as the reader's mark language; if so the table needs no second code and the dashed one reads as an input.
-- Where: `apps/ui/src/components/primitives/Highlight.tsx:53-59` (`Misread: 'wavy'`, `Skipped: 'dotted'`, `Restart: 'dashed'`)
+- Where: `src/studio/ui/src/components/primitives/Highlight.tsx:53-59` (`Misread: 'wavy'`, `Skipped: 'dotted'`, `Restart: 'dashed'`)
 - Severity: polish
 - Fix: keep underline-only marks in the table (drop the boxed outline) or add a one-line key under the filter chips.
 - Evidence: `S/crops/r4tb/p-table.png` (1.1x zoom of the notes table, rows 1-4)
