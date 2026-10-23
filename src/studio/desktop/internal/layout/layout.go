@@ -16,6 +16,7 @@ const (
 	DesktopConfigFile        = DesktopDir + "/wails.json"
 	ConfigDir                = "config"
 	DefaultsFile             = ConfigDir + "/defaults.json"
+	BrandFile                = ConfigDir + "/brand.json"
 	TTSCatalogFile           = ConfigDir + "/tts-assets.json"
 	WhisperCatalogFile       = ConfigDir + "/whisper-assets.json"
 	SpacyCatalogFile         = ConfigDir + "/spacy-assets.json"

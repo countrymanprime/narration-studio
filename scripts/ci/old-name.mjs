@@ -11,6 +11,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { BRAND_FILE } from '../brand/brand.mjs';
+import { TARGETS } from '../brand/sync.mjs';
 import { readTrackedText, trackedFiles } from './layout.mjs';
 
 // Written as patterns so this file does not match itself. In text the two words may also be split across a line break, as
@@ -25,6 +27,8 @@ export const ALLOWED = new Map([
   ['src/studio/integrations/reaper/narration_rename.lua', 'the migration of REAPER P_EXT keys in an open project'],
   ['src/studio/desktop/build/windows/installer/legacy.nsh', 'the migration of an install: its uninstall entry, program and shortcuts'],
   ['docs/operations/repository-rename.md', 'names the old GitHub repository, which a checkout or a session may still point at'],
+  [BRAND_FILE, "the brand file lists the product's retired names"],
+  ...TARGETS.filter((target) => target.retired).map((target) => [target.path, 'generated from the brand file, with its retired names']),
 ]);
 
 /** The line numbers (1-based) and lines of text where the old name starts. */

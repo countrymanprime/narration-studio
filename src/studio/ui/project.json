@@ -2,6 +2,7 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "name": "narration-studio-ui",
   "projectType": "application",
+  "implicitDependencies": ["config"],
   "tags": ["toolchain:node"],
   "targets": {
     "lint": {
