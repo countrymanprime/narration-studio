@@ -9,7 +9,7 @@
 //   reports its route and the Simulated DAW badge, which the title bar shows so nothing floats over the app.
 // - The Storybook window is the static Storybook build (`storybook/sb/`), opened in the site's theme through Storybook's `globals` parameter.
 import { DEMO_PAGES } from './guides.mjs';
-import { REPO, searchItems, sitePage } from './shell.mjs';
+import { NAME, REPO, searchItems, sitePage } from './shell.mjs';
 
 // The guide that explains each demo page (src/web/demo/src/demoGuide.ts says the same for every route the app draws). The window's
 // title and its first "How to use this page" link come from here; afterwards the app reports the guide for its route.
@@ -107,7 +107,7 @@ var route=routeOf(location.hash);
 function showRoute(next,guide){
   route=next;
   var page=pageOf(next);
-  title.textContent='Narration Studio · '+(page?page.title:'Demo');
+  title.textContent=${JSON.stringify(`${NAME} · `)}+(page?page.title:'Demo');
   var known=GUIDES.indexOf(guide)>=0;
   howto.href='../docs/'+(known?guide:(page?page.guide:'index'))+'.html';
   newTab.href='app.html#'+next;
@@ -181,7 +181,7 @@ export function demoPage({ withStorybook, docs }) {
 <div class="wrap wide">
   <section class="win" aria-label="Demo window">
     <div class="win-bar">
-      <span class="win-title" id="win-title">Narration Studio · Production</span>
+      <span class="win-title" id="win-title">${NAME} · Production</span>
       <span class="win-tools">
         <button type="button" class="pill" id="daw" aria-expanded="false" hidden><span class="dot" id="daw-dot"></span><span id="daw-label">Simulated DAW</span></button>
         <button type="button" class="switch" id="play" role="switch" aria-checked="false"><span class="track" aria-hidden="true"></span>Play animations</button>
@@ -191,15 +191,15 @@ export function demoPage({ withStorybook, docs }) {
       <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
     </div>
     <div class="win-body" id="win-body">
-      <iframe id="app" title="Narration Studio, live demo" sandbox="allow-scripts"></iframe>
+      <iframe id="app" title="${NAME}, live demo" sandbox="allow-scripts"></iframe>
       <noscript><p style="padding:16px">The demo needs JavaScript. <a href="app.html">Open the app on its own page</a>.</p></noscript>
     </div>
   </section>
   <p class="win-note" id="win-note" hidden>Best on a larger screen: the app is built for a window at least ${APP_MIN_WINDOW.width} px wide, so it is drawn smaller here. <a href="app.html" target="_blank" rel="noopener">Open it in a new tab</a> to use it at your screen’s size.</p>
 </div>`;
   return sitePage({
-    title: 'Live demo · Narration Studio',
-    meta: '<meta name="description" content="The Narration Studio app running in your browser against a mock host, on a sample project.">',
+    title: `Live demo · ${NAME}`,
+    meta: `<meta name="description" content="The ${NAME} app running in your browser against a mock host, on a sample project.">`,
     css: CSS,
     body,
     script: demoScript(docs.map(({ page }) => page)),
@@ -244,7 +244,7 @@ export function storybookPage({ docs }) {
 <div class="wrap wide">
   <section class="win" aria-label="Storybook window">
     <div class="win-bar">
-      <span class="win-title">Storybook · Narration Studio components</span>
+      <span class="win-title">Storybook · ${NAME} components</span>
       <span class="win-tools">
         <a id="new-tab" href="sb/index.html" target="_blank" rel="noopener">${icon('ext')}Open in a new tab</a>
       </span>
@@ -256,8 +256,8 @@ export function storybookPage({ docs }) {
   </section>
 </div>`;
   return sitePage({
-    title: 'Storybook · Narration Studio',
-    meta: '<meta name="description" content="Every component of the Narration Studio app with its states, controls and an accessibility check.">',
+    title: `Storybook · ${NAME}`,
+    meta: `<meta name="description" content="Every component of the ${NAME} app with its states, controls and an accessibility check.">`,
     css: CSS,
     body,
     script: STORYBOOK_SCRIPT,

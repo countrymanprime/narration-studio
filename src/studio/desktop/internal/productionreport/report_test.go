@@ -2,6 +2,7 @@ package productionreport
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -73,6 +74,8 @@ func render(t *testing.T, in Input) (string, string) {
 
 func golden(t *testing.T, name, got string) {
 	t.Helper()
+	// The product's display name is written as a placeholder (brand.Golden), so a rename changes no golden.
+	got = string(brand.Golden([]byte(got)))
 	path := filepath.Join("testdata", name)
 	if os.Getenv("UPDATE_GOLDEN") == "1" {
 		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {

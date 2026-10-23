@@ -8,6 +8,10 @@ import tailwindcss from '@tailwindcss/vite';
 const here = dirname(fileURLToPath(import.meta.url));
 const ui = resolve(here, '..', '..', 'studio', 'ui');
 
+// index.html's <title> is the product name, and the `demo` base is the repository's Pages sub-path, both from config/brand.json.
+const brand = JSON.parse(readFileSync(resolve(here, '..', '..', '..', 'config', 'brand.json'), 'utf8')) as { name: string; repository: { name: string } };
+const brandTitle: Plugin = { name: 'brand-title', transformIndexHtml: (html) => html.replaceAll('%BRAND_NAME%', brand.name) };
+
 // Tailwind scans the files under Vite's root for the classes to emit, and the root is this folder, not src/studio/ui, which holds nearly all of the markup. The app's
 // stylesheet is the Tailwind entry (`@import 'tailwindcss/...'`), so this adds the two scan roots to it as `@source` rules while the site builds, which leaves
 // src/studio/ui/src/styles.css untouched and the app's own build scanning exactly what it always did.
@@ -77,8 +81,8 @@ export default defineConfig(({ mode }) => ({
   // The favicon and the other files of the app's public folder belong to the app; the site build takes them from there.
   publicDir: join(ui, 'public'),
   resolve: { alias: { '@ui': join(ui, 'src') } },
-  plugins: [react(), tailwindSources(), tailwindcss(), ...(mode === 'site' ? [sitePlugin()] : [])],
-  base: mode === 'demo' ? '/narration-studio/demo/' : './',
+  plugins: [react(), brandTitle, tailwindSources(), tailwindcss(), ...(mode === 'site' ? [sitePlugin()] : [])],
+  base: mode === 'demo' ? `/${brand.repository.name}/demo/` : './',
   build:
     mode === 'site'
       ? {

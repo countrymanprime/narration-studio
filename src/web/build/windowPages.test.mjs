@@ -3,6 +3,7 @@ import test from 'node:test';
 import { outwardHtmlLoads } from './siteFiles.mjs';
 import { DEMO_PAGES } from './guides.mjs';
 import { APP_MIN_WINDOW, demoPage, storybookPage } from './windowPages.mjs';
+import { NAME } from './shell.mjs';
 
 const docs = [
   { page: 'index', title: 'Using the app', kind: 'How-to' },
@@ -25,7 +26,7 @@ test('both pages are in the site shell with their own entry marked, the search a
 });
 
 test('the demo window is a sandboxed frame of the app, with only scripts allowed, and its title bar holds the demo chrome', () => {
-  assert.match(demo, /<iframe id="app" title="Narration Studio, live demo" sandbox="allow-scripts"><\/iframe>/);
+  assert.ok(demo.includes(`<iframe id="app" title="${NAME}, live demo" sandbox="allow-scripts"></iframe>`));
   assert.match(demo, /id="daw"[^>]*hidden/);
   assert.match(demo, /role="switch" aria-checked="false"[^>]*>.*Play animations/);
   assert.match(demo, /id="howto" href="\.\.\/docs\/production\.html"/);

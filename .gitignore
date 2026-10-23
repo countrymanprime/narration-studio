@@ -67,8 +67,8 @@ src/studio/ui/playwright.local.config.ts
 
 # The Wails build output (go build in src/studio/desktop names its binary after the directory)
 /src/studio/desktop/shell
-src/studio/integrations/reaper/narration-studio-app-path.txt
-src/studio/integrations/reaper/narration-studio-app-path.txt.tmp
+src/studio/integrations/reaper/*-app-path.txt
+src/studio/integrations/reaper/*-app-path.txt.tmp
 /dist-site/
 # A program `go build` writes beside its sources (cmd/spike-storage once committed one); releases are built elsewhere.
 *.exe

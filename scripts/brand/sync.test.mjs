@@ -35,6 +35,7 @@ test('sync writes every target from another brand, and a second run changes noth
   writeFileSync(join(root, 'docs', 'a.md'), 'Open <!-- brand:name -->Old Name<!-- /brand -->.\n');
   cpSync(join(REPOSITORY_ROOT, TARGETS[0].path), join(root, TARGETS[0].path));
   cpSync(join(REPOSITORY_ROOT, 'src/studio/desktop/wails.json'), join(root, 'src/studio/desktop/wails.json'));
+  cpSync(join(REPOSITORY_ROOT, 'tools/docs-site/mkdocs.yml'), join(root, 'tools/docs-site/mkdocs.yml'));
 
   assert.deepEqual(sync(root).sort(), [...TARGETS.map((target) => target.path), 'docs/a.md'].sort());
   assert.deepEqual(sync(root), []);
