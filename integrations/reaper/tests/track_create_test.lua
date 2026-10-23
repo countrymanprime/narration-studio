@@ -135,3 +135,12 @@ H.test('track_create never saves the project', function()
     H.truthy(call.name ~= 'Main_SaveProject' and call.name ~= 'Main_SaveProjectEx', 'the project was saved')
   end
 end)
+
+H.test('a failure that shows a non-ASCII name reads as ASCII, whatever the platform calls printable', function()
+  -- Windows' %q left the Hebrew lead byte raw and escaped the next one, so the runner could not read the message (CI, quick-windows).
+  local name = 'Chapter 7 \u{1F30A} \u{05D4}\u{05D9}\u{05DD} \u{0627}\u{0644}\u{0628}\u{062D}\u{0631}'
+  local ok, message = pcall(H.eq, name, 'something else')
+  H.eq(ok, false)
+  H.eq(tostring(message):find('[\128-\255]'), nil)
+  H.contains(tostring(message), '\\215\\157')
+end)
