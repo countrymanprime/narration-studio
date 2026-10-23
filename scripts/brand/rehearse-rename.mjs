@@ -1,18 +1,22 @@
-// The rename rehearsal (docs/research/app-name-injection.md#the-rename): renames this checkout to a made-up name with
-// `rename-app`, then runs the checks a rename must pass with no second edit: the brand sync, both name guards and the tests that
-// read the name. A test or file that spells the current name instead of reading it fails here, before a real rename needs it.
+// The rename rehearsal (docs/research/app-name-injection.md#the-rename): renames a throwaway copy of the repository to a
+// made-up name with `rename-app`, then runs the checks a rename must pass with no second edit: the brand sync, both name guards
+// and the tests that read the name. A test or file that spells the current name instead of reading it fails here, before a real
+// rename needs it.
 //
-// It changes the checkout it runs in, so it refuses to run outside CI unless given --in-place: run it in a throwaway worktree
-// (`git worktree add --detach ../rehearsal HEAD`). Every check runs, and it fails at the end if any did.
+// The copy is a detached git worktree of HEAD in the system temp folder (so uncommitted changes are not in it), with its own
+// node_modules and .venv installed from the pnpm store and uv cache the checkout already filled. The checkout itself is never
+// written to. Every check runs, the worktree is removed, and the run fails at the end if any check did.
 //
-//   node scripts/brand/rehearse-rename.mjs [--full] [--in-place]
+//   node scripts/brand/rehearse-rename.mjs [--full] [--keep]
 //     (default)  the per-pull-request run (ci.yml's rename-rehearsal job): the guards, the Node script tests, the site build's
 //                tests, the docs-site tests, `go vet ./...` and the Go, Python, Lua and UI tests that read the brand
 //     --full     the nightly run (main-health.yml): every Go, UI, shared-library Python and Lua test, the built site and the
 //                strict docs build
+//     --keep     leaves the worktree in place and prints where it is
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,7 +39,7 @@ function uiBrandTests(root) {
 }
 
 /** The checks after the rename: [label, command, args, cwd]. */
-function steps(root = REPOSITORY_ROOT, full = false) {
+function steps(root, full = false) {
   const always = [
     ['brand sync is clean', ...node('scripts/brand/sync.mjs', '--check')],
     ['the current name is only in the brand file and its outputs', ...node('scripts/ci/brand-name.mjs')],
@@ -72,22 +76,29 @@ function steps(root = REPOSITORY_ROOT, full = false) {
 
 function main(args) {
   const full = args.includes('--full');
-  if (!process.env.CI && !args.includes('--in-place')) {
-    console.error('The rehearsal renames the checkout it runs in. Run it in a throwaway worktree with --in-place, or in CI.');
-    process.exitCode = 2;
-    return;
-  }
-  const result = renameApp(REHEARSAL_NAME);
-  console.log(`Renamed "${result.oldName}" to "${result.newName}": ${result.changed.length} files.`);
+  const run = (command, commandArgs, cwd) =>
+    execFileSync(command, commandArgs, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
+  const work = mkdtempSync(join(tmpdir(), 'rename-rehearsal-'));
+  run('git', ['worktree', 'add', '--detach', work, 'HEAD'], REPOSITORY_ROOT);
   const failed = [];
-  for (const [label, command, commandArgs, cwd = '.'] of steps(REPOSITORY_ROOT, full)) {
-    console.log(`\n::group::${label}`);
-    try {
-      execFileSync(command, commandArgs, { cwd: join(REPOSITORY_ROOT, cwd), stdio: 'inherit', shell: process.platform === 'win32' });
-    } catch {
-      failed.push(label);
+  try {
+    // The copy's own dependencies, from the store and cache the checkout's setup filled; no install script runs.
+    run('pnpm', ['install', '--frozen-lockfile', '--prefer-offline', '--ignore-scripts', '--filter', 'workspace', '--filter', 'ui', '--filter', 'web'], work);
+    run('uv', ['sync', '--locked', '--group', 'docs'], work);
+    const result = renameApp(REHEARSAL_NAME, { root: work });
+    console.log(`Renamed the copy at ${work} from "${result.oldName}" to "${result.newName}": ${result.changed.length} files.`);
+    for (const [label, command, commandArgs, cwd = '.'] of steps(work, full)) {
+      console.log(`\n::group::${label}`);
+      try {
+        run(command, commandArgs, join(work, cwd));
+      } catch {
+        failed.push(label);
+      }
+      console.log('::endgroup::');
     }
-    console.log('::endgroup::');
+  } finally {
+    if (args.includes('--keep')) console.log(`The renamed copy is at ${work} (git worktree remove --force ${work} removes it).`);
+    else run('git', ['worktree', 'remove', '--force', work], REPOSITORY_ROOT);
   }
   if (failed.length) {
     console.error(`\nAfter a rename to "${REHEARSAL_NAME}", these failed: something spells the name instead of reading it.\n  ${failed.join('\n  ')}`);
