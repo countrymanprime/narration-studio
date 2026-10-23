@@ -1,21 +1,21 @@
 # Editing readiness: click and breath validation
 
-**Status: provisional (D70), 2026-09-28. Both classes ship gated off.** Issue: [#794](https://github.com/countrymanprime/narration-utils/issues/794), click and breath validation. It runs
-[DX Phase 9's click and breath detectors](../../apps/desktop/internal/measure/cleanup.go) (exercised, not changed; DX-9
+**Status: provisional (D70), 2026-09-28. Both classes ship gated off.** Issue: [#794](https://github.com/countrymanprime/narration-studio/issues/794), click and breath validation. It runs
+[DX Phase 9's click and breath detectors](../../src/studio/desktop/internal/measure/cleanup.go) (exercised, not changed; DX-9
 owns them) on a tuning half, chooses the scan defaults there, and reports precision and recall on a held-out half per
 class and recording condition. Neither class reaches the proposed 90% recall, so both `editing.clicks` and
 `editing.breaths` stay `unknown` ("not validated yet") for every analyzer version. The main corpus is synthetic, and per
 Q10 a synthetic run could not validate a detector even at 100%. The LibriVox Alice signal set (#836) is the second,
 real-speech evaluation set ([below](#real-speech-the-librivox-signal-set)); its run is pending. The permissioned run is
-a QA item on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217). Decisions:
-[validation.go](../../apps/desktop/internal/editing/validation.go),
-[validation.go](../../apps/desktop/internal/editing/validation.go)
+a QA item on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217). Decisions:
+[validation.go](../../src/studio/desktop/internal/editing/validation.go),
+[validation.go](../../src/studio/desktop/internal/editing/validation.go)
 and
-[librivoxvalidation_test.go](../../apps/desktop/internal/editing/librivoxvalidation_test.go).
+[librivoxvalidation_test.go](../../src/studio/desktop/internal/editing/librivoxvalidation_test.go).
 
 ## The corpus
 
-[`validationcorpus_test.go`](../../apps/desktop/internal/editing/validationcorpus_test.go) generates it in code and
+[`validationcorpus_test.go`](../../src/studio/desktop/internal/editing/validationcorpus_test.go) generates it in code and
 writes it in Phase 1's labeling format ([editing-corpus-and-harness.md](editing-corpus-and-harness.md)), with a tuning
 split and a held-out split built from different seeds. Phase 1's four clean cases placed every event where the default
 thresholds catch it. This corpus is built to find failures instead: levels are drawn at random over a realistic range,
@@ -69,7 +69,7 @@ the app does today.
 ## Held-out half: results
 
 Scored at the chosen defaults, with 50 ms of matching tolerance (`TestRecordedValidationsAreTheHeldOutRun`, which fails if
-these numbers stop matching the recorded runs in [`validation.go`](../../apps/desktop/internal/editing/validation.go)).
+these numbers stop matching the recorded runs in [`validation.go`](../../src/studio/desktop/internal/editing/validation.go)).
 The target is the PRD's proposed 90% recall per class.
 
 | Class | Condition | Recall | Precision | Notes |
@@ -116,9 +116,9 @@ What would move the numbers is DX-9's to decide, not this phase's. The run point
 
 **Status: harness in place, run pending (2026-09-28).** The recordings could not be fetched
 when the harness was built. archive.org answered, but the egress policy refused the storage host its downloads redirect to
-(`dn710306.ca.archive.org`). No number from this set is reported here, and none is predicted. The run is on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+(`dn710306.ca.archive.org`). No number from this set is reported here, and none is predicted. The run is on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).
 
-[`librivoxvalidation_test.go`](../../apps/desktop/internal/editing/librivoxvalidation_test.go) runs this phase's
+[`librivoxvalidation_test.go`](../../src/studio/desktop/internal/editing/librivoxvalidation_test.go) runs this phase's
 harness on the `signal/` set of the [LibriVox Alice corpus](../../tests/fixtures/audio/librivox-alice/README.md): the
 same matching (`scoreSource`, 50 ms tolerance), the same selection rule (`chooseConservative`) and the shipped
 `DefaultScanOptions`.
@@ -140,7 +140,7 @@ reader's own mouth noise), but the click is not.
 
 The synthetic corpus splits by file. This set is one reading, so it splits by pause instead: within each case, in time
 order, the clicks alternate held-out, tune, held-out, and so on. That gives 5 held-out and 3 tuning clicks
- (`apps/desktop/internal/editing/librivoxvalidation_test.go`).
+ (`src/studio/desktop/internal/editing/librivoxvalidation_test.go`).
 
 ### What it can decide
 
@@ -157,7 +157,7 @@ The set cannot open a class on its own, whatever it scores:
 
 ### Run it
 
-Run this from `apps/desktop`, after `build.py fetch` and `build.py signal --out <dir>`:
+Run this from `src/studio/desktop`, after `build.py fetch` and `build.py signal --out <dir>`:
 
 ```bash
 NARRATION_SIGNAL_CORPUS=<dir>/signal go test ./internal/editing -run TestClickBreathOnLibriVoxSignalCorpus -v
@@ -174,9 +174,9 @@ It fails only on a broken corpus or a stale `knownIssue`. Paste the held-out tab
 
 ### What would make it count
 
-These are for the owner, on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217):
+These are for the owner, on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217):
 
-- a decision on whether a LibriVox reading counts as `apps/desktop/internal/editing/validation.go`'s permissioned corpus (the recommendation is yes);
+- a decision on whether a LibriVox reading counts as `src/studio/desktop/internal/editing/validation.go`'s permissioned corpus (the recommendation is yes);
 - breath labels placed by listening;
 - enough clicks, ideally the reader's own, to pass 25 per half.
 
@@ -205,7 +205,7 @@ plus WAVs outside the repo, at least two narrators or rooms, at least 25 labeled
 note of each file's condition), then run Phase 1's real-corpus test:
 
 ```bash
-cd apps/desktop
+cd src/studio/desktop
 NARRATION_EDITING_CORPUS=/path/outside/the/repo go test ./internal/editing/... -run TestClassRecallPrecisionOnRealCorpus -v
 ```
 

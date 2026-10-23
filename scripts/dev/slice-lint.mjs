@@ -12,7 +12,7 @@
 //   kind: docs                      one of spike adr seam page swap host lua docs
 //   depends: [996]                  issue numbers (`996` or `#996`) that must be merged first; `[]` for none
 //   owns:                           globs this slice may touch; at least one
-//     - apps/ui/src/pages/Tracks/**
+//     - src/studio/ui/src/pages/Tracks/**
 //     - "new:scripts/dev/x.mjs"     `new:` marks a file the slice creates: it is exempt from the match check only
 //   serial:                         serial points used (`hostAPIVersion`, `nav`, `.github`, ...); `[]` for none
 //

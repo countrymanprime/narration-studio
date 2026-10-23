@@ -3,7 +3,7 @@
 Phase 2 of `character-continuity-review.prd.md` (deleted) asks for a
 "labeled-quote evaluation (deleted PRD `character-continuity-review`) reported (Q4)". This is that
 evaluation, run against `extract_dialogue_cues` in
-`sidecars/manuscript-guide/core/manuscript_guide.py`.
+`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`.
 
 ## Corpus and provenance
 
@@ -35,7 +35,7 @@ speakers, or an incidental speaker who was never named as a Character entity. Th
 ## Results
 
 ```text
-uv run --project ../../../sidecars/manuscript-guide python run_eval.py
+uv run --project ../../../src/studio/sidecars/manuscript-guide python run_eval.py
 ```
 
 | Metric | Value |
@@ -71,7 +71,7 @@ path, no flag without an attributed cue"). Two things already bound the damage:
    consumer (Phase 5's candidate locator, Phase 6's review UI) can treat a continuation-sourced attribution
    with less confidence than a directly tagged one, rather than as equally certain evidence.
 2. **The correction path** (`correct_cue`, this phase) lets the narrator fix exactly this kind of case once;
-   `merge_dialogue_cues` guarantees a rebuild never overwrites that correction, the same durability `sidecars/manuscript-guide/core/manuscript_guide.py`
+   `merge_dialogue_cues` guarantees a rebuild never overwrites that correction, the same durability `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`
    already gives a locked Story Bible entity.
 
 No change to the continuation rule is proposed here: narrowing it further (e.g. requiring a tag within the
@@ -84,5 +84,5 @@ common enough to matter.
 
 ```bash
 cd docs/research/character-continuity-cue-extraction-eval
-uv run --project ../../../sidecars/manuscript-guide python run_eval.py --rows   # per-quote detail
+uv run --project ../../../src/studio/sidecars/manuscript-guide python run_eval.py --rows   # per-quote detail
 ```

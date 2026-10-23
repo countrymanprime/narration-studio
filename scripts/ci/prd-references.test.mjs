@@ -8,13 +8,13 @@ import { findMissingPrdReferences, isSourceFile } from './prd-references.mjs';
 
 test('findMissingPrdReferences reports a cited PRD that no longer exists, with file and line', () => {
   const files = new Map([
-    ['apps/desktop/app.go', 'package main\n// see docs/prds/gone.prd.md for the plan\n'],
-    ['sidecars/x/core.py', '# docs/prds/kept.prd.md is still here\n'],
+    ['src/studio/desktop/app.go', 'package main\n// see docs/prds/gone.prd.md for the plan\n'],
+    ['src/studio/sidecars/x/core.py', '# docs/prds/kept.prd.md is still here\n'],
   ]);
 
   const missing = findMissingPrdReferences(files, (path) => path === 'docs/prds/kept.prd.md');
 
-  assert.deepEqual(missing, [{ file: 'apps/desktop/app.go', line: 2, reference: 'docs/prds/gone.prd.md' }]);
+  assert.deepEqual(missing, [{ file: 'src/studio/desktop/app.go', line: 2, reference: 'docs/prds/gone.prd.md' }]);
 });
 
 test('findMissingPrdReferences reads the plan and the README of the folder too', () => {
@@ -35,7 +35,7 @@ test('findMissingPrdReferences ignores a path that only looks like a PRD', () =>
 });
 
 test('isSourceFile leaves Markdown, the ADRs and the fixtures that name made-up PRDs to other checks', () => {
-  assert.equal(isSourceFile('apps/desktop/app.go'), true);
+  assert.equal(isSourceFile('src/studio/desktop/app.go'), true);
   assert.equal(isSourceFile('.github/dependabot.yml'), true);
   assert.equal(isSourceFile('docs/architecture/x.md'), false);
   assert.equal(isSourceFile('tools/docs-site/tests/test_hooks.py'), false);

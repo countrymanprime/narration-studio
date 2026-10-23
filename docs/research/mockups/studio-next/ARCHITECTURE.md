@@ -16,9 +16,9 @@ Booth mirror text was removed at the owner's request: do not port it (state, key
 
 ## Rules from the owner (do not break)
 
-- **Do not read the repo.** Do not open anything under `/home/user/narration-utils` (the app's own code, docs,
+- **Do not read the repo.** Do not open anything under `/home/user/narration-studio` (the app's own code, docs,
   ADRs, mocks). Allowed inputs: the mock above, this project, and tooling in `node_modules`
-  (Playwright is at `/home/user/narration-utils/apps/ui/node_modules/@playwright/test`, already wired in `e2e/lib.mjs`).
+  (Playwright is at `/home/user/narration-studio/apps/ui/node_modules/@playwright/test`, already wired in `e2e/lib.mjs`).
 - **Enhance, don't replace.** Keep every behaviour, label, control and decision in the mock. Do not invent
   content, capabilities, copy or notes. No explanatory/assumption/draft notes on pages (use code comments).
   Mock-only controls live in the Mock states panel only.

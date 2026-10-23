@@ -14,7 +14,7 @@
 # Home: the inventory and reading order
 README.md
 
-# The user guide (its layout is fixed by apps/ui/src/docsGuide.test.ts)
+# The user guide (its layout is fixed by src/studio/ui/src/docsGuide.test.ts)
 guides/using-the-app/
 
 # The roadmap

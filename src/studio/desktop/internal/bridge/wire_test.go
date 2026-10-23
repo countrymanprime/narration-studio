@@ -1,0 +1,309 @@
+package bridge
+
+import (
+	"strings"
+	"testing"
+)
+
+// Real events, field for field, as src/studio/integrations/reaper/tests/compare_test.lua and line_identity_test.lua pin them: the harness proves
+// what Lua emits, and these prove what Go accepts, so the two halves of the protocol are tied to the same lines.
+var realEvents = map[string][]string{
+	"COMPARE_PREPARED":      {"COMPARE_PREPARED", "r1", "C:/s/manifest.json", "C:/p/narration-studio/manuscript/manuscript.json", "Narrator", "C:/s/diff.txt", "3", "41"},
+	"COMPARE_MARKER":        {"COMPARE_MARKER", "r1", "0@12.500000", "MISREAD", "MISREAD: alice", "Alice", "Alyss", "102.5", "0", "Chapter 1", "4", "script ctx", "audio ctx", "pending", "", "12.5", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-0000000000A1}", "{00000001-0000-4000-8000-000000000001}"},
+	"COMPARE_INSPECTED":     {"COMPARE_INSPECTED", "r1", "2 discrepancy(s) found.", "2", "0"},
+	"COMPARE_EXPORT_MARKER": {"COMPARE_EXPORT_MARKER", "r1", "0@12.500000", "exported", ""},
+	"COMPARE_EXPORTED":      {"COMPARE_EXPORTED", "r1", "2", "1"},
+	"ERROR":                 {"ERROR", "r1", "Transcript results were not found."},
+	"LINES_STAMPED":         {"LINES_STAMPED", "t1", "3", "0", "1", "0"},
+	"LINES_READ":            {"LINES_READ", "t1", "C:/s/lines.txt", "12"},
+	"LINES_STALE":           {"LINES_STALE", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}"},
+	"LINES_CONFLICT":        {"LINES_CONFLICT", "t1", "{AAAAAAAA-0000-4000-8000-000000000002}"},
+	"REGIONS_CREATED":       {"REGIONS_CREATED", "t1", "2", "0", "0", "0", "0", "0"},
+	"PLAY_POSITION":         {"PLAY_POSITION", "p1", "5", "12.500000", "12.375000", "3.000000"},
+	"PUNCHED":               {"PUNCHED", "u1", "39.500000"},
+	"ROLLED":                {"ROLLED", "o1", "{00000001-0000-4000-8000-000000000001}", "62.250000", "0"},
+	"RANGE_CUT":             {"RANGE_CUT", "c1", "{00000002-0000-4000-8000-000000000002}", "{00000009-0000-4000-8000-000000000009}", "1"},
+	"RANGE_FX_APPLIED":      {"RANGE_FX_APPLIED", "r1", "{00000009-0000-4000-8000-000000000009}", "{0000000A-0000-4000-8000-00000000000A}", "Voice/Radio.RfxChain", "1"},
+	"RANGE_FX_REMOVED":      {"RANGE_FX_REMOVED", "r2", "{00000002-0000-4000-8000-000000000002}", "Voice/Radio.RfxChain", "1"},
+	"TAKES_STACKED":         {"TAKES_STACKED", "s1", "1", "2", "-11.000", "1"},
+	"TAKES_UNSTACKED":       {"TAKES_UNSTACKED", "u1", "1", "2", "11.000", "1"},
+	"PROJECT_STATUS":        {"PROJECT_STATUS", "", "C:/p/Book.rpp", "0"},
+	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},
+	"PICKUPS_EXPORTED":      {"PICKUPS_EXPORTED", "t1", "C:/s/pickups.txt", "2"},
+	"PICKUPS_COUNTED":       {"PICKUPS_COUNTED", "t1", "1", "2"},
+	"PICKUP_NEXT":           {"PICKUP_NEXT", "t1", "9.25", "narrator", "Mispronounced"},
+	"PICKUP_RESOLVED":       {"PICKUP_RESOLVED", "t1", "9.25", "narrator", "Mispronounced"},
+	"PICKUP_REOPENED":       {"PICKUP_REOPENED", "t1", "9.25", "narrator", "Mispronounced"},
+	"PICKUP_MARKERS_LISTED": {"PICKUP_MARKERS_LISTED", "t1", "C:/s/markers.txt", "2", "1"},
+	"RENDER_CONFIGURED":     {"RENDER_CONFIGURED", "t1", "C:/p/renders", "2", "C:/p/renders/Chapter 1.wav;C:/p/renders/Chapter 2.wav"},
+	"PROJECT_STATE":         {"PROJECT_STATE", "t1", "7", "C:/p/Book.rpp"},
+	"CLEANUP_LAUNCHED":      {"CLEANUP_LAUNCHED", "t1", "repair_pops_clicks", "Item: Repair pops/clicks..."},
+	// src/studio/integrations/reaper/tests/level_normalize_test.lua.
+	"GAIN_STALE":         {"GAIN_STALE", "g1", "f-0001", "{AAAAAAAA-0000-4000-8000-000000000001}", "item"},
+	"GAIN_ITEM":          {"GAIN_ITEM", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "1.000000", "1.412538"},
+	"GAIN_APPLIED":       {"GAIN_APPLIED", "g1", "1"},
+	"RETAKE_LANE_PICKED": {"RETAKE_LANE_PICKED", "t1", "line-000004", "{AAAAAAAA-0000-4000-8000-000000000001}", "2"},
+	"TAKE_CREATED":       {"TAKE_CREATED", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{BBBBBBBB-0000-4000-8000-000000000002}"},
+	"TAKE_STALE":         {"TAKE_STALE", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}"},
+	// src/studio/integrations/reaper/tests/navigation_test.lua.
+	"NAVIGATED":     {"NAVIGATED", "n1", "{AAAAAAAA-0000-4000-8000-000000000001}", "102.500000"},
+	"LOOP_STARTED":  {"LOOP_STARTED", "l1", "{AAAAAAAA-0000-4000-8000-000000000001}", "101.000000", "105.000000"},
+	"LOOP_STOPPED":  {"LOOP_STOPPED", "s1", "3", "0"},
+	"PONG":          {"PONG", "p1", "1", "0", "0"},
+	"FINDING_STALE": {"FINDING_STALE", "n1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}", "item"},
+	// src/studio/integrations/reaper/tests/finding_marker_test.lua.
+	"FINDING_MARKER": {"FINDING_MARKER", "m1", "added", "{AAAAAAAA-0000-4000-8000-0000000000A1}", "12.500000", "MISREAD: 'pink eyes' as 'pink ice'"},
+	// src/studio/integrations/reaper/tests/track_state_test.lua (chapter_track_state).
+	"TRACK_STATE":     {"TRACK_STATE", "t1", "{00000001-0000-4000-8000-000000000001}", "0", "2.500000", "1.250000", "C:/p/Book.rpp", "0", "7", "1", "2", "1024", ""},
+	"TRACK_ITEM":      {"TRACK_ITEM", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "0.000000", "4.000000", "0.000000", "1.000000", "C:\\Audio\\ch1|take 1.wav"},
+	"TRACK_STATE_END": {"TRACK_STATE_END", "t1", "2", "2"},
+	"TRACK_STALE":     {"TRACK_STALE", "t1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}"},
+	// src/studio/integrations/reaper/tests/track_select_test.lua (select_track).
+	"TRACK_SELECTED": {"TRACK_SELECTED", "t1", "{00000001-0000-4000-8000-000000000001}"},
+	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create).
+	"TRACK_CREATED": {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm"},
+	// src/studio/integrations/reaper/tests/media_file_test.lua (preview_file_range, stop_file_preview, reveal_file).
+	"FILE_PREVIEW_STARTED": {"FILE_PREVIEW_STARTED", "p1", "C:/Renders/Chapter 01.wav", "12.500000", "5.000000"},
+	"FILE_PREVIEW_STOPPED": {"FILE_PREVIEW_STOPPED", "s1", "1"},
+	"FILE_REVEALED":        {"FILE_REVEALED", "r1", "C:/Renders/Chapter 01.wav"},
+	// src/studio/integrations/reaper/tests/transport_test.lua (arm_only, record_start, record_stop).
+	"ARMED":           {"ARMED", "a1", "{00000001-0000-4000-8000-000000000001}", "2", "1"},
+	"RECORD_STARTED":  {"RECORD_STARTED", "r1", "{00000001-0000-4000-8000-000000000001}", "42.500000"},
+	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0"},
+	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "2", "0"},
+	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
+	// src/studio/integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
+	"ACTIVE_TAKE_SET":  {"ACTIVE_TAKE_SET", "u1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "1"},
+	"ITEM_STALE":       {"ITEM_STALE", "x3", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},
+	"FX_CHAIN":         {"FX_CHAIN", "f1", "Voice/Test EQ.RfxChain"},
+	"FX_CHAINS_LISTED": {"FX_CHAINS_LISTED", "f1", "3", "0"},
+	"FX_CHAIN_APPLIED": {"FX_CHAIN_APPLIED", "c1", "Voice/Test EQ.RfxChain", "{00000001-0000-4000-8000-000000000001}", "1"},
+	// src/studio/integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx).
+	"MASTER_CHAIN_FX":   {"MASTER_CHAIN_FX", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "1"},
+	"MASTER_CHAIN_READ": {"MASTER_CHAIN_READ", "c1", "3", "0"},
+	"FX_RENDER_FILE":    {"FX_RENDER_FILE", "r1", "Chapter 1", "C:/p/narration-studio/mastering/run1/fx-01.wav"},
+	"FX_RENDERED":       {"FX_RENDERED", "r1", "C:/p/narration-studio/mastering/run1", "1"},
+	// src/studio/integrations/reaper/tests/takes_test.lua (hide_takes).
+	"TAKES_HIDDEN": {"TAKES_HIDDEN", "h1", "{AAAAAAAA-0000-4000-8000-000000000001}", "2", "1"},
+	// src/studio/integrations/reaper/tests/reduce_range_gain_test.lua (reduce_range_gain).
+	"RANGE_GAIN_REDUCED": {"RANGE_GAIN_REDUCED", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "2", "6.0", "1"},
+	// src/studio/integrations/reaper/tests/repair_click_test.lua (repair_click).
+	"CLICKS_REPAIRED": {"CLICKS_REPAIRED", "c1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "2", "1"},
+	// src/studio/integrations/reaper/tests/fx_range_test.lua (fx_range_params, fx_range_set_param, fx_range_bypass).
+	"RANGE_FX_PARAM":           {"RANGE_FX_PARAM", "p1", "0", "C:/REAPER/FXChains/Voice/Radio.RfxChain", "0", "Gain", "0", "-24", "24", "0", "0 dB"},
+	"RANGE_FX_PARAMS":          {"RANGE_FX_PARAMS", "p1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "6", "0", "0"},
+	"RANGE_FX_PARAM_SET":       {"RANGE_FX_PARAM_SET", "s1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "1", "0", "-6.5", "-6.5 dB", "1"},
+	"RANGE_FX_BYPASSED":        {"RANGE_FX_BYPASSED", "b1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "1", "1"},
+	"RANGE_FX_COMPARE":         {"RANGE_FX_COMPARE", "c1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "14", "16", "0"},
+	"RANGE_FX_COMPARE_STOPPED": {"RANGE_FX_COMPARE_STOPPED", "s1", "1"},
+	// src/studio/integrations/reaper/tests/undo_test.lua (last_action, undo_last).
+	"LAST_ACTION": {"LAST_ACTION", "l1", "cut_range", "this"},
+	"UNDONE_LAST": {"UNDONE_LAST", "u1", "cut_range", "4", "2"},
+	// src/studio/integrations/reaper/tests/levels_test.lua (monitor_level).
+	"MONITOR_LEVEL": {"MONITOR_LEVEL", "m1", "70"},
+	// src/studio/integrations/reaper/tests/track_select_test.lua (read_place, go_to).
+	"PLACE":     {"PLACE", "p1", "{00000001-0000-4000-8000-000000000001}", "1", "12.5"},
+	"PLACE_SET": {"PLACE_SET", "g1", "{00000001-0000-4000-8000-000000000001}", "60"},
+	// src/studio/integrations/reaper/tests/transport_sync_test.lua (set_cursor, play_from, stop_play, watch_transport). TRANSPORT is a broadcast: its run is empty.
+	"CURSOR_SET":         {"CURSOR_SET", "c1", "12.500000"},
+	"TRANSPORT_PLAYING":  {"TRANSPORT_PLAYING", "p1", "40.250000"},
+	"TRANSPORT_STOPPED":  {"TRANSPORT_STOPPED", "s1", "5.000000"},
+	"TRANSPORT_WATCHING": {"TRANSPORT_WATCHING", "w1", "5"},
+	"TRANSPORT":          {"TRANSPORT", "", "1", "2.000000", "9.500000"},
+	// src/studio/integrations/reaper/tests/split_take_test.lua (split_take).
+	"TAKE_SPLIT": {"TAKE_SPLIT", "p1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "{00000001-0000-4000-8000-000000000001}", "15.500", "1"},
+}
+
+func TestEveryRealEventPassesItsTable(t *testing.T) {
+	for tag, fields := range realEvents {
+		if err := CheckEvent(fields); err != nil {
+			t.Errorf("%s: %v", tag, err)
+		}
+	}
+}
+
+func TestTheTableKnowsEveryTagTheBridgeEmits(t *testing.T) {
+	for tag := range realEvents {
+		if _, known := eventSpecs[tag]; !known {
+			t.Errorf("%s is emitted by the bridge but has no entry in the table", tag)
+		}
+	}
+	for tag := range eventSpecs {
+		if _, real := realEvents[tag]; !real {
+			t.Errorf("%s is in the table but no real event pins it", tag)
+		}
+	}
+}
+
+// The workspace's plug-in listing and passage FX, and the silence-cleanup preview and trims, were removed with the
+// old workspace (#1311): their events have no row, and nothing real pins them.
+func TestTheEventsOfTheRemovedCommandsAreNotInTheTable(t *testing.T) {
+	for _, tag := range []string{"FX_PLUGIN", "FX_PLUGINS_LISTED", "TAKE_FX_ADDED", "CLEANUP_STALE", "CLEANUP_PREVIEWED", "CLEANUP_APPLIED"} {
+		if _, known := eventSpecs[tag]; known {
+			t.Errorf("%s is in the table, but the command that emitted it was removed", tag)
+		}
+		if _, real := realEvents[tag]; real {
+			t.Errorf("%s is pinned as a real event, but the command that emitted it was removed", tag)
+		}
+	}
+}
+
+func TestATagThatIsNotInTheTableIsPassedThrough(t *testing.T) {
+	// A newer script may emit an event this host does not know yet: additive, so no error.
+	if err := CheckEvent([]string{"SOMETHING_NEW", "r1", "x"}); err != nil {
+		t.Fatalf("an unknown tag must not be an error: %v", err)
+	}
+}
+
+func TestATruncatedMarkerIsAnErrorThatNamesTheEventAndCountsTheFields(t *testing.T) {
+	line := realEvents["COMPARE_MARKER"][:6]
+	err := CheckEvent(line)
+	if err == nil {
+		t.Fatal("a marker cut after the audio text must be an error, not a row of zeros")
+	}
+	for _, want := range []string{"COMPARE_MARKER", "6", "9"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("%q does not mention %q", err, want)
+		}
+	}
+}
+
+func TestAnOlderScriptThatSendsFewerOptionalMarkerFieldsIsAccepted(t *testing.T) {
+	// Version skew is real for the Lua script: the user imports it into REAPER, so it can be older than the host. The fields after the
+	// ninth are optional and default when absent, including the three GUIDs a script that predates them does not send.
+	for cut := 9; cut <= 19; cut++ {
+		if err := CheckEvent(realEvents["COMPARE_MARKER"][:cut]); err != nil {
+			t.Errorf("a marker of %d fields: %v", cut, err)
+		}
+	}
+}
+
+func TestAnOlderScriptsPreparedAnswerWithoutTheChangeCountIsAccepted(t *testing.T) {
+	// The change count is the seventh field; a script older than it, or a REAPER without GetProjectStateChangeCount,
+	// sends six.
+	if err := CheckEvent(realEvents["COMPARE_PREPARED"][:7]); err != nil {
+		t.Fatalf("a six-field COMPARE_PREPARED: %v", err)
+	}
+	if err := CheckEvent(append(append([]string{}, realEvents["COMPARE_PREPARED"][:7]...), "many")); err == nil {
+		t.Fatal("a change count that is not a number was accepted")
+	}
+}
+
+func TestANumberThatIsNotANumberIsAnErrorThatNamesTheFieldAndNeverQuotesIt(t *testing.T) {
+	cases := []struct {
+		tag   string
+		index int
+		field string
+	}{
+		{"COMPARE_MARKER", 7, "projectTime"},
+		{"COMPARE_MARKER", 8, "itemIndex"},
+		{"COMPARE_MARKER", 10, "paragraph"},
+		{"COMPARE_MARKER", 15, "srcpos"},
+		{"COMPARE_INSPECTED", 3, "total"},
+		{"COMPARE_EXPORTED", 2, "added"},
+		{"LINES_STAMPED", 4, "missing"},
+		{"REGIONS_CREATED", 4, "invalid"},
+		{"COMPARE_PREPARED", 6, "items"},
+		{"NAVIGATED", 3, "projectTime"},
+		{"LOOP_STARTED", 4, "end"},
+		{"LOOP_STOPPED", 2, "restored"},
+		{"PONG", 3, "looping"},
+	}
+	for _, c := range cases {
+		fields := append([]string(nil), realEvents[c.tag]...)
+		fields[c.index] = "SECRET-TEXT"
+		err := CheckEvent(fields)
+		if err == nil {
+			t.Errorf("%s field %d: a non-number was accepted", c.tag, c.index)
+			continue
+		}
+		if !strings.Contains(err.Error(), c.field) || strings.Contains(err.Error(), "SECRET") {
+			t.Errorf("%s field %d: error %q must name %q and not the value", c.tag, c.index, err, c.field)
+		}
+	}
+}
+
+func TestARequiredNumberThatIsEmptyIsAnErrorButAnOptionalOneMayBeEmpty(t *testing.T) {
+	fields := append([]string(nil), realEvents["COMPARE_MARKER"]...)
+	fields[7] = ""
+	if err := CheckEvent(fields); err == nil {
+		t.Fatal("an empty project time must be an error")
+	}
+	fields = append([]string(nil), realEvents["COMPARE_MARKER"]...)
+	fields[10], fields[15] = "", ""
+	if err := CheckEvent(fields); err != nil {
+		t.Fatalf("an empty optional paragraph and srcpos are absent, not wrong: %v", err)
+	}
+}
+
+func TestAnErrorEventOfTheOlderShapeIsStillReadable(t *testing.T) {
+	// ERROR|<message> (no run id) is the shape before docs/architecture/daw-integration.md#the-daw-port; the transcript service ignores it, so the table must not make it a
+	// second, louder kind of failure.
+	if err := CheckEvent([]string{"ERROR", "Unsupported hub protocol"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAnEmptyEventIsAnError(t *testing.T) {
+	if err := CheckEvent(nil); err == nil {
+		t.Fatal("no fields at all is not an event")
+	}
+}
+
+func TestTheFieldNamesOfARealEventAreListedForDiagnosticsWithoutValues(t *testing.T) {
+	names := FieldNames("COMPARE_MARKER")
+	if len(names) != 18 || names[6] != "projectTime" || names[14] != "srcpos" || names[15] != "itemGuid" || names[17] != "trackGuid" {
+		t.Fatalf("names = %v", names)
+	}
+	if FieldNames("SOMETHING_NEW") != nil {
+		t.Fatal("an unknown tag has no field names")
+	}
+}
+
+// TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid is src/studio/desktop/internal/daw/locate.go: an unsaved REAPER project reports an
+// empty rpp (never omitted, docs/research/reaper-spike-s6-daw-reachability.md), so the field must be allowed to be
+// empty although it is required.
+func TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid(t *testing.T) {
+	if err := CheckEvent([]string{"PROJECT_STATUS", "", "", "1"}); err != nil {
+		t.Fatalf("an unsaved project's heartbeat must be valid: %v", err)
+	}
+}
+
+func TestAProjectStatusHeartbeatNeedsItsUnsavedFlagToBeANumber(t *testing.T) {
+	err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", ""})
+	if err == nil || !strings.Contains(err.Error(), "unsaved") {
+		t.Fatalf("an empty required unsaved flag must be an error naming the field: %v", err)
+	}
+}
+
+// docs/architecture/reaper-bridge.md: the heartbeat's transport fields are optional (an older script sends none) and numbers.
+func TestAProjectStatusHeartbeatCarriesAnOptionalTransport(t *testing.T) {
+	if err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000"}); err != nil {
+		t.Fatalf("a heartbeat with the transport must be valid: %v", err)
+	}
+	if err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "", "5", "12.500000"}); err != nil {
+		t.Fatalf("a heartbeat with no edit counter but a transport must be valid: %v", err)
+	}
+	for _, bad := range [][]string{
+		{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "playing", "12.5"},
+		{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "later"},
+	} {
+		if err := CheckEvent(bad); err == nil {
+			t.Fatalf("CheckEvent(%v) = nil, want an error for a transport field that is not a number", bad)
+		}
+	}
+}
+
+func TestATransportEventNeedsAPlayStateAndTwoNumbers(t *testing.T) {
+	for name, fields := range map[string][]string{
+		"no fields after the run":  {"TRANSPORT", ""},
+		"no cursor":                {"TRANSPORT", "", "1", "2.0"},
+		"a play state that is not": {"TRANSPORT", "", "playing", "2.0", "9.5"},
+		"a position that is not":   {"TRANSPORT", "", "1", "later", "9.5"},
+		"a cursor that is not":     {"TRANSPORT", "", "1", "2.0", "here"},
+	} {
+		if err := CheckEvent(fields); err == nil {
+			t.Errorf("%s must be refused", name)
+		}
+	}
+}

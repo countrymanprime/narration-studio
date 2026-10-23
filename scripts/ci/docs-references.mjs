@@ -25,7 +25,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, '..', '..');
 
 // Roots a documented path starts with. Anything else (a `foo/bar` that is an example, a package name) is not checked.
-const ROOTS = 'apps sidecars libs integrations config tests tools scripts docs shared .github .claude'.split(' ');
+const ROOTS = 'src apps sidecars libs integrations config tests tools scripts docs shared .github .claude'.split(' ');
 const ROOT_FILES = ['README.md', 'CLAUDE.md', 'CONTRIBUTING.md', 'SECURITY.md', 'LICENSE', 'package.json', 'pnpm-workspace.yaml', 'nx.json', 'knip.jsonc', 'pyproject.toml'];
 const UNCHECKED_FILES = ['docs/adr/**', 'docs/prds/**', 'docs/research/**', 'docs/ui/**', 'tests/fixtures/**', 'CHANGELOG.md'];
 // pnpm's own commands: `pnpm licenses` is not a script in package.json.
@@ -56,6 +56,9 @@ function pathCandidate(span) {
     .replace(/[.,;)]+$/, '');
   if (PLACEHOLDER.test(cleaned) || LETTER_PLACEHOLDER.test(cleaned) || !PATH_SHAPE.test(cleaned)) return undefined;
   const first = cleaned.split('/')[0];
+  // `src/x` is also the UI's own shorthand (`src/ports`, `src/studio/selectors` inside src/studio/ui): only a path into one of the
+  // folders under src/ counts as one from the root.
+  if (first === 'src' && !/^src\/(web(\/|$)|studio($|\/(ui|desktop|sidecars|integrations|libs|tests)(\/|$)))/.test(cleaned)) return undefined;
   if (ROOTS.includes(first) && cleaned.includes('/')) return cleaned;
   if (ROOT_FILES.includes(cleaned)) return cleaned;
   return undefined;
@@ -100,7 +103,7 @@ export function extractReferences(text) {
 /**
  * A path exists when it is a tracked file or the directory of one. Two looser forms also count, because docs write
  * them on purpose: a Go symbol (`internal/daw.Locate` names the package directory), and a path relative to a
- * sub-project (`tests/visual/x.ts` inside apps/ui), which resolves when any tracked path ends with it.
+ * sub-project (`tests/visual/x.ts` inside src/studio/ui), which resolves when any tracked path ends with it.
  */
 export function makeExists(trackedFiles) {
   const known = new Set(trackedFiles);

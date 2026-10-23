@@ -25,17 +25,17 @@ Where things fall (measured on one machine, see the baseline for its caveats): e
 
 | Piece | Where | What it does |
 | --- | --- | --- |
-| `usePendingAction` | `apps/ui/src/hooks/usePendingAction.ts` | One action at a time for a group of controls: `run(key, action)` marks the key pending, refuses every other `run` until it settles, and releases the key even if the action throws. The guard is a ref, so a second Enter in the same tick does nothing. Generalizes `ProjectPicker.runAction`. `isPending(key)`, `isBlockedFor(key)` and `isBusy` drive the controls. |
+| `usePendingAction` | `src/studio/ui/src/hooks/usePendingAction.ts` | One action at a time for a group of controls: `run(key, action)` marks the key pending, refuses every other `run` until it settles, and releases the key even if the action throws. The guard is a ref, so a second Enter in the same tick does nothing. Generalizes `ProjectPicker.runAction`. `isPending(key)`, `isBlockedFor(key)` and `isBusy` drive the controls. |
 | `pending` on `Button`, `IconButton`, `ConfirmDialog` | `components/primitives/` | `aria-busy`, a spinner (`motion-ok:animate-spin`), dimmed, the press ignored and no native form submit, and **not `disabled`**, so a keyboard user keeps their place. A pending `ConfirmDialog` also turns Cancel, Escape and the header button off. |
 | Toast queue | `components/primitives/Toast.tsx`, `hooks/useToasts.ts` | `ToastRegion` is an own primitive (not Base UI): two always-mounted, non-atomic live regions (errors `role="alert"`, the rest `role="status"`), up to four messages, an identical one restarts its time, information goes after 5 s, **an error stays until it is dismissed**. `notify(text, tone?, action?)` takes `'info'` (the default) or `'error'`; every failure site passes `'error'`. A failure whose action is safe to repeat passes `retryAction(...)` (`Toast.tsx`) as the action, so the toast carries a Retry: the recording check start, the editing check start and the Settings panel save and override clear do; a record, a destructive action or one that is not idempotent gets none. |
-| `job:ended` | `apps/desktop/jobs.go`, `apps/ui/src/jobEnded.ts`, `App.tsx` | See the next section. |
+| `job:ended` | `src/studio/desktop/jobs.go`, `src/studio/ui/src/jobEnded.ts`, `App.tsx` | See the next section. |
 | Rebuild in the background | `WorkDialog` `background`, `Guide.tsx` | The Story Bible rebuild's dialog offers Continue in background (and Escape), shows again when the narrator returns while it runs, and the page reloads its rows on the event. |
 
 ## Job-end events
 
 The host emits one `job:ended` per finished job, `{ id, kind, outcome, message, durationMs }`, from the goroutine that ran it, after the job is settled and with no lock held (`publishJobEnded`; tests replace it with the `h.jobEvents` sink because the Wails runtime rejects a context it did not make). `outcome` is `success`, `error` or `cancelled`; `message` is a sentence for the narrator.
 
-The kinds are the `jobKind*` constants in `apps/desktop/jobs.go`, matched by the UI in `apps/ui/src/api/contracts/system.ts`. `story_bible` and `transcript_compare` (emitted when the transcript state leaves an active phase for `success`, `error` or `cancelled`; a reset is not an end) are announced by the App-level toast. `manuscript_import`, `tts_install`, `whisper_install` and `app_update` are announced by their modal dialog.
+The kinds are the `jobKind*` constants in `src/studio/desktop/jobs.go`, matched by the UI in `src/studio/ui/src/api/contracts/system.ts`. `story_bible` and `transcript_compare` (emitted when the transcript state leaves an active phase for `success`, `error` or `cancelled`; a reset is not an end) are announced by the App-level toast. `manuscript_import`, `tts_install`, `whisper_install` and `app_update` are announced by their modal dialog.
 
 One owner per kind: `toastForJobEnd` returns nothing for a cancelled job and for the kinds whose modal dialog is on screen while they run, so nothing is announced twice. The event reaches every listener, which is what a notification feature reads: `kind` and `durationMs` to decide whether the narrator was waiting, `document.hasFocus()` in the webview to decide whether they were looking (the webview is the side that knows; the host does not ask Wails for window focus).
 
@@ -43,18 +43,18 @@ The payload is a wire contract ([wire contracts](wire-contracts.md)): `jobEndedS
 
 ## The catalog and its ratchet
 
-- **`apps/ui/src/interactionFeedback.catalog.ts`** has one row for every call of a `NarrationApi` method outside `src/api/`. A site is `<file>::<method>#<n>` (the n-th call of that method in that file, in source order). A row says what triggers the call, what the host does (`instant`, `file-io`, `python`, `job`, `download`, `os-dialog`), how it acknowledges, guards and completes, where a failure goes, whether the outcome survives leaving the page, and a verdict.
+- **`src/studio/ui/src/interactionFeedback.catalog.ts`** has one row for every call of a `NarrationApi` method outside `src/api/`. A site is `<file>::<method>#<n>` (the n-th call of that method in that file, in source order). A row says what triggers the call, what the host does (`instant`, `file-io`, `python`, `job`, `download`, `os-dialog`), how it acknowledges, guards and completes, where a failure goes, whether the outcome survives leaving the page, and a verdict.
 - **Verdicts.** `ok` meets the standard. `gap` does not, and its `plan` is a GitHub issue (`#123`). `owned` belongs to other work named in `plan`. `exempt` is on purpose and the note says why (a mount-time load with a page error state, a diagnostic that must never throw).
-- **`apps/ui/src/interactionFeedback.test.ts`** fails on a call with no row, a row whose call is gone, a `gap` with no issue, an `ok` row that fails silently or leaves a Python call unacknowledged or unguarded, and any bare catch (`catch {}`, `.catch(() => {})`, `.catch(() => undefined)`) that is not in `SILENT_CATCHES` with its reason. It reads the contracts and the source with the TypeScript parser, so a comment that mentions `api.guideEdit(` is not a call. `SILENT_CATCHES` may only shrink, and a narrator's action never belongs on it.
-- **State:** the rows live in one file per area under `apps/ui/src/interactionFeedback/`; none has the verdict `gap` or `owned`.
+- **`src/studio/ui/src/interactionFeedback.test.ts`** fails on a call with no row, a row whose call is gone, a `gap` with no issue, an `ok` row that fails silently or leaves a Python call unacknowledged or unguarded, and any bare catch (`catch {}`, `.catch(() => {})`, `.catch(() => undefined)`) that is not in `SILENT_CATCHES` with its reason. It reads the contracts and the source with the TypeScript parser, so a comment that mentions `api.guideEdit(` is not a call. `SILENT_CATCHES` may only shrink, and a narrator's action never belongs on it.
+- **State:** the rows live in one file per area under `src/studio/ui/src/interactionFeedback/`; none has the verdict `gap` or `owned`.
 
-The steps for a new call are in the header of `apps/ui/src/interactionFeedback.catalog.ts`, and for a new kind of job beside the job kinds in `apps/desktop/jobs.go`.
+The steps for a new call are in the header of `src/studio/ui/src/interactionFeedback.catalog.ts`, and for a new kind of job beside the job kinds in `src/studio/desktop/jobs.go`.
 
 ## Measuring
 
-`apps/desktop/internal/latency` is a build-tagged Go test (not in the gate) that drives the real Story Bible service through the real supervisor and the Go calls, for the dev venv or a frozen sidecar (`LATENCY_PYTHON`, `LATENCY_BACKEND`; `LATENCY_GO_ONLY=1` for the Go calls alone). How to run it, the numbers before and after the latency work, and what could not be measured are in the [latency baseline](../research/interaction-latency-baseline.md).
+`src/studio/desktop/internal/latency` is a build-tagged Go test (not in the gate) that drives the real Story Bible service through the real supervisor and the Go calls, for the dev venv or a frozen sidecar (`LATENCY_PYTHON`, `LATENCY_BACKEND`; `LATENCY_GO_ONLY=1` for the Go calls alone). How to run it, the numbers before and after the latency work, and what could not be measured are in the [latency baseline](../research/interaction-latency-baseline.md).
 
 ## Open
 
 - **Operating system notifications** subscribe to `job:ended` ([native notifications](native-notifications.md)).
-- **Owner steps** ([#210](https://github.com/countrymanprime/narration-utils/issues/210)): a screen-reader pass on the live regions and busy buttons, a real desktop run of the job-end toast, and the measurements that need a spaCy model, a Piper voice or antivirus.
+- **Owner steps** ([#210](https://github.com/countrymanprime/narration-studio/issues/210)): a screen-reader pass on the live regions and busy buttons, a real desktop run of the job-end toast, and the measurements that need a spaCy model, a Piper voice or antivirus.

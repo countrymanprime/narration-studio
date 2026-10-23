@@ -14,9 +14,9 @@ The repository has already moved pure logic out of the sidecars three times. Eac
 
 | What | Go | Held by |
 | --- | --- | --- |
-| compare.py's tokenizer, number-word merge and chapter-by-track-name match | `apps/desktop/internal/chaptermatch` | `sidecars/transcript-compare/tests/test_chapter_track_parity.py` |
-| Story Bible create, edit, merge, unmerge, split, delete, relate and unrelate | `apps/desktop/internal/guide` (`mutateInHost`, `editInHost`), after [the mutation-path note](story-bible-mutation-path.md) | `sidecars/manuscript-guide/tests/test_*_parity.py`, `internal/guide/*parity_test.go` |
-| Manuscript import (DOCX, EPUB) | `apps/desktop/internal/importer` | its own tests; no sidecar imports `pypdf` or `python-docx` |
+| compare.py's tokenizer, number-word merge and chapter-by-track-name match | `src/studio/desktop/internal/chaptermatch` | `src/studio/sidecars/transcript-compare/tests/test_chapter_track_parity.py` |
+| Story Bible create, edit, merge, unmerge, split, delete, relate and unrelate | `src/studio/desktop/internal/guide` (`mutateInHost`, `editInHost`), after [the mutation-path note](story-bible-mutation-path.md) | `src/studio/sidecars/manuscript-guide/tests/test_*_parity.py`, `internal/guide/*parity_test.go` |
+| Manuscript import (DOCX, EPUB) | `src/studio/desktop/internal/importer` | its own tests; no sidecar imports `pypdf` or `python-docx` |
 
 The cost of this pattern is two live copies held together by parity tests. The Python mutation code in `manuscript_guide.py` still exists beside the Go code that the host now runs.
 
@@ -57,7 +57,7 @@ The cost of this pattern is two live copies held together by parity tests. The P
 | `flags.py` | 233 | `script_tracker`, `spoken_forms` | pure | plain Go, spike 3, identical | no | none | low | S |
 | `align_word.py` | 243 | `difflib`, `statistics` | pure | plain Go | no | none | low | S |
 | `chapter_script.py` | 148 | `re` | pure | plain Go | no | none | low | S |
-| `locate.py` | 316 | PyAV, numpy, ASR | mixed (`apps/desktop/internal/teleprompter/locate.go` already checks its limits) | pure part plain Go; it re-runs ASR on a tail of audio | with ASR | as ASR | medium | M |
+| `locate.py` | 316 | PyAV, numpy, ASR | mixed (`src/studio/desktop/internal/teleprompter/locate.go` already checks its limits) | pure part plain Go; it re-runs ASR on a tail of audio | with ASR | as ASR | medium | M |
 | `control_channel.py` | 76 | `json` | glue | plain Go | no | none | low | S |
 | `levels.py` | 56 | numpy | pure | plain Go (`internal/acoustic` already does FFT and levels) | no | none | low | S |
 | `replay.py` | 215 | numpy | dev tool | plain Go | no | none | low | S |
@@ -67,7 +67,7 @@ The cost of this pattern is two live copies held together by parity tests. The P
 | `capture_dshow.py` | 72 | PyAV (FFmpeg dshow) | runner | FFmpeg subprocess with `-f dshow` | no | none | medium | M |
 | `capture_wasapi.py` | 210 | `sounddevice` (PortAudio) | runner | go-wca or malgo | as above | as above | high: latency and device behaviour need hardware ([#846](https://github.com/countrymanprime/narration-studio/pull/846) took a hardware pass) | L |
 
-### `libs/python/narration_common`
+### `src/studio/libs/python/narration_common`
 
 | Module | Lines | Depends on | Kind | Go counterpart | cgo | Risk | Effort |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -87,7 +87,7 @@ Ported: `take_divergence.py` (all logic but `build_paragraph_span`), the alignme
 
 | Input | Size | Identical |
 | --- | --- | --- |
-| `sidecars/transcript-compare/tests/fixtures/divergence/cases.json` | 14 cases × 4 takes = 56 alignments | yes |
+| `src/studio/sidecars/transcript-compare/tests/fixtures/divergence/cases.json` | 14 cases × 4 takes = 56 alignments | yes |
 | Seeded stress set (Unicode spaces, offsets up to 1e16) | 150 spans, 600 takes | yes |
 | Long take, Alice text | 10,024-word span, 10,049-word transcript | yes |
 | `difflib` fuzz | 2,000 pairs, 0 to 700 tokens, 435 hit autojunk | yes (opcodes and `ratio`) |
@@ -104,7 +104,7 @@ Ported: all of `recording_coverage.py`, plus the step from transcript words to o
 
 | Input | Records | Identical |
 | --- | --- | --- |
-| The 16 cases of `sidecars/transcript-compare/tests/fixtures/coverage/`, core and words-to-coverage | 16 | yes |
+| The 16 cases of `src/studio/sidecars/transcript-compare/tests/fixtures/coverage/`, core and words-to-coverage | 16 | yes |
 | The same × 50 | 800 | yes |
 | A synthetic 10,112-token chapter | 1 | yes |
 | Fuzz: float repr, `str.isspace`, tokenizer, sentence split, number merge, `SequenceMatcher` | 68,039 | yes |
@@ -152,7 +152,7 @@ The cost is a few hundred lines of compatibility code per port. It exists only f
 
 ## Spike 4: speech recognition from Go
 
-Input: the first 300 s of LibriVox *Alice* chapter 1 (`kara_01` in `tests/fixtures/audio/librivox-alice/sources.json`, SHA-256 checked), 16 kHz mono, 4 threads, beam 5, English, word timestamps on. **Approx. WER** compares each transcript with the Project Gutenberg text (`apps/ui/src/api/fixtures/alice-in-wonderland.txt`). It counts the LibriVox preamble as errors, so read it only as a comparison between rows. One run each.
+Input: the first 300 s of LibriVox *Alice* chapter 1 (`kara_01` in `tests/fixtures/audio/librivox-alice/sources.json`, SHA-256 checked), 16 kHz mono, 4 threads, beam 5, English, word timestamps on. **Approx. WER** compares each transcript with the Project Gutenberg text (`src/studio/ui/src/api/fixtures/alice-in-wonderland.txt`). It counts the LibriVox preamble as errors, so read it only as a comparison between rows. One run each.
 
 ### 4a. Whisper: faster-whisper (Python) against whisper.cpp (Go through cgo)
 
@@ -194,12 +194,12 @@ The engine time is the same, as expected. Go's lower memory comes from not build
 
 | Cost | Measured | Source |
 | --- | --- | --- |
-| Share of the release | `narration-utils.exe` in v0.3.290-rc is 514.7 MB; the host built here for Windows without the sidecar runtime is 22.9 MB (8.7 MB zipped). The update zip is 213.9 MB and the setup program 215.2 MB. So the embedded resources (the three freezes plus the Lua bridge and config) are about 490 MB inside the executable and at most about 205 MB of the download. The UI bundle was not built here, so it is not subtracted | release assets of [v0.3.290-rc](https://github.com/countrymanprime/narration-studio/releases/tag/v0.3.290-rc); `go build` with `GOOS=windows CGO_ENABLED=0 -ldflags "-s -w"` |
+| Share of the release | `narration-studio.exe` in v0.3.290-rc is 514.7 MB; the host built here for Windows without the sidecar runtime is 22.9 MB (8.7 MB zipped). The update zip is 213.9 MB and the setup program 215.2 MB. So the embedded resources (the three freezes plus the Lua bridge and config) are about 490 MB inside the executable and at most about 205 MB of the download. The UI bundle was not built here, so it is not subtracted | release assets of [v0.3.290-rc](https://github.com/countrymanprime/narration-studio/releases/tag/v0.3.290-rc); `go build` with `GOOS=windows CGO_ENABLED=0 -ldflags "-s -w"` |
 | Where that size is | The 2026-10-18 note measured the three freeze folders at 278, 259 and 285 MB on a Windows runner. Their sum is larger than the 490 MB above, and this note does not reconcile the two. Either way, the size is native libraries (CTranslate2, ONNX Runtime, FFmpeg in PyAV, numpy, spaCy), so porting pure logic removes almost none of it | [start-up note](2026-10-18-sidecar-start-up-and-bridge-round-trip.md) |
 | Cold start (Windows, Defender off) | First launch of a fresh install: 882 ms (guide), 1,947 ms (compare), 3,147 ms (teleprompter). Warm: 230 to 273 ms, against 60 ms for a frozen hello-world | same note |
 | Warm start (Linux, here) | Python interpreter plus `import compare` (pulls in numpy): 0.17 to 0.25 s. Go: 0.1 ms | spikes 1 and 2 |
 | Freeze incidents | The freeze silently lost Piper's `espeak-ng-data` and `cmudict` ([#222](https://github.com/countrymanprime/narration-studio/pull/222)) and Moonshine's DLLs ([#390](https://github.com/countrymanprime/narration-studio/pull/390)); each still built and started. It ships packages the runtime never uses: `hypothesis`, `pytest`, `setuptools`, `fastapi` ([#245](https://github.com/countrymanprime/narration-studio/issues/245)). Frozen start-up imports `multiprocessing` (320 ms) and `setuptools` (121 ms), which the dev interpreter does not | `.claude/skills/sidecar-freeze/SKILL.md`, start-up note |
-| Build time and guards | Freezing is "most of the Windows build" (`docs/operations/ci-and-releases.md`, the freeze cache). The cache key hashes all of `sidecars/` and `libs/python/`, so a one-line change to pure logic refreezes all three. Four places must change together for any new dependency (the `sidecar-freeze` skill) | `docs/operations/ci-and-releases.md` |
+| Build time and guards | Freezing is "most of the Windows build" (`docs/operations/ci-and-releases.md`, the freeze cache). The cache key hashes all of `src/studio/sidecars/` and `src/studio/libs/python/`, so a one-line change to pure logic refreezes all three. Four places must change together for any new dependency (the `sidecar-freeze` skill) | `docs/operations/ci-and-releases.md` |
 | Two copies | Tokenizer, chapter match and Bible mutations already exist in both languages, held by parity tests | [What Go already does](#what-go-already-does) |
 
 The shallow clone (50 commits) has no freeze history in `git log`. The incidents above come from the pull requests and the skill.
@@ -229,16 +229,16 @@ The owner's page-matched names fit; each sidecar maps to one page:
 | `transcript-compare` | `proof` | Proof |
 | `manuscript-teleprompter` | `booth` | Booth |
 
-224 files name the current sidecars (102 under `apps/desktop`, 60 under `sidecars/`, 26 under `apps/ui`, 30 research notes). A rename touches:
+224 files name the current sidecars (102 under `src/studio/desktop`, 60 under `src/studio/sidecars/`, 26 under `src/studio/ui`, 30 research notes). A rename touches:
 
 | Area | What |
 | --- | --- |
-| Go launch | `sidecarPath(packagedRoot, "…")` in `apps/desktop/app.go`; `smokeSidecars` and the per-sidecar checks in `apps/desktop/smoke.go`; `internal/process` program names (`timing.go` names the executable) |
-| Freeze and release | the three `Sidecar` entries in `scripts/release/prepare-resources.py`, `runtime/<name>/` under `apps/desktop/cmd/narration-utils/resources`, `scripts/release/verify-installable.mjs` and its test, `scripts/release/tests/test_prepare_resources.py`, the freeze cache key, `scripts/licenses` |
-| Workspace | the three `sidecars/*/project.json` names (Nx projects and tags), `pyproject.toml` paths, CI's affected-project scoping |
-| Persisted data | **not renamed.** `transcript-compare` is the analyzer name saved with every finding (`internal/transcript/findings_adapter.go`, `internal/proofing/sources.go`, `apps/ui/src/api/contracts/findings.ts`). Renaming it needs a migration of saved findings, or the analyzer name and the sidecar name must part. Keep the analyzer name |
+| Go launch | `sidecarPath(packagedRoot, "…")` in `src/studio/desktop/app.go`; `smokeSidecars` and the per-sidecar checks in `src/studio/desktop/smoke.go`; `internal/process` program names (`timing.go` names the executable) |
+| Freeze and release | the three `Sidecar` entries in `scripts/release/prepare-resources.py`, `runtime/<name>/` under `src/studio/desktop/cmd/narration-studio/resources`, `scripts/release/verify-installable.mjs` and its test, `scripts/release/tests/test_prepare_resources.py`, the freeze cache key, `scripts/licenses` |
+| Workspace | the three `src/studio/sidecars/*/project.json` names (Nx projects and tags), `pyproject.toml` paths, CI's affected-project scoping |
+| Persisted data | **not renamed.** `transcript-compare` is the analyzer name saved with every finding (`internal/transcript/findings_adapter.go`, `internal/proofing/sources.go`, `src/studio/ui/src/api/contracts/findings.ts`). Renaming it needs a migration of saved findings, or the analyzer name and the sidecar name must part. Keep the analyzer name |
 | Docs and skills | `docs/architecture/codebase-map.md` (Sidecar boundary), the threat-model rows for the sidecars, `docs/utilities/`, the `sidecar-freeze` and `sidecar-add` skills, `SECURITY.md`, `README.md` |
-| Timing | the restructure in flight moves `sidecars/` to `src/studio/sidecars`. Renaming in the same move touches each file once |
+| Timing | the restructure in flight moves `src/studio/sidecars/` to `src/studio/sidecars`. Renaming in the same move touches each file once |
 
 ## What the owner would have to run
 

@@ -5,7 +5,7 @@ Scores each extraction source against a hand-checked gold set and writes the con
 [studio-next-extraction-calibration-protocol.md](../../../docs/research/studio-next-extraction-calibration-protocol.md); the
 result is [studio-next-extraction-calibration.md](../../../docs/research/studio-next-extraction-calibration.md).
 
-The harness runs the sidecar's own read-only `suggest` command (`sidecars/manuscript-guide/core/manuscript_guide.py suggest`),
+The harness runs the sidecar's own read-only `suggest` command (`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py suggest`),
 so what is scored is what the app would be offered. It never invents a figure: a source that is not installed, a book that is
 not fetched and a book with no gold set are each `not run` with a sentence.
 

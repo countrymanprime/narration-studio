@@ -1,6 +1,6 @@
 # Settings: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -143,7 +143,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: `about-download-progress`, `about-download-failed`, `about-installing`
 - Widths: all (checked w1920, w1280, dark 1024, dark 768) (theme: both)
 - What is wrong: why does this box repeat itself? The sentence under the title ("The checksum in the release and GitHub's own record of the file disagree, so the update was not used.", "Downloading Narration Studio 0.2.7...", "Installing version 0.2.7. Narration Studio restarts in a moment.") appears again, word for word, in the grey "Live activity" box 60 px lower, so a narrator reads the same line twice; the log box is a fixed 144 px tall and under one or two lines the rest is an empty grey slab (about 90 px blank in all three states). The elapsed counter ("2s", "1s", "0s") is a smaller mono 12 px string pinned to the top-right and sits 2-3 px higher than the baseline of the status text it belongs to (dark 768: "2s" at y=394, sentence at y=397). In `about-installing` the explanatory line ("This step cannot be cancelled. Close appears when it finishes.") is a third text line above the status line with a different colour and spacing (12 px gap above, 8 px below).
-- Where: `apps/ui/src/components/primitives/WorkDialog.tsx:67-75` (status row, `justify-between` with `text-sm` vs `text-xs` mono counter, no `items-baseline`), `:81-90` (`h-36` log box, logs fed from the same `job.message` by `settings/UpdateDownloadDialog.tsx:70-72`).
+- Where: `src/studio/ui/src/components/primitives/WorkDialog.tsx:67-75` (status row, `justify-between` with `text-sm` vs `text-xs` mono counter, no `items-baseline`), `:81-90` (`h-36` log box, logs fed from the same `job.message` by `settings/UpdateDownloadDialog.tsx:70-72`).
 - Severity: looks wrong
 - Fix: show the status line only once (hide the log until it has a second line or use the log alone), `items-baseline` on the status row, size the log box to its content with a 3-line minimum.
 - Evidence: `settings/about-download-failed/w1280.png` (y 995-1190), dark `.../about-installing/tablet.png` (y 420-670), `about-download-progress/tablet.png` (y 400-620).
@@ -154,7 +154,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: `deep-link`, `filter-project` (Project page, Entry types row)
 - Widths: 1024-1920 (control column under 512 px), dark 1024 and dark 768 (theme: both)
 - What is wrong: why do the rows look like one long unrelated list? Each type is a name box on one line and "colour select, Can speak, N entries, delete" on the next line, and the gap inside a type (about 40 px from box to select) is the same as the gap between two types (about 44 px from the select to the next name box), so a reader cannot tell which select belongs to which name. The coloured swatch is only on the name line. In the w1280 capture 6 types take about 400 px of height for 6 names; the right half of the select line is blank, and the "New type" box (190 px) and "+" sit on a third kind of row.
-- Where: `apps/ui/src/components/settings/page/StoryBibleTypesPanel.tsx:65-100` (`flex flex-wrap`, breakpoint `@lg` = 512 px of the row's own column, which the half-width settings column never reaches).
+- Where: `src/studio/ui/src/components/settings/page/StoryBibleTypesPanel.tsx:65-100` (`flex flex-wrap`, breakpoint `@lg` = 512 px of the row's own column, which the half-width settings column never reaches).
 - Severity: looks wrong
 - Fix: one row per type (swatch, name, colour, Can speak, count, delete) in a grid; if it must stack, group each pair with a tinted block or a 20 px gap between types against 8 px inside.
 - Evidence: `settings/deep-link/w1280.png` (y 800-910 of the pair crop), dark `deep-link/tablet.png` (y 40-215).
@@ -587,7 +587,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: Recording & DAW > Advanced; `recording-advanced`, `recording-reaper-path-invalid`
 - Widths: 1024 (box 688 to 1024+, card ends 1007), 390 (box from x=37 to 390+, scrolls sideways). At 1440 the box is 416 px wide and ends at x=1382, 8 px short of the column's right edge (1390) and not equal to the 264 px selects above it. (theme: both)
 - What is wrong: "The path box sticks out of the card like a mistake": a fixed 26rem box in a 300 px (1024) or 316 px (390) column, the focus ring is cut at the window edge in the invalid state.
-- Where: `apps/ui/src/components/settings/row/ValueControl.tsx:175` (`w-[26rem] max-w-full`), column in `SettingRowView.tsx:113` is shrink-to-fit so `max-w-full` clamps to nothing.
+- Where: `src/studio/ui/src/components/settings/row/ValueControl.tsx:175` (`w-[26rem] max-w-full`), column in `SettingRowView.tsx:113` is shrink-to-fit so `max-w-full` clamps to nothing.
 - Severity: breaks use
 - Fix: `w-full max-w-[26rem] min-w-0` and `self-stretch` on the control column.
 - Evidence: `settings/recording-advanced/w1024.png` (y 130-170, right edge), `.../recording-reaper-path-invalid/w1024.png`, `.../recording-advanced/w390.png` (y 245-270), `.../recording-reaper-path-invalid/w390.png`.
@@ -598,7 +598,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: `appearance` (Reader text), `global-keyboard*` (Shortcuts), `delivery`, `delivery-profile-custom` (Delivery profile), `folded-category-list` and `filter-project` (Record with), `deep-link` (Credits, Entry types)
 - Widths: 1024, 1280, 1440, 1920 (theme: both). At 768 the same rows stack (label above control) and look consistent.
 - What is wrong: why is half of this card empty? The label block is ~90 px tall and ends at y~650 while the control column runs to y~900 on Reader text; Shortcuts left text ends y=345 against a 540 px editor; Delivery profile left ends y=380 against a 14-line limits list to y=615; Record with ends y=350 against a radio list to y=617. The control column starts at the card midpoint (x=966 at 1440, x=688 at 1024), not after a 12-16rem label column as the design-system "Settings rows" section says.
-- Where: `apps/ui/src/components/settings/row/SettingRowView.tsx:49` (`CELL`: `@min-[761px]:grid-cols-2`, no label-column cap, no full-width variant); description capped `max-w-[60ch]` at `:104`.
+- Where: `src/studio/ui/src/components/settings/row/SettingRowView.tsx:49` (`CELL`: `@min-[761px]:grid-cols-2`, no label-column cap, no full-width variant); description capped `max-w-[60ch]` at `:104`.
 - Severity: looks wrong
 - Fix: grid `minmax(12rem,16rem)_minmax(0,1fr)` and let wide bodies (Shortcuts, limits list, reader text, credits) span both columns below the label.
 - Evidence: `appearance/w1440.png` (y 560-900); `global-keyboard/w1440.png` (y 270-860); `delivery/w1440.png` (y 250-640); `folded-category-list/w1440.png` (y 250-640); `deep-link/w1024.png` (Marks and Credits, left columns half empty).

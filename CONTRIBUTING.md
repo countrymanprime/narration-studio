@@ -28,8 +28,8 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
 1. Work on a branch and write tests first; the repository expects them alongside behaviour changes.
    Put code in the folder that names its role (see the [codebase map](docs/architecture/codebase-map.md)); tests follow
    the toolchain, with one `tests/` folder per project where it does not want them beside the code.
-2. Run `pnpm run check` before you push. If you changed `apps/ui`, also review the visual-suite screenshots at every
-   viewport and run `pnpm --dir apps/ui atlas`. If you changed `integrations/reaper` (Lua), the bridge harness in `pnpm run check` covers its protocol, but
+2. Run `pnpm run check` before you push. If you changed `src/studio/ui`, also review the visual-suite screenshots at every
+   viewport and run `pnpm --dir src/studio/ui atlas`. If you changed `src/studio/integrations/reaper` (Lua), the bridge harness in `pnpm run check` covers its protocol, but
    REAPER's own API behaviour is only checked by hand inside REAPER.
 3. Open a pull request whose **title is a Conventional Commit** (`feat: …`, `fix(scope): …`). It becomes the squash
    commit and decides the next version. Put `Closes #<issue>` in the description and fill in the template.
@@ -53,18 +53,18 @@ images the repository keeps, and a pull request does not carry a set of its own:
   same pull request: the text in `docs/guides/using-the-app/<page>.md` and the screenshots of the states and interactions
   it changes. A changed image replaces the file in place, so GitHub's image diff shows before and after. A new
   interaction gets a new image and a short how-to step. A removed one loses its image, its manifest entry and its text.
-- **How to capture.** The guide's images are listed in `apps/ui/tests/visual/doc-screenshots.json`, each a state of
-  `apps/ui/tests/visual/state-catalog.ts` at one viewport. From the repo root, `node scripts/dev/guide-screenshots.mjs <page>...`
+- **How to capture.** The guide's images are listed in `src/studio/ui/tests/visual/doc-screenshots.json`, each a state of
+  `src/studio/ui/tests/visual/state-catalog.ts` at one viewport. From the repo root, `node scripts/dev/guide-screenshots.mjs <page>...`
   runs the real app (the visual-suite drivers on the mock API) for those pages and rewrites their WebP images; an image
   whose pixels did not change is left alone. `<page>` is a guide page (`booth`, `master-and-qc`) or a state-catalog page
   (`storybible`); `--all` does the whole guide. A new image starts as a new manifest entry: add the state to the catalog
   first if it is not there (`visual-catalog-sync`).
 - **Looking at every state.** The targeted runs show every catalogued state of a page, light and dark, at every
-  viewport, and are how you check the page before you push. They write to the ignored `apps/ui/screenshots/`, and CI keeps
+  viewport, and are how you check the page before you push. They write to the ignored `src/studio/ui/screenshots/`, and CI keeps
   the full run's PNGs as artifacts; nothing from them is committed.
-  - `pnpm --dir apps/ui visual:page <page>...` runs the page's rows of the real-app suite and prints PASS, FAIL or SKIP
+  - `pnpm --dir src/studio/ui visual:page <page>...` runs the page's rows of the real-app suite and prints PASS, FAIL or SKIP
     per state.
-  - `pnpm --dir apps/ui atlas:page <page-or-component>...` builds Storybook and runs the stories of those titles.
+  - `pnpm --dir src/studio/ui atlas:page <page-or-component>...` builds Storybook and runs the stories of those titles.
   - In a container with its own Chromium and no `playwright install`, both find the headless shell under
     `PLAYWRIGHT_BROWSERS_PATH`; `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` names another.
 - **The pull request.** Its description states the real-app (Playwright) result and the Storybook result for the pages

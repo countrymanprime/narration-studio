@@ -1,6 +1,6 @@
 # FFmpeg encoder build: choice and verification
 
-**Date:** 2026-09-27. **Issue:** [#629](https://github.com/countrymanprime/narration-utils/issues/629). **Answers:** what encodes the audio, at the level of an exact build: which FFmpeg, from where, under which licence class, and whether what it writes passes this app's own MP3 checks.
+**Date:** 2026-09-27. **Issue:** [#629](https://github.com/countrymanprime/narration-studio/issues/629). **Answers:** what encodes the audio, at the level of an exact build: which FFmpeg, from where, under which licence class, and whether what it writes passes this app's own MP3 checks.
 
 **Verdict: go, with two owner checks pending (below).** Catalog the FFmpeg 7.1 "essentials" static Windows build (gyan.dev, GPL-3.0-or-later build configuration) as it is published inside the `imageio-ffmpeg` 0.6.0 `win_amd64` wheel on PyPI, keep only `ffmpeg.exe` from it at install, and run it as a separate process. Encode MP3 with `libmp3lame` at a constant bit rate, with no Xing/Info frame and no ID3v2 tag (`-write_xing 0 -id3v2_version 0`): that output passes `acx.format` and `acx.sample_rate`, and both of the app's MP3 frame readers agree on its length to the microsecond. [encoder-assets.json](../../config/encoder-assets.json) (Proposed) records the decision.
 
@@ -15,9 +15,9 @@ The PRD's recommendation is a catalogued static FFmpeg build (Q1 A) run by the G
 | BtbN `FFmpeg-Builds` (GitHub) | LGPL or GPL variants | Daily `autobuild-*` tags, which (per its README, not re-checked here) are pruned after a while, so a pinned URL can go dead | No (GitHub, as above) |
 | `imageio-ffmpeg` 0.6.0 wheel on PyPI, which carries gyan.dev's FFmpeg 7.1 essentials build | GPL-3.0-or-later (the binary); BSD-2-Clause (the Python wrapper, unused) | Yes: PyPI files are immutable, never pruned, and PyPI publishes the SHA-256 | Yes |
 
-The PyPI wheel is the only source that is both reachable here and pinnable for as long as a release is supported: a file on `files.pythonhosted.org` cannot be replaced (a new upload needs a new version), and PyPI's own JSON API publishes its size and SHA-256. The host answers `Range` requests (`206 Partial Content`, checked), so the asset manager's resume works. The wheel is a zip, which the asset manager already unpacks (the spaCy wheels are the precedent, [guidegate.go](../../apps/desktop/guidegate.go)).
+The PyPI wheel is the only source that is both reachable here and pinnable for as long as a release is supported: a file on `files.pythonhosted.org` cannot be replaced (a new upload needs a new version), and PyPI's own JSON API publishes its size and SHA-256. The host answers `Range` requests (`206 Partial Content`, checked), so the asset manager's resume works. The wheel is a zip, which the asset manager already unpacks (the spaCy wheels are the precedent, [guidegate.go](../../src/studio/desktop/guidegate.go)).
 
-An LGPL build (BtbN's `lgpl` variant) would be the narrower licence class, but its URLs do not stay up, and it could not be reached to be hashed. The GPL class is already accepted for this project: Narration Utils is AGPL-3.0-or-later ([Contributing](../../CONTRIBUTING.md)), and the [licence classes](local-dependency-evaluation.md#license-classes) table allows a GPL-3.0-or-later component, preferring a separate executable, which this is.
+An LGPL build (BtbN's `lgpl` variant) would be the narrower licence class, but its URLs do not stay up, and it could not be reached to be hashed. The GPL class is already accepted for this project: Narration Studio is AGPL-3.0-or-later ([Contributing](../../CONTRIBUTING.md)), and the [licence classes](local-dependency-evaluation.md#license-classes) table allows a GPL-3.0-or-later component, preferring a separate executable, which this is.
 
 ## The exact build
 
@@ -40,7 +40,7 @@ In a Linux cloud session, 2026-09-27. Nothing downloaded was committed.
 2. Unpacked both and read the Windows executable's version and build configuration from its strings (the Windows binary cannot run here).
 3. Ran the same wheel family's Linux binary (`ffmpeg version 7.0.2-static https://johnvansickle.com/ffmpeg/`, also `--enable-gpl --enable-version3 --enable-libmp3lame`) as a stand-in for the encode itself: two fixture WAVs (3 s, a 220 Hz tone; 44.1 kHz 16-bit mono and 48 kHz 24-bit stereo), each encoded at 192, 256 and 320 kbps with
    `ffmpeg -hide_banner -nostdin -nostats -loglevel error -i <wav> -map 0:a:0 -map_metadata -1 -c:a libmp3lame -b:a <n>k -ar 44100 -write_xing 0 -id3v2_version 0 -f mp3 <out>`.
-4. Ran each MP3 through the app's own readers, from a throwaway Go test inside the module: `measure.MeasureFile` (the MP3 container check, [mp3header.go](../../apps/desktop/internal/measure/mp3header.go)), `deliveryprofile.EvaluateFile` against the built-in ACX profile, and `chaptertags`' `mp3Duration` (the chapter timeline's reader).
+4. Ran each MP3 through the app's own readers, from a throwaway Go test inside the module: `measure.MeasureFile` (the MP3 container check, [mp3header.go](../../src/studio/desktop/internal/measure/mp3header.go)), `deliveryprofile.EvaluateFile` against the built-in ACX profile, and `chaptertags`' `mp3Duration` (the chapter timeline's reader).
 
 ## Results
 
@@ -68,6 +68,6 @@ Every path used is LGPL code; the build as a whole is GPL-3.0-or-later because o
 
 ## Not verified (pending with the owner)
 
-- **The Windows binary running on Windows.** Only its bytes, version and configuration were read here; the encode was run with the Linux build of the same family. The Phase 1 real-binary test (`NARRATION_UTILS_FFMPEG=<path to ffmpeg.exe> go test ./internal/encodeport/...`) is the check to run on Windows once the asset is installed. On [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
-- **The source offer and the choice of distributor.** The binary is GPL-3.0-or-later, and it reaches the narrator from PyPI (imageio's upload of gyan.dev's build), not from this project's release, so this project does not convey it; the notices name it, its licence and where its source is. Whether the owner would rather pin gyan.dev's own archive (not reachable from the build environment to hash) is a question on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217), and changing it is a catalog row, not code.
+- **The Windows binary running on Windows.** Only its bytes, version and configuration were read here; the encode was run with the Linux build of the same family. The Phase 1 real-binary test (`NARRATION_STUDIO_FFMPEG=<path to ffmpeg.exe> go test ./internal/encodeport/...`) is the check to run on Windows once the asset is installed. On [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).
+- **The source offer and the choice of distributor.** The binary is GPL-3.0-or-later, and it reaches the narrator from PyPI (imageio's upload of gyan.dev's build), not from this project's release, so this project does not convey it; the notices name it, its licence and where its source is. Whether the owner would rather pin gyan.dev's own archive (not reachable from the build environment to hash) is a question on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217), and changing it is a catalog row, not code.
 - **Listening.** The encode is LAME at a fixed CBR; no listening check was done, and none is needed for the container checks this phase proves.

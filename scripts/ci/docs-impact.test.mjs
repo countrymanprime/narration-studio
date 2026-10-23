@@ -9,18 +9,18 @@ import { evaluate, findOptOut, globToRegExp, loadRules, matchesAny, parseHookInp
 const RULES = [
   {
     id: 'bridge',
-    paths: ['integrations/reaper/*.lua'],
-    exclude: ['integrations/reaper/tests/**'],
+    paths: ['src/studio/integrations/reaper/*.lua'],
+    exclude: ['src/studio/integrations/reaper/tests/**'],
     docs: ['docs/architecture/reaper-bridge.md', 'docs/architecture/reaper-navigation.md'],
   },
-  { id: 'primitives', paths: ['apps/ui/src/components/primitives/*.tsx'], exclude: ['**/*.test.tsx', '**/*.stories.tsx'], docs: ['docs/ui/**'] },
+  { id: 'primitives', paths: ['src/studio/ui/src/components/primitives/*.tsx'], exclude: ['**/*.test.tsx', '**/*.stories.tsx'], docs: ['docs/ui/**'] },
 ];
 
 test('globToRegExp: * stays inside one folder and ** crosses folders', () => {
   assert.equal(globToRegExp('a/*.lua').test('a/x.lua'), true);
   assert.equal(globToRegExp('a/*.lua').test('a/b/x.lua'), false);
   assert.equal(globToRegExp('a/**').test('a/b/c/x.md'), true);
-  assert.equal(globToRegExp('**/*.test.tsx').test('apps/ui/src/a.test.tsx'), true);
+  assert.equal(globToRegExp('**/*.test.tsx').test('src/studio/ui/src/a.test.tsx'), true);
   assert.equal(globToRegExp('**/*.test.tsx').test('a.test.tsx'), true);
 });
 
@@ -37,39 +37,39 @@ test('evaluate: no violation when the change touches no mapped path', () => {
 });
 
 test('evaluate: code changed with no owed doc changed is a violation naming the files and the docs', () => {
-  const { violations } = evaluate({ changed: ['integrations/reaper/narration_pickups.lua'], rules: RULES });
+  const { violations } = evaluate({ changed: ['src/studio/integrations/reaper/narration_pickups.lua'], rules: RULES });
 
   assert.deepEqual(violations, [
     {
       id: 'bridge',
-      files: ['integrations/reaper/narration_pickups.lua'],
+      files: ['src/studio/integrations/reaper/narration_pickups.lua'],
       docs: ['docs/architecture/reaper-bridge.md', 'docs/architecture/reaper-navigation.md'],
     },
   ]);
 });
 
 test('evaluate: changing any one owed doc satisfies the rule', () => {
-  const changed = ['integrations/reaper/narration_pickups.lua', 'docs/architecture/reaper-navigation.md'];
+  const changed = ['src/studio/integrations/reaper/narration_pickups.lua', 'docs/architecture/reaper-navigation.md'];
 
   assert.deepEqual(evaluate({ changed, rules: RULES }).violations, []);
 });
 
 test('evaluate: a docs glob such as docs/ui/** is satisfied by any file under it', () => {
-  const changed = ['apps/ui/src/components/primitives/Button.tsx'];
+  const changed = ['src/studio/ui/src/components/primitives/Button.tsx'];
 
   assert.equal(evaluate({ changed, rules: RULES }).violations.length, 1);
   assert.deepEqual(evaluate({ changed: [...changed, 'docs/ui/primitives/button.md'], rules: RULES }).violations, []);
 });
 
 test('evaluate: tests, stories and the harness are excluded from a rule', () => {
-  const changed = ['integrations/reaper/tests/harness.lua', 'apps/ui/src/components/primitives/Button.test.tsx', 'apps/ui/src/components/primitives/Button.stories.tsx'];
+  const changed = ['src/studio/integrations/reaper/tests/harness.lua', 'src/studio/ui/src/components/primitives/Button.test.tsx', 'src/studio/ui/src/components/primitives/Button.stories.tsx'];
 
   assert.deepEqual(evaluate({ changed, rules: RULES }).violations, []);
 });
 
 test('evaluate: a valid opt-out reason waives every violation and is returned', () => {
   const result = evaluate({
-    changed: ['integrations/reaper/narration_pickups.lua'],
+    changed: ['src/studio/integrations/reaper/narration_pickups.lua'],
     rules: RULES,
     text: 'Docs: none — internal rename of a local, no documented name or command',
   });
@@ -80,7 +80,7 @@ test('evaluate: a valid opt-out reason waives every violation and is returned', 
 
 test('evaluate: a vague opt-out reason does not waive the violation', () => {
   for (const reason of ['not needed', 'n/a', 'none', 'no docs', 'skip', 'short']) {
-    const result = evaluate({ changed: ['integrations/reaper/narration_pickups.lua'], rules: RULES, text: `Docs: none — ${reason}` });
+    const result = evaluate({ changed: ['src/studio/integrations/reaper/narration_pickups.lua'], rules: RULES, text: `Docs: none — ${reason}` });
 
     assert.equal(result.violations.length, 1, reason);
     assert.equal(result.waivedBy, undefined, reason);
@@ -140,7 +140,7 @@ function owedDocs(changed) {
 }
 
 test('the shipped map: a persisted project or per-user file owes the data-files reference, not the threat model', () => {
-  for (const file of ['apps/desktop/internal/persist/persist.go', 'apps/desktop/internal/marks/marks.go', 'apps/desktop/internal/settings/store.go']) {
+  for (const file of ['src/studio/desktop/internal/persist/persist.go', 'src/studio/desktop/internal/marks/marks.go', 'src/studio/desktop/internal/settings/store.go']) {
     const owed = owedDocs([file]);
 
     assert.ok(owed.includes(DATA_FILES), `${file}: owes ${DATA_FILES}`);
@@ -150,19 +150,19 @@ test('the shipped map: a persisted project or per-user file owes the data-files 
 });
 
 test('the shipped map: a persisted file test is not a change to the file', () => {
-  assert.deepEqual(owedDocs(['apps/desktop/internal/marks/marks_test.go']), []);
+  assert.deepEqual(owedDocs(['src/studio/desktop/internal/marks/marks_test.go']), []);
 });
 
 test('the shipped map: a trust-boundary path still owes the threat model or SECURITY.md', () => {
   for (const file of [
-    'apps/desktop/internal/process/supervisor.go',
-    'apps/desktop/internal/bridge/transport.go',
-    'integrations/reaper/narration_bridge_core.lua',
-    'apps/desktop/internal/audacitybridge/transport.go',
-    'apps/desktop/internal/assets/download.go',
-    'apps/desktop/internal/update/install.go',
+    'src/studio/desktop/internal/process/supervisor.go',
+    'src/studio/desktop/internal/bridge/transport.go',
+    'src/studio/integrations/reaper/narration_bridge_core.lua',
+    'src/studio/desktop/internal/audacitybridge/transport.go',
+    'src/studio/desktop/internal/assets/download.go',
+    'src/studio/desktop/internal/update/install.go',
     '.github/workflows/prerelease.yml',
-    'apps/desktop/internal/importer/docx.go',
+    'src/studio/desktop/internal/importer/docx.go',
   ]) {
     const { violations } = evaluate({ changed: [file], rules: loadRules() });
     const boundary = violations.find((violation) => violation.docs.includes(THREAT_MODEL));

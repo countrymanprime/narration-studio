@@ -4,12 +4,12 @@
 a planned evaluation.** The artifacts recorded under [Shipped assets](#shipped-assets) (the
 Piper preview voice, the five Whisper models and the two spaCy language models) are approved and
 downloaded by the app on first use. Nothing else in this document is an implemented dependency
-or an authorization to download it. It defines how Narration Utils decides whether a local tool
+or an authorization to download it. It defines how Narration Studio decides whether a local tool
 or model materially improves a narrator's workflow and may be offered as an optional dependency.
 
 ## Purpose and boundary
 
-Narration Utils is a local-first review tool. An analyzer may find and explain
+Narration Studio is a local-first review tool. An analyzer may find and explain
 an issue, write a finding, or create an optional DAW navigation target. It may
 not silently edit source audio, rewrite a manuscript, choose a take, diagnose
 an acting performance, or identify a fictional character from voice alone.
@@ -37,10 +37,10 @@ recheck all upstream terms at the exact version being offered.
 
 | Capability | Current implementation | Consequence for evaluation |
 | --- | --- | --- |
-| DOCX parsing | The Go importer (`apps/desktop/internal/importer/docx.go`) reads DOCX and Markdown once into the canonical `manuscript.json`; the sidecars read that file and never reparse a DOCX. | Do not add a second document parser. Test only improvements to structure heuristics. |
+| DOCX parsing | The Go importer (`src/studio/desktop/internal/importer/docx.go`) reads DOCX and Markdown once into the canonical `manuscript.json`; the sidecars read that file and never reparse a DOCX. | Do not add a second document parser. Test only improvements to structure heuristics. |
 | Story Bible extraction | Local spaCy plus conservative name/context rules. | BookNLP and GLiNER must improve a reviewed entity, quote, or continuity task over this baseline. |
 | Transcript comparison | Local `faster-whisper`, word timestamps, hotwords, normalizations, and a word diff. | Alignment tests must improve marker placement or reduce false discrepancy review, not merely produce another transcript. |
-| Voice activity detection | `sidecars/transcript-compare/core/compare.py` calls faster-whisper with `vad_filter=True`. Faster-whisper's VAD path uses Silero VAD to omit non-speech before ASR. | Standalone VAD is justified only if exposing its time ranges creates useful review/recording actions. |
+| Voice activity detection | `src/studio/sidecars/transcript-compare/core/compare.py` calls faster-whisper with `vad_filter=True`. Faster-whisper's VAD path uses Silero VAD to omit non-speech before ASR. | Standalone VAD is justified only if exposing its time ranges creates useful review/recording actions. |
 | Audio import | PyAV decodes audio inside Transcript Compare. No direct `ffmpeg`/`ffprobe` executable dependency is currently configured. | FFmpeg is an optional post-render inspection/export tool, not a replacement for the DAW. |
 
 ### Faster-Whisper model weights — dependency record
@@ -66,14 +66,14 @@ flow, per the required record below.
 - **Runtime dependency**: none beyond the already-approved `faster-whisper`
   Python package; no additional network calls beyond the pinned download URLs.
 - **Invocation**: downloaded and hash-verified by the Go host
-  (`apps/desktop/internal/whisper`, sharing `apps/desktop/internal/assets` with Piper
+  (`src/studio/desktop/internal/whisper`, sharing `src/studio/desktop/internal/assets` with Piper
   voices), then loaded in-process by `faster-whisper`'s `WhisperModel` with
-  `local_files_only=True` (`sidecars/transcript-compare/core/compare.py`).
+  `local_files_only=True` (`src/studio/sidecars/transcript-compare/core/compare.py`).
 - **Removal/update policy**: removable from Settings ("Remove local model…");
   no automatic updates — a new pinned commit requires a reviewed catalog
   change.
-- **Test result**: covered by `apps/desktop/internal/assets`, `apps/desktop/internal/whisper`,
-  and `apps/desktop/bindings_test.go` (install/verify/remove and the
+- **Test result**: covered by `src/studio/desktop/internal/assets`, `src/studio/desktop/internal/whisper`,
+  and `src/studio/desktop/bindings_test.go` (install/verify/remove and the
   `TranscriptStart` first-use gate); every catalog URL/hash was verified
   against the live upstream repository before being recorded.
 - **Feature enabled**: Transcript Compare's ASR backend.
@@ -84,8 +84,8 @@ Each row below is the record the [required dependency record](../architecture/mo
 for, taken from the catalogs the release carries (`config/tts-assets.json`,
 `config/whisper-assets.json`, `config/spacy-assets.json`, `config/moonshine-assets.json`, `config/dictionary-assets.json`, `config/encoder-assets.json`) and, for spaCy, from the
 [provisioning spike](spacy-model-provisioning-spike.md). Every asset is installed by the one
-lifecycle in `apps/desktop/internal/assets` (stage, check size and SHA-256, rename into place,
-manifest), under the per-user cache `<user cache>/narration-utils/assets/<kind>/<provider>/<id>/<version>/`
+lifecycle in `src/studio/desktop/internal/assets` (stage, check size and SHA-256, rename into place,
+manifest), under the per-user cache `<user cache>/narration-studio/assets/<kind>/<provider>/<id>/<version>/`
 (`%LocalAppData%` on Windows), and is removable from Settings > Local assets. **Update policy for
 all of them:** none automatic. Each is pinned in the catalog to a commit or tag, an exact size and
 a SHA-256; a newer version needs a reviewed catalog change, a new hash, a license recheck and a
@@ -429,7 +429,7 @@ test whether they surface useful review cues beyond direct listening. Keep only
 measures that survive microphone/room/chapter variation.
 
 **License/provenance.** Praat is GPL-3.0-or-later. It may be used to make a
-commercial audiobook. To keep the Narration Utils integration boundary clean,
+commercial audiobook. To keep the Narration Studio integration boundary clean,
 prefer a separately installed executable invoked by documented scripts rather
 than bundling it or linking its code into the desktop host. [Praat license and capabilities](https://praat.org/manual/License.html)
 
@@ -499,7 +499,7 @@ never rewrite the DOCX.
 
 **License/provenance.** Vale itself is MIT. Individual downloaded style packs
 and dictionaries may have their own terms, so the first version should use
-Narration Utils-authored, repository-owned YAML rules or separately reviewed
+Narration Studio-authored, repository-owned YAML rules or separately reviewed
 packs. [Vale](https://github.com/vale-cli/vale)
 
 **Risk.** A noisy prose linter trains users to ignore all findings. Keep rules
@@ -537,7 +537,7 @@ its improvements. Record the exact commit ported from so a future
 re-sync is a deliberate, reviewed action rather than silent drift.
 
 **Implementation status (day-1 prototype).**
-[`sidecars/manuscript-teleprompter/core/live_asr.py`](../../sidecars/manuscript-teleprompter/core/live_asr.py)
+[`src/studio/sidecars/manuscript-teleprompter/core/live_asr.py`](../../src/studio/sidecars/manuscript-teleprompter/core/live_asr.py)
 implements the VAD-gated-window / rolling-decode / word-timestamp shape
 described above. This is a clean-room re-implementation against this
 repository's own already-pinned `faster-whisper`/`onnxruntime` stack (reusing
@@ -567,7 +567,7 @@ segment length (capped by `MAX_BUFFER_SECONDS`).
 
 **Third source: Autocue's script-tracking design.** The script tracker that
 turns the recognised words into a reading position,
-[`sidecars/manuscript-teleprompter/core/script_tracker.py`](../../sidecars/manuscript-teleprompter/core/script_tracker.py),
+[`src/studio/sidecars/manuscript-teleprompter/core/script_tracker.py`](../../src/studio/sidecars/manuscript-teleprompter/core/script_tracker.py),
 follows the design of [Autocue](https://github.com/EdNutting/autocue): a
 forward-only speculative cursor driven by every partial hypothesis, a
 committed position driven by confirmed words, and fuzzy matching that ignores
@@ -582,8 +582,8 @@ attribution carried in the module's docstring, no new runtime dependency
 **Status: adopted on Windows. Models are provisioned through the hashed asset catalog
 (`teleprompter-engines-and-input-devices.prd.md` phase 5) and the `moonshine-voice` package is pinned and frozen into the
 `manuscript-teleprompter` sidecar (phase 6, [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md)); D17 compatibility re-verified at both.** It is imported only by
-[`moonshine_engine.py`](../../sidecars/manuscript-teleprompter/core/moonshine_engine.py), on the `--engine moonshine` path of
-[`live_asr.py`](../../sidecars/manuscript-teleprompter/core/live_asr.py). The engine choice in the app is phase 7.
+[`moonshine_engine.py`](../../src/studio/sidecars/manuscript-teleprompter/core/moonshine_engine.py), on the `--engine moonshine` path of
+[`live_asr.py`](../../src/studio/sidecars/manuscript-teleprompter/core/live_asr.py). The engine choice in the app is phase 7.
 
 **What it contributes.** Streaming speech recognition that caches encoder state
 instead of re-decoding, partial and final line events, word timestamps in
@@ -637,7 +637,7 @@ for why two live engines are supported and how they are compared.
   transcriber never imports the first and the second only speeds up the library's downloader, which the frozen
   sidecar never runs). The wheel's `moonshine.dll` and its own ONNX Runtime 1.23 `onnxruntime.dll` (MIT, a
   manual entry in the notices) are loaded with `ctypes`, so `prepare-resources.py` collects them with
-  `--collect-binaries`, `verify-installable.mjs` requires them and `narration-utils --smoke` loads them
+  `--collect-binaries`, `verify-installable.mjs` requires them and `narration-studio --smoke` loads them
   (`--check-moonshine`). The frozen sidecar grows by 24.1 MB (+9.4%; 11.2 MB compressed). With `--model-dir` it
   loads a catalog install after checking every pinned file is there; without one the frozen sidecar refuses,
   and only a source run lets the library download. A test holds the catalog to the pinned library's own
@@ -678,7 +678,7 @@ Phase 7 and the UI Phase 8, both delivered).
 **Licence check against this project's policy.** CC BY 4.0 is the **Attribution** class in [License classes](#license-classes):
 "Allowed. Display and retain the exact required attribution and model card." AGPL-3.0-or-later (this project's own licence,
 [Contributing](../../CONTRIBUTING.md)) has no reciprocal terms that CC BY 4.0 data would trigger
-(CC BY 4.0 is not a copyleft software licence; it applies to the dataset, not to Narration Utils' own code), so bundling or
+(CC BY 4.0 is not a copyleft software licence; it applies to the dataset, not to Narration Studio' own code), so bundling or
 downloading it does not affect the project's own AGPL status. This is a fresh evaluation of the dataset's own terms, not the
 Princeton WordNet License already noted as a training-data component of the spaCy models above.
 

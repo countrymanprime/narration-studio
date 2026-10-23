@@ -1,6 +1,6 @@
 # Audacity 4 scripting: what the published spec says (2026-09-28)
 
-**Status: done, 2026-09-28. Desk research only; nothing was run in Audacity.** Issue: [#402](https://github.com/countrymanprime/narration-utils/issues/402). Written after the owner decided on 2026-09-28 to build the Audacity hookups for Audacity 4 from the published specs, with the owner's S-A1/S-A2 session turned into the verification pass ([The DAW port](../architecture/daw-integration.md#the-daw-port), [the verification pass](../operations/audacity-verification-pass.md)). It supersedes nothing: the [launcher feasibility note](audacity-launcher-feasibility.md) found the same gap in 4.0.0 from its release notes.
+**Status: done, 2026-09-28. Desk research only; nothing was run in Audacity.** Issue: [#402](https://github.com/countrymanprime/narration-studio/issues/402). Written after the owner decided on 2026-09-28 to build the Audacity hookups for Audacity 4 from the published specs, with the owner's S-A1/S-A2 session turned into the verification pass ([The DAW port](../architecture/daw-integration.md#the-daw-port), [the verification pass](../operations/audacity-verification-pass.md)). It supersedes nothing: the [launcher feasibility note](audacity-launcher-feasibility.md) found the same gap in 4.0.0 from its release notes.
 
 Accessed 2026-09-28. Official sources only: the github.com/audacity/audacity repository (release notes, source, issues) and github.com/audacity/audacity-manual, which is the published source of manual.audacityteam.org.
 
@@ -380,7 +380,7 @@ The track index counts all tracks, not only label tracks. An object form `{track
 
 ## What this means for the build
 
-Audacity 4 publishes no scripting interface: the only published spec is Audacity 3's `mod-script-pipe`, described above, and 4.1's planned "script host" has no written protocol yet. So `apps/desktop/internal/audacitybridge` speaks the Audacity 3 protocol, behind a `Transport` interface, and the adapter reports "Audacity is not reachable" on an Audacity 4.0 install, whose pipe does not exist ([The DAW port](../architecture/daw-integration.md#the-daw-port)). How each finding above shaped the client:
+Audacity 4 publishes no scripting interface: the only published spec is Audacity 3's `mod-script-pipe`, described above, and 4.1's planned "script host" has no written protocol yet. So `src/studio/desktop/internal/audacitybridge` speaks the Audacity 3 protocol, behind a `Transport` interface, and the adapter reports "Audacity is not reachable" on an Audacity 4.0 install, whose pipe does not exist ([The DAW port](../architecture/daw-integration.md#the-daw-port)). How each finding above shaped the client:
 
 | Finding | What the client does |
 | --- | --- |

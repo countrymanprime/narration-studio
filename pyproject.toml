@@ -1,5 +1,5 @@
 [project]
-name = "narration-utils"
+name = "narration-studio"
 version = "0.1.0"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.12,<3.13"
@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-# The REAPER bridge harness (integrations/reaper/tests): Lua 5.4, the major version REAPER 7 embeds, and ruff for
+# The REAPER bridge harness (src/studio/integrations/reaper/tests): Lua 5.4, the major version REAPER 7 embeds, and ruff for
 # the Python runner. lupa is MIT and ships the interpreter inside its wheels, so uv.lock pins and hashes it on
 # Linux and Windows. Keep the ruff pin equal to the one in [project] above.
 lua = ["lupa==2.8", "ruff==0.17.1"]
@@ -48,8 +48,8 @@ target-version = "py311"
 extend-exclude = [".venv", ".runtime", ".bootstrap"]
 
 [tool.pytest.ini_options]
-pythonpath = ["libs/python"]
+pythonpath = ["src/studio/libs/python"]
 # Only the folders that hold tests: a bare `pytest` would otherwise walk every worktree and
 # scratch directory under the repo root.
-testpaths = ["libs/python/tests", "sidecars", "scripts"]
+testpaths = ["src/studio/libs/python/tests", "src/studio/sidecars", "scripts"]
 addopts = "-p no:cacheprovider"

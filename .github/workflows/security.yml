@@ -2,14 +2,14 @@ name: Security scan
 # Advisory: neither scanner is a required check, and neither fails the run on a finding (no ruleset requires a status
 # check, and the first month is a baseline: docs/operations/ci-and-releases.md, "Vulnerability scanning"). Findings show under
 # Security > Code scanning and in the run log.
-#   - govulncheck (this file): Go vulnerabilities that the code can actually reach (the Go module in apps/desktop).
+#   - govulncheck (this file): Go vulnerabilities that the code can actually reach (the Go module in src/studio/desktop).
 #   - OSV-Scanner (osv-scanner.yml): every known advisory in the three lockfiles (Go, npm, Python).
 # A pull request runs govulncheck when it changes the Go module, its toolchain pin or this workflow. The baseline on main
 # is the nightly run, not a push: a new advisory can land against an unchanged module, so the nightly run is what catches it.
 on:
   pull_request:
     paths:
-      - 'apps/desktop/**'
+      - 'src/studio/desktop/**'
       - 'scripts/toolchain.json'
       - 'scripts/ci/dedupe-sarif-stacks.mjs'
       - '.github/actions/setup-toolchain/**'
@@ -55,7 +55,7 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
       # SARIF output never fails the run; the text run below prints the findings for the log.
       - name: Scan the Go module (SARIF)
-        run: govulncheck -C apps/desktop -format sarif ./... > govulncheck.sarif
+        run: govulncheck -C src/studio/desktop -format sarif ./... > govulncheck.sarif
       # govulncheck v1.8.0 repeats identical entries in a result's `stacks`, which SARIF forbids, so Code scanning rejects
       # the file. Only exact duplicates are dropped; every finding stays.
       - name: Drop duplicate stacks from the SARIF
@@ -70,4 +70,4 @@ jobs:
       - name: Print the findings
         if: ${{ !cancelled() }}
         continue-on-error: true
-        run: govulncheck -C apps/desktop ./...
+        run: govulncheck -C src/studio/desktop ./...

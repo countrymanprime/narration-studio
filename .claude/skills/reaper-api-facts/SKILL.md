@@ -1,6 +1,6 @@
 ---
 name: reaper-api-facts
-description: Writing or reviewing Lua that calls the ReaScript API in integrations/reaper, or deciding what REAPER does for a call? Where the behaviours this repo recorded from a real REAPER 7.80 are written down (item GUIDs and pointers, P_EXT, undo, markers and regions, fixed lanes, render keys, transport reads, in docs/reference/daw/reaper.md), how to guard a newer call, and how to check a new one in an isolated REAPER run. Load before using a ReaScript call the bridge does not use yet, or before changing a fake in integrations/reaper/tests.
+description: Writing or reviewing Lua that calls the ReaScript API in src/studio/integrations/reaper, or deciding what REAPER does for a call? Where the behaviours this repo recorded from a real REAPER 7.80 are written down (item GUIDs and pointers, P_EXT, undo, markers and regions, fixed lanes, render keys, transport reads, in docs/reference/daw/reaper.md), how to guard a newer call, and how to check a new one in an isolated REAPER run. Load before using a ReaScript call the bridge does not use yet, or before changing a fake in src/studio/integrations/reaper/tests.
 ---
 
 # reaper-api-facts
@@ -11,8 +11,8 @@ The bridge harness runs against a fake `reaper` table under `lupa` Lua 5.4 ([The
 
 ## When to use this
 
-- A bridge command needs a ReaScript call that no `integrations/reaper/*.lua` file uses yet.
-- A fake in `integrations/reaper/tests/fake_reaper.lua` or a `fake_fidelity_test.lua` case changes.
+- A bridge command needs a ReaScript call that no `src/studio/integrations/reaper/*.lua` file uses yet.
+- A fake in `src/studio/integrations/reaper/tests/fake_reaper.lua` or a `fake_fidelity_test.lua` case changes.
 - You are about to write "REAPER does X" in a comment, doc or PR.
 
 ## Recorded behaviour
@@ -25,7 +25,7 @@ What REAPER was seen to do (item GUIDs and stale pointers, `P_EXT`, undo, marker
 2. **Mark what you did not see.** A call not in the recorded behaviour is "pending" in your comment, test and PR, with who owns the check. Never write that something "works in REAPER" unless a recorded run says so (`docs-style` rule 9).
 3. **Guard anything newer than REAPER 6** with `reaper.APIExists('Name')` and an error event ([version rules](../../../docs/reference/daw/reaper.md#version-rules)).
 4. **Stay on the shared Lua subset** ([version rules](../../../docs/reference/daw/reaper.md#version-rules), [The DAW port](../../../docs/architecture/daw-integration.md#the-daw-port)).
-5. **Check a new behaviour in an isolated run, and record it.** Follow [the verification pass](../../../docs/operations/reaper-verification-pass.md) rules and the spikes in `integrations/reaper/spikes/` (README there, driver `run-reaper.ps1`):
+5. **Check a new behaviour in an isolated run, and record it.** Follow [the verification pass](../../../docs/operations/reaper-verification-pass.md) rules and the spikes in `src/studio/integrations/reaper/spikes/` (README there, driver `run-reaper.ps1`):
    - Open only a **copy** of a project, with `reaper.exe -cfgfile <temp>\reaper.ini -nosplash -newinst -noactivate`, so the owner's settings and projects are never read or written.
    - Call `reaper.Audio_Quit()` first and assert `Audio_IsRunning() == 0`; assert that `GetResourcePath()` is the scratch folder before anything else runs.
    - Name each action by ID **and** expected text (`kbd_getTextFromCmd` against `SectionFromUniqueID(0)`) and stop if the text differs, so a renumbered action cannot run something else.

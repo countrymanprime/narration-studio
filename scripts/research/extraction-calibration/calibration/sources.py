@@ -55,7 +55,7 @@ def wheel_version(install: Path, wheel: str, package: str) -> str:
 
 def run_suggest(name: str, repo: Path, manuscript: Path, source: str, extra: list[str], versions: dict[str, str]) -> SourceRun:
     """The sidecar's own ``suggest`` command, as the host runs it, so what is scored is what the app would be offered."""
-    core = repo / "sidecars" / "manuscript-guide" / "core"
+    core = repo / "src" / "studio" / "sidecars" / "manuscript-guide" / "core"
     # -I ignores PYTHONPATH, so the sidecar's folder and the shared libraries go onto sys.path through -c.
     launcher = "import sys,runpy;sys.path[:0]=sys.argv[1:3];sys.argv=sys.argv[3:];runpy.run_path(sys.argv[0],run_name='__main__')"
     args = [
@@ -69,7 +69,7 @@ def run_suggest(name: str, repo: Path, manuscript: Path, source: str, extra: lis
         str(manuscript.parent / "no-story-bible.json"),
         *extra,
     ]
-    command = [sys.executable, "-I", "-c", launcher, str(core), str(repo / "libs" / "python"), *args]
+    command = [sys.executable, "-I", "-c", launcher, str(core), str(repo / "src" / "studio" / "libs" / "python"), *args]
     env = os.environ | {"PYTHONIOENCODING": "utf-8"}
     try:
         done = subprocess.run(command, capture_output=True, text=True, timeout=TIMEOUT_SECONDS, env=env, check=False)

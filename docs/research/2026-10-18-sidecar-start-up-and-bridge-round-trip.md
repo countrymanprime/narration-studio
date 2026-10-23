@@ -1,15 +1,15 @@
 # Sidecar start-up and the REAPER bridge round trip
 
-**Measured 2026-10-18.** Issue: [#1897](https://github.com/countrymanprime/narration-utils/issues/1897). **Questions:** (1) in a frozen Story Bible call that costs 226 to 380 ms p50 ([interaction latency baseline](interaction-latency-baseline.md)), how much is the PyInstaller bootloader, how much is imports, and how much is work? (2) How long does one bridge command take to come back, given that the answer waits for the host's 150 ms tick? Nobody had measured either.
+**Measured 2026-10-18.** Issue: [#1897](https://github.com/countrymanprime/narration-studio/issues/1897). **Questions:** (1) in a frozen Story Bible call that costs 226 to 380 ms p50 ([interaction latency baseline](interaction-latency-baseline.md)), how much is the PyInstaller bootloader, how much is imports, and how much is work? (2) How long does one bridge command take to come back, given that the answer waits for the host's 150 ms tick? Nobody had measured either.
 
 **Status of the numbers.** Every number is *measured* on the machine named beside it; nothing here is estimated. The Windows figures come from one run of the manual workflow [`latency-windows.yml`](../../.github/workflows/latency-windows.yml) (run 39143237384) on a GitHub-hosted `windows-latest` runner: Windows Server 2025, 2-core AMD EPYC 7763, **Defender real-time protection off** (`AntivirusEnabled` true), so a scanned first launch is not in them. One run: expect noise between runs. Linux figures from this container are kept as a second sample of shape only.
 
 ## Method
 
 - **Frozen-sidecar split.** `scripts/research/frozen-sidecar-timing.py` runs after `scripts/release/prepare-resources.py` has frozen the sidecars (`--onedir`, PyInstaller 6.22.3). It freezes a one-line `print` program with the same PyInstaller (the floor: bootloader, interpreter start, one print) and times whole launches of it and of each sidecar's `--help` (every module-level import plus argparse; no work). For each, it copies the folder to a **fresh** path three times and times launch 1 of each copy (new files: cold cache, and a scanner's first look where one runs) and launches 2 to 12 of the same copy. Launch 10 is reported beside launch 1. Wall time includes process creation.
-- **Import profile.** The script runs the frozen executable with `PYTHONPROFILEIMPORTTIME=1`. If the bootloader ignores the variable (as the Linux build did), it re-freezes the sidecar from its generated spec with `('X importtime', None, 'OPTION')` built in and runs that. It also runs `python -X importtime sidecars/.../manuscript_guide.py --help` in the dev interpreter for comparison. Only top-level (unindented) imports are summed, in cumulative microseconds.
-- **Work.** An operation's work is its time in the Go harness (`apps/desktop/internal/latency`, 20 runs, the real `guide.Service` and `process.Supervisor` against the frozen sidecar) minus the `--help` time of the same executable.
-- **Bridge round trip.** `apps/desktop/internal/latency/bridge_test.go` runs the real Go client (`bridge.Actions.PlayPosition`) against the real `narration_ui_bridge.lua` on the harness's fake `reaper`, which `scripts/research/bridge-fake-driver.py` ticks like REAPER's defer loop, 16 to 33 ms apart. A goroutine plays the host: `Dispatch` every 150 ms. 10 warm-up calls, then 100 timed calls, each started at a random offset inside the host tick. A probe polling every 0.5 ms splits the trip into the command being taken and the answer being written. Repeated with `events.log` pre-filled to 0, 1 and 8 MB.
+- **Import profile.** The script runs the frozen executable with `PYTHONPROFILEIMPORTTIME=1`. If the bootloader ignores the variable (as the Linux build did), it re-freezes the sidecar from its generated spec with `('X importtime', None, 'OPTION')` built in and runs that. It also runs `python -X importtime src/studio/sidecars/.../manuscript_guide.py --help` in the dev interpreter for comparison. Only top-level (unindented) imports are summed, in cumulative microseconds.
+- **Work.** An operation's work is its time in the Go harness (`src/studio/desktop/internal/latency`, 20 runs, the real `guide.Service` and `process.Supervisor` against the frozen sidecar) minus the `--help` time of the same executable.
+- **Bridge round trip.** `src/studio/desktop/internal/latency/bridge_test.go` runs the real Go client (`bridge.Actions.PlayPosition`) against the real `narration_ui_bridge.lua` on the harness's fake `reaper`, which `scripts/research/bridge-fake-driver.py` ticks like REAPER's defer loop, 16 to 33 ms apart. A goroutine plays the host: `Dispatch` every 150 ms. 10 warm-up calls, then 100 timed calls, each started at a random offset inside the host tick. A probe polling every 0.5 ms splits the trip into the command being taken and the answer being written. Repeated with `events.log` pre-filled to 0, 1 and 8 MB.
 - **One host tick against a growing log.** `BenchmarkDispatchByLogSize` in `internal/bridge`: the cost of `Dispatch` when nothing new arrived.
 
 ## Findings
@@ -74,7 +74,7 @@ Reading the whole log costs 0.15% of a 150 ms tick at 1 MB and 1.5% at 8 MB (abo
 
 ## After the fast-poll change (Windows, measured)
 
-The same harness and workflow on `claude/bridge-fast-poll` ([#1909](https://github.com/countrymanprime/narration-utils/pull/1909): `Client.Expect` polls every 15 ms while a request awaits its answer, and `Dispatch` reads `events.log` from the saved offset), run 39145917943. **The runner differed from the first run: AMD EPYC 7763 here, an Intel Xeon 6973P in the first run's benchmark output**, so the Story Bible rows moved by run-to-run noise as well (see below); the bridge rows are far outside that noise.
+The same harness and workflow on `claude/bridge-fast-poll` ([#1909](https://github.com/countrymanprime/narration-studio/pull/1909): `Client.Expect` polls every 15 ms while a request awaits its answer, and `Dispatch` reads `events.log` from the saved offset), run 39145917943. **The runner differed from the first run: AMD EPYC 7763 here, an Intel Xeon 6973P in the first run's benchmark output**, so the Story Bible rows moved by run-to-run noise as well (see below); the bridge rows are far outside that noise.
 
 ### Bridge round trip, before and after
 
@@ -148,7 +148,7 @@ The same workflow run by hand on `main` at `c363085` (run 39177332990, started 2
 
 ## What this does and does not show
 
-- The bridge cost is the host's tick, not the script or the log. [The fast-poll change](https://github.com/countrymanprime/narration-utils/pull/1909) targets it.
+- The bridge cost is the host's tick, not the script or the log. [The fast-poll change](https://github.com/countrymanprime/narration-studio/pull/1909) targets it.
 - Start-up dominates cheap Story Bible calls, and imports dominate start-up. Candidates, none tried: the `multiprocessing` and `setuptools` imports a frozen build carries; `manuscript_guide.py` importing `providers` (and through it Piper) for every subcommand; one long-lived sidecar process instead of one process per call. Which of them pays is for a follow-up with its own measurement.
 - The first launch of a sidecar is 0.9 to 3.1 s on this runner even with real-time protection off. Whether to start a sidecar ahead of its first use is a product question these numbers inform but do not answer.
 - Not measured: a machine with real-time protection on, a real manuscript, real REAPER under load, the work inside `create` and the pronunciation edits.

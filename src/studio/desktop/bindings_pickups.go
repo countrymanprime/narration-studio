@@ -1,0 +1,114 @@
+package main
+
+import (
+	"fmt"
+
+	"github.com/countrymanprime/narration-studio/shell/internal/pickups"
+)
+
+// The bindings for the pickup list: CSV parse
+// and validation live in internal/pickups (never trust external data, docs/architecture/wire-contracts.md's rule for anything that crosses
+// into the UI applies just as much to what a narrator hands the app from disk), and h.emitPickups (app.go)
+// relays every state change as the "pickups:state" live event, the way h.emitLineIdentity does for line
+// identity. The wire-contract schema, golden payloads and mock live in src/studio/ui/src/api.
+
+// PickupsImportResult is PickupsImport's answer: the run has started, plus every CSV row that could not be
+// used (a report, never a silent drop).
+type PickupsImportResult struct {
+	Status    string   `json:"status"`
+	RowErrors []string `json:"rowErrors"`
+}
+
+// PickupsImport parses and validates csvText (start,note,tag; a header row is optional) entirely in Go before
+// anything is sent to REAPER. A row that cannot be used is reported, not dropped; when every row is unusable
+// nothing is sent and the row report is the error.
+func (h *Host) PickupsImport(csvText string) (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	rows, issues := pickups.ParseCSV(csvText)
+	rowErrors := make([]string, 0, len(issues))
+	for _, issue := range issues {
+		rowErrors = append(rowErrors, fmt.Sprintf("line %d: %s", issue.Line, issue.Message))
+	}
+	if len(rows) == 0 {
+		message := "no valid pickups were found in the file"
+		if len(rowErrors) > 0 {
+			message += ": " + rowErrors[0]
+		}
+		return "", fmt.Errorf("%s", message)
+	}
+	run := h.runLog.Begin("pickups_import", "row_count", len(rows), "row_error_count", len(rowErrors))
+	err := service.Import(rows)
+	if err != nil {
+		run.End("error")
+	} else {
+		run.End("ok")
+	}
+	return encodeBinding(PickupsImportResult{Status: "started", RowErrors: rowErrors}, err)
+}
+
+func (h *Host) PickupsExport() (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	return encodeBinding(map[string]any{"status": "started"}, service.Export())
+}
+
+func (h *Host) PickupsNext() (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	return encodeBinding(map[string]any{"status": "started"}, service.Next())
+}
+
+func (h *Host) PickupsResolve(position float64) (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	return encodeBinding(map[string]any{"status": "started"}, service.Resolve(position))
+}
+
+// PickupsReopen puts the resolved pickup nearest position (seconds) back to open, the inverse of PickupsResolve (SN-D44). A
+// position that is not a finite number of seconds, zero or more, is refused before anything is sent.
+func (h *Host) PickupsReopen(position float64) (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	return encodeBinding(map[string]any{"status": "started"}, service.Reopen(position))
+}
+
+// PickupsListMarkers asks REAPER for every pickup marker, open or done; read-only. The validated markers arrive in the
+// "pickups:state" event's markers.
+func (h *Host) PickupsListMarkers() (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	return encodeBinding(map[string]any{"status": "started"}, service.ListMarkers())
+}
+
+func (h *Host) PickupsCount() (string, error) {
+	service := h.services().pickups
+	if service == nil {
+		return "", fmt.Errorf("the pickup list service is unavailable")
+	}
+	return encodeBinding(map[string]any{"status": "started"}, service.Count())
+}
+
+func (h *Host) PickupsState() (string, error) {
+	if service := h.services().pickups; service != nil {
+		return encodeBinding(service.Snapshot(), nil)
+	}
+	return encodeBinding(map[string]any{
+		"runId": nil, "phase": "idle", "message": "",
+		"remaining": 0, "total": 0,
+		"next": nil, "resolved": nil, "importReport": nil, "csv": "",
+		"markers": []any{},
+	}, nil)
+}

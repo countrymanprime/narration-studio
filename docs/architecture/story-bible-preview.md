@@ -4,15 +4,15 @@ The play button beside a Story Bible name, or beside one of its aliases, speaks 
 
 ## The path
 
-1. `GuideDetail.tsx` calls `usePreviewAudio`, which calls `api.guidePreview(entityId, aliasIndex)` (`Host.GuidePreview`, `apps/desktop/bindings.go`).
+1. `GuideDetail.tsx` calls `usePreviewAudio`, which calls `api.guidePreview(entityId, aliasIndex)` (`Host.GuidePreview`, `src/studio/desktop/bindings.go`).
 2. The host reads the selected voice (`Piper.tts_voice_id`), asks the asset registry's voice manager for its model and config paths, and returns **`asset_required`** (the voice, its state, download size, disk needed and where it will be stored) when the voice is not installed or does not verify. The UI shows the first-use question and, after a download, plays the preview that was asked for ([The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented), [first-use provisioning](first-use-dependency-provisioning.md)).
 3. `guide.Service.Preview` resolves the spoken text, builds the cache file name and returns a cached WAV when there is a real one. Otherwise it runs the sidecar's `render-audio` command with a two-minute deadline (`previewTimeout`) and returns the WAV as base64 (`docs/architecture/threat-model.md`'s route for short clips).
-4. The sidecar (`render_audio` in `sidecars/manuscript-guide/core/manuscript_guide.py`) synthesizes with the Piper API, never a checkout executable, and writes the WAV.
+4. The sidecar (`render_audio` in `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`) synthesizes with the Piper API, never a checkout executable, and writes the WAV.
 
 ## What keeps a failure from hurting the next try
 
 - **The cache never trusts an empty file.** A file no larger than a WAV header counts as a miss and is replaced, and a failed run removes its output. The sidecar renders to `<name>.<pid>.part` and renames on success, so a partial file cannot exist under the final name.
-- **The cache key holds the voice.** The hash input is the tag `previewCacheTag` (`narration-utils-tts-preview-v3`), the voice id, provider and version, the chosen pronunciation and the text. Changing the voice changes the path, and the tag is bumped whenever the key's inputs change so files rendered under an older key are never trusted.
+- **The cache key holds the voice.** The hash input is the tag `previewCacheTag` (`narration-studio-tts-preview-v3`), the voice id, provider and version, the chosen pronunciation and the text. Changing the voice changes the path, and the tag is bumped whenever the key's inputs change so files rendered under an older key are never trusted.
 - **The real error is reported.** The wave writer is closed by hand, so its own "# channels not specified" cannot replace the synthesis error, and a name that phonemizes to no audio says so: `"<name>" could not be spoken: <reason>`.
 - **UTF-8 pipes.** The sidecar writes UTF-8 to stdout and stderr (`use_utf8_stdio`), the encoding the host reads, so a project folder outside the Windows code page does not fail the first run.
 - **The two-minute deadline** stops a hung process (a cold start of the frozen sidecar is the slow case) with `the preview took longer than 2m0s and was stopped`. The other sidecar commands are long-running by design and are not bounded.
@@ -25,4 +25,4 @@ Each failure is one toast message: the cause in a sentence with the raw reason i
 
 ## Tests
 
-Python: `sidecars/manuscript-guide/tests/test_manuscript_guide.py` (a synthesis error is reported and not masked, an unspeakable name says so, a failed render leaves no file, UTF-8 to a legacy code page pipe). Go: `apps/desktop/internal/guide/preview_test.go` (a zero-byte cache file is replaced, an empty result is rejected and not kept, the cache is keyed on the voice, the deadline) and `apps/desktop/guidepreview_test.go` (each failure class and `asset_required` through the binding). UI: `GuideDetail.test.tsx` and `usePreviewAudio.test.tsx` (the failure message, Play usable again, the install flow). The mock has `?mockPreviewError=<text>` to see a failure without a host.
+Python: `src/studio/sidecars/manuscript-guide/tests/test_manuscript_guide.py` (a synthesis error is reported and not masked, an unspeakable name says so, a failed render leaves no file, UTF-8 to a legacy code page pipe). Go: `src/studio/desktop/internal/guide/preview_test.go` (a zero-byte cache file is replaced, an empty result is rejected and not kept, the cache is keyed on the voice, the deadline) and `src/studio/desktop/guidepreview_test.go` (each failure class and `asset_required` through the binding). UI: `GuideDetail.test.tsx` and `usePreviewAudio.test.tsx` (the failure message, Play usable again, the install flow). The mock has `?mockPreviewError=<text>` to see a failure without a host.

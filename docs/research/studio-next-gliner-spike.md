@@ -1,6 +1,6 @@
 # GLiNER spike: licence, pins, footprint and quality
 
-**Date:** 2026-10-11. **Issue:** [#1139](https://github.com/countrymanprime/narration-utils/issues/1139), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
+**Date:** 2026-10-11. **Issue:** [#1139](https://github.com/countrymanprime/narration-studio/issues/1139), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
 
 **Verdict: ship behind "not yet available".** The artifact `urchade/gliner_small-v2.1` is Apache-2.0 and its bytes are pinned below, but two things stay open until an owner run: the footprint and quality on this repo's fixture were not measured in this session, and the only published weight format for the small model is a pickle. The adapter (SNX-7a) can start from these pins; the consent screen should wait for the numbers in [Owner steps](#owner-steps).
 
@@ -122,7 +122,7 @@ Against the rules baseline the trial recorded only counts, not a paired precisio
 - **Package and version:** `gliner` 0.2.29 from PyPI, a pure-Python wheel (261,988 bytes), Apache-2.0. It pulls in `torch` and `transformers` (table above). It also supports an ONNX runtime extra (`onnxruntime`) that avoids PyTorch, but the ONNX weights are an uncleared third-party conversion (above).
 - **Registry fetch:** the three wheels above are plain `py3-none-any` or `win_amd64` wheels on `files.pythonhosted.org`, with size and SHA-256 published by PyPI, so the registry can pin them as it pins the spaCy wheels ([spaCy spike](spacy-model-provisioning-spike.md)). The weight file is a separate hashed asset from `huggingface.co`. The caveat is `torch`: 124 MB for the Windows wheel on PyPI, but an unpacked install is far larger and the sidecar must import it from a directory the registry unpacked, not from the frozen tree (SNX-Q4: separate optional wheels in the `manuscript-guide` environment).
 - **What a frozen sidecar must do:** PyInstaller cannot follow a package the freeze never saw. SNX-7a must import `gliner` lazily from the unpacked wheel directory (`sys.path` insertion before the import, as the spaCy model is loaded by directory path), and must not add `torch`, `transformers` or `gliner` to the `Sidecar` entry in `scripts/release/prepare-resources.py`, or the release carries about 5 GB it was meant to leave out. `transformers` imports many modules by string, so a path-loaded install is the practical route. Pin `transformers<5.17.0` (the `gliner` 0.2.29 constraint).
-- **Files of `sidecar-freeze` that would change** (per that skill's four places): `scripts/release/prepare-resources.py` (an `exclude_modules` entry so the freeze stays small, not a `collect_*` entry), `scripts/release/verify-installable.mjs` (check the freeze does **not** contain `torch`), `apps/desktop/smoke.go` or the sidecar's `self-check` report (report "gliner: not installed" as a normal state), and `scripts/release/tests/test_prepare_resources.py`. `notices.py` will not see an optional wheel installed after release, so its licence line must come from the registry row.
+- **Files of `sidecar-freeze` that would change** (per that skill's four places): `scripts/release/prepare-resources.py` (an `exclude_modules` entry so the freeze stays small, not a `collect_*` entry), `scripts/release/verify-installable.mjs` (check the freeze does **not** contain `torch`), `src/studio/desktop/smoke.go` or the sidecar's `self-check` report (report "gliner: not installed" as a normal state), and `scripts/release/tests/test_prepare_resources.py`. `notices.py` will not see an optional wheel installed after release, so its licence line must come from the registry row.
 
 ## Recommendation
 
@@ -130,7 +130,7 @@ Against the rules baseline the trial recorded only counts, not a paired precisio
 
 ## Owner steps
 
-These go to [#992](https://github.com/countrymanprime/narration-utils/issues/992) (D65: none of them blocks a merge).
+These go to [#992](https://github.com/countrymanprime/narration-studio/issues/992) (D65: none of them blocks a merge).
 
 1. Pin the unpinned files, on a machine with a network:
 

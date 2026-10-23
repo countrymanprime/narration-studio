@@ -1,0 +1,306 @@
+// The review bindings: every analyzer's
+// findings, read and decided through one surface whatever wrote them. A Finding keeps the wire's own snake_case
+// (docs/architecture/findings-contract.md, src/studio/desktop/internal/findings.Finding); the binding envelopes around
+// it (the query, the page, the summary) are camelCase like every other binding. Filtering, sorting and paging run
+// in the host: the UI sends a FindingsQuery and shows the page it gets back.
+
+export type FindingSeverity = 'info' | 'warning' | 'error';
+
+/** Every category the contract documents, in its order (findings.Categories(), src/studio/desktop/internal/findings/findings.go). */
+export const FINDING_CATEGORIES = [
+  'transcript_discrepancy',
+  'pronunciation',
+  'entity',
+  'pickup',
+  'duplicate_read',
+  'take_comparison',
+  'character_continuity',
+  'pacing',
+  'audio_quality',
+  'delivery_qc',
+  'silence_cleanup',
+  'level_consistency',
+] as const;
+
+/** The longest note a decision may carry, in characters (maxReviewNoteRunes, src/studio/desktop/bindings_findings.go). */
+export const MAX_REVIEW_NOTE_LENGTH = 2000;
+
+export type FindingReviewStatus = 'unreviewed' | 'accepted' | 'dismissed' | 'deferred';
+
+/** Each key's natural order, which `descending` reverses; a finding with no value for the key sorts last either way. */
+export type FindingSortKey =
+  /** Chapter id, A to Z (the default). */
+  | 'chapter'
+  /** time_range.start, earliest first. */
+  | 'time'
+  /** Confidence, lowest (least certain) first. */
+  | 'confidence'
+  /** Severity, error first. */
+  | 'severity';
+
+export type FindingProject = {
+  path?: string;
+  output_path?: string;
+};
+
+/** REAPER GUIDs are preferred for navigation; time_range is only the stale-project fallback. */
+export type FindingSource = {
+  file?: string;
+  track_guid?: string;
+  item_guid?: string;
+  take_guid?: string;
+};
+
+/** Project seconds, and the same window as source-file-relative offsets when the analyzer has them. */
+export type FindingTimeRange = {
+  start: number;
+  end: number;
+  source_start?: number;
+  source_end?: number;
+};
+
+export type FindingSpan = {
+  paragraph_id?: string;
+  start?: number;
+  end?: number;
+  ordinal?: number;
+};
+
+export type FindingManuscript = {
+  chapter_id?: string;
+  chapter_title?: string;
+  expected?: string;
+  recorded?: string;
+  span?: FindingSpan;
+};
+
+/** A proposal only: the host executes it after the narrator confirms, never on its own. */
+export type FindingSuggestedAction = {
+  kind: string;
+  parameters?: Record<string, unknown>;
+  requires_confirmation: boolean;
+};
+
+/** The ten kinds of problem a narrator can say a finding is, in the select's order (findings.NoteTypes). */
+export const FINDING_NOTE_TYPES = ['misread', 'skip', 'mouth', 'pron', 'pacing', 'repeat', 'plosive', 'noise', 'takes', 'breath'] as const;
+
+export type FindingNoteType = (typeof FINDING_NOTE_TYPES)[number];
+
+/**
+ * The word shown for a finding while the narrator has not chosen one: its category, refined by evidence.kind where the
+ * category covers more than one word. The same mapping as findings.DefaultNoteType; choosing this word
+ * again returns the finding to "not chosen".
+ */
+export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evidence'>): FindingNoteType {
+  const kind = typeof finding.evidence?.kind === 'string' ? finding.evidence.kind.toLowerCase() : '';
+  switch (finding.category) {
+    case 'transcript_discrepancy':
+      return kind === 'skipped' ? 'skip' : 'misread';
+    case 'pronunciation':
+    case 'entity':
+    case 'character_continuity':
+      return 'pron';
+    case 'duplicate_read':
+      return 'repeat';
+    case 'take_comparison':
+      return 'takes';
+    case 'pacing':
+    case 'silence_cleanup':
+      return 'pacing';
+    case 'audio_quality':
+      if (kind === 'mouth_click' || kind === 'mouth') return 'mouth';
+      if (kind === 'plosive') return 'plosive';
+      if (kind === 'breath') return 'breath';
+      return 'noise';
+    case 'delivery_qc':
+    case 'level_consistency':
+      return 'noise';
+    default:
+      return 'misread';
+  }
+}
+
+/** The type a note shows everywhere (the table's Type column and the inspector's select): the narrator's choice, else the analyzer's mapped word. */
+export function shownFindingNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'>): FindingNoteType {
+  return finding.review.type ?? defaultFindingNoteType(finding);
+}
+
+/** Who wrote a note on a finding: the narrator, or a proofer's reply the narrator pasted in. */
+export const FINDING_THREAD_AUTHORS = ['you', 'proofer'] as const;
+export type FindingThreadAuthor = (typeof FINDING_THREAD_AUTHORS)[number];
+
+/** One note in a finding's thread: its id, who wrote it, its text, when it was added and, once edited, when it last was. */
+export type FindingThreadMessage = {
+  id: string;
+  who: FindingThreadAuthor;
+  text: string;
+  at: string;
+  edited_at?: string;
+};
+
+/** A change to a finding's thread (`FindingsThread`): add a note, edit or delete one, or restore a deleted one (the Undo of a delete). */
+export type FindingThreadChange =
+  { op: 'add'; who: FindingThreadAuthor; text: string } | { op: 'edit'; messageId: string; text: string } | { op: 'delete' | 'restore'; messageId: string };
+
+export type FindingReviewState = {
+  status: FindingReviewStatus;
+  note?: string;
+  timestamp?: string;
+  /** The kind the narrator chose; absent until chosen, then the analyzer's own word applies. Not a decision. */
+  type?: FindingNoteType;
+  /** The notes on the finding, oldest first (PF-1 part 7); absent until the first. Not a decision, and kept across a re-check. */
+  thread?: FindingThreadMessage[];
+};
+
+export type Finding = {
+  schema_version: number;
+  id: string;
+  /** The store partition that wrote it: "transcript-compare", "story-bible", "take-review", and later analyzers. */
+  analyzer: string;
+  project: FindingProject;
+  source: FindingSource;
+  time_range?: FindingTimeRange;
+  manuscript?: FindingManuscript;
+  /** One of the contract's categories (transcript_discrepancy, entity, pronunciation, pickup, ...); open so a newer host still loads. */
+  category: string;
+  severity: FindingSeverity;
+  /** Null when the analyzer has no numeric score; confidence_reason explains either way. */
+  confidence: number | null;
+  confidence_reason: string;
+  /** Hashes the evidence a decision is made against; FindingsReview sends back the one the page showed. */
+  evidence_version?: string;
+  /** Analyzer-specific: each analyzer documents its own keys (findings-contract.md). */
+  evidence?: Record<string, unknown>;
+  suggested_action?: FindingSuggestedAction;
+  review: FindingReviewState;
+  /** The latest run did not reproduce it; kept for audit rather than deleted. */
+  not_in_latest_run?: boolean;
+};
+
+/** Every field optional: an empty filter matches everything, no sort is chapter order, no limit is every match. */
+export type FindingsQuery = {
+  analyzer?: string;
+  category?: string;
+  severity?: FindingSeverity;
+  status?: FindingReviewStatus;
+  chapterId?: string;
+  minConfidence?: number;
+  includeNotInLatestRun?: boolean;
+  sort?: FindingSortKey;
+  descending?: boolean;
+  limit?: number;
+  offset?: number;
+};
+
+/** One page of the sorted matches, and how many matched before paging. */
+export type FindingsPage = {
+  findings: Finding[];
+  total: number;
+};
+
+export type FindingChapterFacet = {
+  id: string;
+  title?: string;
+};
+
+/** The queue at a glance: the latest run's findings by status (the navigation badge is `unreviewed`) and the facets present. */
+export type FindingsSummary = {
+  total: number;
+  unreviewed: number;
+  accepted: number;
+  dismissed: number;
+  deferred: number;
+  /** Notes with a resolution (accepted, dismissed, deferred) in the latest run. */
+  decided: number;
+  /** Notes closed: dismissed, which includes "waived". An accepted or deferred note is decided and still open. */
+  cleared: number;
+  notInLatestRun: number;
+  analyzers: string[];
+  categories: string[];
+  chapters: FindingChapterFacet[];
+};
+
+/** A decision on the finding the page showed; the host refuses it when the evidence changed since. */
+export type FindingReviewRequest = {
+  id: string;
+  evidenceVersion: string;
+  status: FindingReviewStatus;
+  note: string;
+};
+
+/**
+ * Whether the Review page's REAPER controls can work now (src/studio/desktop/bindings_navigation.go),
+ * read from the heartbeat REAPER's script already sends, so asking sends REAPER nothing. `standalone`: the app was opened
+ * on its own; `not_running`: REAPER has gone quiet. `message` says so in plain words when not connected.
+ */
+export type ReaperConnection = 'connected' | 'not_running' | 'standalone';
+
+export type ReaperStatus = {
+  connection: ReaperConnection;
+  message?: string;
+  /** The finding a loop this app started is on, while connected; Stop puts the narrator's selection and repeat back. */
+  loopingFindingId?: string;
+};
+
+/** Why REAPER was not asked, or did not move: the connection states, and what the finding or REAPER itself refused. */
+export type FindingNavigationRefusal = 'standalone' | 'not_running' | 'no_item' | 'no_source_time' | 'stale' | 'recording' | 'script_outdated' | 'failed';
+
+/**
+ * What Go to, Loop or Stop did. Times are project seconds. A refusal changed nothing in REAPER, and `message` says why
+ * and what to do in the narrator's words.
+ */
+export type FindingNavigation =
+  | { outcome: 'navigated'; projectTime: number }
+  | { outcome: 'looping'; loopStart: number; loopEnd: number }
+  | { outcome: 'stopped'; restored: number; kept: number }
+  | { outcome: 'refused'; reason: FindingNavigationRefusal; message: string };
+
+/** Why no marker was added: the navigation refusals. Any note can be marked, whatever its decision (SD-4). */
+export type FindingMarkerRefusal = FindingNavigationRefusal;
+
+/**
+ * What adding the approved marker did: `added` (REAPER added the take marker `name`, in
+ * one undo point), `existing` (the take already had a marker of the same kind within 0.15 s, named `name`; nothing changed)
+ * or `refused` (nothing in REAPER changed; `message` says why in the narrator's words). `sourceTime` is in the take's
+ * source seconds.
+ */
+export type FindingMarker =
+  { outcome: 'added' | 'existing'; name: string; sourceTime: number } | { outcome: 'refused'; reason: FindingMarkerRefusal; message: string };
+
+export interface FindingsApi {
+  /** One page of the findings that match the query, filtered, sorted and paged by the host. */
+  findingsList(query: FindingsQuery): Promise<FindingsPage>;
+  /** The finding with this id; rejects when the project no longer has it. */
+  findingsGet(id: string): Promise<Finding>;
+  /** Records the narrator's decision (append-only) and answers the finding as the host now holds it. */
+  findingsReview(request: FindingReviewRequest): Promise<Finding>;
+  /**
+   * Records the kind the narrator says a finding is, against the evidence version they saw, and answers the finding
+   * (review.type absent when they chose the analyzer's own word). Not a decision: status, note and the counts stay.
+   */
+  findingsSetType(id: string, evidenceVersion: string, type: FindingNoteType): Promise<Finding>;
+  /**
+   * Changes the finding's thread of notes (append-only on the host) and answers the finding with `review.thread`. Not a decision and
+   * not tied to the evidence version. Rejects empty text, an unknown author or a message the thread does not have.
+   */
+  findingsThread(id: string, change: FindingThreadChange): Promise<Finding>;
+  /** Counts by status and the analyzers, categories and chapters present. */
+  findingsSummary(): Promise<FindingsSummary>;
+  /** Whether REAPER is there for Go to and Loop; sends REAPER nothing, so the page may poll it. */
+  findingsReaperStatus(): Promise<ReaperStatus>;
+  /** Selects the finding's item in REAPER and puts the edit cursor on its spot. */
+  findingsGoTo(id: string): Promise<FindingNavigation>;
+  /** Loops the finding's context in REAPER: time selection, loop points, repeat on, Play. */
+  findingsLoop(id: string): Promise<FindingNavigation>;
+  /**
+   * Go to for one read of a finding that groups several (a take-review pickup or duplicate read): `read` is its index in
+   * `evidence.members`, and REAPER goes to that read's own item and take.
+   */
+  findingsGoToRead(id: string, read: number): Promise<FindingNavigation>;
+  /** Loop for one read of such a finding, over its own range; the loop is the finding's, so Stop loop stops it. */
+  findingsLoopRead(id: string, read: number): Promise<FindingNavigation>;
+  /** Stops the loop and puts back the time selection, loop points and repeat the narrator had. */
+  findingsStopLoop(): Promise<FindingNavigation>;
+  /** Adds one take marker in REAPER at an accepted finding's spot, named like Transcript Compare's. */
+  findingsAddMarker(id: string): Promise<FindingMarker>;
+}

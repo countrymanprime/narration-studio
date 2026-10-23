@@ -9,16 +9,16 @@ The first real-speech run, on public-domain LibriVox readings, is in [LibriVox r
 
 ## What ran
 
-`sidecars/transcript-compare/tests/coverage_calibration.py` runs every case the way the host runs a check. The sidecar's
+`src/studio/sidecars/transcript-compare/tests/coverage_calibration.py` runs every case the way the host runs a check. The sidecar's
 coverage mode (`compare.py --coverage`, `core/coverage_mode.py`) reads a JSON manifest and one words file per item and
 writes the tagged result lines. The thresholds are then applied on read by a copy of `coverage.Report.TextComplete`
-(`apps/desktop/internal/coverage/report.go`). Scripted cases get their words files written first, so nothing is
+(`src/studio/desktop/internal/coverage/report.go`). Scripted cases get their words files written first, so nothing is
 transcribed. A test checks that the in-process run and the `compare.py` command line write the same result.
 
 ```bash
-uv run python sidecars/transcript-compare/tests/coverage_calibration.py synthetic   # the sweep below (about 10 minutes)
-uv run python sidecars/transcript-compare/tests/coverage_calibration.py render-audio --voice <piper .onnx> --out <dir outside the repo>
-uv run python sidecars/transcript-compare/tests/coverage_calibration.py audio --corpus <that dir> --model small=<model dir> --model tiny=<model dir> --model medium=<model dir> --model large-v3-turbo=<model dir>
+uv run python src/studio/sidecars/transcript-compare/tests/coverage_calibration.py synthetic   # the sweep below (about 10 minutes)
+uv run python src/studio/sidecars/transcript-compare/tests/coverage_calibration.py render-audio --voice <piper .onnx> --out <dir outside the repo>
+uv run python src/studio/sidecars/transcript-compare/tests/coverage_calibration.py audio --corpus <that dir> --model small=<model dir> --model tiny=<model dir> --model medium=<model dir> --model large-v3-turbo=<model dir>
 ```
 
 ### The cases
@@ -193,7 +193,7 @@ Q7 asks for `small` to be compared with one larger model. With the owner's go-ah
 from the catalog, hash-verified (`go run ./cmd/seed-assets whisper/large-v3-turbo`, the app's own managers). The 16
 cases were then spoken again with the same Piper voice and run through the sidecar with `small` and
 `large-v3-turbo`, and then `medium` (also installed with the owner's go-ahead), on the same machine, on 2026-09-23
-([#425](https://github.com/countrymanprime/narration-utils/issues/425)):
+([#425](https://github.com/countrymanprime/narration-studio/issues/425)):
 
 | Model | Cases | False met | False not met (shipped 0.8) | False not met (Proposed 0.95) | Words dropped / swapped / added (all cases) | 12.0 audio minutes, 16 checks |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -230,9 +230,9 @@ Phase 1 of the model cascade PRD asks whether a `tiny` first pass, with `large-v
 that fail the chapter, is as good as one model and cheaper. Two commands measure it:
 
 ```bash
-uv run python sidecars/transcript-compare/tests/coverage_calibration.py windows --corpus <dir> --model tiny=<model dir> --model small=<model dir> --model large-v3-turbo=<model dir>
-uv run python sidecars/transcript-compare/tests/coverage_calibration.py cascade --corpus <dir> --model tiny=<model dir> --model small=<model dir> --model large-v3-turbo=<model dir> --work <dir outside the repo>
-uv run python sidecars/transcript-compare/tests/coverage_calibration.py cascade --manifest <host manifest> --manuscript <manuscript.json> --chapter-id <id> --model ... --work <dir>
+uv run python src/studio/sidecars/transcript-compare/tests/coverage_calibration.py windows --corpus <dir> --model tiny=<model dir> --model small=<model dir> --model large-v3-turbo=<model dir>
+uv run python src/studio/sidecars/transcript-compare/tests/coverage_calibration.py cascade --corpus <dir> --model tiny=<model dir> --model small=<model dir> --model large-v3-turbo=<model dir> --work <dir outside the repo>
+uv run python src/studio/sidecars/transcript-compare/tests/coverage_calibration.py cascade --manifest <host manifest> --manuscript <manuscript.json> --chapter-id <id> --model ... --work <dir>
 ```
 
 `cascade` runs each model alone through the sidecar (the `audio` path and its words cache, which now keeps the time of

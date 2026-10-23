@@ -1,7 +1,7 @@
 // Bumps hostAPIVersion in the three places that must agree, then regenerates the Wails bindings (Host.*).
 //
-// The version is `const hostAPIVersion` in apps/desktop/app.go, the check (and its message) in apps/desktop/app_test.go, and
-// DESKTOP_HOST_API_VERSION in apps/ui/src/hostApi.ts. The agent train's rule (.claude/skills/agent-train/SKILL.md, "Serial points"):
+// The version is `const hostAPIVersion` in src/studio/desktop/app.go, the check (and its message) in src/studio/desktop/app_test.go, and
+// DESKTOP_HOST_API_VERSION in src/studio/ui/src/hostApi.ts. The agent train's rule (.claude/skills/agent-train/SKILL.md, "Serial points"):
 // a PR that adds a binding takes main's value + 1, and on a collision whoever merges main second takes the higher value + 1.
 // So the new version is the highest one seen (in the three files, and at --against <ref> when given) plus one.
 //
@@ -19,13 +19,13 @@ import { fileURLToPath } from 'node:url';
 const REPO_ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
 
 export const FILES = {
-  app: 'apps/desktop/app.go',
-  test: 'apps/desktop/app_test.go',
-  ui: 'apps/ui/src/hostApi.ts',
+  app: 'src/studio/desktop/app.go',
+  test: 'src/studio/desktop/app_test.go',
+  ui: 'src/studio/ui/src/hostApi.ts',
 };
 
-/** `pnpm --dir apps/desktop run bindings`: `wails3 generate bindings` into apps/ui/wailsjs, which is Host.*. */
-export const BINDINGS_COMMAND = ['pnpm', ['--dir', 'apps/desktop', 'run', 'bindings']];
+/** `pnpm --dir src/studio/desktop run bindings`: `wails3 generate bindings` into src/studio/ui/wailsjs, which is Host.*. */
+export const BINDINGS_COMMAND = ['pnpm', ['--dir', 'src/studio/desktop', 'run', 'bindings']];
 
 // Each pattern captures the version; every one must match exactly once in its file.
 const PATTERNS = {

@@ -1,6 +1,6 @@
 # Per-take divergence: is ASR word timing precise enough? (Q10)
 
-**Date:** 2026-09-23. **PRD:** take review, phase 9 (delivered: [Take review](../utilities/take-review.md)). **Decision:** [take_divergence_mode.py](../../sidecars/transcript-compare/core/take_divergence_mode.py). **Result:** option (A) stays. Diff plus Whisper word timestamps ([Alignment and confidence](../utilities/transcript-compare.md#alignment-and-confidence)) localized every constructed divergence to the right words, with its time within 0.23 s. Forced alignment is not adopted.
+**Date:** 2026-09-23. **PRD:** take review, phase 9 (delivered: [Take review](../utilities/take-review.md)). **Decision:** [take_divergence_mode.py](../../src/studio/sidecars/transcript-compare/core/take_divergence_mode.py). **Result:** option (A) stays. Diff plus Whisper word timestamps ([Alignment and confidence](../utilities/transcript-compare.md#alignment-and-confidence)) localized every constructed divergence to the right words, with its time within 0.23 s. Forced alignment is not adopted.
 
 > **This is synthetic evidence.** The owner chose constructed fixtures over an annotated corpus (Q10, answered 2026-09-23). A synthetic voice reads cleanly and evenly, with no room noise, breaths, mouth noise, plosives or overlapping retakes, and Whisper times such speech better than it times a real session. The numbers below are an optimistic bound. They show the method works and that timing is not its weak point. They do not show how it does on real recordings. If annotated chapters become available, repeat the run on them (see [Repeating it](#repeating-it)).
 
@@ -18,7 +18,7 @@ Finer timing than that could not shade a smaller sub-span, so forced alignment w
 
 ## The fixtures
 
-[`sidecars/transcript-compare/tests/fixtures/divergence/cases.json`](../../sidecars/transcript-compare/tests/fixtures/divergence/cases.json) holds four paragraphs (three from chapter I of *Alice's Adventures in Wonderland*, public domain, and one constructed with a number, an invented name and a homophone) and 14 scripted takes. A script is a list of segments: `read` (the span's next words, optionally said differently with `as`: digits, a homophone), `misread` (the span's next words said as something else), `skip`, `unread` (the take starts late), `extra` and `restart` (said, not in the span). The harness walks each script along the span and derives the ground truth: every divergence as span words, and its true time from the words the script says. A script that does not read the span's own words is a fixture error.
+[`src/studio/sidecars/transcript-compare/tests/fixtures/divergence/cases.json`](../../src/studio/sidecars/transcript-compare/tests/fixtures/divergence/cases.json) holds four paragraphs (three from chapter I of *Alice's Adventures in Wonderland*, public domain, and one constructed with a number, an invented name and a homophone) and 14 scripted takes. A script is a list of segments: `read` (the span's next words, optionally said differently with `as`: digits, a homophone), `misread` (the span's next words said as something else), `skip`, `unread` (the take starts late), `extra` and `restart` (said, not in the span). The harness walks each script along the span and derives the ground truth: every divergence as span words, and its true time from the words the script says. A script that does not read the span's own words is a fixture error.
 
 | Case | Divergence put there |
 | --- | --- |
@@ -39,11 +39,11 @@ Finer timing than that could not shade a smaller sub-span, so forced alignment w
 
 ## Method
 
-The analyzer is the shipped code: `compare.py --take-divergence`'s alignment (`core/take_divergence.py`), which runs the take markers' own diff. [`tests/divergence_harness.py`](../../sidecars/transcript-compare/tests/divergence_harness.py) scores it three ways:
+The analyzer is the shipped code: `compare.py --take-divergence`'s alignment (`core/take_divergence.py`), which runs the take markers' own diff. [`tests/divergence_harness.py`](../../src/studio/sidecars/transcript-compare/tests/divergence_harness.py) scores it three ways:
 
 - **exact:** words at 150 a minute (0.32 s spoken, 0.08 s gap), a 0.3 s pause after a sentence and 0.35 s after a false start;
 - **jitter:** the same with every word boundary moved at random by up to 0.15 s (seeded per case), standing in for ASR timestamp error;
-- **real ASR:** each take spoken by a Windows System.Speech voice ([`tests/divergence_tts.ps1`](../../sidecars/transcript-compare/tests/divergence_tts.ps1)). The voice reports every word's onset. A word's true end is where the audio before the next onset last holds speech (10 ms frames within 35 dB of the loudest), so a pause after a word is not counted as part of it. The WAV is decoded and transcribed exactly as the sidecar transcribes a take (`decode_segment`, `transcribe` with word timestamps and VAD, English), from a local faster-whisper model, offline.
+- **real ASR:** each take spoken by a Windows System.Speech voice ([`tests/divergence_tts.ps1`](../../src/studio/sidecars/transcript-compare/tests/divergence_tts.ps1)). The voice reports every word's onset. A word's true end is where the audio before the next onset last holds speech (10 ms frames within 35 dB of the loudest), so a pause after a word is not counted as part of it. The WAV is decoded and transcribed exactly as the sidecar transcribes a take (`decode_segment`, `transcribe` with word timestamps and VAD, English), from a local faster-whisper model, offline.
 
 The first two run in CI as a gate (`tests/test_divergence_harness.py`). The third is manual.
 
@@ -115,11 +115,11 @@ The first real-ASR runs with `base` and `tiny` missed the mid-sentence restart. 
 
 ```bash
 # 1. the texts to speak
-python sidecars/transcript-compare/tests/divergence_harness.py --tts-plan %TEMP%/plan.json
+python src/studio/sidecars/transcript-compare/tests/divergence_harness.py --tts-plan %TEMP%/plan.json
 # 2. speak them (Windows, offline), one WAV and one onset file per case
-pwsh sidecars/transcript-compare/tests/divergence_tts.ps1 -Plan %TEMP%/plan.json -OutDir %TEMP%/divergence-audio [-Voice "Microsoft Zira Desktop" -Rate 3]
+pwsh src/studio/sidecars/transcript-compare/tests/divergence_tts.ps1 -Plan %TEMP%/plan.json -OutDir %TEMP%/divergence-audio [-Voice "Microsoft Zira Desktop" -Rate 3]
 # 3. transcribe and score, with a local model directory (no download)
-python sidecars/transcript-compare/tests/divergence_harness.py --asr %TEMP%/divergence-audio --model small --model-dir <faster-whisper-small directory> [--hotwords Arelian]
+python src/studio/sidecars/transcript-compare/tests/divergence_harness.py --asr %TEMP%/divergence-audio --model small --model-dir <faster-whisper-small directory> [--hotwords Arelian]
 ```
 
 The WAVs are scratch output and stay out of the repository. To evaluate real recordings, write a case per take in the same script format (the words actually said, with the divergences where they happened) and a `<case>.json` of true word onsets, for example from a hand-checked forced alignment or a labeled editor session. `--asr` then scores them the same way.

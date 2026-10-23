@@ -1,6 +1,6 @@
 # Merriam-Webster Dictionary API: endpoint, key and answer shape (Phase 0)
 
-**Date:** 2026-09-27. **Issue:** [#626](https://github.com/countrymanprime/narration-utils/issues/626). **Answers:** what the online pronunciation adapter (`apps/desktop/internal/pronunciationonline/merriamwebster`) sends and reads, for [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) point 2 and [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md).
+**Date:** 2026-09-27. **Issue:** [#626](https://github.com/countrymanprime/narration-studio/issues/626). **Answers:** what the online pronunciation adapter (`src/studio/desktop/internal/pronunciationonline/merriamwebster`) sends and reads, for [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) point 2 and [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md).
 
 **Verdict: per upstream docs, not verified here; owner check pending.** This session's egress proxy refused both `dictionaryapi.com` and `www.dictionaryapi.com` (`curl`, 2026-09-27: `CONNECT tunnel failed, response 403`, the proxy's `connect_rejected`, not an answer from the site), as the PRD's own session found on the same date. The shapes below are Merriam-Webster's developer documentation as this session knows it, not re-read live. CI and the tests never call the API: every test runs against a local `httptest` server or the fake dictionary (D67).
 
@@ -20,4 +20,4 @@ Per the documentation, a free key is for non-commercial use and is limited to 1,
 
 ## Pending with the owner
 
-The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).

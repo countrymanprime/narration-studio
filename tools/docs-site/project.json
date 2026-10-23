@@ -5,7 +5,7 @@
   "tags": [
     "toolchain:docs"
   ],
-  "$comment": "The MkDocs reading view of docs/: MkDocs + Material reading docs/ in place. `build-site` is a strict MkDocs build (every warning, including a dead link or anchor, fails) and then check_site.py over the built HTML. Both run through `uv run --locked --only-group docs`, which installs the `docs` uv group into .venv on first use (it is not a default group, so the release build never has it). `build-site` is named off the default `lint format architecture knip test test-node build` check set on purpose: GitHub Pages publishes apps/site, not this site, so `pnpm check` and `_quality.yml` run only `lint` and `test` here and no workflow calls `build-site`. check_site.py is also what pages.yml runs over the built apps/site.",
+  "$comment": "The MkDocs reading view of docs/: MkDocs + Material reading docs/ in place. `build-site` is a strict MkDocs build (every warning, including a dead link or anchor, fails) and then check_site.py over the built HTML. Both run through `uv run --locked --only-group docs`, which installs the `docs` uv group into .venv on first use (it is not a default group, so the release build never has it). `build-site` is named off the default `lint format architecture knip test test-node build` check set on purpose: GitHub Pages publishes src/web, not this site, so `pnpm check` and `_quality.yml` run only `lint` and `test` here and no workflow calls `build-site`. check_site.py is also what pages.yml runs over the built src/web.",
   "targets": {
     "lint": {
       "executor": "nx:run-commands",

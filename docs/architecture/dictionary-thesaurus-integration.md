@@ -17,9 +17,9 @@ click, and it is registered as the `dictionary` provider in the one asset/provid
 ## The path
 
 1. The install builds a 17 MB lookup index from the verified release.
-2. `apps/desktop/internal/dictionary` reads that index from Go, per lookup — no persistent Python sidecar
+2. `src/studio/desktop/internal/dictionary` reads that index from Go, per lookup — no persistent Python sidecar
    ([codebase map](codebase-map.md)'s standing "no Python server" rule). `Host.SystemLookup`
-   (`apps/desktop/dictionarylookup.go`) answers `asset_required` (never downloads on its own) or `ok`; measured p95
+   (`src/studio/desktop/dictionarylookup.go`) answers `asset_required` (never downloads on its own) or `ok`; measured p95
    is 1.0-1.5ms on the real release, well under the 250ms budget.
 3. "Look up" is in the Script page's selection toolbar (`SelectionTool.tsx`) and context menu. For a single word that no
    Story Bible entry names, `lookupTarget` sends the narrator to the rail's Words tab (`rail/words/WordsTab.tsx`). With
@@ -32,8 +32,8 @@ click, and it is registered as the `dictionary` provider in the one asset/provid
 
 ## Tests
 
-Go: `apps/desktop/internal/dictionary` package tests (index build, lookup latency, a corrupted index reported as
+Go: `src/studio/desktop/internal/dictionary` package tests (index build, lookup latency, a corrupted index reported as
 damaged, not silently empty). Vitest: `WordsTab.test.tsx` (the local dictionary's definition with its attribution,
 and the not-installed notice with the download prompt). Visual: `script/rail-words` and `script/selection-tools`, reviewed at desktop, small-desktop and tablet (the suite has no phone viewport,
-[viewports.ts](../../apps/ui/tests/visual/viewports.ts)); aria snapshots pin the panel and the question's
+[viewports.ts](../../src/studio/ui/tests/visual/viewports.ts)); aria snapshots pin the panel and the question's
 role tree.

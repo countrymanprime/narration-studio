@@ -1,0 +1,275 @@
+package bridge
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// The events the Lua bridge appends to events.log, as a table. Lua is imported into REAPER by the narrator, so it can
+// be older or newer than the host: a line that is too short, or whose numbers are not numbers, must not become a zero-filled
+// row. Each event is checked against this table before any consumer sees it, and an event that fails is reported
+// (see Client.Dispatch) and never delivered as data.
+//
+// The table lists the fields after the tag, in order. Required fields must be present and, for numbers, non-empty and numeric.
+// Optional fields (the tail of a marker, which an older script does not send) may be absent or empty, and are checked only when they
+// hold something. A tag that is not in the table is a newer script's event and passes through (additive changes need no bump).
+// src/studio/integrations/reaper/tests pins what Lua emits and wire_test.go pins what this table accepts, from the same lines.
+type fieldKind int
+
+const (
+	textField fieldKind = iota
+	intField
+	numberField
+)
+
+type fieldSpec struct {
+	name string
+	kind fieldKind
+}
+
+type eventSpec struct {
+	required []fieldSpec
+	optional []fieldSpec
+}
+
+func text(name string) fieldSpec   { return fieldSpec{name, textField} }
+func count(name string) fieldSpec  { return fieldSpec{name, intField} }
+func number(name string) fieldSpec { return fieldSpec{name, numberField} }
+
+var eventSpecs = map[string]eventSpec{
+	"COMPARE_PREPARED": {required: []fieldSpec{text("run"), text("manifest"), text("manuscript"), text("track"), text("diff"), count("items")}, optional: []fieldSpec{count("changeCount")}},
+	"COMPARE_MARKER": {
+		required: []fieldSpec{text("run"), text("id"), text("kind"), text("name"), text("docText"), text("audioText"), number("projectTime"), count("itemIndex")},
+		optional: []fieldSpec{text("chapter"), count("paragraph"), text("scriptContext"), text("audioContext"), text("markerState"), text("existingMarkerName"), number("srcpos"),
+			// Appended after the others (fields are never reordered): the identity a finding is navigated by.
+			text("itemGuid"), text("takeGuid"), text("trackGuid")},
+	},
+	"COMPARE_INSPECTED":     {required: []fieldSpec{text("run"), text("summary"), count("total"), count("alreadyMarked")}},
+	"COMPARE_EXPORT_MARKER": {required: []fieldSpec{text("run"), text("row"), text("state")}, optional: []fieldSpec{text("existingName")}},
+	"COMPARE_EXPORTED":      {required: []fieldSpec{text("run"), count("added"), count("skipped")}},
+	// ERROR|<message> is the shape before the run id was added; it stays readable and consumers ignore it.
+	"ERROR":          {required: []fieldSpec{text("run")}, optional: []fieldSpec{text("message")}},
+	"LINES_STAMPED":  {required: []fieldSpec{text("run"), count("applied"), count("unchanged"), count("missing"), count("conflicts")}},
+	"LINES_READ":     {required: []fieldSpec{text("run"), text("path"), count("count")}},
+	"LINES_STALE":    {required: []fieldSpec{text("run"), text("guid")}},
+	"LINES_CONFLICT": {required: []fieldSpec{text("run"), text("guid")}},
+	// updated, ambiguous and failed were appended by create_regions (narration_regions.lua), which replaced
+	// create_chapter_regions: optional, so the older three-count answer still reads.
+	"PLAY_POSITION": {required: []fieldSpec{text("run"), count("state"), number("heard"), number("processed"), number("cursor")}},
+	"PUNCHED":       {required: []fieldSpec{text("run"), number("cursor")}},
+	// roll (narration_roll.lua): the track REAPER records on again, the time it records from, and the undo points
+	// the command added (0; the points for the recorded media are REAPER's).
+	"ROLLED": {required: []fieldSpec{text("run"), text("track"), number("at"), count("undoPoints")}},
+	// delete_range (narration_range.lua): the left piece (empty when the cut began at the item's start), the
+	// piece moved to the Cuts track, and the undo points the command added (1). A pad or room tone (SN-E97) leaves the answer
+	// as it is: the room-tone pieces are not named.
+	"RANGE_CUT": {required: []fieldSpec{text("run"), text("left"), text("cut"), count("undoPoints")}},
+	// apply_fx_range and remove_fx_range (narration_range.lua, docs/reference/daw/capabilities.md): the piece the chain went on and its take,
+	// or the item the piece is part of after the join; the chain; and the undo points the command added (1, or 0 for a
+	// removal that found nothing to take off).
+	"RANGE_FX_APPLIED": {required: []fieldSpec{text("run"), text("item"), text("take"), text("chain"), count("undoPoints")}},
+	"RANGE_FX_REMOVED": {required: []fieldSpec{text("run"), text("item"), text("chain"), count("undoPoints")}},
+	// stack_takes and unstack_takes (narration_takes.lua, docs/reference/daw/capabilities.md): the groups and takes moved, the seconds the audio
+	// after them moved (negative for a stack), and the undo points the command added (1).
+	"TAKES_STACKED":         {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
+	"TAKES_UNSTACKED":       {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
+	"REGIONS_CREATED":       {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
+	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
+	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},
+	"PICKUPS_COUNTED":       {required: []fieldSpec{text("run"), count("remaining"), count("total")}},
+	"PICKUP_NEXT":           {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
+	"PICKUP_RESOLVED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
+	"PICKUP_REOPENED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
+	"PICKUP_MARKERS_LISTED": {required: []fieldSpec{text("run"), text("path"), count("open"), count("done")}},
+	// Configure-only render setup. targets is RENDER_TARGETS, semicolon-joined, empty when count is 0 (no chapter
+	// regions yet).
+	"RENDER_CONFIGURED": {required: []fieldSpec{text("run"), text("folder"), count("count"), text("targets")}},
+	// The live "project changed since this check" indicator. changeCount is GetProjectStateChangeCount(0);
+	// projectPath is empty when the project has never been saved.
+	"PROJECT_STATE": {required: []fieldSpec{text("run"), count("changeCount"), text("projectPath")}},
+	// PROJECT_STATUS is the reachability heartbeat src/studio/desktop/internal/daw/locate.go recommends: narration_ui_bridge.lua's tick loop
+	// appends it periodically with an empty run (Fields[1] == ""), so events.go's existing fan-out (a run-less event
+	// reaches every subscriber, Subscription.wants) delivers it as a broadcast with no dedicated route needed. rpp is
+	// EnumProjects(-1, '')'s second return value verbatim (the empty string for an unsaved project, never omitted -
+	// docs/research/reaper-spike-s6-daw-reachability.md confirmed REAPER never returns nil there), and unsaved is "1"
+	// exactly when rpp is empty. changeCount (GetProjectStateChangeCount(0)) was appended later: optional, so an older
+	// script's three-field heartbeat still passes, and empty on a REAPER without the call. playState (GetPlayState's
+	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later
+	// optional for the same reason; the script also sends a heartbeat at once when playState changes.
+	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition")}},
+	// src/studio/integrations/reaper/narration_cleanup.lua: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
+	// action-list name REAPER matched (so the narrator sees what opened).
+	"CLEANUP_LAUNCHED": {required: []fieldSpec{text("run"), text("tool"), text("action")}},
+	// src/studio/integrations/reaper/narration_level_normalize.lua: apply_item_gain (narration_level_normalize.lua). GAIN_STALE is one per item that no longer resolves (reason is
+	// always "item": there is no take or range concept for a whole-item gain change); GAIN_ITEM is one per item
+	// actually changed, its D_VOL before and after (linear, REAPER's own unit); GAIN_APPLIED is the call's one
+	// summary event.
+	"GAIN_STALE":   {required: []fieldSpec{text("run"), text("findingId"), text("guid"), text("reason")}},
+	"GAIN_ITEM":    {required: []fieldSpec{text("run"), text("guid"), number("before"), number("after")}},
+	"GAIN_APPLIED": {required: []fieldSpec{text("run"), count("applied")}},
+	// docs/utilities/tracks.md: the narrator's retake plays alone. lineId and
+	// itemGuid name the retake (a line id alone names several items on a lane track); lane is the 0-based lane REAPER
+	// read from the item when the pick ran.
+	"RETAKE_LANE_PICKED": {required: []fieldSpec{text("run"), text("lineId"), text("itemGuid"), count("lane")}},
+	"TAKE_CREATED":       {required: []fieldSpec{text("run"), text("targetItemGuid"), text("newTakeGuid")}},
+	"TAKE_STALE":         {required: []fieldSpec{text("run"), text("guid")}},
+	// Going to and looping a finding (narration_navigation.lua, bridge.Navigator). Times are
+	// project seconds; restored/kept count the time selection, loop points and repeat; looping and playing are 0 or 1;
+	// reason is item, take or range.
+	"NAVIGATED":     {required: []fieldSpec{text("run"), text("itemGuid"), number("projectTime")}},
+	"LOOP_STARTED":  {required: []fieldSpec{text("run"), text("itemGuid"), number("start"), number("end")}},
+	"LOOP_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}},
+	"PONG":          {required: []fieldSpec{text("run"), text("version"), count("looping"), count("playing")}},
+	"FINDING_STALE": {required: []fieldSpec{text("run"), text("guid"), text("reason")}},
+	// The approved marker, "added" or "existing" (the take already had one; nothing changed).
+	"FINDING_MARKER": {required: []fieldSpec{text("run"), text("state"), text("takeGuid"), number("sourceTime"), text("name")}},
+	// chapter_track_state (narration_track_state.lua): the transport and one track, read-only. guid is empty when no track was named; playState is GetPlayState's bit field;
+	// times are seconds; recInput is the track's I_RECINPUT (empty with no track); inputDevice is empty when REAPER has
+	// no input open. One TRACK_ITEM per item on the track follows, then TRACK_STATE_END (listed, and the track's total).
+	"TRACK_STATE": {required: []fieldSpec{text("run"), text("guid"), count("playState"), number("editCursor"), number("playPosition"), text("rpp"), count("unsaved"),
+		count("changeCount"), count("thisArmed"), count("armedCount")}, optional: []fieldSpec{count("recInput"), text("inputDevice")}},
+	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off.
+	"TRACK_ITEM": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), number("position"), number("length"), number("sourceOffset"), number("playrate"), text("sourceFile")},
+		optional: []fieldSpec{count("muted")}},
+	"TRACK_STATE_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
+	"TRACK_STALE":     {required: []fieldSpec{text("run"), text("guid")}},
+	// select_track (narration_track_select.lua): "Select in REAPER" deselected every other track and selected guid. It
+	// opens no undo block.
+	"TRACK_SELECTED": {required: []fieldSpec{text("run"), text("guid")}},
+	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
+	// was given, in one undo point.
+	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
+	// arm_only, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
+	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
+	// record_start whose recording the narrator stopped in REAPER.
+	"ARMED":           {required: []fieldSpec{text("run"), text("guid"), count("disarmed"), count("changed")}},
+	"RECORD_STARTED":  {required: []fieldSpec{text("run"), text("guid"), number("position")}},
+	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}},
+	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}},
+	"RECORD_NOT_OURS": {required: []fieldSpec{text("run")}},
+	// set_active_take, list_fx_chains, apply_fx_chain (narration_workspace.lua). changed is 0 or 1; reason
+	// is item, take or range; a chain's name is its path relative to FXChains with forward slashes; added is the
+	// number of FX a chain added.
+	"ACTIVE_TAKE_SET":  {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("changed")}},
+	"ITEM_STALE":       {required: []fieldSpec{text("run"), text("guid"), text("reason")}},
+	"FX_CHAIN":         {required: []fieldSpec{text("run"), text("name")}},
+	"FX_CHAINS_LISTED": {required: []fieldSpec{text("run"), count("count"), count("truncated")}},
+	// docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua (the owner's 2026-09-25 decision): a chain goes on a track or the master track (track is its GUID or
+	// "master").
+	"FX_CHAIN_APPLIED": {required: []fieldSpec{text("run"), text("name"), text("track"), count("added")}},
+	// narration_takes.lua: hide_takes answers the number of takes it hid, and whether it added an undo point.
+	"TAKES_HIDDEN": {required: []fieldSpec{text("run"), text("itemGuid"), count("count"), count("changed")}},
+	// master_chain_read and render_with_fx (narration_master_render.lua): the mastering port's DAW row.
+	// MASTER_CHAIN_FX is one per FX slot, every track's in track order and then the master's (track "master"); enabled
+	// is 0 or 1; MASTER_CHAIN_READ closes the list (truncated 1 when the bridge's cap cut it). FX_RENDER_FILE is one per
+	// region rendered, in the order asked, its path inside the run folder; FX_RENDERED closes the render with the folder
+	// and count.
+	"MASTER_CHAIN_FX":   {required: []fieldSpec{text("run"), text("track"), text("trackName"), text("name"), count("enabled")}},
+	"MASTER_CHAIN_READ": {required: []fieldSpec{text("run"), count("count"), count("truncated")}},
+	"FX_RENDER_FILE":    {required: []fieldSpec{text("run"), text("region"), text("path")}},
+	"FX_RENDERED":       {required: []fieldSpec{text("run"), text("folder"), count("count")}},
+	// split_take (narration_takes.lua): the item and take it cut, the new take that plays the second read, the cut's time in
+	// the project and the undo points it added.
+	"TAKE_SPLIT": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("newTakeGuid"), number("at"), count("undoPoints")}},
+	// preview_file_range, stop_file_preview, reveal_file (narration_media_file.lua): a file on disk played or shown, the project
+	// unchanged. start and length are the stretch playing, length shortened to the end of the file; stopped is 1 when a
+	// preview this app started was playing.
+	"FILE_PREVIEW_STARTED": {required: []fieldSpec{text("run"), text("path"), number("start"), number("length")}},
+	"FILE_PREVIEW_STOPPED": {required: []fieldSpec{text("run"), count("stopped")}},
+	"FILE_REVEALED":        {required: []fieldSpec{text("run"), text("path")}},
+	// reduce_range_gain (narration_range.lua): the item and take whose stretches were lowered, how many stretches (those whose
+	// ramps met counted as one), the dB they were lowered by and the undo points it added.
+	"RANGE_GAIN_REDUCED": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("stretches"), number("reduceDb"), count("undoPoints")}},
+	// repair_click (narration_range.lua): the item and take whose clicks were repaired, how many clicks (those whose ramps met
+	// counted as one) and the undo points it added.
+	"CLICKS_REPAIRED": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("clicks"), count("undoPoints")}},
+	// fx_range_params, fx_range_set_param and fx_range_bypass (narration_range.lua, SN-E104): the chain apply_fx_range put on a
+	// piece. RANGE_FX_PARAM is one per setting, fx its FX's place in the chain and param the setting's place in that FX, step 0
+	// for a continuous setting; RANGE_FX_PARAMS closes the list with the piece, its take, the chain, the settings listed,
+	// truncated 1 when it stopped at 512, and bypassed 1 when every FX of the chain is. RANGE_FX_PARAM_SET carries the value
+	// REAPER holds afterwards; both edits add 1 undo point, or 0 when nothing needed changing.
+	"RANGE_FX_PARAM": {required: []fieldSpec{text("run"), count("fx"), text("fxName"), count("param"), text("name"), number("value"), number("min"),
+		number("max"), number("step"), text("formatted")}},
+	"RANGE_FX_PARAMS":    {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), count("count"), count("truncated"), count("bypassed")}},
+	"RANGE_FX_PARAM_SET": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("fx"), count("param"), number("value"), text("formatted"), count("undoPoints")}},
+	"RANGE_FX_BYPASSED":  {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), count("bypassed"), count("undoPoints")}},
+	// fx_range_compare and stop_fx_compare (narration_range.lua, SN-E113): the piece the Compare plays, its take, the chain, the
+	// piece's project seconds and bypassed 1 when the chain was bypassed before; stopped 1 when a Compare was running.
+	"RANGE_FX_COMPARE":         {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), number("start"), number("end"), count("bypassed")}},
+	"RANGE_FX_COMPARE_STOPPED": {required: []fieldSpec{text("run"), count("stopped")}},
+	// last_action and undo_last (narration_undo.lua): the kind asked about and whether REAPER's next undo point is its ("this" or
+	// "other"); the kind, the steps asked for and the points undone. Neither carries a label read from the project.
+	"LAST_ACTION": {required: []fieldSpec{text("run"), text("kind"), text("answer")}},
+	"UNDONE_LAST": {required: []fieldSpec{text("run"), text("kind"), count("steps"), count("undone")}},
+	// monitor_level (narration_levels.lua): the monitor level now held, a whole number from 0 to 100, read back after a set.
+	"MONITOR_LEVEL": {required: []fieldSpec{text("run"), count("level")}},
+	// set_cursor, play_from, stop_play and watch_transport (narration_transport.lua, the Editing page's transport sync): the edit cursor now held,
+	// the time the transport plays from, the edit cursor after a stop, and the lease granted in whole seconds. TRANSPORT is the stream a lease
+	// buys: a broadcast with an empty run, like PROJECT_STATUS, sent when the play state changes or the cursor moves and about four times a second
+	// while REAPER plays: playState is GetPlayState's bit field and the times are project seconds.
+	"CURSOR_SET":         {required: []fieldSpec{text("run"), number("cursor")}},
+	"TRANSPORT_PLAYING":  {required: []fieldSpec{text("run"), number("position")}},
+	"TRANSPORT_STOPPED":  {required: []fieldSpec{text("run"), number("cursor")}},
+	"TRANSPORT_WATCHING": {required: []fieldSpec{text("run"), count("lease")}},
+	"TRANSPORT":          {required: []fieldSpec{text("run"), count("playState"), number("playPosition"), number("editCursor")}},
+	// read_place and go_to (narration_track_select.lua): PLACE is the one selected track (guid empty when none or several), how many are
+	// selected and the edit cursor in seconds; PLACE_SET is the track now selected and the cursor now held, in seconds. Neither opens an undo block.
+	"PLACE":     {required: []fieldSpec{text("run"), text("guid"), count("selected"), number("cursor")}},
+	"PLACE_SET": {required: []fieldSpec{text("run"), text("guid"), number("cursor")}},
+}
+
+// CheckEvent validates one decoded event line (the tag first) against the table. The error names the tag, the position and name of
+// the field, and how many fields there were: never a value, because a field can hold the narrator's words.
+func CheckEvent(fields []string) error {
+	if len(fields) == 0 || fields[0] == "" {
+		return fmt.Errorf("an event line has no tag")
+	}
+	spec, known := eventSpecs[fields[0]]
+	if !known {
+		return nil
+	}
+	if len(fields)-1 < len(spec.required) {
+		return fmt.Errorf("%s has %d fields, and this app needs at least %d", fields[0], len(fields), len(spec.required)+1)
+	}
+	all := append(append([]fieldSpec(nil), spec.required...), spec.optional...)
+	for position := 1; position < len(fields) && position <= len(all); position++ {
+		field, value := all[position-1], fields[position]
+		required := position <= len(spec.required)
+		if field.kind == textField || (value == "" && !required) {
+			continue
+		}
+		if err := checkNumber(field.kind, value); err != nil {
+			return fmt.Errorf("%s field %d (%s) is not %s", fields[0], position, field.name, kindName(field.kind))
+		}
+	}
+	return nil
+}
+
+func checkNumber(kind fieldKind, value string) error {
+	if kind == intField {
+		_, err := strconv.Atoi(value)
+		return err
+	}
+	_, err := strconv.ParseFloat(value, 64)
+	return err
+}
+
+func kindName(kind fieldKind) string {
+	if kind == intField {
+		return "a whole number"
+	}
+	return "a number"
+}
+
+// FieldNames lists the names of the fields after the tag of a known event, for diagnostics; nil for a tag not in the table.
+func FieldNames(tag string) []string {
+	spec, known := eventSpecs[tag]
+	if !known {
+		return nil
+	}
+	names := make([]string, 0, len(spec.required)+len(spec.optional))
+	for _, field := range append(append([]fieldSpec(nil), spec.required...), spec.optional...) {
+		names = append(names, field.name)
+	}
+	return names
+}

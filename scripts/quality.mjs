@@ -48,10 +48,10 @@ function rootRelative(file) {
 }
 
 // The two web apps are checked with their own prettier and ESLint, from their own folder. The public site's build scripts, page styles and page
-// scripts (apps/site/build, common, docs, landing) are plain Node and browser text that neither tool covers, as they never were under scripts/site.
+// scripts (src/web/build, common, docs, landing) are plain Node and browser text that neither tool covers, as they never were under scripts/site.
 const WEB_APPS = [
-  { dir: 'apps/ui', covers: (file) => !file.startsWith('apps/ui/wailsjs/') },
-  { dir: 'apps/site', covers: (file) => /^apps\/site\/(demo|tests)\//.test(file) || /^apps\/site\/[^/]+$/.test(file) },
+  { dir: 'src/studio/ui', covers: (file) => !file.startsWith('src/studio/ui/wailsjs/') },
+  { dir: 'src/web', covers: (file) => /^src\/web\/(demo|tests)\//.test(file) || /^src\/web\/[^/]+$/.test(file) },
 ];
 
 function inWebApp(app, file) {
@@ -81,7 +81,7 @@ function runWebApps(files, write) {
 function fixStaged(files, fixer) {
   const rootFiles = files.map(rootRelative);
   const pythonFiles = rootFiles.filter((file) => file.endsWith('.py'));
-  const goFiles = rootFiles.filter((file) => file.startsWith('apps/desktop/') && file.endsWith('.go'));
+  const goFiles = rootFiles.filter((file) => file.startsWith('src/studio/desktop/') && file.endsWith('.go'));
   const luaFiles = rootFiles.filter((file) => file.endsWith('.lua'));
 
   if (fixer === 'ui') runWebApps(rootFiles, true);
@@ -89,14 +89,14 @@ function fixStaged(files, fixer) {
     run(python(), ['-m', 'ruff', 'format', ...pythonFiles]);
     run(python(), ['-m', 'ruff', 'check', '--fix', ...pythonFiles]);
   }
-  if (fixer === 'go' && goFiles.length) run('go', ['-C', 'apps/desktop', 'fmt', './...']);
+  if (fixer === 'go' && goFiles.length) run('go', ['-C', 'src/studio/desktop', 'fmt', './...']);
   if (fixer === 'lua' && luaFiles.length) run(executable('stylua'), [...luaFiles]);
 }
 
 function checkStagedFiles(files, checker) {
   const rootFiles = files.map(rootRelative);
   const pythonFiles = rootFiles.filter((file) => file.endsWith('.py'));
-  const goFiles = rootFiles.filter((file) => file.startsWith('apps/desktop/') && file.endsWith('.go'));
+  const goFiles = rootFiles.filter((file) => file.startsWith('src/studio/desktop/') && file.endsWith('.go'));
   const luaFiles = rootFiles.filter((file) => file.endsWith('.lua'));
 
   if (checker === 'ui') runWebApps(rootFiles, false);
@@ -106,14 +106,14 @@ function checkStagedFiles(files, checker) {
   }
   if (checker === 'go' && goFiles.length) {
     checkGofmt(goFiles);
-    run('go', ['-C', 'apps/desktop', 'vet', './...']);
+    run('go', ['-C', 'src/studio/desktop', 'vet', './...']);
   }
   if (checker === 'lua' && luaFiles.length) run(executable('stylua'), ['--check', ...luaFiles]);
 }
 
 function runStaged(files) {
   const pythonFiles = files.filter((file) => file.endsWith('.py'));
-  const goFiles = files.filter((file) => file.startsWith('apps/desktop/') && file.endsWith('.go'));
+  const goFiles = files.filter((file) => file.startsWith('src/studio/desktop/') && file.endsWith('.go'));
   const luaFiles = files.filter((file) => file.endsWith('.lua'));
 
   runWebApps(files, false);
@@ -123,8 +123,8 @@ function runStaged(files) {
   }
   if (goFiles.length) {
     checkGofmt(goFiles);
-    run('go', ['-C', 'apps/desktop', 'vet', './...']);
-    run('go', ['-C', 'apps/desktop', 'test', './...']);
+    run('go', ['-C', 'src/studio/desktop', 'vet', './...']);
+    run('go', ['-C', 'src/studio/desktop', 'test', './...']);
   }
   if (luaFiles.length) run(executable('stylua'), ['--check', ...luaFiles]);
 }

@@ -12,7 +12,7 @@ import time
 from scenario import Env, items_on, scenario
 from scenarios_session import GUID_NONE, two_chapters, undo_once
 
-HEARTBEAT_TIMEOUT = 5.0  # apps/desktop/internal/daw/reachability.go: the host calls REAPER unreachable after this long without a heartbeat
+HEARTBEAT_TIMEOUT = 5.0  # src/studio/desktop/internal/daw/reachability.go: the host calls REAPER unreachable after this long without a heartbeat
 
 
 def heartbeat_arrivals(env: Env, seconds: float) -> list[float]:

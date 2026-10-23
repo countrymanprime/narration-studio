@@ -7,12 +7,12 @@ the in-app toast queue ([interaction feedback](interaction-feedback.md)), never 
 
 1. The webview owns "is the narrator looking": `App.tsx`'s `subscribeJobEnded` handler reads `document.hasFocus()`
    fresh on every `job:ended` event; the host does not query window focus.
-2. `apps/ui/src/jobEnded.ts`'s `shouldNotifyForJobEnd` decides whether this particular completion qualifies: the
+2. `src/studio/ui/src/jobEnded.ts`'s `shouldNotifyForJobEnd` decides whether this particular completion qualifies: the
    setting is on (`General.notifications`), the window is unfocused, the job is one of the notifying kinds
    (`NOTIFIABLE_JOB_KINDS` in that file), and
    it ran at least 10 seconds (`NOTIFY_THRESHOLD_MS`).
 3. A qualifying completion calls `Host.SystemNotify`, which wraps Wails's own cross-platform
-   notification API. `apps/desktop/notifications.go` initializes the underlying Wails notification service lazily,
+   notification API. `src/studio/desktop/notifications.go` initializes the underlying Wails notification service lazily,
    only on the first send while the setting is on — Windows notification support writes a per-user registry key on
    initialize, so a narrator who never enables the setting never gets one written.
 4. A send failure is swallowed on the host side and never blocks or fails the job it describes: the toast is the
@@ -32,6 +32,6 @@ the in-app toast queue ([interaction feedback](interaction-feedback.md)), never 
 
 ## Tests
 
-Vitest: `apps/ui/src/jobEnded.test.ts` (the threshold, the kinds, `document.hasFocus` stubbed both ways). Go:
-`apps/desktop/notifications_test.go` (a fake sender, lazy initialization, a send error never surfacing to the
+Vitest: `src/studio/ui/src/jobEnded.test.ts` (the threshold, the kinds, `document.hasFocus` stubbed both ways). Go:
+`src/studio/desktop/notifications_test.go` (a fake sender, lazy initialization, a send error never surfacing to the
 caller).

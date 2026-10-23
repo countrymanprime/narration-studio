@@ -1,6 +1,6 @@
 # Story Bible: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -10,7 +10,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: name-clash, review-filter, voice-samples-empty (also search-narrowed, entry-needs-review etc.). Extends SBX-1 with per-state measurements.
 - Widths: all six (theme: both).
 - Measured: w1440 review-filter / voice-samples-empty: Rescan x801-836, y143-180; first row's play button x802-836, y188-222 (gap 8, same left edge). name-clash (row has play AND record): Rescan x801-836 over the record disc x802-836 (gap about 10), so the stack is over the record button, not the play square. w1024: Rescan y147-178 / button y183-213 (gap 7 read). w768: Rescan x699-735 y594-629 (review-filter) or y622-657 (voice-samples-empty); button y637-672 / y665-701 (gap 8). w390: Rescan x321-357 y316-352 beside a caption that wraps to two lines ("...how I say / each"), button x321-357 y361-397 (gap 9). The caption row is 36 px tall only because of the icon.
-- Where: `apps/ui/src/components/storybible/GuideDetail.tsx:745-760` (caption `flex items-center justify-between` with the IconButton, then `ul.space-y-3` rows whose last control is also a 36 px square, `:777` `flex items-start gap-2`).
+- Where: `src/studio/ui/src/components/storybible/GuideDetail.tsx:745-760` (caption `flex items-center justify-between` with the IconButton, then `ul.space-y-3` rows whose last control is also a 36 px square, `:777` `flex items-start gap-2`).
 - Severity: looks wrong
 - Fix: move Rescan into the entry header toolbar (it is an entry-level action) or to a text button "Rescan" in the Appears-in section it refreshes; if it stays, give it a different shape (ghost text button) and 16+ px of air from the row.
 - Evidence: `crops/r4sb/rfz.png`, `nc1440z.png`, `vs768`, `storybible/name-clash/w768.png`
@@ -22,7 +22,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: relationship-picker.
 - Widths: 1280 and 1024 (box over Reference clips: "REVOKE" shows as "EVOKE", the "Approve as reference" label is cut to "APPROVE AS REFERENC", the region select and the Unknown select are covered); 1440 (box x1005-1340, y140-595, bottom edge 30 px above the first To button, covers the Dialogue cues area); 1920 (x1248-1565, narrower than its own trigger x1245-1710); 768 (x393-728, y573-1015 sits on top of the detail header, hiding the Search/Save/Close buttons, the trigger is not in view); 390 (x8-343, y395-835 drawn over the Entries list, left gutter 8 vs the page's 16, trigger far below the fold). Dark d1440: popover background is the page colour, 1px border, no visible shadow, so it merges with the form beneath.
 - What is wrong: no scrim, no label ("Choose an entry" exists only as an accessible name), no indication of the relationship being edited, no close control, an upward-opening position that overlaps other form controls, and a width unrelated to the trigger. March Hare's second line reads "Needs Review" (a status in the kind slot, title-cased) where every other row says Character or Place (extends SBX-21; the list shows "Type not set").
-- Where: popover primitive used by `apps/ui/src/components/storybible/Relationships.tsx` (picker); selected row is a grey bar inset 16 px from the popover edge while option text is inset a further 40 px by the check-mark column.
+- Where: popover primitive used by `src/studio/ui/src/components/storybible/Relationships.tsx` (picker); selected row is a grey bar inset 16 px from the popover edge while option text is inset a further 40 px by the check-mark column.
 - Severity: looks wrong
 - Fix: dim the page like confirm dialogs, anchor to the trigger with trigger width, add a heading "Related entry for <relationship>", show the real kind (or no second line) for drafts.
 - Evidence: `crops/r4sb/rp1440.png`, `rpz.png`, `rp768.png`, `rp390.png`, `rp1024.png`, `rpd.png`
@@ -33,7 +33,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Gut reaction: a bare text box with "White Rabbit" typed in it floats under the names; nothing says it is where you add a name, and the rust button is the strongest thing on the page for an action I did not ask for.
 - Page / state: name-clash (edit mode), w1920-w768; w390 not visible (driver).
 - Measured: w1440 field x585-1255 (the full panel), y~262-298, blue focus ring; the Names grid above ends at x836, the label "Look up elsewhere" is indented to x590 against the name column at x582; helper text `"White Rabbit" is already a name of White Rabbit.` 12px grey then MERGE INTO THIS ENTRY (rust fill, x860-1040, y~318-350) on the same line. The sentence names the same thing twice and does not say it is ANOTHER entry; there is no Add button, so Enter is the only way to add. Placeholder "Add a name" is replaced by the typed text, so once filled the field is unnamed.
-- Where: `apps/ui/src/components/storybible/GuideDetail.tsx:848-870` (`TextField label="Add a name"` renders `aria-label` only, `primitives/TextField.tsx:45`; helper `<span role="status">`; merge button `mergeButton(...)`).
+- Where: `src/studio/ui/src/components/storybible/GuideDetail.tsx:848-870` (`TextField label="Add a name"` renders `aria-label` only, `primitives/TextField.tsx:45`; helper `<span role="status">`; merge button `mergeButton(...)`).
 - Severity: looks wrong
 - Fix: visible label "Add a name" with an inline Add button; clash text "Already a name of the entry White Rabbit" with Merge as a secondary button; align the field to the same left edge as the names above.
 - Evidence: `crops/r4sb/nc1440z.png`, `ncd.png`, `nc768.png`
@@ -45,7 +45,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: remove-voice-data-confirm, remove-voice-samples-confirm, voice-sample-delete-confirm (Cancel pinned left x233, action pinned right: "REMOVE VOICE DATA" x1070-1207, "DELETE" x1140-1207 at w1440); voice-sample-move and voice-sample-rename (Cancel and primary both right: Cancel x1113-1180, Move x1197-1257); voice-download-progress (a lone Cancel at right, x1140-1207). Extends R3SB1-14 (delete confirm) to the remove confirms.
 - Widths: all (theme: both).
 - What is wrong: `Dialog` defaults to `justify-between`, the move and rename dialogs opt into `end`, so Cancel sits on opposite sides in sibling dialogs. In the confirms Cancel is a 1.5px dark-outlined button, the destructive button a thin red outline on cream with no fill (reads as secondary). In dark the dialog fill is almost the scrimmed page colour (1px border only), extending R3SB1-13.
-- Where: `apps/ui/src/components/primitives/Dialog.tsx:86,195`; `voicesamples/MoveVoiceSampleDialog.tsx:61`; `voicesamples/EditVoiceSampleDialog.tsx:51`; confirm bodies in `useVoiceSampleActions.tsx:128`.
+- Where: `src/studio/ui/src/components/primitives/Dialog.tsx:86,195`; `voicesamples/MoveVoiceSampleDialog.tsx:61`; `voicesamples/EditVoiceSampleDialog.tsx:51`; confirm bodies in `useVoiceSampleActions.tsx:128`.
 - Severity: looks wrong
 - Fix: one footer rule (secondary left, action right, or both right everywhere), filled danger button for irreversible actions, Cancel ghost.
 - Evidence: `crops/r4sb/rd1440.png`, `rs1440.png`, `sd1440.png`, `sm1440.png`, `sr1440.png`, `rdd.png`
@@ -66,7 +66,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Gut reaction: a row is sliced through at the top of the list and I only see a sentence fragment.
 - Page / state: voice-samples-empty (list scrolled to the selected White Rabbit), also review of w1024/w768.
 - Measured: w1440 the first visible row is Caterpillar with only its meta line "Character . 1 name . 2 chapters" under the divider (y~420), title gone; w1280 Hatter clean; w1024 Hatter's title cut, meta at y371 (read) hard under the chip block; w768 the top row is a stub: only descender pieces at y300-310 over "Character . 2 names . 2 chapters". The window at w768 is only 2.5 rows. The list has no fade or inset so rows end at the 1px rule.
-- Where: `apps/ui/src/components/storybible/Guide.tsx:450-460` (list scroller `overflow-y-auto` directly under the chip block, no top padding or mask).
+- Where: `src/studio/ui/src/components/storybible/Guide.tsx:450-460` (list scroller `overflow-y-auto` directly under the chip block, no top padding or mask).
 - Severity: looks wrong
 - Fix: scroll with `scroll-padding-top`, snap rows, or fade the edges.
 - Evidence: `crops/r4sb/vsl.png`, `vs1024.png`, `vs768.png`
@@ -77,7 +77,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Gut reaction: the page is a small box at the top and then 580 px of nothing; the title is centred here but left-aligned everywhere else.
 - Page / state: no-manuscript, all widths (d1440 same).
 - Measured: w1440 card x232-1422, y68-310 (content centred: title y148, sentence y186, rust IMPORT MANUSCRIPT x757-899 y207-246), grey page below. The rail shows a lock on every item except Production, including the selected Story Bible row (selected AND locked); at w1024 the icon rail shows no locks at all. w390 the sentence wraps to two lines.
-- Where: Story Bible empty branch in `Guide.tsx` (empty panel), rail items in `apps/ui/src/components/layout` nav.
+- Where: Story Bible empty branch in `Guide.tsx` (empty panel), rail items in `src/studio/ui/src/components/layout` nav.
 - Severity: looks wrong (card), polish (lock/active, rail difference)
 - Fix: use the page header and a left-aligned empty state sized to the card; do not lock the current page; show the lock in the icon rail too.
 - Evidence: `crops/r4sb/nm1440.png`, `nmr.png`, `nm1024.png`
@@ -99,7 +99,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Gut reaction: the same sentence twice, then a big empty grey box.
 - Page / state: voice-download-progress (extends R3SB2-15, which covers the failed state).
 - Measured: w1440 status line y~342 "Downloading and verifying the approved voice... 44 of 109 MB"; LIVE ACTIVITY log x232-1190, y~420-562 holds one row with the identical text and its own bottom rule, 80% empty; elapsed "2s" is 11 px grey at x1180, far right of a 944 px line; header has no X while every other dialog has one. w390: status wraps to two lines and "6s" sits 3 px above the first baseline (y303 vs 306); log row wraps too. Bar 40% matches 44/109.
-- Where: `apps/ui/src/components/primitives/WorkDialog.tsx:44-95`.
+- Where: `src/studio/ui/src/components/primitives/WorkDialog.tsx:44-95`.
 - Severity: polish (looks wrong at 390)
 - Fix: hide the log until it has more than the status; put elapsed under the bar left; size the log to content (max h-36).
 - Evidence: `crops/r4sb/dpz.png`, `dp390.png`
@@ -218,7 +218,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Gut reaction: switching to Series makes the page header jump and the screen looks half drawn.
 - States/widths: series-tab-empty, -load-failed, -loading, -populated; w1920-w768, light and dark (w390 hugs).
 - Measured (w1440): title x177,y63; tabs y100; card x177-1087,y129-675 with content ending y224 (empty), y261 (failed), y272 (loading): 74-82% blank. Entries mode puts title at x190,y76 inside its card with three toolbar squares. w768 card y242-1443, 83% blank.
-- Where: `apps/ui/src/components/storybible/Guide.tsx:372-380` (Series branch: `flex-none space-y-4` header above `Panel flush ... flex-1`).
+- Where: `src/studio/ui/src/components/storybible/Guide.tsx:372-380` (Series branch: `flex-none space-y-4` header above `Panel flush ... flex-1`).
 - Severity: looks wrong. Supersedes SBX-20 (confirmed with numbers).
 - Fix: same card header in both modes; size the Series card to its content.
 
@@ -226,14 +226,14 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 
 - Gut reaction: a one-field form that spans the whole page with a lonely ghost button under it.
 - w1440: input x190-1075 (885 read), CREATE SERIES ghost x190-275,y200-224 (4px shorter than the input); at w1920 the input is 1637px. In dark the disabled button looks like a normal outlined button.
-- Where: `apps/ui/src/components/series/SeriesTab.tsx:128-139` (`flex flex-wrap items-end gap-2`, TextField has no max width).
+- Where: `src/studio/ui/src/components/series/SeriesTab.tsx:128-139` (`flex flex-wrap items-end gap-2`, TextField has no max width).
 - Severity: looks wrong. Fix: one row, input max about 24rem, button beside it, helper text when disabled.
 
 ### R3SB2-3 Load-failed: card inside a card, headline says "page" about a series, five left edges
 
 - Gut reaction: an error box inside another box with the wrong word in its title.
 - w1440: outer x177-1087,y129-675; inner x190-1075,y141-261 (13 read inset); title bar 38 read tall; left edges 177 / 185 / 190 / 203. w1024/w768 the same; 78-83% of the outer card blank.
-- Where: `SeriesTab.tsx:121-125` wraps `LoadErrorPanel` (`apps/ui/src/components/layout/LoadError.tsx:30` title "This page could not be loaded") in `p-4` inside the Panel.
+- Where: `SeriesTab.tsx:121-125` wraps `LoadErrorPanel` (`src/studio/ui/src/components/layout/LoadError.tsx:30` title "This page could not be loaded") in `p-4` inside the Panel.
 - Severity: looks wrong. Supersedes SBX-20 (part). Fix: render the error without the second frame and name the series.
 
 ### R3SB2-5 Series populated: three nested boxes with one text style, ragged pills, buttons almost touching, staircase form, 390 row collapse
@@ -258,7 +258,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 ### R3SB2-8 Voice data drawer has no scrim and cuts the page mid-content
 
 - w1440/1024/768: the 320px drawer leaves the list, chips and Voice data button at full strength; text under its edge is cut ("how I say", chip row cut after "Organization", "Find an entry" cut). Dark: separated by a 1px line only.
-- Where: `apps/ui/src/components/primitives/SlideOver.tsx:59` (`bg-transparent` backdrop). Severity: looks wrong. Fix: dim the page like the confirm dialogs do.
+- Where: `src/studio/ui/src/components/primitives/SlideOver.tsx:59` (`bg-transparent` backdrop). Severity: looks wrong. Fix: dim the page like the confirm dialogs do.
 
 ### R3SB2-9 Drawer controls: five control heights, stacked remove buttons of different widths, rule touching text, Check again moves
 
@@ -273,7 +273,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 ### R3SB2-11 Search clear button is a bordered box nested in the field with a doubled right border
 
 - search-narrowed zoom (w1440): the X is a 35px bordered square inside the input frame; the input's own right border shows 5 real px beyond it; the 2px focus ring wraps both.
-- Where: `apps/ui/src/components/primitives/SearchField.tsx` (clear control). Severity: polish. Fix: borderless icon button inside the frame.
+- Where: `src/studio/ui/src/components/primitives/SearchField.tsx` (clear control). Severity: polish. Fix: borderless icon button inside the frame.
 
 ### R3SB2-12 Filtered list does not contain the open entry and nothing is highlighted
 
@@ -421,7 +421,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 
 - Gut reaction: the placeholder shows two fat slabs and a bar, then the page re-lays out.
 - w1440: bar x190-780,y142-157; slabs x190-1075,y166-214 / y224-272, left-to-right gradient; no visible loading text; dark slabs about 1.2:1 on the card.
-- Where: `apps/ui/src/components/series/SeriesSkeleton.tsx:4-12`.
+- Where: `src/studio/ui/src/components/series/SeriesSkeleton.tsx:4-12`.
 - Severity: polish. Fix: mirror the first content (sentence line, input, button) or the group box.
 
 ## Round 2: strict review
@@ -760,7 +760,7 @@ These were found in the first (lenient) pass and no later reviewer named them as
 - Page / state: storybible / delete-confirm, `remove-voice-*`-confirm, voice-sample-delete-confirm, voice-sample-rename/move, `voice-download-*`, import-dialog; project / new-project-dialog; global / confirm-dialog, shortcut-sheet
 - Widths: 1440 (dialog x=217-1223, 1006px wide, for a 520px sentence), 1920 (x=289-1631, 1342px), 768 (538px), 390 (271px, message wraps to 3-4 lines, buttons tight) (theme: both)
 - What is wrong: the dialog takes 70% of the viewport whatever it holds, so Cancel and Delete sit 900px apart with a short sentence between, the shortcut sheet has labels at x=235 and keycaps at x=1205, and at 390 the same rule makes the dialog narrower than the content wants.
-- Where: `apps/ui/src/components/primitives/Dialog.tsx:148-149` (`w-full ... max-w-[70vw]` for every size except `full`).
+- Where: `src/studio/ui/src/components/primitives/Dialog.tsx:148-149` (`w-full ... max-w-[70vw]` for every size except `full`).
 - Severity: looks wrong
 - Fix: add a width scale (`sm` about 28rem for confirms, `md` about 36rem for forms, `lg` for the shortcut sheet), with `max-w-[calc(100vw-2rem)]` as the ceiling.
 - Evidence: `storybible/delete-confirm/w1440.png`, `.../delete-confirm/w1920.png`, `.../delete-confirm/w390.png`, `global/shortcut-sheet/w1440.png`, `project/new-project-dialog/w1440.png`.

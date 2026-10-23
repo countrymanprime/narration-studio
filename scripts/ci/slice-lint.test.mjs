@@ -19,7 +19,7 @@ serial:
   - ".github"
 `;
 const OWN_BODY = `Part of #996.\n\n\`\`\`slice-meta\n${OWN_BLOCK}\`\`\`\n\n\`\`\`text\nPRD: ...\n\`\`\`\n`;
-const FILES = ['.github/labels.json', '.github/workflows/ci.yml', 'scripts/dev/bump-host-api.mjs', 'apps/ui/src/App.tsx', 'apps/ui/src/pages/Tracks.tsx'];
+const FILES = ['.github/labels.json', '.github/workflows/ci.yml', 'scripts/dev/bump-host-api.mjs', 'src/studio/ui/src/App.tsx', 'src/studio/ui/src/pages/Tracks.tsx'];
 const exists = (numbers) => (n) => numbers.includes(n);
 const lint = (block, options = {}) => lintSlice(block, { files: FILES, issueExists: () => true, ...options });
 const without = (key) => OWN_BLOCK.replace(new RegExp(`^${key}:.*\\n(?:  - .*\\n)*`, 'm'), '');
@@ -32,8 +32,8 @@ test('fails on a missing owns', () => {
 });
 
 test('fails on an owns glob that matches nothing', () => {
-  const errors = lint(OWN_BLOCK.replace('.github/labels.json', 'apps/ui/src/Missing/**'));
-  assert.ok(errors.some((e) => /apps\/ui\/src\/Missing\/\*\*.*matches no tracked file/.test(e)), errors.join('\n'));
+  const errors = lint(OWN_BLOCK.replace('.github/labels.json', 'src/studio/ui/src/Missing/**'));
+  assert.ok(errors.some((e) => /src\/studio\/ui\/src\/Missing\/\*\*.*matches no tracked file/.test(e)), errors.join('\n'));
 });
 
 test('accepts an owns entry marked new: for a file the slice creates', () => {
@@ -67,7 +67,7 @@ test('fails on an unknown lane or kind', () => {
 });
 
 test('fails on an invalid glob', () => {
-  for (const glob of ['', '/etc/passwd', '../outside/**', 'apps/[ui', 'apps/{ui,desktop', '!apps/**', 'apps\\ui']) {
+  for (const glob of ['', '/etc/passwd', '../outside/**', 'apps/[ui', 'apps/{ui,desktop', '!apps/**', 'src\\studio\\ui']) {
     const errors = lint(OWN_BLOCK.replace('.github/labels.json', glob.replace(/\\/g, '\\\\')).replace(/- (?=\n)/, '- ""'));
     assert.ok(errors.some((e) => /invalid glob|owns entry is empty/.test(e)), `${JSON.stringify(glob)}: ${errors.join('\n')}`);
   }
@@ -106,9 +106,9 @@ test('reports a body with no slice-meta block and malformed lines', () => {
 
 test('globToRegExp follows the owns glob rules', () => {
   const m = (glob, path) => globToRegExp(glob).test(path);
-  assert.ok(m('apps/ui/src/**', 'apps/ui/src/pages/Tracks.tsx'));
-  assert.ok(m('apps/ui/src/*.tsx', 'apps/ui/src/App.tsx'));
-  assert.ok(!m('apps/ui/src/*.tsx', 'apps/ui/src/pages/Tracks.tsx'));
+  assert.ok(m('src/studio/ui/src/**', 'src/studio/ui/src/pages/Tracks.tsx'));
+  assert.ok(m('src/studio/ui/src/*.tsx', 'src/studio/ui/src/App.tsx'));
+  assert.ok(!m('src/studio/ui/src/*.tsx', 'src/studio/ui/src/pages/Tracks.tsx'));
   assert.ok(m('**/*.md', 'README.md'));
   assert.ok(m('src/{a,b}/*.md', 'src/a/x.md'));
   assert.ok(m('a/file?.txt', 'a/file1.txt'));

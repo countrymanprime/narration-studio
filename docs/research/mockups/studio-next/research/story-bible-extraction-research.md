@@ -1,7 +1,7 @@
 # Story Bible auto-population: what the repo has, what else exists, what to build
 
-Research only. Nothing in `/home/user/narration-utils` or `studio/` / `studio2/` was modified. Date: 2026-10-10.
-Paths are relative to `/home/user/narration-utils` unless absolute. "Verified" = read in the repo, run here, or fetched from the live URL this session.
+Research only. Nothing in `/home/user/narration-studio` or `studio/` / `studio2/` was modified. Date: 2026-10-10.
+Paths are relative to `/home/user/narration-studio` unless absolute. "Verified" = read in the repo, run here, or fetched from the live URL this session.
 
 ## 0. Short answers
 
@@ -259,7 +259,7 @@ The repo has no usable gold set; creating one is the first real work item:
 
 ## 4. Sources
 
-Repo (read or run this session): `sidecars/manuscript-guide/core/manuscript_guide.py`; `docs/architecture/story-bible-entity-accuracy.md`; `sidecars/manuscript-guide/core/manuscript_guide.py, docs/architecture/story-bible-entity-accuracy.md, apps/desktop/internal/guide/service.go, apps/desktop/guidegate.go, docs/utilities/manuscript-guide.md, ADR 0002`; `docs/research/local-dependency-evaluation.md`; `docs/research/character-continuity-cue-extraction-eval/RESULTS.md` and `run_eval.py` (re-run: precision 0.963, recall 1.0); `sidecars/manuscript-guide/tests` (190 passed); `SECURITY.md`; `tests/fixtures/alice.md`; `/tmp/claude-0/-home-user-narration-utils/af1a83ba-1a93-5f2f-9822-2dde169a851a/scratchpad/alice_eval.py` (my measurement script).
+Repo (read or run this session): `sidecars/manuscript-guide/core/manuscript_guide.py`; `docs/architecture/story-bible-entity-accuracy.md`; `sidecars/manuscript-guide/core/manuscript_guide.py, docs/architecture/story-bible-entity-accuracy.md, apps/desktop/internal/guide/service.go, apps/desktop/guidegate.go, docs/utilities/manuscript-guide.md, ADR 0002`; `docs/research/local-dependency-evaluation.md`; `docs/research/character-continuity-cue-extraction-eval/RESULTS.md` and `run_eval.py` (re-run: precision 0.963, recall 1.0); `sidecars/manuscript-guide/tests` (190 passed); `SECURITY.md`; `tests/fixtures/alice.md`; `/tmp/claude-0/-home-user-narration-studio/af1a83ba-1a93-5f2f-9822-2dde169a851a/scratchpad/alice_eval.py` (my measurement script).
 
 Web (fetched):
 - Anthropic models overview: <https://platform.claude.com/docs/en/about-claude/models/overview>

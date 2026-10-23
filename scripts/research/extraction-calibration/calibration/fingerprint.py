@@ -1,4 +1,4 @@
-"""``extraction.Fingerprint`` (apps/desktop/internal/extraction/fingerprint.go) in Python, so a gold item and an emitted
+"""``extraction.Fingerprint`` (src/studio/desktop/internal/extraction/fingerprint.go) in Python, so a gold item and an emitted
 suggestion match by what they say, not by spelling, case or typographic quotes."""
 
 from __future__ import annotations

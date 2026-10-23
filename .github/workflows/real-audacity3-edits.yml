@@ -1,14 +1,14 @@
 name: Real Audacity 3 edits (Linux)
 # Drives a real Audacity 3.7.7 over mod-script-pipe, headless, for recording, punch and roll, backups, cuts, stacks, macros, gain,
 # click repair, undo and the interface language (A3-T14 to T23 and T32 of docs/research/audacity-3-capability-matrix.md). Two halves:
-# the raw Python tests in tests/audacity3/real/edits measure what Audacity does with each command, and the Go tests in
-# apps/desktop/internal/dawport/audacity/real_edits_linux_live_test.go run the shipped adapter against it. Hosted, manual, and evidence
+# the raw Python tests in src/studio/tests/audacity3/real/edits measure what Audacity does with each command, and the Go tests in
+# src/studio/desktop/internal/dawport/audacity/real_edits_linux_live_test.go run the shipped adapter against it. Hosted, manual, and evidence
 # only: nothing requires it and it never runs on a pull request. A separate file from real-audacity3.yml, which another stream owns.
 #
 # It installs the hash-pinned AppImage and packages only, and never uploads the AppImage or an extracted tree (GPLv3 redistribution):
 # only the test results, screenshots, logs and the audio the tests exported.
 #
-# The script it runs, tests/audacity3/real/edits/run.sh, carries the Audacity version and SHA-256 pins.
+# The script it runs, src/studio/tests/audacity3/real/edits/run.sh, carries the Audacity version and SHA-256 pins.
 on:
   workflow_dispatch:
     inputs:
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.2'
-          cache-dependency-path: apps/desktop/go.sum
+          cache-dependency-path: src/studio/desktop/go.sum
       - name: Install the display, audio and helper packages
         run: |
           sudo apt-get update
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.NU_AUDACITY_WORK }}/bin/*.AppImage
-          key: real-audacity3-edits-${{ hashFiles('tests/audacity3/real/edits/run.sh') }}
+          key: real-audacity3-edits-${{ hashFiles('src/studio/tests/audacity3/real/edits/run.sh') }}
       - name: Run the tests
         env:
           MODE: ${{ inputs.mode || 'all' }}
@@ -59,7 +59,7 @@ jobs:
             go) args=(--go) ;;
             *) args=() ;;
           esac
-          tests/audacity3/real/edits/run.sh "${args[@]}" 2>&1 | tee "$NU_AUDACITY_WORK/run.log"
+          src/studio/tests/audacity3/real/edits/run.sh "${args[@]}" 2>&1 | tee "$NU_AUDACITY_WORK/run.log"
       # summarize.py already appended its tables to the job summary; this adds the one line per test for a quick read.
       - name: One line per test
         if: always()

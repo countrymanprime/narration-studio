@@ -10,12 +10,12 @@
 //
 //   | mock file | mock case | status | real test | note |
 //   | --- | --- | --- | --- | --- |
-//   | a.test.tsx | the case title | ported | apps/ui/src/x.test.tsx::the real test name | |
+//   | a.test.tsx | the case title | ported | src/studio/ui/src/x.test.tsx::the real test name | |
 //   | a.test.tsx | another title | mock-only | | Exercises the mock's own store, which the real app does not have. |
 //
 //   | ruling id | test |
 //   | --- | --- |
-//   | PR-3 | apps/desktop/x_test.go::TestSomething |
+//   | PR-3 | src/studio/desktop/x_test.go::TestSomething |
 //
 // - `Mock files:` lists the mock test files (basenames) the doc owns; a file named in two docs is a problem (one audit owns a file).
 // - One case row per mock case. `mockCases(file)` lists them: each `it(`, `test(`, `it.each(...)(` and `test.each(...)(` call,

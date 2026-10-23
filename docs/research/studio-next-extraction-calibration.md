@@ -1,6 +1,6 @@
 # Extraction confidence: calibration result
 
-**Date:** 2026-10-12. **Issue:** [#1267](https://github.com/countrymanprime/narration-utils/issues/1267), Phase 8 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Question:** does the 75% rule (`extraction.VerifyBelow`, [The 75% rule](../architecture/extraction-tiers.md#the-75-rule)) hold, by the [protocol](studio-next-extraction-calibration-protocol.md)'s rule?
+**Date:** 2026-10-12. **Issue:** [#1267](https://github.com/countrymanprime/narration-studio/issues/1267), Phase 8 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Question:** does the 75% rule (`extraction.VerifyBelow`, [The 75% rule](../architecture/extraction-tiers.md#the-75-rule)) hold, by the [protocol](studio-next-extraction-calibration-protocol.md)'s rule?
 
 **Verdict: no table yet.** The harness is built and tested, but no source was scored. The two scored books could not be fetched (the egress proxy answered 403 for `gutenberg.org` on 2026-10-12), and no gold set exists, so every figure below is `not run`. No number in this note is estimated. `VerifyBelow` stays 0.75.
 
@@ -61,4 +61,4 @@ All of them will be. Anything calibrated on public-domain books is provisional u
 
 ## Owner steps, pending
 
-The re-run on the owner's own manuscript, and the decision whether to change `VerifyBelow` if a table recommends it, are listed on the QA checklist ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)). They do not block a merge or a launch.
+The re-run on the owner's own manuscript, and the decision whether to change `VerifyBelow` if a table recommends it, are listed on the QA checklist ([#1495](https://github.com/countrymanprime/narration-studio/issues/1495)). They do not block a merge or a launch.

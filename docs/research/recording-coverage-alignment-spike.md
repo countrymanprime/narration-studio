@@ -6,11 +6,11 @@
 
 | Path | What |
 | --- | --- |
-| `sidecars/transcript-compare/core/recording_coverage.py` | The coverage model. It is a pure function from one alignment to per-paragraph present counts, the longest missing run and typed regions (`head`, `tail`, `skip`, `short_read`, `different_text`), each naming its paragraph ids and its first and last manuscript words. Thresholds are applied on read. |
-| `sidecars/transcript-compare/core/compare.py` | Unchanged except that the alignment dict `diff_and_build_markers` returns now also carries `doc_tokens` and `audio_tokens`, the sequences its opcodes index. |
-| `sidecars/transcript-compare/tests/coverage_spike.py` | Test tooling. It holds the coverage analyzer for the Phase 1 harness, the DP prototype (`lcs_opcodes`), the generated stress cases and the benchmark. Running it prints the tables below. |
-| `sidecars/transcript-compare/tests/test_coverage.py`, `test_coverage_spike.py` | The Definitions as tests, and the spike's results pinned so a regression fails `pnpm check`. |
-| `sidecars/transcript-compare/tests/test_marker_golden.py`, `fixtures/coverage/markers.golden.json` | The markers `diff_and_build_markers` produces for every committed case, byte for byte. The file was written before the change and still matches after it. |
+| `src/studio/sidecars/transcript-compare/core/recording_coverage.py` | The coverage model. It is a pure function from one alignment to per-paragraph present counts, the longest missing run and typed regions (`head`, `tail`, `skip`, `short_read`, `different_text`), each naming its paragraph ids and its first and last manuscript words. Thresholds are applied on read. |
+| `src/studio/sidecars/transcript-compare/core/compare.py` | Unchanged except that the alignment dict `diff_and_build_markers` returns now also carries `doc_tokens` and `audio_tokens`, the sequences its opcodes index. |
+| `src/studio/sidecars/transcript-compare/tests/coverage_spike.py` | Test tooling. It holds the coverage analyzer for the Phase 1 harness, the DP prototype (`lcs_opcodes`), the generated stress cases and the benchmark. Running it prints the tables below. |
+| `src/studio/sidecars/transcript-compare/tests/test_coverage.py`, `test_coverage_spike.py` | The Definitions as tests, and the spike's results pinned so a regression fails `pnpm check`. |
+| `src/studio/sidecars/transcript-compare/tests/test_marker_golden.py`, `fixtures/coverage/markers.golden.json` | The markers `diff_and_build_markers` produces for every committed case, byte for byte. The file was written before the change and still matches after it. |
 
 ## The model in one paragraph
 
@@ -26,7 +26,7 @@ The gap rule refines the PRD's per-opcode wording. Taken one opcode at a time, `
 
 ## Results
 
-`uv run python sidecars/transcript-compare/tests/coverage_spike.py`, 2026-09-23, default parameters:
+`uv run python src/studio/sidecars/transcript-compare/tests/coverage_spike.py`, 2026-09-23, default parameters:
 
 | Aligner | Set | Cases | False met | False not met | Paragraph labels agreed | Regions located | Same kind |
 | --- | --- | --- | --- | --- | --- | --- | --- |

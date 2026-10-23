@@ -1,6 +1,6 @@
 # Master & QC: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -79,7 +79,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: master / default, aside "Delivery package · ACX"
 - Widths: 1920, 1440, 1024, 768 (stacked after Report) (theme: both)
 - What is wrong: "why are there four grey blobs with dots in them?" Each of the four lines (Chapters are one file each / Every file under 120 min / mono or stereo · 44.1 kHz · 192 kbps+ CBR / 14 chapters not ready) starts with the same 26x18 grey pill holding "...", so nothing says whether a line is a requirement, a pending check or a result; the third line is a spec, not a check. Then "14 chapters not ready" is repeated by the sentence under the button, "0 failing and 14 not ready.", about 30 px lower, in smaller grey text.
-- Where: `apps/ui/src/components/masterqc/page/PackageChecks.tsx:43` (wait item "N chapters not ready") and `:69` (summary sentence); the pending mark comes from the `state: 'wait'` row renderer in the same file
+- Where: `src/studio/ui/src/components/masterqc/page/PackageChecks.tsx:43` (wait item "N chapters not ready") and `:69` (summary sentence); the pending mark comes from the `state: 'wait'` row renderer in the same file
 - Severity: looks wrong
 - Fix: show one status line ("14 of 14 chapters not ready") and give requirement lines a neutral bullet; keep a pill only for lines that have a result.
 - Evidence: `S/tall/master-w1440.png` x 1065-1420, y 130-330; `S/crops/r4tb/m-aside.png` (2x zoom)
@@ -232,7 +232,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 
 - Page / state: master / report-exported, report-needs-files, `multi-export-*`, every state with the Report card
 - Widths: 768, 390 (theme: both)
-- What is wrong: the paragraph "...into this project's narration-/utils/delivery folder" wraps at the hyphen in the word `narration-utils`, so the folder name reads as two names, "narration-" at the end of one line and "utils/delivery" at the start of the next (at 390 and at 768 where the line break falls there).
+- What is wrong: the paragraph "...into this project's narration-/utils/delivery folder" wraps at the hyphen in the word `narration-studio`, so the folder name reads as two names, "narration-" at the end of one line and "utils/delivery" at the start of the next (at 390 and at 768 where the line break falls there).
 - Where: Report panel description (`masterqc/page/MasterPage.tsx`, Report section; exact line not opened), plain text with a breakable hyphen and slash
 - Severity: polish
 - Fix: wrap the folder in a `whitespace-nowrap` code span (a non-breaking hyphen, U+2011, for the display).
@@ -332,7 +332,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: master / default, Report panel (always the last left-column panel, ~y 1900 at 1440)
 - Widths: 1920, 1440, 1024, 768 (theme: both)
 - What is wrong: "why is the Export button up there when everything about it is down here?" Export report (disabled, peach) sits in the panel header; the checkbox that changes what it writes ("Include each file's full location") is 170 px below it, and the reason the button is disabled ("Check some files first: the report covers the files measured here.") is a grey line between the paragraph and the checkbox, so the narrator sees a washed-out button and has to read down a 3-line paragraph to learn why.
-- Where: `apps/ui/src/components/master/ReportExportPanel.tsx:43-47` (Button in `actions`), `:55-62` (precondition and checkbox in body)
+- Where: `src/studio/ui/src/components/master/ReportExportPanel.tsx:43-47` (Button in `actions`), `:55-62` (precondition and checkbox in body)
 - Severity: polish
 - Fix: put the option and the button on one row at the bottom of the body, with the precondition beside the button; or keep the header button and move the checkbox into the header row.
 - Evidence: `S/tall/master-w1024.png` y 2000-2100 (chunk 1 bottom / chunk 2 top), `S/tall/master-w1440.png` y 1810-2100
@@ -590,7 +590,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: master / empty, running, measured, error and every state with the table (File); to-spec-picked (Title field)
 - Widths: 390 (secondary) (theme: both)
 - What is wrong: "Opening credits" wraps to "Openin / g / cre / dits" and "Chapter 1 — Down the Rabbit-Hole" takes nine lines (rows about 220px), with Head/tail and Result off-screen; in Master to spec the Title input shows only "C" (about 35px wide at x 303-338) next to full-width Role selects.
-- Where: `apps/ui/src/components/masterqc/files/FilesTable.tsx:163` (`[overflow-wrap:anywhere]` gives the cell a one-character minimum, no min-width on the table) and `apps/ui/src/components/master/MasterToSpecPanel.tsx:119` (`TextField` is `w-full` with no floor in an auto table cell)
+- Where: `src/studio/ui/src/components/masterqc/files/FilesTable.tsx:163` (`[overflow-wrap:anywhere]` gives the cell a one-character minimum, no min-width on the table) and `src/studio/ui/src/components/master/MasterToSpecPanel.tsx:119` (`TextField` is `w-full` with no floor in an auto table cell)
 - Severity: breaks use
 - Fix: `min-w-[10rem]` on the File cell and on the Title cell so the box scrolls sideways, or stack role and title under the file name below 480px.
 - Evidence: `master/measured/w390.png` y 320-700; `master/to-spec-picked/w390.png` x 303-338, y 230 and 296
@@ -626,7 +626,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: master / every state at 1280+; worst `diagnostics-*`, file-rules, `report-*`, `to-spec-*`, book-spread
 - Widths: 1280, 1440, 1920 (theme: both)
 - What is wrong: the aside holds two panels (about 540px tall) and the left stack continues for about 5000px; x 1050-1440 (1440) and 1460-1920 (1920) is bare after the first screen; the multi-export crops only show the aside because the scroll was placed on it.
-- Where: `apps/ui/src/components/masterqc/page/MasterPage.tsx:210-211,310` (second column is not `sticky`, `items-start`)
+- Where: `src/studio/ui/src/components/masterqc/page/MasterPage.tsx:210-211,310` (second column is not `sticky`, `items-start`)
 - Severity: looks wrong
 - Fix: make the aside `xl:sticky xl:top-4`, or move lower panels into a full-width row; see XMS-6 for the grouping.
 - Evidence: `master/diagnostics-findings/w1440.png`, `.../book-spread/w1440.png`, `.../to-spec-picked/w1440.png` x 1050-1440
@@ -660,7 +660,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: master / file-rules, measured and every state that shows the rule list (990-1440 too)
 - Widths: 768 (cut), 1440 (tower), 390 (theme: both)
 - What is wrong: at 768 the Source column is sliced mid-word at the card edge ("RMS definition to / compare with A") with no cue it scrolls; at 1440 Source is 150px wide so "To verify" rows are 125-130px tall, six to seven lines of 11px text, while This file and ACX requires have spare width; the "Not checked by the app" badge becomes a four-line circle-ish pill (x 45-120, y 930-985 at 768); at 390 each row is about 150px with a blank lower half.
-- Where: `apps/ui/src/components/master/FileRulesPanel.tsx:79-115` (per-cell `min-w-[8/11/12/9rem]`, no widths on headers) and `StatusBadge.tsx:54-62`
+- Where: `src/studio/ui/src/components/master/FileRulesPanel.tsx:79-115` (per-cell `min-w-[8/11/12/9rem]`, no widths on headers) and `StatusBadge.tsx:54-62`
 - Severity: looks wrong
 - Fix: Source `min-w-[16rem]` and shrink the others, `whitespace-nowrap` on the badge, an edge shadow on the scroll box.
 - Evidence: `master/file-rules/w768.png` x 650-735; `.../w1440.png` x 884-1030 y 195-600; `.../w390.png`

@@ -19,11 +19,11 @@ A change that adds, removes, renames, retypes or newly requires a field in anyth
 2. Find every consumer first with `change-impact-scan`, including the mock and the visual fixtures.
 3. Write the failing test first (`tdd-workflow`): the golden payload or the schema row that the change will satisfy.
 4. Make the change on every side that owns the shape:
-   - Schema in `apps/ui/src/api/schemas/` (`satisfies z.ZodType<Contract>`; use the null helpers in `base.ts`), decoded in `wailsClient.ts`. No `as` cast and no bare `JSON.parse` under `apps/ui/src/api/`.
+   - Schema in `src/studio/ui/src/api/schemas/` (`satisfies z.ZodType<Contract>`; use the null helpers in `base.ts`), decoded in `wailsClient.ts`. No `as` cast and no bare `JSON.parse` under `src/studio/ui/src/api/`.
    - Golden payload written by the owning test: `contractfile.Check` in Go, `contract_files.check` in Python. Regenerate with `UPDATE_CONTRACTS=1`, review the diff, never edit `tests/fixtures/contracts/` by hand.
-   - A row in `apps/ui/src/api/wireContracts.test.ts`; the mock must pass the same schema.
-   - A REAPER event goes in the table in `apps/desktop/internal/bridge/wire.go`, with `wire_test.go` and the Lua harness pinning the same line.
-5. `hostAPIVersion`: additive changes need no bump. Removing, renaming, retyping or newly requiring a field bumps it in `apps/desktop/app.go`, `apps/desktop/app_test.go` and `apps/ui/src/hostApi.ts`.
+   - A row in `src/studio/ui/src/api/wireContracts.test.ts`; the mock must pass the same schema.
+   - A REAPER event goes in the table in `src/studio/desktop/internal/bridge/wire.go`, with `wire_test.go` and the Lua harness pinning the same line.
+5. `hostAPIVersion`: additive changes need no bump. Removing, renaming, retyping or newly requiring a field bumps it in `src/studio/desktop/app.go`, `src/studio/desktop/app_test.go` and `src/studio/ui/src/hostApi.ts`.
 6. If the payload is page data, add or update the invalid-payload visual state (`visual-catalog-sync`).
 7. Run `full-verification-gate`. If a persisted file changed, add or update its row in `docs/reference/data-files.md` (location, schema or golden, retention); it needs a threat-model row only if it names a path the host opens, a command it runs or a URL it fetches. If a trust boundary changed, re-read its row in `docs/architecture/threat-model.md`. Then run `doc-impact-check`.
 

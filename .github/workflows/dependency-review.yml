@@ -9,8 +9,8 @@ on:
     paths:
       - 'pnpm-lock.yaml'
       - 'uv.lock'
-      - 'apps/desktop/go.mod'
-      - 'apps/desktop/go.sum'
+      - 'src/studio/desktop/go.mod'
+      - 'src/studio/desktop/go.sum'
       - '**/package.json'
       - '**/package-lock.json'
       - '**/pyproject.toml'

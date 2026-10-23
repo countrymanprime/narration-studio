@@ -3,31 +3,31 @@
 # request touches; Dependabot sets only `dependencies` (.github/dependabot.yml). A path may match more than one label.
 area:ui:
   - changed-files:
-      - any-glob-to-any-file: apps/ui/**
+      - any-glob-to-any-file: src/studio/ui/**
 
 area:site:
   - changed-files:
-      - any-glob-to-any-file: apps/site/**
+      - any-glob-to-any-file: src/web/**
 
 area:shell:
   - changed-files:
-      - any-glob-to-any-file: apps/desktop/**
+      - any-glob-to-any-file: src/studio/desktop/**
 
 area:python:
   - changed-files:
       - any-glob-to-any-file:
-          - libs/python/**
-          - sidecars/**
+          - src/studio/libs/python/**
+          - src/studio/sidecars/**
           - pyproject.toml
           - uv.lock
 
 area:reaper:
   - changed-files:
-      - any-glob-to-any-file: integrations/reaper/**
+      - any-glob-to-any-file: src/studio/integrations/reaper/**
 
 area:audacity:
   - changed-files:
-      - any-glob-to-any-file: integrations/audacity/**
+      - any-glob-to-any-file: src/studio/integrations/audacity/**
 
 area:tests:
   - changed-files:

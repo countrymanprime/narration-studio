@@ -2,7 +2,7 @@
 
 **Status: implemented.** The app shell draws the rail and header, and a page adds a command, a search source, a context menu or an overlay by calling one registry or service, never by editing the shell. The decisions are Command providers and "Go to" (catalogue, providers, jump menu, context menus, help), (overlay service) and [Layout rules](../design/design-system.md#layout-rules) (widths, icons, key caps). Studio shell and registries set the command model they extend and [Verification and code-health tooling](../operations/verification-tooling.md) the rule that an import boundary is a lint or test rule that names its ADR.
 
-All paths are under `apps/ui/src/`.
+All paths are under `src/studio/ui/src/`.
 
 ## Map
 

@@ -1,6 +1,6 @@
 ---
 name: reaper-command-add
-description: Adding or changing a REAPER bridge command or event in integrations/reaper? Harness test first, then Lua, the Go side, the event table, and a recorded in-REAPER check for what the fake cannot prove.
+description: Adding or changing a REAPER bridge command or event in src/studio/integrations/reaper? Harness test first, then Lua, the Go side, the event table, and a recorded in-REAPER check for what the fake cannot prove.
 ---
 
 # reaper-command-add
@@ -11,13 +11,13 @@ The Lua is imported into REAPER by the narrator, so it can be older or newer tha
 
 ## When to use this
 
-Adding, changing or removing a command in `integrations/reaper/*.lua` or the Go code that sends it (`apps/desktop/internal/bridge/`), or a new `events.log` event.
+Adding, changing or removing a command in `src/studio/integrations/reaper/*.lua` or the Go code that sends it (`src/studio/desktop/internal/bridge/`), or a new `events.log` event.
 
 ## What to do
 
 1. `daw-capabilities`: find the command's capability in the [DAW reference](../../../docs/reference/daw/capabilities.md) and read what it must return; a command with no capability is a design question first.
 2. `change-impact-scan`: find the harness test for every command a Lua consumer touches. A consumer with none is zero-coverage; say so.
-3. Write the harness test first in `integrations/reaper/tests/<feature>_test.lua` (happy, error, stale, conflict and idempotent paths). Extend `fake_reaper.lua` only to match behaviour observed in REAPER.
+3. Write the harness test first in `src/studio/integrations/reaper/tests/<feature>_test.lua` (happy, error, stale, conflict and idempotent paths). Extend `fake_reaper.lua` only to match behaviour observed in REAPER.
 4. Implement the command in its own feature file: it returns `function(registry)` and calls `registry.register(name, handler)`. Add the file to `FEATURE_FILES` in `narration_ui_bridge.lua` and to the shipped file list in `scripts/release/reaper-files.mjs`. A duplicate name is an error by design.
 5. Update the name list pinned in `registry_test.lua`. Add lines to `tests/mutations.json` whose removal must fail the suite (stale GUID, overwrite without asking, undo point with nothing changed).
 6. Go side: the sender and parser in `internal/bridge/`, with a test. A new event goes in the table in `internal/bridge/wire.go` with `wire_test.go` pinning the exact line the Lua harness pins (`wire-contract-change`).

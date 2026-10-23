@@ -1,6 +1,6 @@
 ---
 paths:
-  - "apps/ui/**"
+  - "src/studio/ui/**"
   - "docs/research/mockups/**"
 ---
 
@@ -21,8 +21,8 @@ The rule is the rebuild PRD's [Which mocks are the spec](../../docs/prds/studio-
 
 Owner rule (2026-10-13): UI images live in the how-to guide, not in a pull request. The rule, the commands and what the pull request says are in [UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide). Before calling a UI PR ready:
 
-1. Name the page(s) the change touches and look at every catalogued state of them: `pnpm --dir apps/ui visual:page <page>...` and `pnpm --dir apps/ui atlas:page <page>...` (no `playwright install` in a container; the runs find the installed headless shell).
-2. Update the page's guide in the same PR: the text in `docs/guides/using-the-app/<page>.md` and its images, regenerated with `node scripts/dev/guide-screenshots.mjs <page>...`. A new interaction gets a manifest entry in `apps/ui/tests/visual/doc-screenshots.json`, an image and a how-to step.
+1. Name the page(s) the change touches and look at every catalogued state of them: `pnpm --dir src/studio/ui visual:page <page>...` and `pnpm --dir src/studio/ui atlas:page <page>...` (no `playwright install` in a container; the runs find the installed headless shell).
+2. Update the page's guide in the same PR: the text in `docs/guides/using-the-app/<page>.md` and its images, regenerated with `node scripts/dev/guide-screenshots.mjs <page>...`. A new interaction gets a manifest entry in `src/studio/ui/tests/visual/doc-screenshots.json`, an image and a how-to step.
 3. In the PR body, state the real-app (Playwright) and Storybook results and link the guide diff, or write `No guide change: <specific reason>`.
 
 Commit no other images: no `pr-screenshots/` folder, no `pr-images/*` branch, no image links pinned to a commit.

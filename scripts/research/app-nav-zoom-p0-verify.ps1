@@ -3,15 +3,15 @@
   Phase 0 spike for the app navigation and zoom controls (results in
   docs/research/app-navigation-and-zoom-controls-phase0.md): verifies the zoom and
   back/forward behaviour on the real packaged Windows build (Wails v3), scripted, with no REAPER
-  and no owner. Throwaway research tooling (like apps/desktop/cmd/spike-globalhotkeys before it):
+  and no owner. Throwaway research tooling (like src/studio/desktop/cmd/spike-globalhotkeys before it):
   not wired into the shipped binary, not run by any always-on CI job.
 
 .DESCRIPTION
-  Launches the self-contained narration-utils.exe with an isolated app-data folder (so nothing here
+  Launches the self-contained narration-studio.exe with an isolated app-data folder (so nothing here
   reads or writes the owner's real settings or recent-projects list) and WebView2's remote debugging
   port enabled, then:
     - confirms the packaged GUI actually opens a window on a hosted windows-latest runner at all
-      (apps/desktop/smoke.go's own comment says a CI job "cannot start it and look at a window";
+      (src/studio/desktop/smoke.go's own comment says a CI job "cannot start it and look at a window";
       this spike's first job is finding out whether that is still true for an interactive launch,
       not just Wails' own non-interactive --smoke mode);
     - drives real OS-level input (Win32 SendInput, not CDP-synthesized input, since the whole
@@ -19,7 +19,7 @@
       for Ctrl+wheel, Ctrl+=/-/0, Alt+Left/Right and the mouse's back/forward buttons;
     - reads WebView2's own state back over its Chrome DevTools Protocol port (window.devicePixelRatio,
       location.href), never by clicking anything the app renders, so none of this needs a project
-      attached (apps/ui/src/App.tsx:381 gates the whole router behind one) or REAPER;
+      attached (src/studio/ui/src/App.tsx:381 gates the whole router behind one) or REAPER;
     - quits and relaunches against the same isolated profile folder to check zoom persistence.
 
   Touchpad pinch and a physical side-button mouse are not simulated: Win32 has no supported way to
@@ -246,14 +246,14 @@ try {
     $proc = Start-App -ProfileDir $profileDir
 }
 catch {
-    Add-Check -Name 'launch' -Result 'error' -Detail "narration-utils.exe could not even be started: $_"
+    Add-Check -Name 'launch' -Result 'error' -Detail "narration-studio.exe could not even be started: $_"
     $script:Checks | ConvertTo-Json -Depth 10 | Set-Content -Path $ReportPath
     exit 1
 }
 
 $hwnd = Focus-AppWindow -Proc $proc
 if ($hwnd -eq [IntPtr]::Zero) {
-    Add-Check -Name 'launch' -Result 'fail' -Detail 'The process started but no visible main window appeared within 20s on this hosted runner (apps/desktop/smoke.go already assumes a CI job cannot open one; this is that assumption holding for an interactive launch too, not only --smoke). Nothing below this line was exercised for real.'
+    Add-Check -Name 'launch' -Result 'fail' -Detail 'The process started but no visible main window appeared within 20s on this hosted runner (src/studio/desktop/smoke.go already assumes a CI job cannot open one; this is that assumption holding for an interactive launch too, not only --smoke). Nothing below this line was exercised for real.'
     Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
     $script:Checks | ConvertTo-Json -Depth 10 | Set-Content -Path $ReportPath
     exit 0

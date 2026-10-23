@@ -10,7 +10,7 @@
 //
 // The file is <page slug>[-<mock name>-<mock value>]-<W>x<H>.png. The theme is the colour scheme the page is drawn in; it is not forced.
 // Chromium: $CHROMIUM_PATH when set, else the one Playwright installed. Playwright resolves from $PLAYWRIGHT_FROM (a package.json),
-// else apps/ui. Tested by scripts/ci/capture-studio-next-mock.test.mjs (repo-scripts:test-node).
+// else src/studio/ui. Tested by scripts/ci/capture-studio-next-mock.test.mjs (repo-scripts:test-node).
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
@@ -92,7 +92,7 @@ function build(outDir) {
 }
 
 async function launch() {
-  const from = process.env.PLAYWRIGHT_FROM || join(REPO_ROOT, 'apps', 'ui', 'package.json');
+  const from = process.env.PLAYWRIGHT_FROM || join(REPO_ROOT, 'src', 'studio', 'ui', 'package.json');
   let chromium;
   try {
     ({ chromium } = createRequire(from)('@playwright/test'));

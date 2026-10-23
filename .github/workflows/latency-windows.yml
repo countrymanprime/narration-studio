@@ -48,7 +48,7 @@ jobs:
       - name: Story Bible operations against the frozen sidecar
         if: ${{ !cancelled() }}
         shell: bash
-        working-directory: apps/desktop
+        working-directory: src/studio/desktop
         env:
           LATENCY_RUNS: ${{ inputs.runs || '20' }}
         run: |
@@ -60,7 +60,7 @@ jobs:
       - name: Bridge round trip against the fake reaper
         if: ${{ !cancelled() }}
         shell: bash
-        working-directory: apps/desktop
+        working-directory: src/studio/desktop
         env:
           LATENCY_BRIDGE_CALLS: ${{ inputs.bridge-calls || '100' }}
         run: |
@@ -70,7 +70,7 @@ jobs:
       - name: One host tick against a growing events.log
         if: ${{ !cancelled() }}
         shell: bash
-        working-directory: apps/desktop
+        working-directory: src/studio/desktop
         run: go test -run '^$' -bench DispatchByLogSize -count=3 ./internal/bridge | tee "$GITHUB_WORKSPACE/latency-results/dispatch-by-log-size.txt"
       - name: Results
         if: always()

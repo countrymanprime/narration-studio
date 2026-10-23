@@ -1,29 +1,29 @@
-# narration-utils
+# narration-studio
 
 A group of utilities and plugins to assist with audio narration workflows. Each tool's business
 logic is DAW-agnostic; a thin per-DAW driver wires it into a specific host.
 
-- [Manuscript Guide](docs/utilities/manuscript-guide.md) (`sidecars/manuscript-guide/`, the Story Bible page) — builds a
+- [Manuscript Guide](docs/utilities/manuscript-guide.md) (`src/studio/sidecars/manuscript-guide/`, the Story Bible page) — builds a
   narrator reference (characters, places, organizations, pronunciations) from a manuscript. A downloadable spaCy language
   model makes it more accurate; without one it uses its rules-only fallback.
-- [Transcript Compare](docs/utilities/transcript-compare.md) (`sidecars/transcript-compare/`, a chapter's Proof view) —
+- [Transcript Compare](docs/utilities/transcript-compare.md) (`src/studio/sidecars/transcript-compare/`, a chapter's Proof view) —
   transcribes a recorded chapter with a local Whisper model and diffs it against the manuscript, dropping take markers at
   every discrepancy.
 - [Tracks](docs/utilities/tracks.md) (the audio engine panel, opened from the header's engine chip) — lists the tracks of a project's REAPER `.rpp` file and plays their
   audio, with no running REAPER needed, and scans a track for pickups and duplicate reads. With REAPER running the launcher,
   it also stamps chapters onto REAPER items, works through a proofer's pickup list and sets up a per-chapter render; it can
   add ID3 chapter tags to a copy of a rendered MP3.
-- [Manuscript Teleprompter](docs/architecture/manuscript-teleprompter.md) (`sidecars/manuscript-teleprompter/`, the
+- [Manuscript Teleprompter](docs/architecture/manuscript-teleprompter.md) (`src/studio/sidecars/manuscript-teleprompter/`, the
   Teleprompter page) — first cut: listens to a microphone with a local Whisper model and highlights the word you are
   reading in a chosen chapter.
 
 The tools share one native UI, shown below on the Production page, plus a manuscript reader and a Settings page that also lists,
 verifies and removes the voices and models the app has downloaded (Settings > Models & downloads). See
 [Using the app](docs/guides/using-the-app/README.md) for a full screenshot walkthrough. The UI's component library is a
-Storybook atlas (`pnpm --dir apps/ui run storybook`, checked in CI by the `ui-atlas` job); its generated reference is in
+Storybook atlas (`pnpm --dir src/studio/ui run storybook`, checked in CI by the `ui-atlas` job); its generated reference is in
 [`docs/ui/atlas/`](docs/ui/atlas/index.md) and the design rules in the [design system reference](docs/design/design-system.md).
 The public website (a landing page, the condensed guides, a live demo of the app and the Storybook atlas) is built from
-[`apps/site`](docs/operations/public-demo-site.md) and deployed to GitHub Pages from `main` by
+[`src/web`](docs/operations/public-demo-site.md) and deployed to GitHub Pages from `main` by
 [the Pages workflow](docs/operations/ci-and-releases.md#the-pages-workflow); the full docs are here in `docs/`.
 
 ![Production, the figures, the chapter pipeline and Next up](docs/images/ui/production-home.webp)
@@ -31,20 +31,22 @@ The public website (a landing page, the condensed guides, a live demo of the app
 ## Layout
 
 ```text
-narration-utils/
-  apps/
-    desktop/                   Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
-                               cmd/ (narration-utils, seed-assets, manuscript-import, spike-globalhotkeys, spike-storage), build/ (icons, the Windows setup program definition)
-    ui/                        React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
-  sidecars/                    Python programs frozen into the app and run on demand
-    manuscript-guide/          core/ CLI backend, tests/
-    manuscript-teleprompter/   core/ CLI backend, tests/, spikes/
-    transcript-compare/        core/ CLI backend, tests/
-  libs/
-    python/narration_common/   DAW-agnostic helpers shared by the sidecars
-  integrations/
-    reaper/                    REAPER launcher and Lua bridge
-    audacity/                  Audacity notes only; the driver is in apps/desktop/internal/
+narration-studio/
+  src/
+    studio/                    the app and its integration points
+      desktop/                 Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
+                               cmd/ (narration-studio, seed-assets, manuscript-import, spike-globalhotkeys, spike-storage), build/ (icons, the Windows setup program definition)
+      ui/                      React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
+      sidecars/                Python programs frozen into the app and run on demand
+        manuscript-guide/          core/ CLI backend, tests/
+        manuscript-teleprompter/   core/ CLI backend, tests/, spikes/
+        transcript-compare/        core/ CLI backend, tests/
+      libs/python/narration_common/   DAW-agnostic helpers shared by the sidecars
+      integrations/
+        reaper/                REAPER launcher and Lua bridge
+        audacity/              Audacity notes only; the driver is in src/studio/desktop/internal/
+      tests/audacity3/         the real-Audacity 3 runs of the desktop host's Audacity adapter
+    web/                       the GitHub Pages app: landing page, condensed guides, live demo, Storybook atlas
   config/                      shipped JSON: defaults, asset catalogs, roadmap
   tests/fixtures/              manuscripts used by tests across projects
   tools/docs-site/             the public docs site: MkDocs config, include list and hooks (reads docs/, holds no content)
@@ -54,20 +56,20 @@ narration-utils/
 
 Each sidecar's `core/` has zero DAW-API calls: it is a plain CLI backend (docx parsing, NLP,
 diffing, transcription) that the desktop host runs. All REAPER coupling lives in
-`integrations/reaper/`. Path resolution throughout (config lookup, backend location) is derived
+`src/studio/integrations/reaper/`. Path resolution throughout (config lookup, backend location) is derived
 from each script's own location at runtime, so a checkout works unmodified at any install path.
 The layout and its test rule are recorded in
 [`docs/architecture/codebase-map.md`](docs/architecture/codebase-map.md).
 
 ## Supported DAWs
 
-- **Reaper** — supported. Load `integrations/reaper/NarrationStudio_Launcher.lua` as
+- **Reaper** — supported. Load `src/studio/integrations/reaper/NarrationStudio_Launcher.lua` as
   the one action; it opens the centered Narration Studio workspace with every tool (Proof,
   Story Bible, Teleprompter, Tracks and the manuscript reader) and their global/project settings.
 - **Audacity 3.x** — adapter built from the published `mod-script-pipe` spec and tested against a fake pipe server; the
   owner's check in a running Audacity is pending ([verification pass](docs/operations/audacity-verification-pass.md)). The
-  pipe client and adapter are in `apps/desktop/internal/audacitybridge` and `apps/desktop/internal/dawport/audacity`;
-  `integrations/audacity/` holds placeholder notes only. Audacity 4.0 has no scripting pipe
+  pipe client and adapter are in `src/studio/desktop/internal/audacitybridge` and `src/studio/desktop/internal/dawport/audacity`;
+  `src/studio/integrations/audacity/` holds placeholder notes only. Audacity 4.0 has no scripting pipe
   ([DAW reference](docs/reference/daw/README.md)).
 
 ## Supported platforms
@@ -81,7 +83,7 @@ with someone testing on those systems, non-Windows builds can come back.
 
 The supported way to get the app is a GitHub release. From the [releases page](https://github.com/countrymanprime/narration-studio/releases):
 
-1. Download `narration-utils-<version>-windows-x64-setup.exe`, for example `narration-utils-0.2.7-windows-x64-setup.exe` (and,
+1. Download `narration-studio-<version>-windows-x64-setup.exe`, for example `narration-studio-0.2.7-windows-x64-setup.exe` (and,
    to check it, the `.sha256` file of the same name). Every file on a release carries its version in its name.
 2. Run it. It installs for your user account only, so it asks for no administrator rights, puts the program in
    `%LOCALAPPDATA%\Programs\Narration Studio`, adds a Start Menu entry and, if you leave it ticked, a desktop shortcut, and
@@ -90,27 +92,27 @@ The supported way to get the app is a GitHub release. From the [releases page](h
 3. **The release is unsigned**, so Windows SmartScreen may say it "prevented an unrecognized app from starting". Choose
    **More info**, then **Run anyway**. The warning is about the missing signature, not about anything found in the file. To
    check the file yourself before you run it:
-   - the checksum, which only detects a damaged download: `(Get-FileHash .\narration-utils-0.2.7-windows-x64-setup.exe).Hash` in
+   - the checksum, which only detects a damaged download: `(Get-FileHash .\narration-studio-0.2.7-windows-x64-setup.exe).Hash` in
      PowerShell must equal the hash in the `.sha256` file;
    - where it was built, with the [GitHub CLI](https://cli.github.com):
-     `gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio`. Success names the
+     `gh attestation verify narration-studio-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio`. Success names the
      workflow, commit and run that built it (see [CI and releases](docs/operations/ci-and-releases.md#build-provenance)).
 4. Start **Narration Studio** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
 
 The app updates itself from these releases after you click (Settings > App & updates); it never installs an update on its
-own. That works because the install folder is yours to write to. `narration-utils-<version>-windows-x64.zip` on the release is
+own. That works because the install folder is yours to write to. `narration-studio-<version>-windows-x64.zip` on the release is
 the update package the app fetches, not something to run by hand. A copy installed before the version was in the file names
 cannot find the new names: install the next release by hand once, and it updates itself from then on.
 
 **Uninstall** from Settings > Apps > Installed apps. That removes the program and its shortcuts and **leaves your settings**
-(`%APPDATA%\narration-utils`), **the voices and models you downloaded** (`%LOCALAPPDATA%\narration-utils`, also where the
+(`%APPDATA%\narration-studio`), **the voices and models you downloaded** (`%LOCALAPPDATA%\narration-studio`, also where the
 update staging lives) **and everything in your project folders** alone; the uninstall page says so. Delete those folders by hand
 if you want them gone.
 
 ## Developer bootstrap
 
 The UI is a local React + Tailwind workspace, shown in its own native window
-(`apps/desktop/`, a Go/Wails app) with generated native bindings. Python is
+(`src/studio/desktop/`, a Go/Wails app) with generated native bindings. Python is
 used only for the three sidecar tools the shell starts on demand. From the
 checkout root, run:
 
@@ -144,12 +146,12 @@ This is the current **developer-checkout** workflow, not the intended release
 installation path. Compiled GitHub releases package their own sidecars and
 installer resources, and never call this command.
 
-A compiled release is one program, `narration-utils` (`narration-utils.exe` on Windows), that knows its own version
+A compiled release is one program, `narration-studio` (`narration-studio.exe` on Windows), that knows its own version
 (Settings > App & updates). Once a day at most it asks GitHub whether a newer release of this repository exists (switch
 it off there), and on Windows, after your confirmed click, it downloads that release, checks it and replaces itself; it
 never downloads or installs anything on its own. See [in-app update](docs/architecture/in-app-update.md).
 
-A built program can check itself without opening a window: `narration-utils --smoke` unpacks its bundled resources, starts
+A built program can check itself without opening a window: `narration-studio --smoke` unpacks its bundled resources, starts
 each frozen sidecar, checks the Story Bible sidecar's dictionary and speech data and the approved asset catalogs, and exits
 non-zero on any failure. CI runs it on the Windows build before packaging; see
 [CI and releases](docs/operations/ci-and-releases.md#the-packaged-app-smoke-test).
@@ -167,7 +169,7 @@ every approved asset and whether it is installed; `pnpm run assets:seed -- tts w
 spacy/en_core_web_sm` (a kind, `kind/id`, or `all`) installs them into the same per-user cache
 the app reads, hash-verified, from the same pinned catalogs. Bootstrap never runs it.
 
-While iterating on the shell without a full release build, `pnpm --dir apps/desktop run
+While iterating on the shell without a full release build, `pnpm --dir src/studio/desktop run
 dev` runs the native Wails window directly. The shipped Go importer accepts
 Markdown, DOCX, plain text and EPUB; PDF remains intentionally disabled pending corpus parity.
 
@@ -183,16 +185,16 @@ render, adding a take, and reporting the open project's state. See
 
 The tools keep their own DAW-agnostic Python backends. What they share:
 
-- **`<project folder>\narration-utils\manuscript\manuscript.json`** — the one intentional,
+- **`<project folder>\narration-studio\manuscript\manuscript.json`** — the one intentional,
   project-owned data contract between the tools. DOCX, Markdown, plain-text and EPUB files are
   imported once; their preserved source copies are provenance only and are never reparsed.
   Existing v1 PDF-derived canonical data remains readable, but new PDF import is fail-closed
   pending corpus parity.
-- **`integrations/reaper/`** — `reaper_common_core.lua` (ExtState access, file/path helpers) and
+- **`src/studio/integrations/reaper/`** — `reaper_common_core.lua` (ExtState access, file/path helpers) and
   `reaper_common_process.lua` (hidden-subprocess launching, the pipe-delimited protocol used by
   each tool's Python backend). The launcher loads these via `dofile`, resolved relative to
   its own script path; the bridge's file protocol is in [the REAPER bridge](docs/architecture/reaper-bridge.md).
-- **`libs/python/narration_common/`** — cross-tool contracts including canonical manuscript,
+- **`src/studio/libs/python/narration_common/`** — cross-tool contracts including canonical manuscript,
   settings, bridge, logging, and `progress.py` (the `stage|pct|message` progress-file writer,
   retry-hardened against Windows sharing violations), and `logging_utils.py` (stderr[+file]
   logging). Each backend adds this to `sys.path` relative to its own file.

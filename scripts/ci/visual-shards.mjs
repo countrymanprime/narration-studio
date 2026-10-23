@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// Splits the visual suite (apps/ui/tests/visual) across CI shards by measured time. Playwright's own `--shard=i/n` cuts the list into
+// Splits the visual suite (src/studio/ui/tests/visual) across CI shards by measured time. Playwright's own `--shard=i/n` cuts the list into
 // runs of equal test COUNT, and the tests are far from equal: the shards ran 12 m 14 s to 14 m 22 s, and the longest one carried the
 // `aria` step as well. This assigns every test to the shard with the least estimated time so far (longest first), from the mean
-// time of tests like it in apps/ui/tests/visual/shard-weights.json, and runs the shard with Playwright's `--test-list`.
+// time of tests like it in src/studio/ui/tests/visual/shard-weights.json, and runs the shard with Playwright's `--test-list`.
 //
 //   node scripts/ci/visual-shards.mjs split --shard 2/3 --out shard.txt [--manifest shard-2.json] [--github-output]
 //       Lists the suite (a few seconds, no browser), writes shard 2's tests to shard.txt, prints the plan, and with
 //       --github-output sets `aria=true|false` for the step that runs the aria suite on exactly one shard. --manifest records how
 //       many tests the shard has out of how many there are, which whole-run.check.ts checks across the shards.
-//   node scripts/ci/visual-shards.mjs weights report.json [more.json ...] [--out apps/ui/tests/visual/shard-weights.json]
+//   node scripts/ci/visual-shards.mjs weights report.json [more.json ...] [--out src/studio/ui/tests/visual/shard-weights.json]
 //       Rebuilds the weights from Playwright JSON reports (`--reporter=json`; CI uploads one per shard as ui-visual-timings-<i>).
 //
 // Every test is in exactly one shard: the split is a pure function of the listed tests and the weights file, every shard job computes
@@ -22,7 +22,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const UI = join(HERE, '..', '..', 'apps', 'ui');
+const UI = join(HERE, '..', '..', 'src', 'studio', 'ui');
 const WEIGHTS_FILE = join(UI, 'tests', 'visual', 'shard-weights.json');
 
 /** Measured on the `aria` step of a CI shard (2026-10-18): 49 s. It is placed like a test, so the shard that runs it gets fewer. */

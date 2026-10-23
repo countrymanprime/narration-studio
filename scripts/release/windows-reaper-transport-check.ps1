@@ -1,5 +1,5 @@
 # Release-gate check 9.7 (REAPER play-state timing), scripted: installs REAPER (the evaluation build, silent) on a disposable Windows
-# runner, runs integrations/reaper/spikes/transport_timing.lua inside it through run-reaper.ps1 (isolated -cfgfile, scratch project), and
+# runner, runs src/studio/integrations/reaper/spikes/transport_timing.lua inside it through run-reaper.ps1 (isolated -cfgfile, scratch project), and
 # copies the report to <OutDir>. It records what REAPER did; it fails only when REAPER could not be installed or started or the script
 # did not finish, never because the transport refused a state (that is a finding, written in the report).
 #
@@ -40,8 +40,8 @@ $scratch = Join-Path $env:TEMP ('transport-' + [guid]::NewGuid().ToString('N'))
 $cfg = Join-Path $env:TEMP ('transport-cfg-' + [guid]::NewGuid().ToString('N'))
 $done = Join-Path $scratch 'report.txt'
 New-Item -ItemType Directory -Force $scratch | Out-Null
-& pwsh -NoProfile -File (Join-Path $repo 'integrations\reaper\spikes\run-reaper.ps1') -Cfg $cfg -Out $scratch `
-  -Script (Join-Path $repo 'integrations\reaper\spikes\transport_timing.lua') -Done $done -TimeoutSec 120 -IgnoreErrors |
+& pwsh -NoProfile -File (Join-Path $repo 'src\studio\integrations\reaper\spikes\run-reaper.ps1') -Cfg $cfg -Out $scratch `
+  -Script (Join-Path $repo 'src\studio\integrations\reaper\spikes\transport_timing.lua') -Done $done -TimeoutSec 120 -IgnoreErrors |
   Tee-Object -FilePath (Join-Path $OutDir 'driver-log.txt')
 Get-ChildItem $scratch -Recurse -File | Where-Object { $_.Name -in 'transport-timing-report.txt', 'report.txt', 'events.log' } |
   ForEach-Object { Copy-Item $_.FullName (Join-Path $OutDir $_.Name) -Force }

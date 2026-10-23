@@ -4,7 +4,7 @@ Date: 2026-10-23. Code read at `063dc83`. Questions from the owner's test findin
 
 Method: read the code, the tests, the Studio Next mock (`docs/research/mockups/studio-next/`, the spec per [Which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)), the PRDs, the [findings contract](../architecture/findings-contract.md) and the guides. One test was added to reproduce item 30. Nothing was run in REAPER for this note.
 
-Path prefixes: `ui/` is `apps/ui/src/components/`, `mock/` is `docs/research/mockups/studio-next/src/`, `tc/` is `sidecars/transcript-compare/`.
+Path prefixes: `ui/` is `src/studio/ui/src/components/`, `mock/` is `docs/research/mockups/studio-next/src/`, `tc/` is `src/studio/sidecars/transcript-compare/`.
 
 ## A. What each page can do with a finding (item 26)
 
@@ -16,7 +16,7 @@ Path prefixes: `ui/` is `apps/ui/src/components/`, `mock/` is `docs/research/moc
 | Position in the chapter | **Yes.** Inspector time, waveform pins (`inspector/Inspector.tsx:107-109`, `ProofPage.tsx:352-360`) | **Partial.** A time column only (`PickupsTable.tsx:318-320`) | **Yes.** The word in the script and "heard at mm:ss" (`FlagCard.tsx:43-50`) |
 | Surrounding text | **Partial.** Script and Heard quotes of the span only (`Inspector.tsx:115-120`) | **Partial.** The line's own text (`PickupsTable.tsx:326-328`) | **Yes.** The card sits in the chapter's script (`FlagCard.tsx:55-59`) |
 | Mark fine | **Yes, as "Waive"** → `dismissed` (`inspector/DecisionButtons.tsx:6-11`, key W) | **No.** "Mark recorded" sets the pickup's done state, not the finding (`PickupsTable.tsx:352-356`) | **Not in the findings store.** "It is right, accept" writes `accepted.json` through `editingAccept` (`flags/useAcceptWords.ts:17-38`). No file in `ui/editing/` calls `findingsReview`, so the Proof note stays open |
-| Make a pickup | **Indirect.** "Needs pickup" writes `accepted`, and the host lists accepted pickup-category findings (`apps/desktop/internal/pickuplist/pickuplist.go:586-603`). "Fix in edit" on a misread still becomes a pickup (`proof/resolution.ts:24-28`) | By hand only (`AddPickup`) | **Yes.** "Mark for pickup" adds a by-hand line with no `findingId` (`menu/marks/markCommands.ts:58-84`) |
+| Make a pickup | **Indirect.** "Needs pickup" writes `accepted`, and the host lists accepted pickup-category findings (`src/studio/desktop/internal/pickuplist/pickuplist.go:586-603`). "Fix in edit" on a misread still becomes a pickup (`proof/resolution.ts:24-28`) | By hand only (`AddPickup`) | **Yes.** "Mark for pickup" adds a by-hand line with no `findingId` (`menu/marks/markCommands.ts:58-84`) |
 | Retake | Link to the Booth, chapter level | Link to the Booth at the line (`PickupsTable.tsx:351`) | No recording; stack or keep existing takes |
 | Undo | **Yes.** Toast, Ctrl+Z and History share a journal (`ProofPage.tsx:293-337`) | **Partial.** Undo for removing by-hand lines only (`PickupsPage.tsx:176-190`) | **Yes.** `editingUnaccept`, `pickupsRemove` |
 
@@ -75,18 +75,18 @@ A1 and A6 change the PRD's lines; per the [mock rule](../prds/studio-next-rebuil
 
 | Part | State | Where |
 | - | - | - |
-| Rules attribution in the build | Merged. A speech-verb tag naming a known speaking entry, or two speakers alternating | `sidecars/manuscript-guide/core/manuscript_guide.py` `extract_dialogue_cues`, `find_speech_tag` (1646-1663), alternation (1691-1720) |
-| Rules speaker suggestions | Merged; tag cues only. Line 213 omits the guide's speaking types | `sidecars/manuscript-guide/core/extraction_rules.py:209-232` |
+| Rules attribution in the build | Merged. A speech-verb tag naming a known speaking entry, or two speakers alternating | `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` `extract_dialogue_cues`, `find_speech_tag` (1646-1663), alternation (1691-1720) |
+| Rules speaker suggestions | Merged; tag cues only. Line 213 omits the guide's speaking types | `src/studio/sidecars/manuscript-guide/core/extraction_rules.py:209-232` |
 | BookNLP adapter | Merged, not installable: both asset rows are `pending` | `core/extraction_booknlp.py`, `config/analysis-assets.json:78,133` |
-| Host reads and corrections | Merged | `GuideDialogueCues`, `GuideCorrectCue` (`apps/desktop/bindings_character.go:84,95`) |
-| Applying a speaker suggestion | Merged; refuses when no cue exists ("The quoted line is not in the text.") | `apps/desktop/internal/extraction/apply/apply.go:381-411` |
+| Host reads and corrections | Merged | `GuideDialogueCues`, `GuideCorrectCue` (`src/studio/desktop/bindings_character.go:84,95`) |
+| Applying a speaker suggestion | Merged; refuses when no cue exists ("The quoted line is not in the text.") | `src/studio/desktop/internal/extraction/apply/apply.go:381-411` |
 | Chips and picker | Wired on Script, Story Bible entry, Booth | `ui/script/page/ScriptPage.tsx`, `ui/storybible/GuideDetail.tsx:912`, `ui/booth/page/useBoothData.ts:90-111` |
 | Editing chips | Missing (gap audit ED-1) | [gap audit](studio-next-gap-audit.md) |
-| Mock host | Seeds cues from fixtures, so dev:mock and the visual suite show chips | `apps/ui/src/api/mockHost/state.ts:312` |
+| Mock host | Seeds cues from fixtures, so dev:mock and the visual suite show chips | `src/studio/ui/src/api/mockHost/state.ts:312` |
 
 ### Why the narrator never sees it
 
-1. **Nothing produces cues in the app.** Cues are written only by the Story Bible build, `guide.Build`, called only from `Host.startGuideBuild` (`apps/desktop/app.go:2170`). That method has no non-test caller and no binding. The guide says so: "Nothing builds the Story Bible on its own, not even a manuscript import" (`docs/guides/using-the-app/story-bible.md`).
+1. **Nothing produces cues in the app.** Cues are written only by the Story Bible build, `guide.Build`, called only from `Host.startGuideBuild` (`src/studio/desktop/app.go:2170`). That method has no non-test caller and no binding. The guide says so: "Nothing builds the Story Bible on its own, not even a manuscript import" (`docs/guides/using-the-app/story-bible.md`).
 2. The Story Bible's wand runs `ExtractionScan`, which writes suggestions, not cues (`ui/storybible/suggested/panel/useSuggestions.ts:109`). Its speaker suggestions then fail in `apply.go` because no cue exists.
 3. With no cues, no chip, "?" or "without a speaker" count is drawn. The mock seeds cues, so the feature looks finished there.
 4. Even after a build, little is attributed: tag-only rules, lone-word names land in Needs Review and are not speakers (`manuscript_guide.py:433-434, 1632-1642`), and filing an entry as Character does not recompute cues.
@@ -111,11 +111,11 @@ B1 changes what crosses a binding or the sidecar's output: `wire-contract-change
 
 | Path | Where it decides | Result for a phrase said twice |
 | - | - | - |
-| Markers (Proof findings) | `tc/core/compare.py` `diff_and_build_markers` (1165): any difflib `insert` becomes `EXTRA` (1249-1253) | `EXTRA` → `CategoryTranscriptDiscrepancy`, severity info (`apps/desktop/internal/transcript/findings_adapter.go:100, 223-228`) → "heard, not in the script" (`ui/proof/findingFormat.ts:89`) |
+| Markers (Proof findings) | `tc/core/compare.py` `diff_and_build_markers` (1165): any difflib `insert` becomes `EXTRA` (1249-1253) | `EXTRA` → `CategoryTranscriptDiscrepancy`, severity info (`src/studio/desktop/internal/transcript/findings_adapter.go:100, 223-228`) → "heard, not in the script" (`ui/proof/findingFormat.ts:89`) |
 | Coverage (Editing) | `tc/core/recording_coverage.py` `align_tokens` (397-437); `_is_reread` (240) only picks `skip` over `different_text` inside a gap with missing words, never for extras | A `COVERAGE_EXTRA` run (`tc/core/coverage_mode.py:735-774`) with no repeat field → "Not in the script" (`ui/editing/flags/flagText.ts:9`) |
 | Take divergence | `tc/core/take_divergence.py` `_prefer_earlier_copy` (194-216) moves the EXTRA onto the abandoned copy | Still `EXTRA`. Runs only in take-divergence mode |
-| Find repeats | `compare.py --find-repeats`, `find_repeated_spans` (1729) | Groups repeats **across segments** (items or takes) → `pickup` or `duplicate_read` findings (`apps/desktop/internal/repeats/adapter.go:160-181`). Never inside one recording |
-| Live teleprompter | `sidecars/manuscript-teleprompter/core/flags.py` `_extra_or_restart` (161, 3+ words) | `restart` → pickup (`apps/desktop/liveflags.go:75`). Live only |
+| Find repeats | `compare.py --find-repeats`, `find_repeated_spans` (1729) | Groups repeats **across segments** (items or takes) → `pickup` or `duplicate_read` findings (`src/studio/desktop/internal/repeats/adapter.go:160-181`). Never inside one recording |
+| Live teleprompter | `src/studio/sidecars/manuscript-teleprompter/core/flags.py` `_extra_or_restart` (161, 3+ words) | `restart` → pickup (`src/studio/desktop/liveflags.go:75`). Live only |
 | Editing "Read twice" | `ui/editing/model/duplicates.ts` `duplicateRead` (44): the line's first 4 words heard again after a 0.3 s pause | Only for a paragraph that has a `take`; `ui/editing/script/docFromHeard.ts:63-68` sets no `dup`, so on the live page the words stay "Not in the script". A repeat mid-paragraph is never found |
 
 ### Tests
@@ -134,7 +134,7 @@ The test is a passing characterisation test, not an `xfail`: the test ratchet (`
 
 | Command | Harness | Real REAPER (`scripts/ci/real-reaper/`) |
 | - | - | - |
-| `chapter_track_state` (active take only) | `integrations/reaper/tests/track_state_test.lua` | `scenarios_session.py`, `scenarios_transport.py` |
+| `chapter_track_state` (active take only) | `src/studio/integrations/reaper/tests/track_state_test.lua` | `scenarios_session.py`, `scenarios_transport.py` |
 | `set_active_take` | `workspace_test.lua` | `scenarios_takes.py:38`: take 2 active, undo label, render tone, Undo |
 | `hide_takes` | `takes_test.lua` | `scenarios_takes.py:60`: volumes, render below 1e-4, reload, Undo |
 | `split_take` | `split_take_test.lua` | `scenarios_takes.py:117,144`: offset, render, Undo, refusals |

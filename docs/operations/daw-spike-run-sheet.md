@@ -14,7 +14,7 @@ Paste the table on #992 or commit it back. A spike that cannot run is returned a
 
 ## Rules that apply to every REAPER spike
 
-- REAPER starts with `-cfgfile <fresh temp folder>\reaper.ini -nosplash -newinst -noactivate`, so your settings, scripts and ExtState are never read or written. `integrations/reaper/spikes/run-reaper.ps1` builds that command line and refuses a `-Cfg`, `-Out` or `-Project` outside `%TEMP%` or under a `REAPER Media` folder.
+- REAPER starts with `-cfgfile <fresh temp folder>\reaper.ini -nosplash -newinst -noactivate`, so your settings, scripts and ExtState are never read or written. `src/studio/integrations/reaper/spikes/run-reaper.ps1` builds that command line and refuses a `-Cfg`, `-Out` or `-Project` outside `%TEMP%` or under a `REAPER Media` folder.
 - REAPER opens only a **copy** of the project, under the temp folder. Nothing in the `Challenges_001` folder is written. Step 0 and step 9 hash the original to prove it.
 - Each script builds its own tracks and items from synthetic tones (`make_media.py`) on the copy. Nothing is saved: `run-reaper.ps1` answers No to REAPER's save prompt on close.
 - The first call of every REAPER script is the guard in `common.lua`. It asserts that REAPER's resource path is the scratch `-cfgfile` folder. Then it closes the audio device (`reaper.Audio_Quit()`) and asserts it is closed. Spikes 1a (real record part) and 1f need the device and say so; their guard asserts the resource path only.
@@ -38,10 +38,10 @@ function Invoke-Spike {
   $out = "$dir\out"
   if (Test-Path $out) { throw "$out exists: use a fresh `$root for a rerun" }
   New-Item -ItemType Directory -Force $out | Out-Null
-  python integrations/reaper/spikes/make_media.py "$out\media"
+  python src/studio/integrations/reaper/spikes/make_media.py "$out\media"
   Copy-Item "$root\lua\common.lua" "$out\common.lua"
   Copy-Item $orig "$dir\copy.rpp"
-  pwsh integrations/reaper/spikes/run-reaper.ps1 -Cfg $cfg -Out $out -Script "$root\lua\$Script" `
+  pwsh src/studio/integrations/reaper/spikes/run-reaper.ps1 -Cfg $cfg -Out $out -Script "$root\lua\$Script" `
     -Project "$dir\copy.rpp" -Done "$out\spike-$Id-report.txt" -IgnoreErrors -TimeoutSec $TimeoutSec
   Get-Content "$out\spike-$Id-report.txt"
 }
@@ -52,7 +52,7 @@ Save the shared Lua below as `$root\lua\common.lua`. Every REAPER script `dofile
 ```lua
 -- common.lua: guard, fixture helpers, undo walk, report. Saved to <root>\lua\common.lua.
 local M = {}
-local out = os.getenv('NARRATION_UTILS_SPIKE_OUT')
+local out = os.getenv('NARRATION_STUDIO_SPIKE_OUT')
 local lines = {}
 
 function M.log(...)
@@ -64,9 +64,9 @@ end
 -- The S0/S6 guard. needs_device = true skips closing the audio device (spikes 1a real record and 1f only).
 function M.guard(needs_device)
   local bs = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
-  assert(out and out ~= '', 'NARRATION_UTILS_SPIKE_OUT is not set: start this script with run-reaper.ps1')
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  assert(out and out ~= '', 'NARRATION_STUDIO_SPIKE_OUT is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   local actual = reaper.GetResourcePath()
   assert(actual:gsub(bs, '/'):lower() == wanted:gsub(bs, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   if needs_device then
@@ -149,7 +149,7 @@ end
 return M
 ```
 
-Each spike's Lua starts with `local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')`. Save it to `$root\lua\<name>.lua` and run the `Invoke-Spike` line under it.
+Each spike's Lua starts with `local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')`. Save it to `$root\lua\<name>.lua` and run the `Invoke-Spike` line under it.
 
 ## 1a Roll (SND-S1)
 
@@ -162,7 +162,7 @@ Each spike's Lua starts with `local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_
 | Result | What it changes in the PRD |
 | --- | --- |
 | Yes | Roll ships as one command (`roll`, SND-6a). Record the recording mode that worked; the command refuses with that mode named when the project is in another, and never changes preferences. |
-| No | SND-6a is dropped from the Booth and `integrations/reaper/narration_punch.lua`'s cursor-only roll stays; the PRD row "Roll as one command (A8)" is reopened. |
+| No | SND-6a is dropped from the Booth and `src/studio/integrations/reaper/narration_punch.lua`'s cursor-only roll stays; the PRD row "Roll as one command (A8)" is reopened. |
 | Partly | Roll ships only for the recording mode(s) that kept the audio, refusing otherwise; list which modes, and any extra undo points the narrator would see. |
 
 ### 1a-fake: scripted, no device (run first)
@@ -172,7 +172,7 @@ Stand-in for a roll: in one undo block, add a new recording (a tone file) as a n
 Save as `$root\lua\spike_1a_fake.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1a-fake', false, function()
   local track = c.track('Spike roll')
   local item, first = c.item(track, 'take_a.wav', 0, 3)
@@ -212,7 +212,7 @@ Then, for each recording mode you want to test, run the script below once from a
 Save as `$root\lua\spike_1a_real.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1a-real', true, function()
   local track = c.track('Spike roll')
   c.item(track, 'take_a.wav', 0, 3)
@@ -270,7 +270,7 @@ Expected: record starts at the cursor (1.5 s), and the report shows whether the 
 Save as `$root\lua\spike_1b_cut.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1b', false, function()
   local words = c.track('Words')
   local cuts = c.track('Cuts')
@@ -334,7 +334,7 @@ Expected: after words: items at 0 (3 s), 3 (1 s), 4 (the 1 s tail, moved from 5)
 Save as `$root\lua\spike_1c_chain.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 -- The body of an .RfxChain, taken from REAPER's own <FXCHAIN> text for a scratch track that has the plug-in.
 local function chain_text_for(plugin)
   local index = reaper.CountTracks(0)
@@ -418,7 +418,7 @@ Expected: `UNDO_POINTS 1 Narration Studio: spike chain on range`; after_undo: on
 Save as `$root\lua\spike_1d_stack.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1d', false, function()
   local track = c.track('Spike reads')
   local first_item, first_take = c.item(track, 'take_a.wav', 0, 3)
@@ -475,7 +475,7 @@ Expected: after: 1 item with 3 takes, active take 1, length 3; `UNDO_POINTS 1`; 
 Save as `$root\lua\spike_1e_undo.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1e', false, function()
   local track = c.track('Spike undo')
   local item = c.item(track, 'take_a.wav', 0, 3)
@@ -520,7 +520,7 @@ API edits and hand edits may label differently. This run logs the top undo label
 Save as `$root\lua\spike_1e_live.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1e-live', false, function()
   local track = c.track('Spike undo')
   c.item(track, 'take_a.wav', 0, 3)
@@ -558,14 +558,14 @@ Expected: a label line for the mouse move (REAPER's own wording, for example a m
 
 | Result | What it changes in the PRD |
 | --- | --- |
-| Yes | The Booth anchors words with the position that stayed within one poll interval of the wall clock, at the bounded poll rate; `integrations/reaper/narration_punch.lua`'s polled anchor stands. |
-| No | Neither position is steady over the polled bridge: the Booth's resume anchor falls back to the cursor, and `integrations/reaper/narration_punch.lua`'s polled anchor is reopened. |
+| Yes | The Booth anchors words with the position that stayed within one poll interval of the wall clock, at the bounded poll rate; `src/studio/integrations/reaper/narration_punch.lua`'s polled anchor stands. |
+| No | Neither position is steady over the polled bridge: the Booth's resume anchor falls back to the cursor, and `src/studio/integrations/reaper/narration_punch.lua`'s polled anchor is reopened. |
 | Partly | One of the two is usable: name which, and the Booth uses it with the stated error bound; or the error is bounded only above some buffer size, which goes in the notes. |
 
 Use the kept `cfg-device` folder from 1a-real (set the interface there once). Save as `$root\lua\spike_1f_playpos.lua`:
 
 ```lua
-local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_OUT') .. '/common.lua')
+local c = dofile(os.getenv('NARRATION_STUDIO_SPIKE_OUT') .. '/common.lua')
 c.run('1f', true, function()
   assert(reaper.APIExists('GetPlayPosition2'), 'this REAPER cannot report GetPlayPosition2')
   local track = c.track('Spike play')

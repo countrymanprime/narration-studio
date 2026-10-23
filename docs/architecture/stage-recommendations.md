@@ -1,6 +1,6 @@
 # Chapter stage recommendations: the signal contract
 
-**Status: delivered.** The Go types, the `Provider` interface and the pure engine are in [`apps/desktop/internal/stages`](../../apps/desktop/internal/stages). The recording signal, `recording.text_present`, and its provider are in [`apps/desktop/internal/coverage`](../../apps/desktop/internal/coverage) (`signal.go`, `provider.go`; [Settings](../utilities/recording-coverage.md#settings)). The decision store and the service that composes the providers, the engine and the manuscript's status path are in `internal/stages` too (`store.go`, `service.go`, `assess.go`;). `coverage.Service.EvidenceView` builds the view every provider shares (`stages.Config.View`). The host builds the service for each project and four bindings reach it (`apps/desktop/bindings_stages.go`, see [The bindings](#the-bindings)); the UI is described under [On the Production board](#on-the-production-board).
+**Status: delivered.** The Go types, the `Provider` interface and the pure engine are in [`src/studio/desktop/internal/stages`](../../src/studio/desktop/internal/stages). The recording signal, `recording.text_present`, and its provider are in [`src/studio/desktop/internal/coverage`](../../src/studio/desktop/internal/coverage) (`signal.go`, `provider.go`; [Settings](../utilities/recording-coverage.md#settings)). The decision store and the service that composes the providers, the engine and the manuscript's status path are in `internal/stages` too (`store.go`, `service.go`, `assess.go`;). `coverage.Service.EvidenceView` builds the view every provider shares (`stages.Config.View`). The host builds the service for each project and four bindings reach it (`src/studio/desktop/bindings_stages.go`, see [The bindings](#the-bindings)); the UI is described under [On the Production board](#on-the-production-board).
 
 This page is for whoever implements a signal: recording coverage (`recording`), editing readiness (`editing`) and
 proofing readiness (`proofing`).
@@ -73,15 +73,15 @@ type Provider interface {
 ```
 
 - `SignalIDs` declares every id the provider can report. The narrator's `StageRecommendations` settings
-  (`apps/desktop/app.go`'s `fieldSchemas`) choose the required set out of these ids: each is `required` or `ignored`
+  (`src/studio/desktop/app.go`'s `fieldSchemas`) choose the required set out of these ids: each is `required` or `ignored`
   (default `required`), and a master switch (`suggestions_enabled`) empties every stage's required set at once when
   off. `Config.RequiredSignals` narrows `DeclaredSignalIDs` accordingly; a nil `RequiredSignals` (a caller not wired to
   settings) keeps every declared id required, the original default.
 - A provider may also drop its own ids that its evidence says are not required right now, by having a
-  `FilterRequired(required []string) []string` method: the host's `RequiredSignals` (`apps/desktop/bindings_stages.go`,
+  `FilterRequired(required []string) []string` method: the host's `RequiredSignals` (`src/studio/desktop/bindings_stages.go`,
   `filterRequired`) applies it after the settings, for the provider's own stage only, and never adds an id. The proofing
-  provider ([`apps/desktop/internal/proofing`](../../apps/desktop/internal/proofing), proofing readiness signals,
-  delivered and deleted; see [pickups.go](../../apps/desktop/internal/proofing/pickups.go)) uses it so a delivery check
+  provider ([`src/studio/desktop/internal/proofing`](../../src/studio/desktop/internal/proofing), proofing readiness signals,
+  delivered and deleted; see [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go)) uses it so a delivery check
   (`proofing.delivery.<metric>`) is required only while the project's delivery profile has a required rule for its
   metric turned on, and `proofing.delivery.render_length` only while a tolerance is set; `proofing.pickups` is always
   required unless the narrator ignores it.
@@ -126,7 +126,7 @@ provider. Nothing is cached: each call is a fresh read.
 | `Dismiss(chapter, target, basisKey)` | The same checks; a suggestion already dismissed on this basis is left as it is | A `dismissed` record only |
 | `Revert(chapter)` | A live confirmation, else `ErrNothingToRevert` | A `reverted` record, then the status back to the confirmation's `from`, with the same rollback |
 
-Decisions are an append-only list in `<project>/narration-utils/stage-decisions.json`:
+Decisions are an append-only list in `<project>/narration-studio/stage-decisions.json`:
 
 ```json
 {
@@ -177,9 +177,9 @@ saved project once.
 
 A refusal changed nothing: `basis_changed` (check again), `not_recommended` or `nothing_to_revert`. Anything else (no
 project, no manuscript, a file that could not be read or written) is a rejected promise, which the Production board shows as "Couldn't
-check". The TypeScript contract is `apps/ui/src/api/contracts/stages.ts`, its schemas `schemas/stages.ts`, and the
+check". The TypeScript contract is `src/studio/ui/src/api/contracts/stages.ts`, its schemas `schemas/stages.ts`, and the
 payloads are pinned in `tests/fixtures/contracts/stages-*.json` (the cause and refusal word lists too). The browser mock
-(`apps/ui/src/api/stagesMock.ts`) answers as the host does for the recording signal and seeds the editing empty-space and proofing pickups signals, and a seed puts a chapter in
+(`src/studio/ui/src/api/stagesMock.ts`) answers as the host does for the recording signal and seeds the editing empty-space and proofing pickups signals, and a seed puts a chapter in
 any verdict, cause or notice.
 
 A chapter whose stage has no required signal (all ignored in the settings) reads `none` (`no_required_signals`).
@@ -193,7 +193,7 @@ project copy (`STAGES_TIMING_PROJECT`).
 
 ## On the Production board
 
-The recommendations show on the Production home's board (`apps/ui/src/components/stages/` holds the shared hook and text; the board's own pieces are in `components/production/readiness/`). What the narrator sees and does there is in [the Production guide](../guides/using-the-app/production.md#stage-readiness).
+The recommendations show on the Production home's board (`src/studio/ui/src/components/stages/` holds the shared hook and text; the board's own pieces are in `components/production/readiness/`). What the narrator sees and does there is in [the Production guide](../guides/using-the-app/production.md#stage-readiness).
 
 | Piece | Role |
 | --- | --- |
@@ -202,11 +202,11 @@ The recommendations show on the Production home's board (`apps/ui/src/components
 | `ReadinessPanel` | The readiness at the side of the page, which keeps the suggestion it first read: the verdict in a sentence, each check's state and reason, Confirm, Dismiss, Revert and Check now, and the contradiction notice with Revert. Confirm sends the basis the narrator saw, so a moved basis is refused and read again |
 | `StageSuggestion`, `StageEvidence` | The same verdict-and-evidence pair on Proof's chapter view (`ProofingStagePanel`, above); the board uses `ReadinessPanel` instead |
 
-The mock's `?mockStages=mixed|error` seeds (`apps/ui/src/main.tsx`) drive the visual states `production/stage-*`.
+The mock's `?mockStages=mixed|error` seeds (`src/studio/ui/src/main.tsx`) drive the visual states `production/stage-*`.
 
 ## Elsewhere
 
-`apps/ui/src/components/proof/ProofingStagePanel.tsx` is on Proof's chapter view: every narration chapter
+`src/studio/ui/src/components/proof/ProofingStagePanel.tsx` is on Proof's chapter view: every narration chapter
 in `proofing`, with the same `StageSuggestion`/`StageEvidence` pair the board uses (Confirm, Dismiss, Revert, Why),
 self-fetching since the Transcript state carries no chapter id.
 

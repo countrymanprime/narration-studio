@@ -1,6 +1,6 @@
 # Engine panel and its dialogs: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 3: coverage gaps and scanner cross-check
 
@@ -602,7 +602,7 @@ Counts: looks wrong 8 (R3EN1-1 to -7, -12 counted at 390 so secondary), polish 4
 - Gut reaction: Why is the same red error printed twice?
 - Page / state: engine / link-chapters-error.
 - Widths: all; theme: both.
-- What is wrong: "The Narration Utils script in REAPER sent a message this app could not read…" appears at y=622 under the checkbox and again at y=715 under "Currently stamped in REAPER".
+- What is wrong: "The Narration Studio script in REAPER sent a message this app could not read…" appears at y=622 under the checkbox and again at y=715 under "Currently stamped in REAPER".
 - Where: `engine/LinkChaptersDialog.tsx:214-218` and `:83-87` (both print `state.message` when `phase === 'error'`).
 - Severity: looks wrong
 - Fix: print the error once, in the place that matches the action that failed.

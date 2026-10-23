@@ -1,11 +1,11 @@
 # Public site demo against the real app
 
-**Date:** 2026-10-18. **Status:** evidence for the owner; nothing here is decided or built. **Answers:** where the mockup demo of [PR #1825](https://github.com/countrymanprime/narration-utils/pull/1825) differs from the real app and the Studio Next mock, and which differences are improvements worth taking. **Compared:** [the mockup](mockups/public-site/index.html) (`docs/research/mockups/public-site/index.html`), [its research note](public-site-benchmark.md), the real UI in `apps/ui`, the Studio Next mock in `docs/research/mockups/studio-next/` and the guides in `docs/guides/using-the-app/`.
+**Date:** 2026-10-18. **Status:** evidence for the owner; nothing here is decided or built. **Answers:** where the mockup demo of [PR #1825](https://github.com/countrymanprime/narration-studio/pull/1825) differs from the real app and the Studio Next mock, and which differences are improvements worth taking. **Compared:** [the mockup](mockups/public-site/index.html) (`docs/research/mockups/public-site/index.html`), [its research note](public-site-benchmark.md), the real UI in `src/studio/ui`, the Studio Next mock in `docs/research/mockups/studio-next/` and the guides in `docs/guides/using-the-app/`.
 
 ## How this was checked
 
-- **Real app, run.** The Playwright visual suite ran against the real UI on its mock host, light theme: `pnpm --dir apps/ui visual:page production proof pickups` (92 states, all passed), `delivery` (all passed) and a partial run of `storybible`, `shell` and `master`, which I stopped before its dark pass. I read the PNGs under `apps/ui/screenshots/targeted/light/` (gitignored, not committed) and drove the mock build (`vite build --mode mock`) with a script to test decisions, keys and counts. Findings from that script are marked **live**.
-- **Real Storybook, run.** `pnpm --dir apps/ui run build-storybook` built, and I opened the static build in a browser.
+- **Real app, run.** The Playwright visual suite ran against the real UI on its mock host, light theme: `pnpm --dir src/studio/ui visual:page production proof pickups` (92 states, all passed), `delivery` (all passed) and a partial run of `storybible`, `shell` and `master`, which I stopped before its dark pass. I read the PNGs under `src/studio/ui/screenshots/targeted/light/` (gitignored, not committed) and drove the mock build (`vite build --mode mock`) with a script to test decisions, keys and counts. Findings from that script are marked **live**.
+- **Real Storybook, run.** `pnpm --dir src/studio/ui run build-storybook` built, and I opened the static build in a browser.
 - **Mockup, run.** I opened `index.html` in headless Chromium and drove every demo page, the Storybook view and the Ctrl+K search. Findings are marked **live**. Others come from reading the file and are cited by line.
 - **Studio Next mock, read** from source (`docs/research/mockups/studio-next/src/`). I installed its dependencies and started its dev server but compared source and the committed screenshots, not live states.
 - **Not run:** the MkDocs build, the real desktop host, dark theme of the real pages, and a pixel comparison. See [What could not be verified](#what-could-not-be-verified).
@@ -29,9 +29,9 @@ Fifty-one differences in all (the IDs in the tables below). Most of what the own
 
 ### The five highest-value findings for the app
 
-1. **Proof and Production have no Retry when their data cannot load** (A, A1 below). Proof shows a transient error toast over an empty page (`apps/ui/src/components/proof/ProofPage.tsx:181`). Production shows a bare red line (`apps/ui/src/components/production/ProductionPage.tsx:376`). Story Bible and Script already use `LoadError` with a Retry button, and Pickups and Delivery have "Check again". Reusing `LoadError` is small.
-2. **A failed action cannot offer Retry** (A, A2). The toast already takes one action button (`apps/ui/src/components/primitives/Toast.tsx:9`), used only for Undo; every failure is a sticky error toast with no way to try again from it.
-3. **Delivery says how many chapters fail but not which rule** (S, S3). `Fails 2 checks` and `0 failing, 8 not ready` (`apps/ui/src/components/delivery/page/chapterStates.ts:35`, `:61`) send the narrator to Master & QC to learn what failed. The mockup's "Chapter 8 fails Noise floor" is the better sentence; Production's Next up already writes the same kind of sentence with value and limit.
+1. **Proof and Production have no Retry when their data cannot load** (A, A1 below). Proof shows a transient error toast over an empty page (`src/studio/ui/src/components/proof/ProofPage.tsx:181`). Production shows a bare red line (`src/studio/ui/src/components/production/ProductionPage.tsx:376`). Story Bible and Script already use `LoadError` with a Retry button, and Pickups and Delivery have "Check again". Reusing `LoadError` is small.
+2. **A failed action cannot offer Retry** (A, A2). The toast already takes one action button (`src/studio/ui/src/components/primitives/Toast.tsx:9`), used only for Undo; every failure is a sticky error toast with no way to try again from it.
+3. **Delivery says how many chapters fail but not which rule** (S, S3). `Fails 2 checks` and `0 failing, 8 not ready` (`src/studio/ui/src/components/delivery/page/chapterStates.ts:35`, `:61`) send the narrator to Master & QC to learn what failed. The mockup's "Chapter 8 fails Noise floor" is the better sentence; Production's Next up already writes the same kind of sentence with value and limit.
 4. **Editing a pronunciation takes Edit, type, Save, then Mark reviewed** (S, S1). The mockup edits it in place. This is the commonest Story Bible fix, so a faster path would be felt, but the Studio mock keeps pronunciations read-only until Edit.
 5. **The real mock host cannot yet carry the demo's cross-page story** (demo plan, not a UI change). Marking a Proof note Needs pickup leaves Pickups, the rail and Production unchanged on the real mock host (**live**; `findingsMock.ts` has no pickup reference), so a public demo of the real UI would lose the behavior the owner liked most in the mockup. Section [Running the real UI on a mock host](#running-the-real-ui-on-a-mock-host) lists what that needs.
 
@@ -49,7 +49,7 @@ Real: `ProductionPage.tsx`, [production guide](../guides/using-the-app/productio
 
 ## Proof (`#demo-proof`)
 
-Real: `apps/ui/src/components/proof/`, [proof guide](../guides/using-the-app/proof.md), `docs/images/ui/proof-default.webp`. Studio: `pages/Proof.tsx`, `pages/proof/Inspector.tsx`.
+Real: `src/studio/ui/src/components/proof/`, [proof guide](../guides/using-the-app/proof.md), `docs/images/ui/proof-default.webp`. Studio: `pages/Proof.tsx`, `pages/proof/Inspector.tsx`.
 
 | ID | Item | Real app | Studio mock | Mock site | Verdict | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -63,7 +63,7 @@ Real: `apps/ui/src/components/proof/`, [proof guide](../guides/using-the-app/pro
 
 ## Pickups (`#demo-pickups`)
 
-Real: `apps/ui/src/components/pickups/`, [pickups guide](../guides/using-the-app/pickups.md), `docs/images/ui/pickups-list.webp`, `pickups-empty.webp`. Studio: `pages/Pickups.tsx`.
+Real: `src/studio/ui/src/components/pickups/`, [pickups guide](../guides/using-the-app/pickups.md), `docs/images/ui/pickups-list.webp`, `pickups-empty.webp`. Studio: `pages/Pickups.tsx`.
 
 | ID | Item | Real app | Studio mock | Mock site | Verdict | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -74,7 +74,7 @@ Real: `apps/ui/src/components/pickups/`, [pickups guide](../guides/using-the-app
 
 ## Story Bible (`#demo-story-bible`)
 
-Real: `apps/ui/src/components/storybible/`, [story bible guide](../guides/using-the-app/story-bible.md), screenshots `storybible/entry-needs-review/desktop.png`, `entry-pronunciation-missing/desktop.png`. Studio: `pages/Bible.tsx`, `pages/bible/EntryEditor.tsx`.
+Real: `src/studio/ui/src/components/storybible/`, [story bible guide](../guides/using-the-app/story-bible.md), screenshots `storybible/entry-needs-review/desktop.png`, `entry-pronunciation-missing/desktop.png`. Studio: `pages/Bible.tsx`, `pages/bible/EntryEditor.tsx`.
 
 | ID | Item | Real app | Studio mock | Mock site | Verdict | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -86,7 +86,7 @@ Real: `apps/ui/src/components/storybible/`, [story bible guide](../guides/using-
 
 ## Delivery (`#demo-delivery`)
 
-Real: `apps/ui/src/components/delivery/`, [delivery guide](../guides/using-the-app/delivery.md), [Master & QC guide](../guides/using-the-app/master-and-qc.md), screenshots `delivery/measured`, `delivery/build-failed`. Studio: `pages/Delivery.tsx`.
+Real: `src/studio/ui/src/components/delivery/`, [delivery guide](../guides/using-the-app/delivery.md), [Master & QC guide](../guides/using-the-app/master-and-qc.md), screenshots `delivery/measured`, `delivery/build-failed`. Studio: `pages/Delivery.tsx`.
 
 | ID | Item | Real app | Studio mock | Mock site | Verdict | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -107,10 +107,10 @@ Real: `apps/ui/src/components/delivery/`, [delivery guide](../guides/using-the-a
 
 | ID | Item | Real app | Studio mock | Mock site | Verdict | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| L1 | Skeleton placeholders while a page loads | None (`Skeleton` matches no file in `apps/ui/src`). Production prints "Reading the production log…". Every Go call is tier 1, under 10 ms | A `.skeleton` only in Settings | Skeleton on every page, over a 280 ms simulated latency | F | `interaction-feedback.md:22`; `ProductionPage.tsx:371`; mock `styles/settings.css:57` |
+| L1 | Skeleton placeholders while a page loads | None (`Skeleton` matches no file in `src/studio/ui/src`). Production prints "Reading the production log…". Every Go call is tier 1, under 10 ms | A `.skeleton` only in Settings | Skeleton on every page, over a 280 ms simulated latency | F | `interaction-feedback.md:22`; `ProductionPage.tsx:371`; mock `styles/settings.css:57` |
 | L2 | "Host not answering" panel with Retry | Present on Story Bible and Script (`LoadError`), Pickups and Delivery ("Check again"). Absent on Proof (toast only) and Production (red line, no button) | Delivery draws a quiet-host state; Production and Editing a DAW Retry | Panel with Retry on any page | A | `layout/LoadError.tsx`; `PickupsTable.tsx:193-196`; `ProofPage.tsx:181`; `ProductionPage.tsx:376-380` |
 | L3 | Toast with Retry when an action fails | Failure toasts are sticky and have no action; the toast supports one action button | Toasts with Undo only | Error toast with Retry that repeats the click | A | `Toast.tsx:9`, `hooks/useToasts.ts:29`; site line 991 |
-| L4 | Latency slider, fail-next-call switch, request log | None in the mock host (no latency or failure code in `apps/ui/src/api/mockHost`) | Mock states panel | A panel beside the demo | F | Demo tooling, not the app; see the demo section |
+| L4 | Latency slider, fail-next-call switch, request log | None in the mock host (no latency or failure code in `src/studio/ui/src/api/mockHost`) | Mock states panel | A panel beside the demo | F | Demo tooling, not the app; see the demo section |
 
 ## Navigation
 
@@ -122,7 +122,7 @@ Real: `apps/ui/src/components/delivery/`, [delivery guide](../guides/using-the-a
 
 ## Storybook view (`#storybook-button`)
 
-Real: `apps/ui/.storybook/`, the static build, [`docs/ui/atlas/`](../ui/atlas/index.md).
+Real: `src/studio/ui/.storybook/`, the static build, [`docs/ui/atlas/`](../ui/atlas/index.md).
 
 | ID | Item | Real app | Studio mock | Mock site | Verdict | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -149,7 +149,7 @@ Real: [`tools/docs-site/mkdocs.yml`](../../tools/docs-site/mkdocs.yml), [the pub
 
 | ID | Item | Real app | Mock site | Verdict | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| V1 | Palette, both themes | `apps/ui/src/styles.css` tokens | Identical values. A script comparing every shared token found only `--shadow` and `--shadow-lg` different, and only in the light theme | F | Script run over both files, 2026-10-18 |
+| V1 | Palette, both themes | `src/studio/ui/src/styles.css` tokens | Identical values. A script comparing every shared token found only `--shadow` and `--shadow-lg` different, and only in the light theme | F | Script run over both files, 2026-10-18 |
 | V2 | Type and sizes | Barlow Condensed throughout: buttons 32 px high, 13.12 px, uppercase; h1 28 px at weight 600; rail 215 px wide (**live**) | Buttons in IBM Plex Sans, 36 px, 14 px, sentence case; h2 30 px at weight 700; sidebar 188 px; rows 86 px | C | **live** computed styles; `StatusBadge.tsx` |
 | V3 | Badges with distinct shapes per tone | A pill, tag, booth or cell shape by role, tone by colour, and always a word | A glyph per tone (▲ warn, ◆ info, ■ danger, ● ok) plus the word | F | `StatusBadge.tsx:11-22`; the label already carries the state |
 | V4 | Focus ring | 2 px outline, 2 px offset, blue | Same | F | `styles.css:39`; site `:focus-visible` |
@@ -261,13 +261,13 @@ Changes the mockup needs to conform. Do not edit it in this session.
 
 ## Running the real UI on a mock host
 
-The real app already has a demo build: `VITE_DEMO=1` shows `DemoBanner`, and `createMockApi` serves the same fixtures as Storybook and the visual suite (`apps/ui/src/components/layout/DemoBanner.tsx`, `apps/ui/src/api/mockApi.ts`). If the public demo becomes that build, these mockup behaviors are missing or different:
+The real app already has a demo build: `VITE_DEMO=1` shows `DemoBanner`, and `createMockApi` serves the same fixtures as Storybook and the visual suite (`src/studio/ui/src/components/layout/DemoBanner.tsx`, `src/studio/ui/src/api/mockApi.ts`). If the public demo becomes that build, these mockup behaviors are missing or different:
 
 - **Cross-page derivation.** A Proof decision does not create, change or count a pickup on the mock host (**live**). The mockup's best moment, mark a pickup and see the rail, Pickups and Production move together, needs the mock host's findings and pickups to share state. Files: `api/findingsMock.ts`, `api/mockHost/reaperActions.ts:571-600`, `api/mockHost/proofing.ts`. Medium.
 - **Delivery.** The real Delivery gets its verdict from fixture measurements, so waive-to-pass (D4) will not happen there, which is the app's behavior. If the demo script says otherwise, the demo is wrong, not the build.
 - **Latency, a forced failure and a request log.** The mockup's panel has no counterpart. A wrapper around `NarrationApi` in the demo build could add them. It is what would show Retry (A1, A2) to a visitor. Small to medium.
 - **Phone width.** The app has a 960 px minimum window and no phone viewport (`design-system.md:49,145`). The demo needs a "best on a larger screen" screen or a phone layout of its own.
-- **Fonts.** The app bundles them (`apps/ui/src/fonts.ts`); keep the demo free of a font host.
+- **Fonts.** The app bundles them (`src/studio/ui/src/fonts.ts`); keep the demo free of a font host.
 - **Pages that cannot work in a browser.** The mock build draws Booth and Editing against fixtures, so the mockup's "Not in this demo" stubs are not needed, but the demo should say that nothing records.
 - **Mockup wording that would mislead a visitor:** "This is the state the real app shows when the host is quiet" on every page (only some pages have it), waive-to-pass on Delivery, an always-on Build button, Pickups Remove that reopens a note, saving a pronunciation marking an entry reviewed, "Pass" beside a failing value, and P, E, W, D missing from Proof.
 

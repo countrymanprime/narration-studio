@@ -1,6 +1,6 @@
 # Repo vs our rebuild: Story Bible and Script (prep / reader)
 
-Read-only research. Repo = `/home/user/narration-utils` (apps/ui, apps/desktop, sidecars/manuscript-guide, docs). Ours = `.../scratchpad/studio`.
+Read-only research. Repo = `/home/user/narration-studio` (apps/ui, apps/desktop, sidecars/manuscript-guide, docs). Ours = `.../scratchpad/studio`.
 Paths below are relative to `apps/ui/src` unless they start with `docs/`, `sidecars/` or `studio/`.
 
 ## 0. Headline findings (read this first)

@@ -299,7 +299,7 @@ mark a spot twice. **New comparison** starts over. **Last narrated take: …**, 
 comparison; Export markers is off while you review it.
 
 **With Audacity,** the comparison reads the audio track you have selected in Audacity (click its name), exports it whole to a
-WAV in the project's `narration-utils/audacity-session` folder (for a long chapter that takes a while), and compares that. The
+WAV in the project's `narration-studio/audacity-session` folder (for a long chapter that takes a while), and compares that. The
 project must be [linked in Settings](settings.md#daw-integration) and Audacity must be answering; the Audacity features here are
 Experimental and stay off until the Experimental switch is on. **Export N markers** adds a label for each discrepancy to the
 "Narration Studio" label track, named like `[nu:f0-12500] MISREAD: …`, and skips a discrepancy whose label is already there.

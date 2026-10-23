@@ -12,8 +12,8 @@ Agentic refactors on this repo have a history of silently reverting deliberate d
 ## When to use this
 
 Invoke before starting a refactor that touches:
-- `apps/ui/src/components/primitives/` (Dialog, Button, MeterBar, Panel, Field, Tooltip, etc.)
-- `apps/ui/src/styles.css`
+- `src/studio/ui/src/components/primitives/` (Dialog, Button, MeterBar, Panel, Field, Tooltip, etc.)
+- `src/studio/ui/src/styles.css`
 - Anything the design-system reference or an ADR names a specific file/behavior for
 
 Also invoke mid-refactor if a diff is about to touch one of those files and you're not sure whether the change conflicts with a recorded decision.
@@ -30,7 +30,7 @@ Also invoke mid-refactor if a diff is about to touch one of those files and you'
 
 ## Rules the gate already checks (do not re-check by hand)
 
-Run `pnpm --dir apps/ui architecture` and `pnpm --dir apps/ui exec vitest run src/highlightBoundary.test.ts src/baseUiBoundary.test.ts src/rawNatives.test.ts` instead of reading for these (`docs/operations/verification-tooling.md, docs/design/design-system.md#base-ui-wrappers`): a primitive (story or test too) never imports a feature folder; only `src/api/` imports `wailsjs/`; only primitives import Base UI or write a native `button`, `select`, `input`, `textarea` or `table`; only `Highlight` writes `<mark>` (one reasoned exception, , Proposed). Spend the read on what they cannot judge: which tokens, which look, whether a new primitive is really needed.
+Run `pnpm --dir src/studio/ui architecture` and `pnpm --dir src/studio/ui exec vitest run src/highlightBoundary.test.ts src/baseUiBoundary.test.ts src/rawNatives.test.ts` instead of reading for these (`docs/operations/verification-tooling.md, docs/design/design-system.md#base-ui-wrappers`): a primitive (story or test too) never imports a feature folder; only `src/api/` imports `wailsjs/`; only primitives import Base UI or write a native `button`, `select`, `input`, `textarea` or `table`; only `Highlight` writes `<mark>` (one reasoned exception, , Proposed). Spend the read on what they cannot judge: which tokens, which look, whether a new primitive is really needed.
 
 ## What this skill is not
 

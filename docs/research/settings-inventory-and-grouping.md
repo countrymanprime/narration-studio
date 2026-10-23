@@ -1,18 +1,18 @@
 # Settings inventory and proposed grouping
 
-Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://github.com/countrymanprime/narration-utils/issues/1817). Counts and line numbers are for that commit and are not kept current. Rules cited as R-xxx are in [the best-practice note](settings-best-practice.md). The proposal is recorded as [Settings redesign](../prds/studio-next-master-delivery-and-settings.prd.md#settings-redesign-proposed) and drawn in the [Studio Next mock](mockups/studio-next/README.md#settings).
+Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://github.com/countrymanprime/narration-studio/issues/1817). Counts and line numbers are for that commit and are not kept current. Rules cited as R-xxx are in [the best-practice note](settings-best-practice.md). The proposal is recorded as [Settings redesign](../prds/studio-next-master-delivery-and-settings.prd.md#settings-redesign-proposed) and drawn in the [Studio Next mock](mockups/studio-next/README.md#settings).
 
 **Question.** Which settings exist, who reads each one, and where should each live so that a setting shared by several pages has one home?
 
-**Method.** Read `fieldSchemas` in `apps/desktop/app.go` (lines 1540 to 1730), `apps/desktop/internal/settings/store.go`, `config/defaults.json`, the page in `apps/ui/src/components/settings/page/SettingsPage.tsx`, the guides and ADRs; then grepped Go, Python, Lua and the UI for each key's consumers. "No consumer" means no reader in `apps/`, `sidecars/` or `libs/`. Nothing was run in the app; rows marked *(unverified)* were read from code only.
+**Method.** Read `fieldSchemas` in `src/studio/desktop/app.go` (lines 1540 to 1730), `src/studio/desktop/internal/settings/store.go`, `config/defaults.json`, the page in `src/studio/ui/src/components/settings/page/SettingsPage.tsx`, the guides and ADRs; then grepped Go, Python, Lua and the UI for each key's consumers. "No consumer" means no reader in `apps/`, `src/studio/sidecars/` or `libs/`. Nothing was run in the app; rows marked *(unverified)* were read from code only.
 
 ## How it works today
 
-- **Layers.** Every value is a string. A project value (`<project>/narration-utils/settings.json`) beats a global one (`%APPDATA%\narration-utils\global-settings.json`), which beats `config/defaults.json`, then a Go built-in map, then the caller's fallback (`Effective`, `store.go:45-58`). A save writes exactly one layer (`store.go:260-297`).
+- **Layers.** Every value is a string. A project value (`<project>/narration-studio/settings.json`) beats a global one (`%APPDATA%\narration-studio\global-settings.json`), which beats `config/defaults.json`, then a Go built-in map, then the caller's fallback (`Effective`, `store.go:45-58`). A save writes exactly one layer (`store.go:260-297`).
 - **Scope in the host.** `saveSettings` refuses the other scope for `Updates`, `Teleprompter`, `Keymap`, `General.debug_logging` and `ManuscriptGuide.analysis_prompt` (global only) and `ReadAloud` (project only). Everything else the API accepts at either scope, even where the page offers only Global (`app.go:1802-1865`).
 - **Scope in the page.** Each panel owns its own Global / This project switch and starts on Global (`ScopedFieldsPanel.tsx:61`). A non-number row shows the inherited value as if it were set, with no marker; a number row shows an "Inherits" placeholder; Reset exists only for a project override (`ScopedSetting.tsx:117-193`).
 - **The page.** One route, one 860 px column of 27 panels, no navigation and no search. Panels 1 to 10 follow the Studio Next mock; panels 11 to 27 are older categories kept as built ([PRD](../prds/studio-next-master-delivery-and-settings.prd.md)). Only 17 of the 27 have an anchor.
-- **Assets.** Seven providers sit behind one registry (`apps/desktop/assetregistry.go`, [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The models and downloads list (implemented)](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented)): TTS, Whisper, spaCy, Moonshine, dictionary, encoder and analysis tools. Six panels also show or remove one of them.
+- **Assets.** Seven providers sit behind one registry (`src/studio/desktop/assetregistry.go`, [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The models and downloads list (implemented)](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented)): TTS, Whisper, spaCy, Moonshine, dictionary, encoder and analysis tools. Six panels also show or remove one of them.
 
 ## Inventory
 
@@ -28,11 +28,11 @@ Scope: **G** global, **P** project, **G+P** global with a project override, **B*
 | `DAW.reaper_path` | Path to reaper.exe when auto-detect fails | G | `dawlaunch.go:48` | DAW Integration | Recording & DAW, Advanced |
 | `DAW.auto_start_launcher` | Pass the launcher as REAPER's startup script | G | `dawlaunch.go:49` | DAW Integration, Booth record guide | Recording & DAW |
 | `DAW.experimental_reaper_actions` | Allow unverified REAPER commands ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md)) | G | `internal/bridge/actions.go`, `dawport/resolver.go` | DAW Integration | Recording & DAW, Advanced |
-| `DAW.capability.<name>` ×34 | Per-capability auto, on or off ([resolver.go](../../apps/desktop/internal/dawport/resolver.go)) | G (schema allows P) | `dawport/toggles.go`, `resolver.go` | DAW Integration (34 selects); Booth record setup turns `record` on; Editing Backups tab flips `backups` | Recording & DAW, Advanced, as a table with a reason per row |
+| `DAW.capability.<name>` ×34 | Per-capability auto, on or off ([resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)) | G (schema allows P) | `dawport/toggles.go`, `resolver.go` | DAW Integration (34 selects); Booth record setup turns `record` on; Editing Backups tab flips `backups` | Recording & DAW, Advanced, as a table with a reason per row |
 | `DAW.fx_favourites` | Effects Editing offers first | G+P | `bindings_workspace.go:144` | DAW Integration (only editor) | Page: Editing, Effects tab |
 | `DAW.backups.window_seconds`, `retention_days` | Audacity backup window and retention | G+P | `internal/dawport/audacity/backups.go` | DAW Integration (probably twice), Backups section, Editing Backups tab | Page: Editing, Backups tab, one home |
 | `Teleprompter.punch_preroll_seconds` | Pre-roll for punch and roll | G | `teleprompterpunch.go:58` | Booth panel | Page: Booth, record setup |
-| `ReadAloud.record_in_reaper`, `record_confirmed` | Booth's record-in-REAPER toggle ([app.go](../../apps/desktop/app.go)) | P | Booth | Booth control bar only | Stays on Booth |
+| `ReadAloud.record_in_reaper`, `record_confirmed` | Booth's record-in-REAPER toggle ([app.go](../../src/studio/desktop/app.go)) | P | Booth | Booth control bar only | Stays on Booth |
 | `Tracks.selectedRpp` | Which `.rpp` the project links to | P | `tracks.go:52` | Header pill, Recording panel, DAW panel | Recording & DAW (read-only link state) |
 | `Mastering.provider` | Mastering provider ([Provider ports](../architecture/provider-ports.md)) | P | `bindings_mastering.go:131` | **No UI caller** (`masteringChooseProvider` is unused) | Orphan: decide with the mastering PRD |
 
@@ -151,7 +151,7 @@ Eight categories in three labelled groups, plus an index of what moved to pages.
 - **Structure.** 27 panels, no table of contents, mixed with action panels (Manuscript, Project data); the first ten follow the mock and the rest follow delivery history.
 - **Probable bugs, unverified in the app.** The Booth's "DAW settings" link goes to `#daw`, which is not in `SETTINGS_ANCHORS`, so it likely does not scroll. `#delivery` scrolls to the global profiles panel, not the project's. The Backups rows may be drawn twice on the DAW panel (`DawPanel` passes no filter to the generic form while `BackupsSection` renders the same keys).
 - **Docs.** [Derived and status tokens](../design/colour-and-contrast.md#derived-and-status-tokens) says the theme is one global setting; it is stored in browser `localStorage`. There is no settings reference page in `docs/reference/`. The guide omits Moonshine, FFmpeg, `fx_cap_pct`, the record toggle and `Mastering.provider`, and lists `log_verbosity` as live.
-- **Fields declared in four places** (`app.go`, `store.go`, `config/defaults.json`, `apps/ui/src/api/mockFixtures.ts`), and tooltips keyed by bare key, so two `chunk_seconds` share one tooltip.
+- **Fields declared in four places** (`app.go`, `store.go`, `config/defaults.json`, `src/studio/ui/src/api/mockFixtures.ts`), and tooltips keyed by bare key, so two `chunk_seconds` share one tooltip.
 
 ## Design rationale
 

@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { decide, findOptOut, gatedFiles, parseHookInput } from './gate-stamp.mjs';
 
-const code = ['apps/ui/src/App.tsx'];
+const code = ['src/studio/ui/src/App.tsx'];
 
 test('gatedFiles ignores prose, agent config and scratch output', () => {
   assert.deepEqual(gatedFiles(['docs/a.md', 'README.md', '.claude/skills/x/SKILL.md', '.cache/x', ...code]), code);

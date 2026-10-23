@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { findRatchetViolations, isTestPath, parseAddedLines } from './test-ratchet.mjs';
+import { findRatchetViolations, isTestPath, parseAddedLines, parseRemovedLines } from './test-ratchet.mjs';
 
-const none = { changes: [], addedLines: [], floorsBefore: [], floorsAfter: [] };
-const floor = (path, value) => ({ tool: 'go', project: 'apps/desktop', path, floor: value });
+const none = { changes: [], addedLines: [], removedLines: [], floorsBefore: [], floorsAfter: [] };
+const floor = (path, value) => ({ tool: 'go', project: 'src/studio/desktop', path, floor: value });
 
 test('isTestPath recognises the repo test layouts and not source files', () => {
-  for (const path of ['apps/ui/src/a.test.ts', 'apps/ui/src/a.spec.tsx', 'apps/desktop/internal/x/x_test.go', 'libs/python/tests/test_a.py', 'integrations/reaper/tests/cmd_spec.lua', 'scripts/ci/a.test.mjs']) {
+  for (const path of ['src/studio/ui/src/a.test.ts', 'src/studio/ui/src/a.spec.tsx', 'src/studio/desktop/internal/x/x_test.go', 'src/studio/libs/python/tests/test_a.py', 'src/studio/integrations/reaper/tests/cmd_spec.lua', 'scripts/ci/a.test.mjs']) {
     assert.equal(isTestPath(path), true, path);
   }
-  for (const path of ['apps/ui/src/a.ts', 'apps/desktop/internal/x/x.go', 'docs/testing.md']) assert.equal(isTestPath(path), false, path);
+  for (const path of ['src/studio/ui/src/a.ts', 'src/studio/desktop/internal/x/x.go', 'docs/testing.md']) assert.equal(isTestPath(path), false, path);
 });
 
 test('no changes means no violations', () => {
@@ -19,21 +19,21 @@ test('no changes means no violations', () => {
 
 test('a deleted test file is a violation, an added or edited one is not', () => {
   const changes = [
-    { status: 'D', path: 'apps/ui/src/a.test.ts' },
-    { status: 'A', path: 'apps/ui/src/b.test.ts' },
-    { status: 'M', path: 'apps/ui/src/c.test.ts' },
+    { status: 'D', path: 'src/studio/ui/src/a.test.ts' },
+    { status: 'A', path: 'src/studio/ui/src/b.test.ts' },
+    { status: 'M', path: 'src/studio/ui/src/c.test.ts' },
   ];
   const found = findRatchetViolations({ ...none, changes });
   assert.equal(found.length, 1);
-  assert.match(found[0], /deleted test file apps\/ui\/src\/a\.test\.ts/);
+  assert.match(found[0], /deleted test file src\/studio\/ui\/src\/a\.test\.ts/);
 });
 
 test('a deleted non-test file is fine', () => {
-  assert.deepEqual(findRatchetViolations({ ...none, changes: [{ status: 'D', path: 'apps/ui/src/a.ts' }] }), []);
+  assert.deepEqual(findRatchetViolations({ ...none, changes: [{ status: 'D', path: 'src/studio/ui/src/a.ts' }] }), []);
 });
 
 test('a rename of a test file to a non-test path is a violation', () => {
-  const found = findRatchetViolations({ ...none, changes: [{ status: 'R', from: 'apps/ui/src/a.test.ts', path: 'apps/ui/src/a.ts' }] });
+  const found = findRatchetViolations({ ...none, changes: [{ status: 'R', from: 'src/studio/ui/src/a.test.ts', path: 'src/studio/ui/src/a.ts' }] });
   assert.equal(found.length, 1);
   assert.match(found[0], /no longer a test file/);
 });
@@ -41,14 +41,14 @@ test('a rename of a test file to a non-test path is a violation', () => {
 test('skip, focus and expected-failure markers added to a test file are violations', () => {
   const markers = ['it.skip("x", () => {})', 'describe.skip("x", () => {})', 'xit("x", () => {})', 't.Skip("later")', '@pytest.mark.skip', 'pytest.skip("no")', 'test.only("x", () => {})', '@pytest.mark.xfail'];
   for (const text of markers) {
-    const found = findRatchetViolations({ ...none, addedLines: [{ path: 'apps/ui/src/a.test.ts', text }] });
+    const found = findRatchetViolations({ ...none, addedLines: [{ path: 'src/studio/ui/src/a.test.ts', text }] });
     assert.equal(found.length, 1, text);
   }
 });
 
 test('the same text in a source file or a doc is not a violation', () => {
   const addedLines = [
-    { path: 'apps/ui/src/a.ts', text: 'it.skip("x")' },
+    { path: 'src/studio/ui/src/a.ts', text: 'it.skip("x")' },
     { path: 'docs/a.md', text: '`t.Skip("x")` skips a test' },
   ];
   assert.deepEqual(findRatchetViolations({ ...none, addedLines }), []);
@@ -91,3 +91,49 @@ test('lowering the Windows floor of an entry that has a non-Windows floor is sti
   assert.deepEqual(found, ['coverage floor for internal/a (go) fell from 96 to 95']);
 });
 
+
+test('a floor whose folder moved with the files under it is still there', () => {
+  const changes = [
+    { status: 'R', from: 'old/desktop/internal/a/a.go', path: 'src/studio/desktop/internal/a/a.go' },
+    { status: 'R', from: 'pyold/x/core/b.py', path: 'src/studio/sidecars/x/core/b.py' },
+  ];
+  const py = (project, path, value) => ({ tool: 'pytest', project, path, floor: value });
+  const goAt = (project, value) => ({ ...floor('internal/a', value), project });
+  const run = (after) => findRatchetViolations({ ...none, changes, floorsBefore: [goAt('old/desktop', 90), py('pyold/x', 'pyold/x/core/b.py', 80)], floorsAfter: after });
+  assert.deepEqual(run([goAt('src/studio/desktop', 90), py('src/studio/sidecars/x', 'src/studio/sidecars/x/core/b.py', 80)]), []);
+  assert.deepEqual(run([goAt('src/studio/desktop', 85), py('src/studio/sidecars/x', 'src/studio/sidecars/x/core/b.py', 80)]), ['coverage floor for internal/a (go) fell from 90 to 85']);
+  assert.deepEqual(run([goAt('src/studio/desktop', 90)]), ['coverage floor for pyold/x/core/b.py (pytest) was removed']);
+});
+
+test('a floor is not carried to a folder a single file left', () => {
+  const changes = [{ status: 'R', from: 'src/studio/desktop/internal/a/util.go', path: 'src/studio/desktop/internal/b/util.go' }];
+  const found = findRatchetViolations({ ...none, changes, floorsBefore: [floor('internal/a', 90)], floorsAfter: [floor('internal/b', 95)] });
+  assert.deepEqual(found, ['coverage floor for internal/a (go) was removed']);
+});
+
+// Built at run time so this file's own source lines do not read as an added skip marker to the ratchet.
+const SKIP = ['it', 'skip'].join('.');
+
+test('a marker that was already on the line it replaces is not a new one', () => {
+  const removedLines = [{ path: 'src/studio/ui/src/a.test.ts', text: `  ${SKIP}("x", () => {}); // old/ui/src/a.ts` }];
+  const addedLines = [
+    { path: 'src/studio/ui/src/a.test.ts', text: `  ${SKIP}("x", () => {}); // src/studio/ui/src/a.ts` },
+    { path: 'src/studio/ui/src/a.test.ts', text: `  ${SKIP}("y", () => {});` },
+  ];
+  const found = findRatchetViolations({ ...none, addedLines, removedLines });
+  assert.deepEqual(found, [`added a skipped or focused test in src/studio/ui/src/a.test.ts: ${SKIP}("y", () => {});`]);
+});
+
+test('parseRemovedLines files each removed line under the path after the change, so a rename keeps one key', () => {
+  const diff = ['diff --git a/old/x.test.ts b/new/x.test.ts', 'similarity index 90%', '--- a/old/x.test.ts', '+++ b/new/x.test.ts', '@@ -1,2 +1,2 @@', `-${SKIP}("a") // old`, `+${SKIP}("a") // new`, ' context'].join('\n');
+  assert.deepEqual(parseRemovedLines(diff), [{ path: 'new/x.test.ts', text: `${SKIP}("a") // old` }]);
+});
+
+test('a folder that git also paired with an odd destination still finds its floor', () => {
+  const changes = [
+    { status: 'R', from: 'old/ui/src/a.ts', path: 'src/studio/ui/src/a.ts' },
+    { status: 'R', from: 'old/ui/demo.html', path: 'src/web/demo/demo.html' },
+  ];
+  const ui = (project, value) => ({ tool: 'vitest', project, path: 'src/api', floor: value });
+  assert.deepEqual(findRatchetViolations({ ...none, changes, floorsBefore: [ui('old/ui', 90)], floorsAfter: [ui('src/studio/ui', 90)] }), []);
+});

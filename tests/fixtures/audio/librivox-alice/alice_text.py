@@ -1,6 +1,6 @@
 """The manuscript side of the LibriVox corpus: chapters and paragraphs from the repo's Alice text.
 
-The text is `apps/ui/src/api/fixtures/alice-in-wonderland.txt` (Project Gutenberg eBook #11, byte for byte), the
+The text is `src/studio/ui/src/api/fixtures/alice-in-wonderland.txt` (Project Gutenberg eBook #11, byte for byte), the
 same script the demo manuscript uses, so every corpus built here matches what the app shows.
 """
 
@@ -12,7 +12,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPOSITORY = HERE.parents[3]
-ALICE_TEXT = REPOSITORY / "apps" / "ui" / "src" / "api" / "fixtures" / "alice-in-wonderland.txt"
+ALICE_TEXT = REPOSITORY / "src" / "studio" / "ui" / "src" / "api" / "fixtures" / "alice-in-wonderland.txt"
 
 _HEADING = re.compile(r"^CHAPTER ([IVXL]+)\. (.+)$")
 _ROMAN = {"I": 1, "V": 5, "X": 10, "L": 50}

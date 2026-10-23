@@ -34,7 +34,7 @@ remove it when a maintainer has looked at the issue.
 One scheme, three kinds of label. A name never appears twice, with or without a prefix.
 
 - **Area** (`area:*`): which part of the repository a pull request touches: `area:ui`, `area:site`, `area:shell`
-  (Go, `apps/desktop`), `area:python` (sidecars, `libs/python`), `area:reaper`, `area:audacity`, `area:tests`,
+  (Go, `src/studio/desktop`), `area:python` (sidecars, `src/studio/libs/python`), `area:reaper`, `area:audacity`, `area:tests`,
   `area:ci-release` (workflows, scripts, repo tooling, `config/`, `.claude/`), `area:docs`. On pull requests
   [`labeler.yml`](../../.github/labeler.yml) applies them from the changed paths, for every author including
   Dependabot; a path may carry more than one. Every tracked path falls under a glob. Add them to issues by hand.
@@ -114,7 +114,7 @@ These live outside the repository, so a pull request cannot enforce them:
 These are settings and real releases, so an agent does not do them. Tracked in [#188](https://github.com/countrymanprime/narration-studio/issues/188).
 
 1. **Require actions to be pinned to a full-length commit SHA.** Every workflow action is already pinned ([CI and releases](ci-and-releases.md)), so the policy only backstops `zizmor`. Turn it on in Settings > Actions > General, or with `gh api -X PUT repos/countrymanprime/narration-studio/actions/permissions -F enabled=true -f allowed_actions=all -F sha_pinning_required=true`. Do it after the pinning pull request has merged and one Dependabot `github-actions` pull request has run green. Before relying on it, open a pull request from a branch and check three things: that a workflow's own `./.github/actions/*` and `./.github/workflows/*` references still start (sources disagree on whether local references are exempt), that CodeQL still runs, and that Dependabot's update runs. It is one toggle to undo.
-2. **First release candidate after the merge.** Confirm the `Prerelease` run's attest step passed. On a clean machine run `gh attestation verify narration-utils-<version>-windows-x64.zip --repo countrymanprime/narration-studio --signer-workflow countrymanprime/narration-studio/.github/workflows/prerelease.yml --source-ref refs/heads/main`, the same for the `.sha256` and for `narration-utils.exe` after extracting the zip ([Verifying a download](ci-and-releases.md#verifying-a-download)).
+2. **First release candidate after the merge.** Confirm the `Prerelease` run's attest step passed. On a clean machine run `gh attestation verify narration-studio-<version>-windows-x64.zip --repo countrymanprime/narration-studio --signer-workflow countrymanprime/narration-studio/.github/workflows/prerelease.yml --source-ref refs/heads/main`, the same for the `.sha256` and for `narration-studio.exe` after extracting the zip ([Verifying a download](ci-and-releases.md#verifying-a-download)).
 3. **First promote.** Run **Promote pre-release** on an attested candidate and expect the `Download and verify` step to pass and the stable tag to be created (that step now uses the API instead of `git push`). To watch it refuse, start it on a candidate built before attestations (no attestations): it fails before anything is created.
 4. **Leave off:** immutable releases (above). Windows code signing is the owner's decision and no workflow signs (owner decision D7).
 5. **Owner-only settings that stay as they are:** admin bypass of the rulesets, unsigned commits, the `production` environment.

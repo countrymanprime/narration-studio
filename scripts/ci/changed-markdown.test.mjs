@@ -32,7 +32,7 @@ test('parseChangedFiles reports nothing for empty output', () => {
 test('isMarkdownFile matches .md case-insensitively and rejects everything else', () => {
   assert.equal(isMarkdownFile('docs/operations/ci-and-releases.md'), true);
   assert.equal(isMarkdownFile('README.MD'), true);
-  assert.equal(isMarkdownFile('apps/desktop/app.go'), false);
+  assert.equal(isMarkdownFile('src/studio/desktop/app.go'), false);
   assert.equal(isMarkdownFile('docs/operations/ci-and-releases.md.bak'), false);
 });
 

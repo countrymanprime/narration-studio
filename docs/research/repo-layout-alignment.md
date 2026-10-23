@@ -13,7 +13,7 @@ Researched 2026-09-20. **Delivered:** the layout, the test rule and Nx per proje
 
 | Path | Real role | Problem |
 |---|---|---|
-| `shell/` | Go/Wails desktop host, plus `build/` icons, `cmd/`, `internal/` | Root holds `main.go`, `app.go`, `bindings.go` beside `cmd/narration-utils/`; `shell/ui/index.html` has no references anywhere; `shell/src-tauri/` is dead |
+| `shell/` | Go/Wails desktop host, plus `build/` icons, `cmd/`, `internal/` | Root holds `main.go`, `app.go`, `bindings.go` beside `cmd/narration-studio/`; `shell/ui/index.html` has no references anywhere; `shell/src-tauri/` is dead |
 | `shared/ui/` | The React app | Not shared |
 | `shared/python/` | Python lib (`narration_common`) | Fine role, wrong bucket |
 | `shared/reaper/` | REAPER Lua bridge; no automated tests | Integration, not shared code |
@@ -63,10 +63,10 @@ Path-coupled config that any move must touch: `.github/labeler.yml`, `dependabot
 apps/
   desktop/            <- shell/            Go/Wails host; keeps build/ icons
   ui/                 <- shared/ui/        React app
-sidecars/             <- tools/manuscript-guide, manuscript-teleprompter, transcript-compare
+src/studio/sidecars/             <- tools/manuscript-guide, manuscript-teleprompter, transcript-compare
 libs/
   python/             <- shared/python/    narration_common
-integrations/
+src/studio/integrations/
   reaper/             <- shared/reaper/    Lua bridge
   audacity/           <- shared/audacity/ + tools/*/daws/audacity
 config/               <- shared/config/
@@ -78,9 +78,9 @@ scripts/              stays
 docs/                 stays
 ```
 
-The Go module path (`.../narration-utils/shell`) can stay as is when the directory moves; only `wails.json`, `go -C shell` calls and scripts change. The `apps/desktop` rename has the largest blast radius for the least clarity gain; it is the one to defer if you want a smaller first step (`shell/` reads fine on its own).
+The Go module path (`.../narration-studio/shell`) can stay as is when the directory moves; only `wails.json`, `go -C shell` calls and scripts change. The `src/studio/desktop` rename has the largest blast radius for the least clarity gain; it is the one to defer if you want a smaller first step (`shell/` reads fine on its own).
 
-At about eight projects Nx would call a flat layout acceptable, so the case for `apps/` + `libs/` is the misleading `shared/` name, not scale. If you would rather keep churn minimal, the smallest useful change is to rename only `shared/ui` to `ui/` (or `apps/ui/`) and `shared/reaper` to `integrations/reaper/`, and leave the rest.
+At about eight projects Nx would call a flat layout acceptable, so the case for `apps/` + `libs/` is the misleading `shared/` name, not scale. If you would rather keep churn minimal, the smallest useful change is to rename only `shared/ui` to `ui/` (or `src/studio/ui/`) and `shared/reaper` to `src/studio/integrations/reaper/`, and leave the rest.
 
 ## Gaps
 

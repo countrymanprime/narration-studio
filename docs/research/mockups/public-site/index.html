@@ -512,7 +512,7 @@ article.doc code{font:400 .88em var(--mono);background:var(--surface-2);border:1
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px"><a class="btn primary lg" href="https://github.com/countrymanprime/narration-studio/releases" target="_blank" rel="noopener">Get the latest release</a><a class="btn lg" href="#docs-getting-started" data-go="docs-getting-started">Setup guide</a></div>
       </div>
       <ol>
-        <li><span><b>Download the setup file</b>narration-utils-&lt;version&gt;-windows-x64-setup.exe, and its .sha256 file to check it.</span></li>
+        <li><span><b>Download the setup file</b>narration-studio-&lt;version&gt;-windows-x64-setup.exe, and its .sha256 file to check it.</span></li>
         <li><span><b>Run it</b>It installs to your user folder and adds a Start Menu entry. A second entry opens the app ready for Audacity.</span></li>
         <li><span><b>Expect a SmartScreen warning</b>The release is unsigned. Choose More info, then Run anyway. The docs show how to verify the file first.</span></li>
         <li><span><b>Start Narration Studio</b>Updates come from the same releases, and only after you click.</span></li>
@@ -717,11 +717,11 @@ const DOCS=[
  {g:'Tutorials',k:'tut',hint:'Learn by doing',items:[
   {id:'getting-started',t:'Getting started',src:'README.md',lead:'Install Narration Studio, open a project and proof your first chapter.',html:`
    <h2>Install on Windows</h2><p>Narration Studio supports Windows x64. Get the setup program from the releases page; every file carries its version in its name.</p>
-   <ol><li>Download <code>narration-utils-&lt;version&gt;-windows-x64-setup.exe</code> and the <code>.sha256</code> file beside it.</li><li>Run the setup program. It installs for your user account, so it asks for no administrator rights.</li><li>If Windows SmartScreen says it prevented an unrecognized app from starting, choose <b>More info</b>, then <b>Run anyway</b>.</li></ol>
+   <ol><li>Download <code>narration-studio-&lt;version&gt;-windows-x64-setup.exe</code> and the <code>.sha256</code> file beside it.</li><li>Run the setup program. It installs for your user account, so it asks for no administrator rights.</li><li>If Windows SmartScreen says it prevented an unrecognized app from starting, choose <b>More info</b>, then <b>Run anyway</b>.</li></ol>
    <div class="note warn">${ic('info')}<div>The release is unsigned. The warning is about the missing signature, not about anything found in the file. Check the file yourself first, as below.</div></div>
    <h2>Verify the download</h2><p>The checksum only detects a damaged download. The second command shows where the file was built.</p>
-   <div class="codebox"><span class="lang">POWERSHELL</span><button class="btn sm quiet" data-copy type="button">Copy</button><pre><code>(Get-FileHash .\\narration-utils-0.2.7-windows-x64-setup.exe).Hash
-gh attestation verify narration-utils-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio</code></pre></div>
+   <div class="codebox"><span class="lang">POWERSHELL</span><button class="btn sm quiet" data-copy type="button">Copy</button><pre><code>(Get-FileHash .\\narration-studio-0.2.7-windows-x64-setup.exe).Hash
+gh attestation verify narration-studio-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio</code></pre></div>
    <h2>Open a project</h2><p>The first screen is the project picker. Choose a folder for the book, then you land on Production. With no manuscript imported, the page is the import.</p>
    <h2>Run your first check</h2><p>Open <a href="#docs-proof-a-chapter" data-go="docs-proof-a-chapter">Proof a chapter</a>. The first check asks before it downloads a Whisper model; nothing is downloaded without asking.</p>`},
  ]},

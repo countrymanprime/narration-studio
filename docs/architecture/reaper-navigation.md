@@ -1,6 +1,6 @@
 # Going to and looping a finding in REAPER
 
-**Status: implemented end to end: bridge commands, Go client, host bindings, the Proof Inspector's Show in the DAW (Go to) and Add marker buttons**; since the Proof swap (SN-Q9, 2026-10-12) Proof has no Loop or Stop, and since the Editing swap (SN-E9) no page offers Loop or Stop from a finding (the editing check panel's candidate rows, which did, were replaced by the Editing page's Clean up tab). It is tested in the harness, in Go, in the UI and the visual suite. Go to, Loop and Stop were also checked in a scripted REAPER 7.80 run. Hearing the loop, three other steps, a run of the checklist from the page, and the approved marker in a real REAPER are pending (scripted run and owner); see the [owner checklist](../operations/reaper-verification-pass.md#going-to-a-finding-owner-checklist). The chapter workspace's Go to and Loop used the same commands over two host bindings (`WorkspaceGoTo`, `WorkspaceLoop`, no new Lua); the workspace was removed by the Editing swap and `WorkspaceLoop` by [#1308](https://github.com/countrymanprime/narration-utils/issues/1308), see [From the workspace](#from-the-workspace). Decisions: Going to and looping a finding in REAPER, (the approved marker).
+**Status: implemented end to end: bridge commands, Go client, host bindings, the Proof Inspector's Show in the DAW (Go to) and Add marker buttons**; since the Proof swap (SN-Q9, 2026-10-12) Proof has no Loop or Stop, and since the Editing swap (SN-E9) no page offers Loop or Stop from a finding (the editing check panel's candidate rows, which did, were replaced by the Editing page's Clean up tab). It is tested in the harness, in Go, in the UI and the visual suite. Go to, Loop and Stop were also checked in a scripted REAPER 7.80 run. Hearing the loop, three other steps, a run of the checklist from the page, and the approved marker in a real REAPER are pending (scripted run and owner); see the [owner checklist](../operations/reaper-verification-pass.md#going-to-a-finding-owner-checklist). The chapter workspace's Go to and Loop used the same commands over two host bindings (`WorkspaceGoTo`, `WorkspaceLoop`, no new Lua); the workspace was removed by the Editing swap and `WorkspaceLoop` by [#1308](https://github.com/countrymanprime/narration-studio/issues/1308), see [From the workspace](#from-the-workspace). Decisions: Going to and looping a finding in REAPER, (the approved marker).
 
 ## What it does
 
@@ -12,7 +12,7 @@ A finding carries its REAPER identity in `source` (`item_guid`, `take_guid`, `tr
 - say whether the script is there and knows these commands (`ping`);
 - **add one approved marker** for a finding the narrator accepted: a take marker at its spot, in one undo point (`add_finding_marker`).
 
-The commands live in `integrations/reaper/narration_navigation.lua`; the host side is `bridge.Navigator` in `apps/desktop/internal/bridge/navigation.go`.
+The commands live in `src/studio/integrations/reaper/narration_navigation.lua`; the host side is `bridge.Navigator` in `src/studio/desktop/internal/bridge/navigation.go`.
 
 ## Finding the spot: GUIDs, never a position
 
@@ -48,7 +48,7 @@ None of the four commands makes an undo point or changes the project's content (
 
 The marker is a **take marker at the source time**, so it follows the item when the item moves, like the markers Transcript Compare's **Export markers** adds. The host names and colours it like them: the finding's kind (or its category), then what the script says and what was recorded, eight words at most each (`MISREAD: 'pink eyes' as 'pale eyes'`), in the Transcript Compare colour for that kind. Before adding, the script asks `existing_take_marker` (`narration_bridge_core.lua`, the rule the export uses): is there already a marker with the same issue prefix within 0.15 s on that take? If so, it answers `existing` with that marker's name and changes nothing, so the command is safe to send twice and the export later skips the row. Otherwise it adds the marker inside one `Undo_BeginBlock2`/`Undo_EndBlock2` block labelled "Narration Studio: add approved marker", so one Undo in REAPER takes it away. It moves no selection, cursor or transport.
 
-The host (`FindingsAddMarker(id)`, `apps/desktop/bindings_marker.go`) refuses before writing anything when the finding has no item GUID (`no_item`) or no source time (`no_source_time`), or REAPER is not listening (`standalone`, `not_running`); REAPER's own refusals come back as `stale`, `recording`, `script_outdated` or `failed`, worded "so no marker was added". What the buttons look like to the narrator, and when each is off, is in [the Proof guide](../guides/using-the-app/proof.md#going-to-a-note-in-the-daw).
+The host (`FindingsAddMarker(id)`, `src/studio/desktop/bindings_marker.go`) refuses before writing anything when the finding has no item GUID (`no_item`) or no source time (`no_source_time`), or REAPER is not listening (`standalone`, `not_running`); REAPER's own refusals come back as `stale`, `recording`, `script_outdated` or `failed`, worded "so no marker was added". What the buttons look like to the narrator, and when each is off, is in [the Proof guide](../guides/using-the-app/proof.md#going-to-a-note-in-the-daw).
 
 ## Commands and events
 
@@ -60,7 +60,7 @@ The host (`FindingsAddMarker(id)`, `apps/desktop/bindings_marker.go`) refuses be
 | `ping` | `run_id` | `PONG\|run\|version\|looping\|playing` (version `1`; the flags are `0` or `1`) |
 | `add_finding_marker` | `run_id`, `item_guid`, `take_guid` (may be empty), `source_time`, `color` (`RRGGBB`, may be empty), `name` | `FINDING_MARKER\|run\|added or existing\|take_guid\|source_time\|name` (the existing marker's name when `existing`), `FINDING_STALE`, or `ERROR` |
 
-The events are in the table in `apps/desktop/internal/bridge/wire.go` ([wire contracts](wire-contracts.md#reaper-events-appsdesktopinternalbridgewirego)).
+The events are in the table in `src/studio/desktop/internal/bridge/wire.go` ([wire contracts](wire-contracts.md#reaper-events-srcstudiodesktopinternalbridgewirego)).
 
 ## The host side
 
@@ -78,7 +78,7 @@ The answer arrives through `Client.Dispatch`, which the host's 150 ms loop alrea
 
 ## From the Review page
 
-The Navigator sits behind host bindings (`apps/desktop/bindings_navigation.go`); the Proof Inspector calls Go to and Add marker (`apps/ui/src/components/proof/inspector/InspectorActions.tsx`), and no page calls Loop, Stop or the per-read bindings since the Editing swap removed the last caller (the editing check's candidate rows):
+The Navigator sits behind host bindings (`src/studio/desktop/bindings_navigation.go`); the Proof Inspector calls Go to and Add marker (`src/studio/ui/src/components/proof/inspector/InspectorActions.tsx`), and no page calls Loop, Stop or the per-read bindings since the Editing swap removed the last caller (the editing check's candidate rows):
 
 | Binding | Sends | Answers |
 | --- | --- | --- |
@@ -97,18 +97,18 @@ The host remembers which finding it looped (`findingNavigation.loopingID`) until
 
 ## From the workspace
 
-The chapter workspace's transport bar (Proof's chapter view until the Editing page replaced it, SN-E9; its UI files were deleted then) reached the same `navigate_item` and `loop_context` through two more host bindings, for the word at the playhead. [#1308](https://github.com/countrymanprime/narration-utils/issues/1308) removed `WorkspaceLoop`; `WorkspaceGoTo` stays. As built:
+The chapter workspace's transport bar (Proof's chapter view until the Editing page replaced it, SN-E9; its UI files were deleted then) reached the same `navigate_item` and `loop_context` through two more host bindings, for the word at the playhead. [#1308](https://github.com/countrymanprime/narration-studio/issues/1308) removed `WorkspaceLoop`; `WorkspaceGoTo` stays. As built:
 
 | Binding | Sends | Answers |
 | --- | --- | --- |
 | `WorkspaceGoTo(chapterId, tokenIndex)` | `navigate_item` | `navigated` with `projectTime`, or `refused` |
 | `WorkspaceLoop(chapterId, firstToken, lastToken)` (removed) | `loop_context` | `looping` with `loopStart` and `loopEnd`, or `refused` |
 
-No new Lua command, and no new bridge type: both resolve into a `bridge.Target` and go through the same `findingNavigation`/`bridge.Navigator` the Review page's bindings use (`apps/desktop/bindings_workspace.go`), so `FindingsReaperStatus` (polled the same way as for the Review page) and `FindingsStopLoop` serve the workspace too - there is one app loop at a time, whoever started it.
+No new Lua command, and no new bridge type: both resolve into a `bridge.Target` and go through the same `findingNavigation`/`bridge.Navigator` the Review page's bindings use (`src/studio/desktop/bindings_workspace.go`), so `FindingsReaperStatus` (polled the same way as for the Review page) and `FindingsStopLoop` serve the workspace too - there is one app loop at a time, whoever started it.
 
 The page sends only the chapter id and the token index (or, for Loop, the first and last token of the passage, both required to be heard on the same item); it never sends a GUID or a time. The host resolves a token to where to go by reading the chapter's stored word alignment (`WorkspaceAlignment`) - the token's item index, and the source time it was heard at - and joining that item's current GUID and take GUID from the saved project, exactly as `WorkspaceAlignment` itself already joins played ranges for display. A token nothing was heard for (a missing or skipped word) has no item to resolve, so it is refused (`no_item`) before anything is sent, in the workspace's own words ("This word wasn't heard in the recording..."); a passage whose two tokens were heard on different items is refused as a caller error (reload the workspace), since the page only ever sends a passage from one paragraph's worth of adjacent, same-item tokens. REAPER's own refusals (`stale`, `recording`, `script_outdated`, no answer, no bridge) come back worded exactly as they are for the Review page, since they are the same `bridge.Navigator` answering the same way; a stale item or take is reworded from "this finding's..." to "this word's..." in the host (`workspaceRefusal`, `bindings_workspace.go`), without touching `bridge.StaleError`'s own message, which the Review page's refusals still use unchanged.
 
-Verified: Go tests over a fake navigator and a real coverage-backed saved project (`bindings_workspace_navigation_test.go`), the contract payloads (`bindings_workspace_contract_test.go`, goldens `workspace-go-to.json` and `workspace-navigation-no-item.json`; `workspace-loop.json` went with `WorkspaceLoop`), and the UI tests of the workspace, deleted with it. REAPER's own behaviour for these two bindings - `navigate_item` from a token the workspace resolved, and hearing the loop - was not re-verified by a scripted run for this phase (the commands and their refusals are the same ones [the owner checklist](../operations/reaper-verification-pass.md#going-to-a-finding-owner-checklist) already ran against a real REAPER for the Review page); a scripted run from the workspace itself, and the owner hearing it, are pending on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+Verified: Go tests over a fake navigator and a real coverage-backed saved project (`bindings_workspace_navigation_test.go`), the contract payloads (`bindings_workspace_contract_test.go`, goldens `workspace-go-to.json` and `workspace-navigation-no-item.json`; `workspace-loop.json` went with `WorkspaceLoop`), and the UI tests of the workspace, deleted with it. REAPER's own behaviour for these two bindings - `navigate_item` from a token the workspace resolved, and hearing the loop - was not re-verified by a scripted run for this phase (the commands and their refusals are the same ones [the owner checklist](../operations/reaper-verification-pass.md#going-to-a-finding-owner-checklist) already ran against a real REAPER for the Review page); a scripted run from the workspace itself, and the owner hearing it, are pending on [#510](https://github.com/countrymanprime/narration-studio/issues/510).
 
 ## Verification record
 

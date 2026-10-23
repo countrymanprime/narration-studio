@@ -1,6 +1,6 @@
 # spaCy model provisioning spike
 
-**Date:** 2026-09-21. **Issue:** [#213](https://github.com/countrymanprime/narration-utils/issues/213). **Answers:** how is a downloaded spaCy model loaded in the frozen Story Bible sidecar?
+**Date:** 2026-09-21. **Issue:** [#213](https://github.com/countrymanprime/narration-studio/issues/213). **Answers:** how is a downloaded spaCy model loaded in the frozen Story Bible sidecar?
 
 **Verdict: go.** Catalog the pinned official wheel, unpack it into the per-user asset cache, and pass the model directory to `spacy.load`. The frozen sidecar imports spaCy and loads a model from a directory with the same output as the development environment. No bundling, no runtime `pip install`.
 
@@ -61,4 +61,4 @@ The frozen Story Bible sidecar logged two things during the runs, unrelated to s
 
 ## To reproduce
 
-Download both wheels to a scratch folder, unpack them with any zip tool, then from the repository root: `.venv/Scripts/python.exe sidecars/manuscript-guide/core/manuscript_guide.py build --manuscript <canonical manuscript.json> --out <guide.json> --spacy-model <folder>/en_core_web_sm/en_core_web_sm-3.8.0`. For the frozen run, freeze with `python scripts/release/prepare-resources.py --sidecar manuscript-guide` and call `.release-build/manuscript-guide/dist/manuscript-guide/manuscript-guide.exe build ...` with the same arguments.
+Download both wheels to a scratch folder, unpack them with any zip tool, then from the repository root: `.venv/Scripts/python.exe src/studio/sidecars/manuscript-guide/core/manuscript_guide.py build --manuscript <canonical manuscript.json> --out <guide.json> --spacy-model <folder>/en_core_web_sm/en_core_web_sm-3.8.0`. For the frozen run, freeze with `python scripts/release/prepare-resources.py --sidecar manuscript-guide` and call `.release-build/manuscript-guide/dist/manuscript-guide/manuscript-guide.exe build ...` with the same arguments.

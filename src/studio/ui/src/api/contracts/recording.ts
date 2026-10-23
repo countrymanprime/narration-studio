@@ -1,0 +1,101 @@
+// The built-in recorder: the Booth records with REAPER or with the built-in
+// recorder, which records a take of the chosen input device into the project's Recordings folder through the capture port's
+// wasapi row (Experimental). Mirrors src/studio/desktop/bindings_recording.go's RecorderState exactly.
+import type { DawCapabilitySupport } from './daw';
+
+/** Which engine the project records with: REAPER (the default) or the built-in recorder. It sets the engine chip. */
+export type RecordingEngine = 'daw' | 'builtin';
+
+export type RecorderPhase = 'idle' | 'metering' | 'recording' | 'stopping';
+
+/** One take file in the Recordings folder. */
+export type RecorderTake = {
+  /** "Take 004". */
+  name: string;
+  /** The file's path: the media route plays it. */
+  path: string;
+  seconds: number;
+  sampleRate: number;
+  channels: number;
+  bits: number;
+  /** The file's modification time, Unix milliseconds. */
+  recordedAt: number;
+  /** A partial file a take left when its engine ended without finishing it; it plays up to the last second written. */
+  unfinished: boolean;
+  /** The manuscript line this take is assigned to (a composed line id), null when it carries none yet. */
+  lineId: string | null;
+  /** Whether the narrator marked this take the keeper of its line:
+   * narrator-confirmed, and always undoable by marking it false again or by marking a different take of the same
+   * line. A take with no line assigned yet can still be marked alone, with no group to clear. */
+  keeper: boolean;
+  /** Hidden when another take of its line was kept and the others hid (the file stays; the recorder plays only the keeper). */
+  hidden: boolean;
+  /** The take's edit list, ordered and disjoint: the recorder plays and exports past each cut and the file holds the audio as recorded. */
+  cuts: RecorderTakeCut[];
+};
+
+/** One cut in a take's edit list, seconds into the take. A gap keeps the length (room tone); a close moves the audio after it up. */
+export type RecorderTakeCut = { start: number; end: number; mode: 'gap' | 'close' };
+
+/** How the most recent take ended. */
+export type RecorderLastTake = {
+  name: string;
+  seconds: number;
+  /** Blocks the engine lost or the recorder dropped. */
+  dropouts: number;
+  clipped: number;
+  /** The engine's reported input latency (hardware monitoring is the recommendation). */
+  latencyMs: number;
+  /** Why it ended by itself, or why it kept its partial name; null for a clean take. */
+  error: string | null;
+  unfinished: boolean;
+};
+
+export type RecorderState = {
+  hasProject: boolean;
+  engine: RecordingEngine;
+  /** The wasapi capture row's support here: Experimental, and unavailable off Windows. */
+  support: DawCapabilitySupport;
+  phase: RecorderPhase;
+  /** The device recording or metering, else the one the project last recorded with ("" for none). */
+  device: string;
+  /** The project's Recordings folder ("" without a project). */
+  folder: string;
+  /** The take recording now. */
+  take: string | null;
+  /** When it started, Unix milliseconds. */
+  startedAt: number | null;
+  /** The last problem in a sentence, "" for none. */
+  message: string;
+  last: RecorderLastTake | null;
+  takes: RecorderTake[];
+};
+
+/** The "recording:level" live event: dBFS, about ten a second while the recorder meters or records. */
+export type RecorderLevel = { peak: number; rms: number };
+
+export type RecorderDevice = { name: string };
+
+/** A listing problem is `{devices: [], error: "..."}`, never a thrown error (like `TeleprompterDevicesResult`). */
+export type RecorderDevicesResult = { devices: RecorderDevice[]; error: string | null };
+
+export interface RecordingApi {
+  recorderState(): Promise<RecorderState>;
+  /** Saves the project's engine; 'builtin' is refused where its capture row is not available, or while a take records. */
+  recorderChooseEngine(engine: RecordingEngine): Promise<RecorderState>;
+  recorderDevices(): Promise<RecorderDevicesResult>;
+  /** Meters `device` before a take (no file is written); refused while a take records. */
+  recorderMeterStart(device: string): Promise<RecorderState>;
+  recorderMeterStop(): Promise<RecorderState>;
+  /** Records a new take of `device`; its end arrives on subscribeRecorderState. */
+  recorderStart(device: string): Promise<RecorderState>;
+  /** Asks the take or meter to end; answers at once. */
+  recorderStop(): Promise<RecorderState>;
+  /** Assigns takeName the manuscript paragraph or chapter entityId as its line identity ("" clears it); the
+   * manuscript's current source checksum is read host-side, never sent here. */
+  recorderSetTakeLine(takeName: string, entityId: string): Promise<RecorderState>;
+  /** Marks or unmarks takeName the keeper of its line; always undoable. */
+  recorderSetTakeKeeper(takeName: string, keeper: boolean): Promise<RecorderState>;
+  subscribeRecorderState(onUpdate: (state: RecorderState) => void): () => void;
+  subscribeRecorderLevel(onLevel: (level: RecorderLevel) => void): () => void;
+}

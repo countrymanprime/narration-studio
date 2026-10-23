@@ -4,7 +4,7 @@ Engine facts the Audacity adapter depends on, as of 2026-10-19. The protocol bel
 
 ## How the app reaches Audacity
 
-- **Over the scripting pipe**, which the narrator must enable (Preferences, Modules). The client is `apps/desktop/internal/audacitybridge`; the adapter is `apps/desktop/internal/dawport/audacity`.
+- **Over the scripting pipe**, which the narrator must enable (Preferences, Modules). The client is `src/studio/desktop/internal/audacitybridge`; the adapter is `src/studio/desktop/internal/dawport/audacity`.
 - **Two fixed Windows named pipes**, opened `ToSrvPipe` first then `FromSrvPipe`. Names and the `\r\n\0` line ending are fixed in code, never taken from a setting.
 - **One command per read, at most 1024 bytes.** The client refuses a line over 1020 bytes and a text value over 900.
 - **A reply is lines, a terminator, then an empty line.** The terminator is exactly `BatchCommand finished: OK` or `Failed!`; anything else drops the connection.
@@ -13,7 +13,7 @@ Engine facts the Audacity adapter depends on, as of 2026-10-19. The protocol bel
 
 ## Linking
 
-Audacity has no project path, play state or version over the pipe, so "linked" is built from three things the app can see: what is installed, Audacity's own settings file, and what answers on the pipe. The host reads them every 2 s while the project records with Audacity (`audacitylink.Classify`, `apps/desktop/bindings_audacity_link.go`) and shows one state, with a sentence that says what to do next, in Settings > Recording & DAW, the engine panel and the header chip.
+Audacity has no project path, play state or version over the pipe, so "linked" is built from three things the app can see: what is installed, Audacity's own settings file, and what answers on the pipe. The host reads them every 2 s while the project records with Audacity (`audacitylink.Classify`, `src/studio/desktop/bindings_audacity_link.go`) and shows one state, with a sentence that says what to do next, in Settings > Recording & DAW, the engine panel and the header chip.
 
 | State | What it means | What the narrator does |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ Audacity has no project path, play state or version over the pipe, so "linked" i
 
 ## The snapshot
 
-The `.aup3` is a SQLite file the app does not read, and scripting reports no project path, so everything the app reads from a saved project offline (the track list, the chapter links, the recorded lengths, the regions, the pickup counts) comes from a snapshot. While Audacity answers, the host reads `GetInfo` Tracks, Clips and Labels (three commands) every 10 s and writes `narration-utils/audacity-snapshot.json` when the project changed (a selection change does not count), and at once after a narrator's action (Check again, linking the project). The offline readers take that file where REAPER's take the `.rpp`:
+The `.aup3` is a SQLite file the app does not read, and scripting reports no project path, so everything the app reads from a saved project offline (the track list, the chapter links, the recorded lengths, the regions, the pickup counts) comes from a snapshot. While Audacity answers, the host reads `GetInfo` Tracks, Clips and Labels (three commands) every 10 s and writes `narration-studio/audacity-snapshot.json` when the project changed (a selection change does not count), and at once after a narrator's action (Check again, linking the project). The offline readers take that file where REAPER's take the `.rpp`:
 
 - an audio track is a track with the id `audacity:<name>` (`#2`, `#3` for a repeated name); a clip is an item with its track's id and its start in milliseconds, so an id goes stale (never to another track or clip) when the track is renamed or the clip moves;
 - a range label `[nu:region] <title>` is a region, and a pickup label is a `PICKUP:` or `PICKUP_DONE:` marker;
@@ -66,7 +66,7 @@ Sixteen capabilities are not yet available ([matrix](matrix.md)): `line_identity
 
 ## What needs backups
 
-Audacity keeps no takes and its edits change the audio itself, so `takes`, `punch`, `stack_takes`, `cut_range` and `fx_range` exist in Audacity only while `backups` is available ([PRD decision DQ-18](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions); the Studio Next mock's [`capabilitiesFor`](../../research/mockups/studio-next/src/selectors/daw.ts)). The adapter declares the five Experimental, each requiring `backups` (`apps/desktop/internal/dawport/audacity/audacity.go`):
+Audacity keeps no takes and its edits change the audio itself, so `takes`, `punch`, `stack_takes`, `cut_range` and `fx_range` exist in Audacity only while `backups` is available ([PRD decision DQ-18](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions); the Studio Next mock's [`capabilitiesFor`](../../research/mockups/studio-next/src/selectors/daw.ts)). The adapter declares the five Experimental, each requiring `backups` (`src/studio/desktop/internal/dawport/audacity/audacity.go`):
 
 - While backups are turned off, takes, stacking, cutting and an effect on words are refused with backups' reason and one sentence, for example "Stacking takes needs Audacity backups. Turn on Audio backups in Settings."
 - A roll stays usable without backups and is destructive, so the page asks first; with backups available it is not destructive.
@@ -74,7 +74,7 @@ Audacity keeps no takes and its edits change the audio itself, so `takes`, `punc
 
 ## Edits made in steps
 
-Each edit is a series of scripting commands sent after `BackupAround` has cloned the audio around it (`apps/desktop/internal/dawport/audacity/steps*.go`). Every check comes before the backup and the backup before the first edit: a request out of shape is refused, a track name Audacity no longer lists is `stale`, and a backup that is refused or fails stops the edit. The `Result` lists the edits in `Steps`, in the order sent, and counts in `undoSteps` the ones that add an undo point; selecting and copying add none. The roles treat backups as unavailable when the adapter has no project folder for them: then the cut, the effect and the stack refuse with the capability's sentence and send nothing, and a roll records over the audio.
+Each edit is a series of scripting commands sent after `BackupAround` has cloned the audio around it (`src/studio/desktop/internal/dawport/audacity/steps*.go`). Every check comes before the backup and the backup before the first edit: a request out of shape is refused, a track name Audacity no longer lists is `stale`, and a backup that is refused or fails stops the edit. The `Result` lists the edits in `Steps`, in the order sent, and counts in `undoSteps` the ones that add an undo point; selecting and copying add none. The roles treat backups as unavailable when the adapter has no project folder for them: then the cut, the effect and the stack refuse with the capability's sentence and send nothing, and a roll records over the audio.
 
 | Edit | Commands after the backup | Undo points |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ Paste, Delete and Punch and Roll move audio by Audacity's own rules, which the L
 
 ## Measured in Audacity 3.7.7
 
-Each line was seen in a running Audacity 3.7.7 (AppImage, Ubuntu 24.04, Xvfb, a PulseAudio null sink) by `tests/audacity3/real/edits`, test ids in brackets, and is a fact about that build on Linux. None ran on Windows or on a GitHub-hosted runner yet ([results](../../research/audacity-3-real-edits-results.md)).
+Each line was seen in a running Audacity 3.7.7 (AppImage, Ubuntu 24.04, Xvfb, a PulseAudio null sink) by `src/studio/tests/audacity3/real/edits`, test ids in brackets, and is a fact about that build on Linux. None ran on Windows or on a GitHub-hosted runner yet ([results](../../research/audacity-3-real-edits-results.md)).
 
 - **Which commands exist.** `GetInfo: Type=Commands` lists 93 batch commands (`Message`, `GetInfo`, `SelectTime`, `SetLabel`, the effects) and no menu command. Menu commands (`AddLabel`, `Record1stChoice`, `PunchAndRoll`, `Undo`, `SyncLock`, each saved macro as `Macro_<name>`) are listed by `GetInfo: Type=Menus` and scripted by their id with no parameters. **`ApplyMacro` is not a command** ("was not recognized"); a macro runs as `Macro_<name>:`, the name with its spaces taken out (`Narration Spaced Name` is `Macro_NarrationSpacedName`). A macro runs on the selected tracks and adds one undo point; with no track selected it opens a modal box and holds the pipe. [T20]
 - **`SetTrackStatus` and `SetTrackAudio` take no `Track`.** A `Track=` parameter is ignored without an error and the command acts on the selected track, so the client selects the track first (`SetTrackName`, `SetTrackMute`). Sent after a `Split` and `Delete`, the old call muted the chapter. [T17, T19]
@@ -110,8 +110,8 @@ Each line was seen in a running Audacity 3.7.7 (AppImage, Ubuntu 24.04, Xvfb, a 
 
 ## Backups
 
-`backups` is Experimental: a backup is a muted track in the Audacity project named `Narration Studio backup {ID}`, and a row in `narration-utils/backups.json` in the app's project folder ([capabilities](capabilities.md#backups)). Scripting reports no track ids, so the adapter names a source track by its name and finds a backup track only by its exact name. Deleting or renaming either track in Audacity makes the backup unrestorable, and the app reports it rather than guessing.
+`backups` is Experimental: a backup is a muted track in the Audacity project named `Narration Studio backup {ID}`, and a row in `narration-studio/backups.json` in the app's project folder ([capabilities](capabilities.md#backups)). Scripting reports no track ids, so the adapter names a source track by its name and finds a backup track only by its exact name. Deleting or renaming either track in Audacity makes the backup unrestorable, and the app reports it rather than guessing.
 
 ## Checking a capability in Audacity
 
-[The Audacity verification pass](../../operations/audacity-verification-pass.md): Part A runs unattended against Audacity 3 with the module enabled and records the installed version first; Part B is by eye and ear; Part C runs each edit made in steps after a backup. Its tables give the expected result of each step, and its Backups table lists the backup checks no part runs yet. **Checked:** the owner's pass has not run (2026-10-19), and the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) holds the owner's run. The hosted-runner tests ran the backups and the edits in steps against Audacity 3.7.7 on Linux ([results](../../research/audacity-3-real-edits-results.md)); no capability is promoted by that. On Audacity 4.0, step A1 fails with "not reachable" and the run stops.
+[The Audacity verification pass](../../operations/audacity-verification-pass.md): Part A runs unattended against Audacity 3 with the module enabled and records the installed version first; Part B is by eye and ear; Part C runs each edit made in steps after a backup. Its tables give the expected result of each step, and its Backups table lists the backup checks no part runs yet. **Checked:** the owner's pass has not run (2026-10-19), and the QA pass ([#1495](https://github.com/countrymanprime/narration-studio/issues/1495)) holds the owner's run. The hosted-runner tests ran the backups and the edits in steps against Audacity 3.7.7 on Linux ([results](../../research/audacity-3-real-edits-results.md)); no capability is promoted by that. On Audacity 4.0, step A1 fails with "not reachable" and the run stops.

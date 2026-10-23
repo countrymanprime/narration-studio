@@ -1,0 +1,936 @@
+package guide
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+	"sort"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+)
+
+type Service struct {
+	persist        atomic.Pointer[persist.Reporter]
+	project        string
+	python         string
+	backend        string
+	settings       *settings.Store
+	sidecars       *process.Supervisor
+	previewTimeout time.Duration
+	previewLocksMu sync.Mutex
+	// +checklocks:previewLocksMu
+	previewLocks map[string]*sync.Mutex
+	// findingsStore is nil until app.go opts in with SetFindings; every
+	// existing caller, including every test in this package, leaves it nil
+	// and SaveFindings is then a no-op.
+	findingsStore atomic.Pointer[findings.Store]
+	// editMu serializes the edits the host applies itself (editInHost), each a read, change and rewrite of the whole file.
+	editMu sync.Mutex
+	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
+	// +checklocks:editMu
+	held *heldDocument
+	// searchManuscript opens the project's manuscript for the name search a create and an aliases edit make (occurrenceSearch); New sets it
+	// to the host's own (searchNarration), and a test sets one that records what is searched for.
+	searchManuscript func(path string) (occurrenceSearch, error)
+	// pronunciationLookup answers the pronunciations the host needs for a new entry or alias; nil asks the sidecar (pronunciations). The
+	// tests set it.
+	pronunciationLookup func(words []string) ([]map[string]any, error)
+	// undoIDs makes the id a merge is stored under; nil in the app (a random one), set by the tests that need a known one.
+	undoIDs func() string
+	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
+	parses atomic.Int64 // +checklocksignore: an atomic; it is only ever counted while editMu is held
+}
+
+func New(project, python, backend string, store *settings.Store, sidecars *process.Supervisor) *Service {
+	return &Service{project: project, python: python, backend: backend, settings: store, sidecars: sidecars, previewTimeout: previewTimeout, searchManuscript: searchNarration}
+}
+func (s *Service) guidePath() string {
+	return filepath.Join(s.project, "ManuscriptGuide", "manuscript_guide.json")
+}
+func (s *Service) manuscript() string {
+	return filepath.Join(s.project, "narration-studio", "manuscript", "manuscript.json")
+}
+
+// SetPersist says where to report a Story Bible file that cannot be read.
+func (s *Service) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
+
+// SetFindings opts this service into producing findings.Finding records for
+// entities that still need review. store persists them. Called once at service
+// construction, the same way SetPersist is; never called means
+// SaveFindings is a no-op.
+func (s *Service) SetFindings(store *findings.Store) { s.findingsStore.Store(store) }
+
+// SaveFindings reads the current Story Bible entities and saves the
+// findings BuildFindings derives from them, replacing
+// the analyzer's whole "entities" scope in one call so an entity that no
+// longer qualifies - because it became reviewed or locked - naturally drops
+// out of the fresh set findings.Store.SaveAnalyzerFindings is given, and its
+// finding is marked "not in latest run" rather than deleted (resolved
+// upstream). It only reads the guide file (Entities); it never
+// calls a sidecar command that could change it. Best-effort: a problem here
+// is reported through the same channel as any other derived-data failure
+// (SetPersist's reporter) but never fails the caller (a build, an edit).
+func (s *Service) SaveFindings() error {
+	store := s.findingsStore.Load()
+	if store == nil {
+		return nil
+	}
+	entities, err := s.Entities()
+	if err != nil {
+		s.persist.Load().Warn("findings_build_failed", fmt.Sprintf("Story Bible findings were not built: %v", err))
+		return err
+	}
+	fresh := BuildFindings(entities, findings.Project{Path: s.project, OutputPath: s.guidePath()})
+	valid := make([]findings.Finding, 0, len(fresh))
+	for _, f := range fresh {
+		if verr := f.Validate(); verr != nil {
+			s.persist.Load().Warn("findings_invalid", fmt.Sprintf("Story Bible produced an invalid finding, skipped: %v", verr))
+			continue
+		}
+		valid = append(valid, f)
+	}
+	// valid is saved even when empty: an empty fresh set is how every
+	// previously-open Story Bible finding resolves upstream at once (every
+	// flagged entity got reviewed or locked since the last save).
+	if _, err := store.SaveAnalyzerFindings(analyzerName, scopeName, valid); err != nil {
+		s.persist.Load().Warn("findings_save_failed", fmt.Sprintf("Story Bible findings were not saved: %v", err))
+		return err
+	}
+	return nil
+}
+
+// schemaVersion is the newest Story Bible file this host reads. The Python sidecar writes it (manuscript_guide.py SCHEMA_VERSION) for a build
+// and for a pronunciation looked up from one named source. The host writes it for the commands it runs itself (editInHost, createInHost,
+// mutateInHost: an edit, a create, a merge, an unmerge, a split and a rescan among them), and refuses a newer file instead of rewriting it.
+const schemaVersion = 2
+
+// document reads and version-checks the Story Bible file, returning its raw
+// JSON object - a missing file reads as an empty object, exactly the shape
+// Entities and DialogueCues both build their own key's default from. The
+// entries carry the narrator's edits and locks, so a file that cannot be
+// read is kept aside and the narrator told, and a file from a newer version
+// is refused with a message and left exactly as it is.
+func (s *Service) document() (map[string]any, error) {
+	var document map[string]any
+	var versionErr error
+	outcome := s.persist.Load().ReadJSON(s.guidePath(), "Story Bible", persist.NarratorData, func(bytes []byte) error {
+		var decoded map[string]any
+		if err := json.Unmarshal(bytes, &decoded); err != nil {
+			return err
+		}
+		if decoded == nil {
+			return fmt.Errorf("not a JSON object")
+		}
+		version, _ := decoded["schema_version"].(float64)
+		if versionErr = persist.CheckVersion(int(version), schemaVersion, "Story Bible"); versionErr != nil {
+			return nil
+		}
+		document = decoded
+		return nil
+	})
+	if versionErr != nil {
+		return nil, versionErr
+	}
+	if outcome == persist.Unreadable {
+		return nil, fmt.Errorf("the Story Bible file could not be read")
+	}
+	if document == nil {
+		return map[string]any{}, nil
+	}
+	return document, nil
+}
+
+// Entities is the Story Bible as the UI reads it: a stored pronunciation status is not returned.
+func (s *Service) Entities() ([]map[string]any, error) {
+	document, err := s.document()
+	if err != nil {
+		return nil, err
+	}
+	raw, present := document["entities"]
+	if !present || raw == nil {
+		return []map[string]any{}, nil
+	}
+	items, ok := raw.([]any)
+	if !ok {
+		return nil, fmt.Errorf("the Story Bible entities data is invalid")
+	}
+	out := []map[string]any{}
+	for _, x := range items {
+		if m, ok := x.(map[string]any); ok {
+			if err := normalizeEntity(m); err != nil {
+				return nil, err
+			}
+			out = append(out, m)
+		} else {
+			return nil, fmt.Errorf("the Story Bible entity data is invalid")
+		}
+	}
+	return out, nil
+}
+
+// normalizeEntity guarantees the shape the UI renders against. The guide file is
+// written by a Python sidecar across several schema generations, so any of
+// these can be absent; a missing object must read as empty, never crash the
+// Story Bible page after a rebuild.
+func normalizeEntity(entity map[string]any) error {
+	if _, ok := entity["pronunciation"].(map[string]any); !ok {
+		entity["pronunciation"] = map[string]any{}
+	}
+	readPronunciation(entity["pronunciation"].(map[string]any))
+	if description, ok := entity["description"].(map[string]any); !ok {
+		entity["description"] = map[string]any{"text": "", "evidence": map[string]any{}}
+	} else if description["evidence"] == nil {
+		description["evidence"] = map[string]any{}
+	}
+	// properties is the narrator's ordered list of {key, value} facts. It is additive (a file written before it has none), so it reads as
+	// an empty list, and it stays a list: the host re-marshals this map, and an object would come back with its keys sorted.
+	// appearances is additive the same way; nothing reads it yet.
+	for _, key := range []string{"aliases", "occurrences", "personality_notes", "relationships", "properties", "appearances"} {
+		if entity[key] == nil {
+			entity[key] = []any{}
+			continue
+		}
+		if _, ok := entity[key].([]any); !ok {
+			return fmt.Errorf("the Story Bible %s data is invalid", key)
+		}
+	}
+	if aliases, ok := entity["aliases"].([]any); ok {
+		readReview(entity, aliases)
+		for _, raw := range aliases {
+			alias, ok := raw.(map[string]any)
+			if !ok {
+				return fmt.Errorf("the Story Bible alias data is invalid")
+			}
+			if _, ok := alias["pronunciation"].(map[string]any); !ok {
+				alias["pronunciation"] = map[string]any{}
+			}
+			readPronunciation(alias["pronunciation"].(map[string]any))
+			if alias["occurrences"] == nil {
+				alias["occurrences"] = []any{}
+			} else if _, ok := alias["occurrences"].([]any); !ok {
+				return fmt.Errorf("the Story Bible alias occurrences data is invalid")
+			}
+		}
+	}
+	return nil
+}
+
+// readReview fills the entry's review flags (SNB-3b): {entry, aliases}, the entry itself and the alias texts still to look at. A file
+// written before them has none, and its entry flag is review_state "needs review". A stored name the entry no longer has is dropped,
+// and a speaker colour outside 1..7 reads as automatic (no speaker_color).
+func readReview(entity map[string]any, aliases []any) {
+	if color, ok := entity["speaker_color"].(float64); !ok || color < 1 || color > SpeakerColors || color != float64(int(color)) {
+		delete(entity, "speaker_color")
+	}
+	stored, ok := entity["review"].(map[string]any)
+	if !ok {
+		entity["review"] = map[string]any{"entry": entity["review_state"] == "needs review", "aliases": []any{}}
+		return
+	}
+	names := map[string]bool{}
+	for _, raw := range aliases {
+		if alias, ok := raw.(map[string]any); ok {
+			if text, ok := alias["text"].(string); ok {
+				names[text] = true
+			}
+		}
+	}
+	flagged := []any{}
+	list, _ := stored["aliases"].([]any)
+	for _, raw := range list {
+		if text, ok := raw.(string); ok && names[text] && !slices.Contains(flagged, any(text)) {
+			flagged = append(flagged, text)
+		}
+	}
+	entry, _ := stored["entry"].(bool)
+	entity["review"] = map[string]any{"entry": entry, "aliases": flagged}
+}
+
+// readPronunciation reads a stored pronunciation the way docs/guides/using-the-app/story-bible.md#how-you-say-each-name says: a stored status is ignored, and the legacy source "user" reads as
+// "manual", in the value and in its alternate. A note stays as it is.
+func readPronunciation(value map[string]any) {
+	delete(value, "status")
+	if value["source"] == legacyManualSource {
+		value["source"] = ManualSource
+	}
+	if alternate, ok := value["alternate"].(map[string]any); ok {
+		readPronunciation(alternate)
+	}
+}
+
+// DialogueCue is one entry of the guide file's dialogue_cues
+// (written by manuscript_guide.py extract_dialogue_cues/merge_dialogue_cues): a quoted span with its
+// resolved (or unknown) speaker. It is a document-level list, a sibling of
+// "entities", not per-entity data.
+type DialogueCue struct {
+	ID              string              `json:"id"`
+	ChapterID       string              `json:"chapterId"`
+	ParagraphID     string              `json:"paragraphId"`
+	QuoteStart      int                 `json:"quote_start"`
+	QuoteEnd        int                 `json:"quote_end"`
+	QuoteText       string              `json:"quote_text"`
+	SpeakerEntityID *string             `json:"speaker_entity_id"`
+	SpeakerSource   string              `json:"speaker_source"`
+	Evidence        DialogueCueEvidence `json:"evidence"`
+	Corrected       bool                `json:"corrected"`
+}
+
+// DialogueCueEvidence is one cue's manuscript evidence: where it was found
+// and the speech-verb tag text that resolved it, empty for an untagged or
+// continuation cue.
+type DialogueCueEvidence struct {
+	ChapterID   string `json:"chapterId"`
+	ParagraphID string `json:"paragraphId"`
+	Excerpt     string `json:"excerpt"`
+	Tag         string `json:"tag"`
+}
+
+// DialogueCues returns the Story Bible's extracted dialogue cues,
+// each a quoted span with its resolved or unknown speaker. A guide file
+// written before dialogue cues existed has none, which reads as an empty list, the same
+// way a missing "entities" list does.
+func (s *Service) DialogueCues() ([]DialogueCue, error) {
+	document, err := s.document()
+	if err != nil {
+		return nil, err
+	}
+	raw, present := document["dialogue_cues"]
+	if !present || raw == nil {
+		return []DialogueCue{}, nil
+	}
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+	}
+	var cues []DialogueCue
+	if err := json.Unmarshal(encoded, &cues); err != nil {
+		return nil, fmt.Errorf("the Story Bible dialogue cue data is invalid")
+	}
+	if cues == nil {
+		cues = []DialogueCue{}
+	}
+	return cues, nil
+}
+
+// CorrectCue records the narrator's own attribution for one dialogue cue
+// (speakerEntityID "unknown" or "" clears it back to unknown), so the next
+// rebuild's merge_dialogue_cues keeps it instead of overwriting it with
+// fresh, possibly-unknown, extraction - the same durability src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock
+// guard already gives a locked entity, applied to a cue instead.
+func (s *Service) CorrectCue(cueID, speakerEntityID string) error {
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return correctCue(document, cueID, speakerEntityID) })
+}
+
+func (s *Service) Run(args ...string) (string, error) {
+	return s.runContext(context.Background(), args...)
+}
+
+// runContext is Run with a caller-owned deadline: when ctx ends the supervisor
+// kills the sidecar and the call returns.
+func (s *Service) runContext(ctx context.Context, args ...string) (string, error) {
+	if s.project == "" {
+		return "", fmt.Errorf("save the REAPER project and import a manuscript first")
+	}
+	if s.sidecars == nil {
+		return "", fmt.Errorf("the sidecar supervisor is unavailable")
+	}
+	program, fullArgs, err := s.command(args)
+	if err != nil {
+		return "", err
+	}
+	code, out, failure, e := s.sidecars.Run(ctx, program, fullArgs...)
+	if e != nil {
+		return "", e
+	}
+	if code != 0 {
+		message := strings.TrimSpace(failure)
+		if message == "" {
+			message = strings.TrimSpace(out)
+		}
+		if message == "" {
+			message = "Story Bible sidecar failed"
+		}
+		return "", fmt.Errorf("%s", message)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// command supports both development (Python plus an explicit script) and a
+// frozen release sidecar (one executable with no backend argument). Requiring
+// a script path in the latter mode would make every packaged Story Bible
+// operation fail before the sidecar starts.
+func (s *Service) command(args []string) (string, []string, error) {
+	if _, err := os.Stat(s.python); err != nil {
+		return "", nil, fmt.Errorf("configure the Manuscript Guide executable before continuing")
+	}
+	if s.backend == "" {
+		return s.python, args, nil
+	}
+	if _, err := os.Stat(s.backend); err != nil {
+		return "", nil, fmt.Errorf("configure the Manuscript Guide backend before continuing")
+	}
+	return s.python, append([]string{s.backend}, args...), nil
+}
+
+// RulesOnly is the model argument that builds without a language model: the rules-only extraction, lower quality, chosen for one build.
+const RulesOnly = "rules-only"
+
+// Build runs the Story Bible build. model is what the sidecar gives spaCy: the folder of an installed model, a model name, or RulesOnly.
+func (s *Service) Build(progress, log, model string) (string, error) {
+	if e := os.MkdirAll(filepath.Dir(s.guidePath()), 0755); e != nil {
+		return "", e
+	}
+	out, err := s.Run(s.buildArgs(progress, log, model)...)
+	if err != nil {
+		return out, err
+	}
+	_ = s.SaveFindings() // best-effort; a problem here never fails a build that already succeeded (see SaveFindings)
+	return out, nil
+}
+func (s *Service) buildArgs(progress, log, model string) []string {
+	args := []string{"build", "--manuscript", s.manuscript(), "--out", s.guidePath(), "--progress", progress, "--log", log, "--spacy-model", model}
+	return append(args, s.defaultPronunciationSourceArgs()...)
+}
+
+// defaultPronunciationSourceArgs is --default-source <value> when the narrator set a preferred pronunciation source
+// (Settings > Story Bible); omitted (not passed as an explicit empty
+// value) when unset, so the build and pronunciation lookup command lines carry no extra flag.
+// It only reorders the sidecar's own build-time fallback (manuscript_guide.py's pronunciation()); it never limits the
+// entity/alias Generate-Replace control's own explicit --source choice (Pronounce, below).
+func (s *Service) defaultPronunciationSourceArgs() []string {
+	value, _ := s.settings.Effective("ManuscriptGuide", "default_pronunciation_source", "")
+	if value == "" {
+		return nil
+	}
+	return []string{"--default-source", value}
+}
+
+func (s *Service) Edit(id, field, value string) error {
+	return s.EditFields(id, map[string]string{field: value})
+}
+
+// EditFields changes every field of an entity at once: all of them are applied in memory and the file is written once, so a field that is
+// refused leaves the file as it was. The host applies the edit itself (editInHost). An edit of the aliases asks the sidecar only for the
+// pronunciations of the new names (pronunciations), and the host searches the manuscript for where they occur.
+func (s *Service) EditFields(id string, values map[string]string) error {
+	if len(values) == 0 {
+		return nil
+	}
+	return s.editInHost(id, values)
+}
+
+// Pronounce sets the pronunciation of an entity's own name (aliasIndex nil) or one of its aliases from exactly the
+// named engine ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it.
+// It is refused on a locked entity (enforced by the sidecar) and when the chosen engine has nothing for the name.
+// Pronounce asks the named pronunciation source for the entity's (or one alias's) pronunciation. A source the pronunciation port
+// cannot ask for one is refused with its *port.NotSupportedError before the sidecar starts.
+func (s *Service) Pronounce(id string, aliasIndex *int, source string) error {
+	if err := pronunciationport.CheckPronounce(source); err != nil {
+		return err
+	}
+	args := []string{"pronounce", "--guide", s.guidePath(), "--entity-id", id, "--source", source}
+	if aliasIndex != nil {
+		args = append(args, "--alias-index", fmt.Sprint(*aliasIndex))
+	}
+	_, err := s.Run(args...)
+	return err
+}
+
+// ManualSource is the source id of a pronunciation the narrator typed. A file written before it says "user"; Entities reads
+// that as manual.
+const ManualSource = "manual"
+
+const legacyManualSource = "user"
+
+// Candidate is one source's answer for one word: Say when it has one, otherwise a sentence naming the source and the word.
+type Candidate struct {
+	OK     bool   `json:"ok"`
+	Say    string `json:"say,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+// Candidate asks one registered source how it would say word, changing nothing. An unregistered source is refused with its
+// *port.NotSupportedError before the sidecar starts. The word is trimmed and goes as one --word=VALUE argument, so a leading "-"
+// stays a value; the sidecar refuses one that is blank, over 80 characters or holds a newline or NUL.
+func (s *Service) Candidate(word, source string) (Candidate, error) {
+	if err := pronunciationport.CheckPronounce(source); err != nil {
+		return Candidate{}, err
+	}
+	out, err := s.Run("candidate", "--word="+strings.TrimSpace(word), "--source", source)
+	if err != nil {
+		return Candidate{}, err
+	}
+	var result Candidate
+	if err := json.Unmarshal([]byte(out), &result); err != nil {
+		return Candidate{}, fmt.Errorf("the pronunciation source gave an answer that could not be read")
+	}
+	return result, nil
+}
+
+// The narrator's own pronunciation and a pronunciation's note are free text. The sidecar checks the same limits; the host checks the
+// note first so a bad value never starts a process, and applies the narrator's own pronunciation itself (userPronunciation).
+const (
+	maxUserPronunciation = 200
+	maxPronunciationNote = 1000
+)
+
+// PronunciationStatuses are the statuses a pronunciation can have; one written before status existed reads as the first.
+var PronunciationStatuses = []string{"researched", "query_sent", "author_confirmed"}
+
+// PronounceUser is manuscript_guide.py pronounce_user: the narrator's own pronunciation (source "manual") of the entity's name or one
+// alias, chosen. It never asks a dictionary, and the pronunciation it replaces is kept beside it as the alternate (setPronunciation).
+// The text is checked before the file is read, as the sidecar checks it.
+func (s *Service) PronounceUser(id string, aliasIndex *int, ipa string) error {
+	value, err := userPronunciation(ipa)
+	if err != nil {
+		return err
+	}
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return pronounceUser(document, id, aliasIndex, value) })
+}
+
+// UsePronunciationAlternate is manuscript_guide.py pronunciation_use_alternate: the kept alternate goes back in use and the one it
+// replaces is kept, so switching is lossless both ways and asks no dictionary.
+func (s *Service) UsePronunciationAlternate(id string, aliasIndex *int) error {
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return useAlternate(document, id, aliasIndex) })
+}
+
+// MarkReviewed clears the review flags of the entry and every name (aliasIndex nil), or of one name; the entry is reviewed when nothing
+// is left. Refused on a locked entry.
+func (s *Service) MarkReviewed(id string, aliasIndex *int) error {
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return markReviewed(document, id, aliasIndex) })
+}
+
+// FlagReview flags the entry (aliasIndex nil), or one name, as needing review: the undo of MarkReviewed, and what an accepted automatic
+// suggestion sets. A flag that is set already changes nothing. Refused on a locked entry.
+func (s *Service) FlagReview(id string, aliasIndex *int) error {
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return flagReview(document, id, aliasIndex) })
+}
+
+// SpeakerColors is how many speaker colours there are: the seven hues of docs/design/colour-and-contrast.md#per-speaker-colours, --speaker-1 to --speaker-7.
+const SpeakerColors = 7
+
+// SetSpeakerColor stores a character's speaker colour, 1..SpeakerColors, which wins over the stable pick; nil or 0 puts it back to
+// automatic. A value outside that is refused before the file is read; a locked entry and one whose type cannot speak are refused too.
+func (s *Service) SetSpeakerColor(id string, index *int) error {
+	value := 0
+	if index != nil {
+		value = *index
+	}
+	if value < 0 || value > SpeakerColors {
+		return fmt.Errorf("a speaker colour is 1 to %d, or 0 for automatic", SpeakerColors)
+	}
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return speakerColor(document, id, value) })
+}
+
+func (s *Service) Create(name, category string, aliases []string) (string, error) {
+	return s.CreateDescribed(name, category, aliases, "")
+}
+
+// Property is one labelled fact of an entity ("Codename": "Wren"). The sidecar requires a key, unique whatever its case, and takes an
+// empty value; a caller with a labelled line that repeats a label merges the values before it asks for the entity.
+type Property struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// CreateDescribed creates an entity that already has its description, in one sidecar process instead of a create and an edit.
+func (s *Service) CreateDescribed(name, category string, aliases []string, description string) (string, error) {
+	return s.CreateFull(name, category, aliases, description, nil)
+}
+
+// CreateFull creates an entity with its description and its properties, and answers its id. The import of a manuscript's cast blocks uses it
+// for the labelled facts of a character. The host makes the entry itself (createInHost) and asks the sidecar only for the pronunciations.
+func (s *Service) CreateFull(name, category string, aliases []string, description string, properties []Property) (string, error) {
+	return s.createInHost(name, category, aliases, description, properties)
+}
+
+// MergeResult is what GuideMerge answers: the id Unmerge takes the merge back by.
+type MergeResult struct {
+	UndoID string `json:"undoId"`
+}
+
+// Merge folds the source entry into the target (names with their pronunciations, relationships re-pointed, appearances unioned) and
+// deletes the source, in the host (mergeEntities). It keeps what the merge changed in the Story Bible file, under the returned id.
+func (s *Service) Merge(source, target string) (MergeResult, error) {
+	var undoID string
+	newID := func() string {
+		undoID = s.undoID()
+		return undoID
+	}
+	if err := s.mutateInHost(func(document map[string]any) (bool, error) { return mergeEntities(document, source, target, newID) }); err != nil {
+		return MergeResult{}, err
+	}
+	return MergeResult{UndoID: undoID}, nil
+}
+
+// isUndoID is the sidecar's own check of an undo id: 16 lowercase hexadecimal characters.
+func isUndoID(id string) bool {
+	if len(id) != 16 {
+		return false
+	}
+	for _, r := range id {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// Unmerge takes back one merge by the id Merge returned: both entries, every relationship it re-pointed and every absorbed name it
+// set, as they were (unmergeEntities). It refuses with the reason when the target or a re-pointed entry changed since, or the file no
+// longer holds that merge (undone already, a rebuild since, or ten newer merges).
+func (s *Service) Unmerge(undoID string) error {
+	if !isUndoID(undoID) {
+		return errors.New("that is not an undo id")
+	}
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return unmergeEntities(document, undoID) })
+}
+
+// Split gives one of the entry's aliases an entry of its own again, the inverse of a merge, and answers the new entry's id (splitAlias).
+// Refused on a locked entry.
+func (s *Service) Split(id, aliasText string) (string, error) {
+	var created string
+	err := s.mutateInHost(func(document map[string]any) (bool, error) {
+		var err error
+		created, err = splitAlias(document, id, aliasText)
+		return err == nil, err
+	})
+	return created, err
+}
+
+// Delete removes an entry, and every other entry's relationship to it. A locked entry is refused.
+func (s *Service) Delete(id string) error {
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return deleteEntity(document, id) })
+}
+
+// Relate adds a labelled relationship from one entry to another, once.
+func (s *Service) Relate(id, other, label string) error {
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return relate(document, id, other, label) })
+}
+
+// Unrelate removes the relationship with exactly that other entry and label.
+func (s *Service) Unrelate(id, other, label string) error {
+	return s.mutateInHost(func(document map[string]any) (bool, error) { return unrelate(document, id, other, label) })
+}
+
+// VocabularyCandidates returns the names Proofing's "Suggest from manuscript"
+// offers: the Guide's stored vocabulary_candidates list plus every name derived
+// from the current entities, one spelling per case-insensitive name (the first
+// seen wins, stored list first), sorted.
+//
+// The stored list is only an addition. The sidecar writes it at build time, so
+// create() seeds it empty and only build() ever refreshes it: choosing the
+// stored list whenever it exists made Suggest return nothing on a freshly
+// imported project and miss every name added after the last build.
+//
+// Derived names follow the sidecar's own rule (is_vocabulary_worthy)
+// with one relaxation: an entity the narrator locked or added by hand is always
+// offered, whatever its category, because it is theirs (the sidecar checks
+// Needs Review first, so it drops such an entity). Auto-extracted Needs Review
+// and Draft entities stay out, and a lone word the build is not sure of still
+// needs three occurrences.
+func (s *Service) VocabularyCandidates() ([]string, error) {
+	b, err := os.ReadFile(s.guidePath())
+	if err != nil {
+		return nil, fmt.Errorf("build the Story Bible before requesting vocabulary suggestions")
+	}
+	var document map[string]any
+	if err := json.Unmarshal(b, &document); err != nil {
+		return nil, fmt.Errorf("could not read the Story Bible: %w", err)
+	}
+	seen := map[string]string{}
+	add := func(text string) {
+		text = strings.TrimSpace(text)
+		// Hints are joined with commas for the recognizer, so a name holding a
+		// comma or a line break could not survive the round trip.
+		if text == "" || strings.ContainsAny(text, ",\r\n") {
+			return
+		}
+		if _, exists := seen[strings.ToLower(text)]; !exists {
+			seen[strings.ToLower(text)] = text
+		}
+	}
+	stored, _ := document["vocabulary_candidates"].([]any)
+	for _, value := range stored {
+		if text, ok := value.(string); ok {
+			add(text)
+		}
+	}
+	entities, _ := document["entities"].([]any)
+	for _, item := range entities {
+		entity, _ := item.(map[string]any)
+		if entity == nil || !vocabularyWorthy(entity) {
+			continue
+		}
+		if name, ok := entity["canonical_name"].(string); ok {
+			add(name)
+		}
+		for _, alias := range entityAliasTexts(entity) {
+			add(alias)
+		}
+	}
+	values := make([]string, 0, len(seen))
+	for _, value := range seen {
+		values = append(values, value)
+	}
+	sort.Slice(values, func(left, right int) bool { return strings.ToLower(values[left]) < strings.ToLower(values[right]) })
+	return values, nil
+}
+
+// minSingleWordVocabularyOccurrences mirrors MIN_SINGLE_WORD_VOCABULARY_OCCURRENCES
+// in the sidecar.
+const minSingleWordVocabularyOccurrences = 3
+
+// vocabularyWorthy reports whether an entity's names are offered as vocabulary
+// hints. It is the sidecar's is_vocabulary_worthy with locked and manual entities
+// checked first.
+func vocabularyWorthy(entity map[string]any) bool {
+	if locked, _ := entity["locked"].(bool); locked {
+		return true
+	}
+	if manual, _ := entity["manual"].(bool); manual {
+		return true
+	}
+	if entity["category"] == "Needs Review" || entity["category"] == "Draft" {
+		return false
+	}
+	name, _ := entity["canonical_name"].(string)
+	if len(strings.Fields(name)) > 1 {
+		return true
+	}
+	count, known := entityOccurrenceCount(entity)
+	return !known || count >= minSingleWordVocabularyOccurrences
+}
+
+// entityOccurrenceCount is the entity's occurrence_count, or its own occurrences
+// plus its aliases' when the guide predates that field. known is false when the
+// entity carries no occurrence data at all (an old schema), so it cannot be judged.
+func entityOccurrenceCount(entity map[string]any) (count int, known bool) {
+	if number, ok := entity["occurrence_count"].(float64); ok {
+		return int(number), true
+	}
+	own, hasOwn := entity["occurrences"].([]any)
+	count, known = len(own), hasOwn
+	aliases, _ := entity["aliases"].([]any)
+	for _, raw := range aliases {
+		if alias, ok := raw.(map[string]any); ok {
+			if list, ok := alias["occurrences"].([]any); ok {
+				count, known = count+len(list), true
+			}
+		}
+	}
+	return count, known
+}
+
+// entityAliasTexts returns the alias spellings of an entity. Guides from an
+// earlier schema store an alias as a plain string; the sidecar normalizes them
+// on load, but the host reads the file directly.
+func entityAliasTexts(entity map[string]any) []string {
+	aliases, _ := entity["aliases"].([]any)
+	texts := make([]string, 0, len(aliases))
+	for _, raw := range aliases {
+		switch alias := raw.(type) {
+		case string:
+			texts = append(texts, alias)
+		case map[string]any:
+			if text, ok := alias["text"].(string); ok {
+				texts = append(texts, text)
+			}
+		}
+	}
+	return texts
+}
+
+const (
+	// previewTimeout bounds one render-audio run. A cold start of the frozen
+	// sidecar loads onnxruntime and a 114 MB voice model before it speaks, so
+	// this is generous; it exists so a hung sidecar cannot leave the play
+	// button spinning forever.
+	previewTimeout = 2 * time.Minute
+	// previewCacheTag versions the cache key. Bump it when the key's inputs
+	// change so files rendered under the old key are never trusted again (v1
+	// ignored the voice id; v2 to v3 added the chosen pronunciation).
+	previewCacheTag = "narration-studio-tts-preview-v3"
+	// wavHeaderBytes is the size of a canonical WAV header. A file no larger
+	// than that holds no samples, so it is never a usable preview.
+	wavHeaderBytes = 44
+)
+
+// PreviewVoice is the voice a preview is rendered with. Every field is part of
+// the cache key except Model, which is the path the sidecar loads.
+type PreviewVoice struct{ ID, Model, Provider, Version string }
+
+// previewFileName is the cache file for one voice speaking one text under one pronunciation choice.
+// pronunciationKey is the entry's chosen pronunciation's IPA, or "" when it speaks the plain text (spoken)
+// unchanged: two entries with the same spelled text but different chosen pronunciations (or the same text
+// before and after a pronunciation is chosen) must never share a cached render.
+func previewFileName(voice PreviewVoice, spoken, pronunciationKey string) string {
+	key := strings.Join([]string{previewCacheTag, voice.ID, voice.Provider, voice.Version, spoken, pronunciationKey}, "\x00")
+	hash := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(hash[:]) + ".wav"
+}
+
+// spokenName returns the text a preview speaks: the entity's name, or one of
+// its aliases when alias is set. It is empty when the entry no longer exists.
+func spokenName(entities []map[string]any, id string, alias *int) string {
+	for _, entity := range entities {
+		if entity["id"] != id {
+			continue
+		}
+		if alias == nil {
+			spoken, _ := entity["canonical_name"].(string)
+			return strings.TrimSpace(spoken)
+		}
+		values, _ := entity["aliases"].([]any)
+		if *alias < 0 || *alias >= len(values) {
+			return ""
+		}
+		value, _ := values[*alias].(map[string]any)
+		spoken, _ := value["text"].(string)
+		return strings.TrimSpace(spoken)
+	}
+	return ""
+}
+
+// chosenPronunciationKey returns the IPA a preview will actually speak for id/alias when the narrator chose a
+// pronunciation (pronounce()/pronounce_user() mark it "chosen"; render_audio then speaks it as phonemes instead
+// of the spelled name), or "" when nothing changes what the preview says. previewFileName folds this
+// into the cache key so switching, or choosing, a pronunciation never reuses a stale plain-name render.
+func chosenPronunciationKey(entities []map[string]any, id string, alias *int) string {
+	for _, entity := range entities {
+		if entity["id"] != id {
+			continue
+		}
+		holder := entity
+		if alias != nil {
+			values, _ := entity["aliases"].([]any)
+			if *alias < 0 || *alias >= len(values) {
+				return ""
+			}
+			holder, _ = values[*alias].(map[string]any)
+		}
+		pronunciation, _ := holder["pronunciation"].(map[string]any)
+		chosen, _ := pronunciation["chosen"].(bool)
+		if !chosen {
+			return ""
+		}
+		ipa, _ := pronunciation["ipa"].(string)
+		return ipa
+	}
+	return ""
+}
+
+// cachedPreview returns a previously rendered WAV. A file with no samples
+// (a run that failed) is a miss, not audio.
+func cachedPreview(path string) ([]byte, bool) {
+	audio, err := os.ReadFile(path)
+	if err != nil || len(audio) <= wavHeaderBytes {
+		return nil, false
+	}
+	return audio, true
+}
+
+// discardPreview removes what a failed run left behind so it cannot be mistaken
+// for a cached preview: the file itself when it holds no samples (a valid one is
+// never deleted), and the sidecar's "<name>.<pid>.part" temp files. The temp
+// files are found by listing the directory, because the project path may hold
+// characters filepath.Glob treats as a pattern.
+func discardPreview(path string) {
+	if _, ok := cachedPreview(path); !ok {
+		_ = os.Remove(path)
+	}
+	dir, name := filepath.Dir(path), filepath.Base(path)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), name+".") && strings.HasSuffix(entry.Name(), ".part") {
+			_ = os.Remove(filepath.Join(dir, entry.Name()))
+		}
+	}
+}
+
+// previewLock returns the lock for one cache file. Two clicks (or an alias and a
+// voice change) can ask for the same file while the first render is running; the
+// second waits and then finds the cache filled instead of racing the first
+// sidecar's rename and cleanup.
+func (s *Service) previewLock(name string) *sync.Mutex {
+	s.previewLocksMu.Lock()
+	defer s.previewLocksMu.Unlock()
+	if s.previewLocks == nil {
+		s.previewLocks = map[string]*sync.Mutex{}
+	}
+	if s.previewLocks[name] == nil {
+		s.previewLocks[name] = &sync.Mutex{}
+	}
+	return s.previewLocks[name]
+}
+
+// sidecarReason reduces a sidecar failure to the reason it logged: the text
+// after its last "ERROR: " line, without the log lines that came before it.
+func sidecarReason(err error) error {
+	lines := strings.Split(strings.TrimSpace(err.Error()), "\n")
+	for index := len(lines) - 1; index >= 0; index-- {
+		if reason, found := strings.CutPrefix(strings.TrimSpace(lines[index]), "ERROR: "); found && reason != "" {
+			return errors.New(reason)
+		}
+	}
+	return err
+}
+
+// Preview returns a WAV of the voice speaking the entry's name or alias, reusing
+// a cached render when one exists. A failed, empty or timed-out render leaves no
+// file behind, so the next attempt always starts clean.
+func (s *Service) Preview(id string, alias *int, voice PreviewVoice) ([]byte, error) {
+	entities, err := s.Entities()
+	if err != nil {
+		return nil, err
+	}
+	spoken := spokenName(entities, id, alias)
+	if spoken == "" {
+		return nil, fmt.Errorf("the requested Story Bible name no longer exists")
+	}
+	name := previewFileName(voice, spoken, chosenPronunciationKey(entities, id, alias))
+	dir := filepath.Join(s.project, "ManuscriptGuide", "audio", "tts")
+	out := filepath.Join(dir, name)
+	lock := s.previewLock(name)
+	lock.Lock()
+	defer lock.Unlock()
+	if audio, ok := cachedPreview(out); ok {
+		return audio, nil
+	}
+	args := []string{"render-audio", "--guide", s.guidePath(), "--entity-id", id, "--audio-dir", dir, "--piper-model", voice.Model, "--output-name", name}
+	if alias != nil {
+		args = append(args, "--alias-index", fmt.Sprint(*alias))
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), s.previewTimeout)
+	defer cancel()
+	if _, err = s.runContext(ctx, args...); err != nil {
+		discardPreview(out)
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return nil, fmt.Errorf("the preview took longer than %s and was stopped; try again, and restart the app if it keeps happening", s.previewTimeout.Round(time.Second))
+		}
+		return nil, sidecarReason(err)
+	}
+	audio, ok := cachedPreview(out)
+	if !ok {
+		discardPreview(out)
+		return nil, fmt.Errorf("the preview voice produced no audio for %q", spoken)
+	}
+	return audio, nil
+}

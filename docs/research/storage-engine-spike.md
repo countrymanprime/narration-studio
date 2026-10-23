@@ -1,6 +1,6 @@
 # Storage engine: JSON files or an embedded database
 
-**Measured 2026-10-18 on Linux and on a Windows runner ([Windows](#windows)).** Question from the owner, who narrates a 17-hour, 35-chapter book of about 150,000 words: the app keeps everything as JSON files (a temp file renamed over the old one, a read class per file). Is an embedded database better at that size, and which one? An earlier review answered "SQLite is not worth it" on the assumption of tiny data and load-the-whole-file access. This note re-tests that assumption. The benchmark is a throwaway module, [`apps/desktop/cmd/spike-storage`](../../apps/desktop/cmd/spike-storage/README.md); the app's `go.mod` and `go.sum` are untouched.
+**Measured 2026-10-18 on Linux and on a Windows runner ([Windows](#windows)).** Question from the owner, who narrates a 17-hour, 35-chapter book of about 150,000 words: the app keeps everything as JSON files (a temp file renamed over the old one, a read class per file). Is an embedded database better at that size, and which one? An earlier review answered "SQLite is not worth it" on the assumption of tiny data and load-the-whole-file access. This note re-tests that assumption. The benchmark is a throwaway module, [`src/studio/desktop/cmd/spike-storage`](../../src/studio/desktop/cmd/spike-storage/README.md); the app's `go.mod` and `go.sum` are untouched.
 
 ## Answer
 
@@ -10,11 +10,11 @@
 - JSON is slow in three places, all measured: opening a project (0.54 s warm, 1.8 s after the file cache is dropped, at 5,000 chapters), any question across chapters (findings and pickups: 200 to 360 ms), and any edit that rewrites a big file (one mark: 23 to 96 ms and 1 to 4.3 MiB written; an undo group of 20 decisions: 1.1 to 2.4 s).
 - A SQLite index answers the same questions in 0.3 to 11 ms, opens in 20 to 75 ms, and commits an edit in 0.1 ms with 4 KiB written (all measured). It rebuilds from the JSON files in 3.5 to 5.4 s for everything, so it can be deleted at any time.
 - bbolt is rejected: no queries, 100 MiB for a 100 MiB project, one process only. DuckDB, Parquet and Arrow do not fit ([below](#what-else-was-considered)).
-- Issue [#1764](https://github.com/countrymanprime/narration-utils/issues/1764) (a 5,000-chapter book taking about 29 s to load) is not a storage problem: it is 35,000 mounted tooltips and a 186k-node DOM. Reading the same 5,000-chapter project from JSON takes 0.8 s (measured).
+- Issue [#1764](https://github.com/countrymanprime/narration-studio/issues/1764) (a 5,000-chapter book taking about 29 s to load) is not a storage problem: it is 35,000 mounted tooltips and a 186k-node DOM. Reading the same 5,000-chapter project from JSON takes 0.8 s (measured).
 
 ## Method
 
-- **Project.** A deterministic generator writes a project with the real schemas where the app exports them: findings through the real `findings.Store`, coverage results as `coverage.StoredResult` with one `TokenLine` per script word (written with `MarshalIndent`, as `coverage/results.go` does), the ASR word files and the waveform peaks through the real `evidence.CacheStore` (the cache envelope base64-encodes its blob, so peaks are base64 twice), marks as `marks.Mark`, decisions as `findings.Decision`. The manuscript file, the pickup list and the Story Bible mirror the documented shape rather than import it (estimated shape, `sidecars/manuscript-guide/core/manuscript_guide.py` for the Bible). Words are Zipf-distributed pseudo-words with 300 names.
+- **Project.** A deterministic generator writes a project with the real schemas where the app exports them: findings through the real `findings.Store`, coverage results as `coverage.StoredResult` with one `TokenLine` per script word (written with `MarshalIndent`, as `coverage/results.go` does), the ASR word files and the waveform peaks through the real `evidence.CacheStore` (the cache envelope base64-encodes its blob, so peaks are base64 twice), marks as `marks.Mark`, decisions as `findings.Decision`. The manuscript file, the pickup list and the Story Bible mirror the documented shape rather than import it (estimated shape, `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` for the Bible). Words are Zipf-distributed pseudo-words with 300 names.
 - **Scales** (measured counts from the generator):
 
 | | script words | chapters | ASR words (takes) | findings / decisions | marks | pickups | audio |
@@ -151,7 +151,7 @@ Move a data set into the index when a question must run across chapters or the w
 
 ## Recommendation
 
-1. **First slice: a findings, pickups and chapter-summary index.** A new package builds `narration-utils/index.db` (a derived file, `Disposable`) from the findings scope files, `review.json`, `pickup-list.json` and the per-chapter coverage summary; each source file's path, size and modification time are recorded in a table, and the index is rebuilt if any differs or it cannot be opened. `findings.Store` (the only writer of the findings files) keeps it current on each save. It serves the Review and Production questions and `locate`, which is what makes one decision scan every scope file today. Expected effect: project open from about 0.54 s to under 0.1 s, findings and pickups queries from 200 to 360 ms to under 12 ms, accepting 20 findings from 1 to 2 s to the cost of one `review.json` rewrite (about 25 ms). The JSON files stay the record. **(Estimate; the slice itself was not built.)**
+1. **First slice: a findings, pickups and chapter-summary index.** A new package builds `narration-studio/index.db` (a derived file, `Disposable`) from the findings scope files, `review.json`, `pickup-list.json` and the per-chapter coverage summary; each source file's path, size and modification time are recorded in a table, and the index is rebuilt if any differs or it cannot be opened. `findings.Store` (the only writer of the findings files) keeps it current on each save. It serves the Review and Production questions and `locate`, which is what makes one decision scan every scope file today. Expected effect: project open from about 0.54 s to under 0.1 s, findings and pickups queries from 200 to 360 ms to under 12 ms, accepting 20 findings from 1 to 2 s to the cost of one `review.json` rewrite (about 25 ms). The JSON files stay the record. **(Estimate; the slice itself was not built.)**
 2. **Second slice: full-text search and name occurrences** over the manuscript paragraphs in the same index, added when a page needs it. Today's linear scan is 8 to 16 ms for 150k words, so this is a ranking and snippet feature, not a speed fix.
 3. **Fix inside JSON:** split `marks.json` per chapter (or per chapter range), write one `review.json` rewrite for a group of decisions, and retry a failed rename or an `Unreadable` read a few times with a short pause (the Windows run lost 4 to 10 saves in 120 to 150 with four readers spinning on the file). None needs the index.
 4. **Do not index** the ASR words, the alignment tokens or the peaks.
@@ -160,7 +160,7 @@ Move a data set into the index when a question must run across chapters or the w
 
 ## Windows
 
-Measured on a GitHub-hosted `windows-latest` runner (4 vCPU, `D:` drive, Go 1.27.2, `CGO_ENABLED=0`) by the manual `Storage spike (Windows)` workflow, `full` scale, same code and dataset as the Linux run. Windows is the one supported platform. The raw output of the workflow run is its log and artifact (runs [39143851042](https://github.com/countrymanprime/narration-utils/actions/runs/39143851042) and [39147532089](https://github.com/countrymanprime/narration-utils/actions/runs/39147532089)); the `max` and `stress` scales were not run on Windows. The runner is faster than the Linux VM, so compare ratios.
+Measured on a GitHub-hosted `windows-latest` runner (4 vCPU, `D:` drive, Go 1.27.2, `CGO_ENABLED=0`) by the manual `Storage spike (Windows)` workflow, `full` scale, same code and dataset as the Linux run. Windows is the one supported platform. The raw output of the workflow run is its log and artifact (runs [39143851042](https://github.com/countrymanprime/narration-studio/actions/runs/39143851042) and [39147532089](https://github.com/countrymanprime/narration-studio/actions/runs/39147532089)); the `max` and `stress` scales were not run on Windows. The runner is faster than the Linux VM, so compare ratios.
 
 | p50 / p95 ms, Windows `full` | json | json+fsync | modernc | ncruces | bbolt |
 | --- | --- | --- | --- | --- | --- |
@@ -200,9 +200,9 @@ In the app, `Unreadable` means `ReadJSON` logs and leaves the file, and the mark
 ## Reproducing
 
 ```text
-cd apps/desktop/cmd/spike-storage
+cd src/studio/desktop/cmd/spike-storage
 CGO_ENABLED=0 go build -o spike .
 ./spike all -dir <empty folder> -scale full -out results.json
 ```
 
-The Linux tables of this run are in [`results/`](../../apps/desktop/cmd/spike-storage/results/linux-full.md).
+The Linux tables of this run are in [`results/`](../../src/studio/desktop/cmd/spike-storage/results/linux-full.md).

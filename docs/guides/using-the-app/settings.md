@@ -297,7 +297,7 @@ Narration Studio runs on Windows only, for now, so updates are for Windows.
 Releases are not yet signed, so Windows SmartScreen or your antivirus may ask about a new version the first time.
 
 If Narration Studio will not start after an update and the program file is missing from its folder, rename
-`narration-utils.exe.old` back to `narration-utils.exe`.
+`narration-studio.exe.old` back to `narration-studio.exe`.
 
 ## Set on a page
 

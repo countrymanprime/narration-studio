@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Narration Studio: All pro. All free.</title>
+<meta name="description" content="Studio-grade narration software for audiobook narrators, free: no price, no trial, no watermark. It imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Narration Studio">
+<meta property="og:title" content="Narration Studio: All pro. All free.">
+<meta property="og:description" content="Studio-grade narration software for audiobook narrators, free: no price, no trial, no watermark. It imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Narration Studio: All pro. All free.">
+<meta name="twitter:description" content="Studio-grade narration software for audiobook narrators, free: no price, no trial, no watermark. It imports your manuscript, follows along as you read, marks every skipped or added word and checks your files against the platform's delivery rules.">
+<!-- The landing page: the Product view of the public-site mock (docs/research/mockups/public-site/index.html). The shell (fonts, theme,
+     top bar, footer, search) is put in at the shell markers by src/web/build/shell.mjs. -->
+<!--shell:head-->
+<style>
+/* Layout concept: a paper-and-ink product site. Tokens are the app's own (src/studio/ui/src/styles.css), in the shell. */
+.reveal{transform:translateY(14px);transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{transform:none}
+section.block{padding-block:72px 0}
+.sec-head{max-width:720px;display:grid;gap:12px;margin-bottom:32px}
+.sec-head h2{font:700 clamp(34px,5vw,52px)/.98 var(--display);text-transform:uppercase}
+.sec-head p{color:var(--text-muted);font-size:17px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:48px;align-items:center;padding-block:64px 8px}
+.hero h1{font:700 clamp(52px,6.5vw,82px)/.88 var(--display);text-transform:uppercase;letter-spacing:.003em}
+.hero h1>span{display:block;animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.hero h1 .nw{white-space:nowrap}
+.hero h1>span:nth-child(2){animation-delay:.08s;color:var(--accent)}
+@keyframes rise{from{transform:translateY(22px);opacity:.35}}
+.hero .sub{margin-top:22px;font-size:18px;color:var(--text-muted);max-width:520px}
+.hero .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.hero .facts{margin-top:22px;font:400 12.5px/1.6 var(--mono);color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+.hero .facts+.facts{margin-top:8px}
+.hero .facts span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:8px;vertical-align:1px}
+.stage{position:relative}
+.stage::before{content:"";position:absolute;inset:-24px -16px -16px 24px;background:repeating-linear-gradient(90deg,var(--border) 0 1px,transparent 1px 28px);opacity:.7;border-radius:14px;z-index:0;mask-image:linear-gradient(135deg,transparent 15%,#000 80%)}
+.win{position:relative;z-index:1;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow-lg);overflow:hidden}
+.win-bar{display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--text-muted)}
+.win-bar .dots{margin-left:auto;display:flex;gap:10px}.win-bar .dots i{width:10px;height:10px;border:1.5px solid var(--non-text);border-radius:2px}
+.ra{padding:22px 24px 10px;background:var(--reading)}
+.ra .ch{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.ra .ch strong{font:600 20px/1 var(--display);letter-spacing:.03em;text-transform:uppercase}
+.ra-text{font:400 21px/1.75 var(--sans);min-height:4.2em}
+.ra-text .w{border-radius:3px;padding:0 1px;transition:background .2s,color .2s}
+.ra-text .w.now{background:var(--accent-soft);box-shadow:0 2px 0 var(--accent)}
+.ra-text .w.heard{color:var(--text-muted)}
+.ra-text .w.skip{background:var(--warn-soft);color:var(--warn);text-decoration:underline wavy;text-underline-offset:4px;font-weight:600}
+.wave{display:flex;align-items:center;gap:3px;height:54px;margin:14px 0 4px}
+.wave i{flex:1;max-width:5px;min-height:4px;border-radius:3px;background:var(--non-text);opacity:.55;height:var(--h);transform-origin:center;animation:bar 1.4s ease-in-out infinite;animation-delay:var(--d)}
+.wave i.hot{background:var(--accent);opacity:1}
+@keyframes bar{50%{transform:scaleY(.35)}}
+.take-note{display:flex;align-items:center;gap:10px;margin:10px 24px 20px;padding:10px 12px;border:1px solid var(--warn);border-radius:8px;background:var(--warn-soft);color:var(--text);font-size:13.5px;transform:translateY(0);transition:opacity .35s,transform .35s}
+.take-note.hide{opacity:.0;transform:translateY(8px);visibility:hidden}
+.take-note .mk{width:3px;align-self:stretch;background:var(--warn);border-radius:2px}
+.rec{display:inline-flex;align-items:center;gap:7px;padding:3px 9px;border-radius:999px;background:var(--review-soft);color:var(--danger);font:500 12px/1.4 var(--mono)}
+.rec::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--danger);animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:64px;border-block:1px solid var(--border)}
+.stats div{padding:22px 20px;border-left:1px solid var(--border)}.stats div:first-child{border-left:0;padding-left:0}
+.stats b{display:block;font:700 56px/1 var(--display);font-variant-numeric:tabular-nums}
+.stats span{font-size:13.5px;color:var(--text-muted)}
+
+/* workflow tabs */
+.tabs{display:grid;grid-template-columns:240px minmax(0,1fr);gap:28px;align-items:start}
+.tablist{display:grid;gap:4px}
+.tab{display:grid;gap:2px;text-align:left;padding:12px 14px;border:1px solid transparent;border-left:3px solid var(--border);border-radius:0 8px 8px 0;background:transparent;cursor:pointer;color:var(--text-muted)}
+.tab b{font:600 20px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;color:var(--text)}
+.tab small{font-size:12.5px}
+.tab:hover{background:var(--surface-2)}
+.tab[aria-selected="true"]{border-left-color:var(--accent);background:var(--surface);border-color:var(--border);border-left-color:var(--accent);box-shadow:var(--shadow)}
+.panel{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:28px;align-items:center;padding:28px;min-height:360px}
+.panel h3{font:700 36px/1 var(--display);text-transform:uppercase;margin-bottom:12px}
+.panel p{color:var(--text-muted)}
+.panel ul{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:8px;font-size:14.5px}
+.panel li{display:flex;gap:10px}.panel li svg{margin-top:4px;color:var(--ok)}
+.panel .link{display:inline-flex;gap:6px;align-items:center;margin-top:18px;font-weight:600}
+.mini{background:var(--reading);border:1px solid var(--border);border-radius:8px;padding:14px;display:grid;gap:10px;font-size:13.5px;animation:viewIn .45s both}
+.mini .row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface)}
+.mini .row .grow{flex:1;min-width:0}
+.mini .row small{color:var(--text-muted)}
+.mini .fill{height:8px;border-radius:4px;background:var(--surface-3);overflow:hidden}
+.mini .fill i{display:block;height:100%;background:var(--accent);width:0;animation:grow 1.8s .2s ease-out forwards}
+@keyframes grow{to{width:var(--w,70%)}}
+.ring{--p:0;width:56px;height:56px;border-radius:50%;background:conic-gradient(var(--ok) calc(var(--p)*1%),var(--surface-3) 0);display:grid;place-items:center;flex:none;transition:--p .6s}
+.ring::after{content:attr(data-t);width:42px;height:42px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font:600 12px var(--mono)}
+
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.spot{position:relative;padding:26px;overflow:hidden}
+.spot::before{content:"";position:absolute;inset:0;background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),var(--accent-soft),transparent 70%);opacity:0;transition:opacity .25s}
+.spot:hover::before{opacity:1}
+.spot>*{position:relative}
+.spot h3{font:700 28px/1 var(--display);text-transform:uppercase;margin:14px 0 8px}
+.spot p{color:var(--text-muted);font-size:14.5px}
+.spot .glyph{width:42px;height:42px;border-radius:8px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-strong);font-size:22px}
+
+.tour{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.tour a.card{display:grid;gap:14px;padding:20px;text-decoration:none;color:var(--text);transition:transform .2s,box-shadow .2s;align-content:start}
+.tour a.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.tour h3{font:700 30px/1 var(--display);text-transform:uppercase}
+.tour p{color:var(--text-muted);font-size:14.5px}
+.tour .go{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--accent-strong)}
+.tour .go svg{transition:transform .2s}.tour a:hover .go svg{transform:translateX(4px)}
+.thumb{height:130px;border-radius:8px;border:1px solid var(--border);background:var(--reading);padding:12px;display:grid;gap:8px;align-content:start;overflow:hidden}
+
+.dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;padding:36px;align-items:start}
+.dl ol{margin:0;padding:0;list-style:none;display:grid;gap:14px;counter-reset:s}
+.dl li{display:grid;grid-template-columns:30px 1fr;gap:12px;counter-increment:s}
+.dl li::before{content:counter(s);width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-contrast);display:grid;place-items:center;font:600 13px var(--mono)}
+.dl li span{color:var(--text-muted);font-size:14.5px}
+.dl li b{display:block;color:var(--text);font-size:15px}
+.skel{height:14px;border-radius:5px;background:linear-gradient(90deg,var(--surface-3) 25%,var(--surface-2) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:minmax(0,1fr);gap:36px;padding-top:40px}
+  .hero h1{font-size:clamp(52px,8.4vw,104px)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stats div:nth-child(3){border-left:0;padding-left:0}.stats div:nth-child(n+3){border-top:1px solid var(--border)}
+  .tabs{grid-template-columns:minmax(0,1fr)}.tablist{grid-auto-flow:column;overflow:auto;gap:6px}
+  .tab{border-left:1px solid transparent;border-radius:8px;border-bottom:3px solid var(--border);min-width:130px}
+  .tab[aria-selected="true"]{border-left-color:var(--border);border-bottom-color:var(--accent)}
+  .panel{grid-template-columns:minmax(0,1fr);padding:20px}
+  .trio,.tour{grid-template-columns:minmax(0,1fr)}
+  .dl{grid-template-columns:minmax(0,1fr);padding:22px;gap:24px}
+}
+@media (max-width:720px){
+  .ra-text{font-size:18px}
+}
+@media (prefers-reduced-motion:reduce){
+  .reveal{transform:none}
+}
+</style>
+</head>
+<body>
+
+<!--shell:header-->
+
+<main id="main">
+<!-- ================= HOME ================= -->
+<div class="view on" id="v-home"><div class="wrap">
+  <section class="hero">
+    <div>
+      <div class="eyebrow">For audiobook narrators · Windows</div>
+      <h1 style="margin-top:16px"><span><span class="nw">Studio-grade.</span></span> <span>Not <span class="nw">studio-priced.</span></span></h1>
+      <p class="sub">Studio-quality tools for audiobook narrators, free to download and use. Narration Studio imports your manuscript, follows along as you read, listens to the recording with a local Whisper model and marks every skipped or added word. Then it checks your files against the platform's delivery rules. Free software, built for narrators.</p>
+      <div class="cta">
+        <a class="btn primary lg" href="__REPO__/releases" target="_blank" rel="noopener">Download for Windows</a>
+        <a class="btn lg" href="demo/index.html">Try the live demo</a>
+      </div>
+      <div class="facts"><span>No watermark. No trial. No price.</span></div>
+      <div class="facts"><span>Windows x64</span><span>Audio stays on your machine</span><span>Works with your DAW</span></div>
+    </div>
+    <div class="stage">
+      <div class="win" aria-label="Animated example of the Proof check">
+        <div class="win-bar"><span>Proof · Chapter 7, The Lantern Room</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
+        <div class="ra">
+          <div class="ch"><strong>Recording check</strong><span class="rec" id="ra-rec">00:00</span></div>
+          <p class="ra-text" id="ra-text" aria-label="The keeper climbed the stairs with a lantern in one hand and the logbook in the other."></p>
+          <div class="wave" id="wave" aria-hidden="true"></div>
+          <div style="display:flex;justify-content:space-between;font:400 12px var(--mono);color:var(--text-muted)"><span id="ra-count">Heard 0 of 17 words</span><span>local Whisper model</span></div>
+        </div>
+        <div class="take-note hide" id="ra-note" role="status"><span class="mk"></span><div><b>Skipped word</b> · "the" before "logbook"<br><small style="color:var(--text-muted)">Take marker dropped at 04:12 · Needs pickup</small></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stats reveal">
+    <div><b data-count="3">3</b><span>on-device tools: Story Bible, Proof and Teleprompter</span></div>
+    <div><b data-count="11">11</b><span>pages, from Production to Delivery</span></div>
+    <div><b>$0</b><span>to download, use or keep, under AGPL-3.0-or-later</span></div>
+    <div><b data-count="0">0</b><span>audio files uploaded to anyone</span></div>
+  </div>
+
+  <section class="block" id="workflow">
+    <div class="sec-head reveal"><div class="eyebrow">One workspace · five stages</div><h2>From manuscript to a file that passes</h2><p>The sidebar follows the job: Prep, Record, Edit, Review, Finish. Pick a stage to see what the app does there.</p></div>
+    <div class="tabs reveal">
+      <div class="tablist" role="tablist" aria-label="Workflow stages" id="wf-tabs"></div>
+      <div class="card panel" id="wf-panel" role="tabpanel" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-head reveal"><div class="eyebrow">Built for long sessions</div><h2>Quiet where it should be</h2></div>
+    <div class="trio">
+      <div class="card spot reveal"><div class="glyph"><svg class="i" viewBox="0 0 16 16"><path d="M3 7V5a5 5 0 0110 0v2M3 7h10v7H3z"/></svg></div><h3>Your audio stays here</h3><p>Transcription runs on a local Whisper model. Nothing is downloaded until a feature that needs a model asks you first.</p></div>
+      <div class="card spot reveal"><div class="glyph"><svg class="i" viewBox="0 0 16 16"><path d="M8 1v14M3 5v6M13 4v8M5.5 3v10M10.5 3.5v9"/></svg></div><h3>Marks land in your DAW</h3><p>Link your DAW from Settings, and the app takes the cursor to a finding and drops a marker where it was heard, so the fix is one click away.</p></div>
+      <div class="card spot reveal"><div class="glyph"><svg class="i" viewBox="0 0 16 16"><path d="M13 9.5A5.5 5.5 0 116.5 3a4.5 4.5 0 006.5 6.5z"/></svg></div><h3>Readable in a dim booth</h3><p>Light and dark themes with contrast checked by tests, a visible focus ring and keyboard keys for the queue.</p></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-head reveal"><div class="eyebrow">See it before you install it</div><h2>Three ways to look around</h2></div>
+    <div class="tour">
+      <a class="card reveal" href="docs/index.html"><div class="thumb"><div class="skel" style="width:60%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:75%"></div><div class="skel" style="width:40%"></div></div><h3>Docs</h3><p>Short steps for every page of the app, with screenshots and a link to each full guide.</p><span class="go">Read the docs <svg class="i" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></a>
+      <a class="card reveal" href="demo/index.html"><div class="thumb"><div style="display:flex;gap:8px;align-items:center"><span class="badge warn">Open</span><span style="font-size:13px">Skipped word · ch. 3</span></div><div style="display:flex;gap:8px;align-items:center"><span class="badge ok">Cleared</span><span style="font-size:13px">Pronunciation · ch. 5</span></div><div class="meter body"><i style="width:62%"></i></div></div><h3>Live demo</h3><p>The real interface running against a mock host. Decide notes, edit a pronunciation, build a package, and stop the simulated DAW answering on purpose.</p><span class="go">Open the demo <svg class="i" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></a>
+      <a class="card reveal" href="storybook/index.html"><div class="thumb"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary sm" type="button" tabindex="-1">Primary</button><button class="btn sm" type="button" tabindex="-1">Default</button><span class="ent character">Ysolde</span><span class="ent place">Port Caul</span></div></div><h3>Storybook</h3><p>Every component with its states, controls and an accessibility check, in both themes.</p><span class="go">Browse components <svg class="i" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></span></a>
+    </div>
+  </section>
+
+  <section class="block" id="download">
+    <div class="card dl reveal">
+      <div>
+        <div class="eyebrow">Install on Windows</div>
+        <h2 class="display" style="font-size:clamp(40px,5vw,60px);text-transform:uppercase;margin:12px 0 14px">Four minutes to a first project</h2>
+        <p style="color:var(--text-muted);max-width:44ch">Studio software that costs nothing but your time. Windows x64 only for now. The installer is per-user, so it asks for no administrator rights.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:22px"><a class="btn primary lg" href="__REPO__/releases" target="_blank" rel="noopener">Get the latest release</a><a class="btn lg" href="docs/getting-started.html">Setup guide</a></div>
+      </div>
+      <ol>
+        <li><span><b>Download the setup file</b>narration-studio-&lt;version&gt;-windows-x64-setup.exe, from the latest release.</span></li>
+        <li><span><b>Run it</b>It installs to your user folder and adds a Start Menu entry.</span></li>
+        <li><span><b>Expect a SmartScreen warning</b>The release is unsigned. Choose More info, then Run anyway.</span></li>
+        <li><span><b>Start Narration Studio</b>Link your DAW from Settings. Updates come from the same releases, and only after you click.</span></li>
+      </ol>
+    </div>
+  </section>
+</div></div>
+</main>
+
+<!--shell:footer-->
+
+<script>
+(()=>{
+'use strict';
+const {$,$$,RM,wait,ic}=window.Site;
+
+const WF=[
+ {id:'prep',n:'Prep',s:'Script · Story Bible',h:'Know the book before you read it',p:'Import a DOCX, Markdown, plain text or EPUB manuscript. A scan builds a reference of characters, places and organizations, with how you will say each name.',
+  b:['Pronunciations live next to each entry','A language model makes the scan more accurate; without one it falls back to rules','Locked entries are never overwritten by a rebuild'],link:'story-bible',
+  mini:()=>`<div class="mini"><div class="row"><span class="ent character">Ysolde Marrow</span><span class="grow mono" style="font-size:12.5px">ih-ZOHL-duh</span>${ic('play')}</div><div class="row"><span class="ent place">Port Caul</span><span class="grow mono" style="font-size:12.5px">port KAWL</span>${ic('play')}</div><div class="row"><span class="ent org">Tidewarden Guild</span><span class="grow mono" style="font-size:12.5px">TIDE-war-den</span>${ic('play')}</div><div class="row"><span class="badge warn">Needs review</span><span class="grow">3 suggestions from the last scan</span></div></div>`},
+ {id:'record',n:'Record',s:'Booth',h:'A teleprompter that listens',p:'The Booth follows you word by word as you narrate, with a level meter and a REC pill, in the app or beside your DAW in companion mode.',
+  b:['Highlights the word you are reading','Flag a line in the moment; it lands in Pickups','Runs with the built-in recorder or your DAW'],link:'booth',
+  mini:()=>`<div class="mini"><div style="display:flex;justify-content:space-between;align-items:center"><span class="rec" data-timer>00:00</span><span class="pill">Chapter 7</span></div><div style="font-size:16px;line-height:1.7">The keeper <span class="w" style="background:var(--accent-soft);box-shadow:0 2px 0 var(--accent);border-radius:3px">climbed</span> the stairs with a lantern in one hand.</div><div class="meter body" data-meter><i style="width:50%"></i></div></div>`},
+ {id:'edit',n:'Edit',s:'Editing',h:'Edit the script, not the waveform',p:'See what was heard set against each word. Delete words with their audio, compare takes of a line, add effects to a word and tidy up from the clean-up drawer.',
+  b:['Takes of each line side by side','Words carry their audio','Works through to the timeline'],link:'editing',
+  mini:()=>`<div class="mini"><div class="row"><b>Take 2 of 3</b><span class="grow"><div class="fill"><i style="--w:82%"></i></div></span><small>0:06</small></div><div class="row"><small>Take 1</small><span class="grow"><div class="fill"><i style="--w:60%"></i></div></span><small>0:07</small></div><div class="row"><small>Take 3</small><span class="grow"><div class="fill"><i style="--w:75%"></i></div></span><small>0:06</small></div></div>`},
+ {id:'review',n:'Review',s:'Proof · Pickups',h:'One queue for everything to fix',p:'Every check lands as a note. Mark it Needs pickup, Fix in edit, Waive or Defer, and your decision is kept with the project. Re-running a check keeps decisions on notes whose evidence did not change.',
+  b:['J and K move through the queue','Evidence sits beside the decision','Pickups collects the lines to record again'],link:'proof',
+  mini:()=>`<div class="mini"><div style="display:flex;gap:12px;align-items:center"><div class="ring" style="--p:86" data-t="12/14"></div><div><b>12 of 14 cleared</b><br><small style="color:var(--text-muted)">13 decided</small></div></div><div class="row"><span class="badge danger">Skipped</span><span class="grow">"the" before "logbook"</span><span class="pill">Needs pickup</span></div><div class="row"><span class="badge info">Pronunciation</span><span class="grow">Ysolde, ch. 5</span><span class="pill">Waive</span></div></div>`},
+ {id:'finish',n:'Finish',s:'Master & QC · Delivery',h:'Pass the platform before you upload',p:'Pick a delivery profile, see which rules each chapter meets and why one fails, then build the package. If the build stops, the page says why.',
+  b:['Rules cite their source','Per-chapter pass, fail or not measured','Packages for more than one platform'],link:'delivery',
+  mini:()=>`<div class="mini"><div class="row"><span class="badge ok">Pass</span><span class="grow">RMS between −23 and −18 dB</span></div><div class="row"><span class="badge ok">Pass</span><span class="grow">Peak at or below −3 dB</span></div><div class="row"><span class="badge danger">Fail</span><span class="grow">Noise floor −57 dB (limit −60)</span></div><div class="fill"><i style="--w:92%"></i></div></div>`}
+];
+function initHome(){
+  // read-along hero
+  const lines=[['The','keeper','climbed','the','stairs','with','a','lantern','in','one','hand'],['and','the','logbook','in','the','other.']];
+  const box=$('#ra-text'),words=[];
+  lines.forEach((l,li)=>{l.forEach((w,i)=>{const s=document.createElement('span');s.className='w';s.textContent=w;box.append(s,' ');words.push(s)});if(!li)box.append(document.createElement('br'))});
+  const SK=12; // index of the second "the" (skipped)
+  const wv=$('#wave');for(let i=0;i<46;i++){const b=document.createElement('i');b.style.setProperty('--h',(10+Math.abs(Math.sin(i*1.3)*38+Math.cos(i*.7)*12))+'px');b.style.setProperty('--d',(i*-.07)+'s');if(i>26&&i<31)b.className='hot';wv.append(b)}
+  const rec=$('#ra-rec'),cnt=$('#ra-count'),note=$('#ra-note');let alive=false,tok=0;
+  const final=()=>{words.forEach((w,i)=>w.className='w'+(i===SK?' skip':' heard'));cnt.textContent='Heard 16 of 17 words';note.classList.remove('hide')};
+  async function loop(){const my=++tok;
+    while(alive&&my===tok){
+      words.forEach(w=>w.className='w');note.classList.add('hide');let n=0;
+      for(let i=0;i<words.length&&alive&&my===tok;i++){
+        words[i].classList.add('now');rec.textContent='04:'+String(4+i).padStart(2,'0');await wait(230);
+        words[i].classList.remove('now');
+        if(i===SK){words[i].classList.add('skip');await wait(120);note.classList.remove('hide')}else{words[i].classList.add('heard');n++}
+        cnt.textContent=`Heard ${n} of 17 words`;
+      }
+      await wait(3600);
+    }}
+  if(RM){final()}else{new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting&&!alive){alive=true;loop()}else if(!e.isIntersecting){alive=false}})}).observe(box)}
+  // count up
+  const co=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;co.unobserve(e.target);const el=e.target,to=+el.dataset.count;if(RM||!to)return;let t0=null;const step=t=>{t0??=t;const k=Math.min(1,(t-t0)/900);el.textContent=Math.round(to*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}));
+  $$('[data-count]').forEach(el=>co.observe(el));
+  // reveal
+  const ro=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target)}}),{threshold:.12});
+  $$('.reveal').forEach(el=>ro.observe(el));
+  // spotlight
+  $$('.spot').forEach(c=>c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px')}));
+  // workflow tabs
+  const tl=$('#wf-tabs');let sel='prep',timers=[];
+  tl.innerHTML=WF.map(w=>`<button class="tab" role="tab" id="t-${w.id}" aria-selected="false" data-w="${w.id}"><b>${w.n}</b><small>${w.s}</small></button>`).join('');
+  function pick(id,focus){sel=id;const w=WF.find(x=>x.id===id);
+    $$('.tab',tl).forEach(t=>{const on=t.dataset.w===id;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1;if(on&&focus)t.focus()});
+    $('#wf-panel').setAttribute('aria-labelledby','t-'+id);
+    $('#wf-panel').innerHTML=`<div><h3>${w.h}</h3><p>${w.p}</p><ul>${w.b.map(x=>`<li>${ic('check')}<span>${x}</span></li>`).join('')}</ul><a class="link" href="docs/${w.link}.html">Read the guide ${ic('arrow')}</a></div>${w.mini()}`;
+    timers.forEach(clearInterval);timers=[];
+    const tm=$('[data-timer]');if(tm){let s=0;timers.push(setInterval(()=>{s++;tm.textContent='00:'+String(s%60).padStart(2,'0')},1000))}
+    const mt=$('[data-meter]');if(mt&&!RM){const i=$('i',mt);timers.push(setInterval(()=>{const v=35+Math.random()*50;i.style.width=v+'%';mt.className='meter '+(v>82?'hot':'body')},130))}
+  }
+  tl.addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)pick(t.dataset.w)});
+  tl.addEventListener('keydown',e=>{const i=WF.findIndex(w=>w.id===sel);let n=null;if(e.key==='ArrowDown'||e.key==='ArrowRight')n=(i+1)%WF.length;if(e.key==='ArrowUp'||e.key==='ArrowLeft')n=(i-1+WF.length)%WF.length;if(n!=null){e.preventDefault();pick(WF[n].id,true)}});
+  pick('prep');
+}
+initHome();
+})();
+</script>
+</body>
+</html>

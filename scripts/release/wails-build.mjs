@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 // Builds the desktop app on Wails v3 and stamps its own version into it. CI (.github/actions/build-native) and a local
-// build (apps/desktop/package.json) both run this, from apps/desktop, so the version a build reports never depends on who built it.
+// build (src/studio/desktop/package.json) both run this, from src/studio/desktop, so the version a build reports never depends on who built it.
 //
 // The version is the root package.json's, the single source scripts/release/sync-version.mjs keeps every other place equal to. It
 // is bare semver: a release candidate and its promotion are the same bytes (promote-release.yml re-publishes the files), so
-// they cannot report different versions. Without the stamp the program reports 0.0.0-dev (apps/desktop/version.go).
+// they cannot report different versions. Without the stamp the program reports 0.0.0-dev (src/studio/desktop/version.go).
 //
-// Wails v2's `wails build` did every step below itself, from apps/desktop/wails.json. Wails v3 leaves them to a Taskfile; this script
+// Wails v2's `wails build` did every step below itself, from src/studio/desktop/wails.json. Wails v3 leaves them to a Taskfile; this script
 // runs the same steps its Windows Taskfile does, with no Taskfile: render the build assets from wails.json (`wails3 update
 // build-assets`), embed the icon, version and manifest (`wails3 generate syso`), `go build -tags production`, and, for `--installer`,
-// fetch the WebView2 bootstrapper and run makensis on apps/desktop/build/windows/installer/project.nsi. The UI must
-// already be in cmd/narration-utils/frontend/dist (scripts/copy-wails-frontend.mjs, or the ui-dist artifact in CI).
+// fetch the WebView2 bootstrapper and run makensis on src/studio/desktop/build/windows/installer/project.nsi. The UI must
+// already be in cmd/narration-studio/frontend/dist (scripts/copy-wails-frontend.mjs, or the ui-dist artifact in CI).
 
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -25,7 +25,7 @@ import { readRootVersion } from './sync-version.mjs';
 const BARE_SEMVER = /^\d+\.\d+\.\d+$/;
 const ROOT_PACKAGE = resolve(import.meta.dirname, '..', '..', 'package.json');
 
-// Paths inside apps/desktop, where the build runs. Wails v2 wrote the program and the setup program to build/bin; so does this.
+// Paths inside src/studio/desktop, where the build runs. Wails v2 wrote the program and the setup program to build/bin; so does this.
 const BIN_DIR = resolve('build', 'bin');
 const INSTALLER_DIR = resolve('build', 'windows', 'installer');
 const PRODUCT_FILE = resolve('wails.json');
@@ -57,7 +57,7 @@ export function goBuildArguments(version, goos, output) {
 export function buildAssetsArguments(product, version, dir) {
   const info = product.info ?? {};
   for (const field of ['productName', 'companyName', 'copyright', 'productIdentifier']) {
-    if (!info[field]) throw new Error(`apps/desktop/wails.json has no info.${field}`);
+    if (!info[field]) throw new Error(`src/studio/desktop/wails.json has no info.${field}`);
   }
   return [
     'update',
@@ -121,7 +121,7 @@ function build(extra) {
   const program = join(BIN_DIR, programName(product, goos));
   if (installerRequested(extra) && goos !== 'windows') throw new Error('--installer builds the Windows setup program and runs only on Windows');
 
-  const assets = mkdtempSync(join(tmpdir(), 'narration-utils-build-assets-'));
+  const assets = mkdtempSync(join(tmpdir(), 'narration-studio-build-assets-'));
   const syso = resolve('wails_windows_amd64.syso');
   try {
     run('wails3', buildAssetsArguments(product, version, assets));

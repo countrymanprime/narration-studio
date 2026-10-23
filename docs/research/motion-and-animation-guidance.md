@@ -1,6 +1,6 @@
 # Where the app should animate, and what to take from the mock site
 
-**Date:** 2026-10-18. **Status:** evidence and a proposal for the owner; nothing here is decided or built. **Question:** where should the app have animations, and which of the [mock product site](mockups/public-site/index.html)'s animations should inform them? What does the owner still need to address on that site? **Tracking:** [#1456](https://github.com/countrymanprime/narration-utils/issues/1456) (shared motion tokens and guidance on when to animate).
+**Date:** 2026-10-18. **Status:** evidence and a proposal for the owner; nothing here is decided or built. **Question:** where should the app have animations, and which of the [mock product site](mockups/public-site/index.html)'s animations should inform them? What does the owner still need to address on that site? **Tracking:** [#1456](https://github.com/countrymanprime/narration-studio/issues/1456) (shared motion tokens and guidance on when to animate).
 
 ## Method
 
@@ -20,10 +20,10 @@ Runs:
   - Chromium's `SystemInfo.getProcessInfo` CPU time across all processes;
   - `Performance.getMetrics` for main-thread task time, style recalculations and layouts;
   - a `devtools.timeline` trace for paint and frame counts.
-  The scenarios were: the mock site's hero, its Record tab, and its demo Proof page; and five pages of the real UI's mock build (`pnpm --dir apps/ui run build:mock`, served locally). This is Linux headless with software compositing, not WebView2 on Windows with a GPU. The absolute numbers are higher than a narrator's machine would show. The ratios are the finding.
-- **Real app, read.** Read from `apps/ui/src`, the visual and atlas Playwright configs, `.storybook/preview-head.html`, the [page guides](../guides/using-the-app/README.md), [the motion reference](../design/motion-and-animation.md), [interaction feedback](../architecture/interaction-feedback.md) and the [latency baseline](interaction-latency-baseline.md).
-- **Issues, read.** Read on GitHub on 2026-10-18: [#1456](https://github.com/countrymanprime/narration-utils/issues/1456), and #1844 to #1848.
-- **Studio Next mock:** not consulted for motion. It is frozen ([#1860](https://github.com/countrymanprime/narration-utils/issues/1860)) and is the spec for what pages draw, not for how they move.
+  The scenarios were: the mock site's hero, its Record tab, and its demo Proof page; and five pages of the real UI's mock build (`pnpm --dir src/studio/ui run build:mock`, served locally). This is Linux headless with software compositing, not WebView2 on Windows with a GPU. The absolute numbers are higher than a narrator's machine would show. The ratios are the finding.
+- **Real app, read.** Read from `src/studio/ui/src`, the visual and atlas Playwright configs, `.storybook/preview-head.html`, the [page guides](../guides/using-the-app/README.md), [the motion reference](../design/motion-and-animation.md), [interaction feedback](../architecture/interaction-feedback.md) and the [latency baseline](interaction-latency-baseline.md).
+- **Issues, read.** Read on GitHub on 2026-10-18: [#1456](https://github.com/countrymanprime/narration-studio/issues/1456), and #1844 to #1848.
+- **Studio Next mock:** not consulted for motion. It is frozen ([#1860](https://github.com/countrymanprime/narration-studio/issues/1860)) and is the spec for what pages draw, not for how they move.
 - **Not run:** WebView2 itself, a GPU machine, REAPER recording at the same time, and the real desktop host.
 
 ## Findings
@@ -68,7 +68,7 @@ Measured with `getAnimations()` unless marked. "Compositor" means only `transfor
 
 ### 2. What the app has today
 
-All observed in code. Paths are under `apps/ui/src/`.
+All observed in code. Paths are under `src/studio/ui/src/`.
 
 **Durations are scattered.** Three things set no duration and get Tailwind's default of 150 ms with its default curve: `primitives/Button.tsx:28` (a bare `transition` on every property), `primitives/Switch.tsx:24,26` and `primitives/Disclosure.tsx:37`.
 
@@ -225,34 +225,34 @@ Decided against animating:
 
 ### 6. The mock site: what is still to address
 
-Mock-site rows are from [the comparison](public-site-demo-vs-app-comparison.md). Issue states were read on GitHub on 2026-10-18. The mockup file has not changed since [#1825](https://github.com/countrymanprime/narration-utils/pull/1825) (`git log`), so all 14 of the comparison's [mock site fixes](public-site-demo-vs-app-comparison.md#mock-site-fixes) still apply to it. It sits under `docs/research/mockups/`, which this work does not edit.
+Mock-site rows are from [the comparison](public-site-demo-vs-app-comparison.md). Issue states were read on GitHub on 2026-10-18. The mockup file has not changed since [#1825](https://github.com/countrymanprime/narration-studio/pull/1825) (`git log`), so all 14 of the comparison's [mock site fixes](public-site-demo-vs-app-comparison.md#mock-site-fixes) still apply to it. It sits under `docs/research/mockups/`, which this work does not edit.
 
 | Item | State on 2026-10-18 | Still to address? |
 | --- | --- | --- |
-| A1 Retry when Proof or Production cannot load | [#1844](https://github.com/countrymanprime/narration-utils/issues/1844) closed by [#1875](https://github.com/countrymanprime/narration-utils/pull/1875) (`ProofPage.tsx:386`, `ProductionPage.tsx:345` use `LoadError`). [#1888](https://github.com/countrymanprime/narration-utils/pull/1888), a follow-up capture fix, is open | Done in the app |
-| A2 Retry on a failed action's toast | [#1845](https://github.com/countrymanprime/narration-utils/issues/1845) open | Yes |
+| A1 Retry when Proof or Production cannot load | [#1844](https://github.com/countrymanprime/narration-studio/issues/1844) closed by [#1875](https://github.com/countrymanprime/narration-studio/pull/1875) (`ProofPage.tsx:386`, `ProductionPage.tsx:345` use `LoadError`). [#1888](https://github.com/countrymanprime/narration-studio/pull/1888), a follow-up capture fix, is open | Done in the app |
+| A2 Retry on a failed action's toast | [#1845](https://github.com/countrymanprime/narration-studio/issues/1845) open | Yes |
 | A3 Rail counts move as you decide | No issue found. `layout/useNavCounts.ts:47` still re-reads on `pathname` | Yes. No tracking issue |
 | A4 All-states and docs page per primitive in Storybook | No issue found. `.storybook/main.ts` has no `addon-docs` or `autodocs` | Unclear whether the owner wants it |
 | A5 "Edit this page" on the docs site | No issue found. `mkdocs.yml` has no `edit_uri`; the site is paused (D75) | Unclear while the site is paused |
-| S1 Edit a pronunciation in place | [#1847](https://github.com/countrymanprime/narration-utils/issues/1847) closed as not planned: the owner wants no edits outside Edit or an explicit action | No. The mock site's always-editable field (fix 9) now contradicts a decision, not just the app |
+| S1 Edit a pronunciation in place | [#1847](https://github.com/countrymanprime/narration-studio/issues/1847) closed as not planned: the owner wants no edits outside Edit or an explicit action | No. The mock site's always-editable field (fix 9) now contradicts a decision, not just the app |
 | S2 Labelled "Open Proof" in the Pickups empty state | No issue found. `PickupsTable.tsx:299` is still the icon-only "Go to Proof" | Unclear: needs the Studio mock first |
-| S3 Delivery names the failing rule and value | [#1846](https://github.com/countrymanprime/narration-utils/issues/1846) closed on 2026-10-18 | Done in the app. The mock site's waive-to-pass (fix 10) is still wrong |
+| S3 Delivery names the failing rule and value | [#1846](https://github.com/countrymanprime/narration-studio/issues/1846) closed on 2026-10-18 | Done in the app. The mock site's waive-to-pass (fix 10) is still wrong |
 | S4 A word in pipeline cells | No issue found; not checked in code | Unclear |
 | S5 Accepting a failing chapter | Needs an owner decision; no issue found | Unclear |
-| Demo host carries Proof decisions | [#1848](https://github.com/countrymanprime/narration-utils/issues/1848) closed by #1880 | Done on the mock host |
+| Demo host carries Proof decisions | [#1848](https://github.com/countrymanprime/narration-studio/issues/1848) closed by #1880 | Done on the mock host |
 | Motion mistakes 1 to 4 in section 1 | New in this note | Yes, if the mockup is kept as a reference: tour-card timing, the ring's dead `--p` transition, loops running off screen and on every view, and width animations |
 
 ## Recommendations
 
 ### Proposed motion section for the design system
 
-This is a proposal for `docs/design/design-system.md` and `apps/ui/src/styles.css`. It is not edited into either.
+This is a proposal for `docs/design/design-system.md` and `src/studio/ui/src/styles.css`. It is not edited into either.
 
 > ## Motion
 >
 > Motion in this app explains a change; it never decorates. A narrator works in it for hours beside a DAW, so the defaults are: nothing moves when nothing changes, nothing moves on a key, play, seek or select, and every motion has a reduced form.
 >
-> **Tokens** (in `:root`, `apps/ui/src/styles.css`):
+> **Tokens** (in `:root`, `src/studio/ui/src/styles.css`):
 >
 > | Token | Value | Use |
 > | --- | --- | --- |
@@ -283,7 +283,7 @@ This is a proposal for `docs/design/design-system.md` and `apps/ui/src/styles.cs
 ### Technique: why CSS and Base UI, not a library or View Transitions
 
 - **CSS transitions plus Base UI's starting and ending style attributes cover every recommended moment.** The app already uses them (`SlideOver.tsx:61`), and Base UI already wires Popover, Menu, Dialog and Drawer to them (observed in `SlideOver`; assumed for the others from the same library, not checked per component). Exit animations need no code beyond the attribute.
-- **No library.** `apps/ui` has no animation dependency. A new one costs a three-day `minimumReleaseAge`, Knip, a licence check and a dependency-cruiser fence (`.claude/skills/nx-pnpm-workspace/SKILL.md`; `docs/operations/verification-tooling.md`). The bundle cost of a React animation library (estimated: tens of kB gzipped) buys spring physics and layout animation, which the rules above forbid.
+- **No library.** `src/studio/ui` has no animation dependency. A new one costs a three-day `minimumReleaseAge`, Knip, a licence check and a dependency-cruiser fence (`.claude/skills/nx-pnpm-workspace/SKILL.md`; `docs/operations/verification-tooling.md`). The bundle cost of a React animation library (estimated: tens of kB gzipped) buys spring physics and layout animation, which the rules above forbid.
 - **No View Transitions API.** The container's Chromium 141 has `document.startViewTransition` (measured). WebView2 is the Evergreen runtime (`docs/operations/ci-and-releases.md`), so it should have it too (estimated). It is not recommended:
   - its main use is page navigation, which should not animate;
   - it snapshots the page, which can hold input for a frame;
@@ -295,7 +295,7 @@ This is a proposal for `docs/design/design-system.md` and `apps/ui/src/styles.cs
 
 - **Keep screenshots frozen.** `settle.ts` and the atlas already freeze motion. Keep that, and add the `data-motion` attribute to the frozen state so both mechanisms are exercised.
 - **Add tests for what screenshots cannot show** (proposal):
-  1. A Vitest test in the `legacyCss.test.ts` style. It scans `apps/ui/src` for `transition`, `animate-` and `duration-` utilities with no `motion-ok:` or `motion-reduce:` partner, and for raw millisecond durations instead of a token. That turns today's unguarded list into a failing test.
+  1. A Vitest test in the `legacyCss.test.ts` style. It scans `src/studio/ui/src` for `transition`, `animate-` and `duration-` utilities with no `motion-ok:` or `motion-reduce:` partner, and for raw millisecond durations instead of a token. That turns today's unguarded list into a failing test.
   2. One Playwright spec with motion **on**, which `settle.ts` does not run. It opens a slide-over, a menu and a toast and asserts:
      - `getAnimations()` is empty within 400 ms;
      - no animation has `iterations: Infinity` on any page at rest;
@@ -309,10 +309,10 @@ Each slice is small, follows the CLAUDE.md workflow, and owes the [motion refere
 
 | # | Slice | Pages | Files likely touched | How to test | Size |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **Tokens and the reduce mechanism.** Tokens in `:root`, the `motion-ok:` custom variant, `data-motion` from `matchMedia`, the guard test, the motion-on Playwright spec | All | `styles.css`, a small hook in `main.tsx` or `layout/`, `legacyCss.test.ts` or a new sibling test, a `tests/` spec, `docs/design/motion-and-animation.md`, `design-system.md` | Vitest guard test red on today's list; the Playwright motion spec; `pnpm --dir apps/ui atlas` unchanged | M |
+| 1 | **Tokens and the reduce mechanism.** Tokens in `:root`, the `motion-ok:` custom variant, `data-motion` from `matchMedia`, the guard test, the motion-on Playwright spec | All | `styles.css`, a small hook in `main.tsx` or `layout/`, `legacyCss.test.ts` or a new sibling test, a `tests/` spec, `docs/design/motion-and-animation.md`, `design-system.md` | Vitest guard test red on today's list; the Playwright motion spec; `pnpm --dir src/studio/ui atlas` unchanged | M |
 | 2 | **Guard and tokenise what exists.** Booth column, SlideOver, rail, Button (`transition` to `transition-colors`), Switch, tooltip, ResumePrompt, Toast's dead `ease`, the dead `jump-target-pulse` | Booth, all overlays | `booth/reading/BoothText.tsx`, `booth/reading/useBrowseView.ts`, `primitives/SlideOver.tsx`, `layout/AppShell.tsx`, `primitives/Button.tsx`, `primitives/Switch.tsx`, `primitives/hintLayer.ts`, `booth/ResumePrompt.tsx`, `styles.css` | Slice 1's guard test goes green; Booth visual states unchanged; a Booth unit test that the column has no transition under reduce | S |
 | 3 | **In-app setting** (not started: owner decision Q1). Settings → Appearance & keys → Motion: Follow Windows or Reduce, persisted | Settings | `components/settings/`, the settings schema and its Go side (a persisted setting, so `wire-contract-change` applies), the Settings guide and screenshot | Settings visual states; a unit test that Reduce sets `data-motion`; the guide | M |
-| 4 | **One overlay behaviour.** Popover, Menu, ContextMenu, Jump menu, NavDrawer, Toast enter, via starting and ending style. Dialogs stay instant (Q3) | All | `primitives/Popover.tsx`, `Menu.tsx`, `ContextMenu.tsx`, `NavDrawer.tsx`, `Toast.tsx`, `layout/JumpMenu.tsx` | The overlay guard and aria runs (`pnpm --dir apps/ui run aria`), the motion spec (settles within 400 ms), atlas | M |
+| 4 | **One overlay behaviour.** Popover, Menu, ContextMenu, Jump menu, NavDrawer, Toast enter, via starting and ending style. Dialogs stay instant (Q3) | All | `primitives/Popover.tsx`, `Menu.tsx`, `ContextMenu.tsx`, `NavDrawer.tsx`, `Toast.tsx`, `layout/JumpMenu.tsx` | The overlay guard and aria runs (`pnpm --dir src/studio/ui run aria`), the motion spec (settles within 400 ms), atlas | M |
 | 5 | **"This changed" highlight and failure arrival.** One highlight utility; used on Production stage changes, restored rows after Undo, accepted Story Bible suggestions and Script jump targets (replacing `animate-pulse`); errors and stale banners fade in once. Not on Proof decisions (Q5) | Production, Getting started, Pickups, Story Bible, Script, Proof, Delivery | A primitive or utility in `primitives/`, the call sites, `styles.css` | Unit tests on the class; the motion spec (no infinite animations); visual states unchanged under freeze | M |
 | 6 | **Optional: Proof ring arc and job completion mark** | Proof, Master and QC, Delivery | The ring component, `@property` in `styles.css`, the completion sites | As slice 5 | S |
 
@@ -331,7 +331,7 @@ Slices 1 and 2 land as one PR (owner decision, 2026-10-18). Slice 3 is not start
 
 ## Owner decisions (2026-10-18)
 
-Recorded on [#1456](https://github.com/countrymanprime/narration-utils/issues/1456#issuecomment-6251946598).
+Recorded on [#1456](https://github.com/countrymanprime/narration-studio/issues/1456#issuecomment-6251946598).
 
 | # | Decision |
 | --- | --- |

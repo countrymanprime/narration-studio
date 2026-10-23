@@ -5,5 +5,5 @@
     "prompt": "The Lua bridge needs to emit a new event when the user splits a take in REAPER. Wire it up end to end.",
     "expect": "trigger"
   },
-  { "id": "lua-format-only", "prompt": "Run the formatter over the Lua files in integrations/reaper and tell me if anything changed.", "expect": "no-trigger" }
+  { "id": "lua-format-only", "prompt": "Run the formatter over the Lua files in src/studio/integrations/reaper and tell me if anything changed.", "expect": "no-trigger" }
 ]

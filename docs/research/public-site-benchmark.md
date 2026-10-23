@@ -33,11 +33,11 @@ Open question: the repo's guides in `docs/guides/using-the-app/` are organised b
 
 [Mock Service Worker with Storybook](https://storybook.js.org/addons/msw-storybook-addon) is the standard stack for mocked requests in a browser. Its worker file has to be served from the static host's public folder. No public product demo built this way turned up in the search (*not verified*).
 
-The repo already holds the pieces. `apps/ui` has a host API port and fixtures, and the old Pages build shipped a browser demo. The mockup does not use MSW. It puts a small mock host in the page (latency, a forced failure, a request log, state kept in the browser) so the real interface behaviours can be seen: loading skeletons, the "host not answering" state with Retry, and pages that read the same data (a pickup decided in Proof shows on Pickups and Production; waiving a note lets the Delivery build pass).
+The repo already holds the pieces. `src/studio/ui` has a host API port and fixtures, and the old Pages build shipped a browser demo. The mockup does not use MSW. It puts a small mock host in the page (latency, a forced failure, a request log, state kept in the browser) so the real interface behaviours can be seen: loading skeletons, the "host not answering" state with Retry, and pages that read the same data (a pickup decided in Proof shows on Pickups and Production; waiving a note lets the Delivery build pass).
 
 ### Storybook
 
-[Adobe Spectrum](https://storybook.js.org/showcase/projects) is a clear public example. GitHub's Primer brand Storybook is private, and no current public Storybook for Shopify Polaris was found. The mockup's Storybook view has controls, an actions log, a docs tab, a code tab, viewport and background switches, an outline toggle, an all-states grid and a contrast check measured in the current theme. In production this view would be the app's real Storybook build, which already exists (`pnpm --dir apps/ui run storybook`, the `ui-atlas` CI job, [`docs/ui/atlas/`](../ui/atlas/index.md)).
+[Adobe Spectrum](https://storybook.js.org/showcase/projects) is a clear public example. GitHub's Primer brand Storybook is private, and no current public Storybook for Shopify Polaris was found. The mockup's Storybook view has controls, an actions log, a docs tab, a code tab, viewport and background switches, an outline toggle, an all-states grid and a contrast check measured in the current theme. In production this view would be the app's real Storybook build, which already exists (`pnpm --dir src/studio/ui run storybook`, the `ui-atlas` CI job, [`docs/ui/atlas/`](../ui/atlas/index.md)).
 
 ## What the mockup does not mirror
 
@@ -52,7 +52,7 @@ The mockup uses the app's colour and type tokens, but it is a reimplementation, 
 ## Decisions this note does not make
 
 - Whether to un-pause the site, and when (D75).
-- Whether the demo is the real `apps/ui` build on a mock host or something lighter.
+- Whether the demo is the real `src/studio/ui` build on a mock host or something lighter.
 - Whether docs adopt the Diátaxis split.
 
 ## Next round

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 // Names, packages and verifies what a release carries. Windows x64 is the only platform:
-// narration-utils-<version>-<platform>.<ext> plus a .sha256 beside it, and also the setup program
-// narration-utils-<version>-windows-x64-setup.exe and the notices narration-utils-<version>-THIRD-PARTY-NOTICES.txt, each with its own
+// narration-studio-<version>-<platform>.<ext> plus a .sha256 beside it, and also the setup program
+// narration-studio-<version>-windows-x64-setup.exe and the notices narration-studio-<version>-THIRD-PARTY-NOTICES.txt, each with its own
 // .sha256. The version is in every name so that downloads of different releases can be told apart at a
-// glance. The archive is what the in-app updater downloads (apps/desktop/internal/update/manifest.go builds the same name); the setup
+// glance. The archive is what the in-app updater downloads (src/studio/desktop/internal/update/manifest.go builds the same name); the setup
 // program is for a first install.
 // Checksums are per asset rather than one SHA256SUMS.txt, so a narrator checks the one file they downloaded.
 
@@ -14,15 +14,17 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync,
 import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const APP_BINARY = 'narration-utils';
+import { checkFolder } from '../ci/old-name.mjs';
 
-// The setup program NSIS builds (apps/desktop/build/windows/installer/project.nsi names its OutFile the same, and a test keeps the
+const APP_BINARY = 'narration-studio';
+
+// The setup program NSIS builds (src/studio/desktop/build/windows/installer/project.nsi names its OutFile the same, and a test keeps the
 // two equal). This is its name in the build folder, which carries no version; packaging gives it the released name (installerName).
-export const WINDOWS_INSTALLER = 'narration-utils-windows-x64-setup.exe';
+export const WINDOWS_INSTALLER = 'narration-studio-windows-x64-setup.exe';
 
 // The third-party licences and the source offer of the release, under the name scripts/licenses/notices.py writes into the build folder
 // (docs/operations/ci-and-releases.md, "Third-party notices"); packaging gives it the released name (noticesName). It is its own asset, not a second file in the update zip: the in-app updater refuses a zip that holds
-// anything but narration-utils.exe, and a client that predates a two-file zip would refuse every update to it.
+// anything but narration-studio.exe, and a client that predates a two-file zip would refuse every update to it.
 export const NOTICES_FILE = 'THIRD-PARTY-NOTICES.txt';
 
 // The workflow that builds and attests an asset: the release job of prerelease.yml. Releases are built from main only.
@@ -51,7 +53,7 @@ export function requireInstaller(binDir, name = WINDOWS_INSTALLER) {
 // on a release before it can be promoted. `installer` is a second file of the platform, copied from the Wails output as it is: it is as
 // required as the archive, so a build that lost it cannot be promoted. macOS and Linux rows were removed by D74.
 export const PLATFORMS = {
-  // The self-contained exe is zipped (about 400 MB otherwise) and keeps the name the REAPER launcher looks for (narration-utils.exe);
+  // The self-contained exe is zipped (about 400 MB otherwise) and keeps the name the REAPER launcher looks for (narration-studio.exe);
   // that zip is what the in-app updater downloads. The setup program is what a narrator runs first.
   'windows-x64': {
     extension: '.zip',
@@ -76,7 +78,7 @@ function platformEntry(platform) {
 }
 
 // The version in every released name is bare MAJOR.MINOR.PATCH, each part one to six digits with no leading zero: the rule the app's
-// updater reads a version by (apps/desktop/internal/update/version.go). A candidate and its promotion are the same bytes, so v0.2.7-rc
+// updater reads a version by (src/studio/desktop/internal/update/version.go). A candidate and its promotion are the same bytes, so v0.2.7-rc
 // and v0.2.7 publish the same names.
 const RELEASE_VERSION = /^(0|[1-9]\d{0,5})\.(0|[1-9]\d{0,5})\.(0|[1-9]\d{0,5})$/;
 
@@ -87,7 +89,7 @@ function requireVersion(version) {
   return version;
 }
 
-const released = (version, name) => `narration-utils-${requireVersion(version)}-${name}`;
+const released = (version, name) => `narration-studio-${requireVersion(version)}-${name}`;
 
 export const assetName = (platform, version) => released(version, `${platform}${platformEntry(platform).extension}`);
 export const checksumName = (platform, version) => `${assetName(platform, version)}.sha256`;
@@ -153,6 +155,8 @@ export function verifyAssets(dir, version) {
       problems.push(`Unexpected file ${name}: promote publishes every file, and only the release assets are built and attested by the workflows`);
     }
   }
+  // No asset is named after, or says, the product's old name (scripts/ci/old-name.mjs).
+  problems.push(...checkFolder(dir).map((problem) => `The product's old name: ${problem}`));
   return problems;
 }
 
@@ -232,7 +236,7 @@ function main([command, argument, ...rest]) {
   if (command === 'package' && argument && rest.length <= 1) {
     const asset = packageAsset({
       platform: argument,
-      binDir: process.env.WAILS_BIN_DIR ?? 'apps/desktop/build/bin',
+      binDir: process.env.WAILS_BIN_DIR ?? 'src/studio/desktop/build/bin',
       outDir: process.env.RELEASE_ASSETS_DIR ?? 'release-assets',
       version: rest[0] ?? checkedInVersion(),
     });

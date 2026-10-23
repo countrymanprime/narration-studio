@@ -9,17 +9,17 @@ one without hand-editing the manuscript.
 
 `docs/research/import-heading-misreads.md` documents 23 constructed cases (5 controls, 18 misreads across 8 failure
 modes), pinned as fixtures under `tests/fixtures/heading-misreads/` and checked by
-`apps/desktop/internal/importer/heading_misreads_test.go`. The finding that shaped the override: a per-heading line toggle
+`src/studio/desktop/internal/importer/heading_misreads_test.go`. The finding that shaped the override: a per-heading line toggle
 alone fixes only the two-line-title cases (failure mode F1); the rest (F2, F4-F8) are out of a line switch's reach and
 are filed as follow-ups (#387; a dropped EPUB `<h2>` is a separate bug, #388).
 
 ## The override
 
-- **The split itself:** `headingParts` in `apps/desktop/internal/importer/headings.go` separates a heading's title
+- **The split itself:** `headingParts` in `src/studio/desktop/internal/importer/headings.go` separates a heading's title
   from its subtitle and repairs glued headings, called from both `docx.go` and `markdown.go`. The result lands in
   `Paragraph.ChapterSubtitle` (`model.go`).
 - **The narrator's override:** a global default ("Read a heading's second line as its subtitle") plus a per-heading
-  Subtitle checkbox in the import review list (`apps/ui/src/components/production/ImportReview.tsx`'s
+  Subtitle checkbox in the import review list (`src/studio/ui/src/components/production/ImportReview.tsx`'s
   `TitleSubtitle`/`hasSubtitleChoice` rows). Turning a row's checkbox off joins its second line back into the title,
   or returns a plain-text line to the body, by where its line came from ([Correcting a subtitle](import-review.md#correcting-a-subtitle)).
 - **The commit path:** `ManuscriptImportCommit` takes a `subtitleOverrides` map keyed by section id; the review UI collects the narrator's per-row choices into it before commit.

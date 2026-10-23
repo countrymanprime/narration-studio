@@ -23,11 +23,11 @@ Add a table to the plan with one row per planned file or package and a status fo
 | Open/closed | Extend through ports and registries, not by editing switches | `Protocol`s or registries, not `if/elif` chains | Props and variants, not forked components |
 | Liskov | An implementation (and its test fake) honours the port's documented behaviour | Subtypes keep `Protocol` contracts | Components keep their prop contracts |
 | Interface segregation | Small interfaces defined at the consumer | Narrow `Protocol`s | Narrow props; do not pass whole objects through |
-| Dependency inversion | Depend on `*port` packages; respect the depguard fences | Depend on `Protocol`s, not a concrete sidecar module | Depend on `apps/ui/src/api`, not Wails bindings or `zod` directly |
+| Dependency inversion | Depend on `*port` packages; respect the depguard fences | Depend on `Protocol`s, not a concrete sidecar module | Depend on `src/studio/ui/src/api`, not Wails bindings or `zod` directly |
 
 ## Pass 2: drift review
 
-1. Diff the result against the Design check. Objective signals first: depguard, `pnpm --dir apps/ui architecture` and lint results, imports across a port or fence, files past 800 lines, an interface that grew, a package that gained a second reason to change.
+1. Diff the result against the Design check. Objective signals first: depguard, `pnpm --dir src/studio/ui architecture` and lint results, imports across a port or fence, files past 800 lines, an interface that grew, a package that gained a second reason to change.
 2. Judgement findings second, each tied to a line in the diff. Do not report a principle as violated without pointing at the code.
 3. Send findings back to the plan and fix. Repeat until every row is met or waived. After three rounds, stop and give the owner the open rows.
 

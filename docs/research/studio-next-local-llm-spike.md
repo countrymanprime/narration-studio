@@ -1,6 +1,6 @@
 # Local language model spike: candidates, cost, quality and quote discipline
 
-**Date:** 2026-10-12. **Issue:** [#1272](https://github.com/countrymanprime/narration-utils/issues/1272), Phase 9 (Could) of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Question:** is there a local language model small enough for a 16 GB Windows computer that is worth offering as an optional analysis tool, and under what condition would the catalogue row's `unavailable` be lifted?
+**Date:** 2026-10-12. **Issue:** [#1272](https://github.com/countrymanprime/narration-studio/issues/1272), Phase 9 (Could) of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Question:** is there a local language model small enough for a 16 GB Windows computer that is worth offering as an optional analysis tool, and under what condition would the catalogue row's `unavailable` be lifted?
 
 **Recommendation: keep unavailable. No default changes.** Every model below fits 16 GB, but the only measurements are from the 2026-10-10 trial on a 4-vCPU CPU, where a book took 3 to 11 hours, and the [SN-X8 calibration table](studio-next-extraction-calibration.md) holds no figure for any source, so the model cannot yet be compared with the rules baseline. Section 5 states what lifts it.
 
@@ -76,7 +76,7 @@ Reading: on explicit speech tags a small model adds nothing a rule does not alre
 
 ## 4. Quote discipline
 
-[`extraction.VerifyEvidence`](../../apps/desktop/internal/extraction/evidence.go) never accepts a quote the text lacks: it searches the named paragraph, then its chapter, then the book, folds only typographic quotes and the non-breaking, thin and narrow spaces, and returns the manuscript's own offsets and text. It reports `ok` false for an empty or missing quote, which sends the suggestion to Needs verification.
+[`extraction.VerifyEvidence`](../../src/studio/desktop/internal/extraction/evidence.go) never accepts a quote the text lacks: it searches the named paragraph, then its chapter, then the book, folds only typographic quotes and the non-breaking, thin and narrow spaces, and returns the manuscript's own offsets and text. It reports `ok` false for an empty or missing quote, which sends the suggestion to Needs verification.
 
 **Rate with `VerifyEvidence`: `not run`.** No model output was passed through it. The trial used its own normalising search, so its rates bracket the result:
 
@@ -103,4 +103,4 @@ Reading: on explicit speech tags a small model adds nothing a rule does not alre
 5. **Pins and licence.** The runtime and one model file are pinned with their digests streamed and recorded, and the licence text is copied into the registry row ([CI and releases](../operations/ci-and-releases.md)).
 6. **The owner's manuscript.** The same run on the owner's own book, because every figure on public-domain text is provisional (D70).
 
-The first and sixth steps depend on the SN-X8 re-run already on the QA checklist ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)); the second, third and fourth need the owner's machine and are pending, D65. None blocks a merge or a launch. "Drop" is also open: if the first condition fails once a table exists, the tier has no use that BookNLP and the rules do not cover.
+The first and sixth steps depend on the SN-X8 re-run already on the QA checklist ([#1495](https://github.com/countrymanprime/narration-studio/issues/1495)); the second, third and fourth need the owner's machine and are pending, D65. None blocks a merge or a launch. "Drop" is also open: if the first condition fails once a table exists, the tier has no use that BookNLP and the rules do not cover.

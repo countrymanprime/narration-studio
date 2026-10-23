@@ -1,0 +1,90 @@
+// This file bridges the editing package's own decode results (decode.go) to
+// the evidence ledger's per-item result cache (src/studio/desktop/internal/evidence/cache.go).
+// The cache shape ("per-source features or per-range results") is left to the
+// analyzer, with one requirement: trimming one item must not force a re-decode
+// of unrelated items. This package uses the per-range shape (evidence.CacheEntryKey
+// with PlayedRange set): one cache blob per item's own played range, keyed on
+// that item's Source identity, analyzer id/version, parameter hash and
+// played range. A trim changes PlayedRange, so it costs exactly one re-decode
+// of that item (a documented, deliberate simplification versus a
+// whole-source sliceable cache, which the evidence package also supports: this analyzer
+// decodes only a played range in the first place, never the whole source
+// file - trimmed dead air stays in the source file, so whole-file analysis
+// would keep reporting it, which is exactly why - so there
+// is no naturally-whole-source feature set to slice from). It never forces a
+// re-decode of any other item, so a trim re-decodes only that item.
+package editing
+
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+)
+
+// AnalyzerSilence, AnalyzerClick and AnalyzerBreath are this package's three
+// analyzer ids (Architecture Notes: "One decode pass over an item writes
+// three records, editing.silence, editing.click and editing.breath"). They
+// name both the ledger record's AnalyzerID and the cache entry's AnalyzerID
+// for their own class.
+const (
+	AnalyzerSilence = "editing.silence"
+	AnalyzerClick   = "editing.click"
+	AnalyzerBreath  = "editing.breath"
+)
+
+// cacheSchemaVersion is this package's own blob schema (D8: the cache store
+// stays opaque to what a blob means; this is this package's private
+// versioning inside that opaque blob, unrelated to evidence's own
+// cacheSchemaVersion).
+const cacheSchemaVersion = 1
+
+// scanBlob is the opaque JSON this package stores in EL's CacheStore: the
+// three classes' raw candidates from one decode pass, before any policy is
+// applied (Architecture Notes: "Scan measures, evaluation decides").
+type scanBlob struct {
+	SchemaVersion   int                        `json:"schemaVersion"`
+	DurationSeconds float64                    `json:"durationSeconds"`
+	Silences        []measure.SilenceRegion    `json:"silences"`
+	Cleanup         measure.CleanupDiagnostics `json:"cleanup"`
+}
+
+// CacheKey builds the cache entry key for one item's editing scan: src's
+// identity, this package's own AnalyzerSilence id and version, paramHash
+// (the scan-time parameters only - silence floor, minimum silence, cleanup
+// thresholds - never the read-time policy, per "policy change costs no
+// decode"), and src's own played range.
+func CacheKey(source evidence.SourceIdentity, analyzerVersion, paramHash string, played evidence.PlayedRange) evidence.CacheEntryKey {
+	return evidence.CacheEntryKey{
+		Source: source, AnalyzerID: AnalyzerSilence, AnalyzerVersion: analyzerVersion, ParamHash: paramHash,
+		PlayedRange: &evidence.PlayedRange{Start: played.Start, End: played.End},
+	}
+}
+
+// WriteScan stores one item's decode result (ItemScan) in cache under key.
+func WriteScan(cache *evidence.CacheStore, key evidence.CacheEntryKey, scan ItemScan) error {
+	blob, err := json.Marshal(scanBlob{
+		SchemaVersion: cacheSchemaVersion, DurationSeconds: scan.DurationSeconds,
+		Silences: scan.Silences, Cleanup: scan.Cleanup,
+	})
+	if err != nil {
+		return fmt.Errorf("encoding the editing scan cache entry: %w", err)
+	}
+	return cache.Write(key, blob)
+}
+
+// ReadScan reads back what WriteScan stored, reporting a miss (ok=false) for
+// anything CacheStore.Read itself calls a miss, or a blob this package wrote
+// a newer schema version of.
+func ReadScan(cache *evidence.CacheStore, key evidence.CacheEntryKey) (ItemScan, bool) {
+	raw, ok := cache.Read(key)
+	if !ok {
+		return ItemScan{}, false
+	}
+	var blob scanBlob
+	if err := json.Unmarshal(raw, &blob); err != nil || blob.SchemaVersion > cacheSchemaVersion {
+		return ItemScan{}, false
+	}
+	return ItemScan{DurationSeconds: blob.DurationSeconds, Silences: blob.Silences, Cleanup: blob.Cleanup}, true
+}

@@ -18,9 +18,9 @@ const LINTED = [
   { extension: '.py', tool: 'ruff' },
   { extension: '.go', tool: 'go-lint' },
   { extension: '.lua', tool: 'stylua' },
-  // The UI's ESLint config covers apps/ui only.
-  { extension: '.ts', tool: 'lint:ci', within: 'apps/' },
-  { extension: '.tsx', tool: 'lint:ci', within: 'apps/' },
+  // The UI's ESLint config covers src/studio/ui only.
+  { extension: '.ts', tool: 'lint:ci', within: 'src/' },
+  { extension: '.tsx', tool: 'lint:ci', within: 'src/' },
 ];
 
 for (const { extension, tool, within = '' } of LINTED) {
@@ -37,24 +37,24 @@ test('project names are unique and the release project keeps its name', () => {
   const names = projects.map((project) => project.config.name);
 
   assert.equal(new Set(names).size, names.length);
-  assert.ok(names.includes('narration-utils'), 'nx.json release.projects names narration-utils');
+  assert.ok(names.includes('narration-studio'), 'nx.json release.projects names narration-studio');
 });
 
 test('the root project depends on every project whose commits already counted toward the release version', () => {
   // The UI and desktop projects were separate before the split and never counted; everything else did. The site is not part of the released app.
-  const excluded = new Set(['narration-utils', 'narration-utils-ui', 'narration-utils-shell', 'narration-utils-site']);
+  const excluded = new Set(['narration-studio', 'narration-studio-ui', 'narration-studio-shell', 'web']);
   const root = projects.find((project) => project.root === '');
   const expected = projects.map((project) => project.config.name).filter((name) => !excluded.has(name)).sort();
 
   assert.deepEqual([...(root.config.implicitDependencies ?? [])].sort(), expected);
 });
 
-// `narration-utils-shell` does not list `narration-utils-ui` in `implicitDependencies`: a UI change must not rerun the Go
-// tests. That is only true while no Go code reads from apps/ui. `package` is the one consumer of the UI build and says so
-// with `dependsOn`. If a Go file starts reading a path under apps/ui, the edge has to come back, so this fails first.
-const UI_PATH = /(^|[\\/])apps[\\/]ui([\\/]|$)|\.\.[\\/]ui([\\/]|$)/;
+// `narration-studio-shell` does not list `narration-studio-ui` in `implicitDependencies`: a UI change must not rerun the Go
+// tests. That is only true while no Go code reads from src/studio/ui. `package` is the one consumer of the UI build and says so
+// with `dependsOn`. If a Go file starts reading a path under src/studio/ui, the edge has to come back, so this fails first.
+const UI_PATH = /(^|[\\/])src[\\/]studio[\\/]ui([\\/]|$)|\.\.[\\/]ui([\\/]|$)/;
 
-// The string literals of Go source, comments removed: a comment may name apps/ui (most do, to say where a schema lives).
+// The string literals of Go source, comments removed: a comment may name src/studio/ui (most do, to say where a schema lives).
 function goStringLiterals(source) {
   const literals = [];
   for (let i = 0; i < source.length; ) {
@@ -86,38 +86,38 @@ function goStringLiterals(source) {
 
 // app_test.go's failure message tells a developer where to update the host API version, which every binding change bumps:
 // it is not a read, and it must not need editing with each bump.
-const UI_PATH_MESSAGE = /^host API version = %d, want \d+; update it with apps\/ui\/src\/hostApi\.ts$/;
+const UI_PATH_MESSAGE = /^host API version = %d, want \d+; update it with src\/studio\/ui\/src\/hostApi\.ts$/;
 
 const uiPathReads = (source) => goStringLiterals(source).filter((literal) => UI_PATH.test(literal) && !UI_PATH_MESSAGE.test(literal));
 
-test('the Go host reads nothing under apps/ui, so the shell does not depend on the UI project', () => {
+test('the Go host reads nothing under src/studio/ui, so the shell does not depend on the UI project', () => {
   const reads = trackedFiles()
-    .filter((file) => file.startsWith('apps/desktop/') && file.endsWith('.go'))
+    .filter((file) => file.startsWith('src/studio/desktop/') && file.endsWith('.go'))
     .flatMap((file) => uiPathReads(readFileSync(file, 'utf8')).map((literal) => `${file}: ${JSON.stringify(literal)}`));
-  const shell = projects.find((project) => project.config.name === 'narration-utils-shell');
+  const shell = projects.find((project) => project.config.name === 'narration-studio-shell');
 
-  assert.deepEqual(reads, [], 'a Go file reads from apps/ui: add narration-utils-ui back to the shell implicitDependencies in apps/desktop/project.json');
-  assert.ok(!(shell.config.implicitDependencies ?? []).includes('narration-utils-ui'), 'the shell lists the UI project, so every UI change reruns the Go tests');
+  assert.deepEqual(reads, [], 'a Go file reads from src/studio/ui: add narration-studio-ui back to the shell implicitDependencies in src/studio/desktop/project.json');
+  assert.ok(!(shell.config.implicitDependencies ?? []).includes('narration-studio-ui'), 'the shell lists the UI project, so every UI change reruns the Go tests');
   assert.ok(
-    shell.config.targets.package.dependsOn.some((dependency) => dependency.target === 'build' && dependency.projects?.includes('narration-utils-ui')),
+    shell.config.targets.package.dependsOn.some((dependency) => dependency.target === 'build' && dependency.projects?.includes('narration-studio-ui')),
     'package builds the native app from the UI dist, so it must depend on the UI build',
   );
 });
 
-test('the apps/ui guard sees a path in code and ignores one in a comment', () => {
+test('the src/studio/ui guard sees a path in code and ignores one in a comment', () => {
   const violations = [
     'os.ReadFile("../ui/src/hostApi.ts")',
-    'filepath.Join(root, "apps/ui", "src")',
-    'os.ReadFile(`apps\\ui\\dist\\index.html`)',
-    'x := "a \\" quote"; os.Open("../../apps/ui/package.json")',
+    'filepath.Join(root, "src/studio/ui", "src")',
+    'os.ReadFile(`src\\studio\\ui\\dist\\index.html`)',
+    'x := "a \\" quote"; os.Open("../../src/studio/ui/package.json")',
   ];
   const clean = [
-    '// the schema lives in apps/ui/src/api\nfunc f() {}',
-    '/* apps/ui/src/hostApi.ts */ func f() {}',
-    "r := '\"'; s := \"not a ui path\" // apps/ui",
+    '// the schema lives in src/studio/ui/src/api\nfunc f() {}',
+    '/* src/studio/ui/src/hostApi.ts */ func f() {}',
+    "r := '\"'; s := \"not a ui path\" // src/studio/ui",
     'os.ReadFile("tests/fixtures/contracts/a.json")',
     'os.ReadFile("../fixtures/guide")',
-    't.Fatalf("host API version = %d, want 137; update it with apps/ui/src/hostApi.ts", hostAPIVersion)',
+    't.Fatalf("host API version = %d, want 137; update it with src/studio/ui/src/hostApi.ts", hostAPIVersion)',
   ];
 
   for (const source of violations) assert.equal(uiPathReads(source).length, 1, source);

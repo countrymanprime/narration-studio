@@ -101,14 +101,14 @@ jobs:
       - name: Download two published builds
         shell: bash
         run: scripts/release/fetch-release-assets.sh "$RUNNER_TEMP/releases" "$INPUT_NEW_TAG" "$INPUT_PREVIOUS_TAG"
-      - name: Run the rehearsal against the two real narration-utils.exe builds
+      - name: Run the rehearsal against the two real narration-studio.exe builds
         shell: bash
-        working-directory: apps/desktop
+        working-directory: src/studio/desktop
         env:
           GOFLAGS: -mod=readonly
         run: |
-          export REHEARSAL_OLD="$(cygpath -w "$RUNNER_TEMP/releases/previous/narration-utils.exe")"
-          export REHEARSAL_NEW="$(cygpath -w "$RUNNER_TEMP/releases/new/narration-utils.exe")"
+          export REHEARSAL_OLD="$(cygpath -w "$RUNNER_TEMP/releases/previous/narration-studio.exe")"
+          export REHEARSAL_NEW="$(cygpath -w "$RUNNER_TEMP/releases/new/narration-studio.exe")"
           echo "Rehearsal: $PREVIOUS_TAG -> $NEW_TAG" | tee -a "$GITHUB_STEP_SUMMARY"
           go test -tags rehearsal -run Rehearsal -v -count=1 ./internal/update 2>&1 | tee "$RUNNER_TEMP/rehearsal.log"
           { echo '```'; tail -n 25 "$RUNNER_TEMP/rehearsal.log"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

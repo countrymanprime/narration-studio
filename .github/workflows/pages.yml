@@ -1,5 +1,5 @@
 name: Pages
-# Publishes the public site (apps/site, built by apps/site/build/build-demo-site.mjs into dist-site/) to GitHub Pages:
+# Publishes the public site (src/web, built by src/web/build/build-demo-site.mjs into dist-site/) to GitHub Pages:
 # the landing page at the root, the condensed guides under /docs/, the windowed demo of the app under /demo/ and the
 # Storybook component atlas under /storybook/. It is served at https://countrymanprime.github.io/narration-studio/ once the
 # owner sets Settings > Pages > Source to "GitHub Actions" (an owner-only setting, see docs/operations/github-workflow.md);
@@ -7,7 +7,7 @@ name: Pages
 #
 # Every link inside the site is relative, so the build needs no base path; the link check below runs with the project
 # sub-path /narration-studio/ to prove nothing reaches for the host's root. SITE_PUBLISHED=1 drops the "preview, not
-# published" notice that other builds of the site carry (apps/site/build/shell.mjs).
+# published" notice that other builds of the site carry (src/web/build/shell.mjs).
 #
 # A pull request builds and checks the site but uploads nothing and never reaches the deploy job, which also refuses any
 # ref but main (a manual start from a branch builds and stops). The token is read-only everywhere except the deploy job,
@@ -17,11 +17,11 @@ on:
   push:
     branches: [main]
     paths:
-      - apps/site/**
-      - apps/ui/src/**
-      - apps/ui/.storybook/**
-      - apps/ui/package.json
-      - apps/ui/vite.config.ts
+      - src/web/**
+      - src/studio/ui/src/**
+      - src/studio/ui/.storybook/**
+      - src/studio/ui/package.json
+      - src/studio/ui/vite.config.ts
       - docs/images/ui/**
       - docs/guides/**
       - tools/docs-site/check_site.py
@@ -29,11 +29,11 @@ on:
       - .github/workflows/pages.yml
   pull_request:
     paths:
-      - apps/site/**
-      - apps/ui/src/**
-      - apps/ui/.storybook/**
-      - apps/ui/package.json
-      - apps/ui/vite.config.ts
+      - src/web/**
+      - src/studio/ui/src/**
+      - src/studio/ui/.storybook/**
+      - src/studio/ui/package.json
+      - src/studio/ui/vite.config.ts
       - docs/images/ui/**
       - docs/guides/**
       - tools/docs-site/check_site.py
@@ -68,7 +68,10 @@ jobs:
       - name: Build the site
         env:
           SITE_PUBLISHED: '1'
-        run: pnpm --dir apps/site run build:site
+        run: pnpm --dir src/web run build:site
+      # The product's old name must not reach the published site, in a file name or a page (scripts/ci/old-name.mjs).
+      - name: Check the site never says the product's old name
+        run: node scripts/ci/old-name.mjs dir dist-site
       # check_site.py reads only the standard library. It follows every link and image of the built pages as Pages would
       # serve them under /narration-studio/ and fails on a dead one.
       - name: Check every link, served under /narration-studio/

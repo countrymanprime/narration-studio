@@ -14,8 +14,8 @@ What is delivered, and what is deliberately not:
   asset manager and its manifest, resume, repair and free-space check; the registry and the `Assets*` bindings (a later kind is a
   catalog file, a provider and a row on the page, with no new binding); the
   first-use dialog for Piper, Whisper and Story Bible (with the rules-only choice); Settings > Models & downloads; no download and no
-  request at startup other than the switch-off-able update check (tests in `apps/desktop/startup_offline_test.go`); the
-  legacy-cache policy; the developer seeding command; and the packaged smoke test, `narration-utils --smoke`, which CI runs on the
+  request at startup other than the switch-off-able update check (tests in `src/studio/desktop/startup_offline_test.go`); the
+  legacy-cache policy; the developer seeding command; and the packaged smoke test, `narration-studio --smoke`, which CI runs on the
   Windows build. Each shipped artifact's record (publisher, version, URL, SHA-256, licences, install location, update policy) is in
   [local dependency evaluation](../research/local-dependency-evaluation.md#shipped-assets).
 - **Not bundled.** No model, voice or dictionary is inside the release; a narrator downloads each one, once, after confirming.
@@ -24,7 +24,7 @@ What is delivered, and what is deliberately not:
 - **Windows only.** The setup program and the in-app update are Windows features ([CI and releases](../operations/ci-and-releases.md#the-windows-setup-program)),
   and Windows is the only platform the app ships on ([Supported platforms](../../README.md#supported-platforms)).
   The setup program is built in CI; its clean-machine run and the first stable release rehearsal are
-  [#231](https://github.com/countrymanprime/narration-utils/issues/231).
+  [#231](https://github.com/countrymanprime/narration-studio/issues/231).
 
 ## Product and implementation rules
 
@@ -52,7 +52,7 @@ What is delivered, and what is deliberately not:
   compatible choice solely because it has not been downloaded yet.
 - Put downloaded assets in a per-user application-data cache outside the
   installed release and outside a project folder. The Windows location is
-  `%LOCALAPPDATA%\narration-utils\assets`, nothing ever deletes an asset except the
+  `%LOCALAPPDATA%\narration-studio\assets`, nothing ever deletes an asset except the
   narrator's Remove, and there is one per-user folder, which every version and install of that user
   reuses, and no second store (an owner decision); asset paths must never be stored as checkout-relative paths.
 - Download to a temporary file, verify its hash and expected content before
@@ -88,7 +88,7 @@ and its base runtime into the GitHub release artifact. It must not call
 The developer bootstrap does not preload optional assets. Development exercises the same
 catalog and first-use installer as the released application. The one explicit way to have
 assets without the first-use download is the developer-only seeding command,
-`pnpm run assets:seed` (`apps/desktop/cmd/seed-assets`): it installs approved catalog assets by
+`pnpm run assets:seed` (`src/studio/desktop/cmd/seed-assets`): it installs approved catalog assets by
 `kind` or `kind/id` (`tts`, `whisper`, `spacy`, `moonshine` or `all`) into the same per-user cache through
 the same managers, catalogs and hash verification the app uses, so the app recognises what it
 installed. `--list` shows every approved asset and its state; `--cache-dir` installs somewhere
@@ -109,13 +109,13 @@ old cache who would rather reuse it is the trigger to design an explicit import 
 each file against the catalog (revisit then, not before). The tests
 `TestAFileInARetiredBootstrapFolderIsNeverAnInstalledAsset` and
 `TestARetiredBootstrapFolderNextToTheRealCacheIsIgnoredAtLaunch` in
-`apps/desktop/startup_offline_test.go` hold the policy.
+`src/studio/desktop/startup_offline_test.go` hold the policy.
 
 ## The asset manager (implemented)
 
-`apps/desktop/internal/assets` owns the lifecycle for every asset kind:
+`src/studio/desktop/internal/assets` owns the lifecycle for every asset kind:
 
-- **Layout.** `<per-user cache>/narration-utils/assets/<kind>/<provider>/<id>/<version>/`. The cache folder is `os.UserCacheDir()`; when the operating system cannot name it there is no fallback to the temporary folder, the catalog is unavailable and the host log says why. Nothing ever deletes an installed asset except the narrator's Remove.
+- **Layout.** `<per-user cache>/narration-studio/assets/<kind>/<provider>/<id>/<version>/`. The cache folder is `os.UserCacheDir()`; when the operating system cannot name it there is no fallback to the temporary folder, the catalog is unavailable and the host log says why. Nothing ever deletes an installed asset except the narrator's Remove.
 - **Manifest.** `manifest.json` in the install folder records provider, id, exact version, every file with its size, SHA-256, source URL and modification time, when it was installed and last verified, and whether the last Verify found it damaged.
 - **State is cheap.** A listing trusts the manifest: an asset whose manifest names the catalog's files, sizes and hashes and whose files still have the recorded size and modification time is `installed` without reading a byte (all five Whisper models, 5.3 GB, list in 0.6 ms; reading them was 3.2 s). Anything else is hashed. The first use of an asset in a session (`assets.Ready`, called by `Paths` and `Dir`) reads it in full once, so damage since the install is found before the model loads. `Verify` always reads it in full and records the result; a failed one marks the asset `verification_failed` until `Repair`.
 - **Install and repair.** Files download to `<version>.installing`, each is checked against its size and SHA-256, and the folder is renamed into place; a folder that is already there is renamed aside first and removed only when the new one is in, and put back if that fails. A file the catalog does not name never lands in an install. `Repair` reads the asset, downloads it again only if it is damaged, and leaves a good one alone.
@@ -133,9 +133,9 @@ The gated call, the prompt, the download and the retry, for a Whisper model that
 sequenceDiagram
   autonumber
   actor N as Narrator
-  participant UI as apps/ui: useAssetInstall, AssetInstallPrompt
-  participant B as apps/desktop: bindings.go, bindings_assets.go
-  participant J as apps/desktop: installjobs.go
+  participant UI as src/studio/ui: useAssetInstall, AssetInstallPrompt
+  participant B as src/studio/desktop: bindings.go, bindings_assets.go
+  participant J as src/studio/desktop: installjobs.go
   participant A as internal/assets: InstallWith
   participant HF as Hugging Face (pinned URL)
   participant C as user cache: assets/kind/provider/id/version
@@ -164,11 +164,11 @@ sequenceDiagram
   B-->>UI: status started (modelDir is the verified install)
 ```
 
-*Verified 2026-09-21 against `bindings.go` (`TranscriptStart`, `modelAssetRequired`), `bindings_assets.go`, `installjobs.go` (`startInstall`, `runInstall`), `internal/assets/store.go` (`InstallWith`, `swapIn`), `internal/assets/download.go` and `apps/ui/src/hooks/useAssetInstall.ts` (`POLL_MS = 400`). Nothing before step 5 downloads anything: steps 1 to 4 are a gate that answers with what would be downloaded. A failure at any step leaves the staging folder or its `.part` files and never a half-installed asset; Cancel ends the job and keeps what arrived for the next attempt. The threats at each step are rows 1a to 1d of the [threat model](threat-model.md#1-first-use-downloads-securitymd-bullet-2).*
+*Verified 2026-09-21 against `bindings.go` (`TranscriptStart`, `modelAssetRequired`), `bindings_assets.go`, `installjobs.go` (`startInstall`, `runInstall`), `internal/assets/store.go` (`InstallWith`, `swapIn`), `internal/assets/download.go` and `src/studio/ui/src/hooks/useAssetInstall.ts` (`POLL_MS = 400`). Nothing before step 5 downloads anything: steps 1 to 4 are a gate that answers with what would be downloaded. A failure at any step leaves the staging folder or its `.part` files and never a half-installed asset; Cancel ends the job and keeps what arrived for the next attempt. The threats at each step are rows 1a to 1d of the [threat model](threat-model.md#1-first-use-downloads-securitymd-bullet-2).*
 
 ## The asset registry (implemented)
 
-Every kind of asset is one provider in a registry that is built once at start and never replaced. Six generic bindings serve all of them: `AssetsList` (state, size, publisher, licence and provenance links, install path, installed and verified times, and the download running for each asset; it reads no file contents), `AssetsInstall(kind, id)` (installs, or repairs a damaged asset; a second call for a running download joins it), `AssetsInstallState`, `AssetsInstallCancel`, `AssetsVerify` and `AssetsRemove` (refused while the asset downloads; it removes only that asset). The install is the one job of The asset registry (implemented). Adding a kind is a catalog file, a provider and a row on the page, with no new `Assets*` binding. The Story Bible language models (spaCy, [guidegate.go](../../apps/desktop/guidegate.go)) and the Moonshine live-engine models are such kinds. Moonshine's ids (`tiny`, `small`) are the same words the Whisper catalog uses; they never collide because the install directory is built from each catalog entry's own `provider` field (`moonshine`, `faster-whisper`), not the kind alone. The reader's offline dictionary (`config/dictionary-assets.json`, kind `dictionary`, provider `oewn`) is registered with `registerDictionaries`; its only binding of its own is the lookup, `SystemLookup(word)`, which answers `asset_required` (the dictionary, its download and on-disk sizes and where it goes) until the narrator confirms `AssetsInstall("dictionary", "oewn-2025")`, and then reads the index in the Go host with no server (`apps/desktop/dictionarylookup.go`). The MP3 encoder's FFmpeg build (`config/encoder-assets.json`, kind `encoder`, provider `ffmpeg`, [encoder-assets.json](../../config/encoder-assets.json)) is registered with `registerEncoders`: its install unpacks the pinned wheel and keeps only `ffmpeg.exe`, and only when that file's own SHA-256 is the pinned one (`internal/ffmpeg`); it is offered on Windows only, and the encoder asks `ffmpeg.Manager.Path` for it, which reads it in full once per session before the first encode runs it. It is the one downloaded asset that is an executable (threat model row 1f). The export job picks its encoder from the `encodeport` registry (`encodeFor`, `apps/desktop/export_job.go`) and reports `none installed` when no row writes the format. The voice and Whisper bindings that predate the registry (`TtsInstall`, `WhisperRemove`, ...) are wrappers over the same functions until the pages that use them move over.
+Every kind of asset is one provider in a registry that is built once at start and never replaced. Six generic bindings serve all of them: `AssetsList` (state, size, publisher, licence and provenance links, install path, installed and verified times, and the download running for each asset; it reads no file contents), `AssetsInstall(kind, id)` (installs, or repairs a damaged asset; a second call for a running download joins it), `AssetsInstallState`, `AssetsInstallCancel`, `AssetsVerify` and `AssetsRemove` (refused while the asset downloads; it removes only that asset). The install is the one job of The asset registry (implemented). Adding a kind is a catalog file, a provider and a row on the page, with no new `Assets*` binding. The Story Bible language models (spaCy, [guidegate.go](../../src/studio/desktop/guidegate.go)) and the Moonshine live-engine models are such kinds. Moonshine's ids (`tiny`, `small`) are the same words the Whisper catalog uses; they never collide because the install directory is built from each catalog entry's own `provider` field (`moonshine`, `faster-whisper`), not the kind alone. The reader's offline dictionary (`config/dictionary-assets.json`, kind `dictionary`, provider `oewn`) is registered with `registerDictionaries`; its only binding of its own is the lookup, `SystemLookup(word)`, which answers `asset_required` (the dictionary, its download and on-disk sizes and where it goes) until the narrator confirms `AssetsInstall("dictionary", "oewn-2025")`, and then reads the index in the Go host with no server (`src/studio/desktop/dictionarylookup.go`). The MP3 encoder's FFmpeg build (`config/encoder-assets.json`, kind `encoder`, provider `ffmpeg`, [encoder-assets.json](../../config/encoder-assets.json)) is registered with `registerEncoders`: its install unpacks the pinned wheel and keeps only `ffmpeg.exe`, and only when that file's own SHA-256 is the pinned one (`internal/ffmpeg`); it is offered on Windows only, and the encoder asks `ffmpeg.Manager.Path` for it, which reads it in full once per session before the first encode runs it. It is the one downloaded asset that is an executable (threat model row 1f). The export job picks its encoder from the `encodeport` registry (`encodeFor`, `src/studio/desktop/export_job.go`) and reports `none installed` when no row writes the format. The voice and Whisper bindings that predate the registry (`TtsInstall`, `WhisperRemove`, ...) are wrappers over the same functions until the pages that use them move over.
 
 ### The Story Bible analysis tools
 
@@ -181,13 +181,13 @@ The optional analysis tools (`config/analysis-assets.json`, kind `analysis`, lab
 
 ## The models and downloads list (implemented)
 
-Settings > Models & downloads (a category of the Settings page, [Settings](../guides/using-the-app/settings.md#models-and-downloads)) is the one place to see, repair and remove what the app keeps on this computer. `apps/ui/src/components/settings/page/ModelsPane.tsx` lists `AssetsList`, so a new kind of asset appears there with no page work. `settings/models/AssetsStore.tsx` reads the list once for the page and runs the downloads started from it or from the offer under a model choice (`AssetNote`): it starts the install, follows its job (`assetsInstallState`, every 400 ms) to the end, and follows a download that was already running when the page opened through the list's `activeJobId`, so leaving the page never loses one. Each row shows the name, kind, size, what the asset is for, its status (not installed, downloading with the real bytes and percent and Cancel while bytes arrive, checking the download, installed · checked, needs repair (`verification_failed`), download failed or not available yet), the pages that read it and the settings that choose it. Not installed offers Download, installed offers Remove, needs repair offers Repair (the install call, which repairs) and Remove, and a failed download offers Retry. Remove is a confirm that names the settings using the asset, moves each to the smallest other installed choice and is refused when there is none (`settings/models/assetUse.ts`). A failed download or removal is written in the row, never silent. The page also shows the total the installed assets use and the cache folder. The page has no Verify button: `AssetsVerify` stays in the contract for a later use.
+Settings > Models & downloads (a category of the Settings page, [Settings](../guides/using-the-app/settings.md#models-and-downloads)) is the one place to see, repair and remove what the app keeps on this computer. `src/studio/ui/src/components/settings/page/ModelsPane.tsx` lists `AssetsList`, so a new kind of asset appears there with no page work. `settings/models/AssetsStore.tsx` reads the list once for the page and runs the downloads started from it or from the offer under a model choice (`AssetNote`): it starts the install, follows its job (`assetsInstallState`, every 400 ms) to the end, and follows a download that was already running when the page opened through the list's `activeJobId`, so leaving the page never loses one. Each row shows the name, kind, size, what the asset is for, its status (not installed, downloading with the real bytes and percent and Cancel while bytes arrive, checking the download, installed · checked, needs repair (`verification_failed`), download failed or not available yet), the pages that read it and the settings that choose it. Not installed offers Download, installed offers Remove, needs repair offers Repair (the install call, which repairs) and Remove, and a failed download offers Retry. Remove is a confirm that names the settings using the asset, moves each to the smallest other installed choice and is refused when there is none (`settings/models/assetUse.ts`). A failed download or removal is written in the row, never silent. The page also shows the total the installed assets use and the cache folder. The page has no Verify button: `AssetsVerify` stays in the contract for a later use.
 
 ## The packaged smoke test (implemented)
 
-`narration-utils --smoke` proves what "the release contains everything needed to start" claims, on the executable that ships: it
+`narration-studio --smoke` proves what "the release contains everything needed to start" claims, on the executable that ships: it
 unpacks the bundled resources, starts every frozen sidecar, checks that the frozen Story Bible sidecar can load its dictionary and
-start its speech phonemizer (the data a freeze silently loses), loads the approved catalogs (`checkCatalogs` in `apps/desktop/smoke.go`), writes the asset cache and checks
+start its speech phonemizer (the data a freeze silently loses), loads the approved catalogs (`checkCatalogs` in `src/studio/desktop/smoke.go`), writes the asset cache and checks
 the REAPER package, prints a JSON report and exits non-zero on any failure, with no window and no download. CI runs it on the
 Windows build before the asset is packaged; details, the checks and the decision not to download the voice in CI are in
 [CI and releases](../operations/ci-and-releases.md#the-packaged-app-smoke-test).

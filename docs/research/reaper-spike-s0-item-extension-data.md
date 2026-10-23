@@ -11,14 +11,14 @@
 | What do split, duplicate, copy and undo do to a stamp? | Split: both halves keep it (the right half gets a new GUID). Duplicate: the copy keeps it. A state-chunk copy (what a paste serializes) keeps it. Undo removes the stamp exactly and redo restores it. | Line identity survives the edits a narrator makes |
 | Does stamping disturb the rest of a project? | No. On a copy of a real 41-item project, stamping five items added exactly five `<EXTI` blocks (21 lines) and changed the header save time; nothing else. | The "no unreviewed edits" success metric |
 | Does the bridge work in a real REAPER? | Yes after one fix to the bridge found here (below). All 37 scripted checks pass. | PRD phases 1, 3 and 4 evidence |
-| Is there a REAPER-saved fixture pack? | Yes, `apps/desktop/internal/tracks/testdata/reaper/` (README there). | Evidence ledger parser superset, take review, recording coverage |
+| Is there a REAPER-saved fixture pack? | Yes, `src/studio/desktop/internal/tracks/testdata/reaper/` (README there). | Evidence ledger parser superset, take review, recording coverage |
 
 ## Method
 
 - **Machine and build.** Windows 11, REAPER 7.80/x64 rev 9d9fa7 (13 Sep 2026), an evaluation license. **REAPER opened the default Windows audio device on start** (WaveOut, Microsoft Sound Mapper, two in, two out, 44.1 kHz) even though the first-run "select an audio device" prompt was answered No: nothing was recorded, armed or played, but the device was open while the scripts ran (the runs before the guard below). Every script now calls `reaper.Audio_Quit()` first and asserts `Audio_IsRunning() == 0`; the last runs passed that guard. Lua 5.4 inside REAPER, and `debug.getinfo` works there.
 - **Isolation.** `reaper.exe -cfgfile <temp>\reaper.ini -nosplash -newinst -noactivate [<copy of a .rpp>] <script.lua>`. The resource directory is a temp folder, so the owner's settings, scripts and projects are not read or written. Two first-run dialogs appear in a fresh resource directory and the driver answers them: "select an audio device" (No) and the evaluation notice (closed). A `-ignoreerrors` flag is available for projects with missing media.
 - **The owner's project.** `Challenges_001.rpp` was **copied** (the `.rpp` only, 103,872 bytes) to a temp folder and only the copy was opened. The original's SHA-256 is unchanged (`998b2d14...`) and no file in its folder is newer than the copy. Because only the `.rpp` was copied, its 41 items had offline media, which does not matter for structure.
-- **Scripts.** [`integrations/reaper/spikes/`](../../integrations/reaper/spikes/) (README there): `probe.lua`, `enumcheck.lua`, `build_cases.lua`, `checklist.lua`, `real_project.lua`, and the driver `run-reaper.ps1`. The fixtures use synthetic 3-second tones as media. The driver refuses a `-Cfg`, `-Out` or `-Project` outside the temp folder or under a `REAPER Media` folder, quotes every argument, and each script asserts at start that REAPER's resource path is the scratch `-Cfg` folder, closes the audio device and asserts it is closed. **Recorded outputs** (paths removed) are in `integrations/reaper/spikes/results/`: `build-cases-report.txt`, `checklist-report.txt` (the run with the guards), `real-project-summary.txt` and `audio-probe.txt` (the default audio device REAPER opens on start).
+- **Scripts.** [`src/studio/integrations/reaper/spikes/`](../../src/studio/integrations/reaper/spikes/) (README there): `probe.lua`, `enumcheck.lua`, `build_cases.lua`, `checklist.lua`, `real_project.lua`, and the driver `run-reaper.ps1`. The fixtures use synthetic 3-second tones as media. The driver refuses a `-Cfg`, `-Out` or `-Project` outside the temp folder or under a `REAPER Media` folder, quotes every argument, and each script asserts at start that REAPER's resource path is the scratch `-Cfg` folder, closes the audio device and asserts it is closed. **Recorded outputs** (paths removed) are in `src/studio/integrations/reaper/spikes/results/`: `build-cases-report.txt`, `checklist-report.txt` (the run with the guards), `real-project-summary.txt` and `audio-probe.txt` (the default audio device REAPER opens on start).
 
 ## Extension data in the saved file
 
@@ -27,8 +27,8 @@
   ...
   IGUID {86C04508-9091-445A-964E-F53883A33A97}
   <EXTI
-    narration_utils_line_id line-000001
-    narration_utils_line_text "The first line, with | a pipe."
+    narration_studio_line_id line-000001
+    narration_studio_line_text "The first line, with | a pipe."
   >
   NAME "take A"
   GUID {01900541-E2B7-4A63-9468-52EF0E33CC23}
@@ -36,7 +36,7 @@
     FILE "media/take_a.wav"
   >
   <EXT
-    narration_utils_take_note "take-level value"
+    narration_studio_take_note "take-level value"
   >
 >
 ```
@@ -45,7 +45,7 @@
 - **Value forms.** A bare token when it has no spaces; `"..."` when it has spaces; a backtick pair for the value with both kinds of quote that was tried (marker names with only double quotes are `'...'` quoted, so a reader must accept all three quote characters); and a `<BIN key` sub-block of base64 (wrapped at 128 characters) for a value with a line break or a very long one. A reader has to handle all four.
 - **API behaviour.** A missing key reads as `false, ''`. Setting returns `true, value`. Multi-line values round-trip in memory and are stored as `<BIN`, but the bridge already flattens line breaks (`one_line`), so line text never takes that path.
 - **Item and take GUIDs.** In REAPER 7 an item chunk has `IGUID` (the item, which is what `GetSetMediaItemInfo_String(item, "GUID")` returns) and one `GUID` per take. The hand-written `basic.rpp` fixture puts the item's GUID under `GUID`; a parser must read `IGUID`.
-- **Undo and pointers.** Undo and redo replace REAPER's item objects, so a script must look items up by GUID again afterwards. The stamp block is one undo entry, "Narration Utils: stamp manuscript line IDs", and Undo then Redo restores the stamp.
+- **Undo and pointers.** Undo and redo replace REAPER's item objects, so a script must look items up by GUID again afterwards. The stamp block is one undo entry, "Narration Studio: stamp manuscript line IDs", and Undo then Redo restores the stamp.
 - **Not exercised.** REAPER's clipboard actions (copy and paste items, actions 40698, 42398, 40058) do nothing when driven headless (no focused arrange window), so a real paste was not tested; a state-chunk copy, which is what a paste serializes, keeps the extension block. A manual paste is on the owner's list.
 
 ## What else the saved files show (fixture pack)
@@ -101,4 +101,4 @@ The harness fake ([The DAW port](../architecture/daw-integration.md#the-daw-port
 
 ## Reproduce
 
-See [`integrations/reaper/spikes/README.md`](../../integrations/reaper/spikes/README.md). Everything runs from a fresh temp `-Out` folder and a temp `-Cfg`; a different REAPER version will write different files, which is why the version is recorded with the fixtures.
+See [`src/studio/integrations/reaper/spikes/README.md`](../../src/studio/integrations/reaper/spikes/README.md). Everything runs from a fresh temp `-Out` folder and a temp `-Cfg`; a different REAPER version will write different files, which is why the version is recorded with the fixtures.

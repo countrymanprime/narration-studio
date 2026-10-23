@@ -1,6 +1,6 @@
 # The Audacity verification pass
 
-The Audacity adapter was built from Audacity's published scripting spec and tested against a fake pipe server. It was first tested against a running Audacity on 2026-10-19, on Linux, by the hosted-runner tests ([results](../research/audacity-3-real-edits-results.md), [CI design](../research/real-audacity3-ci-integration.md)); those found and fixed several commands that did not work as built ([The DAW port](../architecture/daw-integration.md#the-daw-port), [the spec note](../research/audacity-4-scripting-spec.md)). It has not run on Windows or with a real microphone. This pass is the owner's check of what only a real Audacity can show. It works the way the REAPER checks do ([The DAW port](../architecture/daw-integration.md#the-daw-port)). Until it passes, every Audacity capability stays **Experimental**, and it is tracked on [#510](https://github.com/countrymanprime/narration-utils/issues/510).
+The Audacity adapter was built from Audacity's published scripting spec and tested against a fake pipe server. It was first tested against a running Audacity on 2026-10-19, on Linux, by the hosted-runner tests ([results](../research/audacity-3-real-edits-results.md), [CI design](../research/real-audacity3-ci-integration.md)); those found and fixed several commands that did not work as built ([The DAW port](../architecture/daw-integration.md#the-daw-port), [the spec note](../research/audacity-4-scripting-spec.md)). It has not run on Windows or with a real microphone. This pass is the owner's check of what only a real Audacity can show. It works the way the REAPER checks do ([The DAW port](../architecture/daw-integration.md#the-daw-port)). Until it passes, every Audacity capability stays **Experimental**, and it is tracked on [#510](https://github.com/countrymanprime/narration-studio/issues/510).
 
 - **Part A** runs unattended in about a minute and writes a results file.
 - **Part B** is five short checks by eye and ear.
@@ -22,7 +22,7 @@ Paste all three into #510.
 In PowerShell, from the repository root:
 
 ```powershell
-cd apps\desktop
+cd src\studio\desktop
 $env:NU_AUDACITY_PASS = "1"
 $env:NU_AUDACITY_PASS_DIR = "C:\Temp\nu-audacity-pass"
 $env:NU_AUDACITY_VERSION = "3.7.x"   # what Help > About Audacity says
@@ -48,8 +48,8 @@ It writes `audacity-pass-results.md` into the scratch folder and prints the same
 | A10 | Loop 3 to 7.5 s for 2 s (`PlayAtSpeedLooped`) | PASS (Part B checks that it looped at normal speed) |
 | A11 | `Stop` | PASS: playback stops |
 | A12 | Add the marker label "pass marker" at 10 s, twice | PASS: added once |
-| A13 | `Export2` 1 to 6 s to `narration-utils\audacity\pass-chapter-01.wav` in the scratch folder | PASS: the file appears with audio in it |
-| A14 | Write the reviewed labels to `narration-utils\audacity\reviewed-labels-01.txt` | PASS: one line, for `pass-2` |
+| A13 | `Export2` 1 to 6 s to `narration-studio\audacity\pass-chapter-01.wav` in the scratch folder | PASS: the file appears with audio in it |
+| A14 | Write the reviewed labels to `narration-studio\audacity\reviewed-labels-01.txt` | PASS: one line, for `pass-2` |
 | A15 | Ask for a `.CL` export (Audacity's external-program exporter) | PASS: refused by the app, nothing sent |
 
 ## Part B (by eye and ear, about five minutes)
@@ -84,7 +84,7 @@ By ear, after the run: the tone is silent from 4 to 4.5 s (C2's gap), and the au
 
 ## Backups (not in Part A yet; run on a Linux Audacity)
 
-A real Audacity 3.7.7 on Linux ran the first, second and fourth checks below and the last one through the adapter ([results](../research/audacity-3-real-edits-results.md), A3-T17): the restore was sample-for-sample the original, the pasted backup started at the window start, a stereo source got a stereo backup, and a deleted backup track was refused as stale. They have not run on Windows, and Part A does not run them. The `backups` role ([Audacity 3.x: what the app relies on](../reference/daw/audacity-3.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` on their own (`pass_live_test.go`, 2026-10-12): the bindings merged in SN-D82 ([#1567](https://github.com/countrymanprime/narration-utils/pull/1567)) without a pass step, and Part C runs a backup only as the first step of each edit. Until a step is added, each check below is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)), and none has run.
+A real Audacity 3.7.7 on Linux ran the first, second and fourth checks below and the last one through the adapter ([results](../research/audacity-3-real-edits-results.md), A3-T17): the restore was sample-for-sample the original, the pasted backup started at the window start, a stereo source got a stereo backup, and a deleted backup track was refused as stale. They have not run on Windows, and Part A does not run them. The `backups` role ([Audacity 3.x: what the app relies on](../reference/daw/audacity-3.md)) sends the commands spike 1g sends ([run sheet](daw-spike-run-sheet.md#1g-audacity-backups-snd-s7)), so the 1g result answers the first three checks below. Part A does not run `BackupAround` or `RestoreBackup` on their own (`pass_live_test.go`, 2026-10-12): the bindings merged in SN-D82 ([#1567](https://github.com/countrymanprime/narration-studio/pull/1567)) without a pass step, and Part C runs a backup only as the first step of each edit. Until a step is added, each check below is an unchecked line on the QA pass ([#1495](https://github.com/countrymanprime/narration-studio/issues/1495)), and none has run.
 
 | Check | Expected |
 | --- | --- |
@@ -166,6 +166,6 @@ Comment on #510, headed "Audacity 4 pass results", with:
 
 ## What happens with the results
 
-- **Everything passes:** a follow-up PR promotes `navigate` and `markers` from Experimental to Supported in `apps/desktop/internal/dawport/audacity/audacity.go`, records the pass in `docs/research/`, and updates [The DAW port](../architecture/daw-integration.md#the-daw-port) to Accepted.
-- **A step fails or behaves differently:** fix the client or adapter. Correct the fake (`apps/desktop/internal/audacitybridge/audacitybridgetest`) to match what Audacity really did, and add a test, as `docs/architecture/daw-integration.md#the-daw-port` does for REAPER. Then run the pass again.
+- **Everything passes:** a follow-up PR promotes `navigate` and `markers` from Experimental to Supported in `src/studio/desktop/internal/dawport/audacity/audacity.go`, records the pass in `docs/research/`, and updates [The DAW port](../architecture/daw-integration.md#the-daw-port) to Accepted.
+- **A step fails or behaves differently:** fix the client or adapter. Correct the fake (`src/studio/desktop/internal/audacitybridge/audacitybridgetest`) to match what Audacity really did, and add a test, as `docs/architecture/daw-integration.md#the-daw-port` does for REAPER. Then run the pass again.
 - **A1 fails on Audacity 4:** nothing to fix. The owner's version decision on #510 (`docs/architecture/daw-integration.md#the-daw-port`) decides whether to support Audacity 3.x now or wait for Audacity 4's script host.

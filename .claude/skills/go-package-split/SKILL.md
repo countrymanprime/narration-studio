@@ -1,13 +1,13 @@
 ---
 name: go-package-split
-description: Moving code out of the apps/desktop root package or splitting a growing internal/* package? The mechanics that keep depguard fences, checklocks, bindings and contract tests intact.
+description: Moving code out of the src/studio/desktop root package or splitting a growing internal/* package? The mechanics that keep depguard fences, checklocks, bindings and contract tests intact.
 ---
 
 # go-package-split
 
 ## Why this exists
 
-`apps/desktop` keeps its Wails bindings, host glue and tests in one root package (256 `.go` files as of 2026-10-10; `app.go` is 2,001 lines) next to 79 `internal/*` packages. A split done by feel breaks import fences, lock annotations or the contract tests without a compile error.
+`src/studio/desktop` keeps its Wails bindings, host glue and tests in one root package (256 `.go` files as of 2026-10-10; `app.go` is 2,001 lines) next to 79 `internal/*` packages. A split done by feel breaks import fences, lock annotations or the contract tests without a compile error.
 
 ## When to use this
 
@@ -16,7 +16,7 @@ Moving a type or file between packages, extracting a new `internal/<name>` packa
 ## What to do
 
 1. Run `change-impact-scan` on the symbols that will move: every importer, every `bindings_*.go`, every `*_contract_test.go`.
-2. Read `apps/desktop/.golangci.yml`. The depguard rules are ADR rules (no networking outside `internal/assets`, `internal/update` and `media.go`; analyzers do not touch the manuscript store, the Story Bible, settings, recents, the REAPER bridge or process launching). A package that moves into or out of a fenced area changes which rule applies: update the rule and its `desc`, do not suppress it.
+2. Read `src/studio/desktop/.golangci.yml`. The depguard rules are ADR rules (no networking outside `internal/assets`, `internal/update` and `media.go`; analyzers do not touch the manuscript store, the Story Bible, settings, recents, the REAPER bridge or process launching). A package that moves into or out of a fenced area changes which rule applies: update the rule and its `desc`, do not suppress it.
 3. Prefer the existing port pattern: define the interface in the consuming package (or an `internal/*port` package), keep the adapter separate, and put test doubles in an `*port/*test` subpackage.
 4. Move in small commits, each green: first move the tests with the code, then the code. Keep the exported names the bindings use unless the change is the point.
 5. Locks: a moved type that holds a mutex keeps its `checklocks` annotations; run `checklocks -test=false ./...`. The race detector is scoped by `docs/operations/verification-tooling.md#go-lint-and-the-race-detector`, so run it where the moved code has concurrency.

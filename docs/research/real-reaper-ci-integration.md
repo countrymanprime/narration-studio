@@ -1,11 +1,11 @@
 # Real-REAPER integration testing in CI
 
-**Researched 2026-10-18. Status: a design, plus a prototype in a separate pull request ([`claude/real-reaper-ci-workflow`](https://github.com/countrymanprime/narration-utils/tree/claude/real-reaper-ci-workflow)) that **ran green in a real REAPER 7.82 on Linux on 2026-10-19** (see [Result](#result-reaper-782-linux-under-xvfb-2026-10-19)); it has not run on a GitHub runner or on Windows.** Question: how do the bridge's actions get exercised against a real REAPER on a CI runner, with public-domain audiobook audio (decision D71), so the facts in [the REAPER reference](../reference/daw/reaper.md) are re-checked on every release instead of by the owner's hand?
+**Researched 2026-10-18. Status: a design, plus a prototype in a separate pull request ([`claude/real-reaper-ci-workflow`](https://github.com/countrymanprime/narration-studio/tree/claude/real-reaper-ci-workflow)) that **ran green in a real REAPER 7.82 on Linux on 2026-10-19** (see [Result](#result-reaper-782-linux-under-xvfb-2026-10-19)); it has not run on a GitHub runner or on Windows.** Question: how do the bridge's actions get exercised against a real REAPER on a CI runner, with public-domain audiobook audio (decision D71), so the facts in [the REAPER reference](../reference/daw/reaper.md) are re-checked on every release instead of by the owner's hand?
 
 ## What could and could not be checked here
 
 - The first pass of this note was written in a session that could not reach `www.reaper.fm`. It was run again on 2026-10-19 after the owner allowed the host: REAPER 7.82 (Linux x86_64 tarball, SHA-256 `a4aa961534f22ae5ae910e4ec0c200dcb4476c9f7556806fe09a9743cd582563`, verified against the download) ran under `xvfb-run` with no sound card (`/dev/snd` absent).
-- **Run:** the prototype in [the workflow pull request](https://github.com/countrymanprime/narration-utils/tree/claude/real-reaper-ci-workflow), against that REAPER and against the harness's fake. Results below.
+- **Run:** the prototype in [the workflow pull request](https://github.com/countrymanprime/narration-studio/tree/claude/real-reaper-ci-workflow), against that REAPER and against the harness's fake. Results below.
 - **Not run:** anything on Windows, anything on a GitHub-hosted runner, Verification pass Part A, and every row marked "no" in the matrix that needs playback or recording.
 - **Licence:** read from `REAPER/EULA.txt` in the tarball; the owner ruled on it on 2026-10-19. See [Licence](#licence).
 
@@ -13,7 +13,7 @@
 
 | Piece | What it proves | Runs in CI? |
 | --- | --- | --- |
-| Bridge harness, `integrations/reaper/tests` (`pnpm exec nx test reaper`) | The Lua's logic, refusals, events and undo labels against a fake `reaper` (Lua 5.4 under `lupa`), plus mutation checks. [`fake_fidelity_test.lua`](../../integrations/reaper/tests/fake_fidelity_test.lua) pins the facts recorded from REAPER 7.80. | Yes, in the PR gate |
+| Bridge harness, `src/studio/integrations/reaper/tests` (`pnpm exec nx test reaper`) | The Lua's logic, refusals, events and undo labels against a fake `reaper` (Lua 5.4 under `lupa`), plus mutation checks. [`fake_fidelity_test.lua`](../../src/studio/integrations/reaper/tests/fake_fidelity_test.lua) pins the facts recorded from REAPER 7.80. | Yes, in the PR gate |
 | Spikes S0, S5, S6, S7 and `run-reaper.ps1` | What REAPER itself does. Isolated `-cfgfile`, scratch project, `Audio_Quit()` first, dialogs answered by the driver. | No: run by hand on the owner's Windows machine |
 | Verification pass Part A, `run-pass-part-a.ps1` + `pass_part_a.lua` ([the pass](../operations/reaper-verification-pass.md)) | Rows A1 to A14: the real bridge from the working tree, a fresh registry, the file protocol, in REAPER, with the audio device closed. Builds its own scratch project from `make_media.py` tones; no owner path is hard-coded. | **No, and it needs no change to try**: it uses only `%TEMP%` and the installed `reaper.exe` |
 | [`windows-reaper-transport.yml`](../../.github/workflows/windows-reaper-transport.yml) | The only workflow that starts a real REAPER: installs the 7.80 evaluation build (hash-pinned), runs `transport_timing.lua`. Its recorded result: REAPER ran with the bridge heartbeat live, but the runner has **no audio device** ("Error opening devices") and the transport never left state 0 ([QA checklist 9.7](../operations/windows-qa-checklist.md)). | Manual only |
@@ -28,7 +28,7 @@ So the gap is not "can CI start REAPER" (it can) but that no workflow runs the c
 
 ## Action-by-action matrix
 
-"Fake" is what `integrations/reaper/tests` already proves. "Real only" is what only REAPER can show. The last two columns say whether `windows-latest` with no audio device can prove it and which LibriVox material it needs. Fixture ids are from [`sources.json`](../../tests/fixtures/audio/librivox-alice/sources.json): `kara_01` is Kara Shallenberg's Chapter I and `leach_01` is Eric Leach's reading of the same chapter, so two real readers of one text exist for take and comping tests. The recordings are public domain (LibriVox) and downloaded at test time with their pinned SHA-256; none is committed.
+"Fake" is what `src/studio/integrations/reaper/tests` already proves. "Real only" is what only REAPER can show. The last two columns say whether `windows-latest` with no audio device can prove it and which LibriVox material it needs. Fixture ids are from [`sources.json`](../../tests/fixtures/audio/librivox-alice/sources.json): `kara_01` is Kara Shallenberg's Chapter I and `leach_01` is Eric Leach's reading of the same chapter, so two real readers of one text exist for take and comping tests. The recordings are public domain (LibriVox) and downloaded at test time with their pinned SHA-256; none is committed.
 
 | Action | Command / event | Fake proves | Real only | CI, no device | LibriVox |
 | --- | --- | --- | --- | --- | --- |
@@ -53,9 +53,9 @@ So the gap is not "can CI start REAPER" (it can) but that no workflow runs the c
 
 ## Prototype
 
-In [the workflow pull request](https://github.com/countrymanprime/narration-utils/tree/claude/real-reaper-ci-workflow), `scripts/ci/real-reaper/` (the launcher sits under the `reaper` project so stylua lints it):
+In [the workflow pull request](https://github.com/countrymanprime/narration-studio/tree/claude/real-reaper-ci-workflow), `scripts/ci/real-reaper/` (the launcher sits under the `reaper` project so stylua lints it):
 
-- `integrations/reaper/spikes/ci_real_reaper_launcher.lua`, run **inside REAPER** by the `reaper.exe -cfgfile … project script` startup path of S6. It refuses to run unless the resource path is the scratch folder, closes the audio device, builds a one-track project with the LibriVox chapter as an item, loads the real `narration_ui_bridge.lua`, and adds four CI-only commands: `ci_state`, `ci_undo`, `ci_render` (action 42230, name-checked as in S5) and `ci_quit`.
+- `src/studio/integrations/reaper/spikes/ci_real_reaper_launcher.lua`, run **inside REAPER** by the `reaper.exe -cfgfile … project script` startup path of S6. It refuses to run unless the resource path is the scratch folder, closes the audio device, builds a one-track project with the LibriVox chapter as an item, loads the real `narration_ui_bridge.lua`, and adds four CI-only commands: `ci_state`, `ci_undo`, `ci_render` (action 42230, name-checked as in S5) and `ci_quit`.
 - `drive.py`, a Python driver that talks the same file protocol as the Go host (`commands/NNNNNNNN.cmd` in, `events.log` out) and prints one `PASS`, `FAIL` or `SKIP` per action, `results.md` and `results.json`. It also fetches the pinned chapter. The same driver runs against the fake (`--target fake`), which is how it was tested here.
 - `run-real-reaper-check.ps1` and `.github/workflows/real-reaper-bridge.yml` (`workflow_dispatch`): install the hash-pinned REAPER, fetch the chapter, start REAPER through the existing `run-reaper.ps1` (so the audio-device and save dialogs are answered as in the 9.7 run), run the driver, upload the report. The workflow is `risk:high` and needs the owner's approval.
 
@@ -73,7 +73,7 @@ In [the workflow pull request](https://github.com/countrymanprime/narration-util
 | stale track GUID | `TRACK_STALE` |
 | Chapter file as an item | `TRACK_ITEM` with the item GUID the launcher read, `kara_01.mp3` as the source and length 796.285896 s: **REAPER decoded the MP3 directly** |
 | `create_regions` | 3 created; the same payload again: 0 created, 3 existing |
-| Undo | `Undo_CanUndo2` read "Narration Utils: create regions"; one `Undo_DoUndo2` left 0 regions (C17's label and one-step part, for regions only) |
+| Undo | `Undo_CanUndo2` read "Narration Studio: create regions"; one `Undo_DoUndo2` left 0 regions (C17's label and one-step part, for regions only) |
 | `configure_chapter_render` | `RENDER_TARGETS` predicted `Chapter 1.wav`, `Chapter 2.wav`, `Chapter 3.wav` |
 | Render (action 42230) | Three files of that name, 20.0 s each, 44.1 kHz stereo 24-bit WAV, 5,292,690 bytes each: S5's `$region` result holds on 7.82/Linux |
 
@@ -122,5 +122,5 @@ The EULA has no clause on automated or unattended use. Caveat: a nightly `schedu
 
 ## Observations from reading the code
 
-- `docs/reference/daw/reaper.md` says the bridge's Lua subset has no bit operators, but [`narration_punch.lua:55`](../../integrations/reaper/narration_punch.lua) uses `reaper.GetPlayState() & 4 == 4`. It parses as `(state & 4) == 4` and works in Lua 5.4, which the harness and REAPER 7 run, so this is a documentation or style inconsistency, not a failing case. Not changed (the task excluded edits to the Lua).
+- `docs/reference/daw/reaper.md` says the bridge's Lua subset has no bit operators, but [`narration_punch.lua:55`](../../src/studio/integrations/reaper/narration_punch.lua) uses `reaper.GetPlayState() & 4 == 4`. It parses as `(state & 4) == 4` and works in Lua 5.4, which the harness and REAPER 7 run, so this is a documentation or style inconsistency, not a failing case. Not changed (the task excluded edits to the Lua).
 - `drive.py` reuses `tests/fixtures/audio/librivox-alice/sources.py` for the download, so the LibriVox pin lives in one file.

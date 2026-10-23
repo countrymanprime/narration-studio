@@ -1,5 +1,5 @@
 {
-  "generatedBy": "apps/ui scripts/atlas-docs.mjs",
+  "generatedBy": "src/studio/ui scripts/atlas-docs.mjs",
   "components": [
     {
       "title": "Story Bible/First-scan prompt",

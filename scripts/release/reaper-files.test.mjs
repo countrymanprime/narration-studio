@@ -6,14 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 import { REAPER_FILES } from './reaper-files.mjs';
 
-const reaperDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'integrations', 'reaper');
+const reaperDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'studio', 'integrations', 'reaper');
 const topLevelLua = () =>
   readdirSync(reaperDir, { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith('.lua'))
     .map((entry) => entry.name)
     .sort();
 
-test('the packaged REAPER file list is every top-level Lua file in integrations/reaper', () => {
+test('the packaged REAPER file list is every top-level Lua file in src/studio/integrations/reaper', () => {
   assert.deepEqual([...REAPER_FILES].sort(), topLevelLua(), 'add a new Lua file to scripts/release/reaper-files.mjs, or the installer check will not require it');
 });
 

@@ -25,7 +25,7 @@ Consequence, by outcome:
 | Result | Consequence for the PRD |
 | --- | --- |
 | Yes | Roll ships as one command (`roll`, SND-6a). The note names the recording mode that kept the earlier audio; the command refuses with that mode named when the project is in another, and never changes preferences. |
-| No | SND-6a is dropped from the Booth; [narration_punch.lua](../../integrations/reaper/narration_punch.lua)'s cursor-only roll stays. |
+| No | SND-6a is dropped from the Booth; [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua)'s cursor-only roll stays. |
 | Partly | Roll ships only for the mode(s) that kept the audio, and refuses otherwise. List the modes and any extra undo points. |
 
 ## 1b Cut (SND-S2)

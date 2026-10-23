@@ -225,7 +225,7 @@ What this means for the decision above:
   voiced on purpose, are still the deciding corpus (D19). This run is evidence for that decision, not a replacement.
 
 The decision above is left as it stands for the owner to review with this evidence
-([#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217)).
+([#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217)).
 
 ## Re-running this trial
 
@@ -233,7 +233,7 @@ On the owner's own recordings, or on the LibriVox reading. For the LibriVox read
 and point the trial at them (Praat installs in seconds with `uv run --with`, and nothing is added to the project):
 
 ```bash
-uv run --project sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py characters --out <scratch_dir_outside_the_repo>
+uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py characters --out <scratch_dir_outside_the_repo>
 cd scripts/research/character-continuity-acoustic-trial
 uv run --no-project --with numpy --with praat-parselmouth python run_trial.py <scratch_dir_outside_the_repo>/characters
 ```
@@ -264,5 +264,5 @@ and hand-check each line's timestamps against the source text as the PRD's proto
 `is_reference_eligible` should be `false` for any clip the narrator has not explicitly approved.
 `run_trial.py` does not care whether the corpus was synthesized or recorded.
 
-The owner's review is on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217); see [Sources](../../scripts/research/character-continuity-acoustic-trial/SOURCES.md) for
+The owner's review is on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217); see [Sources](../../scripts/research/character-continuity-acoustic-trial/SOURCES.md) for
 full provenance.

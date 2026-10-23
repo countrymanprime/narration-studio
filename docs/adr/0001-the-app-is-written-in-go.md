@@ -13,8 +13,8 @@ The app is a desktop program that drives a DAW, runs local models and keeps the 
 
 ## Decision
 
-- The host, `apps/desktop`, is written in **Go**.
-- The desktop shell is **Wails v3**, pinned to one exact beta in `apps/desktop/go.mod`, `@wailsio/runtime` in `apps/ui/package.json` and the CLI in `scripts/toolchain.json`. v3 was chosen over v2 because it can set the window zoom at run time. The UI reaches the host only through generated, typed bindings and native events; the app opens no loopback HTTP server and has no browser fallback. How the shell is called, built and pinned is in [the codebase map](../architecture/codebase-map.md) and the `wails-v3` skill.
+- The host, `src/studio/desktop`, is written in **Go**.
+- The desktop shell is **Wails v3**, pinned to one exact beta in `src/studio/desktop/go.mod`, `@wailsio/runtime` in `src/studio/ui/package.json` and the CLI in `scripts/toolchain.json`. v3 was chosen over v2 because it can set the window zoom at run time. The UI reaches the host only through generated, typed bindings and native events; the app opens no loopback HTTP server and has no browser fallback. How the shell is called, built and pinned is in [the codebase map](../architecture/codebase-map.md) and the `wails-v3` skill.
 
 ## Consequences
 

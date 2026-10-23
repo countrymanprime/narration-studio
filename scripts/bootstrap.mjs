@@ -54,7 +54,7 @@ export function localPython(root, platform = process.platform) {
 export function localPaths(root, platform = process.platform) {
   const separator = platform === 'win32' ? '\\' : '/';
   const path = (...parts) => [root.replace(/[\\/]+$/, ''), ...parts].join(separator);
-  return [localPython(root, platform), path('node_modules'), path('apps', 'ui', 'node_modules'), path('apps', 'desktop', 'node_modules')];
+  return [localPython(root, platform), path('node_modules'), path('src', 'studio', 'ui', 'node_modules'), path('src', 'studio', 'desktop', 'node_modules')];
 }
 
 export function localToolPaths(root, platform = process.platform) {
@@ -76,12 +76,12 @@ export function bootstrapCommands(root, python, platform = process.platform, pyt
 
 export function buildCommands() {
   return [
-    ['pnpm', ['--dir', 'apps/ui', 'run', 'build']],
-    ['go', ['-C', 'apps/desktop', 'test', './...']],
+    ['pnpm', ['--dir', 'src/studio/ui', 'run', 'build']],
+    ['go', ['-C', 'src/studio/desktop', 'test', './...']],
     // The REAPER launcher starts this binary as an end-user desktop app.
-    // Keep developer tools out of that path; use `pnpm --dir apps/desktop run dev`
+    // Keep developer tools out of that path; use `pnpm --dir src/studio/desktop run dev`
     // when an interactive Wails debugging session is wanted.
-    ['pnpm', ['--dir', 'apps/desktop', 'run', 'build']],
+    ['pnpm', ['--dir', 'src/studio/desktop', 'run', 'build']],
   ];
 }
 

@@ -1,6 +1,6 @@
 # Repo vs our rebuild: Master & QC, Delivery, Editing, Settings, project picker/import, app shell, design system
 
-Scope: the owner's "finishing" share. Repo = `/home/user/narration-utils` (read-only). Ours = `/tmp/claude-0/-home-user-narration-utils/af1a83ba-1a93-5f2f-9822-2dde169a851a/scratchpad/studio` (`src/`, `ARCHITECTURE.md`, `tests/`). ADR numbers were checked against `docs/adr/` file names and read where cited.
+Scope: the owner's "finishing" share. Repo = `/home/user/narration-studio` (read-only). Ours = `/tmp/claude-0/-home-user-narration-studio/af1a83ba-1a93-5f2f-9822-2dde169a851a/scratchpad/studio` (`src/`, `ARCHITECTURE.md`, `tests/`). ADR numbers were checked against `docs/adr/` file names and read where cited.
 
 ## 0. Things that could NOT be found in the repo (so there is nothing to translate)
 

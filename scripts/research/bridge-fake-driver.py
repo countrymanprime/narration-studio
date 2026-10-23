@@ -1,10 +1,10 @@
-"""Runs the real REAPER bridge script (integrations/reaper/narration_ui_bridge.lua) against the harness's fake `reaper` in a session folder
+"""Runs the real REAPER bridge script (src/studio/integrations/reaper/narration_ui_bridge.lua) against the harness's fake `reaper` in a session folder
 the caller names, ticking it like REAPER's defer loop, so the Go host's bridge client can be timed against it end to end.
 
     python scripts/research/bridge-fake-driver.py <session-dir> [--tick-min-ms 16] [--tick-max-ms 33]
 
 It prints ``READY`` once the bridge is running and ticks until its standard input closes. Used by the ``latency``-tagged Go test
-``apps/desktop/internal/latency/bridge_test.go`` (docs/research/2026-10-18-sidecar-start-up-and-bridge-round-trip.md). A research tool, not product code.
+``src/studio/desktop/internal/latency/bridge_test.go`` (docs/research/2026-10-18-sidecar-start-up-and-bridge-round-trip.md). A research tool, not product code.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-TESTS_DIR = ROOT / "integrations" / "reaper" / "tests"
+TESTS_DIR = ROOT / "src" / "studio" / "integrations" / "reaper" / "tests"
 sys.path.insert(0, str(TESTS_DIR))
 
 from lupa.lua54 import LuaRuntime

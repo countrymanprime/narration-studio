@@ -1,5 +1,5 @@
 # Real-REAPER bridge check on a disposable Windows runner: installs the REAPER evaluation build (pinned SHA-256), fetches one pinned
-# LibriVox chapter, starts REAPER isolated (-cfgfile, through integrations/reaper/spikes/run-reaper.ps1) with spikes/ci_real_reaper_launcher.lua, and
+# LibriVox chapter, starts REAPER isolated (-cfgfile, through src/studio/integrations/reaper/spikes/run-reaper.ps1) with spikes/ci_real_reaper_launcher.lua, and
 # runs drive.py against the live bridge. Design and limits: docs/research/real-reaper-ci-integration.md.
 #
 #   pwsh run-real-reaper-check.ps1 -OutDir <dir> -ExpectedSha256 <hex> [-Version 7.82] [-ExpectedSize <bytes>]
@@ -40,13 +40,13 @@ $project = Join-Path $work 'CiBook.rpp'
 Set-Content -Path $project -Value '<REAPER_PROJECT 0.1 "7.0" 0' -Encoding ascii
 Add-Content -Path $project -Value '>' -Encoding ascii
 $env:NARRATION_CI_SESSION = $session; $env:NARRATION_CI_OUT = $out; $env:NARRATION_CI_CFG = $cfg
-$env:NARRATION_CI_AUDIO = $audio; $env:NARRATION_CI_REAPER_DIR = Join-Path $repo 'integrations\reaper'
+$env:NARRATION_CI_AUDIO = $audio; $env:NARRATION_CI_REAPER_DIR = Join-Path $repo 'src\studio\integrations\reaper'
 
 # REAPER and its dialog handler run in the background; the driver talks to the bridge in the foreground.
 $job = Start-Job -ArgumentList $repo, $cfg, $out, $project, $PSScriptRoot -ScriptBlock {
   param($repo, $cfg, $out, $project, $here)
-  & pwsh -NoProfile -File (Join-Path $repo 'integrations\reaper\spikes\run-reaper.ps1') -Cfg $cfg -Out $out `
-    -Script (Join-Path $repo 'integrations\reaper\spikes\ci_real_reaper_launcher.lua') -Project $project -Done (Join-Path $out 'done') -TimeoutSec 240 -IgnoreErrors
+  & pwsh -NoProfile -File (Join-Path $repo 'src\studio\integrations\reaper\spikes\run-reaper.ps1') -Cfg $cfg -Out $out `
+    -Script (Join-Path $repo 'src\studio\integrations\reaper\spikes\ci_real_reaper_launcher.lua') -Project $project -Done (Join-Path $out 'done') -TimeoutSec 240 -IgnoreErrors
 }
 $rc = 1
 try {

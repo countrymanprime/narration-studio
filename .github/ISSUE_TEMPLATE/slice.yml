@@ -60,9 +60,9 @@ body:
       description: Narrow globs; a swap slice also lists the old files it deletes. Split the slice rather than claim a wide glob.
       placeholder: |
         Owns (globs):
-          apps/ui/src/components/primitives/Icon/**
+          src/studio/ui/src/components/primitives/Icon/**
         Must not touch (globs):
-          apps/desktop/**
+          src/studio/desktop/**
     validations:
       required: true
   - type: textarea

@@ -12,7 +12,7 @@ DAW knowledge was spread over dated research pages, a hand-kept table and the ad
 ## When to use this
 
 - Planning a feature that reads or changes something in a DAW.
-- Reviewing a change under `apps/desktop/internal/dawport/`, `internal/bridge/` or `integrations/reaper/`.
+- Reviewing a change under `src/studio/desktop/internal/dawport/`, `internal/bridge/` or `src/studio/integrations/reaper/`.
 - Deciding whether a capability can exist on Audacity.
 - Writing or reading a verification-pass row.
 - Adding an engine or a new engine version.
@@ -42,7 +42,7 @@ Load only the page the question needs.
 1. A new capability is a row in `dawport/capability.go`, a role interface in `roles.go`, a conformance case in `dawporttest`, and a section in `capabilities.md` in catalog order. The reference test fails until the section exists.
 2. REAPER commands follow `reaper-command-add`; a changed payload follows `wire-contract-change`.
 3. Declare the level honestly: Experimental until the owner's pass. Never Supported on a harness result alone.
-4. Regenerate the matrix: `UPDATE_DAW_DOCS=1 go test ./internal/dawport/dawportdoc` from `apps/desktop`. Commit the diff and read it.
+4. Regenerate the matrix: `UPDATE_DAW_DOCS=1 go test ./internal/dawport/dawportdoc` from `src/studio/desktop`. Commit the diff and read it.
 
 ### Review a change
 

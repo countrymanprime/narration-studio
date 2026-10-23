@@ -1,7 +1,7 @@
 # LibriVox Alice: real narration of the demo script
 
 Public-domain LibriVox readings of *Alice's Adventures in Wonderland*, the same Project Gutenberg text as the demo
-manuscript (`apps/ui/src/api/fixtures/alice-in-wonderland.txt`), plus the tools that cut and mix them into test corpora
+manuscript (`src/studio/ui/src/api/fixtures/alice-in-wonderland.txt`), plus the tools that cut and mix them into test corpora
 with known defects. The recordings are downloaded from archive.org when they are used; the repository holds where every
 paragraph and sentence sits in them and the recipes for each test state
 .
@@ -20,7 +20,7 @@ paragraph and sentence sits in them and the recipes for each test state
 | `alice_text.py`, `paragraph_spans.py`, `audio.py` | The manuscript, the alignment of script to audio (cuts land in the reader's pauses) and its markers, decoding, joining and writing. |
 | `coverage_corpus.py`, `characters_corpus.py`, `signal_corpus.py` | One builder per corpus; each module's docstring is its recipe format. |
 
-`sidecars/transcript-compare/tests/test_librivox_alice_corpus.py` checks, in `pnpm check` and with no network, that
+`src/studio/sidecars/transcript-compare/tests/test_librivox_alice_corpus.py` checks, in `pnpm check` and with no network, that
 at least 95% of each chapter's words are found in order, that the markers place every paragraph and sentence in order,
 and that every coverage recipe builds a case the harness accepts. Once the recordings are fetched it also checks their
 checksums, that the committed markers are the ones the recordings give, and that a signal edit is labelled where it was
@@ -31,11 +31,11 @@ made.
 Needs only the sidecar's environment (numpy and PyAV), and archive.org the first time: no model, no GPU.
 
 ```bash
-uv run --project sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py all --out ../narration-corpus
+uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py all --out ../narration-corpus
 ```
 
 The first run downloads the seven recordings (about 45 MB) into `NARRATION_LIBRIVOX_DIR`, or
-`~/.cache/narration-utils/librivox-alice` when it is unset, and keeps each only if its SHA-256 matches `sources.json`.
+`~/.cache/narration-studio/librivox-alice` when it is unset, and keeps each only if its SHA-256 matches `sources.json`.
 After that a build takes about 10 seconds. `build.py fetch` only downloads. `--out` must be outside the repository
 (about 620 MB of WAV). Build one corpus with `coverage`, `characters` or `signal` in place of `all`. The build is
 deterministic: the same recordings give byte-identical files.
@@ -49,12 +49,12 @@ a skipped paragraph, a skipped sentence, a pickup read at the end, a truncated t
 retake, three items, a paragraph replaced by another chapter's text, and a whole chapter whose script has editorial
 notes the reader's edition does not (`notRead`). Every item keeps its LibriVox preamble or closing credit, which is
 real unrelated speech. Labels follow the rules in
-[the coverage fixtures README](../../../../sidecars/transcript-compare/tests/fixtures/coverage/README.md#labeling-rules) and are derived from the
+[the coverage fixtures README](../../../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md#labeling-rules) and are derived from the
 recipe, so they are exact.
 
 ```bash
-NARRATION_COVERAGE_CORPUS=../narration-corpus/coverage uv run --project sidecars/transcript-compare python sidecars/transcript-compare/tests/coverage_harness.py --corpus-only
-uv run --project sidecars/transcript-compare python sidecars/transcript-compare/tests/coverage_calibration.py audio --corpus ../narration-corpus/coverage --model small=<model dir> --model medium=<model dir> --work ../narration-corpus/work
+NARRATION_COVERAGE_CORPUS=../narration-corpus/coverage uv run --project src/studio/sidecars/transcript-compare python src/studio/sidecars/transcript-compare/tests/coverage_harness.py --corpus-only
+uv run --project src/studio/sidecars/transcript-compare python src/studio/sidecars/transcript-compare/tests/coverage_calibration.py audio --corpus ../narration-corpus/coverage --model small=<model dir> --model medium=<model dir> --work ../narration-corpus/work
 ```
 
 The first command validates the labels. The second runs the shipped sidecar and Whisper over the audio. Results are in
@@ -74,13 +74,13 @@ uv run --no-project --with numpy --with praat-parselmouth python run_trial.py ..
 
 Results are in [character-continuity-acoustic-trial.md](../../../../docs/research/character-continuity-acoustic-trial.md#real-speech-re-run-librivox-2026-09-27).
 
-### `signal/`: the audio diagnostics on real narration (`docs/architecture/codebase-map.md, apps/desktop/internal/measure/edges.go, apps/desktop/internal/measure/cleanup.go`)
+### `signal/`: the audio diagnostics on real narration (`docs/architecture/codebase-map.md, src/studio/desktop/internal/measure/edges.go, src/studio/desktop/internal/measure/cleanup.go`)
 
 11 cases over the first 20 paragraphs of Kara's Chapter IX (3.8 minutes): an unedited control and one defect each.
 `labels.json` gives every defect's time in the built file, and `<id>.words.json` the transcript words for pacing.
 
 ```bash
-NARRATION_SIGNAL_CORPUS=../narration-corpus/signal go test ./internal/measure -run TestLibriVoxSignalCorpus -v   # from apps/desktop
+NARRATION_SIGNAL_CORPUS=../narration-corpus/signal go test ./internal/measure -run TestLibriVoxSignalCorpus -v   # from src/studio/desktop
 ```
 
 The same corpus is the editing check's real-speech click evaluation (`go test ./internal/editing -run
@@ -115,14 +115,14 @@ If a check misses a defect because of a known limit, add `knownIssue` to the edi
 ## Re-transcribe (maintainers only)
 
 ```bash
-uv run --project sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/transcribe.py --model <large-v3-turbo model dir>
+uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/transcribe.py --model <large-v3-turbo model dir>
 ```
 
 This took 15 minutes on 16 CPU threads. Then rewrite the markers from the recordings and run the tests, since the
 recipes' edit points depend on the cut points:
 
 ```bash
-uv run --project sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py markers
+uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py markers
 ```
 
 Do the same if archive.org ever replaces a recording: its SHA-256 stops matching, the build refuses it, and

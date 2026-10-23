@@ -1,5 +1,5 @@
 name: Site preview
-# Builds the public demo site (apps/site/build/build-demo-site.mjs, docs/operations/public-demo-site.md) and uploads it as a workflow artifact.
+# Builds the public demo site (src/web/build/build-demo-site.mjs, docs/operations/public-demo-site.md) and uploads it as a workflow artifact.
 # Manual only, read-only token, no secret, and nothing is published or deployed: this workflow never touches GitHub Pages and has no
 # `pages: write` or `id-token: write`. `pages.yml` stays the only way to publish.
 on:
@@ -27,6 +27,8 @@ jobs:
           need-python: 'false'
       - name: Build the site
         run: pnpm run site:build
+      - name: Check the site never says the product's old name
+        run: node scripts/ci/old-name.mjs dir dist-site
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: demo-site

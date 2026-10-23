@@ -12,10 +12,10 @@ Closes #
 
 - [ ] I ran the targeted local checks for what changed (listed above); the full `pnpm check` runs in the pipeline.
 - [ ] This change does not add unreviewed runtime/model artifacts.
-- [ ] If `apps/ui` changed: I looked at the visual-suite screenshots at every viewport, and ran `pnpm --dir apps/ui atlas` if a primitive or `styles.css` changed.
-- [ ] If `apps/ui` changed what a page draws or how it is used: this PR updates that page's guide, the text in `docs/guides/using-the-app/<page>.md` and its images (`node scripts/dev/guide-screenshots.mjs <page>`), and links the guide diff, or the description says `No guide change: <specific reason>`. It commits no other images.
-- [ ] If `apps/ui` changed: the description states the real-app (`pnpm --dir apps/ui visual:page <page>`) and Storybook (`pnpm --dir apps/ui atlas:page <page>`) results for the pages it names.
-- [ ] If `integrations/reaper` changed: I ran the bridge harness and verified REAPER's own API behaviour by hand inside REAPER (the harness fakes `reaper`).
+- [ ] If `src/studio/ui` changed: I looked at the visual-suite screenshots at every viewport, and ran `pnpm --dir src/studio/ui atlas` if a primitive or `styles.css` changed.
+- [ ] If `src/studio/ui` changed what a page draws or how it is used: this PR updates that page's guide, the text in `docs/guides/using-the-app/<page>.md` and its images (`node scripts/dev/guide-screenshots.mjs <page>`), and links the guide diff, or the description says `No guide change: <specific reason>`. It commits no other images.
+- [ ] If `src/studio/ui` changed: the description states the real-app (`pnpm --dir src/studio/ui visual:page <page>`) and Storybook (`pnpm --dir src/studio/ui atlas:page <page>`) results for the pages it names.
+- [ ] If `src/studio/integrations/reaper` changed: I ran the bridge harness and verified REAPER's own API behaviour by hand inside REAPER (the harness fakes `reaper`).
 - [ ] If this adds or changes a trust boundary (untrusted input crossing in: a download, the update, a sidecar's arguments, the DAW bridge, a file from someone else, the release pipeline; or a new privilege or network egress): I re-read its row in `docs/architecture/threat-model.md`, updated it and bumped its review date, and updated `SECURITY.md` if the reporter-facing scope changed.
 - [ ] If this adds or changes a file the app writes and reads back: I updated its row in `docs/reference/data-files.md` (location, schema link, retention). It has a threat-model row only if it names a path the host opens, a command it runs or a URL it fetches.
 - [ ] Docs: I updated the docs the change owes (`doc-impact-check` lists them), or the description says `Docs: none — <specific reason>`.

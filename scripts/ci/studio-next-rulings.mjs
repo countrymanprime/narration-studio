@@ -231,7 +231,7 @@ export function checkIndex(lines, rows, { sliceIds, testExists }) {
       }
     } else if (row.test === 'n/a') errors.push(`${row.id}: "n/a" needs a reason after the colon`);
     else if (row.test && row.test.length < MIN_TEST_NAME) errors.push(`${row.id}: test "${row.test}" is too short to be a test name`);
-    else if (row.test && !testExists(row.test)) errors.push(`${row.id}: test "${row.test}" is found nowhere in apps/, sidecars/, integrations/ or tests/`);
+    else if (row.test && !testExists(row.test)) errors.push(`${row.id}: test "${row.test}" is found nowhere in src/ or tests/`);
     if ((row.status === 'deferred' || row.status === 'rejected') && row.slice !== 'none') errors.push(`${row.id}: a ${row.status} row needs slice "none"`);
   }
   const agreed = rows.filter((row) => row.status === 'agreed' || row.status === 'agreed-with-conditions');
@@ -259,7 +259,7 @@ function loadSliceIds() {
 
 function gitGrepFinds(name) {
   try {
-    execFileSync('git', ['grep', '-qF', '--', name, '--', 'apps', 'sidecars', 'integrations', 'tests'], { cwd: ROOT });
+    execFileSync('git', ['grep', '-qF', '--', name, '--', 'src', 'tests'], { cwd: ROOT });
     return true;
   } catch {
     return false;

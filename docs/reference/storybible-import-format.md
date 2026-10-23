@@ -1,6 +1,6 @@
 # Story Bible import format (`storybible-import` v1)
 
-A narrator can bring a Story Bible in from a spreadsheet or from a JSON file made by any tool or LLM. The parser, the preview plan and the copyable prompt are in `apps/desktop/internal/extraction/importer`. The file is untrusted input: the package only parses bytes it is given, and it opens no file, path or URL.
+A narrator can bring a Story Bible in from a spreadsheet or from a JSON file made by any tool or LLM. The parser, the preview plan and the copyable prompt are in `src/studio/desktop/internal/extraction/importer`. The file is untrusted input: the package only parses bytes it is given, and it opens no file, path or URL.
 
 ## Rows
 
@@ -87,10 +87,10 @@ A file over a limit is refused with a sentence before any row is built.
 - An `entry` row about a known entry (by name or alias, ignoring case) **merges**: it adds the aliases the entry lacks. If it adds none, it is skipped as already in the Story Bible. A new entry is **added**.
 - A row about an entry that is in neither the Story Bible nor the file is an error naming the row.
 - A row offered or rejected before is skipped.
-- A locked entry is never edited (`sidecars/manuscript-guide/core/manuscript_guide.py`): a row that would change it is skipped.
+- A locked entry is never edited (`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`): a row that would change it is skipped.
 - Nothing is deleted.
 - Status comes from the shared rule (`docs/architecture/extraction-tiers.md#the-75-rule`): no confidence, or under 75%, or a quote not found in the manuscript, or a property or claim with no quote, is `needs-verification`; otherwise `accepted-auto`.
 
 ## The bindings
 
-The page sends the text of the file the narrator chose; no binding takes a path, so the host opens and fetches nothing. The commit parses and plans the text again and never takes the preview's word. Undo of an import (`ExtractionImportUndo`, one journal step) takes back what its suggestions applied, an entry it made and nobody has reviewed included, and removes them without a tombstone, so the same file offers them again. Each binding's behaviour is in the doc comments of `apps/desktop/bindings_extraction_import.go`.
+The page sends the text of the file the narrator chose; no binding takes a path, so the host opens and fetches nothing. The commit parses and plans the text again and never takes the preview's word. Undo of an import (`ExtractionImportUndo`, one journal step) takes back what its suggestions applied, an entry it made and nobody has reviewed included, and removes them without a tombstone, so the same file offers them again. Each binding's behaviour is in the doc comments of `src/studio/desktop/bindings_extraction_import.go`.

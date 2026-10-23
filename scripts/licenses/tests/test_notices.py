@@ -156,7 +156,7 @@ class TestReviewFindings:
         assert notices.classify_text("GNU LESSER GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007") == "LGPL-3.0"
 
     def test_a_reviewed_entry_only_names_a_licence_that_was_unknown(self):
-        known = [notices.Component("go", "example.com/m", "v1", "MIT", "", ("t",), "apps/desktop")]
+        known = [notices.Component("go", "example.com/m", "v1", "MIT", "", ("t",), "src/studio/desktop")]
 
         with pytest.raises(notices.NoticeError, match="example.com/m"):
             notices.render_report(version="0.1.0", components=known, program_license="AGPL", catalogs=[], reviewed={"example.com/m": "GPL-3.0-only"})
@@ -166,7 +166,7 @@ class TestReviewFindings:
             notices.render_report(version="0.1.0", components=[], program_license="AGPL", catalogs=[], reviewed={"ghost": "MIT"})
 
     def test_pnpms_own_spelling_of_no_licence_is_unknown_too(self):
-        unknown = [notices.Component("npm", "mystery", "1.0.0", "Unknown", "", ("t",), "apps/ui")]
+        unknown = [notices.Component("npm", "mystery", "1.0.0", "Unknown", "", ("t",), "src/studio/ui")]
 
         with pytest.raises(notices.NoticeError, match="mystery"):
             notices.render_report(version="0.1.0", components=unknown, program_license="AGPL", catalogs=[])
@@ -241,13 +241,13 @@ class TestReport:
         return [
             notices.Component("python", "numpy", "2.5.3", "BSD-3-Clause", "https://numpy.org", ("numpy licence text",), "manuscript-guide"),
             notices.Component("python", "piper-tts", "1.8.0", "GPL-3.0-or-later", "https://github.com/OHF-voice/piper1-gpl", ("GPL text",), "manuscript-guide"),
-            notices.Component("npm", "react", "19.2.0", "MIT", "https://react.dev", ("react licence text",), "apps/ui"),
+            notices.Component("npm", "react", "19.2.0", "MIT", "https://react.dev", ("react licence text",), "src/studio/ui"),
         ]
 
     def test_names_the_program_the_release_the_licence_and_where_the_source_is(self):
         text = notices.render_report(version="0.1.0", components=self.sample(), program_license="AGPL FULL TEXT", catalogs=[])
 
-        assert "narration-utils 0.1.0" in text
+        assert "narration-studio 0.1.0" in text
         assert "AGPL-3.0-or-later" in text
         assert "https://github.com/countrymanprime/narration-studio" in text
         assert "v0.1.0" in text
@@ -273,13 +273,13 @@ class TestReport:
         assert "react" not in copyleft
 
     def test_refuses_to_write_a_report_with_an_unknown_licence_that_nobody_reviewed(self):
-        unknown = [notices.Component("go", "example.com/mystery", "v1.0.0", "UNKNOWN", "", ("some text",), "apps/desktop")]
+        unknown = [notices.Component("go", "example.com/mystery", "v1.0.0", "UNKNOWN", "", ("some text",), "src/studio/desktop")]
 
         with pytest.raises(notices.NoticeError, match="example.com/mystery"):
             notices.render_report(version="0.1.0", components=unknown, program_license="AGPL", catalogs=[])
 
     def test_an_unknown_licence_that_is_listed_as_reviewed_passes_with_the_reviewed_name(self):
-        unknown = [notices.Component("go", "example.com/mystery", "v1.0.0", "UNKNOWN", "", ("some text",), "apps/desktop")]
+        unknown = [notices.Component("go", "example.com/mystery", "v1.0.0", "UNKNOWN", "", ("some text",), "src/studio/desktop")]
 
         text = notices.render_report(version="0.1.0", components=unknown, program_license="AGPL", catalogs=[], reviewed={"example.com/mystery": "BSD-3-Clause"})
 
@@ -332,15 +332,17 @@ class TestReport:
         assert notices.missing_direct("python", components, {"numpy"}) == set()
 
 
-needs_pnpm = pytest.mark.skipif(shutil.which("pnpm") is None or not (REPO_ROOT / "apps/ui/node_modules").exists(), reason="pnpm or the UI install is not here")
+needs_pnpm = pytest.mark.skipif(
+    shutil.which("pnpm") is None or not (REPO_ROOT / "src/studio/ui/node_modules").exists(), reason="pnpm or the UI install is not here"
+)
 needs_go = pytest.mark.skipif(shutil.which("go") is None, reason="go is not here")
 
 
 @needs_pnpm
 def test_the_real_npm_report_names_every_production_dependency_of_the_ui():
-    package = json.loads((REPO_ROOT / "apps/ui/package.json").read_text(encoding="utf-8"))
+    package = json.loads((REPO_ROOT / "src/studio/ui/package.json").read_text(encoding="utf-8"))
 
-    components = notices.npm_components(REPO_ROOT / "apps/ui")
+    components = notices.npm_components(REPO_ROOT / "src/studio/ui")
 
     assert components, "an empty report is not a notice"
     assert notices.missing_direct("npm", components, set(package.get("dependencies", {}))) == set()
@@ -349,8 +351,8 @@ def test_the_real_npm_report_names_every_production_dependency_of_the_ui():
 
 @needs_go
 def test_the_real_go_report_names_every_direct_module_the_windows_build_links():
-    components = notices.go_components(REPO_ROOT / "apps/desktop")
-    direct = notices.go_direct_requirements((REPO_ROOT / "apps/desktop/go.mod").read_text(encoding="utf-8"))
+    components = notices.go_components(REPO_ROOT / "src/studio/desktop")
+    direct = notices.go_direct_requirements((REPO_ROOT / "src/studio/desktop/go.mod").read_text(encoding="utf-8"))
     linked_direct = {name for name in direct if any(c.name == name for c in components) or name == "github.com/giraffesyo/pdf"}
 
     assert components, "an empty report is not a notice"

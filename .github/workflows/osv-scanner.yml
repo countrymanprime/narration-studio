@@ -9,7 +9,7 @@ on:
     paths:
       - 'pnpm-lock.yaml'
       - 'uv.lock'
-      - 'apps/desktop/go.mod'
+      - 'src/studio/desktop/go.mod'
       - '.github/workflows/osv-scanner.yml'
   schedule:
     - cron: '41 6 * * *'
@@ -35,7 +35,7 @@ jobs:
       scan-args: |-
         --lockfile=pnpm-lock.yaml
         --lockfile=uv.lock
-        --lockfile=apps/desktop/go.mod
+        --lockfile=src/studio/desktop/go.mod
       fail-on-vuln: false
 
   osv-scanner:
@@ -50,5 +50,5 @@ jobs:
       scan-args: |-
         --lockfile=pnpm-lock.yaml
         --lockfile=uv.lock
-        --lockfile=apps/desktop/go.mod
+        --lockfile=src/studio/desktop/go.mod
       fail-on-vuln: false

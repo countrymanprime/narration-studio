@@ -1,0 +1,308 @@
+// The browser mock's edit-and-proof workspace alignment. It shares the
+// coverage mock's state, reasons and basis (an alignment is only ever as current as the coverage result it came
+// from) and builds tokens from the mock manuscript's real paragraph text, one per whitespace word, read in order at
+// a narration pace. It never runs anything. The played-range join (WorkspaceItem.live) is real when the
+// chapter has a confirmed, still-live track link (mockChapterLink=confirmed, or chapterTrackMappings seeded some
+// other way): the workspace's own player needs a real item GUID and source file to seek the mock's fake WAV
+// (mockAudioSource, src/studio/ui/src/api/mockApi.ts) against, same as Tracks' player does.
+import type {
+  CoverageReport,
+  CoverageResult,
+  FindingNavigation,
+  FindingNavigationRefusal,
+  ManuscriptChapter,
+  ManuscriptParagraph,
+  TrackMapping,
+  TracksProject,
+  WorkspaceAlignmentResult,
+  WorkspaceApi,
+  WorkspaceExtra,
+  WorkspaceExtraWord,
+  WorkspaceFXChainsResult,
+  WorkspaceItem,
+  WorkspacePeaks,
+  WorkspacePeaksEntry,
+  WorkspaceToken,
+} from '../types';
+import { mockRepeatedWords } from './coverageMock';
+import { REAPER_MESSAGES, type MockReaper } from './findingsMock';
+import { SPEECH_PEAKS_MINMAX, SPEECH_PEAKS_PER_SECOND } from './fixtures/speechPeaks';
+
+type Deps = {
+  chapters: () => ManuscriptChapter[];
+  paragraphs: () => ManuscriptParagraph[];
+  coverageResult: (chapterId: string) => CoverageResult;
+  project: TracksProject;
+  mappings: () => TrackMapping[];
+  /** What the mock's REAPER does for Go to, shared with the Review
+   * page's own mock REAPER (`initial.reaper`, mockApi.ts); `connected` when not given. */
+  reaper?: MockReaper;
+  /** The narrator's FX chains for workspaceListFXChains: a small realistic sample when not given. */
+  fxChains?: string[];
+};
+
+const DEFAULT_MOCK_FX_CHAINS = ['Podcast Voice.RfxChain', 'Vocal Warmth.RfxChain'];
+
+const refused = (reason: FindingNavigationRefusal, message: string): FindingNavigation => ({ outcome: 'refused', reason, message });
+
+// The workspace's own words for a token that cannot be placed (src/studio/desktop/bindings_workspace.go): a word, never
+// "this finding" - REAPER_MESSAGES.standalone/notRunning/stale/recording/outdated are connection- and REAPER-level,
+// so they read the same for any caller and are reused as-is.
+const WORKSPACE_MESSAGES = {
+  noItem: "This word wasn't heard in the recording, so there's nothing to go to. Run the check again if the chapter has changed.",
+};
+
+/** A narration pace, for the mock's token times only (matches coverageMock.ts's own). */
+const WORDS_PER_MINUTE = 155;
+const SECONDS_PER_WORD = 60 / WORDS_PER_MINUTE;
+
+/** The mock's recogniser, named as the host names a first pass with the default model (coverage.engineOf). */
+const MOCK_ENGINE = { id: 'whisper:small', name: 'Whisper small' };
+/** Why every word score is null: the words file carries no Whisper word probabilities. */
+const NO_WORD_SCORES = 'no_word_scores';
+
+/** An extra run's words spread evenly between its ends, as the host's coverage.extraWords does for a run on one item. */
+function mockExtraWords(extra: WorkspaceExtra): WorkspaceExtraWord[] {
+  const texts = extra.text.split(/\s+/).filter(Boolean);
+  const from = extra.start.sourceTime;
+  const step = (extra.end.sourceTime - from) / Math.max(texts.length, 1);
+  return texts.map((text, k) => ({
+    text,
+    item: extra.start.itemIndex,
+    start: from + step * k,
+    end: from + step * (k + 1),
+    added: true,
+    timing: 'spread',
+    conf: null,
+    confReason: NO_WORD_SCORES,
+  }));
+}
+
+/** A cheap, deterministic stand-in for "what Whisper heard" on one demonstration word - not a real ASR confusion,
+ * just something a screenshot can show next to the correct word. */
+function mockMisheard(text: string): string {
+  const letters = text.replace(/[^A-Za-z]/g, '');
+  if (letters.length < 3) return `${text}h`;
+  return text.replace(letters, letters.slice(1) + letters[0]);
+}
+
+function regionParagraphIds(report: CoverageReport, kind: CoverageReport['regions'][number]['kind']): Set<string> {
+  const ids = new Set<string>();
+  report.regions.filter((region) => region.kind === kind).forEach((region) => region.paragraphIds.forEach((id) => ids.add(id)));
+  return ids;
+}
+
+/** The chapter's linked track's first playable item, real and live - the same fixture Tracks reads (WIRE_TRACKS_PROJECT) -
+ * so the workspace's own player has a real itemGuid/sourceFile to seek the mock audio source against. Empty when the
+ * chapter has no confirmed link, or its link points at a track no longer in the project (as ChapterTrackButton shows it). */
+function mockLiveItem(deps: Deps, chapterId: string): WorkspaceItem | undefined {
+  const mapping = deps.mappings().find((entry) => entry.chapterId === chapterId);
+  const track = mapping ? deps.project.tracks.find((candidate) => candidate.guid === mapping.trackGuid) : undefined;
+  const item = track?.items.find((candidate) => candidate.supported && candidate.sourceAvailable);
+  if (!item) return undefined;
+  return {
+    index: 0,
+    itemGuid: item.guid,
+    live: true,
+    takeGuid: item.takeGuid,
+    sourceStart: item.sourceStart,
+    playRate: item.playRate,
+    position: item.position,
+    length: item.length,
+  };
+}
+
+function mockTokens(
+  paragraphs: ManuscriptParagraph[],
+  report: CoverageReport | undefined,
+  itemIndex: number | undefined,
+): { tokens: WorkspaceToken[]; extras: WorkspaceExtra[] } {
+  const skipIds = report ? regionParagraphIds(report, 'skip') : new Set<string>();
+  const tailIds = report ? regionParagraphIds(report, 'tail') : new Set<string>();
+  const shortIds = report ? regionParagraphIds(report, 'short_read') : new Set<string>();
+
+  const tokens: WorkspaceToken[] = [];
+  const extras: WorkspaceExtra[] = [];
+  let index = 0;
+  let elapsed = 0;
+  let misheardPlaced = false;
+  for (const paragraph of paragraphs) {
+    const words = paragraph.text.split(/\s+/).filter(Boolean);
+    const wholeParagraphSkipped = skipIds.has(paragraph.id);
+    const wholeParagraphTail = tailIds.has(paragraph.id);
+    const halfReadShort = shortIds.has(paragraph.id);
+    words.forEach((word, ordinal) => {
+      const start = elapsed;
+      const end = start + SECONDS_PER_WORD;
+      elapsed = end;
+      const missing = wholeParagraphSkipped || wholeParagraphTail || (halfReadShort && ordinal >= Math.ceil(words.length / 2));
+      if (missing) {
+        tokens.push({ i: index, p: paragraph.id, w: ordinal, text: word, status: wholeParagraphTail ? 'tail' : wholeParagraphSkipped ? 'skip' : 'short_read' });
+      } else if (!misheardPlaced && word.length >= 3 && itemIndex !== undefined) {
+        // One deterministic misread, for the flag legend and detail panel to have something real to show.
+        tokens.push({ i: index, p: paragraph.id, w: ordinal, text: word, status: 'misread', heard: mockMisheard(word), item: itemIndex, start, end });
+        misheardPlaced = true;
+        // A short repeat right after it (the "extra words, repeats" flag): the
+        // narrator said the previous word again before moving on.
+        extras.push({
+          text: word,
+          tokens: 1,
+          start: { itemIndex, itemGuid: '', sourceTime: end },
+          end: { itemIndex, itemGuid: '', sourceTime: end + SECONDS_PER_WORD },
+          afterToken: index,
+        });
+      } else if (itemIndex !== undefined) {
+        tokens.push({ i: index, p: paragraph.id, w: ordinal, text: word, status: 'read', item: itemIndex, start, end });
+      } else {
+        // No live item to attach a time to (no confirmed track link): the text still shows, with no playable position.
+        tokens.push({ i: index, p: paragraph.id, w: ordinal, text: word, status: 'read' });
+      }
+      index += 1;
+    });
+    // The line said twice the coverage mock reports (issue #2251 item 30): its words said again after "sorry", at the end of the paragraph, the
+    // second take the Editing page shows as "Read twice" and Proof as "Said twice".
+    const said = report?.gaps?.find((gap) => gap.repeatOf && gap.paragraphIds[0] === paragraph.id);
+    const allRead = !wholeParagraphSkipped && !wholeParagraphTail && !halfReadShort;
+    if (said && allRead && itemIndex !== undefined) {
+      const again = mockRepeatedWords(paragraph.text);
+      extras.push({
+        text: ['sorry', ...again].join(' '),
+        tokens: again.length + 1,
+        start: { itemIndex, itemGuid: '', sourceTime: elapsed },
+        end: { itemIndex, itemGuid: '', sourceTime: elapsed + (again.length + 1) * SECONDS_PER_WORD },
+        afterToken: index - 1,
+        repeatOf: { start: index - again.length, end: index, first: 1, last: again.length + 1, text: again.join(' ') },
+      });
+      elapsed += (again.length + 1) * SECONDS_PER_WORD;
+    }
+  }
+  return { tokens, extras };
+}
+
+// tokensFor is workspaceAlignment's own tokens and live item for a chapter, reused by workspaceGoTo so
+// a token index it is sent resolves to the same item and source time workspaceAlignment showed for it.
+function tokensFor(deps: Deps, chapterId: string): { tokens: WorkspaceToken[]; liveItem: WorkspaceItem | undefined } {
+  const result = deps.coverageResult(chapterId);
+  const chapter = deps.chapters().find((candidate) => candidate.id === chapterId);
+  if (!chapter || result.state === 'never') return { tokens: [], liveItem: undefined };
+  const chapterParagraphs = deps.paragraphs().filter((paragraph) => paragraph.chapterId === chapterId);
+  const liveItem = mockLiveItem(deps, chapterId);
+  return { tokens: mockTokens(chapterParagraphs, result.result, liveItem?.index).tokens, liveItem };
+}
+
+/** The one deterministic misread token's real position for chapterId (mockTokens's single seeded misread, above): the
+ * live item's real GUID and the misread word's source time range, for a `transcript_discrepancy` mock finding
+ * to carry - so the mock Review-page finding and the mock workspace's own check-derived misread flag are the same
+ * event, merged by `overlayFindings` in the workspace, rather than two mock fixtures whose numbers happen to agree.
+ * Undefined when the chapter has no confirmed live item or its check placed no misread (mockTokens never times a token without one). */
+export function mockMisreadFindingSource(deps: Deps, chapterId: string): { itemGuid: string; start: number; end: number; heard: string } | undefined {
+  const { tokens, liveItem } = tokensFor(deps, chapterId);
+  const misread = tokens.find(
+    (token): token is WorkspaceToken & { start: number; end: number; heard: string } =>
+      token.status === 'misread' && token.start !== undefined && token.end !== undefined && token.heard !== undefined,
+  );
+  if (!liveItem || !misread) return undefined;
+  return { itemGuid: liveItem.itemGuid, start: misread.start, end: misread.end, heard: misread.heard };
+}
+
+// reaperRefusal is the connection- and REAPER-level part of workspaceRefusal (bindings_workspace.go): standalone, not
+// running, stale, recording, an old script. It never sees the token itself - workspaceGoTo checks that first.
+function reaperRefusal(mode: MockReaper): FindingNavigation | undefined {
+  if (mode === 'standalone') return refused('standalone', REAPER_MESSAGES.standalone);
+  if (mode === 'not-running') return refused('not_running', REAPER_MESSAGES.notRunning);
+  if (mode === 'stale') return refused('stale', REAPER_MESSAGES.stale);
+  if (mode === 'recording') return refused('recording', REAPER_MESSAGES.recording);
+  if (mode === 'outdated') return refused('script_outdated', REAPER_MESSAGES.outdated);
+  return undefined;
+}
+
+/** A deterministic stand-in for measure.ComputePeaks: a real narrator's peaks (`fixtures/speechPeaks.ts`) repeated over the item's length,
+ * in the same bucket rate and byte layout the host sends, and identical from one call to the next - the visual suite masks a waveform state
+ * only when its content is non-deterministic (state-catalog.ts), and this mock's is not. */
+const MOCK_BUCKETS_PER_SECOND = SPEECH_PEAKS_PER_SECOND;
+
+let speech: Int8Array | null = null;
+const speechBytes = (): Int8Array => {
+  if (!speech) {
+    const binary = atob(SPEECH_PEAKS_MINMAX);
+    speech = new Int8Array(Uint8Array.from(binary, (ch) => ch.charCodeAt(0)).buffer);
+  }
+  return speech;
+};
+
+function mockPeaksFor(item: WorkspaceItem): WorkspacePeaks {
+  const playedSeconds = Math.max(0, (item.length ?? 0) * (item.playRate ?? 1));
+  const buckets = Math.round(playedSeconds * MOCK_BUCKETS_PER_SECOND);
+  const source = speechBytes();
+  const sourceBuckets = source.length / 2;
+  const bytes = new Int8Array(buckets * 2);
+  for (let bucket = 0; bucket < buckets; bucket += 1) {
+    const from = bucket % sourceBuckets;
+    bytes[2 * bucket] = source[2 * from];
+    bytes[2 * bucket + 1] = source[2 * from + 1];
+  }
+  let binary = '';
+  for (const byte of new Uint8Array(bytes.buffer)) binary += String.fromCharCode(byte);
+  return { startSeconds: 0, bucketsPerSecond: MOCK_BUCKETS_PER_SECOND, buckets, minMax: btoa(binary), sampleRate: 48000, channels: 1 };
+}
+
+export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTakes' | 'workspaceTakesCompareStart' | 'workspaceUseTake'> {
+  const mode = deps.reaper ?? 'connected';
+  const target = (chapterId: string, tokenIndex: number): WorkspaceToken | undefined => tokensFor(deps, chapterId).tokens[tokenIndex];
+
+  return {
+    workspaceAlignment: async (chapterId) => {
+      const result = deps.coverageResult(chapterId);
+      const base: WorkspaceAlignmentResult = {
+        chapterId,
+        state: result.state,
+        reasons: result.reasons,
+        ...(result.basis ? { basis: result.basis } : {}),
+        ...(result.state === 'current' && result.record ? { recordId: result.record.id } : {}),
+        needsAlignAgain: false,
+        paragraphs: [],
+        tokens: [],
+        extras: [],
+        items: [],
+      };
+      const chapter = deps.chapters().find((candidate) => candidate.id === chapterId);
+      if (!chapter) return base;
+      // The chapter's heading, as the host sends it, for the page to set against what was heard.
+      const heading = { ...(chapter.title ? { title: chapter.title } : {}), ...(chapter.subtitle ? { subtitle: chapter.subtitle } : {}) };
+      const chapterParagraphs = deps.paragraphs().filter((paragraph) => paragraph.chapterId === chapterId);
+      // Nothing checked yet: the chapter still reads its script, with nothing heard (as the host answers).
+      if (result.state === 'never') return { ...base, ...heading, paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })) };
+      const liveItem = mockLiveItem(deps, chapterId);
+      const { tokens, extras } = mockTokens(chapterParagraphs, result.result, liveItem?.index);
+      const resolvedExtras = extras.map((extra) => ({
+        ...extra,
+        start: { ...extra.start, itemGuid: liveItem?.itemGuid ?? '' },
+        end: { ...extra.end, itemGuid: liveItem?.itemGuid ?? '' },
+        words: mockExtraWords(extra),
+      }));
+      return {
+        ...base,
+        ...heading,
+        paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })),
+        tokens: tokens.map((token) => ({ ...token, conf: null, confReason: NO_WORD_SCORES })),
+        extras: resolvedExtras,
+        items: liveItem ? [liveItem] : [],
+        ...(tokens.length ? { engine: MOCK_ENGINE } : {}),
+      };
+    },
+    workspaceGoTo: async (chapterId, tokenIndex) => {
+      const token = target(chapterId, tokenIndex);
+      if (token?.item === undefined) return refused('no_item', WORKSPACE_MESSAGES.noItem);
+      return reaperRefusal(mode) ?? { outcome: 'navigated', projectTime: token.start ?? 0 };
+    },
+    workspaceListFXChains: async (): Promise<WorkspaceFXChainsResult> => {
+      if (mode !== 'connected') throw new Error('REAPER is not connected to this app: open REAPER; the app connects to it by itself');
+      return { names: deps.fxChains ?? DEFAULT_MOCK_FX_CHAINS, truncated: false };
+    },
+    workspacePeaks: async (chapterId) => {
+      const liveItem = mockLiveItem(deps, chapterId);
+      const items: WorkspacePeaksEntry[] = liveItem ? [{ index: liveItem.index, peaks: mockPeaksFor(liveItem) }] : [];
+      return { chapterId, items };
+    },
+  };
+}

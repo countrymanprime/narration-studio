@@ -60,7 +60,7 @@ Serves Edit and Proof Workspace (deleted PRD `edit-and-proof-workspace`) Phase 6
 | `reaper.SetActiveTake(MediaItem_Take take)` | "set this take active in this media item" |
 | `GetActiveTake(item)`, `CountTakes(item)`, `GetTake(item, i)` | Already used by `create_take` and the navigation file |
 
-One undo block ("Narration Utils: use take"); a take that is already active changes nothing. The pass checks one Undo in REAPER restores the previous active take and that `SetActiveTake` makes no second undo point of its own.
+One undo block ("Narration Studio: use take"); a take that is already active changes nothing. The pass checks one Undo in REAPER restores the previous active take and that `SetActiveTake` makes no second undo point of its own.
 
 ## FX: `list_fx_chains`, `apply_fx_chain`, `list_fx`, `add_take_fx` (read, then write)
 
@@ -77,7 +77,7 @@ Serve Edit and Proof Workspace Phases 8 and 9 (EP8, EP9). **The owner's rule (20
 | `MediaItem right = reaper.SplitMediaItem(MediaItem item, number position)` | "The original item becomes the left-hand split, the function returns the right-hand split (or NULL if the split failed)". `add_take_fx` splits at the passage's end first and then at its start, so the piece in the middle is the second call's return value (or the original item when the passage starts at the item's start). |
 | `integer index = reaper.TakeFX_AddByName(MediaItem_Take take, string fxname, integer instantiate)` and `TakeFX_GetCount(take)` | "Adds or queries the position of a named FX in a take." `add_take_fx` passes the listed plug-in name and -1, and checks the count grew by exactly one. Sending it again for the same piece adds another plug-in without splitting again. |
 
-`apply_fx_chain` is one undo block ("Narration Utils: apply FX chain <name> to <track>") and touches no item. `add_take_fx` is one undo block ("Narration Utils: add take FX <name>") holding both splits and the add. The pass checks one Undo in REAPER removes a chain from a track and rejoins a split item, what a split does to the item's take markers and extension data (spike S0 says line ids survive a split), and whether REAPER's default split crossfade changes the passage's edges.
+`apply_fx_chain` is one undo block ("Narration Studio: apply FX chain <name> to <track>") and touches no item. `add_take_fx` is one undo block ("Narration Studio: add take FX <name>") holding both splits and the add. The pass checks one Undo in REAPER removes a chain from a track and rejoins a split item, what a split does to the item's take markers and extension data (spike S0 says line ids survive a split), and whether REAPER's default split crossfade changes the passage's edges.
 
 ## `create_regions` (write)
 

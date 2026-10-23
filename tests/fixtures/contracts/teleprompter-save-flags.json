@@ -5,7 +5,7 @@
     "analyzer": "teleprompter",
     "project": {
       "path": "C:/Projects/Alice",
-      "output_path": "narration-utils/findings/teleprompter/ch-1.json"
+      "output_path": "narration-studio/findings/teleprompter/ch-1.json"
     },
     "source": {},
     "manuscript": {
@@ -44,7 +44,7 @@
     "analyzer": "teleprompter",
     "project": {
       "path": "C:/Projects/Alice",
-      "output_path": "narration-utils/findings/teleprompter/ch-1.json"
+      "output_path": "narration-studio/findings/teleprompter/ch-1.json"
     },
     "source": {},
     "manuscript": {
@@ -81,7 +81,7 @@
     "analyzer": "teleprompter",
     "project": {
       "path": "C:/Projects/Alice",
-      "output_path": "narration-utils/findings/teleprompter/ch-1.json"
+      "output_path": "narration-studio/findings/teleprompter/ch-1.json"
     },
     "source": {},
     "manuscript": {
@@ -119,7 +119,7 @@
     "analyzer": "teleprompter",
     "project": {
       "path": "C:/Projects/Alice",
-      "output_path": "narration-utils/findings/teleprompter/ch-1.json"
+      "output_path": "narration-studio/findings/teleprompter/ch-1.json"
     },
     "source": {},
     "manuscript": {

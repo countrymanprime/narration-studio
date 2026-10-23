@@ -1,6 +1,6 @@
 # BookNLP spike: licences, pins, footprint and quality
 
-**Date:** 2026-10-11. **Issue:** [#1142](https://github.com/countrymanprime/narration-utils/issues/1142), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer BookNLP as an optional download, which exact files, under which licence, at what cost, and can it share the environment GLiNER needs.
+**Date:** 2026-10-11. **Issue:** [#1142](https://github.com/countrymanprime/narration-studio/issues/1142), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer BookNLP as an optional download, which exact files, under which licence, at what cost, and can it share the environment GLiNER needs.
 
 **Verdict: ship behind "not yet available".** The program is MIT, the weights have no stated licence (a risk the owner accepted for this narrow use, SNX-Q3), and every weight file is pinned below. Its speaker attribution was the strongest local result in the 2026-10-10 trial. It stays "not yet available" because its loader failed on a current `transformers` in that trial, and the one environment SNX-Q4 assumes cannot be confirmed: GLiNER needs `transformers>=4.51.3` and the trial ran BookNLP on `4.44.2`.
 
@@ -130,7 +130,7 @@ Cluster-to-name matching used normalised name strings. The rules baseline in the
 - **Loader fragility:** in the trial `load_state_dict` raised `Unexpected key(s): bert.embeddings.position_ids` for every checkpoint on `transformers==4.44.2`, worked around by dropping that key from the loaded dictionary in the runner, and the package imports `pkg_resources` (needs `setuptools<81`). The last release is from 2024-07-12.
 - **Shared environment (SNX-Q4):** `gliner` 0.2.29 requires `transformers>=4.51.3,<5.17.0`; the trial ran BookNLP on `transformers==4.44.2`. Whether BookNLP runs on a `transformers` that satisfies GLiNER is **untested**. If it does not, "separate optional wheels in the one environment" cannot hold, and BookNLP needs its own sidecar mode with its own environment (`sidecar-add`), which also keeps its loader patch out of the Story Bible sidecar. The owner run below decides it.
 - **Registry fetch:** the `booknlp` wheel, `torch` and `transformers` are PyPI wheels with published sizes and hashes. The six weight files and five encoders are plain hashed files. The host redirects `http` to `https`, so the catalog URLs must be `https`.
-- **What the freeze must do:** as for GLiNER, keep the heavy packages out of the frozen tree and import them from the unpacked install directory at run time. The files of `sidecar-freeze` that change: `scripts/release/prepare-resources.py` (`exclude_modules`, not `collect_*`), `scripts/release/verify-installable.mjs` (the freeze must not carry `torch`), `apps/desktop/smoke.go` or the sidecar `self-check` (report "booknlp: not installed" as a normal state), and `scripts/release/tests/test_prepare_resources.py`. If BookNLP gets its own sidecar mode, `sidecar-add` also applies (project, test, packaging, asset and threat-model rows).
+- **What the freeze must do:** as for GLiNER, keep the heavy packages out of the frozen tree and import them from the unpacked install directory at run time. The files of `sidecar-freeze` that change: `scripts/release/prepare-resources.py` (`exclude_modules`, not `collect_*`), `scripts/release/verify-installable.mjs` (the freeze must not carry `torch`), `src/studio/desktop/smoke.go` or the sidecar `self-check` (report "booknlp: not installed" as a normal state), and `scripts/release/tests/test_prepare_resources.py`. If BookNLP gets its own sidecar mode, `sidecar-add` also applies (project, test, packaging, asset and threat-model rows).
 - **Threat model:** unpickling a weight file executes code, so the download must be hashed before load. SN-X61 and SNX-7b re-read the first-use-download row of `docs/architecture/threat-model.md`; this slice does not edit it.
 
 ## Recommendation
@@ -139,7 +139,7 @@ Cluster-to-name matching used normalised name strings. The rules baseline in the
 
 ## Owner steps
 
-These go to [#992](https://github.com/countrymanprime/narration-utils/issues/992) (D65: none blocks a merge).
+These go to [#992](https://github.com/countrymanprime/narration-studio/issues/992) (D65: none blocks a merge).
 
 1. Confirm the encoder mapping and pin the rest: for each of the five encoders, record the full revision and the hashes of `config.json` and `vocab.txt`:
 

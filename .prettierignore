@@ -3,4 +3,4 @@ bin/
 obj/
 dist/
 logs/
-apps/ui/tests/visual/fixtures/
+src/studio/ui/tests/visual/fixtures/

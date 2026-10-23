@@ -1,0 +1,326 @@
+package audacity
+
+import (
+	"cmp"
+	"context"
+	"fmt"
+	"math"
+	"slices"
+	"strconv"
+	"sync"
+
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+)
+
+// steps is the role of each capability Audacity has only with backups on (takes, punch, stack_takes, cut_range, fx_range,
+// range_gain, click_repair; PRD DQ-18). Audacity keeps no takes and its edits change the audio itself, so each edit is a listed series of scripting commands
+// made after BackupAround has cloned the audio around it: a roll (steps_roll.go), a cut and an effect on a range
+// (steps_range.go), a stack and an un-stack (steps_stack.go), lowered stretches (ReduceRangeGain, below) and repaired clicks (RepairClick, below). Each answers a Result whose Steps are the edits in the order
+// they were sent and whose UndoSteps counts the ones that add an Audacity undo point (selecting and copying add none); how many
+// Audacity really adds was measured on Linux (src/studio/tests/audacity3/real/edits, A3-T22c: an effect, a rename and a mute add none) and is
+// checked on Windows by the owner's pass (docs/operations/audacity-verification-pass.md).
+//
+// Every check is made before the backup, and the backup before the first edit: a request out of shape is Refused, a track named
+// that Audacity no longer lists is RefusedStale, and a backup that is refused or fails stops the call with its answer. The role
+// treats backups as unavailable when the adapter has no project folder for them; then a cut, an effect, a stack and an un-stack
+// refuse with the capability's sentence and send nothing, and a roll records over the audio, as the destructive capability the
+// page confirmed says. Whether the narrator turned backups on is the resolver's to enforce. Audacity's track id is its name (docs/reference/daw/audacity-3.md), so an item, track or take GUID in a request is the name of an Audacity track. Setting the active take,
+// hiding takes, punching in and reading the play position are not built for Audacity and answer docs/architecture/daw-integration.md#audacity-boundary's sentence.
+type steps struct {
+	client  *audacitybridge.Client
+	backups *Backups
+	// mu keeps one edit's commands, from its checks to its last edit, from interleaving with another's on the shared pipe.
+	mu sync.Mutex
+}
+
+var (
+	_ dawport.Puncher          = (*steps)(nil)
+	_ dawport.TakeSelector     = (*steps)(nil)
+	_ dawport.TakeStacker      = (*steps)(nil)
+	_ dawport.RangeCutter      = (*steps)(nil)
+	_ dawport.RangeFXApplier   = (*steps)(nil)
+	_ dawport.RangeFXEditor    = (*steps)(nil)
+	_ dawport.RangeGainReducer = (*steps)(nil)
+	_ dawport.ClickRepairer    = (*steps)(nil)
+)
+
+// stepTolerance is how far apart two times may be and still be the same, in seconds: GetInfo reports six significant digits.
+const stepTolerance = 0.05
+
+// The sentences the steps answer with that every edit shares.
+const (
+	messageStepTrackGone = "That track is no longer in the Audacity project, so nothing was changed."
+	messageStepTwoTracks = "More than one Audacity track has that name, so the app will not guess which to change. Rename one, then try again."
+)
+
+// backupsSentence is the sentence for a capability that needs backups while they are off, as the resolver words it.
+func backupsSentence(c dawport.Capability) string {
+	return needBackups[c] + " needs Audacity backups. Turn on Audio backups in Settings."
+}
+
+// canBackUp is whether this adapter can make a backup at all: it has the app's project folder to keep the table in.
+func (s *steps) canBackUp() bool { return s.backups.table() != "" }
+
+// oneTrack is the one wave track called name: RefusedStale when there is none, and Refused when there are two.
+func oneTrack(tracks []audacitybridge.TrackInfo, name string) (audacitybridge.TrackInfo, dawport.Result, bool) {
+	found := tracksNamed(tracks, name)
+	switch len(found) {
+	case 0:
+		return audacitybridge.TrackInfo{}, dawport.RefusedStale(messageStepTrackGone), false
+	case 1:
+		return found[0], dawport.Result{}, true
+	default:
+		return audacitybridge.TrackInfo{}, dawport.Refused(messageStepTwoTracks), false
+	}
+}
+
+// backUp clones the request's window. ok is false when the backup was refused (its Result is the answer) or failed (err).
+func (s *steps) backUp(ctx context.Context, request dawport.BackupRequest) (dawport.Result, bool, error) {
+	result, err := s.backups.BackupAround(ctx, request)
+	if err != nil {
+		return dawport.Result{}, false, err
+	}
+	return result, result.OK, nil
+}
+
+func (s *steps) do(ctx context.Context, name string) error {
+	_, err := s.client.Do(ctx, audacitybridge.NewCommand(name))
+	return err
+}
+
+// selectRange selects [start, end] of one track.
+// clipsMove turns on Audacity's "Editing a clip can move other clips" for an edit that closes a gap, and returns what puts the
+// preference back as the narrator had it (off when it was never set, which is how Audacity behaves then). With it off a Delete or a
+// Paste moves only the audio of its own clip, and the clips after it stay where they were (A3-T18). The caller defers the restore.
+func (s *steps) clipsMove(ctx context.Context) (restore func(), err error) {
+	was, set, err := s.client.Preference(ctx, audacitybridge.PrefClipsMove)
+	if err != nil {
+		return nil, err
+	}
+	if set && was == "1" {
+		return func() {}, nil
+	}
+	if err := s.client.SetPreference(ctx, audacitybridge.PrefClipsMove, "1"); err != nil {
+		return nil, err
+	}
+	back := "0"
+	if set {
+		back = was
+	}
+	// The edit's own context may be done by the time this runs, and the narrator's preference must still go back.
+	return func() { _ = s.client.SetPreference(context.WithoutCancel(ctx), audacitybridge.PrefClipsMove, back) }, nil
+}
+
+func (s *steps) selectRange(ctx context.Context, track int, start, end float64) error {
+	if err := s.client.SelectTracks(ctx, track, 1); err != nil {
+		return err
+	}
+	return s.client.SelectTime(ctx, start, end)
+}
+
+// edits is what a call has done so far: the step text for each kind of edit, in the order first made, and the undo points.
+type edits struct {
+	steps []string
+	undo  int
+}
+
+// did records one edit: its step text, once however often it is repeated, and the undo points it added.
+func (e *edits) did(step string, undo int) {
+	if !slices.Contains(e.steps, step) {
+		e.steps = append(e.steps, step)
+	}
+	e.undo += undo
+}
+
+// done is a call that changed the audio, with its steps and undo points.
+func (e *edits) done(message string) dawport.Result {
+	return dawport.OK(message, true).WithUndoSteps(e.undo).WithSteps(e.steps)
+}
+
+// clock words project seconds as m:ss for a message or a backup's label.
+func clock(seconds float64) string {
+	whole := int(math.Round(seconds))
+	return fmt.Sprintf("%d:%02d", whole/60, whole%60)
+}
+
+// plural is "1 take" or "2 takes".
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return "1 " + one
+	}
+	return fmt.Sprintf("%d %s", n, many)
+}
+
+// The steps and sentences of lowered stretches.
+const (
+	stepSelectStretch  = "Select the stretch"
+	messageGainBad     = "The stretches to lower are not usable, so nothing was changed."
+	messageGainOutside = "A stretch to lower is outside the track's audio in Audacity, so nothing was changed."
+)
+
+// ReduceRangeGain lowers each stretch of the request's track by ReduceDB with Amplify on the selection, after one backup of the
+// audio from the first stretch's start to the last one's end. Audacity has no takes, so a stretch's seconds, the take's own time,
+// are counted from the start of the track's audio (TrackInfo.Start); a stretch outside the track's audio is refused before the
+// backup. Amplify changes the audio itself and makes no ramp at the edges; one undo point per stretch.
+func (s *steps) ReduceRangeGain(ctx context.Context, request dawport.RangeGainRequest) (dawport.Result, error) {
+	if !s.canBackUp() {
+		return dawport.Refused(backupsSentence(dawport.CapRangeGain)), nil
+	}
+	if !request.Valid() || !backupText(request.ItemGUID) || !backupText(request.ChapterID) {
+		return dawport.Refused(messageGainBad), nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tracks, err := s.client.Tracks(ctx)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	track, refusal, ok := oneTrack(tracks, request.ItemGUID)
+	if !ok {
+		return refusal, nil
+	}
+	stretches := slices.Clone(request.Stretches)
+	slices.SortFunc(stretches, func(a, b dawport.GainStretch) int { return cmp.Compare(a.Start, b.Start) })
+	first, last := math.Inf(1), math.Inf(-1)
+	for i := range stretches {
+		stretches[i].Start += track.Start
+		stretches[i].End += track.Start
+		if !track.HasRange || stretches[i].End > track.End+stepTolerance {
+			return dawport.Refused(messageGainOutside), nil
+		}
+		first, last = math.Min(first, stretches[i].Start), math.Max(last, stretches[i].End)
+	}
+	db := strconv.FormatFloat(request.ReduceDB, 'f', -1, 64)
+	answer, ok, err := s.backUp(ctx, dawport.BackupRequest{
+		GUID: request.ItemGUID, ChapterID: request.ChapterID, Start: first, End: last,
+		Label: "Lower " + plural(len(stretches), "stretch", "stretches") + " by " + db + " dB",
+	})
+	if !ok {
+		return answer, err
+	}
+	ratio := math.Pow(10, -request.ReduceDB/20)
+	var e edits
+	for _, stretch := range stretches {
+		if err := s.selectRange(ctx, track.Index, stretch.Start, stretch.End); err != nil {
+			return dawport.Result{}, err
+		}
+		e.did(stepSelectStretch, 0)
+		if _, err := s.client.Do(ctx, audacitybridge.NewCommand("Amplify").Float("Ratio", ratio).Bool("AllowClipping", false)); err != nil {
+			return dawport.Result{}, err
+		}
+		e.did("Lower it by "+db+" dB", 0) // Amplify adds no undo point: the next Undo takes back the edit before it (A3-T22c)
+	}
+	return e.done("Lowered " + plural(len(stretches), "stretch", "stretches") + " by " + db + " dB in Audacity."), nil
+}
+
+// The steps and sentences of repaired clicks.
+const (
+	stepSelectClick     = "Select around the click"
+	stepRemoveClick     = "Run Click Removal on it"
+	messageClickBad     = "The clicks to repair are not usable, so nothing was changed."
+	messageClickOutside = "A click to repair is outside the track's audio in Audacity, so nothing was changed."
+)
+
+// clickContext is how far either side of a click the selection reaches, in seconds: Click Removal refuses a selection shorter than
+// half its 8192-sample window, about 93 ms at 44.1 kHz, and finds a click against the audio around it.
+const clickContext = 0.1
+
+// RepairClick runs Audacity's Click Removal (its default threshold and spike width) on a selection reaching clickContext either side
+// of each click, after one backup of the audio from the first selection's start to the last one's end. Audacity has no takes, so a
+// click's seconds, the take's own time, are counted from the start of the track's audio (TrackInfo.Start); a click outside the
+// track's audio is refused before the backup, and selections that meet are made one. Click Removal changes the audio itself and
+// repairs any click it finds in the selection; one undo point per selection.
+func (s *steps) RepairClick(ctx context.Context, request dawport.ClickRepairRequest) (dawport.Result, error) {
+	if !s.canBackUp() {
+		return dawport.Refused(backupsSentence(dawport.CapClickRepair)), nil
+	}
+	if !request.Valid() || !backupText(request.ItemGUID) || !backupText(request.ChapterID) {
+		return dawport.Refused(messageClickBad), nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	tracks, err := s.client.Tracks(ctx)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	track, refusal, ok := oneTrack(tracks, request.ItemGUID)
+	if !ok {
+		return refusal, nil
+	}
+	clicks := slices.Clone(request.Clicks)
+	slices.SortFunc(clicks, func(a, b dawport.Click) int { return cmp.Compare(a.Start, b.Start) })
+	var spans []dawport.Click
+	for _, click := range clicks {
+		if !track.HasRange || click.End+track.Start > track.End+stepTolerance {
+			return dawport.Refused(messageClickOutside), nil
+		}
+		span := dawport.Click{Start: math.Max(click.Start+track.Start-clickContext, track.Start), End: math.Min(click.End+track.Start+clickContext, track.End)}
+		if n := len(spans); n > 0 && span.Start <= spans[n-1].End {
+			spans[n-1].End = math.Max(spans[n-1].End, span.End)
+			continue
+		}
+		spans = append(spans, span)
+	}
+	what := plural(len(clicks), "click", "clicks")
+	answer, ok, err := s.backUp(ctx, dawport.BackupRequest{
+		GUID: request.ItemGUID, ChapterID: request.ChapterID, Start: spans[0].Start, End: spans[len(spans)-1].End, Label: "Repair " + what,
+	})
+	if !ok {
+		return answer, err
+	}
+	var e edits
+	for _, span := range spans {
+		if err := s.selectRange(ctx, track.Index, span.Start, span.End); err != nil {
+			return dawport.Result{}, err
+		}
+		e.did(stepSelectClick, 0)
+		if err := s.do(ctx, "ClickRemoval"); err != nil {
+			return dawport.Result{}, err
+		}
+		e.did(stepRemoveClick, 0) // ClickRemoval adds no undo point (A3-T22c)
+	}
+	return e.done("Repaired " + what + " in Audacity."), nil
+}
+
+// What is not built for Audacity: docs/architecture/daw-integration.md#audacity-boundary's sentence, and nothing sent.
+
+func (*steps) PunchTo(context.Context, float64, float64) (float64, error) { return 0, ErrNotAvailable }
+func (*steps) PlayPosition(context.Context) (dawport.PlayPosition, error) {
+	return dawport.PlayPosition{}, ErrNotAvailable
+}
+func (*steps) SetActiveTake(context.Context, string, string) (dawport.ActiveTakeSet, error) {
+	return dawport.ActiveTakeSet{}, ErrNotAvailable
+}
+func (*steps) HideTakes(context.Context, string, string) (dawport.Result, error) {
+	return dawport.Refused(string(ErrNotAvailable)), nil
+}
+
+// messageFXBakedIn answers the three effect edits: Audacity's macro changes the audio itself once its backup is made, so there is no
+// live effect left on the words to read, change or bypass. Putting the backup back and applying again is the way to change it.
+const messageFXBakedIn = "Audacity puts an effect into the audio itself after its backup, so its settings cannot be read or changed and it cannot be bypassed. Put the backup back and add the effect again instead."
+
+// FXRangeParams is refused with messageFXBakedIn: Audacity keeps no applied effect to read.
+func (s *steps) FXRangeParams(context.Context, dawport.FXRangeTarget) (dawport.FXRangeSettings, error) {
+	return dawport.FXRangeSettings{Result: dawport.Refused(messageFXBakedIn), Settings: []dawport.FXSetting{}}, nil
+}
+
+// SetFXRangeParam is refused with messageFXBakedIn.
+func (s *steps) SetFXRangeParam(context.Context, dawport.FXRangeTarget, int, int, float64) (dawport.Result, error) {
+	return dawport.Refused(messageFXBakedIn), nil
+}
+
+// BypassFXRange is refused with messageFXBakedIn.
+func (s *steps) BypassFXRange(context.Context, dawport.FXRangeTarget, bool) (dawport.Result, error) {
+	return dawport.Refused(messageFXBakedIn), nil
+}
+
+// CompareFXRange is refused with messageFXBakedIn: there is no live effect to bypass for the second pass.
+func (s *steps) CompareFXRange(context.Context, dawport.FXRangeTarget) (dawport.FXRangeCompare, error) {
+	return dawport.FXRangeCompare{Result: dawport.Refused(messageFXBakedIn)}, nil
+}
+
+// StopFXCompare is refused with messageFXBakedIn.
+func (s *steps) StopFXCompare(context.Context) (dawport.Result, error) {
+	return dawport.Refused(messageFXBakedIn), nil
+}

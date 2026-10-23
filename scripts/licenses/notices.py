@@ -11,7 +11,7 @@ What is read, and why it is what ships (each is read from the thing the release 
   ones under `site-packages` are the packages that ship, and `importlib.metadata` of the same environment names their licences. A
   `pyproject.toml` list would also name the test and lint tools, which are not in the release (they are: see the tool's finding
   about the freeze taking `hypothesis` and `pytest`; the report says so instead of hiding them).
-* **npm**: `pnpm licenses list --prod` in `apps/ui`, the production dependencies the UI bundle is built from.
+* **npm**: `pnpm licenses list --prod` in `src/studio/ui`, the production dependencies the UI bundle is built from.
 * **Go**: `go list -deps` of the desktop program for `windows/amd64` with the Wails build tags, minus the main module and the
   standard library.
 * **By hand**: `manual.json`, for what no package manager knows (the Python runtime, the vendored FFmpeg libraries inside the PyAV
@@ -328,7 +328,7 @@ def parse_pnpm_licenses(text: str) -> list[Component]:
             for index, version in enumerate(entry.get("versions") or [""]):
                 paths = entry.get("paths") or []
                 texts = _license_texts(Path(paths[index])) if index < len(paths) else ()
-                components.append(Component("npm", entry["name"], version, license_name, entry.get("homepage") or "", texts, "apps/ui"))
+                components.append(Component("npm", entry["name"], version, license_name, entry.get("homepage") or "", texts, "src/studio/ui"))
     return sorted(components, key=lambda c: (c.name.lower(), c.version))
 
 
@@ -370,7 +370,7 @@ def parse_go_list(text: str) -> list[Component]:
         texts = _license_texts(Path(module["Dir"])) if module.get("Dir") else ()
         classes = [classify_text(t) for t in texts]
         known = next((c for c in classes if c != "UNKNOWN"), "UNKNOWN")
-        seen[key] = Component("go", module["Path"], module.get("Version", ""), known, f"https://{module['Path']}", texts, "apps/desktop")
+        seen[key] = Component("go", module["Path"], module.get("Version", ""), known, f"https://{module['Path']}", texts, "src/studio/desktop")
     return sorted(seen.values(), key=lambda c: c.name.lower())
 
 
@@ -480,10 +480,10 @@ def render_report(
             + ", ".join(bare)
         )
 
-    out = [f"THIRD-PARTY NOTICES\nnarration-utils {version}\n"]
+    out = [f"THIRD-PARTY NOTICES\nnarration-studio {version}\n"]
     out.append(_section("The program and where its source is"))
     out.append(
-        f"narration-utils is free software under the {PROGRAM_LICENSE} licence (the full text is at the end of this file).\n"
+        f"narration-studio is free software under the {PROGRAM_LICENSE} licence (the full text is at the end of this file).\n"
         f"Source offer: the complete corresponding source of this release is published at {REPOSITORY}, at {where}\n"
         f"(a release candidate is tagged v{version}-rc, the promoted release v{version}). Anyone who receives this program may fetch it there, or ask for it by opening an\n"
         f"issue at {REPOSITORY}/issues. The version and the tag are the same as the ones the program prints with --version.\n"
@@ -525,7 +525,7 @@ def render_report(
                 out.append(f"    Attribution: {item['attribution']}\n")
     else:
         out.append("None.\n")
-    out.append(_section(f"{PROGRAM_LICENSE}: the licence of narration-utils"))
+    out.append(_section(f"{PROGRAM_LICENSE}: the licence of narration-studio"))
     out.append(program_license.strip() + "\n")
     return "".join(out)
 
@@ -574,13 +574,18 @@ def build(root: Path, version: str, release_build: Path, tag: str | None = None,
     """The whole report. Anything that would make it wrong or incomplete raises NoticeError instead."""
     reviewed, no_text_ok, ignored_modules = read_reviewed(Path(__file__).parent / "reviewed.json")
     python, vendored = python_components(release_build, ignored_modules)
-    components = [*python, *npm_components(root / "apps/ui"), *go_components(root / "apps/desktop"), *manual_components(Path(__file__).parent / "manual.json")]
+    components = [
+        *python,
+        *npm_components(root / "src/studio/ui"),
+        *go_components(root / "src/studio/desktop"),
+        *manual_components(Path(__file__).parent / "manual.json"),
+    ]
     check_vendored(vendored, components)
     problems = {
         "python": missing_direct("python", components, set(SHIPPED_PYTHON_DIRECT)),
-        "npm": missing_direct("npm", components, set(json.loads((root / "apps/ui/package.json").read_text(encoding="utf-8")).get("dependencies", {}))),
+        "npm": missing_direct("npm", components, set(json.loads((root / "src/studio/ui/package.json").read_text(encoding="utf-8")).get("dependencies", {}))),
         "go": missing_direct(
-            "go", components, go_direct_requirements((root / "apps/desktop/go.mod").read_text(encoding="utf-8")) - {"github.com/giraffesyo/pdf"}
+            "go", components, go_direct_requirements((root / "src/studio/desktop/go.mod").read_text(encoding="utf-8")) - {"github.com/giraffesyo/pdf"}
         ),
     }
     for ecosystem, names in problems.items():

@@ -1,5 +1,5 @@
 {
-  "about": "Written by apps/desktop/internal/chaptername's test (UPDATE_CONTRACTS=1); never edit by hand. The Go, Python and TypeScript chapter-name helpers must each give these names.",
+  "about": "Written by src/studio/desktop/internal/chaptername's test (UPDATE_CONTRACTS=1); never edit by hand. The Go, Python and TypeScript chapter-name helpers must each give these names.",
   "cases": [
     {
       "title": "CHAPTER ONE",

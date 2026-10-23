@@ -1,10 +1,10 @@
 # Delivery measurement validation against the EBU loudness test set
 
-**Started 2026-09-23.** **Question:** do the Go `measure` package's (`apps/desktop/internal/measure`) loudness and true-peak readings agree with the EBU's official loudness test signals, and do its RMS, peak and noise-floor readings agree with Audacity's ACX Check? This note records the method and the result of each run. [Codebase map](../architecture/codebase-map.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
+**Started 2026-09-23.** **Question:** do the Go `measure` package's (`src/studio/desktop/internal/measure`) loudness and true-peak readings agree with the EBU's official loudness test signals, and do its RMS, peak and noise-floor readings agree with Audacity's ACX Check? This note records the method and the result of each run. [Codebase map](../architecture/codebase-map.md) records that the DSP had been checked only against BS.1770's published 48 kHz coefficients and against analytic signals, because the EBU files were not available offline.
 
 ## What is checked
 
-The reference is EBU Tech 3341 Table 1 and EBU Tech 3342 Table 1 (both November 2023), measured on the EBU loudness test set v5.0. The expected values and tolerances are committed in [`expected.json`](../../apps/desktop/internal/measure/testdata/ebu/expected.json):
+The reference is EBU Tech 3341 Table 1 and EBU Tech 3342 Table 1 (both November 2023), measured on the EBU loudness test set v5.0. The expected values and tolerances are committed in [`expected.json`](../../src/studio/desktop/internal/measure/testdata/ebu/expected.json):
 
 | Cases | Measure | Expected | Tolerance | Checked by |
 | --- | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ The reference is EBU Tech 3341 Table 1 and EBU Tech 3342 Table 1 (both November 
 | Tech 3341, 9 to 14 | Momentary or short-term loudness | - | - | Not applicable: `measure` has no momentary or short-term meter |
 | Tech 3342, 1 to 6 | Loudness range (LRA) | - | - | Not applicable: `measure` does not compute LRA |
 
-The gated test is `TestEBULoudnessTestSet`. It runs only when `NARRATION_EBU_DIR` names the unpacked set. [`testdata/ebu/README.md`](../../apps/desktop/internal/measure/testdata/ebu/README.md) explains how to get the files and run the test.
+The gated test is `TestEBULoudnessTestSet`. It runs only when `NARRATION_EBU_DIR` names the unpacked set. [`testdata/ebu/README.md`](../../src/studio/desktop/internal/measure/testdata/ebu/README.md) explains how to get the files and run the test.
 
 ## Why the files are not committed or fetched by CI
 

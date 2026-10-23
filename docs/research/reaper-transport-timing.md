@@ -1,11 +1,11 @@
 # Research: what the REAPER-scripting community knows about `GetPlayState()`/`GetPlayPosition()` timing
 
-**Status: done, 2026-09-27.** Standalone research, not a PRD phase. PR #693 (merged) added `GetPlayState()`/`GetPlayPosition()` to the REAPER heartbeat (`narration_ui_bridge.lua`, [The REAPER bridge and its test harness](../architecture/reaper-bridge.md)) and left one item for the owner ([#510 comment](https://github.com/countrymanprime/narration-utils/issues/510#issuecomment-5852148420), now on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217)): confirm inside real REAPER that a Record/Stop/Play/Pause press flips the heartbeat within a defer cycle, and what `GetPlayPosition()` reports mid-recording. The Lua harness fakes `reaper`, so it can't prove either. This note does not fake that confirmation; it researches what the wider REAPER-scripting community already knows and documents, and gives an honest recommendation on how far that evidence goes.
+**Status: done, 2026-09-27.** Standalone research, not a PRD phase. PR #693 (merged) added `GetPlayState()`/`GetPlayPosition()` to the REAPER heartbeat (`narration_ui_bridge.lua`, [The REAPER bridge and its test harness](../architecture/reaper-bridge.md)) and left one item for the owner ([#510 comment](https://github.com/countrymanprime/narration-studio/issues/510#issuecomment-5852148420), now on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217)): confirm inside real REAPER that a Record/Stop/Play/Pause press flips the heartbeat within a defer cycle, and what `GetPlayPosition()` reports mid-recording. The Lua harness fakes `reaper`, so it can't prove either. This note does not fake that confirmation; it researches what the wider REAPER-scripting community already knows and documents, and gives an honest recommendation on how far that evidence goes.
 
 ## The two open questions
 
 1. **Defer-cycle timing.** `narration_ui_bridge.lua`'s `heartbeat()` reads `reaper.GetPlayState()` once per `tick()`, and sends a `PROJECT_STATUS` line at once when the value differs from the last-sent one (`reachability_test.lua`: "a transport change sends a heartbeat at once, without waiting out the interval"). Does `GetPlayState()` itself reflect a Record/Stop/Pause transition by the very next defer tick, however that transition was triggered (REAPER's own transport buttons, a keyboard shortcut, a control surface) — or can it lag?
-2. **`GetPlayPosition()` mid-recording.** `daw.Transport.Position` (`apps/desktop/internal/daw/reachability.go`) and `docs/architecture/reaper-bridge.md` both assume `GetPlayPosition()` gives a live, moving value while recording, coarse only because the heartbeat is ~1.5s apart. Is that assumption right, or does `GetPlayPosition()` behave differently during Record than during Play?
+2. **`GetPlayPosition()` mid-recording.** `daw.Transport.Position` (`src/studio/desktop/internal/daw/reachability.go`) and `docs/architecture/reaper-bridge.md` both assume `GetPlayPosition()` gives a live, moving value while recording, coarse only because the heartbeat is ~1.5s apart. Is that assumption right, or does `GetPlayPosition()` behave differently during Record than during Play?
 
 ## What it settles
 
@@ -36,7 +36,7 @@ Research could **not** use, all returning `EGRESS_BLOCKED` from this session's n
 
 This is the same class of gap the Phase 8 spike for input commands and pedals (deleted PRD `input-commands-and-pedals`) hit on a different set of hosts (`webkit.org`, `learn.microsoft.com`, `caniuse.com`, `developer.mozilla.org`) — see [`web-midi-hid-webview-spike.md`](web-midi-hid-webview-spike.md#not-done-and-why). Every host that would have carried the single most authoritative source (REAPER's own documentation of `GetPlayState`/`GetPlayPosition`, and the forum threads where narrators and script authors discuss them directly) was unreachable, so this note's confidence rests on GitHub-hosted primary sources and `WebSearch` synthesis instead, at the confidence levels that supports — not asserted higher.
 
-`api.github.com` was also unavailable for repositories outside this session's scope (`countrymanprime/narration-utils` only) — SWS's, OSARA's and reapy's own repos weren't attached via `add_repo`, since this is read-only research on public code, not a checkout to build or modify. Their raw file content and web (PR/issue) pages were fetched directly instead, which covered everything actually found below.
+`api.github.com` was also unavailable for repositories outside this session's scope (`countrymanprime/narration-studio` only) — SWS's, OSARA's and reapy's own repos weren't attached via `add_repo`, since this is read-only research on public code, not a checkout to build or modify. Their raw file content and web (PR/issue) pages were fetched directly instead, which covered everything actually found below.
 
 ## Results
 
@@ -106,7 +106,7 @@ This narrows the original pending item ("checking inside REAPER that `GetPlaySta
 
 ## Pending with the owner
 
-The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).
 
 ---
 

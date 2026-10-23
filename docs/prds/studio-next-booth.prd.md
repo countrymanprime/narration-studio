@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); "Booth rulings" and the record-preconditions rule in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Booth.tsx`, `studio-next/src/pages/booth/` and `studio-next/src/state/commands/booth.ts`.
 
-**Builds on:** the delivered Booth ([Booth](../guides/using-the-app/booth.md), [The page](../guides/using-the-app/booth.md#the-page), [Design system reference](../design/design-system.md), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Where you stopped](../guides/using-the-app/booth.md#where-you-stopped), [Flags](../architecture/manuscript-teleprompter.md#flags), [Shared Findings Contract](../architecture/findings-contract.md), [Built-in recorder: what the app declares for it](../reference/daw/builtin-recorder.md)), record in REAPER ([app.go](../../apps/desktop/app.go), [Live transport and track state (`narration_track_state.lua`)](../architecture/reaper-bridge.md#live-transport-and-track-state-narration_track_statelua), [Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua)), punch and roll ([narration_punch.lua](../../integrations/reaper/narration_punch.lua), [Punch from here: where a word's time comes from](../architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from)), the input registry ([Studio shell and registries](../architecture/studio-shell-and-registries.md)). It carries over the unfinished phases of the old read-aloud control bar, teleprompter integration, engines and booth-actions PRDs (see the overview's carried-over table). The DAW commands are [DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md).
+**Builds on:** the delivered Booth ([Booth](../guides/using-the-app/booth.md), [The page](../guides/using-the-app/booth.md#the-page), [Design system reference](../design/design-system.md), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Where you stopped](../guides/using-the-app/booth.md#where-you-stopped), [Flags](../architecture/manuscript-teleprompter.md#flags), [Shared Findings Contract](../architecture/findings-contract.md), [Built-in recorder: what the app declares for it](../reference/daw/builtin-recorder.md)), record in REAPER ([app.go](../../src/studio/desktop/app.go), [Live transport and track state (`narration_track_state.lua`)](../architecture/reaper-bridge.md#live-transport-and-track-state-narration_track_statelua), [Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua)), punch and roll ([narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [Punch from here: where a word's time comes from](../architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from)), the input registry ([Studio shell and registries](../architecture/studio-shell-and-registries.md)). It carries over the unfinished phases of the old read-aloud control bar, teleprompter integration, engines and booth-actions PRDs (see the overview's carried-over table). The DAW commands are [DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md).
 
 **Status (2026-10-12):** the swap is done (SN-O10, #1258): `/booth` mounts the Studio Next Booth and the old Booth is deleted, with bookmarks and the pickup session (phase 8) on the page; the trailing confirmation pass of item 10 has no slice (#1476 lists it as not built).
 
@@ -13,15 +13,15 @@ The Booth is where the narrator records. The owner's rulings turn it into a DAW-
 ## Evidence
 
 - **Mock.** `studio-next/src/selectors/booth.ts`; `recordCheck`, `recordStartAt`, `roll`, `setChangeGuard` in `studio-next/src/state/commands/booth.ts`, `studio-next/src/state/daw.ts` and `studio-next/src/state/store.ts`; `studio-next/src/providers/speech.ts` (suspected skips and restarts as Pickups with `src: 'speech'`, `live: true`, stable `flagKey`, dismissible, never re-added); `studio-next/src/pages/booth/{Teleprompter,SidePanel,TopBar}.tsx`; `studio-next/src/ui/KeyHints.tsx`; `studio-next/src/state/commands/passagemap.ts`. Tests: `studio-next/tests/booth.test.tsx`, `studio-next/tests/booth-daw.test.tsx`, `studio-next/tests/d2-booth.test.tsx`, `studio-next/tests/d2-keycaps.test.tsx`.
-- **Repo.** `apps/ui/src/components/booth/{BoothPage,BoothSession,BoothView,BuiltinRecorder,ResumePrompt,ReaderFlagsPanel,RecordInReaperConfirm}.tsx`; hooks `useBoothRecording`, `useRecordInReaper`, `useTeleprompterSession`, `useResumeLocate`, `useFollowCursor`; commands `reading.toggle`, `booth.fullscreen` in `apps/ui/src/input/commands.catalog.ts`; `apps/desktop/internal/teleprompter/`, `liveflags/`, `recording/`.
+- **Repo.** `src/studio/ui/src/components/booth/{BoothPage,BoothSession,BoothView,BuiltinRecorder,ResumePrompt,ReaderFlagsPanel,RecordInReaperConfirm}.tsx`; hooks `useBoothRecording`, `useRecordInReaper`, `useTeleprompterSession`, `useResumeLocate`, `useFollowCursor`; commands `reading.toggle`, `booth.fullscreen` in `src/studio/ui/src/input/commands.catalog.ts`; `src/studio/desktop/internal/teleprompter/`, `liveflags/`, `recording/`.
 
 | Ruling | Real today |
 | --- | --- |
 | Record in any supported DAW, DAW-neutral wording | Record in REAPER toggle and confirm; wording names REAPER |
-| Record preconditions with the reason on the control | Refusals named (`not_armed`, `other_armed`, `several_armed`) ([app.go](../../apps/desktop/app.go)); superseded (DQ-5) |
+| Record preconditions with the reason on the control | Refusals named (`not_armed`, `other_armed`, `several_armed`) ([app.go](../../src/studio/desktop/app.go)); superseded (DQ-5) |
 | Chapter's track only; start at the end of the last item | Resume locate reads the live cursor and items ([Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was)); start rule not verified |
 | Leave while recording: confirm or stop | Exit and Escape ask "Stop reading?"; leaving by nav keeps the session running ([Booth](../guides/using-the-app/booth.md) decision 3) |
-| Roll as one command with a take kept; confirm where destructive | `punch_to` moves the edit cursor only ([narration_punch.lua](../../integrations/reaper/narration_punch.lua)) |
+| Roll as one command with a take kept; confirm where destructive | `punch_to` moves the edit cursor only ([narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua)) |
 | Suspected flags automatic, dismissible, no manual flag | Live flags kept as findings ([Shared Findings Contract](../architecture/findings-contract.md)) |
 | Pickup session in Booth, bookmarks, key hints, F11 | F11 exists; others to build |
 | Passage map written at record time | Absent |
@@ -29,12 +29,12 @@ The Booth is where the narrator records. The owner's rulings turn it into a DAW-
 ## Proposed Solution
 
 1. **Record preconditions.** One selector (`recordCheck`) over capability, project state and chapter-track state returns `null` or a `Refusal`; the Record control shows the reason from the capability or the check, never its own wording.
-2. **One chapter, one track.** Only the chapter's track is armed for a take, restoring the previous arms afterwards ([Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua)); a take starts at the end of the last item on the track unless the narrator explicitly punches. Record arms only the chapter's track and starts at the end of the last item; Space stays one action; a failed precondition shows the capability's refusal reason (DQ-5). [app.go](../../apps/desktop/app.go)'s separate arming click is removed with the old Booth.
+2. **One chapter, one track.** Only the chapter's track is armed for a take, restoring the previous arms afterwards ([Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua)); a take starts at the end of the last item on the track unless the narrator explicitly punches. Record arms only the chapter's track and starts at the end of the last item; Space stays one action; a failed precondition shows the capability's refusal reason (DQ-5). [app.go](../../src/studio/desktop/app.go)'s separate arming click is removed with the old Booth.
 3. **Leave guard.** A leave guard registered by the Booth while a recording runs asks "Stop recording?" (ConfirmDialog) and on yes stops the DAW recording the app started and replays the navigation; Escape and page changes use it; a reading-only session keeps [Booth](../guides/using-the-app/booth.md) decision 3.
 4. **Roll and punch.** Roll calls the DAW's roll; where the capability is `destructive` a confirmation precedes it; where backups are on or REAPER auto-creates a take it is non-destructive and does not ask.
 5. **Resume.** "Resume at paragraph n" from the DAW's live cursor, else the saved project, else the Booth's own record; the source and confidence are shown ([Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was)).
 6. **Suspected flags** are findings with a stable key; dismissing one keeps a tombstone so it is not raised again.
-7. **Reading.** Sentence-phrase navigation (keep ours), smooth scroll that follows the voice and the mock's wheel browse (the wheel and Page Up and Down move the view by pixels and the reading position stays; `studio-next/src/pages/booth/Teleprompter.tsx`, DQ-17; [useFollowCursor.ts](../../apps/ui/src/components/booth/useFollowCursor.ts) is kept only where it describes identical behaviour), a click on a word, levels (`LevelMeter`), speaker chips, credits readable, F11, foot pedal Space only (start and stop).
+7. **Reading.** Sentence-phrase navigation (keep ours), smooth scroll that follows the voice and the mock's wheel browse (the wheel and Page Up and Down move the view by pixels and the reading position stays; `studio-next/src/pages/booth/Teleprompter.tsx`, DQ-17; [useFollowCursor.ts](../../src/studio/ui/src/components/booth/useFollowCursor.ts) is kept only where it describes identical behaviour), a click on a word, levels (`LevelMeter`), speaker chips, credits readable, F11, foot pedal Space only (start and stop).
 8. **Key hints footer** from the catalogue (`KeyHints`), bookmarks ribbons on the right margin, a pickup session in the side panel ("Open in Booth at this pickup" lives here).
 9. **Passage map.** The Booth writes a passage map at record time (paragraph, word, seconds, item and take ids the DAW gave) so Editing lists passages exactly; alignment is only for takes recorded elsewhere.
 10. **Engine picker** lists what the host reports; Moonshine is offered as the live engine in the Booth only; Whisper-class confirms after. The default engine is unchanged ([Manuscript Teleprompter](../architecture/manuscript-teleprompter.md)); the mock picks none (DQ-9).
@@ -67,7 +67,7 @@ Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has 
 
 - **SN0-Q1 / DQ-1.** The Studio Next Booth page (`studio-next/src/pages/Booth.tsx`) is the spec, including tokens, sizes and layout; the benchmark's measured values and the ADRs measured to it are superseded where they differ ([Mock match](../operations/verification-tooling.md#mock-match)).
 - **SN0-Q2 / DQ-2.** Replace. Seams and components land with no route; one PR (SNO-10) swaps the route and deletes the old Booth.
-- **DQ-5.** Record arms only the chapter's track, starts at the end of the last item, Space stays one action, a failed precondition shows the capability's refusal reason. [app.go](../../apps/desktop/app.go) is superseded to that extent.
+- **DQ-5.** Record arms only the chapter's track, starts at the end of the last item, Space stays one action, a failed precondition shows the capability's refusal reason. [app.go](../../src/studio/desktop/app.go) is superseded to that extent.
 - **DQ-6.** Pickups only points to the Booth; the Booth pickup session is SNO-8.
 - **DQ-9.** No conflict; [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) is unchanged.
 - **DQ-13.** Companion: frozen as built, no work.
@@ -101,15 +101,15 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | --- | --- | --- |
 | [Booth](../guides/using-the-app/booth.md) | SUPERSEDE (decision 3 while recording) | Leave while recording (A10) |
 | [Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua) | EXTEND | Confirm stops the DAW recording the app started |
-| [app.go](../../apps/desktop/app.go) | SUPERSEDE (DQ-5) | Arming is not a separate click |
-| [narration_punch.lua](../../integrations/reaper/narration_punch.lua) | SUPERSEDE (roll) | In the DAW PRD |
+| [app.go](../../src/studio/desktop/app.go) | SUPERSEDE (DQ-5) | Arming is not a separate click |
+| [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua) | SUPERSEDE (roll) | In the DAW PRD |
 | [Punch from here: where a word's time comes from](../architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from) | EXTEND | Passage map avoids alignment for Booth takes |
 | [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Where you stopped](../guides/using-the-app/booth.md#where-you-stopped), [Data files](../reference/data-files.md), [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was) | EXTEND | Resume shown with source |
-| [Flags](../architecture/manuscript-teleprompter.md#flags), [Shared Findings Contract](../architecture/findings-contract.md), [readerFlags.ts](../../apps/ui/src/components/booth/readerFlags.ts) | EXTEND | Dismissible with a stable key |
-| [useFollowCursor.ts](../../apps/ui/src/components/booth/useFollowCursor.ts) | SUPERSEDE except identical behaviour (DQ-17) | The mock's wheel browse |
+| [Flags](../architecture/manuscript-teleprompter.md#flags), [Shared Findings Contract](../architecture/findings-contract.md), [readerFlags.ts](../../src/studio/ui/src/components/booth/readerFlags.ts) | EXTEND | Dismissible with a stable key |
+| [useFollowCursor.ts](../../src/studio/ui/src/components/booth/useFollowCursor.ts) | SUPERSEDE except identical behaviour (DQ-17) | The mock's wheel browse |
 | [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) | KEEP (DQ-9) | Engine default unchanged |
 | [Design system reference](../design/design-system.md), [The page](../guides/using-the-app/booth.md#the-page), [Design system reference](../design/design-system.md), [Colour and contrast](../design/colour-and-contrast.md) | KEEP | Space; full window; styles |
-| [Companion mode](../guides/using-the-app/booth.md#companion-mode), [bindings_companion.go](../../apps/desktop/bindings_companion.go) | KEEP (DQ-13) | Companion untouched |
+| [Companion mode](../guides/using-the-app/booth.md#companion-mode), [bindings_companion.go](../../src/studio/desktop/bindings_companion.go) | KEEP (DQ-13) | Companion untouched |
 | [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The Studio Next mock is the spec; benchmark mock 03 is deleted at cutover |
 
 ## Technical Approach
@@ -143,7 +143,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 7 | Passage map | Writer, sidecar, schema, golden | done (SN-O71 #1237, SN-O72 #1238) | 5 | 2 | 0.8 | - |
 | 8 | Pickup session and bookmarks | Side panel, ribbons | done: bookmarks (`bookmarks/BookmarkRibbons.tsx`, `bookmarks/useBoothBookmarks.ts`) and the pickup session (`pickups/PickupSession.tsx`, `pickups/usePickupSession.ts`) are mounted by `booth/page/BoothNextPage.tsx` (SN-O81 #1242, SN-O82 #1249, SN-O103 #1516) | - | SNB-5, SNQ-8 | 0.7 | - |
 | 9 | Engine picker | Host-reported engines, Moonshine live label | dropped: the mock Booth has no engine picker (SNO-1 finding 8); the engine and model stay in Settings > Booth | - | 1 | 0.4 | - |
-| 10 | Swap and close-out | Route swap, delete the old Booth and its old equivalents, rows, guide, screenshots; carried-over owner checks | done: `/booth` mounts `BoothNextPage` (`apps/ui/src/App.tsx`) and the old Booth is deleted (SN-O10, #1258) | - | 2 to 9 | 0.5 | - |
+| 10 | Swap and close-out | Route swap, delete the old Booth and its old equivalents, rows, guide, screenshots; carried-over owner checks | done: `/booth` mounts `BoothNextPage` (`src/studio/ui/src/App.tsx`) and the old Booth is deleted (SN-O10, #1258) | - | 2 to 9 | 0.5 | - |
 
 ### Phase Details
 
@@ -190,7 +190,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Research Summary
 
-Read: the mock's booth selectors, commands, providers and tests; the rulings; the real Booth file list, `docs/architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua, integrations/reaper/narration_punch.lua, apps/desktop/app.go, docs/guides/using-the-app/booth.md`. Not done: the Booth audit; no run with a microphone or REAPER.
+Read: the mock's booth selectors, commands, providers and tests; the rulings; the real Booth file list, `docs/architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua, src/studio/integrations/reaper/narration_punch.lua, src/studio/desktop/app.go, docs/guides/using-the-app/booth.md`. Not done: the Booth audit; no run with a microphone or REAPER.
 
 ## Visual Spec
 

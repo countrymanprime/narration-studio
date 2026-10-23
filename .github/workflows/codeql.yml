@@ -1,6 +1,6 @@
 name: CodeQL
 # Advisory: not a required status check. Results appear under Security > Code scanning.
-# A pull request analyses the languages whose files it changes (scripts/ci/codeql-scope.mjs: Go for apps/desktop, JavaScript
+# A pull request analyses the languages whose files it changes (scripts/ci/codeql-scope.mjs: Go for src/studio/desktop, JavaScript
 # and TypeScript for their sources, Python for .py files); the `scope` job reads the diff and the matrix follows it. The
 # baseline on main is the nightly run of all three, not a push: a merge no longer starts one.
 on:
@@ -78,9 +78,9 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
       # Two things CodeQL's Go tracer needs: -a, because setup-go restores the build cache and only
       # recompiled code is seen, and `go build` run from the module directory rather than
-      # `go -C apps/desktop build`, whose leading flag stops the tracer recognising the build.
+      # `go -C src/studio/desktop build`, whose leading flag stops the tracer recognising the build.
       - if: matrix.language == 'go'
-        working-directory: apps/desktop
+        working-directory: src/studio/desktop
         run: go build -a ./...
       - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:

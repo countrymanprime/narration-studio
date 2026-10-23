@@ -2,7 +2,7 @@
 // map that migrates text (docs, scripts, configs, open branches) when a directory moves.
 // The data lives in layout.json; docs/architecture/codebase-map.md explains the layout itself.
 //
-// applyPathMap rewrites only slash-joined paths (`apps/ui/x`, `../apps/desktop/app.go`). The guard also
+// applyPathMap rewrites only slash-joined paths (`src/studio/ui/x`, `../src/studio/desktop/app.go`). The guard also
 // reports forms a mechanical rewrite cannot do safely, from the `patterns` in layout.json: bare
 // directory names (`go -C <dir>`), quoted path segments (`join(root, '<dir>', '<sub>')`) and
 // backslash paths. Fix those by hand.
@@ -17,8 +17,8 @@ const LAYOUT_FILE = join(HERE, 'layout.json');
 export const REPO_ROOT = join(HERE, '..', '..');
 
 // A path starts where the previous character is not part of a name, and never inside the Go
-// module path (github.com/countrymanprime/narration-utils/shell/...), which the layout keeps.
-const PATH_START = '(?<![A-Za-z0-9_.-])(?<!narration-utils/)';
+// module path (github.com/countrymanprime/narration-studio/shell/...), which the layout keeps.
+const PATH_START = '(?<![A-Za-z0-9_.-])(?<!narration-studio/)';
 // A directory name ends where the next character is not part of a name. A `from` that already
 // ends in a slash is a directory prefix and needs no end check.
 const NAME_END = '(?![A-Za-z0-9_-])';

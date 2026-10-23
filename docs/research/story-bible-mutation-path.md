@@ -1,10 +1,10 @@
 # Story Bible mutations: warm Python worker, Go, or neither
 
-**Date:** 2026-10-18. **Related:** [#1897](https://github.com/countrymanprime/narration-utils/issues/1897) (sidecar start-up instrumentation, a parallel spike), [interaction latency baseline](interaction-latency-baseline.md).
+**Date:** 2026-10-18. **Related:** [#1897](https://github.com/countrymanprime/narration-studio/issues/1897) (sidecar start-up instrumentation, a parallel spike), [interaction latency baseline](interaction-latency-baseline.md).
 
 ## Question
 
-A Story Bible mutation (an edit, a lock, a merge) starts a frozen Python process, which cost 226 to 380 ms p50 in the [baseline](interaction-latency-baseline.md#after-phase-4) against under 10 ms for a Go-native call. `sidecars/manuscript-guide/core/manuscript_guide.py` (2,388 lines) does the model work (build, pronunciation lookups, voice previews) and also the pure-data mutations of `manuscript_guide.json`. Three options for the pure-data mutations:
+A Story Bible mutation (an edit, a lock, a merge) starts a frozen Python process, which cost 226 to 380 ms p50 in the [baseline](interaction-latency-baseline.md#after-phase-4) against under 10 ms for a Go-native call. `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` (2,388 lines) does the model work (build, pronunciation lookups, voice previews) and also the pure-data mutations of `manuscript_guide.json`. Three options for the pure-data mutations:
 
 - **A.** A warm Python worker the host starts, speaking NDJSON over stdin and stdout, with no port, an idle exit and a restart after a crash.
 - **B.** Port the mutations to Go, so the host writes `manuscript_guide.json` and Python keeps the model work.
@@ -20,14 +20,14 @@ The owner also asked whether any other Python code that is not model work would 
 ## Method
 
 - **Prototype.** Both prototypes are kept out of the app.
-  - The worker is `sidecars/manuscript-guide/spikes/serve_worker.py`. It runs the sidecar's own command line (`manuscript_guide.main`) once per request line and answers with the exit code, stdout and stderr that a spawn would have produced. So any command works unchanged, and the host could treat the two transports the same.
+  - The worker is `src/studio/sidecars/manuscript-guide/spikes/serve_worker.py`. It runs the sidecar's own command line (`manuscript_guide.main`) once per request line and answers with the exit code, stdout and stderr that a spawn would have produced. So any command works unchanged, and the host could treat the two transports the same.
   - The worker re-reads the file on every command, as a spawn does. It refuses `build`, `render-audio`, `self-check` and `suggest`, and exits after 60 s idle or when stdin closes.
-  - The Go side is in `apps/desktop/internal/spike/guidemutation`, under the `spike` build tag. `worker.go` is the host end of the worker: it starts the worker on the first call and again after the worker has exited. `mutate.go` is `edit` for every field except `aliases`. setLocked is an edit of `locked`.
+  - The Go side is in `src/studio/desktop/internal/spike/guidemutation`, under the `spike` build tag. `worker.go` is the host end of the worker: it starts the worker on the first call and again after the worker has exited. `mutate.go` is `edit` for every field except `aliases`. setLocked is an edit of `locked`.
   - `Document` in the same file is that edit for a host that holds the parsed file. It re-reads the file only when its size or modification time shows another writer, and it writes back unindented.
   - `TestGoEditMatchesTheSidecar` runs ten edits through the real sidecar and through the Go `Edit` on copies of one built Story Bible. It requires the same JSON after each edit, for both the plain and the held edit; key order is the one difference, because Go sorts map keys. It passed.
   - `TestHeldDocumentRefusesWithoutChangingAndRereadsAfterAnotherWriter` checks that a refused field leaves the held copy alone and that an outside write is picked up.
-  - The worker's own test, `sidecars/manuscript-guide/tests/test_serve_worker_spike.py`, runs in the normal sidecar pytest job, so the spike cannot rot while it lives. The Go spike runs only with the tag.
-- **Measurement.** `TestLatency` in `latency_test.go` (build tags `spike` and `spikelatency`) uses the baseline harness's method: 20 runs, the first reported alone, p50, p95 and max over the other 19. It also uses the baseline's generator and seed (copied from `apps/desktop/internal/latency/latency_test.go`), so the manuscripts are the same text: small (2,225 words) and full-length (88,471 words, 30 chapters, 1,200 paragraphs).
+  - The worker's own test, `src/studio/sidecars/manuscript-guide/tests/test_serve_worker_spike.py`, runs in the normal sidecar pytest job, so the spike cannot rot while it lives. The Go spike runs only with the tag.
+- **Measurement.** `TestLatency` in `latency_test.go` (build tags `spike` and `spikelatency`) uses the baseline harness's method: 20 runs, the first reported alone, p50, p95 and max over the other 19. It also uses the baseline's generator and seed (copied from `src/studio/desktop/internal/latency/latency_test.go`), so the manuscripts are the same text: small (2,225 words) and full-length (88,471 words, 30 chapters, 1,200 paragraphs).
   - The guide is built by the real sidecar with `rules-only` extraction. The baseline's venv had no spaCy model either. The build found 527 entries and 9,905 occurrences, and the full-length file is 4,994 KB.
   - The spawn rows go through the real `guide.Service` and `process.Supervisor.Run`, exactly as the app does.
   - Five passes were run (the held edit was added for the fourth); the tables below are the fourth. The other two agree within the run-to-run noise noted under [Caveats](#caveats).
@@ -87,9 +87,9 @@ The rows below apply the baseline's frozen floor to the per-call work measured h
 
 ## Classification of every manuscript-guide command
 
-Line counts are the functions each command uses, counted from the module's syntax tree; shared helpers are counted once, in the first group that uses them. "Tests" are the Python test files that drive the command (`sidecars/manuscript-guide/tests/`).
+Line counts are the functions each command uses, counted from the module's syntax tree; shared helpers are counted once, in the first group that uses them. "Tests" are the Python test files that drive the command (`src/studio/sidecars/manuscript-guide/tests/`).
 
-- The host reads the same file in `apps/desktop/internal/guide/service.go` (`document`, `Entities`, `normalizeEntity`, `DialogueCues`) and in `types.go` (`Types`, the mirrored `TypeColours` and `DefaultTypes`).
+- The host reads the same file in `src/studio/desktop/internal/guide/service.go` (`document`, `Entities`, `normalizeEntity`, `DialogueCues`) and in `types.go` (`Types`, the mirrored `TypeColours` and `DefaultTypes`).
 - The series reads other projects' files through `guide.ReadOnlyNames`.
 - The sidecar writes the contract goldens `guide-entities*-sidecar.json`, `guide-review-*-sidecar.json` and `guide-types*-sidecar.json` (`test_contract_goldens.py`, `test_bible_types.py`, `test_review_flags.py`). The UI schemas check them.
 - So two implementations of the read side exist already.
@@ -112,7 +112,7 @@ Line counts are the functions each command uses, counted from the module's synta
 
 ## The other sidecars and narration_common
 
-The frozen entry scripts are `compare.py` and `live_asr.py` (`scripts/release/prepare-resources.py`). Both dispatch on flags, not subcommands. "Pure" lines are estimates read from the functions; tests are the files under each sidecar's `tests/` (and `libs/python/tests/`). Every output is tagged pipe-delimited lines or NDJSON on stdout, parsed on the Go side by the package named.
+The frozen entry scripts are `compare.py` and `live_asr.py` (`scripts/release/prepare-resources.py`). Both dispatch on flags, not subcommands. "Pure" lines are estimates read from the functions; tests are the files under each sidecar's `tests/` (and `src/studio/libs/python/tests/`). Every output is tagged pipe-delimited lines or NDJSON on stdout, parsed on the Go side by the package named.
 
 ### Entry points
 
@@ -124,7 +124,7 @@ The frozen entry scripts are `compare.py` and `live_asr.py` (`scripts/release/pr
 | `compare.py --coverage` (`coverage_mode.py`, `coverage_chunks.py`, `recording_coverage.py`) | Model, then pure coverage; `--align-only` runs no model at all | `internal/coverage` (`service.go`, `report.go`) | `test_coverage*.py`, `results.golden.json` (also read by `internal/coverage/corpus_test.go`) | L; `--align-only` alone is M |
 | `compare.py --coverage --recheck` | Model on the windows, then a pure splice | `internal/coverage` (the host writes the windows file) | `test_coverage_recheck.py` | stays with the model |
 | `compare.py --extract-hints` | Pure manuscript scan | none found | | delete if unused |
-| `compare.py --capabilities`, `live_asr.py --capabilities` | Glue | `apps/desktop/smoke.go` | | stays |
+| `compare.py --capabilities`, `live_asr.py --capabilities` | Glue | `src/studio/desktop/smoke.go` | | stays |
 | `live_asr.py`, a session | Model (Moonshine, Whisper) and capture; tracker, flags and the confirmation logic are pure, in the same loop | `internal/teleprompter/service.go` | `test_live_asr.py`, `test_script_tracker*.py`, `test_flags.py`, the `teleprompter-events` golden | M for the tracker and flags |
 | `live_asr.py --locate`, `--align-word` | Model decode, then pure placement | `internal/teleprompter/locate.go`, `alignword.go` | `test_locate.py`, `test_align_word.py`, their goldens | M; little gain |
 | `live_asr.py --meter`, `--record`, `--list-devices`, `--capture` | Native capture (WASAPI, dshow) | `internal/recording/sidecar.go`, `internal/teleprompter/meter.go` | `test_levels.py`, `test_devices.py`, `test_capture_*.py`, `test_recording.py` | stays |
@@ -137,7 +137,7 @@ The frozen entry scripts are `compare.py` and `live_asr.py` (`scripts/release/pr
 | `manuscript.py` | 74 | Pure read and validate | the host owns the format (`internal/manuscript`) | nothing to port |
 | `progress.py` | 38 | Protocol (`STAGE\|percent\|message`) | `internal/process/progress.go` reads it | stays (it is the contract) |
 | `spoken_forms.py` | 204 | Pure (numbers, homophones, tokens) | partly in `internal/chaptermatch/normalize.go` | S to M, with whatever uses it |
-| `chapter_names.py` | 50 | Pure | `internal/chaptername`, `apps/ui/src/chapterName.ts` | S |
+| `chapter_names.py` | 50 | Pure | `internal/chaptername`, `src/studio/ui/src/chapterName.ts` | S |
 | `config.py` | 168 | Glue (default settings) | the host's settings are authoritative | stays while sidecars read defaults |
 | `contract_files.py` | 46 | Test glue (golden writer) | `internal/contractfile` | stays with the Python tests |
 | `logging_utils.py` | 47 | Glue | `internal/runlog` reads it | stays |
@@ -148,8 +148,8 @@ The frozen entry scripts are `compare.py` and `live_asr.py` (`scripts/release/pr
 ### Already duplicated in Go
 
 - **Chapter title matching.** `internal/chaptermatch` ports `compare.py`'s matcher, pinned by `tests/fixtures/chapter-track-match/parity-cases.json`, and Python still runs its copy when no `--chapter-title` is passed. Having the host always pass the title would let about 300 lines of `compare.py` and the parity fixture go. Cost: S to M.
-- **The teleprompter's chapter script.** `sidecars/manuscript-teleprompter/core/chapter_script.py` (148 lines) has a Go twin, `internal/teleprompter/script.go`. Cost: S.
-- **Chapter names.** `libs/python/narration_common/chapter_names.py` exists three times: Python, `internal/chaptername` and `apps/ui/src/chapterName.ts`, pinned by `tests/fixtures/chapter-names.json`. Cost: S.
+- **The teleprompter's chapter script.** `src/studio/sidecars/manuscript-teleprompter/core/chapter_script.py` (148 lines) has a Go twin, `internal/teleprompter/script.go`. Cost: S.
+- **Chapter names.** `src/studio/libs/python/narration_common/chapter_names.py` exists three times: Python, `internal/chaptername` and `src/studio/ui/src/chapterName.ts`, pinned by `tests/fixtures/chapter-names.json`. Cost: S.
 - **Manuscript parsing.** Import is Go-only (`internal/importer`, `internal/manuscript`). `narration_common/manuscript.py` (74 lines) only reads and validates the canonical file. Nothing to port.
 - **Progress and cancel.** `narration_common/progress.py` (38 lines) writes `STAGE|percent|message`, and the host reads it (`internal/process/progress.go`). Cancel is a `.cancel` file the host writes. Both are the protocol between the two sides, not logic, so there is nothing to move.
 
@@ -159,7 +159,7 @@ On 2026-10-18 no host caller was found for:
 
 - `compare.py --extract-hints`;
 - `narration_common/ui_bridge.py`, which has no non-test importer;
-- `libs/python/config_cli.py`.
+- `src/studio/libs/python/config_cli.py`.
 
 Check each before deleting it.
 
@@ -169,7 +169,7 @@ These would only be worth porting if the sidecars became "audio in, words out".
 
 - **Diff and coverage logic.** `compare.py`'s diff and markers, `recording_coverage.py` (455 lines, all pure), `take_divergence.py` (357, all pure) and `coverage_mode.py`'s splice and report (about 650) are about 2,300 lines.
   - Every mode but `--coverage --align-only` still needs Whisper first, and all of them consume `difflib.SequenceMatcher(autojunk=False)` opcodes.
-  - A port needs an exact copy of difflib's tie-breaking to keep the byte-identical goldens: `tests/fixtures/contracts/take-divergence-results.json`, `sidecars/transcript-compare/tests/fixtures/coverage/results.golden.json` and the marker golden.
+  - A port needs an exact copy of difflib's tie-breaking to keep the byte-identical goldens: `tests/fixtures/contracts/take-divergence-results.json`, `src/studio/sidecars/transcript-compare/tests/fixtures/coverage/results.golden.json` and the marker golden.
   - `internal/chaptermatch/sequence.go` ports only the ratio, and documents that it diverges from Python on long inputs.
   - Cost: L, for no latency gain, since these are jobs measured in seconds of transcription.
 - **The live teleprompter.** `script_tracker.py` and `flags.py` (about 560 lines) are pure.
@@ -183,7 +183,7 @@ These would only be worth porting if the sidecars became "audio in, words out".
 - **No freeze on the mutation path.** The class of release bug the `sidecar-freeze` skill exists for (a lost data file, lost package metadata, a ctypes-loaded library) cannot break an edit.
 - **No first start under antivirus.** The baseline saw a frozen executable's first start take three times its steady state with antivirus off.
 - **No import breakage.** A broken Piper or spaCy import cannot stop a Save, as the module-level Piper import once slowed every command ([baseline](interaction-latency-baseline.md#what-the-numbers-say)).
-- **One writer in one process.** Today two processes rewriting the file with no lock is the race `seedCharacterCandidates` (`apps/desktop/bindings.go`) and the [concurrent build note](../architecture/story-bible-concurrent-build.md) work around by sequencing. A Go writer serialises under one mutex in `guide.Service`.
+- **One writer in one process.** Today two processes rewriting the file with no lock is the race `seedCharacterCandidates` (`src/studio/desktop/bindings.go`) and the [concurrent build note](../architecture/story-bible-concurrent-build.md) work around by sequencing. A Go writer serialises under one mutex in `guide.Service`.
 - **An in-memory document.** Only the host can keep the document between calls, re-reading it when its size or modification time shows another writer.
 
 ## Risks of B
@@ -240,7 +240,7 @@ On 2026-10-18 the owner approved B and asked for step 1 (#1923).
 All under the `wire-contract-change` skill, since the host becomes a writer of a persisted file:
 
 - **`docs/reference/data-files.md`, the `manuscript_guide.json` row.** The writer becomes "the host (`guide.Service`) for edits, locks, review flags, relationships, deletions, cue corrections, types and the narrator's own pronunciations; the manuscript-guide sidecar for builds, entries it creates, alias edits, pronunciation lookups and rescans". The fixtures column gains the parity pairs.
-- **`apps/desktop/internal/guide/service.go`.** The `schemaVersion` comment ("the Python sidecar writes it") names both writers.
+- **`src/studio/desktop/internal/guide/service.go`.** The `schemaVersion` comment ("the Python sidecar writes it") names both writers.
 - **`docs/utilities/manuscript-guide.md`.** "Outputs" says which commands the sidecar still runs.
 - **`docs/architecture/story-bible-concurrent-build.md`.** "Sequenced, never overlapped" names the `guide.Service` lock.
 - **`docs/architecture/codebase-map.md`.** No change to the sidecar boundary. The `internal/guide` entry says it writes the Story Bible for the pure-data commands.

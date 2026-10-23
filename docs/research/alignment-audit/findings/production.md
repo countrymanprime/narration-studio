@@ -1,6 +1,6 @@
 # Production: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -419,7 +419,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: recording-check-complete, -incomplete, -pickups, -stale, -cascade
 - Widths: all, theme: both
 - What is wrong: Why does the panel say "2140 of 2140 words" and, 80 px below, "2,140 of 2,140 words"? The verdict sentence comes from the host (`%d`, no thousands separator) while the tile is formatted in the UI. Likewise "24 of 24 fully read" in the tile against "24 of 24 fully recorded" in the Paragraph detail row, and "Pickups (0): None from this check." sits directly above "Pickup list: 3 open (project-wide)".
-- Where: `apps/desktop/internal/coverage/judgement.go:33` (`%d` words), `production/RecordingCheckReport.tsx:107` (`toLocaleString`), Paragraph detail summary in the same file
+- Where: `src/studio/desktop/internal/coverage/judgement.go:33` (`%d` words), `production/RecordingCheckReport.tsx:107` (`toLocaleString`), Paragraph detail summary in the same file
 - Severity: looks wrong
 - Fix: format the number the same way in both (host sends raw counts), one verb ("read"), and label the 3 as project-wide next to the 0.
 - Evidence: `production/recording-check-complete/w1920.png` x1619-1900, y280-300, y395-420, y560-575 and y775
@@ -754,7 +754,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: recording-check-running
 - Widths: 1920, 1280, 1024, 768, theme: both
 - What is wrong: Why is it "Starting the recording check..." (three dots) above "Transcribing item 1 of 2…" (one ellipsis character) and the status line "Transcribing item 2 of 2..." (three dots)? The "0s" is at x=1606 at 1920, 1300 px from its label, and the rightmost button, where the primary normally sits, is the destructive Cancel.
-- Where: `apps/desktop/internal/coverage/run.go:94` ("..."), UI log strings in `production/RecordingCheck.tsx`, `actionsAlign="end"`
+- Where: `src/studio/desktop/internal/coverage/run.go:94` ("..."), UI log strings in `production/RecordingCheck.tsx`, `actionsAlign="end"`
 - Severity: polish
 - Fix: one ellipsis style, elapsed time under the label, Cancel to the left.
 - Evidence: `production/recording-check-running/w1920.png` y420-720

@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "name": "manuscript-teleprompter",
+  "projectType": "application",
+  "tags": ["toolchain:python"],
+  "implicitDependencies": ["narration-common", "config"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "node scripts/quality.mjs python -m ruff format --check src/studio/sidecars/manuscript-teleprompter",
+          "node scripts/quality.mjs python -m ruff check src/studio/sidecars/manuscript-teleprompter",
+          "node scripts/ci/doc-comments.mjs python src/studio/sidecars/manuscript-teleprompter"
+        ],
+        "parallel": false
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/ci/coverage-gate.mjs pytest src/studio/sidecars/manuscript-teleprompter src/studio/sidecars/manuscript-teleprompter/tests"
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Real Audacity 3.7.7: the foundation tests' first run
 
-**Run 2026-10-19 in a cloud container (Ubuntu 24.04, Xvfb, a PulseAudio null sink, Audacity 3.7.7 from the hash-pinned AppImage), by `tests/audacity3/real/foundation/run.sh`. First hosted-runner run: see [On a GitHub-hosted runner](#on-a-github-hosted-runner).** The tests are A3-T1 to T13, T24 to T29 and T34 of [the capability matrix](audacity-3-capability-matrix.md#test-plan); the suite, its results format and the golden replies are described in [its README](../../tests/audacity3/real/foundation/README.md). All 20 tests passed (about 11 minutes). A row marked KNOWN LIMIT passes while a limit holds. Linux only: the product's Windows pipe and `C:/` paths were not exercised.
+**Run 2026-10-19 in a cloud container (Ubuntu 24.04, Xvfb, a PulseAudio null sink, Audacity 3.7.7 from the hash-pinned AppImage), by `src/studio/tests/audacity3/real/foundation/run.sh`. First hosted-runner run: see [On a GitHub-hosted runner](#on-a-github-hosted-runner).** The tests are A3-T1 to T13, T24 to T29 and T34 of [the capability matrix](audacity-3-capability-matrix.md#test-plan); the suite, its results format and the golden replies are described in [its README](../../src/studio/tests/audacity3/real/foundation/README.md). All 20 tests passed (about 11 minutes). A row marked KNOWN LIMIT passes while a limit holds. Linux only: the product's Windows pipe and `C:/` paths were not exercised.
 
 ## Results
 

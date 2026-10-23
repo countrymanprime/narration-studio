@@ -1,0 +1,476 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import './components.css' layer(utilities);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* Tailwind 3 paired each text-* size with a fixed rem line-height; Tailwind 4 uses a
+   unitless ratio, which children with their own smaller font-size then inherit
+   proportionally (shrinking their line boxes). Keep the fixed values so text-* sizing
+   renders as it did before the upgrade. */
+@theme {
+  --text-xs--line-height: 1rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl--line-height: 2.25rem;
+  /* A bare `transition` utility takes the fast token, not Tailwind's own 150 ms and curve. */
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--ease-standard);
+}
+
+/* Motion (docs/design/motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by these
+   tokens. `motion-ok:` applies only when Windows has not asked for reduced motion and <html> has no data-motion="reduce", or when
+   <html data-motion="play"> is set: the public demo's "Play animations" switch (src/web), which nothing else sets;
+   `motion-safe:` reads the media query alone, so `src/motion.test.ts` fails on it. The motion rules select `html`, not `:root`:
+   paletteContrast.test.ts reads every `:root` rule as a colour theme. */
+@custom-variant motion-ok {
+  @media (prefers-reduced-motion: no-preference) {
+    &:where(html:not([data-motion='reduce']) *) {
+      @slot;
+    }
+  }
+  &:where(html[data-motion='play'] *) {
+    @slot;
+  }
+}
+/* The other side of `motion-ok:`: Windows asked for reduced motion, or <html data-motion="reduce"> is set. A one-shot
+   highlight that fades under `motion-ok:` shows here as a still tint for as long as its flag is on (changeHighlight.ts). */
+@custom-variant motion-still {
+  @media (prefers-reduced-motion: reduce) {
+    &:where(html:not([data-motion='play']) *) {
+      @slot;
+    }
+  }
+  &:where(html[data-motion='reduce'] *) {
+    @slot;
+  }
+}
+html {
+  --motion-fast: 120ms; /* hover and press colour, tooltip, menu, toast, the icon rail, level meter */
+  --motion-base: 200ms; /* slide-over, drawers, progress fill */
+  --motion-slow: 300ms; /* the Booth text column only */
+  --motion-highlight: 600ms; /* a one-shot background fade on what changed; moves nothing */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-shift: 4px; /* how far a tooltip, menu or toast travels */
+}
+/* The Proof ring's arc (proof/frame/ProofHeader.tsx). Registered so the conic-gradient stop it sets can transition: an unregistered
+   custom property changes in one step. */
+@property --ring-percent {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+/* Under reduced motion the tokens are zero too, for anything that reads them outside a `motion-ok:` utility. */
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion='play']) {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-highlight: 0ms;
+    --motion-shift: 0px;
+  }
+}
+html[data-motion='reduce'] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+  --motion-slow: 0ms;
+  --motion-highlight: 0ms;
+  --motion-shift: 0px;
+}
+
+:root {
+  --bg: #efede7;
+  --surface: #fbfaf7;
+  --surface-2: #f4f2ec;
+  --surface-3: #dcd8cd;
+  --border: #dcd7cb;
+  /* The mock's second line weight: controls, segmented groups, chips and kbd (--line is --border). Darker than the mock's #BDB6A6
+     (1.93:1 on --surface) to hold 3:1 for a control boundary (SC 1.4.11). */
+  --line-strong: #969083;
+  /* The near-black outline of the mock's default button. */
+  --btn-line: #2b2723;
+  --text: #23201b;
+  --text-muted: #5c564b;
+  --non-text: #766f60;
+  --accent: #b04f17;
+  --accent-strong: #8f3f0f;
+  --accent-soft: #f2deca; /* the mock's #F1DDC9, one step lighter: warn text on it was 4.49:1 (SKIPPED word) */
+  --accent-contrast: #ffffff;
+  /* The mock's keyboard focus ring (2 px outline, 2 px offset): blue, not the accent, so it reads on an accent fill. */
+  --focus: #1f5fbf;
+  --character: #3c7a5c;
+  --character-soft: #dcede3;
+  --place: #3f6ea6;
+  --place-soft: #dce7f3;
+  --org: #6b4c9a;
+  --org-soft: #e6ddf3;
+  --review: #b5473c;
+  --review-soft: #f5dedb;
+  --lore: #9a6b34;
+  --item: #42758a;
+  --event: #9a4e69;
+  --note: #b85c1e;
+  /* The manuscript search match highlight: a dedicated kind, a
+     true yellow distinct from --warn/--lore's amber-brown and every other kind hue. */
+  --search: #8a7500;
+  /* Text on a tint of the kind's own colour (highlights, entity badges): 43% of the kind colour and 57% of the text colour,
+     so the hue survives and 4.5:1 holds (45% fell to 4.4:1 for review and event nested in the mock's lighter dark violet), including where one highlight is nested in another and the tints add up
+     (at 50% the dark theme fell to 4.4:1 there). Defined once for both themes: it resolves against the theme's own --text,
+     and it follows a user override of the kind colour. The tint and the underline stay the pure kind colour. */
+  --character-text: color-mix(in srgb, var(--character) 43%, var(--text));
+  --place-text: color-mix(in srgb, var(--place) 43%, var(--text));
+  --org-text: color-mix(in srgb, var(--org) 43%, var(--text));
+  --review-text: color-mix(in srgb, var(--review) 43%, var(--text));
+  --lore-text: color-mix(in srgb, var(--lore) 43%, var(--text));
+  --item-text: color-mix(in srgb, var(--item) 43%, var(--text));
+  --event-text: color-mix(in srgb, var(--event) 43%, var(--text));
+  --search-text: color-mix(in srgb, var(--search) 43%, var(--text));
+  --danger: #a3302a;
+  --warn: #8a5a00;
+  --info: #2a5c86;
+  /* A requirement met (the Delivery page's rule results): the fourth status colour beside danger, warn and info. */
+  --ok: #2f6b3e;
+  /* Text on the status colours' soft fills. The mock sets that text in the status colour itself (its `.pill.ok` rule), and
+     each of the four holds 4.5:1 on its own --<tone>-soft in both themes (paletteContrast.test.ts), so the -text names are aliases
+     that carry no value of their own. The names stay because components read them; they go when the primitive slices swap those reads. */
+  --danger-text: var(--danger);
+  --warn-text: var(--warn);
+  --info-text: var(--info);
+  --ok-text: var(--ok);
+  /* The fifth status meaning: a capability the host reports as
+     experimental, distinct from every other kind and status hue. */
+  --experimental: #1f7a7a;
+  --experimental-text: color-mix(in srgb, var(--experimental) 85%, var(--text));
+  /* Alternating reader rows: a touch darker than --surface, like banded table rows. */
+  --row-alt: color-mix(in srgb, var(--surface) 94%, var(--text));
+  /* LevelMeter's zones: named for their role rather than duplicating the status
+     hues, but the same colours. A derived alias, like --row-alt above: it needs no dark override of its own,
+     since it resolves through whichever theme's --non-text/--ok/--warn/--danger are active. */
+  --meter-floor: var(--non-text);
+  --meter-body: var(--ok);
+  --meter-hot: var(--warn);
+  --meter-over: var(--danger);
+  /* The 14% badge tints of docs/design/colour-and-contrast.md#derived-and-status-tokens: a 14% tint of the tone colour, the one percentage that holds 4.5:1 against
+     every tone's own -text colour in both themes. StatusBadge fills with the opaque --<tone>-soft family below; this one stays for the experimental tone, which has no soft token. */
+  --badge-experimental-fill: color-mix(in srgb, var(--experimental) 14%, transparent);
+  /* The status soft fills are the mock's own opaque values (Studio Next), no longer aliases of the entity fills or a
+     mix of the warn colour, so the entity and status fills no longer move together. */
+  --ok-soft: #d9ead9;
+  --warn-soft: #f5e6bf;
+  --info-soft: #d8e5f2;
+  --danger-soft: #f4d6d2;
+  /* A selected or highlighted table row (mocks 04 and 05 measure #faf1ed): the accent at 8% over the surface. */
+  --row-selected: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  /* The booth's reading surface: the card surface in light; dark sets its own, darker than --bg. */
+  --reading-bg: var(--surface);
+  /* The booth's REC pill (mock 03). Light has no mock, so it is the danger pill's own pair. */
+  --rec-fill: var(--review-soft);
+  --rec-text: var(--danger-text);
+  /* The toast is inverted in both themes (daw-chapter-track-auto-sync/03 measures dark --text behind dark --bg). */
+  --toast-bg: var(--text);
+  --toast-text: var(--bg);
+  /* Proof's waveform bars (mock 04 measures 65-77% accent): 76% over the surface, the least that holds a mark's 3:1. */
+  --waveform: color-mix(in srgb, var(--accent) 76%, var(--surface));
+  /* The target zone on Master's book-consistency band (mock 05 measures #c8d4c2, 18%): ok at 16% over the --surface-2
+     track, so the band's --accent chapter ticks keep 3:1 on it (3.05:1 in light; 18% gave 2.98:1). */
+  --ok-zone: color-mix(in srgb, var(--ok) 16%, var(--surface-2));
+  /* Per-speaker dialogue colours: the Script reader's speaker attribution and the Booth's
+     "Voices in scene" tags give each speaker their own colour, as the mocks show. Declared as aliases of the
+     seven entity-kind hues, the same derivation docs/design/colour-and-contrast.md#derived-and-status-tokens used for the meter zones, so nothing here needs a second round
+     of contrast tuning: each token and its -text companion already has a passing pair under its kind name above. A
+     speaker's colour is chosen by hashing its id/name to one of these seven (SpeakerTag.tsx, speakerColor.ts); an eighth
+     speaker wraps back to --speaker-1, which is why it aliases --character - the app's existing single colour for every
+     speaker before this batch, so the wrap and the no-id fallback land on the same tone by construction. */
+  --speaker-1: var(--character);
+  --speaker-1-text: var(--character-text);
+  --speaker-2: var(--place);
+  --speaker-2-text: var(--place-text);
+  --speaker-3: var(--org);
+  --speaker-3-text: var(--org-text);
+  --speaker-4: var(--review);
+  --speaker-4-text: var(--review-text);
+  --speaker-5: var(--lore);
+  --speaker-5-text: var(--lore-text);
+  --speaker-6: var(--item);
+  --speaker-6-text: var(--item-text);
+  --speaker-7: var(--event);
+  --speaker-7-text: var(--event-text);
+  --backdrop: rgba(20, 17, 12, 0.42);
+  --shadow: 0 1px 2px rgba(30, 26, 16, 0.06), 0 1px 1px rgba(30, 26, 16, 0.04);
+  --shadow-lg: 0 1px 2px rgba(36, 33, 28, 0.08), 0 10px 28px rgba(36, 33, 28, 0.14);
+  --control-radius: 0.45rem;
+  --control-height: 2.55rem;
+  /* The one layer scale, lowest first (layers.test.ts pins the order). A page panel and its scrim (a Script drawer) sit under the navigation rail,
+     so the rail stays clickable with one open and a press on it dismisses the panel. A takeover is a full-window surface (the booth's companion).
+     The slide-over, menu/popover and dialog layers are the app's overlays, in that order; a Popover opened from inside a dialog sits one
+     step above it, a toast above those (it is portalled to <body>, so one raised from a dialog or slide-over is not hidden by it), and a hint above everything. Components name a layer with these tokens and never a bare number. */
+  --z-panel-scrim: 19;
+  --z-panel: 20;
+  --z-nav: 30;
+  --z-takeover: 40;
+  --z-slide-over-scrim: 45;
+  --z-slide-over: 50;
+  --z-popover: 55;
+  --z-dialog: 60;
+  --z-dialog-popover: 70;
+  --z-toast: 80;
+  --z-tooltip: 1000;
+  /* Spacing/type-size steps grounded in the values already repeated across
+     styles.css and the primitives (badges, chips, table cells, form controls)
+     - not a full scale, additive tokens for new/touched code to converge on. */
+  --space-1: 0.15rem;
+  --space-2: 0.35rem;
+  --space-3: 0.45rem;
+  --space-4: 0.6rem;
+  --space-5: 0.85rem;
+  --space-6: 1.1rem;
+  --font-size-2xs: 0.68rem;
+  --font-size-xs: 0.72rem;
+  --font-size-sm: 0.82rem;
+  --font-size-base: 0.9375rem; /* 15, the mock's body */
+  /* The booth's script size. The booth follows the app theme like every other
+     surface, so this is its only booth-only token: a size,
+     declared once here, the same in light and dark. */
+  --font-size-booth-script: 1.625rem;
+  --line-height-booth-script: 1.85;
+  /* The sizes the Studio Next mock's cascade resolves to, "Round 12: roomier controls" (docs/research/studio-next-token-and-primitive-diff.md
+     section 3): the same in both themes. The comment gives each in px at the default root size. */
+  --radius-button: 0.375rem; /* 6 */
+  --radius-card: 0.625rem; /* 10, .panel */
+  --radius-tag: 0.1875rem; /* 3 */
+  --button-height: 2.25rem; /* 36, .btn */
+  --button-height-sm: 2rem; /* 32, .btn.sm */
+  --button-height-lg: 2.5rem; /* 40, .decide .btn */
+  --chip-height: 1.75rem; /* 28, .chip */
+  --row-height: 2.4375rem; /* 39, 15 px body line plus 8 px padding each side and the rule */
+  --header-row-height: 2.25rem; /* 36, th: 13 px line plus 8 px padding each side and the rule */
+  --font-size-page-title: 1.75rem; /* 28, h1 */
+  --font-size-card-title: 1.3125rem; /* 21, h2 */
+  --font-size-label: 0.8125rem; /* 13, .label and th */
+  --tracking-label: 0.14em;
+  --tracking-button: 0.09em;
+  color-scheme: light;
+}
+/* Single source of truth for dark values - set via ThemeProvider
+   (src/studio/ui/src/theme/ThemeContext.tsx), which also handles the "system"
+   preference and writes this attribute, plus an inline bootstrap script in
+   index.html that sets it before first paint to avoid a flash of the wrong
+   theme. Previously duplicated under a `prefers-color-scheme` media query;
+   that copy had drifted and was missing the --shadow/--shadow-lg overrides
+   below, so dialogs/panels kept light-mode shadows under an explicit dark
+   preference. */
+:root[data-theme='dark'] {
+  --bg: #14120e;
+  --surface: #1d1a15;
+  --surface-2: #26221c;
+  --surface-3: #363023;
+  --border: #38332a;
+  --line-strong: #6d6659; /* the mock's #51493C is 1.96:1 on --surface; 3:1 needed */
+  --btn-line: #7a7060;
+  --text: #ede8de;
+  --text-muted: #b0a797;
+  --non-text: #968d7d;
+  --accent: #d9803f;
+  --accent-strong: #f0a06a;
+  --accent-soft: #3a2617;
+  --focus: #7fb0ff;
+  --accent-contrast: #1a0f05;
+  --character: #5fae85;
+  --character-soft: #1d2e24;
+  --place: #6e9fdb;
+  --place-soft: #1c2a3b;
+  --org: #b79de0;
+  --org-soft: #2e2545;
+  --review: #db7a6e;
+  --review-soft: #3a2320;
+  --lore: #c49056;
+  --item: #6ea5bc;
+  --event: #d37e9b;
+  --note: #d4865a;
+  --search: #e2c53c;
+  --danger: #f09088;
+  --warn: #e3b04f;
+  --info: #8dbbe6;
+  --ok: #7dc08a;
+  --ok-soft: #1e3324;
+  --warn-soft: #3a2d10;
+  --info-soft: #1b2f42;
+  --danger-soft: #40201d;
+  --experimental: #4fbdbd;
+  --experimental-text: var(--experimental);
+  /* Mock 03 measures both. */
+  --reading-bg: #0e0d09;
+  --rec-fill: #5e1d16;
+  --rec-text: #f9b8af;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+@layer base {
+  /* A height:100% chain, not 100vh/100dvh: exact under both WebView2 zoom and CSS zoom.
+     The shell (App.tsx) sizes itself off this with h-full. */
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  /* The document itself never scrolls: every page scrolls inside the
+     shell's own page area (or, before a project is loaded, StartupScreen/ProjectPicker's own scroll container), not
+     the window. This is the second guard after the containing-block fix (the height chain above) - it also removes Base UI's
+     scroll-lock gutter, which only appears when the document itself can scroll. */
+  html,
+  body {
+    overflow: hidden;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', ui-sans-serif, sans-serif;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  /* Anything that can be pressed shows it: a native control, or an element that stands in for one through its role. A control that is
+     off says so with a not-allowed cursor, whether it is disabled or aria-disabled. */
+  button,
+  summary,
+  select,
+  a[href],
+  label:has(> input[type='checkbox']),
+  label:has(> input[type='radio']),
+  input[type='checkbox'],
+  input[type='radio'],
+  input[type='range'],
+  [role='button'],
+  [role='link'],
+  [role='tab'],
+  [role='option'],
+  [role='menuitem'],
+  [role='menuitemcheckbox'],
+  [role='menuitemradio'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='treeitem'],
+  tr[tabindex]:not([tabindex='-1']),
+  tr[tabindex='-1'][aria-selected] {
+    cursor: pointer;
+  }
+  /* The reader opens a flagged word, a note or a Story Bible name from one click handler on the page (Reader.tsx onClick), so those
+     marks are not buttons the rule above can find: they are named here. */
+  [data-reader] [data-a],
+  [data-reader] [data-ent] {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+  /* Tailwind's preflight draws a placeholder at 50% of the field's text colour, about 3.2:1 in the light theme. A placeholder
+     is text (WCAG 1.4.3), so it takes the muted text colour. */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+  /* Scroll bars are thin and drawn in the theme's colours, everywhere. A vertical scroll box keeps room for its bar (stable gutter), so
+     its content, a sticky header or a padded edge is never under the bar. A surface that hides its bar on purpose (.scroll-chrome-hidden,
+     .guide-list-scroll below) says so with a class, which wins over this. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .overflow-y-auto,
+  .overflow-auto,
+  .overflow-y-scroll {
+    scrollbar-gutter: stable;
+  }
+}
+/* A toast arrives the way a tooltip does: it fades in and rises by --motion-shift (Toast.tsx, `motion-ok:` only). */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-shift));
+  }
+}
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-shift));
+  }
+  to {
+    opacity: 1;
+  }
+}
+.manuscript-reader {
+  margin: 0 auto;
+  max-width: none;
+}
+/* Scroll remains available to wheel/keyboard users, but the
+   reader/application chrome does not reserve or display a native gutter. */
+.scroll-chrome-hidden {
+  scrollbar-width: none;
+}
+.scroll-chrome-hidden::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+/* Settings: the per-row "Saved" fades out; a row another page asked for is lit and settles. */
+/* What changed after an action or an Undo: its background starts at --accent-soft and settles to its own colour
+   (changeHighlight.ts). Nothing moves. */
+@keyframes change-highlight {
+  from {
+    background-color: var(--accent-soft);
+  }
+}
+/* A failure or a stale notice arriving: it fades in once and then stays still (changeHighlight.ts). */
+@keyframes arrive {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes settings-saved {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes skeleton-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes work-progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(2400%);
+  }
+}
+/* A box that scrolls sideways shows a soft shadow on the edge that has more beyond it: the shadows stay put (`scroll`) and a cover in
+   the box's own colour (`local`) moves with the content and hides each one at the end of the scroll. Pickups' table uses it. Layered, so
+   a utility on the same element still wins. */
+@layer components {
+  .scroll-x-edges {
+    background:
+      linear-gradient(to right, var(--surface) 30%, transparent) left center / 2rem 100% no-repeat local,
+      linear-gradient(to left, var(--surface) 30%, transparent) right center / 2rem 100% no-repeat local,
+      linear-gradient(to right, rgb(0 0 0 / 0.2), transparent) left center / 0.75rem 100% no-repeat scroll,
+      linear-gradient(to left, rgb(0 0 0 / 0.2), transparent) right center / 0.75rem 100% no-repeat scroll;
+  }
+}

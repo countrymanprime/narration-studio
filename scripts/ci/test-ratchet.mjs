@@ -38,12 +38,69 @@ export function parseAddedLines(diff) {
   return added;
 }
 
+/** The removed lines of a unified diff, each filed under the file's path after the change, so a renamed file keeps one key. */
+export function parseRemovedLines(diff) {
+  const removed = [];
+  let path;
+  let inHunk = false;
+  for (const line of diff.split('\n')) {
+    if (line.startsWith('diff --git ')) inHunk = false;
+    else if (line.startsWith('@@')) inHunk = true;
+    else if (!inHunk && line.startsWith('+++ ')) path = line.startsWith('+++ b/') ? line.slice(6) : undefined;
+    else if (inHunk && line.startsWith('-') && path) removed.push({ path, text: line.slice(1) });
+  }
+  return removed;
+}
+
 const floorKey = (entry) => `${entry.tool} ${entry.project} ${entry.path}`;
 
-function floorViolations(before, after) {
+// The folder moves a change's renames add up to: for `a/x/f.go` -> `b/c/x/f.go`, `a` -> `b/c`, the parts before the path they share.
+// One folder can map to several places (git pairs a few renames inexactly), so each from-folder keeps every destination.
+function folderMoves(changes) {
+  const moves = new Map();
+  for (const change of changes) {
+    if (change.status !== 'R') continue;
+    const from = change.from.split('/');
+    const to = change.path.split('/');
+    while (from.length > 1 && to.length > 1 && from.at(-1) === to.at(-1)) {
+      from.pop();
+      to.pop();
+    }
+    if (from.length === change.from.split('/').length) continue;
+    const key = from.join('/');
+    if (!moves.has(key)) moves.set(key, new Set());
+    moves.get(key).add(to.join('/'));
+  }
+  return moves;
+}
+
+// Every place a path may have moved to, the path itself first.
+function movedPaths(path, moves) {
+  const paths = [path];
+  for (const [from, destinations] of moves) {
+    if (path !== from && !path.startsWith(`${from}/`)) continue;
+    for (const to of destinations) paths.push(to + path.slice(from.length));
+  }
+  return paths;
+}
+
+// A floor still holds after its folder moved: an entry at a moved project or path counts as the same floor. Only a moved key that
+// exists is used, so a single file renamed out of a folder cannot carry that folder's floor to an entry that measures something else.
+function currentFloor(entry, now, moves) {
+  for (const project of movedPaths(entry.project, moves)) {
+    for (const path of movedPaths(entry.path, moves)) {
+      const current = now.get(floorKey({ ...entry, project, path }));
+      if (current !== undefined) return current;
+    }
+  }
+  return undefined;
+}
+
+function floorViolations(before, after, changes) {
   const now = new Map(after.map((entry) => [floorKey(entry), entry]));
+  const moves = folderMoves(changes);
   return before.flatMap((entry) => {
-    const current = now.get(floorKey(entry));
+    const current = currentFloor(entry, now, moves);
     if (current === undefined) return [`coverage floor for ${entry.path} (${entry.tool}) was removed`];
     if (current.floor < entry.floor) return [`coverage floor for ${entry.path} (${entry.tool}) fell from ${entry.floor} to ${current.floor}`];
     // The floor that applies off Windows is a floor too. Dropping it makes the gate stricter on those hosts, so only lowering one counts.
@@ -55,7 +112,7 @@ function floorViolations(before, after) {
 }
 
 /** Every way the change weakens the tests, as one sentence each. Empty when it only adds or strengthens them. */
-export function findRatchetViolations({ changes, addedLines, floorsBefore, floorsAfter }) {
+export function findRatchetViolations({ changes, addedLines, removedLines = [], floorsBefore, floorsAfter }) {
   const violations = [];
   for (const change of changes) {
     if (change.status === 'D' && isTestPath(change.path)) violations.push(`deleted test file ${change.path}`);
@@ -63,12 +120,22 @@ export function findRatchetViolations({ changes, addedLines, floorsBefore, floor
       violations.push(`${change.from} is no longer a test file after moving to ${change.path}`);
     }
   }
+  // A marker that was on a line the change removed from the same file is not new: the line was edited (a path in it rewritten) or moved.
+  const removedMarkers = new Map();
+  for (const { path, text } of removedLines) {
+    const hit = WEAKENING.find(([pattern]) => pattern.test(text));
+    if (hit) removedMarkers.set(`${path} ${hit[1]}`, (removedMarkers.get(`${path} ${hit[1]}`) ?? 0) + 1);
+  }
   for (const { path, text } of addedLines) {
     if (!isTestPath(path)) continue;
     const hit = WEAKENING.find(([pattern]) => pattern.test(text));
-    if (hit) violations.push(`added ${hit[1]} in ${path}: ${text.trim()}`);
+    if (!hit) continue;
+    const key = `${path} ${hit[1]}`;
+    const left = removedMarkers.get(key) ?? 0;
+    if (left > 0) removedMarkers.set(key, left - 1);
+    else violations.push(`added ${hit[1]} in ${path}: ${text.trim()}`);
   }
-  return [...violations, ...floorViolations(floorsBefore, floorsAfter)];
+  return [...violations, ...floorViolations(floorsBefore, floorsAfter, changes)];
 }
 
 function git(args) {
@@ -93,9 +160,11 @@ function floorsAt(ref) {
 function main(baseRef) {
   const base = git(['merge-base', baseRef, 'HEAD']).trim();
   const changes = parseChanges(git(['diff', '--name-status', '-M', base, 'HEAD']));
-  const addedLines = parseAddedLines(git(['diff', '-U0', '--no-color', '-M', base, 'HEAD']));
+  const diff = git(['diff', '-U0', '--no-color', '-M', base, 'HEAD']);
+  const addedLines = parseAddedLines(diff);
+  const removedLines = parseRemovedLines(diff);
   const floorsAfter = JSON.parse(readFileSync(FLOORS_FILE, 'utf8')).entries ?? [];
-  const violations = findRatchetViolations({ changes, addedLines, floorsBefore: floorsAt(base), floorsAfter });
+  const violations = findRatchetViolations({ changes, addedLines, removedLines, floorsBefore: floorsAt(base), floorsAfter });
   for (const violation of violations) console.log(`ratchet: ${violation}`);
   if (violations.length) {
     console.log(`\n${violations.length} way(s) this change weakens the tests. Say in the pull request why each one is intended.`);

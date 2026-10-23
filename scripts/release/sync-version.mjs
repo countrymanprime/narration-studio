@@ -51,9 +51,9 @@ function replaceVersion(file, pattern, version, checkOnly) {
 export function syncVersion(checkOnly) {
   const version = readRootVersion();
   const changed = [
-    updateJson('apps/ui/package.json', version, checkOnly),
-    updateJson('apps/desktop/package.json', version, checkOnly),
-    updateWailsJsonVersion('apps/desktop/wails.json', version, checkOnly),
+    updateJson('src/studio/ui/package.json', version, checkOnly),
+    updateJson('src/studio/desktop/package.json', version, checkOnly),
+    updateWailsJsonVersion('src/studio/desktop/wails.json', version, checkOnly),
   ].some(Boolean);
   if (!checkOnly && changed) console.log(`Synchronized release version ${version}.`);
 }

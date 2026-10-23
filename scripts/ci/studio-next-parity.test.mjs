@@ -26,8 +26,8 @@ describe('x', () => {
 function repo({ mock = true } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'parity-'));
   mkdirSync(join(root, 'docs/research'), { recursive: true });
-  mkdirSync(join(root, 'apps/ui'), { recursive: true });
-  writeFileSync(join(root, 'apps/ui/real.test.ts'), "it('real name', () => {})\n");
+  mkdirSync(join(root, 'src/studio/ui'), { recursive: true });
+  writeFileSync(join(root, 'src/studio/ui/real.test.ts'), "it('real name', () => {})\n");
   writeFileSync(
     join(root, 'docs/research/studio-next-ruling-index.md'),
     '| id | section | status | ruling | slice | test |\n| --- | --- | --- | --- | --- | --- |\n| PR-1 | s | agreed | a | SNB-1 | |\n| PR-2 | s | rejected | b | none | |\n| PR-3 | s | agreed-with-conditions | c | SNB-1 | |\n',
@@ -41,7 +41,7 @@ function repo({ mock = true } = {}) {
 const run = (docs, root) => check(docs.map((markdown, i) => ({ name: `doc${i}.md`, doc: parseParity(markdown) })), { root });
 const doc = (rows, files = 'a.test.ts') => `Mock files: ${files}\n\n${HEAD}${rows.join('\n')}\n`;
 const ok = [
-  '| a.test.ts | one | ported | apps/ui/real.test.ts::real name | |',
+  '| a.test.ts | one | ported | src/studio/ui/real.test.ts::real name | |',
   '| a.test.ts | two | mock-only | | The mock keeps its own store. |',
 ];
 
@@ -49,20 +49,20 @@ test('parses-the-case-table', () => {
   const parsed = parseParity(doc(ok, 'a.test.ts, b.test.tsx'));
   assert.deepEqual(parsed.mockFiles, ['a.test.ts', 'b.test.tsx']);
   assert.deepEqual(parsed.caseRows.map((r) => [r.file, r.title, r.status]), [['a.test.ts', 'one', 'ported'], ['a.test.ts', 'two', 'mock-only']]);
-  assert.equal(parsed.caseRows[0].real, 'apps/ui/real.test.ts::real name');
+  assert.equal(parsed.caseRows[0].real, 'src/studio/ui/real.test.ts::real name');
   assert.equal(run([doc(['| a.test.ts | one | maybe | | |', ok[1]])], repo()).problems.some((p) => p.includes('status "maybe"')), true);
 });
 
 test('ported-and-covered-name-a-real-test', () => {
   const root = repo();
   const bad = (cell, status = 'ported') => run([doc([`| a.test.ts | one | ${status} | ${cell} | |`, ok[1]])], root).problems;
-  assert.deepEqual(bad('apps/ui/real.test.ts::real name'), []);
-  assert.deepEqual(bad('apps/ui/real.test.ts::real name', 'covered'), []);
-  assert.match(bad('apps/ui/nope.test.ts::real name')[0], /does not exist/);
-  assert.match(bad('apps/ui/real.test.ts::other name')[0], /not in apps\/ui\/real.test.ts/);
-  assert.match(bad('apps/ui/real.test.ts')[0], /not path::test name/);
+  assert.deepEqual(bad('src/studio/ui/real.test.ts::real name'), []);
+  assert.deepEqual(bad('src/studio/ui/real.test.ts::real name', 'covered'), []);
+  assert.match(bad('src/studio/ui/nope.test.ts::real name')[0], /does not exist/);
+  assert.match(bad('src/studio/ui/real.test.ts::other name')[0], /not in src\/studio\/ui\/real.test.ts/);
+  assert.match(bad('src/studio/ui/real.test.ts')[0], /not path::test name/);
   assert.match(bad('docs/research/mockups/studio-next/tests/a.test.ts::one')[0], /under docs\/research\/mockups/);
-  assert.match(bad('apps/ui/real.test.ts::real name', 'covered').concat(bad('', 'covered'))[0], /not path::test name/);
+  assert.match(bad('src/studio/ui/real.test.ts::real name', 'covered').concat(bad('', 'covered'))[0], /not path::test name/);
 });
 
 test('mock-only-needs-a-reason', () => {
@@ -99,12 +99,12 @@ test('file-lists-are-declared', () => {
 test('ruling-rows', () => {
   const root = repo();
   const rulings = (rows, extra = ok) => `${doc(extra)}\n| ruling id | test |\n| --- | --- |\n${rows.join('\n')}\n`;
-  assert.deepEqual(run([rulings(['| PR-1 | apps/ui/real.test.ts::real name |', '| PR-3 | apps/ui/real.test.ts::real name |'])], root).problems, []);
-  const problems = run([rulings(['| PR-2 | apps/ui/real.test.ts::real name |', '| PR-9 | apps/ui/real.test.ts::real name |', '| PR-1 | apps/ui/real.test.ts::nope |'])], root).problems.join('\n');
+  assert.deepEqual(run([rulings(['| PR-1 | src/studio/ui/real.test.ts::real name |', '| PR-3 | src/studio/ui/real.test.ts::real name |'])], root).problems, []);
+  const problems = run([rulings(['| PR-2 | src/studio/ui/real.test.ts::real name |', '| PR-9 | src/studio/ui/real.test.ts::real name |', '| PR-1 | src/studio/ui/real.test.ts::nope |'])], root).problems.join('\n');
   assert.match(problems, /PR-2 is rejected/);
   assert.match(problems, /PR-9 is not in/);
   assert.match(problems, /PR-1: real test "nope"/);
-  const twice = run([rulings(['| PR-1 | apps/ui/real.test.ts::real name |']), '| ruling id | test |\n| --- | --- |\n| PR-1 | apps/ui/real.test.ts::real name |\n'], root).problems;
+  const twice = run([rulings(['| PR-1 | src/studio/ui/real.test.ts::real name |']), '| ruling id | test |\n| --- | --- |\n| PR-1 | src/studio/ui/real.test.ts::real name |\n'], root).problems;
   assert.match(twice.join('\n'), /PR-1 is also listed in doc0.md/);
 });
 
@@ -113,7 +113,7 @@ test('skips-when-the-mock-is-gone', () => {
   const result = run([doc([ok[0]]), doc([ok[0]])], root);
   assert.deepEqual(result.problems, []);
   assert.equal(result.skipped.length, 1);
-  assert.match(run([doc(['| a.test.ts | one | ported | apps/ui/nope.ts::x | |'])], root).problems[0], /does not exist/);
+  assert.match(run([doc(['| a.test.ts | one | ported | src/studio/ui/nope.ts::x | |'])], root).problems[0], /does not exist/);
 });
 
 test('cli: the repo with no parity doc passes and a bad doc fails with a summary', () => {

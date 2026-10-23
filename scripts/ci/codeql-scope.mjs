@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const LANGUAGES = [
-  { language: 'go', 'build-mode': 'manual', owns: /^apps\/desktop\/|^scripts\/toolchain\.json$/ },
+  { language: 'go', 'build-mode': 'manual', owns: /^src\/studio\/desktop\/|^scripts\/toolchain\.json$/ },
   { language: 'javascript-typescript', 'build-mode': 'none', owns: /\.(?:[cm]?[jt]sx?|vue|html?)$/ },
   { language: 'python', 'build-mode': 'none', owns: /\.pyi?$/ },
 ];

@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Production and Schedule rulings and the sketch review in `studio-next/research/repo-compare-decisions.md`; the owner's rulings of 2026-10-11 (see Decisions); the mock's `studio-next/src/pages/Production.tsx`, `studio-next/src/pages/Schedule.tsx` and `studio-next/src/pages/production/`.
 
-**Builds on:** Production Tracking and Stage Recommendations (both delivered; their steady state is `apps/desktop/internal/production/`, `apps/desktop/internal/stages/` and [manifest.go](../../apps/desktop/internal/project/manifest.go), [overview.go](../../apps/desktop/internal/production/overview.go), [Status report](../guides/using-the-app/production.md#status-report), [The engine](../architecture/stage-recommendations.md#the-engine), [The narrator's decisions](../architecture/stage-recommendations.md#the-narrators-decisions)), the delivery profiles ([ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain)), the chapter-track sync host work. It inherits the unfinished UI halves of the old chapter-track auto-sync PRD (see the carried-over table in the overview).
+**Builds on:** Production Tracking and Stage Recommendations (both delivered; their steady state is `src/studio/desktop/internal/production/`, `src/studio/desktop/internal/stages/` and [manifest.go](../../src/studio/desktop/internal/project/manifest.go), [overview.go](../../src/studio/desktop/internal/production/overview.go), [Status report](../guides/using-the-app/production.md#status-report), [The engine](../architecture/stage-recommendations.md#the-engine), [The narrator's decisions](../architecture/stage-recommendations.md#the-narrators-decisions)), the delivery profiles ([ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain)), the chapter-track sync host work. It inherits the unfinished UI halves of the old chapter-track auto-sync PRD (see the carried-over table in the overview).
 
 **Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for Production and Schedule.
 
@@ -13,14 +13,14 @@ The real Production page already shows the plan, the board, Next up, deadline to
 ## Evidence
 
 - **Mock.** `studio-next/src/selectors/progress.ts` (`deadlineTone`, `isFinished`, `contractValue`, `planStart`), `studio-next/src/selectors/nextup.ts`, `studio-next/src/selectors/milestones.ts` (`measureText`, `measureOptions`), `studio-next/src/selectors/measured.ts` and `studio-next/src/providers/measurements.ts` (`Measured<T>`), `studio-next/src/selectors/pace.ts`, `studio-next/src/pages/production/{NextUp,PipelineTable,ProgressChart,StageReadiness,TargetInfo,ReportDialog}.tsx`, `studio-next/src/config/estimates.ts`, `studio-next/src/fixtures/schedule.ts`, `studio-next/src/fixtures/platforms.ts`. Tests: `studio-next/tests/production.test.tsx`, `studio-next/tests/schedule.test.tsx`, `studio-next/tests/batch-b.test.tsx`, `studio-next/tests/f-production.test.tsx`, `studio-next/tests/delivery-profile.test.tsx`.
-- **Repo.** `ProductionPlan {deadline, contractedAmount, milestones[{name, dueDate, note}]}` (`apps/ui/src/api/contracts/production.ts`); `apps/desktop/internal/production/{plan,overview,burndown,pfh}.go`; `apps/ui/src/components/production/{PlanPanel,ChapterBoard,StatusReportPanel}.tsx`; `apps/ui/src/components/stages/*`; `apps/ui/src/components/layout/TimerChip.tsx`.
+- **Repo.** `ProductionPlan {deadline, contractedAmount, milestones[{name, dueDate, note}]}` (`src/studio/ui/src/api/contracts/production.ts`); `src/studio/desktop/internal/production/{plan,overview,burndown,pfh}.go`; `src/studio/ui/src/components/production/{PlanPanel,ChapterBoard,StatusReportPanel}.tsx`; `src/studio/ui/src/components/stages/*`; `src/studio/ui/src/components/layout/TimerChip.tsx`.
 
 | Mock behaviour | Real today |
 | --- | --- |
-| Payment type, "no PFH rate" case | Only `contractedAmount`; effective rate from logged hours ([pfh.go](../../apps/desktop/internal/production/pfh.go)) |
+| Payment type, "no PFH rate" case | Only `contractedAmount`; effective rate from logged hours ([pfh.go](../../src/studio/desktop/internal/production/pfh.go)) |
 | Milestone note | Present |
 | Milestone measure, estimate, done flag, templates | Absent |
-| Deadline tone from days left; Next up group order | Present ([overview.go](../../apps/desktop/internal/production/overview.go)); mock adds risk hours first |
+| Deadline tone from days left; Next up group order | Present ([overview.go](../../src/studio/desktop/internal/production/overview.go)); mock adds risk hours first |
 | This week from sourced numbers or "not measured yet" | Not present as a pattern |
 | Target pace info popover | Not present |
 | Readiness chip plus slide-over, append-only decisions | Stage panel and suggestion exist (`components/stages`) |
@@ -68,8 +68,8 @@ Owner rulings of 2026-10-11; none is open.
 | --- | --- | --- |
 | SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | Benchmark mock 01 and the ADRs measured to it (`docs/operations/verification-tooling.md#mock-match, docs/design/design-system.md`) no longer bind Production |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | SNP-8 swaps the route and deletes the old page |
-| SN0-Q4 / DQ-3 | Timer, PFH and effective rate stay as built | No Production slice reads or extends them; `apps/desktop/internal/production/pfh.go` is untouched |
-| DQ-4 | The mock's plan chart and deadline tone from fixed inputs is the spec | `apps/desktop/internal/production/overview.go` "shown, not projected" is superseded to that extent; the projection may only worsen the tone |
+| SN0-Q4 / DQ-3 | Timer, PFH and effective rate stay as built | No Production slice reads or extends them; `src/studio/desktop/internal/production/pfh.go` is untouched |
+| DQ-4 | The mock's plan chart and deadline tone from fixed inputs is the spec | `src/studio/desktop/internal/production/overview.go` "shown, not projected" is superseded to that extent; the projection may only worsen the tone |
 | DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | `docs/architecture/principles.md` is superseded; SNP-3 builds the Schedule page |
 | SNP-Q4 | Royalty share carries no figure; the payment type is a label and removes the rate figure (default taken, standing instruction) | `studio-next/tests/batch-b.test.tsx` |
 | SNP-Q5 | Measures offered as in `studio-next/src/fixtures/schedule.ts` and `platforms.ts` (default taken) | Checkpoint only where the profile has the capability |
@@ -86,7 +86,7 @@ A narrator planning a book against a deadline and a contract; the owner reviewin
 | Behaviour | Mock reference | Acceptance |
 | --- | --- | --- |
 | Deadline tone | `studio-next/src/selectors/progress.ts` (`deadlineTone`) | Neutral over a week, warning at a week or less while unfinished, danger past, success when finished; a projection of behind makes it danger, tight makes a neutral tone warning, and it never improves the tone |
-| Next up ranking | `studio-next/src/selectors/nextup.ts` | Risk hours, then the group order of [overview.go](../../apps/desktop/internal/production/overview.go), then least advanced stage |
+| Next up ranking | `studio-next/src/selectors/nextup.ts` | Risk hours, then the group order of [overview.go](../../src/studio/desktop/internal/production/overview.go), then least advanced stage |
 | Payment type and no rate | `studio-next/src/fixtures/schedule.ts`, `studio-next/tests/batch-b.test.tsx` | Choosing royalty share hides per-hour figures |
 | Milestones | `studio-next/src/pages/Schedule.tsx`, `studio-next/tests/schedule.test.tsx` | Schedule is a page with a rail item; the table is read only; the dialog saves and removes as one undo step each |
 | Checkpoint template | `studio-next/src/selectors/milestones.ts` | Offered only when the profile has the capability; when chosen it is measured |
@@ -101,9 +101,9 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [manifest.go](../../apps/desktop/internal/project/manifest.go) | EXTEND | New plan fields (A12) |
-| [overview.go](../../apps/desktop/internal/production/overview.go) | EXTEND, SUPERSEDE (DQ-4) | Risk hours first; the mock's plan chart and deadline tone replace "shown, not projected" |
-| [pfh.go](../../apps/desktop/internal/production/pfh.go) | KEEP (DQ-3) | Not touched |
+| [manifest.go](../../src/studio/desktop/internal/project/manifest.go) | EXTEND | New plan fields (A12) |
+| [overview.go](../../src/studio/desktop/internal/production/overview.go) | EXTEND, SUPERSEDE (DQ-4) | Risk hours first; the mock's plan chart and deadline tone replace "shown, not projected" |
+| [pfh.go](../../src/studio/desktop/internal/production/pfh.go) | KEEP (DQ-3) | Not touched |
 | [Status report](../guides/using-the-app/production.md#status-report) | EXTEND | Amount stays opt-in |
 | [The engine](../architecture/stage-recommendations.md#the-engine), [The narrator's decisions](../architecture/stage-recommendations.md#the-narrators-decisions) | EXTEND | Same engine; mock's decision log shape |
 | [ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain) | EXTEND | Capability lookup |
@@ -132,17 +132,17 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ADR | A12 Proposed (rulings DQ-3, DQ-4, DQ-14 recorded) | pending | - | SN0-1 | 0.3 | - |
-| 2 | Plan fields (host) | Payment, milestone fields, schema, golden, mock | in review ([#1040](https://github.com/countrymanprime/narration-utils/issues/1040)) | 4 | 1 | 0.9 | - |
-| 3 | Schedule page components | Table, dialog, templates, capability lookup; built with no route | done ([#1083](https://github.com/countrymanprime/narration-utils/issues/1083); routed by SN-P8, [#1295](https://github.com/countrymanprime/narration-utils/issues/1295)) | 4 | 2, SNF-3 | 1.0 | - |
+| 2 | Plan fields (host) | Payment, milestone fields, schema, golden, mock | in review ([#1040](https://github.com/countrymanprime/narration-studio/issues/1040)) | 4 | 1 | 0.9 | - |
+| 3 | Schedule page components | Table, dialog, templates, capability lookup; built with no route | done ([#1083](https://github.com/countrymanprime/narration-studio/issues/1083); routed by SN-P8, [#1295](https://github.com/countrymanprime/narration-studio/issues/1295)) | 4 | 2, SNF-3 | 1.0 | - |
 | 4 | Sourced numbers | `MeasurementsPort`, `Measured`, This week, chart line, room tone | done (SN-P41, SN-P42, SN-P43) | 2, 3 | SNS-4 | 1.2 | - |
-| 5 | Target pace popover | Info affordance and popover | done (SN-P52, [#1197](https://github.com/countrymanprime/narration-utils/issues/1197)) | 6 | 4 | 0.4 | - |
-| 6 | Readiness and report | Chip, slide-over, report dialog parity | done ([#1078](https://github.com/countrymanprime/narration-utils/issues/1078), SN-P622 [#1216](https://github.com/countrymanprime/narration-utils/issues/1216)) | 5 | SNS-2 | 0.9 | - |
-| 7 | Chapter-sync UI carry-over | Consent dialog, Tracks states, status without a click, pickups interplay | done (SN-P71, [#1154](https://github.com/countrymanprime/narration-utils/issues/1154)) | 6 | 1 | 1.0 | - |
-| 8 | Page swap | Production layout to the mock and the Schedule route and rail item; delete the old page and its equivalents (`PlanPanel`, `ChapterBoard`, `StatusReportPanel`, the old stage panel, their rows, guides and screenshots); the timer chip and PFH code stay | done ([#1295](https://github.com/countrymanprime/narration-utils/issues/1295); supersedes `apps/desktop/internal/production/overview.go` "shown, not projected" to the extent of DQ-4, `docs/architecture/principles.md` by DQ-14, and `docs/operations/verification-tooling.md#mock-match, docs/design/design-system.md` by DQ-1) | - | 3 to 7 | 0.5 | - |
+| 5 | Target pace popover | Info affordance and popover | done (SN-P52, [#1197](https://github.com/countrymanprime/narration-studio/issues/1197)) | 6 | 4 | 0.4 | - |
+| 6 | Readiness and report | Chip, slide-over, report dialog parity | done ([#1078](https://github.com/countrymanprime/narration-studio/issues/1078), SN-P622 [#1216](https://github.com/countrymanprime/narration-studio/issues/1216)) | 5 | SNS-2 | 0.9 | - |
+| 7 | Chapter-sync UI carry-over | Consent dialog, Tracks states, status without a click, pickups interplay | done (SN-P71, [#1154](https://github.com/countrymanprime/narration-studio/issues/1154)) | 6 | 1 | 1.0 | - |
+| 8 | Page swap | Production layout to the mock and the Schedule route and rail item; delete the old page and its equivalents (`PlanPanel`, `ChapterBoard`, `StatusReportPanel`, the old stage panel, their rows, guides and screenshots); the timer chip and PFH code stay | done ([#1295](https://github.com/countrymanprime/narration-studio/issues/1295); supersedes `src/studio/desktop/internal/production/overview.go` "shown, not projected" to the extent of DQ-4, `docs/architecture/principles.md` by DQ-14, and `docs/operations/verification-tooling.md#mock-match, docs/design/design-system.md` by DQ-1) | - | 3 to 7 | 0.5 | - |
 
 ### Phase Details
 
-- **Phase 4.** Own pace comes from measured recorded lengths (`production.Recorded`, [recordedlengths.go](../../apps/desktop/recordedlengths.go)), not from the timer.
+- **Phase 4.** Own pace comes from measured recorded lengths (`production.Recorded`, [recordedlengths.go](../../src/studio/desktop/recordedlengths.go)), not from the timer.
 - **Phase 7.** The old PRD's remaining phases are listed in the overview's carried-over table; this phase finishes only the UI halves.
 - **Phase 8.** The screenshots compare against the Studio Next mock page (`studio-next/e2e/prod-shots.mjs` pattern), before and after. The swap's change-impact scan lists every consumer of the deleted components.
 
@@ -154,7 +154,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Phase | Files touched | Collides with |
 | --- | --- | --- |
-| 2 | `apps/desktop/internal/production/*`, manifest, `api/{contracts,schemas}/production.ts`, goldens, `hostAPIVersion` | Every binding PRD (serial bump) |
+| 2 | `src/studio/desktop/internal/production/*`, manifest, `api/{contracts,schemas}/production.ts`, goldens, `hostAPIVersion` | Every binding PRD (serial bump) |
 | 3 | new Schedule components (no route) | Chapter-track UI slices (same folder) |
 | 4 | `api/ports` measurements, selectors | none |
 | 6 | `components/stages/*`, `StatusReportPanel.tsx` | Proof readiness slices |
@@ -165,8 +165,8 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
 | SNP-1 | Phase 1 | SN0-1 | yes | ADR index |
-| SNP-2 | Phase 2 ([#1040](https://github.com/countrymanprime/narration-utils/issues/1040), in review) | SNP-1 | yes | Go and golden tests; wire row; mock passes |
-| SNP-3 | Phase 3 ([#1083](https://github.com/countrymanprime/narration-utils/issues/1083), in review) | SNP-2, SNF-3 | yes | Component tests; visual rows; aria |
+| SNP-2 | Phase 2 ([#1040](https://github.com/countrymanprime/narration-studio/issues/1040), in review) | SNP-1 | yes | Go and golden tests; wire row; mock passes |
+| SNP-3 | Phase 3 ([#1083](https://github.com/countrymanprime/narration-studio/issues/1083), in review) | SNP-2, SNF-3 | yes | Component tests; visual rows; aria |
 | SNP-4 | Phase 4 | SNS-4 | yes | Parity suite; scan for literals |
 | SNP-5 | Phase 5 | SNP-4 | yes | Popover test; visual row |
 | SNP-6 | Phase 6 | SNS-2 | yes | Ported tests; visual row |
@@ -183,7 +183,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Research Summary
 
-Read: the mock's Production and Schedule files and tests, the owner's rulings, `contracts/production.ts`, `plan.go` headers, `apps/desktop/internal/production/pfh.go, apps/desktop/internal/project/manifest.go, apps/desktop/internal/production/overview.go, docs/guides/using-the-app/production.md#status-report`. Not done: the old chapter-track sync PRD's per-phase detail was summarised from its status table only.
+Read: the mock's Production and Schedule files and tests, the owner's rulings, `contracts/production.ts`, `plan.go` headers, `src/studio/desktop/internal/production/pfh.go, src/studio/desktop/internal/project/manifest.go, src/studio/desktop/internal/production/overview.go, docs/guides/using-the-app/production.md#status-report`. Not done: the old chapter-track sync PRD's per-phase detail was summarised from its status table only.
 
 ## Visual Spec
 

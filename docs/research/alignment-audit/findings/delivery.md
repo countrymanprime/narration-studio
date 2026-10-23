@@ -1,6 +1,6 @@
 # Delivery: alignment findings
 
-Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir apps/ui visual:page <page>`).
+Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by the round that produced them; a later round's finding that replaces an earlier one says `Supersedes`. Evidence paths are `<page>/<state>/<width>.png` of the light capture, `dark:<page>/<state>/<viewport>.png` for dark, `tall:<page>-w<width>.png` for the below-the-fold captures; the images are not committed (regenerate the repo-viewport ones with `pnpm --dir src/studio/ui visual:page <page>`).
 
 ## Round 4: gap fill
 
@@ -20,7 +20,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: delivery / default (ACX built in), Profile rules card
 - Widths: 1440, 1024, 768, 390 (theme: both)
 - What is wrong: "why do these numbers not add up?" The chips read "9 checked by the app", "2 not checked by the app", "2 listen", "6 to verify" (9+2+2+6 = 19) and the disclosure under them says "13 rules". The first three chips split the 13 rules (9+2+2); "to verify" is a second axis (rule's verification state) drawn in the same row, same chip shape, so it reads as a fourth bucket and the row contradicts the count by 6.
-- Where: `apps/ui/src/components/master/DeliveryProfilePanel.tsx:73-88` (the `to verify` Mark is rendered with the three coverage marks) and `:92` (summary `plural(profile.rules.length, 'rule')`); counts from `deliveryProfile.ts:103`
+- Where: `src/studio/ui/src/components/master/DeliveryProfilePanel.tsx:73-88` (the `to verify` Mark is rendered with the three coverage marks) and `:92` (summary `plural(profile.rules.length, 'rule')`); counts from `deliveryProfile.ts:103`
 - Severity: looks wrong
 - Fix: put "6 to verify" on its own line labelled as a different thing ("of which 6 still to verify against the platform's page"), or drop it from the chip row and show it in the rules list.
 - Evidence: `S/tall/delivery-w1440.png` (y~800-870 in the 900-px-tall crop, x 25-340), `S/tall/delivery-w768.png` y 800-815
@@ -108,7 +108,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: delivery / default
 - Widths: 768 (also 1024, 1440 aside) (theme: both)
 - What is wrong: "why is this a list of fourteen of the same thing?" Every row is the chapter name at x=33 and a "Not mastered" pill at x=651-735, with no row rules, 45 px per row, so the eye has to jump 400 px across blank card per row; when all rows are in one state the pill repeats 14 times and "Chapters passing 0 of 14" above already says it. Extends XDL-4 (names truncated at 1440/1024); at 768 the names are not truncated but the row has no guide.
-- Where: `apps/ui/src/components/delivery/page/Preflight.tsx` row markup (45 px rows, `justify-between`)
+- Where: `src/studio/ui/src/components/delivery/page/Preflight.tsx` row markup (45 px rows, `justify-between`)
 - Severity: polish
 - Fix: hairline between rows or zebra, or collapse a run of identical states into "Chapters 1-12 and credits: not mastered".
 - Evidence: `S/tall/delivery-w768.png` chunk 1 (y 1000-1640), x 33-735

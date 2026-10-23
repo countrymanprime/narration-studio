@@ -5,7 +5,7 @@
 #
 # What it does, in order: downloads the pinned Audacity AppImage and checks its SHA-256, fetches one pinned LibriVox chapter with the
 # fixture's own checksum-verified download, starts Xvfb and a PulseAudio null sink, starts Audacity with mod-script-pipe enabled and
-# its first-run dialogs switched off, then runs the audacityreal Go tests (apps/desktop/internal/dawport/audacity/real_linux_live_test.go).
+# its first-run dialogs switched off, then runs the audacityreal Go tests (src/studio/desktop/internal/dawport/audacity/real_linux_live_test.go).
 # Findings and the CI design built on them: docs/research/real-audacity3-ci-integration.md.
 #
 # NU_AUDACITY_WITH_REPLY_PATCH is ignored: the blank-first-line reply bug it worked around is fixed in audacitybridge.
@@ -149,7 +149,7 @@ screenshot() { import -window root "$WORK/out/$1.png" 2>/dev/null || true; }
 run_go() {
 	local pattern="$1"
 	(
-		cd "$REPO/apps/desktop"
+		cd "$REPO/src/studio/desktop"
 		NU_AUDACITY_OUT="$WORK/out" \
 			NU_AUDACITY_FIXTURE="$WORK/fixtures/$SOURCE_ID.mp3" \
 			NU_AUDACITY_MARKERS="$FIXTURE_DIR/alignment/$SOURCE_ID.markers.json" \

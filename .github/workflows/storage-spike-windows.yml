@@ -1,5 +1,5 @@
 name: Storage spike (Windows)
-# Manual only. Runs the throwaway storage benchmark in apps/desktop/cmd/spike-storage on a Windows runner and uploads its
+# Manual only. Runs the throwaway storage benchmark in src/studio/desktop/cmd/spike-storage on a Windows runner and uploads its
 # numbers (docs/research/storage-engine-spike.md). It is not part of the gate and nothing depends on it.
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
           go-version: '1.27.2'
           cache: false
       - name: Build
-        working-directory: apps/desktop/cmd/spike-storage
+        working-directory: src/studio/desktop/cmd/spike-storage
         run: go build -o "$env:RUNNER_TEMP\spike.exe" .
       - name: Run
         env:
