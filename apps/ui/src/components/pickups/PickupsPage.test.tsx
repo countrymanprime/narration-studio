@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { StudioProvider } from '../../studio/StudioProvider';
+import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
@@ -27,6 +29,7 @@ const LIST: PickupList = { pickups: MIXED, leftOut: [{ chapterId: 'c2', state: '
 function renderPage(
   api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(LIST) }),
   chapters: readonly object[] = CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })),
+  journal: Journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
 ) {
   vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters as never);
   const goTo = vi.fn();
@@ -34,12 +37,14 @@ function renderPage(
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <TooltipProvider>
-          <CommandRouter>
-            <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
-          </CommandRouter>
-          <OverlayHost />
-        </TooltipProvider>
+        <StudioProvider journal={journal}>
+          <TooltipProvider>
+            <CommandRouter>
+              <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+            </CommandRouter>
+            <OverlayHost />
+          </TooltipProvider>
+        </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -114,11 +119,12 @@ describe('fine-not-a-pickup-and-show-where', () => {
       { id: 'p-2', chapterId: 'c1', chapter: 'One', index: 1, text: 'Then a White Rabbit ran close by her.', entityIds: [] },
       { id: 'p-3', chapterId: 'c1', chapter: 'One', index: 2, text: 'After it.', entityIds: [] },
     ]);
-    renderPage(api);
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    renderPage(api, undefined, journal);
     const user = userEvent.setup();
     const cell = await screen.findByText(line === fromNote ? '00:12.0' : '00:30.0', { selector: 'td' });
     await user.click(cell);
-    return { api, review, remove, user, note };
+    return { api, review, remove, user, note, journal };
   }
 
   it('a selected line shows its paragraph with the ones before and after', async () => {
@@ -135,6 +141,16 @@ describe('fine-not-a-pickup-and-show-where', () => {
     await waitFor(() => expect(review).toHaveBeenCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'dismissed', note: 'mine' }));
     expect(remove).not.toHaveBeenCalled();
     await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(review).toHaveBeenLastCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: 'mine' }));
+  });
+
+  it('Fine, not a pickup is the newest journal entry, so Ctrl+Z and History take it back, not an earlier decision', async () => {
+    const { review, user, note, journal } = await setupFine();
+    await user.click(screen.getByRole('button', { name: 'Fine, not a pickup' }));
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    const entries = await journal.entries();
+    expect(entries.at(-1)?.label).toBe('Fine, not a pickup at 00:12.0');
+    await act(async () => void (await journal.undo(entries.at(-1)!.id)));
     await waitFor(() => expect(review).toHaveBeenLastCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: 'mine' }));
   });
 
@@ -387,14 +403,16 @@ describe('adding-lines-as-markers-says-what-happened', () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <PortOverrides clients={{ daw: markersDaw(changed) }}>
-            <TooltipProvider>
-              <CommandRouter>
-                <PickupsPage hasManuscript goTo={vi.fn()} goToScript={vi.fn()} />
-              </CommandRouter>
-              <OverlayHost />
-            </TooltipProvider>
-          </PortOverrides>
+          <StudioProvider>
+            <PortOverrides clients={{ daw: markersDaw(changed) }}>
+              <TooltipProvider>
+                <CommandRouter>
+                  <PickupsPage hasManuscript goTo={vi.fn()} goToScript={vi.fn()} />
+                </CommandRouter>
+                <OverlayHost />
+              </TooltipProvider>
+            </PortOverrides>
+          </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
     );

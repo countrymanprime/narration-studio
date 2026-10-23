@@ -68,7 +68,7 @@ describe('show-where-and-fine-as-read-on-a-selected-line', () => {
 
   it('Fine, not a pickup calls the page, says what happened and offers Undo', async () => {
     const undo = vi.fn().mockResolvedValue({ ok: true });
-    const onFine = vi.fn().mockResolvedValue(undo);
+    const onFine = vi.fn().mockResolvedValue({ undo, entry: 7 });
     const { user, toasts } = setup({ onFine, where: () => null });
     await select(user, '00:12.0');
     await user.click(within(screen.getByRole('region', { name: 'Where 00:12.0 is' })).getByRole('button', { name: 'Fine, not a pickup' }));

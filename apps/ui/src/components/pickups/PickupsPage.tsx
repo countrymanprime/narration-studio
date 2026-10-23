@@ -6,13 +6,14 @@ import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
+import { useJournal } from '../../studio/StudioProvider';
 import { useCapability } from '../../useCapability';
 import { useDawKind } from '../../useDawKind';
 import type { ManuscriptChapter } from '../../types';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
-import { ALL_SCOPE, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, clock, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
@@ -60,6 +61,7 @@ export function PickupsPage({
   const pickupsApi = usePort('pickups');
   const manuscriptApi = usePort('manuscript');
   const findingsApi = usePort('findings');
+  const journal = useJournal();
   const measurements = usePort('measurements');
   const daw = usePort('daw');
   const overlay = useOverlay();
@@ -194,22 +196,49 @@ export function PickupsPage({
   /*
    * Fine, not a pickup (research note A4): the line's note is dismissed through FindingsReview (Fine as read on Proof), which takes a
    * note's own line off the list. A check's gap that a note was attached to stays listed by the check, so it is removed too. Undo puts
-   * the note back as it was; a removed gap stays off, as Remove does.
+   * the note back as it was; a removed gap stays off, as Remove does. It is one entry in the app's journal, touching the note as Proof's
+   * decisions do, so Ctrl+Z, History and the toast's Undo all take back this change and not an earlier one.
    */
-  const fine = async (pickup: PickupItem): Promise<RemoveUndo | undefined> => {
+  const fine = async (pickup: PickupItem): Promise<{ undo: RemoveUndo; entry: number } | undefined> => {
     const id = pickup.findingId;
     if (!id) return undefined;
     const before = await findingsApi.findingsGet(id);
-    const after = await findingsApi.findingsReview({ id, evidenceVersion: before.evidence_version ?? '', status: 'dismissed', note: before.review.note ?? '' });
+    const failed = (error: unknown) => ({ ok: false as const, refusal: { code: 'host_refused', reason: reasonSentence(error) } });
+    const done = await journal.act({
+      label: `Fine, not a pickup at ${clock(pickup.time)}`,
+      touches: [`proof/finding/${id}`, 'pickups'],
+      run: async () => {
+        try {
+          const after = await findingsApi.findingsReview({
+            id,
+            evidenceVersion: before.evidence_version ?? '',
+            status: 'dismissed',
+            note: before.review.note ?? '',
+          });
+          return { ok: true as const, value: after };
+        } catch (error) {
+          return failed(error);
+        }
+      },
+      undo: async (after) => {
+        try {
+          await findingsApi.findingsReview({ id, evidenceVersion: after.evidence_version ?? '', status: before.review.status, note: before.review.note ?? '' });
+          await changing(pickupsApi.pickupsList());
+          return { ok: true as const, value: undefined };
+        } catch (error) {
+          return failed(error);
+        }
+      },
+    });
+    if (!done.ok) throw new Error(done.refusal.reason);
     await changing(pickup.source === 'speech' ? pickupsApi.pickupsRemove(pickup.id) : pickupsApi.pickupsList());
-    return async () => {
-      try {
-        await findingsApi.findingsReview({ id, evidenceVersion: after.evidence_version ?? '', status: before.review.status, note: before.review.note ?? '' });
-        await changing(pickupsApi.pickupsList());
-        return { ok: true };
-      } catch (error) {
-        return { ok: false, refusal: { reason: reasonSentence(error) } };
-      }
+    const entry = done.value.id;
+    return {
+      entry,
+      undo: async () => {
+        const undone = await journal.undo(entry);
+        return undone.ok ? { ok: true } : { ok: false, refusal: { reason: undone.refusal.reason } };
+      },
     };
   };
 

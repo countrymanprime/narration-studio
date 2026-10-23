@@ -120,7 +120,7 @@ export function PickupsTable({
   /** Goes to the note a pickup came from, in Proof; with no id, to Proof. */
   onGoToProof: (findingId?: string) => void;
   /** Marks a line from a note fine as read (its note dismissed, so it leaves the list) and answers how to take that back. */
-  onFine?: (pickup: PickupItem) => Promise<RemoveUndo | undefined>;
+  onFine?: (pickup: PickupItem) => Promise<{ undo: RemoveUndo; entry: number } | undefined>;
   /** Show where for the selected line: its paragraph and the ones around it (research note A4). */
   where?: (pickup: PickupItem) => ReactNode;
 }) {
@@ -188,15 +188,15 @@ export function PickupsTable({
   const fine = (pickup: PickupItem) =>
     once(pickup.id, async () => {
       if (!onFine || fineUnavailable(pickup)) return;
-      let undo: RemoveUndo | undefined;
+      let answer: { undo: RemoveUndo; entry: number } | undefined;
       let done = false;
       await said(overlay, async () => {
-        undo = await onFine(pickup);
+        answer = await onFine(pickup);
         done = true;
       });
       if (!done) return;
       const text = `${clock(pickup.time)} is fine as read: its note on Proof is cleared and it is off the list.`;
-      if (undo) overlay.toastUndo(text, undo);
+      if (answer) overlay.toastUndo(text, answer.undo, { entry: answer.entry });
       else overlay.toast(text);
       region.current?.focus();
     });
