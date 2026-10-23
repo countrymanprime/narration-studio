@@ -15,7 +15,7 @@ import (
 // The decode direction, needed to measure levels on an already-encoded MP3: the same catalogued FFmpeg build that
 // writes MP3s also reads one back to PCM. internal/measure never imports this package — it already
 // imports measure, for ReadMP3 (checkMP3 below) — so the host wires a Decoders row into measure.Options.Decoder
-// instead of measure depending on encodeport (see apps/desktop's own glue, mp3decode.go).
+// instead of measure depending on encodeport (see src/studio/desktop's own glue, mp3decode.go).
 
 // Decoder turns a compressed audio file back into WAV audio, for measurement rather than delivery.
 type Decoder interface {

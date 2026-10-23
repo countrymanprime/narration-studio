@@ -1,4 +1,4 @@
-// The pixel comparison behind `pnpm --dir apps/ui mock-match` (D91, D97 on #509): how much of an approved mock the app reproduces, as one number. Pure functions over RGBA buffers, so Vitest checks
+// The pixel comparison behind `pnpm --dir src/studio/ui mock-match` (D91, D97 on #509): how much of an approved mock the app reproduces, as one number. Pure functions over RGBA buffers, so Vitest checks
 // them (src/mockMatch.test.ts) without a browser.
 //
 // The algorithm is pixelmatch's (Mapbox, ISC), written out here rather than added as a dependency:

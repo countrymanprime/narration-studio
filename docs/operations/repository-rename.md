@@ -54,11 +54,11 @@ so the many documentation links are tidiness, not breakage.
 
 | Where | Why it matters |
 | --- | --- |
-| `Repository` in `apps/desktop/internal/update/check.go` | The updater asks `api.github.com` for this repository and refuses redirects on purpose. A build that still holds the old name gets a `301` and can never see a new release. Ship the new name in the first build released after the rename, and decide what happens to builds already installed |
+| `Repository` in `src/studio/desktop/internal/update/check.go` | The updater asks `api.github.com` for this repository and refuses redirects on purpose. A build that still holds the old name gets a `301` and can never see a new release. Ship the new name in the first build released after the rename, and decide what happens to builds already installed |
 | `gh attestation verify --repo` and `--signer-workflow` in the release notes (`scripts/release/`), [CI and releases](ci-and-releases.md#verifying-a-download), `github-workflow.md` and the public-site mock `docs/research/mockups/public-site/index.html` | Users copy these commands to verify a download against the repository name. The release notes take the repository as a parameter, so they follow the rename on their own; the pages and the mock do not |
 | `gh api repos/countrymanprime/narration-utils/...` and `--repo` in [GitHub workflow](github-workflow.md) and [CI and releases](ci-and-releases.md) (rulesets, environments, Pages, private vulnerability reporting, project link) | Commands the owner copies to read or change a setting. They hit the `301` above when run by a client that does not follow redirects |
 | `GITHUB_REPOSITORY` fallback in `scripts/ci/run-timings.mjs`, and the example in the error message in `scripts/release/assets.mjs` | The fallback is used only when `GITHUB_REPOSITORY` is unset (a local run); the error example is cosmetic |
-| GitHub Pages URL and base path `/narration-utils/` in `.github/workflows/pages.yml`, `tools/docs-site/mkdocs.yml` and `check_site.py` | The site URL changes with the name. The site is built by `apps/site` ([CI and releases](ci-and-releases.md#the-pages-workflow)) |
+| GitHub Pages URL and base path `/narration-utils/` in `.github/workflows/pages.yml`, `tools/docs-site/mkdocs.yml` and `check_site.py` | The site URL changes with the name. The site is built by `src/web` ([CI and releases](ci-and-releases.md#the-pages-workflow)) |
 | `LINK_BASE` in `scripts/dev/owner-qa-list.mjs`, `REPOSITORY` in `scripts/licenses/notices.py`, `config/analysis-assets.json`, issue templates, test fixtures with release URLs | Links and notices that carry the name |
 | `source_url` and issue links in `.claude/skills/agent-train/` and the worker templates | Launch prompts and the links the train posts |
 | About 900 files with `github.com/countrymanprime/narration-utils/...` links | Work through the redirect, update when convenient |
@@ -84,7 +84,7 @@ Found on 2026-10-19:
 - **Routine prompts** that held the old `source_url` were updated by the coordinator.
 - **This repository** now names itself `countrymanprime/narration-studio` in the updater constant, the verify-download commands, the
   `gh api` and `--repo` commands, the scripts, the issue templates, the agent-train `source_url` and the Pages name and URLs. The
-  Pages workflow publishes `apps/site`; only its names changed. The Go module path, the Nx project names and `narration-utils.exe` keep the old
+  Pages workflow publishes `src/web`; only its names changed. The Go module path, the Nx project names and `narration-utils.exe` keep the old
   name on purpose.
 - **About 900 documentation links** to `github.com/countrymanprime/narration-utils/...` were left as they are. They work through the
   redirect, and rewriting them is churn without a benefit.

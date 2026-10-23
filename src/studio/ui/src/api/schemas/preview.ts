@@ -2,8 +2,8 @@ import { z } from 'zod';
 import type { PinnedPreview, PreviewCandidate, PreviewOutcome, PreviewPinStaleReason, PreviewResult } from '../contracts/preview';
 import { listFromNull } from './base';
 
-// The preview candidates payload (apps/ui/src/api/contracts/preview.ts). The host shape is
-// apps/desktop/bindings_preview.go's PreviewCandidates.
+// The preview candidates payload (src/studio/ui/src/api/contracts/preview.ts). The host shape is
+// src/studio/desktop/bindings_preview.go's PreviewCandidates.
 
 const PREVIEW_OUTCOMES = ['ok', 'no_manuscript', 'nothing_eligible'] as const satisfies readonly PreviewOutcome[];
 

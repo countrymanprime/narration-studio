@@ -1,4 +1,4 @@
-// The Lua files a release must carry in its embedded REAPER package (integrations/reaper, top level). The installer check
+// The Lua files a release must carry in its embedded REAPER package (src/studio/integrations/reaper, top level). The installer check
 // (verify-installable.mjs) requires each one; reaper-files.test.mjs fails when this list and the folder disagree, so a new
 // bridge or feature file cannot be added without being required here.
 export const REAPER_FILES = [

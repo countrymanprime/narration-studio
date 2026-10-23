@@ -1,4 +1,4 @@
-// The golden payloads of the narrator's Editing records (apps/desktop/bindings_editlog.go).
+// The golden payloads of the narrator's Editing records (src/studio/desktop/bindings_editlog.go).
 import type { z } from 'zod';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from '../schemas/editLog';
 

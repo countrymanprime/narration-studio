@@ -7,7 +7,7 @@ import (
 
 // Result reads the chapter's newest complete coverage run back and says
 // whether it is current: the saved project's items unchanged (EL's evaluator,
-// apps/desktop/internal/evidence/fingerprint.go), the same confirmed track, the same alignment parameters and
+// src/studio/desktop/internal/evidence/fingerprint.go), the same confirmed track, the same alignment parameters and
 // project inputs (the parameter hash, which leaves model and language out,
 // Q13), and the same manuscript text. It never runs anything. A chapter that
 // cannot be evaluated at all (no manuscript, unmapped, no saved project) is a

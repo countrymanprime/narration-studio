@@ -17,7 +17,7 @@ import (
 // produce are well formed. `go test` runs the seed corpus below plus any checked-in
 // testdata/fuzz entries, so the gate is deterministic; fuzzing itself is manual:
 //
-//	go -C apps/desktop test ./internal/importer -run='^$' -fuzz=FuzzAppendInline -fuzztime=60s
+//	go -C src/studio/desktop test ./internal/importer -run='^$' -fuzz=FuzzAppendInline -fuzztime=60s
 //
 // A crash is written to testdata/fuzz/<Target>/ and stays there as a regression test.
 

@@ -27,7 +27,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   tailwind.configs.recommended,
   // The banner and the panel use the app's own design tokens and utilities, so the Tailwind rules read the app's stylesheet.
-  { settings: { tailwindcss: { cssConfigPath: path.join(here, '..', 'ui', 'src', 'styles.css') } } },
+  { settings: { tailwindcss: { cssConfigPath: path.join(here, '..', 'studio', 'ui', 'src', 'styles.css') } } },
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -40,7 +40,7 @@ export default tseslint.config(
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      // apps/ui is the shared side, read through the one `@ui` alias so a move inside it breaks one declared boundary, not a scatter of `../../ui/` strings.
+      // src/studio/ui is the shared side, read through the one `@ui` alias so a move inside it breaks one declared boundary, not a scatter of `../../ui/` strings.
       'no-restricted-imports': ['error', { patterns: [{ regex: '(^|/)ui/(src|wailsjs)(/|$)', message: 'Import the app as `@ui/<module>`.' }] }],
       'tailwindcss/no-custom-classname': 'off',
       'tailwindcss/enforces-canonical-classname': 'off',

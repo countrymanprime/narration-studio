@@ -156,7 +156,7 @@ func TestEmptySpaceSignalStaleEvenWithOpenCandidates(t *testing.T) {
 // TestShippedClassSignalsNeverMet: under the shipped detector versions and
 // the recorded validation runs, the click and breath signals are unknown even
 // on fully covered input with no candidate (both classes ship gated off,
-// apps/desktop/internal/editing/validation.go).
+// src/studio/desktop/internal/editing/validation.go).
 func TestShippedClassSignalsNeverMet(t *testing.T) {
 	for _, class := range []struct{ id, analyzer, version string }{
 		{ClickSignalID, AnalyzerClick, ClickAnalyzerVersion},

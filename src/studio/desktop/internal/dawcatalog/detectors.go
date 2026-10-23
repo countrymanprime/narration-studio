@@ -4,7 +4,7 @@ import "github.com/countrymanprime/narration-utils/shell/internal/daw"
 
 // DefaultDetectors returns the production Detector for every catalog entry
 // this package can auto-detect today. REAPER is wired directly to
-// apps/desktop/internal/daw.LocateReaperExecutable — the registry/file-
+// src/studio/desktop/internal/daw.LocateReaperExecutable — the registry/file-
 // association locator already built and verified — rather than
 // this package growing a second registry/path lookup. daw.LocateReaperExecutable's signature already matches
 // Detector exactly, so no adapter is needed.

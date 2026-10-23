@@ -12,7 +12,7 @@ import (
 )
 
 // GainCandidate is one item to change the volume of, by a dB delta a caller already decided
-// (apps/desktop/internal/levelnormalize.GainDeltaDB). Unlike a cleanup candidate, a gain change touches the whole item: there is no
+// (src/studio/desktop/internal/levelnormalize.GainDeltaDB). Unlike a cleanup candidate, a gain change touches the whole item: there is no
 // take or cut range.
 type GainCandidate struct {
 	ItemGUID  string
@@ -39,7 +39,7 @@ type ApplyGainResult struct {
 	Stale   []StaleGainCandidate
 }
 
-// LevelMatchClient sends gain changes to REAPER (integrations/reaper/narration_level_normalize.lua). Like
+// LevelMatchClient sends gain changes to REAPER (src/studio/integrations/reaper/narration_level_normalize.lua). Like
 // CleanupClient, one call can raise any number of GAIN_STALE and GAIN_ITEM events before its one terminal summary
 // event, so a request accumulates every event for its run before answering.
 type LevelMatchClient struct {

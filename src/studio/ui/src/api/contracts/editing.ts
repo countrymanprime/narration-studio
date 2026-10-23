@@ -1,8 +1,8 @@
 import type { Finding } from './findings';
 
 // Editing-readiness check: a narrator-triggered, cache-first scan of one chapter's confirmed track for empty space,
-// clicks and breaths, run only when the narrator asks. The host shapes are apps/desktop/bindings_editing.go and
-// apps/desktop/internal/editing/service.go. There is no live event (unlike CoverageState's `coverage:state`): the
+// clicks and breaths, run only when the narrator asks. The host shapes are src/studio/desktop/bindings_editing.go and
+// src/studio/desktop/internal/editing/service.go. There is no live event (unlike CoverageState's `coverage:state`): the
 // panel polls editingState() itself, so this is plain request/response like StagesApi.
 
 /** Why a chapter cannot be checked right now: nothing was run or written (internal/editing's Reason). `no_render`

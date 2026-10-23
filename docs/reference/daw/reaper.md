@@ -8,7 +8,7 @@ Engine facts the REAPER adapter depends on, as of 2026-10-12. The last version a
 - **One action starts everything.** The narrator imports `NarrationStudio_Launcher.lua` into REAPER's action list. It starts the app with the session folder, project and `--daw REAPER` ([DAW integration](../../architecture/daw-integration.md#reaper-rules)). `NarrationUtils_Launcher.lua` stays as a three-line shim that runs the new file, so an action a narrator loaded before the rename keeps working; both write sessions under `<REAPER resource path>/NarrationStudio/sessions`, and a session folder left under `NarrationUtils/sessions` is unused. The shim, its entries in the release and smoke lists, and the legacy projects-folder fallback (`project.LegacyDefaultDirName`) go when the `NarrationUtils` name is retired (#1816).
 - **The Lua can be older or newer than the app.** The narrator imports it, so a request the older script cannot serve comes back to the narrator as the host's `script_outdated` refusal, and `ping` reports whether the script knows the navigation commands ([going to and looping a finding](../../architecture/reaper-navigation.md)).
 - **The saved project needs no running REAPER.** The Go `tracks` package parses the `.rpp` directly ([Tracks](../../utilities/tracks.md)).
-- **The app can find and start REAPER.** It reads the Windows Uninstall registry key and falls back to the `.rpp` file association. REAPER 6.80 and later run a script given as a startup argument with the project already open, confirmed on REAPER 7.80 ([locate.go](../../../apps/desktop/internal/daw/locate.go)).
+- **The app can find and start REAPER.** It reads the Windows Uninstall registry key and falls back to the `.rpp` file association. REAPER 6.80 and later run a script given as a startup argument with the project already open, confirmed on REAPER 7.80 ([locate.go](../../../src/studio/desktop/internal/daw/locate.go)).
 
 ## Behaviour that a fake cannot prove
 
@@ -23,7 +23,7 @@ The harness runs the bridge against a fake `reaper` table under Lua 5.4 ([The DA
 
 ## What REAPER was seen to do
 
-Every row was observed in REAPER 7.80/x64 on Windows, scripted, in an isolated resource directory; another version may differ. The source note holds the method and the fixture. The harness's fake must agree with these rows: `integrations/reaper/tests/fake_fidelity_test.lua` pins them, and a run that shows the fake is wrong corrects that test first.
+Every row was observed in REAPER 7.80/x64 on Windows, scripted, in an isolated resource directory; another version may differ. The source note holds the method and the fixture. The harness's fake must agree with these rows: `src/studio/integrations/reaper/tests/fake_fidelity_test.lua` pins them, and a run that shows the fake is wrong corrects that test first.
 
 | Area | What REAPER does | Source |
 | --- | --- | --- |
@@ -78,7 +78,7 @@ From REAPER's API documentation, changelog and Cockos developers' forum answers,
 | Section and reverse sources | `PCM_Source_GetSectionInfo(src)` returns `ok, offset, length, reverse` for a section or reverse source (REAPER 4.40 and later). | [ReaScript API](https://www.reaper.fm/sdk/reascript/reascripthelp.html) |
 | Their file name | `GetMediaSourceFileName` returns an empty string for a section or reversed source up to REAPER 7.55; 7.56 fixed it. What it returns from 7.56 on has not been run. | [bug report](https://forum.cockos.com/showthread.php?t=305264), [7.56 changelog](https://forum.cockos.com/showthread.php?t=305390) |
 
-What the bridge does with these: `narration_track_state.lua` reads `GetMediaSourceFileName` on the take's source and reports no section, reverse or stretch-marker data, so Go takes them from the saved `.rpp` (`liveEndAt` in `apps/desktop/resumelive.go`). A take recorded or sectioned since the last save is therefore read as a plain source, and neither path handles a reversed take; tracked in [#1476](https://github.com/countrymanprime/narration-utils/issues/1476).
+What the bridge does with these: `narration_track_state.lua` reads `GetMediaSourceFileName` on the take's source and reports no section, reverse or stretch-marker data, so Go takes them from the saved `.rpp` (`liveEndAt` in `src/studio/desktop/resumelive.go`). A take recorded or sectioned since the last save is therefore read as a plain source, and neither path handles a reversed take; tracked in [#1476](https://github.com/countrymanprime/narration-utils/issues/1476).
 
 ## Takes
 

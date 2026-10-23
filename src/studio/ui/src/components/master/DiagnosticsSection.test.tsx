@@ -18,7 +18,7 @@ type Initial = Parameters<typeof createMockApi>[1];
 
 // The host's own payloads (written by bindings_diagnostics_contract_test.go), so the section is tested against what the host sends.
 const contract = (name: string): DiagnosticsJob =>
-  diagnosticsJobSchema.parse(JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', name), 'utf8')));
+  diagnosticsJobSchema.parse(JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', name), 'utf8')));
 
 async function openDiagnostics({ overrides = {}, initial = {} }: { overrides?: Partial<NarrationApi>; initial?: Initial } = {}) {
   const user = userEvent.setup();

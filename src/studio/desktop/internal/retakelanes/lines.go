@@ -1,7 +1,7 @@
 // Package retakelanes is the host's end of "retakes as fixed lanes" (spike S7 in
 // docs/research/reaper-spike-s7-fixed-lanes.md): it lists the retakes of each manuscript line that sit on fixed item lanes, from the saved
 // project the static reader parses, and asks REAPER over the file bridge (pick_retake_lane in
-// integrations/reaper/narration_retake_lanes.lua) to make the narrator's pick the only lane playing.
+// src/studio/integrations/reaper/narration_retake_lanes.lua) to make the narrator's pick the only lane playing.
 //
 // The app changes one thing, only when the narrator asks: the retake's track lane play state. It never turns lanes on
 // or off, never converts takes and lanes, and never builds comps. A retake is named by line id plus item GUID,

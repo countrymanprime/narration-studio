@@ -1,7 +1,7 @@
 // This file is a Go harness computing per-class recall, precision and a
 // sensitivity sweep on a tuning half and a held-out half. It
 // scores the shipped cleanup detector (measure.CleanupFindings' own
-// candidates, apps/desktop/internal/measure/cleanup.go) against a labeled
+// candidates, src/studio/desktop/internal/measure/cleanup.go) against a labeled
 // corpus (labels_test.go's format), on whichever corpus is at hand: the
 // committed synthetic one (syntheticcorpus_test.go, always available) and,
 // when NARRATION_EDITING_CORPUS names a directory, a real one (permissioned

@@ -1,8 +1,8 @@
 ---
 paths:
-  - 'apps/ui/src/**'
-  - 'apps/desktop/**'
-  - 'integrations/reaper/**'
+  - 'src/studio/ui/src/**'
+  - 'src/studio/desktop/**'
+  - 'src/studio/integrations/reaper/**'
 ---
 
 # Definition of done
@@ -12,7 +12,7 @@ paths:
 Test everything, including what nobody expects: zero, negative, huge, empty, emoji and right-to-left text, a lizard asking for a beer, a pop tart in the floppy drive. If a state can happen, a test drives it or a reader can see why none does.
 
 1. **Fix classes, not instances.** A bug the owner finds becomes a guard over its whole class.
-   - **Overlays.** Every menu, popover, tooltip, dialog and slide-over is opened at each window edge and corner, beside the sidebar and the nav, over scrolled content, at narrow widths and while another overlay is open. Each must be the topmost element at its own points (`elementFromPoint`) and fully on screen. An overlay anchored to the shell's top bar (a hint, Jump to, History, the navigation drawer) is the same code path on every page, so it runs on three representative pages; `apps/ui/tests/visual/shellOverlayScope.test.ts` fails if a page can draw over it. Every other overlay runs on its own page.
+   - **Overlays.** Every menu, popover, tooltip, dialog and slide-over is opened at each window edge and corner, beside the sidebar and the nav, over scrolled content, at narrow widths and while another overlay is open. Each must be the topmost element at its own points (`elementFromPoint`) and fully on screen. An overlay anchored to the shell's top bar (a hint, Jump to, History, the navigation drawer) is the same code path on every page, so it runs on three representative pages; `src/studio/ui/tests/visual/shellOverlayScope.test.ts` fails if a page can draw over it. Every other overlay runs on its own page.
    - **Paths.** Every feature that resolves a file runs one shared fixture set: a project outside the starting folder, nested, with spaces, with Unicode, very long, on a network path, in different case, with trailing dots or spaces, through a junction, read-only, missing.
 2. **An independent narrator walkthrough comes before "done" and before merge.** A fresh agent is given the feature's purpose, never the diff. It drives the real app as a narrator would, tries to break it, and reports what it tried with screenshots. The coordinator does not merge without that report.
 3. **Write the state matrix before the code.** For each control: empty, one, many, huge, loading, refused, failed, stale, long text, right-to-left and emoji text, rapid double-fire, reload mid-action, leave mid-action. For anything that talks to a DAW or other integration, also: the other side never answers, answers late, answers out of order, loses an event, repeats an event, has the wrong project open, has the wrong version, restarts mid-session. Each cell is tested, or marked "not tested" with a reason a reader can see.
@@ -27,5 +27,5 @@ Every control that depends on a DAW, a sidecar, a download or a file someone els
 - A reading that has gone quiet is shown as "can't tell, last heard N s ago", never as a stale fact.
 - A visible **Check again** forces a fresh read.
 - A setup notice shows what it is waiting for and when it last checked.
-- A failed host call is visible somewhere. `silent` and `exempt` rows in `apps/ui/src/interactionFeedback/` carry a reason a reader can judge.
+- A failed host call is visible somewhere. `silent` and `exempt` rows in `src/studio/ui/src/interactionFeedback/` carry a reason a reader can judge.
 - State that can change is re-read on focus, on a timer while a notice is up, and on the events that carry it.

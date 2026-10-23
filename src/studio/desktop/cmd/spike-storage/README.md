@@ -1,6 +1,6 @@
 # spike-storage
 
-Throwaway benchmark behind [the storage engine note](../../../../docs/research/storage-engine-spike.md). It is its own Go module, so `apps/desktop/go.mod` and `go.sum` do not change, and nothing imports it. It imports the app's `internal` packages (`persist`, `findings`, `evidence`, `coverage`, `marks`, `measure`) through a `replace` to `../..`, which Go allows because this directory sits under the app's module path.
+Throwaway benchmark behind [the storage engine note](../../../../../docs/research/storage-engine-spike.md). It is its own Go module, so `src/studio/desktop/go.mod` and `go.sum` do not change, and nothing imports it. It imports the app's `internal` packages (`persist`, `findings`, `evidence`, `coverage`, `marks`, `measure`) through a `replace` to `../..`, which Go allows because this directory sits under the app's module path.
 
 ```text
 CGO_ENABLED=0 go build -o spike .

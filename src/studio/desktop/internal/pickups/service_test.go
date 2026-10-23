@@ -14,7 +14,7 @@ import (
 )
 
 // pickupListRole wraps client in the REAPER adapter and takes its PickupList role, the way the composition root does
-// (apps/desktop/app.go), so these tests exercise the real bridge round trip through the same port the service now
+// (src/studio/desktop/app.go), so these tests exercise the real bridge round trip through the same port the service now
 // depends on.
 func pickupListRole(t *testing.T, client *bridge.Client) dawport.PickupList {
 	t.Helper()

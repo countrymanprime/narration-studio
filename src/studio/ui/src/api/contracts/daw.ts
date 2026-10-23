@@ -1,7 +1,7 @@
 // The DAW port's capability payload: what the launch's DAW can do right now, computed by
 // the host's dawport.Resolver from the adapter's declaration, the bridge's reachability and the narrator's
-// DAW.capability.<name> settings. apps/desktop/bindings_daw.go is the binding and the daw_capabilities_changed event;
-// apps/desktop/internal/dawport/capability.go is the capability catalog this file's DAW_CAPABILITIES mirrors.
+// DAW.capability.<name> settings. src/studio/desktop/bindings_daw.go is the binding and the daw_capabilities_changed event;
+// src/studio/desktop/internal/dawport/capability.go is the capability catalog this file's DAW_CAPABILITIES mirrors.
 
 /** Which DAW the launch is talking to, 'Built-in' when the app's own recorder is the engine (a launch with no DAW whose project
  * records with it), or 'none' for a standalone launch (dawport.Kind.String() in Go). */
@@ -143,7 +143,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, docs/architecture/reaper-bridge.md;
- * apps/desktop/bindings_daw_transport.go). `recording` counts a paused recording too; `playing` is REAPER's play bit, so it
+ * src/studio/desktop/bindings_daw_transport.go). `recording` counts a paused recording too; `playing` is REAPER's play bit, so it
  * is also true while recording. `position` (project seconds, moving on about every 1.5 s) is sent only while playing or
  * recording. With no DAW, a DAW not answering, or a bridge script too old to report it, both are false. */
 export type DawTransport = {
@@ -176,7 +176,7 @@ export type DawChoiceState = 'connected' | 'not_running' | 'linked' | 'not_linke
  * capability as the resolver answers it, with the resolver's own sentence when it is not available now. */
 export type DawChoiceOption = { daw: ChoosableDaw; installed: boolean | null; record: DawCapabilitySupport };
 
-/** DawChoice, DawChoose and DawLinkFound (apps/desktop/bindings_dawchoice.go): what the project records with, why, and every
+/** DawChoice, DawChoose and DawLinkFound (src/studio/desktop/bindings_dawchoice.go): what the project records with, why, and every
  * engine the narrator can choose. `chosen` is the saved choice (null when none); it differs from `daw` only while a launch's
  * `--daw` overrides it. `linkedFile` and `foundFiles` are file names in the project folder, never paths. */
 export type DawChoice = {
@@ -201,7 +201,7 @@ export interface DawChoiceApi {
   dawLinkFound(): Promise<DawChoice>;
 }
 
-/** Where the app is on the way to Audacity 3 (apps/desktop/internal/audacitylink): `unsupported` (not Windows), `not_installed`,
+/** Where the app is on the way to Audacity 3 (src/studio/desktop/internal/audacitylink): `unsupported` (not Windows), `not_installed`,
  * `not_running`, `module_off` (scripting is not turned on, or Audacity has never started so it has no settings yet),
  * `needs_restart` (scripting is on and Audacity is open but does not answer: it was started before), `audacity4` (the program looks
  * like Audacity 4, which has no scripting pipe), `dialog` (Audacity did not answer and may be waiting on a dialog),
@@ -219,7 +219,7 @@ export type AudacityOpenProject = 'unknown' | 'linked' | 'other' | 'unlabelled';
 /** One line of the first-start walk-through. */
 export type AudacityLinkStep = { id: 'installed' | 'started_once' | 'scripting_on' | 'answering'; label: string; done: boolean };
 
-/** AudacityLink and its audacity_link_changed event (apps/desktop/bindings_audacity_link.go). `chosen` is whether the project
+/** AudacityLink and its audacity_link_changed event (src/studio/desktop/bindings_audacity_link.go). `chosen` is whether the project
  * records with Audacity; nothing is read from Audacity while it does not. `message` is a whole sentence worded by the host.
  * `linkedFile` is a file name, never a path. `heardSecondsAgo` is how long since Audacity last answered, null when it has not
  * since the app opened the project; a page shows "last heard N s ago" from it, never a stale fact as if it were current. */
@@ -256,7 +256,7 @@ export interface AudacityLinkApi {
 }
 
 /** The DAW project as last saved against the live one (DawProjectState and daw_project_state_changed;
- * apps/desktop/bindings_daw_projectstate.go). `savedAt` is the saved file's modification time, read by the host, as a local
+ * src/studio/desktop/bindings_daw_projectstate.go). `savedAt` is the saved file's modification time, read by the host, as a local
  * date and time to the minute (`2026-09-26T08:40`), null when the DAW keeps no saved project or this one was never saved.
  * `unsavedChanges` is true when REAPER has edits its saved file does not have. `playPosition` is project seconds as of the
  * last heartbeat, 0 while stopped: a display value, never an anchor for a word. With no DAW, a DAW not answering or the
@@ -270,7 +270,7 @@ export type DawProjectState = {
 
 export type DawPlayState = 'stopped' | 'playing' | 'recording';
 
-/** WorkspaceHideTakes (SND-5b; apps/desktop/bindings_workspace_hide.go): mute the other takes of the passage between the two tokens
+/** WorkspaceHideTakes (SND-5b; src/studio/desktop/bindings_workspace_hide.go): mute the other takes of the passage between the two tokens
  * of the chapter's stored alignment, keeping `keepCandidateId`, an id `workspaceTakes` offered. The host reads the item and take
  * GUIDs itself; an id it does not offer is refused with code `stale`, and a capability refusal carries the capability's sentence.
  * One undo step when a take was muted; nothing is deleted. A token range outside the alignment rejects. */
@@ -278,7 +278,7 @@ export interface DawHideTakesApi {
   workspaceHideTakes(chapterId: string, firstToken: number, lastToken: number, keepCandidateId: string): Promise<DawResult>;
 }
 
-/** DawRoll (SND-6a; apps/desktop/bindings_daw_roll.go): stop the recording this app started on the chapter's linked track and record
+/** DawRoll (SND-6a; src/studio/desktop/bindings_daw_roll.go): stop the recording this app started on the chapter's linked track and record
  * again from `at` (project seconds), keeping the earlier audio as a take. The host reads the track itself and checks `at`;
  * where the `punch` capability is `destructive` it refuses until `confirmed`, and elsewhere `confirmed` is ignored. A capability refusal
  * carries the capability's sentence and a gone track code `stale`. A chapter the manuscript does not have rejects. */
@@ -289,7 +289,7 @@ export interface DawRollApi {
 /** A cut's mode as delete_range takes it: `close` moves the later audio up, `gap` keeps the length. */
 export type DawCutMode = 'close' | 'gap';
 
-/** DawDeleteRange (SND-6b; apps/desktop/bindings_daw_range.go): cut the words between the two tokens of the chapter's stored alignment
+/** DawDeleteRange (SND-6b; src/studio/desktop/bindings_daw_range.go): cut the words between the two tokens of the chapter's stored alignment
  * together with their audio (docs/reference/daw/capabilities.md), with `fadeMs` (0 to 500) at each seam. `padMs` (0 to 500) cuts that much less at each end,
  * and `roomTone` (mode `gap` only) fills the gap with the chapter's room tone, which a DAW with none refuses, cutting nothing (SN-E97).
  * The host resolves the item and its project seconds itself, one item per request. A capability refusal carries the capability's
@@ -313,7 +313,7 @@ export interface DawDeleteRangeApi {
   dawTrimRange(chapterId: string, itemId: string, start: number, end: number, fadeMs: number): Promise<DawResult>;
 }
 
-/** DawApplyFxToRange and DawRemoveFxFromRange (SND-6c; apps/desktop/bindings_daw_fx_range.go): put one of the narrator's saved FX chains
+/** DawApplyFxToRange and DawRemoveFxFromRange (SND-6c; src/studio/desktop/bindings_daw_fx_range.go): put one of the narrator's saved FX chains
  * on the words between the two tokens of the chapter's stored alignment, with `fadeMs` (0 to 500) at each new seam, and take it off again
  * (docs/reference/daw/capabilities.md). The host resolves the item and its project seconds itself, one item per request; an apply's chain must be one
  * `workspaceListFXChains` lists, and a removal's a plain chain name. A capability refusal carries the capability's sentence; a fade it does
@@ -375,7 +375,7 @@ export type DawFxRangeCompare = {
   pass: number;
 };
 
-/** DawStackTakes and DawUnstackTakes (SND-7b; apps/desktop/bindings_daw_stack.go): stack the later reads of the named passages on the
+/** DawStackTakes and DawUnstackTakes (SND-7b; src/studio/desktop/bindings_daw_stack.go): stack the later reads of the named passages on the
  * first read's spot as takes, and move them back (docs/reference/daw/capabilities.md). The page sends a chapter id and passage ids only: the host rebuilds
  * the groups, moves and shift itself from the Booth's passage map, the chapter's track as the DAW reports it now and, to move back, the
  * offsets the saved project's stacked takes recorded, so the plan a dialog showed is never sent. A capability refusal carries the
@@ -386,7 +386,7 @@ export interface DawStackTakesApi {
   dawUnstackTakes(chapterId: string, passageIds: string[]): Promise<DawResult>;
 }
 
-/** DawSplitTake (SN-E94; apps/desktop/bindings_daw_split.go): cut `takeId`, a take of the chapter that reads its line twice, into two
+/** DawSplitTake (SN-E94; src/studio/desktop/bindings_daw_split.go): cut `takeId`, a take of the chapter that reads its line twice, into two
  * takes of one item at `at` (project seconds), in one undo step of the DAW's own; nothing is deleted. `takeId` is the take's id as the
  * DAW reports it on the chapter's linked track now: the host looks it up there and sends the item and take it read itself. A capability
  * refusal carries the `takes` capability's sentence; an engine that cannot split, and a time that is not one, are refused with a
@@ -401,7 +401,7 @@ export interface DawGainStretch {
   end: number;
 }
 
-/** DawReduceRangeGain (SN-E100; apps/desktop/bindings_daw_reduce_range_gain.go): lower `stretches` of `takeId`, a take of the chapter, by
+/** DawReduceRangeGain (SN-E100; src/studio/desktop/bindings_daw_reduce_range_gain.go): lower `stretches` of `takeId`, a take of the chapter, by
  * `reduceDb` (1 to 24), in one undo step of the DAW's own: Clean up's Breaths, Plosives and Noise. `takeId` is the take's id as the DAW
  * reports it on the chapter's linked track now: the host looks it up there, checks every stretch (1 to 500) is inside the part of the
  * file the take plays, and sends the item and take it read itself. A capability refusal carries the `range_gain` capability's sentence; a
@@ -417,7 +417,7 @@ export interface DawClick {
   end: number;
 }
 
-/** DawRepairClick (SN-E101; apps/desktop/bindings_daw_repair_click.go): smooth `clicks` in `takeId`, a take of the chapter, in one undo
+/** DawRepairClick (SN-E101; src/studio/desktop/bindings_daw_repair_click.go): smooth `clicks` in `takeId`, a take of the chapter, in one undo
  * step of the DAW's own: Clean up's Clicks. `takeId` is the take's id as the DAW reports it on the chapter's linked track now: the host
  * looks it up there, checks every click (1 to 500, each at most 50 ms) is inside the part of the file the take plays, and sends the item
  * and take it read itself. A capability refusal carries the `click_repair` capability's sentence; clicks out of bounds are refused with
@@ -441,7 +441,7 @@ export type DawLastAction = 'this' | 'other' | 'unknown';
 
 export const DAW_LAST_ACTIONS = ['this', 'other', 'unknown'] as const satisfies readonly DawLastAction[];
 
-/** DawLastAction and DawUndoLast (#1711; apps/desktop/bindings_daw_undo_last.go): read and undo the app's own last action in the DAW's own
+/** DawLastAction and DawUndoLast (#1711; src/studio/desktop/bindings_daw_undo_last.go): read and undo the app's own last action in the DAW's own
  * undo history, so the page's Undo reaches it (docs/architecture/ui-state-and-journal.md#the-journal-and-undo). */
 export interface DawUndoLastApi {
   /** Whether the DAW's next undo point is the app's action of `kind`. It never changes the project; a capability refusal, a DAW not
@@ -457,7 +457,7 @@ export interface DawUndoLastApi {
   dawUndoLast(kind: DawActionKind, steps: number): Promise<DawResult>;
 }
 
-/** What `dawMonitorLevel` and `dawSetMonitorLevel` answer (apps/desktop/bindings_daw_levels.go): the DAW's monitor (output) level as the page's
+/** What `dawMonitorLevel` and `dawSetMonitorLevel` answer (src/studio/desktop/bindings_daw_levels.go): the DAW's monitor (output) level as the page's
  * 0 to 100 slider shows it, 70 being unity. `ok` false is a refusal with its sentence in `message` (the `monitor_level` capability's own, a DAW
  * not answering, no live DAW) and `level` 0 that means nothing; `ok` true has an empty `message`. */
 export type DawMonitorLevel = { ok: boolean; level: number; message: string };
@@ -465,7 +465,7 @@ export type DawMonitorLevel = { ok: boolean; level: number; message: string };
 /** The slider's top (its bottom is 0); 70 is unity gain (0 dB) in the DAW. */
 export const DAW_LEVEL_MAX = 100;
 
-/** DawMonitorLevel and DawSetMonitorLevel (Booth pass 3; apps/desktop/bindings_daw_levels.go): read and set the DAW's monitor (output)
+/** DawMonitorLevel and DawSetMonitorLevel (Booth pass 3; src/studio/desktop/bindings_daw_levels.go): read and set the DAW's monitor (output)
  * level, the Levels menu's second slider. The first (the input level) has no call: no DAW the app talks to can set an audio interface's
  * input gain, and the `input_level` capability says so in its own sentence. */
 export interface DawLevelsApi {
@@ -475,7 +475,7 @@ export interface DawLevelsApi {
   dawSetMonitorLevel(level: number): Promise<DawMonitorLevel>;
 }
 
-/** What `dawPlace` answers (apps/desktop/bindings_daw_place.go): where the narrator is in the DAW project, so the Booth can open there. `ok` false is
+/** What `dawPlace` answers (src/studio/desktop/bindings_daw_place.go): where the narrator is in the DAW project, so the Booth can open there. `ok` false is
  * a refusal with its sentence in `message` (the `follow_position` capability's own, a DAW not answering, no live DAW) and nothing else means anything;
  * `ok` true has an empty `message`. `chapterId` is the chapter whose linked track is the one selected in the DAW, and '' when no track, several
  * tracks or a track no chapter is linked to is selected. `selected` is how many tracks are selected and `cursor` the DAW's cursor in project seconds. */
@@ -484,7 +484,7 @@ export type DawPlace = { ok: boolean; message: string; chapterId: string; select
 /** Where `dawGoToChapter` puts the cursor on the chapter's track: `end` (the end of what is recorded; `seconds` is ignored) or `at` (`seconds` into the project). */
 export type DawGoToWhere = 'end' | 'at';
 
-/** DawPlace and DawGoToChapter (apps/desktop/bindings_daw_place.go): read which chapter's track the narrator is on in the DAW and where their cursor is, and
+/** DawPlace and DawGoToChapter (src/studio/desktop/bindings_daw_place.go): read which chapter's track the narrator is on in the DAW and where their cursor is, and
  * take the DAW there. The page names a chapter, never a track: the host holds the chapter-track links, and the same calls serve any DAW with the
  * `follow_position` capability. Neither plays, seeks or adds an undo step. */
 export interface DawPlaceApi {
@@ -495,7 +495,7 @@ export interface DawPlaceApi {
   dawGoToChapter(chapterId: string, where: DawGoToWhere, seconds: number): Promise<DawResult>;
 }
 
-/** What `daw_position_changed` carries (apps/desktop/bindings_daw_transportsync.go): the DAW's play state, play head and edit cursor in project seconds
+/** What `daw_position_changed` carries (src/studio/desktop/bindings_daw_transportsync.go): the DAW's play state, play head and edit cursor in project seconds
  * as its last streamed position said, and whether the DAW has this book's project open (a position of another project must not move the page). It is
  * pushed only while the page holds a `watch` lease: on a play-state change or a cursor move, and about four times a second while the DAW plays. */
 export type DawPosition = {
@@ -510,7 +510,7 @@ export type DawPosition = {
  * (`seconds` is ignored by the last two). */
 export type DawSyncAction = 'cursor' | 'play' | 'stop' | 'watch';
 
-/** DawTransportSync and the daw_position_changed event (apps/desktop/bindings_daw_transportsync.go): the Editing page and the DAW's transport follow
+/** DawTransportSync and the daw_position_changed event (src/studio/desktop/bindings_daw_transportsync.go): the Editing page and the DAW's transport follow
  * each other, behind the `transport_sync` capability (docs/design/editing-daw-transport-sync.md). A refusal (the capability's own sentence, a DAW with
  * another project open, a recording, a time that is not usable) is `ok` false with the sentence and nothing changed; none adds an undo step. */
 export interface DawTransportSyncApi {
@@ -519,7 +519,7 @@ export interface DawTransportSyncApi {
   subscribeDawPosition(onUpdate: (position: DawPosition) => void): () => void;
 }
 
-/** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, docs/reference/daw/audacity-3.md; apps/desktop/bindings_daw_backups.go): clone the audio around a
+/** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, docs/reference/daw/audacity-3.md; src/studio/desktop/bindings_daw_backups.go): clone the audio around a
  * chapter's words before an edit, put a backup back, and list the backups. The page sends a chapter id, two token indices and the label
  * the list shows, or a backup id DawBackups listed; the host resolves the words' times and the chapter's track itself, and the DAW adds
  * the narrator's window either side. A capability refusal carries the capability's sentence; a backup changes no audio (`changed:
@@ -530,7 +530,7 @@ export interface DawBackupsApi {
   dawBackups(): Promise<DawBackupsFile>;
 }
 
-/** DawPreviewFileRange, DawStopFilePreview and DawRevealFile (SN-B98; apps/desktop/bindings_daw_files.go): play `length` seconds (at
+/** DawPreviewFileRange, DawStopFilePreview and DawRevealFile (SN-B98; src/studio/desktop/bindings_daw_files.go): play `length` seconds (at
  * most 60) of a file on disk from `start`, in the file's own seconds, stop that preview, and show a file in the DAW's own file browser,
  * all leaving the project unchanged (no undo step). The path is one the host's measurement result named: the host plays or shows only a
  * file the narrator picked to measure in this session, and only an absolute local path to an audio file that is there. A capability
@@ -541,7 +541,7 @@ export interface DawFilesApi {
   dawRevealFile(path: string): Promise<DawResult>;
 }
 
-/** MasterPlayQuietest and MasterOpenInDaw (SN-M97; apps/desktop/bindings_master_files.go): Master & QC's Play the quietest 5 s and Open
+/** MasterPlayQuietest and MasterOpenInDaw (SN-M97; src/studio/desktop/bindings_master_files.go): Master & QC's Play the quietest 5 s and Open
  * in the DAW. `fileId` is a file's path as the host's last measurement answered it; any other id is refused with code `stale`. The host
  * plays the 5 s centred on the quietest window that measurement found (refused, with a sentence, when it found none) and shows the file
  * in the DAW's own file browser, through the `file_preview` and `file_reveal` capabilities, leaving the project unchanged. */
@@ -559,7 +559,7 @@ export interface DawProjectStateApi {
 /** The most rows `narration-utils/backups.json` holds (`audacity.MaxBackups`). */
 export const DAW_BACKUPS_MAX = 500;
 
-/** One row of the Audacity backups table (SN-D81, docs/reference/daw/audacity-3.md; apps/desktop/internal/dawport/audacity/backups_store.go): a window of a
+/** One row of the Audacity backups table (SN-D81, docs/reference/daw/audacity-3.md; src/studio/desktop/internal/dawport/audacity/backups_store.go): a window of a
  * track's audio the adapter cloned to its own muted track, named for `id`, before an edit. `id` is a GUID in braces; `guid` is the
  * source track as the request named it (Audacity reports no track ids, so its name); `start` and `end` are the window in project
  * seconds; `createdAt` is when it was made, in UTC. `label` says what it was made for ("Roll at ¶ 3") and `restored` is when it was last

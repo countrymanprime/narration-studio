@@ -25,7 +25,7 @@ def _write_manuscript(root: Path, chapter_title: str, paragraph_texts: list[str]
     manuscript_guide.py reads via canonical_manuscript.load_file.
 
     Import (turning a .docx/.md source into this file) is Go-host-only now -
-    see apps/desktop/cmd/manuscript-import and apps/desktop/internal/manuscript.
+    see src/studio/desktop/cmd/manuscript-import and src/studio/desktop/internal/manuscript.
     These tests only need a real, valid canonical file to build a Story
     Bible from, not the import step itself.
     """
@@ -420,7 +420,7 @@ class ManuscriptGuideTests(unittest.TestCase):
 
     def test_create_initializes_a_guide_file_when_none_exists_yet(self):
         # A manuscript import can seed manual character candidates before the
-        # Story Bible has ever been Built - see apps/desktop/bindings.go's
+        # Story Bible has ever been Built - see src/studio/desktop/bindings.go's
         # ManuscriptImportCommit - so create() must not require a prior build.
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

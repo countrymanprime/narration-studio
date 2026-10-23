@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Real events, field for field, as integrations/reaper/tests/compare_test.lua and line_identity_test.lua pin them: the harness proves
+// Real events, field for field, as src/studio/integrations/reaper/tests/compare_test.lua and line_identity_test.lua pin them: the harness proves
 // what Lua emits, and these prove what Go accepts, so the two halves of the protocol are tied to the same lines.
 var realEvents = map[string][]string{
 	"COMPARE_PREPARED":      {"COMPARE_PREPARED", "r1", "C:/s/manifest.json", "C:/p/narration-utils/manuscript/manuscript.json", "Narrator", "C:/s/diff.txt", "3", "41"},
@@ -38,77 +38,77 @@ var realEvents = map[string][]string{
 	"RENDER_CONFIGURED":     {"RENDER_CONFIGURED", "t1", "C:/p/renders", "2", "C:/p/renders/Chapter 1.wav;C:/p/renders/Chapter 2.wav"},
 	"PROJECT_STATE":         {"PROJECT_STATE", "t1", "7", "C:/p/Book.rpp"},
 	"CLEANUP_LAUNCHED":      {"CLEANUP_LAUNCHED", "t1", "repair_pops_clicks", "Item: Repair pops/clicks..."},
-	// integrations/reaper/tests/level_normalize_test.lua.
+	// src/studio/integrations/reaper/tests/level_normalize_test.lua.
 	"GAIN_STALE":         {"GAIN_STALE", "g1", "f-0001", "{AAAAAAAA-0000-4000-8000-000000000001}", "item"},
 	"GAIN_ITEM":          {"GAIN_ITEM", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "1.000000", "1.412538"},
 	"GAIN_APPLIED":       {"GAIN_APPLIED", "g1", "1"},
 	"RETAKE_LANE_PICKED": {"RETAKE_LANE_PICKED", "t1", "line-000004", "{AAAAAAAA-0000-4000-8000-000000000001}", "2"},
 	"TAKE_CREATED":       {"TAKE_CREATED", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{BBBBBBBB-0000-4000-8000-000000000002}"},
 	"TAKE_STALE":         {"TAKE_STALE", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}"},
-	// integrations/reaper/tests/navigation_test.lua.
+	// src/studio/integrations/reaper/tests/navigation_test.lua.
 	"NAVIGATED":     {"NAVIGATED", "n1", "{AAAAAAAA-0000-4000-8000-000000000001}", "102.500000"},
 	"LOOP_STARTED":  {"LOOP_STARTED", "l1", "{AAAAAAAA-0000-4000-8000-000000000001}", "101.000000", "105.000000"},
 	"LOOP_STOPPED":  {"LOOP_STOPPED", "s1", "3", "0"},
 	"PONG":          {"PONG", "p1", "1", "0", "0"},
 	"FINDING_STALE": {"FINDING_STALE", "n1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}", "item"},
-	// integrations/reaper/tests/finding_marker_test.lua.
+	// src/studio/integrations/reaper/tests/finding_marker_test.lua.
 	"FINDING_MARKER": {"FINDING_MARKER", "m1", "added", "{AAAAAAAA-0000-4000-8000-0000000000A1}", "12.500000", "MISREAD: 'pink eyes' as 'pink ice'"},
-	// integrations/reaper/tests/track_state_test.lua (chapter_track_state).
+	// src/studio/integrations/reaper/tests/track_state_test.lua (chapter_track_state).
 	"TRACK_STATE":     {"TRACK_STATE", "t1", "{00000001-0000-4000-8000-000000000001}", "0", "2.500000", "1.250000", "C:/p/Book.rpp", "0", "7", "1", "2", "1024", ""},
 	"TRACK_ITEM":      {"TRACK_ITEM", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "0.000000", "4.000000", "0.000000", "1.000000", "C:\\Audio\\ch1|take 1.wav"},
 	"TRACK_STATE_END": {"TRACK_STATE_END", "t1", "2", "2"},
 	"TRACK_STALE":     {"TRACK_STALE", "t1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}"},
-	// integrations/reaper/tests/track_select_test.lua (select_track).
+	// src/studio/integrations/reaper/tests/track_select_test.lua (select_track).
 	"TRACK_SELECTED": {"TRACK_SELECTED", "t1", "{00000001-0000-4000-8000-000000000001}"},
-	// integrations/reaper/tests/media_file_test.lua (preview_file_range, stop_file_preview, reveal_file).
+	// src/studio/integrations/reaper/tests/media_file_test.lua (preview_file_range, stop_file_preview, reveal_file).
 	"FILE_PREVIEW_STARTED": {"FILE_PREVIEW_STARTED", "p1", "C:/Renders/Chapter 01.wav", "12.500000", "5.000000"},
 	"FILE_PREVIEW_STOPPED": {"FILE_PREVIEW_STOPPED", "s1", "1"},
 	"FILE_REVEALED":        {"FILE_REVEALED", "r1", "C:/Renders/Chapter 01.wav"},
-	// integrations/reaper/tests/transport_test.lua (arm_only, record_start, record_stop).
+	// src/studio/integrations/reaper/tests/transport_test.lua (arm_only, record_start, record_stop).
 	"ARMED":           {"ARMED", "a1", "{00000001-0000-4000-8000-000000000001}", "2", "1"},
 	"RECORD_STARTED":  {"RECORD_STARTED", "r1", "{00000001-0000-4000-8000-000000000001}", "42.500000"},
 	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0"},
 	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "2", "0"},
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
-	// integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
+	// src/studio/integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
 	"ACTIVE_TAKE_SET":  {"ACTIVE_TAKE_SET", "u1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "1"},
 	"ITEM_STALE":       {"ITEM_STALE", "x3", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},
 	"FX_CHAIN":         {"FX_CHAIN", "f1", "Voice/Test EQ.RfxChain"},
 	"FX_CHAINS_LISTED": {"FX_CHAINS_LISTED", "f1", "3", "0"},
 	"FX_CHAIN_APPLIED": {"FX_CHAIN_APPLIED", "c1", "Voice/Test EQ.RfxChain", "{00000001-0000-4000-8000-000000000001}", "1"},
-	// integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx).
+	// src/studio/integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx).
 	"MASTER_CHAIN_FX":   {"MASTER_CHAIN_FX", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "1"},
 	"MASTER_CHAIN_READ": {"MASTER_CHAIN_READ", "c1", "3", "0"},
 	"FX_RENDER_FILE":    {"FX_RENDER_FILE", "r1", "Chapter 1", "C:/p/narration-utils/mastering/run1/fx-01.wav"},
 	"FX_RENDERED":       {"FX_RENDERED", "r1", "C:/p/narration-utils/mastering/run1", "1"},
-	// integrations/reaper/tests/takes_test.lua (hide_takes).
+	// src/studio/integrations/reaper/tests/takes_test.lua (hide_takes).
 	"TAKES_HIDDEN": {"TAKES_HIDDEN", "h1", "{AAAAAAAA-0000-4000-8000-000000000001}", "2", "1"},
-	// integrations/reaper/tests/reduce_range_gain_test.lua (reduce_range_gain).
+	// src/studio/integrations/reaper/tests/reduce_range_gain_test.lua (reduce_range_gain).
 	"RANGE_GAIN_REDUCED": {"RANGE_GAIN_REDUCED", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "2", "6.0", "1"},
-	// integrations/reaper/tests/repair_click_test.lua (repair_click).
+	// src/studio/integrations/reaper/tests/repair_click_test.lua (repair_click).
 	"CLICKS_REPAIRED": {"CLICKS_REPAIRED", "c1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "2", "1"},
-	// integrations/reaper/tests/fx_range_test.lua (fx_range_params, fx_range_set_param, fx_range_bypass).
+	// src/studio/integrations/reaper/tests/fx_range_test.lua (fx_range_params, fx_range_set_param, fx_range_bypass).
 	"RANGE_FX_PARAM":           {"RANGE_FX_PARAM", "p1", "0", "C:/REAPER/FXChains/Voice/Radio.RfxChain", "0", "Gain", "0", "-24", "24", "0", "0 dB"},
 	"RANGE_FX_PARAMS":          {"RANGE_FX_PARAMS", "p1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "6", "0", "0"},
 	"RANGE_FX_PARAM_SET":       {"RANGE_FX_PARAM_SET", "s1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "1", "0", "-6.5", "-6.5 dB", "1"},
 	"RANGE_FX_BYPASSED":        {"RANGE_FX_BYPASSED", "b1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "1", "1"},
 	"RANGE_FX_COMPARE":         {"RANGE_FX_COMPARE", "c1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "14", "16", "0"},
 	"RANGE_FX_COMPARE_STOPPED": {"RANGE_FX_COMPARE_STOPPED", "s1", "1"},
-	// integrations/reaper/tests/undo_test.lua (last_action, undo_last).
+	// src/studio/integrations/reaper/tests/undo_test.lua (last_action, undo_last).
 	"LAST_ACTION": {"LAST_ACTION", "l1", "cut_range", "this"},
 	"UNDONE_LAST": {"UNDONE_LAST", "u1", "cut_range", "4", "2"},
-	// integrations/reaper/tests/levels_test.lua (monitor_level).
+	// src/studio/integrations/reaper/tests/levels_test.lua (monitor_level).
 	"MONITOR_LEVEL": {"MONITOR_LEVEL", "m1", "70"},
-	// integrations/reaper/tests/track_select_test.lua (read_place, go_to).
+	// src/studio/integrations/reaper/tests/track_select_test.lua (read_place, go_to).
 	"PLACE":     {"PLACE", "p1", "{00000001-0000-4000-8000-000000000001}", "1", "12.5"},
 	"PLACE_SET": {"PLACE_SET", "g1", "{00000001-0000-4000-8000-000000000001}", "60"},
-	// integrations/reaper/tests/transport_sync_test.lua (set_cursor, play_from, stop_play, watch_transport). TRANSPORT is a broadcast: its run is empty.
+	// src/studio/integrations/reaper/tests/transport_sync_test.lua (set_cursor, play_from, stop_play, watch_transport). TRANSPORT is a broadcast: its run is empty.
 	"CURSOR_SET":         {"CURSOR_SET", "c1", "12.500000"},
 	"TRANSPORT_PLAYING":  {"TRANSPORT_PLAYING", "p1", "40.250000"},
 	"TRANSPORT_STOPPED":  {"TRANSPORT_STOPPED", "s1", "5.000000"},
 	"TRANSPORT_WATCHING": {"TRANSPORT_WATCHING", "w1", "5"},
 	"TRANSPORT":          {"TRANSPORT", "", "1", "2.000000", "9.500000"},
-	// integrations/reaper/tests/split_take_test.lua (split_take).
+	// src/studio/integrations/reaper/tests/split_take_test.lua (split_take).
 	"TAKE_SPLIT": {"TAKE_SPLIT", "p1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-000000000002}", "{00000001-0000-4000-8000-000000000001}", "15.500", "1"},
 }
 
@@ -258,7 +258,7 @@ func TestTheFieldNamesOfARealEventAreListedForDiagnosticsWithoutValues(t *testin
 	}
 }
 
-// TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid is apps/desktop/internal/daw/locate.go: an unsaved REAPER project reports an
+// TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid is src/studio/desktop/internal/daw/locate.go: an unsaved REAPER project reports an
 // empty rpp (never omitted, docs/research/reaper-spike-s6-daw-reachability.md), so the field must be allowed to be
 // empty although it is required.
 func TestAProjectStatusHeartbeatWithAnUnsavedProjectIsStillValid(t *testing.T) {

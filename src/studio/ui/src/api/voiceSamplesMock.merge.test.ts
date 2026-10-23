@@ -1,4 +1,4 @@
-// The browser mock follows a Story Bible merge as the host does (apps/desktop/internal/voicesample, FollowMerge and UndoFollow), so a
+// The browser mock follows a Story Bible merge as the host does (src/studio/desktop/internal/voicesample, FollowMerge and UndoFollow), so a
 // page driven by the mock shows the same thing as the app. The host's own cells are in merge_test.go; these are the ones the mock
 // repeats: the samples move, the survivor keeps its primary, an undo moves them back, and one the narrator moved is left.
 import { describe, expect, it } from 'vitest';

@@ -10,7 +10,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The ProjectStateState wire payloads apps/ui needs for its schema and mock: "project-state-idle"
+// The ProjectStateState wire payloads src/studio/ui needs for its schema and mock: "project-state-idle"
 // before any check, "project-state-checked" once REAPER answered a change count for a saved project. runId is
 // time-based and the project path a temp folder, so both are fixed here, and the saved file's modification time is
 // set.

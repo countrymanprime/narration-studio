@@ -10,7 +10,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-// The Play animations switch needs the extension's `playAnimations` (apps/ui/src/appExtension.tsx), which the site's entry registers before the app loads.
+// The Play animations switch needs the extension's `playAnimations` (src/studio/ui/src/appExtension.tsx), which the site's entry registers before the app loads.
 async function load() {
   const { registerAppExtension } = await import('@ui/appExtension');
   registerAppExtension({ playAnimations: true });

@@ -6,11 +6,11 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const ui = resolve(here, '..', '..', 'ui');
+const ui = resolve(here, '..', '..', 'studio', 'ui');
 
-// Tailwind scans the files under Vite's root for the classes to emit, and the root is this folder, not apps/ui, which holds nearly all of the markup. The app's
+// Tailwind scans the files under Vite's root for the classes to emit, and the root is this folder, not src/studio/ui, which holds nearly all of the markup. The app's
 // stylesheet is the Tailwind entry (`@import 'tailwindcss/...'`), so this adds the two scan roots to it as `@source` rules while the site builds, which leaves
-// apps/ui/src/styles.css untouched and the app's own build scanning exactly what it always did.
+// src/studio/ui/src/styles.css untouched and the app's own build scanning exactly what it always did.
 function tailwindSources(): Plugin {
   const styles = join(ui, 'src', 'styles.css');
   const posix = (path: string) => path.replaceAll('\\', '/');
@@ -68,9 +68,9 @@ function sitePlugin(): Plugin {
   };
 }
 
-// The site's app is the real UI (apps/ui) in its mock mode, started by this folder's entry (src/entry.ts), which registers the site's extension (src/register.ts)
-// before it loads the app. The `demo` mode (`.env.demo`, `pnpm --dir apps/site run build:pages-demo`) publishes the mock build under GitHub Pages'
-// `/narration-utils/demo/` subpath; the `site` mode (`.env.site`, apps/site/build/build-demo-site.mjs) is the public site's copy: relative asset URLs and hash
+// The site's app is the real UI (src/studio/ui) in its mock mode, started by this folder's entry (src/entry.ts), which registers the site's extension (src/register.ts)
+// before it loads the app. The `demo` mode (`.env.demo`, `pnpm --dir src/web run build:pages-demo`) publishes the mock build under GitHub Pages'
+// `/narration-utils/demo/` subpath; the `site` mode (`.env.site`, src/web/build/build-demo-site.mjs) is the public site's copy: relative asset URLs and hash
 // routes, so the folder opens from any sub-path and from a sandboxed frame.
 export default defineConfig(({ mode }) => ({
   root: here,

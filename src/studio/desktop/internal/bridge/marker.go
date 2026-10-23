@@ -27,7 +27,7 @@ type MarkerResult struct {
 }
 
 // AddMarker asks REAPER to add one take marker at the finding's source time, on its take (the active one when the
-// target names none), in one undo block (add_finding_marker in integrations/reaper/narration_navigation.lua;
+// target names none), in one undo block (add_finding_marker in src/studio/integrations/reaper/narration_navigation.lua;
 // docs/architecture/reaper-navigation.md#adding-the-approved-marker). It is found and refused the way Navigate is: a *StaleError when the item, take or spot is gone,
 // ErrRecording while REAPER records, and nothing is sent for a target with no item GUID or source time, or a marker
 // with no name.

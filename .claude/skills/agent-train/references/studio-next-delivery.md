@@ -24,7 +24,7 @@ What the train already gives (all cited from the train's procedure, then `docs/o
 | --- | --- | --- |
 | Live state | Issue #509 "Train control" (body rewritten by the coordinator); #510 "Owner queue" ([Where state lives](../SKILL.md#where-state-lives)) | One body for 8 workers is fine; for 150 slices it needs a per-program status view |
 | Stop and scale | `HOLD`, `HOLD-UNTIL-RESET`, `DRAIN`, `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET`, usage bands ([Switches](../SKILL.md#switches-on-989), [Usage and autoscaling](../SKILL.md#usage-and-autoscaling)) | No way to pause only this program |
-| Territories | Lanes K, A, B, U, C, D, X with ADR blocks ([Lanes](../SKILL.md#lanes)) | The new directories of this series have no lane (`apps/ui/src/studio/`, `ports/`, `overlay/`) |
+| Territories | Lanes K, A, B, U, C, D, X with ADR blocks ([Lanes](../SKILL.md#lanes)) | The new directories of this series have no lane (`src/studio/ui/src/studio/`, `ports/`, `overlay/`) |
 | Serial points | `hostAPIVersion`, ADR numbers, index rows, append-only rows, nav, workflows, token batch, hot UI files ([Serial points](../SKILL.md#serial-points)) | Fine; slices must name which they touch |
 | Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](../SKILL.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
 | Worker protocol | Push after every green step; checkpoints; pause or yield; own PRs until merged (D82); no `send_later` or scheduling tools ([The worker protocol](../SKILL.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
@@ -77,7 +77,7 @@ The owner ruled on 2026-10-11 (see [Studio Next Rebuild](../../../../docs/prds/s
 | SNA-Q1 | One GitHub issue per slice, with the PRD issue as parent (sub-issues, `mcp__github__sub_issue_write`). | D-1; `Closes #<slice>` on each PR. |
 | SNA-Q2 | The groomer is a session type. Mockup-design sessions are the precedent ([Mockup gates](../SKILL.md#mockup-gates)). | D-2; it reads the code, so the coordinator does not. |
 | SNA-Q3 | A daily cap of slices launched per day, default 12, switchable (`SN_DAILY_CAP`). | D-4. |
-| SNA-Q4 | Lane U territory adds `apps/ui/src/studio/**`, `ports/**` and `overlay/**`. | D-7. |
+| SNA-Q4 | Lane U territory adds `src/studio/ui/src/studio/**`, `ports/**` and `overlay/**`. | D-7. |
 | SNA-Q5 | A recommended default applies silently after 7 days for questions that do not change an accepted ADR. Superseding ADRs (A1..A17 of the overview) stay Proposed until the owner accepts them. | D-8. |
 | SNA-Q6 | Session cap per slice: 1 planned, 1 resume, 1 fixer, then escalate. | D-6. |
 | SNA-Q7 | A page is compared against the Studio Next mock page (SN0-Q8). A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR says so and the owner supplies it from #510. The slice is not blocked. Since 2026-10-13 the images a UI slice commits are its page's guide screenshots, not a per-PR set. | D-10 and the PR template. |

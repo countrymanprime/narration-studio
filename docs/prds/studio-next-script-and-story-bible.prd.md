@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Story Bible and Script rulings and the bookmark ruling in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Bible.tsx`, `studio-next/src/pages/bible/`, `studio-next/src/pages/script/`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** the delivered Story Bible, pronunciation and prep work ([pronunciation sources](../architecture/pronunciation-provider-selection.md), [What "provider" means here](../architecture/pronunciation-provider-selection.md#what-provider-means-here), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), [Choosing and previewing a pronunciation](../architecture/pronunciation-provider-selection.md#choosing-and-previewing-a-pronunciation), [The default source setting](../architecture/pronunciation-provider-selection.md#the-default-source-setting), [manuscript_guide.py](../../sidecars/manuscript-guide/core/manuscript_guide.py), [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours)); the Script page ([Design system reference](../design/design-system.md)). Extraction suggestions, import and analysis tools are the separate [Extraction and Analysis Tools](studio-next-extraction-and-analysis-tools.prd.md).
+**Builds on:** the delivered Story Bible, pronunciation and prep work ([pronunciation sources](../architecture/pronunciation-provider-selection.md), [What "provider" means here](../architecture/pronunciation-provider-selection.md#what-provider-means-here), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), [Choosing and previewing a pronunciation](../architecture/pronunciation-provider-selection.md#choosing-and-previewing-a-pronunciation), [The default source setting](../architecture/pronunciation-provider-selection.md#the-default-source-setting), [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours)); the Script page ([Design system reference](../design/design-system.md)). Extraction suggestions, import and analysis tools are the separate [Extraction and Analysis Tools](studio-next-extraction-and-analysis-tools.prd.md).
 
 **Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for Story Bible and Script.
 
@@ -13,7 +13,7 @@ The owner agreed a set of Story Bible and Script behaviours: pronunciation with 
 ## Evidence
 
 - **Mock.** `studio-next/src/providers/pronunciation.ts` and `studio-next/src/ui/PronSource.tsx` (source id; `manual` is typed); `studio-next/src/state/commands/bible.ts` (`mergeEntries`, drafts); `studio-next/src/selectors/bible.ts` (`appearsIn`, `entryNeedsReview`); `studio-next/src/selectors/bibleMerge.ts`; `studio-next/src/selectors/speakers.ts`; `studio-next/src/state/commands/bookmarks.ts`, `studio-next/src/selectors/bookmarks.ts`, `studio-next/src/ui/BookmarkEditor.tsx`, `studio-next/src/pages/script/BookmarksTab.tsx`, `studio-next/src/app/bookmarks.ts`. Tests: `studio-next/tests/bible.test.tsx`, `studio-next/tests/bible-batch-a.test.tsx`, `studio-next/tests/bookmarks.test.tsx`, `studio-next/tests/speakers.test.tsx`, `studio-next/tests/script.test.tsx`.
-- **Repo.** Story Bible: `apps/ui/src/components/storybible/{Guide,GuideDetail,PronunciationWork,PronunciationQueries}.tsx`, `pronunciationStatus.ts`; `apps/desktop/internal/guide/`, `sidecars/manuscript-guide/core/manuscript_guide.py` (`merge`, `split`, `appearances`, pronunciation `status`, `alternate`); `state.ts` (`findAliasMatches`, categories incl. "Needs Review" and "Draft"); Script: `components/script/{ScriptPage,ScriptRail,ScriptChapterList}.tsx`; no bookmark code (the word appears in unrelated files).
+- **Repo.** Story Bible: `src/studio/ui/src/components/storybible/{Guide,GuideDetail,PronunciationWork,PronunciationQueries}.tsx`, `pronunciationStatus.ts`; `src/studio/desktop/internal/guide/`, `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` (`merge`, `split`, `appearances`, pronunciation `status`, `alternate`); `state.ts` (`findAliasMatches`, categories incl. "Needs Review" and "Draft"); Script: `components/script/{ScriptPage,ScriptRail,ScriptChapterList}.tsx`; no bookmark code (the word appears in unrelated files).
 
 | Ruling | Real today |
 | --- | --- |
@@ -64,7 +64,7 @@ Owner rulings of 2026-10-11; none is open.
 | --- | --- | --- |
 | SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | `docs/design/design-system.md` apply only where the mock shows the same layout |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | SNB-8 swaps the routes and deletes the old pages |
-| DQ-11 | No query/confirmed workflow; pronunciation has a source | The query status, query CSV export and import and the open-queries rail badge are removed with the swap; `docs/utilities/manuscript-guide.md, apps/ui/src/components/layout/useNavCounts.ts` are superseded to that extent |
+| DQ-11 | No query/confirmed workflow; pronunciation has a source | The query status, query CSV export and import and the open-queries rail badge are removed with the swap; `docs/utilities/manuscript-guide.md, src/studio/ui/src/components/layout/useNavCounts.ts` are superseded to that extent |
 | DQ-12 / SN0-Q5 | Series voice bible and Series tab: no equivalent in the mock | Untouched; not extended, removed or re-skinned |
 | SNB-Q2 | The host reports the sources (CMU, eSpeak, Wiktextract, Merriam-Webster when keyed); the default stays per [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) (default taken, standing instruction) | `PronunciationPort.sources()` |
 | SNB-Q3 | Bookmarks are a project sidecar `bookmarks.json`, validated on read, like markup (default taken) | `internal/bookmarks` |
@@ -73,7 +73,7 @@ Owner rulings of 2026-10-11; none is open.
 
 ## Users & Context
 
-Narrators prepping a manuscript and returning to hard spots; the Booth uses bookmarks as quick-movement marks. Story Bible entries may be locked ([manuscript_guide.py](../../sidecars/manuscript-guide/core/manuscript_guide.py)) and read-only until edit ([Story Bible](../guides/using-the-app/story-bible.md)).
+Narrators prepping a manuscript and returning to hard spots; the Booth uses bookmarks as quick-movement marks. Story Bible entries may be locked ([manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py)) and read-only until edit ([Story Bible](../guides/using-the-app/story-bible.md)).
 
 ## Solution Detail
 
@@ -96,13 +96,13 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | ADR | Class | Note |
 | --- | --- | --- |
 | [Manuscript Guide](../utilities/manuscript-guide.md), | SUPERSEDE (DQ-11) | Pronunciation provenance without a query workflow (A11) |
-| [useNavCounts.ts](../../apps/ui/src/components/layout/useNavCounts.ts) | SUPERSEDE (DQ-11) | The open-queries badge is removed; the other rail counts are the shell PRD's |
+| [useNavCounts.ts](../../src/studio/ui/src/components/layout/useNavCounts.ts) | SUPERSEDE (DQ-11) | The open-queries badge is removed; the other rail counts are the shell PRD's |
 | [What "provider" means here](../architecture/pronunciation-provider-selection.md#what-provider-means-here), [Choosing and previewing a pronunciation](../architecture/pronunciation-provider-selection.md#choosing-and-previewing-a-pronunciation), [The default source setting](../architecture/pronunciation-provider-selection.md#the-default-source-setting), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | KEEP / EXTEND | Edited value, phoneme block, default source, local first |
-| [manuscript_guide.py](../../sidecars/manuscript-guide/core/manuscript_guide.py), [Story Bible](../guides/using-the-app/story-bible.md), [Design system reference](../design/design-system.md), [Story Bible](../guides/using-the-app/story-bible.md) | KEEP / EXTEND | Locked and read-only; drafts add a cancel rule |
+| [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), [Story Bible](../guides/using-the-app/story-bible.md), [Design system reference](../design/design-system.md), [Story Bible](../guides/using-the-app/story-bible.md) | KEEP / EXTEND | Locked and read-only; drafts add a cancel rule |
 | [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours) | EXTEND | Entry colour override |
-| [manuscript_guide.py](../../sidecars/manuscript-guide/core/manuscript_guide.py) | KEEP | Stable ids; appearances |
+| [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py) | KEEP | Stable ids; appearances |
 | , [The narrator's pin](../architecture/preview-suggestion.md#the-narrators-pin) | KEEP | Markup and pin sidecars; bookmarks follow the same pattern |
-| [Data files](../reference/data-files.md), [voicebible.go](../../apps/desktop/internal/series/voicebible.go) to [readonly.go](../../apps/desktop/internal/guide/readonly.go) | KEEP (DQ-12) | Series untouched; no equivalent in the mock |
+| [Data files](../reference/data-files.md), [voicebible.go](../../src/studio/desktop/internal/series/voicebible.go) to [readonly.go](../../src/studio/desktop/internal/guide/readonly.go) | KEEP (DQ-12) | Series untouched; no equivalent in the mock |
 | , [Design system reference](../design/design-system.md), | SUPERSEDE where the mock differs (DQ-1) | Script layout follows `studio-next/src/pages/script/` |
 
 ## Technical Approach
@@ -151,7 +151,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Phase | Files touched | Collides with |
 | --- | --- | --- |
-| 2 | `components/storybible/Pronunciation*`, `internal/guide/*`, `sidecars/manuscript-guide/core/manuscript_guide.py`, `api/{contracts,schemas}/storyBible.ts` | Extraction slices (same sidecar file; serialise) |
+| 2 | `components/storybible/Pronunciation*`, `internal/guide/*`, `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`, `api/{contracts,schemas}/storyBible.ts` | Extraction slices (same sidecar file; serialise) |
 | 3, 4 | `components/storybible/Guide*.tsx`, `state.ts` | Extraction UI |
 | 5 | new `internal/bookmarks`, bindings, `hostAPIVersion` | Every binding PRD |
 | 6 | `components/script/*` | Script slices |
@@ -179,7 +179,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Research Summary
 
-Read: the mock's bible, script, bookmark and speaker sources and tests, the rulings, `state.ts`, the guide service and sidecar function names, `docs/utilities/manuscript-guide.md, docs/design/colour-and-contrast.md#per-speaker-colours, apps/ui/src/components/layout/useNavCounts.ts`. Not done: the Phase 0 audit of merge, drafts and sort in the real UI was not run.
+Read: the mock's bible, script, bookmark and speaker sources and tests, the rulings, `state.ts`, the guide service and sidecar function names, `docs/utilities/manuscript-guide.md, docs/design/colour-and-contrast.md#per-speaker-colours, src/studio/ui/src/components/layout/useNavCounts.ts`. Not done: the Phase 0 audit of merge, drafts and sort in the real UI was not run.
 
 ## Visual Spec
 

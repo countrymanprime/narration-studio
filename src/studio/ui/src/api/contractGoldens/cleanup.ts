@@ -1,4 +1,4 @@
-// The golden payloads for item gain (apps/desktop/bindings_cleanup.go).
+// The golden payloads for item gain (src/studio/desktop/bindings_cleanup.go).
 import type { z } from 'zod';
 import { levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from '../schemas/cleanup';
 

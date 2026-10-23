@@ -1,5 +1,5 @@
 // The sourced numbers of Production and Schedule, as pure selectors over what the measurements port answered (
-// apps/ui/src/components/schedule/progress.ts). Each takes the answers as arguments, so it tests without a port, and returns a value or the reason there is
+// src/studio/ui/src/components/schedule/progress.ts). Each takes the answers as arguments, so it tests without a port, and returns a value or the reason there is
 // none. A screen prints NOT_MEASURED for a reason; no constant here stands in for a missing figure.
 import type { Measured } from '../../../api/schemas/base';
 import type { TakeLogEntry } from '../../../fixtures/measurements';

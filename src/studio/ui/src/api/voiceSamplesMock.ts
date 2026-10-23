@@ -1,4 +1,4 @@
-// The browser mock's voice samples. It keeps them in memory and applies the rules apps/desktop/internal/voicesample does that need no
+// The browser mock's voice samples. It keeps them in memory and applies the rules src/studio/desktop/internal/voicesample does that need no
 // audio: a request the host would call invalid throws, a stretch it would refuse comes back as a refused answer with the host's
 // sentence and nothing is saved, the first sample of a character is its primary, a delete promotes the newest remaining, and each
 // sample's source state is read against the mock manuscript on every list. It has no audio to cut, so a clip is a length and a size

@@ -4,7 +4,7 @@ import type { DawChoice } from '../../../api/contracts/daw';
 import { setupCapabilities } from './fixtures';
 import { SetupChip } from './SetupChip';
 
-// The Booth top bar's setup chip over the project's DAW choice (apps/desktop/bindings_dawchoice.go): the name from the payload,
+// The Booth top bar's setup chip over the project's DAW choice (src/studio/desktop/bindings_dawchoice.go): the name from the payload,
 // the warning tone until the DAW is connected, and the state in its accessible name and tooltip.
 const choice = (over: Partial<DawChoice>): DawChoice => ({
   hasProject: true,

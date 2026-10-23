@@ -1,7 +1,7 @@
 // Package whisper owns the approved, versioned catalog of faster-whisper
 // CTranslate2 model directories used by Transcript Compare, gated behind the
 // same first-use download/verify/install flow as Piper voices
-// (apps/desktop/internal/tts).
+// (src/studio/desktop/internal/tts).
 package whisper
 
 import (

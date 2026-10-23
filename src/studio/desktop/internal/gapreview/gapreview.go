@@ -1,5 +1,5 @@
 // Package gapreview is the narrator's call on a recording-check gap. A check's gaps (coverage.GapLine,
-// apps/desktop/internal/coverage/gaps.go) are not findings, so there is nothing to accept or ignore until the narrator says so: accepting a gap
+// src/studio/desktop/internal/coverage/gaps.go) are not findings, so there is nothing to accept or ignore until the narrator says so: accepting a gap
 // writes one finding through the findings store's public API (analyzer "recording-check", category pickup) and
 // records it accepted, so the note is an ordinary Proof note; ignoring writes only a review entry, so the gap reads
 // as ignored and stays out of the card's to-review count. Running a check never does either.

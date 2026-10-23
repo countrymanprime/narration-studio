@@ -1,4 +1,4 @@
-// node --test apps/ui/scripts/*.test.mjs (the `test-node` target of apps/ui/project.json).
+// node --test src/studio/ui/scripts/*.test.mjs (the `test-node` target of src/studio/ui/project.json).
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

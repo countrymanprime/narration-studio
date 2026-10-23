@@ -3,13 +3,13 @@ package dawcatalog
 // DetectionResult reports whether a catalog entry appears to be installed.
 // It is a fact ("detected" / "not detected"), not a launchable path:
 // resolving *where* to launch an installed DAW's executable from stays
-// apps/desktop/internal/daw's concern, which a caller can hand off to once a
+// src/studio/desktop/internal/daw's concern, which a caller can hand off to once a
 // DAW is detected.
 type DetectionResult struct {
 	EntryID   string
 	Installed bool
 	// Path and Source are set only when Installed is true. Source names
-	// where the path came from (mirrors apps/desktop/internal/daw's
+	// where the path came from (mirrors src/studio/desktop/internal/daw's
 	// Source* constants, e.g. "uninstall_registry"), so a caller can
 	// tell the narrator how confident the detection is.
 	Path   string
@@ -18,7 +18,7 @@ type DetectionResult struct {
 
 // Detector finds one catalog entry's installed executable. Its shape
 // (path, source string, err error) matches
-// apps/desktop/internal/daw.LocateReaperExecutable exactly, so the real
+// src/studio/desktop/internal/daw.LocateReaperExecutable exactly, so the real
 // production detector can be passed directly (see DefaultDetectors) and a
 // test can fake registry/filesystem state without touching either.
 type Detector func() (path, source string, err error)

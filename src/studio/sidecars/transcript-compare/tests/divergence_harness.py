@@ -20,7 +20,7 @@ A divergence is *localized* when the analyzer reports the same kind over the sam
 its time range overlaps the true one with both boundaries within `WORD_SECONDS` (one word at 150
 words a minute): finer than that, forced alignment could not show the narrator a smaller sub-span.
 
-Run it: `python sidecars/transcript-compare/tests/divergence_harness.py [--timing exact|jitter]
+Run it: `python src/studio/sidecars/transcript-compare/tests/divergence_harness.py [--timing exact|jitter]
 [--asr DIR --model-dir DIR]`.
 """
 

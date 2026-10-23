@@ -1,7 +1,7 @@
 // Package lineidentity is the host's end of the manuscript line-identity commands over the REAPER file
 // bridge (stamp_item_lines, read_line_ids; see docs/architecture/manuscript-line-identity.md and
-// integrations/reaper/narration_line_identity.lua). It is the second consumer built on the event fan-out
-// (apps/desktop/internal/bridge), alongside the transcript service.
+// src/studio/integrations/reaper/narration_line_identity.lua). It is the second consumer built on the event fan-out
+// (src/studio/desktop/internal/bridge), alongside the transcript service.
 //
 // Line ID scheme: a line ID stamped
 // onto a REAPER item is the manuscript entity ID (a paragraph ID such as "p-000001" or a chapter ID such as
@@ -306,7 +306,7 @@ func parseLineRow(raw string) (lineRow, bool) {
 }
 
 // splitPipeFields splits value into at most count fields on "|"; the last field is the remainder, so it may
-// contain pipes (matches integrations/reaper/narration_bridge_core.lua's pipe_fields, without percent
+// contain pipes (matches src/studio/integrations/reaper/narration_bridge_core.lua's pipe_fields, without percent
 // decoding: this file protocol is not the command-line protocol bridge.go encodes).
 func splitPipeFields(value string, count int) []string {
 	fields := make([]string, 0, count)

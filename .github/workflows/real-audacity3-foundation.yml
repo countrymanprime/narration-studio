@@ -1,7 +1,7 @@
 name: Real Audacity 3 foundation tests (Linux)
 # Runs the foundation suite (A3-T1 to T13, T24 to T29, T34 of docs/research/audacity-3-capability-matrix.md) against a pinned, real Audacity
 # 3 over mod-script-pipe: Xvfb, a PulseAudio null sink, the hash-pinned AppImage, the pinned LibriVox chapter. The tests are in
-# apps/desktop/internal/audacityreal/foundation and tests/audacity3/real/foundation/run.sh runs them. Each test records its rows (pass, fail,
+# src/studio/desktop/internal/audacityreal/foundation and src/studio/tests/audacity3/real/foundation/run.sh runs them. Each test records its rows (pass, fail,
 # skip, measurement, the raw reply bytes) into results.json, which is uploaded as an artifact and summarised in the job summary.
 # Evidence, not a gate: it runs on a manual dispatch and on a pull request that touches the files it exercises, and nothing requires it.
 # A second workflow, real-audacity3.yml, holds the earlier prototype; the record, punch and edit suites live in their own files.
@@ -17,9 +17,9 @@ on:
         default: '.'
   pull_request:
     paths:
-      - 'apps/desktop/internal/audacityreal/**'
-      - 'apps/desktop/internal/audacitybridge/**'
-      - 'tests/audacity3/real/foundation/**'
+      - 'src/studio/desktop/internal/audacityreal/**'
+      - 'src/studio/desktop/internal/audacitybridge/**'
+      - 'src/studio/tests/audacity3/real/foundation/**'
       - '.github/workflows/real-audacity3-foundation.yml'
 permissions: {}
 concurrency:
@@ -41,7 +41,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.27.2'
-          cache-dependency-path: apps/desktop/go.sum
+          cache-dependency-path: src/studio/desktop/go.sum
       - name: Install the display, audio and helper packages
         run: |
           sudo apt-get update
@@ -52,14 +52,14 @@ jobs:
           path: |
             ${{ env.NU_AUDACITY_WORK }}/bin/*.AppImage
             ${{ env.NU_AUDACITY_WORK }}/fixtures/*.mp3
-          key: real-audacity3-foundation-${{ hashFiles('tests/audacity3/real/foundation/run.sh', 'tests/fixtures/audio/librivox-alice/sources.json') }}
+          key: real-audacity3-foundation-${{ hashFiles('src/studio/tests/audacity3/real/foundation/run.sh', 'tests/fixtures/audio/librivox-alice/sources.json') }}
       - name: Run the foundation tests
         env:
           PATTERN: ${{ inputs.pattern || '.' }}
         run: |
           set -o pipefail
           mkdir -p "$NU_AUDACITY_WORK"
-          tests/audacity3/real/foundation/run.sh "$PATTERN" 2>&1 | tee "$NU_AUDACITY_WORK/run.log"
+          src/studio/tests/audacity3/real/foundation/run.sh "$PATTERN" 2>&1 | tee "$NU_AUDACITY_WORK/run.log"
       # run.sh writes results.json and summary.md and appends the summary to the job summary; this covers a run that died before it could.
       - name: Say so when no rows were written
         if: always()

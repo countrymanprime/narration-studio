@@ -2,12 +2,12 @@
 
 // The edits the adapter makes in steps (backups, a roll, a cut, a stack and un-stack, a macro, lowered stretches, repaired clicks),
 // run against a real Audacity 3 on Linux over mod-script-pipe's FIFOs: the adapter half of A3-T16 to A3-T21 in
-// docs/research/audacity-3-capability-matrix.md. The Python tests in tests/audacity3/real/edits measure what Audacity does with each
+// docs/research/audacity-3-capability-matrix.md. The Python tests in src/studio/tests/audacity3/real/edits measure what Audacity does with each
 // command; this file checks the shipped adapter does the right thing with that. It sits behind the audacityreal build tag and the
-// NU_AUDACITY_* variables tests/audacity3/real/edits/run.sh sets, and it shares nothing with real_linux_live_test.go (another
+// NU_AUDACITY_* variables src/studio/tests/audacity3/real/edits/run.sh sets, and it shares nothing with real_linux_live_test.go (another
 // stream's file), so the helpers here carry an "ed" prefix.
 //
-//	tests/audacity3/real/edits/run.sh --go
+//	src/studio/tests/audacity3/real/edits/run.sh --go
 package audacity
 
 import (
@@ -395,7 +395,7 @@ func edDismissDialogs() {
 func newEdEnv(t *testing.T, timeout time.Duration) *edEnv {
 	t.Helper()
 	if os.Getenv("NU_AUDACITY_OUT") == "" {
-		t.Fatal("NU_AUDACITY_OUT is not set: the audacityreal tag is opt-in, so run tests/audacity3/real/edits/run.sh --go, which sets it")
+		t.Fatal("NU_AUDACITY_OUT is not set: the audacityreal tag is opt-in, so run src/studio/tests/audacity3/real/edits/run.sh --go, which sets it")
 	}
 	e := &edEnv{t: t, ctx: context.Background(), client: edClient(timeout), work: filepath.Join(os.Getenv("NU_AUDACITY_OUT"), "work-go", strings.ReplaceAll(t.Name(), "/", "_"))}
 	t.Cleanup(func() { _ = e.client.Close() })

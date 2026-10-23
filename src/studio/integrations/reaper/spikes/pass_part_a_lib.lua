@@ -11,7 +11,7 @@
 -- report: r:check(label, ok, detail), r:note(text) for a value the row records without judging, and r:not_run(label,
 -- why) for a step Part A cannot take (a recording is Part B's).
 --
--- Research tool, not product code (integrations/reaper/spikes/README.md).
+-- Research tool, not product code (src/studio/integrations/reaper/spikes/README.md).
 
 local M = {}
 
@@ -257,7 +257,7 @@ function M.new_report()
       '## Verification pass, Part A: results',
       '',
       string.format('- REAPER %s on %s (%s)', meta.version or '?', meta.os or '?', meta.lua or '?'),
-      string.format('- Driver: `integrations/reaper/spikes/pass_part_a.lua` at `%s`', meta.rev or 'unknown'),
+      string.format('- Driver: `src/studio/integrations/reaper/spikes/pass_part_a.lua` at `%s`', meta.rev or 'unknown'),
       string.format('- Run: %s, %s s', meta.date or '?', meta.seconds and string.format('%.0f', meta.seconds) or '?'),
       string.format(
         '- **%d of %d rows pass**, %d fail, %d not run (every row verdict below; a step left to Part B is listed, not failed)',

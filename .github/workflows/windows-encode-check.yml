@@ -30,7 +30,7 @@ jobs:
         run: ./scripts/release/install-ffmpeg-asset.ps1 -OutDir "$env:RUNNER_TEMP/ffmpeg"
       - name: Run the real-binary encode tests
         shell: bash
-        working-directory: apps/desktop
+        working-directory: src/studio/desktop
         run: |
           export NARRATION_UTILS_FFMPEG="$(cygpath -w "$FFMPEG_PATH")"
           go test -count=1 -v -run 'TestTheRealFFmpegWritesMP3s' ./internal/encodeport/... 2>&1 | tee "$RUNNER_TEMP/encode.log"
@@ -42,7 +42,7 @@ jobs:
           grep -q -- '--- PASS: TestTheRealFFmpegWritesMP3sTheACXChecksAccept' "$RUNNER_TEMP/encode.log" || { echo '::error::the MP3 test did not pass (skipped or absent)'; exit 1; }
       - name: Whole encodeport package with the real binary
         shell: bash
-        working-directory: apps/desktop
+        working-directory: src/studio/desktop
         run: |
           export NARRATION_UTILS_FFMPEG="$(cygpath -w "$FFMPEG_PATH")"
           go test -count=1 ./internal/encodeport/...

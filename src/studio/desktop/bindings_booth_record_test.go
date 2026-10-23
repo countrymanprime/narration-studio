@@ -240,7 +240,7 @@ func TestBoothRecordWithADawDoesNotTouchTheBuiltinRecorder(t *testing.T) {
 }
 
 // TestBuiltinBoothRecordingGoldenIsCurrent pins the answers the Booth's Record gets from the built-in recorder
-// (ReadAloudRecording, apps/ui's readAloudRecordingSchema): a start, a stop and each refusal. UPDATE_CONTRACTS=1 rewrites
+// (ReadAloudRecording, src/studio/ui's readAloudRecordingSchema): a start, a stop and each refusal. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/read-aloud-recordings-builtin.json.
 func TestBuiltinBoothRecordingGoldenIsCurrent(t *testing.T) {
 	answers := map[string]ReadAloudRecording{}

@@ -380,7 +380,7 @@ The track index counts all tracks, not only label tracks. An object form `{track
 
 ## What this means for the build
 
-Audacity 4 publishes no scripting interface: the only published spec is Audacity 3's `mod-script-pipe`, described above, and 4.1's planned "script host" has no written protocol yet. So `apps/desktop/internal/audacitybridge` speaks the Audacity 3 protocol, behind a `Transport` interface, and the adapter reports "Audacity is not reachable" on an Audacity 4.0 install, whose pipe does not exist ([The DAW port](../architecture/daw-integration.md#the-daw-port)). How each finding above shaped the client:
+Audacity 4 publishes no scripting interface: the only published spec is Audacity 3's `mod-script-pipe`, described above, and 4.1's planned "script host" has no written protocol yet. So `src/studio/desktop/internal/audacitybridge` speaks the Audacity 3 protocol, behind a `Transport` interface, and the adapter reports "Audacity is not reachable" on an Audacity 4.0 install, whose pipe does not exist ([The DAW port](../architecture/daw-integration.md#the-daw-port)). How each finding above shaped the client:
 
 | Finding | What the client does |
 | --- | --- |

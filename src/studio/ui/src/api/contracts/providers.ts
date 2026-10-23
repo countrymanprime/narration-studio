@@ -1,6 +1,6 @@
 // The provider ports' capability payload: every provider this build can hand its sidecars,
 // read from the host's Go registries (internal/asrport, ttsport, pronunciationport, captureport), whether it runs on this platform,
-// and, for one whose models or voices come from the asset catalog, how many are installed. apps/desktop/bindings_providers.go is
+// and, for one whose models or voices come from the asset catalog, how many are installed. src/studio/desktop/bindings_providers.go is
 // the binding. It is read-only and no screen reads it yet.
 import type { DawCapabilitySupport } from './daw';
 

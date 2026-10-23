@@ -135,7 +135,7 @@ type hostServices struct {
 //     when one service is enough) and use it, and svc.config, only.
 //  2. Add a row to stressReaders in hostrace_test.go if it reads a service.
 //  3. Never call a service while holding h.mu; never re-read a field in a goroutine.
-//  4. Run `go -C apps/desktop test ./...`. A direct h.guide read fails
+//  4. Run `go -C src/studio/desktop test ./...`. A direct h.guide read fails
 //     TestHostReadsSwappableServicesOnlyThroughTheAccessor with the file, line and
 //     function.
 func (h *Host) services() hostServices {

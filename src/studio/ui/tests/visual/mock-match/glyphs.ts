@@ -1,4 +1,4 @@
-// Text-blind scoring for `pnpm --dir apps/ui mock-match` (owner ruling D97 on #509): the score is about layout, features and
+// Text-blind scoring for `pnpm --dir src/studio/ui mock-match` (owner ruling D97 on #509): the score is about layout, features and
 // style, so different words at the same size, weight and position must not lower it. `flattenGlyphs` runs on the mock and on the
 // capture before they are compared, and paints every glyph-like mark in the colour around it. What stays is what a design
 // spec is made of: fills, cards, pills, borders and rules, and the spacing between them. Pure and deterministic (no random

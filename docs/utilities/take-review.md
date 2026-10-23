@@ -42,19 +42,19 @@ The narrator's flow before SN-Q9 is in the [recording and comping workflow](../w
 
 | Step | Code | Decision |
 | --- | --- | --- |
-| Take-aware project model: every take of every item, its GUID, source, `SOFFS`, `PLAYRATE`, `SECTION`; `Project.ItemByGUID` | `apps/desktop/internal/tracks` ([Tracks](tracks.md)) | [fingerprint.go](../../apps/desktop/internal/evidence/fingerprint.go) (parser superset) |
-| Scan scope (chapter track plus one pickup track or range), manifest, thresholds from project settings | `apps/desktop/internal/takereview` (`buildManifest`, `ValidateScope`, `ResolveThresholds`, `ResolvePickupScope`) | Take review |
-| Repeated-span detection: transcribe each read, align to the manuscript with the markers' diff, group reads whose spans overlap, flag exact copies by source identity | `compare.py --find-repeats` (`sidecars/transcript-compare/core/compare.py`) | |
-| Groups to findings: `pickup` (`evidence.kind` `restart`, `pickup`, `exact_copy`) or `duplicate_read` (`near_duplicate`), stable ids and evidence versions | `apps/desktop/internal/repeats` | |
-| The scan job and per-read navigation (no page calls them since SN-Q9) | `apps/desktop/takereview_job.go`, `bindings_navigation.go` | Take review, [Going to and looping a finding in REAPER](../architecture/reaper-navigation.md) |
-| Add as take: `create_take` in REAPER, re-resolving GUIDs, active take and item length untouched, one undo step | `integrations/reaper/narration_take_review.lua`, `apps/desktop/internal/takereview/createtake.go` | [narration_take_review.lua](../../integrations/reaper/narration_take_review.lua) |
-| Audition: two raw-source ranges with pre and post roll, one playing at a time | `apps/ui/src/components/proof/AuditionDialog.tsx`, `apps/ui/src/components/engine/useRangePlayer.ts` | |
-| Take metrics: clipping, noise, level against neighbours, duration, pause profile, each measured or unavailable with a reason | `apps/desktop/internal/measure` (`MeasureTake`, `TakeSourceRange`) | [takemetrics.go](../../apps/desktop/internal/measure/takemetrics.go) |
-| Per-take divergence: every span word's status and time, every divergence as words plus seconds | `compare.py --take-divergence` (`core/take_divergence.py`, `core/take_divergence_mode.py`) | [take_divergence_mode.py](../../sidecars/transcript-compare/core/take_divergence_mode.py) |
-| Take comparison: same-span checks, manifest from the saved project, one `take_comparison` finding, the view | `apps/desktop/internal/takecompare`, `apps/desktop/takecompare_job.go` (the view of a comparison went with the chapter workspace's Takes panel, SN-E9; the Editing page's takes show their own evidence) | [Codebase map](../architecture/codebase-map.md) |
+| Take-aware project model: every take of every item, its GUID, source, `SOFFS`, `PLAYRATE`, `SECTION`; `Project.ItemByGUID` | `src/studio/desktop/internal/tracks` ([Tracks](tracks.md)) | [fingerprint.go](../../src/studio/desktop/internal/evidence/fingerprint.go) (parser superset) |
+| Scan scope (chapter track plus one pickup track or range), manifest, thresholds from project settings | `src/studio/desktop/internal/takereview` (`buildManifest`, `ValidateScope`, `ResolveThresholds`, `ResolvePickupScope`) | Take review |
+| Repeated-span detection: transcribe each read, align to the manuscript with the markers' diff, group reads whose spans overlap, flag exact copies by source identity | `compare.py --find-repeats` (`src/studio/sidecars/transcript-compare/core/compare.py`) | |
+| Groups to findings: `pickup` (`evidence.kind` `restart`, `pickup`, `exact_copy`) or `duplicate_read` (`near_duplicate`), stable ids and evidence versions | `src/studio/desktop/internal/repeats` | |
+| The scan job and per-read navigation (no page calls them since SN-Q9) | `src/studio/desktop/takereview_job.go`, `bindings_navigation.go` | Take review, [Going to and looping a finding in REAPER](../architecture/reaper-navigation.md) |
+| Add as take: `create_take` in REAPER, re-resolving GUIDs, active take and item length untouched, one undo step | `src/studio/integrations/reaper/narration_take_review.lua`, `src/studio/desktop/internal/takereview/createtake.go` | [narration_take_review.lua](../../src/studio/integrations/reaper/narration_take_review.lua) |
+| Audition: two raw-source ranges with pre and post roll, one playing at a time | `src/studio/ui/src/components/proof/AuditionDialog.tsx`, `src/studio/ui/src/components/engine/useRangePlayer.ts` | |
+| Take metrics: clipping, noise, level against neighbours, duration, pause profile, each measured or unavailable with a reason | `src/studio/desktop/internal/measure` (`MeasureTake`, `TakeSourceRange`) | [takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go) |
+| Per-take divergence: every span word's status and time, every divergence as words plus seconds | `compare.py --take-divergence` (`core/take_divergence.py`, `core/take_divergence_mode.py`) | [take_divergence_mode.py](../../src/studio/sidecars/transcript-compare/core/take_divergence_mode.py) |
+| Take comparison: same-span checks, manifest from the saved project, one `take_comparison` finding, the view | `src/studio/desktop/internal/takecompare`, `src/studio/desktop/takecompare_job.go` (the view of a comparison went with the chapter workspace's Takes panel, SN-E9; the Editing page's takes show their own evidence) | [Codebase map](../architecture/codebase-map.md) |
 
 The wire contracts (`TakeReviewScanStart/State/Cancel`, `TakeReviewCreateTake`, `TakeComparisonStart/State/Cancel`, the
-evidence of both finding kinds) are in `apps/ui/src/api/schemas/takeReview.ts`, pinned by the goldens under
+evidence of both finding kinds) are in `src/studio/ui/src/api/schemas/takeReview.ts`, pinned by the goldens under
 `tests/fixtures/contracts/` (`takereview-*`, `takecomparison-*`, `findings-list-take-review.json`,
 `findings-list-take-comparison.json`, and `take-divergence-results.json`, the sidecar's own results file that the Go parser
 reads). The trust boundaries are rows 4a and 4f of the [threat model](../architecture/threat-model.md).
@@ -74,12 +74,12 @@ falls back to the default rather than failing a scan):
 ## Decisions
 
 - Scan scope, the review surface and the cancellable job: Take review; scope is built by `takereview.buildManifest`.
-- Detection is transcript-to-manuscript alignment plus exact-copy detection from source identity, in Transcript Compare's sidecar (`compare.py --find-repeats`); Go only adapts the output (`apps/desktop/internal/repeats`). Acoustic similarity (fingerprints, DTW) and a Silero VAD restart cue were not adopted; they need the local-dependency protocol first.
+- Detection is transcript-to-manuscript alignment plus exact-copy detection from source identity, in Transcript Compare's sidecar (`compare.py --find-repeats`); Go only adapts the output (`src/studio/desktop/internal/repeats`). Acoustic similarity (fingerprints, DTW) and a Silero VAD restart cue were not adopted; they need the local-dependency protocol first.
 - Spans come from alignment and the item's own GUID is the target, so no manuscript line-identity stamp is needed (`Project.ItemByGUID`, [Tracks](tracks.md)).
-- Add as take, with provenance in take `P_EXT`: [narration_take_review.lua](../../integrations/reaper/narration_take_review.lua).
+- Add as take, with provenance in take `P_EXT`: [narration_take_review.lua](../../src/studio/integrations/reaper/narration_take_review.lua).
 - Go to and Loop per read: [Going to and looping a finding in REAPER](../architecture/reaper-navigation.md).
-- Take metrics are evidence per category, with no composite score: [takemetrics.go](../../apps/desktop/internal/measure/takemetrics.go).
-- Divergence is localized by the markers' diff and Whisper word timestamps: [take_divergence_mode.py](../../sidecars/transcript-compare/core/take_divergence_mode.py), [evaluation](../research/take-divergence-evaluation.md).
+- Take metrics are evidence per category, with no composite score: [takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go).
+- Divergence is localized by the markers' diff and Whisper word timestamps: [take_divergence_mode.py](../../src/studio/sidecars/transcript-compare/core/take_divergence_mode.py), [evaluation](../research/take-divergence-evaluation.md).
 - A take comparison is one finding per group and is never ranked: [Codebase map](../architecture/codebase-map.md).
 - Take review never makes a take active; the workspace Takes panel does: [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel).
 - Thresholds: [Settings](#settings).

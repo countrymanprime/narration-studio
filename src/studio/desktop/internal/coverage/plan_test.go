@@ -305,7 +305,7 @@ func TestPlanRecheckFallsBackToTheWholeChapterWhenDoubtIsEverywhere(t *testing.T
 // The sidecar pipelines the padding and merging of doubtful windows itself (coverage_pipeline.pad_window, merge_windows); both
 // suites read this table, so the two copies of MC3's rules cannot drift apart.
 func TestWindowRulesAgreeWithTheSidecarsCopy(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "sidecars", "transcript-compare", "tests", "fixtures", "recheck_windows.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "sidecars", "transcript-compare", "tests", "fixtures", "recheck_windows.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

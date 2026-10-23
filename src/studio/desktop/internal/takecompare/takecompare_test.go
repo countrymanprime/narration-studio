@@ -18,10 +18,10 @@ import (
 )
 
 // goldenResults is the results file the sidecar really writes for three takes of one span (a clean read, a misread and
-// a skipped word), pinned by sidecars/transcript-compare/tests/test_take_divergence_mode.py.
+// a skipped word), pinned by src/studio/sidecars/transcript-compare/tests/test_take_divergence_mode.py.
 func goldenResults(t *testing.T) string {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "tests", "fixtures", "contracts", "take-divergence-results.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "..", "tests", "fixtures", "contracts", "take-divergence-results.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

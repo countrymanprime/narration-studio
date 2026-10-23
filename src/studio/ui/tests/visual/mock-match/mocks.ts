@@ -82,7 +82,7 @@ export function scoredMocks(): (ApprovedMock & { target: { page: string; state: 
 
 /** The mock's path on disk. */
 export function mockPath(file: string): string {
-  return fileURLToPath(new URL(`../../../../../docs/research/mockups/audiobook-studio-benchmark/${file}`, import.meta.url));
+  return fileURLToPath(new URL(`../../../../../../docs/research/mockups/audiobook-studio-benchmark/${file}`, import.meta.url));
 }
 
 /** A part of the app's chrome, as a rectangle of the mock: the nav rail or the header bar right of it. */

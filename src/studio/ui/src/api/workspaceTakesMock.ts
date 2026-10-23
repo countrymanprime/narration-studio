@@ -1,5 +1,5 @@
 // The browser mock's Takes panel, answering the way
-// apps/desktop/bindings_workspace_takes.go and internal/passagetakes do: the passage snaps out to whole paragraphs, the
+// src/studio/desktop/bindings_workspace_takes.go and internal/passagetakes do: the passage snaps out to whole paragraphs, the
 // item it was heard on has other takes, its line has another retake on a fixed lane, and a take-review group set a
 // read from another item beside it (one candidate from each source, in the shape
 // tests/fixtures/contracts/workspace-takes.json pins). Choosing a take moves what plays, in the mock's memory, and the
@@ -31,7 +31,7 @@ type Deps = {
   reaper?: MockReaper;
 };
 
-// The host's words for what choosing a take did (apps/desktop/internal/passagetakes/use.go); workspaceTakesMock.test.ts
+// The host's words for what choosing a take did (src/studio/desktop/internal/passagetakes/use.go); workspaceTakesMock.test.ts
 // checks the stale one against the committed golden.
 export const USE_TAKE_MESSAGES = {
   notOffered: "That take isn't one of this passage's takes any more, so nothing was changed. The list has been read again.",

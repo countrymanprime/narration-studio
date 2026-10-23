@@ -2,7 +2,7 @@
 
 The file format, rules and bindings of the Script page's marks: host store, bindings, schemas and mock (host API 97), with threads on a mark (host API 98). Where the file sits and how long it is kept is its row in [data files](data-files.md).
 
-A mark is a range of one paragraph of the manuscript, marked with one of the narrator's mark types, with an optional note, or a question when the type asks. It is the Studio Next mock's `Annotation` of type `mark` (`docs/research/mockups/studio-next/src/domain/schemas.ts`); pronunciation flags (`pron`) are not marks. The store is `apps/desktop/internal/marks`, the bindings `apps/desktop/bindings_marks.go`, and the UI contract `apps/ui/src/api/contracts/marks.ts`.
+A mark is a range of one paragraph of the manuscript, marked with one of the narrator's mark types, with an optional note, or a question when the type asks. It is the Studio Next mock's `Annotation` of type `mark` (`docs/research/mockups/studio-next/src/domain/schemas.ts`); pronunciation flags (`pron`) are not marks. The store is `src/studio/desktop/internal/marks`, the bindings `src/studio/desktop/bindings_marks.go`, and the UI contract `src/studio/ui/src/api/contracts/marks.ts`.
 
 ## The file
 

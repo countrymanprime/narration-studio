@@ -93,14 +93,14 @@ jobs:
             echo 'checksums<<EOF'
             # Binary mode (-b) prints `<hash> *<file>` on Windows and Linux alike.
             (cd release-assets && sha256sum -b -- *) | sed 's| \*| *release-assets/|'
-            (cd apps/desktop/build/bin && sha256sum -b narration-utils.exe) | sed 's| \*| *bin/|'
+            (cd src/studio/desktop/build/bin && sha256sum -b narration-utils.exe) | sed 's| \*| *bin/|'
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
       - name: Stage the files to publish
         run: |
           mkdir -p publish/bin
           cp -r release-assets publish/
-          cp apps/desktop/build/bin/narration-utils.exe publish/bin/
+          cp src/studio/desktop/build/bin/narration-utils.exe publish/bin/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-release

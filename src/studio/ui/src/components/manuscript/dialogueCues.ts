@@ -1,7 +1,7 @@
 import type { GuideEntity, ManuscriptParagraph } from '../../types';
 
 // The shape Character Continuity Review's dialogue-cue extractor writes
-// (sidecars/manuscript-guide/core/manuscript_guide.py, `extract_dialogue_cues`/`merge_dialogue_cues`): one entry per
+// (src/studio/sidecars/manuscript-guide/core/manuscript_guide.py, `extract_dialogue_cues`/`merge_dialogue_cues`): one entry per
 // quoted span, served by the host's `GuideDialogueCues` binding. `recordedDemoDialogueCues` builds the same shape from a
 // recorded fixture, so the reader below can run without a second extractor.
 type DialogueCueSpeakerSource = 'tag' | 'continuation' | 'unknown' | 'correction';
@@ -34,9 +34,9 @@ export function speakerLabelForParagraph(
 
 // A recorded fixture, not a second extractor: it has no tag-parsing
 // or continuation logic of its own, only a fixed table of exact quotes from the built-in Alice in Wonderland
-// demo text (apps/ui/src/api/fixtures/alice-in-wonderland.txt, Chapter 3, "A Caucus-Race and a Long Tale"),
+// demo text (src/studio/ui/src/api/fixtures/alice-in-wonderland.txt, Chapter 3, "A Caucus-Race and a Long Tale"),
 // matched by substring against whichever paragraphs are currently loaded, naming only an entity the demo data
-// already carries (`alice` - apps/ui/src/api/mockFixtures.ts WIRE_ENTITIES). Chapter 3 is picked deliberately:
+// already carries (`alice` - src/studio/ui/src/api/mockFixtures.ts WIRE_ENTITIES). Chapter 3 is picked deliberately:
 // its other speakers (the Mouse, the Dodo, the Lory, the Duck) are not Story Bible entities at all, and unlike
 // most of the rest of the book it never mentions a registered entity whose own alias is a substring of another
 // registered entity's canonical name (White Rabbit/Rabbit, Queen of Hearts/Queen, Cheshire Cat/Cat,

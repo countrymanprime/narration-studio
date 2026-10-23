@@ -3,7 +3,7 @@ package main
 import "github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
 
 // The measurement bindings. The job is in
-// measure_job.go; the wire-contract schema, golden payloads and mock are in apps/ui/src/api. The job reads no project
+// measure_job.go; the wire-contract schema, golden payloads and mock are in src/studio/ui/src/api. The job reads no project
 // service; each answer is judged against the current project's delivery profile when it is read (judgeMeasure).
 
 // MeasurePickFiles opens the operating system's picker for the audio files to measure and answers the chosen paths

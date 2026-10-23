@@ -1,5 +1,5 @@
 /**
- * The online pronunciation lookup (Go: `apps/desktop/internal/pronunciationonline`,
+ * The online pronunciation lookup (Go: `src/studio/desktop/internal/pronunciationonline`,
  * ADR 0002): Merriam-Webster's dictionary, on the narrator's own free key, one word at a
  * time, cached on this computer. The key goes to the host once (`pronunciationOnlineKeySet`) and never comes back: the
  * status only says whether one is saved.

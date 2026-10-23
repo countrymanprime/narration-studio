@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // Regenerates the screenshots of the how-to guide (docs/guides/using-the-app/) from the real app. The guide's pictures are
-// listed in apps/ui/tests/visual/doc-screenshots.json, one entry per image: a state-catalog row, a viewport and the
+// listed in src/studio/ui/tests/visual/doc-screenshots.json, one entry per image: a state-catalog row, a viewport and the
 // docName the guide embeds as docs/images/ui/<docName>.webp. For the pages named, this runs the targeted real-app run
-// (apps/ui `visual:page`, light theme: the mock API and the visual-suite drivers), converts each listed state to WebP and
+// (src/studio/ui `visual:page`, light theme: the mock API and the visual-suite drivers), converts each listed state to WebP and
 // replaces the file in place. An image whose pixels did not change is left untouched, so the diff holds only what moved.
 //
 //   node scripts/dev/guide-screenshots.mjs <page>... [--skip-run]
 //   node scripts/dev/guide-screenshots.mjs --all [--skip-run]
 //
 // <page> is a guide page (booth, master-and-qc, story-bible) or a state-catalog page (storybible, proof-chapter).
-// --skip-run converts what the last run left in apps/ui/screenshots/guide/. It ends with the size of docs/images/ui and
+// --skip-run converts what the last run left in src/studio/ui/screenshots/guide/. It ends with the size of docs/images/ui and
 // any image there that the manifest no longer lists (delete it, or add it to the manifest and embed it).
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
@@ -18,7 +18,7 @@ import { basename, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const ROOT = resolve(import.meta.dirname, '../..');
-const UI = join(ROOT, 'apps/ui');
+const UI = join(ROOT, 'src/studio/ui');
 const GUIDE = join(ROOT, 'docs/guides/using-the-app');
 const IMAGES = join(ROOT, 'docs/images/ui');
 const MANIFEST = join(UI, 'tests/visual/doc-screenshots.json');
@@ -137,7 +137,7 @@ export async function main(argv, env = {}) {
   console.log(`\n${counts.updated} updated, ${counts.added} added, ${counts.unchanged} unchanged; docs/images/ui holds ${images.length} files, ${kb(total)}.`);
   for (const file of orphans(images, manifest)) console.log(`not in doc-screenshots.json: docs/images/ui/${file} (delete it, or list and embed it)`);
   if (missing.length > 0) {
-    console.error(`\nno capture for:\n  ${missing.join('\n  ')}\nIs the state in apps/ui/tests/visual/state-catalog.ts at that viewport?`);
+    console.error(`\nno capture for:\n  ${missing.join('\n  ')}\nIs the state in src/studio/ui/tests/visual/state-catalog.ts at that viewport?`);
     failed = true;
   }
   return failed ? 1 : 0;

@@ -120,7 +120,7 @@ from pathlib import Path
 
 import numpy as np
 
-_SHARED_PYTHON = Path(__file__).resolve().parents[3] / "libs" / "python"
+_SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
 
@@ -621,7 +621,7 @@ def _verify_moonshine() -> dict:
 # Which (port, name) rows --capabilities --verify can additionally prove actually load, not just registered
 # - today only moonshine. A future engine needing the same guarantee adds one row here, the
 # same one-row-not-a-rewritten-call-site shape ENGINES/BACKENDS already have; looked up by key, never compared, so
-# this needs no provider-guard exception (libs/python/tests/test_provider_guard.py).
+# this needs no provider-guard exception (src/studio/libs/python/tests/test_provider_guard.py).
 _VERIFY_HOOKS: dict[tuple[str, str], Callable[[], dict]] = {("asr", "moonshine"): _verify_moonshine}
 
 
@@ -968,7 +968,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument(
         "--model-dir",
         default=None,
-        help="Local, already-verified model directory from the engine's asset catalog (apps/desktop/internal/whisper or internal/moonshine); "
+        help="Local, already-verified model directory from the engine's asset catalog (src/studio/desktop/internal/whisper or internal/moonshine); "
         "omit to let the engine's library resolve --model itself for direct/manual CLI use (Moonshine: source runs only, the frozen sidecar requires it)",
     )
     ap.add_argument("--language", default=None, help="Force language code, e.g. 'en' (default: auto-detect)")

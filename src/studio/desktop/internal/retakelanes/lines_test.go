@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
 )
 
-// fixture parses a project REAPER 7.80 wrote during spike S7 (apps/desktop/internal/tracks/testdata/reaper/README.md).
+// fixture parses a project REAPER 7.80 wrote during spike S7 (src/studio/desktop/internal/tracks/testdata/reaper/README.md).
 func fixture(t *testing.T, name string) tracks.Project {
 	t.Helper()
 	project, err := tracks.Parse(filepath.Join("..", "tracks", "testdata", "reaper", name))

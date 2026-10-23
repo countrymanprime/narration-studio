@@ -109,7 +109,7 @@ func TestDevicesTurnsUnreadableOutputIntoAMessageInsteadOfFailing(t *testing.T) 
 	}
 }
 
-// The binding passes a caller-owned deadline (apps/desktop/bindings.go's teleprompterDevicesTimeout) precisely so a
+// The binding passes a caller-owned deadline (src/studio/desktop/bindings.go's teleprompterDevicesTimeout) precisely so a
 // hung or slow listing cannot block Start; this proves a short deadline is actually honored, not just accepted.
 func TestDevicesRespectsTheCallersDeadlineInsteadOfHanging(t *testing.T) {
 	service := newDevicesFixture(t, "list-devices-hang")

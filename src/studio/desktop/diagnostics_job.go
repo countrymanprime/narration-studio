@@ -32,7 +32,7 @@ const (
 
 // DiagnosticsFileResult is one file of a check. Summary and Findings are set once it is checked (Findings is empty, not
 // null, when nothing crossed a threshold); Error says why a failed file could not be checked. CleanupFindings are the
-// silence cleanup analyzer's own candidates (measure.Diagnostics.CleanupFindings, apps/desktop/internal/measure/cleanup.go): apart from
+// silence cleanup analyzer's own candidates (measure.Diagnostics.CleanupFindings, src/studio/desktop/internal/measure/cleanup.go): apart from
 // Findings, so the Diagnostics tab's list is unchanged and a caller lists them only where the narrator asked for
 // cleanup. Read-only, like every other finding here: nothing is applied.
 type DiagnosticsFileResult struct {
@@ -47,7 +47,7 @@ type DiagnosticsFileResult struct {
 
 // DiagnosticsJob is the check as the UI sees it, in the shape of the other host jobs. SourceKind is what the narrator
 // said the files are (null before any check); Thresholds are the ones the analyzers use, shown even before a check so
-// they are never hidden. CleanupThresholds are the silence cleanup analyzer's own thresholds (apps/desktop/internal/measure/cleanup.go), read from the narrator's settings (cleanup_settings.go) and shown the same way, before a check
+// they are never hidden. CleanupThresholds are the silence cleanup analyzer's own thresholds (src/studio/desktop/internal/measure/cleanup.go), read from the narrator's settings (cleanup_settings.go) and shown the same way, before a check
 // as after one.
 type DiagnosticsJob struct {
 	ID                *string                   `json:"id"`

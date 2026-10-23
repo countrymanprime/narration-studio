@@ -14,7 +14,7 @@ Paste the table on #992 or commit it back. A spike that cannot run is returned a
 
 ## Rules that apply to every REAPER spike
 
-- REAPER starts with `-cfgfile <fresh temp folder>\reaper.ini -nosplash -newinst -noactivate`, so your settings, scripts and ExtState are never read or written. `integrations/reaper/spikes/run-reaper.ps1` builds that command line and refuses a `-Cfg`, `-Out` or `-Project` outside `%TEMP%` or under a `REAPER Media` folder.
+- REAPER starts with `-cfgfile <fresh temp folder>\reaper.ini -nosplash -newinst -noactivate`, so your settings, scripts and ExtState are never read or written. `src/studio/integrations/reaper/spikes/run-reaper.ps1` builds that command line and refuses a `-Cfg`, `-Out` or `-Project` outside `%TEMP%` or under a `REAPER Media` folder.
 - REAPER opens only a **copy** of the project, under the temp folder. Nothing in the `Challenges_001` folder is written. Step 0 and step 9 hash the original to prove it.
 - Each script builds its own tracks and items from synthetic tones (`make_media.py`) on the copy. Nothing is saved: `run-reaper.ps1` answers No to REAPER's save prompt on close.
 - The first call of every REAPER script is the guard in `common.lua`. It asserts that REAPER's resource path is the scratch `-cfgfile` folder. Then it closes the audio device (`reaper.Audio_Quit()`) and asserts it is closed. Spikes 1a (real record part) and 1f need the device and say so; their guard asserts the resource path only.
@@ -38,10 +38,10 @@ function Invoke-Spike {
   $out = "$dir\out"
   if (Test-Path $out) { throw "$out exists: use a fresh `$root for a rerun" }
   New-Item -ItemType Directory -Force $out | Out-Null
-  python integrations/reaper/spikes/make_media.py "$out\media"
+  python src/studio/integrations/reaper/spikes/make_media.py "$out\media"
   Copy-Item "$root\lua\common.lua" "$out\common.lua"
   Copy-Item $orig "$dir\copy.rpp"
-  pwsh integrations/reaper/spikes/run-reaper.ps1 -Cfg $cfg -Out $out -Script "$root\lua\$Script" `
+  pwsh src/studio/integrations/reaper/spikes/run-reaper.ps1 -Cfg $cfg -Out $out -Script "$root\lua\$Script" `
     -Project "$dir\copy.rpp" -Done "$out\spike-$Id-report.txt" -IgnoreErrors -TimeoutSec $TimeoutSec
   Get-Content "$out\spike-$Id-report.txt"
 }
@@ -162,7 +162,7 @@ Each spike's Lua starts with `local c = dofile(os.getenv('NARRATION_UTILS_SPIKE_
 | Result | What it changes in the PRD |
 | --- | --- |
 | Yes | Roll ships as one command (`roll`, SND-6a). Record the recording mode that worked; the command refuses with that mode named when the project is in another, and never changes preferences. |
-| No | SND-6a is dropped from the Booth and `integrations/reaper/narration_punch.lua`'s cursor-only roll stays; the PRD row "Roll as one command (A8)" is reopened. |
+| No | SND-6a is dropped from the Booth and `src/studio/integrations/reaper/narration_punch.lua`'s cursor-only roll stays; the PRD row "Roll as one command (A8)" is reopened. |
 | Partly | Roll ships only for the recording mode(s) that kept the audio, refusing otherwise; list which modes, and any extra undo points the narrator would see. |
 
 ### 1a-fake: scripted, no device (run first)
@@ -558,8 +558,8 @@ Expected: a label line for the mouse move (REAPER's own wording, for example a m
 
 | Result | What it changes in the PRD |
 | --- | --- |
-| Yes | The Booth anchors words with the position that stayed within one poll interval of the wall clock, at the bounded poll rate; `integrations/reaper/narration_punch.lua`'s polled anchor stands. |
-| No | Neither position is steady over the polled bridge: the Booth's resume anchor falls back to the cursor, and `integrations/reaper/narration_punch.lua`'s polled anchor is reopened. |
+| Yes | The Booth anchors words with the position that stayed within one poll interval of the wall clock, at the bounded poll rate; `src/studio/integrations/reaper/narration_punch.lua`'s polled anchor stands. |
+| No | Neither position is steady over the polled bridge: the Booth's resume anchor falls back to the cursor, and `src/studio/integrations/reaper/narration_punch.lua`'s polled anchor is reopened. |
 | Partly | One of the two is usable: name which, and the Booth uses it with the stated error bound; or the error is bounded only above some buffer size, which goes in the notes. |
 
 Use the kept `cfg-device` folder from 1a-real (set the interface there once). Save as `$root\lua\spike_1f_playpos.lua`:

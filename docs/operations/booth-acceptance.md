@@ -1,16 +1,16 @@
 # Booth acceptance walkthrough
 
-The steps a narrator takes to record a chapter in the Booth (`/booth`, `apps/ui/src/components/booth/page/BoothNextPage.tsx`), what each must do, and what proves it. The Booth is accepted when every row passes. The spec is the Studio Next mock's Booth (`docs/research/mockups/studio-next/src/pages/Booth.tsx` and `src/pages/booth/`) and [the Booth PRD](../prds/studio-next-booth.prd.md).
+The steps a narrator takes to record a chapter in the Booth (`/booth`, `src/studio/ui/src/components/booth/page/BoothNextPage.tsx`), what each must do, and what proves it. The Booth is accepted when every row passes. The spec is the Studio Next mock's Booth (`docs/research/mockups/studio-next/src/pages/Booth.tsx` and `src/pages/booth/`) and [the Booth PRD](../prds/studio-next-booth.prd.md).
 
 **How verified:**
 
-- **Playwright**: a `booth` row of `apps/ui/tests/visual/catalog/booth.ts` whose driver in `apps/ui/tests/visual/drivers/booth.ts` asserts the behaviour.
+- **Playwright**: a `booth` row of `src/studio/ui/tests/visual/catalog/booth.ts` whose driver in `src/studio/ui/tests/visual/drivers/booth.ts` asserts the behaviour.
 - **vitest**: a unit test.
 - **Owner on Windows**: something only the desktop build on Windows with a microphone and a DAW can prove. Each is pending with the owner until it is reported on [#992](https://github.com/countrymanprime/narration-utils/issues/992).
 
 The record path (the built-in recorder, the record gating in the DAW, the microphone check and the reason Record cannot start) belongs to the `fix/booth-record` stream. Its rows are here so the walkthrough is complete.
 
-**Status columns:** the result of driving each step in the mock build (`pnpm --dir apps/ui dev:mock`, Chromium at 1440×900 unless the step names a width) on `main` at `13ca3b55`, 2026-10-13, and with [#1735](https://github.com/countrymanprime/narration-utils/pull/1735). A blank in the second column means no change from `main`. The last column is what was re-driven on `fix/booth-resiliency` on 2026-10-16 by `apps/ui/tests/visual/booth-acceptance.spec.ts`, one test per row, in the mock build in Chromium at 1440×900 unless the step names a width. The mock's DAW is stateful and scriptable now (`?mockDaw=live|late|quiet|different|refuse|restart|busy`, `window.__NARRATION_MOCK_DAW__`; `apps/ui/src/api/dawMock.ts`), so the record path is driven end to end and not read from the code. Rows 40 to 42 need a real REAPER, a pedal and a microphone: nothing in the mock proves them.
+**Status columns:** the result of driving each step in the mock build (`pnpm --dir src/studio/ui dev:mock`, Chromium at 1440×900 unless the step names a width) on `main` at `13ca3b55`, 2026-10-13, and with [#1735](https://github.com/countrymanprime/narration-utils/pull/1735). A blank in the second column means no change from `main`. The last column is what was re-driven on `fix/booth-resiliency` on 2026-10-16 by `src/studio/ui/tests/visual/booth-acceptance.spec.ts`, one test per row, in the mock build in Chromium at 1440×900 unless the step names a width. The mock's DAW is stateful and scriptable now (`?mockDaw=live|late|quiet|different|refuse|restart|busy`, `window.__NARRATION_MOCK_DAW__`; `src/studio/ui/src/api/dawMock.ts`), so the record path is driven end to end and not read from the code. Rows 40 to 42 need a real REAPER, a pedal and a microphone: nothing in the mock proves them.
 
 ## Steps
 

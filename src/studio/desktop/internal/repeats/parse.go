@@ -1,6 +1,6 @@
 // Package repeats parses the additive --find-repeats output of the
 // Transcript Compare sidecar (SPAN_GROUP/SPAN_MEMBER tagged lines, see
-// sidecars/transcript-compare/core/compare.py's find_repeated_spans) and
+// src/studio/sidecars/transcript-compare/core/compare.py's find_repeated_spans) and
 // adapts it into findings.Finding records for the pickup and
 // duplicate_read categories (docs/utilities/take-review.md).
 //
@@ -8,7 +8,7 @@
 // tokenization, homophones, number-word merging and the manuscript diff
 // all stay in the Python sidecar, so a Go copy cannot drift from them. This
 // package only reads the sidecar's own tagged text output and reshapes it into
-// the findings contract (apps/desktop/internal/findings). It intentionally does not read the
+// the findings contract (src/studio/desktop/internal/findings). It intentionally does not read the
 // project model, does not choose a scan scope, does not run the sidecar,
 // does not create takes, and does not write to a findings store: the
 // internal/takereview scan service does that.

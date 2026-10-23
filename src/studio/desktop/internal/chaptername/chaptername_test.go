@@ -54,7 +54,7 @@ var inputs = []struct {
 }
 
 func build() fixture {
-	out := fixture{About: "Written by apps/desktop/internal/chaptername's test (UPDATE_CONTRACTS=1); never edit by hand. The Go, Python and TypeScript chapter-name helpers must each give these names."}
+	out := fixture{About: "Written by src/studio/desktop/internal/chaptername's test (UPDATE_CONTRACTS=1); never edit by hand. The Go, Python and TypeScript chapter-name helpers must each give these names."}
 	for _, in := range inputs {
 		out.Cases = append(out.Cases, fixtureCase{
 			Title: in.title, Subtitle: in.subtitle,

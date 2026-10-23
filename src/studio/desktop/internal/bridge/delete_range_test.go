@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// delete_range (docs/reference/daw/capabilities.md, narration_range.lua): the answers as integrations/reaper/tests/range_test.lua pins them.
+// delete_range (docs/reference/daw/capabilities.md, narration_range.lua): the answers as src/studio/integrations/reaper/tests/range_test.lua pins them.
 
 const cutItem = "{00000002-0000-4000-8000-000000000002}"
 

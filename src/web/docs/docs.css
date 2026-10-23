@@ -1,4 +1,4 @@
-/* The docs pages' own styles (apps/site/build/guides.mjs puts them after the shell's), cut from the docs view of the public-site mock
+/* The docs pages' own styles (src/web/build/guides.mjs puts them after the shell's), cut from the docs view of the public-site mock
    (docs/research/mockups/public-site/index.html). Added to it: the screenshot inside a figure. */
 /* ---------- docs ---------- */
 .docs{display:grid;grid-template-columns:260px minmax(0,1fr) 210px;gap:36px;padding-top:28px;align-items:start}

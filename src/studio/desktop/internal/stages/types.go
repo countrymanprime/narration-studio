@@ -14,8 +14,8 @@ import (
 )
 
 // Stage is a chapter's production stage. The values are exactly the stored
-// ChapterStatus strings (apps/desktop/internal/manuscript/reader.go's
-// validChapterStatus, apps/ui/src/api/contracts/manuscript.ts): the status
+// ChapterStatus strings (src/studio/desktop/internal/manuscript/reader.go's
+// validChapterStatus, src/studio/ui/src/api/contracts/manuscript.ts): the status
 // is the stage, and no new value is added.
 type Stage string
 

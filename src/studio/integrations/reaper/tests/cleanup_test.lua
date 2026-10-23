@@ -1,4 +1,4 @@
--- Cleanup launchers: launch_cleanup_tool (see narration_cleanup.lua and integrations/reaper/narration_cleanup.lua). The command opens REAPER's own
+-- Cleanup launchers: launch_cleanup_tool (see narration_cleanup.lua and src/studio/integrations/reaper/narration_cleanup.lua). The command opens REAPER's own
 -- repair dialog (or an installed third-party script) on the selected items and changes nothing itself. The load-bearing
 -- tests: only an allow-listed tool can be launched, the action is found by its action-list name (never by an ID the
 -- host sends), a missing or ambiguous action launches nothing, and a launch makes exactly one Main_OnCommand call and

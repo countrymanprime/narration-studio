@@ -7,17 +7,17 @@ __pycache__/
 .pytest_cache/
 node_modules/
 .vite/
-apps/ui/dist/
-apps/site/demo/dist/
-apps/site/test-results/
-apps/ui/screenshots/
-apps/ui/playwright-report/
-apps/ui/test-results/
+src/studio/ui/dist/
+src/web/demo/dist/
+src/web/test-results/
+src/studio/ui/screenshots/
+src/studio/ui/playwright-report/
+src/studio/ui/test-results/
 # A container whose Chromium is older than the pinned Playwright build (mock-match's own MOCK_MATCH_CHROMIUM
 # workaround, playwright.mock-match.config.ts) needs the same override for the other suites; kept local, never
 # committed, since it names no fixed path any other container would share.
-apps/ui/playwright*.local.config.ts
-apps/ui/coverage/
+src/studio/ui/playwright*.local.config.ts
+src/studio/ui/coverage/
 .coverage
 .coverage.*
 .hypothesis/
@@ -30,24 +30,24 @@ logs/
 !.claude/skills/
 !.claude/agents/
 !.claude/rules/
-apps/desktop/cmd/narration-utils/frontend/dist/*
-!apps/desktop/cmd/narration-utils/frontend/dist/.gitkeep
-apps/desktop/cmd/narration-utils/frontend/wailsjs/
-apps/desktop/cmd/narration-utils/resources/config/
-apps/desktop/cmd/narration-utils/resources/runtime/
-apps/desktop/cmd/narration-utils/resources/reaper/
-apps/desktop/build/*
+src/studio/desktop/cmd/narration-utils/frontend/dist/*
+!src/studio/desktop/cmd/narration-utils/frontend/dist/.gitkeep
+src/studio/desktop/cmd/narration-utils/frontend/wailsjs/
+src/studio/desktop/cmd/narration-utils/resources/config/
+src/studio/desktop/cmd/narration-utils/resources/runtime/
+src/studio/desktop/cmd/narration-utils/resources/reaper/
+src/studio/desktop/build/*
 # The Windows icon, version and manifest resource wails-build.mjs embeds and removes after the Go build.
-apps/desktop/*.syso
-!apps/desktop/build/appicon.png
-!apps/desktop/build/windows/
-apps/desktop/build/windows/*
-!apps/desktop/build/windows/icon.ico
+src/studio/desktop/*.syso
+!src/studio/desktop/build/appicon.png
+!src/studio/desktop/build/windows/
+src/studio/desktop/build/windows/*
+!src/studio/desktop/build/windows/icon.ico
 # The one installer file that differs from Wails' default. scripts/release/wails-build.mjs renders wails_tools.nsh
 # and writes the WebView2 bootstrapper beside it on every installer build.
-!apps/desktop/build/windows/installer/
-apps/desktop/build/windows/installer/*
-!apps/desktop/build/windows/installer/project.nsi
+!src/studio/desktop/build/windows/installer/
+src/studio/desktop/build/windows/installer/*
+!src/studio/desktop/build/windows/installer/project.nsi
 .release-build/
 .nx/
 .test-tmp/
@@ -55,16 +55,16 @@ apps/desktop/build/windows/installer/*
 .tmp-hub-probe/
 release-notes.md
 target/
-!apps/ui/src/components/production/target/
+!src/studio/ui/src/components/production/target/
 .tools/
 .cache/
-apps/ui/storybook-static/
+src/studio/ui/storybook-static/
 tools/docs-site/build/
 .lycheecache
-apps/ui/playwright.local.config.ts
+src/studio/ui/playwright.local.config.ts
 
-# The Wails build output (go build in apps/desktop names its binary after the directory)
-/apps/desktop/shell
-integrations/reaper/narration-utils-app-path.txt
-integrations/reaper/narration-utils-app-path.txt.tmp
+# The Wails build output (go build in src/studio/desktop names its binary after the directory)
+/src/studio/desktop/shell
+src/studio/integrations/reaper/narration-utils-app-path.txt
+src/studio/integrations/reaper/narration-utils-app-path.txt.tmp
 /dist-site/

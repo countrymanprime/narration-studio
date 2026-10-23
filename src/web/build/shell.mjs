@@ -1,8 +1,8 @@
 // The public site's shell: the head (the app's fonts and icon inline, the theme applied before the first paint, the shared styles), the
 // notice strip and top bar, and the footer with the search palette and the shared script. Every page of dist-site/ that is not the app or
-// Storybook itself is built from it: the landing page (apps/site/landing/index.html, through fillShell), the docs (apps/site/build/guides.mjs,
+// Storybook itself is built from it: the landing page (src/web/landing/index.html, through fillShell), the docs (src/web/build/guides.mjs,
 // through sitePage), and the demo and Storybook pages that hold the app and the component library. Its look is the public-site mock's
-// (docs/research/mockups/public-site/index.html); the styles and script are in apps/site/common/. See docs/operations/public-demo-site.md.
+// (docs/research/mockups/public-site/index.html); the styles and script are in src/web/common/. See docs/operations/public-demo-site.md.
 //
 // `base` is the way from the page back to the site's root ('' for index.html, '../' for docs/x.html), so every address stays relative and
 // the site opens from any sub-path and inside a sandboxed frame. Fonts and the icon are data URIs because a font fetched from a file beside
@@ -12,8 +12,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const ui = join(root, 'apps', 'ui');
-const commonDir = join(root, 'apps', 'site', 'common');
+const ui = join(root, 'src', 'studio', 'ui');
+const commonDir = join(root, 'src', 'web', 'common');
 
 // The repository the site links (Download, Full guide on GitHub, View source): the one the build runs in, so a renamed repository needs no edit here.
 // Outside Actions, and for a value that is not `owner/name`, the current name is used.

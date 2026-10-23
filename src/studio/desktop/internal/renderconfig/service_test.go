@@ -12,7 +12,7 @@ import (
 )
 
 // renderConfigurerRole wraps client in the REAPER adapter and takes its RenderConfigurer
-// role, the way the composition root does (apps/desktop/app.go), so these tests exercise the real bridge round
+// role, the way the composition root does (src/studio/desktop/app.go), so these tests exercise the real bridge round
 // trip through the same port the service now depends on.
 func renderConfigurerRole(t *testing.T, client *bridge.Client) dawport.RenderConfigurer {
 	t.Helper()

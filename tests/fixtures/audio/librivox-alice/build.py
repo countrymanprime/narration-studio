@@ -1,6 +1,6 @@
 """Build the LibriVox Alice test corpora: fetch the recordings from archive.org, then cut and mix them.
 
-    uv run --project sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py all --out <dir>
+    uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py all --out <dir>
 
 fetches any missing recording into the sources directory (NARRATION_LIBRIVOX_DIR, or ~/.cache/narration-utils/librivox-alice),
 checks each against its pinned SHA-256, and writes `<dir>/coverage` (the NARRATION_COVERAGE_CORPUS layout),

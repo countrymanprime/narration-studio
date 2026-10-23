@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// The input detection of apps/desktop/internal/daw/inputmatch.go: REAPER's open input device, as
+// The input detection of src/studio/desktop/internal/daw/inputmatch.go: REAPER's open input device, as
 // GetAudioDeviceInfo("IDENT_IN") names it, against the names the teleprompter's dshow capture opens.
 func TestMatchInputDevice(t *testing.T) {
 	realtek := "Microphone Array (Realtek(R) Audio)"

@@ -19,7 +19,7 @@ it. The notes below are what the chained build taught; the host still runs the b
 - **Sequenced, never overlapped.** Character seeding (the host's write, under `editMu`) and the build (a sidecar process with no
   lock) both rewrite `manuscript_guide.json`, so seeding always finishes before a build starts.
 - **The host's edits are locked against each other only.** The edits the host applies itself (`editInHost`, `mutateInHost`
-  in `apps/desktop/internal/guide`) take `guide.Service`'s `editMu`, so two of them never overlap. `Service.Run`, which
+  in `src/studio/desktop/internal/guide`) take `guide.Service`'s `editMu`, so two of them never overlap. `Service.Run`, which
   starts the sidecar for a build or a pronunciation from one named source, does not take it: holding it for a
   sidecar run would block every Save for the length of a build. A create or an alias edit asks the sidecar for the pronunciation
   of its new names while holding the lock (one short process), so a Save made then waits for the answer. An edit made while a sidecar command is running can

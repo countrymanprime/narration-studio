@@ -103,7 +103,7 @@ jobs:
         run: scripts/release/fetch-release-assets.sh "$RUNNER_TEMP/releases" "$INPUT_NEW_TAG" "$INPUT_PREVIOUS_TAG"
       - name: Run the rehearsal against the two real narration-utils.exe builds
         shell: bash
-        working-directory: apps/desktop
+        working-directory: src/studio/desktop
         env:
           GOFLAGS: -mod=readonly
         run: |

@@ -93,7 +93,7 @@ const MOCK_ENTRIES: Record<string, Extract<DictionaryLookupResult, { status: 'ok
 };
 
 /**
- * The mock's SystemLookup: the same normalising and the same two answers as the host (apps/desktop/dictionarylookup.go), so the lookup UI can
+ * The mock's SystemLookup: the same normalising and the same two answers as the host (src/studio/desktop/dictionarylookup.go), so the lookup UI can
  * be seen without a host. A dictionary that is not installed, or is damaged (`verification_failed`: the host reports an index that fails its
  * check the same way), answers with the first-use gate.
  */

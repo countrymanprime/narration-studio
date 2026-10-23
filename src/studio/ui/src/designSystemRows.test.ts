@@ -15,7 +15,7 @@ const NO_ROW: Record<string, string> = {
 };
 
 const primitivesDir = join(__dirname, 'components', 'primitives');
-const docPath = join(__dirname, '..', '..', '..', 'docs', 'design', 'design-system.md');
+const docPath = join(__dirname, '..', '..', '..', '..', 'docs', 'design', 'design-system.md');
 
 const primitiveNames = readdirSync(primitivesDir)
   .filter((file) => file.endsWith('.tsx') && !/\.(test|stories)\.tsx$/.test(file))

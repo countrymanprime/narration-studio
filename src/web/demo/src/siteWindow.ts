@@ -1,5 +1,5 @@
 // The public site's demo page draws the app inside a window frame: an `<iframe sandbox="allow-scripts">` of the one-file demo with `?embed=1`
-// (apps/site/build/windowPages.mjs). The frame has an opaque origin, so it shares no storage with the page around it; the two talk by postMessage
+// (src/web/build/windowPages.mjs). The frame has an opaque origin, so it shares no storage with the page around it; the two talk by postMessage
 // instead. The page sends the site's theme, the Play animations switch, a route to open and the Simulated DAW panel's open state; the app sends
 // its route and what the Simulated DAW badge would say, which the page shows in the window's title bar so nothing floats over the app.
 // Only the site build (`VITE_SITE=1`) reads any of this, and only a message from the frame's own parent is read.

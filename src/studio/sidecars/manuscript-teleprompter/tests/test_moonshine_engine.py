@@ -12,7 +12,7 @@ moonshine_engine = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
 SPEC.loader.exec_module(moonshine_engine)
 
-CATALOG_PATH = Path(__file__).resolve().parents[3] / "config" / "moonshine-assets.json"
+CATALOG_PATH = Path(__file__).resolve().parents[5] / "config" / "moonshine-assets.json"
 CATALOG = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
 
 
@@ -212,7 +212,7 @@ def test_live_asr_hands_the_model_directory_and_architecture_to_this_module(monk
     assert calls == [("TINY_STREAMING", "D:/assets/moonshine/tiny", live_asr.DECODE_INTERVAL_SECONDS, None, "Call me Ishmael.")]
 
 
-# --capabilities --verify is how the packaged app's smoke test (apps/desktop/smoke.go) proves the frozen sidecar carries a
+# --capabilities --verify is how the packaged app's smoke test (src/studio/desktop/smoke.go) proves the frozen sidecar carries a
 # working Moonshine: PyInstaller cannot see the ctypes load of moonshine.dll, so a freeze that lost it would still start with --help.
 def _fake_package(languages=("en",), transcriber=True):
     def supported_languages():

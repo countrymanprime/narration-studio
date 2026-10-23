@@ -9,7 +9,7 @@ import { parseWire } from '../api/wire/parseWire';
 import { createHostMeasurements, createMockMeasurements, type MeasurementsHostApi, type MeasurementsPort } from './measurements';
 import { describeProviderContract, type Goldens } from './providerContract';
 
-const GOLDEN_DIR = fileURLToPath(new URL('../../../../tests/fixtures/contracts/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
 const GOLDEN_FILES = ['production-overview.json', 'production-overview-empty.json', 'recorder-state-takes.json', 'recorder-state-no-project.json'] as const;
 const goldens: Goldens = Object.fromEntries(GOLDEN_FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 

@@ -23,7 +23,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * A chapter's render association: reads it on mount and on `refresh`;
  * `choose` opens the native file dialog and attests what the narrator picks; `clear` removes the association;
  * `measure` runs the existing measurement job (DX-1) against the chosen render and re-reads the association once it
- * ends, so the recorded result (apps/desktop/internal/proofing/renders.go's RecordRenderMeasurements, already wired
+ * ends, so the recorded result (src/studio/desktop/internal/proofing/renders.go's RecordRenderMeasurements, already wired
  * into every measurement job) shows without a page reload. Nothing here evaluates the delivery signals themselves;
  * those are read through StageRecommendations, which already reads the same association.
  */

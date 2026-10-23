@@ -196,10 +196,10 @@ var builtinDefaults = map[string]Values{
 	// Keymap.overrides: the narrator's remap changes from the input registry's default keymap, as a versioned JSON
 	// document of only the gestures that differ from the defaults. Empty bindings is the fresh-install default: every
 	// command keeps its shipped gesture until the narrator remaps it. Global scope only (a narrator's pedal belongs
-	// to the booth, not the book), enforced in apps/desktop/app.go's saveSettings.
+	// to the booth, not the book), enforced in src/studio/desktop/app.go's saveSettings.
 	"Keymap": {"overrides": `{"version":1,"bindings":{}}`},
-	// Cleanup mirrors measure.DefaultCleanupOptions (apps/desktop/internal/measure/cleanup.go): the silence cleanup analyzer's own starting thresholds, read by cleanupSettings
-	// (apps/desktop/cleanup_settings.go). They are not a delivery specification, and every one can be changed here.
+	// Cleanup mirrors measure.DefaultCleanupOptions (src/studio/desktop/internal/measure/cleanup.go): the silence cleanup analyzer's own starting thresholds, read by cleanupSettings
+	// (src/studio/desktop/cleanup_settings.go). They are not a delivery specification, and every one can be changed here.
 	"Cleanup": {
 		"pad_seconds":            "0.15",
 		"min_breath_seconds":     "0.12",

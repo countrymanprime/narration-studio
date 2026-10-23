@@ -21,7 +21,7 @@ const PICKUP_KINDS: ReadonlySet<CoverageRegionKind> = new Set(['skip', 'short_re
 
 /**
  * A stored recording check read out as a chapter summary first: the headline
- * (the host's judgement, apps/desktop/internal/coverage/judgement.go - the same rule the stage signal uses), the chapter figures, an unread start or end
+ * (the host's judgement, src/studio/desktop/internal/coverage/judgement.go - the same rule the stage signal uses), the chapter figures, an unread start or end
  * stated as "recorded to" rather than listed, then the check's own interior gaps as one-line Pickups, with the full
  * paragraph table folded away since every pickup already names and links to its paragraphs.
  */

@@ -4,7 +4,7 @@ import { optionalFromNull } from './base';
 import { measureReportSchema } from './measure';
 import { STAGE_UNKNOWN_CAUSES } from './stages';
 
-// apps/desktop/bindings_proofing_render.go's ProofingRenderView and ProofingChooseRender's two wrappers around it.
+// src/studio/desktop/bindings_proofing_render.go's ProofingRenderView and ProofingChooseRender's two wrappers around it.
 // The cause list is the stage recommendations one (schemas/stages.ts).
 
 const causeSchema = z.enum(STAGE_UNKNOWN_CAUSES);

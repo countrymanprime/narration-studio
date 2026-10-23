@@ -6,7 +6,7 @@
 // the teleprompter), so what a narrator previews is exactly what gets counted
 // and read.
 //
-// Callers: apps/desktop's credits bindings (creditsbindings.go). Public API:
+// Callers: src/studio/desktop's credits bindings (creditsbindings.go). Public API:
 // Render, Result, ParseTokens.
 package credits
 

@@ -190,17 +190,17 @@ local function write_in(path, dirname, content)
   H.write_file(path, content)
 end
 
--- A checkout keeps the launcher at <repo>/integrations/reaper, so the bundle root and the repository root are the same folder and the
--- built program is found under apps/desktop/build/bin.
+-- A checkout keeps the launcher at <repo>/src/studio/integrations/reaper, four folders below the repository root, and the built program is
+-- found under src/studio/desktop/build/bin.
 local function checkout(os_name, built)
   local root = host.tmpdir()
-  local scripts = H.join(H.join(root, 'integrations'), 'reaper')
+  local scripts = H.join(H.join(H.join(H.join(root, 'src'), 'studio'), 'integrations'), 'reaper')
   copy_scripts(scripts)
   local windows = os_name:find('Win') ~= nil
   local venv = H.join(H.join(root, '.venv'), windows and 'Scripts' or 'bin')
   write_in(H.join(venv, windows and 'python.exe' or 'python'), venv, 'python')
   if built then
-    local bin = H.join(H.join(H.join(root, 'apps'), 'desktop'), 'build/bin')
+    local bin = H.join(H.join(H.join(H.join(root, 'src'), 'studio'), 'desktop'), 'build/bin')
     write_in(H.join(bin, app_name(os_name)), bin, 'not really an executable')
   end
   local fake = Fake.new(host)
@@ -212,14 +212,18 @@ local function checkout(os_name, built)
   return fake, root, scripts
 end
 
-H.test('a checkout runs the program the build leaves in apps/desktop/build/bin', function()
+H.test('a checkout runs the program the build leaves in src/studio/desktop/build/bin', function()
   for _, os_name in ipairs({ 'Linux64', 'Win64' }) do
     local fake, _, scripts = checkout(os_name, true)
     local command = launch_command(fake, scripts)
     H.eq(#calls_named(fake, 'ShowMessageBox'), 0, os_name .. ': no setup dialog')
     H.truthy(command, os_name .. ': the app was started')
-    local repo = H.join(H.join(scripts, '..'), '..')
-    H.contains(command, H.join(H.join(H.join(H.join(repo, 'apps'), 'desktop'), 'build/bin'), app_name(os_name)), os_name .. ': the built program')
+    local repo = H.join(H.join(H.join(H.join(scripts, '..'), '..'), '..'), '..')
+    H.contains(
+      command,
+      H.join(H.join(H.join(H.join(H.join(repo, 'src'), 'studio'), 'desktop'), 'build/bin'), app_name(os_name)),
+      os_name .. ': the built program'
+    )
     H.contains(command, '--repo-root', os_name .. ': a checkout passes its development paths')
   end
 end)

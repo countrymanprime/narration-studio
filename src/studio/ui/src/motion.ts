@@ -18,7 +18,7 @@ export type MotionPreference = 'system' | 'reduce';
 // Kept by this browser window, as the theme is (theme/theme.ts); index.html applies it before first paint.
 export const MOTION_STORAGE_KEY = 'narration-ui-motion';
 
-// The public demo's "Play animations" switch (apps/site): a visitor whose device asks for reduced motion can still see the app move. Its own
+// The public demo's "Play animations" switch (src/web): a visitor whose device asks for reduced motion can still see the app move. Its own
 // key, so Settings -> Motion and the real app are untouched; only a build whose extension asks for it (`playAnimations`, appExtension.ts) reads it.
 export const PLAY_MOTION_STORAGE_KEY = 'narration-ui-demo-play-motion';
 

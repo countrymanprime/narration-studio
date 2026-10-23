@@ -1,10 +1,10 @@
 # Master & QC: the state matrix
 
-Written before the code ([definition of done](../../.claude/rules/definition-of-done.md), rule 3). Page: `apps/ui/src/components/masterqc/`, route `/master`, the [Studio Next mock's Master page](mockups/studio-next/src/pages/Master.tsx) (`docs/design/design-system.md#which-mocks-are-the-spec`). Controls kept as built because the mock has no equivalent (Master all to spec, the mastering chain, Diagnostics, the report export, Multi-platform export, a file's every-rule list) are not in this matrix: this PR does not change them.
+Written before the code ([definition of done](../../.claude/rules/definition-of-done.md), rule 3). Page: `src/studio/ui/src/components/masterqc/`, route `/master`, the [Studio Next mock's Master page](mockups/studio-next/src/pages/Master.tsx) (`docs/design/design-system.md#which-mocks-are-the-spec`). Controls kept as built because the mock has no equivalent (Master all to spec, the mastering chain, Diagnostics, the report export, Multi-platform export, a file's every-rule list) are not in this matrix: this PR does not change them.
 
 **Left out on purpose, with its reason (`docs/guides/using-the-app/master-and-qc.md#the-mastering-chain`):** the mock's **Clicks** and **Text** columns. Nothing measures mouth clicks or text coverage per rendered file, so a column would be a number the app made up. **Play the quietest 5 s** and **Open in the DAW** are built over the DAW port's `playQuietest` and `openFile`.
 
-Each cell is a test name (`unit` = Vitest in `apps/ui/src/components/masterqc/`, `e2e` = the shared overlay guard's Master & QC cases, `apps/ui/tests/visual/overlays/master.ts`, run by `overlays.spec.ts`) or **not tested: reason**. Updated at the end of the work: a cell names the test that drives it or says **not tested** and why. `matrix` is `masterqc/page/Matrix.test.tsx`; `e2e` is `apps/ui/tests/visual/overlays/master.ts`; `go` is `apps/desktop/master_paths_test.go`.
+Each cell is a test name (`unit` = Vitest in `src/studio/ui/src/components/masterqc/`, `e2e` = the shared overlay guard's Master & QC cases, `src/studio/ui/tests/visual/overlays/master.ts`, run by `overlays.spec.ts`) or **not tested: reason**. Updated at the end of the work: a cell names the test that drives it or says **not tested** and why. `matrix` is `masterqc/page/Matrix.test.tsx`; `e2e` is `src/studio/ui/tests/visual/overlays/master.ts`; `go` is `src/studio/desktop/master_paths_test.go`.
 
 ## Controls
 

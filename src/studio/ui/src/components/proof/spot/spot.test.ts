@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PassageTake, WorkspaceTakesResult } from '../../../api/contracts/workspace';
-import golden from '../../../../../../tests/fixtures/contracts/workspace-takes.json';
+import golden from '../../../../../../../tests/fixtures/contracts/workspace-takes.json';
 import { heardMarkup, heardText, passageOf, spotOf, takeCounts } from './spot';
 
 const candidate = (id: string, over: Partial<PassageTake> = {}): PassageTake => ({

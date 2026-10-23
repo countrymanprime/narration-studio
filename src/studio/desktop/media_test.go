@@ -169,7 +169,7 @@ func TestMediaMiddlewareAuthorizesEveryTakeOfARealReaperSavedMultiTakeItem(t *te
 }
 
 // copyReaperFixture copies a REAPER-saved fixture from
-// apps/desktop/internal/tracks/testdata/reaper (see that folder's README)
+// src/studio/desktop/internal/tracks/testdata/reaper (see that folder's README)
 // and its media/ folder into folder as destName, so a media.go test can
 // authorize against a project REAPER itself wrote instead of a hand-built
 // one.
@@ -205,7 +205,7 @@ func copyReaperFixture(t *testing.T, folder, fixtureName, destName string) {
 }
 
 // rppFixture returns a minimal REAPER project with one track whose item
-// sources relativeFile, matching the grammar apps/desktop/internal/tracks parses.
+// sources relativeFile, matching the grammar src/studio/desktop/internal/tracks parses.
 func rppFixture(relativeFile string) string {
 	return "<REAPER_PROJECT 0.1 \"6.13/win64\" 1\n" +
 		"  <TRACK {0E4D1D7F-D039-674D-87E6-719376DE95EC}\n" +
@@ -224,7 +224,7 @@ func rppFixture(relativeFile string) string {
 
 // multiTakeRppFixture returns a project with one item holding two takes,
 // the second (takeB) active, matching the shape REAPER 7.x writes (see
-// apps/desktop/internal/tracks/testdata/reaper/README.md): a bare TAKE SEL
+// src/studio/desktop/internal/tracks/testdata/reaper/README.md): a bare TAKE SEL
 // line, no wrapping chunk, between the two takes' own NAME/SOFFS/PLAYRATE/
 // GUID/<SOURCE> lines.
 func multiTakeRppFixture(takeA, takeB string) string {

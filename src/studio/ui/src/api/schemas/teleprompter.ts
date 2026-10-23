@@ -130,7 +130,7 @@ export const teleprompterStartResultSchema = z.discriminatedUnion('status', [
 
 const teleprompterDeviceSchema = z.object({ name: z.string() }) satisfies z.ZodType<TeleprompterDevice>;
 
-/** `TeleprompterDevices` (`apps/desktop/bindings.go`): a listing failure is `{devices: [], error: "..."}`, never a thrown error. */
+/** `TeleprompterDevices` (`src/studio/desktop/bindings.go`): a listing failure is `{devices: [], error: "..."}`, never a thrown error. */
 export const teleprompterDevicesResultSchema = z.object({
   devices: z.array(teleprompterDeviceSchema),
   error: z.string().nullable(),
@@ -195,7 +195,7 @@ const teleprompterResumeVerdictSchema = z
     path: ['kind'],
   }) satisfies z.ZodType<TeleprompterResumeVerdict>;
 
-/** `TeleprompterLocate` (`apps/desktop/teleprompterlocate.go`): a status with the track match and what was read, or the first-use gate. */
+/** `TeleprompterLocate` (`src/studio/desktop/teleprompterlocate.go`): a status with the track match and what was read, or the first-use gate. */
 export const teleprompterLocateResultSchema = z.union([
   modelAssetRequiredSchema,
   z.object({
@@ -212,7 +212,7 @@ export const teleprompterLocateResultSchema = z.union([
   }),
 ]) satisfies z.ZodType<TeleprompterLocateResult>;
 
-/** `TeleprompterResumeFollow` and `TeleprompterResumeUnfollow` (`apps/desktop/resumefollow.go`). */
+/** `TeleprompterResumeFollow` and `TeleprompterResumeUnfollow` (`src/studio/desktop/resumefollow.go`). */
 export const teleprompterResumeFollowSchema = z
   .object({ following: z.boolean(), reason: z.enum(['unavailable', 'no_track']).optional() })
   .refine((answer) => !(answer.following && answer.reason), {
@@ -231,7 +231,7 @@ export const teleprompterResumeFollowEventSchema = z
 const flagKindSchema = z.enum(['misread', 'extra', 'skipped', 'restart']);
 
 /**
- * A kept flag as `TeleprompterSaveFlags` answers it (`apps/desktop/internal/liveflags`): a findings record
+ * A kept flag as `TeleprompterSaveFlags` answers it (`src/studio/desktop/internal/liveflags`): a findings record
  * (docs/architecture/findings-contract.md) in the contract's snake_case. It is always suspected, so its confidence is null.
  */
 const teleprompterFlagFindingSchema = z.object({
@@ -278,7 +278,7 @@ const teleprompterFlagFindingSchema = z.object({
 export const teleprompterFlagFindingsSchema = z.array(teleprompterFlagFindingSchema);
 
 /**
- * `TeleprompterPunchPreview`/`TeleprompterPunch` (`apps/desktop/teleprompterpunch.go`): a preview never carries `cursor`, and
+ * `TeleprompterPunchPreview`/`TeleprompterPunch` (`src/studio/desktop/teleprompterpunch.go`): a preview never carries `cursor`, and
  * only a successful punch does.
  */
 export const teleprompterPunchResultSchema = z
@@ -295,7 +295,7 @@ export const teleprompterPunchResultSchema = z
     path: ['cursor'],
   }) satisfies z.ZodType<TeleprompterPunchResult>;
 
-/** `ReadAloudReaperState` (`apps/desktop/readaloudreaper.go`): REAPER's arms against the chapter's linked track. */
+/** `ReadAloudReaperState` (`src/studio/desktop/readaloudreaper.go`): REAPER's arms against the chapter's linked track. */
 export const readAloudReaperStateSchema = z.object({
   status: z.enum(['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable']),
   reason: z.enum(['unlinked', 'several_links', 'track_missing', 'standalone', 'not_running', 'experimental_off', 'failed']).optional(),
@@ -307,7 +307,7 @@ export const readAloudReaperStateSchema = z.object({
 }) satisfies z.ZodType<ReadAloudReaperState>;
 
 /**
- * `ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStartAt`/`ReadAloudRecordStop` (`apps/desktop/bindings_readaloud_record.go`): what arming, starting or stopping a REAPER recording did.
+ * `ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStartAt`/`ReadAloudRecordStop` (`src/studio/desktop/bindings_readaloud_record.go`): what arming, starting or stopping a REAPER recording did.
  */
 export const readAloudRecordingSchema = z.object({
   outcome: z.enum(['armed', 'started', 'stopped', 'refused']),
@@ -346,7 +346,7 @@ export const readAloudRecordingSchema = z.object({
   kept: z.number().int().nonnegative().optional(),
 }) satisfies z.ZodType<ReadAloudRecording>;
 
-/** `TeleprompterReaperInput` (`apps/desktop/teleprompterinput.go`): a device to preselect only when `matched`. */
+/** `TeleprompterReaperInput` (`src/studio/desktop/teleprompterinput.go`): a device to preselect only when `matched`. */
 export const teleprompterReaperInputSchema = z
   .object({
     status: z.enum(['matched', 'uncertain', 'no_match', 'unavailable']),

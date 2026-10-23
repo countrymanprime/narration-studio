@@ -1,6 +1,6 @@
 # Story Bible page: state matrix
 
-Written before the code, per [the definition of done](../../.claude/rules/definition-of-done.md) rule 3, and filled in as the work landed. Spec: the Studio Next mock's Story Bible page (`docs/research/mockups/studio-next/src/pages/Bible.tsx` and `bible/`), by `docs/design/design-system.md#which-mocks-are-the-spec`. Every cell is **tested** (names the test file and case), **walked** (seen in the real app with dev:mock, no automated test), or **not tested** with a reason. The tests are under `apps/ui/src/components/storybible/` unless a path says otherwise.
+Written before the code, per [the definition of done](../../.claude/rules/definition-of-done.md) rule 3, and filled in as the work landed. Spec: the Studio Next mock's Story Bible page (`docs/research/mockups/studio-next/src/pages/Bible.tsx` and `bible/`), by `docs/design/design-system.md#which-mocks-are-the-spec`. Every cell is **tested** (names the test file and case), **walked** (seen in the real app with dev:mock, no automated test), or **not tested** with a reason. The tests are under `src/studio/ui/src/components/storybible/` unless a path says otherwise.
 
 All of it ran against the mock host. Nothing was checked against a real host, a real manuscript or a real DAW.
 
@@ -80,7 +80,7 @@ All in `suggested/import/import.states.test.tsx` (52 cases) unless it says other
 
 ## Overlays (each topmost at its own points and fully on screen)
 
-The shared overlay guard (`apps/ui/tests/visual/overlays.spec.ts`, from #1756) runs this page's overlays: `tests/visual/overlays/storybible.ts` lists them, and the shell's own overlays run on the page too. For each overlay and each of seven window sizes (the visual suite's sizes plus 360x500 and 320x300) it opens the overlay at every window edge and corner and beside the sidebar and the top bar where it follows the pointer, over content scrolled halfway and to the end, and checks with `elementFromPoint` that it is topmost and fully on screen. 101 Story Bible cases pass in the real mock build, light theme.
+The shared overlay guard (`src/studio/ui/tests/visual/overlays.spec.ts`, from #1756) runs this page's overlays: `tests/visual/overlays/storybible.ts` lists them, and the shell's own overlays run on the page too. For each overlay and each of seven window sizes (the visual suite's sizes plus 360x500 and 320x300) it opens the overlay at every window edge and corner and beside the sidebar and the top bar where it follows the pointer, over content scrolled halfway and to the end, and checks with `elementFromPoint` that it is topmost and fully on screen. 101 Story Bible cases pass in the real mock build, light theme.
 
 | Overlay | Status |
 | --- | --- |

@@ -12,7 +12,7 @@ import (
 )
 
 // The Editing view's item-gain action: the first non-test caller of bridge.LevelMatchClient
-// (apps/desktop/internal/bridge/levelnormalize.go), reached the same way bindings_navigation.go and chapterregions.go
+// (src/studio/desktop/internal/bridge/levelnormalize.go), reached the same way bindings_navigation.go and chapterregions.go
 // already reach their own REAPER roles - through dawport.Role[T](resolver, capability), never a cached adapter, so a
 // capability the narrator promotes or a toggle they flip in Settings takes effect on the next click, with no restart.
 // Preview never changes anything; Apply recomputes the same candidates rather than trusting whatever a caller last saw

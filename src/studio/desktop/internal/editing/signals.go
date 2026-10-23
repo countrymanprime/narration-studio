@@ -1,7 +1,7 @@
 // This file holds the three tri-state signals, in the shape the stage
-// recommendations contract defines (apps/desktop/internal/stages,
+// recommendations contract defines (src/studio/desktop/internal/stages,
 // docs/architecture/stage-recommendations.md). It mirrors
-// apps/desktop/internal/coverage/signal.go's own split: a pure decision
+// src/studio/desktop/internal/coverage/signal.go's own split: a pure decision
 // function (EmptySpaceSignal) over an already-gathered ChapterCoverage
 // (provider.go does the gathering, reading stored evidence only and never
 // decoding audio), so the signal rule itself is unit-testable with no file,

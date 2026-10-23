@@ -1,5 +1,5 @@
 // The browser mock's Editing records. It keeps the accepted words in memory and checks each one against the mock
-// manuscript's current text the way apps/desktop/internal/editlog does: a key the chapter's text lacks is refused and nothing
+// manuscript's current text the way src/studio/desktop/internal/editlog does: a key the chapter's text lacks is refused and nothing
 // is saved, a word already accepted is not recorded twice, the list is in reading order, and a word whose text changed comes
 // back stale, never moved.
 import type { AcceptedWord, AcceptedWords, AcceptedWordsChange, EditLogApi, ManuscriptChapter, ManuscriptParagraph } from '../types';

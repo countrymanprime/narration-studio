@@ -4,7 +4,7 @@ import test from 'node:test';
 import { classify, HIGH_RISK_LABEL } from './pr-risk.mjs';
 
 test('a UI-only change is normal risk', () => {
-  assert.deepEqual(classify(['apps/ui/src/components/booth/Booth.tsx', 'docs/guides/x.md']), { risk: 'normal', reasons: [] });
+  assert.deepEqual(classify(['src/studio/ui/src/components/booth/Booth.tsx', 'docs/guides/x.md']), { risk: 'normal', reasons: [] });
 });
 
 test('an empty change is normal risk', () => {
@@ -19,25 +19,25 @@ test('each trust boundary and pipeline path makes a change high risk', () => {
     'CLAUDE.md',
     'SECURITY.md',
     'docs/architecture/threat-model.md',
-    'integrations/reaper/lua/bridge.lua',
-    'apps/desktop/internal/bridge/wire.go',
-    'apps/desktop/internal/update/update.go',
-    'apps/desktop/internal/process/runner.go',
-    'sidecars/asr/main.py',
+    'src/studio/integrations/reaper/lua/bridge.lua',
+    'src/studio/desktop/internal/bridge/wire.go',
+    'src/studio/desktop/internal/update/update.go',
+    'src/studio/desktop/internal/process/runner.go',
+    'src/studio/sidecars/asr/main.py',
     'scripts/release/notes.py',
     'scripts/toolchain.json',
     'pnpm-lock.yaml',
-    'apps/desktop/go.sum',
+    'src/studio/desktop/go.sum',
     'scripts/ci/pr-risk.mjs',
   ];
   for (const path of paths) assert.equal(classify([path]).risk, 'high', path);
 });
 
 test('the reasons name the path and the boundary it touches', () => {
-  const { reasons } = classify(['apps/ui/src/a.ts', '.github/workflows/ci.yml', 'sidecars/asr/main.py']);
+  const { reasons } = classify(['src/studio/ui/src/a.ts', '.github/workflows/ci.yml', 'src/studio/sidecars/asr/main.py']);
   assert.equal(reasons.length, 2);
   assert.deepEqual(reasons[0], { path: '.github/workflows/ci.yml', boundary: 'CI and the release pipeline' });
-  assert.equal(reasons[1].path, 'sidecars/asr/main.py');
+  assert.equal(reasons[1].path, 'src/studio/sidecars/asr/main.py');
 });
 
 test('backslash paths from a Windows diff are matched too', () => {

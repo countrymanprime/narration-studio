@@ -1,5 +1,5 @@
 // The built-in recorder's golden files: which schema owns each file in
-// tests/fixtures/contracts/ (see index.ts). Written by apps/desktop/bindings_recording_test.go (UPDATE_CONTRACTS=1).
+// tests/fixtures/contracts/ (see index.ts). Written by src/studio/desktop/bindings_recording_test.go (UPDATE_CONTRACTS=1).
 import type { z } from 'zod';
 import { recorderDevicesResultSchema, recorderStateSchema } from '../schemas/recording';
 

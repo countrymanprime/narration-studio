@@ -20,7 +20,7 @@ voice-following teleprompter; no public implementation, but its documented
 behavior validates this shape): keep a sliding window of upcoming manuscript
 words (current paragraph plus the next), fuzzy-match incoming recognized
 words against that window using the same word-diff primitive already used
-offline in `sidecars/transcript-compare/core/compare.py`, and:
+offline in `src/studio/sidecars/transcript-compare/core/compare.py`, and:
 
 1. Match nearby in the window → advance the cursor, extend the window.
 2. No match for a short debounce → pause (status → "Waiting…"), hold the last
@@ -45,7 +45,7 @@ Do not add it as a runtime dependency or run its WebSocket client/server:
   server, REST endpoint, or port for this app's Wails workspace — running
   WhisperLive's server component would reintroduce exactly that.
 - It manages its own model cache, bypassing the existing versioned/hashed
-  asset catalog in `apps/desktop/internal/whisper/catalog.go` and the
+  asset catalog in `src/studio/desktop/internal/whisper/catalog.go` and the
   [first-use dependency provisioning](first-use-dependency-provisioning.md)
   flow.
 - Its own audio-capture client is redundant — mic capture and inference are
@@ -234,7 +234,7 @@ flag after the session.
 
 ## Streaming subprocess support
 
-`apps/desktop/internal/process.Supervisor.Start` drains stdout/stderr to `io.Discard`
+`src/studio/desktop/internal/process.Supervisor.Start` drains stdout/stderr to `io.Discard`
 for the two batch sidecars (Manuscript Guide, Transcript Compare) — see
 `supervisor.go`. A live sidecar needs a second, additive code path, so
 `stream.go` adds `Supervisor.StartStream`: it hands each stdout line to a
@@ -244,7 +244,7 @@ and can be very long), and returns a `StreamChild` with `Done`, `Kill` and
 `StderrTail`. The batch path is untouched.
 
 **Implemented in the desktop host (2026-09-19).**
-`apps/desktop/internal/teleprompter.Service` owns one session: it builds the sidecar
+`src/studio/desktop/internal/teleprompter.Service` owns one session: it builds the sidecar
 arguments (`--engine`, `--model`, `--model-dir`, `--manuscript`, `--chapter`,
 `--mic` or a developer `--wav`, `--stop-file`), relays every valid JSON line
 verbatim as the Wails event `teleprompter:event`, publishes phase changes as
@@ -288,8 +288,8 @@ says how its numbers are read.
 sequenceDiagram
   autonumber
   actor N as Narrator
-  participant UI as apps/ui: components/booth
-  participant B as apps/desktop: bindings.go, app.go
+  participant UI as src/studio/ui: components/booth
+  participant B as src/studio/desktop: bindings.go, app.go
   participant S as internal/teleprompter: Service
   participant P as internal/process: Supervisor
   participant T as manuscript-teleprompter (frozen sidecar)
@@ -315,7 +315,7 @@ sequenceDiagram
   S-->>UI: teleprompter:state stopping, then stopped
 ```
 
-*Verified 2026-09-21 against `bindings.go` (`TeleprompterStart`), `app.go` (`emitTeleprompterEvent`, `emitTeleprompterState`, `Shutdown`), `internal/teleprompter/service.go` (`plan`, `Start`, `onLine`, `Stop`, `watch`, `defaultGrace`), `internal/process/stream.go` (`StartStream`), `sidecars/manuscript-teleprompter/core/live_asr.py` (`--stop-file`) and `apps/ui/src/api/wailsClient.ts`. `Shutdown` stops a live session first and waits up to 12 s. A page opened mid-session catches up from the last `script` and `position` events the service keeps. The threats at each step are rows 4a to 4d of the [threat model](threat-model.md#4-the-go-host-to-the-sidecars-securitymd-bullet-4).*
+*Verified 2026-09-21 against `bindings.go` (`TeleprompterStart`), `app.go` (`emitTeleprompterEvent`, `emitTeleprompterState`, `Shutdown`), `internal/teleprompter/service.go` (`plan`, `Start`, `onLine`, `Stop`, `watch`, `defaultGrace`), `internal/process/stream.go` (`StartStream`), `src/studio/sidecars/manuscript-teleprompter/core/live_asr.py` (`--stop-file`) and `src/studio/ui/src/api/wailsClient.ts`. `Shutdown` stops a live session first and waits up to 12 s. A page opened mid-session catches up from the last `script` and `position` events the service keeps. The threats at each step are rows 4a to 4d of the [threat model](threat-model.md#4-the-go-host-to-the-sidecars-securitymd-bullet-4).*
 
 **Packaging.** The sidecar is frozen as `manuscript-teleprompter` by
 `scripts/release/prepare-resources.py` and required by
@@ -324,7 +324,7 @@ engine too: `moonshine-voice` is pinned for Windows only, its
 `ctypes`-loaded `moonshine.dll` and `onnxruntime.dll` are collected by hand and
 required by `verify-installable.mjs`, and `narration-utils --smoke` runs
 `manuscript-teleprompter --capabilities --verify` to prove they load
-(this generic flag replaced the bespoke `--check-moonshine`; [live_asr.py](../../sidecars/manuscript-teleprompter/core/live_asr.py)). The frozen
+(this generic flag replaced the bespoke `--check-moonshine`; [live_asr.py](../../src/studio/sidecars/manuscript-teleprompter/core/live_asr.py)). The frozen
 sidecar runs Moonshine only from a `--model-dir` holding every file of
 `config/moonshine-assets.json` (`core/moonshine_engine.py`); it never uses the
 library's downloader. Freezing it in cost 24.1 MB (+9.4%).
@@ -343,7 +343,7 @@ integration doc already draws for take/marker mutation.
 
 The question was whether PyAV can
 list `dshow` devices without shelling out to ffmpeg directly; the
-spike confirmed it can. `sidecars/manuscript-teleprompter/core/devices.py`
+spike confirmed it can. `src/studio/sidecars/manuscript-teleprompter/core/devices.py`
 adds `--list-devices` to `live_asr.py`: it opens `dshow` with the
 `list_devices` option (which always raises - that mode is a listing, not a
 real capture) inside `av.logging.Capture`, which receives ffmpeg's own device
@@ -377,7 +377,7 @@ on the development machine to test the collision case against. The
 alternative name is not exposed over the wire (`Device.to_json()` returns only
 `name`).
 
-The Go binding (`apps/desktop/internal/teleprompter/service.go`'s `Devices`,
+The Go binding (`src/studio/desktop/internal/teleprompter/service.go`'s `Devices`,
 exposed as the `TeleprompterDevices` host binding) runs
 the sidecar in `--list-devices` mode with a caller-supplied timeout and caches
 nothing; a failure at any layer (bad exit code, unparseable output, a timeout)
@@ -417,7 +417,7 @@ pause it made: a session the narrator paused stays paused.
 
 ## The Booth page
 
-The Booth (`/booth`, `apps/ui/src/components/booth/`) is the one read-along page
+The Booth (`/booth`, `src/studio/ui/src/components/booth/`) is the one read-along page
 ([Design principles](principles.md)):
 it replaced the Teleprompter page, the Manuscript's Read aloud dialog and its booth dialog, and `/teleprompter`
 redirects here keeping its query and hash. What the narrator sees and does on it is in the
@@ -429,13 +429,13 @@ redirects here keeping its query and hash. What the narrator sees and does on it
   composes the Record control (`record/`), the leave guard (`leave/`), the resume offer (`resume/`), the passage-map
   writer (`passagemap/`) and the key commands. The frame is `frame/` (top bar, footer with the catalogue's key hints), the text
   `reading/BoothText.tsx`, the side panel `side/`. The Companion has its own route, `/companion` (`companion/CompanionPage.tsx`,
-  `CompanionHost.tsx`), around `CompanionShell` (`apps/desktop/bindings_companion.go`). It
+  `CompanionHost.tsx`), around `CompanionShell` (`src/studio/desktop/bindings_companion.go`). It
   takes no argument: the narrow width and always-on-top are fixed in the host, a second Enter keeps the first saved
   bounds, an Exit with nothing saved does nothing, and the narrowed window is clamped on-screen when the screen it was
   on is gone (`bindings_companion_test.go`).
 - **The highlight.** The current word is the `Cursor` kind of `Highlight`. The text does not reuse the Script page's `Para`
   (`components/script/page/reader/Para.tsx`), which renders character-offset layers, not words
-  ([usePacedCursor.ts](../../apps/ui/src/components/booth/usePacedCursor.ts)).
+  ([usePacedCursor.ts](../../src/studio/ui/src/components/booth/usePacedCursor.ts)).
 - **Mock mode.** In the browser mock, Start replays a position stream recorded from the real tracker
   (`spikes/record_mock_stream.py`), and `?mockTeleprompter=listening|waiting|done|flagged|ended` boots part-way through
   a chapter for the visual suite (`ended` is a session that already stopped itself at the end of the chapter).
@@ -443,13 +443,13 @@ redirects here keeping its query and hash. What the narrator sees and does on it
 ## Resume: where REAPER is and where the prompter was
 
 The Companion opens a chapter with a compact **Where you stopped** prompt above the
-text (`apps/ui/src/components/booth/ResumePrompt.tsx`); the Booth shows the same lookup as one line, "Resume at ¶ n"
+text (`src/studio/ui/src/components/booth/ResumePrompt.tsx`); the Booth shows the same lookup as one line, "Resume at ¶ n"
 (`resume/ResumeOffer.tsx`). It reconciles two
 sources and asks only when they disagree (owner report of 2026-09-24: "find where
 the track was, and find out where you were in the script, and if they match, you
 keep going").
 
-- **Where REAPER is.** `TeleprompterLocate` (`apps/desktop/teleprompterlocate.go`)
+- **Where REAPER is.** `TeleprompterLocate` (`src/studio/desktop/teleprompterlocate.go`)
   finds the chapter's track and a time on it. With REAPER reachable, track state
   on and REAPER on the selected project, that is the live edit cursor when it sits
   on the track's playing items, otherwise the live end of those items, unsaved
@@ -484,12 +484,12 @@ keep going").
   Resume: where REAPER is and where the prompter was).
 
 Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-roll
-([narration_punch.lua](../../integrations/reaper/narration_punch.lua)).
+([narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua)).
 
 ## Punch from here: where a word's time comes from
 
 "Punch from here" on a flag (the old Booth's flags panel, removed with it in SN-O10; the bindings stay) previews a time before anything moves, and names its source
-(`TeleprompterPunchPreview`/`TeleprompterPunch`, `apps/desktop/teleprompterpunch.go`):
+(`TeleprompterPunchPreview`/`TeleprompterPunch`, `src/studio/desktop/teleprompterpunch.go`):
 
 - **`anchor`**: the live anchors the host records while a session reads the chapter (REAPER's play position polled
   every 3 s beside the word being read, `teleprompterpunchpoll.go`, `internal/teleprompter/anchors.go`), exact or
@@ -511,8 +511,8 @@ in REAPER yet ([#1476](https://github.com/countrymanprime/narration-utils/issues
 ## The passage map
 
 The Booth writes a passage map while it records, so Editing can list a Booth-recorded chapter's passages without aligning
-the audio (`PassageMapRecordRun` and `PassageMapList`, `apps/desktop/bindings_passagemap.go`,
-`apps/desktop/internal/passagemap`; host API 95).
+the audio (`PassageMapRecordRun` and `PassageMapList`, `src/studio/desktop/bindings_passagemap.go`,
+`src/studio/desktop/internal/passagemap`; host API 95).
 
 - **The file.** `<project>/narration-utils/passagemap.json`: `{ "schemaVersion": 1, "marks": [...] }`. Each mark is
   `{ id, run, chapterId, pid, word, sec, kind, prev?, itemGuid, takeGuid }`; `kind` is `start`, `roll` or `stop`, and a
@@ -525,7 +525,7 @@ the audio (`PassageMapRecordRun` and `PassageMapList`, `apps/desktop/bindings_pa
   stop, or the marks are out of time order.
 - **Limits.** At most 1000 marks a run and 200 runs a chapter; chapter and paragraph ids at most 64 bytes with no control
   characters. Every field is a number, an id or a kind, never a path or free text.
-- **The Booth's writer.** `usePassageMapWriter` (`apps/ui/src/components/booth/passagemap`) keeps a take's marks in memory:
+- **The Booth's writer.** `usePassageMapWriter` (`src/studio/ui/src/components/booth/passagemap`) keeps a take's marks in memory:
   `begin` writes the start at `placeOf` the reading position, `roll` adds a roll with `prev` the place the take had reached,
   and `stop` closes the run and sends it once. `sec` is the take's start offset plus its elapsed seconds, never wall clock.
   A run the host refuses is kept, its sentence is toasted once, and it is sent again, in order, at the next stop.
@@ -550,9 +550,9 @@ the audio (`PassageMapRecordRun` and `PassageMapList`, `apps/desktop/bindings_pa
   the item of the earliest of them still in the saved project, so a later recording of the same text keeps the passage,
   and what Editing keyed by its id (a stack, a retry mode), where it was; only a passage the map does not cover is placed
   by the alignment. `WorkspaceTakeEvidence` answers `via: "map"` for a take whose item and take GUIDs a map take over the
-  passage carries, and `"aligned"` otherwise (`apps/desktop/internal/passagetakes`). Editing's `useLines` asks for the takes
+  passage carries, and `"aligned"` otherwise (`src/studio/desktop/internal/passagetakes`). Editing's `useLines` asks for the takes
   of the paragraphs the alignment heard and of those two or more map takes read, a roll back included
-  (`apps/ui/src/api/passageMapSpans.ts`). Because every mark of a run shares one take GUID today, only the take active when
+  (`src/studio/ui/src/api/passageMapSpans.ts`). Because every mark of a run shares one take GUID today, only the take active when
   the run stopped is placed `map` on a DAW-recorded chapter.
 
 ## Third-party license note
@@ -588,7 +588,7 @@ the exact commit ported from. The LocalAgreement policy added later comes from
   paragraph exactly as `chapter_script.py` does and checking itself against the
   `script` event's spans (a paragraph that disagrees is shown untracked), and
   the chapter is chosen from a picker that starts on the reader's active chapter
-  ([usePacedCursor.ts](../../apps/ui/src/components/booth/usePacedCursor.ts)).
+  ([usePacedCursor.ts](../../src/studio/ui/src/components/booth/usePacedCursor.ts)).
 - Tracker limits: word matching is normalization plus
   a close-spelling check, without Transcript Compare's homophone, number-word
   and hyphenation handling; invented names and spoken numbers are the likely

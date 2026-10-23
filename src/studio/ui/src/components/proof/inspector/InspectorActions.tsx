@@ -12,7 +12,7 @@ import { noteTime } from '../findingFormat';
 export type InspectorActionsApi = Pick<NarrationApi, 'findingsGoTo'>;
 
 // Why a control is off when the note itself cannot be placed; the host refuses the same notes in the same words
-// (apps/desktop/bindings_navigation.go and bindings_marker.go), so a button is never on for a request that can only be refused. Any note
+// (src/studio/desktop/bindings_navigation.go and bindings_marker.go), so a button is never on for a request that can only be refused. Any note
 // can get a marker, whatever its decision (SD-4).
 const NO_ITEM = 'This note has no place in the DAW to go to, because it came from an older check. Run the check again to record one.';
 const NO_SOURCE_TIME = 'This note has no time in its audio to put a marker at.';

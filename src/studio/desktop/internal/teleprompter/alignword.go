@@ -15,7 +15,7 @@ import (
 // (anchors.go), the host runs the sidecar's `--align-word` mode (align_word.py) once over a stretch of the chapter's
 // recorded audio: the tail-audio locate's own decode and placement (locate.go) pointed at one word, which
 // answers when that word starts in the recording's source file. Mapping that onto the project timeline is the
-// caller's (apps/desktop), which knows the item the stretch was cut from.
+// caller's (src/studio/desktop), which knows the item the stretch was cut from.
 
 // AlignRequest is one word to time: script word Word of Recording.Chapter, looked for in seconds Recording.From to
 // Recording.To of Recording.Audio. Every rule a LocateRequest has applies to Recording (threat model row 4a).

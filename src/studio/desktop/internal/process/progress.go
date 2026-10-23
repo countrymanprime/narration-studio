@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// ParseProgress reads one line of a sidecar's progress file, `STAGE|percent|message` (libs/python/narration_common/progress.py). The
+// ParseProgress reads one line of a sidecar's progress file, `STAGE|percent|message` (src/studio/libs/python/narration_common/progress.py). The
 // message is optional. A line that is not in that shape, or whose percent is not a number from 0 to 100, is an error and never a
 // silent 0: a caller keeps the last good progress and says so.
 func ParseProgress(line string) (stage string, percent float64, message string, err error) {

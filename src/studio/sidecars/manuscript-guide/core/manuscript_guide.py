@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, NamedTuple
 
-_SHARED_PYTHON = Path(__file__).resolve().parents[3] / "libs" / "python"
+_SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
 # providers.py is this sidecar's own sibling module; a test that spec-loads this file does not have core/ on sys.path

@@ -1,4 +1,4 @@
-// The golden payloads of the Booth's passage map (apps/desktop/bindings_passagemap.go).
+// The golden payloads of the Booth's passage map (src/studio/desktop/bindings_passagemap.go).
 import type { z } from 'zod';
 import { passageMapSchema } from '../schemas/passageMap';
 

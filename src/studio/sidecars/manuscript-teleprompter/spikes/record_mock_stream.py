@@ -1,5 +1,5 @@
 """
-Regenerates apps/ui/src/api/teleprompterRecording.json, the position and flag
+Regenerates src/studio/ui/src/api/teleprompterRecording.json, the position and flag
 stream the browser mock replays for the Teleprompter page.
 
 A scripted narrator (a few mishearings, a two-word skip, a long pause, a
@@ -124,7 +124,7 @@ def record() -> list[dict]:
 
 
 def main() -> None:
-    default_out = Path(__file__).resolve().parents[3] / "apps" / "ui" / "src" / "api" / "teleprompterRecording.json"
+    default_out = Path(__file__).resolve().parents[5] / "src" / "studio" / "ui" / "src" / "api" / "teleprompterRecording.json"
     ap = argparse.ArgumentParser(description="Regenerate the Teleprompter mock's recorded position stream")
     ap.add_argument("--out", default=str(default_out))
     args = ap.parse_args()

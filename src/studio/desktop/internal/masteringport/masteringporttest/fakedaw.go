@@ -15,7 +15,7 @@ import (
 
 // FakeDAW is the DAW the suite masters ModeDAWRegion rows through: a dawport.Adapter that declares
 // render_with_fx and master_chain_read Experimental, with the narrator's settings allowing them, and keeps the bridge's promises the
-// way integrations/reaper/narration_master_render.lua does. Its render refuses a request with no approval, an approval it has seen
+// way src/studio/integrations/reaper/narration_master_render.lua does. Its render refuses a request with no approval, an approval it has seen
 // before, or a folder that is not an empty folder inside the project; otherwise it writes the suite's tone as one WAV per region
 // into that folder and answers FX_RENDER_FILE and FX_RENDERED through its events. Misbehave makes it answer wrongly on purpose.
 type FakeDAW struct {

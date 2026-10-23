@@ -2,7 +2,7 @@
 
 Written before the code, per [the definition of done](../../.claude/rules/definition-of-done.md) rule 3, for the Schedule page wired to the host through the `production`, `deliveryProfiles` and `measurements` ports (D67, mock-first). The mock's Schedule (`docs/research/mockups/studio-next/src/pages/Schedule.tsx`) is the spec for what the page shows; this file says what each control does in the states the mock never draws.
 
-A cell is `T:<test>` (a test drives it), `V:<reason>` (a reader can see why no test is needed), or `NT:<reason>` (not tested, with the reason). Test files are `apps/ui/src/components/schedule/SchedulePage.<name>.test.tsx` (`dates`, `contract`, `reread`, `races`, `text`, `scale`) and `apps/ui/tests/aria/schedule-overlays.spec.ts`.
+A cell is `T:<test>` (a test drives it), `V:<reason>` (a reader can see why no test is needed), or `NT:<reason>` (not tested, with the reason). Test files are `src/studio/ui/src/components/schedule/SchedulePage.<name>.test.tsx` (`dates`, `contract`, `reread`, `races`, `text`, `scale`) and `src/studio/ui/tests/aria/schedule-overlays.spec.ts`.
 
 ## What the page reads and writes
 
@@ -93,7 +93,7 @@ The host never pushes an event for these; the page re-reads on its own (focus, t
 
 ## Overlays on this page
 
-The milestone dialog, the status tooltip and the Undo toast are each opened and checked with `elementFromPoint` (`apps/ui/tests/aria/overlayGuard.ts`, one helper so the guard from PR #1756 can replace it once it is on `main`):
+The milestone dialog, the status tooltip and the Undo toast are each opened and checked with `elementFromPoint` (`src/studio/ui/tests/aria/overlayGuard.ts`, one helper so the guard from PR #1756 can replace it once it is on `main`):
 
 | Overlay | Positions | Status |
 | --- | --- | --- |

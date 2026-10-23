@@ -1,6 +1,6 @@
 """Input level metering at any sample rate.
 
-The same event the Booth's Read Aloud meter already reads (``sidecars/manuscript-teleprompter/core/levels.py``), measured
+The same event the Booth's Read Aloud meter already reads (``src/studio/sidecars/manuscript-teleprompter/core/levels.py``), measured
 on the recorder's own native-rate frames instead of the recognizer's 16 kHz chunks:
 
     {"type": "level", "peak": -12.3, "rms": -24.1}

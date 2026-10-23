@@ -3,7 +3,7 @@ import type { WhisperInstallState, WhisperModel } from './whisper';
 
 // Recording coverage (docs/utilities/recording-coverage.md): a check of one chapter's saved recording
 // against its manuscript text, run only when the narrator asks, and the stored result read back as current,
-// stale or never. The host shapes are apps/desktop/bindings_coverage.go and apps/desktop/internal/coverage/view.go.
+// stale or never. The host shapes are src/studio/desktop/bindings_coverage.go and src/studio/desktop/internal/coverage/view.go.
 
 /** Why a chapter cannot be checked (or its result read) right now: nothing was run or written (coverage/reason.go). */
 export type CoverageRefusalReason =

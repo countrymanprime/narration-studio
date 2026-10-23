@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { WordFx, WordFxChange, WordFxList } from '../contracts/wordFx';
 
 /** A chain id or name as the DAW lists it: never blank, no control character, backslash or drive colon, and no empty, `.`
- * or `..` part between slashes (apps/desktop/internal/editlog/wordfx.go listName). */
+ * or `..` part between slashes (src/studio/desktop/internal/editlog/wordfx.go listName). */
 const listName = z
   .string()
   .refine((name) => name.trim() !== '' && !/[\\:\p{Cc}]/u.test(name) && name.split('/').every((part) => part !== '' && part !== '.' && part !== '..'), {

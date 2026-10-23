@@ -1,5 +1,5 @@
 // Package cleanuptools is the host's end of the cleanup launchers over the REAPER file bridge (launch_cleanup_tool in
-// integrations/reaper/narration_cleanup.lua). It asks REAPER to
+// src/studio/integrations/reaper/narration_cleanup.lua). It asks REAPER to
 // open its own Repair Pops/Clicks dialog, or the narrator's installed Magnolius DeClick script, on the items the
 // narrator has selected. It mirrors renderconfig.Service: one run at a time, reported by phase.
 //

@@ -9,7 +9,7 @@ import { parseThemes, type Theme } from './tokenContrast';
 // rows are those docs/research/studio-next-token-and-primitive-diff.md sections 1 to 3 mark "Differs" or "missing".
 const CSS = readFileSync(join(__dirname, 'styles.css'), 'utf8');
 const THEMES = parseThemes(CSS);
-const MOCK_CSS = join(__dirname, '..', '..', '..', 'docs', 'research', 'mockups', 'studio-next', 'src', 'styles', 'app.css');
+const MOCK_CSS = join(__dirname, '..', '..', '..', '..', 'docs', 'research', 'mockups', 'studio-next', 'src', 'styles', 'app.css');
 const MOCK = parseThemes(readFileSync(MOCK_CSS, 'utf8'));
 
 const ROOT_PX = 16;

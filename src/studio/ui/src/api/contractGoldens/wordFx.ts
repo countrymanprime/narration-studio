@@ -1,4 +1,4 @@
-// The golden payloads of the narrator's word effects (apps/desktop/bindings_editlog_wordfx.go).
+// The golden payloads of the narrator's word effects (src/studio/desktop/bindings_editlog_wordfx.go).
 import type { z } from 'zod';
 import { wordFxChangeSchema, wordFxListSchema } from '../schemas/wordFx';
 

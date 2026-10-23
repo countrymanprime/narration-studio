@@ -1,15 +1,15 @@
 # The REAPER verification pass
 
-**Status: Part A is scripted and its run on the owner's machine is pending; Part B has not run.** The owner runs it. Until it has run, every command below stays Experimental: the host refuses to send it unless the narrator turns its capability on, with its own `DAW.capability.<name>` setting or, for one left on `auto`, the **Experimental DAW actions** switch (`DAW.experimental_reaper_actions`, off by default; owner decision D38, [resolver.go](../../apps/desktop/internal/dawport/resolver.go)).
+**Status: Part A is scripted and its run on the owner's machine is pending; Part B has not run.** The owner runs it. Until it has run, every command below stays Experimental: the host refuses to send it unless the narrator turns its capability on, with its own `DAW.capability.<name>` setting or, for one left on `auto`, the **Experimental DAW actions** switch (`DAW.experimental_reaper_actions`, off by default; owner decision D38, [resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)).
 
-The harness ([The DAW port](../architecture/daw-integration.md#the-daw-port), `integrations/reaper/tests`) proves each command's logic, refusals and events against a fake REAPER. It cannot prove what REAPER itself does with a call. This pass checks that, command by command, in a real REAPER. The calls and what the reference leaves open are in [the ReaScript calls behind the planned commands](../research/reaper-api-for-planned-commands.md).
+The harness ([The DAW port](../architecture/daw-integration.md#the-daw-port), `src/studio/integrations/reaper/tests`) proves each command's logic, refusals and events against a fake REAPER. It cannot prove what REAPER itself does with a call. This pass checks that, command by command, in a real REAPER. The calls and what the reference leaves open are in [the ReaScript calls behind the planned commands](../research/reaper-api-for-planned-commands.md).
 
 ## Rules
 
-- REAPER runs isolated: `integrations/reaper/spikes/run-reaper.ps1` starts it with `-cfgfile <temp>\reaper.ini`, so the owner's settings, scripts and projects are never read or written ([the spike rules](../../integrations/reaper/spikes/README.md)).
+- REAPER runs isolated: `src/studio/integrations/reaper/spikes/run-reaper.ps1` starts it with `-cfgfile <temp>\reaper.ini`, so the owner's settings, scripts and projects are never read or written ([the spike rules](../../src/studio/integrations/reaper/spikes/README.md)).
 - Only a **copy** of a project is opened, in a temp folder, with its media copied beside it or replaced by synthetic tones (`make_media.py`). Never open, save into or delete anything under `C:\Users\Count\Documents\REAPER Media\Projects\Challenges\`. Record the original `.rpp`'s SHA-256 before and after, as spike S6 did.
 - Part A runs unattended with the audio device closed (`reaper.Audio_Quit()`). Part B records, so it needs the owner present and their approval for the one test recording on a copy, with a silent or virtual input.
-- The script loads the real bridge from the working tree (`NARRATION_UTILS_REAPER_DIR`) and drives each command through a fresh registry, the way `navigation_check.lua` does, writing `PASS`/`FAIL` per step and every value it read back into the report. The report goes into `integrations/reaper/spikes/results/` with paths removed, and its findings into this page's record.
+- The script loads the real bridge from the working tree (`NARRATION_UTILS_REAPER_DIR`) and drives each command through a fresh registry, the way `navigation_check.lua` does, writing `PASS`/`FAIL` per step and every value it read back into the report. The report goes into `src/studio/integrations/reaper/spikes/results/` with paths removed, and its findings into this page's record.
 - Record REAPER's version and the OS. A finding that differs from the harness's fake changes the fake in the same PR, so the harness keeps modelling what REAPER does.
 
 ## Part A: unattended, no audio device
@@ -19,10 +19,10 @@ The harness ([The DAW port](../architecture/daw-integration.md#the-daw-port), `i
 One command, from the repository root on the owner's Windows machine with REAPER installed (`C:\Program Files\REAPER (x64)\reaper.exe`), Python and PowerShell 7:
 
 ```powershell
-pwsh integrations/reaper/spikes/run-pass-part-a.ps1
+pwsh src/studio/integrations/reaper/spikes/run-pass-part-a.ps1
 ```
 
-It takes about two minutes and needs no input: it starts REAPER twice, each time isolated on its own scratch `-cfgfile` under a fresh `%TEMP%\narration-pass-a-<time>` folder, and closes each session after five minutes at most (`-TimeoutSec`). The first session runs `spike_ep0_workspace.lua` (rows A6 to A8); the second runs `pass_part_a.lua` (every other row) and merges the first one's report. The results land in `%TEMP%\narration-pass-a-<time>\main\pass-part-a-results.md` (the table to paste into [#510](https://github.com/countrymanprime/narration-utils/issues/510)) and `pass-part-a-log.txt` (every check and value), with paths removed, and both are copied to `integrations/reaper/spikes/results/`. The last line it prints is the pass count and the path.
+It takes about two minutes and needs no input: it starts REAPER twice, each time isolated on its own scratch `-cfgfile` under a fresh `%TEMP%\narration-pass-a-<time>` folder, and closes each session after five minutes at most (`-TimeoutSec`). The first session runs `spike_ep0_workspace.lua` (rows A6 to A8); the second runs `pass_part_a.lua` (every other row) and merges the first one's report. The results land in `%TEMP%\narration-pass-a-<time>\main\pass-part-a-results.md` (the table to paste into [#510](https://github.com/countrymanprime/narration-utils/issues/510)) and `pass-part-a-log.txt` (every check and value), with paths removed, and both are copied to `src/studio/integrations/reaper/spikes/results/`. The last line it prints is the pass count and the path.
 
 What keeps it safe:
 
@@ -68,7 +68,7 @@ Needs the owner present and approval for one test recording on a copy of a proje
 | B4 | Stop in REAPER | `record_start` again; press Stop in REAPER itself. | The bridge reports `RECORD_ENDED` for the start's run and restores the arms; a later `record_stop` answers `RECORD_NOT_OURS`. |
 | B5 | A recording the app did not start | Press Record in REAPER; send `record_stop`. | `RECORD_NOT_OURS`; REAPER keeps recording. Stop it by hand. |
 | B6 | The narrator changes an arm mid-take | Arm "Chapter 2" by hand; `arm_only` "Chapter 1"; `record_start`; arm "Pickups" (not armed before) by hand during the take; `record_stop`. | "Pickups" stays armed as the narrator set it and is reported as kept; "Chapter 2" is armed again. |
-| B7 | Which microphone REAPER uses ([inputmatch.go](../../apps/desktop/internal/daw/inputmatch.go)) | With the device open in REAPER, open the app's microphone picker (`TeleprompterReaperInput`); repeat with ASIO and with WASAPI if both are available. | `matched` selects the microphone REAPER records from, or `uncertain` names that interface's inputs; never a different device. Record REAPER's `IDENT_IN` name and the teleprompter's device list for each driver type, and add any pair that does not match as a case in `internal/daw/inputmatch_test.go`. |
+| B7 | Which microphone REAPER uses ([inputmatch.go](../../src/studio/desktop/internal/daw/inputmatch.go)) | With the device open in REAPER, open the app's microphone picker (`TeleprompterReaperInput`); repeat with ASIO and with WASAPI if both are available. | `matched` selects the microphone REAPER records from, or `uncertain` names that interface's inputs; never a different device. Record REAPER's `IDENT_IN` name and the teleprompter's device list for each driver type, and add any pair that does not match as a case in `internal/daw/inputmatch_test.go`. |
 | B8 | The same microphone in REAPER and the app | With REAPER recording or monitoring the device, open the microphone popover's level meter (`TeleprompterMeterStart`, [Input level and the meter](../architecture/manuscript-teleprompter.md#input-level-and-the-meter)), then start a reading. | The meter moves with the owner's voice and the reading follows, or the open fails and `meter_stopped` or the session's error says why (REAPER holding the device exclusively). REAPER's own recording is never interrupted. Record which drivers share the device. |
 | B9 | `play_position` and `punch_to` while recording (the recording steps of A9b and A9c, which Part A cannot take) | During B2's recording, send `play_position`; then `punch_to` 42 with pre-roll 3. | `PLAY_POSITION` state 5 with both positions moving; `punch_to` is refused with "REAPER is recording. Stop it before moving to a word." and the cursor does not move. |
 
@@ -154,7 +154,7 @@ The device is a sound server that plays and records silence, nothing is listened
 
 ## Switching a command on
 
-A command passes when every row that names it passes and the report is recorded. The rows each Experimental capability (`declares` in `apps/desktop/internal/dawport/reaper/reaper.go`) needs, besides A10 for every row that writes:
+A command passes when every row that names it passes and the report is recorded. The rows each Experimental capability (`declares` in `src/studio/desktop/internal/dawport/reaper/reaper.go`) needs, besides A10 for every row that writes:
 
 | Capability | Commands | Rows |
 | --- | --- | --- |
@@ -177,7 +177,7 @@ A command passes when every row that names it passes and the report is recorded.
 Then, in one PR:
 
 1. Record the run here (a "Verification record" section: date, REAPER version, OS, the report, every value that differed from the fake) and correct the fake to match.
-2. Take the command off the host's experimental list (`experimentalCommands` in `apps/desktop/internal/bridge/actions.go`) and move its capability's declaration in `apps/desktop/internal/dawport/reaper/reaper.go` to Supported, in the same PR, so it no longer needs to be turned on. A command whose row failed stays on the list,, with the finding recorded here.
+2. Take the command off the host's experimental list (`experimentalCommands` in `src/studio/desktop/internal/bridge/actions.go`) and move its capability's declaration in `src/studio/desktop/internal/dawport/reaper/reaper.go` to Supported, in the same PR, so it no longer needs to be turned on. A command whose row failed stays on the list,, with the finding recorded here.
 3. Update the threat model rows that say "pending" for it.
 
 `pickups` is Supported already, so C8 and C9 promote nothing: a failure there is a bug to fix. Which command is promoted when is in [the promotion plan](../research/studio-next-daw-promotion-plan.md).
@@ -190,7 +190,7 @@ The scripted run and the owner's steps for `stamp_item_lines`, `read_line_ids` a
 
 ### Line identity: verification record
 
-The commands' logic is pinned by the bridge harness (`integrations/reaper/tests`, [the REAPER bridge](../architecture/reaper-bridge.md#the-harness)); REAPER's own behaviour was checked on 2026-09-21 in REAPER 7.80/x64 by `integrations/reaper/spikes/checklist.lua`, which loads the real bridge in an isolated REAPER (`-cfgfile` in a temp folder, a scratch project, no audio device) and drives it through the file protocol. 37 checks, 0 failures.
+The commands' logic is pinned by the bridge harness (`src/studio/integrations/reaper/tests`, [the REAPER bridge](../architecture/reaper-bridge.md#the-harness)); REAPER's own behaviour was checked on 2026-09-21 in REAPER 7.80/x64 by `src/studio/integrations/reaper/spikes/checklist.lua`, which loads the real bridge in an isolated REAPER (`-cfgfile` in a temp folder, a scratch project, no audio device) and drives it through the file protocol. 37 checks, 0 failures.
 
 | Step | How verified | Result |
 | --- | --- | --- |
@@ -228,9 +228,9 @@ The scripted run and the owner's steps for `navigate_item`, `loop_context`, `sto
 
 ### Going to a finding: verification record
 
-The approved marker is pinned by `integrations/reaper/tests/finding_marker_test.lua` and mutation checks (the add outside an undo block, a doubled marker, a marker added while recording or at a spot the item no longer covers); the host side by `apps/desktop/bindings_marker_test.go`, `internal/bridge/marker_test.go` (a fake REAPER through the real file protocol) and the golden payloads `tests/fixtures/contracts/findings-add-marker*.json`. The navigation commands' logic is pinned by the harness (`integrations/reaper/tests/navigation_test.lua` and the mutation checks in `mutations.json`: a stale GUID resolving to another item, a missing take falling back to the active one, a spot outside the item, recording not refused, a second loop overwriting the memory, Stop overwriting a narrator's change, Stop not restoring repeat or restoring twice, Stop stopping playback it did not start, the script ending without restoring, and the compare GUIDs read late). The Go client is covered by `navigation_test.go` against a fake REAPER that answers through the real file protocol.
+The approved marker is pinned by `src/studio/integrations/reaper/tests/finding_marker_test.lua` and mutation checks (the add outside an undo block, a doubled marker, a marker added while recording or at a spot the item no longer covers); the host side by `src/studio/desktop/bindings_marker_test.go`, `internal/bridge/marker_test.go` (a fake REAPER through the real file protocol) and the golden payloads `tests/fixtures/contracts/findings-add-marker*.json`. The navigation commands' logic is pinned by the harness (`src/studio/integrations/reaper/tests/navigation_test.lua` and the mutation checks in `mutations.json`: a stale GUID resolving to another item, a missing take falling back to the active one, a spot outside the item, recording not refused, a second loop overwriting the memory, Stop overwriting a narrator's change, Stop not restoring repeat or restoring twice, Stop stopping playback it did not start, the script ending without restoring, and the compare GUIDs read late). The Go client is covered by `navigation_test.go` against a fake REAPER that answers through the real file protocol.
 
-REAPER's own behaviour was checked on 2026-09-23 in REAPER 7.80/x64 by `integrations/reaper/spikes/navigation_check.lua` (run by `run-reaper.ps1`: an isolated `-cfgfile` in a temp folder, a scratch project built from synthetic tones in a temp folder, the audio device closed, and `OnPlayButton` replaced by a recorder so nothing played). It loads the real bridge registry and drives the real commands. 34 checks, 0 failures; the output is in `integrations/reaper/spikes/results/navigation-check-report.txt`.
+REAPER's own behaviour was checked on 2026-09-23 in REAPER 7.80/x64 by `src/studio/integrations/reaper/spikes/navigation_check.lua` (run by `run-reaper.ps1`: an isolated `-cfgfile` in a temp folder, a scratch project built from synthetic tones in a temp folder, the audio device closed, and `OnPlayButton` replaced by a recorder so nothing played). It loads the real bridge registry and drives the real commands. 34 checks, 0 failures; the output is in `src/studio/integrations/reaper/spikes/results/navigation-check-report.txt`.
 
 | Step | How verified | Result |
 | --- | --- | --- |
@@ -268,4 +268,4 @@ For the owner, in REAPER with audio, on a copy of a real project. Start the sess
 
 ## Pending owner steps
 
-Tracked on the [owner queue, #510](https://github.com/countrymanprime/narration-utils/issues/510): run Part A (`pwsh integrations/reaper/spikes/run-pass-part-a.ps1`, about two minutes, unattended) and paste `pass-part-a-results.md` into #510; be present for Part B and approve its one test recording on a copy of a project. The steps marked for the owner in the [line identity checklist](#line-identity-owner-checklist) (6 and 10) and the [going-to-a-finding checklist](#going-to-a-finding-owner-checklist) are pending with the owner too.
+Tracked on the [owner queue, #510](https://github.com/countrymanprime/narration-utils/issues/510): run Part A (`pwsh src/studio/integrations/reaper/spikes/run-pass-part-a.ps1`, about two minutes, unattended) and paste `pass-part-a-results.md` into #510; be present for Part B and approve its one test recording on a copy of a project. The steps marked for the owner in the [line identity checklist](#line-identity-owner-checklist) (6 and 10) and the [going-to-a-finding checklist](#going-to-a-finding-owner-checklist) are pending with the owner too.

@@ -6,7 +6,7 @@
 // whole file, so it passes measure.DiagnosticInput.Range as nil rather than
 // a range clipped to some item's SOFFS/LENGTH. The chapter-to-render
 // association and its own fingerprint/staleness are owned entirely by
-// apps/desktop/internal/proofing (RenderStore/EvaluateRender) and
+// src/studio/desktop/internal/proofing (RenderStore/EvaluateRender) and
 // reused as-is - this file only ever decodes
 // a path proofing has already told the caller is the chapter's current
 // render (render_signal.go, service.go).
@@ -36,7 +36,7 @@ type RenderScan struct {
 // DecodeRender runs the same windowed analyzers Decode runs (decode.go), over
 // the whole file at path rather than one item's played range: Range is left
 // nil, and measure.DiagnoseFile/diagnose treat a nil Range as "the whole
-// file" (apps/desktop/internal/measure/diagnostics.go's diagnose: "if
+// file" (src/studio/desktop/internal/measure/diagnostics.go's diagnose: "if
 // in.Range != nil" guards every range-specific step, so a nil Range decodes
 // start to finish with no skip-ahead and no clipped limit). opts.Silence
 // resolves to measure.DefaultDiagnosticOptions() exactly as Decode's own

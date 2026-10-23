@@ -119,7 +119,7 @@ func (c *Client) SetLabel(ctx context.Context, index int, edit LabelEdit) error 
 }
 
 // SetTrackName renames one track. SetTrackStatus takes Name, Selected and Focused and acts on the selected track: Audacity 3.7.7
-// ignores a Track parameter without an error (tests/audacity3/real/edits, A3-T17), so the track is selected first, alone. That leaves
+// ignores a Track parameter without an error (src/studio/tests/audacity3/real/edits, A3-T17), so the track is selected first, alone. That leaves
 // it the only selected track.
 func (c *Client) SetTrackName(ctx context.Context, track int, name string) error {
 	cmd := NewCommand("SetTrackStatus").String("Name", name)
@@ -227,7 +227,7 @@ func checkExtension(path string, allowed []string) error {
 
 // PrefClipsMove is Audacity's "Editing a clip can move other clips" (Preferences > Tracks Behaviors). A Delete or a Paste moves only the
 // audio of its own clip while it is off, so closing a gap between clips needs it on: with a track split in two and the preference
-// off, a Delete in the first clip left the second where it was (tests/audacity3/real/edits, A3-T18). It reads as not set on a fresh
+// off, a Delete in the first clip left the second where it was (src/studio/tests/audacity3/real/edits, A3-T18). It reads as not set on a fresh
 // profile, and behaves as off.
 const PrefClipsMove = "/GUI/EditClipCanMove"
 

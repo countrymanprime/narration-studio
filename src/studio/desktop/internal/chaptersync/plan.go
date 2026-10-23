@@ -3,7 +3,7 @@
 // linked" from the manuscript's chapters, the saved REAPER project, the stored
 // links and the last sync's snapshot, and Store, which keeps that snapshot in
 // narration-utils/chapter-sync.json. Nothing here writes a link: the sync
-// service (apps/desktop/chaptersync.go) hands Plan.Requests to
+// service (src/studio/desktop/chaptersync.go) hands Plan.Requests to
 // evidence.MappingStore.AutoLink once the narrator has consented for the
 // project.
 package chaptersync

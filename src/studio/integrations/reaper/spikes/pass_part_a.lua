@@ -304,7 +304,7 @@ local function finish(ok, err)
     date = os.date('!%Y-%m-%d %H:%M UTC'),
     seconds = reaper.time_precise() - started_at,
   }
-  local scrub = { { PACK, '<out>' }, { CFG, '<cfg>' }, { REAPER_DIR, '<repo>/integrations/reaper' } }
+  local scrub = { { PACK, '<out>' }, { CFG, '<cfg>' }, { REAPER_DIR, '<repo>/src/studio/integrations/reaper' } }
   local markdown = report:markdown(meta)
   if not ok then
     markdown = markdown .. '\n### Driver error\n\n```text\n' .. tostring(err) .. '\n```\n'

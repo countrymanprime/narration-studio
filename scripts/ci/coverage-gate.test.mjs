@@ -30,7 +30,7 @@ import {
   validateFloors,
 } from './coverage-gate.mjs';
 
-const entry = (over = {}) => ({ tool: 'go', project: 'apps/desktop', path: 'internal/importer', floor: 85, ...over });
+const entry = (over = {}) => ({ tool: 'go', project: 'src/studio/desktop', path: 'internal/importer', floor: 85, ...over });
 
 test('parses per-package statement coverage from `go test -cover` output', () => {
   const output = [
@@ -120,7 +120,7 @@ test('passes a value at its floor and fails one below it, naming the entry and b
   assert.deepEqual(atFloor.failures, []);
   const below = evaluate([entry()], () => 84.9);
   assert.equal(below.failures.length, 1);
-  assert.match(below.failures[0], /go apps\/desktop internal\/importer/);
+  assert.match(below.failures[0], /go src\/studio\/desktop internal\/importer/);
   assert.match(below.failures[0], /84\.9%/);
   assert.match(below.failures[0], /floor 85%/);
 });
@@ -170,14 +170,14 @@ test('rejects malformed, duplicate and out-of-range entries', () => {
 test('normalizes Vitest json-summary paths to project-relative forward slashes', () => {
   const summary = {
     total: { lines: { total: 1, covered: 1 } },
-    'C:\\repo\\apps\\ui\\src\\state.ts': { lines: { total: 49, covered: 49 } },
-    '/repo/apps/ui/src/hooks/useThing.ts': { lines: { total: 4, covered: 2 } },
+    'C:\\repo\\src\\studio\\ui\\src\\state.ts': { lines: { total: 49, covered: 49 } },
+    '/repo/src/studio/ui/src/hooks/useThing.ts': { lines: { total: 4, covered: 2 } },
   };
-  assert.deepEqual(normalizeVitestSummary(summary, 'c:\\repo\\apps\\ui'), [
+  assert.deepEqual(normalizeVitestSummary(summary, 'c:\\repo\\src\\studio\\ui'), [
     { path: 'src/state.ts', covered: 49, total: 49 },
-    { path: '/repo/apps/ui/src/hooks/useThing.ts', covered: 2, total: 4 },
+    { path: '/repo/src/studio/ui/src/hooks/useThing.ts', covered: 2, total: 4 },
   ]);
-  assert.deepEqual(normalizeVitestSummary({ '/repo/apps/ui/src/hooks/useThing.ts': { lines: { total: 4, covered: 2 } } }, '/repo/apps/ui'), [
+  assert.deepEqual(normalizeVitestSummary({ '/repo/src/studio/ui/src/hooks/useThing.ts': { lines: { total: 4, covered: 2 } } }, '/repo/src/studio/ui'), [
     { path: 'src/hooks/useThing.ts', covered: 2, total: 4 },
   ]);
 });
@@ -185,13 +185,13 @@ test('normalizes Vitest json-summary paths to project-relative forward slashes',
 test('normalizes a coverage.py json report', () => {
   const report = {
     files: {
-      'libs\\python\\narration_common\\manuscript.py': { summary: { covered_lines: 13, num_statements: 35 } },
-      'sidecars/manuscript-teleprompter/core/script_tracker.py': { summary: { covered_lines: 146, num_statements: 147 } },
+      'src\\studio\\libs\\python\\narration_common\\manuscript.py': { summary: { covered_lines: 13, num_statements: 35 } },
+      'src/studio/sidecars/manuscript-teleprompter/core/script_tracker.py': { summary: { covered_lines: 146, num_statements: 147 } },
     },
   };
   assert.deepEqual(normalizePytestReport(report), [
-    { path: 'libs/python/narration_common/manuscript.py', covered: 13, total: 35 },
-    { path: 'sidecars/manuscript-teleprompter/core/script_tracker.py', covered: 146, total: 147 },
+    { path: 'src/studio/libs/python/narration_common/manuscript.py', covered: 13, total: 35 },
+    { path: 'src/studio/sidecars/manuscript-teleprompter/core/script_tracker.py', covered: 146, total: 147 },
   ]);
 });
 
@@ -228,7 +228,7 @@ test('--update writes raised floors to the file, and a failing run still reports
 
 test('the command line rejects an unknown tool and a project with no floors without running anything', () => {
   const cli = (...args) => spawnSync(process.execPath, [fileURLToPath(new URL('./coverage-gate.mjs', import.meta.url)), ...args], { encoding: 'utf8' });
-  const unknownTool = cli('jest', 'apps/ui');
+  const unknownTool = cli('jest', 'src/studio/ui');
   assert.equal(unknownTool.status, 2);
   assert.match(unknownTool.stderr, /Usage/);
   const unlisted = cli('go', 'apps/not-a-project');
@@ -312,7 +312,7 @@ test('a merge needs the blob of every shard of its split and none of another', (
 
 test('the command line refuses a vitest option it does not know before running anything', () => {
   for (const option of ['--shard=4/3', '--merge=0', '--shard=1/3x', '--coverage']) {
-    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./coverage-gate.mjs', import.meta.url)), 'vitest', 'apps/ui', option], { encoding: 'utf8' });
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./coverage-gate.mjs', import.meta.url)), 'vitest', 'src/studio/ui', option], { encoding: 'utf8' });
     assert.equal(result.status, 2, option);
     assert.match(result.stderr, /Usage: coverage-gate\.mjs vitest/);
   }
@@ -356,7 +356,7 @@ test('each job checks the floors of the packages it ran, every floor is checked 
 
 test('the command line refuses --group without -race and a group it does not know', () => {
   const gate = fileURLToPath(new URL('./coverage-gate.mjs', import.meta.url));
-  const refuse = (...args) => spawnSync(process.execPath, [gate, 'go', 'apps/desktop', ...args], { encoding: 'utf8' });
+  const refuse = (...args) => spawnSync(process.execPath, [gate, 'go', 'src/studio/desktop', ...args], { encoding: 'utf8' });
   assert.equal(refuse('-race', '--group=everything').status, 2);
   assert.equal(refuse('--group=root').status, 2, 'no -race, nothing to divide');
   assert.equal(refuse('-race', '--group=root', '--group=race').status, 2);

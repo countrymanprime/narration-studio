@@ -63,15 +63,15 @@ var kindBranchExceptions = map[string]string{
 }
 
 type guardFile struct {
-	rel  string // slash-separated, relative to apps/desktop
-	pkg  string // the package's directory, relative to apps/desktop
+	rel  string // slash-separated, relative to src/studio/desktop
+	pkg  string // the package's directory, relative to src/studio/desktop
 	file *ast.File
 }
 
-// moduleRoot is apps/desktop: this test lives two directories below it.
+// moduleRoot is src/studio/desktop: this test lives two directories below it.
 const moduleRoot = "../.."
 
-// parseModuleSources parses every non-test Go file in the module (apps/desktop and everything under it).
+// parseModuleSources parses every non-test Go file in the module (src/studio/desktop and everything under it).
 func parseModuleSources(t *testing.T) (*token.FileSet, []guardFile) {
 	t.Helper()
 	fset := token.NewFileSet()
@@ -110,7 +110,7 @@ func parseModuleSources(t *testing.T) (*token.FileSet, []guardFile) {
 	return fset, files
 }
 
-// importDirs maps each import's local name to its directory relative to apps/desktop (only this module's imports).
+// importDirs maps each import's local name to its directory relative to src/studio/desktop (only this module's imports).
 func importDirs(file *ast.File) map[string]string {
 	dirs := map[string]string{}
 	for _, spec := range file.Imports {
@@ -127,7 +127,7 @@ func importDirs(file *ast.File) map[string]string {
 	return dirs
 }
 
-// isDawportDir reports whether dir (relative to apps/desktop) is internal/dawport or one of its subpackages (reaper, audacity,
+// isDawportDir reports whether dir (relative to src/studio/desktop) is internal/dawport or one of its subpackages (reaper, audacity,
 // dawporttest): the port and every adapter it registers.
 func isDawportDir(dir string) bool {
 	return dir == dawportPkgPrefix || strings.HasPrefix(dir, dawportPkgPrefix+"/")

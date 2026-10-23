@@ -27,7 +27,7 @@ export const CAUSE_TEXT: Record<StageUnknownCause, { short: string; action: stri
   provider_error: { short: 'the evidence could not be read', action: 'Check now to read it again.', resolve: 'check-now' },
 };
 
-/** The same causes, worded for the editing check instead of the recording check: the two signal providers share one cause vocabulary (apps/desktop/internal/editing/signals.go reuses
+/** The same causes, worded for the editing check instead of the recording check: the two signal providers share one cause vocabulary (src/studio/desktop/internal/editing/signals.go reuses
  * `stages.UnknownCause`), so a bare `CAUSE_TEXT` lookup would send an editing signal's "Open recording check" -
  * wrong dialog entirely. `causeText` picks this table instead whenever the signal's id is one of editing's three. */
 const EDITING_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: string; action: string; resolve: StageCauseAction }>> = {
@@ -74,13 +74,13 @@ const PROOFING_DELIVERY_CAUSE_TEXT: Partial<Record<StageUnknownCause, { short: s
   measurement_unavailable: { short: 'cannot be checked here', action: 'See the Rendered file section below.', resolve: 'wait' },
 };
 
-/** True for the three editing signal ids (apps/desktop/internal/editing/signals.go). */
+/** True for the three editing signal ids (src/studio/desktop/internal/editing/signals.go). */
 export const isEditingSignal = (signalId: string): boolean => signalId.startsWith('editing.');
 
-/** True for the proofing pickups roll-up (apps/desktop/internal/proofing/pickups.go), as opposed to a delivery check. */
+/** True for the proofing pickups roll-up (src/studio/desktop/internal/proofing/pickups.go), as opposed to a delivery check. */
 const isProofingPickupsSignal = (signalId: string): boolean => signalId === 'proofing.pickups';
 
-/** True for a proofing delivery check, including the render length check (apps/desktop/internal/proofing/delivery.go,
+/** True for a proofing delivery check, including the render length check (src/studio/desktop/internal/proofing/delivery.go,
  * renders.go): every one of them is about the chapter's chosen render, whose actions live in this panel's own
  * "Rendered file" section, not a dialog `StageEvidence` could open. */
 const isProofingDeliverySignal = (signalId: string): boolean => signalId.startsWith('proofing.delivery.');

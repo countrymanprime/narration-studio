@@ -8,7 +8,7 @@
 // never committed, so the run is skipped unless
 // NARRATION_SIGNAL_CORPUS names a built corpus, like measure's
 // TestLibriVoxSignalCorpus. docs/research/editing-click-breath-validation.md
-// reports it; apps/desktop/internal/editing/librivoxvalidation_test.go says what the set can and cannot decide.
+// reports it; src/studio/desktop/internal/editing/librivoxvalidation_test.go says what the set can and cannot decide.
 
 package editing
 

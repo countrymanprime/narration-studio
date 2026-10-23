@@ -69,7 +69,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
+// Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
 const hostAPIVersion = 140
@@ -538,7 +538,7 @@ func noticePayload(text string) map[string]any { return map[string]any{"text": t
 // recentProjectsPath resolves the per-user recent-projects file. Recent
 // projects are not project-scoped, so this is constructed exactly once in
 // NewHost and never rebuilt by configureLocked. Mirrors the %APPDATA%-with-
-// %USERPROFILE%-fallback chain in apps/desktop/internal/settings/store.go's
+// %USERPROFILE%-fallback chain in src/studio/desktop/internal/settings/store.go's
 // globalPath(), duplicated inline rather than shared since it is only a few
 // lines.
 func recentProjectsPath() string {
@@ -1756,7 +1756,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		// has not been run; until it is, every punch uses this setting.
 		{"punch_preroll_seconds", "Punch pre-roll (seconds)", "number", nil},
 	},
-	// DAW.reaper_path is a global override for daw.Resolve (empty means auto-detect, apps/desktop/internal/daw).
+	// DAW.reaper_path is a global override for daw.Resolve (empty means auto-detect, src/studio/desktop/internal/daw).
 	// DAW.auto_start_launcher: the app may pass NarrationStudio_Launcher.lua as REAPER's trailing script argument when
 	// it starts REAPER, so the bridge is live without the narrator running the action by hand - but only when this is on, and
 	// it defaults off.
@@ -1814,7 +1814,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"parallel_chapters", "Chapters checked at once", "number", nil},
 	},
 	// StageRecommendations (see docs/architecture/stage-recommendations.md) chooses which signals must be
-	// met for a stage suggestion: one choice field per signal id a provider declares (apps/desktop/bindings_stages.go's
+	// met for a stage suggestion: one choice field per signal id a provider declares (src/studio/desktop/bindings_stages.go's
 	// requiredStageSignals reads it), "required" or "ignored", plus the optional master switch. One key per
 	// signal a provider declares: the recording signal (coverage.RecordingSignalID), then the editing and proofing
 	// signals below; a new analyzer's signal adds its own key here.
@@ -2080,7 +2080,7 @@ func validateSettingValue(tool string, schema fieldSchema, value string) error {
 // tagsFieldMaxBytes bounds a "tags" field's whole stored value: a generous cap for a narrator's whole favourites
 // list, well short of anything that would slow down loading or saving settings (keymapOverridesMaxBytes is the
 // same idea for Keymap.overrides). maxTagTermLength mirrors TagInput's own MAX_TERM_LENGTH
-// (apps/ui/src/components/primitives/TagInput.tsx): a term this long already reads as a mistake, not a name.
+// (src/studio/ui/src/components/primitives/TagInput.tsx): a term this long already reads as a mistake, not a name.
 const (
 	tagsFieldMaxBytes = 4096
 	maxTagTermLength  = 64

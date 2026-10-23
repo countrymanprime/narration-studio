@@ -1,7 +1,7 @@
 // Package tracks reads REAPER project (.rpp) files directly from disk to
 // list a project's tracks and the media each track's items reference. It
 // does not depend on a running REAPER instance or the file-session Lua
-// bridge (integrations/reaper/narration_ui_bridge.lua): that bridge only works
+// bridge (src/studio/integrations/reaper/narration_ui_bridge.lua): that bridge only works
 // while REAPER has NarrationStudio_Launcher.lua active for the current
 // session, whereas a standalone-launched app (docs/architecture/
 // standalone-launch.md) must be able to read tracks from a project folder
@@ -17,7 +17,7 @@ import (
 
 // Item is REAPER's <ITEM> chunk, still with Position/Length/Name/SourceKind/
 // SourceFile/SourceAvailable/Supported/GUID (the TracksList wire contract:
-// tests/fixtures/contracts/tracks-project.json, apps/ui's Zod schema) always
+// tests/fixtures/contracts/tracks-project.json, src/studio/ui's Zod schema) always
 // describing the item's active take, not necessarily its first one. GUID is on the wire contract because the
 // "Link chapters" preview names, by GUID, exactly which item each stamp
 // would write to (never a position or an index), and LineIdentityStamp's
@@ -84,7 +84,7 @@ func (item Item) Active() Take {
 // own extension data (<EXT>). REAPER's rpp format has no per-take chunk -
 // a take is a run of scalar lines (NAME, SOFFS, PLAYRATE, GUID, ...) and
 // child chunks (<SOURCE>, <TAKEFX>, <EXT>) delimited by a bare TAKE line
-// (see apps/desktop/internal/tracks/testdata/reaper/README.md).
+// (see src/studio/desktop/internal/tracks/testdata/reaper/README.md).
 type Take struct {
 	GUID            string
 	Name            string

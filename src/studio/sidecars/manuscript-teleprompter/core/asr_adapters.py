@@ -23,7 +23,7 @@ _CORE_DIR = Path(__file__).resolve().parent
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
-_SHARED_PYTHON = Path(__file__).resolve().parents[3] / "libs" / "python"
+_SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
 

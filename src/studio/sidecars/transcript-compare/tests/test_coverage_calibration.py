@@ -14,7 +14,7 @@ import coverage_spike as spike
 import numpy as np
 import pytest
 
-REPOSITORY = Path(__file__).resolve().parents[3]
+REPOSITORY = Path(__file__).resolve().parents[5]
 MANUSCRIPT = harness.FIXTURE_DIR / "manuscript.json"
 
 
@@ -217,7 +217,7 @@ def test_a_played_range_renders_only_the_words_inside_it():
 
 def test_audio_is_never_rendered_inside_the_repository(tmp_path):
     with pytest.raises(ValueError, match="inside the repository"):
-        cal.render_audio_corpus(tmp_path / "voice.onnx", REPOSITORY / "sidecars" / "rendered")
+        cal.render_audio_corpus(tmp_path / "voice.onnx", REPOSITORY / "src" / "studio" / "sidecars" / "rendered")
 
 
 def test_transcript_errors_counts_dropped_swapped_and_added_words(tmp_path):

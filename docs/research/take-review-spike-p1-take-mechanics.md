@@ -16,10 +16,10 @@
 ## Method
 
 - **Machine and build.** Windows 11, REAPER 7.80/x64 rev 9d9fa7, same installation the S0 spike used.
-- **Isolation.** `reaper.exe -cfgfile <temp>\reaper.ini -nosplash -newinst -noactivate <script.lua>`, via [`integrations/reaper/spikes/run-reaper.ps1`](../../integrations/reaper/spikes/run-reaper.ps1), the same driver S0 built and the same safety rules (owner decision D3): `-Cfg` and `-Out` must be under the user's temp folder and never under a `REAPER Media` folder, the driver refuses otherwise; the script asserts its own resource path is the scratch `-Cfg` folder; `reaper.Audio_Quit()` runs first and `Audio_IsRunning() == 0` is asserted before anything else happens; nothing is recorded, armed or played; only the REAPER process the driver started was closed, and `tasklist` after the run confirmed no `reaper.exe` process remained.
+- **Isolation.** `reaper.exe -cfgfile <temp>\reaper.ini -nosplash -newinst -noactivate <script.lua>`, via [`src/studio/integrations/reaper/spikes/run-reaper.ps1`](../../src/studio/integrations/reaper/spikes/run-reaper.ps1), the same driver S0 built and the same safety rules (owner decision D3): `-Cfg` and `-Out` must be under the user's temp folder and never under a `REAPER Media` folder, the driver refuses otherwise; the script asserts its own resource path is the scratch `-Cfg` folder; `reaper.Audio_Quit()` runs first and `Audio_IsRunning() == 0` is asserted before anything else happens; nothing is recorded, armed or played; only the REAPER process the driver started was closed, and `tasklist` after the run confirmed no `reaper.exe` process remained.
 - **No copy of `Challenges_001.rpp` was opened.** This spike builds its own scratch project entirely from the REAPER API (`File: New project`, synthetic tracks, synthetic media), the same pattern `build_cases.lua` used for S0's fixture project. The task brief's instruction to work "against a copy of `Challenges_001.rpp`" is satisfied by D3's broader rule (never touch the original folder; work in a temp directory with an isolated `-cfgfile`) rather than by opening that specific file, because take creation and `P_EXT` semantics do not depend on which project they run in, and a from-scratch project makes the length/offset arithmetic exact and reviewable. Nothing in `C:\Users\Count\Documents\REAPER Media\` was read, opened, or modified.
-- **Media.** [`make_media.py`](../../integrations/reaper/spikes/make_media.py) (existing, 3 s tones) plus a new [`make_length_media.py`](../../integrations/reaper/spikes/make_length_media.py): a 1 s tone (shorter-than-target case), a 5 s tone (longer-than-target case), and a 4 s tone (source-offset case).
-- **Script.** [`take_mechanics.lua`](../../integrations/reaper/spikes/take_mechanics.lua), a new spike script, run the same way as `build_cases.lua`. Recorded output (no paths; the script never writes an absolute path into the report) is [`integrations/reaper/spikes/results/take-mechanics-report.txt`](../../integrations/reaper/spikes/results/take-mechanics-report.txt).
+- **Media.** [`make_media.py`](../../src/studio/integrations/reaper/spikes/make_media.py) (existing, 3 s tones) plus a new [`make_length_media.py`](../../src/studio/integrations/reaper/spikes/make_length_media.py): a 1 s tone (shorter-than-target case), a 5 s tone (longer-than-target case), and a 4 s tone (source-offset case).
+- **Script.** [`take_mechanics.lua`](../../src/studio/integrations/reaper/spikes/take_mechanics.lua), a new spike script, run the same way as `build_cases.lua`. Recorded output (no paths; the script never writes an absolute path into the report) is [`src/studio/integrations/reaper/spikes/results/take-mechanics-report.txt`](../../src/studio/integrations/reaper/spikes/results/take-mechanics-report.txt).
 
 ## The take-creation sequence the spike used
 
@@ -73,10 +73,10 @@ Item-level identity (`<EXTI`) and take-level provenance (`<EXT`, this spike) liv
 ## Reproduce
 
 ```powershell
-python integrations/reaper/spikes/make_media.py $env:TEMP\take-mechanics-spike\media
-python integrations/reaper/spikes/make_length_media.py $env:TEMP\take-mechanics-spike\media
-pwsh integrations/reaper/spikes/run-reaper.ps1 -Cfg $env:TEMP\take-mechanics-spike-cfg -Out $env:TEMP\take-mechanics-spike `
-  -Script integrations/reaper/spikes/take_mechanics.lua -Done $env:TEMP\take-mechanics-spike\take-mechanics-report.txt
+python src/studio/integrations/reaper/spikes/make_media.py $env:TEMP\take-mechanics-spike\media
+python src/studio/integrations/reaper/spikes/make_length_media.py $env:TEMP\take-mechanics-spike\media
+pwsh src/studio/integrations/reaper/spikes/run-reaper.ps1 -Cfg $env:TEMP\take-mechanics-spike-cfg -Out $env:TEMP\take-mechanics-spike `
+  -Script src/studio/integrations/reaper/spikes/take_mechanics.lua -Done $env:TEMP\take-mechanics-spike\take-mechanics-report.txt
 Get-Content $env:TEMP\take-mechanics-spike\take-mechanics-report.txt
 ```
 

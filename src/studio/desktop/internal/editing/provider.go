@@ -1,6 +1,6 @@
 // This file registers this package's signals into SR's engine
-// (the Provider contract in apps/desktop/internal/stages/provider.go),
-// following apps/desktop/internal/coverage/provider.go's own shape exactly:
+// (the Provider contract in src/studio/desktop/internal/stages/provider.go),
+// following src/studio/desktop/internal/coverage/provider.go's own shape exactly:
 // the engine and store are untouched. It reads stored evidence only: the
 // confirmed mapping, each item's own ledger staleness, and the chapter's
 // already-persisted silence_cleanup findings - never a decode, never a fresh

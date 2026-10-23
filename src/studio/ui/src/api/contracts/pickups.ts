@@ -1,5 +1,5 @@
 // The pickup list: import a proofer's CSV, jump to the next open
-// pickup, resolve or reopen it, list every pickup marker, export the remaining list. Mirrors apps/desktop/internal/pickups.Service.Snapshot() exactly:
+// pickup, resolve or reopen it, list every pickup marker, export the remaining list. Mirrors src/studio/desktop/internal/pickups.Service.Snapshot() exactly:
 // one run (import, export, jump, resolve, reopen, list or count) at a time, reported by phase, with remaining/total surviving
 // between runs so the count does not flash back to zero while a different action is in flight.
 

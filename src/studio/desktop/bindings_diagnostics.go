@@ -2,7 +2,7 @@ package main
 
 // The diagnostics bindings: Master & QC's Diagnostics section
 // runs the windowed analyzers over files picked with MeasurePickFiles. The job is in diagnostics_job.go; the
-// wire-contract schema, golden payloads and mock are in apps/ui/src/api. None of them reads a project service, so a
+// wire-contract schema, golden payloads and mock are in src/studio/ui/src/api. None of them reads a project service, so a
 // project switch does not touch them.
 
 // DiagnosticsAnalyze checks picked files as a job and answers it. sourceKind is raw_recording or processed_render, as

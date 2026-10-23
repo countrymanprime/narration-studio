@@ -1,6 +1,6 @@
 # REAPER bridge harness tests
 
-These tests run the bridge and the launcher under Lua 5.4 against a fake `reaper` table. What each file does, how to run them and what they cannot prove are in [the REAPER bridge](../../../docs/architecture/reaper-bridge.md#the-harness).
+These tests run the bridge and the launcher under Lua 5.4 against a fake `reaper` table. What each file does, how to run them and what they cannot prove are in [the REAPER bridge](../../../../../docs/architecture/reaper-bridge.md#the-harness).
 
 ## Writing a test
 

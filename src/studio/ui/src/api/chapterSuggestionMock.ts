@@ -3,7 +3,7 @@ import type { ManuscriptChapter } from './contracts/manuscript';
 import type { Track, TracksProject } from './contracts/tracks';
 import { nameScore } from './chapterTrackMatchMock';
 
-// The browser mock's stand-in for the host's ChapterSuggestion (apps/desktop/internal/chaptermatch/suggest.go). The mock project's tracks carry no saved arm or selection on the wire, so the caller says which tracks are
+// The browser mock's stand-in for the host's ChapterSuggestion (src/studio/desktop/internal/chaptermatch/suggest.go). The mock project's tracks carry no saved arm or selection on the wire, so the caller says which tracks are
 // armed. Like the chapter-to-track mock it only covers what the mock project needs: a confirmed link, an exact or
 // whole-word-prefix name (several prefixes are the Python matcher's shortest-title pick, only uncertain), and nothing.
 
@@ -58,7 +58,7 @@ export function mockChapterSuggestion(
   return { ...base, basis: 'armed', track: null, status: candidates.length ? 'ambiguous' : 'none', chapter: null, candidates };
 }
 
-// The browser mock's stand-in for ChaptersForTracks (apps/desktop/chaptermatch.go): forTrack run over every requested
+// The browser mock's stand-in for ChaptersForTracks (src/studio/desktop/chaptermatch.go): forTrack run over every requested
 // GUID, each resolved to its own track first (a track GUID directly, or an item's or its active take's GUID) since the
 // Review page's findings usually carry only one of those. A GUID that resolves to no track in the mock project answers with `error` instead of failing the others.
 export function mockChaptersForTracks(

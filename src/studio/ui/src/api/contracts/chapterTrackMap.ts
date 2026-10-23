@@ -120,7 +120,7 @@ export type ChaptersForTracksEntry = {
 };
 
 /** ChaptersForTracks' answer: the Review page's chapter grouping for findings that carry only a track, item or take GUID
- * (apps/desktop/internal/findings.Source) rather than a manuscript-anchored chapter id. `tracks` is keyed by exactly the
+ * (src/studio/desktop/internal/findings.Source) rather than a manuscript-anchored chapter id. `tracks` is keyed by exactly the
  * GUID requested (a track, item or take GUID all resolve through the item's or take's own track). */
 export type ChaptersForTracksResult = {
   projectFile: string;

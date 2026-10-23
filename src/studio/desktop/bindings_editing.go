@@ -37,7 +37,7 @@ var errEditingNoProject = errors.New("open a project before checking editing")
 // asks: nothing here starts one on its own. Unlike CoverageStart/CoverageState,
 // these bindings are plain poll-style calls with no live event and no
 // OS-notification job tracking (there is no jobKindEditing in
-// apps/ui/src/api/contracts/system.ts).
+// src/studio/ui/src/api/contracts/system.ts).
 
 // editingIdle is the state reported when no project (so no editing service)
 // is open.

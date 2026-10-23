@@ -296,12 +296,12 @@ export const fileRevealOf = (setup: DawCapabilities, path: string): string => fi
 const fileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
 
 export const DAW_ANSWERS = {
-  /** apps/desktop/bindings_daw_files.go (SN-B98): a file played or shown, and the host's refusals of a path or a stretch. */
+  /** src/studio/desktop/bindings_daw_files.go (SN-B98): a file played or shown, and the host's refusals of a path or a stretch. */
   fileStopped: 'Stopped playing the file.',
   fileNothingPlaying: 'Nothing was playing.',
   fileNotPicked: 'Pick the file to measure again: only a file picked in this session can be played or shown.',
   fileBadStretch: 'The stretch to play is not a usable number of seconds (up to 60).',
-  /** apps/desktop/bindings_master_files.go (SN-M97): a file id that is not a file of the last measurement (code stale). */
+  /** src/studio/desktop/bindings_master_files.go (SN-M97): a file id that is not a file of the last measurement (code stale). */
   masterNotInRun: 'That file is not in the last measurement. Check the files again, then try again.',
   noTrack: 'The track linked to this chapter is no longer in the REAPER project. Link it again in the audio engine panel.',
   staleTake: "This take's item is no longer in the REAPER project, so nothing was changed. Run the check again to find the takes where they are now.",

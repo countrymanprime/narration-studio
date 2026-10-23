@@ -27,7 +27,7 @@ test('a release candidate and its promotion are the same bytes, so a version wit
   }
 });
 
-const product = JSON.parse(readFileSync(new URL('../../apps/desktop/wails.json', import.meta.url), 'utf8'));
+const product = JSON.parse(readFileSync(new URL('../../src/studio/desktop/wails.json', import.meta.url), 'utf8'));
 
 test('the Go build is a production build that always stamps the version', () => {
   assert.deepEqual(goBuildArguments('0.2.7', 'linux', 'build/bin/narration-utils'), [

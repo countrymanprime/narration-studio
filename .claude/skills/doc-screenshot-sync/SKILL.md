@@ -18,7 +18,7 @@ Any change to what a page draws or how it is used, after `visual-catalog-sync` i
 
 ## What to do
 
-1. Find the guide images of the pages you changed: the entries of `apps/ui/tests/visual/doc-screenshots.json` whose
+1. Find the guide images of the pages you changed: the entries of `src/studio/ui/tests/visual/doc-screenshots.json` whose
    `page` is the state-catalog page, embedded in `docs/guides/using-the-app/<page>.md`.
 2. Regenerate them from the real app:
 
@@ -35,7 +35,7 @@ Any change to what a page draws or how it is used, after `visual-catalog-sync` i
    step 2.
 5. A removed state or interaction: delete its manifest entry, its image and its text. The command lists images the
    manifest no longer names.
-6. Run `pnpm --dir apps/ui exec vitest run src/docScreenshots.test.ts src/docsGuide.test.ts`: every entry must be a
+6. Run `pnpm --dir src/studio/ui exec vitest run src/docScreenshots.test.ts src/docsGuide.test.ts`: every entry must be a
    catalogued state and embedded on exactly one page.
 7. Link the guide diff from the PR description, or write `No guide change: <specific reason>` there; the
    `Guide impact` step of `Docs / Docs checks` (`scripts/ci/guide-impact.mjs`) fails a page change with neither.

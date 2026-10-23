@@ -21,7 +21,7 @@ The commands were built to that decision (`narration_workspace.lua`, #520), each
 
 ## The script
 
-`integrations/reaper/spikes/spike_ep0_workspace.lua` works like `navigation_check.lua`:
+`src/studio/integrations/reaper/spikes/spike_ep0_workspace.lua` works like `navigation_check.lua`:
 
 - It loads the **real** `narration_ui_bridge.lua` registry, with its real feature files.
 - It calls each command the way the dispatcher does, then reads the answers back from `events.log`.
@@ -55,13 +55,13 @@ On a Windows machine with REAPER 7.x installed, from the repository root:
 
 ```powershell
 $out = "$env:TEMP\ep0-$(Get-Date -Format yyyyMMddHHmmss)"
-python integrations/reaper/spikes/make_media.py $out\media
-pwsh integrations/reaper/spikes/run-reaper.ps1 -Cfg "$env:TEMP\ep0-cfg" -Out $out `
-  -Script integrations/reaper/spikes/spike_ep0_workspace.lua -Done $out\ep0-workspace-report.txt
+python src/studio/integrations/reaper/spikes/make_media.py $out\media
+pwsh src/studio/integrations/reaper/spikes/run-reaper.ps1 -Cfg "$env:TEMP\ep0-cfg" -Out $out `
+  -Script src/studio/integrations/reaper/spikes/spike_ep0_workspace.lua -Done $out\ep0-workspace-report.txt
 Get-Content $out\ep0-workspace-report.txt
 ```
 
-Copy the report into `integrations/reaper/spikes/results/ep0-workspace-report.txt` with the paths removed, and fill in [Results](#results).
+Copy the report into `src/studio/integrations/reaper/spikes/results/ep0-workspace-report.txt` with the paths removed, and fill in [Results](#results).
 
 Every check is unattended: nothing plays, records or needs an audio device. **Listening is not covered.** Hearing the passage's plug-in, and hearing REAPER's split crossfade, are part B of the verification pass and stay with the owner.
 

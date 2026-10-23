@@ -3,14 +3,14 @@
 # pinned Audacity on Linux: Xvfb, a PulseAudio null sink, mod-script-pipe. Writes results.json and summary.md next to the raw
 # replies, screenshots and exported audio in $NU_AUDACITY_WORK/out (the CI artifact).
 #
-#   tests/audacity3/real/foundation/run.sh [go-test-run-regexp]        (default: every test)
+#   src/studio/tests/audacity3/real/foundation/run.sh [go-test-run-regexp]        (default: every test)
 #
 # Needs: curl, sha256sum, python3, go, ffmpeg/ffprobe, Xvfb, PulseAudio (pulseaudio, pactl, paplay, parec), libasound2-plugins, xdotool,
 # ImageMagick `import`. On Ubuntu 24.04: apt-get install xvfb pulseaudio pulseaudio-utils libasound2-plugins xdotool ffmpeg imagemagick.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(cd "$HERE/../../../.." && pwd)"
+REPO="$(cd "$HERE/../../../../../.." && pwd)"
 PATTERN="${1:-.}"
 
 # Pinned. Bump the version and the hash together from the release page's asset (an AppImage's hash is the only identity it has).
@@ -90,7 +90,7 @@ rm -rf "$WORK/out/results" "$WORK/out/golden"
 
 status=0
 (
-	cd "$REPO/apps/desktop"
+	cd "$REPO/src/studio/desktop"
 	NU_AUDACITY_WORK="$WORK" \
 		NU_AUDACITY_APP="$WORK/bin/squashfs-root" \
 		NU_AUDACITY_OUT="$WORK/out" \

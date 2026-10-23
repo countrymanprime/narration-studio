@@ -53,7 +53,7 @@ export type TeleprompterFlagSave = {
 };
 
 /**
- * A kept flag, as the findings store holds it (`apps/desktop/internal/liveflags`, docs/architecture/findings-contract.md). The
+ * A kept flag, as the findings store holds it (`src/studio/desktop/internal/liveflags`, docs/architecture/findings-contract.md). The
  * field names are the contract's own snake_case. Always suspected: `confidence` is null and `confidence_reason` says why.
  */
 export type TeleprompterFlagFinding = {
@@ -282,7 +282,7 @@ export type TeleprompterReading = {
 export type TeleprompterDevice = { name: string };
 
 /**
- * `TeleprompterDevices` never fails Start-style (see `apps/desktop/bindings.go`): a listing problem comes back as
+ * `TeleprompterDevices` never fails Start-style (see `src/studio/desktop/bindings.go`): a listing problem comes back as
  * `{devices: [], error: "..."}`, not a rejected promise, so a caller can always still try to start with a
  * previously-chosen device.
  */

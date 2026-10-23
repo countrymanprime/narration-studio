@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react';
 import type { NarrationApi } from './types';
 
-// The one place another build of this app plugs in. The public demo site (apps/site) is the real UI in its mock mode with a banner, a simulated DAW and a
-// handshake with the page around it; none of that code lives in apps/ui. The site's entry registers an extension before it imports `main.tsx`, and
+// The one place another build of this app plugs in. The public demo site (src/web) is the real UI in its mock mode with a banner, a simulated DAW and a
+// handshake with the page around it; none of that code lives in src/studio/ui. The site's entry registers an extension before it imports `main.tsx`, and
 // the app reads the extension where it would otherwise branch on a build flag. The Wails build registers nothing, so every field is absent and the
 // app behaves exactly as before. Nothing here names the site: another host page could use the same seams.
 //

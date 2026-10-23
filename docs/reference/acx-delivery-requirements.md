@@ -1,6 +1,6 @@
 # ACX delivery requirements
 
-The rules of the built-in ACX delivery profile, `acx@2026-09` (`apps/desktop/internal/deliveryprofile/acx.go`): each requirement, how the app checks it and how it was verified. The Go table test `TestTheACXProfileHoldsEveryRequirementOfTheCheckedInTable` (`apps/desktop/internal/deliveryprofile/profile_test.go`) holds the same rows as the table below; change both together.
+The rules of the built-in ACX delivery profile, `acx@2026-09` (`src/studio/desktop/internal/deliveryprofile/acx.go`): each requirement, how the app checks it and how it was verified. The Go table test `TestTheACXProfileHoldsEveryRequirementOfTheCheckedInTable` (`src/studio/desktop/internal/deliveryprofile/profile_test.go`) holds the same rows as the table below; change both together.
 
 Pending the owner: reading ACX's page, and the comparison with Audacity's ACX Check.
 
@@ -25,9 +25,9 @@ Because only paraphrases were recorded (except the credits line), the profile ma
 | `acx.noise_floor` | Noise floor no higher than −60 dB RMS | file | Measured: `noise_floor_dbfs` at most −60 (quietest 0.5 s window, digital silence excluded) | to verify | Window definition; compare with ACX Check |
 | `acx.sample_rate` | 44.1 kHz | file | Measured on the WAV render: `sample_rate` = 44100 | verified (2026-09-23) | Checked on the MP3 as well |
 | `acx.file_length` | Each file 120 minutes or shorter | file | Measured: `duration_seconds` at most 7200 | verified (2026-09-20) | |
-| `acx.room_tone_head` | Room tone at the beginning of each file | file | Measured ([edges.go](../../apps/desktop/internal/measure/edges.go)): judged 0.5 to 5 s (the looser reading), digital silence in the head is advice | **conflicting** | ACX's page was read as 1 to 5 s; the guides say 0.5 to 1 s. The owner reads the page |
-| `acx.room_tone_tail` | 1 to 5 s of room tone at the end of each file | file | Measured (`apps/desktop/internal/measure/edges.go`): judged 1 to 5 s, digital silence in the tail is advice | verified (2026-09-20) | |
-| `acx.format` | MP3, 192 kbps or higher, constant bit rate | file | Measured on a picked MP3 ([mp3header.go](../../apps/desktop/internal/measure/mp3header.go)): the frame headers give the bitrate (at least 192 kbps) and whether every frame shares it (CBR); not checked on a WAV render | verified (2026-09-23) | |
+| `acx.room_tone_head` | Room tone at the beginning of each file | file | Measured ([edges.go](../../src/studio/desktop/internal/measure/edges.go)): judged 0.5 to 5 s (the looser reading), digital silence in the head is advice | **conflicting** | ACX's page was read as 1 to 5 s; the guides say 0.5 to 1 s. The owner reads the page |
+| `acx.room_tone_tail` | 1 to 5 s of room tone at the end of each file | file | Measured (`src/studio/desktop/internal/measure/edges.go`): judged 1 to 5 s, digital silence in the tail is advice | verified (2026-09-20) | |
+| `acx.format` | MP3, 192 kbps or higher, constant bit rate | file | Measured on a picked MP3 ([mp3header.go](../../src/studio/desktop/internal/measure/mp3header.go)): the frame headers give the bitrate (at least 192 kbps) and whether every frame shares it (CBR); not checked on a WAV render | verified (2026-09-23) | |
 | `acx.channels` | Mono or stereo, the same in every file | book | Measured: every file mono or stereo, and the same in every file | to verify | The "same in every file" wording and any mono preference |
 | `acx.one_section_per_file` | One chapter or section per file, starting with a section header | book | Listen | verified (2026-09-20) | Later: the chapter-track mapping can flag a file with two chapter titles |
 | `acx.credits` | "Opening and closing credits should be separate files" | book | Not checked by the app yet | verified (2026-09-20) | |

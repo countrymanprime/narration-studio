@@ -1,5 +1,5 @@
 {
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "name": "manuscript-guide",
   "projectType": "application",
   "tags": ["toolchain:python"],
@@ -9,9 +9,9 @@
       "executor": "nx:run-commands",
       "options": {
         "commands": [
-          "node scripts/quality.mjs python -m ruff format --check sidecars/manuscript-guide",
-          "node scripts/quality.mjs python -m ruff check sidecars/manuscript-guide",
-          "node scripts/ci/doc-comments.mjs python sidecars/manuscript-guide"
+          "node scripts/quality.mjs python -m ruff format --check src/studio/sidecars/manuscript-guide",
+          "node scripts/quality.mjs python -m ruff check src/studio/sidecars/manuscript-guide",
+          "node scripts/ci/doc-comments.mjs python src/studio/sidecars/manuscript-guide"
         ],
         "parallel": false
       }
@@ -19,7 +19,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "node scripts/ci/coverage-gate.mjs pytest sidecars/manuscript-guide sidecars/manuscript-guide/tests"
+        "command": "node scripts/ci/coverage-gate.mjs pytest src/studio/sidecars/manuscript-guide src/studio/sidecars/manuscript-guide/tests"
       }
     }
   }

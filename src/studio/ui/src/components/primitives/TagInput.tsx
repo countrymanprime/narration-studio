@@ -5,7 +5,7 @@ import { useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNo
 import { TooltipTarget } from './Tooltip';
 
 const TAG_FONT = "font-['IBM_Plex_Mono',monospace] text-[0.8rem]";
-// A term this long already reads as a mistake, not a vocabulary hint (apps/ui/src/components/primitives/TagInput.tsx's companion limit, V5).
+// A term this long already reads as a mistake, not a vocabulary hint (src/studio/ui/src/components/primitives/TagInput.tsx's companion limit, V5).
 const MAX_TERM_LENGTH = 64;
 
 // A list of terms the user keeps (the Proofing vocabulary hints): the ones accepted as chips with a remove cross, the ones
@@ -70,7 +70,7 @@ export function TagInput({
       return;
     }
     if (event.key === 'Backspace' && draft === '' && tags.length > 0) {
-      // apps/ui/src/components/primitives/TagInput.tsx: Backspace on an empty draft removes the most recently added tag.
+      // src/studio/ui/src/components/primitives/TagInput.tsx: Backspace on an empty draft removes the most recently added tag.
       event.preventDefault();
       onRemove(tags[tags.length - 1]);
     }

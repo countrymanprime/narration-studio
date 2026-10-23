@@ -2,7 +2,7 @@
 
 **Status: in place, 2026-09-23.** Phase 1 of the recording-coverage PRD (delivered and deleted; the steady state is [the recording check](../utilities/recording-coverage.md)), under D12 and Q15 as amended on 2026-09-23: no coverage threshold ships until it has been scored against labeled chapters. For now the labeled chapters are synthetic. The owner chose constructed fixtures over an owner-supplied corpus, so the defaults that Phase 8 ships stay Proposed and labeled uncalibrated until a real, permissioned corpus recalibrates them. [Recording Check (recording coverage)](../utilities/recording-coverage.md) records the format choice.
 
-The format, the labeling rules, the scoring and how to run the harness are in the fixture set's [README](../../sidecars/transcript-compare/tests/fixtures/coverage/README.md).
+The format, the labeling rules, the scoring and how to run the harness are in the fixture set's [README](../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md).
 
 ## Baseline: the stub analyzer
 

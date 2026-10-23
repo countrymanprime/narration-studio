@@ -8,7 +8,7 @@ import { fileVerdict, leftToCheck, misses, missesWithLimit, suggestedFix } from 
 
 // The host's own judged payload (bindings_measure_contract_test.go): Chapter 01 at 48 kHz, Chapter 02 silent, Chapter 03 unreadable.
 const measured = measureJobSchema.parse(
-  JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', 'measure-success.json'), 'utf8')),
+  JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', 'measure-success.json'), 'utf8')),
 );
 const file = (name: string): MeasureFileResult => {
   const found = measured.files.find((candidate) => candidate.name === name);

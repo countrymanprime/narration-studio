@@ -65,7 +65,7 @@ function AuditionSide({ side, members, label, selected, onSelect, player, onTogg
 /**
  * Side-by-side A/B audition, opened from a take-review finding on the Review page: plays two of the finding's own reads from their own raw source file, each with a
  * fixed pre/post roll, over the same `/media` route the audio engine panel player streams from
- * (apps/desktop/media.go's authorizedMediaSource already covers every take's own source).
+ * (src/studio/desktop/media.go's authorizedMediaSource already covers every take's own source).
  * No REAPER mutation happens here at all - this is read-only playback of files the app already has
  * access to - and only one side plays at a time, so switching between A and B is a real comparison
  * rather than two overlapping streams. Each read's processing chain in REAPER may differ from what

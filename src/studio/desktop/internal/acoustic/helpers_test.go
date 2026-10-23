@@ -8,7 +8,7 @@ import (
 )
 
 // encodeWAV builds a 16-bit PCM RIFF/WAVE file from interleaved samples in
-// -1..1, mirroring measure's own test helper (apps/desktop/internal/measure
+// -1..1, mirroring measure's own test helper (src/studio/desktop/internal/measure
 // /helpers_test.go) so fixtures built here decode with measure.NewWAVReader
 // exactly as production audio would.
 func encodeWAV(t testing.TB, channels, rate int, interleaved []float64) []byte {

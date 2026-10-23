@@ -16,7 +16,7 @@ const adapter = (what: string) =>
   );
 
 export const dawFeedback = {
-  // Linking Audacity (components/engine/AudacityLinkCard.tsx, useAudacityLink.ts; apps/desktop/bindings_audacity_link.go)
+  // Linking Audacity (components/engine/AudacityLinkCard.tsx, useAudacityLink.ts; src/studio/desktop/bindings_audacity_link.go)
   'src/components/engine/useAudacityLink.ts::audacityLink#1': row(
     'mount',
     'instant',

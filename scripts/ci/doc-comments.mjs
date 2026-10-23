@@ -11,7 +11,7 @@
 // python  ruff's missing-docstring rules for public names (D100-D104, D106) with the Google convention, filtered to
 //         added lines here because ruff has no "new issues only" mode. Tests, spikes and conftest are skipped.
 //         `__init__` and magic methods (D105, D107) are not required. A name that needs no docstring takes `# noqa: D1xx`.
-// go      revive's `exported` rule through golangci-lint and apps/desktop/.golangci-docs.yml, with its own
+// go      revive's `exported` rule through golangci-lint and src/studio/desktop/.golangci-docs.yml, with its own
 //         --new-from-merge-base. Test files are skipped. The stutter check is off.
 //
 // A brand-new Go file is seen locally only after `git add -N` (golangci-lint reads git diff); CI always sees it.
@@ -94,7 +94,9 @@ function resolveBase(args) {
 
 /** Added lines against the merge base, including files git does not track yet (every line of them is added). */
 function addedLinesSince(mergeBase, paths) {
-  const added = parseAddedLines(git(['-c', 'core.quotepath=false', 'diff', '-U0', '-M', mergeBase, '--', ...paths]));
+  // No pathspec on the diff: limited to the new folders, git cannot see where a moved file came from and counts every line as added.
+  // The violations are filtered by file afterwards, so the extra files cost nothing. -l0 lifts the rename limit for a move of thousands.
+  const added = parseAddedLines(git(['-c', 'core.quotepath=false', 'diff', '-U0', '-M', '-l0', mergeBase]));
   const untracked = git(['ls-files', '--others', '--exclude-standard', '-z', '--', ...paths]).split('\0').filter(Boolean);
   for (const file of untracked) {
     const lines = readFileSync(join(REPO_ROOT, file), 'utf8').split('\n').length;

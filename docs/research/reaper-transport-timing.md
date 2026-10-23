@@ -5,7 +5,7 @@
 ## The two open questions
 
 1. **Defer-cycle timing.** `narration_ui_bridge.lua`'s `heartbeat()` reads `reaper.GetPlayState()` once per `tick()`, and sends a `PROJECT_STATUS` line at once when the value differs from the last-sent one (`reachability_test.lua`: "a transport change sends a heartbeat at once, without waiting out the interval"). Does `GetPlayState()` itself reflect a Record/Stop/Pause transition by the very next defer tick, however that transition was triggered (REAPER's own transport buttons, a keyboard shortcut, a control surface) — or can it lag?
-2. **`GetPlayPosition()` mid-recording.** `daw.Transport.Position` (`apps/desktop/internal/daw/reachability.go`) and `docs/architecture/reaper-bridge.md` both assume `GetPlayPosition()` gives a live, moving value while recording, coarse only because the heartbeat is ~1.5s apart. Is that assumption right, or does `GetPlayPosition()` behave differently during Record than during Play?
+2. **`GetPlayPosition()` mid-recording.** `daw.Transport.Position` (`src/studio/desktop/internal/daw/reachability.go`) and `docs/architecture/reaper-bridge.md` both assume `GetPlayPosition()` gives a live, moving value while recording, coarse only because the heartbeat is ~1.5s apart. Is that assumption right, or does `GetPlayPosition()` behave differently during Record than during Play?
 
 ## What it settles
 

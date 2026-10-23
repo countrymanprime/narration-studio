@@ -4,7 +4,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 
 ## Status legend
 
-- **Implemented**: usable code exists in the code folders (`apps/`, `sidecars/`, `libs/`, `integrations/`).
+- **Implemented**: usable code exists in the code folders (`src/studio/`).
 - **Planned—foundation**: required before dependent utilities can start.
 - **Planned**: intentionally specified future work.
 - **Deferred**: valuable work held outside the current milestone sequence.
@@ -28,13 +28,13 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 | [First-use dependency provisioning and Local assets](architecture/first-use-dependency-provisioning.md) | Implemented | Voices (Piper), transcription models (Whisper) and the Story Bible language model (spaCy) are catalog-managed downloads that start only after the narrator confirms; Settings > Local assets lists, verifies, repairs and removes them. Nothing downloads at startup and no model is bundled. |
 | [Windows release, setup program and in-app update](operations/ci-and-releases.md#the-windows-setup-program) | Implemented (Windows, the only supported platform: [Supported platforms](../README.md#supported-platforms)) | A per-user NSIS setup program and an update zip on each GitHub release, both unsigned, with build provenance; the app checks for a newer release once a day at most (two hours after a failed check) and replaces itself only after a confirmed click ([in-app update](architecture/in-app-update.md)). |
 | [Threat model](architecture/threat-model.md) | Implemented (a reviewed table) | Every trust boundary of the app (downloads, the update, the webview, sidecars, the REAPER bridge, opened files, the release pipeline) with its STRIDE threats, the mitigation in code and the risk that is left, lined up with [SECURITY.md](../SECURITY.md). |
-| Audacity adapter | Implemented; verification in Audacity pending with the owner | Drives Audacity 3.x over its scripting pipe from the desktop host (`apps/desktop/internal/dawport/audacity`); built from the published spec and tested against a fake pipe server. The owner's check is [the Audacity verification pass](operations/audacity-verification-pass.md). `integrations/audacity/` holds placeholder notes only. |
+| Audacity adapter | Implemented; verification in Audacity pending with the owner | Drives Audacity 3.x over its scripting pipe from the desktop host (`src/studio/desktop/internal/dawport/audacity`); built from the published spec and tested against a fake pipe server. The owner's check is [the Audacity verification pass](operations/audacity-verification-pass.md). `src/studio/integrations/audacity/` holds placeholder notes only. |
 
 ## Reading order
 
 1. Start with the [roadmap](roadmap.md).
 1. For a screenshot walkthrough of the app itself, see [Using the app](guides/using-the-app/README.md).
-1. Before changing anything in `apps/ui/src/components/primitives/` or `apps/ui/src/styles.css`, read the [design system reference](design/design-system.md).
+1. Before changing anything in `src/studio/ui/src/components/primitives/` or `src/studio/ui/src/styles.css`, read the [design system reference](design/design-system.md).
 1. Before planning a feature or choosing between designs, read the [design principles](architecture/principles.md) the ADRs add up to.
 1. Read the [findings contract](architecture/findings-contract.md) before adding any analyzer or dashboard action, and the [stage recommendations signal contract](architecture/stage-recommendations.md) before building a signal that suggests a chapter's next stage.
 1. Use the workflow documents to understand how utilities combine: [manuscript/editorial](workflows/manuscript-and-editorial-review.md), [recording/comping](workflows/recording-and-comping.md), [character continuity](workflows/character-continuity.md), [technical QC/handoff](workflows/technical-qc-and-handoff.md), and [chapter stage progression](workflows/chapter-stage-progression.md).

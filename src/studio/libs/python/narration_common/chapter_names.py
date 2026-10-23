@@ -1,7 +1,7 @@
 """A chapter's name as plain text, by the app's one rule.
 
-The title and the subtitle join with " — " in the book's own casing. This mirrors apps/ui/src/chapterName.ts and
-apps/desktop/internal/chaptername; tests/fixtures/chapter-names.json, written by the Go test, pins all three to the
+The title and the subtitle join with " — " in the book's own casing. This mirrors src/studio/ui/src/chapterName.ts and
+src/studio/desktop/internal/chaptername; tests/fixtures/chapter-names.json, written by the Go test, pins all three to the
 same output. Plain-text outputs a consumer may not take an em dash in use form="plain", " - ".
 
 It is for text a person reads: logs, headings, lists. A matching key (a title compared with what another program

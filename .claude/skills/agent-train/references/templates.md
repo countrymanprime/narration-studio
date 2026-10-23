@@ -37,7 +37,7 @@ unfinished (a draft only if the work is genuinely incomplete); never wait to be 
 the body and update it as they finish. The owner reviews from the PR, not from the session.
 BRANCHES AND PRS: first PR based on the latest main; one PR per phase, each based on the previous branch; branch
 <type>/<prd-slug>-p<N>-<slug>; PR title a Conventional Commit; body = goal, what changed, local checks run with results,
-the real-app (Playwright) and Storybook results of the pages touched (pnpm --dir apps/ui visual:page <page> and
+the real-app (Playwright) and Storybook results of the pages touched (pnpm --dir src/studio/ui visual:page <page> and
 atlas:page <page>; never run `playwright install`, the runs find this container's Chromium) and, for any change to what a
 page draws or how it is used, that page's guide updated in the same PR: docs/guides/using-the-app/<page>.md and its
 images (node scripts/dev/guide-screenshots.mjs <page>), linked from the body, or "No guide change: <reason>"; commit no
@@ -49,7 +49,7 @@ SETTINGS: the Settings page always keeps every setting; a working page may add a
 SOLID: depend on the ports (internal/dawport roles, provider ports, NarrationApi), never on concrete adapters.
 TESTING (D43, D44): targeted checks only: Go tests of changed packages plus go vet, the Lua harness for Lua, Vitest of
 changed UI, pytest of changed sidecars, lint and typecheck of touched projects, and the visual states of pages you
-changed (cd apps/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"), looking at every viewport's
+changed (cd src/studio/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"), looking at every viewport's
 PNG. Not the full pnpm check, the full visual suite or the atlas (a primitive's own atlas story is fine). Regenerate
 only your pages' guide images (guide-screenshots.mjs <page>), never all of docs/images/ui, and never docs/ui.
 WIRE CONTRACTS: a new binding or event gets a Zod schema, a golden (UPDATE_CONTRACTS=1), a wireContracts row and a mock

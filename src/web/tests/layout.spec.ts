@@ -1,4 +1,4 @@
-// Layout of the app inside the demo page's window (apps/site/build/windowPages.mjs): the window is as wide as the site's content column, 1280 px on a wide screen.
+// Layout of the app inside the demo page's window (src/web/build/windowPages.mjs): the window is as wide as the site's content column, 1280 px on a wide screen.
 import { expect, test } from '@playwright/test';
 
 const appFrame = (page: import('@playwright/test').Page) => page.frameLocator('#app');

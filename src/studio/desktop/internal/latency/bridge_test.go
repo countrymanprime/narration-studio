@@ -48,7 +48,7 @@ func startDriver(t *testing.T, python, dir string, prefillKB int) {
 			t.Fatal(err)
 		}
 	}
-	driver, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "scripts", "research", "bridge-fake-driver.py"))
+	driver, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "..", "scripts", "research", "bridge-fake-driver.py"))
 	if err != nil {
 		t.Fatal(err)
 	}

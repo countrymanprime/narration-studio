@@ -1,5 +1,5 @@
 -- Spike S0, part 2 and the scripted run of docs/architecture/manuscript-line-identity.md's checklist: drives the REAL bridge
--- (integrations/reaper/narration_ui_bridge.lua) inside a real REAPER through the file protocol, the way the Go host does,
+-- (src/studio/integrations/reaper/narration_ui_bridge.lua) inside a real REAPER through the file protocol, the way the Go host does,
 -- against a scratch project built here, and records every step in chk/report.txt. Steps that need the app or the owner
 -- (Transcript Compare through the app, step 10) are not here.
 
@@ -21,7 +21,7 @@ local BS = string.char(92)
 local function native(path)
   return (path:gsub('/', BS))
 end
--- run-reaper.ps1 sets both: the scratch folder (holding media/) and the repository's integrations/reaper folder.
+-- run-reaper.ps1 sets both: the scratch folder (holding media/) and the repository's src/studio/integrations/reaper folder.
 local CHK = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
 local REPO_REAPER = assert(os.getenv('NARRATION_UTILS_REAPER_DIR'), 'set NARRATION_UTILS_REAPER_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
 local report, failures = {}, 0

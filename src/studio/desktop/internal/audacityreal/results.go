@@ -147,7 +147,7 @@ func Visible(b []byte) string {
 }
 
 // Golden saves reply bytes under golden/<name>.bin in the output folder. The files a run keeps there are the ones copied into
-// tests/audacity3/real/foundation/golden/ so the fake pipe and the client's reader are tested against what Audacity wrote.
+// src/studio/tests/audacity3/real/foundation/golden/ so the fake pipe and the client's reader are tested against what Audacity wrote.
 func (r *Rec) Golden(name string, b []byte) string {
 	rel := filepath.Join("golden", unsafeName.ReplaceAllString(name, "_")+".bin")
 	path := filepath.Join(r.env.Out, rel)

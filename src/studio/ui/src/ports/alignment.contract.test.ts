@@ -8,7 +8,7 @@ import { parseWire } from '../api/wire/parseWire';
 import { createHostAlignment, createMockAlignment, type AlignmentHostApi, type AlignmentPort, type HeardWord } from './alignment';
 import { describeProviderContract, type Goldens } from './providerContract';
 
-const GOLDEN_DIR = fileURLToPath(new URL('../../../../tests/fixtures/contracts/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
 // The chapter id each golden answers for, in the host adapter fed by the goldens.
 const CHAPTERS = {
   'c-current': 'workspace-alignment-current.json',

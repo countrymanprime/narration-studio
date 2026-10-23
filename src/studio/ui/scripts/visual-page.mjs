@@ -2,8 +2,8 @@
 /* global console, process */
 // Targeted run of the real-app visual suite (tests/visual/app.spec.ts): only the state-catalog rows of the named pages, at
 // every viewport the catalog declares for each row, in the light and the dark theme. The PNGs land in
-//   apps/ui/screenshots/targeted/<theme>/<page>/<state>/<viewport>.png
-// and a PASS/FAIL/SKIP line per state is printed. Usage: pnpm --dir apps/ui visual:page <page>... [--themes light,dark] [--out <dir>]
+//   src/studio/ui/screenshots/targeted/<theme>/<page>/<state>/<viewport>.png
+// and a PASS/FAIL/SKIP line per state is printed. Usage: pnpm --dir src/studio/ui visual:page <page>... [--themes light,dark] [--out <dir>]
 //
 // Whole-run checks (duplicate screenshots, blank pages) are deferred as for a CI shard (UI_VISUAL_SHARDED=1), because a few
 // pages are not the whole run; CI judges the full catalog. PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH is filled in from the browsers
@@ -64,7 +64,7 @@ for (const theme of themes) {
     rmSync(to, { recursive: true, force: true });
     cpSync(from, to, { recursive: true });
     const count = readdirSync(to, { recursive: true }).filter((f) => f.endsWith('.png')).length;
-    console.log(`${count} PNGs -> apps/ui/${to}`);
+    console.log(`${count} PNGs -> src/studio/ui/${to}`);
   }
 }
 process.exit(failed ? 1 : 0);

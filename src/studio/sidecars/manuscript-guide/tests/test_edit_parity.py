@@ -1,6 +1,6 @@
 """What the sidecar's ``edit`` does to a Story Bible, recorded as cases the Go host replays.
 
-The host applies an edit without the sidecar unless it changes the aliases (apps/desktop/internal/guide/edit.go), so the same edit has
+The host applies an edit without the sidecar unless it changes the aliases (src/studio/desktop/internal/guide/edit.go), so the same edit has
 two implementations. Each case here runs the real ``edit`` on a copy of a starting file and records the file it left, or the reason it
 refused. ``TestEditMatchesTheSidecarCases`` in the guide package runs every case through the Go edit and requires the same JSON or the
 same reason, so the two cannot drift. Run with ``UPDATE_CONTRACTS=1`` to rewrite the cases after a deliberate change.
@@ -22,7 +22,7 @@ guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
-TESTDATA = Path(__file__).parents[3] / "tests" / "fixtures" / "guide-edit"
+TESTDATA = Path(__file__).parents[5] / "tests" / "fixtures" / "guide-edit"
 
 
 def entry(entity_id: str, name: str, category: str, **extra) -> dict:

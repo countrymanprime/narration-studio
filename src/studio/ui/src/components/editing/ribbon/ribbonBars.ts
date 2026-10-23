@@ -1,7 +1,7 @@
 import type { PeakColumn } from './peaksWindow';
 
 /*
- * The ribbon's bars, after the public site's animated waveform (apps/site/landing/index.html, `.wave`): rounded bars on a fixed gap, each one
+ * The ribbon's bars, after the public site's animated waveform (src/web/landing/index.html, `.wave`): rounded bars on a fixed gap, each one
  * centred on the middle line, so the shape is symmetric. The site's bars are at most 5 px wide with a 3 px gap, a 3 px radius and a 4 px minimum height;
  * these are the same, spread so the bars fill the width exactly. Everything here is pure: the canvas code (drawRibbon.ts) only draws what it returns.
  */

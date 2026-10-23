@@ -1,5 +1,5 @@
 // The browser mock's diagnostics check, answering the way
-// apps/desktop/diagnostics_job.go does: the same refusals (an unknown source kind, nothing chosen, a path the measurement
+// src/studio/desktop/diagnostics_job.go does: the same refusals (an unknown source kind, nothing chosen, a path the measurement
 // picker did not choose, one already running), a running job that reads one more quarter of a file per poll (standing in
 // for the bytes the host reads), and results in the shape tests/fixtures/contracts/diagnostics-success.json
 // pins: a chapter with a clip region, a level shift and a room-tone change, a render of digital silence in which nothing
@@ -32,7 +32,7 @@ export const MOCK_DIAGNOSTICS_THRESHOLDS: DiagnosticsThresholds = {
   pauses: { min_pause_seconds: 0.3, long_pause_seconds: 2 },
 };
 
-/** The silence cleanup analyzer's own starting thresholds (measure.DefaultCleanupOptions, apps/desktop/internal/measure/cleanup.go). */
+/** The silence cleanup analyzer's own starting thresholds (measure.DefaultCleanupOptions, src/studio/desktop/internal/measure/cleanup.go). */
 export const MOCK_CLEANUP_THRESHOLDS: DiagnosticsCleanupThresholds = {
   pad_seconds: 0.15,
   min_breath_seconds: 0.12,

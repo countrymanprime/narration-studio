@@ -3,7 +3,7 @@ import type { StageVerdict } from './stages';
 
 /**
  * Production tracking: the book's deadline, contracted amount, payment type and
- * milestones, stored on the project manifest (apps/desktop/bindings_production.go) so they survive Replace manuscript.
+ * milestones, stored on the project manifest (src/studio/desktop/bindings_production.go) so they survive Replace manuscript.
  * Dates are calendar dates written "YYYY-MM-DD", never a time of day.
  */
 
@@ -42,7 +42,7 @@ export type ProductionPlan = {
 };
 
 // The Production page's one read and the stage timer's two writes. The host shapes are
-// apps/desktop/internal/production (overview.go, production.go) and apps/desktop/bindings_production.go.
+// src/studio/desktop/internal/production (overview.go, production.go) and src/studio/desktop/bindings_production.go.
 // Every figure here is measured or logged, never estimated: an undefined one is `null`, shown as "—", never 0.
 
 /** One stretch of work on one chapter's stage. `endedAt` is absent while its timer runs. `source` is always `manual`. */

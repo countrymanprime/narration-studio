@@ -1,7 +1,7 @@
-/** The development build's version: what a program built without the release stamp reports (apps/desktop/version.go). */
+/** The development build's version: what a program built without the release stamp reports (src/studio/desktop/version.go). */
 const DEVELOPMENT_VERSION = '0.0.0-dev';
 
-/** A build with no release stamp reports this version, or none (apps/desktop/version.go; the host's `update.IsDevelopment`). */
+/** A build with no release stamp reports this version, or none (src/studio/desktop/version.go; the host's `update.IsDevelopment`). */
 function isDevelopmentBuild(version: string): boolean {
   return version === '' || version === DEVELOPMENT_VERSION;
 }

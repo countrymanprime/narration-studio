@@ -2,7 +2,7 @@
 # mod-script-pipe in a portable profile, start Audacity (twice: the first start on a profile it has never seen records the module as
 # failed), run A3-T30, merge the results. Hosted, workflow_dispatch only (.github/workflows/real-audacity3-windows.yml).
 #
-#   powershell -File tests/audacity3/real/edits/windows.ps1 [-Work <folder>]
+#   powershell -File src/studio/tests/audacity3/real/edits/windows.ps1 [-Work <folder>]
 #
 # The runner has no audio device, so nothing here records. This script has never run on a Windows machine: its first run is the first
 # test of it (docs/research/audacity-3-capability-matrix.md, A3-T30).

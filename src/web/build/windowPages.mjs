@@ -1,17 +1,17 @@
 // The public site's two windowed pages: the live demo (`demo/index.html`) and the Storybook (`storybook/index.html`). Each is built in the site
-// shell (apps/site/build/shell.mjs), so the site's header and footer stay on screen, and shows its subject inside a window frame in the design
+// shell (src/web/build/shell.mjs), so the site's header and footer stay on screen, and shows its subject inside a window frame in the design
 // mock's style (docs/research/mockups/public-site/index.html: a title bar with a title and three window dots, as the hero illustration has).
 //
 // - The demo window is an `<iframe sandbox="allow-scripts">` of the one-file demo, `demo/app.html?embed=1`. The frame is the app's window: its
-//   viewport media queries answer to the frame's size, never below the desktop app's minimum window (960 px wide, apps/desktop/main.go), and a
+//   viewport media queries answer to the frame's size, never below the desktop app's minimum window (960 px wide, src/studio/desktop/main.go), and a
 //   narrower screen draws the whole window smaller. The sandboxed frame shares no storage with the page, so the two talk by postMessage
-//   (apps/site/demo/src/siteWindow.ts): the page hands over the site's theme, the Play animations switch and a route; the app
+//   (src/web/demo/src/siteWindow.ts): the page hands over the site's theme, the Play animations switch and a route; the app
 //   reports its route and the Simulated DAW badge, which the title bar shows so nothing floats over the app.
 // - The Storybook window is the static Storybook build (`storybook/sb/`), opened in the site's theme through Storybook's `globals` parameter.
 import { DEMO_PAGES } from './guides.mjs';
 import { REPO, searchItems, sitePage } from './shell.mjs';
 
-// The guide that explains each demo page (apps/site/demo/src/demoGuide.ts says the same for every route the app draws). The window's
+// The guide that explains each demo page (src/web/demo/src/demoGuide.ts says the same for every route the app draws). The window's
 // title and its first "How to use this page" link come from here; afterwards the app reports the guide for its route.
 const GUIDE_OF_ROUTE = {
   '/': 'production',
@@ -28,7 +28,7 @@ const GUIDE_OF_ROUTE = {
 };
 const WINDOW_PAGES = DEMO_PAGES.map(({ label, route }) => ({ route, title: label, guide: GUIDE_OF_ROUTE[route] ?? 'index' }));
 
-/** The smallest window the app is built for: the desktop shell's minimum (apps/desktop/main.go). Below it the demo window is drawn smaller. */
+/** The smallest window the app is built for: the desktop shell's minimum (src/studio/desktop/main.go). Below it the demo window is drawn smaller. */
 export const APP_MIN_WINDOW = { width: 960, height: 640 };
 /** The demo window's height: with the widest content column it is 1280 x 800. It does not shrink to a short screen (the page scrolls instead),
  * because the app's icon rail needs about 780 px to show every page without scrolling. */
@@ -214,7 +214,7 @@ export function demoPage({ withStorybook, docs }) {
 const STORYBOOK_FIRST_STORY = 'primitives-button--primary';
 
 // The Storybook page's script: opens the Storybook in the site's theme (Storybook's `globals` URL parameter, which the repo's theme toolbar reads,
-// apps/ui/.storybook/preview.tsx), and reopens it on the same story when the site's theme changes.
+// src/studio/ui/.storybook/preview.tsx), and reopens it on the same story when the site's theme changes.
 const STORYBOOK_SCRIPT = `(function(){
 ${FIT_SCRIPT}
 var $=function(s){return document.querySelector(s)};

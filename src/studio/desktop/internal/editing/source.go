@@ -56,7 +56,7 @@ const (
 	// analyzer can tell a reversed take apart from a forward one.
 	//
 	// tracks.Item and tracks.Take carry no "reversed" or play-direction
-	// field (apps/desktop/internal/tracks has no field for it). A take REAPER
+	// field (src/studio/desktop/internal/tracks has no field for it). A take REAPER
 	// plays backwards is therefore analyzed forwards, silently: its silence
 	// runs and click/breath candidates are still reported, just against the
 	// wrong direction of playback. This is a real, un-mitigated limitation,

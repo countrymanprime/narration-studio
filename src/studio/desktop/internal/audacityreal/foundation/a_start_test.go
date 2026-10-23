@@ -4,7 +4,7 @@
 // the first start, the reply shapes, the heartbeat, the fingerprint, time precision, identity, labels, navigation, import, export,
 // save, macro render, monitor level, what Audacity cannot do, and a crash. Each test records its rows through audacityreal.Rec.
 //
-//	tests/audacity3/real/foundation/run.sh
+//	src/studio/tests/audacity3/real/foundation/run.sh
 package foundation
 
 import (

@@ -19,14 +19,14 @@ def repo(tmp_path):
         "docs/research/note.md": "# Note\n",
         "docs/tools/one.md": "# One\n",
         "SECURITY.md": "# Security\n",
-        "apps/desktop/main.go": "package main\n",
+        "src/studio/desktop/main.go": "package main\n",
         "config/roadmap.json": "{}\n",
     }
     for name, text in files.items():
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
-    (tmp_path / "apps/desktop/internal").mkdir()
+    (tmp_path / "src/studio/desktop/internal").mkdir()
     return tmp_path
 
 
@@ -73,9 +73,9 @@ class TestLinkRewriting:
         assert rewrite(repo, "[plan](../prds/plan.prd.md#phase-1)") == f"[plan]({REPO}/blob/abc123/docs/prds/plan.prd.md#phase-1)"
 
     def test_a_link_that_leaves_docs_becomes_a_github_link(self, repo):
-        text = "[security](../../SECURITY.md) and [json](../../config/roadmap.json) and [dir](../../apps/desktop/internal)"
+        text = "[security](../../SECURITY.md) and [json](../../config/roadmap.json) and [dir](../../src/studio/desktop/internal)"
         assert rewrite(repo, text) == (
-            f"[security]({REPO}/blob/abc123/SECURITY.md) and [json]({REPO}/blob/abc123/config/roadmap.json) and [dir]({REPO}/tree/abc123/apps/desktop/internal)"
+            f"[security]({REPO}/blob/abc123/SECURITY.md) and [json]({REPO}/blob/abc123/config/roadmap.json) and [dir]({REPO}/tree/abc123/src/studio/desktop/internal)"
         )
 
     def test_a_link_to_a_folder_with_a_published_index_points_at_the_index(self, repo):

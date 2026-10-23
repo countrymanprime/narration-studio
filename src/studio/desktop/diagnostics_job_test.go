@@ -77,7 +77,7 @@ func TestDiagnosticsStateIsIdleWithTheThresholdsItWouldUse(t *testing.T) {
 	}
 }
 
-// The narrator's own silence cleanup thresholds (apps/desktop/internal/measure/cleanup.go) are read from the layered
+// The narrator's own silence cleanup thresholds (src/studio/desktop/internal/measure/cleanup.go) are read from the layered
 // store at start, shown even while idle, and threaded into every file's measure.DiagnosticInput.Cleanup - the
 // classifier itself (internal/measure/cleanup.go) is untouched; only what reaches it changes.
 func TestDiagnosticsThreadsTheNarratorsCleanupSettingsIntoEachFile(t *testing.T) {
@@ -117,7 +117,7 @@ func TestDiagnosticsThreadsTheNarratorsCleanupSettingsIntoEachFile(t *testing.T)
 }
 
 // CleanupFindings (internal/measure/cleanup.go) turns cleanup candidates into silence_cleanup findings apart from
-// Findings (apps/desktop/internal/measure/cleanup.go): the diagnostics job carries them on the file as their own list, never mixed into
+// Findings (src/studio/desktop/internal/measure/cleanup.go): the diagnostics job carries them on the file as their own list, never mixed into
 // the Diagnostics tab's existing findings.
 func TestDiagnosticsFileResultCarriesCleanupFindingsApartFromFindings(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir()) // never read the real machine's global-settings.json

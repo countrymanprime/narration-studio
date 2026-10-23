@@ -15,10 +15,10 @@ import { acceptedKeys, createHostEditLog, cutKeys, type EditLogHostApi, type Edi
 import { type ContractCase, describeProviderContract, type Goldens } from './providerContract';
 
 // One suite over both adapters: the mock over its own manuscript, and the host adapter fed by the goldens the Go host wrote
-// (apps/desktop/bindings_editlog_contract_test.go). The stand-in host below knows the goldens' manuscript and refuses with the
+// (src/studio/desktop/bindings_editlog_contract_test.go). The stand-in host below knows the goldens' manuscript and refuses with the
 // host's own sentences what the real host refuses; the cases ask each adapter for a word it has, so the answers compare.
 
-const GOLDEN_DIR = fileURLToPath(new URL('../../../../tests/fixtures/contracts/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
 const GOLDEN_FILES = [
   'edit-accepted-list-empty.json',
   'edit-accepted-list.json',
@@ -67,7 +67,7 @@ function checkKeys(chapterId: string, keys: string[]): void {
   }
 }
 
-/** The host's refusals of a cut, in its order (apps/desktop/internal/editlog/cuts.go). */
+/** The host's refusals of a cut, in its order (src/studio/desktop/internal/editlog/cuts.go). */
 function checkCut(chapterId: string, cut: EditCutRequest): void {
   if (typeof (cut as { undoSteps?: unknown }).undoSteps !== 'number' || !cut.guid.trim() || !cut.daw.trim())
     throw new Error('a cut is recorded only after the DAW made it: its result is missing');
@@ -79,7 +79,7 @@ function checkCut(chapterId: string, cut: EditCutRequest): void {
   if (cut.keys.some((key) => key.slice(0, key.lastIndexOf(':')) !== cut.pid)) throw new Error("a cut's words must all be in its paragraph");
 }
 
-/** The host's refusals of a word effect, in its order (apps/desktop/internal/editlog/wordfx.go). */
+/** The host's refusals of a word effect, in its order (src/studio/desktop/internal/editlog/wordfx.go). */
 function checkWordFx(chapterId: string, fx: WordFxRequest): void {
   if (!fx.guid.trim() || !fx.daw.trim()) throw new Error('an effect is recorded only after the DAW added it: its result is missing');
   const listName = (name: string) =>
@@ -93,7 +93,7 @@ function checkWordFx(chapterId: string, fx: WordFxRequest): void {
     throw new Error('these words sit in more than one take: an effect needs words from one take');
 }
 
-/** The host's refusals of a stack record, in its order (apps/desktop/internal/editlog/stacks.go). */
+/** The host's refusals of a stack record, in its order (src/studio/desktop/internal/editlog/stacks.go). */
 function checkStack(chapterId: string, stack: EditStackRecordRequest): void {
   const plain = (id: string) => id !== '' && !/[\s\p{Cc}/\\<>]/u.test(id);
   if (!plain(stack.passageId)) throw new Error('that passage is not one the Takes panel offers');

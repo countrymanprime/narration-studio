@@ -82,20 +82,22 @@ def test_spdx_ids_reads_expressions():
     assert spdx_ids("Apache-2.0 OR BSD-2-Clause") == {"Apache-2.0", "BSD-2-Clause"}
 
 
-needs_pnpm = pytest.mark.skipif(shutil.which("pnpm") is None or not (REPO_ROOT / "apps/ui/node_modules").exists(), reason="pnpm or the UI install is not here")
+needs_pnpm = pytest.mark.skipif(
+    shutil.which("pnpm") is None or not (REPO_ROOT / "src/studio/ui/node_modules").exists(), reason="pnpm or the UI install is not here"
+)
 needs_go = pytest.mark.skipif(shutil.which("go") is None, reason="go is not here")
 
 
 @needs_pnpm
 def test_every_licence_of_the_ui_production_dependencies_is_allowed():
-    found = {i for c in notices.npm_components(REPO_ROOT / "apps/ui") for i in spdx_ids(c.license)}
+    found = {i for c in notices.npm_components(REPO_ROOT / "src/studio/ui") for i in spdx_ids(c.license)}
 
     assert found - allowed() == set()
 
 
 @needs_go
 def test_every_licence_of_the_go_modules_the_windows_build_links_is_allowed():
-    found = {i for c in notices.go_components(REPO_ROOT / "apps/desktop") for i in spdx_ids(c.license)}
+    found = {i for c in notices.go_components(REPO_ROOT / "src/studio/desktop") for i in spdx_ids(c.license)}
 
     # go list classifies texts with the bare GNU names; the allow-list carries the or-later ones the Python metadata declares.
     assert found - allowed() == set()

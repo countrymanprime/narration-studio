@@ -203,11 +203,11 @@ tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pendin
 | FX chains, active take | Partial | Experimental Lua (edit and proof workspace (deleted PRD `edit-and-proof-workspace`)) |
 | Mastering chain or master-to-spec | Missing | The roadmap says the app never changes audio without the narrator's action, so this would be narrator-triggered |
 | **QC and delivery** | | |
-| Measurement: LUFS, true peak, RMS, noise floor, room-tone head and tail, diagnostics | Shipped (WAV only) | `internal/measure`. MP3 container checks only (`apps/desktop/internal/measure/mp3header.go`). EBU and ACX Check validation pending |
+| Measurement: LUFS, true peak, RMS, noise floor, room-tone head and tail, diagnostics | Shipped (WAV only) | `internal/measure`. MP3 container checks only (`src/studio/desktop/internal/measure/mp3header.go`). EBU and ACX Check validation pending |
 | ACX profile | Shipped | `acx@2026-09`, with rules marked verified, to verify, or conflicting |
 | INaudio, Google, Apple and Kobo profiles | Planned | Delivery platform profiles (deleted PRD `delivery-platform-profiles`) |
 | Per-chapter render | Partial | The render is configured in REAPER, and the narrator presses Render there. Region creation is experimental with no UI |
-| ID3 chapter tags | Shipped | Written to a copy of a combined MP3 (`apps/desktop/internal/chaptertags/chaptertags.go`) |
+| ID3 chapter tags | Shipped | Written to a copy of a combined MP3 (`src/studio/desktop/internal/chaptertags/chaptertags.go`) |
 | MP3 or M4B encoding, naming templates | Missing | |
 | Book-level delivery checklist | Planned | Delivery platform profiles P7 |
 | **Production** | | |
@@ -233,7 +233,7 @@ tool-run-logging (deleted PRD `tool-run-logging`) marks P1–P4 and P7 as pendin
 ## 3. What the ideal looks like: concept mocks
 
 These are concept mocks, not approved specs. They were drawn as standalone HTML with the app's own tokens and fonts, copied from
-`apps/ui/src/styles.css`, and rendered at 1440×900. Every name and number is made up. They show the ideal described in section 1.
+`src/studio/ui/src/styles.css`, and rendered at 1440×900. Every name and number is made up. They show the ideal described in section 1.
 Each caption lists which parts exist in this app today, and which do not.
 
 The navigation is grouped by stage: Production, Prep, Record, Review, Finish. The top bar always shows the audio engine,

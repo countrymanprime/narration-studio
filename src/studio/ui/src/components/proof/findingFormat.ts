@@ -34,10 +34,10 @@ const ANALYZER_LABELS: Record<string, string> = {
 
 const SEVERITY_LABELS: Record<FindingSeverity, string> = { error: 'Error', warning: 'Warning', info: 'Info' };
 
-// Transcript Compare's evidence.kind (apps/desktop/internal/transcript/findings_adapter.go).
+// Transcript Compare's evidence.kind (src/studio/desktop/internal/transcript/findings_adapter.go).
 const KIND_LABELS: Record<string, string> = { MISREAD: 'Misread', SKIPPED: 'Skipped', EXTRA: 'Extra words' };
 
-// The Story Bible adapter's evidence.condition (apps/desktop/internal/guide/findings_adapter.go).
+// The Story Bible adapter's evidence.condition (src/studio/desktop/internal/guide/findings_adapter.go).
 const CONDITION_LABELS: Record<string, string> = {
   needs_review: 'The entry is marked "needs review"',
   low_confidence_pronunciation: 'Its pronunciation is uncertain',

@@ -35,7 +35,7 @@ var requiredFormatMetric = regexp.MustCompile(`^(\w+)_format$`)
 // whose Metric matches "<format>_format", or "mp3" when no such rule exists. deliveryprofile.Profile has no explicit
 // format field (Q: internal/deliveryprofile's own Rule.Metric is the only signal), so this reads that existing
 // naming convention rather than adding one to a package several tools already share: it lives here, in
-// apps/desktop, a caller of internal/deliveryprofile, not inside that package or internal/packager.
+// src/studio/desktop, a caller of internal/deliveryprofile, not inside that package or internal/packager.
 func requiredFormat(profile deliveryprofile.Profile) string {
 	for _, rule := range profile.Rules {
 		if rule.Scope != deliveryprofile.ScopeFile {

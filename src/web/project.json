@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "name": "narration-utils-site",
+  "name": "web",
   "projectType": "application",
   "tags": ["toolchain:node"],
   "implicitDependencies": ["narration-utils-ui"],
@@ -29,7 +29,7 @@
         "command": "pnpm --dir {projectRoot} run architecture"
       },
       "metadata": {
-        "description": "The import rule of apps/site (.dependency-cruiser.mjs): the site takes only the listed shared modules of apps/ui."
+        "description": "The import rule of src/web (.dependency-cruiser.mjs): the site takes only the listed shared modules of src/studio/ui."
       }
     },
     "test": {
@@ -38,7 +38,7 @@
         "command": "pnpm --dir {projectRoot} run test"
       },
       "metadata": {
-        "description": "Vitest over apps/site/demo/src: the banner, the window protocol and the simulated DAW."
+        "description": "Vitest over src/web/demo/src: the banner, the window protocol and the simulated DAW."
       }
     },
     "test-node": {
@@ -79,5 +79,5 @@
       }
     }
   },
-  "sourceRoot": "apps/site/demo/src"
+  "sourceRoot": "src/web/demo/src"
 }

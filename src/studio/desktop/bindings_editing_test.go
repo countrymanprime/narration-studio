@@ -187,7 +187,7 @@ func decodeAnswerList(t *testing.T) func(string, error) []any {
 }
 
 // encodeTestWAV, chunkForTest and toneSamplesForTest are a minimal RIFF/WAVE PCM16 encoder, mirroring
-// apps/desktop/internal/editing's own test-only encodeWAV16/toneSamples (not exported from that package, so a test
+// src/studio/desktop/internal/editing's own test-only encodeWAV16/toneSamples (not exported from that package, so a test
 // helper here is its own copy rather than a shared one).
 func encodeTestWAV(rate int, samples []float64) []byte {
 	var data bytes.Buffer

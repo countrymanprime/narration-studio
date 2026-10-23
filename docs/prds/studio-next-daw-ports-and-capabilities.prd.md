@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the owner's DAW rulings in `studio-next/research/repo-compare-decisions.md` ("DAW state rulings", "Takes, restarts, punch and roll", "Owner follow-up on takes and Audacity", "FX exception"); the mock's `studio-next/src/state/daw.ts`, `studio-next/src/domain/daw.ts`, `studio-next/src/fixtures/daw.ts`, `studio-next/src/selectors/daw.ts`.
 
-**Builds on:** [The DAW port](../architecture/daw-integration.md#the-daw-port) to [Provider ports](../architecture/provider-ports.md) (the DAW port, delivered), [The REAPER bridge and its test harness](../architecture/reaper-bridge.md) and [The REAPER verification pass](../operations/reaper-verification-pass.md) (experimental commands and promotion), [The DAW port](../architecture/daw-integration.md#the-daw-port) to [The DAW port](../architecture/daw-integration.md#the-daw-port) (the harness, registry, event fan-out), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [narration_punch.lua](../../integrations/reaper/narration_punch.lua), [The DAW port](../architecture/daw-integration.md#the-daw-port), [Built-in recorder: what the app declares for it](../reference/daw/builtin-recorder.md), Audacity Integration (old PRD `audacity-integration.prd.md`, recoverable from git history), Native Recording Suite (old PRD `native-recording-suite.prd.md`, recoverable from git history), Booth Actions Enablement (old PRD `booth-actions-enablement.prd.md`, recoverable from git history), REAPER Automation Follow-Through (old PRD `reaper-automation-follow-through.prd.md`, recoverable from git history), Edit and Proof Workspace (old PRD `edit-and-proof-workspace.prd.md`, recoverable from git history).
+**Builds on:** [The DAW port](../architecture/daw-integration.md#the-daw-port) to [Provider ports](../architecture/provider-ports.md) (the DAW port, delivered), [The REAPER bridge and its test harness](../architecture/reaper-bridge.md) and [The REAPER verification pass](../operations/reaper-verification-pass.md) (experimental commands and promotion), [The DAW port](../architecture/daw-integration.md#the-daw-port) to [The DAW port](../architecture/daw-integration.md#the-daw-port) (the harness, registry, event fan-out), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [The DAW port](../architecture/daw-integration.md#the-daw-port), [Built-in recorder: what the app declares for it](../reference/daw/builtin-recorder.md), Audacity Integration (old PRD `audacity-integration.prd.md`, recoverable from git history), Native Recording Suite (old PRD `native-recording-suite.prd.md`, recoverable from git history), Booth Actions Enablement (old PRD `booth-actions-enablement.prd.md`, recoverable from git history), REAPER Automation Follow-Through (old PRD `reaper-automation-follow-through.prd.md`, recoverable from git history), Edit and Proof Workspace (old PRD `edit-and-proof-workspace.prd.md`, recoverable from git history).
 
 **Status (2026-10-12):** delivered. Every slice of Phases 2 to 10 has merged, with the PR numbers in the phase rows and the Slices table below. Phase 1's spikes, and every check that needs a real REAPER or Audacity, were deferred by the owner to the QA pass ([#1495](https://github.com/countrymanprime/narration-utils/issues/1495)) and the owner queue ([#992](https://github.com/countrymanprime/narration-utils/issues/992)): none has run, and nothing below claims one did. Every new command and capability is Experimental ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md)); [the promotion plan](../research/studio-next-daw-promotion-plan.md) lists what each needs before its one-line promotion ([The REAPER verification pass](../operations/reaper-verification-pass.md)) and how each Success Metric was measured.
 
@@ -18,15 +18,15 @@ The real app already reaches every DAW through one port of small roles with a re
 
 | Mock concept | Repo today | Gap |
 | --- | --- | --- |
-| Capability with level and reason | `DawCapabilitySupport {level, available, reason?, message?}` (`apps/ui/src/api/contracts/daw.ts`); levels snake case (`not_yet_available`); message worded by resolver or adapter (`dawport.Explainer`, [resolver.go](../../apps/desktop/internal/dawport/resolver.go)) | No `destructive`, no `mode`; mock levels are camel case |
+| Capability with level and reason | `DawCapabilitySupport {level, available, reason?, message?}` (`src/studio/ui/src/api/contracts/daw.ts`); levels snake case (`not_yet_available`); message worded by resolver or adapter (`dawport.Explainer`, [resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)) | No `destructive`, no `mode`; mock levels are camel case |
 | `DawResult` | No common result. Roles return typed values and errors; the host maps them to per-feature result types (for example `WorkspaceFXResult` with a reason) | Add one result type and a UI facade; map the existing ones |
-| Capability names | 24 in `apps/desktop/internal/dawport/capability.go` | Add `cut_range`, `fx_range`, `stack_takes`, `backups`; extend `punch` with a destructive roll flag |
-| Saved versus live | `chapter_track_state` returns rpp path, `unsaved`, `changeCount` ([Live transport and track state (`narration_track_state.lua`)](../architecture/reaper-bridge.md#live-transport-and-track-state-narration_track_statelua)); `project_state` ([chaptersync_watch.go](../../apps/desktop/chaptersync_watch.go)); the workspace says "as of the project's last save" | A `savedAt` time and one wire type |
+| Capability names | 24 in `src/studio/desktop/internal/dawport/capability.go` | Add `cut_range`, `fx_range`, `stack_takes`, `backups`; extend `punch` with a destructive roll flag |
+| Saved versus live | `chapter_track_state` returns rpp path, `unsaved`, `changeCount` ([Live transport and track state (`narration_track_state.lua`)](../architecture/reaper-bridge.md#live-transport-and-track-state-narration_track_statelua)); `project_state` ([chaptersync_watch.go](../../src/studio/desktop/chaptersync_watch.go)); the workspace says "as of the project's last save" | A `savedAt` time and one wire type |
 | GUID identity and stale | `TRACK_STALE`, `ITEM_STALE`, `FINDING_STALE`; refusals as results | One refusal code `stale` across features |
-| Pickup markers as DAW truth | `PICKUP:` and `PICKUP_DONE:` markers exist in `integrations/reaper/narration_pickups.lua` (`import_pickups`, `resolve_pickup`, `next_pickup`) | App-side write-through and reconcile on opening Booth and Pickups |
+| Pickup markers as DAW truth | `PICKUP:` and `PICKUP_DONE:` markers exist in `src/studio/integrations/reaper/narration_pickups.lua` (`import_pickups`, `resolve_pickup`, `next_pickup`) | App-side write-through and reconcile on opening Booth and Pickups |
 | One undo block per command | Each Lua command opens one block; `play_position`, `punch_to` open none | Report `undoSteps` in the result |
 | Set active take, hide other takes | `set_active_take` (one undo step, [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)); no hide or mute command; `removeTakes` is not a command | `hide_takes` (mute, never delete) |
-| Roll as one command | `punch_to` moves the cursor only ([narration_punch.lua](../../integrations/reaper/narration_punch.lua)); record start and stop exist ([Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua)) | Roll command, after a spike |
+| Roll as one command | `punch_to` moves the cursor only ([narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua)); record start and stop exist ([Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua)) | Roll command, after a spike |
 | Range cut and range FX | `add_take_fx` (one plug-in on a passage), `apply_fx_chain` (track or master) ([The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)) | Cut and chain-on-range, exception A9 |
 | Stack and unstack | None | New command, after a spike |
 | Audacity backups | `audacity` adapter has `navigate`, `markers`, `macro_render` only (`dawport/audacity/audacity.go`) | Backups table adapter, after a spike |
@@ -34,7 +34,7 @@ The real app already reaches every DAW through one port of small roles with a re
 
 ## Proposed Solution
 
-1. **Settle three ADRs** (A6 undo scope with the DAW flag, A7 result object and capability fields, A8 roll and range commands as supersession of parts of [narration_punch.lua](../../integrations/reaper/narration_punch.lua), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) and), each after its spike.
+1. **Settle three ADRs** (A6 undo scope with the DAW flag, A7 result object and capability fields, A8 roll and range commands as supersession of parts of [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) and), each after its spike.
 2. **Result and capability depth, additive on the wire.** Add `destructive?: boolean` and `mode?: 'native' | 'app' | 'steps'` to `DawCapabilitySupport`; keep snake case and the existing `reason` and `message`. Add `DawResult` (Go `dawport.Result`, TS `dawResultSchema`) and a UI `DawClient` that maps the existing per-feature results to it. A refusal carries the capability's own sentence; controls never word their own ([CapabilityGate](../design/design-system.md#base-ui-wrappers) already does this).
 3. **New capabilities** as normal catalogue rows: `cut_range`, `fx_range`, `stack_takes`, `backups`, each with a role interface, a conformance case in `dawporttest` and a declaration per adapter.
 4. **New Lua commands**, harness test first, mutation entries for each guard, `wire.go` rows, threat-model and `SECURITY.md` rows, all Experimental: `hide_takes`, `roll`, `delete_range`, `apply_fx_range`, `stack_takes`, `unstack_takes`. Each is one undo block and answers `undoSteps`.
@@ -54,7 +54,7 @@ If every DAW call answers one result shape and every capability says why and how
 - Anything the mock's DAW model does not show ("if it is not in the mock it doesn't get built").
 - Multi-item range edits (one item per request, as).
 - Regions beyond what exists ("regions (later)" in the rulings).
-- A DAW-neutral rewrite of value types (the aliases of [resolver.go](../../apps/desktop/internal/dawport/resolver.go) stay).
+- A DAW-neutral rewrite of value types (the aliases of [resolver.go](../../src/studio/desktop/internal/dawport/resolver.go) stay).
 - Mac or Linux adapters ([Supported platforms](../../README.md#supported-platforms)).
 
 ## Success Metrics
@@ -74,7 +74,7 @@ Each metric as measured at close-out (2026-10-12), or marked pending, is in [the
 Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner. This PRD has no page; the mock (`studio-next/src/state/daw.ts` and the files in Source) is the spec for the port.
 
 - **SN0-Q1 / DQ-1.** Where the mock's DAW model and an older ADR differ, the mock wins and the ADR is superseded.
-- **DQ-5.** Record arms only the chapter's track and starts at the end of the last item; a failed precondition shows the capability's refusal reason. [app.go](../../apps/desktop/app.go) is superseded to that extent (the Booth PRD builds it).
+- **DQ-5.** Record arms only the chapter's track and starts at the end of the last item; a failed precondition shows the capability's refusal reason. [app.go](../../src/studio/desktop/app.go) is superseded to that extent (the Booth PRD builds it).
 - **DQ-7.** Stacking follows the mock (later reads move onto the first read, the chapter shifts, the plan is shown first); [Tracks](../utilities/tracks.md) is superseded to that extent.
 - **DQ-8.** Never delete: `hide_takes` mutes, trims go to the muted Cuts track as `delete_range` does, deletion is the DAW's job; `removeTakes` is dropped; is superseded.
 - **DQ-18.** Capability-driven take management for Audacity, as in the mock; is superseded to that extent.
@@ -115,8 +115,8 @@ Narrators using REAPER (primary), Audacity 3 (secondary) or the built-in recorde
 
 - Go: `dawport.Result{OK, Changed bool; Message string; UndoSteps int; Refused string; Steps []string}`; role methods for new capabilities return it. Roles: `RangeCutter`, `RangeFXApplier`, `TakeStacker`, `BackupKeeper`, `TakeHider` (or `hide` on `TakeSelector`).
 - Wire: `DawCapabilitySupport` gains `destructive`, `mode`; new `DawResult` schema and golden; new `DawProjectState` schema and golden; events `daw_capabilities_changed` (existing) and a project-state event (existing `project_state` poll mapped).
-- Bridge commands (new): `hide_takes(run, item_guid, keep_take_guid)`, `roll(run, track_guid, at)`, `delete_range(run, item_guid, start, end, mode, fade_ms)`, `apply_fx_range(run, item_guid, start, end, chain, fade_ms)` (chain name from `list_fx_chains`, never a path), `stack_takes(run, payload_path)`, `unstack_takes(run, payload_path)`; events `TAKES_HIDDEN`, `ROLLED`, `RANGE_CUT`, `RANGE_FX_APPLIED`, `TAKES_STACKED`, `TAKES_UNSTACKED` in `apps/desktop/internal/bridge/wire.go`. Names are proposals until the spikes fix the arguments.
-- UI: `DawClient` in `apps/ui/src/ports/daw.ts` (adapters: `hostDawClient`, `mockDawClient` driven by `fixtures/daw.ts`); `useCapability` unchanged, gains the new fields.
+- Bridge commands (new): `hide_takes(run, item_guid, keep_take_guid)`, `roll(run, track_guid, at)`, `delete_range(run, item_guid, start, end, mode, fade_ms)`, `apply_fx_range(run, item_guid, start, end, chain, fade_ms)` (chain name from `list_fx_chains`, never a path), `stack_takes(run, payload_path)`, `unstack_takes(run, payload_path)`; events `TAKES_HIDDEN`, `ROLLED`, `RANGE_CUT`, `RANGE_FX_APPLIED`, `TAKES_STACKED`, `TAKES_UNSTACKED` in `src/studio/desktop/internal/bridge/wire.go`. Names are proposals until the spikes fix the arguments.
+- UI: `DawClient` in `src/studio/ui/src/ports/daw.ts` (adapters: `hostDawClient`, `mockDawClient` driven by `fixtures/daw.ts`); `useCapability` unchanged, gains the new fields.
 
 ### Supersedes / depends on ADRs
 
@@ -124,26 +124,26 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [The DAW port](../architecture/daw-integration.md#the-daw-port) to [Provider ports](../architecture/provider-ports.md) | KEEP / EXTEND | Same port; [resolver.go](../../apps/desktop/internal/dawport/resolver.go) wire shapes extended (A7) |
-| [narration_punch.lua](../../integrations/reaper/narration_punch.lua) | SUPERSEDE (roll) | Roll as one command (A8) after SND-S1 |
+| [The DAW port](../architecture/daw-integration.md#the-daw-port) to [Provider ports](../architecture/provider-ports.md) | KEEP / EXTEND | Same port; [resolver.go](../../src/studio/desktop/internal/dawport/resolver.go) wire shapes extended (A7) |
+| [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua) | SUPERSEDE (roll) | Roll as one command (A8) after SND-S1 |
 | [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), | SUPERSEDE (range part) | FX on a range (A9) after SND-S3 |
 | [Tracks](../utilities/tracks.md) | SUPERSEDE (DQ-7) | Stacking follows the mock |
 | | SUPERSEDE (DQ-8) | Trims hide or mute; nothing is deleted |
 | | SUPERSEDE (DQ-18) | Capability-driven Audacity takes |
 | [The REAPER bridge and its test harness](../architecture/reaper-bridge.md), [The REAPER verification pass](../operations/reaper-verification-pass.md) | KEEP | Every new command is Experimental first |
-| [app.go](../../apps/desktop/app.go) | SUPERSEDE (DQ-5) | Record arms only the chapter's track; refusals from the capability |
+| [app.go](../../src/studio/desktop/app.go) | SUPERSEDE (DQ-5) | Record arms only the chapter's track; refusals from the capability |
 | [Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) | EXTEND / KEEP | Arms and active take |
 | [Supported platforms](../../README.md#supported-platforms) | KEEP | Windows only |
 
 ## Technical Approach
 
-**Architecture.** All new behaviour sits behind `internal/dawport` roles; `internal/bridge` keeps command names ([resolver.go](../../apps/desktop/internal/dawport/resolver.go)); a new Lua file per feature registered in `FEATURE_FILES` ([The DAW port](../architecture/daw-integration.md#the-daw-port)) (`narration_takes.lua`, `narration_range.lua`); Audacity backups are in `dawport/audacity` with a project-sidecar table (threat-model row: a file the app writes under the project folder); the host never accepts a path or action name from the page for FX (names from the listing only, [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)).
+**Architecture.** All new behaviour sits behind `internal/dawport` roles; `internal/bridge` keeps command names ([resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)); a new Lua file per feature registered in `FEATURE_FILES` ([The DAW port](../architecture/daw-integration.md#the-daw-port)) (`narration_takes.lua`, `narration_range.lua`); Audacity backups are in `dawport/audacity` with a project-sidecar table (threat-model row: a file the app writes under the project folder); the host never accepts a path or action name from the page for FX (names from the listing only, [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)).
 
-**Test plan.** Harness test first for each command (fake REAPER in `integrations/reaper/tests/fake_reaper.lua`: stale GUID, recording refusal, unknown chain name, one undo block, no spurious undo point), mutation entries; `dawporttest.Run` extended per new role; Go golden tests for `DawResult` and `DawProjectState` (`UPDATE_CONTRACTS=1`); `wireContracts.test.ts` rows; `DawClient` parity suite; scripted REAPER runs recorded in `docs/research/`; owner steps on #992.
+**Test plan.** Harness test first for each command (fake REAPER in `src/studio/integrations/reaper/tests/fake_reaper.lua`: stale GUID, recording refusal, unknown chain name, one undo block, no spurious undo point), mutation entries; `dawporttest.Run` extended per new role; Go golden tests for `DawResult` and `DawProjectState` (`UPDATE_CONTRACTS=1`); `wireContracts.test.ts` rows; `DawClient` parity suite; scripted REAPER runs recorded in `docs/research/`; owner steps on #992.
 
 **Rollout.** Every command Experimental; promotion is a one-line declaration change after the verification pass ([The REAPER verification pass](../operations/reaper-verification-pass.md)). Settings shows each capability with its reason, destructive flag and mode ([Master, Delivery and Settings](studio-next-master-delivery-and-settings.prd.md)).
 
-**ADRs.** A6 (undo scope), A7 (result object and capability fields; amends [resolver.go](../../apps/desktop/internal/dawport/resolver.go)'s wire shapes only), A8 (roll as one command, range cut and range FX, stack; supersedes the roll part of [narration_punch.lua](../../integrations/reaper/narration_punch.lua) and the "chain only on tracks" limit of [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) for ranges).
+**ADRs.** A6 (undo scope), A7 (result object and capability fields; amends [resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)'s wire shapes only), A8 (roll as one command, range cut and range FX, stack; supersedes the roll part of [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua) and the "chain only on tracks" limit of [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) for ranges).
 
 **Trust boundaries.** `docs/architecture/threat-model.md` rows 5 (bridge) and the Audacity row, `SECURITY.md`, `docs/architecture/reaper-bridge.md` commands table and the diagram in `docs/architecture/` that names the moved files; re-read at each Lua slice (CLAUDE.md step 6).
 
@@ -166,7 +166,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ### Phase Details
 
-- **Phase 1.** Each spike is a script under `integrations/reaper/spikes/` run in an isolated REAPER on a copy of a project, with a note under `docs/research/` stating what was proved and what was not. No product code.
+- **Phase 1.** Each spike is a script under `src/studio/integrations/reaper/spikes/` run in an isolated REAPER on a copy of a project, with a note under `docs/research/` stating what was proved and what was not. No product code.
 - **Phase 2.** Additive wire change: no `hostAPIVersion` bump unless a field is required; if a binding is added, bump (three places, regenerate `Host.*`).
 - **Phase 4.** Pickup write-through uses the existing `import_pickups`, `resolve_pickup` and marker names; this phase adds the app-side state (`pickSync` for writes made while the DAW was away).
 - **Phase 6.** The three commands may be separate worker streams in the same Lua file only if `FEATURE_FILES`, `mutations.json` and `wire.go` rows are append-only; otherwise serialise.
@@ -179,11 +179,11 @@ Phase 1 spikes run in parallel with Phase 2. Phases 5 to 8 are independent after
 
 | Phase | Files touched | Collides with |
 | --- | --- | --- |
-| 1 | `integrations/reaper/spikes/`, `docs/research/` | REAPER Automation Follow-Through (old PRD `reaper-automation-follow-through.prd.md`, recoverable from git history) spikes (same runner) |
-| 2 | `apps/desktop/internal/dawport/**`, `apps/ui/src/api/{contracts,schemas}/daw.ts`, goldens, `hostAPIVersion` | Every binding PRD (serial bump) |
+| 1 | `src/studio/integrations/reaper/spikes/`, `docs/research/` | REAPER Automation Follow-Through (old PRD `reaper-automation-follow-through.prd.md`, recoverable from git history) spikes (same runner) |
+| 2 | `src/studio/desktop/internal/dawport/**`, `src/studio/ui/src/api/{contracts,schemas}/daw.ts`, goldens, `hostAPIVersion` | Every binding PRD (serial bump) |
 | 3 | `internal/dawport/{capability,roles}.go`, `dawporttest/` | Lane K only |
 | 4 | `narration_project_state.lua`, `bindings_projectstate.go`, pickups bindings | Booth and Pickups slices |
-| 5 to 7 | new `integrations/reaper/narration_takes.lua`, `narration_range.lua`, `tests/*_test.lua`, `mutations.json`, `wire.go`, `scripts/release/reaper-files.mjs` | Every Lua-touching PRD |
+| 5 to 7 | new `src/studio/integrations/reaper/narration_takes.lua`, `narration_range.lua`, `tests/*_test.lua`, `mutations.json`, `wire.go`, `scripts/release/reaper-files.mjs` | Every Lua-touching PRD |
 | 8 | `internal/dawport/audacity/**` | Audacity Integration (old PRD `audacity-integration.prd.md`, recoverable from git history) phases |
 | 9 | `internal/dawport/builtin/**` (new), `internal/recording` | Native Recording Suite (old PRD `native-recording-suite.prd.md`, recoverable from git history) |
 

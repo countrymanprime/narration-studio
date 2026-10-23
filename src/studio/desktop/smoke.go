@@ -65,7 +65,7 @@ const smokeCommandTimeout = 90 * time.Second
 // smokeSidecars are the frozen sidecars a release carries, by name (runtime/<name>/<name>[.exe]).
 var smokeSidecars = []string{"manuscript-guide", "transcript-compare", "manuscript-teleprompter"}
 
-// smokeReaperFiles are the REAPER scripts a release carries: every top-level Lua file of integrations/reaper, the launcher first.
+// smokeReaperFiles are the REAPER scripts a release carries: every top-level Lua file of src/studio/integrations/reaper, the launcher first.
 // scripts/release/reaper-files.mjs is the build-time copy of this list, and smoke_test.go holds both to the folder.
 var smokeReaperFiles = []string{
 	"NarrationStudio_Launcher.lua",
@@ -353,7 +353,7 @@ type capabilityRow struct {
 	Detail   string `json:"detail"`
 }
 
-// capabilitiesReport is what `manuscript-teleprompter --capabilities` prints (sidecars/manuscript-teleprompter/core/live_asr.py's
+// capabilitiesReport is what `manuscript-teleprompter --capabilities` prints (src/studio/sidecars/manuscript-teleprompter/core/live_asr.py's
 // capabilities_report): every row it has actually registered, by port then name.
 type capabilitiesReport struct {
 	Type    string                   `json:"type"`
@@ -417,7 +417,7 @@ func checkCapabilities(ctx context.Context, options smokeOptions, root string) (
 	return fmt.Sprintf("%d ASR row(s), %d capture row(s)", len(parsed.Asr), len(parsed.Capture)), nil
 }
 
-// guideCapabilitiesReport is what `manuscript-guide capabilities` prints (sidecars/manuscript-guide/core/manuscript_guide.py's
+// guideCapabilitiesReport is what `manuscript-guide capabilities` prints (src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's
 // capabilities_report): every row it has actually registered, by port then name. Only the keys matter here, as in capabilitiesReport.
 type guideCapabilitiesReport struct {
 	Type          string                     `json:"type"`
@@ -465,7 +465,7 @@ func checkGuideCapabilities(ctx context.Context, options smokeOptions, root stri
 	return fmt.Sprintf("%d TTS row(s), %d pronunciation row(s)", len(parsed.Tts), len(parsed.Pronunciation)), nil
 }
 
-// compareCapabilitiesReport is what `transcript-compare --capabilities` prints (sidecars/transcript-compare/core/compare.py's
+// compareCapabilitiesReport is what `transcript-compare --capabilities` prints (src/studio/sidecars/transcript-compare/core/compare.py's
 // capabilities_report): every row it has actually registered, by name. Only the keys matter here, as in capabilitiesReport.
 type compareCapabilitiesReport struct {
 	Type string                     `json:"type"`

@@ -71,7 +71,7 @@ jobs:
               *) echo "::error::a job this run needs ended $result"; exit 1 ;;
             esac
           done
-      # The whole-run half of the visual gate (apps/ui/tests/visual/whole-run.check.ts) over every shard's capture records: every
+      # The whole-run half of the visual gate (src/studio/ui/tests/visual/whole-run.check.ts) over every shard's capture records: every
       # capture present, none blank, no two states identical unless declared sameAs, every sameAs still holding, and the shards held
       # every test of the suite exactly once. It reads records only (no browser), and ran as a job of its own after the shards; here it
       # saves that job's queueing and start-up on the critical path. A step that fails fails `CI passed`. Skipped when the UI is not
@@ -93,11 +93,11 @@ jobs:
         with:
           pattern: ui-visual-records-*
           merge-multiple: true
-          path: apps/ui/screenshots/.run
+          path: src/studio/ui/screenshots/.run
       - if: needs.quality.outputs.ui-affected == 'true'
         env:
           UI_VISUAL_SHARDS: '3'
-        run: pnpm --dir apps/ui run visual:check-run
+        run: pnpm --dir src/studio/ui run visual:check-run
 
   # What a draft pull request shows instead of `CI passed`. It sums up only what the light tier ran, and its name says so. It is
   # not a merge condition: marking the pull request ready runs the full tier.

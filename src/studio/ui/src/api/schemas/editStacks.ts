@@ -3,7 +3,7 @@ import type { PassageStack, RetryModeAnswer, EditStackChange, EditStackList } fr
 import { STACK_MAX_ID, STACK_MAX_STEPS, STACK_MAX_TAKES, STACK_MAX_UNDO_STEPS } from '../contracts/editStacks';
 
 /** An id the host offered, never a path or markup: no space, control character, slash, backslash or angle bracket
- * (apps/desktop/internal/editlog/stacks.go plainID). */
+ * (src/studio/desktop/internal/editlog/stacks.go plainID). */
 const stackIdSchema = z
   .string()
   .min(1)

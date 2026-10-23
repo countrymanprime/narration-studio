@@ -1,5 +1,5 @@
 {
-  "license": "Public domain (LibriVox). Text: Project Gutenberg eBook #11, the same file as apps/ui/src/api/fixtures/alice-in-wonderland.txt.",
+  "license": "Public domain (LibriVox). Text: Project Gutenberg eBook #11, the same file as src/studio/ui/src/api/fixtures/alice-in-wonderland.txt.",
   "sources": [
     {
       "id": "kara_01",

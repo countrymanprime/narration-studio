@@ -1,5 +1,5 @@
 // The browser mock's pronunciation sources. It answers from fixture data, offline, and keeps the host's rules
-// (apps/desktop/bindings_pronunciationsources.go): a miss, `manual`, an unknown source and an empty or over-long word are
+// (src/studio/desktop/bindings_pronunciationsources.go): a miss, `manual`, an unknown source and an empty or over-long word are
 // `{ ok: false, reason }` results, never thrown errors. The mock reports every source available, the online one included.
 import type { PronunciationCandidate, PronunciationSource, PronunciationSourceList, PronunciationSourcesApi } from './contracts/pronunciationSources';
 

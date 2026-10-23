@@ -6,7 +6,7 @@
 //
 // This package makes no staleness decision by itself: Check reports the live count and the saved file's mtime,
 // and ChangedSince compares a later count to a baseline a caller captured earlier. Any consumer that already has
-// a saved-file-mtime-based staleness check (for example, the evaluator in apps/desktop/internal/evidence)
+// a saved-file-mtime-based staleness check (for example, the evaluator in src/studio/desktop/internal/evidence)
 // treats this only as an additional, optional live hint on top of its existing basis, never a replacement for it:
 // this package has no opinion on what "stale" means for another feature.
 package projectstate

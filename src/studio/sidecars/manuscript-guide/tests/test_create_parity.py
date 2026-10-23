@@ -1,6 +1,6 @@
 """What the sidecar's ``create`` and ``edit`` of the aliases do to a file, recorded as sequences the Go host replays.
 
-The host creates an entry and adds an alias itself and asks the sidecar only for the pronunciations (apps/desktop/internal/guide/create.go),
+The host creates an entry and adds an alias itself and asks the sidecar only for the pronunciations (src/studio/desktop/internal/guide/create.go),
 so each has two implementations. Each case here is a start file, a manuscript and a list of steps; every step runs the real command on the
 file the step before left, with pronunciation fixed by ``fixed_pronunciation`` so no dictionary is involved, and records whether it wrote
 and what the file then holds, or the reason it refused. It also records the words the command wanted a pronunciation for and the names it searched the manuscript for, in order. The manuscripts
@@ -29,7 +29,7 @@ guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
-TESTDATA = Path(__file__).parents[3] / "apps" / "desktop" / "internal" / "guide" / "testdata"
+TESTDATA = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "guide" / "testdata"
 
 
 def fixed_pronunciation(name: str, espeak_library: str | None, default_source: str | None = None) -> dict:

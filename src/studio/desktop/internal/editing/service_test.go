@@ -78,13 +78,13 @@ func newTestServiceIn(t *testing.T, dir string) *testService {
 }
 
 // minimalRPP writes a REAPER project chunk with exactly the two items this
-// test needs, in the legacy shape apps/desktop/internal/tracks/testdata/basic.rpp
+// test needs, in the legacy shape src/studio/desktop/internal/tracks/testdata/basic.rpp
 // uses (a bare GUID line, predating IGUID - parse.go falls back to it): one
 // track, two items each with a GUID, POSITION, LENGTH and a WAVE SOURCE.
 func minimalRPP(itemA, itemB tracks.Item) string {
 	item := func(it tracks.Item) string {
 		// PLAYRATE is always explicit in a real REAPER-saved take
-		// (apps/desktop/internal/tracks/testdata/reaper/saved-cases.rpp has it
+		// (src/studio/desktop/internal/tracks/testdata/reaper/saved-cases.rpp has it
 		// on every take); evidence.ItemPlayedRange reads the take's raw
 		// PlayRate field directly, not tracks.Take.Rate()'s "0 means 1"
 		// default, so a fixture that omits it would compute a zero-length

@@ -6,7 +6,7 @@ import (
 )
 
 // review is the REAPER adapter's ReviewSession (docs/architecture/daw-integration.md#the-daw-port's dawadapter.Review, before this package replaced it): each
-// operation is one bridge command, named as integrations/reaper/narration_ui_bridge.lua dispatches it, and events come from the
+// operation is one bridge command, named as src/studio/integrations/reaper/narration_ui_bridge.lua dispatches it, and events come from the
 // client's shared fan-out.
 type review struct{ client *bridge.Client }
 

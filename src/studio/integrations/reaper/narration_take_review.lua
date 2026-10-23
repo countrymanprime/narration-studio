@@ -1,5 +1,5 @@
 -- Take creation over the bridge: create_take (the spike docs/research/take-review-spike-p1-take-mechanics.md and
--- integrations/reaper/narration_take_review.lua). Loaded by
+-- src/studio/integrations/reaper/narration_take_review.lua). Loaded by
 -- narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 
 local core = ...

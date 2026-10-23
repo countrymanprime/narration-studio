@@ -83,7 +83,7 @@ func TestReachabilityMatchesIsFalseWithNoLinkedPath(t *testing.T) {
 }
 
 // TestReachabilitySubscribesToARealBridgeClient is the integration path: a real bridge.Client dispatching a real
-// events.log, the same wiring apps/desktop/app.go's configureLocked uses.
+// events.log, the same wiring src/studio/desktop/app.go's configureLocked uses.
 func TestReachabilitySubscribesToARealBridgeClient(t *testing.T) {
 	dir := t.TempDir()
 	client, err := bridge.New(dir)

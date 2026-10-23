@@ -1,4 +1,4 @@
-// The public site's how-to guides (the condensed guides in apps/site/docs/, rendered to `docs/` beside the demo by apps/site/build/guides.mjs): which guide
+// The public site's how-to guides (the condensed guides in src/web/docs/, rendered to `docs/` beside the demo by src/web/build/guides.mjs): which guide
 // explains the demo page a route draws. The banner's "How to use this page" link reads it.
 const GUIDE_BY_SEGMENT: Record<string, string> = {
   '': 'production',

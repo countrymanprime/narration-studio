@@ -5,8 +5,8 @@ with the few things Lua's standard library cannot do (temp directories, listing 
 directory the scripts under test live in. Exit status is non-zero when any test fails, when no Lua 5.4 interpreter is
 available, or when a mutation check (``--mutations``) survives.
 
-    python integrations/reaper/tests/run_lua_tests.py              # the harness tests
-    python integrations/reaper/tests/run_lua_tests.py --mutations  # also prove the tests catch broken guards
+    python src/studio/integrations/reaper/tests/run_lua_tests.py              # the harness tests
+    python src/studio/integrations/reaper/tests/run_lua_tests.py --mutations  # also prove the tests catch broken guards
 """
 
 from __future__ import annotations

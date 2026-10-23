@@ -157,7 +157,7 @@ export function createManuscriptMock(
         phase: 'ready',
         percent: 100,
         message: 'Import preview is ready.',
-        // Mirrors the host's staged import log (apps/desktop/internal/importer).
+        // Mirrors the host's staged import log (src/studio/desktop/internal/importer).
         logs: [...importJob.logs, ...(importJob.preview ? mockImportPreviewLog(importJob.preview, markdownHeadingLevel) : [])],
       };
       return wireClone(importJob);
@@ -230,7 +230,7 @@ export function createManuscriptMock(
           })),
       );
     },
-    // The host's ManuscriptSetChapterKind (apps/desktop/chapterkind.go): only the kind changes, and a removal clears the
+    // The host's ManuscriptSetChapterKind (src/studio/desktop/chapterkind.go): only the kind changes, and a removal clears the
     // chapter's links.
     manuscriptSetChapterKind: async (chapterId, kind) => {
       await manuscriptReady;

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { WorkspaceSnapResult } from '../contracts/workspaceSnap';
 
-// WorkspaceSnap's answer (apps/desktop/bindings_workspace_snap.go). Strict: a key the host never sends is drift.
+// WorkspaceSnap's answer (src/studio/desktop/bindings_workspace_snap.go). Strict: a key the host never sends is drift.
 const base = {
   chapterId: z.string(),
   itemGuid: z.string(),

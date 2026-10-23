@@ -1,6 +1,6 @@
 # Colour and contrast
 
-**Status: living document, describes the current state.** The decision is Colour and contrast (with its later updates); this file is what to do with it. The tokens themselves live in `apps/ui/src/styles.css` ([design-system.md](design-system.md) has the rest of the token list).
+**Status: living document, describes the current state.** The decision is Colour and contrast (with its later updates); this file is what to do with it. The tokens themselves live in `src/studio/ui/src/styles.css` ([design-system.md](design-system.md) has the rest of the token list).
 
 ## The rule
 
@@ -30,7 +30,7 @@ The surfaces are `--bg`, `--surface`, `--surface-2`, `--surface-3` and `--row-al
 ## Derived and status tokens
 
 - **Meter zones (`LevelMeter`):** `--meter-floor`, `--meter-body`, `--meter-hot` and `--meter-over` are named for their role, not new hues. Each aliases a theme token (`--non-text`, `--ok`, `--warn`, `--danger`), declared once like `--row-alt`, so it needs no dark override. Each still has its own `PAIRS` row (a mark, 3:1 on `--surface`), so a change that breaks the alias fails on the meter, not only on the token it borrows from ([Base UI wrappers](design-system.md#base-ui-wrappers)).
-- **The 14% badge tint:** `--badge-experimental-fill` (`StatusBadge`'s experimental tone, which has no soft token) is a 14% tint of the tone colour (`color-mix(in srgb, var(--<tone>) 14%, transparent)`), checked as a text pair (4.5:1) against that tone's `-text` colour on `--surface`. `--badge-danger-fill` went with the old Booth's control bar, its last user (SN-O10), as `apps/ui/src/styles.css` asks. 14%, not the entity badges' 18%: at 18%, `--danger-text` on a `--danger` tint measures 4.29:1 in the dark theme.
+- **The 14% badge tint:** `--badge-experimental-fill` (`StatusBadge`'s experimental tone, which has no soft token) is a 14% tint of the tone colour (`color-mix(in srgb, var(--<tone>) 14%, transparent)`), checked as a text pair (4.5:1) against that tone's `-text` colour on `--surface`. `--badge-danger-fill` went with the old Booth's control bar, its last user (SN-O10), as `src/studio/ui/src/styles.css` asks. 14%, not the entity badges' 18%: at 18%, `--danger-text` on a `--danger` tint measures 4.29:1 in the dark theme.
 - **The `experimental` tone:** a fifth status meaning, beside `--ok`, `--warn`, `--info` and `--danger`, for a capability the host reports as experimental ([The DAW port](../architecture/daw-integration.md#the-daw-port)). `--experimental` (`#1f7a7a` light, `#4fbdbd` dark) is a teal, distinct from every kind and status hue (in particular `--org`'s purple and the blues of `--item` and `--info`). `--experimental-text` follows the recipe of the other status text colours: darkened toward `--text` in light, the raw colour in dark.
 - **The booth follows the theme (`FocusShell`, `CompactShell`):** there is no booth palette. The theme is one global setting, and no page or surface forces light or dark. The booth-only size tokens are `--font-size-booth-script` and `--line-height-booth-script`, declared once in `:root`; its colour tokens, `--reading-bg` and `--rec-fill`/`--rec-text`, have a value in each theme block (see [Fills and surfaces](#fills-and-surfaces)). `paletteContrast.test.ts` runs every pair over `['light', 'dark']`, and `forcedThemeRules` (`src/tokenContrast.ts`) fails any rule outside the two theme blocks that sets `color-scheme` or redeclares a theme colour. A booth-only colour gets a value in both theme blocks and a `PAIRS` row, never a scoped block.
 
@@ -39,7 +39,7 @@ The surfaces are `--bg`, `--surface`, `--surface-2`, `--surface-3` and `--row-al
 Each speaker in the Script reader's attribution chip and the Booth's "Voices in scene" tags has its own colour.
 
 - **`--speaker-1` through `--speaker-7`** each alias one of the kind colours, in this order: `character`, `place`, `org`, `review`, `lore`, `item`, `event` (and their `-text` companions the same way), so each needs no dark override or contrast tuning of its own; a `speaker-N` row in `PAIRS` still protects the speaker use.
-- **`apps/ui/src/components/primitives/speakerColor.ts`** hashes a speaker id (a canonical name, or an entity id where one is available) to one of the seven, deterministically. An optional second argument, the entry's `speaker_color` (1 to 7, set in the Story Bible entry's "Speaker colour" field), wins over the hash; a value outside 1 to 7 is ignored, and `SpeakerTag` passes it through as `colorOverride`. An eighth or later distinct speaker wraps back to `--speaker-1` (`--character`), the colour an unresolved speaker (no id) falls back to.
+- **`src/studio/ui/src/components/primitives/speakerColor.ts`** hashes a speaker id (a canonical name, or an entity id where one is available) to one of the seven, deterministically. An optional second argument, the entry's `speaker_color` (1 to 7, set in the Story Bible entry's "Speaker colour" field), wins over the hash; a value outside 1 to 7 is ignored, and `SpeakerTag` passes it through as `colorOverride`. An eighth or later distinct speaker wraps back to `--speaker-1` (`--character`), the colour an unresolved speaker (no id) falls back to.
 - **Two call sites, one derivation:** `primitives/SpeakerTag.tsx` (the Script reader's chip) reads `speakerColorToken` directly; `primitives/Highlight.tsx`'s `colorToken` prop overrides a mark's kind colour with it, so the Booth's "Voices in scene" tags stay a `Highlight kind="Character"` mark (data attribute, activation, keyboard support) with only their colour source changed.
 - **Known limitation:** hashing by name, not a persistent id, means two speakers who share a display name draw identically, and with seven buckets a modest cast often collides. `docs/design/colour-and-contrast.md#per-speaker-colours` accepts this rather than adding hues that would need their own contrast tuning.
 
@@ -55,7 +55,7 @@ The Studio Next mock (`docs/research/mockups/studio-next/src/styles/app.css`) is
 
 ## Fills and surfaces
 
-These are the colours the mocks draw that the base palette does not name ([styles.css](../../apps/ui/src/styles.css)): the `-soft` fills (drawn by `StatusBadge` and `Pill`), `--row-selected` (`Table`, `StageGrid`), `--reading-bg` and `--rec-fill`/`--rec-text` (the Booth), `--toast-bg`/`--toast-text` (`Toast`), `--waveform` (Proof's waveform card) and `--ok-zone` (Master's book-consistency band). A colour a new mock needs is a new token with its own `paletteContrast.test.ts` rows, never a value written into a component.
+These are the colours the mocks draw that the base palette does not name ([styles.css](../../src/studio/ui/src/styles.css)): the `-soft` fills (drawn by `StatusBadge` and `Pill`), `--row-selected` (`Table`, `StageGrid`), `--reading-bg` and `--rec-fill`/`--rec-text` (the Booth), `--toast-bg`/`--toast-text` (`Toast`), `--waveform` (Proof's waveform card) and `--ok-zone` (Master's book-consistency band). A colour a new mock needs is a new token with its own `paletteContrast.test.ts` rows, never a value written into a component.
 
 | Token | Light | Dark | Pair and worst ratio (light / dark) |
 | --- | --- | --- | --- |
@@ -98,17 +98,17 @@ In the shipped app only the note colour is a user setting (`color_note`, written
 
 ## What enforces it
 
-- `apps/ui/src/paletteContrast.test.ts` reads both theme blocks of `styles.css` (`tokenContrast.ts` evaluates `var()`, `color-mix`, `transparent` and `rgba` and composites tints the way the browser paints them) and holds every declared pair to its floor over every surface it sits on. Its ratchet, `KNOWN_FAILURES`, is empty; an entry is a known failure and gets the review of an atlas debt entry. It also checks the order text over muted over non-text, that every colour a source file draws text with has a declared pair (so a new one cannot ship unmeasured), that no text uses a palette or literal colour, that `--non-text` is used only where an icon, dot or glyph is listed, that placeholders are `--text-muted`, and stacked highlights.
-- `apps/ui/src/retiredTokens.test.ts` fails on any mention of `--text-faint` in the UI package.
+- `src/studio/ui/src/paletteContrast.test.ts` reads both theme blocks of `styles.css` (`tokenContrast.ts` evaluates `var()`, `color-mix`, `transparent` and `rgba` and composites tints the way the browser paints them) and holds every declared pair to its floor over every surface it sits on. Its ratchet, `KNOWN_FAILURES`, is empty; an entry is a known failure and gets the review of an atlas debt entry. It also checks the order text over muted over non-text, that every colour a source file draws text with has a declared pair (so a new one cannot ship unmeasured), that no text uses a palette or literal colour, that `--non-text` is used only where an icon, dot or glyph is listed, that placeholders are `--text-muted`, and stacked highlights.
+- `src/studio/ui/src/retiredTokens.test.ts` fails on any mention of `--text-faint` in the UI package.
 - The component tests `Highlight.test.tsx` and `NavButton.test.tsx` tie the components to the recipes the guard measures (the guard reads tokens, not component source).
-- The component atlas (`pnpm --dir apps/ui atlas`) runs axe on every story in both themes; its debt list (`tests/atlas/a11y-debt.ts`) is empty and capped at 0.
+- The component atlas (`pnpm --dir src/studio/ui atlas`) runs axe on every story in both themes; its debt list (`tests/atlas/a11y-debt.ts`) is empty and capped at 0.
 
 Enforced beyond the token test: axe runs on every app state in the visual suite ([CI and releases](../operations/ci-and-releases.md)), and none of its declared debt is `color-contrast`; the suite runs the light theme by default, so the dark palette is guarded by the token test and by a manual `UI_THEME=dark UI_AXE=1` run. Not enforced by a test: border contrast.
 
 ## Checking a colour change
 
-1. `pnpm --dir apps/ui exec vitest run src/paletteContrast.test.ts` (fast, names the pair, the surface and the ratio).
-2. `pnpm check`, and `pnpm --dir apps/ui atlas` when a primitive or `styles.css` changed.
+1. `pnpm --dir src/studio/ui exec vitest run src/paletteContrast.test.ts` (fast, names the pair, the surface and the ratio).
+2. `pnpm check`, and `pnpm --dir src/studio/ui atlas` when a primitive or `styles.css` changed.
 3. The visual suite in both themes (`UI_THEME=dark` runs the whole suite in dark; the run ends with a known validation failure on `theme-dark` and `reader-dark`, which match their default states there), at every viewport, and look at the PNGs: `screenshots/app/<page>/<state>/<viewport>.png`.
 4. For a wide change, an axe `color-contrast` pass over every state in both themes catches what the declared pairs miss (it found nested highlights and placeholders while the palette stack was built).
 5. Regenerate the documentation images once, after the last visual change (`doc-screenshot-sync`).

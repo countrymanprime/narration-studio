@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { describe, expect, test } from 'vitest';
 import { FULL_LAYOUT, LAYOUT_QUERIES, MEDIUM_MAX, NARROW_BELOW, RAIL_COLLAPSE_BELOW, STRIP_MIN_WIDTH, TINY_BELOW, layoutClassFor } from './layoutBreakpoints';
 
-const MOCK_LAYOUT = resolve(__dirname, '../../../docs/research/mockups/studio-next/src/app/layout.ts');
+const MOCK_LAYOUT = resolve(__dirname, '../../../../docs/research/mockups/studio-next/src/app/layout.ts');
 
 describe('layout vocabulary', () => {
   test('breakpoints-equal-the-mocks-layout-ts', (ctx) => {

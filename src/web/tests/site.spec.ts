@@ -1,4 +1,4 @@
-// The built public site (apps/site/build/build-demo-site.mjs): the landing page, the real UI in its mock mode and Storybook, served from a
+// The built public site (src/web/build/build-demo-site.mjs): the landing page, the real UI in its mock mode and Storybook, served from a
 // sub-path. What a visitor does first: open the demo, decide a note, see it in Pickups.
 import { expect, test, type Page } from '@playwright/test';
 
@@ -235,7 +235,7 @@ test('the demo and the landing page each run from one file inside a sandboxed fr
   }
 });
 
-// The Docs section: the condensed guides (apps/site/docs/) rendered by apps/site/build/guides.mjs.
+// The Docs section: the condensed guides (src/web/docs/) rendered by src/web/build/guides.mjs.
 const DOCS = [
   'index',
   'getting-started',
@@ -364,7 +364,7 @@ test('without a request for reduced motion the demo animates and the switch star
   await expect(page.locator('html')).not.toHaveAttribute('data-motion', /.+/);
 });
 
-// The demo page (apps/site/build/windowPages.mjs): the site's header and footer around a window whose frame is the one-file app.
+// The demo page (src/web/build/windowPages.mjs): the site's header and footer around a window whose frame is the one-file app.
 const appFrame = (page: Page) => page.frameLocator('#app');
 const box = async (locator: ReturnType<Page['locator']>) => {
   const found = await locator.boundingBox();

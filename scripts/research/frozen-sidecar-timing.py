@@ -8,7 +8,7 @@ For a frozen "hello" program built here with the same PyInstaller (the floor: bo
 sidecar's ``--help`` (every module-level import plus argparse, no work), it records the wall time of whole launches from a fresh copy of the
 folder (launch 1 meets cold files and any antivirus scan; launches 2 to N do not), then the import profile of the sidecar. It writes
 ``timing.json``, ``timing.md`` and the raw ``importtime-*.txt`` files to ``--out-dir``. The work part of an operation is its Go-harness time
-(``apps/desktop/internal/latency``) minus the ``--help`` time. A research tool, not product code
+(``src/studio/desktop/internal/latency``) minus the ``--help`` time. A research tool, not product code
 (docs/research/2026-10-18-sidecar-start-up-and-bridge-round-trip.md).
 """
 
@@ -28,9 +28,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SIDECARS = {
-    "manuscript-guide": ROOT / "sidecars/manuscript-guide/core/manuscript_guide.py",
-    "transcript-compare": ROOT / "sidecars/transcript-compare/core/compare.py",
-    "manuscript-teleprompter": ROOT / "sidecars/manuscript-teleprompter/core/live_asr.py",
+    "manuscript-guide": ROOT / "src/studio/sidecars/manuscript-guide/core/manuscript_guide.py",
+    "transcript-compare": ROOT / "src/studio/sidecars/transcript-compare/core/compare.py",
+    "manuscript-teleprompter": ROOT / "src/studio/sidecars/manuscript-teleprompter/core/live_asr.py",
 }
 EXE_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
@@ -138,7 +138,7 @@ def profile_imports(name: str, exe: Path, out_dir: Path) -> dict:
         report["frozen"] = frozen
     _, _, stderr = launch(
         [sys.executable, "-X", "importtime", str(SIDECARS[name]), "--help"],
-        env={**os.environ, "PYTHONPATH": os.pathsep.join([str(ROOT / "libs/python"), str(SIDECARS[name].parent)])},
+        env={**os.environ, "PYTHONPATH": os.pathsep.join([str(ROOT / "src/studio/libs/python"), str(SIDECARS[name].parent)])},
     )
     (out_dir / f"importtime-{name}-dev.txt").write_text(stderr, encoding="utf-8")
     report["dev_interpreter"] = parse_importtime(stderr)

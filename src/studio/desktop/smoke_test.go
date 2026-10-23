@@ -723,7 +723,7 @@ func TestTheReaperFileListIsEveryTopLevelLuaScriptOfTheIntegration(t *testing.T)
 	slices.Sort(onDisk)
 	slices.Sort(listed)
 	if !slices.Equal(onDisk, listed) {
-		t.Fatalf("smokeReaperFiles %v is not the Lua files of integrations/reaper %v", listed, onDisk)
+		t.Fatalf("smokeReaperFiles %v is not the Lua files of src/studio/integrations/reaper %v", listed, onDisk)
 	}
 	// The build-time check has the same list; the two must not drift.
 	script, err := os.ReadFile(layout.RepoFile("scripts/release/reaper-files.mjs"))

@@ -62,7 +62,7 @@ from pathlib import Path
 
 import numpy as np
 
-_SHARED_PYTHON = Path(__file__).resolve().parents[3] / "libs" / "python"
+_SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
 
@@ -436,7 +436,7 @@ def transcribe(audio_array, model_size, language, device="cpu", progress_path=No
 
     # model_dir is a Narration Studio asset-cache directory whose contents were
     # already hash-verified before this process was started (see
-    # apps/desktop/internal/whisper). Passing it with local_files_only=True stops
+    # src/studio/desktop/internal/whisper). Passing it with local_files_only=True stops
     # faster-whisper/huggingface_hub from ever reaching the network here -
     # without it, only a bare model_size falls back to that legacy download
     # path, kept for direct/manual CLI use outside the desktop host.
@@ -838,7 +838,7 @@ def normalized_tokens(s):
 
 
 # --- Chapter label pre-pass ---
-# The same pass as apps/desktop/internal/chaptermatch/label.go's LabelTokens: a track named "Ch. 6", "Ch6", "06",
+# The same pass as src/studio/desktop/internal/chaptermatch/label.go's LabelTokens: a track named "Ch. 6", "Ch6", "06",
 # "Sixth Chapter", "Chapter VI" or "Chapter 6 v2" reads as the chapter label it is before find_chapter_by_track_name
 # compares it, headings alike. tests/fixtures/chapter-track-match/parity-cases.json's labelTokens cases pin the two.
 

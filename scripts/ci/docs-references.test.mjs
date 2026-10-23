@@ -4,23 +4,23 @@ import test from 'node:test';
 import { REPO_ROOT, trackedFiles } from './layout.mjs';
 import { extractReferences, findMissing, ignoredAmong, isCheckedFile, makeExists } from './docs-references.mjs';
 
-const TRACKED = ['apps/ui/src/App.tsx', 'apps/desktop/app.go', 'docs/architecture/reaper-bridge.md', 'README.md', 'scripts/ci/layout.json'];
+const TRACKED = ['src/studio/ui/src/App.tsx', 'src/studio/desktop/app.go', 'docs/architecture/reaper-bridge.md', 'README.md', 'scripts/ci/layout.json'];
 const exists = makeExists(TRACKED);
 const SCRIPTS = new Set(['check', 'lint:md']);
 
 test('extractReferences finds repo paths in inline code with their line numbers', () => {
-  const refs = extractReferences('intro\nSee `apps/ui/src/App.tsx` and `docs/architecture/reaper-bridge.md`.\n');
+  const refs = extractReferences('intro\nSee `src/studio/ui/src/App.tsx` and `docs/architecture/reaper-bridge.md`.\n');
 
   assert.deepEqual(refs, [
-    { line: 2, ref: 'apps/ui/src/App.tsx', kind: 'path' },
+    { line: 2, ref: 'src/studio/ui/src/App.tsx', kind: 'path' },
     { line: 2, ref: 'docs/architecture/reaper-bridge.md', kind: 'path' },
   ]);
 });
 
 test('extractReferences strips a :line suffix and a #anchor, and a trailing slash or punctuation', () => {
-  const refs = extractReferences('`apps/desktop/app.go:42` `docs/architecture/reaper-bridge.md#harness` `apps/ui/src/`');
+  const refs = extractReferences('`src/studio/desktop/app.go:42` `docs/architecture/reaper-bridge.md#harness` `src/studio/ui/src/`');
 
-  assert.deepEqual(refs.map((ref) => ref.ref), ['apps/desktop/app.go', 'docs/architecture/reaper-bridge.md', 'apps/ui/src']);
+  assert.deepEqual(refs.map((ref) => ref.ref), ['src/studio/desktop/app.go', 'docs/architecture/reaper-bridge.md', 'src/studio/ui/src']);
 });
 
 test('extractReferences ignores placeholders, globs, URLs, absolute and unknown-root paths', () => {
@@ -29,12 +29,18 @@ test('extractReferences ignores placeholders, globs, URLs, absolute and unknown-
   assert.deepEqual(extractReferences(text), []);
 });
 
+test('extractReferences reads src/ as a root only into the folders under it, not the UI shorthand src/<dir>', () => {
+  const refs = extractReferences('`src/ports` `src/studio/selectors/` `src/studio/ui/src/App.tsx` `src/web/build` `src/studio`');
+
+  assert.deepEqual(refs.map((ref) => ref.ref), ['src/studio/ui/src/App.tsx', 'src/web/build', 'src/studio']);
+});
+
 test('extractReferences ignores a path in a fenced block and in a quotation', () => {
-  assert.deepEqual(extractReferences('```\n`apps/ui/gone.ts`\napps/ui/gone.ts\n```\n> `apps/ui/gone.ts`\n'), []);
+  assert.deepEqual(extractReferences('```\n`src/studio/ui/gone.ts`\napps/ui/gone.ts\n```\n> `src/studio/ui/gone.ts`\n'), []);
 });
 
 test('extractReferences reads root pnpm scripts but not filtered or directory-scoped ones', () => {
-  const refs = extractReferences('`pnpm check` `pnpm run lint:md` `pnpm --dir apps/ui atlas` `pnpm exec nx run x` `pnpm -s check`');
+  const refs = extractReferences('`pnpm check` `pnpm run lint:md` `pnpm --dir src/studio/ui atlas` `pnpm exec nx run x` `pnpm -s check`');
 
   assert.deepEqual(
     refs.map((ref) => [ref.kind, ref.ref]),
@@ -46,21 +52,21 @@ test('extractReferences reads root pnpm scripts but not filtered or directory-sc
 });
 
 test('findMissing reports a path that is neither a tracked file nor a tracked directory', () => {
-  const refs = extractReferences('`apps/ui/src/App.tsx` `apps/ui/src` `apps/ui/src/Gone.tsx` `README.md` `pnpm check` `pnpm nope`');
+  const refs = extractReferences('`src/studio/ui/src/App.tsx` `src/studio/ui/src` `src/studio/ui/src/Gone.tsx` `README.md` `pnpm check` `pnpm nope`');
 
   assert.deepEqual(
     findMissing(refs, { exists, scripts: SCRIPTS }).map((ref) => ref.ref),
-    ['apps/ui/src/Gone.tsx', 'nope'],
+    ['src/studio/ui/src/Gone.tsx', 'nope'],
   );
 });
 
 test('findMissing accepts a Go symbol, a sub-project-relative path and a pnpm built-in', () => {
-  const exists = makeExists(['apps/desktop/internal/daw/daw.go', 'apps/ui/tests/visual/state-catalog.ts']);
-  const refs = extractReferences('`apps/desktop/internal/daw.Locate` `apps/desktop/internal/daw.Reach.Start` `tests/visual/state-catalog.ts` `pnpm licenses` `apps/desktop/internal/gone.Locate` `tests/visual/gone.ts`');
+  const exists = makeExists(['src/studio/desktop/internal/daw/daw.go', 'src/studio/ui/tests/visual/state-catalog.ts']);
+  const refs = extractReferences('`src/studio/desktop/internal/daw.Locate` `src/studio/desktop/internal/daw.Reach.Start` `tests/visual/state-catalog.ts` `pnpm licenses` `src/studio/desktop/internal/gone.Locate` `tests/visual/gone.ts`');
 
   assert.deepEqual(
     findMissing(refs, { exists, scripts: new Set() }).map((ref) => ref.ref),
-    ['apps/desktop/internal/gone.Locate', 'tests/visual/gone.ts'],
+    ['src/studio/desktop/internal/gone.Locate', 'tests/visual/gone.ts'],
   );
 });
 
@@ -83,7 +89,7 @@ test('extractReferences skips front matter, reads a GitHub alert, and skips an o
 });
 
 test('makeExists: the suffix shorthand is for tests/ only, so a stale tail cannot resolve to a nested package', () => {
-  const exists = makeExists(['apps/ui/scripts/foo.mjs', 'apps/ui/package.json', 'apps/ui/tests/visual/x.ts']);
+  const exists = makeExists(['src/studio/ui/scripts/foo.mjs', 'src/studio/ui/package.json', 'src/studio/ui/tests/visual/x.ts']);
 
   assert.equal(exists('scripts/foo.mjs'), false);
   assert.equal(exists('package.json'), false);
@@ -114,8 +120,8 @@ test('the tracked tree: makeExists resolves a real file and a real directory', (
 });
 
 test('ignoredAmong reports an ignored directory that is not on disk under the name the doc used', () => {
-  const ignored = ignoredAmong(['apps/ui/coverage', 'apps/ui/src']);
+  const ignored = ignoredAmong(['src/studio/ui/coverage', 'src/studio/ui/src']);
 
-  assert.ok(ignored.has('apps/ui/coverage'));
-  assert.ok(!ignored.has('apps/ui/src'));
+  assert.ok(ignored.has('src/studio/ui/coverage'));
+  assert.ok(!ignored.has('src/studio/ui/src'));
 });

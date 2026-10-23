@@ -6,7 +6,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/port"
 )
 
-// MaxUndoSteps is the most undo points one result reports, the wire schema's bound (apps/ui/src/api/schemas/daw.ts).
+// MaxUndoSteps is the most undo points one result reports, the wire schema's bound (src/studio/ui/src/api/schemas/daw.ts).
 const MaxUndoSteps = 12
 
 // CodeStale is the one refusal code: the call named an id the DAW no longer has where the app read it, so the

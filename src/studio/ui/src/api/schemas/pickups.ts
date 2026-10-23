@@ -87,7 +87,7 @@ const pickupLeftOutChapterSchema = z
   .object({ chapterId: z.string().min(1), state: z.string().min(1), reasons: z.array(z.string()) })
   .strict() satisfies z.ZodType<PickupLeftOutChapter>;
 
-/** `PickupsList`, `PickupsAdd`, `PickupsRemove`, `PickupsSetIncluded` and `PickupsSetDone` (`apps/desktop/bindings_pickuplist.go`). */
+/** `PickupsList`, `PickupsAdd`, `PickupsRemove`, `PickupsSetIncluded` and `PickupsSetDone` (`src/studio/desktop/bindings_pickuplist.go`). */
 export const pickupListSchema = z
   .object({ pickups: z.array(pickupItemSchema), leftOut: z.array(pickupLeftOutChapterSchema) })
   .strict() satisfies z.ZodType<PickupList>;

@@ -231,7 +231,7 @@ func fenced(t *testing.T, doc, lang string) string {
 }
 
 func TestDocumentedExamplesParseCleanInBothFormats(t *testing.T) {
-	b, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "..", "docs", "reference", "storybible-import-format.md"))
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "..", "..", "docs", "reference", "storybible-import-format.md"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,6 @@
 """Labeled-quote evaluation for character-continuity-review.prd.md Phase 2, Q4 ("How are dialogue lines
 attributed to characters?"). Reports precision/recall of the rules-based cue extractor
-(sidecars/manuscript-guide/core/manuscript_guide.py: extract_dialogue_cues) against a hand-labeled corpus.
+(src/studio/sidecars/manuscript-guide/core/manuscript_guide.py: extract_dialogue_cues) against a hand-labeled corpus.
 
 Corpus: an original, synthetic manuscript written for this evaluation (no real or copyrighted text), covering
 the PRD's three required scenarios (ambiguous cues, overlapping/alternating speakers, missing cues) plus a
@@ -13,7 +13,7 @@ order). A label is either the true speaker's canonical name, or "unknown" for a 
 reader could not confidently attribute either (no tag, three or more active speakers, or an incidental speaker
 who was never named as a Character entity) - the tool returning "unknown" there is correct, not a miss.
 
-Run: `uv run --project ../../../sidecars/manuscript-guide python run_eval.py` from this directory.
+Run: `uv run --project ../../../src/studio/sidecars/manuscript-guide python run_eval.py` from this directory.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import json
 import sys
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).resolve().parents[3] / "sidecars" / "manuscript-guide" / "core" / "manuscript_guide.py"
+MODULE_PATH = Path(__file__).resolve().parents[3] / "src" / "studio" / "sidecars" / "manuscript-guide" / "core" / "manuscript_guide.py"
 SPEC = importlib.util.spec_from_file_location("manuscript_guide", MODULE_PATH)
 guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

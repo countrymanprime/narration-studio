@@ -33,7 +33,7 @@ func CommonsAudioURL(filename string) (string, error) {
 // net/url included, everywhere outside the download flow (docs/architecture/threat-model.md; .golangci.yml
 // no-network-outside-the-download-flow), even though net/url itself never makes a network call. Unreserved: letters,
 // digits, and "-_.~$&+:=@"; everything else becomes an uppercase %XX per byte, so a multi-byte UTF-8 character (an
-// accent) becomes one %XX triplet per byte. Mirrors apps/desktop/internal/pronunciationlookup's own copy: the two
+// accent) becomes one %XX triplet per byte. Mirrors src/studio/desktop/internal/pronunciationlookup's own copy: the two
 // packages are kept independent rather than sharing a helper package for one ten-line function.
 func pathSegmentEscape(s string) string {
 	const hex = "0123456789ABCDEF"

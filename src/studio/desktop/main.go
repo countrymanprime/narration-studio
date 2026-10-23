@@ -12,7 +12,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// cmd/narration-utils/frontend/dist is populated from apps/ui/dist by the shell build script.
+// cmd/narration-utils/frontend/dist is populated from src/studio/ui/dist by the shell build script.
 // Keeping the copy inside the Go module makes release artifacts independent
 // of a checkout path.
 //

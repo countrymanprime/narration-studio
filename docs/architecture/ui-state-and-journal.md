@@ -6,18 +6,18 @@
 
 | Piece | Where | What it does |
 | --- | --- | --- |
-| Read-model store | `apps/ui/src/studio/store/createStudioStore.ts` | Holds one parsed copy of each cross-page read model (a slot). Never holds the book. |
-| Slot registry | `apps/ui/src/studio/slots.ts` | Names the slots, how each loads and what makes it stale. |
-| Hooks | `apps/ui/src/studio/store/react.tsx` | `bindStudio` produces `useStudio(selector)` over `useSyncExternalStore`; callers import `useStudio` from `studio/StudioProvider`. |
-| Selectors | `apps/ui/src/studio/selectors/createSelector.ts` | Memoised pure functions of state. |
-| Copy-on-write helpers | `apps/ui/src/studio/store/copyOnWrite.ts` | `getIn` and `setIn` for UI-only slices. |
-| Command journal | `apps/ui/src/studio/journal/createJournal.ts` | `act`, `undo`, `undoLast`, `entries`, `clear`. |
-| Leave guard | `apps/ui/src/studio/journal/leaveGuard.ts` | One page may stop a navigation and ask first (the Booth while a take records). |
-| Journalled commands | `apps/ui/src/studio/commands/bookmarks.ts` | Add, edit and remove a bookmark, each with its inverse host command. |
-| Composition root | `apps/ui/src/studio/StudioProvider.tsx` | Creates the one store and the one journal, starts the store, empties both on a project switch. |
-| Ports | `apps/ui/src/ports/` | The typed seam a page uses to reach the host. |
-| Fixtures | `apps/ui/src/fixtures/` | Plain builders and data that seed the mock. |
-| Contract kit | `apps/ui/src/ports/providerContract.ts` | One suite run against the mock and the host adapter. |
+| Read-model store | `src/studio/ui/src/studio/store/createStudioStore.ts` | Holds one parsed copy of each cross-page read model (a slot). Never holds the book. |
+| Slot registry | `src/studio/ui/src/studio/slots.ts` | Names the slots, how each loads and what makes it stale. |
+| Hooks | `src/studio/ui/src/studio/store/react.tsx` | `bindStudio` produces `useStudio(selector)` over `useSyncExternalStore`; callers import `useStudio` from `studio/StudioProvider`. |
+| Selectors | `src/studio/ui/src/studio/selectors/createSelector.ts` | Memoised pure functions of state. |
+| Copy-on-write helpers | `src/studio/ui/src/studio/store/copyOnWrite.ts` | `getIn` and `setIn` for UI-only slices. |
+| Command journal | `src/studio/ui/src/studio/journal/createJournal.ts` | `act`, `undo`, `undoLast`, `entries`, `clear`. |
+| Leave guard | `src/studio/ui/src/studio/journal/leaveGuard.ts` | One page may stop a navigation and ask first (the Booth while a take records). |
+| Journalled commands | `src/studio/ui/src/studio/commands/bookmarks.ts` | Add, edit and remove a bookmark, each with its inverse host command. |
+| Composition root | `src/studio/ui/src/studio/StudioProvider.tsx` | Creates the one store and the one journal, starts the store, empties both on a project switch. |
+| Ports | `src/studio/ui/src/ports/` | The typed seam a page uses to reach the host. |
+| Fixtures | `src/studio/ui/src/fixtures/` | Plain builders and data that seed the mock. |
+| Contract kit | `src/studio/ui/src/ports/providerContract.ts` | One suite run against the mock and the host adapter. |
 
 ## The store: host reads, cached
 
@@ -40,7 +40,7 @@ The Go host stays the source of truth. The store is a cache that can be thrown a
 | A selector imports only types and other selectors | dependency-cruiser rule `selectors-import-types-and-selectors-only` |
 | `src/studio/`, `src/ports/`, `src/fixtures/` and `src/overlay/` never import `src/api/wailsClient` | dependency-cruiser rule `bridge-only-at-the-composition-root` |
 
-The dependency-cruiser rules are in `apps/ui/.dependency-cruiser.mjs` and run as the `architecture` script of `apps/ui` ([Verification and code-health tooling](../operations/verification-tooling.md)).
+The dependency-cruiser rules are in `src/studio/ui/.dependency-cruiser.mjs` and run as the `architecture` script of `src/studio/ui` ([Verification and code-health tooling](../operations/verification-tooling.md)).
 
 ## The journal and undo
 
@@ -85,8 +85,8 @@ Undo refuses with a reason and changes nothing. The checks run in this order, an
 
 A port is a narrow interface a page asks for by name, so it sees the methods of one domain and not the whole `NarrationApi` facade.
 
-- **`apps/ui/src/ports/index.ts`** maps names to interfaces. `PortMap` maps a name (`system`, `manuscript`, `bookmarks`, `production`, and so on) to the per-domain interface under `api/contracts/` that `NarrationApi` composes. `ClientPortMap` holds four client ports with their own file and adapters: `daw` (`ports/daw.ts`), `measurements`, `alignment` and `takes`. `PortName` is the union of both; `PortOf<N>` is the type `usePort(N)` returns.
-- **`apps/ui/src/ports/usePort.tsx`** is the hook. For a domain port it returns the provider's api, typed as that domain interface. For a client port it builds the client once per api (`CLIENT_BUILDERS`) over the api, or returns the one `PortOverrides` supplies (a test hands `usePort('daw')` the mock DAW client). Outside an `ApiProvider` it throws `usePort('<name>') called outside an <ApiProvider>.`
+- **`src/studio/ui/src/ports/index.ts`** maps names to interfaces. `PortMap` maps a name (`system`, `manuscript`, `bookmarks`, `production`, and so on) to the per-domain interface under `api/contracts/` that `NarrationApi` composes. `ClientPortMap` holds four client ports with their own file and adapters: `daw` (`ports/daw.ts`), `measurements`, `alignment` and `takes`. `PortName` is the union of both; `PortOf<N>` is the type `usePort(N)` returns.
+- **`src/studio/ui/src/ports/usePort.tsx`** is the hook. For a domain port it returns the provider's api, typed as that domain interface. For a client port it builds the client once per api (`CLIENT_BUILDERS`) over the api, or returns the one `PortOverrides` supplies (a test hands `usePort('daw')` the mock DAW client). Outside an `ApiProvider` it throws `usePort('<name>') called outside an <ApiProvider>.`
 - **Adapters.** A client port file exports an interface, a host adapter built over `NarrationApi` (`createHostDawClient`, `createHostMeasurements`, `createHostAlignment`, `createHostTakes`) and a mock (`createMockTakes` and its siblings). `ports/editLog.ts` and `ports/fxchains.ts` are port files with a host adapter (`createHostEditLog`, `createHostFxChains`) and no `ClientPortMap` entry.
 - **Where the bridge is wired.** Only the composition root and `src/api/` touch the host transport; a port takes the api it is given (rule `bridge-only-at-the-composition-root` above, and `src/api/` alone imports `wailsjs/` and `@wailsio/runtime`).
 
@@ -94,11 +94,11 @@ A port is a narrow interface a page asks for by name, so it sees the methods of 
 
 `useApi()` returns the whole facade. New code declares its port with `usePort`; the files that still call `useApi()` are pinned.
 
-`ports/useApiRatchet.test.ts` counts `useApi()` calls per source file outside `src/api/` and `src/ports/` (tests and stories excluded; comments stripped) against the `CEILING` table in the same file. A count may only fall: a file with no entry, or a count above its entry, fails; an entry above the real count fails too, so it is lowered, or deleted at zero, in the same change that moves the file to `usePort`. A second case, `series-folders-have-no-ceiling`, requires every remaining entry to have a line in `apps/ui/src/ratchetReasons.ts` (`KEPT`: a feature the Studio Next design did not draw and was left as built on purpose, with the decision that says so; `GAPS`: a page swap left the file behind). The rule is The store: host reads, cached ("ports are narrower than the facade"). `ports/usePort.test.tsx` covers the hook and `ports/dawPort.test.tsx` the DAW client.
+`ports/useApiRatchet.test.ts` counts `useApi()` calls per source file outside `src/api/` and `src/ports/` (tests and stories excluded; comments stripped) against the `CEILING` table in the same file. A count may only fall: a file with no entry, or a count above its entry, fails; an entry above the real count fails too, so it is lowered, or deleted at zero, in the same change that moves the file to `usePort`. A second case, `series-folders-have-no-ceiling`, requires every remaining entry to have a line in `src/studio/ui/src/ratchetReasons.ts` (`KEPT`: a feature the Studio Next design did not draw and was left as built on purpose, with the decision that says so; `GAPS`: a page swap left the file behind). The rule is The store: host reads, cached ("ports are narrower than the facade"). `ports/usePort.test.tsx` covers the hook and `ports/dawPort.test.tsx` the DAW client.
 
 ## Fixtures and scenarios
 
-`apps/ui/src/fixtures/` holds builders and data, never state. They are pure and deterministic (no clock, no random value), import no component, `App.tsx`, `main.tsx` or `src/studio/`, and the same builder can feed the mock and a host adapter (dependency-cruiser rules `ports-and-fixtures-are-below-components` and `fixtures-do-not-import-the-store`).
+`src/studio/ui/src/fixtures/` holds builders and data, never state. They are pure and deterministic (no clock, no random value), import no component, `App.tsx`, `main.tsx` or `src/studio/`, and the same builder can feed the mock and a host adapter (dependency-cruiser rules `ports-and-fixtures-are-below-components` and `fixtures-do-not-import-the-store`).
 
 | File | What it builds | Test |
 | --- | --- | --- |

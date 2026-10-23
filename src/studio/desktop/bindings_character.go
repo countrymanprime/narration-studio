@@ -91,7 +91,7 @@ func (h *Host) GuideDialogueCues() (string, error) {
 
 // GuideCorrectCue records the narrator's own attribution for one dialogue
 // cue. speakerEntityID "unknown" or "" clears the cue back to unknown; a
-// rebuild never overwrites a correction (mirroring sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
+// rebuild never overwrites a correction (mirroring src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
 func (h *Host) GuideCorrectCue(cueID, speakerEntityID string) (string, error) {
 	svc := h.services().guide
 	if svc == nil {

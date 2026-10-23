@@ -1,6 +1,6 @@
 // This file holds the per-chapter choice of which analysis source counts,
 // items (the default) or a chapter's rendered file. ChoiceStore
-// mirrors apps/desktop/internal/proofing/renders.go's own RenderStore (same
+// mirrors src/studio/desktop/internal/proofing/renders.go's own RenderStore (same
 // sidecar shape, same atomic temp-file-then-rename write, same "a file a
 // newer version wrote is refused, not silently ignored" read rule) - a small,
 // deliberate duplication rather than a shared helper, since the two stores

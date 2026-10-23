@@ -1,4 +1,4 @@
-// Item gain: the Editing view's own gate onto bridge.LevelMatchClient (apps/desktop/bindings_cleanup.go), behind
+// Item gain: the Editing view's own gate onto bridge.LevelMatchClient (src/studio/desktop/bindings_cleanup.go), behind
 // CapabilityGate('item_gain'). Preview never changes anything in REAPER; Apply recomputes the same candidates rather
 // than trusting whatever Preview last answered.
 
@@ -14,7 +14,7 @@ export type StaleGainCandidate = { findingId: string; itemGuid: string; reason: 
 
 export type LevelMatchApplyResult = { changed: GainChange[]; stale: StaleGainCandidate[] };
 
-/** levelnormalize.Metric's own two values (apps/desktop/internal/levelnormalize). */
+/** levelnormalize.Metric's own two values (src/studio/desktop/internal/levelnormalize). */
 export type LevelMatchMetric = 'integrated_lufs' | 'rms_dbfs';
 
 export interface CleanupActionApi {

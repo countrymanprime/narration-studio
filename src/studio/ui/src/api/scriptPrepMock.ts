@@ -1,5 +1,5 @@
 // The browser mock's Script prep states and flagged words. It keeps them in memory and checks each flag against the mock
-// manuscript's current text the way apps/desktop/internal/scriptprep does: a chapter or range the manuscript lacks is refused,
+// manuscript's current text the way src/studio/desktop/internal/scriptprep does: a chapter or range the manuscript lacks is refused,
 // the word is the line's own text for the range (lower-cased as its key), the same range flagged again is the one flag, a
 // say-value is one line within the cap from a known source (none means the narrator typed it), the value is dropped with the
 // word's last flag, the status is worked out here rather than by a page, and a flag whose line is gone, whose range no longer

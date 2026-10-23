@@ -10,7 +10,7 @@ import (
 // DawTransportSync and its live event daw_position_changed are the host's side of the Editing page's transport sync
 // (docs/design/editing-daw-transport-sync.md). What each action does is internal/transportsync's; this file only gives it the launch's
 // transport_sync support and role, and the project REAPER should have open. The wire schema, golden payloads, wireContracts rows and mock live in
-// apps/ui/src/api (docs/architecture/wire-contracts.md).
+// src/studio/ui/src/api (docs/architecture/wire-contracts.md).
 
 // DawTransportSync runs one action on the DAW's transport: "cursor" puts the edit cursor at seconds, "play" starts the transport at seconds, "stop"
 // stops it, and "watch" takes or renews the lease on the daw_position_changed stream (seconds is ignored by the last two). The answer is a DawResult:

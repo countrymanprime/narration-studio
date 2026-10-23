@@ -1,7 +1,7 @@
 packages:
-  - apps/ui
-  - apps/site
-  - apps/desktop
+  - src/studio/ui
+  - src/web
+  - src/studio/desktop
 
 allowBuilds:
   esbuild: true

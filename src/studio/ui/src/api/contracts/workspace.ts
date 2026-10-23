@@ -3,9 +3,9 @@ import type { FindingNavigation } from './findings';
 import type { TakeComparisonJob } from './takeReview';
 
 // The edit-and-proof workspace's stored word alignment: the
-// recording check's per-token alignment (COVERAGE_TOKEN/COVERAGE_EXTRA, sidecars/transcript-compare) read back and
+// recording check's per-token alignment (COVERAGE_TOKEN/COVERAGE_EXTRA, src/studio/sidecars/transcript-compare) read back and
 // joined with the chapter's paragraphs and its items' current played ranges. The host shapes are
-// apps/desktop/internal/coverage/{alignment.go,workspace.go} and apps/desktop/bindings_coverage.go's
+// src/studio/desktop/internal/coverage/{alignment.go,workspace.go} and src/studio/desktop/bindings_coverage.go's
 // WorkspaceAlignment. Read-only: it never runs a check.
 
 /** One chapter token as the check aligned it: `read` and `misread` are present, the rest are missing (a region kind)
@@ -25,7 +25,7 @@ export type WorkspaceToken = {
   start?: number;
   end?: number;
   /** The recogniser's score for the word, 0 to 1, or null with `confReason`: null with 'no_word_scores'
-   * until the words file carries Whisper word probabilities. Absent in a payload from before apps/desktop/internal/coverage/workspace.go. */
+   * until the words file carries Whisper word probabilities. Absent in a payload from before src/studio/desktop/internal/coverage/workspace.go. */
   conf?: number | null;
   confReason?: string;
   /** Never set: a token is in the script. Only an extra run's words are added. */
@@ -117,7 +117,7 @@ export type PassageTakeSource = 'item_take' | 'lane_retake' | 'take_review';
 export type PassageTakeAction = 'make_active' | 'pick_lane' | 'add_and_activate';
 
 /** One take the narrator can hear against the passage and choose. The id names it for `workspaceUseTake`: the page
- * sends that id back, never a GUID, file or time (apps/desktop/internal/passagetakes). */
+ * sends that id back, never a GUID, file or time (src/studio/desktop/internal/passagetakes). */
 export type PassageTake = {
   id: string;
   source: PassageTakeSource;
@@ -184,7 +184,7 @@ export type WorkspacePeaks = {
   channels: number;
 };
 
-/** One analyzed item's waveform, or why it has none (WorkspacePeaksItem, apps/desktop/bindings_workspace_peaks.go):
+/** One analyzed item's waveform, or why it has none (WorkspacePeaksItem, src/studio/desktop/bindings_workspace_peaks.go):
  * peaks is absent, and reason set, for an item that is not live, has no source audio, or whose source is not a WAV
  * ("no waveform") - never an error, so one bad item does not blank the rest of the strip. */
 export type WorkspacePeaksEntry = { index: number; peaks?: WorkspacePeaks; reason?: string };

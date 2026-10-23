@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 CORE = Path(__file__).resolve().parents[1] / "core"
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[5]
 
 
 def _load(name):
@@ -170,7 +170,7 @@ def test_run_on_an_empty_range_times_nothing_without_decoding(tmp_path):
     assert event["time"] is None
 
 
-# --- the CLI the host drives (apps/desktop/internal/teleprompter/alignword.go builds these arguments) ---
+# --- the CLI the host drives (src/studio/desktop/internal/teleprompter/alignword.go builds these arguments) ---
 
 HOST_ARGS = [
     "--align-word",

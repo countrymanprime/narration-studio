@@ -1,11 +1,11 @@
 # The verification pass, Part A, in one command (docs/operations/reaper-verification-pass.md):
 #
-#   pwsh integrations/reaper/spikes/run-pass-part-a.ps1
+#   pwsh src/studio/integrations/reaper/spikes/run-pass-part-a.ps1
 #
 # Runs two isolated REAPER sessions through run-reaper.ps1, each with its own scratch -cfgfile and its own scratch
 # project built from make_media.py's tones: spike_ep0_workspace.lua (rows A6-A8), then pass_part_a.lua (every other
 # Part A row, merging the first session's report). It opens no project of the owner's and never records. The results
-# (paths removed) land in <work>\main\pass-part-a-results.md and are copied to integrations\reaper\spikes\results\.
+# (paths removed) land in <work>\main\pass-part-a-results.md and are copied to src\studio\integrations\reaper\spikes\results\.
 #
 #   -Work        the scratch folder for this run; must be under the temp folder (default: a fresh one under $env:TEMP)
 #   -TimeoutSec  how long each REAPER session may take before it is closed (default 300)

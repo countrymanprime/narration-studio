@@ -5,9 +5,9 @@
 // every trim, while a whole-source entry survives it, because the cache key
 // deliberately excludes the played range for a sliceable analyzer.
 //
-// Callers: the recording coverage service (apps/desktop/internal/coverage,
+// Callers: the recording coverage service (src/studio/desktop/internal/coverage,
 // words.go) keeps each source's transcript words here;
-// apps/desktop/internal/manuscript/service.go's resetDerived adds CacheDir to
+// src/studio/desktop/internal/manuscript/service.go's resetDerived adds CacheDir to
 // the directories a manuscript reset clears. The data schema is a small JSON
 // envelope (see cacheEnvelope) wrapping an opaque blob, versioned by its own
 // SchemaVersion field (cacheSchemaVersion). The store never looks inside the

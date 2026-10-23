@@ -3,7 +3,7 @@ import type { DawCatalogEntry, NarrationApi, ProjectAttachState, RecentProject }
 import { wireClone } from '../mockFixtures';
 import type { MockApiSeed } from './state';
 
-/** The host's words for a project handed over while this app is busy (apps/desktop/app.go's attachBusyReason). */
+/** The host's words for a project handed over while this app is busy (src/studio/desktop/app.go's attachBusyReason). */
 const ATTACH_BUSY_REASON = 'Narration Studio is busy, so the current project was left unchanged.';
 const DEFAULT_PROJECT_FOLDER = 'C:/Projects/Alice-in-Wonderland';
 const DEFAULT_PROJECT_NAME = 'Alice’s Adventures in Wonderland';

@@ -16,7 +16,7 @@ import (
 // for the owner's go-ahead; the setting is the only source until then.
 
 // defaultPunchPreRoll is what a settings value that will not parse falls back to (the same 3 s the setting's own
-// repo default and range describe, apps/desktop/settings_number.go).
+// repo default and range describe, src/studio/desktop/settings_number.go).
 const defaultPunchPreRoll = 3.0
 
 // ErrNoPunchAnchor is TeleprompterPunchPreview/TeleprompterPunch's refusal when nothing can place word: fewer than two

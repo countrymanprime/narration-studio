@@ -1,5 +1,5 @@
 // This file bridges the editing package's own decode results (decode.go) to
-// the evidence ledger's per-item result cache (apps/desktop/internal/evidence/cache.go).
+// the evidence ledger's per-item result cache (src/studio/desktop/internal/evidence/cache.go).
 // The cache shape ("per-source features or per-range results") is left to the
 // analyzer, with one requirement: trimming one item must not force a re-decode
 // of unrelated items. This package uses the per-range shape (evidence.CacheEntryKey

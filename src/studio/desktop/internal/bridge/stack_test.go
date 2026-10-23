@@ -13,7 +13,7 @@ import (
 )
 
 // stack_takes and unstack_takes (docs/reference/daw/capabilities.md, narration_takes.lua): the payload the host writes and the answers as
-// integrations/reaper/tests/stack_test.lua pins them.
+// src/studio/integrations/reaper/tests/stack_test.lua pins them.
 
 const (
 	stackBase      = "{A0000001-0000-4000-8000-000000000001}"

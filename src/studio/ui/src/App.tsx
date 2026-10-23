@@ -102,7 +102,7 @@ const LIVE_UPDATES_DEGRADED = 'Some live updates from the desktop host could not
 // dialogs claim the scope generically.
 const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role="alertdialog"]'));
 
-// A build on a static host (the public site, apps/site) cannot rewrite `/proof` to index.html and may open from any sub-path or a sandboxed frame:
+// A build on a static host (the public site, src/web) cannot rewrite `/proof` to index.html and may open from any sub-path or a sandboxed frame:
 // its extension (appExtension.ts) asks for routes by the address hash. The popGuard below reads the pathname, so it reads the hash route there.
 const hashRouting = (): boolean => appExtension().hashRouting === true;
 const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
@@ -141,7 +141,7 @@ if (typeof window !== 'undefined') {
 }
 
 export function App({ journal }: { journal?: Journal } = {}) {
-  // Every build serves from the site root (base: '/', vite.config.ts), so this is a no-op basename; the Pages demo of apps/site serves under
+  // Every build serves from the site root (base: '/', vite.config.ts), so this is a no-op basename; the Pages demo of src/web serves under
   // /narration-utils/demo/, and without a matching basename react-router compares its routes ('/', '/proof', ...) against the full pathname and
   // matches nothing, so every page renders blank apart from the app shell. A hash-routed build has no basename.
   const Router = hashRouting() ? HashRouter : BrowserRouter;

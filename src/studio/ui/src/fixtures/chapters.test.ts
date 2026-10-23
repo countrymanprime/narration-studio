@@ -7,7 +7,7 @@ import { parseWire } from '../api/wire/parseWire';
 import { type ChapterShape, CHAPTER_SHAPES, makeChapters, makeParagraphs } from './chapters';
 import { sampleSpeakerById } from './speakers';
 
-const FIXTURE_PATH = fileURLToPath(new URL('../../../../tests/fixtures/chapter-names.json', import.meta.url));
+const FIXTURE_PATH = fileURLToPath(new URL('../../../../../tests/fixtures/chapter-names.json', import.meta.url));
 interface FixtureCase {
   title: string;
   subtitle: string | null;

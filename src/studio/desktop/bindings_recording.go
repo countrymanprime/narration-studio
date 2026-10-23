@@ -20,7 +20,7 @@ import (
 // report as "recording:level". The choice and the remembered device are the project settings rows Recording.engine and
 // Recording.device, written only here and by DawChoose (like Mastering.provider, bindings_mastering.go): not generic Settings fields, so
 // the Settings page neither lists nor saves them. The wire schema, golden payloads, wireContracts rows and mock live in
-// apps/ui/src/api (docs/architecture/wire-contracts.md).
+// src/studio/ui/src/api (docs/architecture/wire-contracts.md).
 const (
 	recordingSettingsTool = "Recording"
 	// recordingEngineKey holds "reaper", "audacity" or "builtin" (dawport.Kind.SavedValue); no row is no choice.
@@ -221,7 +221,7 @@ func (h *Host) recordingEngine(svc hostServices) string {
 // recorderPlatform is the GOOS the recorder answers for (h.platform, the tests' seam).
 func (h *Host) recorderPlatform() string { return teleprompter.PlatformOrCurrent(h.platform) }
 
-// recorderSupport is the wasapi capture row's answer on platform (sidecars/manuscript-teleprompter/core/capture_wasapi.py: Experimental, Windows only).
+// recorderSupport is the wasapi capture row's answer on platform (src/studio/sidecars/manuscript-teleprompter/core/capture_wasapi.py: Experimental, Windows only).
 func recorderSupport(platform string) port.Support {
 	entry, err := captureport.Backends.Lookup(captureport.WASAPI)
 	if err != nil {

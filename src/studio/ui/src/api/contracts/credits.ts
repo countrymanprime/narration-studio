@@ -1,5 +1,5 @@
 /**
- * Audiobook opening/closing credit templates. One shared renderer on the Go side (apps/desktop/internal/credits)
+ * Audiobook opening/closing credit templates. One shared renderer on the Go side (src/studio/desktop/internal/credits)
  * produces every CreditsRenderResult the UI sees, so what Settings previews here is exactly what every other credits
  * surface reads and counts.
  */
@@ -8,7 +8,7 @@ import type { RecordedUnavailable } from './manuscript';
 /** kind: "opening", "closing" or "chapter_announcement"; chapter announcements render per chapter. */
 export type CreditTemplate = { id: string; kind: string; name: string; body: string; builtIn?: boolean };
 
-/** Render's result (apps/desktop/internal/credits.Result): text is exactly what will be read, unresolved names any `[Token]`
+/** Render's result (src/studio/desktop/internal/credits.Result): text is exactly what will be read, unresolved names any `[Token]`
  * left unfilled (never rendered as silent empty text). */
 export type CreditsRenderResult = { text: string; words: number; unresolved: string[] };
 

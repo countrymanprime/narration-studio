@@ -12,7 +12,7 @@ import (
 // DawCapabilities and its live event daw_capabilities_changed are the UI's one picture of what the
 // launch's DAW can do right now: the adapter's declaration, the bridge's reachability, and the narrator's DAW.capability.<name>
 // toggles, combined by a dawport.Resolver the same way h.actions' gate already is. The wire schema, golden payloads,
-// wireContracts row and mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).
+// wireContracts row and mock live in src/studio/ui/src/api (docs/architecture/wire-contracts.md).
 //
 // This binding builds its own resolver rather than share h.actions' (configureLocked): that one has no Runtime input, since
 // bridge.Actions never needed a reachability check (it fails on its own when REAPER is not answering, resolver.go). The
@@ -91,7 +91,7 @@ func dawDeclarationFor(kind dawport.Kind) dawport.Adapter {
 }
 
 // dawCapabilitiesPayload is DawCapabilities' and daw_capabilities_changed's shared shape: {daw, reachable, capabilities:
-// {<name>: {level, available, reason?, message?, destructive?, mode?}}} (apps/ui/src/api/schemas/daw.ts).
+// {<name>: {level, available, reason?, message?, destructive?, mode?}}} (src/studio/ui/src/api/schemas/daw.ts).
 func dawCapabilitiesPayload(resolver *dawport.Resolver, runtime dawport.Runtime) map[string]any {
 	all := resolver.All()
 	capabilities := make(map[string]any, len(all))

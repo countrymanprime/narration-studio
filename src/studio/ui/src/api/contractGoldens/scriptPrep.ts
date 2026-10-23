@@ -1,4 +1,4 @@
-// The golden payloads of the Script page's prep states and flagged words (apps/desktop/bindings_scriptprep.go).
+// The golden payloads of the Script page's prep states and flagged words (src/studio/desktop/bindings_scriptprep.go).
 import type { z } from 'zod';
 import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordSchema } from '../schemas/scriptPrep';
 

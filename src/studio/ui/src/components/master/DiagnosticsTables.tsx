@@ -127,7 +127,7 @@ export function FindingsTable({ files, sourceKind }: { files: readonly Diagnosti
 }
 
 /**
- * Every silence cleanup candidate in file order, then time order (apps/desktop/internal/measure/cleanup.go): its class, why the analyzer
+ * Every silence cleanup candidate in file order, then time order (src/studio/desktop/internal/measure/cleanup.go): its class, why the analyzer
  * called it that and how confident it is, its level, and the file it is in. Read-only and informational: nothing here
  * applies a cut. A candidate's own suggested split-and-trim range is not shown, since it never runs from this list.
  */

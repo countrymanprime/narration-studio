@@ -1,12 +1,12 @@
 // The review bindings: every analyzer's
 // findings, read and decided through one surface whatever wrote them. A Finding keeps the wire's own snake_case
-// (docs/architecture/findings-contract.md, apps/desktop/internal/findings.Finding); the binding envelopes around
+// (docs/architecture/findings-contract.md, src/studio/desktop/internal/findings.Finding); the binding envelopes around
 // it (the query, the page, the summary) are camelCase like every other binding. Filtering, sorting and paging run
 // in the host: the UI sends a FindingsQuery and shows the page it gets back.
 
 export type FindingSeverity = 'info' | 'warning' | 'error';
 
-/** Every category the contract documents, in its order (findings.Categories(), apps/desktop/internal/findings/findings.go). */
+/** Every category the contract documents, in its order (findings.Categories(), src/studio/desktop/internal/findings/findings.go). */
 export const FINDING_CATEGORIES = [
   'transcript_discrepancy',
   'pronunciation',
@@ -22,7 +22,7 @@ export const FINDING_CATEGORIES = [
   'level_consistency',
 ] as const;
 
-/** The longest note a decision may carry, in characters (maxReviewNoteRunes, apps/desktop/bindings_findings.go). */
+/** The longest note a decision may carry, in characters (maxReviewNoteRunes, src/studio/desktop/bindings_findings.go). */
 export const MAX_REVIEW_NOTE_LENGTH = 2000;
 
 export type FindingReviewStatus = 'unreviewed' | 'accepted' | 'dismissed' | 'deferred';
@@ -229,7 +229,7 @@ export type FindingReviewRequest = {
 };
 
 /**
- * Whether the Review page's REAPER controls can work now (apps/desktop/bindings_navigation.go),
+ * Whether the Review page's REAPER controls can work now (src/studio/desktop/bindings_navigation.go),
  * read from the heartbeat REAPER's script already sends, so asking sends REAPER nothing. `standalone`: the app was opened
  * on its own; `not_running`: REAPER has gone quiet. `message` says so in plain words when not connected.
  */

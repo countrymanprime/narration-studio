@@ -1,5 +1,5 @@
 // The narrator's word effects, kept in the project's narration-utils/editing/wordfx.json
-// (apps/desktop/internal/editlog): the host's memory of the chains the DAW put on ranges of words (applyFxToRange), so an
+// (src/studio/desktop/internal/editlog): the host's memory of the chains the DAW put on ranges of words (applyFxToRange), so an
 // effect's underline survives a restart. The DAW owns the audio and the chain: an effect is recorded only after the DAW
 // accepted it, and recording or removing one changes nothing in the DAW. `a` and `b` are in the chapter recording as it was
 // before any cut, like a cut's (the editing model's `origTime` converts them; `curTime` gives where the effect sounds now).

@@ -9,8 +9,8 @@
 // The costs are in vitest-shard-weights.json. Only the balance depends on them: a file missing from the list weighs
 // `default`, a stale weight makes a shard longer, and neither can drop a file from the run (vitest-shards.test.mjs pins that).
 // Refresh them from a profile:
-//   pnpm --dir apps/ui exec vitest run --reporter=json --outputFile=profile.json
-//   node apps/ui/scripts/vitest-shards.mjs --profile profile.json > apps/ui/scripts/vitest-shard-weights.json
+//   pnpm --dir src/studio/ui exec vitest run --reporter=json --outputFile=profile.json
+//   node src/studio/ui/scripts/vitest-shards.mjs --profile profile.json > src/studio/ui/scripts/vitest-shard-weights.json
 import { readFileSync } from 'node:fs';
 import { relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';

@@ -14,7 +14,7 @@ import (
 const renderTestRate = 44100
 
 // roomToneSamples is seeded white noise at the given RMS in dBFS, mirroring
-// apps/desktop/internal/measure/diagnostics_fixtures_test.go's own roomTone
+// src/studio/desktop/internal/measure/diagnostics_fixtures_test.go's own roomTone
 // helper (duplicated here for the same reason helpers_test.go's header
 // comment already gives for this package's other WAV fixture helpers: a test
 // helper is not part of measure's public surface).
@@ -30,7 +30,7 @@ func roomToneSamples(rate int, seconds, rmsDB float64, seed uint64) []float64 {
 
 // TestDecodeRenderFindsAKnownClick pins that "a
 // render with a known click reports it." The fixture mirrors
-// apps/desktop/internal/measure/cleanup_test.go's own
+// src/studio/desktop/internal/measure/cleanup_test.go's own
 // TestCleanupFindsAClickInsideSilence exactly (speech either side of a room-
 // tone stretch with a short, high spike in the middle), decoded whole-file
 // through DecodeRender rather than through one item's played range.

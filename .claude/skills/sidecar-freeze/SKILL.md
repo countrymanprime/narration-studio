@@ -11,17 +11,17 @@ The release carries each Python sidecar as a PyInstaller `--onedir` freeze. A fr
 
 ## When to use this
 
-- A sidecar or `libs/python/narration_common` gains an import of a third-party package, a data file, a model path or a native library.
+- A sidecar or `src/studio/libs/python/narration_common` gains an import of a third-party package, a data file, a model path or a native library.
 - A dependency pin changes in `pyproject.toml` (the freeze reads the locked environment).
-- Any edit to `scripts/release/prepare-resources.py`, `scripts/release/verify-installable.mjs` or the sidecar smoke checks in `apps/desktop/smoke.go`.
+- Any edit to `scripts/release/prepare-resources.py`, `scripts/release/verify-installable.mjs` or the sidecar smoke checks in `src/studio/desktop/smoke.go`.
 - A Windows-only or other platform-conditional dependency (`moonshine-voice`, `sounddevice`).
 
 ## How the freeze works
 
-1. `scripts/release/prepare-resources.py` lists three `Sidecar` entries (`manuscript-guide`, `transcript-compare`, `manuscript-teleprompter`): an entry file, `--paths` (the shared `libs/python` and the sidecar's `core/`), and per-sidecar `collect_data`, `copy_metadata`, `collect_binaries` and `exclude_modules`.
+1. `scripts/release/prepare-resources.py` lists three `Sidecar` entries (`manuscript-guide`, `transcript-compare`, `manuscript-teleprompter`): an entry file, `--paths` (the shared `src/studio/libs/python` and the sidecar's `core/`), and per-sidecar `collect_data`, `copy_metadata`, `collect_binaries` and `exclude_modules`.
 2. Each runs `python -m PyInstaller --onedir` in `.release-build/<name>/`, all three at once, each with its own `PYINSTALLER_CONFIG_DIR` (`--clean` wipes a shared cache another freeze is reading). Output is streamed and tagged by sidecar; every failure is reported, not just the first.
-3. The result is copied to `apps/desktop/cmd/narration-utils/resources/runtime/<name>/`, which `go:embed` ships in `main.go`. Models and voices are not frozen: they are first-use downloads from the hashed catalogs in `config/*-assets.json`.
-4. CI caches the finished freeze (`.github/actions/build-native`, [the freeze cache](../../../docs/operations/ci-and-releases.md#the-sidecar-freeze-cache)). The key hashes `sidecars/`, `libs/python/`, `pyproject.toml`, `uv.lock` and `prepare-resources.py`, so any of them changing refreezes. The smoke test, `verify-installable.mjs` and the notices run on every build, hit or miss. Run a cold freeze with `Prerelease` and `cold-freeze` ticked.
+3. The result is copied to `src/studio/desktop/cmd/narration-utils/resources/runtime/<name>/`, which `go:embed` ships in `main.go`. Models and voices are not frozen: they are first-use downloads from the hashed catalogs in `config/*-assets.json`.
+4. CI caches the finished freeze (`.github/actions/build-native`, [the freeze cache](../../../docs/operations/ci-and-releases.md#the-sidecar-freeze-cache)). The key hashes `src/studio/sidecars/`, `src/studio/libs/python/`, `pyproject.toml`, `uv.lock` and `prepare-resources.py`, so any of them changing refreezes. The smoke test, `verify-installable.mjs` and the notices run on every build, hit or miss. Run a cold freeze with `Prerelease` and `cold-freeze` ticked.
 
 ## What to do
 
@@ -33,7 +33,7 @@ The release carries each Python sidecar as a PyInstaller `--onedir` freeze. A fr
 2. **Exclude what the freeze must not carry.** `exclude_modules` removes an optional speed-up the sidecar never runs (`google_crc32c`). The freeze already takes more than the runtime needs (`hypothesis`, `pytest`, `setuptools`, `fastapi`; [#245](https://github.com/countrymanprime/narration-studio/issues/245)); do not add to that without a reason, because every shipped package is a licence line in `THIRD-PARTY-NOTICES`.
 3. **Prove it is in the tree and that it loads, in two places.** A change to the freeze is incomplete with only one:
    - `scripts/release/verify-installable.mjs` checks the file exists under `runtime/<name>/_internal/` before the native build (a platform-only dependency inside `process.platform === 'win32'`). Add a check with an error that names the file and `prepare-resources.py`.
-   - `apps/desktop/smoke.go` (`narration-utils --smoke`) runs the frozen executable and proves it loads and answers. Prefer extending the sidecar's own `self-check` or `--capabilities --verify` report (`guide:cmudict`, `guide:espeak`, `teleprompter:capabilities`) over a new flag; `sidecars/manuscript-teleprompter/core/live_asr.py` says the report states what registered and what `--verify` loaded.
+   - `src/studio/desktop/smoke.go` (`narration-utils --smoke`) runs the frozen executable and proves it loads and answers. Prefer extending the sidecar's own `self-check` or `--capabilities --verify` report (`guide:cmudict`, `guide:espeak`, `teleprompter:capabilities`) over a new flag; `src/studio/sidecars/manuscript-teleprompter/core/live_asr.py` says the report states what registered and what `--verify` loaded.
 4. **Add a test to `scripts/release/tests/test_prepare_resources.py`** that pins the new argument (the guide's `test_the_guide_freeze_carries_piper_data_and_the_cmu_dictionary` is the pattern), and a case to `verify-installable.test.mjs` for the new check.
 5. **Platform-conditional dependencies** (an `sys_platform` marker in `pyproject.toml`): condition the `Sidecar` argument the same way (`collect_binaries=("moonshine_voice",) if sys.platform == "win32" else ()`), and the verify and smoke checks. Windows is the only supported platform ([Supported platforms](../../../README.md#supported-platforms)), so the freeze that matters is the Windows one.
 6. **A new package or version is a licence and trust change.** Run the dependency review (`scripts/licenses`); `notices.py` fails the build when a frozen module has no owning distribution or a licence it cannot name, and `reviewed.json`, `manual.json` and `model-review.json` are where a person records the decision. Re-read the sidecar and release-pipeline rows of `docs/architecture/threat-model.md`.

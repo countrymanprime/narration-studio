@@ -10,7 +10,7 @@
 // code review. It answers only
 // "is a supported DAW installed" as a fact for a narrator with none; it does
 // not decide *how* to launch one (that stays
-// apps/desktop/internal/daw's concern, apps/desktop/internal/daw/locate.go, reused here rather than
+// src/studio/desktop/internal/daw's concern, src/studio/desktop/internal/daw/locate.go, reused here rather than
 // duplicated — see DefaultDetectors in detectors.go).
 package dawcatalog
 

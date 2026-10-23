@@ -1,4 +1,4 @@
-// The mock Booth Record for the built-in recorder (apps/desktop/bindings_booth_record.go): the same ReadAloudRecordStart and
+// The mock Booth Record for the built-in recorder (src/studio/desktop/bindings_booth_record.go): the same ReadAloudRecordStart and
 // ReadAloudRecordStop the Booth uses with a DAW, answered by the recorder mock and the mock DAW's transport together, so a
 // take the Booth starts shows in the recorder's state, the capability report and the transport as the host's does.
 // Its answers follow tests/fixtures/contracts/read-aloud-recordings-builtin.json (wireContracts.test.ts pins them).

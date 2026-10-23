@@ -4,7 +4,7 @@
 // a narration pace. It never runs anything. The played-range join (WorkspaceItem.live) is real when the
 // chapter has a confirmed, still-live track link (mockChapterLink=confirmed, or chapterTrackMappings seeded some
 // other way): the workspace's own player needs a real item GUID and source file to seek the mock's fake WAV
-// (mockAudioSource, apps/ui/src/api/mockApi.ts) against, same as Tracks' player does.
+// (mockAudioSource, src/studio/ui/src/api/mockApi.ts) against, same as Tracks' player does.
 import type {
   CoverageReport,
   CoverageResult,
@@ -43,7 +43,7 @@ const DEFAULT_MOCK_FX_CHAINS = ['Podcast Voice.RfxChain', 'Vocal Warmth.RfxChain
 
 const refused = (reason: FindingNavigationRefusal, message: string): FindingNavigation => ({ outcome: 'refused', reason, message });
 
-// The workspace's own words for a token that cannot be placed (apps/desktop/bindings_workspace.go): a word, never
+// The workspace's own words for a token that cannot be placed (src/studio/desktop/bindings_workspace.go): a word, never
 // "this finding" - REAPER_MESSAGES.standalone/notRunning/stale/recording/outdated are connection- and REAPER-level,
 // so they read the same for any caller and are reused as-is.
 const WORKSPACE_MESSAGES = {

@@ -4,7 +4,7 @@
     python drive.py run --session <dir> --out <dir> [--target real|fake] [--timeout 120]
 
 `run` writes numbered command files into <session>/commands and reads <session>/events.log, exactly as the Go host does
-(apps/desktop/internal/bridge). Target `real` is a REAPER running spikes/ci_real_reaper_launcher.lua; `fake` is scripts/research/bridge-fake-driver.py,
+(src/studio/desktop/internal/bridge). Target `real` is a REAPER running spikes/ci_real_reaper_launcher.lua; `fake` is scripts/research/bridge-fake-driver.py,
 which has no audio or items, so the checks marked real_only are SKIPped there. Exit status 1 when any check fails.
 Design and limits: docs/research/real-reaper-ci-integration.md.
 """

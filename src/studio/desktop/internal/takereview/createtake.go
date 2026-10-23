@@ -13,7 +13,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
 )
 
-// CreateTakeRequest is what the Lua create_take command (integrations/reaper/narration_take_review.lua) needs to
+// CreateTakeRequest is what the Lua create_take command (src/studio/integrations/reaper/narration_take_review.lua) needs to
 // attach a narrator-approved candidate's source range as a new take on the target item: the finding it came from
 // (provenance), the target item's own GUID (an explicit, unstamped target identity, never
 // preselected on a weak match), the candidate's own item GUID when it has one (an extra

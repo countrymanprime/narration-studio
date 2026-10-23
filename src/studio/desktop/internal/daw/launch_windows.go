@@ -16,10 +16,10 @@ const (
 
 // Launch starts program with args, detached from this process: a detached spawn,
 // never the process supervisor, whose Windows job object kills every child when the app closes -
-// apps/desktop/internal/process/job_windows.go): its own process group, outside any job this process is in, so
+// src/studio/desktop/internal/process/job_windows.go): its own process group, outside any job this process is in, so
 // REAPER outlives the app when the narrator quits it. Tried first with CREATE_BREAKAWAY_JOB (needed only when this
 // process is itself inside a job that forbids children leaving it, the same situation
-// apps/desktop/internal/update/spawn_windows.go already handles for a self-update); a job that refuses breakaway
+// src/studio/desktop/internal/update/spawn_windows.go already handles for a self-update); a job that refuses breakaway
 // rejects the flag, so the second attempt omits it.
 func Launch(program string, args ...string) error {
 	var causes []error

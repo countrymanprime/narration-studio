@@ -1,4 +1,4 @@
-// The mock Audacity link: a stand-in for apps/desktop/bindings_audacity_link.go, so the Settings engine card, the engine panel and the
+// The mock Audacity link: a stand-in for src/studio/desktop/bindings_audacity_link.go, so the Settings engine card, the engine panel and the
 // header chip run their Audacity states with no host. Its payloads follow the host goldens (tests/fixtures/contracts/audacity-link-*.json;
 // wireContracts.test.ts compares the sentences). It models the first-start procedure: the first start fails to load scripting, scripting is
 // turned on while Audacity is closed, and the second start answers. The mock has no window to close, so "Check again" while Audacity is open

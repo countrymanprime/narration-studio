@@ -16,7 +16,7 @@ import (
 
 // PlayedRange is the portion of a take's source file that actually plays,
 // in the source file's own seconds: [Start, End). It is the unit the Lua
-// manifest already emits per item (integrations/reaper/narration_compare.lua,
+// manifest already emits per item (src/studio/integrations/reaper/narration_compare.lua,
 // "index|source_file|startoffs|length*rate"), because non-destructive edits
 // (split, trim, fade) change item state, never source bytes: the played range
 // is what tells two items with the same source file apart.
@@ -79,7 +79,7 @@ func ComputeAnalysisKey(identity SourceIdentity, played PlayedRange, playRate fl
 }
 
 // ItemFingerprint identifies what an item is on the timeline right now: its
-// AnalysisKey plus the fields apps/desktop/internal/evidence/fingerprint.go puts in scope - GUID, position, length, mute and active-take index.
+// AnalysisKey plus the fields src/studio/desktop/internal/evidence/fingerprint.go puts in scope - GUID, position, length, mute and active-take index.
 // Item volume, fades and FX-chain presence are recorded as evidence
 // elsewhere (tracks.Take.HasFXChain, tracks.Take.StretchMarkerCount) but
 // deliberately excluded here: analyses read source audio, so a
@@ -154,13 +154,13 @@ func formatBool(value bool) string {
 
 // hashParts hashes parts into one deterministic hex digest, each
 // length-prefixed (as findings.StableID already does,
-// apps/desktop/internal/findings/findings.go) so that, for instance,
+// src/studio/desktop/internal/findings/findings.go) so that, for instance,
 // ("ab", "c") and ("a", "bc") never collide.
 func hashParts(parts ...string) string {
 	hash := sha256.New()
 	for _, part := range parts {
 		// hash.Hash.Write never returns an error (crypto/sha256, like every
-		// hash.Hash); findings.StableID (apps/desktop/internal/findings/
+		// hash.Hash); findings.StableID (src/studio/desktop/internal/findings/
 		// findings.go) uses the same length-prefixed pattern via hash.Write.
 		_, _ = fmt.Fprintf(hash, "%d:%s", len(part), part)
 	}

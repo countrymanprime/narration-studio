@@ -10,7 +10,7 @@ import { createSlots } from '../slots';
 import { createStudioStore } from '../store/createStudioStore';
 import { addBookmark, editBookmark, removeBookmark, type BookmarkEnv } from './bookmarks';
 
-const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../../../tests/fixtures/contracts/', import.meta.url));
 const FILES = ['bookmarks-list.json', 'bookmarks-list-empty.json', 'bookmarks-add.json', 'bookmarks-update.json', 'bookmarks-remove.json'] as const;
 const goldens: Goldens = Object.fromEntries(FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 

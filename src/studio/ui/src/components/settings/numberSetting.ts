@@ -1,6 +1,6 @@
 import type { NumberSettingRange } from '../../api/contracts/system';
 
-// The page's copy of the host's number check (apps/desktop/settings_number.go): a plain decimal, in range, on step. The
+// The page's copy of the host's number check (src/studio/desktop/settings_number.go): a plain decimal, in range, on step. The
 // host still validates every save; this only lets the row say what is wrong before Save is pressed.
 const PLAIN_NUMBER = /^-?(\d+(\.\d*)?|\.\d+)$/;
 const STEP_TOLERANCE = 1e-9;

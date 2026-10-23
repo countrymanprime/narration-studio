@@ -23,7 +23,7 @@ type Copy = keyof typeof COPIES;
 
 const CEILING: Record<Copy, Record<string, number>> = {
   card: {
-    // The companion panel's own card is at 0 (apps/ui/src/components/booth/CompanionShell.tsx: full-bleed sections, not cards).
+    // The companion panel's own card is at 0 (src/studio/ui/src/components/booth/CompanionShell.tsx: full-bleed sections, not cards).
     // Not cards. A warning on a tinted fill, which neither Panel nor InsetCard draws.
     'src/components/booth/UnresolvedCreditsWarning.tsx': 1,
     // A card that is a button (the .rpp picker's rows): a Panel is a section, not a control.

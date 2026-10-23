@@ -257,7 +257,7 @@ func TestDawDeleteRangeContractGoldenIsCurrent(t *testing.T) {
 // SN-E97: the pad and the room tone reach the role as they were asked for; a pad outside 0 to 500 ms, room tone with "close", or
 // a pad that leaves nothing of the words is refused in delete_range's words with nothing sent. That Audacity takes the pad and
 // refuses room tone is dawport/audacity's TestDeleteRangeTakesThePadAndRefusesRoomTone; that REAPER lays it,
-// integrations/reaper/tests/range_test.lua.
+// src/studio/integrations/reaper/tests/range_test.lua.
 func TestDeleteRangeSendsPadAndRoomToneAndAudacityRefusesRoomTone(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
 	host := deleteRangeHost(t, "REAPER", liveReachability(), role, "on")

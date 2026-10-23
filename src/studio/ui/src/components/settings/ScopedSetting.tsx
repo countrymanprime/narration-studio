@@ -13,7 +13,7 @@ import { Button } from '../primitives/Button';
 // Terms of a "tags" field are comma-joined (a term never holds a comma; TagInput.tsx commits on Enter or a typed
 // comma). Splitting also accepts a pasted line break, drops blanks, caps a term at TagInput's own MAX_TERM_LENGTH,
 // and folds a repeated name (in any case) to one - the same rule the Proofing vocabulary hints use
-// (apps/ui/src/components/proof/hints.ts), kept as its own copy here since Settings never depends on that page.
+// (src/studio/ui/src/components/proof/hints.ts), kept as its own copy here since Settings never depends on that page.
 const MAX_TAG_TERM_LENGTH = 64;
 const hasTag = (tags: readonly string[], term: string) => tags.some((tag) => tag.toLowerCase() === term.toLowerCase());
 function splitTagTerms(text: string): string[] {

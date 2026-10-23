@@ -28,7 +28,7 @@ func identityOf(t *testing.T, path string) evidence.SourceIdentity {
 	return identity
 }
 
-// Per apps/desktop/internal/measure/cache.go, peaks are cached per source identity in the evidence cache, over the whole source, so a second item
+// Per src/studio/desktop/internal/measure/cache.go, peaks are cached per source identity in the evidence cache, over the whole source, so a second item
 // playing a different range of the same file never re-decodes it.
 func TestCachedPeaksFileComputesOnceAndCachesForTheWholeSource(t *testing.T) {
 	wav := encodeWAV(t, 1, 8000, 16, false, sine(8000, 2, 220, -6, 0))

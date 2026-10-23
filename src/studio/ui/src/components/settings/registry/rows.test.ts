@@ -8,7 +8,7 @@ import { reaperPathProblem, ROWS } from './rows';
 import { search } from './search';
 
 // config/defaults.json is the host's repo default layer; a row's `def` is what the page compares a value with to decide "Changed".
-const DEFAULTS: Record<string, Record<string, string>> = JSON.parse(readFileSync(join(__dirname, '../../../../../../config/defaults.json'), 'utf8'));
+const DEFAULTS: Record<string, Record<string, string>> = JSON.parse(readFileSync(join(__dirname, '../../../../../../../config/defaults.json'), 'utf8'));
 
 describe('the settings registry', () => {
   it('gives every row a unique id and a category that exists', () => {

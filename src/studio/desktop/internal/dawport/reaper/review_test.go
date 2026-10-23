@@ -24,7 +24,7 @@ func onlyCommand(t *testing.T, session string) string {
 }
 
 // The review session is a behaviour-preserving extraction: every review operation must put the exact line on the
-// bridge that transcript.Service sent before the extraction (the Lua harness in integrations/reaper/tests pins what REAPER does
+// bridge that transcript.Service sent before the extraction (the Lua harness in src/studio/integrations/reaper/tests pins what REAPER does
 // with it).
 func TestReviewSendsTheExactBridgeCommandForEachOperation(t *testing.T) {
 	cases := []struct {

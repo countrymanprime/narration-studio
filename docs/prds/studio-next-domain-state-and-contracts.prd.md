@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's `studio-next/src/state/`, `studio-next/src/selectors/`, `studio-next/src/domain/` and `studio-next/src/fixtures/`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [The rule](../architecture/host-binding-concurrency.md#the-rule) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`apps/ui/src/types.ts`) and the mock host (`apps/ui/src/api/mockApi.ts`), [The DAW port](../architecture/daw-integration.md#the-daw-port).
+**Builds on:** [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [The rule](../architecture/host-binding-concurrency.md#the-rule) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`src/studio/ui/src/types.ts`) and the mock host (`src/studio/ui/src/api/mockApi.ts`), [The DAW port](../architecture/daw-integration.md#the-daw-port).
 
 **Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The store is a read-model cache plus a command journal (SN0-Q3); A5 and A6 record that and the undo rules, and are the first slices.
 
@@ -15,16 +15,16 @@ The mock has one place where every change goes (`act`), one history of undoable 
 - **Mock store.** `studio-next/src/state/store.ts`: `update(fn)`, `act(label, fn, {daw, restoreUi})` records inverse patches for the book (`data`) and for listed UI paths, `undoEntry` refuses when a later entry touches the same paths or when a DAW entry is no longer last, `setChangeGuard` for leave guards, `useStudio(selector)` over `useSyncExternalStore`, history capped at 40.
 - **Mock domain.** `studio-next/src/domain/schemas.ts` (767 lines of Zod: chapters, paragraphs, notes, pickups, marks, bible, bookmarks, milestones, contract, stage decisions, cuts, word FX, backups), `studio-next/src/domain/daw.ts`, `studio-next/src/domain/extraction.ts`, `studio-next/src/domain/components.ts`.
 - **Mock selectors and fixtures.** 30 modules in `studio-next/src/selectors/` (pure functions of the book); `studio-next/src/fixtures/` holds all sample data and `makeBook({headingStyle, chapters})`; `studio-next/tests/scenarios.test.tsx` renders every page with three heading styles and 40 chapters; `studio-next/tests/no-hardcoded-speakers.test.ts` fails on a literal in a component.
-- **Real app.** Domain state lives in Go services and sidecar files ([The rule](../architecture/host-binding-concurrency.md#the-rule)); the UI reads it through bindings checked by `parseWire`; pages keep state in hooks (for example `components/production/ProductionPage.tsx`, `components/proof/ProofPage.tsx`); `useApi()` returns the whole `NarrationApi` facade; mocks are per-domain files under `apps/ui/src/api/` and `api/mockHost/`; one Vitest file (`apps/ui/src/api/wireContracts.test.ts`, 3,103 lines) holds the contract rows.
+- **Real app.** Domain state lives in Go services and sidecar files ([The rule](../architecture/host-binding-concurrency.md#the-rule)); the UI reads it through bindings checked by `parseWire`; pages keep state in hooks (for example `components/production/ProductionPage.tsx`, `components/proof/ProofPage.tsx`); `useApi()` returns the whole `NarrationApi` facade; mocks are per-domain files under `src/studio/ui/src/api/` and `api/mockHost/`; one Vitest file (`src/studio/ui/src/api/wireContracts.test.ts`, 3,103 lines) holds the contract rows.
 - **Real undo.** `toast` Undo buttons per feature; auto links are undoable ([Chapter sync](../guides/using-the-app/navigation.md#chapter-sync)); REAPER commands add one undo block each ([The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)); the findings store keeps an append-only decision history ([Shared Findings Contract](../architecture/findings-contract.md)). Nothing spans them.
 
 ## Proposed Solution
 
-1. **A read-model store, not a book.** `apps/ui/src/studio/` holds a small typed store of **read models** (what pages show: a production overview, a chapter's notes, the pickups list, bookmarks, the DAW capability and project state) hydrated through ports and kept fresh by the host's events (`job:ended`, `pickups:state`, `daw_capabilities_changed`). Selectors derive every shown number from read models. The Go host stays the source of truth.
+1. **A read-model store, not a book.** `src/studio/ui/src/studio/` holds a small typed store of **read models** (what pages show: a production overview, a chapter's notes, the pickups list, bookmarks, the DAW capability and project state) hydrated through ports and kept fresh by the host's events (`job:ended`, `pickups:state`, `daw_capabilities_changed`). Selectors derive every shown number from read models. The Go host stays the source of truth.
 2. **Commands with a journal.** `act({ label, touches, daw, run, undo })` runs a host command through a port, records a **journal entry** holding the inverse host command (or, for UI-only state, an inverse closure), and returns a `Result`. Undo is refused with a sentence when a later entry touches the same keys, when a DAW entry is no longer the last, or when the host says the inverse is stale. This is the mock's `undoEntry` logic carried over; patches over a mirrored book are not.
-3. **Ports narrower than the facade.** `apps/ui/src/ports/` re-exports the per-domain interfaces and `usePort<K>()` returns only the one a feature declares, so Interface Segregation is enforced where it matters (the feature), while `NarrationApi` stays the composition type.
-4. **Contract kit.** `describeProviderContract(name, { mock, host })` runs one behavioural suite over the mock adapter and the host-backed adapter (the latter against golden payloads from Go tests). Every port in the series gets one. A shared `Refusal` ({ code, reason }) and `Measured<T>` (value or reason) schema live in `apps/ui/src/api/schemas/base.ts`.
-5. **Fixtures as data.** Sample data lives only in `apps/ui/src/fixtures/` (and the existing `api/mockHost`), built by `makeBook`-style builders (`headingStyle`, `chapters`); a scan test fails on a literal speaker, chapter title or number in a component. A dev and mock-build "Mock states" panel (not in the shipped build) forces states (DAW setup, network, stale ids) the way `studio-next/src/app/mock-states.tsx` does.
+3. **Ports narrower than the facade.** `src/studio/ui/src/ports/` re-exports the per-domain interfaces and `usePort<K>()` returns only the one a feature declares, so Interface Segregation is enforced where it matters (the feature), while `NarrationApi` stays the composition type.
+4. **Contract kit.** `describeProviderContract(name, { mock, host })` runs one behavioural suite over the mock adapter and the host-backed adapter (the latter against golden payloads from Go tests). Every port in the series gets one. A shared `Refusal` ({ code, reason }) and `Measured<T>` (value or reason) schema live in `src/studio/ui/src/api/schemas/base.ts`.
+5. **Fixtures as data.** Sample data lives only in `src/studio/ui/src/fixtures/` (and the existing `api/mockHost`), built by `makeBook`-style builders (`headingStyle`, `chapters`); a scan test fails on a literal speaker, chapter title or number in a component. A dev and mock-build "Mock states" panel (not in the shipped build) forces states (DAW setup, network, stale ids) the way `studio-next/src/app/mock-states.tsx` does.
 6. **Scenario tests.** Each page renders with three heading styles and a 40-chapter book (`studio-next/tests/scenarios.test.tsx`), asserting on formatted names only.
 
 ## Key Hypothesis
@@ -103,9 +103,9 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Technical Approach
 
-**Architecture.** `apps/ui/src/studio/` (store, journal, hydration, selectors library helpers), `apps/ui/src/ports/` (typed re-exports and `usePort`), `apps/ui/src/fixtures/` (builders and data), page selectors beside their pages (`components/<page>/*.selectors.ts`). Import rules (dependency-cruiser): selectors import types and other selectors only; `studio/` imports ports and schemas; components import `studio/` and ports; nothing imports a bridge or `wailsClient` except the composition root. The store subscribes through `useSyncExternalStore` and selectors must return stable slices (the mock's rule, tested).
+**Architecture.** `src/studio/ui/src/studio/` (store, journal, hydration, selectors library helpers), `src/studio/ui/src/ports/` (typed re-exports and `usePort`), `src/studio/ui/src/fixtures/` (builders and data), page selectors beside their pages (`components/<page>/*.selectors.ts`). Import rules (dependency-cruiser): selectors import types and other selectors only; `studio/` imports ports and schemas; components import `studio/` and ports; nothing imports a bridge or `wailsClient` except the composition root. The store subscribes through `useSyncExternalStore` and selectors must return stable slices (the mock's rule, tested).
 
-**Contracts.** New shared schemas `refusalSchema`, `measuredSchema(valueSchema)` in `apps/ui/src/api/schemas/base.ts`; per-domain additions are in the other PRDs and each follows the six-step wire rule. `hostAPIVersion` bumps happen in the slice that adds a binding.
+**Contracts.** New shared schemas `refusalSchema`, `measuredSchema(valueSchema)` in `src/studio/ui/src/api/schemas/base.ts`; per-domain additions are in the other PRDs and each follows the six-step wire rule. `hostAPIVersion` bumps happen in the slice that adds a binding.
 
 **Test plan.** Unit tests for journal rules (ported from `studio-next/tests/daw.test.ts` and `foundations.test.ts`); property tests for "undo then redo equals original" on UI-only slices (fast-check, deterministic per [Property tests and fuzzing](../operations/verification-tooling.md#property-tests-and-fuzzing)); contract suites; scan tests; a scenario render per page; no visual change in SNS slices.
 
@@ -142,10 +142,10 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Phase | Files touched | Collides with |
 | --- | --- | --- |
-| 2, 3 | `apps/ui/src/studio/**` (new) | none (lane U territory, D-7 of Agent Delivery) |
-| 4 | `apps/ui/src/api/schemas/base.ts`, test helpers | Any schema slice (add-only exports) |
-| 5 | `apps/ui/src/ports/**`, `apps/ui/src/fixtures/**`, architecture tests | `api/mockApi.ts` and `wireContracts.test.ts` (hot files; add rows only) |
-| 6 | `apps/ui/src/main.tsx` mock flags, dev panel | Mock-mode flags |
+| 2, 3 | `src/studio/ui/src/studio/**` (new) | none (lane U territory, D-7 of Agent Delivery) |
+| 4 | `src/studio/ui/src/api/schemas/base.ts`, test helpers | Any schema slice (add-only exports) |
+| 5 | `src/studio/ui/src/ports/**`, `src/studio/ui/src/fixtures/**`, architecture tests | `api/mockApi.ts` and `wireContracts.test.ts` (hot files; add rows only) |
+| 6 | `src/studio/ui/src/main.tsx` mock flags, dev panel | Mock-mode flags |
 
 ### Slices
 

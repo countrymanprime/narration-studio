@@ -1,7 +1,7 @@
 package main
 
 // The Master & QC export flow's bindings. The export job is in export_job.go,
-// the package job in package_job.go; the wire-contract schema, golden payloads and mock are in apps/ui/src/api.
+// the package job in package_job.go; the wire-contract schema, golden payloads and mock are in src/studio/ui/src/api.
 
 // ExportPickFiles opens the operating system's picker for the rendered chapter, credits and retail-sample files to
 // master and encode, and answers the chosen paths (none when the narrator closes it). Only paths chosen here can be

@@ -11,7 +11,7 @@ from narration_common.ports import PLATFORMS, Descriptor, NotSupportedError, Reg
 from narration_common.ports.capture import BACKENDS, CHUNK_SECONDS, SAMPLE_RATE, CaptureDescriptor, chunk_samples
 from narration_common.ports.conformance import ConformanceError
 
-LIVE_ASR = Path(__file__).resolve().parents[3] / "sidecars" / "manuscript-teleprompter" / "core" / "live_asr.py"
+LIVE_ASR = Path(__file__).resolve().parents[5] / "src" / "studio" / "sidecars" / "manuscript-teleprompter" / "core" / "live_asr.py"
 
 # --- the fakes ------------------------------------------------------------------------------------------------------------------
 

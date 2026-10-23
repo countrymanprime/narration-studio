@@ -2,7 +2,7 @@
 // map that migrates text (docs, scripts, configs, open branches) when a directory moves.
 // The data lives in layout.json; docs/architecture/codebase-map.md explains the layout itself.
 //
-// applyPathMap rewrites only slash-joined paths (`apps/ui/x`, `../apps/desktop/app.go`). The guard also
+// applyPathMap rewrites only slash-joined paths (`src/studio/ui/x`, `../src/studio/desktop/app.go`). The guard also
 // reports forms a mechanical rewrite cannot do safely, from the `patterns` in layout.json: bare
 // directory names (`go -C <dir>`), quoted path segments (`join(root, '<dir>', '<sub>')`) and
 // backslash paths. Fix those by hand.

@@ -1,5 +1,5 @@
 // The browser mock's teleprompter. It replays a stream recorded from the real
-// ScriptTracker (see sidecars/manuscript-teleprompter/spikes/record_mock_stream.py),
+// ScriptTracker (see src/studio/sidecars/manuscript-teleprompter/spikes/record_mock_stream.py),
 // rescaled onto whichever chapter is being read, so the highlight moves the way
 // it does against the live sidecar: it leads the confirmed words, pauses, and
 // re-reads an earlier sentence.
@@ -53,7 +53,7 @@ const MIN_REPLAY_SECONDS = 8;
 const HEARD_WORDS = 6;
 const SEED_WORDS_INTO_TEXT = 30;
 // Punch and roll: a plausible reading pace and the repo default
-// pre-roll (apps/desktop/settings_number.go), so "Punch from here" resolves a deterministic time and cursor without a
+// pre-roll (src/studio/desktop/settings_number.go), so "Punch from here" resolves a deterministic time and cursor without a
 // real anchors file.
 const MOCK_PUNCH_SECONDS_PER_WORD = 0.4;
 const MOCK_PUNCH_PREROLL = 3;
@@ -87,7 +87,7 @@ export type MockReaperSeed = (typeof MOCK_REAPER_SEEDS)[number];
 export const MOCK_REAPER_INPUT_SEEDS = ['matched', 'uncertain', 'no_match', 'reaper_no_device', 'experimental_off'] as const;
 export type MockReaperInputSeed = (typeof MOCK_REAPER_INPUT_SEEDS)[number];
 
-// The host's answers (apps/desktop/teleprompterinput.go), in the same words, over the mock's own microphone list.
+// The host's answers (src/studio/desktop/teleprompterinput.go), in the same words, over the mock's own microphone list.
 function mockReaperInput(seed: MockReaperInputSeed, devices: string[]): TeleprompterReaperInput {
   const [first = 'Microphone Array (Realtek(R) Audio)'] = devices;
   switch (seed) {
@@ -124,7 +124,7 @@ function mockReaperInput(seed: MockReaperInputSeed, devices: string[]): Teleprom
   }
 }
 
-// The host's auto-stop (apps/desktop/internal/teleprompter/autostop.go): the same delay and messages, so a replay that
+// The host's auto-stop (src/studio/desktop/internal/teleprompter/autostop.go): the same delay and messages, so a replay that
 // reaches the end of the chapter ends itself the way a live session does.
 const AUTO_STOP_MS = 5000;
 const LISTENING = 'Listening…';
@@ -163,7 +163,7 @@ type Deps = {
 
 const MOCK_REAPER_TRACK = '{11111111-1111-4111-8111-111111111111}';
 
-// The host's answers (apps/desktop/readaloudreaper.go), in the same words, for a chapter titled `title`.
+// The host's answers (src/studio/desktop/readaloudreaper.go), in the same words, for a chapter titled `title`.
 function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperState {
   const asked = (status: ReadAloudReaperState['status'], armedCount: number, message: string, recording = false): ReadAloudReaperState => ({
     status,
@@ -307,7 +307,7 @@ function sentenceAround(words: string[], last: number, breaks: Set<number>): { s
   return { start, end, text: words.slice(start, end).join(' ') };
 }
 
-// The browser mock's stand-in for TeleprompterLocate (apps/desktop/teleprompterlocate.go): the host's statuses
+// The browser mock's stand-in for TeleprompterLocate (src/studio/desktop/teleprompterlocate.go): the host's statuses
 // from the mock project's track match, and for a readable track a confident resume word part-way into the chapter. The
 // real placement (Whisper over the tail, the tracker's alignment) happens only in the sidecar.
 function mockLocate(
@@ -352,7 +352,7 @@ const RESUME_TOLERANCE = 10;
 const WORD_CHAR = /[\p{L}\p{N}_']/u;
 
 /**
- * The mock's stand-in for teleprompter.Reconcile (apps/desktop/internal/teleprompter/reconcile.go), so every verdict the
+ * The mock's stand-in for teleprompter.Reconcile (src/studio/desktop/internal/teleprompter/reconcile.go), so every verdict the
  * resume prompt renders can be seen without a host. The Go function is the one that is tested; this follows its rules.
  */
 function mockReconcile(
@@ -433,7 +433,7 @@ const FLAG_CONFIDENCE_REASON =
   'Suspected from live speech recognition while reading aloud: the engine can mishear a correct read, so this has no score and is not proof. Transcript Compare over the recorded take is authoritative.';
 
 /**
- * The mock of `TeleprompterSaveFlags` (`apps/desktop/teleprompterflags.go`): the same id rule in spirit (chapter,
+ * The mock of `TeleprompterSaveFlags` (`src/studio/desktop/teleprompterflags.go`): the same id rule in spirit (chapter,
  * paragraph, kind and words, so a repeat is one finding), a dismissal kept per id and heard text, and the same record shape.
  */
 function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {

@@ -5,7 +5,7 @@ produces; this module only decides WHICH model files are loaded.
 
 Two ways in:
 - The desktop host (and so the frozen, shipped sidecar) passes --model-dir: a directory the host installed from the hashed
-  catalog config/moonshine-assets.json and verified by SHA-256 (apps/desktop/internal/moonshine). It is loaded as it is, after a
+  catalog config/moonshine-assets.json and verified by SHA-256 (src/studio/desktop/internal/moonshine). It is loaded as it is, after a
   presence check that it holds every file the catalog pins - above all the attention decoder word timestamps need, without
   which Moonshine silently loads and returns lines with no word timings. The frozen sidecar refuses to run without it.
 - A developer running live_asr.py from source may omit --model-dir; then moonshine-voice's own downloader fetches the model
@@ -44,7 +44,7 @@ def missing_model_files(model_dir: str | Path) -> list[str]:
 
 def self_check() -> dict:
     """Whether this build carries a working Moonshine, as one `{ok, detail}` report. Called by live_asr.py's `_verify_moonshine`
-        (the asr/moonshine row of --capabilities --verify's `_VERIFY_HOOKS`, for the packaged app's smoke test, apps/desktop/smoke.go)
+        (the asr/moonshine row of --capabilities --verify's `_VERIFY_HOOKS`, for the packaged app's smoke test, src/studio/desktop/smoke.go)
     .
         moonshine_voice loads its native moonshine.dll (and the onnxruntime.dll beside it) with ctypes, which PyInstaller cannot see,
         so a freeze that lost them still starts; asking the native library for its language catalog proves it loads and answers, with

@@ -9,8 +9,8 @@ import (
 
 // hashParts hashes parts into one deterministic hex digest, each
 // length-prefixed so ("ab","c") and ("a","bc") never collide - the same
-// pattern apps/desktop/internal/evidence/fingerprint.go's own hashParts and
-// apps/desktop/internal/findings/findings.go's StableID use. Kept as this
+// pattern src/studio/desktop/internal/evidence/fingerprint.go's own hashParts and
+// src/studio/desktop/internal/findings/findings.go's StableID use. Kept as this
 // package's own copy rather than exported from either: neither package
 // exports it, and duplicating four lines is simpler than asking either to.
 func hashParts(parts ...string) string {

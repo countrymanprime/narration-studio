@@ -63,7 +63,7 @@ func BuildTimeline(chapters []Chapter) ([]TimedChapter, error) {
 // Embed writes ID3v2 CHAP and CTOC frames describing timeline into a NEW copy of destPath, beside it, and
 // returns that new file's path. destPath itself is opened read-only and is never modified - the copy is where
 // every mutation happens. destPath must already be an MP3 (ID3v2's CHAP/CTOC frames are meaningless in a WAV
-// container; see apps/desktop/internal/chaptertags/chaptertags.go for why this feature is MP3-only). Re-running Embed
+// container; see src/studio/desktop/internal/chaptertags/chaptertags.go for why this feature is MP3-only). Re-running Embed
 // on the same destPath is safe: any CHAP/CTOC frames already in the copy from a previous run are replaced, not
 // duplicated, and every other existing tag (title, artist, ...) is preserved.
 func Embed(destPath string, timeline []TimedChapter) (string, error) {

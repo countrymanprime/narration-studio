@@ -14,7 +14,7 @@ import coverage_harness as harness
 import numpy as np
 import pytest
 
-CORPUS_DIR = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "audio" / "librivox-alice"
+CORPUS_DIR = Path(__file__).resolve().parents[5] / "tests" / "fixtures" / "audio" / "librivox-alice"
 sys.path.insert(0, str(CORPUS_DIR))
 
 import coverage_corpus

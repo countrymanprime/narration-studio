@@ -97,7 +97,7 @@ func TestProjectHandlesEveryDocumentedCommand(t *testing.T) {
 }
 
 // Audacity 3.7.7 takes SetTrackStatus and SetTrackAudio on the selected track and ignores a Track parameter without an error: a call
-// that names a track other than the selected one changes the selected one (tests/audacity3/real/edits, A3-T17 and A3-T19).
+// that names a track other than the selected one changes the selected one (src/studio/tests/audacity3/real/edits, A3-T17 and A3-T19).
 func TestTrackCommandsActOnTheSelectionAndIgnoreATrackParameter(t *testing.T) {
 	p := NewProject()
 	p.AddWaveTrack("a", 0, 10)

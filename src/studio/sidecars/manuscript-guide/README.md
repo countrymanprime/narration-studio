@@ -3,8 +3,8 @@
 Builds a narrator reference from a project-owned canonical manuscript. It lists candidate characters, places, and
 organizations; stores editable pronunciations, IPA, descriptions, evidence, and conservative
 personality notes; and can create local, catalog-managed Piper WAV previews. The workflow is documented in
-[Manuscript Guide](../../docs/utilities/manuscript-guide.md) and the
-[Story Bible guide](../../docs/guides/using-the-app/story-bible.md).
+[Manuscript Guide](../../../../docs/utilities/manuscript-guide.md) and the
+[Story Bible guide](../../../../docs/guides/using-the-app/story-bible.md).
 
 It does not depend on Transcript Compare. The two tools share one project-level input only:
 
@@ -17,10 +17,10 @@ This tool never reads or writes Transcript Compare's settings or generated files
 ## Layout
 
 - `core/` — the DAW-agnostic Python backend (`manuscript_guide.py`, `providers.py`). No DAW APIs are
-  used here; it is a plain CLI that the desktop host (`apps/desktop/internal/guide`) runs. Its
+  used here; it is a plain CLI that the desktop host (`src/studio/desktop/internal/guide`) runs. Its
   dependencies are declared in the repo-root `pyproject.toml` and pinned in `uv.lock`.
 - `tests/` — the pytest suite for the backend.
-- A future Audacity driver has placeholder notes under `integrations/audacity/manuscript-guide/`.
+- A future Audacity driver has placeholder notes under `src/studio/integrations/audacity/manuscript-guide/`.
 
 ## Settings
 

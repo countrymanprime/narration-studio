@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-REPO = Path(__file__).resolve().parents[3]
-SIDECARS = REPO / "sidecars"
+REPO = Path(__file__).resolve().parents[5]
+SIDECARS = REPO / "src" / "studio" / "sidecars"
 
 # Modules that compare a provider name without being an adapter. An adapter module declares a `descriptor = ...Descriptor(...)`
 # class attribute and is exempt by that; anything else needs a written reason here, and an entry that stops being needed
@@ -33,7 +33,7 @@ class Finding:
     what: str
 
     def __str__(self) -> str:
-        return f"sidecars/{self.path}:{self.line}: {self.what}"
+        return f"src/studio/sidecars/{self.path}:{self.line}: {self.what}"
 
 
 def sidecar_sources() -> list[Path]:

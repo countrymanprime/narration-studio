@@ -10,7 +10,7 @@ import (
 )
 
 // go-golden-for-the-file: backups.json as writeBackups writes it, an empty table and one with two rows, pinned for
-// dawBackupsFileSchema (apps/ui/src/api/schemas/daw.ts). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-backups-*.json.
+// dawBackupsFileSchema (src/studio/ui/src/api/schemas/daw.ts). UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/daw-backups-*.json.
 func TestBackupsFileContract(t *testing.T) {
 	at := time.Date(2026, 10, 12, 9, 30, 0, 0, time.UTC)
 	cases := map[string]backupsTable{

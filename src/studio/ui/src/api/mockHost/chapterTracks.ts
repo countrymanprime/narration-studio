@@ -6,7 +6,7 @@ import { mockChaptersForTracks, mockChapterSuggestion } from '../chapterSuggesti
 import type { CoverageResult } from '../contracts/coverage';
 import { type MockApiSeed, mockDocumentId, type MockState } from './state';
 
-// The two credits ids docs/architecture/manuscript-teleprompter.md, apps/desktop/internal/coverage/credits.go give a real title outside the manuscript's own chapter list.
+// The two credits ids docs/architecture/manuscript-teleprompter.md, src/studio/desktop/internal/coverage/credits.go give a real title outside the manuscript's own chapter list.
 const CREDITS_CHECK_TITLE: Record<string, string | undefined> = { 'credits-opening': 'Opening credits', 'credits-closing': 'Closing credits' };
 
 /** The chapter-track bindings: the DAW project's tracks, the chapter links, chapter sync and chapter regions. */
@@ -19,7 +19,7 @@ export function createChapterTracksMock(
     peekCoverage,
   }: { manuscriptReady: Promise<void>; dawFileLinked: () => boolean; peekCoverage: (chapterId: string) => CoverageResult },
 ) {
-  // Chapter sync (apps/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
+  // Chapter sync (src/studio/desktop/chaptersync.go): the consent, the pairs the narrator undid, and who listens.
   let chapterSyncConsent: ChapterSyncConsent = initial.chapterSync === 'ask' ? 'undecided' : initial.chapterSync === 'off' ? 'off' : 'on';
   let chapterSyncDecidedAt: string | null = chapterSyncConsent === 'undecided' ? null : '2026-09-24T09:00:00Z';
   let chapterSyncLastSync: string | null =

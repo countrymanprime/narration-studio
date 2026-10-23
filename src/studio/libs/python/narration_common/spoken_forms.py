@@ -1,8 +1,8 @@
 """
 How a word is said rather than how it is spelt: the equivalences that keep a
 speech-recognition transcript from being judged against the manuscript on
-spelling alone. Transcript Compare (`sidecars/transcript-compare/core/compare.py`)
-and the teleprompter's live flags (`sidecars/manuscript-teleprompter/core/flags.py`)
+spelling alone. Transcript Compare (`src/studio/sidecars/transcript-compare/core/compare.py`)
+and the teleprompter's live flags (`src/studio/sidecars/manuscript-teleprompter/core/flags.py`)
 both use them, so a live flag forgives exactly what the authoritative
 comparison forgives.
 

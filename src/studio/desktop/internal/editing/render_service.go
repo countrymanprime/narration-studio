@@ -5,7 +5,7 @@
 // 0%->100% jump around that one DecodeRender call: docs/architecture/principles.md's real-progress
 // rule is still met (0% until the decode returns, then 100%, never a
 // fabricated in-between number), the same single-file-job precedent
-// apps/desktop/internal/proofing's own render measurement job sets for one
+// src/studio/desktop/internal/proofing's own render measurement job sets for one
 // file's worth of work.
 
 package editing
@@ -33,7 +33,7 @@ func (s *Service) sourceChoice(documentID, chapterID string) (SourceChoice, erro
 }
 
 // SourceChoice is sourceChoice's exported form, for the binding layer
-// (apps/desktop/bindings_editing.go's EditingSourceChoice) - never reaches
+// (src/studio/desktop/bindings_editing.go's EditingSourceChoice) - never reaches
 // into s.config itself, the same encapsulation every other binding in this
 // package already keeps.
 func (s *Service) SourceChoice(documentID, chapterID string) (SourceChoice, error) {

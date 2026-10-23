@@ -22,11 +22,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # Repo-relative locations of everything this script reads or writes. A layout change edits these
 # lines and nothing else (see docs/architecture/codebase-map.md).
-PYTHON_LIB_DIR = Path("libs/python")
+PYTHON_LIB_DIR = Path("src/studio/libs/python")
 CONFIG_DIR = Path("config")
-REAPER_DIR = Path("integrations/reaper")
-SIDECARS_DIR = Path("sidecars")
-RESOURCES_DIR = Path("apps/desktop/cmd/narration-utils/resources")
+REAPER_DIR = Path("src/studio/integrations/reaper")
+SIDECARS_DIR = Path("src/studio/sidecars")
+RESOURCES_DIR = Path("src/studio/desktop/cmd/narration-utils/resources")
 
 RESOURCES = ROOT / RESOURCES_DIR
 RUNTIME = RESOURCES / "runtime"

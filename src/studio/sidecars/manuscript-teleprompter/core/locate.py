@@ -2,7 +2,7 @@
 Tail-audio locate for the Manuscript Teleprompter: turn
 the last seconds of a chapter's recorded audio into the script word to resume from.
 
-The host (apps/desktop/internal/teleprompter, `Service.Locate`) finds where the chapter's recorded audio ends
+The host (src/studio/desktop/internal/teleprompter, `Service.Locate`) finds where the chapter's recorded audio ends
 (`tracks.RecordedEnd`) and runs this sidecar once, through `live_asr.py --locate`:
 
     python live_asr.py --locate --wav take.wav --tail-start 812.4 --tail-end 842.4 \\
@@ -42,7 +42,7 @@ _CORE_DIR = Path(__file__).resolve().parent
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
-_SHARED_PYTHON = Path(__file__).resolve().parents[3] / "libs" / "python"
+_SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
 
@@ -51,7 +51,7 @@ from script_tracker import MIN_JUMP_MATCHES, ScriptTracker, advance, normalize_w
 
 SAMPLE_RATE = 16000
 
-# The host asks for DEFAULT_TAIL_SECONDS (apps/desktop/internal/teleprompter/locate.go); anything longer than
+# The host asks for DEFAULT_TAIL_SECONDS (src/studio/desktop/internal/teleprompter/locate.go); anything longer than
 # MAX_TAIL_SECONDS is refused, which bounds the decode time and the memory one run can take.
 MAX_TAIL_SECONDS = 120.0
 

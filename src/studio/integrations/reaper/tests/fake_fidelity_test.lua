@@ -1,5 +1,5 @@
 -- The fake `reaper` must return what REAPER returns, or every other test proves nothing. Each test below pins one
--- behaviour observed in a real REAPER 7.80 (scripted, isolated; integrations/reaper/spikes/build_cases.lua and
+-- behaviour observed in a real REAPER 7.80 (scripted, isolated; src/studio/integrations/reaper/spikes/build_cases.lua and
 -- docs/research/reaper-spike-s0-item-extension-data.md). When a spike shows the fake is wrong, correct it here first.
 
 local H = require('harness')
@@ -77,7 +77,7 @@ H.test('EnumerateFiles lists a cached snapshot until it is cleared with index -1
 end)
 
 H.test('with the default link the time selection and the loop points move together, and GetSetRepeat asks, sets and toggles', function()
-  -- REAPER 7.80, the navigation check (integrations/reaper/spikes/results/navigation-check-report.txt):
+  -- REAPER 7.80, the navigation check (src/studio/integrations/reaper/spikes/results/navigation-check-report.txt):
   -- setting only the loop points moved the time selection, and setting only the time selection moved the loop points.
   local reaper_api, fake = api()
   fake.linked_loop = true

@@ -14,7 +14,7 @@ import (
 // MP3 files "Prepare chapter render" already named (renderConfig.Snapshot()'s targets, the last
 // successful RENDER_TARGETS list) to learn each chapter's title and duration, then asks the narrator which
 // already-rendered MP3 to tag - a separate, single combined file the per-chapter renders do not produce by
-// themselves. See apps/desktop/internal/chaptertags/chaptertags.go for why this only works on the combined file, not the per-chapter ones.
+// themselves. See src/studio/desktop/internal/chaptertags/chaptertags.go for why this only works on the combined file, not the per-chapter ones.
 //
 // Every mutation happens on a NEW copy beside the file the narrator names (chaptertags.Embed): ChapterTagsEmbed
 // never writes to destPath itself, and the UI (ChapterTagsDialog) gates the call behind an explicit confirm, the

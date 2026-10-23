@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Run the real-Audacity 3 edit tests (A3-T14 to T23, T32, T33) on Linux: Xvfb, a PulseAudio null sink, the pinned Audacity AppImage.
 #
-#   tests/audacity3/real/edits/run.sh                   every Python test, then the Go half
-#   tests/audacity3/real/edits/run.sh A3-T14 A3-T16      just those Python tests
-#   tests/audacity3/real/edits/run.sh --go                the Go half only (the adapter)
-#   tests/audacity3/real/edits/run.sh --hold              start Audacity and wait, for trying commands by hand
+#   src/studio/tests/audacity3/real/edits/run.sh                   every Python test, then the Go half
+#   src/studio/tests/audacity3/real/edits/run.sh A3-T14 A3-T16      just those Python tests
+#   src/studio/tests/audacity3/real/edits/run.sh --go                the Go half only (the adapter)
+#   src/studio/tests/audacity3/real/edits/run.sh --hold              start Audacity and wait, for trying commands by hand
 #
 # Each test gets a fresh Audacity and profile: a test can leave a modal dialog or a crash behind, and no test depends on another. Results
 # are one JSON file per test in $NU_AUDACITY_OUT/results, merged by summarize.py into results.json and summary.md.
@@ -12,7 +12,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(cd "$HERE/../../../.." && pwd)"
+REPO="$(cd "$HERE/../../../../../.." && pwd)"
 
 # The tests write their own tones (a frequency that changes every second, so each second can be told from the rest), so no LibriVox
 # fixture is fetched. Pinned. Bump the version and the hash together (the hash is the only identity the AppImage has).
@@ -201,13 +201,13 @@ for id in "${IDS[@]}"; do
 	pkill -x crashpad_handler 2>/dev/null || true
 done
 
-# The adapter half (apps/desktop/internal/dawport/audacity/real_edits_linux_live_test.go): one Go test per fresh Audacity.
+# The adapter half (src/studio/desktop/internal/dawport/audacity/real_edits_linux_live_test.go): one Go test per fresh Audacity.
 GO_TESTS=(TestRealEditsBackups TestRealEditsRoll TestRealEditsCutAndStack TestRealEditsMacro TestRealEditsGainAndClicks)
 if [ "$RUN_GO" = 1 ]; then
 	for name in "${GO_TESTS[@]}"; do
 		log "=== go $name"
 		launch_until_answering || { status=1; continue; }
-		(cd "$REPO/apps/desktop" && go test -tags audacityreal -run "^$name\$" -v -count=1 -timeout 8m ./internal/dawport/audacity/) 2>&1 | tee -a "$WORK/logs/go-$name.log" | sed 's/^/[go] /'
+		(cd "$REPO/src/studio/desktop" && go test -tags audacityreal -run "^$name\$" -v -count=1 -timeout 8m ./internal/dawport/audacity/) 2>&1 | tee -a "$WORK/logs/go-$name.log" | sed 's/^/[go] /'
 		[ "${PIPESTATUS[0]}" = 0 ] || status=1
 		import -window root "$NU_AUDACITY_OUT/go-$name-end.png" 2>/dev/null || true
 		pkill -x crashpad_handler 2>/dev/null || true

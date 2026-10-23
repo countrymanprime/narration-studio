@@ -12,7 +12,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/update"
 )
 
-// The phases of an update download, the words the UI polls for (apps/ui/src/api/contracts/update.ts).
+// The phases of an update download, the words the UI polls for (src/studio/ui/src/api/contracts/update.ts).
 const (
 	updatePhaseDownloading = "downloading"
 	updatePhaseVerifying   = "verifying"

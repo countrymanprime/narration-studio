@@ -1511,7 +1511,7 @@ export function FindingsThread(id: string, op: string, messageID: string, who: s
 /**
  * GuideCorrectCue records the narrator's own attribution for one dialogue
  * cue. speakerEntityID "unknown" or "" clears the cue back to unknown; a
- * rebuild never overwrites a correction (mirroring sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
+ * rebuild never overwrites a correction (mirroring src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock guard).
  */
 export function GuideCorrectCue(cueID: string, speakerEntityID: string): $CancellablePromise<string> {
     return $Call.ByID(2882621287, cueID, speakerEntityID);
@@ -2231,7 +2231,7 @@ export function ProjectRemoveRecent(path: string): $CancellablePromise<string> {
  * banner: the recent project, other than the open one, whose linked REAPER file is the project REAPER has open now. It reads
  * the Heartbeat role (as DawProjectState does), so it answers only while a bridge is up: a launch with no REAPER session has
  * no heartbeat, and the answer is {linked: false, path: "", name: ""}. The wire schema, golden payloads, wireContracts row and
- * mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).
+ * mock live in src/studio/ui/src/api (docs/architecture/wire-contracts.md).
  */
 export function ProjectRunningDaw(): $CancellablePromise<string> {
     return $Call.ByID(2377859334);

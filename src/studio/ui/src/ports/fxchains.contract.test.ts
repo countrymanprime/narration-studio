@@ -10,7 +10,7 @@ import { DAW_PROJECT, DAW_SETUPS, fxChainsSource } from '../fixtures/daw';
 import { createHostFxChains, createMockFxChains, type FxChainsHostApi, type FxChainsPort } from './fxchains';
 import { describeProviderContract, type Goldens } from './providerContract';
 
-const GOLDEN_DIR = fileURLToPath(new URL('../../../../tests/fixtures/contracts/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
 const FILES = ['daw-capabilities-reaper.json', 'workspace-fx-chains.json'] as const;
 const goldens: Goldens = Object.fromEntries(FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 

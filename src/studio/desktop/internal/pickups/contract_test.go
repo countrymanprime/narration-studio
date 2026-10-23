@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The PickupsState wire payloads apps/ui needs for its schema and mock. "pickups-idle" is what
+// The PickupsState wire payloads src/studio/ui needs for its schema and mock. "pickups-idle" is what
 // PickupsState answers before any run; "pickups-import-success" is a completed import, so the UI's remaining-count and
 // next states can be built and reviewed against a real shape. runId is time-based (newRunID), so it is fixed here the
 // way lineidentity/contract_test.go fixes its own.

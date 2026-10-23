@@ -198,7 +198,7 @@ async function hostResult<T>(request: Promise<T>, binding = ''): Promise<T> {
   }
 }
 
-// Matches apps/desktop/media.go's mediaRoute constant.
+// Matches src/studio/desktop/media.go's mediaRoute constant.
 const mediaRoute = '/media';
 
 // A payload that fails its schema is reported to the host log (kind `wire_invalid`: boundary, payload and failing paths,
@@ -248,7 +248,7 @@ function subscribeChecked<S extends StandardSchemaV1>(event: string, schema: S, 
   return onHostEvent(event, (value) => liveEvent(schema, event, value, onValid));
 }
 
-// Wails v3 delivers each event as a WailsEvent; what the host emitted is its `data` (apps/desktop/wailsapp.go emitEvent), which is
+// Wails v3 delivers each event as a WailsEvent; what the host emitted is its `data` (src/studio/desktop/wailsapp.go emitEvent), which is
 // what every subscriber below checks. The name is the host's; the sender (a window name) is not used.
 function onHostEvent(event: string, onPayload: (payload: unknown) => void): () => void {
   return Events.On(event, (wailsEvent) => onPayload(wailsEvent.data));
@@ -402,7 +402,7 @@ export const wailsClient: NarrationApi = {
   systemNotify: (kind, title, body) => decode(voidResult, 'SystemNotify', host.SystemNotify(kind, title, body)),
   systemLookup: (word) => decode(dictionaryLookupResultSchema, 'SystemLookup', host.SystemLookup(word)),
   systemOpenLogFolder: () => decode(voidResult, 'SystemOpenLogFolder', host.SystemOpenLogFolder()),
-  // Error-only Go bindings (apps/desktop/bindings_companion.go): Wails resolves them with no payload, so there is nothing to
+  // Error-only Go bindings (src/studio/desktop/bindings_companion.go): Wails resolves them with no payload, so there is nothing to
   // check beyond the error `hostResult` already turns into text.
   companionModeEnter: async () => {
     await hostResult(host.CompanionModeEnter());
@@ -515,7 +515,7 @@ export const wailsClient: NarrationApi = {
   editingCancel: () => decode(voidResult, 'EditingCancel', host.EditingCancel()),
   editingCandidates: (chapterId) => decode(editingCandidatesSchema, 'EditingCandidates', host.EditingCandidates(chapterId)),
   // EditingSourceChoice/EditingSetSourceChoice are not yet in wailsjs/.../host.ts - this sandbox has no
-  // wails3 CLI to regenerate it (bindings_editing.go's own doc comment; `pnpm --dir apps/desktop bindings` fails the
+  // wails3 CLI to regenerate it (bindings_editing.go's own doc comment; `pnpm --dir src/studio/desktop bindings` fails the
   // same way here). host.EditingSourceChoice/EditingSetSourceChoice below type-check once that
   // regeneration adds them, the same shape every other bare-string binding above already has.
   editingSourceChoice: (chapterId) => decode(editingSourceChoiceSchema, 'EditingSourceChoice', host.EditingSourceChoice(chapterId)),

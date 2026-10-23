@@ -126,7 +126,7 @@ describe('CompanionShell', () => {
     expect(within(main).getByText('Chapter 5 — Advice from a Caterpillar')).toBeTruthy();
   });
 
-  it("narrows and pins the one window on mount and puts it back on unmount (apps/desktop/bindings_companion.go's bindings)", async () => {
+  it("narrows and pins the one window on mount and puts it back on unmount (src/studio/desktop/bindings_companion.go's bindings)", async () => {
     const { api, unmount } = renderCompanion();
     await waitFor(() => expect(api.companionModeEnter).toHaveBeenCalledTimes(1));
     expect(api.companionModeExit).not.toHaveBeenCalled();

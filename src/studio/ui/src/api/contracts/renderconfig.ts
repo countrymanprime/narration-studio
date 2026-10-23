@@ -1,7 +1,7 @@
 // Per-chapter render configuration: configure only. Sets the render bounds to all regions, the naming pattern to the region name, and the
 // output folder, then reports the resulting file names. This never triggers a render: the narrator presses
 // Render themselves in REAPER (Ctrl+Alt+R or File > Render). Mirrors
-// apps/desktop/internal/renderconfig.Service.Snapshot() exactly: one configure run at a time, reported by phase.
+// src/studio/desktop/internal/renderconfig.Service.Snapshot() exactly: one configure run at a time, reported by phase.
 
 export type RenderConfigPhase = 'idle' | 'configuring' | 'success' | 'error';
 

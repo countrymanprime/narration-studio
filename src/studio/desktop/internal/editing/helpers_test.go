@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// The WAV fixture helpers below mirror apps/desktop/internal/measure's own
+// The WAV fixture helpers below mirror src/studio/desktop/internal/measure's own
 // helpers_test.go (encodeWAV, silence, sine, ...): a minimal RIFF/WAVE
 // encoder, kept duplicated rather than exported from measure, since a test
 // helper is not part of that package's public surface.

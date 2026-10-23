@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The RetakeLanesList and RetakeLanesState wire payloads apps/ui needs for its schemas and mock.
+// The RetakeLanesList and RetakeLanesState wire payloads src/studio/ui needs for its schemas and mock.
 // "retake-lanes-list" is the spike S7 project (docs/research/reaper-spike-s7-fixed-lanes.md) as the binding lists
 // it (no paths in it, so nothing to make portable); "retake-lanes-idle" is the state before any pick and
 // "retake-lanes-picked" a pick REAPER confirmed. runId is time-based (newRunID), so it is fixed here.

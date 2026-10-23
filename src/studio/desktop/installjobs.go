@@ -25,7 +25,7 @@ const (
 	installKindAnalysis   = "analysis"
 )
 
-// The phases of an asset install, the words the UI polls for (apps/ui/src/api/contracts/assets.ts). Every asset uses the update download's vocabulary.
+// The phases of an asset install, the words the UI polls for (src/studio/ui/src/api/contracts/assets.ts). Every asset uses the update download's vocabulary.
 const (
 	installPhaseDownloading = "downloading"
 	installPhaseVerifying   = "verifying"

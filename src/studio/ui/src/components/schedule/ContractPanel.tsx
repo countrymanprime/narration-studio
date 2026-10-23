@@ -21,7 +21,7 @@ export type ContractPanelProps = {
 
 /**
  * How the narrator is paid (the mock's Contract panel). Only a rate per finished hour carries an amount; a royalty share or no payment is a
- * label, and with no rate there is no figure (apps/desktop/internal/project/manifest.go, SNP-Q4).
+ * label, and with no rate there is no figure (src/studio/desktop/internal/project/manifest.go, SNP-Q4).
  */
 export function ContractPanel({ plan, words, onPayment, onAmount, onRefuse, onAccepted }: ContractPanelProps) {
   const payment = paymentOf(plan);

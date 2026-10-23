@@ -4,7 +4,7 @@
 // three ledger records), composes empty space over the result
 // (empty_space.go), persists silence_cleanup findings, and reports real
 // progress with a cancel button. Unlike the recording coverage
-// service (apps/desktop/internal/coverage), there is no sidecar: every
+// service (src/studio/desktop/internal/coverage), there is no sidecar: every
 // decode is this package's own Decode (decode.go), so the job is a plain Go
 // goroutine over context cancellation rather than a supervised child
 // process.
@@ -36,7 +36,7 @@ const AnalyzerVersion = "editing-v1"
 // Reason is a typed refusal this service can answer before it even starts a
 // scan: the chapter cannot be resolved to exactly one confirmed track and
 // its items, or a run is already busy. It mirrors
-// apps/desktop/internal/coverage's own Reason/unknown/ReasonOf pattern.
+// src/studio/desktop/internal/coverage's own Reason/unknown/ReasonOf pattern.
 type Reason string
 
 const (

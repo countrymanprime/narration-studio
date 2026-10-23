@@ -4,22 +4,22 @@ import test from 'node:test';
 import { applyPathMap, findStaleReferences, loadLayout, readTrackedText, trackedFiles, unexpectedRoots } from './layout.mjs';
 
 const renames = [
-  { from: 'shared/ui', to: 'apps/ui' },
-  { from: 'shell/', to: 'apps/desktop/' },
-  { from: 'tools/manuscript-guide/core/tests', to: 'sidecars/manuscript-guide/tests' },
-  { from: 'tools/manuscript-guide', to: 'sidecars/manuscript-guide' },
+  { from: 'shared/ui', to: 'src/studio/ui' },
+  { from: 'shell/', to: 'src/studio/desktop/' },
+  { from: 'tools/manuscript-guide/core/tests', to: 'src/studio/sidecars/manuscript-guide/tests' },
+  { from: 'tools/manuscript-guide', to: 'src/studio/sidecars/manuscript-guide' },
 ];
 
 test('applyPathMap rewrites repo paths wherever they appear in a line', () => {
-  assert.equal(applyPathMap('see shared/ui/src/App.tsx', renames), 'see apps/ui/src/App.tsx');
-  assert.equal(applyPathMap('`shared/ui`, `shell/app.go`', renames), '`apps/ui`, `apps/desktop/app.go`');
-  assert.equal(applyPathMap('frontend:dir ../shared/ui', renames), 'frontend:dir ../apps/ui');
-  assert.equal(applyPathMap('directory: /shared/ui', renames), 'directory: /apps/ui');
+  assert.equal(applyPathMap('see shared/ui/src/App.tsx', renames), 'see src/studio/ui/src/App.tsx');
+  assert.equal(applyPathMap('`shared/ui`, `shell/app.go`', renames), '`src/studio/ui`, `src/studio/desktop/app.go`');
+  assert.equal(applyPathMap('frontend:dir ../shared/ui', renames), 'frontend:dir ../src/studio/ui');
+  assert.equal(applyPathMap('directory: /shared/ui', renames), 'directory: /src/studio/ui');
 });
 
 test('applyPathMap prefers the most specific rename', () => {
-  assert.equal(applyPathMap('tools/manuscript-guide/core/tests/test_x.py', renames), 'sidecars/manuscript-guide/tests/test_x.py');
-  assert.equal(applyPathMap('tools/manuscript-guide/core/x.py', renames), 'sidecars/manuscript-guide/core/x.py');
+  assert.equal(applyPathMap('tools/manuscript-guide/core/tests/test_x.py', renames), 'src/studio/sidecars/manuscript-guide/tests/test_x.py');
+  assert.equal(applyPathMap('tools/manuscript-guide/core/x.py', renames), 'src/studio/sidecars/manuscript-guide/core/x.py');
 });
 
 test('applyPathMap leaves look-alikes, prose and the Go module path alone', () => {
@@ -52,7 +52,7 @@ test('findStaleReferences also reports bare names, quoted segments and backslash
     ['a.mjs', ["join(root, 'shared', 'ui')", "join(dir, 'shell')"].join('\n')],
     ['b.md', String.raw`open shared\python\x.py and shared/* too`],
     ['c.md', String.raw`the old build put it at shell\build\bin\narration-utils-shell.exe`],
-    ['ok.md', 'the shell is a program; narration-utils-shell; shellcheck; go -C apps/desktop test'],
+    ['ok.md', 'the shell is a program; narration-utils-shell; shellcheck; go -C src/studio/desktop test'],
     [
       'not-a-path.md',
       String.raw`REAPER's .rpp file association is HKEY_CLASSES_ROOT\Reaper.Project\shell\open64\command, or \shell\open\command on older builds`,
@@ -65,9 +65,9 @@ test('findStaleReferences also reports bare names, quoted segments and backslash
 });
 
 test('unexpectedRoots lists tracked top-level entries outside the allowlist', () => {
-  const tracked = ['README.md', 'docs/a.md', 'apps/ui/x.ts', 'stray/file.txt', 'LICENSE'];
+  const tracked = ['README.md', 'docs/a.md', 'src/studio/ui/x.ts', 'stray/file.txt', 'LICENSE'];
 
-  assert.deepEqual(unexpectedRoots(tracked, ['README.md', 'docs', 'apps', 'LICENSE']), ['stray']);
+  assert.deepEqual(unexpectedRoots(tracked, ['README.md', 'docs', 'src', 'LICENSE']), ['stray']);
 });
 
 test('the shipped path map is idempotent, so re-running it on migrated text changes nothing', () => {

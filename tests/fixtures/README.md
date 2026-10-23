@@ -9,7 +9,7 @@ used from tests and for manual/ad-hoc verification.
 An EPUB 3 book (with an EPUB 2 `toc.ncx` alongside its `nav.xhtml`, as many real
 exporters ship both) built by `write_epub` in `generate_alice.py` from the same
 three-chapter Gutenberg text as `alice.txt`/`alice.md`/`alice.docx`, so
-`TestEPUBFixtureParityWithAliceMarkdown` (`apps/desktop/internal/importer/epub_test.go`)
+`TestEPUBFixtureParityWithAliceMarkdown` (`src/studio/desktop/internal/importer/epub_test.go`)
 can compare their narration text directly. A front-matter document with no
 heading precedes the chapters, classified Front Matter/Cover the same way
 `alice.txt`'s own front matter is - unlike `alice.md`/`alice.docx`, which give
@@ -29,7 +29,7 @@ python -c "import importlib.util; from pathlib import Path; spec = importlib.uti
 Small constructed manuscripts (DOCX, EPUB, Markdown and plain text, one chapter heading each) that exercise the
 importer's title/subtitle heuristic: 5 read correctly and 18 do not.
 `cases.json` records each case's intended and observed title and subtitle, and `TestHeadingMisreadFixtures`
-(`apps/desktop/internal/importer/heading_misreads_test.go`) holds the importer to the observed values.
+(`src/studio/desktop/internal/importer/heading_misreads_test.go`) holds the importer to the observed values.
 [`docs/research/import-heading-misreads.md`](../../docs/research/import-heading-misreads.md) explains each failure
 mode, and the subtitle override uses these cases as its fixtures. Regenerate with the standard library only:
 
@@ -42,14 +42,14 @@ python generate.py
 
 The recorded tails the teleprompter's tail-audio locate is measured on
 ([Resume: where REAPER is and where the prompter was](../../docs/architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was),
-`sidecars/manuscript-teleprompter/tests/test_locate.py`). `chapter.txt` is Chapter I of `alice.md` (one paragraph per
+`src/studio/sidecars/manuscript-teleprompter/tests/test_locate.py`). `chapter.txt` is Chapter I of `alice.md` (one paragraph per
 line, `_italics_` markers removed) and `chapter-repeated.txt` the same chapter with its twelfth paragraph repeated at the
 end. `tails.json` holds, per case, what the tiny Whisper model heard in the last seconds of a Piper reading that stops at
 a known word (`expectedWord`), and whether the case should be confident. Only the transcripts are committed, not the
 audio. Regenerate with the app's own installed voice and model:
 
 ```powershell
-uv run python sidecars/manuscript-teleprompter/spikes/record_locate_tails.py `
+uv run python src/studio/sidecars/manuscript-teleprompter/spikes/record_locate_tails.py `
   --piper-model "$env:LOCALAPPDATA/narration-utils/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx" `
   --model-dir "$env:LOCALAPPDATA/narration-utils/assets/whisper/faster-whisper/tiny/<commit>"
 ```
@@ -60,13 +60,13 @@ A Gutenberg-shaped, hard-wrapped plain-text export of the same three chapters (`
 `generate_alice.py`): a `*** START OF ... ***`/`*** END OF ... ***` boilerplate pair, lines
 wrapped at about 70 columns, and `_word_` underscore italics, matching `alice_raw.txt`'s own
 shape. Used by the TXT importer's parity and hazard tests
-(`apps/desktop/internal/importer/txt_test.go`).
+(`src/studio/desktop/internal/importer/txt_test.go`).
 
 ## after-the-applause.md
 
 The front matter from an owner report (a title split
 across lines, an all-capitals title, a genre descriptor, a bare-name byline and a copyright line), imported through
-`manuscript.Service` and read by `credits.Detect` in `apps/desktop/creditsdetect_test.go`, so the fix for the
+`manuscript.Service` and read by `credits.Detect` in `src/studio/desktop/creditsdetect_test.go`, so the fix for the
 `storedPath` double-join defect and the front matter parser are both exercised against a real commit()-produced
 project rather than a hand-built `manuscript.json`.
 
@@ -80,7 +80,7 @@ fixture wouldn't exercise.
 
 `alice.docx` also has a "Contents" Heading-1 paragraph inserted before
 Chapter II specifically to exercise the non-chapter-heading skip path
-(`isNonChapterHeading` in `apps/desktop/internal/importer/`) against a real
+(`isNonChapterHeading` in `src/studio/desktop/internal/importer/`) against a real
 heading, not just a synthetic unit-test one.
 
 Regenerate with:
@@ -96,7 +96,7 @@ path for Unicode PDF text - see the script for how to point it elsewhere.
 
 **Known limitation, deliberately left visible:** `alice.pdf` has no reliable chapter boundaries
 (`pypdf` text extraction never yields a blank line for a PDF built this way), so the Go importer rejects it;
-`TestPDFFixtureIsRejectedUntilChapterBoundariesAreReliable` (`apps/desktop/internal/importer/importer_test.go`) holds it to that.
+`TestPDFFixtureIsRejectedUntilChapterBoundariesAreReliable` (`src/studio/desktop/internal/importer/importer_test.go`) holds it to that.
 
 ## audio/librivox-alice/
 

@@ -1,5 +1,5 @@
 // The mock built-in recorder: a stand-in for
-// apps/desktop/bindings_recording.go over internal/recording, so the Booth's recorder and the visual suite run with no
+// src/studio/desktop/bindings_recording.go over internal/recording, so the Booth's recorder and the visual suite run with no
 // microphone. Its payloads follow the host goldens (tests/fixtures/contracts/recorder-*.json; wireContracts.test.ts
 // pins them). A take "records" in memory: Start publishes a steady level and Stop adds the next take to the list.
 import type { RecorderDevicesResult, RecorderLevel, RecorderState, RecorderTake, RecordingApi, RecordingEngine } from './contracts/recording';

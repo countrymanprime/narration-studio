@@ -1,5 +1,5 @@
 // The browser mock's Script marks. It keeps the types and marks in memory and checks each mark against the mock manuscript's
-// current text the way apps/desktop/internal/marks does: a range the line lacks is refused, the quote is the line's own text,
+// current text the way src/studio/desktop/internal/marks does: a range the line lacks is refused, the quote is the line's own text,
 // a question needs its text and starts open, at least one type is kept, removing a type in use needs `removeUses`, the list is
 // in reading order, and a mark whose line is gone, whose range no longer fits or whose words changed comes back stale. A
 // thread takes the host's rules too: a known author, plain text that is not empty, an index in the thread, and a status only

@@ -133,7 +133,7 @@ func TestAFileThatIsGoneIsNotEditedFromTheHeldCopy(t *testing.T) {
 // The parity cases again, all through one Service: each case's starting file replaces the last, which the held document must notice
 // every time, however quickly the files follow each other.
 func TestEditMatchesTheSidecarCasesThroughOneService(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "tests", "fixtures", "guide-edit", "edit-parity.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "..", "tests", "fixtures", "guide-edit", "edit-parity.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

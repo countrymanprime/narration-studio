@@ -10,7 +10,7 @@ import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import type { Notify } from '../primitives/Toast';
 
 /**
- * Item gain: the editing check's row for `bridge.LevelMatchClient` (apps/desktop/internal/bridge/levelnormalize.go). It previews the items
+ * Item gain: the editing check's row for `bridge.LevelMatchClient` (src/studio/desktop/internal/bridge/levelnormalize.go). It previews the items
  * through the host before offering Match in a `ConfirmDialog`, and is gated behind its own `CapabilityGate` so the control is visible,
  * disabled with the host's "Experimental" message, until the owner's verification pass promotes it. Silence trim moved to the Editing
  * page's Clean up tab (SN-E9); the Studio Next mock has no item-gain row, so this one stays as built (D98).

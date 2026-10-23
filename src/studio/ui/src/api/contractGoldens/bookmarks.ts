@@ -1,4 +1,4 @@
-// The golden payloads of the narrator's bookmarks (apps/desktop/bindings_bookmarks.go).
+// The golden payloads of the narrator's bookmarks (src/studio/desktop/bindings_bookmarks.go).
 import type { z } from 'zod';
 import { bookmarkSchema, bookmarksSchema } from '../schemas/bookmarks';
 

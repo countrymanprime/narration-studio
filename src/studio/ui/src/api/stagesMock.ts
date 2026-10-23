@@ -72,14 +72,14 @@ const MOCK_TIME = '2026-09-21T10:00:00Z';
 const SIGNAL_ID = 'recording.text_present';
 const NEXT_STAGE: Partial<Record<ChapterStatus, ChapterStatus>> = { recording: 'editing', editing: 'proofing', proofing: 'finalized' };
 
-/** The host's refusal sentences (apps/desktop/internal/stages/service.go). */
+/** The host's refusal sentences (src/studio/desktop/internal/stages/service.go). */
 const REFUSAL_MESSAGES: Record<StageRefusalReason, string> = {
   basis_changed: 'the evidence changed while you were looking; check again',
   not_recommended: 'there is no suggestion to act on for this chapter',
   nothing_to_revert: 'this chapter has no confirmed suggestion to revert',
 };
 
-/** The recording signal's reason for each cause (apps/desktop/internal/coverage/signal.go), in short. */
+/** The recording signal's reason for each cause (src/studio/desktop/internal/coverage/signal.go), in short. */
 const UNKNOWN_REASONS: Record<StageUnknownCause, string> = {
   never_analyzed: 'This chapter’s recording has not been checked yet.',
   stale: 'Check again: since the last check an item was trimmed.',
@@ -93,7 +93,7 @@ const UNKNOWN_REASONS: Record<StageUnknownCause, string> = {
   provider_error: 'could not check: the recording check results could not be read',
 };
 
-/** The editing empty-space signal's reason for each cause (apps/desktop/internal/editing/signals.go), in short. */
+/** The editing empty-space signal's reason for each cause (src/studio/desktop/internal/editing/signals.go), in short. */
 const EDITING_UNKNOWN_REASONS: Partial<Record<StageUnknownCause, string>> = {
   never_analyzed: 'This chapter’s editing has not been checked yet.',
   stale: 'Check editing again: since the last check an item on this chapter’s track changed.',
@@ -107,7 +107,7 @@ const EDITING_UNKNOWN_REASONS: Partial<Record<StageUnknownCause, string>> = {
   provider_error: 'could not check: the editing check results could not be read',
 };
 
-/** The proofing pickups roll-up's reason for each cause it can report (apps/desktop/internal/proofing/pickups.go). */
+/** The proofing pickups roll-up's reason for each cause it can report (src/studio/desktop/internal/proofing/pickups.go). */
 const PROOFING_UNKNOWN_REASONS: Partial<Record<StageUnknownCause, string>> = {
   never_analyzed: 'No pickup check is current for this chapter. Run Transcript Compare on every item of the chapter’s track, then save the project in REAPER.',
   stale: 'Re-run Transcript Compare: an item on this chapter’s track changed since the last comparison.',
@@ -184,7 +184,7 @@ function emptySpaceSignal(chapter: ManuscriptChapter, scenario: StageEditingScen
   };
 }
 
-/** The proofing pickups roll-up (apps/desktop/internal/proofing/pickups.go):
+/** The proofing pickups roll-up (src/studio/desktop/internal/proofing/pickups.go):
  * one "source" evidence line summarizing Transcript Compare's open, dismissed and resolved counts, plus one "pickup"
  * evidence entry per open item on `not_met`. The delivery checks are not in this signal: they are simply
  * left out of the chapter's required set (see `StagesSeed.proofing`'s comment), the same shape the real engine gives

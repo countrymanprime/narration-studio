@@ -1,4 +1,4 @@
-// The browser mock's passage map. It keeps the runs in memory and checks them the way apps/desktop/internal/passagemap
+// The browser mock's passage map. It keeps the runs in memory and checks them the way src/studio/desktop/internal/passagemap
 // does: a run is a start, any rolls and a stop in time order, each on a paragraph of the chapter at a word from 0 to the
 // paragraph's word count; a run that breaks a rule is refused and nothing is kept. The mock has no DAW, so it stamps the
 // built-in recorder's way: one take name for the item and every take. A mark whose paragraph is gone or whose word is past

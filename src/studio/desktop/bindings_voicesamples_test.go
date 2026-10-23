@@ -196,7 +196,7 @@ func TestVoiceSamplesContractGoldens(t *testing.T) {
 }
 
 // The sentence of every refusal reason, as the host words it. The page refuses a few reasons before it asks and shows the host's
-// sentence for the rest, so apps/ui/src/api/contracts/voiceSamples.ts keeps a table of the same words; this golden is what a test of
+// sentence for the rest, so src/studio/ui/src/api/contracts/voiceSamples.ts keeps a table of the same words; this golden is what a test of
 // that table compares against, so a rewording here cannot leave the page saying something else.
 func TestVoiceSampleRefusalSentencesGolden(t *testing.T) {
 	sentences := map[string]string{}

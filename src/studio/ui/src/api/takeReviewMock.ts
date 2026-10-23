@@ -1,4 +1,4 @@
-// The browser mock's pickup and duplicate scan job, answering the way apps/desktop/takereview_job.go
+// The browser mock's pickup and duplicate scan job, answering the way src/studio/desktop/takereview_job.go
 // does: the same scope checks and refusals, a running job whose percent and stage advance one step per poll (standing in
 // for the sidecar's own progress file), and a finished scan that saves its findings into the findings mock, so
 // they reach the Review page through the same list the host's do. A scan of "Chapter 1" finds the fixture groups; any
@@ -15,7 +15,7 @@ const STAGES: Array<[number, string]> = [
   [95, 'Grouping repeated spans...'],
 ];
 
-/** apps/desktop/takereview.go's takeReviewChapterID: the findings scope a track's scan is saved under. */
+/** src/studio/desktop/takereview.go's takeReviewChapterID: the findings scope a track's scan is saved under. */
 const chapterIdOf = (track: string): string => track.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'chapter';
 
 /** takereview.ValidateScope and the host's track check, in the host's words. */

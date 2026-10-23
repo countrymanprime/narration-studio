@@ -42,7 +42,7 @@ from pathlib import Path
 
 from script_tracker import ScriptTracker, SegmentReading, align, words_match
 
-_SHARED_PYTHON = Path(__file__).resolve().parents[3] / "libs" / "python"
+_SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
 
@@ -61,7 +61,7 @@ ENGINE_DROPPED_WORDS = frozenset({"a", "an", "the", "and", "of"})
 
 # The findings category (docs/architecture/findings-contract.md) each kind is
 # persisted under. A restart is a re-read, which take review already files as
-# category `pickup` with evidence.kind `restart` (apps/desktop/internal/repeats).
+# category `pickup` with evidence.kind `restart` (src/studio/desktop/internal/repeats).
 FINDING_CATEGORIES = {
     "misread": "transcript_discrepancy",
     "extra": "transcript_discrepancy",

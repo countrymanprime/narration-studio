@@ -1,4 +1,4 @@
--- The Part A driver's entry script (integrations/reaper/spikes/pass_part_a.lua) run end to end on the fake: its guard,
+-- The Part A driver's entry script (src/studio/integrations/reaper/spikes/pass_part_a.lua) run end to end on the fake: its guard,
 -- its fixture, the real bridge loop it starts, its file-protocol host side and the results it writes. The fake lacks
 -- the calls only a real REAPER has (a new project, adding tracks and items, state chunks, undo), so this file adds
 -- stand-ins for them to its own fake; the rows' own checks are pass_part_a_test.lua's. What this proves is the wiring:

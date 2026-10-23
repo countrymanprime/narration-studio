@@ -115,7 +115,7 @@ func TestStoredSourcePathRefusesAPathThatEscapesTheSourcesFolder(t *testing.T) {
 	}
 }
 
-// realStoredPath is the shape commit() (apps/desktop/internal/manuscript/service.go) actually writes:
+// realStoredPath is the shape commit() (src/studio/desktop/internal/manuscript/service.go) actually writes:
 // "narration-utils/manuscript/sources/<id>/<name>", relative to the project folder, not a bare file name under
 // "narration-utils/manuscript". A made-up bare name would hide the double-join defect.
 func realStoredPath(name string) string {

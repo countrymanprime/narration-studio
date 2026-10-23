@@ -18,7 +18,7 @@ import type {
 } from '../contracts/production';
 import { listFromNull, optionalFromNull } from './base';
 
-// The production tracking payloads (apps/desktop/bindings_production.go, apps/desktop/internal/production: plan.go's Plan and
+// The production tracking payloads (src/studio/desktop/bindings_production.go, src/studio/desktop/internal/production: plan.go's Plan and
 // overview.go's Overview), pinned against the host by tests/fixtures/contracts/production-*.json, which Go tests write.
 
 const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);

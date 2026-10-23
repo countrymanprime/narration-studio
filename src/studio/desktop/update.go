@@ -17,7 +17,7 @@ import (
 const startupUpdateDelay = 12 * time.Second
 
 // updateStatusEvent is the event a background check sends when it found a release newer than the running version. Its payload is
-// the same Status the UpdateStatus binding returns (apps/ui/src/api/schemas/update.ts).
+// the same Status the UpdateStatus binding returns (src/studio/ui/src/api/schemas/update.ts).
 const updateStatusEvent = "update:status"
 
 // updatePendingPath is the record an update leaves for the next launch (see update.Startup), beside the check's cache.

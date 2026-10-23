@@ -14,7 +14,7 @@ import (
 // can choose with its honest state; DawChoose saves the narrator's choice in the project's own Recording.engine row (the row
 // RecorderChooseEngine writes too); DawLinkFound links the one REAPER project file the host found in the folder. The page sends
 // only an engine name, which dawport.Classify reads, and never a path (docs/architecture/threat-model.md, rows 6f and 6zc). The wire
-// schema, golden payloads, wireContracts rows and mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).
+// schema, golden payloads, wireContracts rows and mock live in src/studio/ui/src/api (docs/architecture/wire-contracts.md).
 
 // DawChoiceOption is one engine Settings > Recording lists.
 type DawChoiceOption struct {

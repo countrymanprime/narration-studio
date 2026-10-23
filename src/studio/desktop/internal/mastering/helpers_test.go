@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// The WAV fixture helpers below mirror apps/desktop/internal/measure's own helpers_test.go: a minimal RIFF/WAVE
+// The WAV fixture helpers below mirror src/studio/desktop/internal/measure's own helpers_test.go: a minimal RIFF/WAVE
 // encoder, kept separate from the package's own writer so a fixture never depends on the code it tests.
 
 // sine is amplitude*sin(2*pi*freq*t) for seconds at rate.

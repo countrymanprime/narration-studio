@@ -4,7 +4,7 @@ shipped code. It drives the same `capture_wasapi` row and `narration_common.reco
 prints one JSON report, which the research note (docs/research/native-recording-capture-engine-spike.md) records.
 
     uv run --no-project --python 3.12 --with numpy==2.5.3 --with sounddevice==0.5.6 \\
-        python sidecars/manuscript-teleprompter/spikes/wasapi_probe.py --seconds 60 --out probe-out
+        python src/studio/sidecars/manuscript-teleprompter/spikes/wasapi_probe.py --seconds 60 --out probe-out
 
 It measures four things:
   1. environment: PortAudio's host APIs, and every WASAPI input endpoint with its shared-mode rate, channels and
@@ -29,7 +29,7 @@ from pathlib import Path
 import numpy as np
 
 CORE = Path(__file__).resolve().parents[1] / "core"
-SHARED = Path(__file__).resolve().parents[3] / "libs" / "python"
+SHARED = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 for path in (CORE, SHARED):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))

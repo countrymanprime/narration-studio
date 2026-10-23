@@ -3,7 +3,7 @@ import { applyMixedManuscriptMock, createMockApi } from './mockApi';
 import type { ManuscriptChapter, ManuscriptParagraph } from '../types';
 
 // createMockApi() is the mock host used by the browser demo and by most component tests (imported by
-// ApiProvider). Its credits functions are a JS mirror of apps/desktop/internal/credits.Render, and its install-job and template-library edge
+// ApiProvider). Its credits functions are a JS mirror of src/studio/desktop/internal/credits.Render, and its install-job and template-library edge
 // cases are otherwise only reached indirectly, if at all, through component tests. These exercise that
 // behavior directly, against the public NarrationApi surface, rather than through a rendered component.
 

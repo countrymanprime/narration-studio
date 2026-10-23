@@ -77,7 +77,7 @@ const mockDawNotDetected = mockParams.has('mockDawNotDetected');
 // `?mockDawExperimentalOn=1` turns every Experimental DAW capability on (the old `DAW.experimental_reaper_actions`
 // setting's own effect), so a `CapabilityGate('item_gain')` control's live,
 // clickable state can be seen without a host - it still carries the "Experimental" badge.
-// The public site (apps/site) also boots with Experimental REAPER actions on (its extension's `experimentalDaw`) and shows a "Simulated DAW" panel, so a
+// The public site (src/web) also boots with Experimental REAPER actions on (its extension's `experimentalDaw`) and shows a "Simulated DAW" panel, so a
 // visitor's Show in REAPER, markers, pickups and recording all get an answer from the mock DAW and the panel shows what they did.
 const mockDawExperimentalOn = mockParams.has('mockDawExperimentalOn') || appExtension().experimentalDaw === true;
 // `?mockDaw=Audacity` boots the app talking to Audacity instead of REAPER: Proof's finding detail
@@ -340,7 +340,7 @@ const mockCoverageRefusal = COVERAGE_REFUSAL_REASONS.find((reason) => reason ===
 const mockStages = (['mixed', 'error'] as const).find((seed) => seed === mockParams.get('mockStages'));
 // `?mockEditing=hold` holds a started editing check at its first item, so the
 // running progress and Cancel (and the `partial` result a cancel leaves) can be seen. `?mockEditingRefusal=<reason>` answers
-// every start with that refusal (apps/desktop/internal/editing/service.go). `?mockEditingCandidates=1` seeds Chapter 7 with
+// every start with that refusal (src/studio/desktop/internal/editing/service.go). `?mockEditingCandidates=1` seeds Chapter 7 with
 // two open empty-space candidates (in the shared findings store, same as any other finding) instead of the default clean
 // pass, so the panel's candidate rows (Hear, Accept, Dismiss, Defer, Go to in REAPER) can be seen without a scan.
 const mockEditing = (['hold'] as const).find((seed) => seed === mockParams.get('mockEditing'));

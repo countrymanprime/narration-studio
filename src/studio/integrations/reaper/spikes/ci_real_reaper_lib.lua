@@ -1,7 +1,7 @@
 -- Helpers for the real-REAPER bridge check's scenario commands (docs/research/real-reaper-ci-integration.md). Loaded by
 -- ci_real_reaper_launcher.lua, which hands them to every Lua snippet the driver (scripts/ci/real-reaper/drive.py) sends with
 -- `ci_exec`. A snippet arranges a scratch project, acts as the narrator (moves an item, turns a take down) or reads the
--- project back for the driver to assert on. Research tool, not product code (integrations/reaper/spikes/README.md).
+-- project back for the driver to assert on. Research tool, not product code (src/studio/integrations/reaper/spikes/README.md).
 
 local M = {}
 

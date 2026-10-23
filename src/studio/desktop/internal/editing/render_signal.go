@@ -78,7 +78,7 @@ type RenderEmptySpaceInput struct {
 // RenderCurrent - none, missing, stale or an unsupported format - reads
 // unknown with that status's own Cause and Reason, verbatim, never a new
 // cause text invented here (the same four causes
-// apps/desktop/bindings_proofing_render.go's proofingRenderViewOf already
+// src/studio/desktop/bindings_proofing_render.go's proofingRenderViewOf already
 // surfaces for the exact same status to the render-association UI). Only once
 // the render itself is current does this package's own ScanState matter.
 func RenderEmptySpaceSignal(in RenderEmptySpaceInput) stages.Signal {

@@ -17,7 +17,7 @@ A scope, such as "merged since 2026-10-01", "the skills", or "everything". Defau
 2. **ADR creep.** Count the files in `docs/adr/` and the pull requests in scope that add one. More than ten ADRs, or an ADR for a page, a token, a threshold or a process rule, is a finding: name it and where it belongs (`docs/adr/README.md`, "When to write one").
 3. **Skills and rules contradict.** Compare the skills in `.claude/skills`, `CLAUDE.md` and `.claude/skills/agent-train/SKILL.md` for instructions that give opposite answers to the same situation (what to run before "done", whether to regenerate screenshots). Quote both sides.
 4. **Docs gates.** Run `node scripts/ci/docs-references.mjs --strict` and `node scripts/ci/docs-slop.mjs --all` and report the counts and any new findings against the previous baseline if one is recorded; do not edit the phrase list.
-5. **Quiet gates.** Check that the escape hatches shrink: entries in `apps/ui/tests/visual/axe-debt.ts`, the `ignore` entries in `knip.jsonc`, the exceptions list in `apps/desktop/internal/dawport/boundary_test.go`, and the floors in `scripts/ci/coverage-floors.json` that carry a written reason. Report any that grew since the last audit or that lack a reason.
+5. **Quiet gates.** Check that the escape hatches shrink: entries in `src/studio/ui/tests/visual/axe-debt.ts`, the `ignore` entries in `knip.jsonc`, the exceptions list in `src/studio/desktop/internal/dawport/boundary_test.go`, and the floors in `scripts/ci/coverage-floors.json` that carry a written reason. Report any that grew since the last audit or that lack a reason.
 
 ## Output
 

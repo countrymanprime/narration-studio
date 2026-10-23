@@ -3,27 +3,27 @@
 A group of utilities and plugins to assist with audio narration workflows. Each tool's business
 logic is DAW-agnostic; a thin per-DAW driver wires it into a specific host.
 
-- [Manuscript Guide](docs/utilities/manuscript-guide.md) (`sidecars/manuscript-guide/`, the Story Bible page) — builds a
+- [Manuscript Guide](docs/utilities/manuscript-guide.md) (`src/studio/sidecars/manuscript-guide/`, the Story Bible page) — builds a
   narrator reference (characters, places, organizations, pronunciations) from a manuscript. A downloadable spaCy language
   model makes it more accurate; without one it uses its rules-only fallback.
-- [Transcript Compare](docs/utilities/transcript-compare.md) (`sidecars/transcript-compare/`, a chapter's Proof view) —
+- [Transcript Compare](docs/utilities/transcript-compare.md) (`src/studio/sidecars/transcript-compare/`, a chapter's Proof view) —
   transcribes a recorded chapter with a local Whisper model and diffs it against the manuscript, dropping take markers at
   every discrepancy.
 - [Tracks](docs/utilities/tracks.md) (the audio engine panel, opened from the header's engine chip) — lists the tracks of a project's REAPER `.rpp` file and plays their
   audio, with no running REAPER needed, and scans a track for pickups and duplicate reads. With REAPER running the launcher,
   it also stamps chapters onto REAPER items, works through a proofer's pickup list and sets up a per-chapter render; it can
   add ID3 chapter tags to a copy of a rendered MP3.
-- [Manuscript Teleprompter](docs/architecture/manuscript-teleprompter.md) (`sidecars/manuscript-teleprompter/`, the
+- [Manuscript Teleprompter](docs/architecture/manuscript-teleprompter.md) (`src/studio/sidecars/manuscript-teleprompter/`, the
   Teleprompter page) — first cut: listens to a microphone with a local Whisper model and highlights the word you are
   reading in a chosen chapter.
 
 The tools share one native UI, shown below on the Production page, plus a manuscript reader and a Settings page that also lists,
 verifies and removes the voices and models the app has downloaded (Settings > Models & downloads). See
 [Using the app](docs/guides/using-the-app/README.md) for a full screenshot walkthrough. The UI's component library is a
-Storybook atlas (`pnpm --dir apps/ui run storybook`, checked in CI by the `ui-atlas` job); its generated reference is in
+Storybook atlas (`pnpm --dir src/studio/ui run storybook`, checked in CI by the `ui-atlas` job); its generated reference is in
 [`docs/ui/atlas/`](docs/ui/atlas/index.md) and the design rules in the [design system reference](docs/design/design-system.md).
 The public website (a landing page, the condensed guides, a live demo of the app and the Storybook atlas) is built from
-[`apps/site`](docs/operations/public-demo-site.md) and deployed to GitHub Pages from `main` by
+[`src/web`](docs/operations/public-demo-site.md) and deployed to GitHub Pages from `main` by
 [the Pages workflow](docs/operations/ci-and-releases.md#the-pages-workflow); the full docs are here in `docs/`.
 
 ![Production, the figures, the chapter pipeline and Next up](docs/images/ui/production-home.webp)
@@ -32,19 +32,21 @@ The public website (a landing page, the condensed guides, a live demo of the app
 
 ```text
 narration-utils/
-  apps/
-    desktop/                   Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
+  src/
+    studio/                    the app and its integration points
+      desktop/                 Go/Wails desktop host: app.go, bindings*.go, internal/ (domain services, the asset manager),
                                cmd/ (narration-utils, seed-assets, manuscript-import, spike-globalhotkeys, spike-storage), build/ (icons, the Windows setup program definition)
-    ui/                        React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
-  sidecars/                    Python programs frozen into the app and run on demand
-    manuscript-guide/          core/ CLI backend, tests/
-    manuscript-teleprompter/   core/ CLI backend, tests/, spikes/
-    transcript-compare/        core/ CLI backend, tests/
-  libs/
-    python/narration_common/   DAW-agnostic helpers shared by the sidecars
-  integrations/
-    reaper/                    REAPER launcher and Lua bridge
-    audacity/                  Audacity notes only; the driver is in apps/desktop/internal/
+      ui/                      React + Tailwind workspace (built static assets); its tests/ hold the visual and atlas suites
+      sidecars/                Python programs frozen into the app and run on demand
+        manuscript-guide/          core/ CLI backend, tests/
+        manuscript-teleprompter/   core/ CLI backend, tests/, spikes/
+        transcript-compare/        core/ CLI backend, tests/
+      libs/python/narration_common/   DAW-agnostic helpers shared by the sidecars
+      integrations/
+        reaper/                REAPER launcher and Lua bridge
+        audacity/              Audacity notes only; the driver is in src/studio/desktop/internal/
+      tests/audacity3/         the real-Audacity 3 runs of the desktop host's Audacity adapter
+    web/                       the GitHub Pages app: landing page, condensed guides, live demo, Storybook atlas
   config/                      shipped JSON: defaults, asset catalogs, roadmap
   tests/fixtures/              manuscripts used by tests across projects
   tools/docs-site/             the public docs site: MkDocs config, include list and hooks (reads docs/, holds no content)
@@ -54,20 +56,20 @@ narration-utils/
 
 Each sidecar's `core/` has zero DAW-API calls: it is a plain CLI backend (docx parsing, NLP,
 diffing, transcription) that the desktop host runs. All REAPER coupling lives in
-`integrations/reaper/`. Path resolution throughout (config lookup, backend location) is derived
+`src/studio/integrations/reaper/`. Path resolution throughout (config lookup, backend location) is derived
 from each script's own location at runtime, so a checkout works unmodified at any install path.
 The layout and its test rule are recorded in
 [`docs/architecture/codebase-map.md`](docs/architecture/codebase-map.md).
 
 ## Supported DAWs
 
-- **Reaper** — supported. Load `integrations/reaper/NarrationStudio_Launcher.lua` as
+- **Reaper** — supported. Load `src/studio/integrations/reaper/NarrationStudio_Launcher.lua` as
   the one action; it opens the centered Narration Studio workspace with every tool (Proof,
   Story Bible, Teleprompter, Tracks and the manuscript reader) and their global/project settings.
 - **Audacity 3.x** — adapter built from the published `mod-script-pipe` spec and tested against a fake pipe server; the
   owner's check in a running Audacity is pending ([verification pass](docs/operations/audacity-verification-pass.md)). The
-  pipe client and adapter are in `apps/desktop/internal/audacitybridge` and `apps/desktop/internal/dawport/audacity`;
-  `integrations/audacity/` holds placeholder notes only. Audacity 4.0 has no scripting pipe
+  pipe client and adapter are in `src/studio/desktop/internal/audacitybridge` and `src/studio/desktop/internal/dawport/audacity`;
+  `src/studio/integrations/audacity/` holds placeholder notes only. Audacity 4.0 has no scripting pipe
   ([DAW reference](docs/reference/daw/README.md)).
 
 ## Supported platforms
@@ -110,7 +112,7 @@ if you want them gone.
 ## Developer bootstrap
 
 The UI is a local React + Tailwind workspace, shown in its own native window
-(`apps/desktop/`, a Go/Wails app) with generated native bindings. Python is
+(`src/studio/desktop/`, a Go/Wails app) with generated native bindings. Python is
 used only for the three sidecar tools the shell starts on demand. From the
 checkout root, run:
 
@@ -167,7 +169,7 @@ every approved asset and whether it is installed; `pnpm run assets:seed -- tts w
 spacy/en_core_web_sm` (a kind, `kind/id`, or `all`) installs them into the same per-user cache
 the app reads, hash-verified, from the same pinned catalogs. Bootstrap never runs it.
 
-While iterating on the shell without a full release build, `pnpm --dir apps/desktop run
+While iterating on the shell without a full release build, `pnpm --dir src/studio/desktop run
 dev` runs the native Wails window directly. The shipped Go importer accepts
 Markdown, DOCX, plain text and EPUB; PDF remains intentionally disabled pending corpus parity.
 
@@ -188,11 +190,11 @@ The tools keep their own DAW-agnostic Python backends. What they share:
   imported once; their preserved source copies are provenance only and are never reparsed.
   Existing v1 PDF-derived canonical data remains readable, but new PDF import is fail-closed
   pending corpus parity.
-- **`integrations/reaper/`** — `reaper_common_core.lua` (ExtState access, file/path helpers) and
+- **`src/studio/integrations/reaper/`** — `reaper_common_core.lua` (ExtState access, file/path helpers) and
   `reaper_common_process.lua` (hidden-subprocess launching, the pipe-delimited protocol used by
   each tool's Python backend). The launcher loads these via `dofile`, resolved relative to
   its own script path; the bridge's file protocol is in [the REAPER bridge](docs/architecture/reaper-bridge.md).
-- **`libs/python/narration_common/`** — cross-tool contracts including canonical manuscript,
+- **`src/studio/libs/python/narration_common/`** — cross-tool contracts including canonical manuscript,
   settings, bridge, logging, and `progress.py` (the `stage|pct|message` progress-file writer,
   retry-hardened against Windows sharing violations), and `logging_utils.py` (stderr[+file]
   logging). Each backend adds this to `sys.path` relative to its own file.

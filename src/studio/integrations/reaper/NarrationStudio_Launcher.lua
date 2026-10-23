@@ -25,7 +25,8 @@ if not ok_core or not ok_proc or not ok_bridge then
   return
 end
 
-local REPO_ROOT = join(join(SHARED, '..'), '..')
+-- A checkout keeps this file at <repo>/src/studio/integrations/reaper, four directories below the repository root.
+local REPO_ROOT = join(join(join(join(SHARED, '..'), '..'), '..'), '..')
 -- In a release bundle this file lives under
 --   <app>/resources/reaper/NarrationStudio_Launcher.lua
 -- so the Wails executable is two directories above it. A developer checkout
@@ -58,8 +59,8 @@ end
 -- explicit development paths. Neither mode starts a browser server.
 local is_windows = reaper.GetOS():find('Win') ~= nil
 local shared_python = is_windows and join(join(join(REPO_ROOT, '.venv'), 'Scripts'), 'python.exe') or join(join(REPO_ROOT, '.venv'), 'bin/python')
-local manuscript_core = join(join(join(REPO_ROOT, 'sidecars'), 'manuscript-guide'), 'core')
-local compare_core = join(join(join(REPO_ROOT, 'sidecars'), 'transcript-compare'), 'core')
+local manuscript_core = join(join(join(join(join(REPO_ROOT, 'src'), 'studio'), 'sidecars'), 'manuscript-guide'), 'core')
+local compare_core = join(join(join(join(join(REPO_ROOT, 'src'), 'studio'), 'sidecars'), 'transcript-compare'), 'core')
 local manuscript_python = shared_python
 local manuscript_backend = join(manuscript_core, 'manuscript_guide.py')
 local compare_python = shared_python
@@ -67,7 +68,7 @@ local compare_backend = join(compare_core, 'compare.py')
 -- The program is named for the product (wails.json outputfilename; scripts/release/assets.mjs packages exactly this file).
 local app_name = is_windows and 'narration-utils.exe' or 'narration-utils'
 local bundled_app = configured_app ~= '' and configured_app or join(BUNDLE_ROOT, app_name)
-local checkout_app = join(join(join(join(REPO_ROOT, 'apps'), 'desktop'), 'build/bin'), app_name)
+local checkout_app = join(join(join(join(join(REPO_ROOT, 'src'), 'studio'), 'desktop'), 'build/bin'), app_name)
 local release_mode = common.file_exists(bundled_app)
 local app_exe = release_mode and bundled_app or checkout_app
 

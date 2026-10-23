@@ -22,7 +22,7 @@ import unittest
 from pathlib import Path
 
 CORE = Path(__file__).parents[1] / "core"
-REPO = Path(__file__).parents[3]
+REPO = Path(__file__).parents[5]
 
 
 def _load(name: str):
@@ -527,7 +527,7 @@ class ConformanceTests(unittest.TestCase):
 
     def test_the_suggest_lines_match_the_committed_contract_file(self):
         lines = [booknlp.line(raw) for raw in extract()]
-        testdata = REPO / "apps" / "desktop" / "internal" / "extractionport" / "booknlp" / "testdata"
+        testdata = REPO / "src" / "studio" / "desktop" / "internal" / "extractionport" / "booknlp" / "testdata"
         contract_files.check("suggest-lines", lines, testdata)
 
 
@@ -664,7 +664,7 @@ class NoNetworkAtRunTimeTests(unittest.TestCase):
                 capture_output=True,
                 check=False,
                 text=True,
-                env={**os.environ, "PYTHONPATH": os.pathsep.join([str(REPO / "libs" / "python"), str(CORE)])},
+                env={**os.environ, "PYTHONPATH": os.pathsep.join([str(REPO / "src" / "studio" / "libs" / "python"), str(CORE)])},
                 timeout=120,
             )
 

@@ -1,5 +1,5 @@
 // The proofing preview candidates: up to three ranked ~five-minute excerpts computed on read from the imported
-// manuscript (the pure Go engine in apps/desktop/internal/preview, read through apps/desktop/bindings_preview.go's
+// manuscript (the pure Go engine in src/studio/desktop/internal/preview, read through src/studio/desktop/bindings_preview.go's
 // PreviewCandidates). Read-only: it never runs anything and stores nothing, and it is recomputed fresh from the
 // manuscript's current chapters and paragraphs on every call, at the narrator's Preview settings (target length,
 // tolerance, preset and ending exclusion).

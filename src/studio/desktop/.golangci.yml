@@ -36,7 +36,7 @@ linters:
           # The fourth allow row is the Merriam-Webster adapter alone: one narrator-
           # initiated word at a time, on the narrator's own key, to www.dictionaryapi.com only. Its parent package
           # (internal/pronunciationonline: the port, the cache, the key) stays denied.
-          files: ["$all", "!$test", "!**/internal/assets/**", "!**/internal/update/**", "!**/apps/desktop/media.go", "!**/internal/pronunciationonline/merriamwebster/**"]
+          files: ["$all", "!$test", "!**/internal/assets/**", "!**/internal/update/**", "!**/src/studio/desktop/media.go", "!**/internal/pronunciationonline/merriamwebster/**"]
           deny:
             - pkg: net
               desc: "the Go host imports networking only in internal/assets (the first-use download flow), internal/update (the app's own update) and the root media.go (the track media route); see ADR 0002 and docs/architecture/threat-model.md"

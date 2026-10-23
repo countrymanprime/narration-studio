@@ -1,5 +1,5 @@
 {
-  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "name": "audacity3-real-tests",
   "projectType": "library",
   "tags": ["toolchain:python"],
@@ -7,7 +7,7 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": ["node scripts/quality.mjs python -m ruff format --check tests/audacity3", "node scripts/quality.mjs python -m ruff check tests/audacity3"],
+        "commands": ["node scripts/quality.mjs python -m ruff format --check src/studio/tests/audacity3", "node scripts/quality.mjs python -m ruff check src/studio/tests/audacity3"],
         "parallel": false
       }
     }

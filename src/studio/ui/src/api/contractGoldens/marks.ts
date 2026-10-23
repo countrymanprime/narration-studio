@@ -1,5 +1,5 @@
-// The golden payloads of the Script page's marks (apps/desktop/bindings_marks.go) and their threads
-// (apps/desktop/bindings_marks_thread.go).
+// The golden payloads of the Script page's marks (src/studio/desktop/bindings_marks.go) and their threads
+// (src/studio/desktop/bindings_marks_thread.go).
 import type { z } from 'zod';
 import { markSchema, markThreadDeletedSchema, marksSchema } from '../schemas/marks';
 

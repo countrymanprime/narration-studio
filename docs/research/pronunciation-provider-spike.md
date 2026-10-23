@@ -6,13 +6,13 @@ and its UI (Phase 11) are out of scope here and deferred.
 
 ## What exists today
 
-- `sidecars/manuscript-guide/core/manuscript_guide.py`'s `pronunciation(name, espeak_library)` tries `cmudict` first,
+- `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`'s `pronunciation(name, espeak_library)` tries `cmudict` first,
   then falls back to `phonemizer`'s `espeak` backend (`pronounce_source`, `PRONUNCIATION_SOURCES = {"cmu", "espeak"}`),
   storing an IPA string in `entity["pronunciation"]["ipa"]` with its `source`. A narrator-chosen source is available
   through the `pronounce()` command and the `GuidePronounce` binding, marked `chosen` so `merge_locked`
   keeps it across a rebuild.
-- The preview path (`render_audio` in the same file, called by `apps/desktop/internal/guide/service.go`'s `Service.Preview`
-  via `apps/desktop/bindings.go`'s `GuidePreview`) **ignores the stored pronunciation entirely**: it calls
+- The preview path (`render_audio` in the same file, called by `src/studio/desktop/internal/guide/service.go`'s `Service.Preview`
+  via `src/studio/desktop/bindings.go`'s `GuidePreview`) **ignores the stored pronunciation entirely**: it calls
   `voice.synthesize_wav(spoken, wav_file)` with `spoken = entity["canonical_name"]` (or the alias text) — Piper's own
   espeak-based grapheme-to-phoneme runs on the spelled name every time, so an edited IPA field has no audible effect.
   This matches the PRD's architecture notes ("the preview ignores IPA today") and was confirmed by reading the code in

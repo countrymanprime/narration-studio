@@ -120,7 +120,7 @@ func (p *Project) handle(line string) ([]string, bool) {
 		return nil, true
 	case "SetTrackStatus":
 		// Audacity 3.7.7: Name, Selected and Focused only, applied to the selected track; a Track parameter is ignored without an error
-		// (tests/audacity3/real/edits, A3-T17).
+		// (src/studio/tests/audacity3/real/edits, A3-T17).
 		for i := range p.Tracks {
 			if p.Tracks[i].Selected {
 				if name, ok := cmd.Params["Name"]; ok {

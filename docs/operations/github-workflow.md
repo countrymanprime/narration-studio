@@ -34,7 +34,7 @@ remove it when a maintainer has looked at the issue.
 One scheme, three kinds of label. A name never appears twice, with or without a prefix.
 
 - **Area** (`area:*`): which part of the repository a pull request touches: `area:ui`, `area:site`, `area:shell`
-  (Go, `apps/desktop`), `area:python` (sidecars, `libs/python`), `area:reaper`, `area:audacity`, `area:tests`,
+  (Go, `src/studio/desktop`), `area:python` (sidecars, `src/studio/libs/python`), `area:reaper`, `area:audacity`, `area:tests`,
   `area:ci-release` (workflows, scripts, repo tooling, `config/`, `.claude/`), `area:docs`. On pull requests
   [`labeler.yml`](../../.github/labeler.yml) applies them from the changed paths, for every author including
   Dependabot; a path may carry more than one. Every tracked path falls under a glob. Add them to issues by hand.

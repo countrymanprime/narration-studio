@@ -79,7 +79,7 @@ func stableRecorder(t *testing.T, raw string, folder string) any {
 	return portable
 }
 
-// TestRecorderStateGoldensAreCurrent pins the "recording:state" payload apps/ui's schema and mock follow: no project; a
+// TestRecorderStateGoldensAreCurrent pins the "recording:state" payload src/studio/ui's schema and mock follow: no project; a
 // project that records with the built-in recorder, with a finished take, an unfinished one and the last take's numbers;
 // and a take recording. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/recorder-state-*.json.
 func TestRecorderStateGoldensAreCurrent(t *testing.T) {

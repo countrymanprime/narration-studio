@@ -10,7 +10,7 @@ cuts the last seconds out of the WAV and `live_asr.make_decoder(..., vad_filter=
 real faster-whisper model. What Whisper heard is committed, not the audio, so the accuracy test runs offline with
 no model:
 
-    uv run python sidecars/manuscript-teleprompter/spikes/record_locate_tails.py \\
+    uv run python src/studio/sidecars/manuscript-teleprompter/spikes/record_locate_tails.py \\
         --piper-model %LOCALAPPDATA%/narration-utils/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx \\
         --model-dir %LOCALAPPDATA%/narration-utils/assets/whisper/faster-whisper/tiny/<commit>
 
@@ -38,7 +38,7 @@ if str(_CORE_DIR) not in sys.path:
 import live_asr
 import locate
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[5]
 ALICE = ROOT / "tests" / "fixtures" / "alice.md"
 OUT = ROOT / "tests" / "fixtures" / "teleprompter-locate"
 

@@ -13,7 +13,7 @@ import (
 // The table lists the fields after the tag, in order. Required fields must be present and, for numbers, non-empty and numeric.
 // Optional fields (the tail of a marker, which an older script does not send) may be absent or empty, and are checked only when they
 // hold something. A tag that is not in the table is a newer script's event and passes through (additive changes need no bump).
-// integrations/reaper/tests pins what Lua emits and wire_test.go pins what this table accepts, from the same lines.
+// src/studio/integrations/reaper/tests pins what Lua emits and wire_test.go pins what this table accepts, from the same lines.
 type fieldKind int
 
 const (
@@ -87,7 +87,7 @@ var eventSpecs = map[string]eventSpec{
 	// The live "project changed since this check" indicator. changeCount is GetProjectStateChangeCount(0);
 	// projectPath is empty when the project has never been saved.
 	"PROJECT_STATE": {required: []fieldSpec{text("run"), count("changeCount"), text("projectPath")}},
-	// PROJECT_STATUS is the reachability heartbeat apps/desktop/internal/daw/locate.go recommends: narration_ui_bridge.lua's tick loop
+	// PROJECT_STATUS is the reachability heartbeat src/studio/desktop/internal/daw/locate.go recommends: narration_ui_bridge.lua's tick loop
 	// appends it periodically with an empty run (Fields[1] == ""), so events.go's existing fan-out (a run-less event
 	// reaches every subscriber, Subscription.wants) delivers it as a broadcast with no dedicated route needed. rpp is
 	// EnumProjects(-1, '')'s second return value verbatim (the empty string for an unsaved project, never omitted -
@@ -97,10 +97,10 @@ var eventSpecs = map[string]eventSpec{
 	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later
 	// optional for the same reason; the script also sends a heartbeat at once when playState changes.
 	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition")}},
-	// integrations/reaper/narration_cleanup.lua: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
+	// src/studio/integrations/reaper/narration_cleanup.lua: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
 	// action-list name REAPER matched (so the narrator sees what opened).
 	"CLEANUP_LAUNCHED": {required: []fieldSpec{text("run"), text("tool"), text("action")}},
-	// integrations/reaper/narration_level_normalize.lua: apply_item_gain (narration_level_normalize.lua). GAIN_STALE is one per item that no longer resolves (reason is
+	// src/studio/integrations/reaper/narration_level_normalize.lua: apply_item_gain (narration_level_normalize.lua). GAIN_STALE is one per item that no longer resolves (reason is
 	// always "item": there is no take or range concept for a whole-item gain change); GAIN_ITEM is one per item
 	// actually changed, its D_VOL before and after (linear, REAPER's own unit); GAIN_APPLIED is the call's one
 	// summary event.

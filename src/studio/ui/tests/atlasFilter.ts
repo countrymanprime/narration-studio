@@ -1,4 +1,4 @@
-// UI_ATLAS_FILTER narrows the component atlas to the stories of the named pages or components (`pnpm --dir apps/ui atlas:page
+// UI_ATLAS_FILTER narrows the component atlas to the stories of the named pages or components (`pnpm --dir src/studio/ui atlas:page
 // <name>...`). A name matches a story when it equals the story's whole title or any one '/'-separated segment of it, compared
 // as slugs: `editing` takes every `Editing/...` story, `button` takes `Primitives/Button`, `master-qc/page` takes one title.
 

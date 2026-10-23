@@ -1,8 +1,8 @@
-// Character regions and reference approvals over apps/desktop/internal/character. The acoustic-drift bindings are benched
+// Character regions and reference approvals over src/studio/desktop/internal/character. The acoustic-drift bindings are benched
 // so none is here.
 
 /** The reserved character id for plain narration as a first-class reference subject, matching
- * apps/desktop/internal/character.NarrationCharacterID. */
+ * src/studio/desktop/internal/character.NarrationCharacterID. */
 export const NARRATION_CHARACTER_ID = 'narration';
 
 /** One region of the saved REAPER project, as CharacterListRegions sends it. */

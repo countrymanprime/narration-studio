@@ -12,7 +12,7 @@ import (
 // Repo-relative locations, slash separated. Join them onto a checkout root with
 // Path or RepoFile.
 const (
-	DesktopDir               = "apps/desktop"
+	DesktopDir               = "src/studio/desktop"
 	DesktopConfigFile        = DesktopDir + "/wails.json"
 	ConfigDir                = "config"
 	DefaultsFile             = ConfigDir + "/defaults.json"
@@ -24,12 +24,12 @@ const (
 	WiktextractCatalogFile   = ConfigDir + "/wiktextract-assets.json"
 	EncoderCatalogFile       = ConfigDir + "/encoder-assets.json"
 	AnalysisCatalogFile      = ConfigDir + "/analysis-assets.json"
-	ReaperDir                = "integrations/reaper"
+	ReaperDir                = "src/studio/integrations/reaper"
 	LauncherFile             = ReaperDir + "/NarrationStudio_Launcher.lua"
 	FixturesDir              = "tests/fixtures"
-	ManuscriptGuideBackend   = "sidecars/manuscript-guide/core/manuscript_guide.py"
-	TranscriptCompareBackend = "sidecars/transcript-compare/core/compare.py"
-	TeleprompterBackend      = "sidecars/manuscript-teleprompter/core/live_asr.py"
+	ManuscriptGuideBackend   = "src/studio/sidecars/manuscript-guide/core/manuscript_guide.py"
+	TranscriptCompareBackend = "src/studio/sidecars/transcript-compare/core/compare.py"
+	TeleprompterBackend      = "src/studio/sidecars/manuscript-teleprompter/core/live_asr.py"
 )
 
 // Path joins a slash-separated repo-relative path onto root using the

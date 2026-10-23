@@ -319,7 +319,7 @@ func resolveSourcePath(projectFolder, file string) string {
 	return filepath.Clean(filepath.Join(projectFolder, file))
 }
 
-// decodeColor reverses the encoding integrations/reaper/narration_bridge_core.lua's
+// decodeColor reverses the encoding src/studio/integrations/reaper/narration_bridge_core.lua's
 // color() helper already uses (reaper.ColorToNative(r,g,b) + 0x1000000): a
 // REAPER PEAKCOL/track color of 0, or without the 0x1000000 "custom color
 // set" flag bit, means no narrator-assigned color. ColorToNative on Windows

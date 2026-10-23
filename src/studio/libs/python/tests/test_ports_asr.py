@@ -95,7 +95,7 @@ def test_hypothesis_is_a_frozen_engine_neutral_reading_of_one_segment():
 def test_the_teleprompter_keeps_importing_word_and_hypothesis_from_live_asr():
     """The types moved here, and ``live_asr.py`` re-exports them, so ``live_asr.Hypothesis`` is this very class. Checked by
     reading the source, since importing ``live_asr`` needs numpy and the sidecar's folder on the path."""
-    live_asr = Path(__file__).resolve().parents[3] / "sidecars" / "manuscript-teleprompter" / "core" / "live_asr.py"
+    live_asr = Path(__file__).resolve().parents[5] / "src" / "studio" / "sidecars" / "manuscript-teleprompter" / "core" / "live_asr.py"
     tree = ast.parse(live_asr.read_text(encoding="utf-8"))
 
     imported = {

@@ -10,8 +10,8 @@ The check, the two clicks, the download, the swap and the rollback. The notes na
 sequenceDiagram
   autonumber
   actor N as Narrator
-  participant UI as apps/ui: Settings, About and updates
-  participant H as apps/desktop: update.go, update_job.go, update_install.go
+  participant UI as src/studio/ui: Settings, About and updates
+  participant H as src/studio/desktop: update.go, update_job.go, update_install.go
   participant U as internal/update: Checker, Stager, Install, Startup
   participant GH as GitHub: api.github.com, github.com, release-asset hosts
   participant FS as install folder and user cache: update/
@@ -103,12 +103,12 @@ A first install comes from the Windows setup program (`narration-utils-<version>
 
 | Piece | Where |
 | --- | --- |
-| Version, tags, the release list, the check and its cache | `apps/desktop/internal/update/{version,manifest,check}.go` |
-| Download, checksum, unpack, disk space, redirect policy | `apps/desktop/internal/update/{stage,disk*}.go`, `internal/assets` (`InstallWith`) |
-| Install, startup, confirm, rollback, relaunch | `apps/desktop/internal/update/{install,startup,spawn_*,folder_*}.go`, `main.go` |
-| Host jobs and bindings | `apps/desktop/{update,update_job,update_install,bindings_update}.go` |
+| Version, tags, the release list, the check and its cache | `src/studio/desktop/internal/update/{version,manifest,check}.go` |
+| Download, checksum, unpack, disk space, redirect policy | `src/studio/desktop/internal/update/{stage,disk*}.go`, `internal/assets` (`InstallWith`) |
+| Install, startup, confirm, rollback, relaunch | `src/studio/desktop/internal/update/{install,startup,spawn_*,folder_*}.go`, `main.go` |
+| Host jobs and bindings | `src/studio/desktop/{update,update_job,update_install,bindings_update}.go` |
 | Settings | `Updates.check_on_startup` (bool), `Updates.channel` (`candidates`, `stable`): `fieldSchemas`, `config/defaults.json`, `builtinDefaults` |
-| UI | `apps/ui/src/components/settings/{UpdatesPanel,UpdateDownloadDialog,AboutPanel}.tsx`, `api/{contracts,schemas}/update.ts` |
+| UI | `src/studio/ui/src/components/settings/{UpdatesPanel,UpdateDownloadDialog,AboutPanel}.tsx`, `api/{contracts,schemas}/update.ts` |
 
 Bindings: `UpdateStatus` (from the cache, no request), `UpdateCheck`, `UpdateOpenNotes` (no argument: the host opens the notes of the release it found), `UpdateDownload`, `UpdateJobState`, `UpdateJobCancel`, `UpdateInstall`, `UpdateShowDownload`; the `update:status` event. Every payload has a Zod schema and a golden file written by a Go test ([wire contracts](wire-contracts.md)); the mock host answers all of it and can be put in any state with `?mockUpdate=available|found|downloading|download-fails|ready|install-blocked|install-refused|failed|current|development`.
 
@@ -116,7 +116,7 @@ Bindings: `UpdateStatus` (from the cache, no request), `UpdateCheck`, `UpdateOpe
 
 - Unit and property tests for versions and tags, table and fuzz tests for the release list and the relaunch arguments (seed corpora run in the gate, [Property tests and fuzzing](../operations/verification-tooling.md#property-tests-and-fuzzing)), `httptest` fake GitHub servers for every failure of the check and the download.
 - The install tests run **real programs**: `internal/update/testdata/fakeapp` (which uses the same `Startup` and `Confirm` as `main`) is replaced while it runs, relaunched with the original arguments after the old one is killed, and restored after two starts that never confirmed.
-- A rehearsal with two real builds is not in the gate (it opens the application's window): `go test -tags rehearsal -run Rehearsal ./internal/update` with `REHEARSAL_OLD` and `REHEARSAL_NEW` set to two `narration-utils.exe` builds (build the second with `go build -tags production -ldflags "-H windowsgui -X main.version=0.9.9" -o narration-utils-099.exe .` in `apps/desktop`; on Wails v3 there is no `wails build -o`, [ADR 0001](../adr/0001-the-app-is-written-in-go.md)). On 2026-09-21 it swapped a real 0.1.0 for a real 0.9.9 while 0.1.0 was running, and the new build loaded its window, asked for its `Bootstrap` and confirmed.
+- A rehearsal with two real builds is not in the gate (it opens the application's window): `go test -tags rehearsal -run Rehearsal ./internal/update` with `REHEARSAL_OLD` and `REHEARSAL_NEW` set to two `narration-utils.exe` builds (build the second with `go build -tags production -ldflags "-H windowsgui -X main.version=0.9.9" -o narration-utils-099.exe .` in `src/studio/desktop`; on Wails v3 there is no `wails build -o`, [ADR 0001](../adr/0001-the-app-is-written-in-go.md)). On 2026-09-21 it swapped a real 0.1.0 for a real 0.9.9 while 0.1.0 was running, and the new build loaded its window, asked for its `Bootstrap` and confirmed.
 - Not proven by any test, because it needs a real release: the first update from one published release candidate to the next (the owner's first attested release, [#188](https://github.com/countrymanprime/narration-utils/issues/188), is the same milestone), and a launch from REAPER after an update.
 
 ## Why the zip holds one file

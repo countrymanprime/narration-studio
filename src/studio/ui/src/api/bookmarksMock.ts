@@ -1,5 +1,5 @@
 // The browser mock's bookmarks. It keeps them in memory and checks each one against the mock manuscript's current text the
-// way apps/desktop/internal/bookmarks does: a spot the manuscript lacks is refused, the same spot twice is one bookmark, the
+// way src/studio/desktop/internal/bookmarks does: a spot the manuscript lacks is refused, the same spot twice is one bookmark, the
 // list is in reading order, and a bookmark whose line is gone or whose offset no longer fits comes back stale, never moved.
 import { BOOKMARK_LABEL_MAX, BOOKMARK_NOTE_MAX } from './contracts/bookmarks';
 import type { Bookmark, BookmarksApi, ManuscriptChapter, ManuscriptParagraph } from '../types';

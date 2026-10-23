@@ -31,7 +31,7 @@ device fed by a real-time playback of a recording:
 
 1. **Accuracy pass (`--wav`, no lag claim).** Fast, hardware-free, safe to run
    anywhere. Replays a recording through `--wav` (or through
-   `sidecars/manuscript-teleprompter/core/replay.py` against a printed
+   `src/studio/sidecars/manuscript-teleprompter/core/replay.py` against a printed
    session's NDJSON, `--stream`) and reports `coverage`, `backward_moves`,
    `jumps`, `waiting_events` and flag counts — never `speculation_lead_seconds`
    as a lag figure, and never the Moonshine spike's old position-matched lag

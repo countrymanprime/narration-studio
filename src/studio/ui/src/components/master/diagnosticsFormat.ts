@@ -28,7 +28,7 @@ const clipThreshold = (dbfs: number, runSamples: number): string => `At or above
 
 /**
  * The clip-run rule of measure.Report and the diagnostics. Keep in sync with minClipRunSamples in
- * apps/desktop/internal/measure/clipping.go: the thresholds payload does not carry it, and a finding shows its own min_run_samples.
+ * src/studio/desktop/internal/measure/clipping.go: the thresholds payload does not carry it, and a finding shows its own min_run_samples.
  */
 const MIN_CLIP_RUN_SAMPLES = 3;
 
@@ -122,7 +122,7 @@ export function thresholdRows(thresholds: DiagnosticsThresholds): Array<{ label:
   ];
 }
 
-/** Every silence cleanup threshold a check uses (apps/desktop/internal/measure/cleanup.go), for the panel above the candidate list. */
+/** Every silence cleanup threshold a check uses (src/studio/desktop/internal/measure/cleanup.go), for the panel above the candidate list. */
 export function cleanupThresholdRows(thresholds: DiagnosticsCleanupThresholds): Array<{ label: string; value: string }> {
   return [
     { label: 'Hold kept at each side', value: seconds(thresholds.pad_seconds) },

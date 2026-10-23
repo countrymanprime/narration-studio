@@ -12,7 +12,7 @@ import (
 
 // parityCases is tests/fixtures/chapter-track-match/parity-cases.json: what the
 // Python matcher (find_chapter_by_track_name) returns for each input. The
-// Python suite (sidecars/transcript-compare/tests/test_chapter_track_parity.py)
+// Python suite (src/studio/sidecars/transcript-compare/tests/test_chapter_track_parity.py)
 // reads the same file.
 type parityCases struct {
 	NormalizedTokens []struct {

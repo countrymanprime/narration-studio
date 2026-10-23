@@ -3,7 +3,7 @@ import { DemoBanner } from './DemoBanner';
 import { handedTheme, inSiteWindow, onSiteMessage, startSiteWindow } from './siteWindow';
 import { simulateDaw, type SimulatedDaw } from './simulatedDaw';
 
-// What the public site's demo plugs into the real app (apps/ui/src/appExtension.tsx). It must run before the app's modules load: entry.ts imports it first.
+// What the public site's demo plugs into the real app (src/studio/ui/src/appExtension.tsx). It must run before the app's modules load: entry.ts imports it first.
 //
 // Both demo builds (`--mode demo` for the Pages subpath and `--mode site`) show the banner, offer the Play animations switch and route by the hash.
 // The site build alone (`VITE_SITE=1`) is the folder that sits beside the landing page, the docs and the Storybook: it boots the mock DAW with

@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// DevelopmentVersion is what a build with no release stamp reports (apps/desktop/version.go). It is never compared with a release.
+// DevelopmentVersion is what a build with no release stamp reports (src/studio/desktop/version.go). It is never compared with a release.
 const DevelopmentVersion = "0.0.0-dev"
 
 // maxComponent bounds each part of a version to six digits: a hostile tag cannot overflow anything, and no real release is near it.

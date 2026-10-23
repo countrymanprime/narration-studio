@@ -8,7 +8,7 @@ import { REPO_ROOT } from './layout.mjs';
 
 const texts = (version, uiVersion = version) => ({
   app: `package main\n\n// comment\nconst hostAPIVersion = ${version}\n\nfunc x() any { return hostAPIVersion }\n`,
-  test: `func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {\n\tif hostAPIVersion != ${version} {\n\t\tt.Fatalf("host API version = %d, want ${version}; update it with apps/ui/src/hostApi.ts", hostAPIVersion)\n\t}\n}\n`,
+  test: `func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {\n\tif hostAPIVersion != ${version} {\n\t\tt.Fatalf("host API version = %d, want ${version}; update it with src/studio/ui/src/hostApi.ts", hostAPIVersion)\n\t}\n}\n`,
   ui: `// The host API version this UI speaks.\nexport const DESKTOP_HOST_API_VERSION = ${uiVersion};\n`,
 });
 
@@ -18,9 +18,9 @@ test('readVersions reads the version out of each of the three files', () => {
 });
 
 test('readVersions refuses a file whose version line is missing, or appears twice', () => {
-  assert.throws(() => readVersions({ ...texts(61), app: 'package main\n' }), /apps\/desktop\/app\.go: expected one `const hostAPIVersion = N`, found 0/);
+  assert.throws(() => readVersions({ ...texts(61), app: 'package main\n' }), /src\/studio\/desktop\/app\.go: expected one `const hostAPIVersion = N`, found 0/);
   const twice = texts(61);
-  assert.throws(() => readVersions({ ...twice, ui: twice.ui + twice.ui }), /apps\/ui\/src\/hostApi\.ts: expected one .*found 2/);
+  assert.throws(() => readVersions({ ...twice, ui: twice.ui + twice.ui }), /src\/studio\/ui\/src\/hostApi\.ts: expected one .*found 2/);
   assert.throws(() => readVersions({ ...texts(61), test: '\tif hostAPIVersion != 61 {\n' }), /app_test\.go: expected one `want N;`/);
 });
 
@@ -66,8 +66,8 @@ test('the three files in the tree agree and parse, so the script can bump them',
 });
 
 test('the bindings command is the desktop project’s own bindings script', () => {
-  const desktop = JSON.parse(readFileSync(join(REPO_ROOT, 'apps/desktop/package.json'), 'utf8'));
+  const desktop = JSON.parse(readFileSync(join(REPO_ROOT, 'src/studio/desktop/package.json'), 'utf8'));
 
-  assert.ok(desktop.scripts.bindings, 'apps/desktop/package.json has no bindings script');
-  assert.deepEqual(BINDINGS_COMMAND, ['pnpm', ['--dir', 'apps/desktop', 'run', 'bindings']]);
+  assert.ok(desktop.scripts.bindings, 'src/studio/desktop/package.json has no bindings script');
+  assert.deepEqual(BINDINGS_COMMAND, ['pnpm', ['--dir', 'src/studio/desktop', 'run', 'bindings']]);
 });

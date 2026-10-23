@@ -89,7 +89,7 @@ describe('the browser mock findings store follows the host rules', () => {
     expect(await createFindingsMock([]).findingsSummary()).toMatchObject({ total: 0, analyzers: [], chapters: [] });
   });
 
-  // Query.Validate (apps/desktop/internal/findings/query.go): a query the host would refuse is refused here too, so the mock
+  // Query.Validate (src/studio/desktop/internal/findings/query.go): a query the host would refuse is refused here too, so the mock
   // cannot hide a page that sends one.
   it.each([
     [{ category: 'typo' }, 'category'],
@@ -137,7 +137,7 @@ describe('the browser mock findings store follows the host rules', () => {
 // built against it says what the app says.
 describe("the browser mock's REAPER follows the host's navigation rules", () => {
   const golden = (file: string): { message?: string } =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));
 
   it('uses the words the host sends, as its golden payloads pin them', () => {
     expect(REAPER_MESSAGES.stale).toBe(golden('findings-navigation-stale.json').message);
@@ -184,7 +184,7 @@ describe("the browser mock's REAPER follows the host's navigation rules", () => 
 // The approved marker: only an accepted finding gets one, in the host's order and words.
 describe("the browser mock's REAPER adds an approved marker as the host does", () => {
   const golden = (file: string): { message?: string; name?: string } =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));
   const accept = async (api: ReturnType<typeof createFindingsMock>, id: string) => {
     const finding = await api.findingsGet(id);
     await api.findingsReview({ id, evidenceVersion: finding.evidence_version ?? '', status: 'accepted', note: '' });

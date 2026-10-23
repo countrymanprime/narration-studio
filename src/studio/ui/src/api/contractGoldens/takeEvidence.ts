@@ -1,4 +1,4 @@
-// The golden payloads of the take evidence binding (apps/desktop/internal/passagetakes/contract_test.go, written from
+// The golden payloads of the take evidence binding (src/studio/desktop/internal/passagetakes/contract_test.go, written from
 // synthetic WAVs).
 import type { z } from 'zod';
 import { takeEvidenceResultSchema } from '../schemas/takeEvidence';

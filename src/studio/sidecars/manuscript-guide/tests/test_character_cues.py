@@ -4,7 +4,7 @@
 - alias split (the inverse of the existing `merge`)
 - chapter and scene appearance maps
 - rules-based dialogue cue extraction with an `unknown` speaker and evidence
-- narrator corrections to a cue's speaker that a rebuild never overwrites (mirrors sidecars/manuscript-guide/core/manuscript_guide.py's lock guard)
+- narrator corrections to a cue's speaker that a rebuild never overwrites (mirrors src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock guard)
 
 Precision over recall applies throughout: an ambiguous cue is `unknown`, never a guess.
 """

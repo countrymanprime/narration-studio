@@ -10,7 +10,7 @@
 package preview
 
 // ContentKind mirrors the manuscript's own chapter content kinds
-// (apps/ui/src/api/contracts/manuscript.ts). A chapter imported before
+// (src/studio/ui/src/api/contracts/manuscript.ts). A chapter imported before
 // structural classification has no kind at all, and a missing kind is treated
 // as narration.
 type ContentKind string
@@ -57,7 +57,7 @@ const (
 )
 
 // WordsPerFinishedHour is the app's existing fixed pace estimate
-// (apps/ui/src/state.ts's WORDS_PER_FINISHED_HOUR), reused here so this
+// (src/studio/ui/src/state.ts's WORDS_PER_FINISHED_HOUR), reused here so this
 // engine's length model agrees with Home's own "Est. proof time". It is an
 // assumption to calibrate once real durations exist.
 const WordsPerFinishedHour = 9300
@@ -138,7 +138,7 @@ type Candidate struct {
 
 	// features holds this candidate's raw, unrounded scoring inputs, computed once when the candidate was built, so
 	// score() never re-reads paragraph text and a caller outside this package never sees a raw, unexplained number (the
-	// "no single readiness score" stance of apps/desktop/internal/stages - a candidate's Reasons are the explanation;
+	// "no single readiness score" stance of src/studio/desktop/internal/stages - a candidate's Reasons are the explanation;
 	// this field is ranking machinery only).
 	features candidateFeatures
 	// findingsPenalty is the rank-down term for open findings (attachFindings), folded into score() so a chapter whose

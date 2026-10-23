@@ -118,7 +118,7 @@ func TestAMarkerFromAScriptOlderThanTheGUIDsStillSavesAFindingWithoutThem(t *tes
 }
 
 func TestTheMarkerGUIDsStayInTheHostAndAreNotAddedToTheSnapshotRows(t *testing.T) {
-	// The Transcript page's rows are a wire contract (apps/ui/src/api/schemas/transcript.ts); the GUIDs are for
+	// The Transcript page's rows are a wire contract (src/studio/ui/src/api/schemas/transcript.ts); the GUIDs are for
 	// findings, and navigation reaches the UI through the findings bindings, so the rows are unchanged.
 	service, _ := testService(t)
 	service.state = empty()

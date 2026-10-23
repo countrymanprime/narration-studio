@@ -20,7 +20,7 @@ type Status string
 
 const (
 	// StatusConfirmed: the narrator confirmed the link (chapter-track-map.json,
-	// apps/desktop/internal/evidence/fingerprint.go) and the track is in the project.
+	// src/studio/desktop/internal/evidence/fingerprint.go) and the track is in the project.
 	StatusConfirmed Status = "confirmed"
 	// StatusMatched: one track's name (or a region's) matches the chapter
 	// exactly or as a whole-token prefix, and no other comes near it.

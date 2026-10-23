@@ -1,4 +1,4 @@
-// The golden payloads of the narrator's cuts (apps/desktop/bindings_editlog_cuts.go).
+// The golden payloads of the narrator's cuts (src/studio/desktop/bindings_editlog_cuts.go).
 import type { z } from 'zod';
 import { editCutsChangeSchema, editCutsSchema } from '../schemas/editCuts';
 

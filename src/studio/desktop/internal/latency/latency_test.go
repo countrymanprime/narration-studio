@@ -2,9 +2,9 @@
 
 package latency
 
-// How to run (from apps/desktop; not part of the gate, it takes minutes):
+// How to run (from src/studio/desktop; not part of the gate, it takes minutes):
 //
-//	LATENCY_PYTHON=<repo>/.venv/Scripts/python.exe LATENCY_BACKEND=<repo>/sidecars/manuscript-guide/core/manuscript_guide.py \
+//	LATENCY_PYTHON=<repo>/.venv/Scripts/python.exe LATENCY_BACKEND=<repo>/src/studio/sidecars/manuscript-guide/core/manuscript_guide.py \
 //	  go test -tags latency -run TestLatency -count=1 -timeout 60m -v ./internal/latency
 //
 // For the frozen release sidecar (build it with scripts/release/prepare-resources.py) leave LATENCY_BACKEND empty and point

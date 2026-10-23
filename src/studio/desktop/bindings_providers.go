@@ -16,7 +16,7 @@ import (
 // provider whose models or voices come from the asset catalog, how many of them are installed. It reads the registries
 // only (never a concrete engine) and changes nothing. No screen reads it yet; a later screen may use it to explain a
 // disabled choice (Moonshine off Windows) the way DawCapabilities explains a disabled control. The wire schema, golden
-// payloads, wireContracts row and mock live in apps/ui/src/api (docs/architecture/wire-contracts.md). The Encoder and
+// payloads, wireContracts row and mock live in src/studio/ui/src/api (docs/architecture/wire-contracts.md). The Encoder and
 // Packager registries (encodeport) are empty and are left off until a row lands.
 
 // ProviderCapabilities answers, for each provider port, every registered provider's label, platforms, modes, asset kind (with
@@ -26,8 +26,8 @@ func (h *Host) ProviderCapabilities() (string, error) {
 }
 
 // providerCapabilitiesPayload is ProviderCapabilities' shape for platform (a GOOS value): {platform, asr, tts, pronunciation,
-// capture: {<name>: {label, default, platforms, modes, asset?: {kind, installed?}, support}}} (apps/ui/src/api/schemas/providers.ts).
-// support is the DAW port's Support shape (apps/ui/src/api/schemas/daw.ts): a provider declared for platform is supported and
+// capture: {<name>: {label, default, platforms, modes, asset?: {kind, installed?}, support}}} (src/studio/ui/src/api/schemas/providers.ts).
+// support is the DAW port's Support shape (src/studio/ui/src/api/schemas/daw.ts): a provider declared for platform is supported and
 // available; any other is unsupported, with the reason and a sentence for the narrator.
 func providerCapabilitiesPayload(platform string, assets *assetRegistry) map[string]any {
 	installed := installedCounter(assets)

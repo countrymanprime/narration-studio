@@ -3,8 +3,8 @@
 // Targeted run of the component atlas: builds Storybook, then runs only the stories of the named pages or components
 // (a Storybook title, its first segment or any segment: `Editing`, `Ribbon`, `Master & QC/Page`), light and dark at the atlas's
 // wide and narrow canvases. The PNGs are written by the atlas to
-//   apps/ui/screenshots/atlas/<title-slug>/<story>--<theme>-<viewport>.png
-// Usage: pnpm --dir apps/ui atlas:page <name>... [--no-build]   (--no-build reuses storybook-static/)
+//   src/studio/ui/screenshots/atlas/<title-slug>/<story>--<theme>-<viewport>.png
+// Usage: pnpm --dir src/studio/ui atlas:page <name>... [--no-build]   (--no-build reuses storybook-static/)
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { chromium } from '@playwright/test';
@@ -14,7 +14,7 @@ const args = process.argv.slice(2).filter((arg) => arg !== '--');
 const noBuild = args.includes('--no-build');
 const names = args.filter((arg) => !arg.startsWith('--'));
 if (names.length === 0) {
-  console.error('name at least one page or component, e.g. pnpm --dir apps/ui atlas:page Settings Editing');
+  console.error('name at least one page or component, e.g. pnpm --dir src/studio/ui atlas:page Settings Editing');
   process.exit(2);
 }
 const env = { ...process.env, ...browserEnv(process.env, existsSync(chromium.executablePath())) };
@@ -33,6 +33,6 @@ const run = spawnSync('pnpm', ['exec', 'playwright', 'test', '-c', 'playwright.a
 });
 if (existsSync('screenshots/atlas')) {
   const count = readdirSync('screenshots/atlas', { recursive: true }).filter((f) => f.endsWith('.png')).length;
-  console.log(`${count} PNGs -> apps/ui/screenshots/atlas`);
+  console.log(`${count} PNGs -> src/studio/ui/screenshots/atlas`);
 }
 process.exit(run.status ?? 1);

@@ -2,7 +2,7 @@
 
 **Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Settings, Master and Delivery behaviour in the mock's `studio-next/src/pages/Settings.tsx`, `studio-next/src/pages/Master.tsx`, `studio-next/src/pages/Delivery.tsx` and the delivery-profile rulings (ACX only; checkpoint as a template; payment type) in `studio-next/research/repo-compare-decisions.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** the delivered Master & QC page, delivery profiles and mastering ([ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain), [Exporting a report](../guides/using-the-app/master-and-qc.md#exporting-a-report), [Master & QC](../guides/using-the-app/master-and-qc.md), [Shared Findings Contract](../architecture/findings-contract.md), [Provider ports](../architecture/provider-ports.md)), the Settings page and scoped settings (`apps/ui/src/components/settings/`), the capability toggles ([resolver.go](../../apps/desktop/internal/dawport/resolver.go)) and the keyboard panel ([Studio shell and registries](../architecture/studio-shell-and-registries.md)). It carries over two owner-side validation phases (overview table).
+**Builds on:** the delivered Master & QC page, delivery profiles and mastering ([ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain), [Exporting a report](../guides/using-the-app/master-and-qc.md#exporting-a-report), [Master & QC](../guides/using-the-app/master-and-qc.md), [Shared Findings Contract](../architecture/findings-contract.md), [Provider ports](../architecture/provider-ports.md)), the Settings page and scoped settings (`src/studio/ui/src/components/settings/`), the capability toggles ([resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)) and the keyboard panel ([Studio shell and registries](../architecture/studio-shell-and-registries.md)). It carries over two owner-side validation phases (overview table).
 
 **Status (2026-10-12):** the swap is in review (SN-M5, #1286): `/settings`, `/master` and `/delivery` mount the Studio Next pages, Delivery has its rail item beside Master & QC, and the old pages and equivalents are deleted. The mock's Story Bible types panel is built (SN-M53, #1539); its Recording, Definitions, Reader text and Marks panels have no host model yet and are not built. The owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for Settings, Master & QC and Delivery. **2026-10-13:** the old `Settings` component, which SN-M5 left stacked under the new panels, is deleted (#1698): its categories are panels of the page's one column, each two-scope panel with its own Global / This project switch, and Story Bible analysis is the mock's own panel.
 
@@ -15,7 +15,7 @@ Settings in the mock is where the new seams become visible: the DAW capabilities
 ## Evidence
 
 - **Mock.** `studio-next/src/pages/Settings.tsx`, `studio-next/src/pages/settings/AnalysisTools.tsx`, `studio-next/src/selectors/platform.ts` and `studio-next/src/fixtures/platforms.ts` (`platformOf`, `platformHas`), `studio-next/src/state/commands/settings.ts`, `studio-next/src/state/commands/delivery.ts`, `studio-next/src/selectors/master.ts`, `studio-next/src/pages/Master.tsx`, `studio-next/src/pages/Delivery.tsx`; backups settings in `studio-next/src/pages/editing/BackupsTab.tsx` and `studio-next/src/selectors/backups.ts`. Tests: `studio-next/tests/settings.test.tsx`, `studio-next/tests/master.test.tsx`, `studio-next/tests/delivery.test.tsx`, `studio-next/tests/delivery-profile.test.tsx`.
-- **Repo.** `apps/ui/src/components/settings/{Settings,DawCatalogPanel,KeyboardPanel,DeliveryProfilesPanel,DeliveryProfileEditor,ScopedSetting,AboutPanel,OnlineDictionaryPanel,CreditsPanel,RecordingCheckSummary,RetailSamplePanel}.tsx`; `apps/ui/src/components/master/*` (profile panel, per-file checks, diagnostics, mastering chain, multi-platform export, report); capability toggles in settings (`DAW.capability.<name>`, [resolver.go](../../apps/desktop/internal/dawport/resolver.go)); Settings categories and anchors in `App.tsx`.
+- **Repo.** `src/studio/ui/src/components/settings/{Settings,DawCatalogPanel,KeyboardPanel,DeliveryProfilesPanel,DeliveryProfileEditor,ScopedSetting,AboutPanel,OnlineDictionaryPanel,CreditsPanel,RecordingCheckSummary,RetailSamplePanel}.tsx`; `src/studio/ui/src/components/master/*` (profile panel, per-file checks, diagnostics, mastering chain, multi-platform export, report); capability toggles in settings (`DAW.capability.<name>`, [resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)); Settings categories and anchors in `App.tsx`.
 
 | Mock behaviour | Real today |
 | --- | --- |
@@ -63,7 +63,7 @@ Owner rulings of 2026-10-11; none is open.
 
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
-| SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | Benchmark mock 05 and `apps/ui/src/components/master/RuleBadges.tsx` to 0667 are superseded where the mock differs |
+| SN0-Q1 / DQ-1 | Studio Next is the spec, tokens and layouts included | Benchmark mock 05 and `src/studio/ui/src/components/master/RuleBadges.tsx` to 0667 are superseded where the mock differs |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | SNM-5 swaps the routes and deletes the old pages |
 | DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | `docs/architecture/principles.md` is superseded; SNM-5 adds the Delivery route and rail item |
 | DQ-12 / DQ-13 | Series and Companion have no equivalent in the mock | Their settings stay as built |
@@ -94,7 +94,7 @@ A narrator setting up a project (profile, DAW, keys) and checking a rendered cha
 **Observed.** Settings is one 860 px column of 27 panels with no navigation or search ([inventory](../research/settings-inventory-and-grouping.md#how-it-works-today)); panels 1 to 10 follow the Studio Next mock and 11 to 27 are older categories kept as built, so the order is delivery history.
 
 - Shared configuration has no home: three settings choose a Whisper model (Proof, Recording check, Booth) and the same model serves four pages; downloads are listed or removed in six places; backups and the delivery profile are edited in three places each.
-- Scope is decided per panel by a Global / This project switch that gives no cross-panel view. A non-number row shows an inherited value as if it were set, and a Global value has no reset (`apps/ui/src/components/settings/ScopedSetting.tsx`).
+- Scope is decided per panel by a Global / This project switch that gives no cross-panel view. A non-number row shows an inherited value as if it were set, and a Global value has no reset (`src/studio/ui/src/components/settings/ScopedSetting.tsx`).
 - Many settings only change what one page does (recording check rules, silence cleanup, preview, stage suggestions) yet sit far from it.
 - One setting has no consumer (`General.log_verbosity`) and four have no editor.
 
@@ -128,10 +128,10 @@ On conflict this PRD is the source of truth.
 
 | ADR | Class | Note |
 | --- | --- | --- |
-| [resolver.go](../../apps/desktop/internal/dawport/resolver.go), [The REAPER bridge and its test harness](../architecture/reaper-bridge.md), [The REAPER verification pass](../operations/reaper-verification-pass.md) | KEEP / EXTEND | Toggles; reasons and flags shown |
+| [resolver.go](../../src/studio/desktop/internal/dawport/resolver.go), [The REAPER bridge and its test harness](../architecture/reaper-bridge.md), [The REAPER verification pass](../operations/reaper-verification-pass.md) | KEEP / EXTEND | Toggles; reasons and flags shown |
 | [ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain) | EXTEND | Capability lookup |
 | [Design system reference](../design/design-system.md) | KEEP | Reflow |
-| [Mock match](../operations/verification-tooling.md#mock-match), [RuleBadges.tsx](../../apps/ui/src/components/master/RuleBadges.tsx) to [MasteringChain.tsx](../../apps/ui/src/components/master/MasteringChain.tsx) | SUPERSEDE (DQ-1) | Studio Next Master replaces benchmark mock 05 as the spec |
+| [Mock match](../operations/verification-tooling.md#mock-match), [RuleBadges.tsx](../../src/studio/ui/src/components/master/RuleBadges.tsx) to [MasteringChain.tsx](../../src/studio/ui/src/components/master/MasteringChain.tsx) | SUPERSEDE (DQ-1) | Studio Next Master replaces benchmark mock 05 as the spec |
 | [Design principles](../architecture/principles.md) | KEEP decision 1, SUPERSEDE decision 5 (DQ-2, DQ-14) | Delivery is a page with its own rail item |
 | [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The models and downloads list (implemented)](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented) | EXTEND | Local assets list shows analysis tools |
 | [Studio shell and registries](../architecture/studio-shell-and-registries.md) | EXTEND | Key list from the catalogue |
@@ -199,7 +199,7 @@ On conflict this PRD is the source of truth.
 
 ## Research Summary
 
-Read: the mock's settings, master, delivery and platform files; the real settings and master component lists; `docs/reference/acx-delivery-requirements.md, apps/desktop/internal/dawport/resolver.go, docs/guides/using-the-app/master-and-qc.md#the-mastering-chain`. Not done: Settings categories were not audited row by row.
+Read: the mock's settings, master, delivery and platform files; the real settings and master component lists; `docs/reference/acx-delivery-requirements.md, src/studio/desktop/internal/dawport/resolver.go, docs/guides/using-the-app/master-and-qc.md#the-mastering-chain`. Not done: Settings categories were not audited row by row.
 
 ## Visual Spec
 

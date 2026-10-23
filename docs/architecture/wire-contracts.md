@@ -6,34 +6,34 @@
 
 | Boundary | Checked by | Where |
 | --- | --- | --- |
-| **Host binding result** (Wails string bindings, `Ready`, `Bootstrap`) | `parseWire` with a schema, in `wailsClient.decode` | `apps/ui/src/api/wailsClient.ts`, `schemas/` |
+| **Host binding result** (Wails string bindings, `Ready`, `Bootstrap`) | `parseWire` with a schema, in `wailsClient.decode` | `src/studio/ui/src/api/wailsClient.ts`, `schemas/` |
 | **Live events** (the events `wailsClient.ts` subscribes to: `transcript:state`, `coverage:state`, `teleprompter:event`, `teleprompter:state`, `system:attached`, `system:notice`, `update:status`, `job:ended`, `recording:state`, `recording:level` and the `*:state` events of the line identity, pickups, chapter sync, render config, retake lanes, clean-up tools and project state services) | `parseWire` per event; a bad one is dropped and counted | `wailsClient.ts`, `wire/liveHealth.ts` |
 | **Sidecar to host** (the teleprompter's NDJSON, progress files, `guide.json`) | An envelope check in Go (`type` is a string), `process.ParseProgress`, `persist.CheckVersion`; the UI validates the rest of each event | `internal/teleprompter`, `internal/process`, `internal/guide` |
 | **REAPER to host** (`events.log`) | A table of events and their numeric fields, checked before any consumer sees a line | `internal/bridge/wire.go` |
-| **The GitHub release list** (the in-app update, [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)) | `update.ParseReleases` in Go, before anything uses it: a capped body, a fixed shape per release, a tag and asset-name allowlist, sizes and digests checked, and every URL built from the compiled-in repository, never read from the list; a release that fails is dropped with a logged reason. The UI validates only the status the host derives from it | `apps/desktop/internal/update/manifest.go`, `schemas/update.ts` |
-| **The asset list and the install job** (`AssetsList`, `AssetsInstall*`, `AssetsVerify`, [The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented)) | `assetCatalogSchema`, `assetInstallJobSchema` and `assetVerifyResultSchema` behind `parseWire`; golden files written by a Go test; the dictionary lookup answer (`dictionaryLookupResultSchema`, `system-lookup-*.json`, [Dictionary look-up](dictionary-thesaurus-integration.md)) | `apps/desktop/bindings_assets.go`, `apps/desktop/dictionarylookup.go`, `apps/ui/src/api/schemas/assets.ts`, `schemas/dictionary.ts` |
+| **The GitHub release list** (the in-app update, [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)) | `update.ParseReleases` in Go, before anything uses it: a capped body, a fixed shape per release, a tag and asset-name allowlist, sizes and digests checked, and every URL built from the compiled-in repository, never read from the list; a release that fails is dropped with a logged reason. The UI validates only the status the host derives from it | `src/studio/desktop/internal/update/manifest.go`, `schemas/update.ts` |
+| **The asset list and the install job** (`AssetsList`, `AssetsInstall*`, `AssetsVerify`, [The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented)) | `assetCatalogSchema`, `assetInstallJobSchema` and `assetVerifyResultSchema` behind `parseWire`; golden files written by a Go test; the dictionary lookup answer (`dictionaryLookupResultSchema`, `system-lookup-*.json`, [Dictionary look-up](dictionary-thesaurus-integration.md)) | `src/studio/desktop/bindings_assets.go`, `src/studio/desktop/dictionarylookup.go`, `src/studio/ui/src/api/schemas/assets.ts`, `schemas/dictionary.ts` |
 | **Persisted files** (settings, notes, recents, the last comparison, the Story Bible file) | `persist.Reporter.ReadJSON` by class of data | `internal/persist` |
-| **The mock client and fixtures** | The same schemas, in the contract tests | `apps/ui/src/api/wireContracts.test.ts` |
+| **The mock client and fixtures** | The same schemas, in the contract tests | `src/studio/ui/src/api/wireContracts.test.ts` |
 
 ## The UI side
 
-- **`parseWire(schema, payload, { boundary, payload })`** (`apps/ui/src/api/wire/parseWire.ts`) validates a value and throws a `WireError`; `parseWireJson` does the same for the text a string binding returns. It is typed on **Standard Schema** (`wire/standardSchema.ts`), not on Zod, so no caller depends on the library, and a remote JSON payload would use it unchanged. (The in-app update's release list is checked in Go instead, so nothing the network says reaches the UI unchecked.) Only files under `apps/ui/src/api/` import `zod` (the `zod-only-in-api` rule of `apps/ui/.dependency-cruiser.mjs`).
+- **`parseWire(schema, payload, { boundary, payload })`** (`src/studio/ui/src/api/wire/parseWire.ts`) validates a value and throws a `WireError`; `parseWireJson` does the same for the text a string binding returns. It is typed on **Standard Schema** (`wire/standardSchema.ts`), not on Zod, so no caller depends on the library, and a remote JSON payload would use it unchanged. (The in-app update's release list is checked in Go instead, so nothing the network says reaches the UI unchecked.) Only files under `src/studio/ui/src/api/` import `zod` (the `zod-only-in-api` rule of `src/studio/ui/.dependency-cruiser.mjs`).
 - **A `WireError`** names the boundary, the payload and up to ten failing paths with the rule each broke (`transcript.rows[3].kind: Invalid input: expected string, received number`). It never carries a value: manuscript text can be in a payload. `userMessage` is what a narrator reads ("The app received data it could not read."); `details()` is for "Copy details" and the host log.
-- **Schemas** live one file per domain in `apps/ui/src/api/schemas/` and each asserts `satisfies z.ZodType<Contract>` against the hand-written type in `api/contracts/`, so the two cannot drift silently. A schema models what the host **really sends**: where Go sends `null` for a field the contract declares `?:`, `optionalFromNull` maps it to `undefined`; `listFromNull` turns a nil Go slice into an empty list; a missing pronunciation object or marker export takes its default.
+- **Schemas** live one file per domain in `src/studio/ui/src/api/schemas/` and each asserts `satisfies z.ZodType<Contract>` against the hand-written type in `api/contracts/`, so the two cannot drift silently. A schema models what the host **really sends**: where Go sends `null` for a field the contract declares `?:`, `optionalFromNull` maps it to `undefined`; `listFromNull` turns a nil Go slice into an empty list; a missing pronunciation object or marker export takes its default.
 - **Lenient inbound, strict in tests.** A schema ignores keys it does not declare (a newer host or sidecar must still load). `schemas/strictness.ts` walks a schema and reports any key in a payload it does not declare; the contract tests use it, so drift is caught in both directions.
 
 ## The rule for a new binding, event or persisted file
 
 A pull request that adds one adds, in the same pull request:
 
-1. **A schema** in `apps/ui/src/api/schemas/` for a binding result or a live event, and a `decode(schema, 'Name', host.Name(...))` in `wailsClient.ts` (or `subscribeChecked`). A `decode` without a schema does not exist.
-2. **A golden payload** where a Go or Python test can produce the real thing: `contractfile.Check(t, "name", value)` in Go (`apps/desktop/internal/contractfile`, with `Stabilize` and `PortablePaths` for random ids, times and machine paths) or `contract_files.check("name", value)` in Python (`libs/python/narration_common/contract_files.py`). The file lands in `tests/fixtures/contracts/`. **These files are generated: run the owning test with `UPDATE_CONTRACTS=1`, review the diff, and update the schema and the mock together.** `.gitattributes` forces LF so CI on Windows compares bytes.
+1. **A schema** in `src/studio/ui/src/api/schemas/` for a binding result or a live event, and a `decode(schema, 'Name', host.Name(...))` in `wailsClient.ts` (or `subscribeChecked`). A `decode` without a schema does not exist.
+2. **A golden payload** where a Go or Python test can produce the real thing: `contractfile.Check(t, "name", value)` in Go (`src/studio/desktop/internal/contractfile`, with `Stabilize` and `PortablePaths` for random ids, times and machine paths) or `contract_files.check("name", value)` in Python (`src/studio/libs/python/narration_common/contract_files.py`). The file lands in `tests/fixtures/contracts/`. **These files are generated: run the owning test with `UPDATE_CONTRACTS=1`, review the diff, and update the schema and the mock together.** `.gitattributes` forces LF so CI on Windows compares bytes.
 3. **A row in `wireContracts.test.ts`**: the golden file's schema, and a check of the mock's answer. The last test of that file lists every method of `NarrationApi` as checked, void or not a request, so a new binding fails until it has a row.
 4. **The mock** must pass the schema. It is built from the same fixtures the visual suite uses, so a mock that drifts from the host fails a test here and not a screenshot later.
-5. **`hostAPIVersion`**: an additive change (a new field, a new event) needs no bump; removing, renaming, retyping or newly requiring a field bumps it in the three places (`apps/desktop/app.go`, `app_test.go`, `apps/ui/src/hostApi.ts`).
+5. **`hostAPIVersion`**: an additive change (a new field, a new event) needs no bump; removing, renaming, retyping or newly requiring a field bumps it in the three places (`src/studio/desktop/app.go`, `app_test.go`, `src/studio/ui/src/hostApi.ts`).
 6. **A visible failure state** only if the payload is page data (below).
 
-`wireCasts.test.ts` fails on any `as` cast (other than `as const`) or `JSON.parse` under `apps/ui/src/api` except the one in `parseWire` and the reasoned test-tooling entries. It is a test and not an ESLint `no-restricted-syntax` rule because the tooling's config-protection hook refuses edits to `eslint.config.js`; add the rule by hand if you want it as well (it would flag a `JSON.parse(...) as T` and a cast of an identifier named `payload`, `value`, `result` or `response`).
+`wireCasts.test.ts` fails on any `as` cast (other than `as const`) or `JSON.parse` under `src/studio/ui/src/api` except the one in `parseWire` and the reasoned test-tooling entries. It is a test and not an ESLint `no-restricted-syntax` rule because the tooling's config-protection hook refuses edits to `eslint.config.js`; add the rule by hand if you want it as well (it would flag a `JSON.parse(...) as T` and a cast of an identifier named `payload`, `value`, `result` or `response`).
 
 ## What the narrator sees, by class of payload
 
@@ -48,9 +48,9 @@ The visual suite has states for each: `startup / invalid-payload`, `home / live-
 
 ## The host log
 
-`SystemReportDiagnostic` writes to `%APPDATA%\narration-utils\logs\host.log` (`apps/desktop/internal/hostlog`): one line per entry (time, a slug kind, a message of at most 2,000 characters with control characters removed), 1 MiB with one backup. The client reports each `WireError` as kind `wire_invalid`; the host reports persisted-file problems (`persisted_corrupt`, `persisted_unreadable`, `settings_value_ignored`), REAPER events it could not read (`reaper_event_invalid`), progress lines it ignored (`progress_line_ignored`) and teleprompter lines that were not events (`sidecar_line_dropped`). It records where, never what. Nothing is uploaded ([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)).
+`SystemReportDiagnostic` writes to `%APPDATA%\narration-utils\logs\host.log` (`src/studio/desktop/internal/hostlog`): one line per entry (time, a slug kind, a message of at most 2,000 characters with control characters removed), 1 MiB with one backup. The client reports each `WireError` as kind `wire_invalid`; the host reports persisted-file problems (`persisted_corrupt`, `persisted_unreadable`, `settings_value_ignored`), REAPER events it could not read (`reaper_event_invalid`), progress lines it ignored (`progress_line_ignored`) and teleprompter lines that were not events (`sidecar_line_dropped`). It records where, never what. Nothing is uploaded ([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)).
 
-## Persisted files (`apps/desktop/internal/persist`)
+## Persisted files (`src/studio/desktop/internal/persist`)
 
 `Reporter.ReadJSON(path, what, class, decode)` handles a file that cannot be decoded by what it holds:
 
@@ -62,7 +62,7 @@ The visual suite has states for each: `startup / invalid-payload`, `home / live-
 
 Rules that go with it: a file that exists but **cannot be read at all** (a sharing violation, a permission problem) is never replaced: `persist.CanOverwrite` makes a save refuse ("nothing was saved"); readers of one file are serialised, so two concurrent readers keep it once; a Story Bible file with a `schema_version` newer than this host reads (2) is refused with a message and left alone; a setting stored as a real JSON boolean or number is read as its text, and an object or list is ignored and named by key. The services get their reporter through `SetPersist`, and the host builds it in `NewHost` and hands it to each new service in `configureLocked` (a service built without one still keeps a corrupt file).
 
-## REAPER events (`apps/desktop/internal/bridge/wire.go`)
+## REAPER events (`src/studio/desktop/internal/bridge/wire.go`)
 
 The Lua script is imported into REAPER by the narrator, so it can be older or newer than the app. `CheckEvent` validates each line of `events.log` against a table (the fields after the tag, which are required, which are numbers) before any consumer sees it. An unknown tag passes (additive). The optional tail of `COMPARE_MARKER` (chapter, paragraph, contexts, marker state, existing name, source position, and the item, take and track GUIDs) may be absent or empty, as an older script omits it. An event that fails is counted (`Client.Invalid`), logged and given to the consumers that handle its tag and own its run through `Subscription.Invalid`; it is never delivered as data. Transcript Compare ends its run with a message that names the event and the field ("...`COMPARE_MARKER field 7 (projectTime) is not a number`... Import the script from this app's REAPER folder again") instead of adding a zero-filled row. The table is pinned by `wire_test.go` with the exact lines the Lua harness pins, so the two halves cannot disagree. Adding an event to the bridge means adding it to the table (see [the REAPER bridge](reaper-bridge.md)). A version field on every event line is deferred to the REAPER automation stack (#176).
 
@@ -74,10 +74,10 @@ The Lua script is imported into REAPER by the narrator, so it can be older or ne
 
 | What | Where |
 | --- | --- |
-| `parseWire`, `WireError`, Standard Schema types, live-event health | `apps/ui/src/api/wire/` |
-| Schemas by domain | `apps/ui/src/api/schemas/` (`base.ts` has the null helpers) |
-| Contract tests, cast scan | `apps/ui/src/api/wireContracts.test.ts`, `wireCasts.test.ts` |
+| `parseWire`, `WireError`, Standard Schema types, live-event health | `src/studio/ui/src/api/wire/` |
+| Schemas by domain | `src/studio/ui/src/api/schemas/` (`base.ts` has the null helpers) |
+| Contract tests, cast scan | `src/studio/ui/src/api/wireContracts.test.ts`, `wireCasts.test.ts` |
 | Golden payloads and their README | `tests/fixtures/contracts/` |
-| Go golden helper, id and path stabilizers | `apps/desktop/internal/contractfile/` |
-| Python golden helper | `libs/python/narration_common/contract_files.py` |
+| Go golden helper, id and path stabilizers | `src/studio/desktop/internal/contractfile/` |
+| Python golden helper | `src/studio/libs/python/narration_common/contract_files.py` |
 | Host log, persisted-file reader, progress parsing, event table | `internal/hostlog`, `internal/persist`, `internal/process/progress.go`, `internal/bridge/wire.go` |

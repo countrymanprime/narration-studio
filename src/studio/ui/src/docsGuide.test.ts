@@ -9,7 +9,7 @@ import docScreenshots from '../tests/visual/doc-screenshots.json';
 // screenshot embeds consistent when a page is added, renamed or removed, so
 // this test does.
 
-const repoRoot = join(__dirname, '..', '..', '..');
+const repoRoot = join(__dirname, '..', '..', '..', '..');
 const guideDir = join(repoRoot, 'docs', 'guides', 'using-the-app');
 const INDEX = 'README.md';
 const INDEX_TITLE = 'Using the app';

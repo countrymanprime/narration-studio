@@ -18,7 +18,7 @@ import (
 const takeReviewCreateTakeTimeout = 12 * time.Second
 
 // takeReviewUnsafeScopeChars is everything findings.Store's scope name
-// pattern rejects (apps/desktop/internal/findings/store.go's
+// pattern rejects (src/studio/desktop/internal/findings/store.go's
 // scopeNamePattern: letters, digits, dot, underscore, hyphen only) - a
 // REAPER track name can contain spaces or other punctuation the findings
 // store cannot use as a file name component.
@@ -47,7 +47,7 @@ func takeReviewManuscriptPath(projectFolder string) string {
 }
 
 // takeReviewSessionDir mirrors configureLocked's teleprompterDir fallback
-// (apps/desktop/app.go): a launch with no REAPER session directory still
+// (src/studio/desktop/app.go): a launch with no REAPER session directory still
 // needs somewhere to write the sidecar's scratch --find-repeats output
 // file.
 func takeReviewSessionDir(sessionDir string) string {
@@ -59,7 +59,7 @@ func takeReviewSessionDir(sessionDir string) string {
 
 // takeReviewRunnerFor builds the real SidecarRunner from project config,
 // unless h.takeReviewRunner is set (a test seam; nil means the real
-// process, apps/desktop/internal/takereview.ProcessRunner).
+// process, src/studio/desktop/internal/takereview.ProcessRunner).
 func (h *Host) takeReviewRunnerFor(svc hostServices) takereview.SidecarRunner {
 	if h.takeReviewRunner != nil {
 		return h.takeReviewRunner

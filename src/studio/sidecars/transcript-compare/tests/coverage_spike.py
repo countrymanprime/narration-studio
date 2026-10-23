@@ -12,7 +12,7 @@ to a DP alignment). This module is test tooling, not product code:
   programmatic drop, swap (pickup) and insert, with the labels the recording should get;
 - `benchmark()` times both aligners on a full-chapter-size input.
 
-Run it: `uv run python sidecars/transcript-compare/tests/coverage_spike.py` prints the tables that
+Run it: `uv run python src/studio/sidecars/transcript-compare/tests/coverage_spike.py` prints the tables that
 `docs/research/recording-coverage-alignment-spike.md` records.
 """
 

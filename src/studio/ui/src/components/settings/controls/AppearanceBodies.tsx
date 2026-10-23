@@ -40,7 +40,7 @@ export function ReaderTextRowBody() {
   return <ReaderTextBody prefs={prefs} onChange={change} />;
 }
 
-// The levels the host snaps to (apps/desktop/bindings_window.go's zoomSteps, as hooks/useZoom.ts lists them): 100% is the smallest
+// The levels the host snaps to (src/studio/desktop/bindings_window.go's zoomSteps, as hooks/useZoom.ts lists them): 100% is the smallest
 // the header's buttons and Ctrl + minus reach, so the mock's 80% and 90% are not offered; the host would put them back to 100%.
 const ZOOM_LEVELS = [1, 1.1, 1.25, 1.5, 1.75, 2];
 const percent = (level: number): string => `${Math.round(level * 100)}%`;

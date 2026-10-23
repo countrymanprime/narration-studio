@@ -1,5 +1,5 @@
 // The stack record and the retry choice, kept in the project's narration-utils/editing/stacks.json
-// (apps/desktop/internal/editlog/stacks.go) apart from the passage list, so re-reading the passages from a newer Booth map keeps
+// (src/studio/desktop/internal/editlog/stacks.go) apart from the passage list, so re-reading the passages from a newer Booth map keeps
 // them. A stack is the host's memory of the takes the DAW stacked on a passage's first read, with where each began before,
 // in seconds after the first read's start, so un-stacking can put it back after a restart. It is recorded only after the DAW
 // accepted stackTakes and forgotten after unstackTakes; recording or removing one changes nothing in the DAW. Passages and
@@ -15,7 +15,7 @@ export type RetryLevel = 'project' | 'chapter' | 'passage';
 /** How the DAW made the stack (the capability's mode): itself, in the app (the built-in recorder), or in steps after a backup. */
 export type EditStackMode = 'native' | 'app' | 'steps';
 
-/** The most takes one passage offers or one stack holds, and the longest id (apps/desktop/internal/editlog/stacks.go). */
+/** The most takes one passage offers or one stack holds, and the longest id (src/studio/desktop/internal/editlog/stacks.go). */
 export const STACK_MAX_TAKES = 500;
 export const STACK_MAX_ID = 256;
 /** The most undo points a stack's result may report (dawport.MaxUndoSteps), and the most steps it may list. */

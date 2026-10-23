@@ -2,7 +2,7 @@
 
 package guidemutation
 
-// How to run (from apps/desktop; not part of the gate, it takes a few minutes):
+// How to run (from src/studio/desktop; not part of the gate, it takes a few minutes):
 //
 //	SPIKE_PYTHON=<repo>/.venv/bin/python go test -tags spike,spikelatency -run TestLatency -count=1 -v ./internal/spike/guidemutation
 //

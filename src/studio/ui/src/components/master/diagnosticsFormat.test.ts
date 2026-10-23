@@ -18,7 +18,7 @@ import {
 
 // The host's own findings (bindings_diagnostics_contract_test.go), so the wording is tested against what the host sends.
 const pinned = diagnosticsJobSchema.parse(
-  JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', 'diagnostics-success.json'), 'utf8')),
+  JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', '..', '..', 'tests', 'fixtures', 'contracts', 'diagnostics-success.json'), 'utf8')),
 );
 const [clip, shift, roomTone] = pinned.files[0].findings;
 const [silence, breath, click] = pinned.files[0].cleanupFindings;

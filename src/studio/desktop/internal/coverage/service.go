@@ -461,7 +461,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 // sidecarArgs builds one stage's --coverage arguments over the run's manifest and chapter, with
 // the given transcription: the first pass's own model, the whole-chapter fallback's re-check model,
 // or, for the align-only re-run after a windowed re-check, the first
-// pass's model again (the words files still carry it, sidecars/transcript-compare/core/coverage_mode.py's compatibility field). Every path
+// pass's model again (the words files still carry it, src/studio/sidecars/transcript-compare/core/coverage_mode.py's compatibility field). Every path
 // is under the run's folder or is the project's own manuscript; the audio paths are in the
 // manifest and come from the saved project (threat-model row 4e).
 func (s *Service) sidecarArgs(running *job, transcription Transcription) []string {

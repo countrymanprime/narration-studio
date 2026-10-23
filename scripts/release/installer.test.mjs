@@ -10,9 +10,9 @@ import { WINDOWS_INSTALLER } from './assets.mjs';
 // Nothing on a developer machine or in a pull request can run makensis (it is only installed in the Windows build job), so these
 // tests read the installer definition and hold it to the decisions of docs/operations/ci-and-releases.md#the-windows-setup-program that a later edit could quietly undo.
 const repository = fileURLToPath(new URL('../..', import.meta.url));
-const installerDir = 'apps/desktop/build/windows/installer';
+const installerDir = 'src/studio/desktop/build/windows/installer';
 const definition = readFileSync(join(repository, installerDir, 'project.nsi'), 'utf8').replace(/\r\n/g, '\n');
-const wailsConfig = JSON.parse(readFileSync(join(repository, 'apps/desktop/wails.json'), 'utf8'));
+const wailsConfig = JSON.parse(readFileSync(join(repository, 'src/studio/desktop/wails.json'), 'utf8'));
 
 // The code of the definition without its comments and the sentences it shows the narrator.
 const code = definition

@@ -1,5 +1,5 @@
 // The browser mock's measurement, answering the way
-// apps/desktop/measure_job.go does: the same refusals (nothing chosen, a path the picker did not choose, one already
+// src/studio/desktop/measure_job.go does: the same refusals (nothing chosen, a path the picker did not choose, one already
 // running), a running job that reads one more quarter of a file per poll (standing in for the bytes the host reads), and results in the shape tests/fixtures/contracts/measure-success.json pins: a chapter with every level, a
 // render of digital silence whose levels are all unavailable (null, never a number), and a file that is not a WAV.
 // `mock-05` (`?mockFidelity=05`) picks the six files benchmark mock 05 draws. `hold` keeps a started measurement part way through; `fails` breaks it at its first poll the way

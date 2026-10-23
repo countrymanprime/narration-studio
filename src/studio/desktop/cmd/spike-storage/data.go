@@ -495,7 +495,7 @@ func Generate(dir string, sc Scale) (*Meta, error) {
 	}
 	meta.Bytes["pickups"], meta.Files["pickups"] = n, 1
 
-	// Story Bible (shape estimated from sidecars/manuscript-guide/core/manuscript_guide.py).
+	// Story Bible (shape estimated from src/studio/sidecars/manuscript-guide/core/manuscript_guide.py).
 	type ev struct {
 		ChapterID   string `json:"chapter_id"`
 		ParagraphID string `json:"paragraph_id"`

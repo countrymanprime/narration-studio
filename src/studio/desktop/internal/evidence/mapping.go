@@ -6,8 +6,8 @@
 // stored title is what lets a re-import re-suggest a link instead of asking
 // again (see SuggestFromPrevious).
 //
-// Callers: apps/desktop/mapping.go binds List/Confirm/Clear;
-// apps/desktop/internal/manuscript/service.go's resetDerived adds MappingFile
+// Callers: src/studio/desktop/mapping.go binds List/Confirm/Clear;
+// src/studio/desktop/internal/manuscript/service.go's resetDerived adds MappingFile
 // to the paths a manuscript reset clears. The data schema is the
 // mappingFileShape JSON below, versioned by its own SchemaVersion field
 // (mappingSchemaVersion).
@@ -47,7 +47,7 @@ const mappingSchemaVersion = 2
 //
 // Origin says who made the link: the narrator (OriginManual, through Confirm
 // or SetChapter) or chapter sync (OriginAuto, through AutoLink, once the
-// narrator has consented for the project: docs/guides/using-the-app/navigation.md#chapter-sync, superseding apps/desktop/internal/evidence/fingerprint.go's
+// narrator has consented for the project: docs/guides/using-the-app/navigation.md#chapter-sync, superseding src/studio/desktop/internal/evidence/fingerprint.go's
 // "never a link until confirmed" clause). Both count as links for every
 // consumer; the difference is that sync never overwrites or removes a manual
 // link, and an auto-link can be undone. Match is how an auto-link matched

@@ -62,7 +62,7 @@ func (f *fakeTakeReviewRunner) FindRepeats(ctx context.Context, req takereview.S
 }
 
 // twoItemRppFixture returns a project with one track and two items, each
-// with its own IGUID (REAPER 7's item identity, apps/desktop/internal/tracks/parse.go),
+// with its own IGUID (REAPER 7's item identity, src/studio/desktop/internal/tracks/parse.go),
 // so takereview.buildManifest has the minimum two segments a scan needs.
 func twoItemRppFixture(trackName, fileA, fileB string) string {
 	return "<REAPER_PROJECT 0.1 \"7.80/win64\" 1\n" +

@@ -302,6 +302,6 @@ describe('every registry kind has its contrast rows, and no two marks look alike
   });
 
   test('the repository root is where the test reads from', () => {
-    expect(uiRoot.endsWith(join('apps', 'ui'))).toBe(true);
+    expect(uiRoot.endsWith(join('src', 'studio', 'ui'))).toBe(true);
   });
 });

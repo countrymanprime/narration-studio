@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// AddMarker against a fake REAPER that answers as integrations/reaper/tests/finding_marker_test.lua pins add_finding_marker.
+// AddMarker against a fake REAPER that answers as src/studio/integrations/reaper/tests/finding_marker_test.lua pins add_finding_marker.
 
 func TestAddMarkerSendsTheItemTakeTimeColourAndNameAndAnswersWhatREAPERAdded(t *testing.T) {
 	navigator, client, dir := newNavigatorSession(t)

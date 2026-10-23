@@ -83,12 +83,12 @@ export const retailSampleAnswerSchema = z.object({
   problem: z.string(),
 }) satisfies z.ZodType<RetailSampleAnswer>;
 
-// The same five statuses a manuscript chapter's own status has (apps/ui/src/api/schemas/manuscript.ts's chapterSchema).
+// The same five statuses a manuscript chapter's own status has (src/studio/ui/src/api/schemas/manuscript.ts's chapterSchema).
 const creditsStatusSchema = z.enum(['not_started', 'recording', 'editing', 'proofing', 'finalized']);
 
 export const creditsStatusesSchema = z.record(z.string(), creditsStatusSchema) satisfies z.ZodType<CreditsStatuses>;
 
-// Mirrors apps/ui/src/api/schemas/manuscript.ts's recordedSeconds/recordedUnavailable pair: exactly one of the
+// Mirrors src/studio/ui/src/api/schemas/manuscript.ts's recordedSeconds/recordedUnavailable pair: exactly one of the
 // two is present, never both.
 const creditsRecordedLengthSchema = z.union([
   z.object({ recordedSeconds: z.number().nonnegative() }),
@@ -106,7 +106,7 @@ const setupFieldSchema = z.object({
   candidate: detectedCandidateSchema.nullable(),
 }) satisfies z.ZodType<CreditsSetupField>;
 
-/** `CreditsSetupState`, `CreditsSetupDismiss` and `CreditsSetupSave` (`apps/desktop/creditsetup.go`). */
+/** `CreditsSetupState`, `CreditsSetupDismiss` and `CreditsSetupSave` (`src/studio/desktop/creditsetup.go`). */
 export const creditsSetupStateSchema = z
   .object({
     needed: z.boolean(),

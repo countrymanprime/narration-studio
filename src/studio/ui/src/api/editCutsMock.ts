@@ -1,5 +1,5 @@
 // The browser mock's cuts. It keeps them in memory and checks each against the mock manuscript the way
-// apps/desktop/internal/editlog/cuts.go does, with the host's sentences: a word the paragraph lacks, a range or option the
+// src/studio/desktop/internal/editlog/cuts.go does, with the host's sentences: a word the paragraph lacks, a range or option the
 // app never sends, a missing DAW result or an overlap with a stored cut on the same take (any cut, when either is wordless) is
 // refused and nothing is saved; the list is in the original recording's time order, and a cut whose words changed comes back
 // stale, never moved. A wordless cut (a gap Clean up shortened) names no paragraph and no words, and is never stale.

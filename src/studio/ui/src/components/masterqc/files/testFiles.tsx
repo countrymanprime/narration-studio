@@ -1,6 +1,6 @@
 // Shared by the tests and the stories: the host's own measure-success fixture, reshaped into the cases the files table draws.
 import { useState, type ReactNode } from 'react';
-import measureSuccess from '../../../../../../tests/fixtures/contracts/measure-success.json';
+import measureSuccess from '../../../../../../../tests/fixtures/contracts/measure-success.json';
 import { measureJobSchema } from '../../../api/schemas/measure';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';

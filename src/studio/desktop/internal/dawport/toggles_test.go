@@ -86,7 +86,7 @@ func TestSettingsInputsAreReadOnEveryCall(t *testing.T) {
 // config/defaults.json has a DAW.capability.<name> row for every capability in the catalog, on auto, so a narrator on default
 // settings sees today's behaviour. The settings store's own test holds its built-in copy to the same file.
 func TestDefaultsHaveAnAutoRowForEveryCapability(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "config", "defaults.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "..", "config", "defaults.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

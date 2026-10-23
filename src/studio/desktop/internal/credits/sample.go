@@ -6,7 +6,7 @@ import (
 )
 
 // WordsPerFinishedHour is the estimate's narration rate (~155 words a minute), the same figure as the UI's
-// WORDS_PER_FINISHED_HOUR (apps/ui/src/state.ts); the host needs it only to hold a retail sample to its limit.
+// WORDS_PER_FINISHED_HOUR (src/studio/ui/src/state.ts); the host needs it only to hold a retail sample to its limit.
 const WordsPerFinishedHour = 9300
 
 // MaxRetailSampleSeconds is the longest retail sample ACX accepts, 5 minutes.

@@ -88,7 +88,7 @@ type Deps = {
   seed?: CoverageSeed;
 };
 
-/** The sentence the host gives with each refusal (apps/desktop/internal/coverage), in short. */
+/** The sentence the host gives with each refusal (src/studio/desktop/internal/coverage), in short. */
 const COVERAGE_REFUSAL_MESSAGES: Record<CoverageRefusalReason, string> = {
   no_project: 'Open a project before checking a recording.',
   no_project_file: 'Choose the saved REAPER project file in the audio engine panel first.',
@@ -309,7 +309,7 @@ export function judgeMock(report: CoverageReport, thresholds = MOCK_THRESHOLDS):
   return judged('not_met', `${plural(report.longestMissingRun, 'word')} in a row not read.`);
 }
 
-/** The finding an accepted gap becomes (apps/desktop/internal/gapreview): a pickup of the gap's line, accepted, with a null
+/** The finding an accepted gap becomes (src/studio/desktop/internal/gapreview): a pickup of the gap's line, accepted, with a null
  * confidence and its reason. */
 function gapFinding(chapterId: string, gap: CoverageGap, recordId: string): Finding {
   const expected = gap.kind === 'extra' ? '' : gap.lastWord && gap.lastWord !== gap.firstWord ? `${gap.firstWord} … ${gap.lastWord}` : gap.firstWord;

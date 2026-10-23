@@ -131,7 +131,7 @@ func TestTrackSelectInReaperAnswerIsJSON(t *testing.T) {
 }
 
 // The binding's answers, pinned for the UI's schema: one selected case and every refusal reason
-// (apps/ui/src/api/schemas/chapterTrackMap.ts's trackSelectResultSchema).
+// (src/studio/ui/src/api/schemas/chapterTrackMap.ts's trackSelectResultSchema).
 func TestContractTrackSelectResults(t *testing.T) {
 	answers := map[string]TrackSelectResult{}
 	record := func(name string, svc hostServices, selector dawport.TrackSelector) {

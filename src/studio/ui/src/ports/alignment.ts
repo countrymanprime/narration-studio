@@ -74,7 +74,7 @@ function heardFrom(result: WorkspaceAlignmentResult): HeardAnswer {
   const reasons = result.reasons;
   if (result.state === 'never') return { heard: null, reason: NEVER, reasons };
   if (result.needsAlignAgain) return { heard: null, reason: ALIGN_AGAIN, reasons };
-  // A payload from before apps/desktop/internal/coverage/workspace.go names no engine: its words cannot say who heard them.
+  // A payload from before src/studio/desktop/internal/coverage/workspace.go names no engine: its words cannot say who heard them.
   if (!result.engine) return { heard: null, reason: NEVER, reasons };
   const after = new Map<number, HeardWord[]>();
   const leading: HeardWord[] = [];

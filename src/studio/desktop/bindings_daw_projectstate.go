@@ -12,7 +12,7 @@ import (
 // one: when the saved file was written, whether REAPER has edits it does not have, and the transport. Everything is read
 // from what the host already has, through the Heartbeat role the resolver hands out (as daw_transport_changed is,
 // bindings_daw_transport.go): the open .rpp and the edit counter from the heartbeat, and the file's modification time
-// from a stat here, never from Lua. The wire schema, golden payloads, wireContracts row and mock live in apps/ui/src/api
+// from a stat here, never from Lua. The wire schema, golden payloads, wireContracts row and mock live in src/studio/ui/src/api
 // (docs/architecture/wire-contracts.md).
 
 // DawProjectState answers {savedAt, unsavedChanges, playState, playPosition} (dawport.ProjectState). With no DAW, the

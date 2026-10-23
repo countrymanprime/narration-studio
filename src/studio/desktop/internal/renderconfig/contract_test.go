@@ -9,7 +9,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
 )
 
-// The two RenderConfigState wire payloads apps/ui needs for its schema and mock. "render-config-idle" is
+// The two RenderConfigState wire payloads src/studio/ui needs for its schema and mock. "render-config-idle" is
 // what the state answers before any run; "render-config-success" is a completed configure, so the UI's
 // confirmation ("N files, these names") can be built and reviewed against a real shape. runId is time-based (newRunID), so it is fixed here the way pickups/contract_test.go
 // fixes its own.

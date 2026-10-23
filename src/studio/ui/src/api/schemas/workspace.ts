@@ -17,7 +17,7 @@ import type {
 import { listFromNull, optionalFromNull } from './base';
 import { COVERAGE_EVALUATOR_REASONS, COVERAGE_REFUSAL_REASONS } from './coverage';
 
-// The workspace's stored word alignment (apps/ui/src/api/contracts/workspace.ts). Its reasons are the same list
+// The workspace's stored word alignment (src/studio/ui/src/api/contracts/workspace.ts). Its reasons are the same list
 // CoverageResult uses (tests/fixtures/contracts/coverage-reasons.json already pins it against the host).
 const reasonSchema = z.union([z.enum(COVERAGE_REFUSAL_REASONS), z.enum(COVERAGE_EVALUATOR_REASONS)]);
 
@@ -100,7 +100,7 @@ export const workspaceFXChainsResultSchema = z.object({
   truncated: z.boolean(),
 }) satisfies z.ZodType<WorkspaceFXChainsResult>;
 
-// The waveform strip's peaks: apps/desktop/bindings_workspace_peaks.go.
+// The waveform strip's peaks: src/studio/desktop/bindings_workspace_peaks.go.
 const peaksSchema = z.object({
   startSeconds: z.number(),
   bucketsPerSecond: z.number(),
@@ -121,7 +121,7 @@ export const workspacePeaksResultSchema = z.object({
   items: listFromNull(peaksEntrySchema),
 }) satisfies z.ZodType<WorkspacePeaksResult>;
 
-// The Takes panel: apps/desktop/internal/passagetakes.
+// The Takes panel: src/studio/desktop/internal/passagetakes.
 const passageTakeSchema = z.object({
   id: z.string(),
   source: z.enum(['item_take', 'lane_retake', 'take_review']),

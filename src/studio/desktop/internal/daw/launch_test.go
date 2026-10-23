@@ -8,7 +8,7 @@ import (
 )
 
 // launchHelperEnv, when set, makes this test binary itself stand in for the program Launch starts: TestMain
-// intercepts before the real test suite runs, the same self-exec pattern apps/desktop/internal/guide/preview_test.go
+// intercepts before the real test suite runs, the same self-exec pattern src/studio/desktop/internal/guide/preview_test.go
 // uses for a fake sidecar.
 const launchHelperEnv = "NARRATION_UTILS_DAW_LAUNCH_TEST_HELPER"
 

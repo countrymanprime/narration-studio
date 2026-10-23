@@ -1,6 +1,6 @@
 // Cleanup launchers: open REAPER's own Repair Pops/Clicks
 // dialog, or the narrator's installed Magnolius DeClick script, on the items selected in REAPER. The app changes
-// nothing itself. Mirrors apps/desktop/internal/cleanuptools.Service.Snapshot() exactly: one launch at a time,
+// nothing itself. Mirrors src/studio/desktop/internal/cleanuptools.Service.Snapshot() exactly: one launch at a time,
 // reported by phase.
 
 /** The allow-listed tools (cleanuptools.Tools in Go, TOOLS in narration_cleanup.lua). */

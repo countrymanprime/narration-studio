@@ -2,7 +2,7 @@
 
 package guidemutation
 
-// How to run (from apps/desktop; not part of the gate):
+// How to run (from src/studio/desktop; not part of the gate):
 //
 //	SPIKE_PYTHON=<repo>/.venv/bin/python go test -tags spike -count=1 -v ./internal/spike/guidemutation
 //
@@ -30,15 +30,15 @@ import (
 func repoRoot(t *testing.T) string {
 	t.Helper()
 	_, file, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "..")
+	return filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "..", "..")
 }
 
 func backend(t *testing.T) string {
-	return filepath.Join(repoRoot(t), "sidecars", "manuscript-guide", "core", "manuscript_guide.py")
+	return filepath.Join(repoRoot(t), "src", "studio", "sidecars", "manuscript-guide", "core", "manuscript_guide.py")
 }
 
 func workerScript(t *testing.T) string {
-	return filepath.Join(repoRoot(t), "sidecars", "manuscript-guide", "spikes", "serve_worker.py")
+	return filepath.Join(repoRoot(t), "src", "studio", "sidecars", "manuscript-guide", "spikes", "serve_worker.py")
 }
 
 func python(t *testing.T) string {

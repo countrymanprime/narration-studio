@@ -13,7 +13,7 @@ import (
 )
 
 // The preview suggestion's read binding (docs/architecture/preview-suggestion.md): the UI's only way to reach the
-// pure engine (apps/desktop/internal/preview, preview.Suggest). It never runs anything and stores nothing, like
+// pure engine (src/studio/desktop/internal/preview, preview.Suggest). It never runs anything and stores nothing, like
 // CoverageResult and WorkspaceAlignment: every call recomputes from the manuscript's current chapters and
 // paragraphs, at the narrator's own Preview settings (previewSettings below) - target length, tolerance,
 // preset and ending exclusion, layered project over global over config/defaults.json like every other tool.
@@ -278,7 +278,7 @@ func previewOpenFinding(f findings.Finding) preview.OpenFinding {
 }
 
 // previewInput builds preview.Input from the manuscript service's loosely-typed reader payloads (Chapters,
-// Paragraphs: apps/desktop/internal/manuscript/reader.go has no typed structs, only map[string]any). It loops
+// Paragraphs: src/studio/desktop/internal/manuscript/reader.go has no typed structs, only map[string]any). It loops
 // Chapters(), then Paragraphs(chapterID) per chapter - the simplest shape, and the one reader.go's own
 // chapterPayload already builds "paragraphIds" from.
 func previewInput(service *manuscript.Service, resolved preview.Settings) (preview.Input, error) {
@@ -339,7 +339,7 @@ func previewOrder(value any) (int, bool) {
 	return 0, false
 }
 
-// previewEntityIDs reads a paragraph payload's entityIds: always []string{} today (apps/desktop/internal/manuscript/reader.go's
+// previewEntityIDs reads a paragraph payload's entityIds: always []string{} today (src/studio/desktop/internal/manuscript/reader.go's
 // paragraphPayload hardcodes it - no entity-mention tracking exists anywhere in this codebase yet), read
 // defensively here since the map is loosely typed.
 func previewEntityIDs(payload map[string]any) []string {

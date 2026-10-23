@@ -23,7 +23,7 @@
 
 /* Motion (docs/design/motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by these
    tokens. `motion-ok:` applies only when Windows has not asked for reduced motion and <html> has no data-motion="reduce", or when
-   <html data-motion="play"> is set: the public demo's "Play animations" switch (apps/site), which nothing else sets;
+   <html data-motion="play"> is set: the public demo's "Play animations" switch (src/web), which nothing else sets;
    `motion-safe:` reads the media query alone, so `src/motion.test.ts` fails on it. The motion rules select `html`, not `:root`:
    paletteContrast.test.ts reads every `:root` rule as a colour theme. */
 @custom-variant motion-ok {
@@ -257,7 +257,7 @@ html[data-motion='reduce'] {
   color-scheme: light;
 }
 /* Single source of truth for dark values - set via ThemeProvider
-   (apps/ui/src/theme/ThemeContext.tsx), which also handles the "system"
+   (src/studio/ui/src/theme/ThemeContext.tsx), which also handles the "system"
    preference and writes this attribute, plus an inline bootstrap script in
    index.html that sets it before first paint to avoid a flash of the wrong
    theme. Previously duplicated under a `prefers-color-scheme` media query;

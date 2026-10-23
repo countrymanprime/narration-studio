@@ -1,4 +1,4 @@
-/* The site shell's script (apps/site/build/shell.mjs inlines it in every page): the helpers, toasts, the theme toggle, the notice strip, the
+/* The site shell's script (src/web/build/shell.mjs inlines it in every page): the helpers, toasts, the theme toggle, the notice strip, the
    phone menu and the search palette, cut from the public-site mock (docs/research/mockups/public-site/index.html). A page's own script runs
    after it and reads the helpers from `window.Site`. The palette's entries are the JSON in #site-search, written by the build with every
    address already relative to the page. */
@@ -58,7 +58,7 @@
     $('#toasts').append(t);
     setTimeout(() => t.remove(), action ? 8000 : 3800);
   }
-  // The app's own theme key (apps/ui/index.html), so the site and the demo open in the theme last chosen on this origin. The head script
+  // The app's own theme key (src/studio/ui/index.html), so the site and the demo open in the theme last chosen on this origin. The head script
   // applies it before the first paint; 'system', or nothing stored, leaves the page following the device.
   const root = document.documentElement;
   const isDark = () => (root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches);

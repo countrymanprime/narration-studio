@@ -4,7 +4,7 @@ export const isTranscriptActive = (phase: TranscriptState['phase']) => phase ===
 // Reference-material sections (Contents, Characters, ...) stay in manuscript.json for data
 // integrity but shouldn't clutter chapter navigation/listing surfaces or the continuous reader
 // itself - see ChapterNav.tsx and Manuscript.tsx (which reverses the reader-view clause
-// of apps/ui/src/state.ts; this predicate's original scope was the panel only).
+// of src/studio/ui/src/state.ts; this predicate's original scope was the panel only).
 export const isListableChapter = (chapter: Pick<ManuscriptChapter, 'contentKind'>): boolean => (chapter.contentKind ?? 'narration') !== 'reference';
 export const selectDiscrepancy = (rows: Discrepancy[], id?: string): Discrepancy | undefined => rows.find((row) => row.id === id) ?? rows[0];
 export const canAddEquivalence = (row?: Discrepancy): boolean =>

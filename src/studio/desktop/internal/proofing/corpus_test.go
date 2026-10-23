@@ -1,6 +1,6 @@
 // This file is an end-to-end validation of the stage recommendations verdict
 // (docs/architecture/stage-recommendations.md) for proofing->finalized,
-// mirroring apps/desktop/internal/coverage/corpus_test.go's architecture (a
+// mirroring src/studio/desktop/internal/coverage/corpus_test.go's architecture (a
 // small labeled corpus, the REAL stages.Service driving the REAL proofing
 // SignalProvider, an assertion the verdict agrees with the label) rather
 // than reusing its files, since a real annotated pickup corpus still needs
@@ -39,7 +39,7 @@ type proofingCorpusCase struct {
 // proofingCorpusService wires the REAL stages.Service over the REAL
 // proofing.SignalProvider, with RequiredSignals narrowed by the provider's
 // OWN FilterRequired exactly as production does it
-// (apps/desktop/bindings_stages.go's filterRequired) - never a hand-picked
+// (src/studio/desktop/bindings_stages.go's filterRequired) - never a hand-picked
 // required set.
 func proofingCorpusService(dir string, provider *SignalProvider, view stages.EvidenceView) *stages.Service {
 	return stages.NewService(stages.Config{

@@ -1,5 +1,5 @@
 name: Site preview
-# Builds the public demo site (apps/site/build/build-demo-site.mjs, docs/operations/public-demo-site.md) and uploads it as a workflow artifact.
+# Builds the public demo site (src/web/build/build-demo-site.mjs, docs/operations/public-demo-site.md) and uploads it as a workflow artifact.
 # Manual only, read-only token, no secret, and nothing is published or deployed: this workflow never touches GitHub Pages and has no
 # `pages: write` or `id-token: write`. `pages.yml` stays the only way to publish.
 on:

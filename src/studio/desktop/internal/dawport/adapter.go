@@ -142,7 +142,7 @@ func RebuildsServices(a, b Kind) bool { return (a == KindAudacity) != (b == Kind
 func (k Kind) LinksProjectFile() bool { return k == KindREAPER }
 
 // HasScriptingPipe is whether k is driven over a scripting pipe the host opens itself (Audacity 3's mod-script-pipe), which the
-// narrator turns on in the DAW and the host probes for the link state (apps/desktop/bindings_audacity_link.go).
+// narrator turns on in the DAW and the host probes for the link state (src/studio/desktop/bindings_audacity_link.go).
 func (k Kind) HasScriptingPipe() bool { return k == KindAudacity }
 
 // IsREAPERLaunch reports whether daw (the launch's own `daw` fact) names a live REAPER launch. It is the one place outside this

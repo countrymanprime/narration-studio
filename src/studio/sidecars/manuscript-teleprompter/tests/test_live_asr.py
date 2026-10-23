@@ -399,7 +399,7 @@ def test_moonshine_hypotheses_feed_the_shared_event_layer_like_any_other_engine(
 
 
 def test_the_cli_accepts_exactly_the_flags_the_desktop_host_passes():
-    """apps/desktop/internal/teleprompter/service.go builds these arguments by hand;
+    """src/studio/desktop/internal/teleprompter/service.go builds these arguments by hand;
     this fails if a flag is renamed here without updating it."""
     parser = live_asr.build_parser()
 
@@ -617,7 +617,7 @@ def test_with_decode_timing_logs_duration_and_passes_words_through(capsys):
     assert "decode: 1.00s audio in" in capsys.readouterr().err
 
 
-# The host builds the sidecar's argv from options the UI sends (apps/desktop/internal/teleprompter/service.go). argparse must refuse a value
+# The host builds the sidecar's argv from options the UI sends (src/studio/desktop/internal/teleprompter/service.go). argparse must refuse a value
 # that looks like an option instead of taking the next token as a flag, or a chosen "microphone" could switch on another option
 # (docs/architecture/threat-model.md, row 4a).
 @pytest.mark.parametrize("option", ["--mic", "--chapter", "--model", "--wav", "--model-dir", "--language", "--stop-file"])
@@ -637,7 +637,7 @@ def test_an_ordinary_value_is_taken_as_the_option_value():
 
 
 # --list-devices is a one-shot mode: it must short-circuit before the "one of --wav or --mic is required" check (it needs
-# neither) and print exactly one JSON line, the shape the Go host binding (apps/desktop/internal/teleprompter) parses.
+# neither) and print exactly one JSON line, the shape the Go host binding (src/studio/desktop/internal/teleprompter) parses.
 # devices.py itself is unit-tested in test_devices.py; here only the CLI wiring is under test, so `devices` is faked via
 # sys.modules (main() does `from devices import list_input_devices` as a local import, same pattern as script_tracker).
 def _fake_devices_module(result):

@@ -1,7 +1,7 @@
 // This file is an end-to-end validation of the stage recommendation
 // verdict for editing->proofing (docs/architecture/stage-recommendations.md),
 // mirroring
-// apps/desktop/internal/coverage/corpus_test.go's architecture (a small
+// src/studio/desktop/internal/coverage/corpus_test.go's architecture (a small
 // labeled corpus, the REAL stages.Service driving the REAL editing
 // SignalProvider, an assertion the verdict agrees with the label) rather
 // than reusing its files, since a real annotated audio corpus still needs
@@ -44,7 +44,7 @@ const editingCorpusChapter = "chapter-1"
 // narrator who deselects them can still get an empty-space recommendation,
 // the intended path to a recommended verdict while those two detectors are
 // not validated. It is not a workaround invented for this test: it is the
-// production RequiredSignals mechanism (apps/desktop/bindings_stages.go's
+// production RequiredSignals mechanism (src/studio/desktop/bindings_stages.go's
 // requiredStageSignals), narrowed here exactly as a narrator's own choice
 // would narrow it.
 func deselectClickAndBreath(stage stages.Stage, declared []string) []string {

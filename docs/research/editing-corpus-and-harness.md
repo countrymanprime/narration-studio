@@ -1,7 +1,7 @@
 # Editing readiness: the corpus, the labeling format and the evaluation harness
 
 **Status: synthetic baseline only, 2026-09-27.** Issue: [#794](https://github.com/countrymanprime/narration-utils/issues/794), the editing corpus and evaluation harness: no product code, a labeling format, a corpus plan, synthetic generators, and a Go harness that scores
-[DX Phase 9's cleanup detector](../../apps/desktop/internal/measure/cleanup.go) (`measure.CleanupFindings`'s own
+[DX Phase 9's cleanup detector](../../src/studio/desktop/internal/measure/cleanup.go) (`measure.CleanupFindings`'s own
 candidates: silence, click, breath) against labeled locations. Every number below is from the **committed synthetic
 corpus only** (D70): no permissioned narrator audio exists yet, so, per D12, no threshold here is a fact. A real run
 is a QA item on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217), tracked until it happens.
@@ -9,7 +9,7 @@ is a QA item on [#992](https://github.com/countrymanprime/narration-utils/issues
 ## The labeling format
 
 A CSV, one row per labeled location, header `source,start_seconds,end_seconds,class,split,note`
-(`apps/desktop/internal/editing/labels_test.go`, `ParseCorpusLabels`/`WriteCorpusLabels`):
+(`src/studio/desktop/internal/editing/labels_test.go`, `ParseCorpusLabels`/`WriteCorpusLabels`):
 
 | Column | Meaning |
 | --- | --- |
@@ -37,10 +37,10 @@ never enters this repository: `NARRATION_EDITING_CORPUS` names the directory (mi
 [Recording Check (recording coverage)](../utilities/recording-coverage.md)'s
 `NARRATION_COVERAGE_CORPUS`), holding the WAV files `labels.csv` names plus `labels.csv` itself (also not committed,
 since it names and times real recordings). `TestClassRecallPrecisionOnRealCorpus`
-(`apps/desktop/internal/editing/harness_test.go`) skips cleanly when the variable is unset, so `pnpm check` never
+(`src/studio/desktop/internal/editing/harness_test.go`) skips cleanly when the variable is unset, so `pnpm check` never
 needs the corpus to be present.
 
-**Synthetic audio (committed, unit tests only):** `apps/desktop/internal/editing/syntheticcorpus_test.go` generates
+**Synthetic audio (committed, unit tests only):** `src/studio/desktop/internal/editing/syntheticcorpus_test.go` generates
 four short WAV cases (two `tune`, two `held_out`; 8000 Hz mono, every segment length a whole multiple of 10 ms so it
 lands exactly on the detector's own window boundaries), each built from a sequence of segments - speech (a tone, long
 enough to establish a speech level), a trimmable gap, a breath-like noise burst, a click-like impulse with true-silence
@@ -52,7 +52,7 @@ harness runs and regresses if the detector or the matching logic breaks, nothing
 
 ## The harness
 
-`apps/desktop/internal/editing/harness_test.go` calls `measure.DiagnoseFile` (the same entry point DX Phase 9's own
+`src/studio/desktop/internal/editing/harness_test.go` calls `measure.DiagnoseFile` (the same entry point DX Phase 9's own
 findings use) on each labeled source, whole-file (Phase 1 scores source audio, not played ranges - Phase 2's own
 scope), and matches its `Cleanup.Candidates` against the split's labels: each candidate and each label match at most
 once, a positive label unmatched is a false negative, a leftover candidate matching a negative label is a false
@@ -61,7 +61,7 @@ Overlap allows 50 ms of tolerance on the synthetic corpus and 100 ms on a real o
 tolerance").
 
 ```bash
-cd apps/desktop
+cd src/studio/desktop
 go test ./internal/editing/... -run 'TestClassRecallPrecisionOnSyntheticCorpus|TestSensitivitySweepOnTuningHalf' -v
 
 # once a permissioned corpus exists:

@@ -23,7 +23,7 @@ type Options = {
 
 /**
  * The microphone the Booth listens to so the text follows the voice. With a DAW, `TeleprompterReaperInput` is asked once: on a
- * sure match its device is chosen when the narrator has chosen none (apps/desktop/internal/daw/inputmatch.go: a match only preselects, never replaces a choice);
+ * sure match its device is chosen when the narrator has chosen none (src/studio/desktop/internal/daw/inputmatch.go: a match only preselects, never replaces a choice);
  * any other answer leaves the choice to the narrator in Levels, with the host's sentence saying why.
  */
 export function useListeningMic({ dawRecords, device, settingsLoaded, devices, choose }: Options): ListeningMic {

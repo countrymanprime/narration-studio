@@ -1,7 +1,7 @@
 // Retakes as fixed lanes: list the retakes of each
 // manuscript line that sit on fixed item lanes in the saved REAPER project, and make the narrator's pick the only lane
 // playing on its track. The app changes nothing else: it never turns lanes on, converts takes and lanes, or builds
-// comps. Mirrors apps/desktop/internal/retakelanes (List and Service.Snapshot()) exactly.
+// comps. Mirrors src/studio/desktop/internal/retakelanes (List and Service.Snapshot()) exactly.
 
 /** One item of a line on a fixed lane. A retake is named by line id plus item GUID. */
 export type RetakeLane = {

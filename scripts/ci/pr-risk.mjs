@@ -20,11 +20,11 @@ const BOUNDARIES = [
   [/^scripts\/ci\/(pr-risk|test-ratchet|train-health|gate-stamp)\./, 'the unattended safety net'],
   [/^(\.claude\/|CLAUDE\.md$)/, 'agent configuration'],
   [/^(SECURITY\.md$|docs\/architecture\/threat-model\.md$)/, 'the security policy and threat model'],
-  [/^integrations\/reaper\//, 'the REAPER bridge'],
-  [/^apps\/desktop\/internal\/bridge\//, 'the REAPER bridge'],
-  [/^apps\/desktop\/internal\/(update|process|assets|ffmpeg|credentialstore)\//, 'downloads, the update, sidecar launch and stored credentials'],
-  [/^sidecars\//, 'sidecar arguments and output'],
-  [/^(scripts\/toolchain\.json|pnpm-lock\.yaml|apps\/desktop\/go\.sum|uv\.lock|libs\/python\/uv\.lock)$/, 'pinned toolchain and dependencies'],
+  [/^src\/studio\/integrations\/reaper\//, 'the REAPER bridge'],
+  [/^src\/studio\/desktop\/internal\/bridge\//, 'the REAPER bridge'],
+  [/^src\/studio\/desktop\/internal\/(update|process|assets|ffmpeg|credentialstore)\//, 'downloads, the update, sidecar launch and stored credentials'],
+  [/^src\/studio\/sidecars\//, 'sidecar arguments and output'],
+  [/^(scripts\/toolchain\.json|pnpm-lock\.yaml|src\/studio\/desktop\/go\.sum|uv\.lock|src\/studio\/libs\/python\/uv\.lock)$/, 'pinned toolchain and dependencies'],
 ];
 
 /** Rates the changed paths. `reasons` lists each path that touches a boundary, once, in the order given. */

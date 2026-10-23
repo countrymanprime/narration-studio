@@ -1,6 +1,6 @@
 """Where one take of a fixed manuscript span diverges from the manuscript.
 
-Take review (`docs/utilities/take-review.md`) and sidecars/transcript-compare/core/take_divergence_mode.py. The
+Take review (`docs/utilities/take-review.md`) and src/studio/sidecars/transcript-compare/core/take_divergence_mode.py. The
 take's timed words (free ASR words with Whisper's word timestamps) are aligned to the
 span's words with the take markers' own diff (`compare.diff_and_build_markers`), so a take's
 divergences and its markers can never disagree about what was said. The result says, for every

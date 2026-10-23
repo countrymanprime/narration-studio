@@ -1,8 +1,8 @@
 // The production tracking mock. The plan (deadline, contracted amount, payment type, milestones), answering the shape
-// apps/desktop/bindings_production.go's ProductionPlan, ProductionSetDeadline, ProductionSetPayment and ProductionSaveMilestones
+// src/studio/desktop/bindings_production.go's ProductionPlan, ProductionSetDeadline, ProductionSetPayment and ProductionSaveMilestones
 // do, with the same refusals (internal/production/plan.go): an impossible date, a negative amount, an amount under a royalty share
 // or none, an unknown payment type, a milestone with no name or a bad measure, estimate or template. The overview and timer follow the same
-// arithmetic and "Next up" order as the host (apps/desktop/internal/production/overview.go) over the mock's own
+// arithmetic and "Next up" order as the host (src/studio/desktop/internal/production/overview.go) over the mock's own
 // chapters, stage recommendations and plan, and the stage timer. `?mockProduction=on-pace|at-risk` seeds a time log and a plan
 // (PRODUCTION_SCENARIOS); with no seed nothing is logged or set, which is what a narrator sees first.
 import type { ChapterStatus, ManuscriptChapter } from './contracts/manuscript';
@@ -258,7 +258,7 @@ function nextUp(chapters: ProductionChapter[]): ProductionNextUpItem[] {
 const defaultPaymentFor = (profileId: string): ProductionPayment | null => (profileId === 'acx' ? 'per_finished_hour' : null);
 
 /** The production API, and the step the project's delivery-profile choice takes on the plan: a payment still unset takes the profile's default,
- * one the narrator set (an explicit `none` too) is kept (apps/desktop/delivery_profiles.go selectDeliveryProfile). */
+ * one the narrator set (an explicit `none` too) is kept (src/studio/desktop/delivery_profiles.go selectDeliveryProfile). */
 export function createProductionMock(deps: Deps): ProductionApi & { applyProfileDefaultPayment: (profileId: string) => void } {
   const seed = deps.seed ?? {};
   let plan: StoredPlan = {

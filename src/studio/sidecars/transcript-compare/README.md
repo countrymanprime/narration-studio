@@ -4,8 +4,8 @@ Transcribes a chapter's narration with a local Whisper model, matches it to the 
 canonical manuscript, and diffs the two. The result is a list of misread, skipped and extra words
 (the host turns them into findings and, on request, take markers) plus a unified diff file of the
 script text against what was said. The workflow is documented in
-[Transcript Compare](../../docs/utilities/transcript-compare.md) and the
-[Proof guide](../../docs/guides/using-the-app/proof.md).
+[Transcript Compare](../../../../docs/utilities/transcript-compare.md) and the
+[Proof guide](../../../../docs/guides/using-the-app/proof.md).
 
 ## Layout
 
@@ -21,13 +21,13 @@ script text against what was said. The workflow is documented in
   (`COVERAGE_TOKEN`, `COVERAGE_EXTRA`). `--align-only` re-aligns from cached words and
   never transcribes. Its module docstring and `docs/utilities/recording-coverage.md` give
   the manifest, words-file and output formats and the exit codes. The Go service that starts it
-  is `apps/desktop/internal/coverage` (docs/utilities/recording-coverage.md).
+  is `src/studio/desktop/internal/coverage` (docs/utilities/recording-coverage.md).
 - `tests/` — the pytest suite for the backend, plus the recording-coverage ground-truth harness
   (`coverage_harness.py`) and its synthetic labeled fixtures (`fixtures/coverage/`), and the
   alignment spike that scores `core/recording_coverage.py` on them (`coverage_spike.py`); see
   `tests/fixtures/coverage/README.md`.
-- REAPER integration is in `integrations/reaper/`; a future Audacity driver has placeholder notes under
-  `integrations/audacity/transcript-compare/`.
+- REAPER integration is in `src/studio/integrations/reaper/`; a future Audacity driver has placeholder notes under
+  `src/studio/integrations/audacity/transcript-compare/`.
 
 ## Pieces
 
@@ -40,19 +40,19 @@ script text against what was said. The workflow is documented in
   every divergence as span words plus source seconds (`TAKE_DIVERGENCE|{json}` lines). The manifest,
   output and exit codes are in the module docstring;
   [take_divergence_mode.py](core/take_divergence_mode.py)
-  and [the evaluation](../../docs/research/take-divergence-evaluation.md) explain why ASR word
+  and [the evaluation](../../../../docs/research/take-divergence-evaluation.md) explain why ASR word
   timestamps are precise enough. `tests/divergence_harness.py` scores it against the constructed takes
   in `tests/fixtures/divergence/`.
-- `libs/python/narration_common/spoken_forms.py` — the built-in homophone list (your/you're,
+- `src/studio/libs/python/narration_common/spoken_forms.py` — the built-in homophone list (your/you're,
   its/it's, etc.), the number words and the filler words, shared with the teleprompter's live
-  flags so both forgive the same spellings (`apps/ui/tests/visual/lib/capture.ts`). It is Python data rather than a file next
+  flags so both forgive the same spellings (`src/studio/ui/tests/visual/lib/capture.ts`). It is Python data rather than a file next
   to the script so a frozen build always carries it. Add a globally-useful pair to
   `HOMOPHONE_GROUPS` there (for something manuscript-specific, use the per-project equivalence
   list instead - see "Handling invented names/words" below).
 - `core/common_words.txt` — a stoplist of ordinary English words, used only by the config
   screen's **Suggest...** button (see "Handling invented names/words" below) to avoid
   suggesting common words that just happen to be capitalized mid-sentence.
-- The desktop app owns the workflow and settings (`apps/desktop/internal/transcript`). Python runs from the
+- The desktop app owns the workflow and settings (`src/studio/desktop/internal/transcript`). Python runs from the
   checkout `.venv` that `pnpm run bootstrap` creates.
 
 ## Project files

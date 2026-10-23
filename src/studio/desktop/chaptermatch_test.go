@@ -156,7 +156,7 @@ func TestChapterTrackMatchNeedsAProject(t *testing.T) {
 }
 
 // TestChaptersForTracksResolvesTrackItemAndTakeGUIDs is the Review page's other direction: a finding usually carries
-// only a track, item or take GUID (apps/desktop/internal/findings.Source), never a chapter id, so grouping by chapter
+// only a track, item or take GUID (src/studio/desktop/internal/findings.Source), never a chapter id, so grouping by chapter
 // needs the shared matcher run per GUID in bulk.
 func TestChaptersForTracksResolvesTrackItemAndTakeGUIDs(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)

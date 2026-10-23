@@ -18,7 +18,7 @@ export type ProjectDefaultLocation = { path: string };
 export type DawLinkResult = { selected: boolean; linked: boolean; path?: string; insideProject?: boolean; note?: string; message?: string };
 /**
  * DawLaunch's result: `source` names where the executable
- * path came from (`settings_override`, `uninstall_registry` or `file_association`, apps/desktop/internal/daw),
+ * path came from (`settings_override`, `uninstall_registry` or `file_association`, src/studio/desktop/internal/daw),
  * so the narrator can be told when a Settings override was used.
  */
 export type DawLaunchResult = { launched: boolean; path: string; source: string };

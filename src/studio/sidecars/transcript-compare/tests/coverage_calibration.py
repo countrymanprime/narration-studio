@@ -9,7 +9,7 @@ host runs a check:
    scripted items get their words file written first, so nothing is transcribed, and audio items
    (a permissioned corpus, or the Piper renders below) are transcribed by the real Whisper path;
 2. the thresholds are applied on read to the result lines, by `text_complete`, which mirrors
-   `coverage.Report.TextComplete` in `apps/desktop/internal/coverage/report.go`.
+   `coverage.Report.TextComplete` in `src/studio/desktop/internal/coverage/report.go`.
 
 It adds four things `coverage_harness.py` and `coverage_spike.py` do not have:
 
@@ -35,7 +35,7 @@ For the model cascade (the note's "Model cascade" section) it adds two more:
   against a reference model;
 - `windows` benchmarks what a window of each length costs to transcribe.
 
-Run it: `uv run python sidecars/transcript-compare/tests/coverage_calibration.py synthetic` prints
+Run it: `uv run python src/studio/sidecars/transcript-compare/tests/coverage_calibration.py synthetic` prints
 the tables of the research note; `render-audio`, `audio`, `cascade` and `windows` are the optional
 audio runs.
 
@@ -79,7 +79,7 @@ import coverage_mode
 import recording_coverage as coverage_model
 
 SIDECAR = CORE / "compare.py"
-REPOSITORY = Path(__file__).resolve().parents[3]
+REPOSITORY = Path(__file__).resolve().parents[5]
 SCRIPTED_MODEL = "scripted"
 
 

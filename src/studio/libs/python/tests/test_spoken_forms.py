@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from narration_common import spoken_forms
 
-COMPARE_PATH = Path(__file__).parents[3] / "sidecars" / "transcript-compare" / "core" / "compare.py"
+COMPARE_PATH = Path(__file__).parents[5] / "src" / "studio" / "sidecars" / "transcript-compare" / "core" / "compare.py"
 SPEC = importlib.util.spec_from_file_location("transcript_compare_for_spoken_forms", COMPARE_PATH)
 compare = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

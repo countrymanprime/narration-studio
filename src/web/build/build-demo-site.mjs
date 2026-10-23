@@ -1,13 +1,13 @@
 // Assembles the public site into one folder, `dist-site/` by default:
-//   index.html          the landing page (apps/site/landing/), in the site shell (apps/site/build/shell.mjs)
-//   demo/index.html     the live demo page: the site shell around a window that holds demo/app.html (apps/site/build/windowPages.mjs)
-//   demo/app.html       the real UI, built in its `site` mode as one self-contained page: mock host, hash routes, script, styles and fonts inline (apps/site/demo/.env.site)
-//   docs/               the Docs section: the condensed guides (apps/site/docs/), one static page each with their screenshots (apps/site/build/guides.mjs)
+//   index.html          the landing page (src/web/landing/), in the site shell (src/web/build/shell.mjs)
+//   demo/index.html     the live demo page: the site shell around a window that holds demo/app.html (src/web/build/windowPages.mjs)
+//   demo/app.html       the real UI, built in its `site` mode as one self-contained page: mock host, hash routes, script, styles and fonts inline (src/web/demo/.env.site)
+//   docs/               the Docs section: the condensed guides (src/web/docs/), one static page each with their screenshots (src/web/build/guides.mjs)
 //   storybook/index.html  the Storybook page: the same window around storybook/sb/, unless --skip-storybook
-//   storybook/sb/       the component Storybook (`pnpm --dir apps/ui run build-storybook`), unless --skip-storybook
+//   storybook/sb/       the component Storybook (`pnpm --dir src/studio/ui run build-storybook`), unless --skip-storybook
 // The landing page and the demo are each one file with nothing fetched from another host, and every link between the pieces is relative, so the
 // folder opens from any sub-path, from a file server and, page by page, from a sandboxed frame with no network. Nothing here deploys it: see docs/operations/public-demo-site.md.
-//   node apps/site/build/build-demo-site.mjs [--out dist-site] [--skip-storybook] [--skip-ui]
+//   node src/web/build/build-demo-site.mjs [--out dist-site] [--skip-storybook] [--skip-ui]
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -29,10 +29,10 @@ function run(command, commandArgs) {
   if (result.status !== 0) throw new Error(`${command} ${commandArgs.join(' ')} failed (${result.status})`);
 }
 
-const ui = join(root, 'apps', 'ui');
-const site = join(root, 'apps', 'site');
-if (!args.includes('--skip-ui')) run('pnpm', ['--dir', 'apps/site', 'run', 'build:app']);
-if (withStorybook) run('pnpm', ['--dir', 'apps/ui', 'run', 'build-storybook']);
+const ui = join(root, 'src', 'studio', 'ui');
+const site = join(root, 'src', 'web');
+if (!args.includes('--skip-ui')) run('pnpm', ['--dir', 'src/web', 'run', 'build:app']);
+if (withStorybook) run('pnpm', ['--dir', 'src/studio/ui', 'run', 'build-storybook']);
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });

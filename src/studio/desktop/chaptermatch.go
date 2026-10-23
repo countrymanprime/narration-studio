@@ -146,7 +146,7 @@ type chaptersForTracksResult struct {
 }
 
 // chaptersForTracks is ForTrack run over every GUID in guids, in bulk: the Review page's chapter grouping
-// needs a chapter for findings that carry only a track, item or take GUID (apps/desktop/internal/findings.Source)
+// needs a chapter for findings that carry only a track, item or take GUID (src/studio/desktop/internal/findings.Source)
 // instead of a manuscript-anchored chapter id, and it groups many findings, from many analyzers, at once. A GUID may
 // name a track directly, or an item or take on one (resolved via resolveTrackGUID); one unresolved GUID never fails the
 // others. It only reads: it never creates a track or a link.

@@ -77,7 +77,7 @@ func TestCommands(t *testing.T) {
 		},
 		{
 			// SetTrackStatus has no Track parameter (Name, Selected, Focused only): Audacity 3.7.7 ignores one and renames the selected
-			// track, so the client selects the track first (tests/audacity3/real/edits, A3-T17).
+			// track, so the client selects the track first (src/studio/tests/audacity3/real/edits, A3-T17).
 			name: "SetTrackName selects the track, then renames the selected one",
 			setup: func(p *abt.Project) {
 				p.AddWaveTrack("a", 0, 10)
@@ -134,7 +134,7 @@ func TestCommands(t *testing.T) {
 		},
 		{
 			// Audacity 3.7.7 has no ApplyMacro command: a macro is the menu command Macro_<name>, with the spaces taken out of the name
-			// (tests/audacity3/real/edits, A3-T20), and it runs on the selected tracks.
+			// (src/studio/tests/audacity3/real/edits, A3-T20), and it runs on the selected tracks.
 			name: "ApplyMacro runs a saved macro as its Macro_ menu command",
 			setup: func(p *abt.Project) {
 				p.AddWaveTrack("a", 0, 10)

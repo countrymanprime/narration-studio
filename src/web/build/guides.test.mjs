@@ -48,8 +48,8 @@ test('links, images, notes and tables become the mock blocks, and a dead link or
 // A copy of the repository's docs sources in a scratch root, so a test can break one without touching the real files.
 function scratchRoot(change) {
   const scratch = mkdtempSync(join(tmpdir(), 'docs-root-'));
-  for (const dir of ['apps/site/docs', 'docs/guides/using-the-app', 'docs/images/ui']) cpSync(join(root, dir), join(scratch, dir), { recursive: true });
-  change(join(scratch, 'apps', 'site', 'docs'));
+  for (const dir of ['src/web/docs', 'docs/guides/using-the-app', 'docs/images/ui']) cpSync(join(root, dir), join(scratch, dir), { recursive: true });
+  change(join(scratch, 'src', 'web', 'docs'));
   return scratch;
 }
 

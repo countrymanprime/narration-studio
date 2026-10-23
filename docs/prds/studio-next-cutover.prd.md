@@ -13,9 +13,9 @@
 ## Evidence
 
 - The mock's rulings file is the seed; its tests (`studio-next/tests/`) are named by batch and page, not by ruling.
-- The repo already checks contract coverage by test (`apps/ui/src/api/wireContracts.test.ts` fails on an unmapped binding) and has ratchets (`apps/ui/src/rawNatives.test.ts`, Knip at zero, atlas coverage); there is no ruling index.
+- The repo already checks contract coverage by test (`src/studio/ui/src/api/wireContracts.test.ts` fails on an unmapped binding) and has ratchets (`src/studio/ui/src/rawNatives.test.ts`, Knip at zero, atlas coverage); there is no ruling index.
 - The mock folder is named by the PRD README, `knip.jsonc` (an `ignore` entry) and `tools/docs-site/mkdocs.yml` (an `exclude_docs` entry), and the rule file above is path-scoped to `docs/research/mockups/**`.
-- The benchmark mocks are `docs/research/mockups/audiobook-studio-benchmark/01-*.webp` to `07-*.webp`, scored by `apps/ui/tests/visual/mock-match/` (`pnpm --dir apps/ui mock-match`, `mocks.ts`); `06-series-voice-bible.webp` and `07-daw-companion.webp` map to pages the Studio Next mock lacks.
+- The benchmark mocks are `docs/research/mockups/audiobook-studio-benchmark/01-*.webp` to `07-*.webp`, scored by `src/studio/ui/tests/visual/mock-match/` (`pnpm --dir src/studio/ui mock-match`, `mocks.ts`); `06-series-voice-bible.webp` and `07-daw-companion.webp` map to pages the Studio Next mock lacks.
 - PRDs are deleted by the PR that completes their last phase ([Lifecycle of a PRD](README.md#lifecycle-of-a-prd)); the series has 15 PRDs and a cross-reference web that must not dangle.
 
 ## Proposed Solution
@@ -24,7 +24,7 @@
 2. **Parity audit per page.** For each page the mock's tests (`studio-next/tests/*`) are mapped to real tests; an unported test needs a reason (not applicable: mock-only, or covered by X).
 3. **Owner QA list on #992.** The steps only the owner can do: Shift+F10 in the WebView, REAPER undo behaviour of each new command, a real record with the pedal, Audacity backups, extraction on a real manuscript, the carried-over verification passes.
 4. **Final ratchets.** `rawNatives` ceilings for series pages at zero; direct `FontAwesomeIcon` imports outside `Icon` at zero for migrated pages; every port has a contract suite; no `registerKeys`-style handlers; no bridge imports outside adapters.
-5. **Delete the mock and the old specs.** Remove `docs/research/mockups/studio-next/`, the `knip.jsonc` and `mkdocs.yml` entries, the PRD README lines, the "Which mocks are the spec" section of the rule file and the train's mock-spec section (D96, replaced by the Studio Next ruling of SN0-Q1 while the series runs and by nothing once the mock is gone), and the screenshots helper. Also remove the benchmark mocks and the mock-match tooling (`apps/ui/tests/visual/mock-match/`, the `mock-match` script, `docs/operations/verification-tooling.md#mock-match`'s scoring), except the mock files, `mocks.ts` entries and report code that the Series voice bible and Companion pages still need: those two pages have no Studio Next equivalent and stay as built (SN0-Q5, DQ-13), so their reference mock stays.
+5. **Delete the mock and the old specs.** Remove `docs/research/mockups/studio-next/`, the `knip.jsonc` and `mkdocs.yml` entries, the PRD README lines, the "Which mocks are the spec" section of the rule file and the train's mock-spec section (D96, replaced by the Studio Next ruling of SN0-Q1 while the series runs and by nothing once the mock is gone), and the screenshots helper. Also remove the benchmark mocks and the mock-match tooling (`src/studio/ui/tests/visual/mock-match/`, the `mock-match` script, `docs/operations/verification-tooling.md#mock-match`'s scoring), except the mock files, `mocks.ts` entries and report code that the Series voice bible and Companion pages still need: those two pages have no Studio Next equivalent and stay as built (SN0-Q5, DQ-13), so their reference mock stays.
 6. **Confirm the old equivalents are gone.** Each swap already deleted the old page and every old equivalent of what the mock's page covers ([Deletions the rulings imply](#deletions-the-rulings-imply)); the parity audit checks that none remains.
 7. **Steady-state docs.** New or updated: `docs/architecture/` (shell and registries; UI state and the command journal; DAW capabilities and results; extraction tiers), `docs/design/design-system.md` (new primitives, icon vocabulary, layout rules), `docs/guides/using-the-app/*` (each page), `docs/architecture/threat-model.md` and `SECURITY.md` rows, diagrams naming moved files, and the ADRs that landed.
 8. **Delete the series PRDs** in the PR that completes the last phase of each, then this one; update the PRD index.
@@ -147,7 +147,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 1 | `docs/research/`, `scripts/ci/` | none |
 | 4 | `rawNatives.test.ts`, ratchet tests | Page swaps (mechanical) |
 | 5 | `docs/**` | Page swaps' guide edits |
-| 6 | `docs/research/mockups/`, `apps/ui/tests/visual/mock-match/`, `.claude/rules/ui-spec-and-screenshots.md`, `knip.jsonc`, `mkdocs.yml`, train | Everything; runs alone (owner approval for the rule file and the train) |
+| 6 | `docs/research/mockups/`, `src/studio/ui/tests/visual/mock-match/`, `.claude/rules/ui-spec-and-screenshots.md`, `knip.jsonc`, `mkdocs.yml`, train | Everything; runs alone (owner approval for the rule file and the train) |
 
 ### Slices
 

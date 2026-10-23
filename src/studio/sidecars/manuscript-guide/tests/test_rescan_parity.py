@@ -1,6 +1,6 @@
 """What the sidecar's `rescan` and `status` do, and how it finds a name in the manuscript, recorded for the Go host to replay.
 
-The host runs both itself (apps/desktop/internal/guide/rescan.go and occurrences.go), so each has two implementations. The part that
+The host runs both itself (src/studio/desktop/internal/guide/rescan.go and occurrences.go), so each has two implementations. The part that
 cannot drift is the search: ``find_occurrences`` is ``\\b`` + ``re.escape(name.strip())`` + ``\\b`` under ``re.IGNORECASE``, so what is a
 word character, which letters are the same letter, what ``strip`` removes and where a code point index falls are all Python's, and the
 excerpts it stores are cut by code point. Four files pin them:
@@ -44,7 +44,7 @@ guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
-GUIDE_DIR = Path(__file__).parents[3] / "apps" / "desktop" / "internal" / "guide"
+GUIDE_DIR = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "guide"
 TESTDATA = GUIDE_DIR / "testdata"
 
 LAST_CODE_POINT = 0x10FFFF

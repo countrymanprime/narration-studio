@@ -19,7 +19,7 @@ import { CleanupAction } from './CleanupAction';
 import { EDITING_CLASSES, EDITING_CLASS_LABEL, EDITING_SIGNAL_ID, PROCESSED_AUDIO_CAVEAT, candidateClass } from './editingCheckText';
 import { addressPath } from '../../navigation/address';
 
-/** The host's own refusal sentences (apps/desktop/internal/editing/service.go), for a reason the mapping prompt
+/** The host's own refusal sentences (src/studio/desktop/internal/editing/service.go), for a reason the mapping prompt
  * below does not already explain in place. */
 const NON_MAPPING_REFUSAL: Partial<Record<EditingRefusalReason, string>> = {
   no_project: 'Open a project before checking editing.',
@@ -89,7 +89,7 @@ function stateBadgeColor(state: StageSignalState): string | undefined {
 
 /**
  * One editing class's summary (the host's signal, when it is available: only while
- * the chapter is in the Editing stage, apps/desktop/internal/stages): state, reason, and the saved-project
+ * the chapter is in the Editing stage, src/studio/desktop/internal/stages): state, reason, and the saved-project
  * basis with its age. Outside the Editing stage the signal is not evaluated at all, so the summary falls back to a
  * plain candidate count from the last scan - never a state, since a state this build did not compute is not one it
  * can vouch for. The candidates themselves are worked on the Editing page's Clean up tab.

@@ -1,4 +1,4 @@
-// The golden payloads of the narrator's voice samples (apps/desktop/bindings_voicesamples.go).
+// The golden payloads of the narrator's voice samples (src/studio/desktop/bindings_voicesamples.go).
 import { z } from 'zod';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from '../schemas/voiceSamples';
 

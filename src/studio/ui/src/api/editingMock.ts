@@ -4,14 +4,14 @@
 // host or a race), and every reason answers a refusal instead of running.
 //
 // `editingCandidates` is not implemented here: the real host reads it from the same findings store `FindingsReview`
-// decides against (apps/desktop/internal/editing/scan.go's `Candidates`), so this mock's `editingCandidates` is
+// decides against (src/studio/desktop/internal/editing/scan.go's `Candidates`), so this mock's `editingCandidates` is
 // overridden in mockApi.ts to read the shared `findingsMock` store instead - a candidate is seeded like any other
 // finding (`initial.findings`, editingCandidateFor in mockFixtures.ts), and Accept/Dismiss/Defer on it go through the
 // same `findingsReview` binding a real editing candidate would.
 import type { EditingApi, EditingRefusalReason, EditingSourceChoice, EditingState } from '../types';
 import { wireClone } from './mockFixtures';
 
-/** The host's own refusal sentences (apps/desktop/internal/editing/service.go's unknown/unknownf messages), in short. */
+/** The host's own refusal sentences (src/studio/desktop/internal/editing/service.go's unknown/unknownf messages), in short. */
 const EDITING_REFUSAL_MESSAGES: Record<EditingRefusalReason, string> = {
   unmapped: 'link this chapter to the REAPER track it is edited on',
   multiple_tracks: 'this chapter is linked to more than one REAPER track',

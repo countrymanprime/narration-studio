@@ -1,7 +1,7 @@
-// Builds the public site's Docs section: one static page per condensed guide in apps/site/docs/*.md, written to `docs/` in the site with
+// Builds the public site's Docs section: one static page per condensed guide in src/web/docs/*.md, written to `docs/` in the site with
 // the screenshots they use (docs/images/ui/) in `docs/images/`. The pages are the docs view of the public-site mock
 // (docs/research/mockups/public-site/index.html): a grouped sidebar, the page with its lead, "On this page", previous and next, and a link to
-// the full guide in docs/guides/using-the-app/, which stays the source of truth. Each page is one file in the site shell (apps/site/build/shell.mjs)
+// the full guide in docs/guides/using-the-app/, which stays the source of truth. Each page is one file in the site shell (src/web/build/shell.mjs)
 // with every link relative, so the docs open from any sub-path and inside a sandboxed frame with no network.
 // The build throws on a dead link or heading, a missing image and a page no group lists, so the docs cannot ship broken.
 // Nothing in the app's runtime uses this: markdown-it is a dev dependency of the repo root.
@@ -10,12 +10,12 @@ import { basename, join, posix } from 'node:path';
 import MarkdownIt from 'markdown-it';
 import { REPO, searchItems, sitePage } from './shell.mjs';
 
-const SOURCE_DIR = 'apps/site/docs';
+const SOURCE_DIR = 'src/web/docs';
 const GUIDE_DIR = 'docs/guides/using-the-app';
 const IMAGE_DIR = 'docs/images/ui';
 const REPO_BLOB = `${REPO}/blob/main/`;
 
-// The sidebar's groups: the app's sidebar groups (apps/ui/src/components/layout/AppShell.tsx), with the overview and the first-run pages first.
+// The sidebar's groups: the app's sidebar groups (src/studio/ui/src/components/layout/AppShell.tsx), with the overview and the first-run pages first.
 export const GROUPS = [
   { title: 'Start', hint: 'Begin here', pages: ['index', 'getting-started', 'navigation'] },
   { title: 'Production', hint: 'Plan the book', pages: ['production', 'schedule'] },
@@ -236,7 +236,7 @@ ${demo}
 }
 
 /**
- * Writes `docs/` under `out`: one page per source in apps/site/docs/ (`index.html` is the overview) and the screenshots they name in
+ * Writes `docs/` under `out`: one page per source in src/web/docs/ (`index.html` is the overview) and the screenshots they name in
  * `docs/images/`. Returns the pages (`{ page, title, kind }`, in sidebar order) and the images copied. Throws on a source no group lists, a
  * listed page with no source, a full guide that does not exist, and a link to a page or heading that does not exist.
  */
@@ -247,7 +247,7 @@ export function buildGuides({ root, out, withStorybook }) {
     .map((name) => basename(name, '.md'));
   const listed = GROUPS.flatMap((group) => group.pages);
   for (const name of listed) if (!sources.includes(name)) throw new Error(`the site lists the docs page ${name}, but ${SOURCE_DIR}/${name}.md does not exist`);
-  for (const name of sources) if (!listed.includes(name)) throw new Error(`${SOURCE_DIR}/${name}.md is in no group of apps/site/build/guides.mjs`);
+  for (const name of sources) if (!listed.includes(name)) throw new Error(`${SOURCE_DIR}/${name}.md is in no group of src/web/build/guides.mjs`);
 
   const pages = {};
   for (const name of listed) {

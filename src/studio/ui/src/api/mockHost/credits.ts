@@ -17,7 +17,7 @@ import { WIRE_TRACKS_PROJECT, wireClone } from '../mockFixtures';
 import { type MockApiSeed, mockDocumentId, type MockState } from './state';
 import type { MockSettings } from './settings';
 
-// A JS mirror of apps/desktop/internal/credits.Render: `[Token]` placeholders resolved from `values`, and `{...}`
+// A JS mirror of src/studio/desktop/internal/credits.Render: `[Token]` placeholders resolved from `values`, and `{...}`
 // optional segments dropped whole (their own punctuation with them) when any token inside is unresolved. Kept deliberately close to the Go renderer so the mock's
 // preview behaves like the real one; it does not need to be the same implementation, only the same behavior.
 function renderMockCredits(template: string, values: Record<string, string>): CreditsRenderResult {
@@ -95,7 +95,7 @@ function resolveMockCreditValues(values: CreditValues, narratorGlobal: string): 
   };
 }
 
-// A JS mirror of apps/desktop/internal/credits.MeasureSample: the range start..end of the paragraphs in
+// A JS mirror of src/studio/desktop/internal/credits.MeasureSample: the range start..end of the paragraphs in
 // book order, its lines within each chapter, and its length at 9,300 words per finished hour, refused over 5 minutes.
 const MOCK_WORDS_PER_FINISHED_HOUR = 9300;
 const MOCK_MAX_RETAIL_SAMPLE_SECONDS = 300;
@@ -138,7 +138,7 @@ export function createCreditsMock(
   initial: MockApiSeed,
   { settings, manuscriptReady }: { settings: MockSettings; manuscriptReady: Promise<void> },
 ) {
-  // Mirrors apps/desktop/internal/credits' shipped defaults so a
+  // Mirrors src/studio/desktop/internal/credits' shipped defaults so a
   // mock session shows the same starting library as the real host.
   let creditTemplates: CreditTemplate[] = [
     {
@@ -209,7 +209,7 @@ export function createCreditsMock(
         ];
   // The credits setup prompt's dismissal (the host keeps "Not now" in memory and "Don't ask" on the manifest).
   let creditsSetupDismissed: CreditsSetupState['dismissed'] = initial.creditsSetup ? '' : 'project';
-  // The host's credits.SetupFields over the mock's library, values and detected candidates (apps/desktop/creditsetup.go).
+  // The host's credits.SetupFields over the mock's library, values and detected candidates (src/studio/desktop/creditsetup.go).
   const mockCreditsSetupState = (): CreditsSetupState => {
     const detected = mockDetectedCandidates().filter((candidate) => {
       const field = setupFieldOf(candidate.token);

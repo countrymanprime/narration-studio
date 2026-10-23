@@ -52,7 +52,7 @@ func readOrNone(t *testing.T, path string) []byte {
 	return raw
 }
 
-// TestTypesMatchTheSidecarCases replays every case sidecars/manuscript-guide/tests/test_type_parity.py recorded from the sidecar's own
+// TestTypesMatchTheSidecarCases replays every case src/studio/sidecars/manuscript-guide/tests/test_type_parity.py recorded from the sidecar's own
 // type commands: the same file after it (a Story Bible started where there was none), or the same reason with the file untouched. One
 // Service runs them all, so the held document must notice every new starting file, and a file that is gone.
 func TestTypesMatchTheSidecarCases(t *testing.T) {

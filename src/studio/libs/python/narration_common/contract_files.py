@@ -3,7 +3,7 @@
 A sidecar test calls ``check("name", value)``. The value is written as indented JSON with sorted keys and compared with
 ``tests/fixtures/contracts/<name>.json``; the TypeScript contract tests validate the same file against the UI's schemas, so a
 payload that drifts fails on one side or the other. Run the tests with ``UPDATE_CONTRACTS=1`` to rewrite the file after a
-deliberate change, and commit the diff. The Go helper (apps/desktop/internal/contractfile) writes the same format.
+deliberate change, and commit the diff. The Go helper (src/studio/desktop/internal/contractfile) writes the same format.
 """
 
 import json

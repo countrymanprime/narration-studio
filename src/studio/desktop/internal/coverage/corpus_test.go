@@ -15,8 +15,8 @@ import (
 
 // The recording-coverage corpus: the committed synthetic cases, and
 // the results file the shipped sidecar writes for each at the shipped settings,
-// pinned by sidecars/transcript-compare/tests/test_coverage_results_golden.py.
-var corpusDir = filepath.Join("..", "..", "..", "..", "sidecars", "transcript-compare", "tests", "fixtures", "coverage")
+// pinned by src/studio/sidecars/transcript-compare/tests/test_coverage_results_golden.py.
+var corpusDir = filepath.Join("..", "..", "..", "sidecars", "transcript-compare", "tests", "fixtures", "coverage")
 
 const corpusDocument = "coverage-fixtures"
 

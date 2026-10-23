@@ -10,7 +10,7 @@ import (
 )
 
 // sampleResults is a results file in the shape the sidecar writes (the
-// payloads of sidecars/transcript-compare/tests/test_coverage_mode.py's
+// payloads of src/studio/sidecars/transcript-compare/tests/test_coverage_mode.py's
 // cached run, plus a paragraph with a skipped block and a line with a tag a
 // newer sidecar might add).
 const sampleResults = `COVERAGE|{"alignment":{"maxMisreadRun":8,"minAnchorRun":3},"analysis":{"equivalencesHash":null,"language":null,"model":"small"},"bodyTokens":40,"chapterId":"c-0001","extraTokens":2,"items":{"analyzed":2,"muted":1,"playedSeconds":16.0,"reused":2,"transcribed":0},"longestMissingRun":12,"missingTokens":14,"presentTokens":26,"schemaVersion":1}

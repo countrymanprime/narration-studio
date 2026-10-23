@@ -4,10 +4,10 @@ The play button beside a Story Bible name, or beside one of its aliases, speaks 
 
 ## The path
 
-1. `GuideDetail.tsx` calls `usePreviewAudio`, which calls `api.guidePreview(entityId, aliasIndex)` (`Host.GuidePreview`, `apps/desktop/bindings.go`).
+1. `GuideDetail.tsx` calls `usePreviewAudio`, which calls `api.guidePreview(entityId, aliasIndex)` (`Host.GuidePreview`, `src/studio/desktop/bindings.go`).
 2. The host reads the selected voice (`Piper.tts_voice_id`), asks the asset registry's voice manager for its model and config paths, and returns **`asset_required`** (the voice, its state, download size, disk needed and where it will be stored) when the voice is not installed or does not verify. The UI shows the first-use question and, after a download, plays the preview that was asked for ([The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented), [first-use provisioning](first-use-dependency-provisioning.md)).
 3. `guide.Service.Preview` resolves the spoken text, builds the cache file name and returns a cached WAV when there is a real one. Otherwise it runs the sidecar's `render-audio` command with a two-minute deadline (`previewTimeout`) and returns the WAV as base64 (`docs/architecture/threat-model.md`'s route for short clips).
-4. The sidecar (`render_audio` in `sidecars/manuscript-guide/core/manuscript_guide.py`) synthesizes with the Piper API, never a checkout executable, and writes the WAV.
+4. The sidecar (`render_audio` in `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`) synthesizes with the Piper API, never a checkout executable, and writes the WAV.
 
 ## What keeps a failure from hurting the next try
 
@@ -25,4 +25,4 @@ Each failure is one toast message: the cause in a sentence with the raw reason i
 
 ## Tests
 
-Python: `sidecars/manuscript-guide/tests/test_manuscript_guide.py` (a synthesis error is reported and not masked, an unspeakable name says so, a failed render leaves no file, UTF-8 to a legacy code page pipe). Go: `apps/desktop/internal/guide/preview_test.go` (a zero-byte cache file is replaced, an empty result is rejected and not kept, the cache is keyed on the voice, the deadline) and `apps/desktop/guidepreview_test.go` (each failure class and `asset_required` through the binding). UI: `GuideDetail.test.tsx` and `usePreviewAudio.test.tsx` (the failure message, Play usable again, the install flow). The mock has `?mockPreviewError=<text>` to see a failure without a host.
+Python: `src/studio/sidecars/manuscript-guide/tests/test_manuscript_guide.py` (a synthesis error is reported and not masked, an unspeakable name says so, a failed render leaves no file, UTF-8 to a legacy code page pipe). Go: `src/studio/desktop/internal/guide/preview_test.go` (a zero-byte cache file is replaced, an empty result is rejected and not kept, the cache is keyed on the voice, the deadline) and `src/studio/desktop/guidepreview_test.go` (each failure class and `asset_required` through the binding). UI: `GuideDetail.test.tsx` and `usePreviewAudio.test.tsx` (the failure message, Play usable again, the install flow). The mock has `?mockPreviewError=<text>` to see a failure without a host.

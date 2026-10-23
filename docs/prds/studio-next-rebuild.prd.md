@@ -4,7 +4,7 @@
 
 **Builds on:** the working mock in [`docs/research/mockups/studio-next/`](../research/mockups/studio-next/README.md) (its [architecture contract](../research/mockups/studio-next/ARCHITECTURE.md) and the owner's rulings in `studio-next/research/repo-compare-decisions.md`); the repo's own ports and registries ([The DAW port](../architecture/daw-integration.md#the-daw-port), [Provider ports](../architecture/provider-ports.md), [Studio shell and registries](../architecture/studio-shell-and-registries.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md)); and the agent train ([`.claude/skills/agent-train/SKILL.md`](../../.claude/skills/agent-train/SKILL.md)).
 
-**Extends, and in places asks to change:** [Which mocks are the spec](#which-mocks-are-the-spec) (D96, now D98), [Design principles](../architecture/principles.md) (a new page replaces its old counterpart in the same change), [Booth](../guides/using-the-app/booth.md), [narration_punch.lua](../../integrations/reaper/narration_punch.lua), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [Manuscript Guide](../utilities/manuscript-guide.md). Every such place is decided by the owner's rulings of 2026-10-11 (see Decisions below); a new ADR, written as Proposed, records each one (see "ADR conflicts" below).
+**Extends, and in places asks to change:** [Which mocks are the spec](#which-mocks-are-the-spec) (D96, now D98), [Design principles](../architecture/principles.md) (a new page replaces its old counterpart in the same change), [Booth](../guides/using-the-app/booth.md), [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [Manuscript Guide](../utilities/manuscript-guide.md). Every such place is decided by the owner's rulings of 2026-10-11 (see Decisions below); a new ADR, written as Proposed, records each one (see "ADR conflicts" below).
 
 **Status (2026-10-11):** draft, with every owner question decided (see Decisions). This is the overview of a series of 15 PRDs. No tracking issue is open yet; open one per PRD before its first slice ([Tracking work on GitHub](../operations/github-workflow.md)). Nothing is waiting for the owner before code slices start.
 
@@ -55,18 +55,18 @@ The owner has ruled that the mock is the gold standard: what is not in the mock 
 
 | Concern | Real app today | Where |
 | --- | --- | --- |
-| DAW port, roles, resolver, capability levels and reasons | Built, 24 capabilities, REAPER and Audacity adapters, conformance suite | `apps/desktop/internal/dawport/` ([The DAW port](../architecture/daw-integration.md#the-daw-port) to [Provider ports](../architecture/provider-ports.md)) |
-| Provider ports (ASR, TTS, pronunciation, capture, encode) with registries and conformance | Built | `apps/desktop/internal/asrport/` and siblings ([Provider ports](../architecture/provider-ports.md)) |
-| Capability gate and its hook | Built | `apps/ui/src/components/primitives/CapabilityGate.tsx`, `apps/ui/src/useCapability.ts` ([Base UI wrappers](../design/design-system.md#base-ui-wrappers)) |
-| Command registry, scopes, keymap, MIDI/HID sources | Built; 15 commands in the catalogue | `apps/ui/src/input/` ([Studio shell and registries](../architecture/studio-shell-and-registries.md)) |
-| Wire contracts: Zod behind `parseWire`, goldens, contract test per binding | Built | `apps/ui/src/api/schemas/`, `tests/fixtures/contracts/` ([Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md)) |
-| Backend injection with a mock (`NarrationApi`, split into per-domain interfaces) | Built | `apps/ui/src/types.ts`, `apps/ui/src/api/mockApi.ts` |
-| Context menu, key caps and hints, toasts, tooltips, dialogs, slide-overs | Built as Base UI primitives | `apps/ui/src/components/primitives/` ([Design system reference](../design/design-system.md)) |
-| Visual suite, atlas, axe, aria snapshots, Lua harness | Built | `apps/ui/tests/`, `integrations/reaper/tests/` |
-| Findings with an append-only decision history keyed to an evidence version | Built | `apps/desktop/internal/findings/store.go` ([Shared Findings Contract](../architecture/findings-contract.md)) |
-| Stage recommendations, status report, deadline tone, next-up order | Built | `apps/desktop/internal/stages/`, `internal/production/` ([overview.go](../../apps/desktop/internal/production/overview.go), [Status report](../guides/using-the-app/production.md#status-report)) |
+| DAW port, roles, resolver, capability levels and reasons | Built, 24 capabilities, REAPER and Audacity adapters, conformance suite | `src/studio/desktop/internal/dawport/` ([The DAW port](../architecture/daw-integration.md#the-daw-port) to [Provider ports](../architecture/provider-ports.md)) |
+| Provider ports (ASR, TTS, pronunciation, capture, encode) with registries and conformance | Built | `src/studio/desktop/internal/asrport/` and siblings ([Provider ports](../architecture/provider-ports.md)) |
+| Capability gate and its hook | Built | `src/studio/ui/src/components/primitives/CapabilityGate.tsx`, `src/studio/ui/src/useCapability.ts` ([Base UI wrappers](../design/design-system.md#base-ui-wrappers)) |
+| Command registry, scopes, keymap, MIDI/HID sources | Built; 15 commands in the catalogue | `src/studio/ui/src/input/` ([Studio shell and registries](../architecture/studio-shell-and-registries.md)) |
+| Wire contracts: Zod behind `parseWire`, goldens, contract test per binding | Built | `src/studio/ui/src/api/schemas/`, `tests/fixtures/contracts/` ([Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md)) |
+| Backend injection with a mock (`NarrationApi`, split into per-domain interfaces) | Built | `src/studio/ui/src/types.ts`, `src/studio/ui/src/api/mockApi.ts` |
+| Context menu, key caps and hints, toasts, tooltips, dialogs, slide-overs | Built as Base UI primitives | `src/studio/ui/src/components/primitives/` ([Design system reference](../design/design-system.md)) |
+| Visual suite, atlas, axe, aria snapshots, Lua harness | Built | `src/studio/ui/tests/`, `src/studio/integrations/reaper/tests/` |
+| Findings with an append-only decision history keyed to an evidence version | Built | `src/studio/desktop/internal/findings/store.go` ([Shared Findings Contract](../architecture/findings-contract.md)) |
+| Stage recommendations, status report, deadline tone, next-up order | Built | `src/studio/desktop/internal/stages/`, `internal/production/` ([overview.go](../../src/studio/desktop/internal/production/overview.go), [Status report](../guides/using-the-app/production.md#status-report)) |
 | Pronunciation sources, speaker colours, resume point, live flags, recording check | Built | ([ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Shared Findings Contract](../architecture/findings-contract.md), [Recording Check (recording coverage)](../utilities/recording-coverage.md)) |
-| Workspace: word-level player, flags, takes panel, FX on a passage | Built inside the Proof chapter page | `apps/ui/src/components/proof/` ([From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel)) |
+| Workspace: word-level player, flags, takes panel, FX on a passage | Built inside the Proof chapter page | `src/studio/ui/src/components/proof/` ([From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel)) |
 
 **What the repo does not have** (each is a gap below): a UI domain store with a cross-page undo journal; a jump menu and search-source registry; a context-menu provider registry and a help catalogue derived from the command catalogue; an overlay service; `DawResult` (undo steps, steps taken) and capability `reason`, `destructive` and `mode` fields; capabilities for range cut, range FX, stacking and Audacity backups; bookmarks; milestone measure, estimate and done flag; a payment type; extraction suggestions with the 75% rule; optional analysis-tool downloads for extraction; the Editing page; the cleared-versus-decided counters; a mock-versus-real parity suite for providers.
 
@@ -90,8 +90,8 @@ If every seam the mock proves is added to the real app as an interface with a mo
 
 The owner's deferred and rejected list stands (`studio-next/research/repo-compare-decisions.md`). This series does not build:
 
-- Time tracking in the mock's sense: the stage timer, hours log, PFH, effective rate and hours by stage. The real app already ships a timer chip and PFH ([pfh.go](../../apps/desktop/internal/production/pfh.go)); the mock has no equivalent, so they stay as built and untouched (SN0-Q4). No slice reads or extends them.
-- The Companion. The real app's companion ([Companion mode](../guides/using-the-app/booth.md#companion-mode), [bindings_companion.go](../../apps/desktop/bindings_companion.go)) is frozen as built with no work (DQ-13); the mock's parked Companion page is not translated.
+- Time tracking in the mock's sense: the stage timer, hours log, PFH, effective rate and hours by stage. The real app already ships a timer chip and PFH ([pfh.go](../../src/studio/desktop/internal/production/pfh.go)); the mock has no equivalent, so they stay as built and untouched (SN0-Q4). No slice reads or extends them.
+- The Companion. The real app's companion ([Companion mode](../guides/using-the-app/booth.md#companion-mode), [bindings_companion.go](../../src/studio/desktop/bindings_companion.go)) is frozen as built with no work (DQ-13); the mock's parked Companion page is not translated.
 - A proofer CSV import or export; a proofer packet for a companion app.
 - FX chains on whole takes (only a range of words, per the ruling, and only through the DAW's own saved chains).
 - Audacity 4 (no scripting there yet; revisit when it exists) and any Audacity clip-takes except through the backups table.
@@ -108,7 +108,7 @@ The owner's deferred and rejected list stands (`studio-next/research/repo-compar
 | --- | --- | --- |
 | Rulings with a test in the real app | 100% of agreed rulings in `repo-compare-decisions.md` at cutover | The ruling index in [Cutover](studio-next-cutover.prd.md), checked by a test that fails on an unmapped row |
 | Provider interfaces with a shared contract suite run against mock and real | 100% of the ports in the provider map | `describeProviderContract` (see [Domain, State and Wire Contracts](studio-next-domain-state-and-contracts.prd.md)) |
-| Raw `button`, `input`, `select`, `textarea`, `table` in `apps/ui/src` beyond reasoned ceilings | Ceilings fall to zero per migrated page | `apps/ui/src/rawNatives.test.ts` |
+| Raw `button`, `input`, `select`, `textarea`, `table` in `src/studio/ui/src` beyond reasoned ceilings | Ceilings fall to zero per migrated page | `src/studio/ui/src/rawNatives.test.ts` |
 | `main` stays shippable | `Build (Windows)` and `ui-dist` green on every merged slice; no slice reverts | Merge log on #509 |
 | Visual evidence | Every UI slice PR updates its page's how-to guide, text and screenshots, and states the real-app and Storybook results | The coordinator's merge check and the `Guide impact` step of `Docs / Docs checks` ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)) |
 | Continuous delivery | At least `TARGET` workers busy whenever a ready slice exists; no ready slice waits more than one coordinator pass | Status report in [Agent Delivery](../../.claude/skills/agent-train/references/studio-next-delivery.md) |
@@ -149,7 +149,7 @@ The 18 rulings on the ADR conflicts (DQ-1 to DQ-18) are in the [register](studio
 | Open/closed | New page keys, commands, context items and search sources register themselves (`studio-next/src/app/registry.ts`); adding a page edits no menu | Commands stay static descriptors in the catalogue ([Studio shell and registries](../architecture/studio-shell-and-registries.md)); the jump menu, help sheet and Settings key list are views of it; context items and search sources register by provider. Adding a feature adds a row or a provider, not an `if` |
 | Liskov | `createMockPronunciation()` and a real provider answer the same `PronCandidate` (`studio-next/src/providers/pronunciation.ts`); a refusal is a value, never a throw | Every provider port has one contract suite that both the mock and the host-backed adapter pass; a mock may not be more permissive than the host |
 | Interface segregation | Callers ask for a capability, not a DAW: `gateOf(mock, 'markers')` (`studio-next/src/selectors/daw.ts`) | The DAW stays many small roles ([The DAW port](../architecture/daw-integration.md#the-daw-port)); on the UI side `useApi()` stops returning the whole facade: a feature takes the one domain interface it needs |
-| Dependency inversion | Pages call `daw()` and `pronunciation()`; nothing imports a bridge | Pages depend on UI ports (`apps/ui/src/ports/`), adapters live beside `api/`; the composition root picks host or mock ([Provider ports](../architecture/provider-ports.md), `ApiProvider`) |
+| Dependency inversion | Pages call `daw()` and `pronunciation()`; nothing imports a bridge | Pages depend on UI ports (`src/studio/ui/src/ports/`), adapters live beside `api/`; the composition root picks host or mock ([Provider ports](../architecture/provider-ports.md), `ApiProvider`) |
 
 ### Provider map: the mock's seam to the real one
 
@@ -157,9 +157,9 @@ The 18 rulings on the ADR conflicts (DQ-1 to DQ-18) are in the [register](studio
 | --- | --- | --- |
 | `DawAdapter` (`studio-next/src/state/daw.ts`) | Go `dawport` roles behind Wails bindings | UI `DawClient` returning `DawResult`; Go capability and result extensions ([DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md)) |
 | `PronunciationProvider` | `pronunciationport` and the Story Bible bindings | Align semantics (source plus manual, no query workflow) ([Script and Story Bible](studio-next-script-and-story-bible.prd.md)) |
-| `ExtractionProvider`, `ComponentProvider` | Rules extraction in `sidecars/manuscript-guide`; the asset registry ([The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented)) | Suggestion layer; analysis tools become registry assets, not a second installer ([Extraction and Analysis Tools](studio-next-extraction-and-analysis-tools.prd.md)) |
+| `ExtractionProvider`, `ComponentProvider` | Rules extraction in `src/studio/sidecars/manuscript-guide`; the asset registry ([The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented)) | Suggestion layer; analysis tools become registry assets, not a second installer ([Extraction and Analysis Tools](studio-next-extraction-and-analysis-tools.prd.md)) |
 | `SpeechProvider` | `asrport`, the coverage sidecar, live flags | Expose engines the host reports; Moonshine live in the Booth only ([Proof and Pickups](studio-next-proof-and-pickups.prd.md), [Booth](studio-next-booth.prd.md)) |
-| `AlignmentProvider`, `TakesProvider`, `FxChainProvider` | Workspace alignment store ([workspace.go](../../apps/desktop/internal/coverage/workspace.go), [Recording Check (recording coverage)](../utilities/recording-coverage.md)), take metrics, `list_fx_chains` | Per-word times for the Editing page; range cut and FX ([Script-Based Editing](studio-next-script-based-editing.prd.md)) |
+| `AlignmentProvider`, `TakesProvider`, `FxChainProvider` | Workspace alignment store ([workspace.go](../../src/studio/desktop/internal/coverage/workspace.go), [Recording Check (recording coverage)](../utilities/recording-coverage.md)), take metrics, `list_fx_chains` | Per-word times for the Editing page; range cut and FX ([Script-Based Editing](studio-next-script-based-editing.prd.md)) |
 | `MeasurementProvider` (`Measured<T>`) | `measure`, `production.Recorded` | Value-or-reason answers for This week and room tone ([Production and Schedule](studio-next-production-and-schedule.prd.md)) |
 | `ReadinessProvider` | `stages` engine ([The engine](../architecture/stage-recommendations.md#the-engine), [The narrator's decisions](../architecture/stage-recommendations.md#the-narrators-decisions)) | Re-skin; no second engine |
 
@@ -167,7 +167,7 @@ The 18 rulings on the ADR conflicts (DQ-1 to DQ-18) are in the [register](studio
 
 ```mermaid
 flowchart TB
-  subgraph UI["apps/ui (React 19, Tailwind, Base UI behind primitives)"]
+  subgraph UI["src/studio/ui (React 19, Tailwind, Base UI behind primitives)"]
     Pages["Pages: Production, Script, Story Bible, Booth, Editing, Proof, Pickups, Master, Settings"]
     Registries["Registries: commands and keymap, jump menu and search sources, context-menu providers, help catalogue"]
     Overlay["Overlay service: dialog, slide-over, popover, context menu, toast, tooltip"]
@@ -187,7 +187,7 @@ flowchart TB
   end
   Ports --> Host
   Ports --> Mock
-  subgraph Go["apps/desktop (Go host, source of truth)"]
+  subgraph Go["src/studio/desktop (Go host, source of truth)"]
     Services["Project services and sidecar files"]
     DawPort["dawport roles + resolver"]
     ProvPorts["provider ports + asset registry"]
@@ -195,7 +195,7 @@ flowchart TB
   Host --> Services
   Host --> DawPort
   Host --> ProvPorts
-  DawPort --> Reaper["integrations/reaper (Lua bridge + harness)"]
+  DawPort --> Reaper["src/studio/integrations/reaper (Lua bridge + harness)"]
   DawPort --> Audacity["Audacity pipe adapter"]
   DawPort --> Builtin["Built-in recorder"]
   ProvPorts --> Sidecars["sidecars: guide, teleprompter, transcript-compare, analysis tools"]
@@ -227,17 +227,17 @@ The owner's rulings of 2026-10-11 decide every row. The owning PRD authors the s
 | A4 | Imperative overlays | [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md) | Overlay service renders the existing primitives (SNR) |
 | A5 | Whole-book client store with immer patches | Host owns state ([The rule](../architecture/host-binding-concurrency.md#the-rule), [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md)); no immer dependency | Read-model store and command journal (SNS) |
 | A6 | Undo spanning the DAW | None; owner's QA step; spike needed | Undo scope and DAW flag (SNS/SND) |
-| A7 | `DawResult`, capability `reason`, `destructive`, `mode`; camelCase levels | Wire levels are `not_yet_available` snake case; refusal sentences by resolver ([resolver.go](../../apps/desktop/internal/dawport/resolver.go)) | Result object and capability fields, keeping wire names (SND) |
-| A8 | Roll as one DAW command keeping earlier audio as a take | [narration_punch.lua](../../integrations/reaper/narration_punch.lua): punch and roll move only the edit cursor | Supersedes the roll part after a spike (SND) |
+| A7 | `DawResult`, capability `reason`, `destructive`, `mode`; camelCase levels | Wire levels are `not_yet_available` snake case; refusal sentences by resolver ([resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)) | Result object and capability fields, keeping wire names (SND) |
+| A8 | Roll as one DAW command keeping earlier audio as a take | [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua): punch and roll move only the edit cursor | Supersedes the roll part after a spike (SND) |
 | A9 | Cut and FX on a range of words | [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), : chains on tracks, one plug-in at a time on a passage | Range exception, confirm first, one undo step (SND/SNE) |
 | A10 | Leaving the Booth while recording asks to stop | [Booth](../guides/using-the-app/booth.md) decision 3: the session keeps running; [Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua): app stops only its own recording | Amends both (SNO) |
 | A11 | Pronunciation without query or confirmed status | [Manuscript Guide](../utilities/manuscript-guide.md), : status values, query CSV, re-import | Supersedes those parts; the query status, CSV export and import, and the badge counting open queries are removed with the Story Bible swap (SNB) |
-| A12 | Payment type, milestone measure, estimate, done | [manifest.go](../../apps/desktop/internal/project/manifest.go) milestones are dated checkpoints; [pfh.go](../../apps/desktop/internal/production/pfh.go) | Extends the manifest (SNP) |
+| A12 | Payment type, milestone measure, estimate, done | [manifest.go](../../src/studio/desktop/internal/project/manifest.go) milestones are dated checkpoints; [pfh.go](../../src/studio/desktop/internal/production/pfh.go) | Extends the manifest (SNP) |
 | A13 | Schedule and Delivery pages | [Design principles](../architecture/principles.md) decision 5 | Supersedes decision 5: both are pages with their own rail items (SNP/SNM) |
 | A14 | Suggestion layer, 75% verify rule, optional downloads | [Story Bible entity-extraction accuracy](../architecture/story-bible-entity-accuracy.md) precision over recall; [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented) one asset registry; provenance rules | Extraction suggestions and tiers (SNX) |
 | A15 | Editing as a page that takes the workspace out of Proof | [Design principles](../architecture/principles.md), [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision) | Editing page replaces the workspace (SNE) |
-| A16 | Breakpoints from zoomed width; icon vocabulary; key cap pictures | [viewports.ts](../../apps/ui/tests/visual/viewports.ts), [Zoom](../guides/using-the-app/navigation.md#zoom); [Design system reference](../design/design-system.md) | Layout rules and icon vocabulary (SNF) |
-| A18 | Proof counts decided and cleared; a note is open until fixed, waived or dismissed | [pickups.go](../../apps/desktop/internal/proofing/pickups.go), [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision): open means anything not dismissed | Proof counters and the cleared definition (SNQ) |
+| A16 | Breakpoints from zoomed width; icon vocabulary; key cap pictures | [viewports.ts](../../src/studio/ui/tests/visual/viewports.ts), [Zoom](../guides/using-the-app/navigation.md#zoom); [Design system reference](../design/design-system.md) | Layout rules and icon vocabulary (SNF) |
+| A18 | Proof counts decided and cleared; a note is open until fixed, waived or dismissed | [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go), [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision): open means anything not dismissed | Proof counters and the cleared definition (SNQ) |
 | A17 | New dependency `immer` | Knip and dependency policy ([Dead code (Knip)](../operations/verification-tooling.md#dead-code-knip)) | Folded into A5 |
 
 ### ADR supersession register
@@ -284,7 +284,7 @@ All other old PRDs have every phase complete.
 The series is built to be delivered by the agent train without a pause. The detailed model is [Agent Delivery](../../.claude/skills/agent-train/references/studio-next-delivery.md); the facts that shape every PRD are:
 
 - **Every PRD ends with a "Slices" table** (id, scope, depends on, parallel-safe, verification). A slice is one PR by one worker in one lane, with its own issue created just in time, a machine-readable header (`owns` globs, `depends`, serial points) and a `## Handoff` comment so a fresh session resumes from the repo and the issue alone.
-- **Lanes are the train's lanes** (K contracts, A host, B adapters and sidecars, U primitives and input, C UI features, D documents, X exclusive); the series' new directories (`apps/ui/src/studio/`, `ports/`, `overlay/`, `registries/`) are proposed lane U territory.
+- **Lanes are the train's lanes** (K contracts, A host, B adapters and sidecars, U primitives and input, C UI features, D documents, X exclusive); the series' new directories (`src/studio/ui/src/studio/`, `ports/`, `overlay/`, `registries/`) are proposed lane U territory.
 - **The coordinator's pass is the train's pass** ([The coordinator's pass](../../.claude/skills/agent-train/SKILL.md#the-coordinators-pass)) plus a groomer launch when fewer than twice `TARGET` ready slices exist.
 - **Owner decisions** are recorded in a decisions register issue seeded from `repo-compare-decisions.md` and the rulings of 2026-10-11; there are no DISCUSS rows, and an ADR is never accepted by default.
 
@@ -347,7 +347,7 @@ The app stays shippable because every slice leaves `pnpm check` green on its own
 
 ### Verification approach
 
-- **Provider contract suites.** Every UI port has `describeProviderContract(port)` run over the mock adapter and the host-backed adapter (the host side against the Go golden payloads). Every Go port keeps its `*porttest.Run` suite. A new port without both fails a test, as new bindings already do (`apps/ui/src/api/wireContracts.test.ts`).
+- **Provider contract suites.** Every UI port has `describeProviderContract(port)` run over the mock adapter and the host-backed adapter (the host side against the Go golden payloads). Every Go port keeps its `*porttest.Run` suite. A new port without both fails a test, as new bindings already do (`src/studio/ui/src/api/wireContracts.test.ts`).
 - **Wire contracts.** Each new payload: Zod schema, golden written by a Go or Python test (`UPDATE_CONTRACTS=1`), a `wireContracts.test.ts` row, a mock that passes it, a `wire.go` row for REAPER events ([wire contracts](../architecture/wire-contracts.md)).
 - **Ruling tests.** Each agreed ruling gets a test named for it, carried over from the mock's test where one exists (`studio-next/tests/`), indexed in a table the cutover checks.
 - **Visual evidence.** Visual suite rows per state at the suite's viewports, looked at by the worker; atlas and axe for primitives; aria snapshots for dialogs and slide-overs; the page's guide text and screenshots updated in the same PR ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)).
@@ -419,7 +419,7 @@ flowchart LR
 | Risk | Likelihood | Mitigation |
 | --- | --- | --- |
 | Workers chase the benchmark or an older ADR where the mock differs | Medium | Studio Next is the only spec (SN0-Q1); the slice issue names the mock page file |
-| Workers copy mock code that breaks an ADR (global CSS, raw keys) | High | The "port, do not copy" rule in the slice template; architecture tests (`apps/ui/src/architectureRules.test.ts`, `apps/ui/src/legacyCss.test.ts`) catch it |
+| Workers copy mock code that breaks an ADR (global CSS, raw keys) | High | The "port, do not copy" rule in the slice template; architecture tests (`src/studio/ui/src/architectureRules.test.ts`, `src/studio/ui/src/legacyCss.test.ts`) catch it |
 | A rebuilt page regresses behaviour the mock never knew (it never read the repo) | Medium | Phase 0 of each page PRD is a characterization pass: list the real page's consumers and tests before changing it (`change-impact-scan`) |
 | Spikes need REAPER or Audacity hardware | High | Scripted spikes on copies; hardware steps pending on #510 and never block ([D65](../../.claude/skills/agent-train/SKILL.md#owner-standing-rules)) |
 | The slice count overloads the coordinator | Medium | Slices carry machine-readable dependency lines; the ready list is computed, not judged |
@@ -479,7 +479,7 @@ Pass 1 of `solid-design-review` and `design-principles` for the whole series, wr
 | Open/closed | Commands, keys, context and search are registries (SNR); a provider is added by registering it, not by editing a switch | Met |
 | Liskov | A mock provider and the real one pass the same parity kit (SNS-4); a fake that behaves differently fails it | At risk until SNS-4 lands |
 | Interface segregation | DAW work is split into role interfaces with a capability descriptor (SND); no page takes the whole adapter | Met |
-| Dependency inversion | Pages depend on `apps/ui/src/api` and ports, never on Wails bindings or an adapter by name (SNS, SND) | Met |
+| Dependency inversion | Pages depend on `src/studio/ui/src/api` and ports, never on Wails bindings or an adapter by name (SNS, SND) | Met |
 
 ## Principles check
 
@@ -511,7 +511,7 @@ Pass 1 of `solid-design-review` and `design-principles` for the whole series, wr
 
 - Read: `CLAUDE.md`, `CONTRIBUTING.md`, `docs/prds/README.md`, `docs/operations/agent-train.md` (now `.claude/skills/agent-train/SKILL.md`), `docs/operations/github-workflow.md`, `docs/architecture/{wire-contracts,daw-integration,reaper-bridge,provider-ports,threat-model}.md`, the ADRs cited above, and the existing PRDs named in each series member.
 - Mock: `ARCHITECTURE.md`, `README.md`, `research/repo-compare-decisions.md`, `research/studio2-work-plan.md`, the section headings of the other research notes, and the store, registry, command, key, overlay, layout, DAW, provider and domain-schema sources.
-- Code: `apps/ui/src/{types.ts,App.tsx,input/*,components/primitives/*,api/*}`, `apps/desktop/internal/dawport/*`.
+- Code: `src/studio/ui/src/{types.ts,App.tsx,input/*,components/primitives/*,api/*}`, `src/studio/desktop/internal/dawport/*`.
 - Not done: nothing was built or run; the mock's tests were not executed here; REAPER and Audacity behaviours are unverified; the estimates are judgement.
 
 ## Visual Spec

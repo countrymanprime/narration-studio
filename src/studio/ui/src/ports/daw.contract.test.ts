@@ -85,7 +85,7 @@ import { type ContractCase, describeProviderContract, type Goldens } from './pro
 // stand-in host below answers a known chapter, take and finding with the "ok" golden and anything else with the refusal golden,
 // which is what the real host does for an id it no longer has.
 
-const GOLDEN_DIR = fileURLToPath(new URL('../../../../tests/fixtures/contracts/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
 const GOLDEN_FILES = [
   'daw-capabilities-reaper.json',
   'daw-result-ok.json',

@@ -8,7 +8,7 @@ import (
 
 // Env is what the composition root hands an adapter factory for one launch. It names the engine's transport rather than holding
 // it: the adapter a factory builds opens and owns its own connection, so no package outside the adapter holds one (
-// apps/desktop/internal/dawport/registry.go).
+// src/studio/desktop/internal/dawport/registry.go).
 type Env struct {
 	// SessionDir is REAPER's file bridge directory, made by NarrationStudio_Launcher.lua; empty when the launch has none.
 	SessionDir string

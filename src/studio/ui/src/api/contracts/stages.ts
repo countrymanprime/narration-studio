@@ -2,7 +2,7 @@ import type { ChapterStatus } from './manuscript';
 
 // Chapter stage recommendations (see docs/architecture/stage-recommendations.md): every narration chapter's suggestion to advance one stage, computed on read from the evidence as it
 // stands and never stored. Only Confirm and Revert change a chapter status, and only when the narrator clicks. The host
-// shapes are apps/desktop/internal/stages (types.go, engine.go, service.go) and apps/desktop/bindings_stages.go.
+// shapes are src/studio/desktop/internal/stages (types.go, engine.go, service.go) and src/studio/desktop/bindings_stages.go.
 
 /** A signal's tri-state answer: only `met` can recommend; `unknown` is never read as met. */
 export type StageSignalState = 'met' | 'not_met' | 'unknown';

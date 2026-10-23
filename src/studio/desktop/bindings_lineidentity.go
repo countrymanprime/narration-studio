@@ -6,8 +6,8 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/lineidentity"
 )
 
-// The bindings for manuscript line identity, used by apps/ui's "Link chapters" flow: the wire-contract schema,
-// golden payload, mock and wireContracts.test.ts row live in apps/ui/src/api (docs/architecture/wire-contracts.md),
+// The bindings for manuscript line identity, used by src/studio/ui's "Link chapters" flow: the wire-contract schema,
+// golden payload, mock and wireContracts.test.ts row live in src/studio/ui/src/api (docs/architecture/wire-contracts.md),
 // and h.emitLineIdentity (app.go) relays every state change as the "lineidentity:state" live event, the way
 // h.emitTranscript does for Transcript Compare. The UI collects a narrator-confirmed chapter-to-track mapping and
 // supplies the rows itself.

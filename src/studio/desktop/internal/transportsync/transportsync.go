@@ -1,6 +1,6 @@
 // Package transportsync is the host's side of the Editing page's transport sync (docs/design/editing-daw-transport-sync.md): what the
 // DawTransportSync binding does with the transport_sync role, and the payload of the daw_position_changed event. It holds no state and no bridge
-// client; the binding in apps/desktop passes it the role, the capability's support and a way to ask whether the DAW has this book's project open.
+// client; the binding in src/studio/desktop passes it the role, the capability's support and a way to ask whether the DAW has this book's project open.
 package transportsync
 
 import (

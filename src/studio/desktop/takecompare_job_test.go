@@ -53,7 +53,7 @@ func (f *fakeTakeCompareRunner) TakeDivergence(ctx context.Context, req takecomp
 // pinnedDivergenceResults is the sidecar's own results file for three takes, pinned by its pytest suite.
 func pinnedDivergenceResults(t *testing.T) string {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("..", "..", "tests", "fixtures", "contracts", "take-divergence-results.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tests", "fixtures", "contracts", "take-divergence-results.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

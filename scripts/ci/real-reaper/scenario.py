@@ -1,6 +1,6 @@
 """What the real-REAPER scenario suites share: an arrange/act/assert environment over the bridge's file protocol.
 
-A scenario arranges a scratch project with a Lua snippet (`ci_exec`, integrations/reaper/spikes/ci_real_reaper_lib.lua), acts by
+A scenario arranges a scratch project with a Lua snippet (`ci_exec`, src/studio/integrations/reaper/spikes/ci_real_reaper_lib.lua), acts by
 sending the product's own bridge commands, and asserts on what REAPER holds afterwards: items, takes, volumes, envelopes, FX,
 markers, undo labels, a saved-and-reopened project and, where "is it audible" matters, the samples of a rendered file.
 Design and limits: docs/research/real-reaper-ci-integration.md.
@@ -307,7 +307,7 @@ STATUSES = ("PASS", "FAIL", "SKIP")
 
 @dataclass
 class Scenario:
-    capability: str  # the capability a promotion would move (apps/desktop/internal/dawport/reaper/reaper.go)
+    capability: str  # the capability a promotion would move (src/studio/desktop/internal/dawport/reaper/reaper.go)
     commands: str
     name: str
     fn: Callable[[Env], str | None]

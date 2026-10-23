@@ -5,7 +5,7 @@ import { cruise, type ICruiseOptions, type IRuleSetType } from 'dependency-cruis
 import { afterAll, describe, expect, test } from 'vitest';
 
 // docs/operations/verification-tooling.md: the import-graph rules in `.dependency-cruiser.mjs` are run over
-// the real tree by `pnpm --dir apps/ui architecture` (an Nx target in the gate). This file proves that each rule fires:
+// the real tree by `pnpm --dir src/studio/ui architecture` (an Nx target in the gate). This file proves that each rule fires:
 // it writes a tiny tree with deliberate violations and legal look-alikes, cruises it with the same rule set and the same
 // options, and expects exactly the named rules to be reported. A rule that can no longer see anything (a renamed folder, a
 // changed path pattern, a dropped option) then fails here instead of passing for ever on the real tree.
@@ -41,7 +41,7 @@ async function violations(entry: string): Promise<string[]> {
 
 describe('the import-graph rules', () => {
   test('the app may not import the site that is built from it', async () => {
-    // `../site/` from the fixture root is a sibling folder of it, as apps/site is a sibling of apps/ui.
+    // `../site/` from the fixture root is a sibling folder of it, as src/web is a sibling of src/studio/ui.
     const siteDir = join(fixtureRoot, '..', 'site');
     mkdirSync(siteDir, { recursive: true });
     writeFileSync(join(siteDir, 'banner.ts'), 'export const banner = 1;\n');

@@ -12,7 +12,7 @@ import (
 )
 
 // cleanupLauncherRole wraps client in the REAPER adapter and takes its CleanupLauncher role,
-// the way the composition root does (apps/desktop/app.go), so these tests exercise the real bridge round trip
+// the way the composition root does (src/studio/desktop/app.go), so these tests exercise the real bridge round trip
 // through the same port the service depends on.
 func cleanupLauncherRole(t *testing.T, client *bridge.Client) dawport.CleanupLauncher {
 	t.Helper()

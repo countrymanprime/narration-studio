@@ -11,7 +11,7 @@ import { WIRE_CHAPTERS, editingCandidateFor } from '../../api/mockFixtures';
 afterEach(cleanup);
 
 // Chapter 7 (WIRE_CHAPTERS[6]) is already in `editing` status in the fixture manuscript (mockFixtures.ts), the only
-// status the real engine (and this mock, apps/desktop/internal/stages) evaluates the editing signals for.
+// status the real engine (and this mock, src/studio/desktop/internal/stages) evaluates the editing signals for.
 const chapter = WIRE_CHAPTERS[6];
 
 type Initial = Parameters<typeof createMockApi>[1];

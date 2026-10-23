@@ -1,4 +1,4 @@
-// The mock project DAW choice: a stand-in for apps/desktop/bindings_dawchoice.go, so Settings > Recording and the Booth's chip run
+// The mock project DAW choice: a stand-in for src/studio/desktop/bindings_dawchoice.go, so Settings > Recording and the Booth's chip run
 // with no host. Its payloads follow the host goldens (tests/fixtures/contracts/daw-choice-*.json; wireContracts.test.ts pins
 // them). The engine it reports is the DAW mock's (`DawMockSeed.daw`) or, when the recorder mock records in the app, the built-in
 // recorder; choosing the built-in recorder or a DAW also tells the recorder mock, so the Booth and Settings agree.

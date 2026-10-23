@@ -2,12 +2,12 @@
 
 **Status: delivered.** The pure ranking engine, its findings and audio-checked
 composition, and the narrator's pin are in
-[`apps/desktop/internal/preview`](../../apps/desktop/internal/preview) (`engine.go`, `types.go`, `findings.go`,
+[`src/studio/desktop/internal/preview`](../../src/studio/desktop/internal/preview) (`engine.go`, `types.go`, `findings.go`,
 `audiomapper.go`, `audiochecked.go`, `pace.go`, `pin.go`, `rangeeval.go`, `store.go`). The host read binding is
-`apps/desktop/bindings_preview.go` (`PreviewCandidates`); the pin bindings are
-`apps/desktop/bindings_preview_pin.go` (`PreviewPin`, `PreviewPinSet`, `PreviewPinAdjust`, `PreviewPinClear`). The
+`src/studio/desktop/bindings_preview.go` (`PreviewCandidates`); the pin bindings are
+`src/studio/desktop/bindings_preview_pin.go` (`PreviewPin`, `PreviewPinSet`, `PreviewPinAdjust`, `PreviewPinClear`). The
 UI is the Preview panel in the Proof chapter view
-([`apps/ui/src/components/proof/PreviewPanel.tsx`](../../apps/ui/src/components/proof/PreviewPanel.tsx); see
+([`src/studio/ui/src/components/proof/PreviewPanel.tsx`](../../src/studio/ui/src/components/proof/PreviewPanel.tsx); see
 [the Proof guide](../guides/using-the-app/proof.md)). The
 tracking issue is [#728](https://github.com/countrymanprime/narration-utils/issues/728).
 
@@ -25,7 +25,7 @@ decision the narrator made, not a computed verdict, and so is the only thing thi
 `Suggest(Input) Result` slides a window over each eligible chapter's paragraphs (narration content, or a missing
 `contentKind` from before structural classification - never `opening` or `reference`), sized to the target length
 (default 5:00, ±10% tolerance) by the app's fixed pace estimate (`WordsPerFinishedHour`, matching
-`apps/ui/src/state.ts`'s `WORDS_PER_FINISHED_HOUR`). It never crosses a chapter boundary and never splits a
+`src/studio/ui/src/state.ts`'s `WORDS_PER_FINISHED_HOUR`). It never crosses a chapter boundary and never splits a
 paragraph. Each candidate is scored on named, explainable features (paragraph-boundary quality, a
 narration-and-dialogue mix from a precision-first quote heuristic, distinct Story Bible entities, hard-word
 density) and returns up to three, one per chapter, ranked highest score first, ties broken by chapter order then
@@ -66,7 +66,7 @@ The narrator may pin one candidate to keep it, and move its edges by one paragra
   blocks `Suggest`'s own candidates use, but is never subjected to `Suggest`'s three-candidate cap or the Sample
   preset's hard-gate exclusion - those are rules for what `Suggest` offers, not limits on what the narrator may
   keep.
-- **Cleared by re-import**: `resetDerived` (`apps/desktop/internal/manuscript/service.go`) removes the pin file,
+- **Cleared by re-import**: `resetDerived` (`src/studio/desktop/internal/manuscript/service.go`) removes the pin file,
   the same reason `chaptersync`, `stages` and `proofing` clear their own chapter-id-keyed state on a re-import that
   renumbers ids.
 

@@ -6,7 +6,7 @@
 // be unit-tested and reused on its own), and saves them into the
 // findings store under repeats.AnalyzerName ("take-review").
 // The host runs it as a cancellable job with real progress
-// (apps/desktop/takereview.go), started from the Review page's scan dialog.
+// (src/studio/desktop/takereview.go), started from the Review page's scan dialog.
 package takereview
 
 import (

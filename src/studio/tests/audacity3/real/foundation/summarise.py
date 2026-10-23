@@ -1,6 +1,6 @@
 """Merge the per-test result files of a real-Audacity 3 run into results.json and summary.md.
 
-    python3 -I tests/audacity3/real/foundation/summarise.py <out-folder> [--md-only]
+    python3 -I src/studio/tests/audacity3/real/foundation/summarise.py <out-folder> [--md-only]
 
 Reads <out>/results/*.json (one file per test, written by internal/audacityreal) and writes <out>/results.json (every test, every
 row, the Audacity version and runner) and <out>/summary.md (one line per test, then the rows that failed or were skipped, then the

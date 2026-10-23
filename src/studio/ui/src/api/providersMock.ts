@@ -1,5 +1,5 @@
 // The mock's provider capabilities: a stand-in for the host's provider registries
-// (apps/desktop/internal/asrport, ttsport, pronunciationport, captureport) and bindings_providers.go's answer over them. Its rows
+// (src/studio/desktop/internal/asrport, ttsport, pronunciationport, captureport) and bindings_providers.go's answer over them. Its rows
 // mirror the registries' rows in their registration order; a row declared for other platforms answers unsupported with the
 // host's sentence. Nothing in the mock installs an asset, so installed counts are only what the seed says.
 import type { ProviderCapabilities, ProviderCapabilitiesApi, ProviderEntry } from './contracts/providers';

@@ -24,9 +24,9 @@ import (
 // The provider-ports guard: no host code outside a port package compares a provider name. A call site asks a
 // registry (asrport.Supports, asrport.AssetKind, pronunciationport.CheckPronounce, ...) and never writes
 // engine == teleprompter.EngineMoonshine, because a new engine is meant to be one registry row with no call site edited.
-// The Python sidecars have the same guard in libs/python/tests/test_provider_guard.py.
+// The Python sidecars have the same guard in src/studio/libs/python/tests/test_provider_guard.py.
 
-// providerGuardExceptions are the functions, as "<file relative to apps/desktop> <function>", that compare a provider name
+// providerGuardExceptions are the functions, as "<file relative to src/studio/desktop> <function>", that compare a provider name
 // for a reason other than choosing one. Each needs a written reason, and an entry that stops being needed fails the guard.
 // checkCapabilities's verify check reads the sidecar's moonshine row by map key (parsed.Asr["moonshine"]), never comparing
 // a provider name, so it needs no exception here.
@@ -57,7 +57,7 @@ func entryNames[P any](entries []port.Entry[P]) []string {
 	return names
 }
 
-// isPortDir reports whether dir (slash-separated, relative to apps/desktop) is a provider or DAW port package or one of its
+// isPortDir reports whether dir (slash-separated, relative to src/studio/desktop) is a provider or DAW port package or one of its
 // conformance suites: internal/<x>port/...
 func isPortDir(dir string) bool {
 	parts := strings.Split(dir, "/")
@@ -65,7 +65,7 @@ func isPortDir(dir string) bool {
 }
 
 type guardFile struct {
-	rel  string // slash-separated, relative to apps/desktop
+	rel  string // slash-separated, relative to src/studio/desktop
 	pkg  string // the package's directory, the key of its constants
 	file *ast.File
 }
@@ -105,7 +105,7 @@ func providerConstants(files []guardFile, names map[string]bool) map[string]bool
 	return constants
 }
 
-// importDirs maps each import's local name to its directory relative to apps/desktop (only this module's imports).
+// importDirs maps each import's local name to its directory relative to src/studio/desktop (only this module's imports).
 func importDirs(file *ast.File) map[string]string {
 	const module = "github.com/countrymanprime/narration-utils/shell/"
 	dirs := map[string]string{}
@@ -241,7 +241,7 @@ func parseGuardSources(t *testing.T) (*token.FileSet, []guardFile) {
 		t.Fatal(err)
 	}
 	if len(files) == 0 {
-		t.Fatal("found no Go sources to check; the guard must run from apps/desktop")
+		t.Fatal("found no Go sources to check; the guard must run from src/studio/desktop")
 	}
 	return fset, files
 }

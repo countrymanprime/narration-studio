@@ -230,7 +230,7 @@ import { creditsRows } from '../components/booth/readerModel';
 // docs/architecture/wire-contracts.md: the fixtures are the contract. Every payload the Go host and the Python sidecars write to
 // tests/fixtures/contracts/ is validated here by the same schemas the app runs, and so is every answer the mock client gives;
 // both are also checked strictly, so a key the schema does not declare fails here even though the app itself would ignore it.
-const GOLDEN_DIR = fileURLToPath(new URL('../../../../tests/fixtures/contracts/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
 const ctx = (payload: string): WireContext => ({ boundary: 'contract.test', payload });
 
 /** Validates `value`, and fails on any key the schema does not declare. */
@@ -3812,7 +3812,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(reread).toEqual(chosen.render);
 
     // Measuring the chosen render (DX-1's job) records the result against this chapter, the same as
-    // apps/desktop/internal/proofing/renders.go's RecordRenderMeasurements.
+    // src/studio/desktop/internal/proofing/renders.go's RecordRenderMeasurements.
     let job = await api.measureAnalyze([chosen.render.path!]);
     while (job.phase === 'running') job = await api.measureState();
     const afterMeasuring = await api.proofingRenderState('chapter-1');
@@ -4763,7 +4763,7 @@ describe('the bookmarks bindings', () => {
   });
 });
 
-// The narrator's voice samples (apps/desktop/internal/voicesample): the mock answers through the same schemas as the host's goldens,
+// The narrator's voice samples (src/studio/desktop/internal/voicesample): the mock answers through the same schemas as the host's goldens,
 // refuses what the host refuses for want of nothing but the request, and the schemas refuse what the host never sends.
 describe('the voice samples bindings', () => {
   const requestFor = async (api: ReturnType<typeof createMockApi>, characterId: string, from = 0, to = 1): Promise<VoiceSampleMarkRequest> => {
@@ -5324,7 +5324,7 @@ describe('the marks bindings', () => {
 });
 
 // The Story Bible's import: the host's goldens parse, the schemas refuse what the host never sends, and the mock reads a small file in
-// memory under the same caps, plans it and adds it through the same schemas (apps/desktop/bindings_extraction_import.go).
+// memory under the same caps, plans it and adds it through the same schemas (src/studio/desktop/bindings_extraction_import.go).
 describe('the extraction import bindings', () => {
   it('parses the host goldens', () => {
     const plan = parseWire(extractionImportPlanSchema, readGolden('extraction-import-preview.json'), ctx('extraction import preview'));
@@ -5420,7 +5420,7 @@ describe('the extraction import bindings', () => {
 // The Story Bible's extraction suggestions: the host's goldens parse, the schemas refuse what the host never sends, and the mock decides
 // through the same schemas, refusing what the host refuses with nothing changed.
 // The Story Bible's scan: the host's goldens parse, the schemas refuse what the host never sends, and the mock paces a scan from fixture
-// data, offline, through the same schemas (apps/desktop/bindings_extraction_scan.go).
+// data, offline, through the same schemas (src/studio/desktop/bindings_extraction_scan.go).
 describe('the extraction scan bindings', () => {
   it('the sources and scan goldens parse', () => {
     const sources = parseWire(extractionSourcesSchema, readGolden('extraction-sources.json'), ctx('extraction sources'));

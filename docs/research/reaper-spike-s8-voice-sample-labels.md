@@ -1,17 +1,17 @@
 # REAPER spike S8: a region as the record of a voice sample
 
-**Status: written, not run.** `integrations/reaper/spikes/spike_s8_voice_label.lua` is ready, and syntax-checked and formatted, but it has not been run: it needs a real REAPER, and the container this was written in has none. Every answer in the table below is a **question**, with what the design assumes until the run says otherwise. Do not build on a cell until it carries a result.
+**Status: written, not run.** `src/studio/integrations/reaper/spikes/spike_s8_voice_label.lua` is ready, and syntax-checked and formatted, but it has not been run: it needs a real REAPER, and the container this was written in has none. Every answer in the table below is a **question**, with what the design assumes until the run says otherwise. Do not build on a cell until it carries a result.
 
 Phase 6 of the [character voice samples PRD](../prds/character-voice-samples.prd.md#where-a-sample-is-kept) ([#1963](https://github.com/countrymanprime/narration-utils/issues/1963)) keeps a sample as a REAPER region whose name carries the character and label, and reads it back from the saved project. This spike answers the "DAW region" open question there.
 
 ## How to run it
 
-On a Windows machine with REAPER installed ([spike rules](../../integrations/reaper/spikes/README.md#rules)):
+On a Windows machine with REAPER installed ([spike rules](../../src/studio/integrations/reaper/spikes/README.md#rules)):
 
 ```powershell
 $out = Join-Path $env:TEMP "narration-s8-$(Get-Date -Format yyyyMMdd-HHmmss)"
-python integrations/reaper/spikes/make_media.py "$out\media"
-pwsh integrations/reaper/spikes/run-reaper.ps1 -Cfg "$out\cfg" -Out $out -Script integrations/reaper/spikes/spike_s8_voice_label.lua -Done "$out\done.txt"
+python src/studio/integrations/reaper/spikes/make_media.py "$out\media"
+pwsh src/studio/integrations/reaper/spikes/run-reaper.ps1 -Cfg "$out\cfg" -Out $out -Script src/studio/integrations/reaper/spikes/spike_s8_voice_label.lua -Done "$out\done.txt"
 ```
 
 Then paste `voice-label-report.txt` (paths removed) into this page and replace each assumption with the result.

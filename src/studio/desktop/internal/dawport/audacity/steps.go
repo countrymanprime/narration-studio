@@ -18,7 +18,7 @@ import (
 // made after BackupAround has cloned the audio around it: a roll (steps_roll.go), a cut and an effect on a range
 // (steps_range.go), a stack and an un-stack (steps_stack.go), lowered stretches (ReduceRangeGain, below) and repaired clicks (RepairClick, below). Each answers a Result whose Steps are the edits in the order
 // they were sent and whose UndoSteps counts the ones that add an Audacity undo point (selecting and copying add none); how many
-// Audacity really adds was measured on Linux (tests/audacity3/real/edits, A3-T22c: an effect, a rename and a mute add none) and is
+// Audacity really adds was measured on Linux (src/studio/tests/audacity3/real/edits, A3-T22c: an effect, a rename and a mute add none) and is
 // checked on Windows by the owner's pass (docs/operations/audacity-verification-pass.md).
 //
 // Every check is made before the backup, and the backup before the first edit: a request out of shape is Refused, a track named

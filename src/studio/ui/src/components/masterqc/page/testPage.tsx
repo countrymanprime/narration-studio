@@ -1,6 +1,6 @@
 // Shared by the page's tests and stories: the host's own measure payload reshaped into the cases the Master & QC page draws.
 import type { ReactNode } from 'react';
-import measureSuccess from '../../../../../../tests/fixtures/contracts/measure-success.json';
+import measureSuccess from '../../../../../../../tests/fixtures/contracts/measure-success.json';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { measureJobSchema } from '../../../api/schemas/measure';

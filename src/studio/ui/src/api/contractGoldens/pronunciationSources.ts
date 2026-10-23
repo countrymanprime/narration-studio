@@ -1,4 +1,4 @@
-// The golden payloads of the pronunciation sources and candidate bindings (apps/desktop/bindings_pronunciationsources.go, written
+// The golden payloads of the pronunciation sources and candidate bindings (src/studio/desktop/bindings_pronunciationsources.go, written
 // from the fake online dictionary).
 import type { z } from 'zod';
 import { pronunciationCandidateSchema, pronunciationSourcesSchema } from '../schemas/pronunciationSources';

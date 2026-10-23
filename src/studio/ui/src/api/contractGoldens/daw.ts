@@ -1,4 +1,4 @@
-// The DAW port's golden files: the capability payload (written by apps/desktop/bindings_daw_test.go), the transport
+// The DAW port's golden files: the capability payload (written by src/studio/desktop/bindings_daw_test.go), the transport
 // (bindings_daw_transport_test.go), the project state (bindings_daw_projectstate_test.go), the hidden takes (bindings_workspace_hide_test.go), the roll (bindings_daw_roll_test.go), the range cut (bindings_daw_range_test.go), the chain on a range (bindings_daw_fx_range_test.go), the stack (bindings_daw_stack_test.go), the backups bindings (bindings_daw_backups_test.go), the file bindings (bindings_daw_files_test.go), the Audacity backups table (internal/dawport/audacity/backups_contract_test.go) and the call result (internal/dawport/result_test.go), all with UPDATE_CONTRACTS=1. Which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';

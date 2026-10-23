@@ -29,7 +29,7 @@ func SuggestFromManuscript(projectFolder string) map[string]string {
 }
 
 // storedSourcePath resolves manuscript.json's source.storedPath to an absolute path under the project folder. commit()
-// (apps/desktop/internal/manuscript/service.go) writes storedPath already relative to the project folder itself
+// (src/studio/desktop/internal/manuscript/service.go) writes storedPath already relative to the project folder itself
 // ("narration-utils/manuscript/sources/<id>/<name>"), not to "narration-utils/manuscript", so it is joined directly
 // rather than under a second "narration-utils/manuscript" (the defect this fixes: that second join produced a path
 // that never existed, so the docProps source never fired on a real import). The result is refused unless it stays
@@ -49,7 +49,7 @@ func storedSourcePath(projectFolder, storedPath string) (string, bool) {
 }
 
 // manuscriptDoc is the subset of manuscript.json this package reads (see
-// apps/desktop/internal/manuscript/service.go's canonicalize for the full
+// src/studio/desktop/internal/manuscript/service.go's canonicalize for the full
 // shape). Decoding only these fields keeps this package from depending on the
 // manuscript package's own types.
 type manuscriptDoc struct {

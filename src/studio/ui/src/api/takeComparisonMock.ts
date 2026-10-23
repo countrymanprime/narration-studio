@@ -1,4 +1,4 @@
-// The browser mock's take comparison, answering the way apps/desktop/takecompare_job.go does: the
+// The browser mock's take comparison, answering the way src/studio/desktop/takecompare_job.go does: the
 // same refusals, a running job whose percent and stage advance one step per poll (standing in for the sidecar's own
 // progress file), and a finished comparison saved into the findings mock as a take_comparison finding, in the
 // shape tests/fixtures/contracts/findings-list-take-comparison.json pins. The reads disagree on purpose, as the disagreement
@@ -195,7 +195,7 @@ export type MockPassageRead = { item_guid: string; take_guid: string; source_fil
 
 /**
  * The comparison the mock saves for a workspace passage: the same evidence shape the host saves for a take-review group
- * (apps/desktop/internal/takecompare, `Passage`), over the passage's paragraphs' words. `passageId` is the evidence's
+ * (src/studio/desktop/internal/takecompare, `Passage`), over the passage's paragraphs' words. `passageId` is the evidence's
  * `source_finding_id` and the finding's id derives from it, so a second comparison of the passage replaces the first.
  */
 export function mockPassageComparison(passageId: string, chapterId: string, chapterTitle: string, spanText: string, reads: MockPassageRead[]): Finding {

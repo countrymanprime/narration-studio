@@ -1,24 +1,24 @@
 # Extraction tiers
 
-Story Bible extraction turns a manuscript into suggestions: new entries, aliases, properties, relationships, claims and speakers. Each suggestion comes from one **source**, carries the quote that backs it, and gets a status from one rule. This page describes the tiers the sources fall into, the rule, the evidence check and where each runs. Nothing here writes the Story Bible without that rule and the lock rule of [manuscript_guide.py](../../sidecars/manuscript-guide/core/manuscript_guide.py).
+Story Bible extraction turns a manuscript into suggestions: new entries, aliases, properties, relationships, claims and speakers. Each suggestion comes from one **source**, carries the quote that backs it, and gets a status from one rule. This page describes the tiers the sources fall into, the rule, the evidence check and where each runs. Nothing here writes the Story Bible without that rule and the lock rule of [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py).
 
 ## Tiers
 
 | Tier | Source (`internal/extractionport`) | Runs in | Download | State on this branch |
 | --- | --- | --- | --- | --- |
-| Rules baseline | `Rules` (`rules`) | Manuscript Guide sidecar, `suggest --source rules` (`sidecars/manuscript-guide/core/extraction_rules.py`) | none | Built. Emits `entry`, `alias` and `speaker` only; properties, relationships and claims need a language model. Always part of a scan. |
+| Rules baseline | `Rules` (`rules`) | Manuscript Guide sidecar, `suggest --source rules` (`src/studio/sidecars/manuscript-guide/core/extraction_rules.py`) | none | Built. Emits `entry`, `alias` and `speaker` only; properties, relationships and claims need a language model. Always part of a scan. |
 | Optional download: names | `Gliner` (`gliner`) | Same sidecar, `suggest --source gliner --install <folder>` (`core/extraction_gliner.py`) | asset `gliner` | Adapter built. Row not installable: its `pending` note in `config/analysis-assets.json` lists files without a pinned hash. Emits `entry` only. |
 | Optional download: characters | `BookNLP` (`booknlp`) | Same sidecar, `suggest --source booknlp --install <folder>` (`core/extraction_booknlp.py`) | assets `booknlp-small`, `booknlp-big` | Adapter built. Rows not installable, same reason. Emits `entry`, `alias` (flagged `duplicate`), `speaker` and a `Gender` `property`. |
 | Local language model | `LocalModel` (`local-model`) | nowhere | none in the registry; catalogue row `local-llm` | Not built. The registry row has no extractor and the reason `No local model is installed.`; the catalogue row has no files and an `unavailable` sentence. |
-| Bring-your-own import | `Imported` (`imported`) | Go host only (`apps/desktop/internal/extraction/importer`, `apps/desktop/bindings_extraction_import.go`) | none | Built. Not started from a scan (`Runs()` is false); it arrives through the import dialog. |
+| Bring-your-own import | `Imported` (`imported`) | Go host only (`src/studio/desktop/internal/extraction/importer`, `src/studio/desktop/bindings_extraction_import.go`) | none | Built. Not started from a scan (`Runs()` is false); it arrives through the import dialog. |
 
-The registry order above is the scan order. `NewRegistry` in `apps/desktop/internal/extractionport/extractionport.go` registers the five rows, and `Host.extractionRegistry` in `apps/desktop/extraction_job.go` swaps in the `rules`, `gliner` and `booknlp` adapters (`apps/desktop/internal/extractionport/{rules,gliner,booknlp}`). Python mirrors the rows in `libs/python/narration_common/ports/extraction.py` (`BUILT_IN`). The port itself, its suites and the row table are in [provider ports](provider-ports.md#extraction-sources); this page does not repeat them.
+The registry order above is the scan order. `NewRegistry` in `src/studio/desktop/internal/extractionport/extractionport.go` registers the five rows, and `Host.extractionRegistry` in `src/studio/desktop/extraction_job.go` swaps in the `rules`, `gliner` and `booknlp` adapters (`src/studio/desktop/internal/extractionport/{rules,gliner,booknlp}`). Python mirrors the rows in `src/studio/libs/python/narration_common/ports/extraction.py` (`BUILT_IN`). The port itself, its suites and the row table are in [provider ports](provider-ports.md#extraction-sources); this page does not repeat them.
 
 `extractionScanOrder` runs the rules first, then each requested source that `RunnableNamesIn` lists, once and in registry order. It refuses an id that is not a source a scan can run. A source that is not installed answers `AvailableNow` with a reason (`GLiNER is not downloaded.`) and starts nothing.
 
 ## The 75% rule
 
-The 75% rule sets the rule. It is written once, in `apps/desktop/internal/extraction/rule.go`.
+The 75% rule sets the rule. It is written once, in `src/studio/desktop/internal/extraction/rule.go`.
 
 | Piece | Identifier | Behaviour |
 | --- | --- | --- |
@@ -35,13 +35,13 @@ The four statuses are `accepted-auto`, `needs-verification`, `accepted` and `rej
 - `needs-verification` is stored and not applied. `Applier.Accept` applies it, optionally with edited text.
 - `rejected` is a tombstone in the store: the suggestion's `Fingerprint` is remembered, so the same thing is not offered again.
 
-Enforced by `TestThresholdLivesInOnePlace` (no other non-test file in the package holds the literal), `TestExactlyThreeQuartersIsAcceptedAuto`, `TestReasonsFollowTheMock` and `TestStatusFollowsReasons` in `apps/desktop/internal/extraction/rule_test.go`. The import planner and the store both take their status from `AutoStatus` (`TestStatusFollowsTheSharedRule` in `importer/importer_test.go`, `TestStoredStatusFollowsTheRuleAtIngest` in `store/store_test.go`). Per [Verification and code-health tooling](../operations/verification-tooling.md), a rule that can be checked by reading code is a test that names its ADR.
+Enforced by `TestThresholdLivesInOnePlace` (no other non-test file in the package holds the literal), `TestExactlyThreeQuartersIsAcceptedAuto`, `TestReasonsFollowTheMock` and `TestStatusFollowsReasons` in `src/studio/desktop/internal/extraction/rule_test.go`. The import planner and the store both take their status from `AutoStatus` (`TestStatusFollowsTheSharedRule` in `importer/importer_test.go`, `TestStoredStatusFollowsTheRuleAtIngest` in `store/store_test.go`). Per [Verification and code-health tooling](../operations/verification-tooling.md), a rule that can be checked by reading code is a test that names its ADR.
 
-The 75% rule supersedes [Story Bible entity-extraction accuracy](story-bible-entity-accuracy.md) and [service.go](../../apps/desktop/internal/guide/service.go) where it reaches; the Story Bible build keeps writing entries as `docs/architecture/story-bible-entity-accuracy.md` describes, and the rules source proposes only what the Story Bible does not already say.
+The 75% rule supersedes [Story Bible entity-extraction accuracy](story-bible-entity-accuracy.md) and [service.go](../../src/studio/desktop/internal/guide/service.go) where it reaches; the Story Bible build keeps writing entries as `docs/architecture/story-bible-entity-accuracy.md` describes, and the rules source proposes only what the Story Bible does not already say.
 
 ## The evidence check
 
-`VerifyEvidence(paragraphs, quote, hint)` in `apps/desktop/internal/extraction/evidence.go` finds a quote in the manuscript and returns an `Evidence` (paragraph id, `Start`, `End`, `Text`) and `ok`.
+`VerifyEvidence(paragraphs, quote, hint)` in `src/studio/desktop/internal/extraction/evidence.go` finds a quote in the manuscript and returns an `Evidence` (paragraph id, `Start`, `End`, `Text`) and `ok`.
 
 | Rule | Where |
 | --- | --- |
@@ -63,7 +63,7 @@ A narrator can have any tool or LLM write a Story Bible as a CSV or JSON file in
 
 | Step | Code |
 | --- | --- |
-| The page reads the file and sends its text; no binding takes a path | `ExtractionImportPreview`, `ExtractionImportCommit`, `ExtractionImportUndo` in `apps/desktop/bindings_extraction_import.go` |
+| The page reads the file and sends its text; no binding takes a path | `ExtractionImportPreview`, `ExtractionImportCommit`, `ExtractionImportUndo` in `src/studio/desktop/bindings_extraction_import.go` |
 | Parse, with caps `MaxBytes` (2 MiB), `MaxRows` (5000), `MaxFieldBytes` (8 KiB) | `importer.Parse` (`importer/format.go`) |
 | Plan against the Story Bible and the stored suggestions: add, merge or skip | `importer.PlanImport` (`importer/plan.go`) |
 | Store the rows as suggestions from `store.SourceImported`, each through the 75% rule and the evidence check | `ExtractionImportCommit`, `store.Service.Ingest` |
@@ -76,21 +76,21 @@ The file is untrusted. The `importer` package imports no `os`, `io/fs` or networ
 | Package | Does | Does not |
 | --- | --- | --- |
 | `internal/extraction/store` | Keeps every suggestion in `<project>/ManuscriptGuide/suggestions.json`, beside the Story Bible ([Data files](../reference/data-files.md), Proposed). Skips a suggestion already stored or rejected. | Change the Story Bible. A decision here changes a status only. |
-| `internal/extraction/apply` | Puts accepted suggestions into the Story Bible through the `Bible` interface and takes them back (`Accept`, `Reject`, `Review`, `Withdraw`, `Settle`). Idempotent. | Write `manuscript_guide.json` itself, or touch a locked entry (`TestLockedEntryIsNeverEdited`, [manuscript_guide.py](../../sidecars/manuscript-guide/core/manuscript_guide.py)). |
+| `internal/extraction/apply` | Puts accepted suggestions into the Story Bible through the `Bible` interface and takes them back (`Accept`, `Reject`, `Review`, `Withdraw`, `Settle`). Idempotent. | Write `manuscript_guide.json` itself, or touch a locked entry (`TestLockedEntryIsNeverEdited`, [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py)). |
 
-The Wails bindings that expose both are in `apps/desktop/bindings_extraction.go` (`ExtractionList`, `ExtractionAccept`, `ExtractionReject`, `ExtractionReview`, `ExtractionReopen`). The scan is `ExtractionSources`, `ExtractionScan`, `ExtractionScanState` and `ExtractionScanCancel` in `bindings_extraction_scan.go`, run as a host job by `apps/desktop/extraction_job.go` ([Job-end events](interaction-feedback.md#job-end-events)). Their payload shapes are pinned by `bindings_extraction_scan_contract_test.go` and `bindings_extraction_import_contract_test.go`; the walk for changing one is in [wire contracts](wire-contracts.md).
+The Wails bindings that expose both are in `src/studio/desktop/bindings_extraction.go` (`ExtractionList`, `ExtractionAccept`, `ExtractionReject`, `ExtractionReview`, `ExtractionReopen`). The scan is `ExtractionSources`, `ExtractionScan`, `ExtractionScanState` and `ExtractionScanCancel` in `bindings_extraction_scan.go`, run as a host job by `src/studio/desktop/extraction_job.go` ([Job-end events](interaction-feedback.md#job-end-events)). Their payload shapes are pinned by `bindings_extraction_scan_contract_test.go` and `bindings_extraction_import_contract_test.go`; the walk for changing one is in [wire contracts](wire-contracts.md).
 
 ## What runs where
 
 | Work | Process | Code |
 | --- | --- | --- |
-| Rules, GLiNER and BookNLP inference | Manuscript Guide sidecar (Python), the `suggest` command; prints one JSON line per suggestion and writes nothing | `sidecars/manuscript-guide/core/manuscript_guide.py` (`suggest`), `extraction_*.py` |
+| Rules, GLiNER and BookNLP inference | Manuscript Guide sidecar (Python), the `suggest` command; prints one JSON line per suggestion and writes nothing | `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` (`suggest`), `extraction_*.py` |
 | Starting the sidecar, checking its output (byte caps per output, line and field; exact fields; allowed kinds), cancelling it | Go host | `internal/extractionport/{rules,gliner,booknlp}` through the process supervisor |
 | Evidence check, offsets, fingerprint, status | Go host | `internal/extraction` |
 | Store, apply, import | Go host | `internal/extraction/{store,apply,importer}` |
 | Install state of a tool | Go host | `Host.analysisToolInstall` reads the asset registry; a tool counts only when installed, verified and pinned |
 
-The sidecar's Python wheels and weights are loaded only from the registry's install folder, passed as `--install`; the freeze never carries `gliner`, `transformers`, `torch` or `booknlp` ([CI and releases](../operations/ci-and-releases.md), Proposed). The adapters set Hugging Face offline and a missing or damaged install is a sentence for the narrator. The packaged smoke test reports each install's version through `run_self_check` (`gliner_install`, `booknlp_installs`). The sidecar tests are `sidecars/manuscript-guide/tests/test_extraction_rules.py`, `test_extraction_gliner.py` and `test_extraction_booknlp.py`; the rules adapter's line format is pinned by `internal/extractionport/rules/testdata/suggest-lines.json`.
+The sidecar's Python wheels and weights are loaded only from the registry's install folder, passed as `--install`; the freeze never carries `gliner`, `transformers`, `torch` or `booknlp` ([CI and releases](../operations/ci-and-releases.md), Proposed). The adapters set Hugging Face offline and a missing or damaged install is a sentence for the narrator. The packaged smoke test reports each install's version through `run_self_check` (`gliner_install`, `booknlp_installs`). The sidecar tests are `src/studio/sidecars/manuscript-guide/tests/test_extraction_rules.py`, `test_extraction_gliner.py` and `test_extraction_booknlp.py`; the rules adapter's line format is pinned by `internal/extractionport/rules/testdata/suggest-lines.json`.
 
 ## Consent for each download
 
@@ -98,7 +98,7 @@ The downloads are catalogue entries of the one asset registry ([The asset regist
 
 | Tool | Asset id | Consent UI | State |
 | --- | --- | --- | --- |
-| GLiNER | `gliner` | `apps/ui/src/components/settings/analysis/ConsentDialog.tsx` | Refused at install while the row has a `pending` note |
+| GLiNER | `gliner` | `src/studio/ui/src/components/settings/analysis/ConsentDialog.tsx` | Refused at install while the row has a `pending` note |
 | BookNLP small, large | `booknlp-small`, `booknlp-big` | same | Refused, same reason |
 | Local language model | `local-llm` | none; no files | Not built; the row carries an `unavailable` sentence |
 

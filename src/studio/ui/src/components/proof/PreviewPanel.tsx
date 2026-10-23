@@ -16,7 +16,7 @@ import { ProofOptions } from './proofOptions/ProofOptions';
 
 type Phase = 'loading' | 'ready' | 'error';
 
-/** The host's Preview settings (`fieldSchemas` in apps/desktop/app.go): how long an excerpt is and which kind the page suggests. */
+/** The host's Preview settings (`fieldSchemas` in src/studio/desktop/app.go): how long an excerpt is and which kind the page suggests. */
 const PREVIEW_KEYS = ['target_seconds', 'tolerance_fraction', 'preset', 'exclude_ending_fraction'] as const;
 
 /**

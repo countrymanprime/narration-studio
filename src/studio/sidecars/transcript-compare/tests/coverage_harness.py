@@ -13,7 +13,7 @@ be scored without audio. A permissioned corpus with real audio, kept outside the
 the set through the `NARRATION_COVERAGE_CORPUS` directory variable; its audio cases are skipped by
 analyzers that cannot hear.
 
-Run it: `python sidecars/transcript-compare/tests/coverage_harness.py [--strict] [--corpus-only]`.
+Run it: `python src/studio/sidecars/transcript-compare/tests/coverage_harness.py [--strict] [--corpus-only]`.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 if __package__ in (None, ""):  # run as a script: make narration_common importable
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "libs" / "python"))
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"))
 
 from narration_common import manuscript as canonical_manuscript
 

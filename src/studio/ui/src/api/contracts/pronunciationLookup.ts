@@ -1,5 +1,5 @@
 /**
- * The four web pronunciation lookup sites (Go: `apps/desktop/internal/pronunciationlookup`; the `BrowserLookup`
+ * The four web pronunciation lookup sites (Go: `src/studio/desktop/internal/pronunciationlookup`; the `BrowserLookup`
  * role in `docs/architecture/provider-ports.md`). Each value is the source id `PronunciationLookupOpen` takes, matching `pronunciationlookup.Source` on the
  * Go side one for one.
  */

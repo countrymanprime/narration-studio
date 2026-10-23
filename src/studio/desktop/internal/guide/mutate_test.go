@@ -57,7 +57,7 @@ func sameReason(got, want string) bool {
 	return norm(got) == norm(want)
 }
 
-// TestMutationsMatchTheSidecarCases replays every case sidecars/manuscript-guide/tests/test_mutation_parity.py recorded from the sidecar's
+// TestMutationsMatchTheSidecarCases replays every case src/studio/sidecars/manuscript-guide/tests/test_mutation_parity.py recorded from the sidecar's
 // own commands: the same file after it, no write when the sidecar wrote nothing, or the same reason with the file untouched. One
 // Service runs them all, so the held document must notice every new starting file.
 func TestMutationsMatchTheSidecarCases(t *testing.T) {

@@ -1,5 +1,5 @@
 // The browser mock's word effects. It keeps them in memory and checks each against the mock manuscript the way
-// apps/desktop/internal/editlog/wordfx.go does, with the host's sentences: a word the paragraph lacks, words in more than one
+// src/studio/desktop/internal/editlog/wordfx.go does, with the host's sentences: a word the paragraph lacks, words in more than one
 // take, a range the app never sends, a missing DAW result or a chain named by a path is refused and nothing is saved; an
 // effect on words that already carry one is kept and the answer's `over` names those; the list is in the original
 // recording's time order, and an effect whose words changed comes back stale, never moved.

@@ -51,14 +51,14 @@ test('updateWailsJsonVersion in check mode throws on mismatch and never writes',
   assert.equal(JSON.parse(readFileSync(file, 'utf8')).info.productVersion, '0.1.0');
 });
 
-test('syncVersion synchronizes apps/ui, shell package.json, and apps/desktop/wails.json together', (t) => {
+test('syncVersion synchronizes src/studio/ui, shell package.json, and src/studio/desktop/wails.json together', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'sync-version-repo-'));
-  mkdirSync(join(dir, 'apps', 'ui'), { recursive: true });
-  mkdirSync(join(dir, 'apps', 'desktop'), { recursive: true });
+  mkdirSync(join(dir, 'src', 'studio', 'ui'), { recursive: true });
+  mkdirSync(join(dir, 'src', 'studio', 'desktop'), { recursive: true });
   writeJson(join(dir, 'package.json'), { version: '0.3.0' });
-  writeJson(join(dir, 'apps', 'ui', 'package.json'), { version: '0.1.0' });
-  writeJson(join(dir, 'apps', 'desktop', 'package.json'), { version: '0.1.0' });
-  writeJson(join(dir, 'apps', 'desktop', 'wails.json'), { info: { productVersion: '0.1.0' } });
+  writeJson(join(dir, 'src', 'studio', 'ui', 'package.json'), { version: '0.1.0' });
+  writeJson(join(dir, 'src', 'studio', 'desktop', 'package.json'), { version: '0.1.0' });
+  writeJson(join(dir, 'src', 'studio', 'desktop', 'wails.json'), { info: { productVersion: '0.1.0' } });
 
   const previousCwd = process.cwd();
   process.chdir(dir);
@@ -66,9 +66,9 @@ test('syncVersion synchronizes apps/ui, shell package.json, and apps/desktop/wai
 
   syncVersion(false);
 
-  assert.equal(JSON.parse(readFileSync(join(dir, 'apps', 'ui', 'package.json'), 'utf8')).version, '0.3.0');
-  assert.equal(JSON.parse(readFileSync(join(dir, 'apps', 'desktop', 'package.json'), 'utf8')).version, '0.3.0');
-  assert.equal(JSON.parse(readFileSync(join(dir, 'apps', 'desktop', 'wails.json'), 'utf8')).info.productVersion, '0.3.0');
+  assert.equal(JSON.parse(readFileSync(join(dir, 'src', 'studio', 'ui', 'package.json'), 'utf8')).version, '0.3.0');
+  assert.equal(JSON.parse(readFileSync(join(dir, 'src', 'studio', 'desktop', 'package.json'), 'utf8')).version, '0.3.0');
+  assert.equal(JSON.parse(readFileSync(join(dir, 'src', 'studio', 'desktop', 'wails.json'), 'utf8')).info.productVersion, '0.3.0');
 
   assert.doesNotThrow(() => syncVersion(true));
 });

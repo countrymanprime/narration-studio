@@ -2,10 +2,10 @@
 
 Each case is one small manuscript whose single chapter heading exercises one way the importer's
 title/subtitle heuristic (``headingParts``/``splitGluedHeading`` in
-``apps/desktop/internal/importer/headings.go`` and ``classifyTxtHeading`` in ``txt.go``) reads a
+``src/studio/desktop/internal/importer/headings.go`` and ``classifyTxtHeading`` in ``txt.go``) reads a
 heading. ``cases.json`` beside this script records, per case, what the author meant and what the
 importer actually produces; ``TestHeadingMisreadFixtures`` in
-``apps/desktop/internal/importer/heading_misreads_test.go`` holds the importer to the recorded
+``src/studio/desktop/internal/importer/heading_misreads_test.go`` holds the importer to the recorded
 output, and ``docs/research/import-heading-misreads.md`` explains each failure mode.
 
 Standard library only (DOCX and EPUB are written as minimal zip archives), so it runs without the

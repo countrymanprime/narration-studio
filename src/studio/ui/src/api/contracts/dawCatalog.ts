@@ -1,7 +1,7 @@
 /**
- * One catalog entry as `DawCatalogList` answers it (Go: `apps/desktop/dawcatalog.go`'s `DawCatalogEntry`,
+ * One catalog entry as `DawCatalogList` answers it (Go: `src/studio/desktop/dawcatalog.go`'s `DawCatalogEntry`,
  * docs/architecture/daw-integration.md): the catalog copy plus an on-demand detection fact.
- * `path` and `source` are only set when `installed` is true (`source` mirrors `apps/desktop/internal/daw`'s
+ * `path` and `source` are only set when `installed` is true (`source` mirrors `src/studio/desktop/internal/daw`'s
  * `Source*` constants, e.g. `uninstall_registry`), so the UI can tell the narrator how confident the detection is.
  */
 export type DawCatalogEntry = {

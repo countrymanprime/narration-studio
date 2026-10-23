@@ -1,13 +1,13 @@
 ---
 name: visual-catalog-sync
-description: When apps/ui/src changes add, remove, or visibly change a page/state, keep apps/ui/tests/visual/state-catalog.ts and app.spec.ts's drivers matching reality before anyone trusts the visual suite's output.
+description: When src/studio/ui/src changes add, remove, or visibly change a page/state, keep src/studio/ui/tests/visual/state-catalog.ts and app.spec.ts's drivers matching reality before anyone trusts the visual suite's output.
 ---
 
 # visual-catalog-sync
 
 ## Why this exists
 
-`apps/ui/tests/visual/state-catalog.ts` (rows in `catalog/<page>.ts`) describes itself as "the single naming authority" for
+`src/studio/ui/tests/visual/state-catalog.ts` (rows in `catalog/<page>.ts`) describes itself as "the single naming authority" for
 every `{page, state}` the app can be in, and `app.spec.ts` drives each one through `app.drivers.ts` (`drivers/<page>.ts`) to produce the
 screenshots used for both manual QA review and `docs/guides/using-the-app/*.md`. That authority
 only holds if it's updated in the same change that alters the UI it describes — otherwise it
@@ -17,7 +17,7 @@ visual review, `doc-screenshot-sync`) trusts this file; this skill is what keeps
 
 ## When to use this
 
-After implementing (but before verifying) any change to `apps/ui/src/**` that:
+After implementing (but before verifying) any change to `src/studio/ui/src/**` that:
 - Adds a new page, modal, panel, or otherwise reachable UI state.
 - Removes or renames a page/state that `STATE_CATALOG` lists.
 - Changes what a default view or existing state actually looks like (new fields, changed
@@ -41,7 +41,7 @@ bug fixes).
    the state it claims to:
 
    ```bash
-   cd apps/ui && npx playwright test tests/visual -g "<page> / <state>"
+   cd src/studio/ui && npx playwright test tests/visual -g "<page> / <state>"
    ```
 
    Open the resulting PNG under `screenshots/app/<page>/<state>/` and confirm it actually shows

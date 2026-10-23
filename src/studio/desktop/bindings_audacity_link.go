@@ -23,7 +23,7 @@ import (
 // Audacity's settings file, AudacityLinkFile records the .aup3 the project's Audacity work lives in, AudacityLinkOpenProject
 // stamps the project open in Audacity with this project's link label, and AudacityUnlink forgets both. DawLaunch starts Audacity on
 // the linked file. The project's engine choice stays DawChoose's. The wire schema, golden payloads, wireContracts rows and mock live
-// in apps/ui/src/api (docs/architecture/wire-contracts.md); the states are described in docs/reference/daw/audacity-3.md.
+// in src/studio/ui/src/api (docs/architecture/wire-contracts.md); the states are described in docs/reference/daw/audacity-3.md.
 
 const (
 	// audacityLinkFileKey and audacityLinkIDKey are project rows of the Recording settings (like the engine choice): the linked

@@ -9,9 +9,9 @@ import (
 	"sort"
 )
 
-// Punch and roll's word-to-time anchors (integrations/reaper/narration_punch.lua: live anchors first,
+// Punch and roll's word-to-time anchors (src/studio/integrations/reaper/narration_punch.lua: live anchors first,
 // offline alignment as the fallback, alignword.go and docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from). While a live session reads a chapter, the host
-// polls REAPER's play position (bridge.Puncher.PlayPosition, from apps/desktop's own poll loop, never from this
+// polls REAPER's play position (bridge.Puncher.PlayPosition, from src/studio/desktop's own poll loop, never from this
 // DAW-agnostic package) and pairs it with the word the reader is on, appending an Anchor here. "Punch from here" on a
 // flag then asks ResolveWordTime for that word's project time before moving the cursor.
 //
@@ -123,7 +123,7 @@ func AppendAnchor(project, chapterID string, anchor Anchor) error {
 }
 
 // maxAnchors bounds an anchors file: about ten minutes of polling at the poll loop's own interval (punchPollInterval,
-// apps/desktop's own poller), comfortably more than ResolveWordTime ever needs to bracket or extrapolate from.
+// src/studio/desktop's own poller), comfortably more than ResolveWordTime ever needs to bracket or extrapolate from.
 const maxAnchors = 400
 
 // DropAnchorsFrom removes every anchor at or after word: a punch to word is the narrator about to re-record from

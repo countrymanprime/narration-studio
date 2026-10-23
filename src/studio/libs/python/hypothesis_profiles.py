@@ -13,10 +13,10 @@ Two profiles, chosen with the HYPOTHESIS_PROFILE environment variable:
     failure prints the falsifying example and a ``@reproduce_failure`` blob; copy the example into
     a plain example-based test in the same file, then fix the code.
 
-    HYPOTHESIS_PROFILE=explore .venv/Scripts/python.exe -m pytest -q -k properties sidecars libs/python/tests
+    HYPOTHESIS_PROFILE=explore .venv/Scripts/python.exe -m pytest -q -k properties sidecars src/studio/libs/python/tests
 
-A tests folder that uses Hypothesis has a conftest.py that calls ``load()`` (libs/python/tests,
-sidecars/manuscript-teleprompter/tests, sidecars/transcript-compare/tests); add one when a new folder starts using it.
+A tests folder that uses Hypothesis has a conftest.py that calls ``load()`` (src/studio/libs/python/tests,
+src/studio/sidecars/manuscript-teleprompter/tests, src/studio/sidecars/transcript-compare/tests); add one when a new folder starts using it.
 """
 
 import os

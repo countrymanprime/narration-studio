@@ -1,7 +1,7 @@
 // Package pickups is the host's end of the REAPER pickup-list commands over the file bridge (import_pickups,
 // export_pickups, next_pickup, resolve_pickup, reopen_pickup, list_pickup_markers, count_pickups; see docs/architecture/reaper-bridge.md and
-// integrations/reaper/narration_pickups.lua). It is the third consumer built on the event fan-out
-// (apps/desktop/internal/bridge), alongside the transcript and line-identity services.
+// src/studio/integrations/reaper/narration_pickups.lua). It is the third consumer built on the event fan-out
+// (src/studio/desktop/internal/bridge), alongside the transcript and line-identity services.
 //
 // CSV format: a generic CSV with one row per pickup, columns start time in seconds, note, and an optional tag -
 // "matching REAPER's own marker CSV columns" plus the tag this app's PICKUP: convention uses. A first row whose first

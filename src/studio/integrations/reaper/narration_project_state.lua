@@ -6,7 +6,7 @@
 -- Returns GetProjectStateChangeCount(0) and the path REAPER thinks the current project's .rpp lives at (the same
 -- EnumProjects(-1, '') call narration_compare.lua's prepare_compare already makes). The host stats that path
 -- itself for the saved file's modification time: Lua has no portable file-stat call, and the host already reads
--- paths like this one elsewhere (apps/desktop/internal/projectstate).
+-- paths like this one elsewhere (src/studio/desktop/internal/projectstate).
 
 local core = ...
 local event = core.event

@@ -801,7 +801,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     },
     choice('channel', 'Update channel', ['candidates', 'stable'], 'candidates'),
   ],
-  // DAW.reaper_path/auto_start_launcher: keyed "DAW" to match apps/desktop/app.go's fieldSchemas, not
+  // DAW.reaper_path/auto_start_launcher: keyed "DAW" to match src/studio/desktop/app.go's fieldSchemas, not
   // the "Daw" Settings category key (which is a UI label, not the settings tool name).
   DAW: [
     {
@@ -835,7 +835,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveSource: 'repo default',
     },
     // DAW.fx_favourites: the narrator's favourite FX chains and
-    // plug-ins, a comma-joined "tags" field, mirroring apps/desktop/app.go's fieldSchemas.
+    // plug-ins, a comma-joined "tags" field, mirroring src/studio/desktop/app.go's fieldSchemas.
     {
       key: 'fx_favourites',
       label: 'Favourite effects (FX chains and plug-ins)',
@@ -846,7 +846,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '',
       effectiveSource: 'repo default',
     },
-    // One choice field (auto/on/off) per DAW port capability, mirroring apps/desktop/app.go's
+    // One choice field (auto/on/off) per DAW port capability, mirroring src/studio/desktop/app.go's
     // capabilityFieldSchemas: every row starts unset, its repo default "auto", like auto_start_launcher above.
     ...DAW_CAPABILITIES.map(({ key, label }): ScopedSettingField => ({
       key: `capability.${key}`,
@@ -902,7 +902,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     recordingCheck('chunk_overlap_seconds', 'Crossover between neighbouring chunks', '6', { min: 0, max: 60, step: 1, unit: 's' }),
     recordingCheck('parallel_chapters', 'Chapters checked at once', '1', { min: 1, max: 8, step: 1, unit: 'chapters' }),
   ],
-  // The silence cleanup analyzer's five thresholds (apps/desktop/internal/measure/cleanup.go), mirroring the host's fieldSchemas and numberSpecs:
+  // The silence cleanup analyzer's five thresholds (src/studio/desktop/internal/measure/cleanup.go), mirroring the host's fieldSchemas and numberSpecs:
   // measure.DefaultCleanupOptions' own starting values, all still unset at every scope (repo default only) the way a fresh install reads them.
   Cleanup: [
     recordingCheck('pad_seconds', 'Hold kept at each side of a cut silence', '0.15', { min: 0, max: 2, step: 0.01, unit: 's' }),
@@ -1262,7 +1262,7 @@ export const WIRE_CLEANUP_TOOLS_ERROR: CleanupToolsState = {
 };
 
 /** Two lines of Chapter 1 recorded as retakes on fixed lanes, lane 1 (index 0) playing in the saved project. Same shape
- * as tests/fixtures/contracts/retake-lanes-list.json, which is built from a REAPER 7.80 fixture project (apps/desktop/internal/tracks/testdata/reaper/README.md) and so has test-case track names. */
+ * as tests/fixtures/contracts/retake-lanes-list.json, which is built from a REAPER 7.80 fixture project (src/studio/desktop/internal/tracks/testdata/reaper/README.md) and so has test-case track names. */
 export const WIRE_RETAKE_LANES_LIST: RetakeLanesList = {
   laneTracks: 1,
   lines: [
@@ -1344,7 +1344,7 @@ export const WIRE_CHAPTER_TAGS_EMBED_SUCCESS: ChapterTagsEmbedResult = {
 
 // What a pickup and duplicate scan of "Chapter 1" of WIRE_TRACKS_PROJECT saves: one partial pickup (a
 // re-read of part of the span, below the near-duplicate quality bar) and one near-identical duplicate_read, in the shape
-// apps/desktop/contract_test.go's TestContractTakeReviewFindings pins as tests/fixtures/contracts/findings-list-take-review.json.
+// src/studio/desktop/contract_test.go's TestContractTakeReviewFindings pins as tests/fixtures/contracts/findings-list-take-review.json.
 // The mock scan saves them into the findings store, so they reach the Review page the way the host's do. No composite score
 // anywhere in this fixture: only per-category evidence.
 export const WIRE_TAKE_REVIEW_FINDINGS: Finding[] = [
@@ -1612,7 +1612,7 @@ export function takeReviewPickupFor(chapterId: string, chapterTitle: string): Fi
 }
 
 /** One unreviewed empty-space candidate for chapterId (matching
- * apps/desktop/internal/editing.EmptySpaceFinding's shape exactly): a gap between two phrases past the narrator's
+ * src/studio/desktop/internal/editing.EmptySpaceFinding's shape exactly): a gap between two phrases past the narrator's
  * maximum gap, with a source-relative range a Hear control can play. `index` spaces two or more candidates out in
  * time so the panel's earliest-first order is visible. */
 export function editingCandidateFor(chapterId: string, chapterTitle: string, index = 0): Finding {

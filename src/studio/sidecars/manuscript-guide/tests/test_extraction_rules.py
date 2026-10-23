@@ -19,7 +19,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 CORE = Path(__file__).parents[1] / "core"
-REPO = Path(__file__).parents[3]
+REPO = Path(__file__).parents[5]
 
 
 def _load(name: str):

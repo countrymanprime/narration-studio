@@ -13,7 +13,7 @@ import (
 
 // SidecarRequest is everything the sidecar's --find-repeats mode needs
 // beyond the manifest file itself, mirroring its argument set
-// (sidecars/transcript-compare/core/compare.py).
+// (src/studio/sidecars/transcript-compare/core/compare.py).
 type SidecarRequest struct {
 	ManifestPath   string
 	ManuscriptPath string
@@ -39,7 +39,7 @@ type SidecarRunner interface {
 // ProcessRunner is the real SidecarRunner: it shells out to the Transcript
 // Compare sidecar via process.Supervisor.Run, the same synchronous helper
 // the packaged smoke test and Story Bible mutations use. It blocks until the
-// sidecar exits; the host's scan job (apps/desktop/takereview.go) tails the
+// sidecar exits; the host's scan job (src/studio/desktop/takereview.go) tails the
 // progress file it names meanwhile, and cancelling ctx stops the process.
 type ProcessRunner struct {
 	Sidecars   *process.Supervisor

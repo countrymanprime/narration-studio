@@ -9,7 +9,7 @@ import type {
 } from '../contracts/stages';
 import { listFromNull, optionalFromNull } from './base';
 
-// The chapter stage recommendation payloads (apps/desktop/bindings_stages.go, apps/desktop/internal/stages). The cause list is
+// The chapter stage recommendation payloads (src/studio/desktop/bindings_stages.go, src/studio/desktop/internal/stages). The cause list is
 // pinned against the host by tests/fixtures/contracts/stages-causes.json, which a Go test writes from the stages package.
 
 export const STAGE_UNKNOWN_CAUSES = [

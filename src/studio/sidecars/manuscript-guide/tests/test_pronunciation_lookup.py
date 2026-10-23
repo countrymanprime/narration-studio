@@ -1,6 +1,6 @@
 """The ``pronunciation`` command: the whole value of ``pronunciation()`` for each word, with nothing read and nothing written.
 
-The host asks for it when it creates an entry or adds an alias itself (apps/desktop/internal/guide/create.go), so the sidecar is asked
+The host asks for it when it creates an entry or adds an alias itself (src/studio/desktop/internal/guide/create.go), so the sidecar is asked
 for a pronunciation and no more. ``pronunciation-lookup-golden.json`` holds what the command printed for words answered by stubbed
 sources, so the order the sources are tried in and the value a miss gets do not depend on a dictionary's version; the guide package's
 ``TestPronunciationLookupMatchesTheGolden`` reads the same lines with the host's parser. Run with ``UPDATE_CONTRACTS=1`` to rewrite it.
@@ -23,7 +23,7 @@ guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
-TESTDATA = Path(__file__).parents[3] / "apps" / "desktop" / "internal" / "guide" / "testdata"
+TESTDATA = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "guide" / "testdata"
 
 
 def run(words, default_source="", espeak_library=""):

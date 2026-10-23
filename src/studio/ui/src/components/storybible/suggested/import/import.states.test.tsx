@@ -720,6 +720,6 @@ describe('the dialog as a dialog', () => {
 //   host's commit is one call that either stored everything or refused. The remount test above covers a fresh dialog beside an old call.
 // - A real 50 MB file through the OS picker, and a real pasted 50 MB: jsdom has no picker; the page's guard is the `size` check and the
 //   text-length check tested above, and the host re-checks (threat-model row 6zb).
-// - Whether the host parses a quoted CSV cell, an unterminated quote or a 5000-row cap correctly: that is apps/desktop/internal/extraction/importer
+// - Whether the host parses a quoted CSV cell, an unterminated quote or a 5000-row cap correctly: that is src/studio/desktop/internal/extraction/importer
 //   (Go tests); the mock host here does not parse quotes. The page's part is drawing the host's sentence, tested with a stubbed plan.
 // - Bidi and emoji glyph shaping: jsdom draws nothing; the tests check the text is carried whole and as text. The Playwright visual suite owns the pixels.

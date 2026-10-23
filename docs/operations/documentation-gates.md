@@ -24,11 +24,11 @@ The agent workflow for the same steps is the [doc-impact-check](../../.claude/sk
 
 ## Changing a gate
 
-- The guide-impact map is `scripts/ci/guide-impact-map.json`: one rule per UI folder under `apps/ui/src/components/`, naming the guide pages it owes. Its test fails on a folder with no rule.
+- The guide-impact map is `scripts/ci/guide-impact-map.json`: one rule per UI folder under `src/studio/ui/src/components/`, naming the guide pages it owes. Its test fails on a folder with no rule.
 - The docs-impact map is `scripts/ci/docs-impact-map.json`. Add a rule when a doc starts describing a new area; its test fails when a rule names a doc or code path that does not exist. Keep the judgment map in `.claude/skills/doc-impact-check/references/map.md` in step.
 - The phrase list is `scripts/ci/docs-slop-phrases.json`. Measure a change with `node scripts/ci/docs-slop.mjs --all` and keep `error` entries to phrases with near-zero legitimate use.
 - `node scripts/ci/docs-references.mjs --all --strict` measures the whole tree.
-- Doc-comment rules are in `scripts/ci/doc-comments.mjs` and `apps/desktop/.golangci-docs.yml`.
+- Doc-comment rules are in `scripts/ci/doc-comments.mjs` and `src/studio/desktop/.golangci-docs.yml`.
 - Every script has a `.test.mjs` beside it, run by `pnpm check`.
 
 ## What they do not catch

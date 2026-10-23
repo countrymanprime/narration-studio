@@ -8,7 +8,7 @@ import (
 )
 
 // Punch and roll (narration_punch.lua): the answers as
-// integrations/reaper/tests/punch_test.lua pins them.
+// src/studio/integrations/reaper/tests/punch_test.lua pins them.
 
 func TestPlayPositionAndPunchToAreExperimentalAndRefusedWhileTheSettingIsOff(t *testing.T) {
 	actions, client, dir := newActionsSession(t, false)

@@ -1,5 +1,5 @@
-// The browser mock's chapter-to-render association (apps/desktop/bindings_proofing_render.go,
-// apps/desktop/internal/proofing/renders.go). ProofingChooseRender always succeeds here (the file dialog itself is not simulated, the same convention as ProjectLinkDawFile's mock): choosing
+// The browser mock's chapter-to-render association (src/studio/desktop/bindings_proofing_render.go,
+// src/studio/desktop/internal/proofing/renders.go). ProofingChooseRender always succeeds here (the file dialog itself is not simulated, the same convention as ProjectLinkDawFile's mock): choosing
 // attests a canonical rendered-file path for the chapter. A seed can start a chapter at any state (`stale`, `missing`,
 // `unsupported`, already measured) without going through choose() and Measure first. `recordMeasurement` is
 // mockApi.ts's hook from the measurement job, mirroring the host's renderMeasurementRecorder: any measured job file
@@ -76,7 +76,7 @@ function measurementFor(path: string): MeasureReport {
   };
 }
 
-/** The reason text for a state that is not `current` (apps/desktop/internal/proofing/renders.go's own sentences). */
+/** The reason text for a state that is not `current` (src/studio/desktop/internal/proofing/renders.go's own sentences). */
 function reasonFor(state: ProofingRenderState, path?: string): string {
   switch (state) {
     case 'none':
@@ -155,7 +155,7 @@ export function createProofingRenderMock(deps: Deps): ProofingRenderApi & { reco
       records.set(chapter.id, { state: 'none', measurementFailed: false });
       return wireClone(view(records.get(chapter.id)!));
     },
-    // Mirrors apps/desktop/internal/proofing/renders.go's RecordRenderMeasurements: every chapter whose chosen render
+    // Mirrors src/studio/desktop/internal/proofing/renders.go's RecordRenderMeasurements: every chapter whose chosen render
     // is this measured file gets the file's own result (the same file can be chosen for more than one chapter).
     recordMeasurement: (files) => {
       for (const [chapterId, record] of records) {

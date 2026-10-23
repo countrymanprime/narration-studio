@@ -8,7 +8,7 @@ import (
 
 // The change-driven re-compare indicator's bindings: an
 // on-demand check of REAPER's own live edit counter. h.emitProjectState (app.go) relays every state change as the "projectstate:state" live event,
-// the way h.emitRenderConfig does. The UI side (apps/ui/src/api/schemas/projectstate.ts, the mock and the
+// the way h.emitRenderConfig does. The UI side (src/studio/ui/src/api/schemas/projectstate.ts, the mock and the
 // wireContracts.test.ts rows) is wired for the "changed since comparison" label: a comparison records its baseline
 // (TranscriptState.projectChangeCount, from prepare_compare) and the Transcript page compares a later check with it.
 

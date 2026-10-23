@@ -1,4 +1,4 @@
-// The golden payloads of the stack record and the retry choice (apps/desktop/bindings_editlog_stacks.go).
+// The golden payloads of the stack record and the retry choice (src/studio/desktop/bindings_editlog_stacks.go).
 import type { z } from 'zod';
 import { retryModeAnswerSchema, stackChangeSchema, stackListSchema } from '../schemas/editStacks';
 

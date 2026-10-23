@@ -18,6 +18,6 @@ export default function globalSetup(): () => void {
     const table = formatScoreTable(scores, baseline);
     writeFileSync(`${OUT_DIR}/scores.json`, `${JSON.stringify(scores, null, 2)}\n`);
     writeFileSync(`${OUT_DIR}/scores.md`, `${table}\n`);
-    console.log(`\nMock match (${scores.length} states, written to apps/ui/${OUT_DIR}/scores.md):\n\n${table}\n`);
+    console.log(`\nMock match (${scores.length} states, written to src/studio/ui/${OUT_DIR}/scores.md):\n\n${table}\n`);
   };
 }

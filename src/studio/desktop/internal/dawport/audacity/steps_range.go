@@ -97,7 +97,7 @@ func (s *steps) DeleteRange(ctx context.Context, request dawport.DeleteRangeRequ
 		e.did(stepDeleteLeaveGap, 1)
 	} else {
 		// One Delete takes the audio out and moves what follows up, with Sync-Lock on or off. A SplitDelete first would leave a gap that
-		// the Delete after it cannot close with Sync-Lock off, which is how Audacity starts (tests/audacity3/real/edits, A3-T18). The
+		// the Delete after it cannot close with Sync-Lock off, which is how Audacity starts (src/studio/tests/audacity3/real/edits, A3-T18). The
 		// audio of the clips after the cut moves only while clips may move other clips, which the edit turns on for itself.
 		restore, err := s.clipsMove(ctx)
 		if err != nil {

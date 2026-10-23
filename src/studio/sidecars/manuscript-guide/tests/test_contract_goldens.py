@@ -108,5 +108,5 @@ class SuggestContractGoldenTests(unittest.TestCase):
         lines = rules.suggestions(paragraphs, story_bible)
 
         self.assertEqual({"entry", "alias", "speaker"}, {line["payload"]["kind"] for line in lines})
-        testdata = Path(__file__).parents[3] / "apps" / "desktop" / "internal" / "extractionport" / "rules" / "testdata"
+        testdata = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "extractionport" / "rules" / "testdata"
         contract_files.check("suggest-lines", lines, testdata)

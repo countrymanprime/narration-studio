@@ -9,7 +9,7 @@ import (
 // banner: the recent project, other than the open one, whose linked REAPER file is the project REAPER has open now. It reads
 // the Heartbeat role (as DawProjectState does), so it answers only while a bridge is up: a launch with no REAPER session has
 // no heartbeat, and the answer is {linked: false, path: "", name: ""}. The wire schema, golden payloads, wireContracts row and
-// mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).
+// mock live in src/studio/ui/src/api (docs/architecture/wire-contracts.md).
 func (h *Host) ProjectRunningDaw() (string, error) {
 	return encodeBinding(h.projectRunningDaw(), nil)
 }

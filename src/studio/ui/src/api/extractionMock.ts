@@ -1,10 +1,10 @@
 // The browser mock's Story Bible extraction suggestions: a few of the Studio Next mock's RULES_FINDINGS, as a scan leaves them, over a
-// small Story Bible kept in memory. It decides the way apps/desktop/bindings_extraction.go does: accept applies (an edited text trimmed and
+// small Story Bible kept in memory. It decides the way src/studio/desktop/bindings_extraction.go does: accept applies (an edited text trimmed and
 // applied as given), reject takes back and keeps a tombstone, review makes an automatic acceptance the narrator's, reopen puts a decided
 // suggestion back to the status the rule gave it, and a refusal (an unknown id, a locked entry, a name another entry owns) rejects with the
-// host's sentence and changes nothing. A scan paces the sources one per poll the way apps/desktop/extraction_job.go runs them, offering
+// host's sentence and changes nothing. A scan paces the sources one per poll the way src/studio/desktop/extraction_job.go runs them, offering
 // SCAN_OFFERS as the rules; scanning again offers nothing twice. An import reads a small JSON or CSV text in memory under the host's
-// caps and plans it the way apps/desktop/bindings_extraction_import.go does (add, merge, skip, a row about no one is an error); the
+// caps and plans it the way src/studio/desktop/bindings_extraction_import.go does (add, merge, skip, a row about no one is an error); the
 // commit plans again from the text. Offline: nothing is read and nothing is fetched.
 import { z } from 'zod';
 import { SUGGESTION_TEXT_MAX_BYTES } from './contracts/extraction';
@@ -205,7 +205,7 @@ const idleScan = (): ExtractionScanJob => ({
   skipped: 0,
 });
 
-/** The importer's caps and refusals (apps/desktop/internal/extraction/importer). */
+/** The importer's caps and refusals (src/studio/desktop/internal/extraction/importer). */
 const IMPORT_MAX_BYTES = 2 << 20;
 const IMPORT_EXAMPLE_JSON = `{
   "entries": [

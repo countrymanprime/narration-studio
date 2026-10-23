@@ -26,8 +26,8 @@ _REPO_DEFAULTS_CACHE = None
 
 
 def _repo_defaults_path() -> Path:
-    # libs/python/narration_common/config.py -> config/defaults.json
-    return Path(__file__).resolve().parents[3] / "config" / "defaults.json"
+    # src/studio/libs/python/narration_common/config.py -> config/defaults.json
+    return Path(__file__).resolve().parents[5] / "config" / "defaults.json"
 
 
 def _read_json_file(path: Path) -> dict:

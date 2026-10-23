@@ -1,5 +1,5 @@
 // The browser mock's preview candidates, answering the shape
-// apps/desktop/bindings_preview.go's PreviewCandidates does. It is a simplified, deterministic stand-in for the real Go ranking engine (apps/desktop/internal/preview), not a port of it: good enough to drive every named
+// src/studio/desktop/bindings_preview.go's PreviewCandidates does. It is a simplified, deterministic stand-in for the real Go ranking engine (src/studio/desktop/internal/preview), not a port of it: good enough to drive every named
 // state (`ok` with candidates, `no_manuscript`, `nothing_eligible`) for the suggestions panel and its tests, not to
 // reproduce the engine's scoring byte for byte.
 //
@@ -43,7 +43,7 @@ type Deps = {
   paragraphs: () => ManuscriptParagraph[];
 };
 
-/** The app's own fixed pace estimate (apps/ui/src/state.ts's WORDS_PER_FINISHED_HOUR, matching the Go engine's own
+/** The app's own fixed pace estimate (src/studio/ui/src/state.ts's WORDS_PER_FINISHED_HOUR, matching the Go engine's own
  * preview.WordsPerFinishedHour), and the engine's own default target and tolerance (preview.DefaultSettings). */
 const WORDS_PER_FINISHED_HOUR = 9300;
 const WORDS_PER_SECOND = WORDS_PER_FINISHED_HOUR / 3600;
@@ -94,13 +94,13 @@ function evaluateRange(chapter: ManuscriptChapter, paragraphIds: string[], order
 }
 
 /** One chapter's paragraphs, in reading order - the pin bindings' own "the caller trusts no order but its own"
- * rule (apps/desktop/internal/preview/engine.go's chapterParagraphs). */
+ * rule (src/studio/desktop/internal/preview/engine.go's chapterParagraphs). */
 function chapterParagraphsOrdered(paragraphs: ManuscriptParagraph[], chapterId: string): ManuscriptParagraph[] {
   return paragraphs.filter((paragraph) => paragraph.chapterId === chapterId).sort((a, b) => a.index - b.index);
 }
 
 /** Grows or shrinks currentIds by one paragraph at edge within chapterParagraphs, mirroring
- * apps/desktop/internal/preview/pin.go's AdjustRange: undefined when currentIds does not resolve to a contiguous
+ * src/studio/desktop/internal/preview/pin.go's AdjustRange: undefined when currentIds does not resolve to a contiguous
  * run of chapterParagraphs' own ids, unchanged (a no-op) once that edge already reaches its limit. */
 function adjustRange(chapterParagraphs: ManuscriptParagraph[], currentIds: string[], edge: 'start' | 'end', grow: boolean): string[] | undefined {
   if (currentIds.length === 0 || chapterParagraphs.length === 0) return undefined;

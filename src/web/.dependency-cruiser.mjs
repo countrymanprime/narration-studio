@@ -1,6 +1,6 @@
-// Import-graph rules for apps/site. Run by `pnpm --dir apps/site architecture` (the Nx target of the same name).
+// Import-graph rules for src/web. Run by `pnpm --dir src/web architecture` (the Nx target of the same name).
 // The site owns its own folder and takes from the app only what this file lists as shared. It reaches the app through the `@ui` alias; ESLint's
-// `no-restricted-imports` (eslint.config.js) rejects a relative path out of apps/site, which this tool cannot tell from the alias once both resolve.
+// `no-restricted-imports` (eslint.config.js) rejects a relative path out of src/web, which this tool cannot tell from the alias once both resolve.
 
 /** @type {import('dependency-cruiser').IConfiguration} */
 export default {
@@ -11,7 +11,7 @@ export default {
       // which only entry.ts loads. A new need is added here on purpose, so the shared surface stays a list a reader can see.
       name: 'site-uses-listed-app-modules',
       comment:
-        'The site imports only the shared surface of apps/ui listed in this rule: add a module here only when the site has to use it, and prefer a seam in appExtension.tsx.',
+        'The site imports only the shared surface of src/studio/ui listed in this rule: add a module here only when the site has to use it, and prefer a seam in appExtension.tsx.',
       severity: 'error',
       from: { path: '^demo/src/' },
       to: {

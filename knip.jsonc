@@ -1,6 +1,6 @@
 // Knip: unused files, exports and dependencies (docs/operations/verification-tooling.md).
 // Every entry under `ignore*` says why, so a reader can tell a real exception from a way to make the report quiet.
-// Workspaces come from pnpm-workspace.yaml (apps/ui, apps/site, apps/desktop); the root workspace covers scripts/ and tools/.
+// Workspaces come from pnpm-workspace.yaml (src/studio/ui, src/web, src/studio/desktop); the root workspace covers scripts/ and tools/.
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   // The scripts are entries (nothing imports them), and an entry's exports are normally never reported.
@@ -27,15 +27,15 @@
         "wails3",
         // The Go linter, installed by .github/actions/setup-toolchain (need-golangci-lint); scripts/ci/doc-comments.mjs runs it.
         "golangci-lint",
-        // Installed by .github/actions/setup-playwright (`playwright install`) from the apps/ui dependency.
+        // Installed by .github/actions/setup-playwright (`playwright install`) from the src/studio/ui dependency.
         "playwright"
       ]
     },
-    "apps/ui": {},
+    "src/studio/ui": {},
     // The public site. Its build scripts are plain Node (the entries below) and the app starts from demo/src/entry.ts. The Vite, Vitest and Playwright
-    // configs are found by knip's own plugins. The browser scripts apps/site/build/*.mjs read with readFileSync and inline into the pages
+    // configs are found by knip's own plugins. The browser scripts src/web/build/*.mjs read with readFileSync and inline into the pages
     // (common/shell.js, docs/docs.js) are text to knip, not modules, and it already treats them so.
-    "apps/site": {
+    "src/web": {
       "entry": ["build/*.mjs", "demo/src/entry.ts", "tests/*.spec.ts"],
       "project": ["build/**", "demo/**", "tests/**", "*.ts"]
     }
@@ -43,6 +43,6 @@
   // Exported types in the wire contracts document what the host sends and accepts, whether or not a component
   // names each one yet (the boundary schema PRD turns these into schemas). Unused ones are not dead code.
   "ignoreIssues": {
-    "apps/ui/src/api/contracts/**": ["types"],
+    "src/studio/ui/src/api/contracts/**": ["types"],
   },
 }

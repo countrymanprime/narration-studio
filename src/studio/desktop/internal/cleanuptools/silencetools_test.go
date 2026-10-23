@@ -11,7 +11,7 @@ import (
 
 // fakeRoles is a fake REAPER adapter declaring every capability Experimental, so its GainAdjuster role
 // is available to type-assert, the same way the composition root gets it from the real adapter
-// (apps/desktop/app.go).
+// (src/studio/desktop/app.go).
 func fakeRoles(t *testing.T) (*dawporttest.Fake, dawport.GainAdjuster) {
 	t.Helper()
 	fake := dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Experimental))

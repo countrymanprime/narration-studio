@@ -3,7 +3,7 @@
 Needs faster-whisper and a local model directory; nothing else in this folder does. The timings are
 committed so the corpora can be rebuilt on any machine without a model, a GPU or network access.
 
-    uv run --project sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/transcribe.py \
+    uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/transcribe.py \
         --model %LOCALAPPDATA%/narration-utils/assets/whisper/faster-whisper/large-v3-turbo
 """
 

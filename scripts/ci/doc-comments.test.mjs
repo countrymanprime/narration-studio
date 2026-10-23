@@ -4,27 +4,27 @@ import test from 'node:test';
 import { PYTHON_RULES, filterToAdded, parseAddedLines, parseRuffJson, ruffArgs } from './doc-comments.mjs';
 
 const DIFF = [
-  'diff --git a/libs/python/a.py b/libs/python/a.py',
+  'diff --git a/src/studio/libs/python/a.py b/src/studio/libs/python/a.py',
   'index 111..222 100644',
-  '--- a/libs/python/a.py',
-  '+++ b/libs/python/a.py',
+  '--- a/src/studio/libs/python/a.py',
+  '+++ b/src/studio/libs/python/a.py',
   '@@ -3,0 +4,2 @@ def f():',
   '+x = 1',
   '+y = 2',
   '@@ -10,2 +13 @@ def g():',
   '-old',
   '+new',
-  'diff --git a/libs/python/gone.py b/libs/python/gone.py',
+  'diff --git a/src/studio/libs/python/gone.py b/src/studio/libs/python/gone.py',
   'deleted file mode 100644',
-  '--- a/libs/python/gone.py',
+  '--- a/src/studio/libs/python/gone.py',
   '+++ /dev/null',
   '@@ -1,2 +0,0 @@',
   '-a',
   '-b',
-  'diff --git a/libs/python/new.py b/libs/python/new.py',
+  'diff --git a/src/studio/libs/python/new.py b/src/studio/libs/python/new.py',
   'new file mode 100644',
   '--- /dev/null',
-  '+++ b/libs/python/new.py',
+  '+++ b/src/studio/libs/python/new.py',
   '@@ -0,0 +1,3 @@',
   '+a',
   '+b',
@@ -34,12 +34,12 @@ const DIFF = [
 test('parseAddedLines reads added ranges per file, a single-line hunk, and a new file', () => {
   const added = parseAddedLines(DIFF);
 
-  assert.deepEqual([...added.get('libs/python/a.py')].sort((a, b) => a - b), [4, 5, 13]);
-  assert.deepEqual([...added.get('libs/python/new.py')].sort((a, b) => a - b), [1, 2, 3]);
+  assert.deepEqual([...added.get('src/studio/libs/python/a.py')].sort((a, b) => a - b), [4, 5, 13]);
+  assert.deepEqual([...added.get('src/studio/libs/python/new.py')].sort((a, b) => a - b), [1, 2, 3]);
 });
 
 test('parseAddedLines ignores a deleted file and a hunk that only removes lines', () => {
-  assert.equal(parseAddedLines(DIFF).has('libs/python/gone.py'), false);
+  assert.equal(parseAddedLines(DIFF).has('src/studio/libs/python/gone.py'), false);
 });
 
 test('parseAddedLines on an empty diff is empty', () => {
@@ -49,19 +49,19 @@ test('parseAddedLines on an empty diff is empty', () => {
 test('filterToAdded keeps only violations on an added line of that file', () => {
   const added = parseAddedLines(DIFF);
   const violations = [
-    { file: 'libs/python/a.py', line: 4, code: 'D103' },
-    { file: 'libs/python/a.py', line: 7, code: 'D103' },
-    { file: 'libs/python/other.py', line: 1, code: 'D100' },
-    { file: 'libs/python/new.py', line: 1, code: 'D100' },
+    { file: 'src/studio/libs/python/a.py', line: 4, code: 'D103' },
+    { file: 'src/studio/libs/python/a.py', line: 7, code: 'D103' },
+    { file: 'src/studio/libs/python/other.py', line: 1, code: 'D100' },
+    { file: 'src/studio/libs/python/new.py', line: 1, code: 'D100' },
   ];
 
-  assert.deepEqual(filterToAdded(violations, added).map((v) => `${v.file}:${v.line}`), ['libs/python/a.py:4', 'libs/python/new.py:1']);
+  assert.deepEqual(filterToAdded(violations, added).map((v) => `${v.file}:${v.line}`), ['src/studio/libs/python/a.py:4', 'src/studio/libs/python/new.py:1']);
 });
 
 test('parseRuffJson turns absolute paths into repo-relative ones with forward slashes', () => {
-  const json = JSON.stringify([{ code: 'D103', message: 'Missing docstring in public function', filename: 'C:\\repo\\libs\\python\\a.py', location: { row: 4, column: 1 } }]);
+  const json = JSON.stringify([{ code: 'D103', message: 'Missing docstring in public function', filename: 'C:\\repo\\src\\studio\\libs\\python\\a.py', location: { row: 4, column: 1 } }]);
 
-  assert.deepEqual(parseRuffJson(json, 'C:\\repo'), [{ file: 'libs/python/a.py', line: 4, code: 'D103', message: 'Missing docstring in public function' }]);
+  assert.deepEqual(parseRuffJson(json, 'C:\\repo'), [{ file: 'src/studio/libs/python/a.py', line: 4, code: 'D103', message: 'Missing docstring in public function' }]);
 });
 
 test('the Python rules are the missing-docstring rules for public names, without __init__ and magic methods', () => {
@@ -69,28 +69,28 @@ test('the Python rules are the missing-docstring rules for public names, without
 });
 
 test('ruffArgs gives each exclude in the = form and ends with the directories, so ruff does not scan the whole tree', () => {
-  const args = ruffArgs(['libs/python', 'sidecars/x']);
+  const args = ruffArgs(['src/studio/libs/python', 'src/studio/sidecars/x']);
 
-  assert.deepEqual(args.slice(-2), ['libs/python', 'sidecars/x']);
+  assert.deepEqual(args.slice(-2), ['src/studio/libs/python', 'src/studio/sidecars/x']);
   assert.equal(args.filter((arg) => arg === '--extend-exclude').length, 0);
   assert.ok(args.includes('--extend-exclude=**/tests/**'));
 });
 
 test('parseAddedLines reads a path with a space (git adds a tab) and a path with non-ASCII characters', () => {
   const diff = [
-    'diff --git a/libs/python/a b.py b/libs/python/a b.py',
+    'diff --git a/src/studio/libs/python/a b.py b/src/studio/libs/python/a b.py',
     '--- /dev/null',
-    '+++ b/libs/python/a b.py\t',
+    '+++ b/src/studio/libs/python/a b.py\t',
     '@@ -0,0 +1 @@',
     '+x',
-    'diff --git a/libs/python/caf\u00e9.py b/libs/python/caf\u00e9.py',
+    'diff --git a/src/studio/libs/python/caf\u00e9.py b/src/studio/libs/python/caf\u00e9.py',
     '--- /dev/null',
-    '+++ b/libs/python/caf\u00e9.py',
+    '+++ b/src/studio/libs/python/caf\u00e9.py',
     '@@ -0,0 +1 @@',
     '+y',
   ].join('\n');
 
-  assert.deepEqual([...parseAddedLines(diff).keys()], ['libs/python/a b.py', 'libs/python/caf\u00e9.py']);
+  assert.deepEqual([...parseAddedLines(diff).keys()], ['src/studio/libs/python/a b.py', 'src/studio/libs/python/caf\u00e9.py']);
 });
 
 test('parseAddedLines treats an added line that starts with ++ as content, not a new file header', () => {

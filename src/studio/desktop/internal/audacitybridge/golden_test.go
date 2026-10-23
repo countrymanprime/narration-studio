@@ -15,15 +15,15 @@ import (
 )
 
 // goldenDir holds the exact reply bytes a real Audacity 3.7.7 wrote, saved by A3-T3 of the real-Audacity suite
-// (tests/audacity3/real/foundation, docs/research/audacity-3-capability-matrix.md). They are the fake pipe's reference: the client's
+// (src/studio/tests/audacity3/real/foundation, docs/research/audacity-3-capability-matrix.md). They are the fake pipe's reference: the client's
 // reader and the fake's framing are tested against them here, on every pull request, without an Audacity.
-const goldenDir = "../../../../tests/audacity3/real/foundation/golden"
+const goldenDir = "../../../tests/audacity3/real/foundation/golden"
 
 func golden(t *testing.T, name string) []byte {
 	t.Helper()
 	b, err := os.ReadFile(filepath.Join(goldenDir, name+".bin"))
 	if err != nil {
-		t.Fatalf("golden reply %s: %v (rerun tests/audacity3/real/foundation/run.sh and copy out/golden/*.bin here)", name, err)
+		t.Fatalf("golden reply %s: %v (rerun src/studio/tests/audacity3/real/foundation/run.sh and copy out/golden/*.bin here)", name, err)
 	}
 	return b
 }

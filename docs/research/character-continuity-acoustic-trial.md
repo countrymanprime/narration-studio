@@ -233,7 +233,7 @@ On the owner's own recordings, or on the LibriVox reading. For the LibriVox read
 and point the trial at them (Praat installs in seconds with `uv run --with`, and nothing is added to the project):
 
 ```bash
-uv run --project sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py characters --out <scratch_dir_outside_the_repo>
+uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/audio/librivox-alice/build.py characters --out <scratch_dir_outside_the_repo>
 cd scripts/research/character-continuity-acoustic-trial
 uv run --no-project --with numpy --with praat-parselmouth python run_trial.py <scratch_dir_outside_the_repo>/characters
 ```

@@ -2,7 +2,7 @@
 pinned byte for byte at the shipped settings.
 
 A service test over the recording-coverage corpus covers the Go side: the Go host reads these exact
-lines as a check's results (`apps/desktop/internal/coverage/corpus_test.go`) and the recording signal and the stages engine must suggest `editing` for exactly the cases whose
+lines as a check's results (`src/studio/desktop/internal/coverage/corpus_test.go`) and the recording signal and the stages engine must suggest `editing` for exactly the cases whose
 label is `textComplete`. Pinning the lines here keeps that Go test on what the shipped analyzer
 really produces, not on hand-written reports. Regenerate the file with `UPDATE_CONTRACTS=1` only
 when a change to the coverage output is intended, and say why in the PR.

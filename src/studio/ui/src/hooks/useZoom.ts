@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SystemApi } from '../api/contracts/system';
 import { useDebouncedValue } from './useDebouncedValue';
 
-// Mirrors apps/desktop/bindings_window.go's zoomSteps: the header's buttons and Ctrl+=/-/0 step
+// Mirrors src/studio/desktop/bindings_window.go's zoomSteps: the header's buttons and Ctrl+=/-/0 step
 // through these six levels; the host snaps and clamps to the same list defensively, so a value this file computes
 // from it is never rejected.
 export const ZOOM_STEPS = [1.0, 1.1, 1.25, 1.5, 1.75, 2.0];

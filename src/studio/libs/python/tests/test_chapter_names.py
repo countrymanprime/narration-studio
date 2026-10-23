@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from narration_common.chapter_names import chapter_display_name
 
-FIXTURE = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "chapter-names.json"
+FIXTURE = Path(__file__).resolve().parents[5] / "tests" / "fixtures" / "chapter-names.json"
 
 
 def _cases():

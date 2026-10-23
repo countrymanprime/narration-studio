@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       // Sets data-theme before first paint so the correct palette (see
-      // apps/ui/src/styles.css's :root[data-theme='dark'] block) applies
+      // src/studio/ui/src/styles.css's :root[data-theme='dark'] block) applies
       // immediately, instead of flashing light and then swapping to dark
-      // once ThemeProvider (apps/ui/src/theme/ThemeContext.tsx) mounts.
+      // once ThemeProvider (src/studio/ui/src/theme/ThemeContext.tsx) mounts.
       // Mirrors that module's readStoredPreference()/resolveTheme() logic;
       // kept duplicated here since inline scripts can't import it.
       (function () {
@@ -20,7 +20,7 @@
           // Storage/matchMedia unavailable - fall back to the default light palette.
         }
         // Settings -> Motion -> Reduce sets data-motion before first paint, so nothing moves on the first frame
-        // (apps/ui/src/motion.ts, applyMotion; same key, duplicated for the same reason).
+        // (src/studio/ui/src/motion.ts, applyMotion; same key, duplicated for the same reason).
         try {
           if (localStorage.getItem('narration-ui-motion') === 'reduce') document.documentElement.setAttribute('data-motion', 'reduce');
         } catch (error) {

@@ -1,4 +1,4 @@
-// Manuscript line identity ("Link chapters" and its stale/conflict/drift states). Mirrors apps/desktop/internal/lineidentity.Service.Snapshot() exactly: one Stamp/Read run at a
+// Manuscript line identity ("Link chapters" and its stale/conflict/drift states). Mirrors src/studio/desktop/internal/lineidentity.Service.Snapshot() exactly: one Stamp/Read run at a
 // time, reported by phase.
 
 /** One row of LineIdentityStamp's input: an item GUID, the manuscript entity ID it should carry, and that entity's current text. */
@@ -8,7 +8,7 @@ export type LineIdentityStampRow = {
   text: string;
 };
 
-/** How one read row compares to the current manuscript (apps/desktop/internal/lineidentity.rowStatus). */
+/** How one read row compares to the current manuscript (src/studio/desktop/internal/lineidentity.rowStatus). */
 export type LineIdentityRowStatus = 'ok' | 'drift' | 'stale-source' | 'removed' | 'unrecognized' | 'unknown';
 
 /** One stamped item as `read_line_ids` reported it, classified against the current manuscript. */

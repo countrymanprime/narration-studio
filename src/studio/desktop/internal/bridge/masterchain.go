@@ -6,7 +6,7 @@ import (
 )
 
 // The mastering port's DAW row reads the chain a render with FX would run before the
-// narrator approves it: master_chain_read (integrations/reaper/narration_master_render.lua). The render itself, render_with_fx,
+// narrator approves it: master_chain_read (src/studio/integrations/reaper/narration_master_render.lua). The render itself, render_with_fx,
 // answers later through the client's fan-out (FX_RENDER_FILE, FX_RENDERED), so it is not one of Actions' requests.
 
 // MasterTrackGUID is how master_chain_read names the master track in MASTER_CHAIN_FX.

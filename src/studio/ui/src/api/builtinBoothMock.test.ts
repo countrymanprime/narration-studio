@@ -4,7 +4,7 @@ import { readAloudRecordingSchema } from './schemas/teleprompter';
 import { createMockApi } from './mockApi';
 import { readFileSync } from 'node:fs';
 
-const GOLDEN = new URL('../../../../tests/fixtures/contracts/read-aloud-recordings-builtin.json', import.meta.url);
+const GOLDEN = new URL('../../../../../tests/fixtures/contracts/read-aloud-recordings-builtin.json', import.meta.url);
 const golden = z.record(z.string(), readAloudRecordingSchema).parse(JSON.parse(readFileSync(GOLDEN, 'utf8')));
 const answer = (name: string) => ({ outcome: golden[name].outcome, reason: golden[name].reason, message: golden[name].message });
 

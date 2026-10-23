@@ -173,7 +173,7 @@ describe('the mock DAW setups', () => {
   it("mock-setup-agrees-with-the-host: the built-in setup has the golden's level for every capability, and its reason and sentence wherever both refuse", () => {
     const golden = parseWire(
       dawCapabilitiesSchema,
-      JSON.parse(readFileSync(fileURLToPath(new URL('../../../../tests/fixtures/contracts/daw-capabilities-builtin.json', import.meta.url)), 'utf8')),
+      JSON.parse(readFileSync(fileURLToPath(new URL('../../../../../tests/fixtures/contracts/daw-capabilities-builtin.json', import.meta.url)), 'utf8')),
       { boundary: 'fixtures', payload: 'daw-capabilities-builtin.json' },
     );
     for (const [name, host] of Object.entries(golden.capabilities)) {
@@ -186,15 +186,15 @@ describe('the mock DAW setups', () => {
 
   it("mock-refuses-stale-the-same-way: the mock's stale answers are the host's stale sentences, word for word", () => {
     const golden = (file: string): Record<string, unknown> =>
-      JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));
+      JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${file}`, import.meta.url)), 'utf8'));
     expect(golden('workspace-use-take-refused.json')).toMatchObject({ reason: 'stale', message: DAW_ANSWERS.staleTake });
     expect(golden('read-aloud-recordings.json')['track_missing.start']).toMatchObject({ reason: 'track_missing', message: DAW_ANSWERS.noTrack });
   });
 
   it("mock-pickup-answers-are-the-host's: the rename sentences are the Go service's and the Lua's, word for word", () => {
-    const source = (path: string) => readFileSync(fileURLToPath(new URL(`../../../../${path}`, import.meta.url)), 'utf8');
-    const service = source('apps/desktop/internal/pickups/service.go');
-    const lua = source('integrations/reaper/narration_pickups.lua');
+    const source = (path: string) => readFileSync(fileURLToPath(new URL(`../../../../../${path}`, import.meta.url)), 'utf8');
+    const service = source('src/studio/desktop/internal/pickups/service.go');
+    const lua = source('src/studio/integrations/reaper/narration_pickups.lua');
     expect(service).toContain(`"${DAW_ANSWERS.pickupResolved}"`);
     expect(service).toContain(`"${DAW_ANSWERS.pickupReopened}"`);
     expect(lua).toContain(`'${DAW_ANSWERS.noOpenPickup}'`);
@@ -207,7 +207,7 @@ describe('the mock DAW setups', () => {
 
 describe('the hide-takes answers (SN-D52)', () => {
   const golden = (name: string) =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
 
   it("takesHiddenAnswer words what dawport/reaper's hiddenMessage does, and matches the host goldens", () => {
     expect(takesHiddenAnswer(1, 'REAPER')).toBe(golden('daw-hide-takes-done.json').message);
@@ -224,7 +224,7 @@ describe('the hide-takes answers (SN-D52)', () => {
 
 describe('the roll answers (SN-D64)', () => {
   const golden = (name: string) =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
 
   it("rolledAnswer words what dawport/reaper's puncher does, and the refusals match the host goldens", () => {
     expect(rolledAnswer(40)).toBe(golden('daw-roll-done.json').message);
@@ -242,7 +242,7 @@ describe('the roll answers (SN-D64)', () => {
 
 describe('the range cut answers (SN-D65)', () => {
   const golden = (name: string) =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
 
   it("rangeCutAnswer words what dawport/reaper's rangeCutter does, and the stale refusal matches the host golden", () => {
     expect(rangeCutAnswer(1, 'REAPER')).toBe(golden('daw-delete-range-done.json').message);
@@ -264,7 +264,7 @@ describe('the range cut answers (SN-D65)', () => {
 
 describe('the FX range answers (SN-D66)', () => {
   const golden = (name: string) =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as { message: string };
   const chain = 'Podcast Voice.RfxChain';
 
   it("words what dawport/reaper's rangeFXApplier and the binding do, as the host goldens have them", () => {
@@ -277,7 +277,7 @@ describe('the FX range answers (SN-D66)', () => {
 
   it('the fixture project lists the chains of the host golden', () => {
     const listed = JSON.parse(
-      readFileSync(fileURLToPath(new URL('../../../../tests/fixtures/contracts/workspace-fx-chains.json', import.meta.url)), 'utf8'),
+      readFileSync(fileURLToPath(new URL('../../../../../tests/fixtures/contracts/workspace-fx-chains.json', import.meta.url)), 'utf8'),
     ) as {
       names: string[];
     };
@@ -298,7 +298,7 @@ describe('the FX range answers (SN-D66)', () => {
 
 describe('the stack answers (SN-D72)', () => {
   const golden = (name: string) =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as {
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as {
       message: string;
       undoSteps: number;
       steps?: string[];
@@ -328,7 +328,7 @@ describe('the stack answers (SN-D72)', () => {
 
 describe('the backups answers (SN-D82)', () => {
   const golden = (name: string) =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as {
+    JSON.parse(readFileSync(fileURLToPath(new URL(`../../../../../tests/fixtures/contracts/${name}`, import.meta.url)), 'utf8')) as {
       message: string;
     };
 

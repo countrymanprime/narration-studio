@@ -1,23 +1,23 @@
 # Real Audacity 3: foundation suite
 
-Tests A3-T1 to T13, T24 to T29 and T34 of [the capability matrix](../../../../docs/research/audacity-3-capability-matrix.md#test-plan), run against a pinned, real Audacity 3 on Linux. The record, punch and edit tests (T14 to T23, T30 to T33) are in their own directories next to this one.
+Tests A3-T1 to T13, T24 to T29 and T34 of [the capability matrix](../../../../../../docs/research/audacity-3-capability-matrix.md#test-plan), run against a pinned, real Audacity 3 on Linux. The record, punch and edit tests (T14 to T23, T30 to T33) are in their own directories next to this one.
 
 ## Run it
 
 ```bash
-tests/audacity3/real/foundation/run.sh [go-test-run-regexp]
+src/studio/tests/audacity3/real/foundation/run.sh [go-test-run-regexp]
 ```
 
-It needs `curl`, `python3`, `go`, `ffmpeg`, `Xvfb`, PulseAudio (`pulseaudio`, `pactl`, `paplay`, `parec`), `libasound2-plugins`, `xdotool` and ImageMagick (the package list is in the script's header). It downloads the Audacity AppImage pinned in `run.sh` and checks its SHA-256, fetches the pinned LibriVox chapter, starts Xvfb and a PulseAudio null sink, and runs `go test -tags audacityreal ./internal/audacityreal/foundation/` from `apps/desktop`. CI runs it in [`real-audacity3-foundation.yml`](../../../../.github/workflows/real-audacity3-foundation.yml), on a manual dispatch and on a pull request that touches the files below.
+It needs `curl`, `python3`, `go`, `ffmpeg`, `Xvfb`, PulseAudio (`pulseaudio`, `pactl`, `paplay`, `parec`), `libasound2-plugins`, `xdotool` and ImageMagick (the package list is in the script's header). It downloads the Audacity AppImage pinned in `run.sh` and checks its SHA-256, fetches the pinned LibriVox chapter, starts Xvfb and a PulseAudio null sink, and runs `go test -tags audacityreal ./internal/audacityreal/foundation/` from `src/studio/desktop`. CI runs it in [`real-audacity3-foundation.yml`](../../../../../../.github/workflows/real-audacity3-foundation.yml), on a manual dispatch and on a pull request that touches the files below.
 
 ## Where things are
 
 | Path | What it holds |
 | --- | --- |
-| `apps/desktop/internal/audacityreal/` | The harness, no assertions: the FIFO transport that dials with a deadline, raw pipe exchanges, the first-start procedure and the primed profile, Audacity process control, window and sink probes, the poller prototype, and the results recorder |
-| `apps/desktop/internal/audacityreal/foundation/` | The tests, one Go test per matrix test id |
-| `tests/audacity3/real/foundation/golden/` | Reply bytes a real Audacity wrote (A3-T3), the reference for the fake pipe (`apps/desktop/internal/audacitybridge/golden_test.go`) |
-| `tests/audacity3/real/foundation/summarise.py` | Merges the per-test result files into `results.json` and `summary.md` |
+| `src/studio/desktop/internal/audacityreal/` | The harness, no assertions: the FIFO transport that dials with a deadline, raw pipe exchanges, the first-start procedure and the primed profile, Audacity process control, window and sink probes, the poller prototype, and the results recorder |
+| `src/studio/desktop/internal/audacityreal/foundation/` | The tests, one Go test per matrix test id |
+| `src/studio/tests/audacity3/real/foundation/golden/` | Reply bytes a real Audacity wrote (A3-T3), the reference for the fake pipe (`src/studio/desktop/internal/audacitybridge/golden_test.go`) |
+| `src/studio/tests/audacity3/real/foundation/summarise.py` | Merges the per-test result files into `results.json` and `summary.md` |
 
 Everything is behind the `audacityreal` build tag, so no ordinary test run starts an Audacity. Another suite can use the `audacityreal` package; keep its tests in a package of its own.
 
@@ -38,7 +38,7 @@ A row named `KNOWN LIMIT: ...` pins something Audacity does not do (it does not 
 
 ## Refreshing the golden replies
 
-Run `run.sh 'TestA3T03'`, then copy `$NU_AUDACITY_WORK/out/golden/*.bin` to `tests/audacity3/real/foundation/golden/` and read the diff. A change in those bytes is a change in Audacity.
+Run `run.sh 'TestA3T03'`, then copy `$NU_AUDACITY_WORK/out/golden/*.bin` to `src/studio/tests/audacity3/real/foundation/golden/` and read the diff. A change in those bytes is a change in Audacity.
 
 ## Pinning a new Audacity
 

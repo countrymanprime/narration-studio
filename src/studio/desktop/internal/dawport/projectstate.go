@@ -3,7 +3,7 @@ package dawport
 import "time"
 
 // ProjectState is the DAW project as last saved against the live one (the DawProjectState binding and its
-// daw_project_state_changed event, apps/desktop/bindings_daw_projectstate.go). It is assembled from what the host already
+// daw_project_state_changed event, src/studio/desktop/bindings_daw_projectstate.go). It is assembled from what the host already
 // has, with no command of its own: the saved file's modification time (a host-side stat), REAPER's edit counter and
 // transport from the heartbeat.
 type ProjectState struct {

@@ -2,15 +2,15 @@
 // verdict against the standard. `interactionFeedback.test.ts` fails on a call site that has no row, on a row whose site is gone, and on a row that
 // breaks the rules for its verdict, so the inventory cannot rot.
 //
-// A site is `<file under apps/ui>::<NarrationApi method>#<n>`, the n-th call of that method in that file, in source order. Adding or removing a call
+// A site is `<file under src/studio/ui>::<NarrationApi method>#<n>`, the n-th call of that method in that file, in source order. Adding or removing a call
 // renumbers the ones after it in the same file; the test names the keys that changed.
 //
-// Adding a call to the host: write the call, then run `pnpm --dir apps/ui exec vitest run src/interactionFeedback.test.ts`; it names the missing
+// Adding a call to the host: write the call, then run `pnpm --dir src/studio/ui exec vitest run src/interactionFeedback.test.ts`; it names the missing
 // key. Add the row: ask which tier the operation is in (measure it if it spawns Python) and give it the acknowledgment and guard that tier
 // requires. An action that changes the Story Bible goes through `usePendingAction`; a control that starts something slow takes `pending`; a
 // failure is `notify(describeApiError(error), 'error')`. A control that is not a `Button` or `IconButton` and needs a busy state gets the same
 // three things: `aria-busy`, a press that does nothing, and focusability. The category `Menu` does not yet (#211). A new kind of background job
-// is added in apps/desktop/jobs.go (see the comment on the job kinds).
+// is added in src/studio/desktop/jobs.go (see the comment on the job kinds).
 import type { FeedbackRow } from './interactionFeedback/row';
 import { appFeedback } from './interactionFeedback/app';
 import { projectFeedback } from './interactionFeedback/project';

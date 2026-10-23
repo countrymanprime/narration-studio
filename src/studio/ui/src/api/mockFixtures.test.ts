@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { wireSettings } from './mockFixtures';
 
-// The mock stands in for the host, so it may offer only the colour settings the host offers (apps/desktop/app.go,
+// The mock stands in for the host, so it may offer only the colour settings the host offers (src/studio/desktop/app.go,
 // fieldSchemas). It once offered seven more, one per entity kind, and the app writes the colour settings it maps (App.tsx)
 // inline on <html>, where they beat both theme blocks of styles.css: in the dark theme every capture and every axe pass then
 // showed the light hexes of the entity colours, and the dark tokens never rendered.

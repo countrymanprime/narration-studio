@@ -1,7 +1,7 @@
 """What the sidecar's `merge`, `unmerge` and `split` do to a file, recorded as sequences the Go host replays, and the bytes its merge
 fingerprints are made of.
 
-The host runs the three itself (apps/desktop/internal/guide/merge.go), so each has two implementations. Each case here is a start file and
+The host runs the three itself (src/studio/desktop/internal/guide/merge.go), so each has two implementations. Each case here is a start file and
 a list of steps; every step runs the real command on the file the step before left, and records whether it wrote and what the file then
 holds, or the reason it refused. ``TestMergesMatchTheSidecarCases`` in the guide package replays each case twice, once as a chain on the
 host's own writes and once with every step on the sidecar's file, so an undo of a record the other implementation wrote is covered both
@@ -30,7 +30,7 @@ guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
-TESTDATA = Path(__file__).parents[3] / "apps" / "desktop" / "internal" / "guide" / "testdata"
+TESTDATA = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "guide" / "testdata"
 
 
 def evidence(chapter: str, paragraph: int, excerpt: str) -> dict:

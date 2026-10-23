@@ -16,7 +16,7 @@ from narration_common.ports.extraction import (
     SourceRegistry,
 )
 
-DOCS = Path(__file__).resolve().parents[3] / "docs" / "architecture" / "provider-ports.md"
+DOCS = Path(__file__).resolve().parents[5] / "docs" / "architecture" / "provider-ports.md"
 
 # --- the fakes ------------------------------------------------------------------------------------------------------------------
 

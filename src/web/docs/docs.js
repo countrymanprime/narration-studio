@@ -1,4 +1,4 @@
-/* The docs pages' script (apps/site/build/guides.mjs inlines it after the shell's), cut from the docs view of the public-site mock: the
+/* The docs pages' script (src/web/build/guides.mjs inlines it after the shell's), cut from the docs view of the public-site mock: the
    phone page picker, smooth scrolling to a heading, "On this page" following the reading position, the copy button and the feedback line. */
 (() => {
   'use strict';

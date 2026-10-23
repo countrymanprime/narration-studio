@@ -1,8 +1,8 @@
 import type { MeasureReport } from './measure';
 import type { StageUnknownCause } from './stages';
 
-// A chapter's chosen rendered file (apps/desktop/bindings_proofing_render.go,
-// apps/desktop/internal/proofing/renders.go): what the proofing delivery-check signals (`proofing.delivery.*`,
+// A chapter's chosen rendered file (src/studio/desktop/bindings_proofing_render.go,
+// src/studio/desktop/internal/proofing/renders.go): what the proofing delivery-check signals (`proofing.delivery.*`,
 // `proofing.delivery.render_length`) on StageRecommendations are about, and whether it is still current. The bindings here only change the choice
 // (choose, clear); the checks themselves are read through StageRecommendations (schemas/stages.ts), which reads the same
 // association.

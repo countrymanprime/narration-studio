@@ -58,10 +58,10 @@ func reasonOf(message string) string {
 	return message
 }
 
-// TestEditMatchesTheSidecarCases replays every case sidecars/manuscript-guide/tests/test_edit_parity.py recorded from the sidecar's own
+// TestEditMatchesTheSidecarCases replays every case src/studio/sidecars/manuscript-guide/tests/test_edit_parity.py recorded from the sidecar's own
 // edit: the same file after it, or the same reason with the file untouched.
 func TestEditMatchesTheSidecarCases(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "tests", "fixtures", "guide-edit", "edit-parity.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "..", "tests", "fixtures", "guide-edit", "edit-parity.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

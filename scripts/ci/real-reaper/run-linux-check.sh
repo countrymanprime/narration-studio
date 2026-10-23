@@ -39,9 +39,9 @@ if [ "${NARRATION_CI_JACK:-1}" = 1 ] && command -v jackd >/dev/null; then
 fi
 
 export NARRATION_CI_AUDIO_MODE="$AUDIO_MODE" NARRATION_CI_SESSION="$OUT/session" NARRATION_CI_OUT="$OUT/out" NARRATION_CI_CFG="$OUT/cfg"
-export NARRATION_CI_AUDIO="$AUDIO" NARRATION_CI_REAPER_DIR="$REPO/integrations/reaper"
+export NARRATION_CI_AUDIO="$AUDIO" NARRATION_CI_REAPER_DIR="$REPO/src/studio/integrations/reaper"
 (cd "$OUT/dl/reaper_linux_x86_64/REAPER" && exec xvfb-run -a ./reaper -nosplash -newinst -cfgfile "$OUT/cfg/reaper.ini" \
-  "$OUT/CiBook.rpp" "$REPO/integrations/reaper/spikes/ci_real_reaper_launcher.lua") > "$OUT/reaper.log" 2>&1 &
+  "$OUT/CiBook.rpp" "$REPO/src/studio/integrations/reaper/spikes/ci_real_reaper_launcher.lua") > "$OUT/reaper.log" 2>&1 &
 REAPER_PID=$!
 trap 'pkill -f "$OUT/cfg/reaper.ini" || true; kill "$REAPER_PID" "${JACK_PID:-}" 2>/dev/null || true' EXIT
 

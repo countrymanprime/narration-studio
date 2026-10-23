@@ -1,5 +1,5 @@
 // The takes the Booth's passage map records and the paragraphs they read, worked out as
-// apps/desktop/internal/passagetakes does (mapSpans, mappedSpans): a take begins at a mark and ends where the next mark of
+// src/studio/desktop/internal/passagetakes does (mapSpans, mappedSpans): a take begins at a mark and ends where the next mark of
 // its run says the reading had got to. A take with a stale mark at either end is left out, because where it sits in the
 // current text is not known. Editing lists a Booth-recorded chapter's passages from these, and places their takes exactly.
 import type { PassageMark, PassagePlace } from './contracts/passageMap';

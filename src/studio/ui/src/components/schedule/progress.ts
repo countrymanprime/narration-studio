@@ -49,7 +49,7 @@ export type Calc = {
   finished: boolean;
 };
 
-/** The work left and what it means for the due date, from the fixed inputs (apps/ui/src/components/schedule/progress.ts). `wph` is the words per finished hour of the chosen schedule basis; it defaults to the standard. */
+/** The work left and what it means for the due date, from the fixed inputs (src/studio/ui/src/components/schedule/progress.ts). `wph` is the words per finished hour of the chosen schedule basis; it defaults to the standard. */
 export function calc(chapters: readonly ScheduleChapter[], today: Date, due: Date | null, openPickups = 0, wph: number = WPH): Calc {
   const words = chapters.reduce((a, c) => a + c.words, 0);
   const left = (stage: keyof typeof DONE_AT): number => (chapters.filter((c) => !stageDone(c, stage)).reduce((a, c) => a + c.words, 0) / wph) * RATIO[stage];
@@ -80,7 +80,7 @@ export function calc(chapters: readonly ScheduleChapter[], today: Date, due: Dat
 }
 
 /**
- * How the due date reads (apps/ui/src/components/schedule/progress.ts). The days left set it: neutral beyond a week, a warning within a week while
+ * How the due date reads (src/studio/ui/src/components/schedule/progress.ts). The days left set it: neutral beyond a week, a warning within a week while
  * unfinished, danger once past, success when finished. The projection can only make it worse, and only when there is work left.
  */
 export function deadlineTone(k: Calc): Tone {

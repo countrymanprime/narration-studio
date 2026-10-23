@@ -11,7 +11,7 @@ import (
 )
 
 // Navigator asks REAPER to go to a finding, loop its context and stop the loop, and whether the script is listening
-// (integrations/reaper/narration_navigation.lua; docs/architecture/reaper-navigation.md), and to add one
+// (src/studio/integrations/reaper/narration_navigation.lua; docs/architecture/reaper-navigation.md), and to add one
 // approved marker for a finding (AddMarker, marker.go). Each request is one command and waits for its one
 // answer.
 //

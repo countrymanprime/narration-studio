@@ -15,7 +15,7 @@ behavior without carrying a whole novel in the repo. Chapter II's body
 starts with a "Contents"-style aside deliberately turned into its own
 Heading-1 "Contents" paragraph in the .docx, to exercise the
 non-chapter-heading skip path (isNonChapterHeading in
-apps/desktop/internal/importer) with a real heading
+src/studio/desktop/internal/importer) with a real heading
 rather than only a synthetic unit-test one.
 """
 

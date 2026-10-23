@@ -3,7 +3,7 @@ Offline word-time alignment for punch and roll: the
 project time of one script word, taken from the recording itself when the live punch anchors do not cover it.
 
 "Punch from here" needs the time a flagged word was spoken. The host first asks the anchors the live session's
-play-position poll recorded (apps/desktop/internal/teleprompter/anchors.go); when none brackets the word it runs this
+play-position poll recorded (src/studio/desktop/internal/teleprompter/anchors.go); when none brackets the word it runs this
 mode once over a stretch of the chapter's recorded audio, through `live_asr.py --align-word`:
 
     python live_asr.py --align-word 812 --wav take.wav --tail-start 700.0 --tail-end 820.0 \\
@@ -42,7 +42,7 @@ _CORE_DIR = Path(__file__).resolve().parent
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 
-_SHARED_PYTHON = Path(__file__).resolve().parents[3] / "libs" / "python"
+_SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
     sys.path.insert(0, str(_SHARED_PYTHON))
 

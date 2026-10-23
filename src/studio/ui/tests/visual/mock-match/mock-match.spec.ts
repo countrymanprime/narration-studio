@@ -13,7 +13,7 @@ import type { MockScore } from './report';
 // Scores the app against every approved mock that has a target (mocks.ts): loads the app at the mock's own pixel size in the
 // mock's theme, drives it to the mock's state with the visual suite's own driver, photographs the viewport and compares it with
 // the mock (compare.ts). Writes screenshots/mock-match/<mock>.{app,diff}.png and <mock>.json, and global-teardown.ts gathers
-// the records into scores.md. `pnpm --dir apps/ui mock-match`; `-g "<mock file>"` scores one. Where the mock draws the app's
+// the records into scores.md. `pnpm --dir src/studio/ui mock-match`; `-g "<mock file>"` scores one. Where the mock draws the app's
 // shell, its nav rail and header are also scored on their own (mocks.ts `chromeRegions`), so a change to the chrome is measured
 // apart from the page. MOCK_MATCH_BASELINE=<an earlier run's scores.json> adds each score's change since that run.
 //
@@ -79,7 +79,7 @@ for (const mock of scoredMocks()) {
       pixelMatchPercent: raw.matchPercent,
       inkMatchPercent: result.inkMatchPercent,
       ...(chrome.rail || chrome.header ? { chrome } : {}),
-      diff: `apps/ui/${OUT_DIR}/${slug}.diff.png`,
+      diff: `src/studio/ui/${OUT_DIR}/${slug}.diff.png`,
     };
     writeFileSync(`${OUT_DIR}/${slug}.json`, JSON.stringify(score));
     test

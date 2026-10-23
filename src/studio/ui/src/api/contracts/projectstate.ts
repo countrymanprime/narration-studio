@@ -1,7 +1,7 @@
 // The live "project changed" check: REAPER's own edit counter
 // (GetProjectStateChangeCount), read on demand while REAPER is open from this app. The Transcript page compares it with
 // the count its comparison started from (TranscriptState.projectChangeCount) to say "changed since comparison"; nothing
-// re-runs on its own. Mirrors apps/desktop/internal/projectstate.Service.Snapshot() exactly.
+// re-runs on its own. Mirrors src/studio/desktop/internal/projectstate.Service.Snapshot() exactly.
 
 export type ProjectStatePhase = 'idle' | 'checking' | 'success' | 'error';
 

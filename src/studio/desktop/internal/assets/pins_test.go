@@ -93,7 +93,7 @@ func TestPinProblemsRejectsEachWayAFileCanMove(t *testing.T) {
 // catalogFiles reads a bundled catalog and returns every file of every voice or model, labelled for a failure message.
 func catalogFiles(t *testing.T, name string) map[string]File {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "config", name))
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "..", "config", name))
 	if err != nil {
 		t.Fatal(err)
 	}

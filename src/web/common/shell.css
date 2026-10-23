@@ -1,4 +1,4 @@
-/* The site shell: what every page of the public site shares (apps/site/build/shell.mjs). Cut unchanged from the public-site mock
+/* The site shell: what every page of the public site shares (src/web/build/shell.mjs). Cut unchanged from the public-site mock
    (docs/research/mockups/public-site/index.html): the app's tokens, the primitives, the top bar, the notice strip, the footer, the search
    palette and the toasts. A page adds its own styles after these. */
 :root{

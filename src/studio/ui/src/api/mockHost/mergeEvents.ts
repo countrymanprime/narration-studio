@@ -1,5 +1,5 @@
 // What the browser mock's Story Bible tells the rest of the mock when entries merge, so the voice samples follow the merge as the
-// host's GuideMerge and GuideUnmerge bindings make them (apps/desktop/bindings_voicesamples.go, followMerge and unfollowMerge). It is
+// host's GuideMerge and GuideUnmerge bindings make them (src/studio/desktop/bindings_voicesamples.go, followMerge and unfollowMerge). It is
 // not a port: no page sees it.
 export type MergeEvents = {
   /** The Story Bible merged `sourceId` into `targetId` and answered `undoId`. */

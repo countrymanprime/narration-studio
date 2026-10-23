@@ -1,5 +1,5 @@
 // The narrator's voice samples: stretches of a take marked as how a character sounds, each copied into the project's
-// narration-utils/voice-samples/ folder with a record of where it came from (apps/desktop/internal/voicesample,
+// narration-utils/voice-samples/ folder with a record of where it came from (src/studio/desktop/internal/voicesample,
 // docs/prds/character-voice-samples.prd.md). The host finds the audio file in the saved REAPER project by item and take GUID, so a
 // request names ids, word keys and seconds and never a path, and an answer carries the words and a state for where a sample came
 // from, never the file or the GUIDs.
@@ -29,7 +29,7 @@ export type VoiceSampleRefusalReason =
   | 'project_limit'
   | 'not_found';
 
-/** The sentence the host sends with each refusal (apps/desktop/internal/voicesample's `sentence`), so a page that refuses before it asks says the same words. */
+/** The sentence the host sends with each refusal (src/studio/desktop/internal/voicesample's `sentence`), so a page that refuses before it asks says the same words. */
 export const VOICE_SAMPLE_SENTENCES: Record<VoiceSampleRefusalReason, string> = {
   stale_alignment: 'The recording changed since this chapter was checked. Check it again, then mark the sample.',
   not_heard: 'These words were not heard in the recording.',

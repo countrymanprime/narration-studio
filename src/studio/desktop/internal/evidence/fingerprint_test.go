@@ -9,7 +9,7 @@ import (
 )
 
 // reaperFixture parses one of the tracks package's REAPER-saved fixtures
-// (apps/desktop/internal/tracks/testdata/reaper), the same files
+// (src/studio/desktop/internal/tracks/testdata/reaper), the same files
 // reaper_fixtures_test.go pins the parser against, so this package's tests
 // verify against real REAPER output rather than only hand-built structs.
 func reaperFixture(t *testing.T, name string) tracks.Project {

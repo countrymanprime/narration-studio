@@ -4,7 +4,7 @@ Dated 2026-10-18. Evidence, not kept current.
 
 **Question.** The owner's rule: colour and shape follow what a thing is, not which page it is on. A character is highlighted the same on Script, Booth and Editing. A narrator mistake (extra words, a long silence, a mispronounced word) is the same kind of thing wherever it appears, and is drawn the same way as a text mark, a chip, a badge, a list row and a legend entry. What does the Studio Next mock draw, what does the app draw, where do they disagree, and what single map would give every kind one colour and one form?
 
-Scope: read-only. No app code changed. Mock paths are under `docs/research/mockups/studio-next/src/` (`app.css` = `styles/app.css`, `sx.css` = `pages/editing/scriptedit.css`); app paths are under `apps/ui/src/`.
+Scope: read-only. No app code changed. Mock paths are under `docs/research/mockups/studio-next/src/` (`app.css` = `styles/app.css`, `sx.css` = `pages/editing/scriptedit.css`); app paths are under `src/studio/ui/src/`.
 
 ## Findings in short
 
@@ -207,14 +207,14 @@ Existing recorded ratios ([colour-and-contrast.md](../design/colour-and-contrast
 
 Primitives may not import from `components/` (`architectureRules.test.ts`), and `chapterStatus.ts` already sits above the feature folders for that reason. The map goes beside it:
 
-- `apps/ui/src/kinds/kindMap.ts` holds a closed `KindId` union (the table rows of 4.1 to 4.4), and per kind: label, family, `StatusTone`, text-mark recipe (token, shape, fill) and chip shape. It exports `kindTone(id)`, `kindMark(id)`, `kindChip(id)`.
-- `apps/ui/src/kinds/entityColour.ts` is the one resolver for entries, types and speakers: `entryColour(types, entry)` wraps `typeColour`/`TYPE_COLOUR_VAR` (`storyBibleTypes.ts`), the fallback, the `-text` and tint recipes, and the speaker override. `SWATCH_OF_COLOUR`, `ENTITY_BADGE_COLORS`, `CAT_DOT_BG`, `KIND_HUE`, `entityColour`, `COLOUR_TOKEN`/`MARK_COLOUR`/`SWATCH` collapse into it.
-- `apps/ui/src/kinds/statusTone.ts` holds the status, decision, verdict and take-state maps of 4.4.
+- `src/studio/ui/src/kinds/kindMap.ts` holds a closed `KindId` union (the table rows of 4.1 to 4.4), and per kind: label, family, `StatusTone`, text-mark recipe (token, shape, fill) and chip shape. It exports `kindTone(id)`, `kindMark(id)`, `kindChip(id)`.
+- `src/studio/ui/src/kinds/entityColour.ts` is the one resolver for entries, types and speakers: `entryColour(types, entry)` wraps `typeColour`/`TYPE_COLOUR_VAR` (`storyBibleTypes.ts`), the fallback, the `-text` and tint recipes, and the speaker override. `SWATCH_OF_COLOUR`, `ENTITY_BADGE_COLORS`, `CAT_DOT_BG`, `KIND_HUE`, `entityColour`, `COLOUR_TOKEN`/`MARK_COLOUR`/`SWATCH` collapse into it.
+- `src/studio/ui/src/kinds/statusTone.ts` holds the status, decision, verdict and take-state maps of 4.4.
 - Primitives: `KindMark` (extends `Highlight`, replacing its `Misread/Extra/Skipped/Restart` entries with registry kinds; `Word.tsx` stops hand-writing classes and renders a `KindMark` span, since it renders thousands of words and needs the class string, not an element per word) and `KindChip` (a `StatusBadge` whose tone, shape and label come from the registry).
 
 ### 5.2 Guard test
 
-`apps/ui/src/kindMap.test.ts`, written like `badgeShapes.test.ts` (per-file ceiling that may only go down, with a `PENDING` list naming each file still to migrate and its owner) and `highlightBoundary.test.ts` (TypeScript syntax tree, so comments do not trip it). It fails when:
+`src/studio/ui/src/kindMap.test.ts`, written like `badgeShapes.test.ts` (per-file ceiling that may only go down, with a `PENDING` list naming each file still to migrate and its owner) and `highlightBoundary.test.ts` (TypeScript syntax tree, so comments do not trip it). It fails when:
 
 1. A non-test file outside `kinds/` writes an object or `Record` literal with two or more keys from the kind vocabulary (`misread`, `missing`, `skip`, `skipped`, `extra`, `repeat`, `restart`, `breath`, `click`, `noise`, `plosive`, `pacing`, `low`, `pron`, `Character`, `Place`, ...) whose values contain `var(--`, a tone string or a Tailwind colour class.
 2. A file under `components/` passes a `tone=` that is a string literal to a status or kind badge for a kind-vocabulary label (the registry call is the only route).
@@ -229,7 +229,7 @@ The `PENDING` list starts with every file in section 2 and shrinks by one page g
 | PR | Contents | Files | Guide and screenshots |
 | --- | --- | --- | --- |
 | 0 | Owner answers the decisions below; supersede the mock's lines in a PRD or `docs/design/colour-and-contrast.md` (the mock is frozen, [Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec)) | `docs/design/colour-and-contrast.md`, `docs/design/design-system.md` | none |
-| 1 | Map, `KindMark`, `KindChip`, guard with full `PENDING`, undefined-token fixes, `PAIRS` rows, dead-code removal (`styles.css:368-389`, `components.css:36-46`, `TYPE_COLOUR_VAR` use) | `apps/ui/src/kinds/*`, `primitives/Highlight.tsx`, `StatusBadge.tsx`, `kindMap.test.ts`, `paletteContrast.test.ts`, `styles.css`, the files using the undefined tokens | No visible change except the undefined-token borders; `proof.md`, `editing.md` regenerated for those |
+| 1 | Map, `KindMark`, `KindChip`, guard with full `PENDING`, undefined-token fixes, `PAIRS` rows, dead-code removal (`styles.css:368-389`, `components.css:36-46`, `TYPE_COLOUR_VAR` use) | `src/studio/ui/src/kinds/*`, `primitives/Highlight.tsx`, `StatusBadge.tsx`, `kindMap.test.ts`, `paletteContrast.test.ts`, `styles.css`, the files using the undefined tokens | No visible change except the undefined-token borders; `proof.md`, `editing.md` regenerated for those |
 | 2 | Proof: check card, finding rows, notes table, pins, delete `resolution.ts` dead map | `proof/checkcard/*`, `proof/notes/noteRows.ts`, `proof/ProofPage.tsx`, `proof/resolution.ts`, `proof/spot/*` | `docs/guides/using-the-app/proof.md` and its images |
 | 3 | Editing: word marks, legend, flag card, ribbon, found list, strip, takes | `editing/script/Word.tsx`, `editing/flags/*`, `editing/ribbon/*`, `editing/range/common/Strips.tsx`, `editing/takes/*`, `editing/drawer/FoundList.tsx` | `editing.md` and images |
 | 4 | Booth: reader flags, key, text marks (style honoured), speaker chip, Reference chip | `primitives/Highlight.tsx` callers, `booth/ReaderText.tsx`, `booth/ReaderKey.tsx`, `booth/reading/*`, `booth/side/*`, `booth/readerFlags.ts` | `booth.md` and images |
@@ -237,7 +237,7 @@ The `PENDING` list starts with every file in section 2 and shrinks by one page g
 | 6 | Pickups and Story Bible: type column, entry list, detail header, entity summary, Settings types panel | `pickups/list/*`, `storybible/*`, `manuscript/EntitySummary.tsx`, `settings/page/StoryBibleTypesPanel.tsx`, `settings/CreditsPanel.tsx` | `pickups.md`, `story-bible.md`, `settings.md` and images |
 | 7 | Statuses: Production, Schedule, Master/QC, Delivery, Settings tools and models (one `PILL` map), capability, engine chip | `production/*`, `schedule/*`, `master/*`, `masterqc/*`, `delivery/*`, `settings/analysis/*`, `settings/models/*`, `chapterStatus.ts` | `production.md`, `schedule.md`, `master-and-qc.md`, `delivery.md`, `settings.md` and images |
 
-Each of PRs 2 to 7 follows [UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide): `pnpm --dir apps/ui visual:page <page>`, `atlas:page <page>`, and `node scripts/dev/guide-screenshots.mjs <page>` for the images. PRs 2 to 7 are disjoint file sets and can run in parallel after PR 1; PR 1 touches `styles.css` token blocks and `paletteContrast.test.ts` `PAIRS`, which the delivery rules serialise.
+Each of PRs 2 to 7 follows [UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide): `pnpm --dir src/studio/ui visual:page <page>`, `atlas:page <page>`, and `node scripts/dev/guide-screenshots.mjs <page>` for the images. PRs 2 to 7 are disjoint file sets and can run in parallel after PR 1; PR 1 touches `styles.css` token blocks and `paletteContrast.test.ts` `PAIRS`, which the delivery rules serialise.
 
 ### 5.4 Owner decisions
 

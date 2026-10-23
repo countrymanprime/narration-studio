@@ -1,7 +1,7 @@
 """What the sidecar's small Story Bible commands do to a file, recorded as cases the Go host replays.
 
 The host runs mark-reviewed, review-flag, speaker-color, relate, unrelate, delete and correct-cue itself
-(apps/desktop/internal/guide/mutate.go), so each has two implementations. Each case here runs the real command on a copy of a starting
+(src/studio/desktop/internal/guide/mutate.go), so each has two implementations. Each case here runs the real command on a copy of a starting
 file and records whether it wrote the file and what the file then holds, or the reason it refused. ``TestMutationsMatchTheSidecarCases``
 in the guide package replays every case and requires the same JSON, the same write or no write, or the same reason, so the two cannot
 drift. Run with ``UPDATE_CONTRACTS=1`` to rewrite the cases after a deliberate change.
@@ -24,7 +24,7 @@ guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
-TESTDATA = Path(__file__).parents[3] / "apps" / "desktop" / "internal" / "guide" / "testdata"
+TESTDATA = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "guide" / "testdata"
 
 
 def entry(entity_id: str, name: str, category: str, **extra) -> dict:

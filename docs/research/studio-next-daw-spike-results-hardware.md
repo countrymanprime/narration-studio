@@ -20,7 +20,7 @@ Copy from the owner's returned row only: the version, the date, the result, the 
 | Buffer size, sample rate, audible offset | pending (from the samples CSV and the owner's notes) |
 | Not proved | pending |
 
-Consequence for the Booth resume anchor: pending. Once the table is back, one sentence says which of the two calls anchors a word, at what offset and buffer size, and what that means for [narration_punch.lua](../../integrations/reaper/narration_punch.lua)'s polled anchor. It is a sentence, not a decision.
+Consequence for the Booth resume anchor: pending. Once the table is back, one sentence says which of the two calls anchors a word, at what offset and buffer size, and what that means for [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua)'s polled anchor. It is a sentence, not a decision.
 
 What each outcome would change in the DAW PRD (from the runbook's 1f table): see the runbook section "1f Play position".
 

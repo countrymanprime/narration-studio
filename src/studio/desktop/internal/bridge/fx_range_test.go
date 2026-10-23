@@ -9,7 +9,7 @@ import (
 )
 
 // apply_fx_range and remove_fx_range (docs/reference/daw/capabilities.md, narration_range.lua): the answers as
-// integrations/reaper/tests/fx_range_test.lua pins them.
+// src/studio/integrations/reaper/tests/fx_range_test.lua pins them.
 
 const (
 	fxRangeItem  = "{00000002-0000-4000-8000-000000000002}"

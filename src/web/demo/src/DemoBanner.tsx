@@ -61,7 +61,7 @@ function ToolbarSlot() {
   return item ? item() : null;
 }
 
-// Drawn by every top-level screen (StartupScreen, ProjectPicker, AppShell; apps/ui/src/appExtension.tsx) so
+// Drawn by every top-level screen (StartupScreen, ProjectPicker, AppShell; src/studio/ui/src/appExtension.tsx) so
 // it shows before and after a project loads, so every page of the demo says it is a demo.
 export function DemoBanner() {
   // Inside the site's demo window the page's title bar says all of this, and the frame cannot open the site's links anyway.

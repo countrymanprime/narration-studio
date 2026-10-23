@@ -1,6 +1,6 @@
 # Storage engine: JSON files or an embedded database
 
-**Measured 2026-10-18 on Linux and on a Windows runner ([Windows](#windows)).** Question from the owner, who narrates a 17-hour, 35-chapter book of about 150,000 words: the app keeps everything as JSON files (a temp file renamed over the old one, a read class per file). Is an embedded database better at that size, and which one? An earlier review answered "SQLite is not worth it" on the assumption of tiny data and load-the-whole-file access. This note re-tests that assumption. The benchmark is a throwaway module, [`apps/desktop/cmd/spike-storage`](../../apps/desktop/cmd/spike-storage/README.md); the app's `go.mod` and `go.sum` are untouched.
+**Measured 2026-10-18 on Linux and on a Windows runner ([Windows](#windows)).** Question from the owner, who narrates a 17-hour, 35-chapter book of about 150,000 words: the app keeps everything as JSON files (a temp file renamed over the old one, a read class per file). Is an embedded database better at that size, and which one? An earlier review answered "SQLite is not worth it" on the assumption of tiny data and load-the-whole-file access. This note re-tests that assumption. The benchmark is a throwaway module, [`src/studio/desktop/cmd/spike-storage`](../../src/studio/desktop/cmd/spike-storage/README.md); the app's `go.mod` and `go.sum` are untouched.
 
 ## Answer
 
@@ -14,7 +14,7 @@
 
 ## Method
 
-- **Project.** A deterministic generator writes a project with the real schemas where the app exports them: findings through the real `findings.Store`, coverage results as `coverage.StoredResult` with one `TokenLine` per script word (written with `MarshalIndent`, as `coverage/results.go` does), the ASR word files and the waveform peaks through the real `evidence.CacheStore` (the cache envelope base64-encodes its blob, so peaks are base64 twice), marks as `marks.Mark`, decisions as `findings.Decision`. The manuscript file, the pickup list and the Story Bible mirror the documented shape rather than import it (estimated shape, `sidecars/manuscript-guide/core/manuscript_guide.py` for the Bible). Words are Zipf-distributed pseudo-words with 300 names.
+- **Project.** A deterministic generator writes a project with the real schemas where the app exports them: findings through the real `findings.Store`, coverage results as `coverage.StoredResult` with one `TokenLine` per script word (written with `MarshalIndent`, as `coverage/results.go` does), the ASR word files and the waveform peaks through the real `evidence.CacheStore` (the cache envelope base64-encodes its blob, so peaks are base64 twice), marks as `marks.Mark`, decisions as `findings.Decision`. The manuscript file, the pickup list and the Story Bible mirror the documented shape rather than import it (estimated shape, `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` for the Bible). Words are Zipf-distributed pseudo-words with 300 names.
 - **Scales** (measured counts from the generator):
 
 | | script words | chapters | ASR words (takes) | findings / decisions | marks | pickups | audio |
@@ -200,9 +200,9 @@ In the app, `Unreadable` means `ReadJSON` logs and leaves the file, and the mark
 ## Reproducing
 
 ```text
-cd apps/desktop/cmd/spike-storage
+cd src/studio/desktop/cmd/spike-storage
 CGO_ENABLED=0 go build -o spike .
 ./spike all -dir <empty folder> -scale full -out results.json
 ```
 
-The Linux tables of this run are in [`results/`](../../apps/desktop/cmd/spike-storage/results/linux-full.md).
+The Linux tables of this run are in [`results/`](../../src/studio/desktop/cmd/spike-storage/results/linux-full.md).

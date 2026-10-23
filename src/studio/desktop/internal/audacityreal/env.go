@@ -1,11 +1,11 @@
 //go:build audacityreal && linux
 
-// Package audacityreal is the harness for the real-Audacity 3 tests (tests/audacity3/real/): it starts a pinned Audacity 3 on Linux
+// Package audacityreal is the harness for the real-Audacity 3 tests (src/studio/tests/audacity3/real/): it starts a pinned Audacity 3 on Linux
 // under Xvfb with a PulseAudio null sink, reaches it over mod-script-pipe's FIFOs, and records what every test saw into a
 // machine-readable results file. It holds no assertions of its own; the test packages next to it (foundation, and the record and edit
 // suites) decide what passes. Only the `audacityreal` build tag compiles it, so no ordinary test run starts an Audacity.
 //
-//	tests/audacity3/real/foundation/run.sh
+//	src/studio/tests/audacity3/real/foundation/run.sh
 package audacityreal
 
 import (
@@ -15,7 +15,7 @@ import (
 	"testing"
 )
 
-// Env is what tests/audacity3/real/*/run.sh set up around the test process.
+// Env is what src/studio/tests/audacity3/real/*/run.sh set up around the test process.
 type Env struct {
 	Work     string // scratch root: profiles, temp dirs, generated audio
 	App      string // the extracted AppImage (squashfs-root), holding AppRun
@@ -27,7 +27,7 @@ type Env struct {
 	Markers  string // the fixture's committed alignment
 	Sink     string // the PulseAudio null sink's name
 	Runner   string // the runner image, recorded with every result
-	GoldenIn string // where `Golden` reply bytes are read from (tests/audacity3/real/foundation/golden)
+	GoldenIn string // where `Golden` reply bytes are read from (src/studio/tests/audacity3/real/foundation/golden)
 }
 
 // LoadEnv reads the NU_AUDACITY_* variables. A missing one fails the test with the script that sets it.
@@ -36,7 +36,7 @@ func LoadEnv(t testing.TB) Env {
 	need := func(name string) string {
 		v := os.Getenv(name)
 		if v == "" {
-			t.Fatalf("%s is not set: the audacityreal tag is opt-in, so run tests/audacity3/real/foundation/run.sh, which sets it", name)
+			t.Fatalf("%s is not set: the audacityreal tag is opt-in, so run src/studio/tests/audacity3/real/foundation/run.sh, which sets it", name)
 		}
 		return v
 	}

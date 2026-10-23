@@ -82,7 +82,7 @@ func TestEveryNumberFieldHasARangeAndEveryRangeAField(t *testing.T) {
 	}
 }
 
-// The old Delivery limits (apps/desktop/settings_number.go) left the settings page when delivery profiles replaced them:
+// The old Delivery limits (src/studio/desktop/settings_number.go) left the settings page when delivery profiles replaced them:
 // the keys stay in the settings files, read once to move them into a profile, and no field offers them.
 func TestTheOldDeliveryLimitsAreNoLongerSettings(t *testing.T) {
 	if fields := fieldSchemas["Delivery"]; len(fields) != 0 {

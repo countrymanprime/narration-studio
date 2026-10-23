@@ -29,7 +29,7 @@ function useDawName(): string {
   return !daw || daw === 'none' ? 'the DAW' : dawShortName(daw);
 }
 
-/** The host's Cleanup settings (`fieldSchemas` in apps/desktop/app.go): the five thresholds of the silence, breath and click analyzer. */
+/** The host's Cleanup settings (`fieldSchemas` in src/studio/desktop/app.go): the five thresholds of the silence, breath and click analyzer. */
 const CLEANUP_OPTION_KEYS = ['pad_seconds', 'min_breath_seconds', 'max_breath_seconds', 'breath_below_speech_db', 'click_above_silence_db'] as const;
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;

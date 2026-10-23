@@ -1,7 +1,7 @@
 -- Spike S7: how fixed item lanes behave through the API, before retakes are designed
 -- as fixed lanes. Covers I_FREEMODE=2 and UpdateTimeline(), I_NUMFIXEDLANES, I_FIXEDLANE,
 -- C_LANEPLAYS (track and item), C_ALLLANESPLAY, P_LANENAME, B_FIXEDLANE_HIDDEN, how takes (the take-review path,
--- integrations/reaper/narration_take_review.lua) and lanes convert into each other, comp lanes, undo, and what the saved .rpp records.
+-- src/studio/integrations/reaper/narration_take_review.lua) and lanes convert into each other, comp lanes, undo, and what the saved .rpp records.
 -- Research tool, not product code: see docs/research/reaper-spike-s7-fixed-lanes.md for the write-up.
 -- Run by run-reaper.ps1 inside an isolated REAPER (-cfgfile). Media come from make_media.py. Nothing is armed,
 -- recorded or played: recording into lanes needs audio hardware and stays pending.

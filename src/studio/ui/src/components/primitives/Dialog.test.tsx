@@ -273,7 +273,7 @@ describe('Dialog is a real modal', () => {
     await waitFor(() => expect(dialog.querySelector('[tabindex="0"]')).toBe(document.activeElement));
   });
 
-  // Amending apps/ui/src/components/primitives/Dialog.tsx: a region between the body and `actions` that never
+  // Amending src/studio/ui/src/components/primitives/Dialog.tsx: a region between the body and `actions` that never
   // scrolls with the body, for the read-aloud dialog's control bar.
   it('draws the footer outside the scrolling body and above actions, and draws nothing when it is absent', async () => {
     render(

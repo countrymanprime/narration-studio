@@ -9,7 +9,7 @@ import { parseWire } from '../api/wire/parseWire';
 import { describeProviderContract, type Goldens } from './providerContract';
 import { createHostTakes, createMockTakes, type TakesHostApi, type TakesPort } from './takes';
 
-const GOLDEN_DIR = fileURLToPath(new URL('../../../../tests/fixtures/contracts/', import.meta.url));
+const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
 const FILES = ['workspace-take-evidence-full.json', 'workspace-take-evidence-partial.json', 'workspace-take-evidence-none.json'];
 const goldens: Goldens = Object.fromEntries(FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 

@@ -47,7 +47,7 @@ func (c *Command) PosixPaths(on bool) *Command {
 
 // newMacroCommand starts the command that runs a saved macro. Audacity 3.7.7 has no ApplyMacro command: it makes each macro a menu
 // command, Macro_<name>, scripted like any other menu command (no parameters), and takes the spaces out of the name to make the id
-// (the file "Narration Spaced Name.txt" is Macro_NarrationSpacedName; measured, tests/audacity3/real/edits A3-T20). Only letters, digits,
+// (the file "Narration Spaced Name.txt" is Macro_NarrationSpacedName; measured, src/studio/tests/audacity3/real/edits A3-T20). Only letters, digits,
 // hyphens, underscores and spaces are known to survive, so a name with another character is refused rather than guessed at.
 func newMacroCommand(name string) *Command {
 	var id strings.Builder

@@ -329,7 +329,7 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 // CorrectCue records the narrator's own attribution for one dialogue cue
 // (speakerEntityID "unknown" or "" clears it back to unknown), so the next
 // rebuild's merge_dialogue_cues keeps it instead of overwriting it with
-// fresh, possibly-unknown, extraction - the same durability sidecars/manuscript-guide/core/manuscript_guide.py's lock
+// fresh, possibly-unknown, extraction - the same durability src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock
 // guard already gives a locked entity, applied to a cue instead.
 func (s *Service) CorrectCue(cueID, speakerEntityID string) error {
 	return s.mutateInHost(func(document map[string]any) (bool, error) { return correctCue(document, cueID, speakerEntityID) })

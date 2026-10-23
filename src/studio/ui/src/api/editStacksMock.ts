@@ -1,5 +1,5 @@
 // The browser mock's stack record and retry choice. It keeps them in memory and checks them the way
-// apps/desktop/internal/editlog/stacks.go does, with the host's sentences: a first read or a moved take the passage does not
+// src/studio/desktop/internal/editlog/stacks.go does, with the host's sentences: a first read or a moved take the passage does not
 // offer, an offset that is negative or not finite, no move, a take already stacked, a missing DAW result or an id shaped like a
 // path is refused and nothing is saved; a partial un-stack removes some takes and the stack goes with its last; the retry mode
 // resolves a passage's over its chapter's over the project's, and is `leave` by default.

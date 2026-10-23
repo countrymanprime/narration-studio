@@ -225,7 +225,7 @@ func (f *pipeAudacity) handle(line string) ([]string, bool) {
 		f.tracks = append(f.tracks, &fakeTrack{name: "Audio Track", kind: "wave", channels: channels, selected: true, audio: map[int]string{}})
 		return nil, true
 	case "SetTrackStatus", "SetTrackAudio":
-		// Audacity 3.7.7 applies both to the selected track and ignores a Track parameter without an error (tests/audacity3/real/edits,
+		// Audacity 3.7.7 applies both to the selected track and ignores a Track parameter without an error (src/studio/tests/audacity3/real/edits,
 		// A3-T17 and A3-T19), so a caller that does not select the track first changes the wrong one.
 		changed := false
 		for _, t := range f.tracks {

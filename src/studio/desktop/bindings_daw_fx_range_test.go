@@ -398,7 +398,7 @@ func (f *fakeRangeFXEditor) BypassFXRange(_ context.Context, target dawport.FXRa
 }
 
 // gainSetting is what REAPER's fx_range role reads for a chain of one effect with a continuous gain and a stepped mode: the settings
-// apps/ui's mocks read (fixtures/daw.ts FX_RANGE_SETTINGS), so the goldens and the mock answer alike.
+// src/studio/ui's mocks read (fixtures/daw.ts FX_RANGE_SETTINGS), so the goldens and the mock answer alike.
 func gainSetting() dawport.FXRangeSettings {
 	return dawport.FXRangeSettings{
 		Result: dawport.OK("Read 2 settings of Podcast Voice.RfxChain in REAPER.", false),

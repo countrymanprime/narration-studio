@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 import { launchOptions } from './playwright.launch';
 
 // Screenshot-capture config for the app's visual test suite
-// (apps/ui/tests/visual). Not a pixel-diff regression gate: it fails on
+// (src/studio/ui/tests/visual). Not a pixel-diff regression gate: it fails on
 // pages that error, overflow sideways, render blank, or render identically to
 // another state - see tests/visual/lib/validators.ts and global-setup.ts.
 // Launch args and the optional PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH live in playwright.launch.ts.

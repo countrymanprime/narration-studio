@@ -1,12 +1,12 @@
 # Built-in recorder: what the app declares for it
 
-The app's own recorder (`apps/desktop/internal/recording`) is an engine of the DAW port with the kind `Built-in`. Its adapter is `apps/desktop/internal/dawport/builtin`, as of 2026-10-11.
+The app's own recorder (`src/studio/desktop/internal/recording`) is an engine of the DAW port with the kind `Built-in`. Its adapter is `src/studio/desktop/internal/dawport/builtin`, as of 2026-10-11.
 
 ## When it is the launch's engine
 
-- **A launch with no DAW whose project records with the built-in recorder.** The project's choice is the `Recording.engine` row, which only the Booth's `RecorderChooseEngine` writes and which counts only where the recorder's capture row runs (Windows, [capture_wasapi.py](../../../sidecars/manuscript-teleprompter/core/capture_wasapi.py)).
+- **A launch with no DAW whose project records with the built-in recorder.** The project's choice is the `Recording.engine` row, which only the Booth's `RecorderChooseEngine` writes and which counts only where the recorder's capture row runs (Windows, [capture_wasapi.py](../../../src/studio/sidecars/manuscript-teleprompter/core/capture_wasapi.py)).
 - **`--daw Built-in`** (or `builtin`, any case). A launch from REAPER or Audacity keeps its DAW whatever the project chose.
-- The host reads the kind in one place, `dawLaunchKind` in `apps/desktop/bindings_daw.go`, through `dawport.LaunchKind`. A page never sends a label that selects it ([threat model](../../architecture/threat-model.md), row 6f).
+- The host reads the kind in one place, `dawLaunchKind` in `src/studio/desktop/bindings_daw.go`, through `dawport.LaunchKind`. A page never sends a label that selects it ([threat model](../../architecture/threat-model.md), row 6f).
 
 ## What it declares
 
@@ -26,7 +26,7 @@ The recorder is part of the app, so it is always there and answering (`reachable
 
 ## How the Booth records with it
 
-The Booth asks the same two bindings it asks for a DAW, `ReadAloudRecordStart` and `ReadAloudRecordStop`; when the project's engine is the built-in recorder (`recordsInApp`, `apps/desktop/bindings_booth_record.go`) they go to the recorder and none of REAPER's preconditions apply (no bridge, no linked or armed track).
+The Booth asks the same two bindings it asks for a DAW, `ReadAloudRecordStart` and `ReadAloudRecordStop`; when the project's engine is the built-in recorder (`recordsInApp`, `src/studio/desktop/bindings_booth_record.go`) they go to the recorder and none of REAPER's preconditions apply (no bridge, no linked or armed track).
 
 - **Start** goes through the `record` role (`builtin.RecordStart`), so a refusal is the capability's own sentence: "Experimental: switched off in Settings." or "Turned off in Settings." It then picks the microphone: the global `Teleprompter.input_device` row (what Levels saves), else the project's `Recording.device` row, else the only device listed. Several listed and none chosen is "Choose the microphone in Levels, then press Record."; none is "No microphone found." with the sidecar's reason. The device is remembered as `Recording.device`. The chapter id is not used: the take is a file, assigned to a line afterwards (`RecorderSetTakeLine`).
 - **Stop** is not gated by the capability report, so turning Experimental off during a take cannot strand it. With no take recording it answers `not_recording`.
@@ -37,6 +37,6 @@ The Booth asks the same two bindings it asks for a DAW, `ReadAloudRecordStart` a
 ## Checked
 
 - The conformance suite (`dawporttest.Run`) passes over a closed recorder and over none (`builtin_test.go`).
-- The host golden and the UI mock agree (`apps/ui/src/api/wireContracts.test.ts`), and the mock setup `builtin` matches the golden's levels and sentences (`apps/ui/src/fixtures/daw.test.ts`).
+- The host golden and the UI mock agree (`src/studio/ui/src/api/wireContracts.test.ts`), and the mock setup `builtin` matches the golden's levels and sentences (`src/studio/ui/src/fixtures/daw.test.ts`).
 - The Booth's start, stop, refusals and transport run over a fake engine (`bindings_booth_record_test.go`).
 - Not checked with a device: the recorder's own run with a microphone is the owner's pass.

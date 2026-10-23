@@ -10,7 +10,7 @@ import (
 // and validation live in internal/pickups (never trust external data, docs/architecture/wire-contracts.md's rule for anything that crosses
 // into the UI applies just as much to what a narrator hands the app from disk), and h.emitPickups (app.go)
 // relays every state change as the "pickups:state" live event, the way h.emitLineIdentity does for line
-// identity. The wire-contract schema, golden payloads and mock live in apps/ui/src/api.
+// identity. The wire-contract schema, golden payloads and mock live in src/studio/ui/src/api.
 
 // PickupsImportResult is PickupsImport's answer: the run has started, plus every CSV row that could not be
 // used (a report, never a silent drop).

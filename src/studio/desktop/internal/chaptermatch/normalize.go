@@ -5,7 +5,7 @@
 //
 // Two layers. FindChapterByTrackName (title.go) is a faithful port of
 // Transcript Compare's find_chapter_by_track_name
-// (sidecars/transcript-compare/core/compare.py), number-word merge, homophone
+// (src/studio/sidecars/transcript-compare/core/compare.py), number-word merge, homophone
 // canon and difflib ratio included; tests/fixtures/chapter-track-match/
 // parity-cases.json holds the cases both implementations must agree on.
 // ForChapter (resolve.go) builds on it to answer the question the app asks,
@@ -45,7 +45,7 @@ var numberWords = map[string]int64{
 
 // homophonesCSV is narration_common.spoken_forms.HOMOPHONE_GROUPS written out
 // as CSV (a Go embed cannot reach Python data);
-// sidecars/transcript-compare/tests/test_chapter_track_parity.py fails when the
+// src/studio/sidecars/transcript-compare/tests/test_chapter_track_parity.py fails when the
 // two drift apart.
 //
 //go:embed homophones.csv

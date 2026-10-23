@@ -22,7 +22,7 @@ Paste all three into #510.
 In PowerShell, from the repository root:
 
 ```powershell
-cd apps\desktop
+cd src\studio\desktop
 $env:NU_AUDACITY_PASS = "1"
 $env:NU_AUDACITY_PASS_DIR = "C:\Temp\nu-audacity-pass"
 $env:NU_AUDACITY_VERSION = "3.7.x"   # what Help > About Audacity says
@@ -166,6 +166,6 @@ Comment on #510, headed "Audacity 4 pass results", with:
 
 ## What happens with the results
 
-- **Everything passes:** a follow-up PR promotes `navigate` and `markers` from Experimental to Supported in `apps/desktop/internal/dawport/audacity/audacity.go`, records the pass in `docs/research/`, and updates [The DAW port](../architecture/daw-integration.md#the-daw-port) to Accepted.
-- **A step fails or behaves differently:** fix the client or adapter. Correct the fake (`apps/desktop/internal/audacitybridge/audacitybridgetest`) to match what Audacity really did, and add a test, as `docs/architecture/daw-integration.md#the-daw-port` does for REAPER. Then run the pass again.
+- **Everything passes:** a follow-up PR promotes `navigate` and `markers` from Experimental to Supported in `src/studio/desktop/internal/dawport/audacity/audacity.go`, records the pass in `docs/research/`, and updates [The DAW port](../architecture/daw-integration.md#the-daw-port) to Accepted.
+- **A step fails or behaves differently:** fix the client or adapter. Correct the fake (`src/studio/desktop/internal/audacitybridge/audacitybridgetest`) to match what Audacity really did, and add a test, as `docs/architecture/daw-integration.md#the-daw-port` does for REAPER. Then run the pass again.
 - **A1 fails on Audacity 4:** nothing to fix. The owner's version decision on #510 (`docs/architecture/daw-integration.md#the-daw-port`) decides whether to support Audacity 3.x now or wait for Audacity 4's script host.

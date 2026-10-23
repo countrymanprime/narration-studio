@@ -45,7 +45,7 @@ func pdfBytes(lines ...string) []byte {
 // error, never a panic. PDF import is a quarantined candidate (see pdf.go), so this target is compiled
 // only with the same tag:
 //
-//	go -C apps/desktop test -tags pdf_candidate ./internal/importer -run='^$' -fuzz=FuzzPdfDraft -fuzztime=60s
+//	go -C src/studio/desktop test -tags pdf_candidate ./internal/importer -run='^$' -fuzz=FuzzPdfDraft -fuzztime=60s
 func FuzzPdfDraft(f *testing.F) {
 	// Enough text to pass the "has a text layer" check (80 visible characters). The extractor returns one line
 	// per text line and no blank lines, so a whole page is one block: prose reaches the paragraph logic, and a

@@ -3,7 +3,7 @@ package dawcatalog
 import "testing"
 
 // TestDefaultDetectorsWiresReaperToTheSharedLocator guards the rule that
-// this package reuses apps/desktop/internal/daw's already-built locator
+// this package reuses src/studio/desktop/internal/daw's already-built locator
 // rather than re-solving "where is reaper.exe" a second time.
 // It cannot assert which function is wired (Go has no reflection-friendly
 // function identity check worth relying on here), so it asserts the shape

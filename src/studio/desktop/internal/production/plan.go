@@ -16,7 +16,7 @@ import (
 // milestones before they are saved to the project manifest, where they survive a
 // manuscript replace. Dates are calendar dates, "YYYY-MM-DD"; the
 // payment type and the milestone measure, estimate, done flag and template are
-// apps/desktop/internal/project/manifest.go's.
+// src/studio/desktop/internal/project/manifest.go's.
 
 const (
 	dateLayout = "2006-01-02"

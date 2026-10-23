@@ -213,7 +213,7 @@ func (r *Review) checkExport(path string) error {
 	return nil
 }
 
-// resultMarker is one MARKER line of the comparison's results file (sidecars/transcript-compare/core/compare.py).
+// resultMarker is one MARKER line of the comparison's results file (src/studio/sidecars/transcript-compare/core/compare.py).
 type resultMarker struct {
 	itemIndex int
 	srcpos    float64

@@ -76,7 +76,7 @@ Reading: on explicit speech tags a small model adds nothing a rule does not alre
 
 ## 4. Quote discipline
 
-[`extraction.VerifyEvidence`](../../apps/desktop/internal/extraction/evidence.go) never accepts a quote the text lacks: it searches the named paragraph, then its chapter, then the book, folds only typographic quotes and the non-breaking, thin and narrow spaces, and returns the manuscript's own offsets and text. It reports `ok` false for an empty or missing quote, which sends the suggestion to Needs verification.
+[`extraction.VerifyEvidence`](../../src/studio/desktop/internal/extraction/evidence.go) never accepts a quote the text lacks: it searches the named paragraph, then its chapter, then the book, folds only typographic quotes and the non-breaking, thin and narrow spaces, and returns the manuscript's own offsets and text. It reports `ok` false for an empty or missing quote, which sends the suggestion to Needs verification.
 
 **Rate with `VerifyEvidence`: `not run`.** No model output was passed through it. The trial used its own normalising search, so its rates bracket the result:
 

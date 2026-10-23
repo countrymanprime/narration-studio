@@ -8,7 +8,7 @@
 // analysis: the evaluator is a pure read.
 //
 // Callers: the recording coverage service's result reader
-// (apps/desktop/internal/coverage, read.go). The data schema is unchanged
+// (src/studio/desktop/internal/coverage, read.go). The data schema is unchanged
 // beyond ledger.go's ItemFacts addition (see that file's header).
 package evidence
 

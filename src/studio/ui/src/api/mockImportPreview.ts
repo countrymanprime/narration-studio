@@ -18,7 +18,7 @@ const REPAIR_NOTICES = [
 
 // The sections of every kind the importer proposes for a book with front matter, chapters, a character list and a glossary. They
 // are in the order the host sends them: the titles the parser read come first, in document order, and "Front Matter" (the
-// paragraphs before the first heading) is added after them, so it is last (apps/desktop/internal/importer/model.go, newDraft).
+// paragraphs before the first heading) is added after them, so it is last (src/studio/desktop/internal/importer/model.go, newDraft).
 const SECTIONS: readonly ManuscriptImportSection[] = [
   {
     id: 'section-0001',
@@ -141,7 +141,7 @@ export function mockImportPreview(kind: MockImportKind = 'docx'): ManuscriptImpo
   };
 }
 
-/** The staged import log the host writes for a preview (apps/desktop/internal/importer), worded as its Word, Markdown and text readers word it. */
+/** The staged import log the host writes for a preview (src/studio/desktop/internal/importer), worded as its Word, Markdown and text readers word it. */
 export function mockImportPreviewLog(preview: ManuscriptImportPreview, headingLevel: number): string[] {
   const sections = preview.sections ?? [];
   const chapters = preview.chapterTitles.length;

@@ -10,7 +10,7 @@ import (
 // Heartbeat role the resolver hands out, so a consumer (the quiet booth) no longer needs the
 // click-refreshed ReadAloudReaperState.recording. It is pushed only, like daw_capabilities_changed: there is no
 // binding to read it, and the first tick after launch pushes the current value. The wire schema, golden payloads,
-// wireContracts row and mock live in apps/ui/src/api (docs/architecture/wire-contracts.md).
+// wireContracts row and mock live in src/studio/ui/src/api (docs/architecture/wire-contracts.md).
 
 // dawTransport is the payload {playing, recording, position?}: position (project seconds, as of the last heartbeat) only
 // while playing or recording. With no transport to read (no DAW, the heartbeat capability unavailable or turned off, a DAW

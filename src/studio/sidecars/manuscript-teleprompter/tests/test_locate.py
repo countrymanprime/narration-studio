@@ -272,7 +272,7 @@ def test_run_on_an_empty_range_hears_nothing_without_decoding(tmp_path):
 
 # --- accuracy on recorded tails (spikes/record_locate_tails.py: Piper speech, transcribed by the tiny Whisper model) ---
 
-FIXTURES = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "teleprompter-locate"
+FIXTURES = Path(__file__).resolve().parents[5] / "tests" / "fixtures" / "teleprompter-locate"
 TAILS = json.loads((FIXTURES / "tails.json").read_text(encoding="utf-8"))["cases"]
 
 # The accuracy target: a tail that can be placed resumes within this many words of where the reading
@@ -326,7 +326,7 @@ def test_the_sentence_of_a_recorded_tail_is_the_one_the_reading_stopped_in():
     assert sentence["end"] > case["expectedWord"]
 
 
-# --- the CLI the host drives (apps/desktop/internal/teleprompter/locate.go builds these arguments) ---
+# --- the CLI the host drives (src/studio/desktop/internal/teleprompter/locate.go builds these arguments) ---
 
 HOST_ARGS = [
     "--locate",

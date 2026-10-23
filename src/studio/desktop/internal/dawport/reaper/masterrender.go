@@ -10,7 +10,7 @@ import (
 )
 
 // The mastering port's DAW row: render_with_fx and master_chain_read
-// (integrations/reaper/narration_master_render.lua).
+// (src/studio/integrations/reaper/narration_master_render.lua).
 
 var (
 	// ErrNoApproval: a render with FX was asked for without the narrator's approval, so nothing was sent.

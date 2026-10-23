@@ -3,7 +3,7 @@
 // and reads a candidate's class, so EditingCheckPanel stays layout only.
 import type { Finding } from '../../types';
 
-/** Evidence.class, as every editing finding's evidence carries it (apps/desktop/internal/editing/findings.go). Only
+/** Evidence.class, as every editing finding's evidence carries it (src/studio/desktop/internal/editing/findings.go). Only
  * `silence` is produced today (the click and breath detectors are not validated yet); the other two are read
  * for the day they are. */
 export type EditingCandidateClass = 'silence' | 'click' | 'breath';
@@ -14,7 +14,7 @@ export const EDITING_CLASS_LABEL: Record<EditingCandidateClass, string> = {
   breath: 'Breath',
 };
 
-/** The three editing signal ids (apps/desktop/internal/editing/signals.go), in the order the panel lists them. */
+/** The three editing signal ids (src/studio/desktop/internal/editing/signals.go), in the order the panel lists them. */
 export const EDITING_SIGNAL_ID: Record<EditingCandidateClass, string> = {
   silence: 'editing.empty_space',
   click: 'editing.clicks',

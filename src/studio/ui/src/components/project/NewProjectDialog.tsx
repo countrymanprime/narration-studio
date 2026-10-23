@@ -6,7 +6,7 @@ import { Dialog } from '../primitives/Dialog';
 import { Field } from '../primitives/Field';
 import type { ProjectSwitchResult } from '../../types';
 
-// What project.ValidateName (apps/desktop/internal/project/validate.go) refuses, said before Create rather than after it.
+// What project.ValidateName (src/studio/desktop/internal/project/validate.go) refuses, said before Create rather than after it.
 const NAME_RULES = 'A name can\'t contain < > : " / \\ | ? *, end with a period, or be a reserved Windows name such as CON, NUL or COM1.';
 
 type Props = {

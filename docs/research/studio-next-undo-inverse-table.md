@@ -1,6 +1,6 @@
 # Studio Next undo: mock commands and their real inverses
 
-**Date:** 2026-10-11. **Mock:** `docs/research/mockups/studio-next/` as of `c171071`. **Host:** `apps/desktop/*.go` as of `b3e0c8e`.
+**Date:** 2026-10-11. **Mock:** `docs/research/mockups/studio-next/` as of `c171071`. **Host:** `src/studio/desktop/*.go` as of `b3e0c8e`.
 **Decisions:** [The store: host reads, cached](../architecture/ui-state-and-journal.md#the-store-host-reads-cached) (store and journal) and [The journal and undo](../architecture/ui-state-and-journal.md#the-journal-and-undo) (undo scope and refusals).
 
 This is a dated inventory. It pairs every `act(...)` call in the mock's `src/state/commands/` with the host binding that makes the change in the real app and the binding that takes it back. It is the starting set for the journal (owner ruling SNS-Q4); the slices that add the missing commands update their rows.
@@ -16,7 +16,7 @@ grep -rnw "act(" docs/research/mockups/studio-next/src/state/commands | grep -v 
 
 The first command is the one the slice issue names. Three of its 47 hits are not calls: the doc comment at `editing.ts:3` and `draftImpact(` at `editing.ts:344` and `editing.ts:360`. The second command matches `act(` as a word and drops comment lines, and gives the 44 rows below.
 
-Bindings were read from the `func (h *Host)` methods in `apps/desktop/*.go` and the services they call. A row names a binding only when that method exists and its doc comment or service code shows the effect. Where nothing in the host makes the change today, the row says so and names the PRD that builds it; no binding name is guessed.
+Bindings were read from the `func (h *Host)` methods in `src/studio/desktop/*.go` and the services they call. A row names a binding only when that method exists and its doc comment or service code shows the effect. Where nothing in the host makes the change today, the row says so and names the PRD that builds it; no binding name is guessed.
 
 ## Columns
 

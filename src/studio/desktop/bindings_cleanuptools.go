@@ -6,9 +6,9 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/cleanuptools"
 )
 
-// The cleanup launcher bindings, integrations/reaper/narration_cleanup.lua. h.emitCleanupTools
+// The cleanup launcher bindings, src/studio/integrations/reaper/narration_cleanup.lua. h.emitCleanupTools
 // (app.go) relays every state change as the "cleanuptools:state" live event. The wire-contract schema, golden payloads
-// and mock live in apps/ui/src/api.
+// and mock live in src/studio/ui/src/api.
 
 // CleanupToolsLaunch asks REAPER to open an allow-listed cleanup tool (cleanuptools.Tools: "repair_pops_clicks" or
 // "magnolius_declick") on the selected items. It changes nothing itself; the dialog it opens is the narrator's.

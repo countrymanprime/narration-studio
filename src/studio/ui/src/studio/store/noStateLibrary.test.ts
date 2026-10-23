@@ -4,11 +4,11 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached (SNS-Q2): the app takes no immer, Redux or Zustand. Taking one needs a new ADR that supersedes it.
-const repoRoot = join(__dirname, '..', '..', '..', '..', '..');
+const repoRoot = join(__dirname, '..', '..', '..', '..', '..', '..');
 const BANNED = ['immer', 'redux', 'zustand', '@reduxjs/toolkit', 'react-redux'];
 
 describe('no-immer', () => {
-  it.each(['package.json', 'apps/ui/package.json'])('%s declares no state library', (file) => {
+  it.each(['package.json', 'src/studio/ui/package.json'])('%s declares no state library', (file) => {
     const manifest = JSON.parse(readFileSync(join(repoRoot, file), 'utf8')) as Record<string, Record<string, string> | undefined>;
     const declared = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'].flatMap((k) => Object.keys(manifest[k] ?? {}));
     expect(declared.filter((name) => BANNED.includes(name))).toEqual([]);

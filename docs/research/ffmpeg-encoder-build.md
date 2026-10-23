@@ -15,7 +15,7 @@ The PRD's recommendation is a catalogued static FFmpeg build (Q1 A) run by the G
 | BtbN `FFmpeg-Builds` (GitHub) | LGPL or GPL variants | Daily `autobuild-*` tags, which (per its README, not re-checked here) are pruned after a while, so a pinned URL can go dead | No (GitHub, as above) |
 | `imageio-ffmpeg` 0.6.0 wheel on PyPI, which carries gyan.dev's FFmpeg 7.1 essentials build | GPL-3.0-or-later (the binary); BSD-2-Clause (the Python wrapper, unused) | Yes: PyPI files are immutable, never pruned, and PyPI publishes the SHA-256 | Yes |
 
-The PyPI wheel is the only source that is both reachable here and pinnable for as long as a release is supported: a file on `files.pythonhosted.org` cannot be replaced (a new upload needs a new version), and PyPI's own JSON API publishes its size and SHA-256. The host answers `Range` requests (`206 Partial Content`, checked), so the asset manager's resume works. The wheel is a zip, which the asset manager already unpacks (the spaCy wheels are the precedent, [guidegate.go](../../apps/desktop/guidegate.go)).
+The PyPI wheel is the only source that is both reachable here and pinnable for as long as a release is supported: a file on `files.pythonhosted.org` cannot be replaced (a new upload needs a new version), and PyPI's own JSON API publishes its size and SHA-256. The host answers `Range` requests (`206 Partial Content`, checked), so the asset manager's resume works. The wheel is a zip, which the asset manager already unpacks (the spaCy wheels are the precedent, [guidegate.go](../../src/studio/desktop/guidegate.go)).
 
 An LGPL build (BtbN's `lgpl` variant) would be the narrower licence class, but its URLs do not stay up, and it could not be reached to be hashed. The GPL class is already accepted for this project: Narration Utils is AGPL-3.0-or-later ([Contributing](../../CONTRIBUTING.md)), and the [licence classes](local-dependency-evaluation.md#license-classes) table allows a GPL-3.0-or-later component, preferring a separate executable, which this is.
 
@@ -40,7 +40,7 @@ In a Linux cloud session, 2026-09-27. Nothing downloaded was committed.
 2. Unpacked both and read the Windows executable's version and build configuration from its strings (the Windows binary cannot run here).
 3. Ran the same wheel family's Linux binary (`ffmpeg version 7.0.2-static https://johnvansickle.com/ffmpeg/`, also `--enable-gpl --enable-version3 --enable-libmp3lame`) as a stand-in for the encode itself: two fixture WAVs (3 s, a 220 Hz tone; 44.1 kHz 16-bit mono and 48 kHz 24-bit stereo), each encoded at 192, 256 and 320 kbps with
    `ffmpeg -hide_banner -nostdin -nostats -loglevel error -i <wav> -map 0:a:0 -map_metadata -1 -c:a libmp3lame -b:a <n>k -ar 44100 -write_xing 0 -id3v2_version 0 -f mp3 <out>`.
-4. Ran each MP3 through the app's own readers, from a throwaway Go test inside the module: `measure.MeasureFile` (the MP3 container check, [mp3header.go](../../apps/desktop/internal/measure/mp3header.go)), `deliveryprofile.EvaluateFile` against the built-in ACX profile, and `chaptertags`' `mp3Duration` (the chapter timeline's reader).
+4. Ran each MP3 through the app's own readers, from a throwaway Go test inside the module: `measure.MeasureFile` (the MP3 container check, [mp3header.go](../../src/studio/desktop/internal/measure/mp3header.go)), `deliveryprofile.EvaluateFile` against the built-in ACX profile, and `chaptertags`' `mp3Duration` (the chapter timeline's reader).
 
 ## Results
 

@@ -1,10 +1,10 @@
 # Host binding concurrency
 
-How the desktop host keeps a project switch from racing the Wails bindings. Implemented in `apps/desktop/services.go`, enforced by `apps/desktop/hostguard_test.go` and `apps/desktop/hostrace_test.go`; the decision is The rule.
+How the desktop host keeps a project switch from racing the Wails bindings. Implemented in `src/studio/desktop/services.go`, enforced by `src/studio/desktop/hostguard_test.go` and `src/studio/desktop/hostrace_test.go`; the decision is The rule.
 
 ## The problem it solves
 
-`Host` owns the project-scoped services and bridge fields that `hostServices` lists (`apps/desktop/services.go`): among them the manuscript, Story Bible (`guide`), settings, transcript and teleprompter services. (The asset managers are not among them: the voice and Whisper managers live in a registry that is built once, [The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented).) Attaching a project (the picker, "open recent", a REAPER second launch) rebuilds all of them in `configureLocked` and reassigns the fields under `h.mu.Lock()`. Wails runs each binding on its own goroutine, and the UI polls several of them (`TtsInstallState`, `TranscriptLastCompleted`) while the user switches projects, so a binding that reads `h.guide` without the lock races with the switch: a data race under the Go memory model, which can hand a call the previous project's service or a half-published one. `h.recents` and `h.sidecars` are set once in `NewHost` and never reassigned, so they are read directly.
+`Host` owns the project-scoped services and bridge fields that `hostServices` lists (`src/studio/desktop/services.go`): among them the manuscript, Story Bible (`guide`), settings, transcript and teleprompter services. (The asset managers are not among them: the voice and Whisper managers live in a registry that is built once, [The asset registry (implemented)](first-use-dependency-provisioning.md#the-asset-registry-implemented).) Attaching a project (the picker, "open recent", a REAPER second launch) rebuilds all of them in `configureLocked` and reassigns the fields under `h.mu.Lock()`. Wails runs each binding on its own goroutine, and the UI polls several of them (`TtsInstallState`, `TranscriptLastCompleted`) while the user switches projects, so a binding that reads `h.guide` without the lock races with the switch: a data race under the Go memory model, which can hand a call the previous project's service or a half-published one. `h.recents` and `h.sidecars` are set once in `NewHost` and never reassigned, so they are read directly.
 
 ## The rule
 
@@ -32,7 +32,7 @@ func (h *Host) GuideRescan(id string) (string, error) {
 - **`hostrace_test.go`** flips `ProjectSwitch` between two temp projects while goroutines loop over the read bindings, one transcript-loop tick and the emit callbacks (`stressReaders`), against empty per-user directories. CI's `go` job runs it under `go test -race` (Windows); on a machine without cgo it is a smoke test. Each row loops until the switching run ends, and a watchdog turns a deadlock into a failure. Add a row for every new binding that reads a service, with arguments that fail fast (an unknown id, an uninstalled model) so it does no real work. To measure a race, use separate processes: the detector reports each racing pair once per process, so `-count=20` in one process shows only about half the runs failing.
 - **`services_test.go`** covers the accessor: it returns what the host is using, a snapshot survives a later switch unchanged, and the lock is released before it returns.
 
-The steps for a new binding are in the doc comment of `services()` (`apps/desktop/services.go`).
+The steps for a new binding are in the doc comment of `services()` (`src/studio/desktop/services.go`).
 
 ## Related rules in the host
 

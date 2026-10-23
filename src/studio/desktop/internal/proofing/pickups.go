@@ -1,5 +1,5 @@
 // Package proofing holds the proofing stage's signals for the
-// chapter stage recommendations engine (apps/desktop/internal/stages). It
+// chapter stage recommendations engine (src/studio/desktop/internal/stages). It
 // computes, on read and from stored evidence only, whether a chapter in the
 // proofing stage has pickups left to clear up (proofing.pickups) and whether
 // its rendered file meets each delivery check (proofing.delivery.<check>), and

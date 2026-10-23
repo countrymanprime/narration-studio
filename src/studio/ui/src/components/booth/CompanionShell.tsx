@@ -64,7 +64,7 @@ function playheadBadge({ playing, recording, position }: DawTransport): { tone: 
 }
 
 /**
- * Narrows and pins the app's one window while this is mounted, and gives it back on unmount (apps/desktop/bindings_companion.go: the same window,
+ * Narrows and pins the app's one window while this is mounted, and gives it back on unmount (src/studio/desktop/bindings_companion.go: the same window,
  * never a second one). Unmount covers every way out - Full app, the double Escape, the dialog closing - and the host's
  * exit is a no-op when nothing was entered, so there is no path that leaves the window narrow and pinned.
  */

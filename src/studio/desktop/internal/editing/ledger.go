@@ -1,5 +1,5 @@
 // This file writes and reads this package's ledger records
-// (apps/desktop/internal/evidence/ledger.go): one record per
+// (src/studio/desktop/internal/evidence/ledger.go): one record per
 // item per class per decode pass (Architecture Notes: "One decode pass over
 // an item writes three records..., each with analyzer version, parameter
 // hash, scope, outcome complete|partial|failed, and counts, so a class can

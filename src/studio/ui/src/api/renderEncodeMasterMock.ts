@@ -1,5 +1,5 @@
 // The browser mock's Master & QC export flow, answering the way
-// apps/desktop/export_job.go and package_job.go do: the same refusals (nothing picked, a path the picker did not
+// src/studio/desktop/export_job.go and package_job.go do: the same refusals (nothing picked, a path the picker did not
 // choose, one already running, packaging a path that was not encoded this session), a running export that finishes
 // one file per poll (standing in for the bytes the host reads), and a package whose checklist is built from the
 // project's own delivery profile's book rules the way packager.Assemble reads them (tests and the
@@ -110,7 +110,7 @@ function mockMastering(): NonNullable<ExportJob['files'][number]['mastering']> {
  * multi-platform export panel names it. */
 const platformNameFor = (profile: DeliveryProfile): string => (profile.builtIn ? profile.platform : profile.name);
 
-/** requiredFormatMock mirrors apps/desktop/multi_package_job.go's own requiredFormat: the capture group of the
+/** requiredFormatMock mirrors src/studio/desktop/multi_package_job.go's own requiredFormat: the capture group of the
  * first file-scope rule whose metric matches "<format>_format", or "mp3" when no such rule exists. */
 function requiredFormatMock(profile: DeliveryProfile): string {
   for (const rule of profile.rules) {
@@ -121,13 +121,13 @@ function requiredFormatMock(profile: DeliveryProfile): string {
   return 'mp3';
 }
 
-/** sanitizeFolderNameMock mirrors apps/desktop/multi_package_job.go's own sanitizeFolderName (the characters Windows
+/** sanitizeFolderNameMock mirrors src/studio/desktop/multi_package_job.go's own sanitizeFolderName (the characters Windows
  * refuses in a path segment; the mock leaves out the control-character half of that set, since fixture and narrator
  * input here is never anything but printable text). */
 function sanitizeFolderNameMock(name: string): string {
   const replaced = name.trim().replace(/[<>:"/\\|?*]/g, '_');
   // A run of only dots ("", ".", "..", ...) would join as a no-op or a parent-directory escape rather than a real
-  // subfolder name (mirrors apps/desktop/multi_package_job.go's own fix: a custom profile's name has no character
+  // subfolder name (mirrors src/studio/desktop/multi_package_job.go's own fix: a custom profile's name has no character
   // restriction beyond its length).
   return /^\.*$/.test(replaced) ? 'package' : replaced;
 }

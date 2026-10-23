@@ -1,7 +1,7 @@
 # Runs one scripted REAPER session in an isolated resource directory and leaves no REAPER process of its own behind.
 #
 #   pwsh run-reaper.ps1 -Cfg <temp dir> -Out <temp dir> -Script <file.lua> [-Project <copy of a .rpp>] [-TimeoutSec 90]
-#                       [-Done <file the script writes when it has finished>] [-ReaperDir <integrations/reaper>] [-IgnoreErrors]
+#                       [-Done <file the script writes when it has finished>] [-ReaperDir <src/studio/integrations/reaper>] [-IgnoreErrors]
 #
 # Safety rules, enforced here:
 #   - -Cfg, -Out and -Project must all be under the user's temp folder, and none may be under a "REAPER Media" folder, so

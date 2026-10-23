@@ -15,8 +15,8 @@ Offline and Windows-only; nothing is downloaded. The audio is scratch output: ke
 repository.
 
 .EXAMPLE
-python sidecars/transcript-compare/tests/divergence_harness.py --tts-plan $env:TEMP\plan.json
-pwsh sidecars/transcript-compare/tests/divergence_tts.ps1 -Plan $env:TEMP\plan.json -OutDir $env:TEMP\divergence-audio
+python src/studio/sidecars/transcript-compare/tests/divergence_harness.py --tts-plan $env:TEMP\plan.json
+pwsh src/studio/sidecars/transcript-compare/tests/divergence_tts.ps1 -Plan $env:TEMP\plan.json -OutDir $env:TEMP\divergence-audio
 #>
 param(
     [Parameter(Mandatory)] [string] $Plan,
