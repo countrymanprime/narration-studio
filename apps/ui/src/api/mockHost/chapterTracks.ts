@@ -273,7 +273,7 @@ export function createChapterTracksMock(
         return {
           outcome: 'refused',
           reason: 'standalone',
-          message: 'REAPER is not connected to this app. To select a track in REAPER, open this app from the Narration Studio action in REAPER.',
+          message: 'REAPER is not connected to this app. To select a track in REAPER, open REAPER; the app connects to it by itself.',
         };
       }
       if (initial.reaperState === 'experimental_off') {

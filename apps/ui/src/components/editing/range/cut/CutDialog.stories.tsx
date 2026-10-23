@@ -99,7 +99,7 @@ export const Recorder: Story = {
   },
 };
 
-const OFF = 'REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.';
+const OFF = 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.';
 
 // The DAW cannot cut now: Mute and Delete stay, disabled, with its own sentence; Restore shows on struck words.
 export const Refused: Story = {

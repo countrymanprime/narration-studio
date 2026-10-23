@@ -58,7 +58,7 @@ const REAPER_NOT_CONNECTED: DawCapabilitySupport = {
   level: 'experimental',
   available: false,
   reason: 'standalone',
-  message: 'REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.',
+  message: 'REAPER is not connected to this app. Open REAPER; the app connects to it by itself.',
 };
 const AUDACITY_NOT_YET: DawCapabilitySupport = {
   level: 'not_yet_available',

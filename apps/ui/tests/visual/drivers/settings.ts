@@ -20,6 +20,8 @@ async function openUpdates(page: Page, seed: string): Promise<void> {
 async function openSampleOutput(page: Page, outputs: 'usual' | 'long', choose: string): Promise<void> {
   await openSettings(page, undefined, `?mockDawExperimentalOn=1${outputs === 'long' ? '&mockAudioOutputs=long' : ''}`);
   await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
+  // REAPER is linked, so the switch asks first.
+  await page.getByRole('alertdialog', { name: 'Stop recording with REAPER?' }).getByRole('button', { name: 'Switch to the built-in recorder' }).click();
   await page
     .getByRole('radio', { name: /^Built-in recorder/ })
     .and(page.locator('[aria-checked="true"]'))

@@ -22,9 +22,6 @@ export type DawConnectGuide = {
   launch: { label: string; settings: Record<string, string>; note: string };
 };
 
-/** The REAPER action the launcher becomes once REAPER has started the app's bridge, as REAPER's action list names it. */
-export const REAPER_LAUNCHER_ACTION = 'Script: NarrationStudio_Launcher.lua';
-
 const REAPER_GUIDE: DawConnectGuide = {
   dawName: 'REAPER',
   link: 'Link this project’s REAPER project file (.rpp).',
