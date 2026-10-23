@@ -20,7 +20,7 @@ import { readTrackedText, trackedFiles } from './layout.mjs';
 
 // The tracked files or folders (a trailing slash) that may hold the name, each with why. Keep it short: a new entry needs a reason a
 // reviewer can check, and the code, tests and docs reach the name through the brand instead.
-const ALLOWED = new Map([
+export const ALLOWED = new Map([
   ['docs/research/', 'dated research and its mockups: evidence of what was true when it was written'],
   ['docs/adr/', 'accepted decisions are records of their time and are superseded, not edited'],
   ['CHANGELOG.md', 'the release history names each release as it shipped'],
@@ -29,7 +29,7 @@ const ALLOWED = new Map([
   ['src/studio/desktop/internal/tracks/testdata/', 'REAPER projects as REAPER saved them, holding the P_EXT keys (an identity value) the bridge wrote'],
 ]);
 
-/** The pattern of a display name in every spelling, across a wrapped line in text: "Zebra Audio Lab" -> zebra[-_ .]?audio... */
+/** The pattern of a display name in every spelling, across a wrapped line in text: "Ocelot Tape Works" -> ocelot[-_ .]?tape... */
 export function namePattern(name, flags = 'gi') {
   const words = name.split(' ').map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   return new RegExp(words.join('(?:[-_ .]|[ \\t]*\\r?\\n[ \\t>*#/-]*)?'), flags);
@@ -38,12 +38,12 @@ export function namePattern(name, flags = 'gi') {
 const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** The file names that are identity values: the REAPER launcher and its startup script. */
-function identityFileNames(brand) {
+export function identityFileNames(brand) {
   return [brand.identity.reaperLauncher, `${brand.identity.reaperResourceFolder}_Startup.lua`];
 }
 
 /** The text with the parts the guard does not judge blanked out: brand regions, identity file names and the repository's own addresses. */
-function judgedText(text, brand) {
+export function judgedText(text, brand) {
   const { owner, name } = brand.repository;
   let judged = text;
   for (const file of identityFileNames(brand)) judged = judged.replaceAll(file, '');

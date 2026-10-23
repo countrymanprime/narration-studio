@@ -31,7 +31,7 @@ export const IDENTITY_KEYS = {
 const NAME = /^[A-Z][A-Za-z0-9]*( [A-Z0-9][A-Za-z0-9]*)*$/;
 const SLUG = /^[a-z0-9][a-z0-9._-]*$/i;
 
-/** The words of a display name, lower case: "Zebra Audio Lab" -> ["zebra", "audio", "lab"]. */
+/** The words of a display name, lower case: "Ocelot Tape Works" -> ["ocelot", "tape", "works"]. */
 function nameWords(name) {
   return name.split(' ').map((word) => word.toLowerCase());
 }

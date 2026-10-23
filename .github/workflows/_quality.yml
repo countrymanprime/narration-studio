@@ -387,6 +387,30 @@ jobs:
           targets: lint test
           projects: reaper
 
+  rename-rehearsal:
+    # Renames a throwaway git worktree of this commit (in the temp folder, with its own node_modules and .venv from the store and
+    # cache setup-toolchain filled) to a made-up name and runs the brand sync, both name guards and the tests that read the name
+    # (scripts/brand/rehearse-rename.mjs), so a file that spells the product's name instead of reading it from
+    # config/brand.json fails here, not at the next real rename (#2251 item 41). Every pull request, whatever it touches: any file
+    # can spell the name. A pull request runs the targeted set; main-health (a scheduled or manual run) runs `--full`: every Go,
+    # UI, shared-library Python and Lua test, the built site and the strict docs build. The checkout is never written to, and the job adds no permission or secret.
+    needs: scope
+    name: rename rehearsal
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-wails-tools: 'false'
+          need-stylua: 'false'
+          python-sync-args: --group docs
+          pnpm-filter: workspace ui web
+      - env:
+          FULL: ${{ github.event_name != 'pull_request' && '--full' || '' }}
+        run: node scripts/brand/rehearse-rename.mjs $FULL
+
   quick-windows:
     # The sub-minute Windows checks on one runner:
     #   - reaper: the bridge harness again, because the bridge builds paths from package.config and REAPER's own Lua

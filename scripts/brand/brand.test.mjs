@@ -13,20 +13,20 @@ test('the brand file is valid', () => {
 });
 
 test('every spelling is derived from the display name', () => {
-  assert.deepEqual(nameForms('Zebra Audio Lab'), {
-    name: 'Zebra Audio Lab',
-    slug: 'zebra-audio-lab',
-    snake: 'zebra_audio_lab',
-    constant: 'ZEBRA_AUDIO_LAB',
-    pascal: 'ZebraAudioLab',
+  assert.deepEqual(nameForms('Ocelot Tape Works'), {
+    name: 'Ocelot Tape Works',
+    slug: 'ocelot-tape-works',
+    snake: 'ocelot_tape_works',
+    constant: 'OCELOT_TAPE_WORKS',
+    pascal: 'OcelotTapeWorks',
   });
   assert.equal(nameForms('Lab 9').slug, 'lab-9');
 });
 
 test('the repository URLs come from the owner and the repository name', () => {
-  const brand = deriveBrand({ ...file(), repository: { owner: 'someone', name: 'zebra-audio-lab' } });
-  assert.equal(brand.repository.url, 'https://github.com/someone/zebra-audio-lab');
-  assert.equal(brand.repository.pagesUrl, 'https://someone.github.io/zebra-audio-lab/');
+  const brand = deriveBrand({ ...file(), repository: { owner: 'someone', name: 'ocelot-tape-works' } });
+  assert.equal(brand.repository.url, 'https://github.com/someone/ocelot-tape-works');
+  assert.equal(brand.repository.pagesUrl, 'https://someone.github.io/ocelot-tape-works/');
 });
 
 test('a display name of the wrong shape, and a missing or unknown identity value are refused', () => {

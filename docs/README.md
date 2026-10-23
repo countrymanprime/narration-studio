@@ -53,6 +53,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
    [Tracking work on GitHub](operations/github-workflow.md).
    If git or the GitHub tools can no longer reach the repository, or after it is renamed, use
    [The repository was renamed](operations/repository-rename.md).
+   To rename the product itself, use [Renaming the app](operations/renaming-the-app.md).
    For the checks the recent Studio Next work could not run off Windows (recording, linking a project, delivery),
    use the [Windows QA checklist](operations/windows-qa-checklist.md).
    Before switching on a REAPER bridge command that ships behind the Experimental DAW actions switch, run
