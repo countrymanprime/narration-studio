@@ -189,7 +189,10 @@ describe('RecordSetup', () => {
   it('turn-on-saves-only-records-own-toggle-and-says-so', async () => {
     const saveSettings = vi.fn(async () => createMockApi().bootstrap());
     const { say, onChanged } = mount(recordRefused('experimental_off'), LINKED, { saveSettings } as Partial<NarrationApi>);
-    expect(screen.getByRole('heading', { name: 'Recording in REAPER is experimental' })).toBeTruthy();
+    // Record off is how every project starts: a chip, not a dialog that opens by itself; the chip (or a press of Record) opens it.
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
+    expect(screen.getByRole('dialog', { name: 'Recording in REAPER is experimental' })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Turn on Record' }));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
     expect(saveSettings).toHaveBeenCalledWith('DAW', 'global', { 'capability.record': 'on' });
@@ -201,6 +204,7 @@ describe('RecordSetup', () => {
       throw new Error('settings are read-only');
     });
     const { say, onChanged } = mount(recordRefused('experimental_off'), LINKED, { saveSettings } as Partial<NarrationApi>);
+    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
     await userEvent.click(screen.getByRole('button', { name: 'Turn on Record' }));
     await waitFor(() => expect(say).toHaveBeenCalled());
     expect(say.mock.calls[0]).toEqual([expect.stringMatching(/^Record could not be turned on: .*read-only/), 'error']);
@@ -386,9 +390,10 @@ describe('RecordSetup says what it waits for and when it last looked', () => {
     expect(screen.getByText(/Could not read whether a project file is linked/)).toBeTruthy();
   });
 
-  it('turn-on-also-offers-check-again', () => {
+  it('turn-on-also-offers-check-again', async () => {
     mountChecked(recordRefused('experimental_off'));
-    expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
+    expect(within(screen.getByRole('dialog')).getAllByRole('button', { name: 'Check again' })).toHaveLength(1);
   });
 });
 
@@ -398,8 +403,9 @@ describe('RecordSetup when the DAW has a different project open', () => {
 
   it("says what is wrong in the narrator's words and offers to link the open one, to open Settings and to check again", () => {
     mount(DAW_SETUPS.reaper, different);
-    expect(screen.getByRole('heading', { name: 'REAPER has a different project open' })).toBeTruthy();
-    expect(screen.getByRole('region', { name: 'REAPER has a different project open' }).textContent).toContain('would not land in the project linked here');
+    // A take would land in the wrong project: the dialog opens by itself once.
+    expect(screen.getByRole('dialog', { name: 'REAPER has a different project open' }).textContent).toContain('would not land in the project linked here');
+    expect(screen.getByRole('button', { name: 'REAPER has another project open. Show details', hidden: true })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Link the open project' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'DAW settings' })).toBeTruthy();
   });
@@ -470,6 +476,8 @@ describe('RecordSetup when the DAW has a different project open', () => {
     expect(say).not.toHaveBeenCalled();
     expect(onChanged).not.toHaveBeenCalled();
     cleanup();
+    // A new mount is a new Booth visit only to the test: the dialog it already opened by itself stays closed, so the chip reopens it.
+    resetOpenOnce();
     const refused = vi.fn(async () => ({ selected: true, linked: false, message: 'That is not a REAPER project file.' }));
     const second = mount(DAW_SETUPS.reaper, different, { linkDawFile: refused } as Partial<NarrationApi>);
     await userEvent.click(screen.getByRole('button', { name: 'Link the open project' }));

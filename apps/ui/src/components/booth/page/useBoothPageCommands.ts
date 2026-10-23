@@ -13,8 +13,6 @@ export interface BoothCommands {
   /** Choosing a row of `chapters`; the page refuses it itself during a take. */
   choose: (id: string) => void;
   recording: boolean;
-  /** Why Record cannot start, in the Record control's own sentence; '' when it can. */
-  recordRefusal: string;
   /** The chapter has text the reading can move through. */
   hasText: boolean;
   toggleTake: () => Promise<void>;
@@ -33,7 +31,7 @@ export interface BoothCommands {
  */
 export function useBoothPageCommands(page: BoothCommands): void {
   usePageCommands({ id: 'booth', label: 'Booth', supersedes: ['Chapters'] }, () => {
-    const { chapters, current, choose, recording, recordRefusal, hasText, toggleTake, punchAndRoll, movePhrase, exit, pickups, keymap } = page;
+    const { chapters, current, choose, recording, hasText, toggleTake, punchAndRoll, movePhrase, exit, pickups, keymap } = page;
     const keyOf = (id: CommandId): string | undefined => {
       const first = keymap[id]?.[0];
       return first ? gestureKeys(first).join('+') : undefined;
@@ -55,7 +53,7 @@ export function useBoothPageCommands(page: BoothCommands): void {
         group: 'Transport',
         hint: keyOf('reading.toggle'),
         icon: recording ? 'stop' : 'record',
-        disabledReason: recording ? undefined : recordRefusal || undefined,
+        // Never off: a press that cannot start a take opens the dialog that fixes it (BoothNextPage's onRecordBlocked).
         run: () => void toggleTake(),
       },
       {

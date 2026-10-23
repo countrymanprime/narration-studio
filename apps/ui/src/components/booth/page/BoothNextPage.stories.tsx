@@ -136,7 +136,8 @@ export const Refusal: Story = {
   args: { setup: 'reaper-off' },
   play: async ({ canvasElement }) => {
     const button = await within(canvasElement).findByRole('button', { name: /^Record$/ }, { timeout: 4000 });
-    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(true));
+    // Off but pressable: a press opens the dialog that fixes the reason.
+    await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'));
   },
 };
 

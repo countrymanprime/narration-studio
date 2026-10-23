@@ -256,11 +256,85 @@ describe('the not-linked dialog', () => {
     expect((screen.getByRole('combobox', { name: 'Track for Chapter 3' }) as HTMLSelectElement).value).toBe('{T-1}');
   });
 
-  it('offers no way to create a track: the host has no call for it', async () => {
-    view(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }) });
+  const created = (over: object = {}) => ({
+    outcome: 'created' as const,
+    documentId: 'doc',
+    link: { trackGuid: '{NEW}', chapterId: 'c3', chapterTitle: 'Chapter 3', confirmedAt: '2026-10-23T10:00:00Z', origin: 'manual' as const, match: null },
+    displaced: null,
+    mappings: [],
+    track: { guid: '{NEW}', name: 'Chapter 3', index: 3 },
+    ...over,
+  });
+
+  it('with no tracks to choose from, creating one is the primary action, and it links the new track', async () => {
+    const onLinked = vi.fn();
+    const chapterTrackCreate = vi.fn(async () => created());
+    view(<ConnectionResolveDialog {...link({ onLinked })} />, {
+      chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }),
+      chapterTrackCreate,
+    });
     expect(await screen.findByText(/has no tracks yet/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /create/i })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Link track' }).getAttribute('aria-disabled')).toBe('true');
+    expect(screen.queryByRole('button', { name: 'Link track' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Create a new track' }));
+    await waitFor(() => expect(onLinked).toHaveBeenCalledOnce());
+    expect(chapterTrackCreate).toHaveBeenCalledWith('c3');
+    expect(onLinked.mock.calls[0][1]).toEqual({ guid: '{NEW}', name: 'Chapter 3', index: 3 });
+  });
+
+  it('offers to create a track beside the list, and a double press adds one track', async () => {
+    let finish: (value: ReturnType<typeof created>) => void = () => {};
+    const chapterTrackCreate = vi.fn(() => new Promise<ReturnType<typeof created>>((resolve) => (finish = resolve)));
+    const onLinked = vi.fn();
+    view(<ConnectionResolveDialog {...link({ onLinked })} />, { chapterTrackMatch: async () => match(), chapterTrackCreate });
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    expect(screen.getByText(/Or add a track named “Chapter 3” in REAPER/)).toBeTruthy();
+    const create = screen.getByRole('button', { name: 'Create a new track' });
+    await userEvent.dblClick(create);
+    await userEvent.click(create);
+    expect(chapterTrackCreate).toHaveBeenCalledTimes(1);
+    await act(async () => finish(created()));
+    await waitFor(() => expect(onLinked).toHaveBeenCalledOnce());
+  });
+
+  it("says the DAW's refusal in the dialog and links nothing; a failed call says why", async () => {
+    const onLinked = vi.fn();
+    const message = 'REAPER is recording. Stop the take, then create the track.';
+    const chapterTrackCreate = vi
+      .fn()
+      .mockResolvedValueOnce({ outcome: 'refused', reason: 'recording', message })
+      .mockRejectedValueOnce(new Error('the bridge timed out'));
+    view(<ConnectionResolveDialog {...link({ onLinked })} />, {
+      chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }),
+      chapterTrackCreate,
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Create a new track' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(message);
+    await userEvent.click(screen.getByRole('button', { name: 'Create a new track' }));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/could not be added: .*timed out/));
+    expect(onLinked).not.toHaveBeenCalled();
+  });
+
+  it('an engine that cannot add a track says so and offers nothing that would fail', async () => {
+    const chapterTrackCreate = vi.fn();
+    view(<ConnectionResolveDialog {...link({ dawName: 'Audacity', create: { available: false, message: 'Audacity cannot add a track from this app.' } })} />, {
+      chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }),
+      chapterTrackCreate,
+    });
+    expect(await screen.findByText('Audacity cannot add a track from this app.')).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Create a new track' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.click(button);
+    expect(chapterTrackCreate).not.toHaveBeenCalled();
+  });
+
+  it('a project that cannot be read still offers to create the track', async () => {
+    view(<ConnectionResolveDialog {...link()} />, {
+      chapterTrackMatch: async () => {
+        throw new Error('no project file is linked');
+      },
+    });
+    expect((await screen.findByRole('alert')).textContent).toMatch(/could not be read/);
+    expect(screen.getByRole('button', { name: 'Create a new track' }).getAttribute('aria-disabled')).toBeNull();
   });
 
   it('shows long, right-to-left and emoji names whole', async () => {

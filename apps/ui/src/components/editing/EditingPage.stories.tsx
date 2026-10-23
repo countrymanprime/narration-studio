@@ -123,7 +123,8 @@ export const NoAudioUnlinked: Story = {
   args: { noAudio: 'unlinked' },
   play: async ({ canvasElement }) => {
     await script(canvasElement);
-    await within(await screen.findByRole('dialog')).findByRole('button', { name: 'Link track' });
+    // Link track with tracks to choose from, Create a new track (the primary action) without.
+    await within(await screen.findByRole('dialog')).findByRole('button', { name: /^(Link track|Create a new track)$/ });
     await expect(canvasElement.querySelectorAll('[data-mark="miss"]')).toHaveLength(0);
   },
 };

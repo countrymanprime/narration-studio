@@ -71,7 +71,9 @@ A chapter has to be linked to a track (see [Linking chapters to tracks](navigati
 its words to carry the times they were heard at. A chapter with no audio to edit shows the script plain, with no word marked
 "not read". When the cause is a link (no track linked, or the linked track is not in the saved project), a dialog opens by
 itself, once for the chapter: it names the chapter, offers the REAPER tracks the app found in a dropdown, with the best match chosen, and
-**Link track** links the one you pick, after which the page reads the chapter at once. If you close it with the X, the
+**Link track** links the one you pick, after which the page reads the chapter at once. **Create a new track** has REAPER add a
+track named after the chapter and links it instead (the main button when the project has no tracks); save the REAPER project
+so the page can read the new track. If you close it with the X, the
 **Not linked to a track** mark in the header opens it again. The page also reads the chapter again whenever you come back
 to its window, so a link made in REAPER or the audio engine panel shows without a reload. When the track is empty, or with the
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.

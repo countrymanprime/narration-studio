@@ -82,12 +82,13 @@ for (const c of [
     await goToPage(page, 'Booth');
     await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
     await expect(page.locator('#brec-setup')).toBeVisible();
-    // Space cannot record while the notice is up: it says why, as a toast.
-    await page.keyboard.press('Space');
-    const toast = page
-      .getByRole('status')
-      .getByText(/different project open/)
-      .first();
+    // The open-project dialog opens by itself; the narrator closes it and reads on with the chip above the footer.
+    const dialog = page.getByRole('dialog', { name: 'REAPER has a different project open' });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    // Any message will do: Next bookmark with none says so as a toast.
+    await page.keyboard.press('Alt+BracketRight');
+    const toast = page.getByRole('status').getByText('No bookmarks yet.').first();
     await expect(toast).toBeVisible();
     const notice = (await page.locator('#brec-setup').boundingBox())!;
     const hit = (await toast.boundingBox())!;

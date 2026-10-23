@@ -158,6 +158,8 @@ type Deps = {
   /** The mock DAW's record gate (dawMock.ts): a start or stop it refuses is refused here with its sentence; one it allows moves the transport. */
   /** Whether the mock DAW is recording, whoever started it: the host's `recording_elsewhere` answers for any take. */
   dawRecording?: () => boolean;
+  /** Whether the chapter has a link now (the narrator linked or created its track during the session): `no_link` then answers as `ready`. */
+  linked?: (chapterId: string) => boolean;
   dawRecord?: (kind: 'start' | 'stop') => { reason: 'standalone' | 'experimental_off' | 'unlinked' | 'unavailable'; message: string } | null;
 };
 
@@ -496,6 +498,11 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
   let timers: ReturnType<typeof setTimeout>[] = [];
   let autoStop: ReturnType<typeof setTimeout> | undefined;
   let seeding: Promise<void> | undefined;
+  // `no_link` holds until the narrator links the chapter (or creates its track): the host then reads the new link, as it would.
+  const seedFor = (chapterId: string): MockReaperSeed => {
+    const seed = deps.reaper ?? 'ready';
+    return seed === 'no_link' && deps.linked?.(chapterId) ? 'ready' : seed;
+  };
   let metering = false;
   // The words of the session running now, so a resume replays on from where the pause left it.
   let sessionWords: string[] = [];
@@ -726,13 +733,13 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       const target = recordTarget(chapterId);
       if (!target) throw new Error('that chapter is not part of the current manuscript');
       if (deps.dawRecording?.()) return mockReaperState('recording_elsewhere', target.title);
-      return mockReaperState(deps.reaper ?? 'ready', target.title);
+      return mockReaperState(seedFor(chapterId), target.title);
     },
     readAloudArmOnly: async (chapterId) => {
       await deps.ready;
       const target = recordTarget(chapterId);
       if (!target) throw new Error('that chapter is not part of the current manuscript');
-      return mockReadAloudRecording(deps.reaper ?? 'ready', 'arm', target.title);
+      return mockReadAloudRecording(seedFor(chapterId), 'arm', target.title);
     },
     readAloudRecordStart: async (chapterId) => {
       await deps.ready;
@@ -740,7 +747,7 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       if (!target) throw new Error('that chapter is not part of the current manuscript');
       const gate = deps.dawRecord?.('start');
       if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
-      return mockReadAloudRecording(deps.reaper ?? 'ready', 'start', target.title);
+      return mockReadAloudRecording(seedFor(chapterId), 'start', target.title);
     },
     // ReadAloudRecordStartAt checks the time before anything else, then answers as a start does, from the punch.
     readAloudRecordStartAt: async (chapterId, at) => {
@@ -750,7 +757,7 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       if (!target) throw new Error('that chapter is not part of the current manuscript');
       const gate = deps.dawRecord?.('start');
       if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
-      const started = mockReadAloudRecording(deps.reaper ?? 'ready', 'start', target.title);
+      const started = mockReadAloudRecording(seedFor(chapterId), 'start', target.title);
       return started.outcome === 'started' ? { ...started, position: at, message: recordingFromAnswer(at) } : started;
     },
     readAloudRecordStop: async () => {

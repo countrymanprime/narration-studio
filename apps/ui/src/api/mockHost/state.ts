@@ -280,6 +280,8 @@ export type MockState = {
   nextId: number;
   tracksDiscovery: TracksDiscovery;
   chapterTrackMappings: TrackMapping[];
+  /** Tracks ChapterTrackCreate has added this session, for the next one's GUID and index. */
+  createdTracks: number;
   jobEndListeners: Set<(event: JobEnded) => void>;
   endJob: (event: JobEnded) => void;
   /** The Story Bible's dialogue cues. */
@@ -307,6 +309,7 @@ export function createMockState(initial: MockApiSeed): MockState {
     tracksDiscovery: { candidates: tracksCandidates, selected: tracksCandidates.length === 1 ? tracksCandidates[0] : '' },
     // A seed built before links had an origin reads as the narrator's own link, as the host reads a v1 file.
     chapterTrackMappings: wireClone(initial.chapterTrackMappings ?? []).map((link) => ({ origin: 'manual', match: null, ...link })),
+    createdTracks: 0,
     jobEndListeners,
     endJob: (event) => void setTimeout(() => jobEndListeners.forEach((listener) => listener(event)), 0),
     dialogueCues: wireClone(WIRE_DIALOGUE_CUES),

@@ -191,15 +191,81 @@ export const ChapterReadFailed: Story = {
   play: async () => {
     const open = await dialog();
     await expect((await within(open).findByRole('alert')).textContent).toContain('The project file could not be read.');
-    await expect(within(open).getByRole('button', { name: 'Link track' })).toHaveAttribute('aria-disabled', 'true');
+    // Nothing to pick from: creating the track in the DAW (which needs no saved project) is the primary action.
+    await expect(within(open).queryByRole('button', { name: 'Link track' })).toBeNull();
+    await expect(within(open).getByRole('button', { name: 'Create a new track' })).not.toHaveAttribute('aria-disabled');
   },
 };
 
-/** The saved project has no tracks: there is nothing to pick, and no track is created from here (the host has no call for it). */
+/** The saved project has no tracks: there is nothing to pick, so creating one named after the chapter is the primary action. */
 export const ChapterNoTracks: Story = {
   args: { props: linking, api: { chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [], status: 'none' }) } },
   play: async () => {
-    await expect(await within(await dialog()).findByText(/has no tracks yet/)).toBeVisible();
+    const open = await dialog();
+    await expect(await within(open).findByText(/has no tracks yet/)).toBeVisible();
+    await expect(within(open).getByRole('button', { name: 'Create a new track' })).toBeVisible();
+  },
+};
+
+const created = {
+  outcome: 'created' as const,
+  documentId: 'doc',
+  link: { trackGuid: '{NEW}', chapterId: 'c3', chapterTitle: 'Chapter 3', confirmedAt: '2026-10-23T10:00:00Z', origin: 'manual' as const, match: null },
+  displaced: null,
+  mappings: [],
+  track: { guid: '{NEW}', name: 'Chapter 3', index: 3 },
+};
+
+/** Create a new track beside the list: the DAW adds one named after the chapter, it is linked, and the page is told which track. */
+export const ChapterCreateTrack: Story = {
+  args: { props: { ...linking, onLinked: fn() }, api: { chapterTrackMatch: async () => match(), chapterTrackCreate: async () => created } },
+  play: async ({ args }) => {
+    const open = await dialog();
+    await within(open).findByRole('combobox');
+    await expect(within(open).getByText(/Or add a track named “Chapter 3” in REAPER/)).toBeVisible();
+    await userEvent.click(within(open).getByRole('button', { name: 'Create a new track' }));
+    const props = args.props as typeof linking;
+    await waitFor(() => expect(props.onLinked).toHaveBeenCalledWith(created, created.track));
+  },
+};
+
+/** The DAW cannot add the track now (it is recording): its sentence is in the dialog and nothing is linked. */
+export const ChapterCreateRefused: Story = {
+  args: {
+    props: linking,
+    api: {
+      chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [], status: 'none' }),
+      chapterTrackCreate: async () => ({
+        outcome: 'refused' as const,
+        reason: 'recording' as const,
+        message: 'REAPER is recording. Stop the take, then create the track.',
+      }),
+    },
+  },
+  play: async () => {
+    const open = await dialog();
+    await userEvent.click(await within(open).findByRole('button', { name: 'Create a new track' }));
+    await expect((await within(open).findByRole('alert')).textContent).toBe('REAPER is recording. Stop the take, then create the track.');
+  },
+};
+
+/** An engine that cannot add a track from this app (its capability says so): the button is off and the sentence says what to do in the DAW. */
+export const ChapterCreateUnavailable: Story = {
+  args: {
+    props: {
+      ...linking,
+      dawName: 'Audacity',
+      create: {
+        available: false,
+        message: 'Audacity cannot add a track for a chapter from this app. Add a track named “Chapter 3” in Audacity, then link it.',
+      },
+    },
+    api: { chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [], status: 'none' }) },
+  },
+  play: async () => {
+    const open = await dialog();
+    await expect(await within(open).findByText(/cannot add a track for a chapter from this app/)).toBeVisible();
+    await expect(within(open).getByRole('button', { name: 'Create a new track' })).toHaveAttribute('aria-disabled', 'true');
   },
 };
 

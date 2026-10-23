@@ -233,4 +233,15 @@ export const dawFeedback = {
     'ok',
     "Link track makes the chosen track the chapter's one link (replacing the old); the button is busy and ignores a second press, a refusal is written in the dialog, and on success the page reads the chapter again and the dialog goes.",
   ),
+  'src/components/connection/ChapterLinkDialog.tsx::chapterTrackCreate#1': row(
+    'click',
+    'file-io',
+    'pending',
+    'pending',
+    'ui',
+    'inline',
+    'no',
+    'ok',
+    "Create a new track has the DAW add a track named after the chapter and links it; the button is busy and ignores a second press (one press, one track), the DAW's refusal or a failed call is written in the dialog, and on success the page reads the chapter again, says the track was added and the dialog goes.",
+  ),
 };

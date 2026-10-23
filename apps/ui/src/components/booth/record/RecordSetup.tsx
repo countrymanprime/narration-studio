@@ -1,45 +1,18 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawKind } from '../../../api/contracts/daw';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useToastClearance } from '../../../hooks/useToastClearance';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
-import { InsetCard } from '../../primitives/InsetCard';
 import { CheckLine } from '../../layout/CheckLine';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { ConnectionResolveDialog } from '../../connection/ConnectionResolveDialog';
-import { useOpenOnce } from '../../connection/useOpenOnce';
+import { useOpenOnce, useReopenOnAsk } from '../../connection/useOpenOnce';
+import { ResolveShell } from '../../connection/ResolveShell';
 import { recordSetupFor, type RecordSetupFacts, type RecordSetupPlan } from './recordSetupModel';
 
 /** How long a linked project's connect notice waits for the app to connect on its own before it shows the steps. */
 const CONNECT_GRACE_MS = 20_000;
-
-/**
- * The notice's frame. It shares the window with the text: it never takes more than 45% of its height, and scrolls inside when it needs more.
- * It is also a bar along the bottom, so a message rises above it (`useToastClearance`): a toast never covers the notice, the notice stays
- * visible above the toasts.
- */
-function NoticeFrame({ title, titleId = 'brec-setup-title', children }: { title: ReactNode; titleId?: string; children: ReactNode }) {
-  const bar = useRef<HTMLDivElement>(null);
-  useToastClearance(bar);
-  return (
-    <div ref={bar} className="mx-5 mb-2 flex max-h-[45%] flex-col">
-      <InsetCard
-        as="section"
-        tone="warn"
-        fill
-        id="brec-setup"
-        aria-labelledby={titleId}
-        className="flex min-h-0 flex-col gap-2 overflow-y-auto text-sm [@media(max-height:760px)]:gap-1"
-      >
-        <h3 id={titleId} className="font-medium text-[var(--text)]">
-          {title}
-        </h3>
-        {children}
-      </InsetCard>
-    </div>
-  );
-}
 
 /** What a notice says as a toast. `topic` names what the message is about, so a newer message on it replaces the old and Record becoming ready takes it away. */
 type Say = (sentence: string, tone?: 'error', topic?: string) => void;
@@ -64,6 +37,7 @@ export function RecordSetup({
   factsFailed,
   onCheckAgain,
   graceMs = CONNECT_GRACE_MS,
+  asked = 0,
 }: {
   capabilities: DawCapabilities;
   facts: RecordSetupFacts;
@@ -82,14 +56,17 @@ export function RecordSetup({
   onCheckAgain?: () => void;
   /** How long a linked project's connect notice waits for the app to connect on its own before it shows the steps. */
   graceMs?: number;
+  /** How many times Record was pressed while it could not start: each press opens the dialog of the notice that is up. */
+  asked?: number;
 }) {
   const plan = recordSetupFor(capabilities, facts);
   if (!plan) return null;
   const check = { checkedAt, readFailed, onCheckAgain };
-  if (plan.kind === 'turn-on') return <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />;
-  if (plan.kind === 'other-project') return <OtherProject plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} />;
+  if (plan.kind === 'turn-on') return <TurnOn plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} asked={asked} />;
+  if (plan.kind === 'other-project') return <OtherProject plan={plan} say={say} onSettings={onSettings} onChanged={onChanged} check={check} asked={asked} />;
   return (
     <Connect
+      asked={asked}
       plan={plan}
       say={say}
       onSettings={onSettings}
@@ -118,52 +95,84 @@ function useBusy(): [boolean, (work: () => Promise<void>) => Promise<void>] {
   return [busy, run];
 }
 
+/** Where a notice's chip stands: above the footer, beside nothing, so a message rises above it (`useToastClearance`) and never covers it. */
+function NoticeChip({ id, label, onOpen }: { id: string; label: string; onOpen: () => void }) {
+  const bar = useRef<HTMLDivElement>(null);
+  useToastClearance(bar);
+  return (
+    <div ref={bar} className="mx-5 mb-2 flex">
+      <ConnectionIndicator id={id} label={label} onOpen={onOpen} />
+    </div>
+  );
+}
+
+/**
+ * Record's capability is Experimental and switched off. The chip above the footer says so; the dialog explains and turns it on with one click.
+ * It opens on a press of Record (or the chip), not by itself: Record being off is how every new project starts, not news.
+ */
 function TurnOn({
   plan,
   say,
   onSettings,
   onChanged,
   check,
+  asked,
 }: {
   plan: Extract<RecordSetupPlan, { kind: 'turn-on' }>;
   say: Say;
   onSettings: () => void;
   onChanged: () => void;
   check: CheckProps;
+  asked: number;
 }) {
   const system = usePort('system');
   const [busy, run] = useBusy();
+  const [open, setOpen] = useState(false);
+  const reopen = useCallback(() => setOpen(true), []);
+  useReopenOnAsk(asked, reopen);
   const turnOn = () =>
     run(async () => {
       try {
         // Only Record's own toggle: the other Experimental actions stay as the narrator set them.
         await system.saveSettings('DAW', 'global', { 'capability.record': 'on' });
         say(`Record in ${plan.dawName} is on. You can turn it off again in Settings, DAW Integration.`);
+        setOpen(false);
         onChanged();
       } catch (error) {
         say(`Record could not be turned on: ${apiErrorMessage(error)}`, 'error');
       }
     });
   return (
-    <NoticeFrame title={`Recording in ${plan.dawName} is experimental`}>
-      {/* The explanation gives way first in a short window: the heading, the buttons and what the notice waits for stay. */}
-      <p className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">
-        {plan.inApp
-          ? "It is built and tested in this app, but not yet checked on every microphone and computer, so it starts switched off. Turn it on to record; the take is saved in the project's Recordings folder."
-          : `It is built and tested in this app, but not yet checked in every ${plan.dawName} setup, so it starts switched off. Turn it on to record this chapter; the take goes on the chapter's own track, after what is already there.`}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={() => void turnOn()} pending={busy}>
-          Turn on Record
-        </Button>
-        <Button variant="secondary" onClick={onSettings}>
-          DAW settings
-        </Button>
-      </div>
-      {check.onCheckAgain && (
-        <CheckLine waiting={`Waiting for Record to be turned on in ${plan.dawName}`} unknown={`Record is on in ${plan.dawName}`} {...check} />
+    <>
+      <NoticeChip id="brec-setup" label="Record is switched off" onOpen={reopen} />
+      {open && (
+        <ResolveShell
+          title={`Recording in ${plan.dawName} is experimental`}
+          description={
+            plan.inApp
+              ? "It is built and tested in this app, but not yet checked on every microphone and computer, so it starts switched off. Turn it on to record; the take is saved in the project's Recordings folder."
+              : `It is built and tested in this app, but not yet checked in every ${plan.dawName} setup, so it starts switched off. Turn it on to record this chapter; the take goes on the chapter's own track, after what is already there.`
+          }
+          onClose={() => setOpen(false)}
+          primary={{ label: 'Turn on Record', onPress: () => void turnOn(), pending: busy }}
+          secondary={{ label: 'Check again', onPress: () => check.onCheckAgain?.() }}
+        >
+          <p>
+            <Button variant="secondary" size="sm" onClick={onSettings}>
+              DAW settings
+            </Button>
+          </p>
+          {check.onCheckAgain && (
+            <CheckLine
+              waiting={`Waiting for Record to be turned on in ${plan.dawName}`}
+              unknown={`Record is on in ${plan.dawName}`}
+              checkedAt={check.checkedAt}
+              readFailed={check.readFailed}
+            />
+          )}
+        </ResolveShell>
       )}
-    </NoticeFrame>
+    </>
   );
 }
 
@@ -178,16 +187,22 @@ function OtherProject({
   onSettings,
   onChanged,
   check,
+  asked,
 }: {
   plan: Extract<RecordSetupPlan, { kind: 'other-project' }>;
   say: Say;
   onSettings: () => void;
   onChanged: () => void;
   check: CheckProps;
+  asked: number;
 }) {
   const project = usePort('project');
   const [busy, run] = useBusy();
   const { dawName } = plan;
+  const Name = dawName === 'the DAW' ? 'The DAW' : dawName;
+  // A take would land in the wrong project: that is news, so the dialog opens by itself once, and on every press of Record.
+  const dialog = useOpenOnce(`other-project:${dawName}`);
+  useReopenOnAsk(asked, dialog.reopen);
   const linkOpen = () =>
     run(async () => {
       try {
@@ -198,39 +213,46 @@ function OtherProject({
           say(result.message || 'That project file could not be linked.', 'error');
           return;
         }
-        say(
-          result.note
-            ? `${dawName === 'the DAW' ? 'The' : dawName} project linked. ${result.note}`
-            : `${dawName === 'the DAW' ? 'The' : dawName} project linked.`,
-        );
+        say(result.note ? `${Name} project linked. ${result.note}` : `${Name} project linked.`);
+        dialog.close();
         onChanged();
       } catch (error) {
         say(`The project could not be linked: ${apiErrorMessage(error)}`, 'error');
       }
     });
   return (
-    <NoticeFrame title={`${dawName === 'the DAW' ? 'The DAW' : dawName} has a different project open`} titleId="brec-setup-title">
-      {/* The explanation gives way first in a short window, as the other notices' do: the title, the buttons and what the notice waits for stay. */}
-      <p className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">
-        A take would not land in the project linked here. Open the linked project in {dawName}, or link the one that is open now.
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" onClick={() => void linkOpen()} pending={busy}>
-          Link the open project
-        </Button>
-        <Button variant="secondary" onClick={onSettings}>
-          DAW settings
-        </Button>
-        <span className="text-[var(--text-muted)] [@media(max-height:760px)]:hidden">Choose the project file {dawName} has open.</span>
-      </div>
-      {check.onCheckAgain && (
-        <CheckLine waiting={`Waiting for ${dawName} to open the linked project`} unknown={`${dawName} has the linked project open`} {...check} />
+    <>
+      <NoticeChip id="brec-setup" label={`${Name} has another project open`} onOpen={dialog.reopen} />
+      {dialog.open && (
+        <ResolveShell
+          title={`${Name} has a different project open`}
+          description={`A take would not land in the project linked here. Open the linked project in ${dawName}, or link the one that is open now.`}
+          onClose={dialog.close}
+          primary={{ label: 'Link the open project', onPress: () => void linkOpen(), pending: busy }}
+          secondary={{ label: 'Check again', onPress: () => check.onCheckAgain?.() }}
+        >
+          <p className="flex flex-wrap items-center gap-2 text-[var(--text-muted)]">
+            Choose the project file {dawName} has open.
+            <Button variant="secondary" size="sm" onClick={onSettings}>
+              DAW settings
+            </Button>
+          </p>
+          {check.onCheckAgain && (
+            <CheckLine
+              waiting={`Waiting for ${dawName} to open the linked project`}
+              unknown={`${dawName} has the linked project open`}
+              checkedAt={check.checkedAt}
+              readFailed={check.readFailed}
+            />
+          )}
+        </ResolveShell>
       )}
-    </NoticeFrame>
+    </>
   );
 }
 
 function Connect({
+  asked,
   plan,
   say,
   onSettings,
@@ -241,6 +263,7 @@ function Connect({
   message,
   daw,
 }: {
+  asked: number;
   plan: Extract<RecordSetupPlan, { kind: 'connect' }>;
   daw: DawKind;
   say: Say;
@@ -267,6 +290,7 @@ function Connect({
   }, [plan.linked, graceMs]);
   const dialog = useOpenOnce(`reaper-off:${name}`, settling && !turnedAway);
   const reopen = dialog.reopen;
+  useReopenOnAsk(asked, reopen);
   useEffect(
     () =>
       system.subscribeProjectAttach((state) => {

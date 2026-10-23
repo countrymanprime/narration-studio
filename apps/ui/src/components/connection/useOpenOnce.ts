@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** Keys already opened by themselves. Module-wide, so leaving the page and coming back does not open a dialog the narrator already dismissed. */
 const opened = new Set<string>();
@@ -40,4 +40,17 @@ export function useOpenOnce(key: string | null, hold = false): { open: boolean; 
   const close = useCallback(() => setState((prev) => ({ ...prev, open: false })), []);
   // The first paint after the condition appears has no state yet: nothing is open until the effect has decided.
   return { open: state.key === key && state.open && key !== null, reopen, close };
+}
+
+/**
+ * Reopens a dialog each time `asked` changes after mount: the page counts the presses of the action this dialog's condition stops (Record),
+ * so every press shows the fix. The count a notice mounts with is history and opens nothing.
+ */
+export function useReopenOnAsk(asked: number, reopen: () => void): void {
+  const seen = useRef(asked);
+  useEffect(() => {
+    if (asked === seen.current) return;
+    seen.current = asked;
+    reopen();
+  }, [asked, reopen]);
 }

@@ -10,6 +10,7 @@ import type {
   ChapterTrackLink,
   ChapterTrackLinks,
   ChapterTrackMapping,
+  ChapterTrackCreateResult,
   ChapterTrackSetResult,
   ChapterTrackSummary,
   ChapterTrackMatch,
@@ -124,6 +125,18 @@ export const chapterTrackSetSchema = z.object({
   displaced: trackMappingSchema.nullable(),
   mappings: listFromNull(trackMappingSchema),
 }) satisfies z.ZodType<ChapterTrackSetResult>;
+
+export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
+  chapterTrackSetSchema.extend({
+    outcome: z.literal('created'),
+    track: z.object({ guid: z.string().min(1), name: z.string(), index: z.number().int().min(0) }),
+  }),
+  z.object({
+    outcome: z.literal('refused'),
+    reason: z.enum(['standalone', 'not_running', 'experimental_off', 'recording', 'unsupported', 'failed']),
+    message: z.string().min(1),
+  }),
+]) satisfies z.ZodType<ChapterTrackCreateResult>;
 
 const chapterTrackSummarySchema = z.object({
   guid: z.string(),

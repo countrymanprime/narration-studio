@@ -197,6 +197,7 @@ export function createMockApi(
     resume: initial.resume,
     dawRecord: (kind) => dawControl.record(kind),
     dawRecording: () => dawControl.recording(),
+    linked: (chapterId) => s.chapterTrackMappings.some((link) => link.chapterId === chapterId),
   });
   const {
     withMeasurement,

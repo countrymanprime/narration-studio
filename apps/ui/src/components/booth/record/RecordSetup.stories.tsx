@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { expect, fn, screen, within } from 'storybook/test';
+import { expect, fn, screen, userEvent, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
@@ -62,10 +62,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Record switched off: a chip above the footer, and the dialog it opens (as a press of Record does) turns Record on in one click. */
 export const TurnOnRecord: Story = {
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('heading', { name: 'Recording in REAPER is experimental' })).toBeVisible();
-    await expect(within(canvasElement).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Record is switched off. Show details' }));
+    const open = await screen.findByRole('dialog', { name: 'Recording in REAPER is experimental' });
+    await expect(within(open).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
   },
 };
 
@@ -82,9 +84,10 @@ export const TurnOnRecordBuiltIn: Story = {
     linked: false,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('heading', { name: 'Recording in the built-in recorder is experimental' })).toBeVisible();
-    await expect(within(canvasElement).getByText(/saved in the project's Recordings folder/)).toBeInTheDocument();
-    await expect(within(canvasElement).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Record is switched off. Show details' }));
+    const open = await screen.findByRole('dialog', { name: 'Recording in the built-in recorder is experimental' });
+    await expect(within(open).getByText(/saved in the project's Recordings folder/)).toBeInTheDocument();
+    await expect(within(open).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
   },
 };
 
@@ -113,9 +116,10 @@ export const NoProjectLinked: Story = {
 /** Record could start, but the DAW has another project open than the one linked: link the open one, or open the linked one and check again. */
 export const OtherProjectOpen: Story = {
   args: { capabilities: DAW_SETUPS.reaper, open: 'different' },
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('heading', { name: 'REAPER has a different project open' })).toBeVisible();
-    await expect(within(canvasElement).getByRole('button', { name: 'Link the open project' })).toBeEnabled();
-    await expect(within(canvasElement).getByRole('button', { name: 'DAW settings' })).toBeEnabled();
+  play: async () => {
+    // A take would land in the wrong project: the dialog opens by itself.
+    const open = await screen.findByRole('dialog', { name: 'REAPER has a different project open' });
+    await expect(within(open).getByRole('button', { name: 'Link the open project' })).toBeEnabled();
+    await expect(within(open).getByRole('button', { name: 'DAW settings' })).toBeEnabled();
   },
 };

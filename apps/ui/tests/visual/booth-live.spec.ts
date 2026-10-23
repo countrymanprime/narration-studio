@@ -43,10 +43,14 @@ async function linkProject(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
 }
 
+// Record switched off is a chip, not a notice card: a press of Record opens the dialog that turns it on.
 async function turnOnRecord(page: Page): Promise<void> {
-  await expect(notice(page).getByRole('heading', { name: 'Recording in REAPER is experimental' })).toBeVisible();
+  await expect(notice(page).getByRole('button', { name: 'Record is switched off. Show details' })).toBeVisible();
   await expect(record(page)).toBeDisabled();
-  await notice(page).getByRole('button', { name: 'Turn on Record' }).click();
+  // Off but pressable: the press is answered by the dialog (aria-disabled, so the click is forced past Playwright's enabled check).
+  await record(page).click({ force: true });
+  const turnOn = page.getByRole('dialog', { name: 'Recording in REAPER is experimental' });
+  await turnOn.getByRole('button', { name: 'Turn on Record' }).click();
   await expect(dialog(page)).toBeVisible();
 }
 
@@ -205,7 +209,8 @@ test.describe('Booth with a moving mock DAW', () => {
   });
 
   // Booth pass 3, the notice for another project open in the DAW (S4, M4, M15, walkthrough 4 items 9 and 10).
-  const differentNotice = (page: Page) => notice(page).getByRole('heading', { name: 'REAPER has a different project open' });
+  // It opens by itself as a dialog (a take would land in the wrong project); the chip stays above the footer behind it.
+  const differentNotice = (page: Page) => page.getByRole('dialog', { name: 'REAPER has a different project open' });
 
   test('another project open: the notice says so with a way to link the open one and to check again, and the right project clears it', async ({ page }) => {
     await openLive(page, 'different');
@@ -213,13 +218,13 @@ test.describe('Booth with a moving mock DAW', () => {
     await linkProject(page);
     await startReaper(page);
     await expect(differentNotice(page)).toBeVisible({ timeout: 15_000 });
-    await expect(notice(page).getByRole('button', { name: 'Link the open project' })).toBeVisible();
-    await expect(notice(page).getByRole('button', { name: 'DAW settings' })).toBeVisible();
-    await expect(notice(page).getByText(/Last checked \d+ s ago/)).toBeVisible();
+    await expect(differentNotice(page).getByRole('button', { name: 'Link the open project' })).toBeVisible();
+    await expect(differentNotice(page).getByRole('button', { name: 'DAW settings' })).toBeVisible();
+    await expect(differentNotice(page).getByText(/Last checked \d+ s ago/)).toBeVisible();
     await expect(record(page)).toBeDisabled();
     // The narrator opens the linked project in REAPER, then presses Check again.
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('linked'));
-    await notice(page).getByRole('button', { name: 'Check again' }).click();
+    await differentNotice(page).getByRole('button', { name: 'Check again' }).click();
     await expect(notice(page)).toHaveCount(0);
     await expect(record(page)).toBeEnabled();
   });
@@ -230,7 +235,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await linkProject(page);
     await startReaper(page);
     await expect(differentNotice(page)).toBeVisible({ timeout: 15_000 });
-    await notice(page).getByRole('button', { name: 'Link the open project' }).dblclick();
+    await differentNotice(page).getByRole('button', { name: 'Link the open project' }).dblclick();
     await expect(page.getByText('REAPER project linked.').first()).toBeVisible();
     await expect(notice(page)).toHaveCount(0);
     await expect(record(page)).toBeEnabled();
@@ -243,7 +248,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(differentNotice(page)).toBeVisible();
     await expect(record(page)).toBeDisabled();
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('linked'));
-    await notice(page).getByRole('button', { name: 'Check again' }).click();
+    await differentNotice(page).getByRole('button', { name: 'Check again' }).click();
     await expect(notice(page)).toHaveCount(0);
     // And with no press at all: the Booth reads again by itself while the notice is up.
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
@@ -267,7 +272,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(record(page)).toBeVisible();
   });
 
-  test('a toast never covers the setup notice, and the same sentence is one toast however often it is asked for', async ({ page }) => {
+  test('a toast never covers the setup notice, and Space while Record cannot start opens the dialog that fixes it', async ({ page }) => {
     await openLive(page, 'quiet');
     await turnOnRecord(page);
     await linkProject(page);
@@ -276,11 +281,12 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(page.getByText(/REAPER is starting/).first()).toBeVisible();
     // Close the dialog: what is under test is the mark and the messages that rise above it.
     await dialog(page).getByRole('button', { name: 'Close' }).click();
-    // Space while Record cannot start says why, as a toast; ten presses are one message.
-    for (let i = 0; i < 10; i++) await page.keyboard.press('Space');
-    const sentence = page.getByRole('status').getByText(/REAPER is not answering/);
-    await expect(sentence.first()).toBeVisible();
-    expect(await sentence.count()).toBe(1);
+    // Space while Record cannot start opens the dialog that fixes it, every time, and starts nothing; Escape closes it again.
+    await page.keyboard.press('Space');
+    await expect(dialog(page)).toBeVisible();
+    expect((await dawState(page))?.recording).toBe(false);
+    await dialog(page).getByRole('button', { name: 'Close' }).click();
+    await expect(dialog(page)).toHaveCount(0);
     // The notice is above the toasts: neither covers the other, and the notice is topmost at its own points.
     const box = await notice(page).boundingBox();
     const toast = await page

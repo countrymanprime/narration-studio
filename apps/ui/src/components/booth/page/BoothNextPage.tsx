@@ -41,6 +41,9 @@ import { BoothText } from '../reading/BoothText';
 import { UNKNOWN_SPEAKER, wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
+import { ChapterLinkNotice } from '../record/ChapterLinkNotice';
+import { recordSetupFor } from '../record/recordSetupModel';
+import type { RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
@@ -252,6 +255,7 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
     takeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => Promise<number>;
     menuItems?: (target: Element) => ContextMenuItem[];
     escapeStoppedSample?: () => boolean;
+    recordBlocked?: (block: RecordBlock) => void;
   }>({});
   const page = useBoothPage({
     recordId,
@@ -268,6 +272,7 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
     onTakeStopped: (take) => parts.current.takeStopped?.(take),
     menuItems: (target) => parts.current.menuItems?.(target) ?? [],
     escapeStoppedSample: () => parts.current.escapeStoppedSample?.() ?? false,
+    onRecordBlocked: (block) => parts.current.recordBlocked?.(block),
   });
   const { control, at, units } = page;
 
@@ -446,7 +451,6 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
     current: pickerValue,
     choose: (id) => changeChapter(targetOf(id)),
     recording: control.recording,
-    recordRefusal: control.disabled ? control.reason : '',
     hasText: units.length > 0,
     toggleTake: page.toggleTake,
     punchAndRoll: page.punchAndRoll,
@@ -463,6 +467,32 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
   const dawChoice = useDawChoice();
   const modelState = useListeningModelState(session.engine, session.model, session.modelInstall.job?.phase);
   useStaleToasts(overlay, { ready: !!capabilities && !control.disabled, reason: control.reason, recording: control.recording });
+  // Every press of Record that cannot start a take ends in front of the narrator: the dialog of the notice that fixes it (the chapter's track,
+  // Record switched off, the DAW not connected, another project open), or a message with Check again for the rest. `asked` counts the presses
+  // the notices answer, so each one reopens its dialog.
+  const [recordAsks, setRecordAsks] = useState(0);
+  const recordName = pickerChapters.find((item) => item.id === pickerValue)?.name ?? title;
+  const linkProblem = !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks');
+  const setupPlan = capabilities && control.factsLoaded && !control.recording ? recordSetupFor(capabilities, control.facts) : null;
+  parts.current.recordBlocked = (block) => {
+    const noticeUp =
+      ((block.cause === 'no_track' || block.cause === 'several_tracks') && linkProblem) ||
+      ((block.cause === 'capability' || block.cause === 'wrong_project') && !!setupPlan);
+    if (noticeUp) return setRecordAsks((n) => n + 1);
+    overlay.toast(block.reason, { tone: 'error', action: { label: 'Check again', onAction: control.checkAgain } });
+  };
+  const linked = (created?: { name: string }) => {
+    control.refresh();
+    overlay.toast(
+      created
+        ? `Track “${created.name}” added in ${page.dawName} and linked to ${recordName}. Save the ${page.dawName} project to keep it.`
+        : `${recordName} is linked to its track. Press Record when you are ready.`,
+      // The save the narrator owes REAPER is worth more than the usual five seconds.
+      { durationMs: 12_000 },
+    );
+  };
+  // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
+  const footerWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
@@ -591,8 +621,22 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
             </div>
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
+          {linkProblem && capabilities ? (
+            <ChapterLinkNotice
+              key={recordId}
+              chapterId={recordId}
+              chapterName={recordName}
+              dawName={page.dawName}
+              several={control.gate?.cause === 'several_tracks'}
+              create={capabilities.capabilities.track_create}
+              asked={recordAsks}
+              onLinked={linked}
+              onCheckAgain={control.checkAgain}
+            />
+          ) : null}
           {capabilities && control.factsLoaded && !control.recording ? (
             <RecordSetup
+              asked={recordAsks}
               capabilities={capabilities}
               facts={control.facts}
               factsFailed={control.factsFailed}
@@ -605,11 +649,10 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
             />
           ) : null}
           <BoothFooter
-            record={<RecordControl control={{ ...control, toggle: page.toggleTake }} />}
+            record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
             seconds={page.seconds}
             recording={control.recording}
-            why={control.reason || undefined}
-            whyFixInEnginePanel={control.reasonIsTrackLink}
+            why={footerWhy || undefined}
             listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
