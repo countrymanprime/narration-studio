@@ -44,12 +44,15 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapTakeCreate:   dawport.Supported,
 	dawport.CapHeartbeat:    dawport.Supported,
 	dawport.CapProjectRead:  dawport.Supported,
-	// bridge's experimentalCommands: chapter_track_state, select_track; arm_only, record_start, record_stop; punch_to,
+	// bridge's experimentalCommands: chapter_track_state, select_track, track_create; arm_only, record_start, record_stop; punch_to,
 	// play_position, roll; create_regions; set_active_take, hide_takes; list_fx_chains, apply_fx_chain; master_chain_read;
 	// delete_range; apply_fx_range, remove_fx_range, fx_range_params, fx_range_set_param, fx_range_bypass; stack_takes, unstack_takes; preview_file_range, stop_file_preview, reveal_file;
 	// reduce_range_gain; repair_click; last_action, undo_last; monitor_level (declared with the edit rows below).
 	dawport.CapTrackState:  dawport.Experimental,
 	dawport.CapTrackSelect: dawport.Experimental,
+	// track_create is track_create's (narration_track_create.lua): Experimental until the owner sees one Undo take the new track back
+	// and REAPER answer its GUID and index.
+	dawport.CapTrackCreate: dawport.Experimental,
 	// follow_position is read_place's and go_to's (narration_track_select.lua): Experimental until the owner sees the Booth open on the track REAPER is on.
 	dawport.CapFollowPosition: dawport.Experimental,
 	// transport_sync is set_cursor's, play_from's, stop_play's and watch_transport's (narration_transport.lua): Experimental until the owner hears the
@@ -102,6 +105,7 @@ var declares = map[dawport.Capability]dawport.Level{
 var commandCapability = map[string]dawport.Capability{
 	"chapter_track_state": dawport.CapTrackState,
 	"select_track":        dawport.CapTrackSelect,
+	"track_create":        dawport.CapTrackCreate,
 	"read_place":          dawport.CapFollowPosition,
 	"go_to":               dawport.CapFollowPosition,
 	"set_cursor":          dawport.CapTransportSync,
@@ -237,6 +241,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapProjectRead:     ProjectReader{},
 			dawport.CapTrackState:      actions,
 			dawport.CapTrackSelect:     actions,
+			dawport.CapTrackCreate:     actions,
 			dawport.CapFollowPosition:  placeFollower{actions, allowed},
 			dawport.CapTransportSync:   transportSyncer{actions, allowed, positions},
 			dawport.CapRecord:          actions,

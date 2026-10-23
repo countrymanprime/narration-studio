@@ -69,6 +69,7 @@ export type DawCapabilityKey =
   | 'project_read'
   | 'track_state'
   | 'track_select'
+  | 'track_create'
   | 'follow_position'
   | 'transport_sync'
   | 'record'
@@ -118,6 +119,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'project_read', label: 'Read the saved project' },
   { key: 'track_state', label: 'Read track arm state' },
   { key: 'track_select', label: 'Select a track in the recording tool' },
+  { key: 'track_create', label: 'Add a track for a chapter' },
   { key: 'follow_position', label: "Follow the narrator's place in the project" },
   { key: 'transport_sync', label: "Play and follow the project's transport" },
   { key: 'record', label: 'Record' },

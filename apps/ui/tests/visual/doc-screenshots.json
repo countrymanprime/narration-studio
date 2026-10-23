@@ -291,7 +291,7 @@
     "state": "builtin-refusal",
     "viewport": "desktop",
     "docName": "booth-builtin-refusal",
-    "caption": "Booth - the built-in recorder with Experimental actions off: Record disabled with the reason, and the Recording in the built-in recorder is experimental box above it with Turn on Record"
+    "caption": "Booth - the built-in recorder with Experimental actions off: Record off with the reason, and the Record is switched off chip above the footer"
   },
   {
     "page": "booth",
@@ -344,31 +344,52 @@
   },
   {
     "page": "booth",
-    "state": "refusal",
+    "state": "refusal-pressed",
     "viewport": "desktop",
     "docName": "booth-record-refused",
-    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings"
+    "caption": "Booth - Record pressed while switched off: the Recording in REAPER is experimental dialog with Turn on Record, DAW settings and Check again"
+  },
+  {
+    "page": "booth",
+    "state": "record-unlinked",
+    "viewport": "desktop",
+    "docName": "booth-record-unlinked",
+    "caption": "Booth - the Chapter 1 is not linked to a track dialog, with the project's tracks, Link track, Create a new track and Check again"
+  },
+  {
+    "page": "booth",
+    "state": "record-unlinked-closed",
+    "viewport": "desktop",
+    "docName": "booth-record-unlinked-closed",
+    "caption": "Booth - the dialog closed: the Not linked to a track chip above the footer, and the footer saying the chapter has no track to record on"
   },
   {
     "page": "booth",
     "state": "record-connect",
     "viewport": "desktop",
     "docName": "booth-record-setup",
-    "caption": "Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason"
+    "caption": "Booth - the REAPER not connected dialog, with the host's reason, the two steps, Open in REAPER and connect and Check again"
+  },
+  {
+    "page": "booth",
+    "state": "record-connect-closed",
+    "viewport": "desktop",
+    "docName": "booth-record-connect-closed",
+    "caption": "Booth - the dialog closed: the quiet REAPER not connected mark above the footer, which reopens it"
   },
   {
     "page": "booth",
     "state": "record-turned-away",
     "viewport": "desktop",
     "docName": "booth-record-turned-away",
-    "caption": "Booth - REAPER started from the Connect box, but the app was busy and turned its project away: the box says so and what to do"
+    "caption": "Booth - REAPER started from the dialog, but the app was busy and turned its project away: the dialog says so and what to do"
   },
   {
     "page": "booth",
     "state": "record-other-project",
     "viewport": "desktop",
     "docName": "booth-record-other-project",
-    "caption": "Booth - REAPER has a different project open: the box offers Link the open project, DAW settings and Check again"
+    "caption": "Booth - REAPER has a different project open: the dialog offers Link the open project, DAW settings and Check again"
   },
   {
     "page": "engine",
@@ -739,14 +760,28 @@
     "state": "daw-off",
     "viewport": "desktop",
     "docName": "editing-daw-off",
-    "caption": "Editing with the DAW not connected - the banner with Check again"
+    "caption": "Editing with the DAW not connected - the dialog with the reason, what still works, Start REAPER and Check again"
+  },
+  {
+    "page": "editing",
+    "state": "daw-off-closed",
+    "viewport": "desktop",
+    "docName": "editing-daw-off-closed",
+    "caption": "Editing with the DAW not connected, dialog closed - the quiet mark in the header that reopens it"
   },
   {
     "page": "editing",
     "state": "unlinked",
     "viewport": "desktop",
     "docName": "editing-unlinked",
-    "caption": "Editing with no track linked - the banner says why there is no audio to edit, and the legend says No audio to edit"
+    "caption": "Editing with no track linked - the dialog names the chapter and lists the REAPER tracks with the best match chosen"
+  },
+  {
+    "page": "editing",
+    "state": "unlinked-closed",
+    "viewport": "desktop",
+    "docName": "editing-unlinked-closed",
+    "caption": "Editing with no track linked, dialog closed - the quiet Not linked to a track mark, and the legend says No audio to edit"
   },
   {
     "page": "proof",

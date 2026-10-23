@@ -9,7 +9,8 @@ import { chooseMicrophone, chooseTheme, goToPage } from './drivers/shared';
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const RECORD_ON = '?mockRecordCapabilityOn=1';
-const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
+// includeHidden: the connect dialog hides the page behind it from the accessibility tree, and Record is still there, disabled.
+const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const chapterButton = (page: Page) => page.getByRole('button', { name: /^Chapter: / });
 const cursorWord = (page: Page) => page.locator('[data-current]').first();
@@ -206,28 +207,38 @@ test('row 17: a Story Bible name shows its reference in the side panel', async (
   await expect(page.locator('#booth-reference')).toContainText('Alice');
 });
 
-test('row 18: Record refused by the capability: disabled, with its sentence beside it', async ({ page }) => {
+test('row 18: Record refused by the capability: off, with its sentence beside it, and a press opens the dialog that turns it on', async ({ page }) => {
   await open(page, '', false);
   await expect(record(page)).toBeDisabled();
   await expect(page.locator('#brec-why')).toHaveText('Experimental: switched off in Settings.');
+  await record(page).click({ force: true });
+  await expect(page.getByRole('dialog', { name: 'Recording in REAPER is experimental' }).getByRole('button', { name: 'Turn on Record' })).toBeVisible();
 });
 
 test('row 19: Record with no project linked and no bridge: disabled, with the reason and the link step', async ({ page }) => {
   await open(page, '?mockDaw=live', false);
-  await page.locator('#brec-setup').getByRole('button', { name: 'Turn on Record' }).click();
+  await record(page).click({ force: true });
+  await page.getByRole('dialog', { name: 'Recording in REAPER is experimental' }).getByRole('button', { name: 'Turn on Record' }).click();
   await expect(record(page)).toBeDisabled();
-  await expect(page.locator('#brec-setup').getByRole('button', { name: 'Link in Settings' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: /is not connected/ }).getByRole('button', { name: 'Link in Settings' })).toBeVisible();
   await expect(page.locator('#brec-why')).not.toHaveText('');
 });
 
 test('row 20: Record with REAPER not answering, and with another project open, is disabled with the reason', async ({ page }) => {
   await open(page, '?mockDaw=quiet', false);
-  await page.locator('#brec-setup').getByRole('button', { name: 'Turn on Record' }).click();
-  await page.locator('#brec-setup').getByRole('button', { name: 'Link in Settings' }).click();
+  await record(page).click({ force: true });
+  await page.getByRole('dialog', { name: 'Recording in REAPER is experimental' }).getByRole('button', { name: 'Turn on Record' }).click();
+  await page
+    .getByRole('dialog', { name: /is not connected/ })
+    .getByRole('button', { name: 'Link in Settings' })
+    .click();
   await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
   await goToPage(page, 'Booth');
-  await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
-  await expect(page.locator('#brec-setup').getByRole('heading', { name: 'REAPER is not answering' })).toBeVisible();
+  // The project is linked now, so the dialog waits for the connect grace; its mark opens it at once.
+  await page.locator('#brec-setup').getByRole('button').click();
+  const connect = page.getByRole('dialog', { name: /is not connected/ });
+  await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+  await expect(connect.getByRole('alert')).toContainText('was started and has not answered yet', { timeout: 20_000 });
   await expect(record(page)).toBeDisabled();
   await expect(page.locator('#brec-why')).not.toHaveText('');
   await page.evaluate(() => {
@@ -439,8 +450,8 @@ test('row 44: the built-in recorder with Experimental off says so, and Turn on R
   await open(page, '?mockEngine=builtin', false);
   await expect(record(page)).toBeDisabled();
   await expect(page.locator('#brec-why')).toHaveText('Experimental: switched off in Settings.');
-  await page.locator('#brec-setup').getByRole('heading', { name: 'Recording in the built-in recorder is experimental' }).waitFor();
-  await page.locator('#brec-setup').getByRole('button', { name: 'Turn on Record' }).click();
+  await page.locator('#brec-setup').getByRole('button', { name: 'Record is switched off. Show details' }).click();
+  await page.getByRole('dialog', { name: 'Recording in the built-in recorder is experimental' }).getByRole('button', { name: 'Turn on Record' }).click();
   await expect(record(page)).toBeEnabled();
 });
 

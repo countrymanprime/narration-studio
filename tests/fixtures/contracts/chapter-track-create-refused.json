@@ -1,0 +1,5 @@
+{
+  "message": "REAPER is recording. Stop the take, then create the track.",
+  "outcome": "refused",
+  "reason": "recording"
+}
