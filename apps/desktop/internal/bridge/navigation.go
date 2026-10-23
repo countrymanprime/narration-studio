@@ -35,7 +35,7 @@ const DefaultAnswerTimeout = 3 * time.Second
 
 // ContextPaddingSeconds is how much audio a loop plays before and after a finding, in source seconds, so the narrator
 // hears the line around the spot and not only the spot. REAPER keeps the window inside the item.
-const ContextPaddingSeconds = 2.0
+const ContextPaddingSeconds = 3.0
 
 var (
 	// ErrUnavailable: there is no bridge (the app was launched on its own, not from REAPER's action).

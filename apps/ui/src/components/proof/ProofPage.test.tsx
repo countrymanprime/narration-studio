@@ -234,7 +234,7 @@ describe('proof-route-draws-the-mock-page', () => {
     expect((screen.getByRole('textbox', { name: 'Note with the decision (optional)' }) as HTMLTextAreaElement).value).toBe('Say it slower');
   });
 
-  it('opens on the first note, moves through the notes with J and K and with Down and Up, and does not claim Space', async () => {
+  it('opens on the first note, moves through the notes with J and K and with Down and Up, and Space is Hear it', async () => {
     renderPage();
     await noteRows();
     const selectedAt = (index: number) =>
@@ -250,7 +250,8 @@ describe('proof-route-draws-the-mock-page', () => {
     await waitFor(() => expect(selectedAt(0)).toBe('true'));
     const space = new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true });
     document.body.dispatchEvent(space);
-    expect(space.defaultPrevented).toBe(false);
+    // Space used to be left alone (no Play ±3 s); it is now Hear it on the selected note (research note A1).
+    expect(space.defaultPrevented).toBe(true);
   });
 
   it('a click on a note in All chapters opens its chapter; a key move does not', async () => {
@@ -387,7 +388,7 @@ describe('proof-decisions-and-undo', () => {
     await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
     await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
     const [entry] = await journal.entries();
-    expect(entry.label).toMatch(/^Decision “Waive” at \d/);
+    expect(entry.label).toMatch(/^Decision “Fine as read” at \d/);
     expect(entry.undoable).toBe(true);
     const undone = await journal.undoLast();
     expect(undone.ok).toBe(true);
@@ -420,7 +421,7 @@ describe('proof-decisions-and-undo', () => {
     const inspector = () => screen.getByRole('complementary', { name: 'Note' });
     const box = () => within(inspector()).getByRole('textbox', { name: /Note with the decision/ }) as HTMLTextAreaElement;
     await user.type(box(), 'Note A first');
-    await user.click(within(inspector()).getByRole('button', { name: /^Waive/ }));
+    await user.click(within(inspector()).getByRole('button', { name: /^Fine as read/ }));
     await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
     // The decision moved on to the next note; step back to the one just decided and change its decision and note.
     press('k', 'KeyK');
@@ -436,7 +437,7 @@ describe('proof-decisions-and-undo', () => {
     await waitFor(() =>
       expect(
         within(inspector())
-          .getByRole('button', { name: /^Waive/ })
+          .getByRole('button', { name: /^Fine as read/ })
           .getAttribute('aria-pressed'),
       ).toBe('true'),
     );
@@ -470,18 +471,18 @@ describe('proof-decisions-and-undo', () => {
     const rows = await noteRows();
     await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
     const inspector = await screen.findByRole('complementary', { name: 'Note' });
-    await user.click(within(inspector).getByRole('button', { name: /^Waive/ }));
+    await user.click(within(inspector).getByRole('button', { name: /^Fine as read/ }));
     await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
     // The decision moved on to the next note; step back to the waived one and Waive it again.
     press('k', 'KeyK');
     await waitFor(() =>
       expect(
         within(screen.getByRole('complementary', { name: 'Note' }))
-          .getByRole('button', { name: /^Waive/ })
+          .getByRole('button', { name: /^Fine as read/ })
           .getAttribute('aria-pressed'),
       ).toBe('true'),
     );
-    await user.click(within(screen.getByRole('complementary', { name: 'Note' })).getByRole('button', { name: /^Waive/ }));
+    await user.click(within(screen.getByRole('complementary', { name: 'Note' })).getByRole('button', { name: /^Fine as read/ }));
     await waitFor(() => expect(review).toHaveBeenCalledTimes(2));
     expect(await journal.entries()).toHaveLength(1);
   });
@@ -508,8 +509,38 @@ describe('proof-decisions-and-undo', () => {
     const row = (await noteRows())[0];
     fireEvent.contextMenu(row);
     const items = contextItemsFor(row.querySelector('td') ?? row);
-    expect(items?.map((item) => item.label)).toEqual(expect.arrayContaining(['Needs pickup', 'Fix in edit', 'Waive', 'Defer', 'Reopen']));
-    expect(items?.map((item) => item.label)).not.toContain('Play ±3 s');
+    expect(items?.map((item) => item.label)).toEqual(expect.arrayContaining(['Needs pickup', 'Fix in edit', 'Fine as read', 'Defer', 'Reopen']));
+    // Hear it leads the menu (research note A1: Play ±3 s is built, superseding PRD line 50).
+    expect(items?.[0]?.label).toBe('Hear it');
+  });
+
+  it('the Inspector shows the selected note’s paragraph with its words marked, and its neighbours (Show where)', async () => {
+    renderPage();
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    const white = rows.find((row) => row.textContent?.includes('00:12.4')) ?? rows[0];
+    await user.click(white);
+    const inspector = await screen.findByRole('complementary', { name: 'Note' });
+    const where = await within(inspector).findByRole('region', { name: 'In the script' });
+    expect(where.querySelector('[data-around=at]')?.textContent?.length).toBeGreaterThan(0);
+  });
+
+  it('Space and the menu’s Hear it hear the selected note through the Inspector’s button', async () => {
+    const api = createMockApi();
+    const loop = vi.spyOn(api, 'findingsLoop');
+    renderPage({ api });
+    const user = userEvent.setup();
+    await user.click((await noteRows())[0]);
+    const inspector = await screen.findByRole('complementary', { name: 'Note' });
+    const selected = loop.mock.calls.length;
+    press(' ', 'Space');
+    await waitFor(() => expect(loop.mock.calls.length).toBe(selected + 1));
+    const id = loop.mock.calls.at(-1)![0];
+    // Pressed again, Space stops what it started, whichever player that was.
+    await within(inspector).findByRole('button', { name: /^Stop hearing it/ });
+    press(' ', 'Space');
+    await waitFor(() => expect(within(inspector).getByRole('button', { name: /^Hear it/ })).toBeTruthy());
+    expect(typeof id).toBe('string');
   });
 });
 

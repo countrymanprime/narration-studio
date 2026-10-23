@@ -82,8 +82,15 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'hear-it',
+    description:
+      'Proof, all chapters, Hear it pressed on the first note: Stop hearing it in the Inspector\'s row, "Playing in REAPER, 3 s either side" under it, and In the script with the note\'s paragraph, its words marked, between the paragraphs before and after',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'notes-filtered',
-    description: 'Proof, all chapters with the To review chip pressed: "Notes · 3 of 4" and the waived note left out',
+    description: 'Proof, all chapters with the To review chip pressed: "Notes · 3 of 4" and the note marked fine as read left out',
     ...REFLOW,
   },
   {

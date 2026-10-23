@@ -39,6 +39,8 @@ import { inBookOrder, NOTE_KIND, noteRow, queryFor, type NoteSort } from './note
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
 import { recallSelection, rememberSelection } from './proofMemory';
+import { SurroundingText } from './around/SurroundingText';
+import { useParagraphsAround } from './around/useParagraphsAround';
 import { SpotTakes } from './spot/SpotTakes';
 import { TakeLanes } from './spot/TakeLanes';
 import { TakesBadge } from './spot/TakesBadge';
@@ -340,6 +342,9 @@ export function ProofPage({
   const total = timeline?.total ?? 0;
   const spots = useSpotTakes(chapter?.id ?? '', chapterNotes);
   const spot = selected ? spots.spotFor(selected.id) : null;
+  // Show where's text: the selected note's paragraph and its neighbours, its own words marked (research note A5).
+  const shownWords = selected?.manuscript?.expected ? { text: selected.manuscript.expected, ordinal: selected.manuscript.span?.ordinal } : undefined;
+  const around = useParagraphsAround(manuscriptApi, selected?.manuscript?.chapter_id, selected?.manuscript?.span?.paragraph_id, shownWords);
 
   // The window follows the selected note (mock `followSelection`).
   const selectedSecond = selected?.time_range && timeline ? timeline.toTimeline(selected.time_range.start) : null;
@@ -540,6 +545,7 @@ export function ProofPage({
                     }
                   />
                 }
+                around={<SurroundingText around={around.around} reason={around.reason} />}
                 spot={
                   <SpotTakes spot={spot} refusal={spots.refusalFor(selected.id)} onOpenInEditing={(id, passageId) => goToEditing(id, selected.id, passageId)} />
                 }

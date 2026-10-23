@@ -6,7 +6,7 @@ Proof gathers what the app's checks found into one list of notes, so you can wor
 differences a check heard between the script and the recording (the [recording check](#one-chapter) and the
 [comparison](#comparing-the-recording-with-the-script)), the [Story Bible](story-bible.md) entries and pronunciations that
 need a look, and the delivery rules your measured files did not meet ([delivery checks](#delivery-checks)). Each note waits
-until you mark it **Needs pickup** or **Fix in edit**, waive it or defer it, and your decision is kept with the project.
+until you mark it **Needs pickup** or **Fix in edit**, **Fine as read** or defer it, and your decision is kept with the project.
 Running a check again keeps your decision on a note whose evidence did not change.
 
 The page has three parts: the Proof panel at the top (the chapters, and one chapter's recording), the notes under it, and
@@ -33,7 +33,7 @@ first chapter until you have looked at one). The chapter is in the page's addres
 back to All chapters. Each change of chapter is a step in the browser's history, so Back returns to the chapter or to All chapters you came from.
 
 On the right of the title, a ring and two counters say how far the notes in view have got: **12 of 14 cleared · 13
-decided**, for example. A note is cleared once it is waived; a deferred note, or one waiting for its pickup, is decided
+decided**, for example. A note is cleared once it is marked fine as read; a deferred note, or one waiting for its pickup, is decided
 but still open. A pickup on the [Pickups](pickups.md) list that no note stands for (a gap the recording check found, or a
 line you added) also keeps the ring from filling while it is open.
 
@@ -58,7 +58,7 @@ A chapter shows its **Recording check** card and its recording:
 - A kind of finding is the same colour everywhere in the app, here in the card's counts, the findings, the notes' Type
   column and the waveform pins: red when the words are wrong (misread, skipped, extra, repeat, a long silence), amber when
   the recording is in doubt (breath, click, noise, plosive) and blue for a pronunciation. The word on the chip says which.
-  A decision keeps its own tone: **Needs pickup** copper, **Fix in edit** blue, **Waive** green, **Defer** grey.
+  A decision keeps its own tone: **Needs pickup** copper, **Fix in edit** blue, **Fine as read** green, **Defer** grey.
 - The waveform window draws the chapter's recording with a pin at each note that has a time. Press a pin to select its
   note. It opens on a minute of the chapter; zoom in and out, or drag the window's edges, to see more or less of it. The
   window follows the selected note.
@@ -92,12 +92,12 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
 
 Under them, **Sources** names the checks the notes came from, with a count for each, before any chip or search narrows
 the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
-review**, **Needs pickup**, **Fix in edit**, **Waive** or **Defer**) for every note. Script vs heard is the note's headline
+review**, **Needs pickup**, **Fix in edit**, **Fine as read** or **Defer**) for every note. Script vs heard is the note's headline
 sentence with the words in question marked in the note's own colour and form, for example “are” read as “our”; a note whose
 spot has more than one take also has a takes badge. With All chapters the table groups the notes by chapter, each group a
 tinted row with the chapter's open count.
 
-![Proof - the To review chip: "Notes · 3 of 4", the waived note left out](../../images/ui/proof-notes-filtered.webp)
+![Proof - the To review chip: "Notes · 3 of 4", the note marked fine as read left out](../../images/ui/proof-notes-filtered.webp)
 
 ![Proof - find in notes on "rabbit", with the two matching notes](../../images/ui/proof-find.webp)
 
@@ -109,14 +109,16 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
   choice is kept with the note;
 - the arrows to step to the previous or next note on the list (a chip, the search or the In view filter can hide notes; the keys skip them);
 - what the script says and what was heard, with the difference marked;
+- **In the script**: the note's paragraph with its words marked, and the paragraphs before and after it, shorter and greyed,
+  so you can see where the note sits without leaving Proof. When the script no longer has that paragraph, it says so;
 - **Takes at this spot**, when the spot has more than one take: each take is a bordered card with **Play** (from its own recording, without
   the DAW), its length and whether it is active or kept; the kept take's card is tinted green. **Manage takes in Editing** opens the chapter on
   [Editing](editing.md) with the note's words selected and the takes of its line open, where takes are chosen;
 - **Trim the gap to 1.2 s**, on a gap note not decided yet (see [Trimming a gap](#trimming-a-gap));
-- **Show in** and **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the
-  DAW](#going-to-a-note-in-the-daw)), **Open this chapter in Script** and **Open this chapter in Booth**, and **Reopen**
+- **Hear it** (Space), which plays the note with 3 s either side (see [Hearing a note](#hearing-a-note)), **Show in** and
+  **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the DAW](#going-to-a-note-in-the-daw)), **Open this chapter in Script** and **Open this chapter in Booth**, and **Reopen**
   once the note is decided;
-- the decisions, **Needs pickup**, **Fix in edit**, **Waive** and **Defer** (keys P, E, W and D) as four equal buttons in two
+- the decisions, **Needs pickup**, **Fix in edit**, **Fine as read** and **Defer** (keys P, E, W and D) as four equal buttons in two
   columns, each with its key, the decision taken outlined; an optional note with the decision (a box with a placeholder,
   up to 2,000 characters), and the check's confidence, or why it has none. All four work on any note. Whether a note
   counts as a pickup or a fix in the edit comes from its kind: a misread or a skipped word is re-recorded, a repeat or a gap
@@ -125,7 +127,7 @@ Select a note in the table, or its pin on the waveform, and the Inspector shows 
 
 A decision is saved at once and the next note is selected. If focus was on a note, it moves to that next note too, so the focused row, the panel and a screen reader agree; a decision made with focus elsewhere leaves focus where it is. A message says what was saved, with **Undo** to put the
 note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. The decision is also in the app's undo history, so Ctrl+Z, **Undo the last change** in the jump menu and the
-[undo history](navigation.md) take it back too, as "Decision “Waive” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Waive** says the line stays as it was read. **Reopen** puts a decided note back
+[undo history](navigation.md) take it back too, as "Decision “Fine as read” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Fine as read** says you heard it and the line stays as it was read: the note is cleared, and it is no longer a pickup. **Reopen** puts a decided note back
 to review.
 
 Leaving Proof for Booth, Script or Editing and coming Back opens the note you had selected, with the note you had typed for
@@ -137,7 +139,7 @@ hears **Now**, and keeps your note. Press **Use the new evidence**, look again a
 
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
-Right-click a note in the table, or its pin, for the same actions: the four decisions (the one that does not fit the note
+Right-click a note in the table, or its pin, for the same actions: **Hear it**, the four decisions (the one that does not fit the note
 says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
 
 ## Notes on a finding
@@ -156,6 +158,17 @@ A note about a long pause (a gap) that is not decided yet has **Trim the gap to 
 right-click menu. It shortens that one gap the way [Editing](editing.md)'s Clean up does: the extra silence goes to the
 muted Cuts track in your DAW as one change, with the DAW's own Undo, and the note is then decided **Fix in edit**. It is
 off, with the reason, when the DAW cannot cut a range or the gap is already 1.2 s or shorter.
+
+## Hearing a note
+
+**Hear it** plays the note with 3 s of the recording before and after it, so you can judge by ear whether it needs a pickup
+or is fine as read. With a DAW that can loop a note (REAPER, Audacity), it loops there, through your DAW's own output, until
+you press the button again (it reads **Stop hearing it** while it plays) or select another note. When the DAW is not
+connected or cannot place the note, the app plays the note's recording itself, once. The message under the row says
+where it is playing. While the DAW is recording nothing plays, and the message says so; a note with no time in its
+recording cannot be heard, and the button says why.
+
+![Proof - Hear it on a note: Stop hearing it while it loops in REAPER with 3 s either side, and the note's paragraph in the script with the ones before and after](../../images/ui/proof-hear-it.webp)
 
 ## Going to a note in the DAW
 
@@ -180,12 +193,13 @@ why.
 | --- | --- |
 | Up and Down, or K and J | Previous and next note |
 | Left and Right | Previous and next chapter (from All chapters, the last chapter you looked at) |
-| P, E, W, D | Needs pickup, Fix in edit, Waive, Defer on the selected note |
+| Space | Hear the selected note, 3 s either side; again to stop |
+| P, E, W, D | Needs pickup, Fix in edit, Fine as read, Defer on the selected note |
 | Esc | Back to All chapters |
 | Ctrl+F | Find in notes |
 | Ctrl+Z | Undo the last change, a decision included |
 
-The footer lists them, Ctrl+Z as Undo, and you can change them in [Settings](settings.md). Space is not a Proof key.
+The footer lists them, Ctrl+Z as Undo, and you can change them in [Settings](settings.md).
 
 Choosing between takes is on [Editing](editing.md), not here.
 
@@ -196,7 +210,7 @@ could not measure, becomes a **Delivery check** note here: one per rule per file
 names the file where other notes name a chapter, and says the rule, the value and how it missed ("RMS −24.1 dBFS, below
 the minimum of −23"). A rule's advice (a true peak above ACX's advice, for example) stays on Master & QC.
 
-Pickup (here **Fix in edit**), Waive and Defer work as for every other note, and change nothing but your decision: not the
+Pickup (here **Fix in edit**), Fine as read and Defer work as for every other note, and change nothing but your decision: not the
 profile and not the measurement. Your decision holds while the same audio is judged against the same rule. After a new
 render, or if you change that rule's numbers in a custom profile, the check comes back to review with your note kept.
 When a file meets the rule again, its check is no longer in the latest run. Choosing another delivery profile judges the

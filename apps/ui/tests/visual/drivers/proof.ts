@@ -71,6 +71,15 @@ export const proofDrivers: Record<string, Driver> = {
     // Below the wide layout the Inspector stacks under the queue, out of the window: bring the thread up, or the picture is `default`'s.
     await thread.scrollIntoViewIfNeeded();
   },
+  'hear-it': async (page) => {
+    await openProof(page);
+    await inspector(page).getByRole('button', { name: 'Hear it, 3 s either side' }).click();
+    await inspector(page).getByRole('button', { name: 'Stop hearing it' }).waitFor();
+    const where = inspector(page).getByText(/^Playing in REAPER, 3 s either side/);
+    await where.waitFor();
+    // Below the wide layout the Inspector stacks under the queue: bring its paragraph and the message up, or the picture is `default`'s.
+    await inspector(page).getByRole('region', { name: 'In the script' }).scrollIntoViewIfNeeded();
+  },
   'chapter-no-recording': async (page) => {
     await openProof(page);
     await openChapter(page, 'Chapter 2');

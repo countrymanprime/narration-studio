@@ -54,8 +54,9 @@ function Quote({ label, markup, which }: { label: string; markup: string; which:
  * The Studio Next Inspector for one note: the time and type, the steps, what the script says against what was heard, the DAW and link
  * actions, the decision with its optional note, and the check's confidence. It reads no store and imports no router: the note, the host
  * reads and the handlers come in as props, and `useShownEvidence` keeps what the narrator was shown against the latest evidence, so a
- * decision made after a re-check is refused until they read what changed. `spot` (the takes at this note's spot, SN-Q7) renders after
- * the quotes and `typeControl` (SN-Q44) replaces the plain type label; with neither the Inspector is complete.
+ * decision made after a re-check is refused until they read what changed. `around` (the note's paragraph and its neighbours, research
+ * note A5) and `spot` (the takes at this note's spot, SN-Q7) render after the quotes, and `typeControl` (SN-Q44) replaces the plain type
+ * label; with none of them the Inspector is complete.
  */
 export function Inspector({
   finding,
@@ -65,6 +66,7 @@ export function Inspector({
   onChanged,
   onOpenScript,
   onOpenBooth,
+  around,
   spot,
   typeControl,
 }: {
@@ -77,6 +79,7 @@ export function Inspector({
   onChanged: (finding: Finding, decided: boolean) => void;
   onOpenScript: (chapterId: string) => void;
   onOpenBooth: (chapterId: string) => void;
+  around?: ReactNode;
   spot?: ReactNode;
   typeControl?: ReactNode;
 }) {
@@ -118,6 +121,7 @@ export function Inspector({
           <Quote label="Heard" markup={quotes.heard} which="heard" />
         </div>
       )}
+      {around}
       {spot}
       {trimmableGap(shown) && <TrimGap finding={shown} inert={inert} onTrimmed={() => void decide('accepted')} />}
       <InspectorActions
