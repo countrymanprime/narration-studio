@@ -555,18 +555,18 @@ Light = `<page>/<state>/wNNN.png`; dark = `dark:<page>/<state>/desktop.png` (144
 | schedule/milestone-dialog | - | o | - | o | o | o | o |
 | schedule/loading | o | o | - | - | o | o | o |
 | schedule/no-manuscript | - | o | - | o | o | o | o |
-| shell/engine-builtin (rail + top bar, zoomed crops of rail and bar at 1440, 1280, 768, 390) | o | o | o | o | o | o | o |
-| shell/engine-mismatch | - | o | - | - | o | - | - |
-| shell/zoom-level | - | o | - | - | o | o | - |
-| shell/zoom-menu-open | - | o | - | o | o | - | - |
-| shell/jump-menu-open | o | o | - | o | o | o | o |
-| shell/jump-menu-off-pages | - | o | - | o | o | - | - |
-| shell/jump-menu-back-enabled | - | o | - | - | o | - | - |
-| shell/jump-menu-forward-enabled | - | - | - | o | - | - | - |
-| shell/context-menu-open | - | o | - | o | o | - | o |
-| shell/nav-off-note | - | o | - | o | o | - | o |
-| shell/switch-project-open | - | o | - | o | o | o | o |
-| shell/history-panel-open | - | o | - | o | o | o | o |
+| app-shell/engine-builtin (rail + top bar, zoomed crops of rail and bar at 1440, 1280, 768, 390) | o | o | o | o | o | o | o |
+| app-shell/engine-mismatch | - | o | - | - | o | - | - |
+| app-shell/zoom-level | - | o | - | - | o | o | - |
+| app-shell/zoom-menu-open | - | o | - | o | o | - | - |
+| app-shell/jump-menu-open | o | o | - | o | o | o | o |
+| app-shell/jump-menu-off-pages | - | o | - | o | o | - | - |
+| app-shell/jump-menu-back-enabled | - | o | - | - | o | - | - |
+| app-shell/jump-menu-forward-enabled | - | - | - | o | - | - | - |
+| app-shell/context-menu-open | - | o | - | o | o | - | o |
+| app-shell/nav-off-note | - | o | - | o | o | - | o |
+| app-shell/switch-project-open | - | o | - | o | o | o | o |
+| app-shell/history-panel-open | - | o | - | o | o | o | o |
 | project/picker-empty | - | o | - | - | o | o | - |
 | project/new-project-dialog | - | o | - | - | o | o | o |
 | project/picker-daw-running | - | o | - | - | o | o | o |
@@ -586,7 +586,7 @@ Light = `<page>/<state>/wNNN.png`; dark = `dark:<page>/<state>/desktop.png` (144
 
 Not opened, so do not read them as clean: schedule at-risk/overdue/no-due-date at 1280, milestone-dialog at 1920/1280, the dark theme for overdue and no-due-date; shell engine-mismatch 1024/390/dark, jump-menu-off-pages 390/dark, jump-menu-back-enabled 1024/390/dark, forward-enabled at 1440/768/390/dark, zoom-level 1024/dark, zoom-menu 390/dark, context-menu 390, nav-off-note 390; project pinned 1024/390/dark, removed 768/1024/dark, empty/no-recents 1024/dark; global confirm 1024/dark, toast 1024, tooltip 390/dark, theme-light 1024/390, theme-dark 768/390, nav-rail-open 1440/768/390/dark.
 
-Things I could not see, by construction. (1) No screenshot scrolls to the lower Milestones table at 768, 1024 or 390: the long-text state is captured scrolled to the table top at 1280/1024/768/390 (the first rows are visible, the 3 stacked toasts cover the row actions) and at 1440/1920 the bottom of the page is cut at the Final delivery row. Table findings below are therefore from 1440/1920 plus the first rows at 1280-390, and the rest of the lower table at 768/1024/390 is unverified. (2) The rail's hover-expanded state exists only as `global/nav-rail-open` and as an accident in `shell/nav-off-note` at 1024 (the pointer is still over the rail). (3) The drawer opened from the hamburger (below 860) has no capture.
+Things I could not see, by construction. (1) No screenshot scrolls to the lower Milestones table at 768, 1024 or 390: the long-text state is captured scrolled to the table top at 1280/1024/768/390 (the first rows are visible, the 3 stacked toasts cover the row actions) and at 1440/1920 the bottom of the page is cut at the Final delivery row. Table findings below are therefore from 1440/1920 plus the first rows at 1280-390, and the rest of the lower table at 768/1024/390 is unverified. (2) The rail's hover-expanded state exists only as `global/nav-rail-open` and as an accident in `app-shell/nav-off-note` at 1024 (the pointer is still over the rail). (3) The drawer opened from the hamburger (below 860) has no capture.
 
 Source read before judging: `schedule/SchedulePage.tsx`, `ContractPanel.tsx`, `WorkedOut.tsx`, `MilestoneTable.tsx`, `MilestoneDialog.tsx`, `ScheduleSkeleton.tsx`; `layout/AppShell.tsx`, `layout/JumpMenu.tsx`; `primitives/NavButton.tsx`, `HeaderChip.tsx`, `Dialog.tsx`, `SlideOver.tsx`, `Toast.tsx`, `ContextMenu.tsx`, `panelStyles.ts`, `Heading.tsx`; `project/ProjectPicker.tsx`; `help/ShortcutSheet.tsx`; `components.css`.
 
@@ -630,7 +630,7 @@ Source read before judging: `schedule/SchedulePage.tsx`, `ContractPanel.tsx`, `W
 - cleanup-tools-error: tablet.
 - **Dark not opened** for: rpp-picker, no-rpp, no-daw-link, wrong-project, from-tracks-link, `sync-*`, link-chapters-preview and -success, render-config-prefilled, -no-regions and -error, create-regions-empty, -error and -success, chapter-tags-idle, -ready, -success and -error, cleanup-tools-idle and -launched, retake-lanes-list, -none and -error, editing-check-unmapped. The dark states I did open show the same layout as light with no extra border or inset defects. I found no dark-only defect.
 
-**Siblings compared:** shell/history-panel-open (w1440), production/chapter-track-panel-linked (w1440), production/editing-check-partial (w1440). Not opened: the other production slide-over states (credits panel, recording check).
+**Siblings compared:** app-shell/history-panel-open (w1440), production/chapter-track-panel-linked (w1440), production/editing-check-partial (w1440). Not opened: the other production slide-over states (credits panel, recording check).
 
 **Not covered:** the "Needs you" cards of Chapter sync (no catalog state shows them; read from source only) and the Audacity link card (no state).
 
@@ -1507,18 +1507,18 @@ o = opened at 1x or zoomed. m = seen only in a reduced 2-3-up montage (layout ju
 | schedule/milestone-dialog | o | R2 | o | R2 | R2 | R2 | R2 | m | m |
 | schedule/loading | R2 | R2 | o | o | R2 | R2 | R2 | m | m |
 | schedule/no-manuscript | o | R2 | o | R2 | R2 | R2 | R2 | m | m |
-| shell/engine-builtin | o (rail, bar zooms) | o zoom | o zoom | R2 | o zoom | o zoom | m | m | m |
-| shell/engine-mismatch | m | o zoom | m | - | R2 | m | m | m | m |
-| shell/zoom-level | m | o zoom | o | m | R2 | m | m | m | m |
-| shell/zoom-menu-open | m | R2 | m | R2 | R2 | m | m | m | m |
-| shell/jump-menu-open | m | R2 | o | R2 | R2 | m | R2 | m | m |
-| shell/jump-menu-off-pages | m | R2 | m | R2 | R2 | m | m | m | m |
-| shell/jump-menu-back-enabled | m | R2 | m | m | R2 | m | m | m | m |
-| shell/jump-menu-forward-enabled | m | o | m | R2 | o | m | m | m | m |
-| shell/context-menu-open | m | R2 | m | R2 | R2 | m | R2 | m | m |
-| shell/nav-off-note | m | R2 | m | R2 | R2 | m | R2 | m | m |
-| shell/switch-project-open | m | R2 | m | R2 | R2 | m | R2 | m | m |
-| shell/history-panel-open | m | R2 | m | R2 | R2 | m | R2 | m | m |
+| app-shell/engine-builtin | o (rail, bar zooms) | o zoom | o zoom | R2 | o zoom | o zoom | m | m | m |
+| app-shell/engine-mismatch | m | o zoom | m | - | R2 | m | m | m | m |
+| app-shell/zoom-level | m | o zoom | o | m | R2 | m | m | m | m |
+| app-shell/zoom-menu-open | m | R2 | m | R2 | R2 | m | m | m | m |
+| app-shell/jump-menu-open | m | R2 | o | R2 | R2 | m | R2 | m | m |
+| app-shell/jump-menu-off-pages | m | R2 | m | R2 | R2 | m | m | m | m |
+| app-shell/jump-menu-back-enabled | m | R2 | m | m | R2 | m | m | m | m |
+| app-shell/jump-menu-forward-enabled | m | o | m | R2 | o | m | m | m | m |
+| app-shell/context-menu-open | m | R2 | m | R2 | R2 | m | R2 | m | m |
+| app-shell/nav-off-note | m | R2 | m | R2 | R2 | m | R2 | m | m |
+| app-shell/switch-project-open | m | R2 | m | R2 | R2 | m | R2 | m | m |
+| app-shell/history-panel-open | m | R2 | m | R2 | R2 | m | R2 | m | m |
 | project/picker-empty | m | o | m | m | R2 | R2 | m | m | m |
 | project/picker-pinned | m | R2 | m | m | R2 | o | m | m | m |
 | project/picker-removed | m | R2 | m | m | R2 | R2 | m | m | m |
@@ -1538,7 +1538,7 @@ o = opened at 1x or zoomed. m = seen only in a reduced 2-3-up montage (layout ju
 
 Rail and top bar re-checked at 1440 (rail zooms 3x, ink-scan measurements; bar zoom 2.5x), 1280 (rail 3x, hover-expanded rail 2.3x, zoom chip), 1024 (m + R2 crops), 768 (bar 2.7x) and 390 (bar 2.8x). The 1920 rail was seen at 1x.
 
-Still unopened or only montage-level (count under the report): every dark cell on 1280/1920 (not captured: dark exists only at 1440/1024/768), the dark 1024/768 cells marked m (read at montage scale, no 1x), the m cells at 1920/1280/1024/390 for shell, project and global, shell/engine-mismatch 1024 (never opened), global/theme-light 1280, theme-dark 1920, nav-rail-collapsed 1920/1280/768 (no layout change by eye in the m cells at 1024 and 1300; not opened at 1x), the 3 rail-only/medium-only extras (opened rail-only once).
+Still unopened or only montage-level (count under the report): every dark cell on 1280/1920 (not captured: dark exists only at 1440/1024/768), the dark 1024/768 cells marked m (read at montage scale, no 1x), the m cells at 1920/1280/1024/390 for shell, project and global, app-shell/engine-mismatch 1024 (never opened), global/theme-light 1280, theme-dark 1920, nav-rail-collapsed 1920/1280/768 (no layout change by eye in the m cells at 1024 and 1300; not opened at 1x), the 3 rail-only/medium-only extras (opened rail-only once).
 
 **What the Milestones table still hides.** The long-text capture is scrolled to the table top and three stacked "Milestone added." toasts sit over the right 330 px of it in every state and every width. At 1440 rows 1-3 are visible (Status chip and the three row buttons are covered). At 1280/1024/768/390 only the header row and the first row's name are visible, and the toasts cover Status, the actions and the Add "+" button. At 768/1024/390 there is no capture of rows 2-4 or of the Final delivery row of the long-text state, and no state-without-toasts shows the long names, so the Arabic row, the emoji row and the Final row are unseen at those widths. The on-pace/no-due-date states show the Final row alone at every width (seen), but not the multi-row table below 1440.
 
@@ -2120,7 +2120,7 @@ Each cell was opened at 1x after crop (max 900x1100). Tall captures cut into chu
 | tall/production-w768 | y0-1000, y950-1950, y1850-2600, y2300-2600 (capture ends mid Next up) |
 | tall/production-w1920 | y0-1100 (x100-1920), right column y880-1980 |
 | tall/production-w390 | y0-1100, y1050-2150, y2050-2600 (capture ends mid-pipeline) |
-| shell/engine-mismatch light 1024 | seen |
+| app-shell/engine-mismatch light 1024 | seen |
 | global/theme-light 1280 (Settings page), theme-dark 1920 (+ pipeline zoom) | seen |
 | global/nav-rail-collapsed light 1920, 1280, 768 | seen |
 | project/picker-pinned light 1024, picker-empty 1280, picker-no-recents 1280 | seen |

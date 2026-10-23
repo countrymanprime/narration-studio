@@ -42,7 +42,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `project/ProjectPicker.tsx:198` (`flex min-h-full ... justify-center`)
 - Severity: looks wrong
 - Fix: top-align with a fixed offset; open the switcher as an overlay inside the shell
-- Evidence: `project/picker-removed/w1440.png` (logo y=296) vs `.../picker-empty/w1440.png` (260) vs `.../picker-daw-running/w1440.png` (219), `shell/switch-project-open/w1440.png`
+- Evidence: `project/picker-removed/w1440.png` (logo y=296) vs `.../picker-empty/w1440.png` (260) vs `.../picker-daw-running/w1440.png` (219), `app-shell/switch-project-open/w1440.png`
 - Shared: page-local
 - Supersedes: PRJ-3
 
@@ -54,7 +54,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Where: `project/ProjectPicker.tsx:266-290`
 - Severity: looks wrong (390)
 - Fix: below `sm`, wrap the buttons under the name
-- Evidence: `project/picker-pinned/w390.png` (y 460-600), `shell/switch-project-open/w390.png`
+- Evidence: `project/picker-pinned/w390.png` (y 460-600), `app-shell/switch-project-open/w390.png`
 - Shared: page-local
 - Supersedes: PRJ-1, SHL-5
 

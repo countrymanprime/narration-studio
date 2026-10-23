@@ -151,7 +151,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 
 ### R4SM-10 Why is there a tiny dark-green sliver at the left of the stacked bar when "Delivered" is 0:00?
 
-- Page / state: production default, shell/engine-mismatch
+- Page / state: production default, app-shell/engine-mismatch
 - Widths: all (theme: both)
 - Gut reaction: a stray dark mark at the start of the bar that looks like a rendering glitch.
 - What is wrong: the Delivered segment is 0 wide but draws a 3-4 px dark sliver with a rounded cap at x 85 (1024); the legend lists "Delivered 0:00" with a dark dot so it is data, but at 0 it should not paint.

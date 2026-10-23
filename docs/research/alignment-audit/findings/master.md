@@ -394,7 +394,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: master and delivery / no-manuscript, failing-chapter, measured (any state with rail badges)
 - Widths: 1280 and 1024 versus 1920 (theme: light)
 - What is wrong: at 1920 the rail shows a padlock on all ten pages in no-manuscript (including the current one) and count badges (Proof 10, Pickups 3, Master & QC 1) in failing-chapter; at 1280 the icon rail shows ten identical icons with no padlock and no count, so a locked page looks available and a failing check count is gone.
-- Where: `apps/ui/src/components/shell/NavRail` (icon-only variant drops the trailing slot)
+- Where: `NavRail` in the UI shell components folder (icon-only variant drops the trailing slot)
 - Severity: looks wrong
 - Fix: overlay a 12px dot or lock glyph on the icon in the icon rail.
 - Evidence: `S/delivery/no-manuscript/w1920.png` x 8-207 y 110-665 versus `.../no-manuscript/w1280.png` x 0-64; `.../failing-chapter/w1920.png` x 170-195 y 480-610 versus `.../w1280.png`
@@ -442,7 +442,7 @@ Part of the [alignment audit](../../alignment-audit.md). Findings are grouped by
 - Page / state: master and delivery / every dark state
 - Widths: 1440 and 1024/768 (theme: dark)
 - What is wrong: in dark the theme toggle is a toothed sun disc at x28,y826 and the Settings gear is a toothed disc at x28,y868, 42px apart, the same cream fill and the same size; at 1024 (labels hidden) the two read as a double cog.
-- Where: `shell/NavRail` theme toggle icon and settings icon
+- Where: `app-shell/NavRail` theme toggle icon and settings icon
 - Severity: polish
 - Fix: use a distinct sun glyph (rays, not teeth) or a half-filled circle.
 - Evidence: `dark:master/empty/desktop.png` x 18-40 y 815-880; `S/crops/r3ms/dk/m-empty.png` left rail
