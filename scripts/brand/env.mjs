@@ -1,8 +1,9 @@
-// The brand's values as environment lines for a workflow (docs/research/app-name-injection.md): a step runs
-// `node scripts/brand/env.mjs >> "$GITHUB_ENV"` and later steps read $BRAND_EXECUTABLE and the rest, so no workflow spells the
-// product's name or an identity value.
+// The brand's values for a workflow step (docs/research/app-name-injection.md): a step reads the one value it needs,
+// `exe="$(node scripts/brand/env.mjs BRAND_EXECUTABLE)"`, so no workflow spells the product's name or an identity value. Nothing is
+// written to $GITHUB_ENV: a write there reaches every later step of the job (zizmor's github-env audit).
 //
-//   node scripts/brand/env.mjs     prints BRAND_NAME=..., BRAND_EXECUTABLE=..., one per line
+//   node scripts/brand/env.mjs             prints BRAND_NAME=..., BRAND_EXECUTABLE=..., one per line
+//   node scripts/brand/env.mjs <VARIABLE>  prints that one value, for example BRAND_EXECUTABLE
 
 import { fileURLToPath } from 'node:url';
 
@@ -19,4 +20,16 @@ export function envLines(brand = loadBrand()) {
   return lines;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) console.log(envLines().join('\n'));
+/** The value of one variable, by its name in envLines; throws on a name it does not have. */
+export function envValue(variable, brand = loadBrand()) {
+  const line = envLines(brand).find((entry) => entry.startsWith(`${variable}=`));
+  if (!line) throw new Error(`${variable} is not a brand variable; run node scripts/brand/env.mjs for the list`);
+  return line.slice(variable.length + 1);
+}
+
+function main(args) {
+  if (args.length) process.stdout.write(envValue(args[0]));
+  else console.log(envLines().join('\n'));
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main(process.argv.slice(2));

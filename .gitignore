@@ -48,6 +48,8 @@ src/studio/desktop/build/windows/*
 !src/studio/desktop/build/windows/installer/
 src/studio/desktop/build/windows/installer/*
 !src/studio/desktop/build/windows/installer/project.nsi
+# Written by `pnpm run brand:sync` from config/brand.json and checked in, like the other generated brand modules.
+!src/studio/desktop/build/windows/installer/brand.nsh
 .release-build/
 .nx/
 .test-tmp/

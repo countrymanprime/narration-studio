@@ -295,7 +295,7 @@ A narrator installs from `<prefix>-<version>-windows-x64-setup.exe` (the prefix 
   release version and whose names `pnpm run brand:sync` keeps equal to `config/brand.json`. The program, the uninstall key, the setup
   file and the install folder are identity values in `brand.nsh`, which the same sync writes beside `project.nsi`: a rename of the
   product changes the names a narrator sees and not where an install lives. The workflows read the same values from
-  `node scripts/brand/env.mjs >> "$GITHUB_ENV"` (`BRAND_EXECUTABLE`, `BRAND_ENV_PREFIX` and the rest), so none spells the product's
+  `node scripts/brand/env.mjs BRAND_EXECUTABLE` (one value per call, never through `$GITHUB_ENV`), so none spells the product's
   name or an identity value.
 - **What CI showed on Wails v2** (the `Build (Windows)` job of pull request 224, 2026-09-21): `makensis` was not on the runner; the pinned step installed `nsis.install` 3.11.0 and printed `makensis version: v3.11`; Wails printed `Building 'amd64' installer: Done.`; the setup program was 196,676,207 bytes and the zip 195,290,110; the bootstrapper check printed `Valid, CN=Microsoft Corporation`. The NSIS step adds about 15 seconds and the installer build about a minute.
 - **Why per user.** The in-app updater renames the running program in its folder and never asks for elevation; under Program Files

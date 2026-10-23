@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { IDENTITY_KEYS, loadBrand } from './brand.mjs';
-import { envLines, variableName } from './env.mjs';
+import { envLines, envValue, variableName } from './env.mjs';
 
 test('a workflow gets the name, the repository and every identity value, one KEY=value line each', () => {
   const brand = loadBrand();
@@ -18,4 +18,11 @@ test('a workflow gets the name, the repository and every identity value, one KEY
 test('a value with a line break is refused, so it cannot add a variable of its own to $GITHUB_ENV', () => {
   const brand = loadBrand();
   assert.throws(() => envLines({ ...brand, name: 'Zebra\nGITHUB_PATH=/x' }), /line break/);
+});
+
+test('one variable is read by name, and an unknown name is refused', () => {
+  const brand = loadBrand();
+  assert.equal(envValue('BRAND_EXECUTABLE', brand), brand.identity.executable);
+  assert.equal(envValue('BRAND_ENV_PREFIX', brand), brand.identity.envPrefix);
+  assert.throws(() => envValue('BRAND_NOPE', brand), /not a brand variable/);
 });
