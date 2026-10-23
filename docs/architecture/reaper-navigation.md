@@ -60,7 +60,7 @@ The host (`FindingsAddMarker(id)`, `src/studio/desktop/bindings_marker.go`) refu
 | `ping` | `run_id` | `PONG\|run\|version\|looping\|playing` (version `1`; the flags are `0` or `1`) |
 | `add_finding_marker` | `run_id`, `item_guid`, `take_guid` (may be empty), `source_time`, `color` (`RRGGBB`, may be empty), `name` | `FINDING_MARKER\|run\|added or existing\|take_guid\|source_time\|name` (the existing marker's name when `existing`), `FINDING_STALE`, or `ERROR` |
 
-The events are in the table in `src/studio/desktop/internal/bridge/wire.go` ([wire contracts](wire-contracts.md#reaper-events-appsdesktopinternalbridgewirego)).
+The events are in the table in `src/studio/desktop/internal/bridge/wire.go` ([wire contracts](wire-contracts.md#reaper-events-srcstudiodesktopinternalbridgewirego)).
 
 ## The host side
 

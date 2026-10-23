@@ -10,7 +10,7 @@ Checked against the code on 2026-10-12 (`main` at `5bac319`). Paths in the table
 
 Every file on this page is written by the app and read back by the app for the same Windows user. Both ends run as that user, and there is no privilege boundary between two programs one person runs ([threat model, attackers](../architecture/threat-model.md#how-to-read-it)), so the file is inside the trust boundary.
 
-On read, the host checks the file before using it: its shape, its version where it carries one, and the limits named in its row. Most files go through `persist.Reporter.ReadJSON` (`src/studio/desktop/internal/persist`, [Persisted files](../architecture/wire-contracts.md#persisted-files-appsdesktopinternalpersist)); a few have their own reader. What happens to a file that does not decode, cannot be read, or carries a newer version than this app reads differs by file, so each row's Notes name one of these:
+On read, the host checks the file before using it: its shape, its version where it carries one, and the limits named in its row. Most files go through `persist.Reporter.ReadJSON` (`src/studio/desktop/internal/persist`, [Persisted files](../architecture/wire-contracts.md#persisted-files-srcstudiodesktopinternalpersist)); a few have their own reader. What happens to a file that does not decode, cannot be read, or carries a newer version than this app reads differs by file, so each row's Notes name one of these:
 
 | Term | What happens |
 | --- | --- |
