@@ -72,6 +72,34 @@ func TestAnExtraGapKeepsWhatWasHeard(t *testing.T) {
 	}
 }
 
+// TestARepeatGapIsADuplicateReadNotAPickup: issue #2251 item 30. Chapter text said twice is a second take, fixed in the
+// edit, so accepting it makes a duplicate_read note that names the words said again.
+func TestARepeatGapIsADuplicateReadNotAPickup(t *testing.T) {
+	f := newFixture(t)
+	text, again := "sorry and then", "and then"
+	f.current.Gaps = append(f.current.Gaps, coverage.GapLine{
+		ID: "extra:p-1:12", Kind: coverage.GapExtra, ParagraphIDs: []string{"p-1"}, TokenCount: 3, Text: &text, RepeatOf: &again,
+		FirstWord: "sorry", LastWord: "then", ConfReason: coverage.ConfNoWordScores,
+	})
+	finding, err := f.service.Accept("c-1", "extra:p-1:12")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if finding.Category != findings.CategoryDuplicateRead || finding.Manuscript.Recorded != text || finding.Manuscript.Expected != again {
+		t.Fatalf("finding = %+v %+v", finding.Category, finding.Manuscript)
+	}
+	if finding.Evidence["repeat_of"] != again {
+		t.Fatalf("evidence = %+v", finding.Evidence)
+	}
+	plain, err := f.service.Accept("c-1", "extra:p-1:9")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain.Category != findings.CategoryPickup {
+		t.Fatalf("an aside stays a pickup: %+v", plain.Category)
+	}
+}
+
 func TestAcceptTwiceIsOne(t *testing.T) {
 	f := newFixture(t)
 	first, err := f.service.Accept("c-1", "missing:p-1:3")

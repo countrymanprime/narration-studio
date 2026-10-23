@@ -28,6 +28,9 @@ export interface SplitOptions {
 
 const NO_ANSWER = 'Could not ask the DAW what it can do.';
 
+/** Why "Stack as 2 takes" splits nothing: the line is not one take the DAW can cut, as on a recording the check found the repeat in. */
+export const NO_TAKE_TO_SPLIT = 'This line is not one take the DAW can split. Delete the second read, or leave both in place.';
+
 /**
  * Splits a take that reads the line twice into two takes. Registers the "Stack as 2 takes" action the Read twice card calls and a "Split into
  * takes" control in the footer of the line's takes; with the DAW unable, the control is disabled with the capability's own sentence and the
@@ -73,6 +76,7 @@ export function useSplitDuplicate({ journal, splitter, resolve }: SplitOptions):
     const act = (id: string): void => {
       const target = latest.current.resolve(id);
       if (target) void latest.current.split(target);
+      else overlay.toast(NO_TAKE_TO_SPLIT, { tone: 'error' });
     };
     const offAction = registerFlagAction('stackAsTakes', act);
     const offControl = registerTakeControl({

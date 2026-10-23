@@ -67,6 +67,7 @@ type ManuscriptLookup interface {
 type markerEvidence struct {
 	confidence string // "high" | "medium" | "low" | "unknown", compare.py's label
 	timingGap  *float64
+	repeatOf   string // the chapter words an EXTRA says again (a second take), or ""
 }
 
 // BuildFindings converts one run's bridge-built discrepancy rows into
@@ -135,9 +136,11 @@ func buildFinding(row map[string]any, evidence map[string]markerEvidence, source
 	confidence, _ := confidenceScore("unknown")
 	reason := "Transcript Compare's results file had no matching row, so no timing-confidence signal is available for this finding."
 	var timingGap *float64
+	repeatOf := ""
 	if ev, ok := evidence[rowID(itemIndex, srcpos)]; ok {
 		confidence, reason = confidenceScore(ev.confidence)
 		timingGap = ev.timingGap
+		repeatOf = ev.repeatOf
 	}
 
 	evidenceMap := map[string]any{
@@ -152,6 +155,13 @@ func buildFinding(row map[string]any, evidence map[string]markerEvidence, source
 	}
 	if chapterUnresolved {
 		evidenceMap["chapter_id_unresolved"] = true
+	}
+	// An EXTRA that says the chapter text beside it again is a second take, fixed in the edit, not words outside the
+	// script (issue #2251 item 30). Its id stays the EXTRA's, so a decision made before the sidecar said so is kept.
+	category, expected := findings.CategoryTranscriptDiscrepancy, docText
+	if repeatOf != "" {
+		category, expected = findings.CategoryDuplicateRead, repeatOf
+		evidenceMap["repeat_of"] = repeatOf
 	}
 
 	sourceStart, sourceEnd := srcpos, srcpos
@@ -169,10 +179,10 @@ func buildFinding(row map[string]any, evidence map[string]markerEvidence, source
 		},
 		Manuscript: &findings.Manuscript{
 			ChapterID: chapterID, ChapterTitle: chapterTitle,
-			Expected: docText, Recorded: audioText,
+			Expected: expected, Recorded: audioText,
 			Span: &findings.Span{ParagraphID: paragraphID, Ordinal: ordinal},
 		},
-		Category:         findings.CategoryTranscriptDiscrepancy,
+		Category:         category,
 		Severity:         severityFor(kind),
 		Confidence:       confidence,
 		ConfidenceReason: reason,
@@ -285,8 +295,9 @@ func parseResultsEvidence(path string) (map[string]markerEvidence, error) {
 		}
 		// 12 fields: item_index|srcpos|kind|name|doc_text|audio_text|
 		// chapter_title|paragraph|script_context|audio_context|
-		// confidence|timing_gap_seconds (compare.py's module docstring).
-		fields := strings.SplitN(body, "|", 12)
+		// confidence|timing_gap_seconds (compare.py's module docstring),
+		// and a 13th, repeat_of, from a sidecar that writes it.
+		fields := strings.SplitN(body, "|", 13)
 		if len(fields) < 12 {
 			continue // an older sidecar without confidence/timing_gap_seconds; those two fields are skipped, not the whole run
 		}
@@ -298,6 +309,9 @@ func parseResultsEvidence(path string) (map[string]markerEvidence, error) {
 		row := markerEvidence{confidence: fields[10]}
 		if gap, err := strconv.ParseFloat(fields[11], 64); err == nil {
 			row.timingGap = &gap
+		}
+		if len(fields) == 13 && fields[2] == "EXTRA" {
+			row.repeatOf = fields[12]
 		}
 		result[rowID(itemIndex, srcpos)] = row
 	}

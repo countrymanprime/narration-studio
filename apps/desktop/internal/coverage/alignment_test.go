@@ -47,6 +47,27 @@ func TestTheAlignmentLinesAreReadIntoTheReport(t *testing.T) {
 	}
 }
 
+// TestAnExtraRunThatSaysTheChapterTextAgainIsReadAsARepeat: issue #2251 item 30. A run with no repeatOf (an older
+// sidecar, or an aside) reads as nil.
+func TestAnExtraRunThatSaysTheChapterTextAgainIsReadAsARepeat(t *testing.T) {
+	again := strings.Replace(sampleAlignment, `"afterToken":1}`, `"afterToken":1,"repeatOf":{"start":1,"end":2,"first":0,"last":1,"text":"One"}}`, 1)
+	report, err := parseReport([]byte(sampleResults+again), "c-0001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := ExtraRepeat{Start: 1, End: 2, First: 0, Last: 1, Text: "One"}
+	if got := report.Extras[0].RepeatOf; got == nil || *got != want {
+		t.Fatalf("repeatOf = %+v, want %+v", got, want)
+	}
+	plain, err := parseReport([]byte(sampleResults+sampleAlignment), "c-0001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain.Extras[0].RepeatOf != nil {
+		t.Fatalf("a run with no repeatOf is no repeat: %+v", plain.Extras[0].RepeatOf)
+	}
+}
+
 func TestAResultWithNoTokenLinesNeedsAlignAgain(t *testing.T) {
 	report, err := parseReport([]byte(sampleResults), "c-0001")
 	if err != nil {
@@ -75,6 +96,15 @@ func TestAnInvalidAlignmentLineIsRefused(t *testing.T) {
 		},
 		"an empty extra run":       {replace(`"tokens":1,`, `"tokens":0,`), "has no tokens"},
 		"an extra past the tokens": {replace(`"afterToken":1`, `"afterToken":9`), "out of range"},
+		"a repeat past the tokens": {
+			replace(`"afterToken":1}`, `"afterToken":1,"repeatOf":{"start":1,"end":4,"first":0,"last":1,"text":"One"}}`), "repeats chapter tokens out of range",
+		},
+		"a repeat of no words": {
+			replace(`"afterToken":1}`, `"afterToken":1,"repeatOf":{"start":1,"end":1,"first":0,"last":0,"text":""}}`), "repeats chapter tokens out of range",
+		},
+		"a repeat past the run's words": {
+			replace(`"afterToken":1}`, `"afterToken":1,"repeatOf":{"start":1,"end":2,"first":0,"last":2,"text":"One"}}`), "repeat is not inside its words",
+		},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

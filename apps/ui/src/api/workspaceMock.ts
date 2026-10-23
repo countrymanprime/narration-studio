@@ -24,6 +24,7 @@ import type {
   WorkspacePeaksEntry,
   WorkspaceToken,
 } from '../types';
+import { mockRepeatedWords } from './coverageMock';
 import { REAPER_MESSAGES, type MockReaper } from './findingsMock';
 import { SPEECH_PEAKS_MINMAX, SPEECH_PEAKS_PER_SECOND } from './fixtures/speechPeaks';
 
@@ -158,6 +159,22 @@ function mockTokens(
       }
       index += 1;
     });
+    // The line said twice the coverage mock reports (issue #2251 item 30): its words said again after "sorry", at the end of the paragraph, the
+    // second take the Editing page shows as "Read twice" and Proof as "Said twice".
+    const said = report?.gaps?.find((gap) => gap.repeatOf && gap.paragraphIds[0] === paragraph.id);
+    const allRead = !wholeParagraphSkipped && !wholeParagraphTail && !halfReadShort;
+    if (said && allRead && itemIndex !== undefined) {
+      const again = mockRepeatedWords(paragraph.text);
+      extras.push({
+        text: ['sorry', ...again].join(' '),
+        tokens: again.length + 1,
+        start: { itemIndex, itemGuid: '', sourceTime: elapsed },
+        end: { itemIndex, itemGuid: '', sourceTime: elapsed + (again.length + 1) * SECONDS_PER_WORD },
+        afterToken: index - 1,
+        repeatOf: { start: index - again.length, end: index, first: 1, last: again.length + 1, text: again.join(' ') },
+      });
+      elapsed += (again.length + 1) * SECONDS_PER_WORD;
+    }
   }
   return { tokens, extras };
 }

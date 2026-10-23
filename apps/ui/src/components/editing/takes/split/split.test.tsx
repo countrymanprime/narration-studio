@@ -22,7 +22,7 @@ import { NO_SPLIT_COMMAND, planSplit } from './splitPlan';
 import { fakeSplitter, target } from './splitFixtures';
 import { dawSplitter } from './splitCommand';
 import { splitTargetOf } from './splitTarget';
-import { useSplitDuplicate } from './useSplitDuplicate';
+import { NO_TAKE_TO_SPLIT, useSplitDuplicate } from './useSplitDuplicate';
 import type { TakeSplitter } from './splitPlan';
 
 let journal: Journal;
@@ -33,6 +33,8 @@ let toast: ReturnType<typeof vi.spyOn>;
 let toastUndo: ReturnType<typeof vi.spyOn>;
 let dawCalls: string[];
 const deleteWords = vi.fn();
+/** Whether p-2 has one take to split, as a line on the live page (one recording, no takes per line) may not. */
+let p2HasTake = true;
 
 const dupDoc = (): ChapterDoc => {
   const d = marksDoc();
@@ -43,7 +45,7 @@ const dupDoc = (): ChapterDoc => {
 };
 
 function Harness() {
-  useSplitDuplicate({ journal, splitter, resolve: (id) => (id === 'p-2' || id === 'ps-9' ? target : null) });
+  useSplitDuplicate({ journal, splitter, resolve: (id) => ((id === 'p-2' && p2HasTake) || id === 'ps-9' ? target : null) });
   const doc = dupDoc();
   return (
     <main>
@@ -111,6 +113,25 @@ describe('card-answers-split-leave-delete', () => {
     await waitFor(() => expect(calls).toEqual(['splitTake t-12 621.2']));
     expect(deleteWords).toHaveBeenCalledTimes(1);
     off();
+  });
+});
+
+describe('a line with no take of its own to split', () => {
+  // Issue #2251 item 30: on the live page the card shows for a repeat the check found, but the line may have no single take; the
+  // button says why instead of doing nothing.
+  it('says so in a toast and splits nothing', async () => {
+    p2HasTake = false;
+    try {
+      mount();
+      await flush();
+      fireEvent.click(stack());
+      await flush();
+      expect(toast).toHaveBeenCalledWith(NO_TAKE_TO_SPLIT, { tone: 'error' });
+      expect(calls).toEqual([]);
+      expect(confirm).not.toHaveBeenCalled();
+    } finally {
+      p2HasTake = true;
+    }
   });
 });
 

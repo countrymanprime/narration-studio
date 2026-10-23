@@ -17,6 +17,7 @@
         "itemIndex": 1,
         "sourceTime": 0.8
       },
+      "repeatOf": null,
       "start": {
         "itemGuid": "{ITEM-B}",
         "itemIndex": 1,
