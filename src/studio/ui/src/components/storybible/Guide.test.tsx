@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // SN-B94: the Story Bible list and frame as the Studio Next mock draws them (tests/bible.test.tsx): kind chips over the list, two-line rows,
 // the type colour on chips and rows, and the page's own ask for a manuscript.
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,7 @@ import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
+import { cellsOf, chooseKind, entryRows, rowName } from './entryTableTestKit';
 import { Guide } from './Guide';
 
 afterEach(cleanup);
@@ -40,9 +41,7 @@ function renderGuide(
   });
 }
 
-const kindGroup = () => screen.getByRole('group', { name: 'Kind' });
-const entryList = () => screen.getByRole('list', { name: 'Story Bible entries' });
-const rows = () => within(entryList()).getAllByRole('button');
+const rows = entryRows;
 
 describe('asks-for-a-manuscript-when-there-is-none', () => {
   it('asks for a manuscript when there is none', async () => {
@@ -54,87 +53,72 @@ describe('asks-for-a-manuscript-when-there-is-none', () => {
     expect(onImport).toHaveBeenCalledTimes(1);
     // The page has nothing to read yet, so it asks the host for nothing and draws no list.
     expect(loadEntities).not.toHaveBeenCalled();
-    expect(screen.queryByRole('list', { name: 'Story Bible entries' })).toBeNull();
+    expect(screen.queryByRole('table', { name: 'Story Bible entries' })).toBeNull();
   });
 });
 
-describe('the-list-is-kind-chips-over-two-line-rows', () => {
-  it('lists entries as two-line rows under kind chips', async () => {
+describe('the-list-is-a-kind-menu-over-a-table-of-entries', () => {
+  it('lists entries as table rows under a Kind menu that counts its entries, and there are no tabs', async () => {
     const { api } = await renderGuide();
     await screen.findAllByText('Alice');
     const types = await api.guideTypes();
-    const chips = within(kindGroup()).getAllByRole('button');
-    expect(chips.map((chip) => chip.textContent)).toEqual(expect.arrayContaining(['All', ...types.map((type) => type.name)]));
-    expect(within(kindGroup()).getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('true');
-    // No category tabs: the kind chips replace them. The Series view stays a tab beside the entries.
-    expect(screen.queryByRole('tab', { name: /^Characters/ })).toBeNull();
-    expect(screen.getByRole('tab', { name: 'Series' })).toBeTruthy();
+    const entries = await api.guideEntities();
+    const menu = screen.getByRole('combobox', { name: 'Kind' }) as HTMLSelectElement;
+    expect([...menu.options].map((option) => option.textContent)).toEqual([
+      `All kinds · ${entries.length}`,
+      ...types.map((type) => `${type.name} · ${entries.filter((e) => e.category === type.name).length}`),
+    ]);
+    expect(menu.value).toBe('All');
+    // The app is for one book: no Series tab, and no tabs at all on this page.
+    expect(screen.queryByRole('tab')).toBeNull();
+    expect(screen.queryByText('Series')).toBeNull();
 
-    const alice = rows().find((row) => row.textContent?.includes('Alice'))!;
-    const lines = alice.querySelectorAll('[data-line]');
-    expect(lines).toHaveLength(2);
-    expect(lines[0]!.textContent).toContain('Alice');
-    expect(lines[1]!.textContent).toMatch(/^Character · \d+ names? · \d+ chapters?$/);
-    expect(lines[1]!.textContent).not.toMatch(/ 0 names/);
+    const alice = rows().find((row) => rowName(row) === 'Alice')!;
+    expect(cellsOf(alice).map((cell) => cell.textContent)).toEqual(['Alice', 'Character']);
 
-    await userEvent.click(within(kindGroup()).getByRole('button', { name: 'Place' }));
-    expect(within(kindGroup()).getByRole('button', { name: 'Place' }).getAttribute('aria-pressed')).toBe('true');
+    chooseKind('Place');
     const shown = rows();
     expect(shown.length).toBeGreaterThan(0);
-    shown.forEach((row) => expect(row.querySelector('[data-line="kind"]')!.textContent).toMatch(/^Place · /));
-    await userEvent.click(within(kindGroup()).getByRole('button', { name: 'All' }));
+    shown.forEach((row) => expect(cellsOf(row)[1]!.textContent).toBe('Place'));
+    chooseKind('All');
     expect(rows().length).toBeGreaterThan(shown.length);
   });
 
-  // The mock's entry rows: the name at 15 px bold and the kind line at 14 px, so a row is about 61 px tall.
-  it('draws a row with the name at 15 px bold and the kind line at 14 px', async () => {
+  it('says so when no entry matches the kind', async () => {
     await renderGuide();
     await screen.findAllByText('Alice');
-    const alice = rows().find((row) => row.textContent?.includes('Alice'))!;
-    expect(alice.querySelector('[data-line="name"]')!.className).toContain('text-[0.9375rem]');
-    expect(alice.querySelector('[data-line="name"]')!.className).toContain('font-bold');
-    expect(alice.querySelector('[data-line="kind"]')!.className).toContain('text-sm');
-  });
-
-  it('says so when no entry matches the chip', async () => {
-    await renderGuide();
-    await screen.findAllByText('Alice');
-    await userEvent.click(within(kindGroup()).getByRole('button', { name: 'Event' }));
+    chooseKind('Event');
     expect(screen.getByText('No entries match.')).toBeTruthy();
   });
 
   it('selects an entry when its row is pressed and marks it current', async () => {
     await renderGuide();
     await screen.findAllByText('Alice');
-    const rabbit = rows().find((row) => row.textContent?.includes('White Rabbit'))!;
+    const rabbit = rows().find((row) => rowName(row) === 'White Rabbit')!;
     await userEvent.click(rabbit);
-    expect(rabbit.getAttribute('aria-current')).toBe('true');
+    expect(rabbit.getAttribute('aria-selected')).toBe('true');
     expect(await screen.findByRole('heading', { name: 'White Rabbit' })).toBeTruthy();
   });
 });
 
-describe('the-type-colour-tints-the-chips-and-rows', () => {
+describe('the-type-colour-tints-the-rows', () => {
   const swatchOf = (element: Element) => element.querySelector<HTMLElement>('[aria-hidden="true"]')!.style.background;
 
-  it('colours the list border and chips from the type colour', async () => {
+  it('colours each row from the type colour', async () => {
     await renderGuide({}, async (api) => api.guideTypeSetColour('Character', 'rose'));
     await screen.findAllByText('Alice');
-    const alice = rows().find((row) => row.textContent?.includes('Alice'))!;
+    const alice = rows().find((row) => rowName(row) === 'Alice')!;
     expect(swatchOf(alice)).toBe('var(--event)');
-    expect(swatchOf(within(kindGroup()).getByRole('button', { name: 'Character' }))).toBe('var(--event)');
-    expect(swatchOf(within(kindGroup()).getByRole('button', { name: 'Place' }))).toBe('var(--place)');
-    // The "All" chip is no kind, so it carries no swatch.
-    expect(within(kindGroup()).getByRole('button', { name: 'All' }).querySelector('[aria-hidden="true"]')).toBeNull();
+    expect(swatchOf(rows().find((row) => rowName(row) === 'Queen’s garden')!)).toBe('var(--place)');
   });
 
   it('draws a row the build was unsure of in the amber (D7)', async () => {
     await renderGuide();
     await screen.findAllByText('Alice');
     const unsure = (await createMockApi().guideEntities()).find((row) => row.category === 'Needs Review')!;
-    const row = rows().find((r) => r.textContent?.includes(unsure.canonical_name))!;
+    const row = rows().find((r) => rowName(r) === unsure.canonical_name)!;
     await waitFor(() => expect(swatchOf(row)).toBe('var(--warn)'));
     // The review state is the row's badge, not the type word.
-    expect(row.querySelector('[data-line="name"]')!.textContent).toContain('Review');
-    expect(row.querySelector('[data-line="kind"]')!.textContent).toMatch(/^Type not set · 1 name · \d+ chapters?$/);
+    expect(cellsOf(row)[1]!.textContent).toBe('Type not set');
   });
 });

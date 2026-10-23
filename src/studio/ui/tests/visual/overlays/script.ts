@@ -38,6 +38,8 @@ export const scriptCases: OverlayCase[] = [
   contextMenuCase('context menu over the text settings popover', {
     over: { name: 'text settings popover', open: async (page) => textSettings(page).click() },
   }),
+  // The first-use tip floats over the reader's top edge; it must stay on screen and above the reader's text at every window size.
+  fromState('script', 'first-use-tip', 'popover', { root: (page) => page.getByRole('complementary', { name: 'Tip' }) }),
   fromState('script', 'mark-composer'),
   fromState('script', 'define-marks'),
   {

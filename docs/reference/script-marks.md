@@ -46,6 +46,6 @@ The first read of a project with no `marks.json` brings the reader's notes (`nar
 | `MarksRestoreMessage` | mark id, index from 0 to the thread's length, the message | the mark |
 | `MarksSetStatus` | mark id, `open` or `resolved` | the mark |
 
-Each thread call is one command the UI journals with its inverse, so the Notes and Queries tabs need no host change: a reply's inverse is deleting the last message, an edit's is an edit back to the old text, a delete's is `MarksRestoreMessage` at the same index with the message the delete answered, and resolve and reopen undo each other. An index outside the thread, or a mark id that is gone, is refused and nothing is written.
+Each thread call is one command the UI journals with its inverse, so the Notes tab (where a mark whose type asks for a reply is a note like the others) needs no host change: a reply's inverse is deleting the last message, an edit's is an edit back to the old text, a delete's is `MarksRestoreMessage` at the same index with the message the delete answered, and resolve and reopen undo each other. An index outside the thread, or a mark id that is gone, is refused and nothing is written.
 
 The goldens are written by `TestMarksContractGoldens` and `TestMarksThreadContractGoldens` and checked by the UI's `markSchema`, `markTypeSchema`, `marksSchema`, `threadMessageSchema` and `markThreadDeletedSchema`. The bindings take ids, offsets, keys and plain text, never a path. The file is inside the trust boundary: see [data files](data-files.md#how-the-app-reads-a-file-back).

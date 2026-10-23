@@ -128,11 +128,9 @@ describe('chapter list', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('shows the "?" pill, titled Open queries, only on a chapter with an open query', async () => {
+  it('draws no open-query pill on any chapter: a query is a note', async () => {
     mount();
-    await vi.waitFor(async () => expect(within(await row(/Chapter 2/)).getByTitle('Open queries').textContent).toBe('?'));
-    expect(within(await row(/Chapter 1/)).queryByTitle('Open queries')).toBeNull();
-    expect(within(await row(/Chapter 3/)).queryByTitle('Open queries')).toBeNull();
+    for (const name of [/Chapter 1/, /Chapter 2/, /Chapter 3/]) expect(within(await row(name)).queryByTitle('Open queries')).toBeNull();
   });
 
   it('marks the chapter in view as current', async () => {

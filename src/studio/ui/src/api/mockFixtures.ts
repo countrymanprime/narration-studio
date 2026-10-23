@@ -687,6 +687,19 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveSource: 'repo_default',
     },
   ],
+  // Tips.seen unset: no first-use tip dismissed yet (tests/fixtures/contracts/settings-global.json).
+  Tips: [
+    {
+      key: 'seen',
+      label: 'Tips already shown',
+      kind: 'text',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '',
+      effectiveSource: 'hardcoded',
+    },
+  ],
   // Editing.fx_cap_pct unset, so it reads as the default, 10 (tests/fixtures/contracts/settings-fx-cap.json); the Effects tab's cap.
   Editing: [
     {

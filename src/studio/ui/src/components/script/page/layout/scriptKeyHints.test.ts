@@ -14,7 +14,6 @@ describe('the key hints under the Script reader', () => {
 
   it("are the mock Legend's, in its order, with the caps from the keymap", () => {
     expect(scriptKeyHints(keymap).map((hint) => [hint.keys, hint.label])).toEqual([
-      [[], 'Select text to mark it, add a note or query, or look it up.'],
       [['↑', '↓'], 'scroll'],
       [['←', '→'], 'prep state'],
       [['Alt', '↑', '↓'], 'chapter'],
