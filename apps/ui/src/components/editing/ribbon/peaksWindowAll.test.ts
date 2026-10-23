@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
-import { peakGain, peaksWindowAll } from './peaksWindow';
-import { PEAK_GAIN_LIMIT } from './peaksWindow';
+import { peakScale, peaksWindowAll } from './peaksWindow';
+import { FULL_SCALE } from './ribbonBars';
 import { sameClock, shiftPeaks } from './docClock';
 import { pickEntries, type RibbonPeaks } from './useRibbonPeaks';
 
@@ -106,29 +106,45 @@ describe("pickEntries by the line's items", () => {
 });
 
 // REAPER draws a quiet recording larger than its raw level (item gain, track height), and speech peaking near a quarter of full scale is a
-// row of dots at the raw scale. The ribbon scales the whole chapter so its loudest bar fills the room, keeping the lines' loudness in step.
-describe('peakGain', () => {
+// row of dots at the raw scale. The waveform draws the chapter against one reference level, the bucket its loud syllables reach, so the lines
+// keep their loudness in step and one click does not shrink the rest.
+describe('peakScale', () => {
   const state = (...items: WorkspacePeaks[]): RibbonPeaks => ({
     status: 'ready',
     result: { chapterId: 'c-1', items: items.map((peaks, index) => ({ index, peaks })) },
   });
 
-  it("scales the chapter's loudest bucket up to full scale", () => {
-    // 30 of 127 is 0.236 of full scale: a gain of 127/30.
-    expect(peakGain(state(entry(0, [5, 30, 10])))).toBeCloseTo(127 / 30, 6);
+  it("takes the bucket 99% of the chapter's sounding buckets stay at or under", () => {
+    const speech = Array.from({ length: 100 }, (_, i) => 2 + (i % 29));
+    expect(peakScale(state(entry(0, speech))).ref).toBe(30);
   });
-  it('takes the loudest bucket over every item, so a quiet line stays quieter than a loud one', () => {
-    expect(peakGain(state(entry(0, [10, 20]), entry(4, [60, 5])))).toBeCloseTo(127 / 60, 6);
+  it('is not moved by a click: one loud bucket in a hundred is not the reference', () => {
+    const speech = [...Array.from({ length: 199 }, () => 20), 127];
+    expect(peakScale(state(entry(0, speech))).ref).toBe(20);
   });
-  it('never turns the waveform down', () => {
-    expect(peakGain(state(entry(0, [127, 127])))).toBe(1);
+  it('counts every item, so a quiet line stays quieter than a loud one', () => {
+    expect(
+      peakScale(
+        state(
+          entry(
+            0,
+            Array.from({ length: 50 }, () => 10),
+          ),
+          entry(
+            4,
+            Array.from({ length: 50 }, () => 60),
+          ),
+        ),
+      ).ref,
+    ).toBe(60);
   });
-  it('stops at a limit, so near silence is not blown up into noise', () => {
-    expect(peakGain(state(entry(0, [1, 1, 1])))).toBe(PEAK_GAIN_LIMIT);
+  it('leaves out the buckets at the host floor (0 and 1), which are silence, not speech', () => {
+    expect(peakScale(state(entry(0, [...Array.from({ length: 300 }, () => 1), ...Array.from({ length: 10 }, () => 25)]))).ref).toBe(25);
   });
-  it('is 1 with no peaks, while loading, or after a failure', () => {
-    expect(peakGain({ status: 'loading' })).toBe(1);
-    expect(peakGain({ status: 'failed', reason: 'x' })).toBe(1);
-    expect(peakGain({ status: 'ready', result: { chapterId: 'c-1', items: [{ index: 0, reason: 'none' }] } })).toBe(1);
+  it('is full scale with nothing sounding, while loading, or after a failure', () => {
+    expect(peakScale(state(entry(0, [0, 1, 1])))).toEqual(FULL_SCALE);
+    expect(peakScale({ status: 'loading' })).toEqual(FULL_SCALE);
+    expect(peakScale({ status: 'failed', reason: 'x' })).toEqual(FULL_SCALE);
+    expect(peakScale({ status: 'ready', result: { chapterId: 'c-1', items: [{ index: 0, reason: 'none' }] } })).toEqual(FULL_SCALE);
   });
 });

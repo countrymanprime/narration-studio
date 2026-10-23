@@ -147,6 +147,13 @@ Changing it asks first. Choosing a model that is not on this computer shows **No
 or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Recording check** holds the **Two-pass check**, its **First-pass model** and
 **Re-check model**, **Run both models together**, **Parallel processes** and **Chunk length** ([how it works](../../utilities/recording-coverage.md#the-model-cascade)).
 
+**Background checks** holds **Check recordings in the background**, the **Model for background checks** (`tiny`) and the
+**Double-check model for background checks** (`small`, or **None (one model)**), and under Advanced the **Processors for background
+checks** (0 lets the app choose half of this computer's). These apply only to checks the app starts on its own
+([Checking what you recorded](booth.md#checking-what-you-recorded)); your own **Check recording** keeps the models above. A larger
+model, or more than half of the processors, shows a warning under the choice: it makes each check slower and keeps the computer busy
+for longer.
+
 ![Settings - Speech to text, asking before the transcription model changes](../../images/ui/settings-speech-confirm.webp)
 
 ## Voice & pronunciation

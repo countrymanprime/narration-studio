@@ -174,7 +174,7 @@ func (h *Host) readChapterSyncInputs() (chapterSyncInputs, error) {
 	}
 	in := chapterSyncInputs{
 		svc: svc, unsavedEdits: h.chapterSyncWatch.unsavedFor(folder),
-		background: h.backgroundChecks.stateFor(folder, backgroundChecksEnabled(svc)),
+		background: h.backgroundChecks.stateFor(folder, svc),
 	}
 	manifest, ok, err := project.Load(h.persist, folder)
 	if err != nil {

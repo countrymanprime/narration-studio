@@ -65,6 +65,7 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
   const own = overrideValue(row, project);
   const changed = hasCustom ? false : isAnyChanged(row, global, project);
   const saved = store.saved?.row === row.id;
+  const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);
   const describedBy = `${uid}d${error ? ` ${uid}e` : ''}`;
 
   /** What the host is sent: a value equal to the default clears the setting instead of pinning it, an emptied number is "not set". */
@@ -178,6 +179,11 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
           <span className="text-[0.8125rem] text-[var(--text-muted)]">This setting is not offered by this version of the app.</span>
         )}
         {row.effect && <span className="text-[0.8125rem] text-[var(--text-muted)]">{row.effect}</span>}
+        {heavy && (
+          <span data-heavy={row.id} className="max-w-[52ch] text-[0.8125rem] text-[var(--warn-text)]">
+            {heavy}
+          </span>
+        )}
         <span id={`${uid}e`} className="min-h-0 text-[0.8125rem]">
           {error ? (
             <span className="flex max-w-[52ch] items-start gap-1.5 text-[var(--danger-text)]">

@@ -1,4 +1,4 @@
-import { itemAt, summarize, type ChapterDoc } from '../model';
+import { summarize, type ChapterDoc } from '../model';
 import type { LineTake } from '../takes/types';
 
 /** Seconds of room on each side of the line's words, as the mock leaves them. */
@@ -43,11 +43,4 @@ export function stripLayout(
   const sum = picked.length ? summarize(doc, picked, [], (x) => x) : null;
   const band = sum && sum.audible.length ? { t0: sum.start, t1: sum.end, length: sum.len } : null;
   return { pid, t0, t1, lanes, band, playhead: playT != null && playT >= t0 && playT <= t1 ? playT : null };
-}
-
-/** The key of the word whose own span holds `t`, or null in a gap between words and outside the line. */
-export function wordAtTime(doc: ChapterDoc, pid: string, t: number): string | null {
-  const hit = itemAt(doc, t);
-  if (!hit || hit.pid !== pid || hit.t1 == null || t > hit.t1) return null;
-  return hit.key;
 }

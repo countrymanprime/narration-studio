@@ -1,22 +1,29 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from 'react';
 import type { TimeWindow } from '../../proof/frame/windowMath';
-import type { ChapterDoc, DocItem } from '../model';
-import { useEditingPage } from '../script/EditingPageState';
+import type { ContextMenuItem } from '../../primitives/ContextMenu';
+import { useContextProvider } from '../../../registries/context';
+import type { DocItem } from '../model';
 import { reducedMotion } from '../../../motion';
-import type { DocPeaks, ItemClocks } from './docClock';
+import type { DocPeaks } from './docClock';
 import { drawRibbon, readRibbonColors, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
 import { subscribeFrames } from './frameLoop';
-import { peakGain, peaksWindowAll } from './peaksWindow';
-import { barLayout } from './ribbonBars';
-import { activePid, ribbonLayout, type RibbonLayout } from './ribbonLayout';
-import { pickEntries, useRibbonPeaks } from './useRibbonPeaks';
+import { peaksWindowAll } from './peaksWindow';
+import { barLayout, FULL_SCALE, type PeakScale } from './ribbonBars';
+import type { RibbonLayout } from './ribbonLayout';
 import { RangeNotes, RangeOverlay } from './RangeOverlay';
-import { wordAtTime, wordsCovered, type Span } from './rangeMath';
-import { PanStrip, ZoomRow } from './RibbonControls';
+import { fineClock, type Span } from './rangeMath';
+import { ScrollEnd, ZoomRow } from './RibbonControls';
 import { useRangeInteraction } from './useRangeInteraction';
 import { useRibbonView } from './useRibbonView';
+import { useScrollGestures } from './useScrollGestures';
 
+/** The waveform's own height (CSS pixels): the lane, not the peaks in it. */
 const HEIGHT = 56;
+/**
+ * The whole waveform's height when it is a place to choose (the bottom of the Editing page): the row above, the lane and two lines of notes
+ * under it (three when a range's notes need them). Fixed, so a range, a note or a line without audio never moves what is around it (#2251, item 29).
+ */
+const DOCK_HEIGHT = 140;
 /** Width used where nothing can measure the canvas (a test environment without ResizeObserver). */
 const FALLBACK_WIDTH = 640;
 
@@ -25,8 +32,8 @@ const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1
 /** A peak bar wider than this many pixels is a block of audio, not a detail of it, and the waveform says so. */
 const COARSE_PX = 10;
 
-/** What makes the waveform a place to choose a range: the line's words, the range now, and what to do when it changes or is tapped. Without it the ribbon only shows. */
-export interface RibbonRange {
+/** What makes the waveform a place to choose a range: the words, the range now, and what to do when it changes or is tapped. Without it the waveform only shows. */
+interface RibbonRange {
   words: readonly DocItem[];
   range: Span | null;
   onRange: (span: Span, phase: 'drag' | 'commit') => void;
@@ -34,9 +41,35 @@ export interface RibbonRange {
   onTap: (t: number) => void;
 }
 
+export interface RibbonViewProps {
+  /** What is drawn, over the whole stretch the waveform can show (`t0` to `t1`, the document clock). */
+  layout: RibbonLayout;
+  /** The audio of that stretch: every item it runs across, each on the document clock (the layout's clock). */
+  peaks?: readonly DocPeaks[];
+  reason?: string;
+  /** The active take's name (null for audio heard in the recording). Omitted, no name. */
+  head?: { take: string | null };
+  choose?: RibbonRange;
+  /** The part to open on, seconds from `layout.t0`; else `focus`, else all of it. */
+  initialView?: TimeWindow;
+  /** The stretch the view keeps in sight, seconds from `layout.t0` (the active line). */
+  focus?: TimeWindow | null;
+  /** The view was scrolled by hand to this, seconds from `layout.t0`. */
+  onScroll?: (view: TimeWindow) => void;
+  /** Bumped to bring `focus` back into view (the page let the scrolled view go). */
+  refocus?: number;
+  /** How the peaks become heights (`peakScale`). */
+  scale?: PeakScale;
+  /** The text alternative of the stretch on screen; the layout's own when left out. */
+  describe?: (t0: number, t1: number) => string;
+  /** The waveform's menu items for a time on the document clock (null: opened from the keyboard), before its own view items. */
+  menu?: (at: number | null) => ContextMenuItem[];
+}
+
 /**
- * The ribbon for one line: the audio of its window with word ticks, tints, the selection band and the playhead. With no peaks it draws nothing and says why.
- * Given `choose` it is also the place to zoom (down to one second) and pan, and to draw a range with a handle on each edge: `initialView` is the part it opens on.
+ * A waveform over a stretch of the document clock, with word ticks, tints, the selection band and the playhead. With no peaks it draws nothing
+ * and says why. Given `choose` it is the place to choose a range (left button, one finger), to scroll (right-drag, wheel, two fingers, the end
+ * arrows and the keys) and to zoom (down to one second); it then keeps one height whatever it shows.
  */
 export function RibbonView({
   layout,
@@ -45,35 +78,37 @@ export function RibbonView({
   head,
   choose,
   initialView,
-  gain = 1,
-}: {
-  layout: RibbonLayout;
-  /** The audio the line covers: every item it runs across, each on the document clock (the layout's clock). */
-  peaks?: readonly DocPeaks[];
-  reason?: string;
-  /** The header row above the waveform: the active take's name (null for a line heard in the recording) and the span it draws. Omitted, no row. */
-  head?: { take: string | null };
-  choose?: RibbonRange;
-  /** The part of the line to open on, seconds from its start; the whole line when left out. */
-  initialView?: TimeWindow;
-  /** How much the bars are scaled up for display (`peakGain`); 1 draws the raw level. */
-  gain?: number;
-}) {
+  focus = null,
+  onScroll,
+  refocus,
+  scale = FULL_SCALE,
+  describe,
+  menu,
+}: RibbonViewProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
   // Bumped when the root's `data-theme` or `data-motion` changes, or the system's motion setting does, so the draw re-reads the tokens and the motion choice.
   const [theme, setTheme] = useState(0);
   const descId = useId();
+  const helpId = useId();
   const [surface, setSurface] = useState<HTMLDivElement | null>(null);
   const total = layout.t1 - layout.t0;
-  const ribbon = useRibbonView(total, layout.playhead == null ? null : layout.playhead - layout.t0, surface, initialView);
+  const ribbon = useRibbonView(total, layout.playhead == null ? null : layout.playhead - layout.t0, surface, {
+    initial: initialView,
+    focus,
+    onScroll,
+    refocus,
+  });
   const view = choose ? ribbon.view : { start: 0, len: total };
-  // What is drawn is the view; the layout's words, tints and cuts are on the document's clock and need no change.
-  const shownLayout = useMemo(
-    () => (choose ? { ...layout, t0: layout.t0 + view.start, t1: layout.t0 + view.start + view.len } : layout),
-    [choose, layout, view.start, view.len],
-  );
+  // What is drawn is the view: the ticks, tints and cuts outside it are left out, so a chapter-long layout costs no more a frame than a line.
+  const shownLayout = useMemo(() => {
+    if (!choose) return layout;
+    const t0 = layout.t0 + view.start;
+    const t1 = t0 + view.len;
+    const inView = (s: { t0: number; t1: number }): boolean => s.t1 >= t0 && s.t0 <= t1;
+    return { ...layout, t0, t1, ticks: layout.ticks.filter((t) => t >= t0 && t <= t1), flags: layout.flags.filter(inView), cuts: layout.cuts.filter(inView) };
+  }, [choose, layout, view.start, view.len]);
   const bounds = useMemo(() => ({ start: layout.t0, end: layout.t1 }), [layout.t0, layout.t1]);
   const interaction = useRangeInteraction({
     surface,
@@ -85,6 +120,8 @@ export function RibbonView({
     onRange: choose?.onRange ?? (() => {}),
     onTap: choose?.onTap ?? (() => {}),
   });
+  const touches = useRef(new Map<number, number>()).current;
+  const scroll = useScrollGestures({ surface, view: ribbon, touches, onTwoFingers: interaction.cancel });
 
   useEffect(() => {
     const box = boxRef.current;
@@ -96,7 +133,7 @@ export function RibbonView({
     const ro = new ResizeObserver((entries) => setWidth(entries[0]?.contentRect.width ?? 0));
     ro.observe(box);
     return () => ro.disconnect();
-  }, []);
+  }, [surface]);
   useEffect(() => {
     if (typeof MutationObserver === 'undefined') return;
     const bump = () => setTheme((n) => n + 1);
@@ -110,18 +147,20 @@ export function RibbonView({
     };
   }, []);
 
+  // The canvas is measured on its own box, which sits between the end arrows when choosing.
+  const measured = choose ? (surface?.clientWidth ?? 0) || width : width;
   const columns = useMemo(() => {
-    if (!peaks || width <= 0) return null;
+    if (!peaks || measured <= 0) return null;
     // One column for each bar, so the window is reduced once per span and width, not once per frame.
-    return peaksWindowAll(peaks, shownLayout.t0, shownLayout.t1, barLayout(width).count);
-  }, [peaks, shownLayout.t0, shownLayout.t1, width]);
-  const empty = peaks ? columns === null && width > 0 : true;
+    return peaksWindowAll(peaks, shownLayout.t0, shownLayout.t1, barLayout(measured).count);
+  }, [peaks, shownLayout.t0, shownLayout.t1, measured]);
+  const empty = peaks ? columns === null && measured > 0 : true;
   // The host's resolution, for the note on what a bar is at this zoom.
   const bps = peaks?.[0]?.peaks.bucketsPerSecond;
 
   // What the frame loop reads, so it keeps running while the host's playhead and the layout change under it.
-  const latest = useRef({ layout: shownLayout, columns, width, gain });
-  latest.current = { layout: shownLayout, columns, width, gain };
+  const latest = useRef({ layout: shownLayout, columns, width: measured, scale });
+  latest.current = { layout: shownLayout, columns, width: measured, scale };
   const colors = useRef<RibbonColors | null>(null);
   // When the host last moved the playhead, for the loop to move it on from.
   const headStamp = useRef(0);
@@ -131,13 +170,13 @@ export function RibbonView({
 
   const paint = (frame: RibbonFrame): void => {
     const canvas = canvasRef.current;
-    const { layout: l, columns: cols, width: w, gain: g } = latest.current;
+    const { layout: l, columns: cols, width: w, scale: s } = latest.current;
     if (!canvas || !cols || w <= 0) return;
     colors.current ??= readRibbonColors(canvas);
-    drawRibbon(canvas, { width: w, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, l, cols, colors.current, frame, g);
+    drawRibbon(canvas, { width: w, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, l, cols, colors.current, frame, s);
   };
 
-  const playing = layout.playhead != null && columns !== null;
+  const playing = shownLayout.playhead != null && columns !== null;
   const frameNow = (): RibbonFrame => ({ nowMs: performance.now(), sinceUpdateMs: performance.now() - headStamp.current, animate: true });
 
   // A draw whenever the data, the size or the look changes (the tokens are read again only then, not every frame). While the loop below is
@@ -145,9 +184,9 @@ export function RibbonView({
   useEffect(() => {
     colors.current = null;
     paint(playing && !reducedMotion() ? frameNow() : STILL_FRAME);
-  }, [columns, shownLayout, width, theme, playing, gain]);
+  }, [columns, shownLayout, measured, theme, playing, scale]);
 
-  // One shared frame loop, only while this line is playing and motion is wanted; stopping or reducing motion draws the still look once.
+  // One shared frame loop, only while the playhead is on screen and motion is wanted; stopping or reducing motion draws the still look once.
   useEffect(() => {
     if (!playing || reducedMotion()) return;
     const stop = subscribeFrames((now) => paint({ ...frameNow(), nowMs: now }));
@@ -155,139 +194,159 @@ export function RibbonView({
       stop();
       paint(STILL_FRAME);
     };
-  }, [playing, theme, width, gain]);
+  }, [playing, theme, measured, scale]);
+
+  // The waveform's own menu: a right click without a drag, a long touch, or the menu key while it has focus.
+  const menuRef = useRef({ menu, ribbon, focus, t0: layout.t0, at: scroll.menuAt });
+  menuRef.current = { menu, ribbon, focus, t0: layout.t0, at: scroll.menuAt };
+  const provider = useMemo(
+    () => ({
+      match: (target: Element) => !!surface && surface.contains(target),
+      items: (): ContextMenuItem[] => {
+        const { menu: own, ribbon: r, focus: f, t0, at } = menuRef.current;
+        const here = at();
+        const viewItems: ContextMenuItem[] = [
+          {
+            key: 'zoom-in',
+            label: here === null ? 'Zoom in' : `Zoom in at ${fineClock(t0 + here)}`,
+            group: 'View',
+            ...(r.canZoomIn ? {} : { unavailable: 'One second is the closest view.' }),
+            onSelect: () => (here === null ? r.zoom(-1) : r.zoomAt(-1, here)),
+          },
+          {
+            key: 'zoom-out',
+            label: 'Zoom out',
+            group: 'View',
+            ...(r.canZoomOut ? {} : { unavailable: 'The whole recording is showing.' }),
+            onSelect: () => r.zoom(1),
+          },
+          ...(f ? [{ key: 'show-line', label: 'Show the whole line', group: 'View', onSelect: () => r.show(f) }] : []),
+          { key: 'show-all', label: 'Show the whole recording', group: 'View', onSelect: () => r.show({ start: 0, len: r.total }) },
+        ];
+        return [...(own ? own(here === null ? null : t0 + here) : []), ...viewItems];
+      },
+      tail: false,
+    }),
+    [surface],
+  );
+  useContextProvider(provider);
+
+  const surfaceEvents = choose
+    ? {
+        onPointerDown: (e: PointerEvent) => {
+          if (!scroll.onPointerDown(e)) interaction.surface.onPointerDown(e);
+        },
+        onPointerMove: (e: PointerEvent) => {
+          if (!scroll.onPointerMove(e)) interaction.surface.onPointerMove(e);
+        },
+        onPointerUp: (e: PointerEvent) => {
+          if (!scroll.onPointerUp(e)) interaction.surface.onPointerUp(e);
+        },
+        onPointerCancel: (e: PointerEvent) => {
+          if (!scroll.onPointerUp(e)) interaction.surface.onPointerCancel(e);
+        },
+        onContextMenu: scroll.onContextMenu,
+        onKeyDown: scroll.onKeyDown,
+      }
+    : {};
 
   const why = reason ?? 'This line lies outside the audio the host read.';
-  return (
-    <div ref={boxRef} className="my-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]" data-ribbon-pid={layout.pid}>
-      {head ? (
-        <div data-ribbon-head className="flex items-baseline gap-2 px-3 pt-1.5 text-xs text-[var(--text-muted)]">
-          <span className="font-mono font-semibold text-[var(--text)]">{head.take ?? '—'}</span>
-          <span>
-            {head.take ? 'active take' : 'recording'} · {clock(layout.t0)} to {clock(layout.t1)}
-          </span>
-        </div>
-      ) : null}
-      {choose && !empty ? <ZoomRow t0={layout.t0} ribbon={ribbon} /> : null}
-      {empty ? (
-        <p className="m-0 px-3 py-2 text-xs text-[var(--text-muted)]" style={{ minHeight: HEIGHT }}>
-          No audio to draw. {why}
-        </p>
-      ) : (
-        <div
-          ref={setSurface}
-          {...(choose ? { 'data-ribbon-surface': '', ...interaction.surface } : {})}
-          className={`relative ${choose ? 'cursor-crosshair touch-none select-none' : ''}`}
-        >
-          <canvas
-            ref={canvasRef}
-            role="img"
-            aria-label="Audio of the active line"
-            aria-describedby={descId}
-            style={{ width: '100%', height: HEIGHT, display: 'block' }}
-          />
-          {choose ? <RangeOverlay interaction={interaction} t0={layout.t0} viewStart={view.start} viewLen={view.len} bounds={bounds} /> : null}
-        </div>
-      )}
-      {choose && !empty && ribbon.zoomed ? <PanStrip t0={layout.t0} ribbon={ribbon} /> : null}
-      {choose && bps && !empty && width / (view.len * bps) >= COARSE_PX ? (
-        <p data-peaks-detail className="m-0 px-3 pb-1 text-xs text-[var(--text-muted)]">
-          Each bar is {Math.round(1000 / bps)} ms of audio at this zoom: the host keeps {bps} peaks a second.
-        </p>
-      ) : null}
-      {choose && !empty ? <RangeNotes shown={interaction.shown} covered={interaction.covered} words={choose.words} /> : null}
-      {choose ? (
-        <p role="status" className="sr-only">
-          {interaction.announcement}
-        </p>
-      ) : null}
-      <p id={descId} className="sr-only">
-        {layout.description}
-      </p>
+  const t0Shown = shownLayout.t0;
+  const t1Shown = shownLayout.t1;
+  const description = describe ? describe(t0Shown, t1Shown) : layout.description;
+  const lane = empty ? (
+    <p className="m-0 flex min-w-0 flex-1 items-center px-3 text-xs text-[var(--text-muted)]" style={{ minHeight: HEIGHT }} data-ribbon-empty>
+      No audio to draw. {why}
+    </p>
+  ) : (
+    <div
+      ref={setSurface}
+      {...(choose
+        ? {
+            'data-ribbon-surface': '',
+            role: 'group',
+            tabIndex: 0,
+            'aria-label': 'Waveform',
+            'aria-describedby': helpId,
+            'aria-keyshortcuts': 'ArrowLeft ArrowRight PageUp PageDown Home End + - Shift+F10',
+          }
+        : {})}
+      {...surfaceEvents}
+      className={`relative min-w-0 flex-1 ${choose ? 'cursor-crosshair touch-none outline-none select-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]' : ''}`}
+    >
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label={choose ? 'Audio on screen' : 'Audio of the active line'}
+        aria-describedby={descId}
+        style={{ width: '100%', height: HEIGHT, display: 'block' }}
+      />
+      {choose ? <RangeOverlay interaction={interaction} t0={layout.t0} viewStart={view.start} viewLen={view.len} bounds={bounds} /> : null}
     </div>
   );
-}
 
-/** The ribbon under the active line: renders for the cursor's paragraph, else the selection head's, else the playing word's, and for no other. */
-/** `take` is the line's active take, named in the header; a line with none is heard in the recording. */
-export function Ribbon({
-  chapterId,
-  pid,
-  take = null,
-  items,
-  clocks,
-}: {
-  chapterId: string;
-  pid: string;
-  take?: string | null;
-  items?: readonly number[];
-  /** Where each item's source seconds sit on the document clock (`itemClocks`); the peaks are in source seconds. */
-  clocks: ItemClocks;
-}) {
-  const { doc, state, selected } = useEditingPage();
-  if (activePid(doc, state) !== pid) return null;
-  return <ActiveRibbon chapterId={chapterId} doc={doc} pid={pid} selected={selected} playT={state.playT} take={take} items={items} clocks={clocks} />;
-}
+  if (!choose) {
+    return (
+      <div ref={boxRef} className="w-full bg-[var(--surface)] text-[var(--text)]" data-ribbon-pid={layout.pid}>
+        {head ? (
+          <div data-ribbon-head className="flex items-baseline gap-2 px-3 pt-1.5 text-xs text-[var(--text-muted)]">
+            <span className="font-mono font-semibold text-[var(--text)]">{head.take ?? '—'}</span>
+            <span>
+              {head.take ? 'active take' : 'recording'} · {clock(layout.t0)} to {clock(layout.t1)}
+            </span>
+          </div>
+        ) : null}
+        {lane}
+        <p id={descId} className="sr-only">
+          {description}
+        </p>
+      </div>
+    );
+  }
 
-function ActiveRibbon({
-  chapterId,
-  doc,
-  pid,
-  selected,
-  playT,
-  take,
-  items,
-  clocks,
-}: {
-  chapterId: string;
-  doc: ChapterDoc;
-  pid: string;
-  selected: string[];
-  playT: number | null;
-  take: string | null;
-  items: readonly number[] | undefined;
-  clocks: ItemClocks;
-}) {
-  const { state, dispatch } = useEditingPage();
-  const peaks = useRibbonPeaks(chapterId);
-  const layout = useMemo(() => ribbonLayout(doc, pid, selected, playT), [doc, pid, selected, playT]);
-  const words = useMemo(() => doc.paras.find((p) => p.p.id === pid)?.items ?? [], [doc, pid]);
-  // The range is only what the narrator drew: selecting a word does not draw one.
-  const range = state.span ?? null;
-  // While a drag runs the page follows only when the words it covers change, so the script is not redrawn at every pixel.
-  const lastKeys = useRef('');
-  const onRange = useCallback(
-    (span: Span, phase: 'drag' | 'commit') => {
-      const { keys } = wordsCovered(words, span);
-      const anchor = keys[0] ?? null;
-      const head = keys[keys.length - 1] ?? null;
-      const id = `${anchor}|${head}`;
-      if (phase === 'drag') {
-        if (id === lastKeys.current) return;
-        lastKeys.current = id;
-      } else lastKeys.current = '';
-      dispatch({ type: 'selectSpan', span, anchor, head });
-    },
-    [words, dispatch],
-  );
-  // A tap puts the cursor on the word it lands on, and on no word lets the range go.
-  const onTap = useCallback(
-    (t: number) => {
-      const word = wordAtTime(words, t);
-      dispatch(word ? { type: 'place', key: word.key } : { type: 'dropRange' });
-    },
-    [words, dispatch],
-  );
-  const choose = useMemo(() => ({ words, range, onRange, onTap }), [words, range, onRange, onTap]);
-  if (!layout) return null;
-  const entry = pickEntries(peaks, clocks, layout.t0, layout.t1, items);
+  const headRow = head ? (
+    <span data-ribbon-head className="flex flex-none items-baseline gap-1.5">
+      <span className="font-mono font-semibold text-[var(--text)]">{head.take ?? 'Recording'}</span>
+      {head.take ? <span>active take</span> : null}
+    </span>
+  ) : null;
+  const coarse = bps && !empty && measured / (view.len * bps) >= COARSE_PX;
   return (
-    <RibbonView
-      layout={layout}
-      head={{ take }}
-      choose={choose}
-      gain={peakGain(peaks)}
-      {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })}
-    />
+    <div
+      ref={boxRef}
+      className="flex w-full flex-none flex-col overflow-hidden text-[var(--text)]"
+      style={{ height: DOCK_HEIGHT }}
+      data-ribbon-pid={layout.pid}
+      data-wave-dock
+    >
+      {empty ? (
+        <div className="flex h-8 flex-none items-center px-3 text-xs text-[var(--text-muted)]">{headRow}</div>
+      ) : (
+        <ZoomRow t0={layout.t0} ribbon={ribbon} head={headRow} />
+      )}
+      <div className="flex min-h-0 items-stretch gap-1 px-2 py-1">
+        <ScrollEnd dir={-1} ribbon={ribbon} />
+        <div className="flex min-w-0 flex-1 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">{lane}</div>
+        <ScrollEnd dir={1} ribbon={ribbon} />
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden" data-ribbon-notes>
+        {empty ? null : coarse ? (
+          <p data-peaks-detail className="m-0 px-3 text-xs text-[var(--text-muted)]">
+            Each bar is {Math.round(1000 / bps)} ms of audio at this zoom: the host keeps {bps} peaks a second.
+          </p>
+        ) : null}
+        {empty ? null : <RangeNotes shown={interaction.shown} covered={interaction.covered} words={choose.words} />}
+      </div>
+      <p role="status" className="sr-only">
+        {interaction.announcement}
+      </p>
+      <p id={helpId} className="sr-only">
+        Drag to choose a range. Right-drag, the wheel or two fingers scroll the audio; on the focused waveform the arrow keys scroll it, Shift or Page Up and
+        Page Down a whole window, Home and End to either end, plus and minus zoom, and the menu key or Shift+F10 opens its menu.
+      </p>
+      <p id={descId} className="sr-only">
+        {description}
+      </p>
+    </div>
   );
 }
