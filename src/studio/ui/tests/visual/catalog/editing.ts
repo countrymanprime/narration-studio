@@ -16,19 +16,33 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'default',
     description:
-      'Editing, Chapter 1 linked to its track - the header with the chapter step and the legend, the script with each line’s takes chip and time, the bar and the key hints',
+      'Editing, Chapter 1 linked to its track - the header with the chapter step and the legend, the script with each line’s takes chip and time, the one waveform docked above the bar, the bar and the key hints',
   },
   {
     page: 'editing',
     state: 'selection',
-    description: 'Editing, four words selected - the floating toolbar under them, the bar naming "4 words" with their times, and the line’s audio ribbon',
+    description:
+      'Editing, four words selected - the floating toolbar under them, the bar naming "4 words" with their times, and their band on the waveform docked above the bar',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'editing',
     state: 'range',
     description:
-      'Editing, a range drawn on the line’s waveform with an edge inside a word and the view zoomed in once - the handles, the pan strip, the partial word and the sub-word preview',
+      'Editing, a range drawn on the docked waveform with an edge inside a word and the view zoomed in once - the handles, the arrows at its ends (no scrollbar), the partial word and the sub-word preview',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'wave-scrolled',
+    description:
+      'Editing, the docked waveform dragged with the right button to the next line - the script marks the line now on screen in the waveform and brings it into view, the cursor stays where it was',
+  },
+  {
+    page: 'editing',
+    state: 'wave-menu',
+    description:
+      'Editing, a right click on the docked waveform without a drag - its own menu: play from that moment, put the cursor on the word there, select the line, zoom and show the whole line or recording',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
@@ -136,7 +150,7 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'drawer-timeline',
     description:
-      'Editing, the drawer on Timeline (the strip does not fit beside the text at these widths) - the waveform and takes of the line the cursor is on',
+      'Editing, the drawer on Timeline (the strip does not fit beside the text at these widths) - the takes of the line the cursor is on, one lane each, with the waveform docked above the bar',
   },
   {
     page: 'editing',

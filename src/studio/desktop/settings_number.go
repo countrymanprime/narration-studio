@@ -33,6 +33,8 @@ var numberSpecs = map[string]map[string]numberSpec{
 		"parallel_workers":      {min: bound(0), max: bound(maxCoverageWorkers), step: bound(1), unit: "processes"},
 		"chunk_overlap_seconds": {min: bound(0), max: bound(maxCoverageOverlap), step: bound(1), unit: "s"},
 		"parallel_chapters":     {min: bound(1), max: bound(maxCoverageChapters), step: bound(1), unit: "chapters"},
+		// A background check's processors: 0 is the host's own share (coverage.BackgroundCPUs), up to the worker cap.
+		"background_processors": {min: bound(0), max: bound(maxCoverageWorkers), step: bound(1), unit: "processors"},
 	},
 	// Editing's three policy values are seconds, at least 0 (a negative gap makes no sense) with no declared maximum
 	// (a narrator's own tolerance for a long dramatic pause is not this range's business to cap) and a 0.1 s step,

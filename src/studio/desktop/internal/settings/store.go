@@ -146,11 +146,13 @@ var builtinDefaults = map[string]Values{
 	// background_checks defaults on: it only ever runs with the model installed, on mains power and while
 	// REAPER is idle (coverage.NextBackground).
 	// cascade_enabled defaults off (MC1 in docs/utilities/recording-coverage.md); the two model settings default
-	// to tiny (first pass) and large-v3-turbo (re-check), MC2.
+	// to tiny (first pass) and large-v3-turbo (re-check), MC2. A background check has its own pair, tiny with small as the
+	// double-check, and starts nothing until the narrator answers its first-time notice (background_checks_confirmed, #2251).
 	"RecordingCoverage": {
 		"min_paragraph_present": "0.8", "max_missing_run": "3", "max_misread_run": "8", "min_anchor_run": "3", "background_checks": "true",
 		"cascade_enabled": "false", "cascade_first_pass_model": "tiny", "cascade_recheck_model": "large-v3-turbo",
 		"cascade_unsure_below": "0.5", "cascade_pipeline": "true", "parallel_workers": "0", "chunk_seconds": "300", "chunk_overlap_seconds": "6", "parallel_chapters": "1",
+		"background_checks_confirmed": "false", "background_first_pass_model": "tiny", "background_recheck_model": "small", "background_processors": "0",
 	},
 	// StageRecommendations defaults every signal to required and suggestions on
 	// (docs/architecture/stage-recommendations.md): a narrator who never opens this settings page gets the engine's

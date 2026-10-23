@@ -13,9 +13,13 @@ import (
 
 // nonNumberRecordingCoverageFields are the RecordingCoverage fields coverage.ResolveSettings reads that are not one
 // of its numbers: background checks, the model cascade's own three
-// (docs/utilities/recording-coverage.md, MC1 and MC2) and the chunk length.
+// (docs/utilities/recording-coverage.md, MC1 and MC2) and the chunk length; and the background check's own notice
+// answer and model pair, which the host reads (coverage_background.go).
 var nonNumberRecordingCoverageFields = map[string]string{
 	settingBackgroundChecks:               "bool",
+	settingBackgroundConfirmed:            "bool",
+	settingBackgroundFirstPassModel:       "choice",
+	settingBackgroundRecheckModel:         "choice",
 	coverage.SettingCascadeEnabled:        "bool",
 	coverage.SettingCascadePipeline:       "bool",
 	coverage.SettingCascadeFirstPassModel: "choice",
@@ -42,6 +46,7 @@ func TestTheRecordingCoverageFieldsAreTheCoverageSettings(t *testing.T) {
 	keys := []string{
 		coverage.SettingMinParagraphPresent, coverage.SettingMaxMissingRun, coverage.SettingMaxMisreadRun, coverage.SettingMinAnchorRun,
 		coverage.SettingCascadeUnsureBelow, coverage.SettingParallelWorkers, coverage.SettingChunkOverlapSeconds, coverage.SettingParallelChapters,
+		settingBackgroundProcessors,
 	}
 	sort.Strings(fields)
 	sort.Strings(keys)

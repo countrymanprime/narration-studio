@@ -18,10 +18,14 @@ import (
 )
 
 type Child struct {
-	mu sync.RWMutex
+	pid int
+	mu  sync.RWMutex
 	// +checklocks:mu
 	exitCode *int
 }
+
+// Pid is the started program's process id.
+func (c *Child) Pid() int { return c.pid }
 
 func (c *Child) HasExited() bool { c.mu.RLock(); defer c.mu.RUnlock(); return c.exitCode != nil }
 func (c *Child) ExitCode() (int, bool) {
@@ -54,12 +58,16 @@ func runEnv(ctx context.Context) []string {
 }
 
 // Start runs a sidecar without a console window on Windows, drains both
-// streams, and records exit status. Cancellation is intentionally separate:
+// streams, and records exit status. A ctx marked WithLowPriority runs it below normal priority. Cancellation is intentionally separate:
 // existing Python tools use their documented .cancel sentinels rather than a
 // forceful process kill so they can leave their result files consistent.
 func (s *Supervisor) Start(ctx context.Context, program string, args ...string) (*Child, error) {
 	command := exec.CommandContext(ctx, program, args...)
 	configure(command)
+	low := LowPriority(ctx)
+	if low {
+		configureLowPriority(command)
+	}
 	command.Env = runEnv(ctx)
 	stdout, err := command.StdoutPipe()
 	if err != nil {
@@ -77,7 +85,10 @@ func (s *Supervisor) Start(ctx context.Context, program string, args ...string) 
 		_ = command.Process.Kill()
 		return nil, err
 	}
-	child := &Child{}
+	if low {
+		lowerStarted(command.Process.Pid)
+	}
+	child := &Child{pid: command.Process.Pid}
 	stderrSink := runlog.FromContext(ctx).StderrWriter()
 	go func() { _, _ = io.Copy(first, stdout) }()
 	go func() { defer func() { _ = stderrSink.Close() }(); _, _ = io.Copy(stderrSink, stderr) }()

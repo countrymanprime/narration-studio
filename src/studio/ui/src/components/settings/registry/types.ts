@@ -81,6 +81,9 @@ export type SettingMeta = {
   needs?: 'reaper';
   /** A note beside the control on when it takes effect. */
   effect?: string;
+  /** A warning for a value that costs this computer a lot (a large model, most of the processors), or `undefined`. Shown under the
+   * control while that value is chosen; it does not stop the choice. */
+  heavy?: (value: string) => string | undefined;
   /**
    * Looks at a value before it is saved: a sentence says why it is refused (the row shows it and keeps the old value), `undefined` lets it
    * through. For a rule the host does not enforce itself.

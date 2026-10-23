@@ -1,7 +1,6 @@
 package coverage
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -143,7 +142,8 @@ func (s *Service) advance(running *job) bool {
 			return false // finish re-reads the same results file and reports the same error
 		}
 		running.firstReport = report
-		running.recheck = planRecheck(report, running.plan.items, running.request.Recheck.Model)
+		model := running.request.Recheck.Model
+		running.recheck = planRecheckUnchecked(report, running.plan.items, model, readCheckedRanges(running.wordsDir(), running.plan.items, model))
 		if !running.recheck.needed() {
 			return false
 		}
@@ -166,7 +166,7 @@ func (s *Service) advance(running *job) bool {
 // reported state's own stage and percent: a new sidecar process starting its own progress from
 // scratch is a new phase of the job, not a continuation of the one that just finished.
 func (s *Service) launchStage(running *job, next stage) bool {
-	child, err := s.launch(context.Background(), s.config.Python, s.stageArgs(running, next)...)
+	child, err := s.launch(running.request.launchContext(), s.config.Python, s.stageArgs(running, next)...)
 	if err != nil {
 		running.stageErr = fmt.Errorf("could not start the recording check's re-check pass: %w", err)
 		return false

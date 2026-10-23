@@ -22,7 +22,7 @@ type Position struct {
 // TRANSPORT events (the bridge client is held only there); the events arrive on the host's bridge loop, so the handler must not block and must not
 // make a bridge request.
 type PositionFeed struct {
-	now func() time.Time
+	now func() time.Time // +checklocksignore: set once by NewPositionFeed and never reassigned, so the lock is incidental
 	mu  sync.Mutex
 	// +checklocks:mu
 	handler func(Position)

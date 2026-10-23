@@ -1,5 +1,6 @@
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import { docSpan, type DocPeaks } from './docClock';
+import { FULL_SCALE, type PeakScale } from './ribbonBars';
 import type { RibbonPeaks } from './useRibbonPeaks';
 
 /** One column of the window: the lowest and highest sample, each -127..127. */
@@ -66,27 +67,44 @@ export function peaksWindowAll(entries: readonly DocPeaks[], t0: number, t1: num
   return out;
 }
 
-/** The most a waveform is scaled up for display: past this a recording is near silence and scaling it up only draws its noise. */
-export const PEAK_GAIN_LIMIT = 12;
+/** The share of the chapter's sounding buckets that may be louder than its reference level: a click or a plosive, not the speech. */
+const REFERENCE_PERCENTILE = 0.99;
 
-const gains = new WeakMap<object, number>();
+const scales = new WeakMap<object, PeakScale>();
 
 /**
- * How much the chapter's waveform is scaled up for display: its loudest bucket, over every item, fills full scale. A recording that peaks near
- * a quarter of full scale is a row of dots at the raw level, where a DAW shows it larger. The lines keep their loudness against each other
- * (one gain for the chapter). 1 when there is nothing to draw, never below 1, never above `PEAK_GAIN_LIMIT`.
+ * The chapter's display scale (`PeakScale`): its reference level is the bucket that 99% of its sounding buckets (those above the host's
+ * 1/127 floor) stay at or under, over every item, so the lines keep their loudness against each other and one click does not make the rest
+ * small. Full scale when there is nothing to measure.
  */
-export function peakGain(state: RibbonPeaks): number {
-  if (state.status !== 'ready') return 1;
-  const kept = gains.get(state.result);
+export function peakScale(state: RibbonPeaks): PeakScale {
+  if (state.status !== 'ready') return FULL_SCALE;
+  const kept = scales.get(state.result);
   if (kept !== undefined) return kept;
-  let loudest = 0;
+  const counts = new Array<number>(128).fill(0);
+  let sounding = 0;
   for (const item of state.result.items) {
     if (!item.peaks || item.peaks.buckets < 1) continue;
     const data = decodeEntry(item.peaks);
-    for (let i = 0; i < data.length; i += 1) loudest = Math.max(loudest, Math.abs(data[i]));
+    for (let k = 0; k + 1 < data.length; k += 2) {
+      const v = Math.min(127, Math.max(Math.abs(data[k]), Math.abs(data[k + 1])));
+      if (v <= 1) continue;
+      counts[v] += 1;
+      sounding += 1;
+    }
   }
-  const gain = loudest <= 0 ? 1 : Math.min(PEAK_GAIN_LIMIT, Math.max(1, 127 / loudest));
-  gains.set(state.result, gain);
-  return gain;
+  let scale = FULL_SCALE;
+  if (sounding > 0) {
+    const want = Math.ceil(sounding * REFERENCE_PERCENTILE);
+    let seen = 0;
+    for (let v = 2; v < counts.length; v += 1) {
+      seen += counts[v];
+      if (seen >= want) {
+        scale = { ref: v };
+        break;
+      }
+    }
+  }
+  scales.set(state.result, scale);
+  return scale;
 }

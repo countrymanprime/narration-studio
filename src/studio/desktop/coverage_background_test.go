@@ -67,8 +67,9 @@ func staleCoverageHost(t *testing.T) (*Host, *switchableSidecar, time.Time) {
 	t.Helper()
 	project := coverageProject(t)
 	sidecar := &switchableSidecar{next: fakeCoverageSidecar(8)}
-	host := coverageHost(t, project, true, sidecar.launch)
+	host := coverageHostWithModels(t, project, whisperCatalog(t, map[string]bool{"tiny": true, "small": true}), sidecar.launch)
 	checkRecording(t, host)
+	confirmBackgroundChecks(t, host)
 	rpp := filepath.Join(project, "book.rpp")
 	body, err := os.ReadFile(rpp)
 	if err != nil {
@@ -86,6 +87,133 @@ func staleCoverageHost(t *testing.T) (*Host, *switchableSidecar, time.Time) {
 	host.powerState = func() coverage.Power { return coverage.PowerMains }
 	sidecar.use(fakeCoverageSidecar(9))
 	return host, sidecar, time.Now()
+}
+
+// confirmBackgroundChecks answers the first-time notice as the narrator's "Check in the background" does.
+func confirmBackgroundChecks(t *testing.T, host *Host) {
+	t.Helper()
+	yes := "true"
+	if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{settingBackgroundConfirmed: &yes}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// argsRecorder wraps a launcher and keeps every launch's flags.
+type argsRecorder struct {
+	mu       sync.Mutex
+	launches []map[string]string
+}
+
+func (r *argsRecorder) wrap(inner coverage.Launcher) coverage.Launcher {
+	return func(ctx context.Context, program string, args ...string) (coverage.Child, error) {
+		values := map[string]string{}
+		for i, arg := range args {
+			if strings.HasPrefix(arg, "--") {
+				values[arg] = "true"
+				if i+1 < len(args) && !strings.HasPrefix(args[i+1], "--") {
+					values[arg] = args[i+1]
+				}
+			}
+		}
+		r.mu.Lock()
+		r.launches = append(r.launches, values)
+		r.mu.Unlock()
+		return inner(ctx, program, args...)
+	}
+}
+
+func (r *argsRecorder) last(t *testing.T) map[string]string {
+	t.Helper()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if len(r.launches) == 0 {
+		t.Fatal("nothing was launched")
+	}
+	return r.launches[len(r.launches)-1]
+}
+
+func TestNothingStartsInTheBackgroundBeforeTheNarratorAnswersTheNotice(t *testing.T) {
+	host, _, now := staleCoverageHost(t)
+	no := "false"
+	if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{settingBackgroundConfirmed: &no}); err != nil {
+		t.Fatal(err)
+	}
+
+	decision := host.backgroundCheckTick(now)
+
+	if decision.Wait != coverage.WaitConfirm || decision.Queued != 1 || host.services().coverage.Busy() {
+		t.Fatalf("decision = %+v, busy = %v", decision, host.services().coverage.Busy())
+	}
+	state, err := host.chapterSyncState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.Background.Wait != string(coverage.WaitConfirm) || state.Background.Queued != 1 || state.Background.FirstPassModel != "tiny" || state.Background.RecheckModel != "small" {
+		t.Fatalf("the notice needs to say what would run: %+v", state.Background)
+	}
+}
+
+func TestABackgroundCheckRunsTinyAndSmallOnItsShareOfTheProcessorsBelowNormalPriority(t *testing.T) {
+	host, sidecar, now := staleCoverageHost(t)
+	t.Cleanup(host.services().coverage.Wait)
+	recorder := &argsRecorder{}
+	sidecar.use(recorder.wrap(fakeCoverageSidecar(9)))
+	previous := coverageCPUs
+	coverageCPUs = func() int { return 8 }
+	t.Cleanup(func() { coverageCPUs = previous })
+	// The narrator's own check uses a heavy pair; the background check keeps to its own.
+	heavy, large := "true", "large-v3-turbo"
+	if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{"cascade_enabled": &heavy, "cascade_recheck_model": &large}); err != nil {
+		t.Fatal(err)
+	}
+
+	if decision := host.backgroundCheckTick(now); decision.ChapterID != "c-0001" {
+		t.Fatalf("decision = %+v", decision)
+	}
+
+	args := recorder.last(t)
+	if args["--model"] != "tiny" || args["--recheck-model"] != "small" || args["--cpus"] != "4" {
+		t.Fatalf("a background check runs tiny with small as the double-check on half the processors, got %v", args)
+	}
+}
+
+func TestABackgroundCheckRunsBetweenTakesWhileTheBoothFollowsOnAQuarterOfTheProcessors(t *testing.T) {
+	host, sidecar, now := staleCoverageHost(t)
+	t.Cleanup(host.services().coverage.Wait)
+	recorder := &argsRecorder{}
+	sidecar.use(recorder.wrap(fakeCoverageSidecar(9)))
+	previous := coverageCPUs
+	coverageCPUs = func() int { return 8 }
+	t.Cleanup(func() { coverageCPUs = previous })
+	host.liveFollowing = func() bool { return true }
+
+	if decision := host.backgroundCheckTick(now); decision.ChapterID != "c-0001" {
+		t.Fatalf("the Booth following a reading must not hold every check off: %+v", decision)
+	}
+	if got := recorder.last(t)["--cpus"]; got != "2" {
+		t.Fatalf("--cpus = %q, want a quarter of 8 while the Booth follows", got)
+	}
+}
+
+func TestTheNarratorsProcessorChoiceIsKept(t *testing.T) {
+	host, sidecar, now := staleCoverageHost(t)
+	t.Cleanup(host.services().coverage.Wait)
+	recorder := &argsRecorder{}
+	sidecar.use(recorder.wrap(fakeCoverageSidecar(9)))
+	three, single := "3", "none"
+	if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{settingBackgroundProcessors: &three, settingBackgroundRecheckModel: &single}); err != nil {
+		t.Fatal(err)
+	}
+
+	host.backgroundCheckTick(now)
+
+	args := recorder.last(t)
+	if args["--cpus"] != "3" {
+		t.Fatalf("--cpus = %q", args["--cpus"])
+	}
+	if _, double := args["--recheck-model"]; double {
+		t.Fatalf("none turns the double-check off: %v", args)
+	}
 }
 
 func TestAStaleChapterIsCheckedAgainInTheBackground(t *testing.T) {

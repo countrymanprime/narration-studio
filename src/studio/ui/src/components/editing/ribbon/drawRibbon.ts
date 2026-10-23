@@ -1,5 +1,5 @@
 import type { PeakColumn } from './peaksWindow';
-import { BAR_RADIUS, barLayout, barPosition, barScale, halfHeight, playheadAt } from './ribbonBars';
+import { BAR_RADIUS, barLayout, barPosition, FULL_SCALE, grownHalf, halfHeight, playheadAt, type PeakScale } from './ribbonBars';
 import type { RibbonLayout } from './ribbonLayout';
 
 import { kindColour, type KindId } from '../../../kinds/kindMap';
@@ -66,7 +66,7 @@ export function drawRibbon(
   columns: PeakColumn[],
   colors: RibbonColors,
   frame: RibbonFrame = STILL_FRAME,
-  gain = 1,
+  scale: PeakScale = FULL_SCALE,
 ): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
@@ -97,7 +97,7 @@ export function drawRibbon(
   }
 
   const head = layout.playhead == null ? null : frame.animate ? playheadAt(layout.playhead, frame.sinceUpdateMs, layout.t1) : layout.playhead;
-  drawBars(ctx, width, height, columns, colors, head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length), frame, gain);
+  drawBars(ctx, width, height, columns, colors, head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length), frame, scale);
 
   ctx.save();
   ctx.globalAlpha = 0.7;
@@ -141,7 +141,7 @@ export function drawRibbon(
 
 /**
  * The bars, centred on the middle line. With a playhead (`headBar`, in bars) the played bars are `colors.bars` and the rest `colors.unplayed`, and, while
- * animating, the bars near it grow by `barScale`. Each colour is one path, filled once. Without one every bar is `colors.bars`.
+ * animating, the bars near it grow toward the lane's edge (`grownHalf`). Each colour is one path, filled once. Without one every bar is `colors.bars`.
  */
 function drawBars(
   ctx: CanvasRenderingContext2D,
@@ -151,14 +151,14 @@ function drawBars(
   colors: RibbonColors,
   headBar: number | null,
   frame: RibbonFrame,
-  gain: number,
+  scale: PeakScale,
 ): void {
   const mid = height / 2;
   const { pitch, barWidth } = barLayout(width, columns.length);
   const radius = Math.min(BAR_RADIUS, barWidth / 2);
   const halfAt = (i: number): number => {
-    const half = halfHeight(columns[i], mid, gain);
-    return headBar == null ? half : Math.min(mid - 0.5, half * barScale(i + 0.5 - headBar, !frame.animate));
+    const half = halfHeight(columns[i], mid, scale);
+    return headBar == null ? half : grownHalf(half, mid - 0.5, i + 0.5 - headBar, !frame.animate);
   };
   // One path and one fill for each colour, not one stroke for each bar.
   const fillBars = (colour: string, from: number, to: number): void => {
