@@ -93,9 +93,7 @@ function partialText(covered: Covered, words: readonly DocItem[]): string {
 export function RangeNotes({ shown, covered, words }: { shown: Span | null; covered: Covered; words: readonly DocItem[] }) {
   if (!shown)
     return (
-      <p className="m-0 px-3 text-xs text-[var(--text-muted)]">
-        Drag to choose a range, or select words in the script. Right-drag, the wheel or two fingers scroll; right-click for more.
-      </p>
+      <p className="m-0 px-3 text-xs text-[var(--text-muted)]">Drag to choose a range; right-drag, the wheel or two fingers scroll; right-click for more.</p>
     );
   const partial = partialText(covered, words);
   const sub = subWordNote(shown, covered.applied);

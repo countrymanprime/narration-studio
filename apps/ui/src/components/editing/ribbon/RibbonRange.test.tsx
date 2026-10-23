@@ -109,7 +109,7 @@ describe('the range on the waveform', () => {
     act(() => state.dispatch({ type: 'play', t: 5.1 }));
     await ready();
     expect(screen.queryByRole('slider', { name: 'Start of range' })).toBeNull();
-    expect(screen.getByText(/Drag to choose a range, or select words in the script/)).toBeTruthy();
+    expect(screen.getByText(/Drag to choose a range; right-drag/)).toBeTruthy();
   });
 
   it('selecting words sets the range to their span', async () => {

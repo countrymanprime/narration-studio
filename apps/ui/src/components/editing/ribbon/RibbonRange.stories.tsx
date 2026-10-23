@@ -57,7 +57,7 @@ const doc = rangeDoc();
 export const NoRange: Story = {
   args: { doc },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText(/Drag to choose a range, or select words/)).toBeTruthy();
+    await expect(within(canvasElement).getByText(/Drag to choose a range; right-drag/)).toBeTruthy();
     await expect(within(canvasElement).queryByRole('slider', { name: 'Start of range' })).toBeNull();
   },
 };
