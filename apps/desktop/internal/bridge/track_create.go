@@ -16,7 +16,7 @@ type CreatedTrack struct {
 	Index int
 }
 
-// ErrTrackNameEmpty: the name for a new track is empty once trimmed, so nothing was sent (or the script refused it).
+// ErrTrackNameEmpty means the name for a new track is empty once trimmed, so nothing was sent (or the script refused it).
 var ErrTrackNameEmpty = errors.New("the new track needs a name")
 
 // trackNameEmptySentence is the script's own ERROR for an empty name (narration_track_create.lua).
