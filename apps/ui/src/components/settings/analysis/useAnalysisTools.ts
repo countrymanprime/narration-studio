@@ -68,7 +68,12 @@ export function useAnalysisTools(port: ComponentsPort) {
       await reload();
       next.current();
     },
-    onFailure: (message) => fail(headRef.current, message),
+    // The failed tool leaves the queue here, not from the effect below: that runs after the next render, and a Retry pressed before then
+    // would find the tool still queued, add nothing, and see the effect remove it.
+    onFailure: (message) => {
+      fail(headRef.current, message);
+      next.current();
+    },
   });
   const { job, starting, running, begin, reset } = install;
   const next = useRef(() => {});
