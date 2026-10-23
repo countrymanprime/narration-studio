@@ -149,17 +149,6 @@ func installProblem(err error) string {
 	return "The app could not put its bridge in REAPER's Scripts folder: " + err.Error()
 }
 
-// reaperStartsBridge is whether REAPER runs the app's bridge when it opens, as of the last install.
-func (h *Host) reaperStartsBridge() bool {
-	if h.reaperBridge == nil {
-		return false
-	}
-	state := h.bridgeState()
-	state.mu.Lock()
-	defer state.mu.Unlock()
-	return state.installOK && state.installed.StartupHooked && reaperinstall.Installed(state.resourceDir)
-}
-
 // noteReaperStart records a start the app made for project, or why it failed.
 func (h *Host) noteReaperStart(project string, at time.Time, err error) {
 	state := h.bridgeState()

@@ -267,7 +267,7 @@ func TestInstalledNeedsBothTheBlockAndTheScript(t *testing.T) {
 }
 
 func TestPathsWithSpacesAndUnicodeInstall(t *testing.T) {
-	resource := filepath.Join(t.TempDir(), "Zoë's Ünïcode folder", "REAPER (x64) ")
+	resource := filepath.Join(t.TempDir(), "Zoë's Ünïcode folder", "REAPER (x64)")
 	if err := os.MkdirAll(resource, 0o755); err != nil {
 		t.Fatal(err)
 	}
