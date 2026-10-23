@@ -121,7 +121,8 @@ export const TimelineTabWithTakes: Story = {
   args,
   render: () => frame(1280, 'timeline', false, { ...noStrip, passage: lines }),
   play: async ({ canvasElement }) => {
-    await waitFor(() => expect(canvasElement.querySelectorAll('#timeline [data-lane]')).toHaveLength(5));
+    // One lane per take; the line's audio is the waveform docked above the bar, not a lane.
+    await waitFor(() => expect(canvasElement.querySelectorAll('#timeline [data-lane]')).toHaveLength(4));
     // jsdom has no layout: the measurements below are the browser run's (the atlas).
     if (drawer0(canvasElement).getBoundingClientRect().width === 0) return;
     for (const lane of canvasElement.querySelectorAll<HTMLElement>('#timeline [data-lane^="t-"]')) {

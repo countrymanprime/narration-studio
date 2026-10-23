@@ -287,7 +287,7 @@ export function RibbonView({
 
   if (!choose) {
     return (
-      <div ref={boxRef} className="my-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)]" data-ribbon-pid={layout.pid}>
+      <div ref={boxRef} className="w-full bg-[var(--surface)] text-[var(--text)]" data-ribbon-pid={layout.pid}>
         {head ? (
           <div data-ribbon-head className="flex items-baseline gap-2 px-3 pt-1.5 text-xs text-[var(--text-muted)]">
             <span className="font-mono font-semibold text-[var(--text)]">{head.take ?? '—'}</span>
