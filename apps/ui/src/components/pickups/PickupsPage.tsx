@@ -13,6 +13,7 @@ import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { ALL_SCOPE, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
 import { usePlayOriginal } from './list/usePlayOriginal';
@@ -58,6 +59,7 @@ export function PickupsPage({
 }) {
   const pickupsApi = usePort('pickups');
   const manuscriptApi = usePort('manuscript');
+  const findingsApi = usePort('findings');
   const measurements = usePort('measurements');
   const daw = usePort('daw');
   const overlay = useOverlay();
@@ -189,6 +191,28 @@ export function PickupsPage({
     };
   };
 
+  /*
+   * Fine, not a pickup (research note A4): the line's note is dismissed through FindingsReview (Fine as read on Proof), which takes a
+   * note's own line off the list. A check's gap that a note was attached to stays listed by the check, so it is removed too. Undo puts
+   * the note back as it was; a removed gap stays off, as Remove does.
+   */
+  const fine = async (pickup: PickupItem): Promise<RemoveUndo | undefined> => {
+    const id = pickup.findingId;
+    if (!id) return undefined;
+    const before = await findingsApi.findingsGet(id);
+    const after = await findingsApi.findingsReview({ id, evidenceVersion: before.evidence_version ?? '', status: 'dismissed', note: before.review.note ?? '' });
+    await changing(pickup.source === 'speech' ? pickupsApi.pickupsRemove(pickup.id) : pickupsApi.pickupsList());
+    return async () => {
+      try {
+        await findingsApi.findingsReview({ id, evidenceVersion: after.evidence_version ?? '', status: before.review.status, note: before.review.note ?? '' });
+        await changing(pickupsApi.pickupsList());
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, refusal: { reason: reasonSentence(error) } };
+      }
+    };
+  };
+
   /* The host keeps one pickup per chapter and line: a repeat comes back as the same list, which the narrator would see as nothing happening. */
   const add = async (chapterId: string, time: number, line: string) => {
     const before = list.pickups.length;
@@ -266,6 +290,8 @@ export function PickupsPage({
           onOpenInBooth={openInBooth}
           onOpenInScript={goToScript}
           onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
+          onFine={fine}
+          where={(pickup) => <PickupWhere pickup={pickup} manuscript={manuscriptApi} />}
         />
         <SessionPanel
           pickups={inView}

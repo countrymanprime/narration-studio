@@ -12,6 +12,13 @@ export const pickupsStates: StateEntry[] = [
   },
   {
     page: 'pickups',
+    state: 'show-where',
+    description:
+      'Pickups, all chapters, the line at 07:30.9 from a note selected: under it In the script with its paragraph between the paragraphs before and after, Fine, not a pickup and Go to the note in Proof',
+    ...REFLOW,
+  },
+  {
+    page: 'pickups',
     state: 'scoped',
     description: 'Pickups narrowed to Chapter 1 in the stepper: "No pickups for this chapter", the session panel counting none',
     ...REFLOW,

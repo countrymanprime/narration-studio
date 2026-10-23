@@ -90,6 +90,62 @@ describe('pickups-route-draws-the-mock-page', () => {
   });
 });
 
+describe('fine-not-a-pickup-and-show-where', () => {
+  const fromNote = pickup({
+    id: 'finding:f9',
+    chapterId: 'c1',
+    source: 'proof',
+    findingId: 'f9',
+    time: 12,
+    paragraphId: 'p-2',
+    script: 'a <b>White Rabbit</b> ran',
+  });
+  const fromGap = pickup({ id: 'speech:c1:g7', chapterId: 'c1', source: 'speech', findingId: 'f7', time: 30 });
+
+  async function setupFine(line = fromNote) {
+    const api = createMockApi({ pickupsList: () => Promise.resolve({ pickups: [line], leftOut: [] }) });
+    const base = (await api.findingsList({})).findings[0]!;
+    const note = { ...base, id: line.findingId!, review: { status: 'accepted' as const, note: 'mine' } };
+    vi.spyOn(api, 'findingsGet').mockResolvedValue(note);
+    const review = vi.spyOn(api, 'findingsReview').mockImplementation(async (request) => ({ ...note, review: { status: request.status, note: request.note } }));
+    const remove = vi.spyOn(api, 'pickupsRemove').mockResolvedValue({ pickups: [], leftOut: [] });
+    vi.spyOn(api, 'manuscriptParagraphs').mockResolvedValue([
+      { id: 'p-1', chapterId: 'c1', chapter: 'One', index: 0, text: 'Before it.', entityIds: [] },
+      { id: 'p-2', chapterId: 'c1', chapter: 'One', index: 1, text: 'Then a White Rabbit ran close by her.', entityIds: [] },
+      { id: 'p-3', chapterId: 'c1', chapter: 'One', index: 2, text: 'After it.', entityIds: [] },
+    ]);
+    renderPage(api);
+    const user = userEvent.setup();
+    const cell = await screen.findByText(line === fromNote ? '00:12.0' : '00:30.0', { selector: 'td' });
+    await user.click(cell);
+    return { api, review, remove, user, note };
+  }
+
+  it('a selected line shows its paragraph with the ones before and after', async () => {
+    await setupFine();
+    const where = await screen.findByRole('region', { name: 'In the script' });
+    expect(where.querySelector('[data-around=at] mark')?.textContent).toBe('White Rabbit');
+    expect(where.querySelector('[data-around=before]')?.textContent).toBe('Before it.');
+    expect(where.querySelector('[data-around=after]')?.textContent).toBe('After it.');
+  });
+
+  it('Fine, not a pickup dismisses the note with its note kept, and Undo puts it back as it was', async () => {
+    const { review, remove, user, note } = await setupFine();
+    await user.click(screen.getByRole('button', { name: 'Fine, not a pickup' }));
+    await waitFor(() => expect(review).toHaveBeenCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'dismissed', note: 'mine' }));
+    expect(remove).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(review).toHaveBeenLastCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: 'mine' }));
+  });
+
+  it('a check’s gap with a note is also taken off the list', async () => {
+    const { review, remove, user } = await setupFine(fromGap);
+    await user.click(screen.getByRole('button', { name: 'Fine, not a pickup' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('speech:c1:g7'));
+    expect(review).toHaveBeenCalledWith(expect.objectContaining({ id: 'f7', status: 'dismissed' }));
+  });
+});
+
 describe('check-recordings-opens-from-pickups', () => {
   it('opens the Check recordings dialog with the chapters whose check is not current', async () => {
     const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
