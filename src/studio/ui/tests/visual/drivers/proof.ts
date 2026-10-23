@@ -71,6 +71,22 @@ export const proofDrivers: Record<string, Driver> = {
     // Below the wide layout the Inspector stacks under the queue, out of the window: bring the thread up, or the picture is `default`'s.
     await thread.scrollIntoViewIfNeeded();
   },
+  'hear-it': async (page) => {
+    await openProof(page);
+    await notes(page)
+      .locator('tr[data-row]')
+      .filter({ hasText: /pink eyes/ })
+      .click();
+    await inspector(page).getByRole('button', { name: 'Hear it, 3 s either side' }).click();
+    await inspector(page).getByRole('button', { name: 'Stop hearing it' }).waitFor();
+    const where = inspector(page).getByText(/^Playing in REAPER, 3 s either side/);
+    await where.waitFor();
+    // The paragraph at the top of the window and the message under the row below it, at every width (below the wide layout the
+    // Inspector stacks under the queue, out of the window).
+    await inspector(page)
+      .getByRole('region', { name: 'In the script' })
+      .evaluate((region) => region.scrollIntoView({ block: 'start' }));
+  },
   'chapter-no-recording': async (page) => {
     await openProof(page);
     await openChapter(page, 'Chapter 2');

@@ -78,6 +78,7 @@ const (
 var experimentalCommands = map[string]bool{
 	"chapter_track_state": true,
 	"select_track":        true,
+	"track_create":        true,
 	"set_cursor":          true,
 	"play_from":           true,
 	"stop_play":           true,
@@ -118,7 +119,7 @@ var experimentalCommands = map[string]bool{
 }
 
 // actionTags are the events Actions consumes: every answer of every command it sends, and ERROR.
-var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK_STALE", "TRACK_SELECTED", "ARMED", "RECORD_STARTED", "RECORD_STOPPED", "RECORD_ENDED", "RECORD_NOT_OURS",
+var actionTags = []string{"TRACK_STATE", "TRACK_ITEM", "TRACK_STATE_END", "TRACK_STALE", "TRACK_SELECTED", "TRACK_CREATED", "ARMED", "RECORD_STARTED", "RECORD_STOPPED", "RECORD_ENDED", "RECORD_NOT_OURS",
 	"ACTIVE_TAKE_SET", "TAKES_HIDDEN", "ITEM_STALE", "FX_CHAIN", "FX_CHAINS_LISTED", "FX_CHAIN_APPLIED",
 	"REGIONS_CREATED", "PLAY_POSITION", "PUNCHED", "ROLLED", "RANGE_CUT", "RANGE_FX_APPLIED", "RANGE_FX_REMOVED", "TAKES_STACKED", "TAKES_UNSTACKED", "MASTER_CHAIN_FX", "MASTER_CHAIN_READ", "TAKE_SPLIT",
 	"FILE_PREVIEW_STARTED", "FILE_PREVIEW_STOPPED", "FILE_REVEALED", "RANGE_GAIN_REDUCED", "CLICKS_REPAIRED",

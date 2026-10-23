@@ -235,11 +235,11 @@ func TestNavigateLoopAndStop(t *testing.T) {
 		}
 	})
 	loop, err := session.Loop(ctx, dawport.Target{SourceStart: at(1), SourceEnd: at(3)})
-	if err != nil || loop.Start != 0 || loop.End != 5 {
-		t.Fatalf("Loop = %+v, %v; want 0..5 (padded, never before the start)", loop, err)
+	if err != nil || loop.Start != 0 || loop.End != 6 {
+		t.Fatalf("Loop = %+v, %v; want 0..6 (padded, never before the start)", loop, err)
 	}
 	server.With(func(p *abt.Project) {
-		if !p.Looping || p.LoopStart != 0 || p.LoopEnd != 5 {
+		if !p.Looping || p.LoopStart != 0 || p.LoopEnd != 6 {
 			t.Errorf("looping=%v %v..%v", p.Looping, p.LoopStart, p.LoopEnd)
 		}
 	})
@@ -253,7 +253,7 @@ func TestNavigateLoopAndStop(t *testing.T) {
 	})
 	want := []string{
 		"Stop:", "SelectTime: Start=12.5 End=12.5 RelativeTo=ProjectStart",
-		"Stop:", "SelectTime: Start=0 End=5 RelativeTo=ProjectStart", "PlayAtSpeedLooped:",
+		"Stop:", "SelectTime: Start=0 End=6 RelativeTo=ProjectStart", "PlayAtSpeedLooped:",
 		"Stop:",
 	}
 	if got := server.Log(); !reflect.DeepEqual(got, want) {

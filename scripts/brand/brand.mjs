@@ -64,11 +64,6 @@ export function validateBrand(brand) {
   for (const key of Object.keys(identity)) {
     if (!(key in IDENTITY_KEYS)) problems.push(`identity.${key}: not a known identity value (scripts/brand/brand.mjs IDENTITY_KEYS)`);
   }
-  if (!Array.isArray(brand?.retiredNames) || brand.retiredNames.some((name) => typeof name !== 'string' || !NAME.test(name))) {
-    problems.push('retiredNames: a list of display names');
-  } else if (brand.retiredNames.includes(brand.name)) {
-    problems.push('retiredNames: holds the current name');
-  }
   return problems;
 }
 
@@ -87,7 +82,6 @@ export function deriveBrand(brand) {
       pagesUrl: `https://${owner}.github.io/${name}/`,
     },
     identity: { ...brand.identity },
-    retiredNames: [...brand.retiredNames],
   };
 }
 

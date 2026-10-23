@@ -1,6 +1,7 @@
 // The guard that keeps the product's name from before the rename out of the repository and out of what it ships (#2251 item
 // 41). It fails on the old name in any spelling ("<old>-<name>", "<Old> <Name>", "<OldName>", "<OLD>_<NAME>", ...) in a tracked
-// file's path or text, in a built site, or in a release folder's file names and text, except in the files listed in ALLOWED.
+// file's path or text, in a built site, or in a release folder's file names and text. There is no exception: the name was retired
+// before the first public release, with no migration (owner decision, 2026-10-23).
 //
 //   node scripts/ci/old-name.mjs                 checks every tracked file (old-name.test.mjs runs this in the repo-scripts check)
 //   node scripts/ci/old-name.mjs dir <path>...   checks every file under each folder, or each file named: the built site
@@ -11,25 +12,12 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BRAND_FILE } from '../brand/brand.mjs';
-import { TARGETS } from '../brand/sync.mjs';
 import { readTrackedText, trackedFiles } from './layout.mjs';
 
 // Written as patterns so this file does not match itself. In text the two words may also be split across a line break, as
 // wrapped prose and comments split them, with the next line's indent or comment marker between.
 const OLD_NAME = /narration[-_ .]?utils/i;
 const OLD_NAME_IN_TEXT = /narration(?:[-_ .]|[ \t]*\r?\n[ \t>*#/-]*)?utils/gi;
-
-// The only tracked files that may hold the old name, each with why. The migration files move what a narrator's machine and
-// projects hold under the old names (docs/reference/data-files.md#the-move-from-the-old-name).
-export const ALLOWED = new Map([
-  ['src/studio/desktop/internal/legacyname/legacyname.go', 'the migration: the old folder, key, track and file names it moves from'],
-  ['src/studio/integrations/reaper/narration_rename.lua', 'the migration of REAPER P_EXT keys in an open project'],
-  ['src/studio/desktop/build/windows/installer/legacy.nsh', 'the migration of an install: its uninstall entry, program and shortcuts'],
-  ['docs/operations/repository-rename.md', 'names the old GitHub repository, which a checkout or a session may still point at'],
-  [BRAND_FILE, "the brand file lists the product's retired names"],
-  ...TARGETS.filter((target) => target.retired).map((target) => [target.path, 'generated from the brand file, with its retired names']),
-]);
 
 /** The line numbers (1-based) and lines of text where the old name starts. */
 export function findOldName(text) {
@@ -42,18 +30,12 @@ export function findOldName(text) {
   return hits;
 }
 
-/** Problems in the tracked files: an old name in a path or in the text of a file that is not allowed to hold it. */
+/** Problems in the tracked files: an old name in a path or in the text. */
 export function checkTracked(files = trackedFiles(), texts = readTrackedText(files)) {
   const problems = [];
   for (const file of files) {
-    if (ALLOWED.has(file)) continue;
     if (OLD_NAME.test(file)) problems.push(`${file}: the path holds the old name`);
     for (const hit of findOldName(texts.get(file) ?? '')) problems.push(`${file}:${hit.line}: ${hit.text}`);
-  }
-  // The list stays as short as it can be: an allowed file that is gone, or no longer needs the old name, leaves it.
-  for (const file of ALLOWED.keys()) {
-    if (!files.includes(file)) problems.push(`${file} is allowed to hold the old name but is not tracked: remove it from ALLOWED`);
-    else if (findOldName(texts.get(file) ?? '').length === 0) problems.push(`${file} is allowed to hold the old name but does not: remove it from ALLOWED`);
   }
   return problems;
 }

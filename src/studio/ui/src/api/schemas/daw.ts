@@ -60,7 +60,7 @@ export const dawCapabilitiesSchema = z.object({
 }) satisfies z.ZodType<DawCapabilities>;
 
 const DAW_CHOICE_SOURCES = ['launch', 'chosen', 'linked', 'found', 'default'] as const satisfies readonly DawChoiceSource[];
-const DAW_CHOICE_STATES = ['connected', 'not_running', 'linked', 'not_linked', 'app', 'none'] as const satisfies readonly DawChoiceState[];
+const DAW_CHOICE_STATES = ['connected', 'starting', 'not_running', 'linked', 'not_linked', 'app', 'none'] as const satisfies readonly DawChoiceState[];
 const CHOOSABLE_DAWS = ['REAPER', 'Audacity', 'Built-in'] as const;
 
 /** DawChoice, DawChoose and DawLinkFound: every key always present, file names never paths. */
@@ -82,6 +82,8 @@ export const dawChoiceSchema = z.strictObject({
       record: dawCapabilitySupportSchema,
     }),
   ),
+  starting: z.strictObject({ since: z.iso.datetime({ offset: true }) }).nullable(),
+  bridge: z.strictObject({ installed: z.boolean(), startsWithReaper: z.boolean(), problem: z.string().nullable() }).nullable(),
 }) satisfies z.ZodType<DawChoice>;
 
 const AUDACITY_LINK_STATES = [

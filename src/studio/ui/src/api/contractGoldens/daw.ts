@@ -32,6 +32,7 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-choice-default.json': dawChoiceSchema,
   'daw-choice-found.json': dawChoiceSchema,
   'daw-choice-linked.json': dawChoiceSchema,
+  'daw-choice-starting.json': dawChoiceSchema,
   'daw-transport-stopped.json': dawTransportSchema,
   'daw-transport-playing.json': dawTransportSchema,
   'daw-transport-recording.json': dawTransportSchema,

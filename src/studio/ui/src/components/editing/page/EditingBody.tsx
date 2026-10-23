@@ -76,6 +76,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
+import { useChapterLink } from './useChapterLink';
 import { useEditingActionCommands } from './useEditingPageCommands';
 import { useRecordingCheck } from './useRecordingCheck';
 import { ScriptNotesProvider } from '../script/paragraphNotes';
@@ -115,7 +116,7 @@ export interface EditingBodyProps {
   onCuts: Parameters<typeof useCutWords>[0]['onCuts'];
   onEffects: Parameters<typeof useFxWords>[0]['onEffects'];
   onAccepted: () => void;
-  /** Reads the chapter again (the no-audio banner's Read again, and when the recording check closes). */
+  /** Reads the chapter again (Read again, a link made in the chapter dialog, and when the recording check closes). */
   onReread: () => void;
   /** The chapter's manuscript record, which the recording check needs; absent until the chapter list is read. */
   checkChapter?: ManuscriptChapter;
@@ -134,8 +135,10 @@ export interface EditingBodyProps {
   link: DeepLink;
   /** The chapter step control, drawn in the header. */
   stepper: ReactNode;
-  /** The DAW-off banner, or null. */
-  banner: ReactNode;
+  /** The mark that reopens the DAW dialog, or null. */
+  dawIndicator: ReactNode;
+  /** The DAW dialog is up: the chapter dialog waits for it. */
+  dawDialogOpen: boolean;
 }
 
 /** The chip that opens a line's takes, where focus goes back when they close. */
@@ -507,12 +510,21 @@ export function EditingBody(props: EditingBodyProps) {
     />
   );
 
+  const chapterLink = useChapterLink({
+    audio: read.audio,
+    chapterId,
+    chapterName,
+    daw: caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null,
+    hold: props.dawDialogOpen,
+    onReread: props.onReread,
+  });
+
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
+      {chapterLink.dialog}
       <div className="min-h-0 flex-1 px-4 pb-3 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} drawer={drawer}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
-            {props.banner}
             <NoAudioBanner
               audio={read.audio}
               chapterName={chapterName}
@@ -522,6 +534,12 @@ export function EditingBody(props: EditingBodyProps) {
             <EditingHeader
               stepper={props.stepper}
               legend={<Legend doc={doc} compact={compact} noAudio={read.audio.kind !== 'ready'} />}
+              status={
+                <>
+                  {props.dawIndicator}
+                  {chapterLink.indicator}
+                </>
+              }
               strip={panels.strip}
               stripFits={stripFits}
               drawerOpen={drawerOpen}

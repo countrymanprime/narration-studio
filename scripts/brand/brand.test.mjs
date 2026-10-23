@@ -29,7 +29,7 @@ test('the repository URLs come from the owner and the repository name', () => {
   assert.equal(brand.repository.pagesUrl, 'https://someone.github.io/zebra-audio-lab/');
 });
 
-test('a display name of the wrong shape, a missing or unknown identity value and a retired current name are refused', () => {
+test('a display name of the wrong shape, and a missing or unknown identity value are refused', () => {
   const valid = file();
   for (const name of ['', 'zebra lab', 'Zebra  Lab', ' Zebra', 'Zebra-Lab']) {
     assert.match(validateBrand({ ...valid, name }).join('\n'), /^name:/, name);
@@ -37,7 +37,6 @@ test('a display name of the wrong shape, a missing or unknown identity value and
   const { dataFolder: _, ...missing } = valid.identity;
   assert.match(validateBrand({ ...valid, identity: missing }).join('\n'), /identity\.dataFolder/);
   assert.match(validateBrand({ ...valid, identity: { ...valid.identity, extra: 'x' } }).join('\n'), /identity\.extra: not a known/);
-  assert.match(validateBrand({ ...valid, retiredNames: [valid.name] }).join('\n'), /holds the current name/);
   assert.throws(() => deriveBrand({ ...valid, name: 'x' }), /config\/brand\.json is not valid/);
 });
 

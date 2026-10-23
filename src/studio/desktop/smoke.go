@@ -69,6 +69,8 @@ var smokeSidecars = []string{"manuscript-guide", "transcript-compare", "manuscri
 // scripts/release/reaper-files.mjs is the build-time copy of this list, and smoke_test.go holds both to the folder.
 var smokeReaperFiles = []string{
 	"NarrationStudio_Launcher.lua",
+	"NarrationStudio_Startup.lua",
+	"narration_brand.lua",
 	"narration_bridge_core.lua",
 	"narration_cleanup.lua",
 	"narration_compare.lua",
@@ -83,12 +85,12 @@ var smokeReaperFiles = []string{
 	"narration_punch.lua",
 	"narration_range.lua",
 	"narration_regions.lua",
-	"narration_rename.lua",
 	"narration_render.lua",
 	"narration_retake_lanes.lua",
 	"narration_roll.lua",
 	"narration_take_review.lua",
 	"narration_takes.lua",
+	"narration_track_create.lua",
 	"narration_track_select.lua",
 	"narration_track_state.lua",
 	"narration_transport.lua",

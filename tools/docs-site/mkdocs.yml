@@ -10,6 +10,7 @@ docs_dir: ../../docs
 exclude_docs: |
   research/mockups/studio-next/
   research/mockups/voice-samples/
+  research/mockups/story-bible-entry-list/
 site_dir: build/site
 strict: true
 
@@ -89,4 +90,3 @@ extra:
   # Where the app demo is published beside this site (the site is no longer published; this was where pages.yml copied it).
   # Linked from the same page as Storybook (storybook_page) rather than a new nav entry.
   demo_path: demo/
-

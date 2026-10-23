@@ -3,6 +3,12 @@ import { useContextProvider, type ContextProvider } from '../../../registries/co
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { PickupItem } from '../../../api/contracts/pickups';
 
+/** Why a line can neither go to its note nor be marked fine: it came from no note (a check's gap or a line added by hand). */
+export const NO_NOTE = 'This line did not come from a note in Proof.';
+export const FINE_LABEL = 'Fine, not a pickup';
+/** Why Fine, not a pickup is off: a line from no note has no decision to write; Remove takes it off the list. */
+export const fineUnavailable = (pickup: PickupItem): string | undefined => (pickup.findingId ? undefined : `${NO_NOTE} Remove takes it off the list.`);
+
 /** The attribute a pickup row carries: its pickup's id. */
 export const PICKUP_ROW = 'data-pk';
 
@@ -10,6 +16,8 @@ export type PickupMenuActions = {
   onSetIncluded: (id: string, included: boolean) => unknown;
   onSetDone: (id: string, done: boolean) => unknown;
   onRemove: (id: string) => unknown;
+  /** Says the line is fine as read: its note on Proof is dismissed and it leaves the list. Absent where the page lends none. */
+  onFine?: (pickup: PickupItem) => unknown;
   /** Plays the original recording around the line; `unavailable` is why it cannot. */
   onPlayOriginal?: (pickup: PickupItem) => void;
   playOriginalUnavailable?: (pickup: PickupItem) => string | undefined;
@@ -42,10 +50,20 @@ function pickupMenuItems(pickup: PickupItem, actions: PickupMenuActions): Contex
     { key: 'pickup-script', label: 'Open this chapter in Script', onSelect: () => actions.onOpenInScript(pickup.chapterId) },
     { key: 'pickup-done', label: pickup.done ? 'Mark open again' : 'Mark recorded', onSelect: () => void actions.onSetDone(pickup.id, !pickup.done) },
     { key: 'pickup-remove', label: 'Remove from pickups', onSelect: () => void actions.onRemove(pickup.id) },
+    ...(actions.onFine
+      ? [
+          {
+            key: 'pickup-fine',
+            label: FINE_LABEL,
+            unavailable: fineUnavailable(pickup),
+            onSelect: () => void actions.onFine?.(pickup),
+          },
+        ]
+      : []),
     {
       key: 'pickup-note',
       label: 'Go to the note in Proof',
-      unavailable: pickup.findingId ? undefined : 'This line did not come from a note in Proof.',
+      unavailable: pickup.findingId ? undefined : NO_NOTE,
       onSelect: () => actions.onGoToNote(pickup),
     },
   ];

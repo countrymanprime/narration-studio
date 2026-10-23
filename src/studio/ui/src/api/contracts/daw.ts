@@ -69,6 +69,7 @@ export type DawCapabilityKey =
   | 'project_read'
   | 'track_state'
   | 'track_select'
+  | 'track_create'
   | 'follow_position'
   | 'transport_sync'
   | 'record'
@@ -118,6 +119,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'project_read', label: 'Read the saved project' },
   { key: 'track_state', label: 'Read track arm state' },
   { key: 'track_select', label: 'Select a track in the recording tool' },
+  { key: 'track_create', label: 'Add a track for a chapter' },
   { key: 'follow_position', label: "Follow the narrator's place in the project" },
   { key: 'transport_sync', label: "Play and follow the project's transport" },
   { key: 'record', label: 'Record' },
@@ -167,10 +169,14 @@ export type ChoosableDaw = Exclude<DawKind, 'none'>;
  * DAW file, a REAPER project file found in its folder, or the default for a folder with none (dawport.ProjectKind). */
 export type DawChoiceSource = 'launch' | 'chosen' | 'linked' | 'found' | 'default';
 
-/** The project's engine as the Booth's chip words it: `connected` (the DAW answers), `not_running` (its bridge was opened but it
- * stopped answering, or a DAW with no file to link that is not answering), `linked` (its project file is linked; starting it
- * from the app connects it), `not_linked`, `app` (the built-in recorder) or `none`. */
-export type DawChoiceState = 'connected' | 'not_running' | 'linked' | 'not_linked' | 'app' | 'none';
+/** The project's engine as the Booth's chip words it: `connected` (the DAW answers), `starting` (the app opened REAPER and waits for
+ * its bridge), `not_running` (its bridge was opened but it stopped answering, or a DAW with no file to link that is not answering),
+ * `linked` (its project file is linked; starting it from the app connects it), `not_linked`, `app` (the built-in recorder) or `none`. */
+export type DawChoiceState = 'connected' | 'starting' | 'not_running' | 'linked' | 'not_linked' | 'app' | 'none';
+
+/** Where the app's bridge in REAPER stands (src/studio/desktop/reaperbridge.go): whether its files are in REAPER's Scripts folder, whether
+ * REAPER runs it when it opens (Scripts/__startup.lua), and the sentence to show when either is false or a start failed. */
+export type ReaperBridgeStatus = { installed: boolean; startsWithReaper: boolean; problem: string | null };
 
 /** One engine Settings > Recording lists: whether the app found it on this computer (null when it cannot tell) and its record
  * capability as the resolver answers it, with the resolver's own sentence when it is not available now. */
@@ -191,6 +197,10 @@ export type DawChoice = {
   launcherAutoStart: boolean;
   experimental: boolean;
   options: DawChoiceOption[];
+  /** Set while a REAPER start the app made has not answered: when it started (RFC 3339). */
+  starting: { since: string } | null;
+  /** The app's bridge in REAPER; null for a project that does not record with REAPER, or before the app checked it. */
+  bridge: ReaperBridgeStatus | null;
 };
 
 export interface DawChoiceApi {

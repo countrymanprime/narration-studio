@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { StudioProvider } from '../../studio/StudioProvider';
 import { createMockApi } from '../../api/mockApi';
 import type { PickupList } from '../../api/contracts/pickups';
 import { CommandRouter } from '../../input/router';
@@ -43,9 +44,11 @@ const wrap = (api: NarrationApi) =>
     return (
       <MemoryRouter>
         <ApiProvider api={api}>
-          <TooltipProvider>
-            <CommandRouter>{children}</CommandRouter>
-          </TooltipProvider>
+          <StudioProvider>
+            <TooltipProvider>
+              <CommandRouter>{children}</CommandRouter>
+            </TooltipProvider>
+          </StudioProvider>
         </ApiProvider>
       </MemoryRouter>
     );

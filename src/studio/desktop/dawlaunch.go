@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"desktop/internal/daw"
 	"desktop/internal/persist"
@@ -13,8 +14,8 @@ import (
 // DawLaunch starts REAPER on the current project's linked DAW file: it resolves
 // reaper.exe (a Settings override always wins, otherwise auto-detect -
 // daw.Resolve / daw.LocateReaperExecutable), and passes the linked
-// .rpp, plus, when the DAW.auto_start_launcher setting is on (default off), the
-// launcher script too - the exact `reaper.exe "<project.rpp>" "<script.lua>"`
+// .rpp, plus, when the DAW.auto_start_launcher setting is on (default on) and REAPER does not already start the bridge
+// from __startup.lua (reaperbridge.go), the launcher script too - the exact `reaper.exe "<project.rpp>" "<script.lua>"`
 // form spike S6 confirmed REAPER runs automatically at startup, so
 // the bridge is live without the narrator running the action by hand. The
 // launch is detached (daw.Launch): never through the sidecar supervisor's
@@ -28,10 +29,14 @@ func (h *Host) DawLaunch() (string, error) {
 		}
 		return encodeBinding(result, nil)
 	}
-	result, err := launchReaper(h.services(), h.persist, h.reaperLocate, h.reaperLaunch, h.reaperRunning)
+	h.ensureReaperBridge(h.services())
+	svc := h.services()
+	result, err := launchReaper(svc, h.persist, h.reaperLocate, h.reaperLaunch, h.reaperRunning)
+	h.noteReaperStart(svc.config.projectFolder, time.Now(), err)
 	if err != nil {
 		return "", err
 	}
+	h.emitDawCapabilities()
 	return encodeBinding(result, nil)
 }
 
@@ -72,6 +77,8 @@ func launchReaper(svc hostServices, reporter *persist.Reporter, locate func() (p
 	withLauncher := autoStart == "true" && svc.config.reaperLauncher != ""
 	args := []string{rpp}
 	switch {
+	case !alreadyRunning && withLauncher && svc.config.reaperStartupHooked:
+		// REAPER runs the bridge from __startup.lua (reaperbridge.go), so the project alone is enough and no second loop starts.
 	case alreadyRunning && withLauncher:
 		// The narrator's open REAPER runs the launcher alone: reopening the linked file would stack a second copy of the project,
 		// and the launcher reads whichever project that REAPER has open (the Booth then says if it is not the linked one).
@@ -100,7 +107,7 @@ func (h *Host) launchAudacity(svc hostServices) (map[string]any, error) {
 	}
 	exe, err := h.locateAudacity()
 	if err != nil {
-		return nil, fmt.Errorf("Audacity was not found on this computer. Install Audacity 3, or choose another recorder.") //nolint:staticcheck // a sentence the narrator reads
+		return nil, fmt.Errorf("Audacity was not found on this computer. Install Audacity 3, and the app connects to it.") //nolint:staticcheck // a sentence the narrator reads
 	}
 	if h.isAudacityRunning() {
 		return nil, fmt.Errorf("Audacity is already running. If the app cannot reach it, close Audacity and start it from here.") //nolint:staticcheck // a sentence the narrator reads

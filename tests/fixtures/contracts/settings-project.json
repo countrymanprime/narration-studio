@@ -359,6 +359,20 @@
       "effectiveSource": "repo_default",
       "effectiveValue": "auto",
       "isSet": false,
+      "key": "capability.track_create",
+      "kind": "choice",
+      "label": "Add a track for a chapter",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
       "key": "capability.follow_position",
       "kind": "choice",
       "label": "Follow the narrator's place in the project",

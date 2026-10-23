@@ -184,6 +184,7 @@ export function createMockApi(
   const extraction = createExtractionMock(endJob);
   const character = createCharacterMock(s);
   const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
+  const mockStartedAt = Date.now();
   const teleprompter = createTeleprompterMock({
     ready: manuscriptReady,
     chapters: () => s.chapters,
@@ -200,6 +201,8 @@ export function createMockApi(
     resume: initial.resume,
     dawRecord: (kind) => dawControl.record(kind),
     dawRecording: () => dawControl.recording(),
+    // Only a link made during this session: the seeded project already links its chapters, which `?mockReaperState=no_link` overrides.
+    linked: (chapterId) => s.chapterTrackMappings.some((link) => link.chapterId === chapterId && Date.parse(link.confirmedAt) >= mockStartedAt),
   });
   const {
     withMeasurement,

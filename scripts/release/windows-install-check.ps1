@@ -21,7 +21,7 @@ function Check([string]$name, [bool]$ok, [string]$detail = '') {
   Write-Host ("{0} {1}{2}" -f ($(if ($ok) { 'PASS' } else { 'FAIL' })), $name, $(if ($detail) { " :: $detail" } else { '' }))
 }
 
-# The uninstall key is NarrationStudio (project.nsi UNINST_KEY_NAME).
+# The uninstall key is project.nsi's UNINST_KEY_NAME.
 $uninstallRoot = 'Software\Microsoft\Windows\CurrentVersion\Uninstall'
 $keyNames = @('NarrationStudio')
 function Get-UninstallEntries([string]$hive) {

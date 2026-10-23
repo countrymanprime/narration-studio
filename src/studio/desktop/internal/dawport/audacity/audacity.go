@@ -68,6 +68,7 @@ var declares = func() map[dawport.Capability]dawport.Level {
 	d[dawport.CapPickups] = dawport.Experimental
 	d[dawport.CapNavigate] = dawport.Experimental
 	d[dawport.CapTrackSelect] = dawport.Experimental
+	d[dawport.CapTrackCreate] = dawport.Experimental
 	d[dawport.CapTrackState] = dawport.Experimental
 	d[dawport.CapFollowPosition] = dawport.Experimental
 	d[dawport.CapRegions] = dawport.Experimental
@@ -188,7 +189,7 @@ func (a *Adapter) Role(c dawport.Capability) any {
 		return a.review
 	case dawport.CapPickups:
 		return a.pickups
-	case dawport.CapNavigate, dawport.CapMarkers, dawport.CapTrackSelect, dawport.CapTrackState, dawport.CapFollowPosition, dawport.CapRegions:
+	case dawport.CapNavigate, dawport.CapMarkers, dawport.CapTrackSelect, dawport.CapTrackCreate, dawport.CapTrackState, dawport.CapFollowPosition, dawport.CapRegions:
 		return a.session
 	case dawport.CapProjectRead:
 		return SnapshotReader{}

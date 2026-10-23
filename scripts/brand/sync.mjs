@@ -25,11 +25,10 @@ const goName = (key) => key[0].toUpperCase() + key.slice(1);
 const quote = (value) => JSON.stringify(value);
 const singleQuote = (value) => `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
 
-/** Every generated file: its repo-relative path, its text for a brand, and whether that text holds the retired names. */
+/** Every generated file: its repo-relative path and its text for a brand. */
 export const TARGETS = [
   {
     path: 'src/studio/desktop/internal/brand/brand_gen.go',
-    retired: true,
     render: (brand) => {
       const lines = [`// Code ${HEADER}`, '', 'package brand', ''];
       for (const [key, name, about] of DISPLAY) lines.push(`// ${name} is ${about}.`, `const ${name} = ${quote(brand[key])}`, '');
@@ -37,13 +36,11 @@ export const TARGETS = [
       for (const [key, about] of Object.entries(IDENTITY_KEYS)) {
         lines.push(`// ${goName(key)} is ${about}. Identity: it does not follow a rename.`, `const ${goName(key)} = ${quote(brand.identity[key])}`, '');
       }
-      lines.push('// RetiredNames are the names the product had before.', `var RetiredNames = []string{${brand.retiredNames.map(quote).join(', ')}}`);
-      return `${lines.join('\n')}\n`;
+      return `${lines.join('\n').trimEnd()}\n`;
     },
   },
   {
     path: 'src/studio/ui/src/brand.gen.ts',
-    retired: true,
     render: (brand) => {
       const lines = [`// This file is ${HEADER}`, '', '/** The product name and the values derived from it (config/brand.json). `identity` does not follow a rename. */', 'export const brand = {'];
       for (const [key] of DISPLAY) lines.push(`  ${key}: ${singleQuote(brand[key])},`);
@@ -51,20 +48,18 @@ export const TARGETS = [
       for (const [key] of REPOSITORY) lines.push(`    ${key}: ${singleQuote(brand.repository[key])},`);
       lines.push('  },', '  identity: {');
       for (const key of Object.keys(IDENTITY_KEYS)) lines.push(`    ${key}: ${singleQuote(brand.identity[key])},`);
-      lines.push('  },', `  retiredNames: [${brand.retiredNames.map(singleQuote).join(', ')}],`, '} as const;');
+      lines.push('  },', '} as const;');
       return `${lines.join('\n')}\n`;
     },
   },
   {
     path: 'src/studio/libs/python/narration_common/brand.py',
-    retired: true,
     render: (brand) => {
       const constant = (key) => key.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase();
       const lines = [`"""The product name and the values derived from it, ${HEADER.replace('; DO NOT EDIT.', '.\n\nDO NOT EDIT.')}`, '', 'Identity values do not follow a rename."""', ''];
       for (const [key] of DISPLAY) lines.push(`${constant(key)} = ${quote(brand[key])}`);
       for (const [key] of REPOSITORY) lines.push(`REPOSITORY_${constant(key)} = ${quote(brand.repository[key])}`);
       for (const key of Object.keys(IDENTITY_KEYS)) lines.push(`${constant(key)} = ${quote(brand.identity[key])}`);
-      lines.push(`RETIRED_NAMES = (${brand.retiredNames.map(quote).join(', ')}${brand.retiredNames.length === 1 ? ',' : ''})`);
       return `${lines.join('\n')}\n`;
     },
   },

@@ -7,8 +7,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-
-	"desktop/internal/legacyname"
 )
 
 // LabelInfo is one label as GetInfo: Type=Labels reports it. Index is the number SetLabel's Label parameter takes: labels are
@@ -190,8 +188,7 @@ func parseTracks(reply Reply) ([]TrackInfo, error) {
 		if r.Name == nil || r.Kind == nil {
 			return nil, &ProtocolError{fmt.Sprintf("track %d has no name or kind", i)}
 		}
-		// A track the app made before the rename carries the old name; it is read as the app now names it.
-		t := TrackInfo{Index: i, Name: legacyname.TrackName(*r.Name), Kind: *r.Kind, Selected: bool(r.Selected), Focused: bool(r.Focused), Muted: bool(r.Muted)}
+		t := TrackInfo{Index: i, Name: *r.Name, Kind: *r.Kind, Selected: bool(r.Selected), Focused: bool(r.Focused), Muted: bool(r.Muted)}
 		if r.Start != nil && r.End != nil {
 			t.Start, t.End, t.HasRange = float64(*r.Start), float64(*r.End), true
 		}

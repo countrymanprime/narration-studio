@@ -127,6 +127,16 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
     snapshot: 'editing-confirm-normalise.aria.yml',
   },
   {
+    name: 'Editing: the DAW-not-connected dialog is a modal dialog with the reason, what still works, Check again and Start',
+    state: ['editing', 'daw-off'],
+    snapshot: 'dialog-daw-not-connected.aria.yml',
+  },
+  {
+    name: 'Editing: the chapter-not-linked dialog is a modal dialog with a radio group of the REAPER tracks, Check again and Link track',
+    state: ['editing', 'unlinked'],
+    snapshot: 'dialog-chapter-not-linked.aria.yml',
+  },
+  {
     name: 'the jump menu is a modal dialog holding a combobox field and its list of results',
     state: ['shell', 'jump-menu-open'],
     snapshot: 'dialog-jump-menu.aria.yml',

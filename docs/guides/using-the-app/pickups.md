@@ -40,8 +40,21 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
 
 Each line is a tall row with 36 px buttons, and each chapter's group row is tinted. In a narrow window the table scrolls sideways, with a shadow on the edge that has more to see.
 
-Right-click a line for the same actions (**Hear the original in context** too), **Open this chapter in Script**, and **Go to the note in Proof** for a line that
-came from a note. Up and Down move between lines. When you come back from the Booth with the browser's Back button after
+Select a line and, under it, **In the script** shows where it is: its paragraph with the line's words marked, and the
+paragraphs before and after it, greyed. With it are two buttons for a line that came from a note on [Proof](proof.md):
+
+- **Fine, not a pickup**, when you hear it and it was right after all. The note is marked **Fine as read** on Proof and the
+  line leaves the list; **Undo** on the message puts the note back as it was. A line from a recording check's gap that a
+  note was attached to leaves the list too, and stays off it as **Remove** would.
+- **Go to the note in Proof**, which opens Proof on that note.
+
+A line that came from no note (added by hand, or a check's gap no note was made for) has both off, with the reason; **Remove**
+takes it off the list.
+
+![Pickups - a selected line: its paragraph in the script with the ones before and after, Fine, not a pickup and Go to the note in Proof](../../images/ui/pickups-show-where.webp)
+
+Right-click a line for the same actions (**Hear the original in context** too), **Open this chapter in Script**, **Fine, not
+a pickup** and **Go to the note in Proof** for a line that came from a note. Up and Down move between lines. When you come back from the Booth with the browser's Back button after
 opening one line, that line is selected again and has the focus.
 
 A line is recorded once its pickup marker in the DAW says so: the marker is the record of what is done, and marking a

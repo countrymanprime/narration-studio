@@ -38,7 +38,6 @@ Unicode true
 !define SETUP_FILE "narration-studio-windows-x64-setup.exe"
 
 !include "wails_tools.nsh"
-!include "legacy.nsh"
 
 # The version information for this two must consist of 4 parts
 VIProductVersion "${INFO_PRODUCTVERSION}.0"
@@ -85,7 +84,6 @@ ShowUninstDetails show
 
 Function .onInit
    !insertmacro wails.checkArchitecture
-   !insertmacro legacy.adoptInstallDir
 FunctionEnd
 
 Section "${INFO_PRODUCTNAME} (required)"
@@ -98,6 +96,9 @@ Section "${INFO_PRODUCTNAME} (required)"
 
     !insertmacro wails.files
 
+    # Versions before the rename named the entries "Narration Studio"; an install over one replaces them.
+    Delete "$SMPROGRAMS\Narration Studio.lnk"
+    Delete "$SMPROGRAMS\Narration Studio for Audacity.lnk"
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     # The Audacity launcher: Audacity cannot start a program, so this entry does it instead,
     # with exactly --daw Audacity. The narrator picks the project in the app.
@@ -108,11 +109,11 @@ Section "${INFO_PRODUCTNAME} (required)"
 
     !insertmacro wails.writeUninstaller
     WriteRegStr HKCU "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
-    !insertmacro legacy.removeOldInstall
 SectionEnd
 
 Section "Desktop shortcut"
     !insertmacro wails.setShellContext
+    Delete "$DESKTOP\Narration Studio.lnk"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 SectionEnd
 

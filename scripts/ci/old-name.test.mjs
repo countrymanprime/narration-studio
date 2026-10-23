@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { ALLOWED, checkFolder, checkTracked, findOldName, zipEntryNames } from './old-name.mjs';
+import { checkFolder, checkTracked, findOldName, zipEntryNames } from './old-name.mjs';
 
 // The old name is assembled here so this file does not hold it either.
 const OLD = ['narration', 'utils'];
@@ -17,7 +17,7 @@ const spellings = [
   OLD.join('_').toUpperCase(),
 ];
 
-test('no tracked file holds the old name outside the migration files', () => {
+test('no tracked file holds the old name, in its path or its text', () => {
   assert.deepEqual(checkTracked(), []);
 });
 
@@ -26,27 +26,15 @@ test('every spelling of the old name is found, in a path and in text', () => {
     assert.equal(findOldName(`line one\nsee ${spelling}/x`).length, 1, spelling);
     assert.deepEqual(
       checkTracked([`docs/${spelling}.md`], new Map([[`docs/${spelling}.md`, '']])),
-      [`docs/${spelling}.md: the path holds the old name`].concat(missingAllowed()),
+      [`docs/${spelling}.md: the path holds the old name`],
     );
   }
 });
 
-test('the product name, look-alikes and the allowed files pass', () => {
-  for (const text of ['narration-studio', 'Narration Studio', 'narration utilities', 'narration_util', 'narrationstudio']) {
+test('the product name and look-alikes pass', () => {
+  for (const text of ['narration-studio', 'Narration Studio', 'narration utilities', 'narration_util', 'narrationstudio', 'test-utils']) {
     assert.deepEqual(findOldName(text), [], text);
   }
-  const allowed = [...ALLOWED.keys()];
-  const texts = new Map(allowed.map((file) => [file, `const old = "${OLD.join('-')}"`]));
-  assert.deepEqual(checkTracked(allowed, texts), []);
-});
-
-test('an allowed file that is gone, or no longer holds the old name, must leave the list', () => {
-  const [kept, ...rest] = [...ALLOWED.keys()];
-  const texts = new Map([[kept, 'nothing old here']]);
-  assert.deepEqual(checkTracked([kept], texts), [
-    `${kept} is allowed to hold the old name but does not: remove it from ALLOWED`,
-    ...rest.map((file) => `${file} is allowed to hold the old name but is not tracked: remove it from ALLOWED`),
-  ]);
 });
 
 test('the old name split across a wrapped line is found, on the line where it starts', () => {
@@ -116,6 +104,3 @@ function storedZip(names) {
   return Buffer.concat([...locals, directory, end]);
 }
 
-function missingAllowed() {
-  return [...ALLOWED.keys()].map((file) => `${file} is allowed to hold the old name but is not tracked: remove it from ALLOWED`);
-}

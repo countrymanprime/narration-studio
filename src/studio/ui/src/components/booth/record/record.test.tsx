@@ -68,7 +68,7 @@ describe('Record preconditions on the Record control', () => {
   it('a-dawless-setup-disables-record-and-shows-the-capabilitys-reason', async () => {
     const { notify, client } = show('reaper-off');
     const reason = setupCapabilities('reaper-off').capabilities.record.message!;
-    await waitFor(() => expect(record().disabled).toBe(true));
+    await waitFor(() => expect(record().getAttribute('aria-disabled')).toBe('true'));
     expect(described(record())).toBe(reason);
     expect(record().getAttribute('aria-describedby')).toBe('brec-why');
     const start = vi.spyOn(client, 'recordStart');
@@ -79,21 +79,21 @@ describe('Record preconditions on the Record control', () => {
 
   it('one-chapter-one-track', async () => {
     show('reaper', 'none', { none: 'none' });
-    await waitFor(() => expect(record().disabled).toBe(true));
+    await waitFor(() => expect(record().getAttribute('aria-disabled')).toBe('true'));
     expect(described(record())).toBe(REFUSALS.none);
     cleanup();
     show('reaper', 'many', { many: 'several' });
-    await waitFor(() => expect(record().disabled).toBe(true));
+    await waitFor(() => expect(record().getAttribute('aria-disabled')).toBe('true'));
     expect(described(record())).toBe(REFUSALS.several);
     cleanup();
     show('reaper', 'one', { one: 'one' });
-    await waitFor(() => expect(record().disabled).toBe(false));
+    await waitFor(() => expect(record().getAttribute('aria-disabled')).toBeNull());
     expect(document.getElementById('brec-why')).toBeNull();
   });
 
   it('the-built-in-recorder-needs-no-track', async () => {
     show('builtin', 'none', { none: 'none' });
-    await waitFor(() => expect(record().disabled).toBe(false));
+    await waitFor(() => expect(record().getAttribute('aria-disabled')).toBeNull());
     expect(document.getElementById('brec-why')).toBeNull();
   });
 
@@ -101,7 +101,7 @@ describe('Record preconditions on the Record control', () => {
     const { client } = show('reaper');
     const start = vi.spyOn(client, 'recordStart');
     const stop = vi.spyOn(client, 'recordStop');
-    await waitFor(() => expect(record().disabled).toBe(false));
+    await waitFor(() => expect(record().getAttribute('aria-disabled')).toBeNull());
     expect(record().textContent).toBe('Record');
     await userEvent.click(record());
     expect(start).toHaveBeenCalledExactlyOnceWith('c1', undefined);
@@ -115,7 +115,7 @@ describe('Record preconditions on the Record control', () => {
   it('a refused start shows the refusal and changes nothing', async () => {
     const client = dawClientFor('reaper', ['other']);
     show('reaper', 'c1', {}, client);
-    await waitFor(() => expect(record().disabled).toBe(false));
+    await waitFor(() => expect(record().getAttribute('aria-disabled')).toBeNull());
     await userEvent.click(record());
     await waitFor(() => expect(described(record())).toBe(REFUSALS.none));
     expect(record().textContent).toBe('Record');
@@ -173,6 +173,8 @@ describe('SetupChip with the project DAW choice', () => {
     launcherAutoStart: false,
     experimental: false,
     options: [],
+    starting: null,
+    bridge: null,
   };
   const tooltipOf = async () => {
     await userEvent.hover(screen.getByRole('group'));
@@ -195,6 +197,24 @@ describe('SetupChip with the project DAW choice', () => {
     );
     expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER');
     expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp');
+  });
+
+  it('daw-chip-starting: the app opening REAPER says so, and a bridge problem is the host sentence in the tooltip', async () => {
+    const capabilities = setupCapabilities('reaper');
+    const starting = { ...base, state: 'starting' as const, linkedFile: 'Book.rpp', starting: { since: '2026-10-23T09:30:00Z' } };
+    const { unmount } = render(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={starting} />);
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, starting');
+    expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp · opening REAPER, connecting on its own');
+    unmount();
+    const problem = 'The app opened REAPER, but REAPER’s bridge has not answered.';
+    render(
+      <SetupChip
+        capabilities={capabilities}
+        standaloneName="Recorder"
+        choice={{ ...base, state: 'linked', linkedFile: 'Book.rpp', bridge: { installed: true, startsWithReaper: true, problem } }}
+      />,
+    );
+    expect(await tooltipOf()).toContain(`not running · start it from Recording settings · ${problem}`);
   });
 
   it('names the project choice even when the capability report names none, and the page name when it records in the app', () => {

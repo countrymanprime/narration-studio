@@ -235,6 +235,17 @@ export function ChapterTagsPreview(): $CancellablePromise<string> {
     return $Call.ByID(800337126);
 }
 
+/**
+ * ChapterTrackCreate adds a track named after chapterID's title at the end
+ * of the DAW project's track list and links the chapter to it
+ * (chaptertrackcreate.go). Outcome "created" carries ChapterTrackSet's
+ * payload and the new track; "refused" says why nothing was added. A
+ * chapter the manuscript does not have is an error.
+ */
+export function ChapterTrackCreate(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(626919906, chapterID);
+}
+
 export function ChapterTrackLinks(): $CancellablePromise<string> {
     return $Call.ByID(488920311);
 }
@@ -747,8 +758,8 @@ export function DawLastAction(kind: string): $CancellablePromise<string> {
  * DawLaunch starts REAPER on the current project's linked DAW file: it resolves
  * reaper.exe (a Settings override always wins, otherwise auto-detect -
  * daw.Resolve / daw.LocateReaperExecutable), and passes the linked
- * .rpp, plus, when the DAW.auto_start_launcher setting is on (default off), the
- * launcher script too - the exact `reaper.exe "<project.rpp>" "<script.lua>"`
+ * .rpp, plus, when the DAW.auto_start_launcher setting is on (default on) and REAPER does not already start the bridge
+ * from __startup.lua (reaperbridge.go), the launcher script too - the exact `reaper.exe "<project.rpp>" "<script.lua>"`
  * form spike S6 confirmed REAPER runs automatically at startup, so
  * the bridge is live without the narrator running the action by hand. The
  * launch is detached (daw.Launch): never through the sidecar supervisor's

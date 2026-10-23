@@ -21,4 +21,3 @@ REAPER_RESOURCE_FOLDER = "NarrationStudio"
 AUDACITY_LABEL_TRACK = "Narration Studio"
 CREDENTIAL_ENTROPY = "narration-studio credentialstore v1"
 ENV_PREFIX = "NARRATION_STUDIO_"
-RETIRED_NAMES = ("Narration Utils",)

@@ -7,7 +7,7 @@ const STATUS = {
   // Decisions on a finding
   pickup: { label: 'Needs pickup', tone: 'accent' },
   edit: { label: 'Fix in edit', tone: 'info' },
-  waive: { label: 'Waived', tone: 'success' },
+  waive: { label: 'Fine as read', tone: 'success' },
   keep: { label: 'Kept', tone: 'success' },
   fixed: { label: 'Fixed', tone: 'success' },
   defer: { label: 'Deferred', tone: 'neutral' },

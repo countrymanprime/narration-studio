@@ -69,11 +69,11 @@ jobs:
         env:
           SITE_PUBLISHED: '1'
         run: pnpm --dir src/web run build:site
-      # check_site.py reads only the standard library. It follows every link and image of the built pages as Pages would
-      # serve them under /narration-studio/ and fails on a dead one.
       # The product's old name must not reach the published site, in a file name or a page (scripts/ci/old-name.mjs).
       - name: Check the site never says the product's old name
         run: node scripts/ci/old-name.mjs dir dist-site
+      # check_site.py reads only the standard library. It follows every link and image of the built pages as Pages would
+      # serve them under /narration-studio/ and fails on a dead one.
       - name: Check every link, served under /narration-studio/
         run: |
           python3 -I tools/docs-site/check_site.py dist-site --base /narration-studio/ \

@@ -16,9 +16,8 @@ func TestGeneratedConstantsMatchTheBrandFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	var file struct {
-		Name         string            `json:"name"`
-		Identity     map[string]string `json:"identity"`
-		RetiredNames []string          `json:"retiredNames"`
+		Name     string            `json:"name"`
+		Identity map[string]string `json:"identity"`
 	}
 	if err := json.Unmarshal(text, &file); err != nil {
 		t.Fatal(err)
@@ -40,8 +39,5 @@ func TestGeneratedConstantsMatchTheBrandFile(t *testing.T) {
 		if file.Identity[key] != value {
 			t.Errorf("identity %s = %q, the brand file says %q", key, value, file.Identity[key])
 		}
-	}
-	if len(file.RetiredNames) != len(RetiredNames) {
-		t.Errorf("RetiredNames = %q, the brand file says %q", RetiredNames, file.RetiredNames)
 	}
 }

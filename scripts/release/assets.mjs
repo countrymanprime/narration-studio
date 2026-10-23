@@ -38,18 +38,14 @@ function requireInBin(binDir, name) {
 // The notices are written after the Wails build (they read the frozen sidecars and the build's Go modules), into the same folder.
 function requireNotices(binDir, name = NOTICES_FILE) {
   if (!existsSync(join(binDir, name))) {
-    throw new Error(
-      `Expected ${name} in ${binDir}. Write it with scripts/licenses/notices.py --out ${join(binDir, name)} after the build and before packaging.`,
-    );
+    throw new Error(`Expected ${name} in ${binDir}. Write it with scripts/licenses/notices.py --out ${join(binDir, name)} after the build and before packaging.`);
   }
 }
 
 // The setup program is a second output of the Windows build (scripts/release/wails-build.mjs --installer); a build without it must not ship.
 export function requireInstaller(binDir, name = WINDOWS_INSTALLER) {
   if (!existsSync(join(binDir, name))) {
-    throw new Error(
-      `Expected the setup program ${name} in ${binDir}. scripts/release/wails-build.mjs builds it with makensis when it is run with --installer on Windows.`,
-    );
+    throw new Error(`Expected the setup program ${name} in ${binDir}. scripts/release/wails-build.mjs builds it with makensis when it is run with --installer on Windows.`);
   }
 }
 
@@ -102,7 +98,8 @@ export const noticesName = (platform, version) => (platformEntry(platform).notic
 export const sha256File = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 
 // Every downloadable of a platform: the archive and, when there is one, the setup program and the notices. Each has a .sha256 beside it.
-const platformAssets = (platform, version) => [assetName(platform, version), installerName(platform, version), noticesName(platform, version)].filter(Boolean);
+const platformAssets = (platform, version) =>
+  [assetName(platform, version), installerName(platform, version), noticesName(platform, version)].filter(Boolean);
 
 // Every file a platform puts on the release of this version, each asset followed by its checksum.
 export const releaseFiles = (platform, version) => platformAssets(platform, version).flatMap((name) => [name, `${name}.sha256`]);
@@ -195,9 +192,7 @@ export function verifyAttestations(dir, { repository, version, run = runGh } = {
       try {
         run(attestationArgs({ file, repository, platform }));
       } catch (error) {
-        const reason = String(error.stderr || error.message)
-          .trim()
-          .slice(-300);
+        const reason = String(error.stderr || error.message).trim().slice(-300);
         problems.push(`${name} has no attestation from ${signerWorkflow} on ${SOURCE_REF}: ${reason}`);
       }
     }

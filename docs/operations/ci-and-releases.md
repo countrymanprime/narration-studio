@@ -259,7 +259,8 @@ version that depends on who built it. `Bootstrap` returns it and Settings > App 
 - `narration-studio --version` prints the stamped version and exits without opening a window. On Windows the program is a GUI
   application, so a console shows nothing; a program that reads its standard output (a test, the update flow) gets the text.
 - The program is named by `wails.json` `outputfilename` (`narration-studio`, `.exe` on Windows). Clean old build output before you
-  test the REAPER launcher: a program a build before the rename left in `src/studio/desktop/build/bin` is no longer looked for.
+  test the REAPER launcher: `src/studio/desktop/build/bin/narration-studio-shell.exe` from a build before the rename is no longer
+  looked for.
 
 ### What the in-app updater depends on
 
@@ -344,7 +345,7 @@ and exits: `0` when every check passed, `1` when one failed, `2` for a bad comma
 | `guide:capabilities`            | the frozen Story Bible sidecar's `capabilities` subcommand names every TTS and pronunciation row this build declares                                                                                                                                                                                                                                                                                                                    |
 | `compare:capabilities`          | the frozen Transcript Compare sidecar's `--capabilities` report names every batch ASR row this build declares                                                                                                                                                                                                                                                                                                                           |
 | `catalogs`                      | the four approved asset catalogs load and name assets                                                                                                                                                                                                                                                                                                                                                                                   |
-| `reaper`                        | the launcher (`NarrationStudio_Launcher.lua`) and its scripts are present and the launcher points at this executable (the shipped list is `scripts/release/reaper-files.mjs`, which names `narration_undo.lua` and `narration_levels.lua` among the feature files)                                                                                                              |
+| `reaper`                        | the launcher (`NarrationStudio_Launcher.lua`), the startup script REAPER runs from `__startup.lua` (`NarrationStudio_Startup.lua`) and their scripts are present and the launcher points at this executable (the shipped list is `scripts/release/reaper-files.mjs`, which names `narration_undo.lua` and `narration_levels.lua` among the feature files)                                                                                                              |
 
 CI runs it in the `Smoke test the packaged app` step of `.github/actions/build-native`, on `windows-x64` only, after the Wails
 build and before the release asset is packaged, so both `Build (Windows)` in `ci.yml` and the Windows release build of

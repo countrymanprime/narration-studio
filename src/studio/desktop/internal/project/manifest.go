@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"desktop/internal/credits"
-	"desktop/internal/legacyname"
 	"desktop/internal/persist"
 )
 
@@ -121,14 +120,10 @@ func Load(reporter *persist.Reporter, projectFolder string) (*Manifest, bool, er
 		return nil, false, nil // no folder is not "the working directory"
 	}
 	var loaded *Manifest
-	// A project not opened since the rename still has its manifest in the old data folder (a scan of the projects folder reads it).
-	outcome := reporter.ReadJSON(filepath.Join(legacyname.ProjectDataDir(projectFolder), fileName), "project", persist.NarratorData, func(bytes []byte) error {
+	outcome := reporter.ReadJSON(Path(projectFolder), "project", persist.NarratorData, func(bytes []byte) error {
 		var decoded Manifest
 		if err := json.Unmarshal(bytes, &decoded); err != nil {
 			return err
-		}
-		if legacyname.IsProjectMarker(decoded.Marker) {
-			decoded.Marker = Marker
 		}
 		loaded = &decoded
 		return nil

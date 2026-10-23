@@ -137,6 +137,14 @@ export type ChapterTrackSetResult = {
   mappings: TrackMapping[];
 };
 
+/** ChapterTrackCreate's answer: a new track named after the chapter was added at the end of the DAW project (not saved) and
+ * linked to the chapter, as ChapterTrackSet links one; or a refusal that changed nothing. `unsupported` is an engine that cannot
+ * add a track from this app (the sentence says what to do in it instead). */
+export type ChapterTrackCreateReason = 'standalone' | 'not_running' | 'experimental_off' | 'recording' | 'unsupported' | 'failed';
+export type ChapterTrackCreateResult =
+  | (ChapterTrackSetResult & { outcome: 'created'; track: { guid: string; name: string; index: number } })
+  | { outcome: 'refused'; reason: ChapterTrackCreateReason; message: string };
+
 /** TrackSelectInReaper's answer: "Select in REAPER" from the chapter track
  * slide-over. `refused` reasons mirror ReadAloudRecording's connection and experimental-switch cases, plus `track_missing`
  * for a track no longer in the project; nothing in REAPER changes for a refusal. */
@@ -253,6 +261,8 @@ export interface ChapterTrackMapApi {
   chapterTrackMapClear(trackGuid: string): Promise<ChapterTrackMapping>;
   /** Makes trackGuid chapterId's one link, replacing its old one; `displaced` names the chapter the track was taken from. */
   chapterTrackSet(chapterId: string, trackGuid: string): Promise<ChapterTrackSetResult>;
+  /** Adds a track named after chapterId in the DAW (at the end, unsaved) and links it as chapterTrackSet would; a DAW that cannot is a refusal. */
+  chapterTrackCreate(chapterId: string): Promise<ChapterTrackCreateResult>;
   /** Clears every link chapterId holds and returns the links that remain. */
   chapterTrackUnlink(chapterId: string): Promise<ChapterTrackMapping>;
   /** Every narration chapter's link state and track facts from one parse of the saved .rpp; read-only. */

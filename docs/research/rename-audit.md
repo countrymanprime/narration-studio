@@ -2,8 +2,6 @@
 
 Researched 2026-10-12 for the owner, on `main` at `5ee0877`. Tracking issue: [#1489](https://github.com/countrymanprime/narration-studio/issues/1489). The counts are for that commit and are not kept current.
 
-**Since then.** The product's old name was removed from every name here, persisted ones included, with a one-time move of the narrator's data (#2251 item 41; [Data files](../reference/data-files.md#the-move-from-the-old-name)). Read the module path, Nx and persisted-folder rows below as they stood on that date.
-
 **Question.** Which names in the repo now describe something other than what the code does? For each, what would a rename cost, and when should it run?
 
 **Method.**

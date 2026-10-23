@@ -14,4 +14,3 @@ def test_generated_module_matches_the_brand_file() -> None:
     assert brand.NAME == file["name"]
     assert brand.PROJECT_FOLDER == file["identity"]["projectFolder"]
     assert brand.DATA_FOLDER == file["identity"]["dataFolder"]
-    assert brand.RETIRED_NAMES == tuple(file["retiredNames"])

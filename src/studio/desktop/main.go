@@ -32,8 +32,6 @@ func main() {
 	if code, handled := runEarlyModes(os.Args[1:], resources, os.Stdout, os.Stderr); handled {
 		os.Exit(code)
 	}
-	// Before anything reads a per-user folder: the update relaunch reads its record from the cache folder.
-	migrateUserFolders()
 	if !startAfterUpdate() {
 		return
 	}

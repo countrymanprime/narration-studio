@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"desktop/internal/daw"
 	"desktop/internal/dawport"
@@ -36,8 +37,8 @@ type DawChoice struct {
 	Source string `json:"source"`
 	// Chosen is the narrator's saved choice, null when none; it differs from Daw only while a launch's --daw overrides it.
 	Chosen *string `json:"chosen"`
-	// State is the project's DAW as the Booth's chip words it: "connected", "not_running", "linked", "not_linked", "app" (the
-	// built-in recorder) or "none".
+	// State is the project's DAW as the Booth's chip words it: "connected", "starting" (the app opened REAPER and is waiting for its
+	// bridge), "not_running", "linked", "not_linked", "app" (the built-in recorder) or "none".
 	State     string `json:"state"`
 	Reachable bool   `json:"reachable"`
 	// LinkedFile is the linked REAPER project file's name, null when none is linked.
@@ -49,6 +50,11 @@ type DawChoice struct {
 	// Experimental is DAW.experimental_reaper_actions, the global switch Experimental capabilities wait on.
 	Experimental bool              `json:"experimental"`
 	Options      []DawChoiceOption `json:"options"`
+	// Starting is set while a REAPER start the app made has not answered yet (reaperbridge.go); null otherwise.
+	Starting *dawStarting `json:"starting"`
+	// Bridge is where the app's bridge in REAPER stands; null for a project that does not record with REAPER, or before the app
+	// first checked it.
+	Bridge *reaperBridgeStatus `json:"bridge"`
 }
 
 // DawChoice answers the project's DAW choice. It changes nothing.
@@ -163,6 +169,14 @@ func (h *Host) dawChoice(svc hostServices) DawChoice {
 	if project.folder.linkedPath != "" {
 		name := filepath.Base(project.folder.linkedPath)
 		choice.LinkedFile = &name
+	}
+	if project.kind.LinksProjectFile() && choice.HasProject {
+		now := time.Now()
+		choice.Starting = h.reaperStarting(svc.config.projectFolder, runtime.Reachable, now)
+		if choice.Starting != nil && choice.State != "connected" {
+			choice.State = "starting"
+		}
+		choice.Bridge = h.reaperBridgeReport(svc.config.projectFolder, runtime.Reachable, now)
 	}
 	h.logDawState(choice, svc.bridge != nil)
 	for _, kind := range dawport.Choosable() {
