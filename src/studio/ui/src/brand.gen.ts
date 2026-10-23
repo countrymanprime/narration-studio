@@ -7,7 +7,7 @@ export const brand = {
   repository: {
     slug: 'countrymanprime/narration-studio',
     url: 'https://github.com/countrymanprime/narration-studio',
-    pagesUrl: 'https://countrymanprime.github.io/<app>/',
+    pagesUrl: 'https://countrymanprime.github.io/narration-studio/',
   },
   identity: {
     dataFolder: 'narration-studio',
