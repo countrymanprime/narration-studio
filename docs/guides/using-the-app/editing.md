@@ -53,6 +53,15 @@ The bar at the foot plays the chapter in the app, from its recorded audio with e
 DAW closed. It shows the time, and what is selected with its start, end and length. The key hints under it come from
 your keyboard settings ([Settings](settings.md)), so a key you rebound shows its new key.
 
+Beside the clock, the **Output** group sets what you hear, not what is recorded. **Silence output** mutes the app's sound; it is not the
+**Mute** that silences the selected words in the recording. **Show volume and output device** opens a popover with the speed (0.75× to 2×, with the pitch of the voice kept), the volume and the output device: the system
+default, or one of this computer's outputs. A speed other than 1× is also written beside the buttons. The choices apply to the chapter and to a take you play on this page, and are kept for this
+computer, not for the project. A saved output that is not connected stays chosen with "(not connected)", the sound plays on the system default meanwhile, and **Check again** reads the list; a
+computer that names no outputs turns the choice off and says so. With REAPER connected and **Set the monitor level** on in [Settings](settings.md), the popover also has REAPER's monitor level,
+which sets REAPER's own output when REAPER plays and does not change the app's sound.
+
+![Editing - the Output popover open over the bar: the speed, the volume, the output device and REAPER's monitor level](../../images/ui/editing-output.webp)
+
 The word playing is lit, and the text scrolls to keep it in sight until you scroll by hand; the next play scrolls it
 again. When you play the project in the DAW instead, the lit word follows the DAW's play position, as long as the DAW
 reports one and the app is not playing its own audio. When the DAW stops, its last word stays lit until you move the
@@ -76,7 +85,7 @@ the same way, a phrase at a time. Every other key does its job once, however lon
 line** (on a line with more than one take) and **Delete**; the bar offers the same actions, with **Delete words and
 audio** in full on a wide window. **Delete**, **Mute** and **Add FX** stay on the bar but are off while the DAW cannot make
 the change (they are Experimental and start switched off in [Settings](settings.md)); a line above the bar then says so
-and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it, headed by the take that plays (or "recording") and the stretch it draws. Right-click a word for its
+and why, and the same sentence is in each button's hint. The line's audio shows under it while the cursor is on it, headed by the take that plays (or "recording") and the stretch it draws. The audio is drawn as rounded bars, the same as the waveform on the public site: the bar's height is how loud that moment is, and the bars grow from the middle line, so a quiet stretch is a row of dots. While the line plays, the bars it has played are in the accent colour and the ones still to come are grey, and the few bars around the playhead swell and ease back with the beat. With **Motion** set to reduce in Settings (or Windows asking for it), nothing moves: the bars keep the played and unplayed colours and the playhead, and stay still. Right-click a word for its
 menu: play the selection, copy, delete or mute the words, **Add FX** and **Mark as** (each opens a list beside it), remove an effect, **Mark as voice sample…**, mark them for a pickup, add a note,
 show or keep the line's takes, and **Split into takes** on a line whose one take reads it twice.
 
@@ -93,6 +102,30 @@ A flagged word opens its card: what the script says and what was heard, and the 
 clears the mark (with Undo in the message that confirms it).
 
 ![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and the line's audio](../../images/ui/editing-selection.webp)
+
+## Choosing a range on the waveform
+
+The line's audio under the cursor is also a place to choose by time. **Drag** on it to draw a range with a handle on each edge; the
+words it covers are selected in the script (a word is selected when the range lies over at least half of it), and selecting words in the
+script sets the range to their span. **Drag a handle** to move one edge, or **drag inside the range** to move all of it; a range
+stays inside the line and never gets narrower than 50 ms. Hold **Alt** while dragging to snap to the nearest word boundary (the start or
+end of any heard word). A tap without a drag puts the cursor on the word under it.
+
+With a handle focused, **←** and **→** move that edge by a hundredth of what is showing (at least 10 ms), **Shift** by ten times
+that, and **Alt** to the next word boundary. The handles are sliders named "Start of range" and "End of range"; each announces its time, the range, its length
+and its words, and the range is announced when it is set.
+
+**Zoom in** and **Zoom out** step the view from the whole line down to one second; **Ctrl+wheel** (or a trackpad pinch) zooms about the
+pointer, and a sideways wheel or **Shift+wheel** pans. A thin strip under a zoomed waveform pans by drag or by **←** and **→** (Shift for a
+whole window), with **+** and **-** zooming. The view follows the playhead; moving it by hand while the line plays stops that until playback
+stops. One second is the closest view because the host keeps 50 peaks a second, 20 ms each: closer, the picture would only get bigger. When
+a bar is wider than 10 px the waveform says what a bar is.
+
+**Delete** and **Add FX** still work on whole words, because the DAW takes a range as its first and last word. When an edge is inside a word, the line under the
+waveform names the word and how much of it the range covers, and the question before a cut or an effect shows "Sub-word edge, shown as a preview" with
+both ranges; the cut or effect goes on the whole words. Making it exact needs a time-based command in the DAW bridge, which is not built.
+
+![Editing - a range drawn on the line's waveform with an edge inside a word, zoomed in: the two handles, the pan strip, the partly covered word and the sub-word preview](../../images/ui/editing-range.webp)
 
 ## Deleting words and their audio
 
@@ -217,6 +250,17 @@ timeline button (S) shows and hides; on a narrower window it is a tab of the dra
 ![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW](../../images/ui/editing-drawer-effects-inspector.webp)
 
 ![Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
+
+## Playing with REAPER
+
+With **Play and follow the project's transport** on (Settings > DAW; it is an experimental action, so it also needs Experimental DAW actions, or its own switch set to On) and REAPER open on this book's project, the page and REAPER's transport follow each other:
+
+- Clicking a word, or moving the cursor to it, puts REAPER's edit cursor at that word. Moving REAPER's edit cursor puts the page's cursor on the word there.
+- **Play** (Space) starts REAPER from the cursor and the app stays silent: the sound comes through REAPER's output and level. The lit word and the ribbon follow REAPER's play head, about four times a second. **Stop** stops both.
+- Pressing Play or Stop in REAPER lights the word it is on, or stops the page, the same way.
+- A word with no place in the project (the audio before a trim, a stretch after a cut, a gap between paragraphs) moves nothing, and REAPER's cursor on such a place moves nothing on the page.
+
+If REAPER refuses (it is recording, say), a message gives its reason and the app plays the audio itself, as it does when REAPER is not connected, has another project open, or the switch is off. If REAPER stops answering while it plays for the page, playback stops and says so.
 
 ## When the DAW is not connected
 

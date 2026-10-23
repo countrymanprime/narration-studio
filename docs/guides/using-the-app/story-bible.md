@@ -14,7 +14,7 @@ Selecting an entry opens its detail panel, read-only at first: its names and how
 description, for a type that can speak **How they talk**, **How they act** and **What they know**, its
 properties, its **Relationships** to other entries, and **Appears in**, the chapters it is in, each with a
 button that opens it in the [Script](script.md). The kind beside the name is a plain label until you press Edit, when it becomes a menu that changes it, and the
-magnifier button opens the Script's Find on the name. Press Edit (the pencil) to change the entry, then Save
+magnifier button lights the name in the Script's text. Press Edit (the pencil) to change the entry, then Save
 (or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Locked entries can't be edited until
 unlocked. The scan is deliberately strict: it favors missing a name over listing ordinary
 words, so add unusual names by hand with the + button.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAppliedOutput, type OutputPrefs } from './outputPrefs';
 import { onSampleStart } from '../voicesamples/samplePlayerStore';
 
 // Fixed lead-in/trail-off ("pre/post roll") around a matched span. Not a setting (YAGNI): nothing calls for
@@ -24,9 +25,13 @@ export function useRangePlayer(
   mediaUrl: (sourceFile: string) => string,
   // Proof's Play ±3 s plays a note with 3 s either side; every audition keeps the fixed roll above.
   roll: { pre: number; post: number } = { pre: AUDITION_PRE_ROLL_SECONDS, post: AUDITION_POST_ROLL_SECONDS },
+  // The narrator's volume, mute, speed and output (Editing's output controls); absent leaves the element as the webview makes it.
+  output?: OutputPrefs,
 ) {
   const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
   if (!audioRef.current) audioRef.current = new Audio();
+  const getAudio = useCallback(() => audioRef.current, []);
+  useAppliedOutput(getAudio, output);
 
   const [range, setRange] = useState<AuditionRange>();
   const [isPlaying, setIsPlaying] = useState(false);

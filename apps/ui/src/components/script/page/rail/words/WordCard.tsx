@@ -10,6 +10,7 @@ import { PronSourceTag } from '../../../../storybible/source/PronSourceTag';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
 import { useScriptCommands, useScriptPrep } from '../../data/useScriptData';
 import type { LineRange } from '../../data/scriptCommands';
+import { RailFieldRow, RailOptionRow } from '../RailOptionRow';
 import { DefinitionBlock } from './DefinitionBlock';
 import { ExternalLinks } from './ExternalLinks';
 import { statusLabel, statusTone } from './wordStatus';
@@ -61,26 +62,28 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
         <IconButton action="hear" onClick={() => overlay.toast(`Playing “${word}” reference clip`)} />
         <IconButton action="record" onClick={() => overlay.toast('Recording your own pronunciation')} />
       </div>
-      <div className="flex items-center gap-2">
-        <SectionLabel>How I will say it</SectionLabel>
-        <span className="flex-1" />
+      <RailOptionRow label="How I will say it">
         <PronSourceTag src={saved.source} sources={sources} word={word} onPick={(id) => void pick(id)} disabled={busy} />
-      </div>
-      <div className="flex items-center gap-2">
-        <TextField
-          label="How I will say it"
-          mono
-          placeholder="for example: kroh-KAY"
-          value={say}
-          onChange={setSay}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') void save(say, 'manual');
-          }}
-        />
-        <Button variant="secondary" pending={busy} onClick={() => void save(say, 'manual')}>
-          Save
-        </Button>
-      </div>
+      </RailOptionRow>
+      <RailFieldRow
+        field={
+          <TextField
+            label="How I will say it"
+            mono
+            placeholder="for example: kroh-KAY"
+            value={say}
+            onChange={setSay}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') void save(say, 'manual');
+            }}
+          />
+        }
+        action={
+          <Button variant="secondary" pending={busy} onClick={() => void save(say, 'manual')}>
+            Save
+          </Button>
+        }
+      />
       {note && (
         <p role="status" className="m-0 text-xs text-[var(--text-muted)]">
           {note}

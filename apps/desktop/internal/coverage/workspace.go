@@ -48,11 +48,15 @@ type AlignmentView struct {
 	Reasons         []string                `json:"reasons"`
 	Basis           *BasisView              `json:"basis,omitempty"`
 	NeedsAlignAgain bool                    `json:"needsAlignAgain"`
-	Paragraphs      []AlignmentParagraph    `json:"paragraphs"`
-	Tokens          []TokenLine             `json:"tokens"`
-	Extras          []ExtraLine             `json:"extras"`
-	Items           []AlignmentItem         `json:"items"`
-	Engine          *AlignmentEngine        `json:"engine,omitempty"`
+	// Title and Subtitle are the chapter's heading, which a narrator reads aloud before the first paragraph, so the page sets them against what
+	// was heard too. A credits row has none (its text is rendered, and its name is never read).
+	Title      string               `json:"title,omitempty"`
+	Subtitle   string               `json:"subtitle,omitempty"`
+	Paragraphs []AlignmentParagraph `json:"paragraphs"`
+	Tokens     []TokenLine          `json:"tokens"`
+	Extras     []ExtraLine          `json:"extras"`
+	Items      []AlignmentItem      `json:"items"`
+	Engine     *AlignmentEngine     `json:"engine,omitempty"`
 	// RecordID is the ledger record of the recording check these word times came from, set only while that check is current. A voice
 	// sample marked from these words sends it back, and the host refuses the mark when the chapter's current record is another one.
 	RecordID string `json:"recordId,omitempty"`
@@ -189,6 +193,7 @@ func (s *Service) Alignment(chapterID string, alignment AlignmentParams) (Alignm
 		// that cannot be read leaves the script out; it does not fail the answer, which already says why nothing is known.
 		if paragraphs, err := s.chapterParagraphs(chapterID); err == nil {
 			view.Paragraphs = paragraphs
+			view.Title, view.Subtitle = s.chapterHeading(chapterID)
 		}
 		return view, nil
 	}
@@ -204,6 +209,7 @@ func (s *Service) Alignment(chapterID string, alignment AlignmentParams) (Alignm
 		return AlignmentView{}, err
 	}
 	view.Paragraphs = paragraphs
+	view.Title, view.Subtitle = s.chapterHeading(chapterID)
 	project, _, err := s.savedProject()
 	if err != nil {
 		return AlignmentView{}, err
@@ -235,6 +241,25 @@ func (s *Service) chapterParagraphs(chapterID string) ([]AlignmentParagraph, err
 		paragraphs = append(paragraphs, AlignmentParagraph{ID: id, Text: text})
 	}
 	return nonNil(paragraphs), nil
+}
+
+// chapterHeading is the chapter's title and subtitle from the manuscript, or two empty strings for a credits row (its name is never read
+// aloud) and for a manuscript that cannot be read: a missing heading only leaves it out of the page's text.
+func (s *Service) chapterHeading(chapterID string) (title, subtitle string) {
+	if _, ok := CreditsKind(chapterID); ok || s.config.LoadManuscript == nil {
+		return "", ""
+	}
+	data, err := s.config.LoadManuscript()
+	if err != nil {
+		return "", ""
+	}
+	chapter, ok := findChapter(data, chapterID)
+	if !ok {
+		return "", ""
+	}
+	title, _ = chapter["title"].(string)
+	subtitle, _ = chapter["subtitle"].(string)
+	return title, subtitle
 }
 
 // alignmentItems joins the stored report's items (COVERAGE_ITEM lines, one

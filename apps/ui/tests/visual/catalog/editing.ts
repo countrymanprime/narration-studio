@@ -8,6 +8,12 @@ import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, TOAST_FADES_OUT } 
 export const editingStates: StateEntry[] = [
   {
     page: 'editing',
+    state: 'jump-menu',
+    description:
+      'Editing, the jump menu typed "selected" with no words selected: the selection actions listed under On this page, each off with "Select some words in the script first."',
+  },
+  {
+    page: 'editing',
     state: 'default',
     description:
       'Editing, Chapter 1 linked to its track - the header with the chapter step and the legend, the script with each line’s takes chip and time, the bar and the key hints',
@@ -16,6 +22,26 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'selection',
     description: 'Editing, four words selected - the floating toolbar under them, the bar naming "4 words" with their times, and the line’s audio ribbon',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'range',
+    description:
+      'Editing, a range drawn on the line’s waveform with an edge inside a word and the view zoomed in once - the handles, the pan strip, the partial word and the sub-word preview',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'output-popover',
+    description:
+      'Editing, the Output button pressed - the popover over the bar with the speed, the volume, the output device and the DAW’s monitor level, and the silence button beside it',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'output-no-outputs',
+    description: 'Editing, the Output popover on a computer that names no outputs - the device choice is off with its reason and Check again',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {

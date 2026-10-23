@@ -8,15 +8,18 @@ export function Switch({
   checked,
   onChange,
   disabled,
+  className = '',
   children,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
+  /** Added to the label, for a switch that fills a row. */
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <label className="inline-flex items-center gap-2 text-sm">
+    <label className={`inline-flex items-center gap-2 text-sm ${disabled ? '' : 'cursor-pointer'} ${className}`.trim()}>
       <BaseSwitch.Root
         checked={checked}
         disabled={disabled}
@@ -25,7 +28,8 @@ export function Switch({
       >
         <BaseSwitch.Thumb className="size-3.5 rounded-full bg-[var(--surface)] shadow-[var(--shadow)] data-[checked]:translate-x-4 motion-ok:transition-transform" />
       </BaseSwitch.Root>
-      <span>{children}</span>
+      {/* min-w-0: a long label shrinks and clips inside its column instead of running behind the next one. */}
+      <span className="min-w-0 flex-1">{children}</span>
     </label>
   );
 }

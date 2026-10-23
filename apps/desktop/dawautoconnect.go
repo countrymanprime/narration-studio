@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/countrymanprime/narration-utils/shell/internal/daw"
+	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
 // The app connects to the REAPER the narrator already has open without a click. A project that records with REAPER and has its
@@ -99,11 +100,49 @@ func (h *Host) autoConnectOnce(lastLaunch time.Time) time.Time {
 		h.runLog.App().Event(slog.LevelInfo, "daw.autoconnect", "attaching to REAPER's live bridge session", "action", "attach", "bridge_session", hub)
 		h.attachBridgeSession(hub, pd.folder.linkedPath)
 	case autoConnectLaunch:
-		_, err := launchReaper(svc, h.persist, h.reaperLocate, h.reaperLaunch, h.reaperRunning)
-		h.runLog.App().Event(slog.LevelInfo, "daw.autoconnect", "ran the launcher in the open REAPER", "action", "launch", "ok", err == nil, "error", errText(err))
+		sent, err := launchReaperForAutoConnect(svc, h.persist, h.reaperLocate, h.reaperLaunch, h.reaperRunning)
+		h.runLog.App().Event(slog.LevelInfo, "daw.autoconnect", "ran the launcher in the open REAPER", "action", "launch", "ok", err == nil, "error", errText(err),
+			"args", sent.Args, "launcher_found", sent.LauncherFound, "reaper_source", sent.Source)
 		return facts.Now
 	}
 	return lastLaunch
+}
+
+// launchSummary is what a launch handed REAPER, worded so it can go in the run log: the log keeps paths out, so the arguments are named
+// by kind ("project", "launcher") and the launcher script is reported as on disk or not.
+type launchSummary struct {
+	Args          string
+	LauncherFound bool
+	Source        string
+}
+
+// launchReaperForAutoConnect is launchReaper that also reports what it passed to REAPER. A launch that REAPER silently ignores (a script
+// path that is not there, say) otherwise looks exactly like one that worked.
+func launchReaperForAutoConnect(svc hostServices, reporter *persist.Reporter, locate func() (path, source string, err error), launch func(program string, args []string) error, running func() bool) (launchSummary, error) {
+	var sent []string
+	if launch == nil {
+		launch = func(program string, args []string) error { return daw.Launch(program, args...) }
+	}
+	result, err := launchReaper(svc, reporter, locate, func(program string, args []string) error {
+		sent = args
+		return launch(program, args)
+	}, running)
+	summary := launchSummary{}
+	if source, ok := result["source"].(string); ok {
+		summary.Source = source
+	}
+	kinds := make([]string, 0, len(sent))
+	for _, arg := range sent {
+		if arg == svc.config.reaperLauncher {
+			kinds = append(kinds, "launcher")
+			_, statErr := os.Stat(arg)
+			summary.LauncherFound = statErr == nil
+		} else {
+			kinds = append(kinds, "project")
+		}
+	}
+	summary.Args = strings.Join(kinds, ",")
+	return summary, err
 }
 
 func errText(err error) string {
@@ -145,13 +184,13 @@ func liveBridgeSession(now time.Time) string {
 	return live[0].name
 }
 
-// bridgeSessionsRoot is where REAPER's launcher creates its session folders (NarrationUtils_Launcher.lua: <resource path>/NarrationUtils/sessions).
+// bridgeSessionsRoot is where REAPER's launcher creates its session folders (NarrationStudio_Launcher.lua: <resource path>/NarrationStudio/sessions).
 func bridgeSessionsRoot() string {
 	appData := os.Getenv("APPDATA")
 	if appData == "" {
 		return ""
 	}
-	return filepath.Join(appData, "REAPER", "NarrationUtils", "sessions")
+	return filepath.Join(appData, "REAPER", "NarrationStudio", "sessions")
 }
 
 // attachBridgeSession gives this app the named bridge session by attaching the open project again with that session folder, the

@@ -942,6 +942,16 @@ export function DawStopFxCompare(): $CancellablePromise<string> {
 }
 
 /**
+ * DawTransportSync runs one action on the DAW's transport: "cursor" puts the edit cursor at seconds, "play" starts the transport at seconds, "stop"
+ * stops it, and "watch" takes or renews the lease on the daw_position_changed stream (seconds is ignored by the last two). The answer is a DawResult:
+ * the capability's own sentence when the resolver refuses it, a DAW that has another project open, a recording in progress, or a time that is not
+ * usable, each with nothing changed. It adds no undo step.
+ */
+export function DawTransportSync(action: string, seconds: number): $CancellablePromise<string> {
+    return $Call.ByID(388325684, action, seconds);
+}
+
+/**
  * DawTrimRange shortens a gap between words: it hides start..end project seconds of itemID, an item of chapterID, with fadeMs (0 to
  * 500) at the seam (SN-E112: Clean up's Gaps, "Shorten to N s"). It is the cut_range role's DeleteRange with no words, no pad and
  * no room tone, in mode close: the piece goes to the muted Cuts track and the audio after it moves up; nothing is deleted. itemID

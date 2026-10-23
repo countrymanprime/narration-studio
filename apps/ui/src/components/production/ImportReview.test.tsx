@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ImportReview, ImportSummary } from './ImportReview';
+import { ImportReview } from './ImportReview';
 import type { ReviewGroupOpen } from './importReviewModel';
 import { mockImportPreview, type MockImportKind } from '../../api/mockImportPreview';
 import { HEADING_LABELS, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
@@ -30,7 +30,6 @@ function Harness({
   const [groupOpen, setGroupOpen] = useState<ReviewGroupOpen>({});
   return (
     <>
-      <ImportSummary preview={preview} selection={selection} requiresReset={false} />
       <ImportReview
         preview={preview}
         selection={selection}
@@ -48,6 +47,7 @@ function Harness({
 const renderReview = (kind: MockImportKind = 'docx', props: Partial<Parameters<typeof Harness>[0]> = {}) =>
   render(<Harness preview={mockImportPreview(kind)} {...props} />);
 const groupButton = (name: RegExp) => screen.getByRole('button', { name });
+const chapterSwitch = (name: RegExp) => screen.getByRole('switch', { name });
 
 describe('ImportReview', () => {
   it('lists the detected chapters of a PDF, which has no sections to review', () => {
@@ -57,13 +57,15 @@ describe('ImportReview', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
   });
 
-  it('is grouped by what each section will be, with a count on every group', () => {
+  it('lists the chapters in one group with a switch on each row, and the character suggestions apart', () => {
     renderReview();
-    expect(groupButton(/^Narration chapters 5 chapters$/).getAttribute('aria-expanded')).toBe('true');
-    expect(groupButton(/^Front matter 1 section$/).getAttribute('aria-expanded')).toBe('true');
-    expect(groupButton(/^Reference material 2 sections$/).getAttribute('aria-expanded')).toBe('true');
-    expect(groupButton(/^Story Bible character suggestions 3 of 3 checked$/).getAttribute('aria-expanded')).toBe('false');
-    expect(screen.getByRole('combobox', { name: 'Glossary content type' })).toBeTruthy();
+    expect(groupButton(/^Chapters 5 of 5 chapters included$/).getAttribute('aria-expanded')).toBe('true');
+    expect(groupButton(/^Character suggestions 3 of 3 checked$/).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getAllByRole('switch')).toHaveLength(5);
+    for (const name of [/^Chapter One/, /^Chapter Two/, /^Chapter Three/, /^Chapter Four/, /^Chapter Five/]) {
+      expect(chapterSwitch(name).getAttribute('aria-checked')).toBe('true');
+    }
+    expect(screen.queryByRole('combobox', { name: /content type/ })).toBeNull();
   });
 
   it('does not show the sentence about reference material, nor the preview activity', () => {
@@ -73,76 +75,193 @@ describe('ImportReview', () => {
     expect(document.querySelector('.progressbar')).toBeNull();
   });
 
-  it('puts a note on front matter and on reference material, each true for its group, and none on the chapters', () => {
+  it('never lists, counts or asks about front matter or reference material', () => {
     renderReview();
-    expect(screen.getByRole('button', { name: 'About reference material' }).getAttribute('aria-description')).toBe(
-      'Excluded from audiobook totals, Proof and the chapter list. Still readable in the manuscript.',
+    expect(screen.queryByText(/front matter/i)).toBeNull();
+    expect(screen.queryByText(/reference material/i)).toBeNull();
+    expect(screen.queryByRole('switch', { name: /Front Matter|Glossary|Characters/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^About (front matter|reference material)/i })).toBeNull();
+    expect(screen.queryByText(/narration chapter/i)).toBeNull();
+  });
+
+  it('leaves the sections it does not list as the importer sorted them', () => {
+    const onSelectionChange = vi.fn();
+    render(
+      <ImportReview
+        preview={mockImportPreview()}
+        selection={{}}
+        onSelectionChange={onSelectionChange}
+        headingLevel={1}
+        onHeadingLevelChange={() => {}}
+        groupOpen={{}}
+        onGroupOpenChange={() => {}}
+      />,
     );
-    expect(screen.getByRole('button', { name: 'About front matter' }).getAttribute('aria-description')).toMatch(/excluded from audiobook totals and Proof\./);
-    expect(screen.getAllByRole('button', { name: /^About / })).toHaveLength(2);
+    fireEvent.click(chapterSwitch(/^Chapter Three/));
+    const next = (onSelectionChange.mock.calls[0]?.[0] as (current: ManuscriptImportSelection) => ManuscriptImportSelection)({});
+    expect(next.sectionKinds).toEqual({ 'section-0003': 'reference' });
   });
 
-  it('shows the note when the keyboard reaches the icon, and Escape hides it', async () => {
+  it('offers a character found in a reference section under the characters, and only there', async () => {
     const user = userEvent.setup();
     renderReview();
-    const info = screen.getByRole('button', { name: 'About reference material' });
-    for (let presses = 0; document.activeElement !== info && presses < 20; presses++) await user.tab();
-    expect(document.activeElement).toBe(info);
-    expect((await screen.findByRole('tooltip')).textContent).toMatch(/Still readable in the manuscript/);
-    await user.keyboard('{Escape}');
-    expect(screen.queryByRole('tooltip')).toBeNull();
+    await user.click(groupButton(/^Character suggestions/));
+    expect(screen.getByRole('switch', { name: /^Alice/ })).toBeTruthy();
+    expect(screen.queryByText('Characters')).toBeNull();
+    expect(screen.queryByText(/story bible character/i)).toBeNull();
   });
 
-  it('collapses and expands a group on a press, and keeps what the narrator chose', async () => {
+  it('collapses and expands the chapters on a press, and keeps what the narrator chose', async () => {
     const user = userEvent.setup();
     renderReview();
-    await user.click(groupButton(/^Narration chapters/));
-    expect(screen.queryByRole('combobox', { name: 'Chapter Three content type' })).toBeNull();
-    await user.click(groupButton(/^Narration chapters/));
-    expect(screen.getByRole('combobox', { name: 'Chapter Three content type' })).toBeTruthy();
+    await user.click(groupButton(/^Chapters/));
+    expect(screen.queryByRole('switch', { name: /^Chapter Three/ })).toBeNull();
+    await user.click(groupButton(/^Chapters/));
+    expect(chapterSwitch(/^Chapter Three/)).toBeTruthy();
   });
 
-  it('moves a reclassified row to its new group at once, updates the counts, and keeps focus on the select', async () => {
-    renderReview();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Glossary content type' }), { target: { value: 'narration' } });
-    expect(groupButton(/^Narration chapters 6 chapters$/)).toBeTruthy();
-    expect(groupButton(/^Reference material 1 section$/)).toBeTruthy();
-    expect(screen.getByText(/^DOCX · 221 paragraphs · 6 narration chapters\.$/)).toBeTruthy();
-    const moved = screen.getByRole('combobox', { name: 'Glossary content type' }) as HTMLSelectElement;
-    expect(moved.value).toBe('narration');
-    expect(document.activeElement).toBe(moved);
-  });
-
-  it('opens a group that a row is moved into, and removes a group left with no rows', async () => {
+  it('is an accordion: opening the character suggestions collapses the chapters, and the chapters header stays in view', async () => {
     const user = userEvent.setup();
     renderReview();
-    await user.click(groupButton(/^Narration chapters/));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Front Matter content type' }), { target: { value: 'narration' } });
-    expect(screen.queryByRole('button', { name: /^Front matter/ })).toBeNull();
-    expect(groupButton(/^Narration chapters 6 chapters$/).getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByRole('combobox', { name: 'Front Matter content type' })).toBeTruthy();
+    expect(groupButton(/^Chapters/).getAttribute('aria-expanded')).toBe('true');
+    await user.click(groupButton(/^Character suggestions/));
+    expect(groupButton(/^Character suggestions/).getAttribute('aria-expanded')).toBe('true');
+    expect(groupButton(/^Chapters/).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('switch', { name: /^Chapter One/ })).toBeNull();
+    expect(screen.getByRole('switch', { name: /^Alice/ })).toBeTruthy();
+    // The collapsed group is only its header, still there to press.
+    expect(groupButton(/^Chapters 5 of 5 chapters included$/)).toBeTruthy();
   });
 
-  it('counts the character suggestions live, opens them once one is unchecked, and selects all or none', async () => {
+  it('opening the chapters again collapses the character suggestions', async () => {
     const user = userEvent.setup();
     renderReview();
-    await user.click(groupButton(/^Story Bible character suggestions/));
-    await user.click(screen.getByRole('checkbox', { name: /^The White Rabbit/ }));
-    expect(groupButton(/^Story Bible character suggestions 2 of 3 checked$/).getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText(/2 of 3 character suggestions checked/)).toBeTruthy();
+    await user.click(groupButton(/^Character suggestions/));
+    await user.click(groupButton(/^Chapters/));
+    expect(groupButton(/^Chapters/).getAttribute('aria-expanded')).toBe('true');
+    expect(groupButton(/^Character suggestions/).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('switch', { name: /^Alice/ })).toBeNull();
+    expect(chapterSwitch(/^Chapter One/)).toBeTruthy();
+  });
+
+  it('closing the open group leaves every group closed, with every header still in view', async () => {
+    const user = userEvent.setup();
+    renderReview('repaired');
+    await user.click(groupButton(/^Chapters/));
+    for (const name of [/^Chapters/, /^Character suggestions/, /^Repairs/]) expect(groupButton(name).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+    expect(screen.getByText('Review what was found')).toBeTruthy();
+  });
+
+  it('keeps the groups in one order, the open one taking the room and scrolling, a closed one only its header', async () => {
+    const user = userEvent.setup();
+    renderReview('repaired');
+    const order = () => screen.getAllByRole('button', { name: /^(Chapters|Character suggestions|Repairs)/ }).map((button) => button.textContent!.split(' ')[0]);
+    expect(order()).toEqual(['Chapters', 'Character', 'Repairs']);
+    await user.click(groupButton(/^Repairs/));
+    expect(order()).toEqual(['Chapters', 'Character', 'Repairs']);
+    const panel = screen.getByText(/CHAPTER ONEDown the Rabbit-Hole/).closest('.overflow-y-auto')!;
+    expect(panel.className).toContain('flex-1');
+    expect(document.body.querySelectorAll('.overflow-y-auto')).toHaveLength(1);
+    expect(groupButton(/^Chapters/).closest('.flex-none')).not.toBeNull();
+  });
+
+  it('leaves a chapter out of the recording when its switch is turned off, and puts it back when turned on, with the counts following', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    await user.click(chapterSwitch(/^Chapter Three/));
+    expect(chapterSwitch(/^Chapter Three/).getAttribute('aria-checked')).toBe('false');
+    expect(groupButton(/^Chapters 4 of 5 chapters included$/)).toBeTruthy();
+    expect(within(screen.getByLabelText('What was found')).getByText('4 chapters')).toBeTruthy();
+    // Only the chapters are switches here: the character suggestions are folded while every one is checked.
+    expect(screen.getAllByRole('switch')).toHaveLength(5);
+    await user.click(chapterSwitch(/^Chapter Three/));
+    expect(groupButton(/^Chapters 5 of 5 chapters included$/)).toBeTruthy();
+    expect(within(screen.getByLabelText('What was found')).getByText('5 chapters')).toBeTruthy();
+  });
+
+  it('sets the chapters in two columns with no scrollbar of their own: the one scroller is the box around the whole review', () => {
+    renderReview();
+    const list = chapterSwitch(/^Chapter One/).closest('.sm\\:grid-cols-2');
+    expect(list).not.toBeNull();
+    expect(list!.className).not.toMatch(/overflow-y-|max-h-/);
+    const scroller = list!.closest('.overflow-y-auto');
+    expect(scroller).not.toBeNull();
+    expect(scroller!.className).toContain('min-h-0');
+    expect(scroller!.className).toContain('flex-1');
+    // Exactly one element scrolls in the review.
+    expect(document.body.querySelectorAll('.overflow-y-auto')).toHaveLength(1);
+  });
+
+  it('puts the options above the list and the sample below the one scroller, never inside it', () => {
+    renderReview('markdown');
+    const options = screen.getByText('Import options');
+    const list = chapterSwitch(/^Chapter One/);
+    const sample = screen.getByRole('region', { name: 'Preview of the selected heading' });
+    expect(options.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const scroller = list.closest('.overflow-y-auto')!;
+    expect(scroller.contains(options)).toBe(false);
+    expect(scroller.contains(sample)).toBe(false);
+    expect(scroller.compareDocumentPosition(sample) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sample.className).toContain('flex-none');
+    expect(sample.className).not.toContain('sticky');
+  });
+
+  it('boxes the groups under a label that is not in the box, and keeps the sample one size', () => {
+    renderReview();
+    const label = screen.getByText('Review what was found');
+    const box = screen.getByRole('button', { name: /^Chapters/ }).closest('.border')!;
+    expect(box.className).toContain('rounded');
+    expect(box.contains(label)).toBe(false);
+    expect(label.closest('.overflow-y-auto')).toBeNull();
+    const sample = screen.getByRole('region', { name: 'Preview of the selected heading' });
+    // A fixed height, so a longer first line never changes the box (and the scroll bar above it) while the pointer moves down the list.
+    expect(sample.className).toContain('h-[8.5rem]');
+    expect(sample.className).toContain('overflow-hidden');
+  });
+
+  it('centres each switch in its tile, so it stays in one place whether or not the chapter has a subtitle', () => {
+    renderReview();
+    const withSubtitle = chapterSwitch(/^Chapter One/).closest('label')!.parentElement!;
+    const without = chapterSwitch(/^Chapter Five/).closest('label')!.parentElement!;
+    for (const tile of [withSubtitle, without]) {
+      expect(tile.className).toContain('flex');
+      expect(tile.className).toContain('items-center');
+    }
+  });
+
+  it('counts the character suggestions live, and selects all or none', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    await user.click(groupButton(/^Character suggestions/));
+    await user.click(screen.getByRole('switch', { name: /^The White Rabbit/ }));
+    expect(groupButton(/^Character suggestions 2 of 3 checked$/).getAttribute('aria-expanded')).toBe('true');
     await user.click(screen.getByRole('button', { name: 'Select none' }));
-    expect(groupButton(/^Story Bible character suggestions 0 of 3 checked$/)).toBeTruthy();
+    expect(groupButton(/^Character suggestions 0 of 3 checked$/)).toBeTruthy();
     for (const name of ['Alice', 'The White Rabbit', 'The Duchess'])
-      expect(screen.getByRole('checkbox', { name: new RegExp(`^${name}`) }).getAttribute('aria-checked')).toBe('false');
+      expect(screen.getByRole('switch', { name: new RegExp(`^${name}`) }).getAttribute('aria-checked')).toBe('false');
     await user.click(screen.getByRole('button', { name: 'Select all' }));
-    expect(groupButton(/^Story Bible character suggestions 3 of 3 checked$/)).toBeTruthy();
+    expect(groupButton(/^Character suggestions 3 of 3 checked$/)).toBeTruthy();
+  });
+
+  it('shows how often each character appears, in place of a description, and says one appearance in the singular', async () => {
+    const user = userEvent.setup();
+    renderReview();
+    await user.click(groupButton(/^Character suggestions/));
+    expect(screen.getByRole('switch', { name: /^Alice.*412 appearances$/ })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: /^The White Rabbit.*38 appearances$/ })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: /^The Duchess.*1 appearance$/ })).toBeTruthy();
+    expect(screen.queryByText(/A curious girl who follows a White Rabbit/)).toBeNull();
   });
 
   it('says what the importer repaired, and shows nothing about repairs when it repaired nothing', () => {
     const { unmount } = renderReview('repaired');
+    // The repairs are an accordion group like the others: closed until opened, the chapters being the open one.
+    expect(groupButton(/^Repairs 2 made to the source$/).getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(groupButton(/^Repairs/));
     expect(groupButton(/^Repairs 2 made to the source$/).getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText(/CHAPTER ONEDown the Rabbit-Hole/)).toBeTruthy();
-    expect(screen.getByText(/2 repairs made to the source/)).toBeTruthy();
+    expect(within(screen.getByLabelText('What was found')).getByText('2 repairs')).toBeTruthy();
     unmount();
     renderReview('docx');
     expect(screen.queryByRole('button', { name: /^Repairs/ })).toBeNull();
@@ -174,10 +293,10 @@ describe('ImportReview', () => {
     expect(onChange.mock.calls[0]?.[0]).toBe(false);
   });
 
-  it('keeps a long title and subtitle in one row that can be cut short, with the whole line for a hover', () => {
+  it('keeps a long title in one row that can be cut short, with the whole line for a hover', () => {
     renderReview();
     const row = screen.getByText('Chapter Four').closest('[title]')!;
-    expect(row.className).toContain('truncate');
+    expect(row.querySelector('.truncate')).not.toBeNull();
     expect(row.getAttribute('title')).toMatch(/^Chapter Four — In Which Alice Considers/);
   });
 });
@@ -186,51 +305,40 @@ describe('ImportReview', () => {
 const outline = () => screen.getByRole('group', { name: 'Review what was found' });
 
 describe('ImportReview subtitles', () => {
-  const subtitleBox = (subtitle: string) => screen.getByRole('checkbox', { name: `Subtitle — ${subtitle}` });
-  const rowOf = (select: string) => screen.getByRole('combobox', { name: new RegExp(`^${select}.* content type$`) });
+  const subtitlesBox = () => screen.getByRole('checkbox', { name: 'Subtitles' });
 
-  it('gives every row with a subtitle a checked Subtitle box, named by its line, and none to a row without one', () => {
+  it('has one Subtitles choice for the book, in the import options, and none on the rows', () => {
     renderReview();
-    for (const subtitle of ['Down the Rabbit-Hole', 'The Pool of Tears']) expect(subtitleBox(subtitle).getAttribute('aria-checked')).toBe('true');
-    expect(screen.getAllByRole('checkbox', { name: /^Subtitle — / })).toHaveLength(3);
-    expect(screen.getByRole('checkbox', { name: "Read a heading's second line as its subtitle" }).getAttribute('aria-checked')).toBe('true');
+    expect(subtitlesBox().getAttribute('aria-checked')).toBe('true');
+    expect(within(screen.getByRole('group', { name: 'Import options' })).getByRole('checkbox', { name: 'Subtitles' })).toBe(subtitlesBox());
+    expect(screen.queryAllByRole('checkbox', { name: /^Subtitle — / })).toHaveLength(0);
+    expect(screen.queryByRole('checkbox', { name: "Read a heading's second line as its subtitle" })).toBeNull();
   });
 
-  it('joins a line turned off to the title in a Word file, in the row and in its select, and keeps the others', async () => {
+  it('draws a kept subtitle on a second line below the name, smaller and dimmer, with no dash between', () => {
+    renderReview();
+    const line = screen.getByText('The Pool of Tears');
+    expect(line.className).toContain('block');
+    expect(line.className).toContain('text-xs');
+    expect(line.className).toContain('text-[var(--text-muted)]');
+    expect(line.previousElementSibling?.textContent).toContain('Chapter Two');
+    expect(chapterSwitch(/^Chapter Two/).closest('label')!.textContent).not.toContain('—');
+  });
+
+  it('joins the line to the title when Subtitles is turned off, in a Word file', async () => {
     const user = userEvent.setup();
     renderReview();
-    await user.click(subtitleBox('Down the Rabbit-Hole'));
-    expect(subtitleBox('Down the Rabbit-Hole').getAttribute('aria-checked')).toBe('false');
+    await user.click(subtitlesBox());
+    expect(subtitlesBox().getAttribute('aria-checked')).toBe('false');
+    expect(screen.queryByText('Down the Rabbit-Hole')).toBeNull();
     expect(within(outline()).getByText('Chapter One Down the Rabbit-Hole').closest('[title]')!.getAttribute('title')).toBe('Chapter One Down the Rabbit-Hole');
-    expect(screen.getByRole('combobox', { name: 'Chapter One Down the Rabbit-Hole content type' })).toBeTruthy();
-    expect(screen.getByRole('combobox', { name: 'Chapter Two — The Pool of Tears content type' })).toBeTruthy();
   });
 
   it('says a line turned off in a plain-text file is read as text', async () => {
     const user = userEvent.setup();
     renderReview('text');
-    await user.click(subtitleBox('“Curiouser and curiouser!” cried Alice'));
-    expect(rowOf('Chapter One').getAttribute('aria-label')).toBe('Chapter One · “Curiouser and curiouser!” cried Alice is read as text content type');
-    expect(within(outline()).getByText(/is read as text$/)).toBeTruthy();
-  });
-
-  it('turns every row off from the default, and a row set by hand keeps its own answer', async () => {
-    const user = userEvent.setup();
-    renderReview();
-    await user.click(subtitleBox('The Pool of Tears'));
-    await user.click(subtitleBox('The Pool of Tears'));
-    await user.click(screen.getByRole('checkbox', { name: "Read a heading's second line as its subtitle" }));
-    expect(subtitleBox('Down the Rabbit-Hole').getAttribute('aria-checked')).toBe('false');
-    expect(subtitleBox('The Pool of Tears').getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByRole('combobox', { name: /^Chapter Four In Which Alice Considers/ })).toBeTruthy();
-  });
-});
-
-describe('ImportSummary', () => {
-  it('leads with the format, size and narration chapters, then what else exists, and adds what a replacement clears', () => {
-    render(<ImportSummary preview={mockImportPreview('docx')} selection={{}} requiresReset />);
-    expect(screen.getByText(/^DOCX · 221 paragraphs · 5 narration chapters\. This replaces the active manuscript and clears Story Bible/)).toBeTruthy();
-    expect(screen.getByText('1 front matter section · 2 reference sections · 3 of 3 character suggestions checked')).toBeTruthy();
+    await user.click(subtitlesBox());
+    expect(within(outline()).getByTitle('Chapter One · “Curiouser and curiouser!” cried Alice is read as text')).toBeTruthy();
   });
 });
 
@@ -255,15 +363,16 @@ describe('ImportReview heading styles', () => {
   it.each<[HeadingStyle]>([['gutenberg'], ['numbered'], ['colon']])('names the outline in each heading style (%s)', (style) => {
     render(<Harness preview={styled(style)} />);
     const row = screen.getByTitle(names[style]);
+    // The heading's own label and name are one line: the subtitle is the name here, so it is not written again beneath.
     expect(row.textContent).toBe(names[style]);
-    expect(screen.getByRole('combobox', { name: `${names[style]} content type` })).toBeTruthy();
+    expect(screen.getByRole('switch', { name: names[style] })).toBeTruthy();
     expect(row.getAttribute('title')).not.toContain(' — ');
   });
 
   it.each<[HeadingStyle]>([['gutenberg'], ['numbered'], ['colon']])('names a heading with its subtitle turned off in the %s style', async (style) => {
     const user = userEvent.setup();
     render(<Harness preview={styled(style)} />);
-    await user.click(screen.getByRole('checkbox', { name: 'Subtitle — Title of 8' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Subtitles' }));
     expect(screen.getByTitle(names[style])).toBeTruthy();
   });
 });
@@ -273,16 +382,27 @@ describe('ImportReview outline data', () => {
     renderReview();
     const rows = within(outline());
     expect(rows.getByText('1,862 words')).toBeTruthy();
-    expect(rows.getByText('41 words')).toBeTruthy();
+    expect(rows.getByText('1,655 words')).toBeTruthy();
+    expect(rows.queryByText('41 words')).toBeNull();
   });
 
-  it('previews the first lines of the first heading, and of another when its title is pressed', async () => {
+  it('previews the first lines of the first chapter, and of another when the pointer is over it or the keyboard reaches it', async () => {
     const user = userEvent.setup();
     renderReview();
     const preview = within(screen.getByRole('region', { name: 'Preview of the selected heading' }));
     expect(preview.getByText(/^Alice was beginning to get very tired/)).toBeTruthy();
-    await user.click(within(outline()).getByRole('button', { name: /^Chapter Two/ }));
+    await user.hover(chapterSwitch(/^Chapter Two/));
     expect(preview.getByText(/^“Curiouser and curiouser!” cried Alice/)).toBeTruthy();
+    fireEvent.focus(chapterSwitch(/^Chapter Three/));
+    expect(preview.getByText(/^They were indeed a queer-looking party/)).toBeTruthy();
+  });
+
+  it('puts the sample after the import options, at the foot of the review', () => {
+    renderReview();
+    const options = screen.getByRole('group', { name: 'Import options' });
+    const sample = screen.getByRole('region', { name: 'Preview of the selected heading' });
+    expect(options.compareDocumentPosition(sample) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(outline().compareDocumentPosition(sample) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('says the lines appear here when the host sent none for the heading', () => {

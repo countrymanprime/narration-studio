@@ -193,7 +193,7 @@
     "state": "import-confirm",
     "viewport": "desktop",
     "docName": "production-import-confirm",
-    "caption": "Import manuscript, step 2 of 2: Check the chapter outline, with each heading's words and a preview of how the selected one begins"
+    "caption": "Import manuscript, step 2 of 2: the import options above one accordion of chapters, character suggestions and repairs, with a sample of the selected chapter below"
   },
   {
     "page": "proof-chapter",
@@ -371,11 +371,11 @@
     "caption": "The audio engine panel, opened from the header chip - the linked REAPER project, the REAPER tools, chapter sync, the tracks with their chapters, and chapter links"
   },
   {
-    "page": "engine",
-    "state": "sync-activity",
+    "page": "settings",
+    "state": "recording-sync-activity",
     "viewport": "desktop",
-    "docName": "engine-panel-sync-activity",
-    "caption": "The audio engine panel - chapter sync's summary and Sync activity, with Undo on a link sync made"
+    "docName": "settings-sync-activity",
+    "caption": "Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made"
   },
   {
     "page": "engine",
@@ -617,10 +617,24 @@
   },
   {
     "page": "editing",
+    "state": "output-popover",
+    "viewport": "desktop",
+    "docName": "editing-output",
+    "caption": "Editing - the Output popover open over the bar: the speed, the volume, the output device and REAPER's monitor level"
+  },
+  {
+    "page": "editing",
     "state": "selection",
     "viewport": "desktop",
     "docName": "editing-selection",
     "caption": "Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and the line's audio"
+  },
+  {
+    "page": "editing",
+    "state": "range",
+    "viewport": "desktop",
+    "docName": "editing-range",
+    "caption": "Editing - a range drawn on the line's waveform with an edge inside a word, zoomed in: the two handles, the pan strip, the partly covered word and the sub-word preview"
   },
   {
     "page": "editing",
@@ -798,6 +812,20 @@
     "caption": "The jump menu open over the page: type to find a page, a chapter or a command"
   },
   {
+    "page": "editing",
+    "state": "jump-menu",
+    "viewport": "desktop",
+    "docName": "nav-jump-menu-editing",
+    "caption": "Editing - the jump menu typed \"selected\": the selection actions under On this page, each off with its reason"
+  },
+  {
+    "page": "settings",
+    "state": "jump-menu",
+    "viewport": "desktop",
+    "docName": "nav-jump-menu-settings",
+    "caption": "Settings - the jump menu typed \"microphone\": the setting under its category in On this page"
+  },
+  {
     "page": "shell",
     "state": "zoom-level",
     "viewport": "desktop",
@@ -946,10 +974,10 @@
   },
   {
     "page": "script",
-    "state": "find",
+    "state": "search-menu",
     "viewport": "desktop",
-    "docName": "script-find",
-    "caption": "Script - Find on \"Alice\": the count, the matches lit in the text and the results list"
+    "docName": "script-search",
+    "caption": "Script - Ctrl+F then \"Alice\": the menu lists the matches under In the script, the matched word marked"
   },
   {
     "page": "script",

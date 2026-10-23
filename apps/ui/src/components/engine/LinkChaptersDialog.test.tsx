@@ -75,7 +75,7 @@ describe('LinkChaptersDialog', () => {
     renderDialog({}, { lineIdentity: 'error' });
 
     const alerts = await screen.findAllByRole('alert');
-    expect(alerts.some((alert) => alert.textContent?.includes('Narration Utils script'))).toBe(true);
+    expect(alerts.some((alert) => alert.textContent?.includes('Narration Studio script'))).toBe(true);
   });
 
   it('reads current stamps and shows a status for every row, including drift and removed', async () => {

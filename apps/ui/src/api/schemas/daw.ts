@@ -23,6 +23,7 @@ import type {
   DawLastAction,
   DawMonitorLevel,
   DawPlace,
+  DawPosition,
   DawPlayState,
   DawProjectState,
   DawResult,
@@ -120,6 +121,15 @@ export const dawTransportSchema = z.object({
   recording: z.boolean(),
   position: optionalFromNull(z.number()),
 }) satisfies z.ZodType<DawTransport>;
+
+/** daw_position_changed: every key always present, times in project seconds. */
+export const dawPositionSchema = z.strictObject({
+  playing: z.boolean(),
+  recording: z.boolean(),
+  playPosition: z.number().nonnegative(),
+  editCursor: z.number().nonnegative(),
+  sameProject: z.boolean(),
+}) satisfies z.ZodType<DawPosition>;
 
 const DAW_PLAY_STATES = ['stopped', 'playing', 'recording'] as const satisfies readonly DawPlayState[];
 

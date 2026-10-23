@@ -179,7 +179,7 @@ def run(args: argparse.Namespace) -> int:
     def region_state():
         state = last(session.ask("ci_state", until={"CI_STATE"}), "CI_STATE")
         assert state[2] == "3", f"{state[2]} regions"
-        assert state[4] == "Narration Utils: create regions", f"undo label {state[4]!r}"
+        assert state[4] == "Narration Studio: create regions", f"undo label {state[4]!r}"
         return f"change count {state[5]}"
 
     def undo_regions():

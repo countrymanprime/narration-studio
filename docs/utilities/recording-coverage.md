@@ -167,7 +167,8 @@ The `RecordingCoverage` settings tool, layered project over global over the buil
 | `cascade_first_pass_model` | `tiny` | Whisper model, cascade only | The fast first pass's own model (MC2), independent of `TranscriptCompare.model_size` |
 | `cascade_recheck_model` | `large-v3-turbo` | Whisper model, cascade only | The model that re-checks anything the first pass reports missing (MC2) |
 | `cascade_unsure_below` | 0.5 | number, cascade only | The Whisper word score under which a passage is re-checked even when its text is all there. 0 re-checks only what is missing |
-| `parallel_workers` | 0 | number | Whisper processes working on a long item's chunks. 0 takes the model's own memory cap; a named number is kept up to the computer's processors |
+| `cascade_pipeline` | on | switch, cascade only | The re-check model works on each item as soon as the first pass has finished it, in one process ([design](../design/recording-check-pipeline.md)). Needs `cascade_unsure_below` above 0; off, the stages run one after the other |
+| `parallel_workers` | 0 | number | Items checked at once, and Whisper processes working on a long item's chunks. 0 takes the smaller of the model's memory cap and half the processors; a named number is an upper bound, kept up to the items and the processors |
 | `chunk_seconds` | 300 | choice | Each chunk's length. 0 transcribes an item whole, in one process |
 | `chunk_overlap_seconds` | 6 | number | The crossover: how much neighbouring chunks overlap, where their words are joined |
 | `parallel_chapters` | 1 | number | Chapters a Check recordings run checks at once. Each is its own run; with workers left to the host they share the processors |
@@ -229,8 +230,9 @@ flowchart LR
   (`asset_required`, shared with Transcript Compare and the teleprompter): not installed, the check cannot run.
   A missing re-check model instead answers `recheck_asset_required`, and the dialog offers "Check with tiny only"
   beside the download - a one-run choice (`CoverageStart`'s `options.skipRecheck`), never a settings change.
+- **Pipelined first stage.** With `cascade_pipeline` on and a score line above 0, the first stage is one process that also re-checks each item's doubtful passages as soon as the item is done; only the passages left missing still go to `--recheck` and `--align-only` ([design](../design/recording-check-pipeline.md)). The process reports its re-checks in `COVERAGE_RECHECKED` lines, which the host adds to the stored `recheck` label.
 - **Live progress** (`coverage:state`'s `pass`, `firstPassModel`, `recheckModel`, `recheckWindows`) names which of
-  the up to four stages is running, ahead of the sidecar's own message: "First pass (tiny)", "Re-checking 3
+  the up to four stages is running, ahead of the sidecar's own message: "First pass (tiny)", "First pass (tiny), re-checking as it goes (large-v3-turbo)" (`pipeline`), "Re-checking 3
   passages (large-v3-turbo)", "Re-checking the whole chapter (large-v3-turbo)" or "Combining the two passes".
 - **Staleness and caching are unchanged in kind.** A cascade result is judged, evaluated for staleness and read
   back exactly like a plain one (Q13); the words cache key gains the re-check model (empty for a plain check), so
@@ -259,6 +261,7 @@ flowchart LR
   longer than one chunk, or `chunk_seconds` 0, is one chunk, and a tail too short to be worth its own joins the last chunk. A crossover of half
   the chunk or more is shrunk to a quarter of it. `merge_chunks` cuts at the middle of each overlap and keeps a word in the chunk its midpoint falls in,
   so no word is repeated or lost, and each chunk's edge (where Whisper is least reliable) is half the crossover from the cut.
+- **Item pool.** Items are transcribed `parallel_workers` at a time on threads sharing one loaded model per process (`num_workers`, `cpu_threads`), and a long item's chunk processes share the threads its worker owns ([design](../design/recording-check-pipeline.md#processors)).
 - **Parallel processes.** Chunks are handed to a pool of spawned processes, each loading its own copy of the model and given its share of the
   processors as `cpu_threads`. `parallel_workers` 0 takes `compare.MAX_WORKERS_BY_MODEL` (`tiny` 8, `small` 4, `medium` and `large-v3-turbo` 2, `large-v3` 1); a
   named number is kept up to the processors and the chunks; a GPU runs one. The first chunk runs alone in the sidecar's process, so the model is read

@@ -21,7 +21,7 @@ export function KpiRow({ onGo, targetInfo, ...inputs }: Props) {
       >
         {tiles.map(({ key, target, tip, ...tile }) => (
           <li key={key} className="relative min-w-0 border-t border-l border-[var(--border)]">
-            <TooltipTarget text={tip}>
+            <TooltipTarget text={tip} className="size-full">
               {/* native-control-ok: a whole KPI tile is the button, a card-shaped target Button's padded uppercase chrome cannot draw. */}
               <button
                 type="button"

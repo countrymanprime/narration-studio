@@ -2,8 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { overlay } from '../../../overlay/overlayService';
 import { onSampleStart } from '../../voicesamples/samplePlayerStore';
 import { segmentAtElapsed, totalDuration, type PlaylistSegment } from '../../proof/playlist';
-import { firstFrom, summarize, type ChapterDoc } from '../model';
+import type { DawCapabilities } from '../../../api/contracts/daw';
+import type { WorkspaceItem } from '../../../api/contracts/workspace';
+import { firstFrom, runwayEnd, summarize, type ChapterDoc } from '../model';
+import type { ClosedCut } from '../follow/clockMap';
+import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
 import { useEditingPage } from '../script/EditingPageState';
+import { useAppliedOutput, type OutputPrefs } from '../../engine/outputPrefs';
 import { playable, playingKey } from '../script/playing';
 import { selectedKeysOf, type PageState } from '../script/scriptState';
 
@@ -26,6 +31,8 @@ export interface ScriptPlayback {
   /** The previous (-1) or next (1) heard word: moves the playing position while it plays, the cursor when it does not. */
   skip: (d: 1 | -1) => void;
   stop: () => void;
+  /** The DAW's transport is synced with the page: its play is the page's play, and the heartbeat follow stands down. */
+  syncActive?: boolean;
 }
 
 export interface ScriptPlaybackOptions {
@@ -33,6 +40,12 @@ export interface ScriptPlaybackOptions {
   playlist: PlaylistSegment[];
   mediaUrl: (sourceFile: string) => string;
   notify?: (text: string) => void;
+  /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can do. */
+  sync?: { items: readonly WorkspaceItem[]; cuts: readonly ClosedCut[]; caps: DawCapabilities | null };
+  /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
+  output?: OutputPrefs;
+  /** Hears why the chosen output could not be used, or null when it took, each time the choice changes. */
+  onOutputDevice?: (problem: string | null) => void;
 }
 
 /**
@@ -40,7 +53,14 @@ export interface ScriptPlaybackOptions {
  * on `timeupdate` (the technique of the old chapter hook, which this does not import). The playhead is the page's `playT`; the lit word and
  * the time in the bar follow it. Nothing here throws into the page: a file that will not load stops playback and says why.
  */
-export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overlay.toast(text) }: ScriptPlaybackOptions): ScriptPlayback {
+export function useScriptPlayback({
+  playlist,
+  mediaUrl,
+  notify = (text) => overlay.toast(text),
+  sync,
+  output,
+  onOutputDevice,
+}: ScriptPlaybackOptions): ScriptPlayback {
   const { doc, state, dispatch } = useEditingPage();
   const [follow, setFollowState] = useState(true);
   const audioRef = useRef<HTMLAudioElement | undefined>(undefined);
@@ -52,9 +72,14 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     live.current = { doc, state, playlist, mediaUrl, notify, dispatch };
   });
 
-  const audio = (): HTMLAudioElement => (audioRef.current ??= new Audio());
+  const audio = useCallback((): HTMLAudioElement => (audioRef.current ??= new Audio()), []);
+  useAppliedOutput(audio, output, onOutputDevice);
+
+  /** The DAW's transport, once `useDawTransportSync` below has made it; halt and go reach it here because it needs them. */
+  const remoteRef = useRef<RemotePlayer | undefined>(undefined);
 
   const halt = useCallback(() => {
+    remoteRef.current?.stop();
     audioRef.current?.pause();
     stopAt.current = null;
     live.current.dispatch({ type: 'play', t: null });
@@ -78,32 +103,47 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     } catch {
       fail();
     }
-  }, [fail]);
+  }, [audio, fail]);
 
   /** Loads the segment that owns `t` and puts the audio on it; false when no recorded file covers it. */
-  const cue = useCallback((t: number): boolean => {
-    const { playlist: list, mediaUrl: url } = live.current;
-    if (t < 0 || t >= totalDuration(list)) return false;
-    const found = segmentAtElapsed(list, t);
-    if (!found) return false;
-    const el = audio();
-    if (loaded.current !== found.segment.sourceFile) {
-      el.src = url(found.segment.sourceFile);
-      loaded.current = found.segment.sourceFile;
-    }
-    segment.current = found.index;
-    el.currentTime = found.segment.sourceStart + (t - found.segment.elapsedStart);
-    return true;
-  }, []);
+  const cue = useCallback(
+    (t: number): boolean => {
+      const { playlist: list, mediaUrl: url } = live.current;
+      if (t < 0 || t >= totalDuration(list)) return false;
+      const found = segmentAtElapsed(list, t);
+      if (!found) return false;
+      const el = audio();
+      if (loaded.current !== found.segment.sourceFile) {
+        el.src = url(found.segment.sourceFile);
+        loaded.current = found.segment.sourceFile;
+      }
+      segment.current = found.index;
+      el.currentTime = found.segment.sourceStart + (t - found.segment.elapsedStart);
+      return true;
+    },
+    [audio],
+  );
 
   const go = useCallback(
     (t: number): boolean => {
+      const remote = remoteRef.current;
+      if (remote?.canStart(t)) {
+        // The DAW plays it: its output and level, the app's audio stays silent. If it cannot, the app plays from the same second.
+        audioRef.current?.pause();
+        live.current.dispatch({ type: 'play', t });
+        void remote.start(t).then((took) => {
+          if (took || live.current.state.playT !== t) return;
+          if (cue(t)) start();
+          else halt();
+        });
+        return true;
+      }
       if (!cue(t)) return false;
       live.current.dispatch({ type: 'play', t });
       start();
       return true;
     },
-    [cue, start],
+    [cue, start, halt],
   );
 
   const playFrom = useCallback(
@@ -118,16 +158,56 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     [go],
   );
 
-  useEffect(() => {
-    const el = audio();
-    const reached = (t: number): void => {
+  const reached = useCallback(
+    (t: number): void => {
       const { doc: d, dispatch: send } = live.current;
       const end = stopAt.current !== null;
       halt();
       // A play to the chapter's end leaves the cursor on the last word it reached; a play of a selection leaves the selection.
       const key = end ? null : playingKey(playable(d), t);
       if (key) send({ type: 'place', key });
-    };
+    },
+    [halt],
+  );
+
+  // The DAW's play head, while the page's play is the DAW's: the same ends the app's own audio has.
+  const onHead = useCallback(
+    (t: number | null, ended: boolean): void => {
+      if (ended) return reached(totalDuration(live.current.playlist));
+      if (t === null) return;
+      if (stopAt.current !== null && t >= stopAt.current) return reached(stopAt.current);
+      live.current.dispatch({ type: 'play', t });
+    },
+    [reached],
+  );
+  /** The narrator stopped the DAW: the page stops on the word it had reached, as Space does. */
+  const onStopped = useCallback((): void => {
+    const { doc: d, state: s, dispatch: send } = live.current;
+    if (s.playT == null) return;
+    const key = playingKey(playable(d), s.playT);
+    halt();
+    if (key) send({ type: 'place', key });
+  }, [halt]);
+  const onLost = useCallback((): void => {
+    audioRef.current?.pause();
+    stopAt.current = null;
+    live.current.dispatch({ type: 'play', t: null });
+  }, []);
+  const syncing = useDawTransportSync({
+    items: sync?.items ?? [],
+    playlist,
+    cuts: sync?.cuts ?? [],
+    caps: sync?.caps ?? null,
+    onHead,
+    onStopped,
+    onLost,
+    onDawPlay: () => setFollowState(true),
+    notify,
+  });
+  remoteRef.current = syncing.active ? syncing.remote : undefined;
+
+  useEffect(() => {
+    const el = audio();
     const onTime = (ended: boolean): void => {
       const { playlist: list, state: s, dispatch: send } = live.current;
       if (s.playT == null) return;
@@ -158,7 +238,7 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
       el.removeEventListener('error', fail);
       el.pause();
     };
-  }, [halt, fail, start]);
+  }, [audio, reached, fail, start]);
 
   const toggle = useCallback(() => {
     const { doc: d, state: s, notify: say, dispatch: send } = live.current;
@@ -170,8 +250,9 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     }
     if (!d.aligned) return say('Nothing has been transcribed yet.');
     if (s.sel) {
-      const sum = summarize(d, selectedFrom(d, s), [], (x) => x);
-      if (sum.audible.length) return playFrom(sum.start, sum.end);
+      const keys = selectedFrom(d, s);
+      const sum = summarize(d, keys, [], (x) => x);
+      if (sum.audible.length) return playFrom(sum.start, runwayEnd(d, keys[keys.length - 1], sum.end));
     }
     const from = firstFrom(d, s.cursor);
     if (!from || from.t0 == null) return say(NOTHING_FROM_HERE);
@@ -180,8 +261,9 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
 
   const playSelection = useCallback(() => {
     const { doc: d, state: s, notify: say } = live.current;
-    const sum = summarize(d, selectedFrom(d, s), [], (x) => x);
-    if (sum.audible.length) playFrom(sum.start, sum.end);
+    const keys = selectedFrom(d, s);
+    const sum = summarize(d, keys, [], (x) => x);
+    if (sum.audible.length) playFrom(sum.start, runwayEnd(d, keys[keys.length - 1], sum.end));
     else say('Nothing was recorded for these words.');
   }, [playFrom]);
 
@@ -205,5 +287,5 @@ export function useScriptPlayback({ playlist, mediaUrl, notify = (text) => overl
     [go],
   );
 
-  return { playing: state.playT != null, follow, setFollow: setFollowState, toggle, playFrom, playSelection, skip, stop: halt };
+  return { playing: state.playT != null, follow, setFollow: setFollowState, toggle, playFrom, playSelection, skip, stop: halt, syncActive: syncing.active };
 }

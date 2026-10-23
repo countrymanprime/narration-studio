@@ -83,10 +83,10 @@ func TestCommands(t *testing.T) {
 				p.AddWaveTrack("a", 0, 10)
 				p.AddLabelTrack("Label")
 			},
-			run:  func(c *audacitybridge.Client) error { return c.SetTrackName(ctx, 1, "Narration Utils") },
-			sent: []string{"SelectTracks: Track=1 TrackCount=1 Mode=Set", `SetTrackStatus: Name="Narration Utils"`},
+			run:  func(c *audacitybridge.Client) error { return c.SetTrackName(ctx, 1, "Narration Studio") },
+			sent: []string{"SelectTracks: Track=1 TrackCount=1 Mode=Set", `SetTrackStatus: Name="Narration Studio"`},
 			check: func(t *testing.T, p *abt.Project) {
-				if p.Tracks[1].Name != "Narration Utils" || p.Tracks[0].Name != "a" {
+				if p.Tracks[1].Name != "Narration Studio" || p.Tracks[0].Name != "a" {
 					t.Errorf("names = %q, %q", p.Tracks[0].Name, p.Tracks[1].Name)
 				}
 			},
@@ -226,7 +226,7 @@ func TestInfoRoundTripsThroughTheFake(t *testing.T) {
 	client, server := newClient(t, time.Second)
 	server.With(func(p *abt.Project) {
 		p.AddWaveTrack("Chapter 1", 0, 90.5)
-		p.AddLabelTrack("Narration Utils", abt.Label{Start: 4, End: 4, Text: "nu:f1 misread"}, abt.Label{Start: 1, End: 2, Text: `a "quoted" note`})
+		p.AddLabelTrack("Narration Studio", abt.Label{Start: 4, End: 4, Text: "nu:f1 misread"}, abt.Label{Start: 1, End: 2, Text: `a "quoted" note`})
 	})
 	ctx := context.Background()
 	labels, err := client.Labels(ctx)

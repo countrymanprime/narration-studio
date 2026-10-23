@@ -42,6 +42,7 @@ type coverageChoices struct {
 	FirstPass   string
 	Recheck     string // empty: no second pass
 	UnsureBelow float64
+	Pipeline    bool // the cascade_pipeline setting: the larger model works alongside the first pass
 	Parallel    coverage.Parallel
 }
 
@@ -53,7 +54,7 @@ func resolveCoverageChoices(store *settings.Store, options map[string]string) (c
 	cascade := all.Cascade
 	named := options["model"] != ""
 
-	choices := coverageChoices{Parallel: all.Parallel}
+	choices := coverageChoices{Parallel: all.Parallel, Pipeline: cascade.Pipeline}
 	switch {
 	case named:
 		choices.FirstPass = options["model"]

@@ -6,6 +6,12 @@ import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CL
 export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
+    state: 'jump-menu',
+    description: 'Settings, the jump menu typed "microphone": the setting row under its category in On this page, before any command',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'page-top',
     description:
       'Settings arriving on Recording & DAW at its defaults: the Settings heading with Search settings and the All / Changed / In this project filter, the category list with its three groups and Set on a page, and the Recording tool section with "Record with" (REAPER, Audacity, Built-in recorder) and its connection card, then the Microphone',
@@ -80,6 +86,14 @@ export const settingsStates: StateEntry[] = [
     state: 'recording-advanced',
     description:
       'Settings, Recording & DAW with Advanced open: the REAPER program path box, Experimental DAW actions and the Capabilities table (each capability with its Auto / On / Off setting and what the recording tool reports now)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'recording-sync-activity',
+    description:
+      'Settings, Recording & DAW with Advanced open (?mockChapterSync=activity): the Sync activity row under Chapter sync, newest first, with Undo on the link sync made',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

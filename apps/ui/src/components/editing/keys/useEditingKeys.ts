@@ -206,8 +206,6 @@ export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): v
         );
       }
       if (play) out.push(entry('workspace.play', 'Play from the cursor or the selection', play));
-      if (remove) out.push(entry('editing.delete', 'Delete the selected words and audio', remove));
-      if (fx) out.push(entry('editing.fx', 'Add FX to the selected words', fx));
       if (voiceSample) out.push(entry('editing.voice-sample', 'Mark the selected words as a voice sample', voiceSample));
       out.push(
         entry('workspace.flag.next', 'Next flagged word', () => flag(1)),
@@ -218,7 +216,7 @@ export function useEditingKeys({ handlers = {}, keymap }: EditingKeysOptions): v
       if (hideOthers) out.push(entry('editing.hide-others', 'Hide or show the other takes', hideOthers));
       return out;
     },
-    [on, keymap, chapterStep, play, remove, fx, voiceSample, strip, keep, hideOthers, flag],
+    [on, keymap, chapterStep, play, voiceSample, strip, keep, hideOthers, flag],
   );
   useCommandProvider(provider);
 }

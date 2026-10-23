@@ -329,5 +329,6 @@ var roleChecks = map[dawport.Capability]roleCheck{
 	dawport.CapUndoLast:        check[dawport.LastActionUndoer](),
 	dawport.CapMonitorLevel:    check[dawport.MonitorLeveler](),
 	dawport.CapFollowPosition:  check[dawport.PlaceFollower](),
+	dawport.CapTransportSync:   check[dawport.TransportSyncer](),
 	dawport.CapInputLevel:      check[dawport.InputLeveler](),
 }

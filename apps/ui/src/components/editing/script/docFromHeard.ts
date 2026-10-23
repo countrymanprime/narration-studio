@@ -1,4 +1,4 @@
-import type { HeardAnswer, HeardWord as PortWord } from '../../../ports/alignment';
+import { HEADING_PARAGRAPH, type HeardAnswer, type HeardWord as PortWord } from '../../../ports/alignment';
 import { buildDoc, type Aligner, type ChapterDoc, type ChapterInput, type Heard, type HeardWord, type ScriptParagraph } from '../model';
 
 /** A quoted stretch of a paragraph: UTF-16 offsets into its text, and the cue it is the quote of. */
@@ -60,7 +60,12 @@ export function unitsOf(p: TextParagraph): ScriptParagraph['units'] {
 }
 
 /** The cursor steps by unit: a quote or the narration between quotes, and a whole paragraph where it has no quote (the mock steps by phrase). */
-const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({ id: p.id, text: p.text, units: unitsOf(p) });
+const toScriptParagraph = (p: TextParagraph): ScriptParagraph => ({
+  id: p.id,
+  text: p.text,
+  units: unitsOf(p),
+  ...(p.id === HEADING_PARAGRAPH ? { optional: true } : {}),
+});
 
 /** The port's words, grouped by the paragraph they were heard in: a word said and not in the script goes with the script word before it. */
 function groupByParagraph(words: readonly PortWord[], first: string | undefined): Map<string, PortWord[]> {
@@ -76,7 +81,8 @@ function groupByParagraph(words: readonly PortWord[], first: string | undefined)
 
 /** The model's `Aligner` over what the port heard; a word the recogniser did not score counts as sure. */
 function alignerFor(heard: NonNullable<Extract<HeardAnswer, { heard: unknown }>['heard']>, paragraphs: readonly TextParagraph[]): Aligner {
-  const byPara = groupByParagraph(heard.words, paragraphs[0]?.id);
+  // A word heard before anything of the script goes with the first paragraph of the body, never the heading.
+  const byPara = groupByParagraph(heard.words, paragraphs.find((p) => p.id !== HEADING_PARAGRAPH)?.id);
   return {
     engine: () => heard.engine,
     snap: (sec) => sec,

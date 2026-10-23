@@ -583,17 +583,22 @@ function AppRoutes() {
     if (zoom.percent === 100) off['zoom.reset'] = 'Already 100%';
     return off;
   };
-  const openJump = (initialTerm?: string, initialGroup?: string) =>
+  const openJump = (initialTerm?: string, initialGroup?: string, scope?: 'page') =>
     void openJumpMenu({
       keymap,
       runCommand: (id) => shellCommands.current[id]?.(),
       initialTerm,
       initialGroup,
+      scope,
       disabledReasons: shellDisabledReasons,
       service: overlay,
     });
   useCommand('jump.open', () => {
     if (!isModalOpen()) openJump();
+  });
+  // Ctrl+F: the same menu searching only what the page offers (its items and its text); a page that offers nothing opens the whole menu.
+  useCommand('jump.page', () => {
+    if (!isModalOpen()) openJump(undefined, undefined, 'page');
   });
   useCommand('history.open', () => {
     if (!isModalOpen()) openHistory();
@@ -625,12 +630,12 @@ function AppRoutes() {
     undoLabel: journalRows?.[0]?.label,
     undo: () => void undoLast(),
   });
-  // The menu on empty space in <main> (the mock's page menu, `app/context.ts`): Go to with the current page checked, the jump menu, Find, and View.
-  // Ctrl+F is the jump menu's key except on Script and Proof, which keep it for their own find, so the hint is left off there.
-  const findHint = isActivePath(location.pathname, '/script') || isActivePath(location.pathname, '/proof') ? undefined : ['Ctrl', 'F'];
+  // The menu on empty space in <main> (the mock's page menu, `app/context.ts`): Go to with the current page checked, the jump menu, Search this page, and View.
+  // Ctrl+F searches the page except on Proof, which keeps it for its notes' find, so the hint is left off there.
+  const findHint = isActivePath(location.pathname, '/proof') ? undefined : ['Ctrl', 'F'];
   const contextTail = [
     { key: 'jump', label: 'Jump menu…', shortcut: ['Ctrl', 'K'], onSelect: () => openJump() },
-    { key: 'find', label: 'Find a page, chapter or command', shortcut: findHint, onSelect: () => openJump() },
+    { key: 'search', label: 'Search this page', shortcut: findHint, onSelect: () => openJump(undefined, undefined, 'page') },
   ] satisfies ContextMenuItem[];
   const contextMenu = {
     fallback: (): ContextMenuItem[] => [
