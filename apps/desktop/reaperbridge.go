@@ -28,15 +28,22 @@ const reaperStartWait = 90 * time.Second
 type reaperBridgeState struct {
 	mu sync.Mutex
 	// installed is the last successful install; installErr the last refusal or failure ("" while none).
-	installed  reaperinstall.Result
-	installOK  bool
+	// +checklocks:mu
+	installed reaperinstall.Result
+	// +checklocks:mu
+	installOK bool
+	// +checklocks:mu
 	installErr string
 	// resourceDir is REAPER's resource folder as last resolved.
+	// +checklocks:mu
 	resourceDir string
 	// startedFor is the project folder the app last started REAPER for, startedAt when, and startErr why that start failed.
+	// +checklocks:mu
 	startedFor string
-	startedAt  time.Time
-	startErr   string
+	// +checklocks:mu
+	startedAt time.Time
+	// +checklocks:mu
+	startErr string
 }
 
 // reaperBridgeStatus is the DawChoice payload's account of the bridge.
