@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterSyncBackground } from '../../../api/contracts/chapterSync';
-import { modelPairText, needsNotice, queuedText, runningDetail, runningText, startedToast } from './backgroundCheckText';
+import { doneText, modelPairText, needsNotice, queuedText, runningDetail, runningText, startedToast } from './backgroundCheckText';
 
 const background = (over: Partial<ChapterSyncBackground> = {}): ChapterSyncBackground => ({
   enabled: true,
@@ -20,8 +20,10 @@ describe('background check text', () => {
 
   it('says what runs, how far and what waits', () => {
     expect(runningText('Chapter 3', running)).toBe('Checking Chapter 3 in the background · 42%');
-    expect(runningDetail(background({ queued: 1 }), running)).toBe('tiny + small · 1 chapter waiting');
+    expect(runningDetail(background({ queued: 1 }), running)).toBe('chapter 1 of 2 · tiny + small');
+    expect(runningDetail(background({ queued: 1 }), running, 2)).toBe('chapter 3 of 4 · tiny + small');
     expect(runningDetail(background({ queued: 0 }), { ...running, firstPassModel: undefined, recheckModel: undefined })).toBe('tiny + small');
+    expect(doneText(1)).toBe('Background checks done: 1 chapter checked');
   });
 
   it('shows a queue only with a reason it waits', () => {

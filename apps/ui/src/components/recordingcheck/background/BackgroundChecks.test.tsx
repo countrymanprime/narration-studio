@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { MockApiSeed } from '../../../api/mockHost/state';
 import { useChapterSync } from '../../../hooks/useChapterSync';
 import { overlay } from '../../../overlay/overlayService';
+import type { CoverageState } from '../../../api/contracts/coverage';
 import type { NarrationApi } from '../../../types';
 import { BackgroundChecks } from './BackgroundChecks';
 
@@ -25,12 +26,23 @@ function mount(seed: MockApiSeed) {
   const saveSettings = vi.spyOn(api, 'saveSettings');
   const coverageCancel = vi.spyOn(api, 'coverageCancel');
   const toast = vi.spyOn(overlay, 'toast');
+  const listeners: ((state: CoverageState) => void)[] = [];
+  const subscribe = api.subscribeCoverage;
+  api.subscribeCoverage = (onUpdate) => {
+    listeners.push(onUpdate);
+    return subscribe(onUpdate);
+  };
   render(
     <ApiProvider api={api}>
       <Harness api={api} />
     </ApiProvider>,
   );
-  return { api, saveSettings, coverageCancel, toast };
+  // Ends the mock's held background run as a finished check, as the host's coverage:state does.
+  const finishHeldRun = async () => {
+    const state = await api.coverageState();
+    for (const listener of listeners) listener({ ...state, phase: 'complete', percent: 100 });
+  };
+  return { api, saveSettings, coverageCancel, toast, finishHeldRun };
 }
 
 describe('BackgroundChecks', () => {
@@ -66,7 +78,7 @@ describe('BackgroundChecks', () => {
     const { toast } = mount({ backgroundChecks: 'running' });
     const status = await screen.findByRole('region', { name: 'Background recording check' });
     await waitFor(() => expect(status.textContent).toMatch(/Checking .+ in the background · 42%/));
-    await waitFor(() => expect(status.textContent).toContain('tiny + small · 1 chapter waiting'));
+    await waitFor(() => expect(status.textContent).toContain('chapter 1 of 2 · tiny + small'));
     expect(screen.getByRole('progressbar')).toBeTruthy();
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
     expect(toast.mock.calls[0][0]).toMatch(/in the background with tiny \+ small\. Only audio not checked before is listened to\./);
@@ -87,9 +99,12 @@ describe('BackgroundChecks', () => {
     await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { background_checks: 'false' }));
     await waitFor(() => expect(coverageCancel).toHaveBeenCalled());
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('paused'), expect.objectContaining({ action: expect.anything() })));
-    const resume = toast.mock.calls.find(([text]) => text.includes('paused'))?.[1]?.action;
-    resume?.onAction();
+    const status = await screen.findByRole('region', { name: 'Background recording check' });
+    await waitFor(() => expect(status.textContent).toContain('Background checks paused'));
+    fireEvent.click(within(status).getByRole('button', { name: 'Resume' }));
     await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { background_checks: null }));
+    // Resumed, the chapter still waiting shows again, with why it has not started.
+    await waitFor(() => expect(screen.getByRole('region', { name: 'Background recording check' }).textContent).toContain('1 chapter waiting to be checked'));
   });
 
   it('says how many chapters wait and why when none can start', async () => {
@@ -97,5 +112,15 @@ describe('BackgroundChecks', () => {
     const status = await screen.findByRole('region', { name: 'Background recording check' });
     expect(status.textContent).toContain('2 chapters waiting to be checked: REAPER is recording');
     expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+  });
+
+  it('says when everything waiting was checked', async () => {
+    const { finishHeldRun } = mount({ backgroundChecks: 'running' });
+    const status = await screen.findByRole('region', { name: 'Background recording check' });
+    await waitFor(() => expect(status.textContent).toMatch(/42%/));
+    await finishHeldRun();
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Background recording check' }).textContent).toContain('Background checks done: 1 chapter checked'),
+    );
   });
 });

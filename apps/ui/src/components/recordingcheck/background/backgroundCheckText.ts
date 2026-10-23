@@ -24,12 +24,27 @@ export function runningText(title: string, state: CoverageState): string {
   return `Checking ${title} in the background · ${Math.round(state.percent)}%`;
 }
 
-/** The pill's second line while a check runs: the models and what is still waiting. */
-export function runningDetail(background: ChapterSyncBackground | undefined, state: CoverageState): string {
-  const models = state.firstPassModel && state.recheckModel ? `${state.firstPassModel} + ${state.recheckModel}` : background ? modelPairText(background) : '';
-  const waiting = background && background.queued > 0 ? `${chapters(background.queued)} waiting` : '';
-  return [models, waiting].filter(Boolean).join(' · ');
+/** The models a running check names, or the background pair when the state does not say. */
+function modelsOf(state: CoverageState, background: ChapterSyncBackground | undefined): string {
+  if (state.firstPassModel && state.recheckModel) return `${state.firstPassModel} + ${state.recheckModel}`;
+  return background ? modelPairText(background) : '';
 }
+
+/** The pill's second line while a check runs: which chapter of how many this run of checks has reached, and the models. `done` is how
+ * many chapters background checks finished since the corner was last empty. */
+export function runningDetail(background: ChapterSyncBackground | undefined, state: CoverageState, done = 0): string {
+  const total = done + 1 + (background?.queued ?? 0);
+  const position = total > 1 ? `chapter ${done + 1} of ${total}` : '';
+  return [position, modelsOf(state, background)].filter(Boolean).join(' · ');
+}
+
+/** The corner's line once background checks have finished everything that waited. */
+export function doneText(done: number): string {
+  return `Background checks done: ${chapters(done)} checked`;
+}
+
+/** The corner's line after Pause. */
+export const PAUSED_TEXT = 'Background checks paused';
 
 /** The pill's line while chapters wait for a check that has not started, or '' when there is nothing to show. */
 export function queuedText(background: ChapterSyncBackground): string {
@@ -40,7 +55,7 @@ export function queuedText(background: ChapterSyncBackground): string {
 
 /** The toast when the host starts a background check. */
 export function startedToast(title: string, state: CoverageState, background: ChapterSyncBackground | undefined): string {
-  const models = runningDetail(undefined, state) || (background ? modelPairText(background) : 'Whisper');
+  const models = modelsOf(state, background) || 'Whisper';
   return `Checking ${title} in the background with ${models}. Only audio not checked before is listened to.`;
 }
 
