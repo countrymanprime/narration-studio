@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { StudioProvider } from '../../studio/StudioProvider';
+import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
@@ -27,6 +29,7 @@ const LIST: PickupList = { pickups: MIXED, leftOut: [{ chapterId: 'c2', state: '
 function renderPage(
   api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(LIST) }),
   chapters: readonly object[] = CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })),
+  journal: Journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
 ) {
   vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters as never);
   const goTo = vi.fn();
@@ -34,12 +37,14 @@ function renderPage(
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <TooltipProvider>
-          <CommandRouter>
-            <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
-          </CommandRouter>
-          <OverlayHost />
-        </TooltipProvider>
+        <StudioProvider journal={journal}>
+          <TooltipProvider>
+            <CommandRouter>
+              <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+            </CommandRouter>
+            <OverlayHost />
+          </TooltipProvider>
+        </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -87,6 +92,73 @@ describe('pickups-route-draws-the-mock-page', () => {
     await user.click(row);
     expect(setDone).toHaveBeenCalledWith(expect.any(String), true);
     await waitFor(() => expect(screen.queryAllByRole('button', { name: 'Mark recorded' })).toHaveLength(0));
+  });
+});
+
+describe('fine-not-a-pickup-and-show-where', () => {
+  const fromNote = pickup({
+    id: 'finding:f9',
+    chapterId: 'c1',
+    source: 'proof',
+    findingId: 'f9',
+    time: 12,
+    paragraphId: 'p-2',
+    script: 'a <b>White Rabbit</b> ran',
+  });
+  const fromGap = pickup({ id: 'speech:c1:g7', chapterId: 'c1', source: 'speech', findingId: 'f7', time: 30 });
+
+  async function setupFine(line = fromNote) {
+    const api = createMockApi({ pickupsList: () => Promise.resolve({ pickups: [line], leftOut: [] }) });
+    const base = (await api.findingsList({})).findings[0]!;
+    const note = { ...base, id: line.findingId!, review: { status: 'accepted' as const, note: 'mine' } };
+    vi.spyOn(api, 'findingsGet').mockResolvedValue(note);
+    const review = vi.spyOn(api, 'findingsReview').mockImplementation(async (request) => ({ ...note, review: { status: request.status, note: request.note } }));
+    const remove = vi.spyOn(api, 'pickupsRemove').mockResolvedValue({ pickups: [], leftOut: [] });
+    vi.spyOn(api, 'manuscriptParagraphs').mockResolvedValue([
+      { id: 'p-1', chapterId: 'c1', chapter: 'One', index: 0, text: 'Before it.', entityIds: [] },
+      { id: 'p-2', chapterId: 'c1', chapter: 'One', index: 1, text: 'Then a White Rabbit ran close by her.', entityIds: [] },
+      { id: 'p-3', chapterId: 'c1', chapter: 'One', index: 2, text: 'After it.', entityIds: [] },
+    ]);
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    renderPage(api, undefined, journal);
+    const user = userEvent.setup();
+    const cell = await screen.findByText(line === fromNote ? '00:12.0' : '00:30.0', { selector: 'td' });
+    await user.click(cell);
+    return { api, review, remove, user, note, journal };
+  }
+
+  it('a selected line shows its paragraph with the ones before and after', async () => {
+    await setupFine();
+    const where = await screen.findByRole('region', { name: 'In the script' });
+    expect(where.querySelector('[data-around=at] mark')?.textContent).toBe('White Rabbit');
+    expect(where.querySelector('[data-around=before]')?.textContent).toBe('Before it.');
+    expect(where.querySelector('[data-around=after]')?.textContent).toBe('After it.');
+  });
+
+  it('Fine, not a pickup dismisses the note with its note kept, and Undo puts it back as it was', async () => {
+    const { review, remove, user, note } = await setupFine();
+    await user.click(screen.getByRole('button', { name: 'Fine, not a pickup' }));
+    await waitFor(() => expect(review).toHaveBeenCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'dismissed', note: 'mine' }));
+    expect(remove).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(review).toHaveBeenLastCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: 'mine' }));
+  });
+
+  it('Fine, not a pickup is the newest journal entry, so Ctrl+Z and History take it back, not an earlier decision', async () => {
+    const { review, user, note, journal } = await setupFine();
+    await user.click(screen.getByRole('button', { name: 'Fine, not a pickup' }));
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    const entries = await journal.entries();
+    expect(entries.at(-1)?.label).toBe('Fine, not a pickup at 00:12.0');
+    await act(async () => void (await journal.undo(entries.at(-1)!.id)));
+    await waitFor(() => expect(review).toHaveBeenLastCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: 'mine' }));
+  });
+
+  it('a check’s gap with a note is also taken off the list', async () => {
+    const { review, remove, user } = await setupFine(fromGap);
+    await user.click(screen.getByRole('button', { name: 'Fine, not a pickup' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('speech:c1:g7'));
+    expect(review).toHaveBeenCalledWith(expect.objectContaining({ id: 'f7', status: 'dismissed' }));
   });
 });
 
@@ -331,14 +403,16 @@ describe('adding-lines-as-markers-says-what-happened', () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <PortOverrides clients={{ daw: markersDaw(changed) }}>
-            <TooltipProvider>
-              <CommandRouter>
-                <PickupsPage hasManuscript goTo={vi.fn()} goToScript={vi.fn()} />
-              </CommandRouter>
-              <OverlayHost />
-            </TooltipProvider>
-          </PortOverrides>
+          <StudioProvider>
+            <PortOverrides clients={{ daw: markersDaw(changed) }}>
+              <TooltipProvider>
+                <CommandRouter>
+                  <PickupsPage hasManuscript goTo={vi.fn()} goToScript={vi.fn()} />
+                </CommandRouter>
+                <OverlayHost />
+              </TooltipProvider>
+            </PortOverrides>
+          </StudioProvider>
         </ApiProvider>
       </MemoryRouter>,
     );

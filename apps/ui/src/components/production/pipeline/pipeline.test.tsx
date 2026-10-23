@@ -5,7 +5,7 @@ import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
-import { DawBanner } from './DawBanner';
+import { DawIndicator } from './DawIndicator';
 import { NextUp } from './NextUp';
 import { NoManuscript } from './NoManuscript';
 import { PageHeader } from './PageHeader';
@@ -286,37 +286,20 @@ describe('PageHeader', () => {
   });
 });
 
-describe('DawBanner and NoManuscript', () => {
-  it('banner-and-empty-state: the banner shows only when the DAW is unreachable, with Retry and the built-in recorder', async () => {
-    const onRetry = vi.fn();
-    const onUseBuiltIn = vi.fn();
-    const { rerender } = view(<DawBanner reachable daw="REAPER" onRetry={onRetry} onUseBuiltIn={onUseBuiltIn} />);
+describe('DawIndicator and NoManuscript', () => {
+  it('indicator-and-empty-state: the mark names the DAW and opens the connect dialog, and says Connecting while the app has just opened', async () => {
+    const onOpen = vi.fn();
+    const { rerender } = view(<DawIndicator daw="REAPER" settling onOpen={onOpen} />);
+    expect(screen.getByRole('status').textContent).toBe('Connecting to REAPER…');
+    expect(screen.queryByRole('button')).toBeNull();
+    rerender(
+      <TooltipProvider>
+        <DawIndicator daw="REAPER" onOpen={onOpen} />
+      </TooltipProvider>,
+    );
     expect(screen.queryByRole('status')).toBeNull();
-    rerender(
-      <TooltipProvider>
-        <DawBanner reachable={false} daw="REAPER" onRetry={onRetry} onUseBuiltIn={onUseBuiltIn} />
-      </TooltipProvider>,
-    );
-    const banner = screen.getByRole('status');
-    expect(banner.textContent).toContain('REAPER is not running.');
-    expect(banner.textContent).toContain('Progress that comes from REAPER may be out of date until it is running again.');
-    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Use built-in recorder' }));
-    expect(onRetry).toHaveBeenCalledOnce();
-    expect(onUseBuiltIn).toHaveBeenCalledOnce();
-  });
-
-  it('the banner offers Connect, naming the DAW, only when the page can connect it', async () => {
-    const onConnect = vi.fn();
-    const { rerender } = view(<DawBanner reachable={false} daw="REAPER" onRetry={vi.fn()} onUseBuiltIn={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: 'Connect REAPER' })).toBeNull();
-    rerender(
-      <TooltipProvider>
-        <DawBanner reachable={false} daw="REAPER" onRetry={vi.fn()} onConnect={onConnect} onUseBuiltIn={vi.fn()} />
-      </TooltipProvider>,
-    );
-    await userEvent.click(screen.getByRole('button', { name: 'Connect REAPER' }));
-    expect(onConnect).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole('button', { name: /REAPER not connected/ }));
+    expect(onOpen).toHaveBeenCalledOnce();
   });
 
   it('the no-manuscript state offers the import button given as a prop and a Set a due date icon', async () => {

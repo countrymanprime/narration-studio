@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { StudioProvider } from '../../studio/StudioProvider';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
@@ -39,12 +40,14 @@ function renderPage(api: NarrationApi = createMockApi({ pickupsList: () => Promi
   const view = render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <TooltipProvider>
-          <CommandRouter>
-            <PickupsPage hasManuscript goTo={goTo} goToScript={vi.fn()} />
-          </CommandRouter>
-          <OverlayHost />
-        </TooltipProvider>
+        <StudioProvider>
+          <TooltipProvider>
+            <CommandRouter>
+              <PickupsPage hasManuscript goTo={goTo} goToScript={vi.fn()} />
+            </CommandRouter>
+            <OverlayHost />
+          </TooltipProvider>
+        </StudioProvider>
       </ApiProvider>
     </MemoryRouter>,
   );

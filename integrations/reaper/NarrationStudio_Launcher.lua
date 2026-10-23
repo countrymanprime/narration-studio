@@ -35,7 +35,7 @@ local BUNDLE_ROOT = join(join(SHARED, '..'), '..')
 -- Embedded Wails resources are materialized in a per-user cache.  The Go
 -- host writes the installed executable path beside this script, so an action
 -- imported from Settings continues to work after the app moves or updates.
--- This remains an explicit REAPER import: the app never installs actions.
+-- The app writes this file in every place it puts the launcher, the installed copy under Scripts/NarrationStudio included.
 -- The path is whatever os.Executable() reported, so the launcher never depends on the program's name: only the two fallbacks below do.
 local configured_app = common.read_file(SHARED .. SEP .. 'narration-utils-app-path.txt'):gsub('[\r\n]+$', '')
 
@@ -72,8 +72,10 @@ local release_mode = common.file_exists(bundled_app)
 local app_exe = release_mode and bundled_app or checkout_app
 
 local project_folder, project_name, project_file = project_context()
-local session_dir = join(join(join(reaper.GetResourcePath(), 'NarrationStudio'), 'sessions'), 'hub_' .. tostring(reaper.time_precise()):gsub('[%.]', ''))
-reaper.RecursiveCreateDirectory(join(session_dir, 'commands'), 0)
+-- A bridge already running in this REAPER (NarrationStudio_Startup.lua starts one when REAPER opens) is reused: the app is opened on
+-- its session and no second loop starts.
+local live_session = bridge.live_session()
+local session_dir = live_session or bridge.new_session_dir()
 
 if not release_mode and not common.file_exists(shared_python) then
   reaper.ShowMessageBox(
@@ -150,4 +152,6 @@ then
   return
 end
 
-bridge.run(session_dir)
+if not live_session then
+  bridge.run(session_dir)
+end

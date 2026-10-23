@@ -91,17 +91,21 @@ function partialText(covered: Covered, words: readonly DocItem[]): string {
 
 /** The lines under the waveform: how to make a range when there is none, else its time and words, the words an edge cuts through, and the sub-word preview. */
 export function RangeNotes({ shown, covered, words }: { shown: Span | null; covered: Covered; words: readonly DocItem[] }) {
-  if (!shown) return <p className="m-0 px-3 pb-1.5 text-xs text-[var(--text-muted)]">Drag on the waveform to choose a range, or select words in the script.</p>;
+  if (!shown)
+    return (
+      <p className="m-0 px-3 text-xs text-[var(--text-muted)]">Drag to choose a range; right-drag, the wheel or two fingers scroll; right-click for more.</p>
+    );
   const partial = partialText(covered, words);
   const sub = subWordNote(shown, covered.applied);
   return (
-    <div className="flex flex-col gap-0.5 px-3 pb-1.5 text-xs text-[var(--text-muted)]" data-range-notes>
+    // One wrapping paragraph, so the notes take only the lines they need in the waveform's fixed height.
+    <p className="m-0 px-3 text-xs text-[var(--text-muted)]" data-range-notes>
       <span>
         Range <span className="font-mono text-[var(--text)]">{rangeLabel(shown, covered.keys.length)}</span>
-        {covered.keys.length ? '' : '. This range covers no words.'}
+        {covered.keys.length ? '.' : '. This range covers no words.'}
       </span>
-      {partial ? <span data-testid="range-partial">{partial}</span> : null}
-      {sub ? <span data-subword>{sub}</span> : null}
-    </div>
+      {partial ? <span data-testid="range-partial"> {partial}</span> : null}
+      {sub ? <span data-subword> {sub}</span> : null}
+    </p>
   );
 }

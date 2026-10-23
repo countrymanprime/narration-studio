@@ -11,12 +11,12 @@ import { SampleMark } from '../voicesample/SampleMark';
 import type { MarkedSample } from '../voicesample/sampleMarks';
 
 /** What marks a word: each is drawn with a shape (underline, strike, dashed box) as well as a colour, and named in `aria-description`. */
-type Mark = 'cut' | 'extra' | 'miss' | 'mis' | 'low';
+type Mark = 'cut' | 'dup' | 'extra' | 'miss' | 'mis' | 'low';
 
 function markOf(it: DocItem): Mark | null {
   if (it.cut) return 'cut';
   if (it.accepted) return null;
-  if (it.st === 'extra') return 'extra';
+  if (it.st === 'extra') return it.dup ? 'dup' : 'extra';
   if (it.st === 'miss') return 'miss';
   if (it.st === 'mis') return 'mis';
   return it.kind === 'w' && isLow(it) ? 'low' : null;
@@ -35,6 +35,8 @@ function describe(it: DocItem, mark: Mark): string {
   switch (mark) {
     case 'cut':
       return 'Cut from the audio';
+    case 'dup':
+      return `Read twice: said again, ${clockText(it.t0 ?? 0)}, ${pct(it)}`;
     case 'extra':
       return `Not in the script, ${clockText(it.t0 ?? 0)}, ${pct(it)}`;
     case 'miss':
@@ -47,7 +49,7 @@ function describe(it: DocItem, mark: Mark): string {
 }
 
 /** Which registry kind each mark is (kinds/kindMap.ts): the same shape and colour as that kind on every other page. A cut word is not a kind: it is struck through. */
-const KIND_OF: Record<Exclude<Mark, 'cut'>, KindId> = { extra: 'extra', miss: 'missing', mis: 'misread', low: 'low' };
+const KIND_OF: Record<Exclude<Mark, 'cut'>, KindId> = { dup: 'repeat', extra: 'extra', miss: 'missing', mis: 'misread', low: 'low' };
 
 const CUT_CLASS = 'line-through text-[var(--text-muted)] opacity-80';
 const SEL_SHADOW = '0 2px 0 var(--info)';

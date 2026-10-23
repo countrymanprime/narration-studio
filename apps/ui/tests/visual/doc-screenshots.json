@@ -161,6 +161,13 @@
     "caption": "Proof - the Check recordings dialog before a run, with the options shared with every page"
   },
   {
+    "page": "proof",
+    "state": "check-findings",
+    "viewport": "desktop",
+    "docName": "proof-check-findings",
+    "caption": "Proof - the recording check's findings: a line said twice listed as Said twice, suggesting Fix in edit, with Open in Editing"
+  },
+  {
     "page": "production",
     "state": "stage-suggestion-options",
     "viewport": "desktop",
@@ -284,7 +291,7 @@
     "state": "builtin-refusal",
     "viewport": "desktop",
     "docName": "booth-builtin-refusal",
-    "caption": "Booth - the built-in recorder with Experimental actions off: Record disabled with the reason, and the Recording in the built-in recorder is experimental box above it with Turn on Record"
+    "caption": "Booth - the built-in recorder with Experimental actions off: Record off with the reason, and the Record is switched off chip above the footer"
   },
   {
     "page": "booth",
@@ -337,31 +344,52 @@
   },
   {
     "page": "booth",
-    "state": "refusal",
+    "state": "refusal-pressed",
     "viewport": "desktop",
     "docName": "booth-record-refused",
-    "caption": "Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings"
+    "caption": "Booth - Record pressed while switched off: the Recording in REAPER is experimental dialog with Turn on Record, DAW settings and Check again"
+  },
+  {
+    "page": "booth",
+    "state": "record-unlinked",
+    "viewport": "desktop",
+    "docName": "booth-record-unlinked",
+    "caption": "Booth - the Chapter 1 is not linked to a track dialog, with the project's tracks, Link track, Create a new track and Check again"
+  },
+  {
+    "page": "booth",
+    "state": "record-unlinked-closed",
+    "viewport": "desktop",
+    "docName": "booth-record-unlinked-closed",
+    "caption": "Booth - the dialog closed: the Not linked to a track chip above the footer, and the footer saying the chapter has no track to record on"
   },
   {
     "page": "booth",
     "state": "record-connect",
     "viewport": "desktop",
     "docName": "booth-record-setup",
-    "caption": "Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason"
+    "caption": "Booth - the REAPER not connected dialog, with the host's reason, the two steps, Open in REAPER and connect and Check again"
+  },
+  {
+    "page": "booth",
+    "state": "record-connect-closed",
+    "viewport": "desktop",
+    "docName": "booth-record-connect-closed",
+    "caption": "Booth - the dialog closed: the quiet REAPER not connected mark above the footer, which reopens it"
   },
   {
     "page": "booth",
     "state": "record-turned-away",
     "viewport": "desktop",
     "docName": "booth-record-turned-away",
-    "caption": "Booth - REAPER started from the Connect box, but the app was busy and turned its project away: the box says so and what to do"
+    "caption": "Booth - REAPER started from the dialog, but the app was busy and turned its project away: the dialog says so and what to do"
   },
   {
     "page": "booth",
     "state": "record-other-project",
     "viewport": "desktop",
     "docName": "booth-record-other-project",
-    "caption": "Booth - REAPER has a different project open: the box offers Link the open project, DAW settings and Check again"
+    "caption": "Booth - REAPER has a different project open: the dialog offers Link the open project, DAW settings and Check again"
   },
   {
     "page": "engine",
@@ -460,6 +488,20 @@
     "viewport": "desktop",
     "docName": "settings-recording-linked",
     "caption": "Settings - Recording: the REAPER project linked, with Start REAPER"
+  },
+  {
+    "page": "settings",
+    "state": "recording-starting",
+    "viewport": "desktop",
+    "docName": "settings-recording-starting",
+    "caption": "Settings - Recording: the app opening REAPER on the linked project, connecting on its own"
+  },
+  {
+    "page": "settings",
+    "state": "recording-builtin-confirm",
+    "viewport": "desktop",
+    "docName": "settings-recording-builtin-confirm",
+    "caption": "Settings - Recording: the confirm before a project linked to REAPER switches to the built-in recorder"
   },
   {
     "page": "settings",
@@ -627,14 +669,35 @@
     "state": "selection",
     "viewport": "desktop",
     "docName": "editing-selection",
-    "caption": "Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and the line's audio"
+    "caption": "Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and their band on the waveform"
+  },
+  {
+    "page": "editing",
+    "state": "read-twice",
+    "viewport": "desktop",
+    "docName": "editing-read-twice",
+    "caption": "Editing - words said again found by the recording check: the Read twice card with Stack as 2 takes, Hear both reads, Leave in place and Delete second read"
   },
   {
     "page": "editing",
     "state": "range",
     "viewport": "desktop",
     "docName": "editing-range",
-    "caption": "Editing - a range drawn on the line's waveform with an edge inside a word, zoomed in: the two handles, the pan strip, the partly covered word and the sub-word preview"
+    "caption": "Editing - a range drawn on the waveform with an edge inside a word, zoomed in: the two handles, the arrows at its ends, the partly covered word and the sub-word preview"
+  },
+  {
+    "page": "editing",
+    "state": "wave-scrolled",
+    "viewport": "desktop",
+    "docName": "editing-wave-scrolled",
+    "caption": "Editing - the waveform dragged with the right button to the next line: the script marks the line now on screen and brings it into view"
+  },
+  {
+    "page": "editing",
+    "state": "wave-menu",
+    "viewport": "desktop",
+    "docName": "editing-wave-menu",
+    "caption": "Editing - a right click on the waveform: its own menu"
   },
   {
     "page": "editing",
@@ -690,21 +753,35 @@
     "state": "drawer-timeline",
     "viewport": "desktop",
     "docName": "editing-drawer-timeline",
-    "caption": "Editing - the Timeline strip under the text: the waveform and takes of the line the cursor is on"
+    "caption": "Editing - the Timeline strip under the text: the takes of the line the cursor is on"
   },
   {
     "page": "editing",
     "state": "daw-off",
     "viewport": "desktop",
     "docName": "editing-daw-off",
-    "caption": "Editing with the DAW not connected - the banner with Check again"
+    "caption": "Editing with the DAW not connected - the dialog with the reason, what still works, Start REAPER and Check again"
+  },
+  {
+    "page": "editing",
+    "state": "daw-off-closed",
+    "viewport": "desktop",
+    "docName": "editing-daw-off-closed",
+    "caption": "Editing with the DAW not connected, dialog closed - the quiet mark in the header that reopens it"
   },
   {
     "page": "editing",
     "state": "unlinked",
     "viewport": "desktop",
     "docName": "editing-unlinked",
-    "caption": "Editing with no track linked - the banner says why there is no audio to edit, and the legend says No audio to edit"
+    "caption": "Editing with no track linked - the dialog names the chapter and lists the REAPER tracks with the best match chosen"
+  },
+  {
+    "page": "editing",
+    "state": "unlinked-closed",
+    "viewport": "desktop",
+    "docName": "editing-unlinked-closed",
+    "caption": "Editing with no track linked, dialog closed - the quiet Not linked to a track mark, and the legend says No audio to edit"
   },
   {
     "page": "proof",
@@ -712,6 +789,13 @@
     "viewport": "desktop",
     "docName": "proof-default",
     "caption": "Proof - all chapters: the cleared ring, the chapter strip of open notes, the notes queue grouped by chapter and the Inspector on the first note"
+  },
+  {
+    "page": "proof",
+    "state": "hear-it",
+    "viewport": "desktop",
+    "docName": "proof-hear-it",
+    "caption": "Proof - Hear it on a note: Stop hearing it while it loops in REAPER with 3 s either side, and the note's paragraph in the script with the ones before and after"
   },
   {
     "page": "proof",
@@ -1054,7 +1138,7 @@
     "state": "voice-samples-panel",
     "viewport": "desktop",
     "docName": "booth-voice-samples-panel",
-    "caption": "Booth - Voices in this scene with voice samples: a play button and count on each voice, one opened to list its samples"
+    "caption": "Booth - In this chapter with voice samples: a play button and count on each voice, one opened to list its samples"
   },
   {
     "page": "booth",
@@ -1097,6 +1181,13 @@
     "viewport": "desktop",
     "docName": "booth-bookmark",
     "caption": "Booth - B pressed: the word being read is bookmarked, with a ribbon in the margin"
+  },
+  {
+    "page": "booth",
+    "state": "search-shown",
+    "viewport": "desktop",
+    "docName": "booth-search",
+    "caption": "Booth after a search for \"the\": every match in the text is tinted and the chosen one is ringed and being read"
   },
   {
     "page": "booth",
@@ -1198,6 +1289,13 @@
   },
   {
     "page": "pickups",
+    "state": "show-where",
+    "viewport": "desktop",
+    "docName": "pickups-show-where",
+    "caption": "Pickups - a selected line: its paragraph in the script with the ones before and after, Fine, not a pickup and Go to the note in Proof"
+  },
+  {
+    "page": "pickups",
     "state": "list",
     "viewport": "desktop",
     "docName": "pickups-list",
@@ -1258,5 +1356,19 @@
     "viewport": "desktop",
     "docName": "proof-note-thread",
     "caption": "Proof - Notes on this finding: a note of your own and a proofer's reply, with Proofer replied chosen for the next"
+  },
+  {
+    "page": "global",
+    "state": "background-check-notice",
+    "viewport": "desktop",
+    "docName": "background-check-notice",
+    "caption": "Check recordings in the background? - the first-time notice names the models before anything starts"
+  },
+  {
+    "page": "global",
+    "state": "background-check-running",
+    "viewport": "desktop",
+    "docName": "background-check-running",
+    "caption": "Editing - a background check in progress at the bottom left, with Pause and Cancel"
   }
 ]

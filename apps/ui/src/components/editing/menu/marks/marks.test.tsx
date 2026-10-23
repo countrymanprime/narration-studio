@@ -291,6 +291,73 @@ describe('mark-for-pickup-adds-a-pickup', () => {
   });
 });
 
+describe('mark-for-pickup-carries-the-finding', () => {
+  // A Proof note on the same words: Mark for pickup decides it Needs pickup, so the host lists it on Pickups with its findingId
+  // (research note A2), instead of adding a line by hand that names no note.
+  const noteOn = async (status: 'unreviewed' | 'accepted' | 'dismissed' = 'unreviewed', category = 'transcript_discrepancy') => {
+    const base = (await createMockApi().findingsList({})).findings[0]!;
+    const words = marksDoc().items.filter((i) => i.pid === 'p-1' && i.kind === 'w');
+    return {
+      ...base,
+      id: 'linked',
+      category,
+      evidence: {},
+      review: { status },
+      manuscript: { chapter_id: CHAPTER, expected: `${words[1]!.text} ${words[2]!.text}`, span: { paragraph_id: 'p-1' } },
+    };
+  };
+
+  it('decides the note Needs pickup and adds no line by hand; Undo puts the note back', async () => {
+    const linked = await noteOn();
+    api.findingsList = vi.fn(async () => ({ findings: [linked], total: 1 }));
+    api.findingsReview = vi.fn(async (request) => ({ ...linked, review: { status: request.status, note: request.note } }));
+    mount();
+    select('p-1:1', 'p-1:2');
+    const items = await itemsOn('p-1:1');
+    await act(async () => item(items, 'mark-for-pickup').onSelect());
+    expect(api.findingsReview).toHaveBeenCalledWith({ id: 'linked', evidenceVersion: linked.evidence_version ?? '', status: 'accepted', note: '' });
+    expect(api.pickupsAdd).not.toHaveBeenCalled();
+    expect(overlay.toastUndo).toHaveBeenCalledWith('Added to Pickups, with its note on Proof.', expect.any(Function), { entry: expect.any(Number) });
+    const undo = vi.mocked(overlay.toastUndo).mock.calls[0][1];
+    await act(async () => void (await undo()));
+    expect(api.findingsReview).toHaveBeenLastCalledWith({ id: 'linked', evidenceVersion: linked.evidence_version ?? '', status: 'unreviewed', note: '' });
+  });
+
+  it('says the line is already in Pickups when its note already needs a pickup', async () => {
+    const linked = await noteOn('accepted');
+    api.findingsList = vi.fn(async () => ({ findings: [linked], total: 1 }));
+    api.findingsReview = vi.fn();
+    mount();
+    select('p-1:1', 'p-1:2');
+    const items = await itemsOn('p-1:1');
+    await act(async () => item(items, 'mark-for-pickup').onSelect());
+    expect(api.findingsReview).not.toHaveBeenCalled();
+    expect(api.pickupsAdd).not.toHaveBeenCalled();
+    expect(overlay.toast).toHaveBeenCalledWith('That line is already in Pickups.', { tone: 'error' });
+  });
+
+  it('adds a line by hand when no note is on the words, or the notes there are fixed in the edit', async () => {
+    const edit = { ...(await noteOn()), category: 'transcript_discrepancy', evidence: { kind: 'EXTRA' } };
+    api.findingsList = vi.fn(async () => ({ findings: [edit], total: 1 }));
+    api.findingsReview = vi.fn();
+    mount();
+    select('p-1:1', 'p-1:2');
+    const items = await itemsOn('p-1:1');
+    await act(async () => item(items, 'mark-for-pickup').onSelect());
+    expect(api.findingsReview).not.toHaveBeenCalled();
+    expect(api.pickupsAdd).toHaveBeenCalledWith(CHAPTER, expect.any(Number), 'was very');
+  });
+
+  it('adds a line by hand when the notes cannot be read, as before', async () => {
+    api.findingsList = vi.fn(async () => Promise.reject(new Error('gone')));
+    mount();
+    select('p-1:1', 'p-1:2');
+    const items = await itemsOn('p-1:1');
+    await act(async () => item(items, 'mark-for-pickup').onSelect());
+    expect(api.pickupsAdd).toHaveBeenCalledWith(CHAPTER, expect.any(Number), 'was very');
+  });
+});
+
 describe('sections-register-with-the-word-menu', () => {
   it('puts the entries between Play selection and Copy words and removes them when the page unmounts', async () => {
     const { unmount } = mount();

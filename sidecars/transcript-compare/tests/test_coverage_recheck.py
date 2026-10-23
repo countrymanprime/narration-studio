@@ -490,3 +490,45 @@ def test_align_only_refuses_when_the_cache_was_made_with_a_different_model(tmp_p
 
     with pytest.raises(mode.AlignOnlyError, match="item 0"):
         mode.run(args, compare, transcriber=_never_transcribe)
+
+
+def test_run_recheck_skips_a_window_the_same_model_already_checked(tmp_path, cached_project, progress):
+    """A second re-check of unchanged audio asks for nothing it has done: the words file's spans are the ledger of checked ranges (#2251)."""
+    manuscript, manifest = cached_project
+    windows = _write_windows(tmp_path / "windows.json", [_window(item_index=0, guid="{A}", source="a.wav", words_file="item-0.json", start=10.0, end=20.0)])
+    calls = []
+
+    def transcriber(item, on_seconds):
+        calls.append((item.index, item.start_offset, item.length))
+        on_seconds(item.length)
+        return mode.ItemWords(_timed(P1, item.start_offset), item.start_offset, item.end, "large-v3-turbo", "en", None)
+
+    args = _args(tmp_path, manuscript, manifest, recheck=str(windows), model="large-v3-turbo")
+    mode.run_recheck(args, compare, transcriber=transcriber)
+    assert calls == [(0, 10.0, 10.0)]
+
+    mode.run_recheck(args, compare, transcriber=_never_transcribe)
+    narrower = _write_windows(tmp_path / "narrower.json", [_window(item_index=0, guid="{A}", source="a.wav", words_file="item-0.json", start=12.0, end=18.0)])
+    mode.run_recheck(_args(tmp_path, manuscript, manifest, recheck=str(narrower), model="large-v3-turbo"), compare, transcriber=_never_transcribe)
+
+    assert progress.lines[-1] == ("DONE", 100, "Finished")
+
+
+def test_another_model_rechecks_a_window_the_first_one_already_did(tmp_path, cached_project, progress):
+    """A model change is a new check: the ledger is per model."""
+    manuscript, manifest = cached_project
+    windows = _write_windows(tmp_path / "windows.json", [_window(item_index=0, guid="{A}", source="a.wav", words_file="item-0.json", start=10.0, end=20.0)])
+    calls = []
+
+    def transcriber(model):
+        def transcribe(item, on_seconds):
+            calls.append(model)
+            on_seconds(item.length)
+            return mode.ItemWords(_timed(P1, item.start_offset), item.start_offset, item.end, model, "en", None)
+
+        return transcribe
+
+    mode.run_recheck(_args(tmp_path, manuscript, manifest, recheck=str(windows), model="medium"), compare, transcriber=transcriber("medium"))
+    mode.run_recheck(_args(tmp_path, manuscript, manifest, recheck=str(windows), model="large-v3-turbo"), compare, transcriber=transcriber("large-v3-turbo"))
+
+    assert calls == ["medium", "large-v3-turbo"]

@@ -19,6 +19,11 @@ export interface PageState {
    * word; `sel` holds the words it covers. Any other way of moving the selection drops it, so it never outlives the words it was drawn for.
    */
   span?: Span | null;
+  /**
+   * The stretch the bottom waveform shows, seconds on the document's clock, while the narrator scrolls it by hand: the script marks the lines in
+   * it and brings them into view. Moving the cursor or the selection lets it go, and the waveform follows the cursor's line again.
+   */
+  view?: { t0: number; t1: number } | null;
 }
 
 export type PageAction =
@@ -35,6 +40,8 @@ export type PageAction =
   | { type: 'openFlag'; key: string }
   | { type: 'closeFlag' }
   | { type: 'play'; t: number | null }
+  /** The waveform was scrolled by hand to show `[t0, t1]`. */
+  | { type: 'view'; t0: number; t1: number }
   | { type: 'reset' };
 
 export const initialPageState: PageState = { cursor: null, sel: null, flag: null, playT: null };
@@ -44,7 +51,7 @@ const isDup = (flag: string): boolean => flag.startsWith('dup:');
 /** Moving to `key` with `sel`: a card stays open only for the word it belongs to (or a doubled read). */
 function move(s: PageState, key: string, sel: Sel | null): PageState {
   const flag = s.flag && s.flag !== key && !isDup(s.flag) ? null : s.flag;
-  return { ...s, cursor: key, sel, flag, ...(s.span ? { span: null } : {}) };
+  return { ...s, cursor: key, sel, flag, ...(s.span ? { span: null } : {}), ...(s.view ? { view: null } : {}) };
 }
 
 export function pageReducer(s: PageState, a: PageAction): PageState {
@@ -72,6 +79,8 @@ export function pageReducer(s: PageState, a: PageAction): PageState {
       return { ...s, flag: a.key };
     case 'closeFlag':
       return s.flag ? { ...s, flag: null } : s;
+    case 'view':
+      return s.view && s.view.t0 === a.t0 && s.view.t1 === a.t1 ? s : { ...s, view: { t0: a.t0, t1: a.t1 } };
     case 'play':
       return s.playT === a.t ? s : { ...s, playT: a.t };
     case 'reset':

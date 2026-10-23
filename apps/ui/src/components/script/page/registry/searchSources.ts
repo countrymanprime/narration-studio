@@ -30,14 +30,17 @@ export type ManuscriptSourceOptions = {
   locationOf: (match: Pick<FindMatch, 'chapterId' | 'paragraphId'>) => string;
   /** Marks every match of the term in the reader, with the one at `index` current and in view. */
   onFind: (term: string, index: number) => void;
+  /** The menu heading and where the row for the rest sends the narrator; the Script's ("In the script", "the script") when omitted. */
+  group?: string;
+  showIn?: string;
 };
 
 /** The first matches with their place and the matched part marked, then a row for the rest. */
-export function manuscriptSource({ lines, locationOf, onFind }: ManuscriptSourceOptions): SearchSource {
+export function manuscriptSource({ lines, locationOf, onFind, group = MANUSCRIPT_GROUP, showIn = 'the script' }: ManuscriptSourceOptions): SearchSource {
   return (term) => {
     const found = searchManuscript(lines(), term);
     const hits: SearchHit[] = found.slice(0, MANUSCRIPT_SHOWN).map((match, index) => ({
-      group: MANUSCRIPT_GROUP,
+      group,
       title: `${match.snippet.pre}${match.snippet.hit}${match.snippet.post}`,
       sub: locationOf(match),
       snippet: match.snippet,
@@ -45,8 +48,8 @@ export function manuscriptSource({ lines, locationOf, onFind }: ManuscriptSource
     }));
     if (found.length > MANUSCRIPT_SHOWN) {
       hits.push({
-        group: MANUSCRIPT_GROUP,
-        title: `${found.length - MANUSCRIPT_SHOWN} more matches. Show them in the script.`,
+        group,
+        title: `${found.length - MANUSCRIPT_SHOWN} more matches. Show them in ${showIn}.`,
         run: () => onFind(term, MANUSCRIPT_SHOWN),
       });
     }

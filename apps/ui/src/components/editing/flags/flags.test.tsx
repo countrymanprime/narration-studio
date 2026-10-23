@@ -57,7 +57,32 @@ describe('one card per kind, with the mock’s answers', () => {
   it('read twice', () => {
     card({ flag: 'dup:p-2' }, dupDoc());
     expect(within(screen.getByRole('note')).getByText('Read twice')).toBeTruthy();
-    expect(buttons()).toEqual(['Stack as 2 takes', 'Leave in place', 'Delete second read…']);
+    expect(buttons()).toEqual(['Stack as 2 takes', 'Hear both reads', 'Leave in place', 'Delete second read…']);
+  });
+
+  // Issue #2251 item 30: on the live page a line has no take of its own, and the card names the recording instead.
+  it('read twice on a line with no take says the recording reads it twice', () => {
+    const d = dupDoc();
+    d.paras[1].take = undefined;
+    card({ flag: 'dup:p-2' }, d);
+    expect(within(screen.getByRole('note')).getByText(/^The recording reads the line twice\./)).toBeTruthy();
+  });
+
+  it('Hear both reads plays the second read with as long again either side, inside the line, so both reads are heard', () => {
+    const d = dupDoc();
+    const run = d.paras[1].items.filter((i) => i.dup);
+    const props = card({ flag: 'dup:p-2' }, d);
+    fireEvent.click(screen.getByRole('button', { name: /Hear both reads/ }));
+    const [a, b] = [run[0].t0 ?? 0, run[run.length - 1].t1 ?? 0];
+    const [start, end] = [Math.max(d.paras[1].start ?? 0, a - (b - a) - 0.3), Math.min(d.paras[1].end ?? b, b + (b - a) + 0.3)];
+    expect(props.hear).toHaveBeenCalledWith(start, end);
+  });
+
+  it('Hear both reads is disabled with the reason when there is no audio', () => {
+    card({ flag: 'dup:p-2', hear: null }, dupDoc());
+    const b = screen.getByRole('button', { name: /Hear both reads/ }) as HTMLButtonElement;
+    expect(b.disabled).toBe(true);
+    expect(b.getAttribute('title')).toBe('There is no audio for this chapter to play.');
   });
 });
 
@@ -100,7 +125,7 @@ describe('accepting records the words and Undo puts the flag back', () => {
     );
   }
   function Inner({ journal, chapterId, keys }: { journal: Journal; chapterId: string; keys: string[] }) {
-    const accept = useAcceptWords({ journal, chapterId });
+    const accept = useAcceptWords({ journal, chapterId, doc });
     return <button onClick={() => void accept(keys)}>go</button>;
   }
 
@@ -122,6 +147,49 @@ describe('accepting records the words and Undo puts the flag back', () => {
     });
     expect(unaccept).toHaveBeenCalledWith('c1', ['p-1:7']);
     expect(changed).not.toHaveBeenCalled();
+  });
+
+  it('marks the Proof note on the same words fine as read, and Undo puts it back as it was', async () => {
+    const api = createMockApi();
+    const word = doc.items.find((i) => i.kind === 'w')!;
+    const note = (await api.findingsList({})).findings[0]!;
+    const linked = {
+      ...note,
+      id: 'linked',
+      category: 'transcript_discrepancy',
+      review: { status: 'accepted' as const, note: 'check this' },
+      manuscript: { chapter_id: 'c1', expected: word.text, span: { paragraph_id: word.pid } },
+    };
+    vi.spyOn(api, 'findingsList').mockResolvedValue({ findings: [linked], total: 1 });
+    const review = vi
+      .spyOn(api, 'findingsReview')
+      .mockImplementation(async (request) => ({ ...linked, review: { status: request.status, note: request.note } }));
+    vi.spyOn(api, 'editingAccept').mockResolvedValue({ chapterId: 'c1', words: [], changed: [word.key] });
+    vi.spyOn(api, 'editingUnaccept').mockResolvedValue({ chapterId: 'c1', words: [], changed: [word.key] });
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    render(<Harness journal={journal} chapterId="c1" keys={[word.key]} api={api} />);
+    fireEvent.click(screen.getByText('go'));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalled());
+    expect(toastUndo.mock.calls[0][0]).toBe('Not flagged any more. The note on Proof is fine as read.');
+    expect(review).toHaveBeenCalledWith({ id: 'linked', evidenceVersion: linked.evidence_version ?? '', status: 'dismissed', note: 'check this' });
+    await act(async () => {
+      expect((await toastUndo.mock.calls[0][1]()).ok).toBe(true);
+    });
+    expect(review).toHaveBeenLastCalledWith({ id: 'linked', evidenceVersion: linked.evidence_version ?? '', status: 'accepted', note: 'check this' });
+  });
+
+  it('keeps the accept when the note cannot be read, and says the note on Proof was not changed', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'findingsList').mockRejectedValue(new Error('The findings could not be read.'));
+    vi.spyOn(api, 'editingAccept').mockResolvedValue({ chapterId: 'c1', words: [], changed: ['p-1:7'] });
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    render(<Harness journal={journal} chapterId="c1" keys={['p-1:7']} api={api} />);
+    fireEvent.click(screen.getByText('go'));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalled());
+    expect(toastUndo.mock.calls[0][0]).toBe('Not flagged any more. The note on Proof was not changed: The findings could not be read.');
+    expect((await journal.entries()).length).toBe(1);
   });
 
   it('the card’s accept buttons call accept with the word’s keys, then close', () => {

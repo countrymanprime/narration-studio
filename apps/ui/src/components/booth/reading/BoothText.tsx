@@ -83,8 +83,13 @@ type Token = UnitWords['words'][number];
 function wordLook(token: Token, now: boolean, said: boolean): CSSProperties | undefined {
   const entity = token.entity?.kind === 'entity' ? kindMarkStyle('entity', token.entity.colour) : undefined;
   const mark = token.mark?.kind === 'mark' ? narratorMarkStyle(token.mark.colour, token.mark.style) : undefined;
-  if (!entity && !mark) return undefined;
-  const look: CSSProperties = { ...entity, ...mark };
+  // A search match: the accent tint, and the one chosen is ringed. It wins over a name's tint so the match is what the eye finds.
+  const find: CSSProperties | undefined =
+    token.find?.kind === 'find'
+      ? { background: 'var(--accent-soft)', color: 'var(--text)', ...(token.find.current ? { boxShadow: '0 0 0 0.08em var(--accent)' } : {}) }
+      : undefined;
+  if (!entity && !mark && !find) return undefined;
+  const look: CSSProperties = { ...entity, ...mark, ...find };
   if (now) {
     delete look.background;
     delete look.color;
@@ -118,6 +123,7 @@ const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragr
               <span
                 data-word={token.index}
                 data-current={now ? '' : undefined}
+                data-find={token.find ? (token.find.kind === 'find' && token.find.current ? 'current' : 'match') : undefined}
                 aria-current={now ? 'true' : undefined}
                 aria-description={now ? 'Current word' : undefined}
                 title={token.mark?.title}
@@ -230,7 +236,7 @@ export function BoothText({
               // full, since its caret and glow reach past the paragraph's box, which a skipped paragraph would clip.
               style={{ '--est': `${estimatedEm(paragraph.text)}em` } as CSSProperties}
               data-pickup={pickup ? (pickup.done ? 'done' : 'open') : undefined}
-              className={`mb-[0.9em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `-ml-5 border-l-4 pl-4 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
+              className={`indent-[1.5em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `-ml-5 border-l-4 pl-4 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
             >
               {unitsOf[paragraphIndex].map((unit) => {
                 index++;
@@ -264,7 +270,7 @@ export function BoothText({
                     onClick={() => onNote?.(note.id)}
                     // The end marker follows the mark's colour (D8).
                     style={note.colour ? { boxShadow: `inset 0.25em 0 0 var(${markToken(note.colour)})`, paddingLeft: '1.1em' } : undefined}
-                    className="mt-2 block w-fit cursor-pointer rounded-md bg-[var(--accent-soft)] px-[0.8em] py-[0.4em] text-left text-[0.42em] font-medium text-[var(--accent-strong)]"
+                    className="mt-2 block w-fit cursor-pointer rounded-md bg-[var(--accent-soft)] px-[0.8em] py-[0.4em] text-left indent-0 text-[0.42em] font-medium text-[var(--accent-strong)]"
                   >
                     {note.name}: {note.text}
                   </button>

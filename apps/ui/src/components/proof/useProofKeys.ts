@@ -1,18 +1,22 @@
 import { useCallback } from 'react';
 import { useCommandProvider } from '../../input/commandProviders';
 import { useCommand } from '../../input/useCommand';
+import { HEAR_LABEL, STOP_HEARING_LABEL } from './inspector/HearIt';
 
 /** The Inspector's decision buttons by name: a key presses the button, so the stale-evidence guard and the toast are the button's own. */
-export const DECISIONS = { pickup: 'Needs pickup', edit: 'Fix in edit', waive: 'Waive', defer: 'Defer' } as const;
+export const DECISIONS = { pickup: 'Needs pickup', edit: 'Fix in edit', waive: 'Fine as read', defer: 'Defer' } as const;
 
 /** A dialog, menu or popover is showing: Escape is theirs. */
 const layerOpen = () => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null;
 
-/** Presses the Inspector's control whose text or label starts with `name` ("Show in " for "Show in REAPER"), unless it is off. */
-export function press(name: string): void {
+/**
+ * Presses the Inspector's control whose text or label starts with one of `names` ("Show in " for "Show in REAPER"), unless it is off.
+ * Several names find a toggle under whichever label it has now (Hear it, or Stop hearing it).
+ */
+export function press(...names: string[]): void {
   const inspector = document.querySelector('aside[aria-label="Note"]');
-  const button = [...(inspector?.querySelectorAll<HTMLButtonElement>('button') ?? [])].find(
-    (b) => b.getAttribute('aria-label')?.startsWith(name) || b.textContent?.startsWith(name),
+  const button = [...(inspector?.querySelectorAll<HTMLButtonElement>('button') ?? [])].find((b) =>
+    names.some((name) => b.getAttribute('aria-label')?.startsWith(name) || b.textContent?.startsWith(name)),
   );
   if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') button.click();
 }
@@ -22,7 +26,7 @@ const inNotes = (target: EventTarget | null) => target instanceof Element && tar
 
 /**
  * Proof's keys as catalogue commands (mock `registerKeys('proof')`): Up and Down (J and K) move through the notes, Left and Right step
- * the chapter, P E W D decide the selected note, Escape goes back to All chapters, and Ctrl+F is find in notes. Registered while the
+ * the chapter, Space hears the selected note (or stops it), P E W D decide it, Escape goes back to All chapters, and Ctrl+F is find in notes. Registered while the
  * page is mounted, so the footer, the shortcut sheet and Settings show them from the catalogue.
  */
 export function useProofKeys({
@@ -50,6 +54,7 @@ export function useProofKeys({
   useCommand('proof.note.prev', ({ target }) => move(-1, target));
   useCommand('proof.chapter.next', () => step(1));
   useCommand('proof.chapter.prev', () => step(-1));
+  useCommand('proof.note.hear', () => press(HEAR_LABEL, STOP_HEARING_LABEL), selectedId !== null);
   useCommand('proof.decide.pickup', () => press(DECISIONS.pickup), selectedId !== null);
   useCommand('proof.decide.edit', () => press(DECISIONS.edit), selectedId !== null);
   useCommand('proof.decide.waive', () => press(DECISIONS.waive), selectedId !== null);

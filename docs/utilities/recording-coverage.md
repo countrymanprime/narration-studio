@@ -42,14 +42,51 @@ until there is a track to check. The row is still clickable in every state: open
 shows the same in-place track-link prompt a refused check always has.
 
 A chapter whose recording changed since its check is also re-checked in the background
-:
-one at a time, the oldest change first, and only when the setting **Check changed chapters in the background** is on,
-no other job runs, the Whisper model is installed, the computer is on mains power, REAPER is closed or its heartbeat
-says it is not recording ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md);
-a REAPER that is running but has not sent the transport yet counts as recording), and nothing has changed for three
-minutes. It is the same check as a press, labelled background, and pressing **Check recording** pre-empts it.
-`chaptersync:state`'s `background.wait` says why none runs, and the engine panel's Chapter sync section shows it in
-words.
+([coverage_background.go](../../apps/desktop/coverage_background.go), [background.go](../../apps/desktop/internal/coverage/background.go)):
+one at a time, the oldest change first, and only when the setting **Check recordings in the background** is on, the narrator has
+answered its first-time notice (`RecordingCoverage.background_checks_confirmed`; until then `background.wait` is `confirm` and
+nothing starts), no other job the narrator started runs, the model is installed, the computer is on mains power, REAPER is closed
+or its heartbeat says it is not recording ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md); a REAPER
+that is running but has not sent the transport yet counts as recording), and nothing has changed for 45 seconds
+(`coverage.BackgroundQuiet`). The Booth's live tracking does not hold it off: a check runs between takes while the teleprompter
+follows a reading.
+
+A background check is not the narrator's own Check recording:
+
+- It runs its own model pair, `background_first_pass_model` (tiny) with `background_recheck_model` (small) double-checking the
+  passages the first doubts, pipelined in one sidecar process; `none` runs the first model alone. The narrator's cascade settings
+  apply only to their own checks.
+- It plans for `background_processors` processors, or, at 0, half the computer's, a quarter while the Booth follows a reading
+  (`coverage.BackgroundCPUs`, the sidecar's `--cpus`), and its sidecar runs below normal priority
+  (`process.WithLowPriority`: `BELOW_NORMAL_PRIORITY_CLASS` on Windows, nice 10 elsewhere).
+- Pressing **Check recording** pre-empts it.
+
+`chaptersync:state`'s `background` says why none runs (`wait`), how many changed chapters wait (`queued`) and the model pair
+(`firstPassModel`, `recheckModel`). The app shows a running background check, and the chapters that wait with their reason, at
+the bottom left of every page with Pause (turns background checks off) and Cancel (this check; it starts again only when the chapter
+changes) ([BackgroundChecks.tsx](../../apps/ui/src/components/recordingcheck/background/BackgroundChecks.tsx)).
+
+A check, background or not, transcribes only audio no check has covered with the same models: [Incremental checks](#incremental-checks).
+
+## Incremental checks
+
+A check never sends audio to a model that has already transcribed it with the same settings:
+
+- **The ledger is the words files.** Each item's words are cached per source and played range in the evidence cache under a key that names both
+  models, the language, the hotwords and the VAD setting (`wordsParamHash`, [params.go](../../apps/desktop/internal/coverage/params.go)). A first pass
+  reuses a cached file that covers the item's range (`covers`), so only new or widened items are transcribed. A changed model is a new key and a changed
+  recording a new source, so either is checked again.
+- **What the larger model checked is recorded and kept.** A re-check splice gives its range to the larger model in the file's `spans`; a whole-chapter
+  re-check leaves files that model made. `checked_ranges` ([coverage_mode.py](../../sidecars/transcript-compare/core/coverage_mode.py)) and
+  `readCheckedRanges` ([checked.go](../../apps/desktop/internal/coverage/checked.go)) read them back, and:
+  - the pipeline asks the larger model only for doubtful passages outside those ranges, and its whole-chapter escalation skips items it already checked
+    whole ([coverage_pipeline.py](../../sidecars/transcript-compare/core/coverage_pipeline.py));
+  - a first pass that is not the pipeline names the larger model with `--checked-by`, so it reuses that model's whole-chapter words and does not report
+    passages it re-checked as unsure again;
+  - the host's planner drops windows already checked before it weighs the whole-chapter fallback (`planRecheckUnchecked`,
+    [plan.go](../../apps/desktop/internal/coverage/plan.go)), and the windows-only `--recheck` skips them too.
+
+  A passage the larger model is still unsure of stays as it heard it: its doubt is final until the audio or a model changes.
 
 ## How it works
 
@@ -91,7 +128,13 @@ flowchart LR
   - one `COVERAGE_TOKEN` per chapter token: its paragraph, the ordinal of its word in the paragraph's text, and its status,
     which is `read`, `misread`, `heading` or the region kind the check counted it as; plus the item and source seconds
     where it was heard;
-  - one `COVERAGE_EXTRA` per run of heard words the chapter does not account for.
+  - one `COVERAGE_EXTRA` per run of heard words the chapter does not account for. Its `repeatOf` is set when the run says
+    the chapter text beside it again, a second take (issue #2251 item 30, `recording_coverage.repeat_of`): the run ends
+    with the words up to the last token heard before it (a retake, an aside such as "once more" may come first) or begins
+    with the words from the first token heard after it (a restart, an aside may follow), at least 3 words or a whole
+    paragraph. It names those chapter tokens (`start`, `end`), the run's own words that say them (`first`, `last`) and the
+    chapter text. The host files an extra gap with `repeatOf` as a `duplicate_read` (an edit), not a pickup, and Editing
+    shows it as **Read twice**. `null` for an aside and absent from a result stored before it.
 
   `--align-only` re-aligns from the cached words files and never transcribes. The host reads them through the `WorkspaceAlignment` binding
   (`apps/desktop/bindings_coverage.go`, `coverage.AlignmentView`). A chapter with no stored result answers state `never` with the
@@ -274,9 +317,9 @@ flowchart LR
   confident words. `planRecheck` adds a window for each, bounded to the item's played range, beside the windows of the missing regions, and merges and pads
   them by the same rules (MC3). A word with no score (a file written before scores) is never doubted. Scores never score a gap.
 - **One decision about what runs.** `resolveCoverageChoices` (`apps/desktop/coverage_choices.go`) reads the settings and the run's options once. The
-  Check recordings dialog, a press from a chapter's panel and a background check all call it, so the same chapter is checked the same way wherever it
-  is started. The dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice; a background check uses the settings alone and
-  never downloads a model.
+  Check recordings dialog and a press from a chapter's panel call it, so the same chapter is checked the same way wherever the narrator starts it. The
+  dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice. A background check takes the chunking and the doubt line from it and
+  its own model pair and processors from the background settings above, and never downloads a model.
 - **Several chapters at once**.
   `coverage.Service` holds one job per run, each with its own sidecar, folder and state. A start is refused while `Request.Concurrent` runs are
   already in progress (1 when it names none, the old rule) and while the same chapter is being checked. A Check recordings run names

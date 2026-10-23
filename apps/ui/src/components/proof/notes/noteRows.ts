@@ -50,7 +50,7 @@ function resolutionWords(finding: Finding): { label: string; tone: StatusTone } 
     case 'accepted':
       return fixKindOf(finding) === 'edit' ? { label: 'Fix in edit', tone: statusTone('edit') } : { label: 'Needs pickup', tone: statusTone('pickup') };
     case 'dismissed':
-      return { label: 'Waive', tone: statusTone('waive') };
+      return { label: 'Fine as read', tone: statusTone('waive') };
     case 'deferred':
       return { label: 'Defer', tone: statusTone('defer') };
     default:
@@ -215,4 +215,4 @@ export const NOTE_KIND: Record<FindingNoteType, KindId | null> = {
   takes: null,
 };
 /** Characters of the longest resolution word. */
-export const RESOLUTION_CHIP_CH = Math.max(...['To review', 'Needs pickup', 'Fix in edit', 'Waived', 'Deferred'].map((l) => l.length));
+export const RESOLUTION_CHIP_CH = Math.max(...['To review', 'Needs pickup', 'Fix in edit', 'Fine as read', 'Deferred'].map((l) => l.length));

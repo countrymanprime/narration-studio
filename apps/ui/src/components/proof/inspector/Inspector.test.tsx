@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -21,6 +21,8 @@ function setup(initial: Finding = inspectorFinding(), props: Partial<React.Compo
     findingsReview,
     findingsGet: vi.fn(async (id: string) => inspectorFinding({ id })),
     findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 1 })),
+    findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 0, loopEnd: 4 })),
+    findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
     findingsThread: vi.fn(async (id: string) => inspectorFinding({ id })),
   };
   const handlers = { onSelect: vi.fn(), onChanged: vi.fn(), onOpenScript: vi.fn(), onOpenBooth: vi.fn() };
@@ -69,11 +71,11 @@ describe('markup-is-only-four-tags', () => {
 describe('decision-buttons-set-the-status-and-show-the-key', () => {
   it('saves a decision with the shown version, presses the chosen button and says it was saved', async () => {
     const t = setup();
-    await userEvent.click(decision(/^Waive/));
+    await userEvent.click(decision(/^Fine as read/));
     expect(t.findingsReview).toHaveBeenCalledWith({ id: 'f1', evidenceVersion: 'v1', status: 'dismissed', note: '' });
     expect(t.onChanged).toHaveBeenCalledWith(expect.objectContaining({ id: 'f1' }), true);
-    await waitFor(() => expect(decision(/^Waive/).getAttribute('aria-pressed')).toBe('true'));
-    expect(screen.getByText('Saved: waived.')).toBeTruthy();
+    await waitFor(() => expect(decision(/^Fine as read/).getAttribute('aria-pressed')).toBe('true'));
+    expect(screen.getByText('Saved: fine as read.')).toBeTruthy();
   });
 
   it('is named "Resolution" and keeps the other three unpressed', () => {
@@ -129,14 +131,14 @@ describe('note-steps-and-banner-are-the-merged-ones', () => {
     const t = setup();
     t.recheck(inspectorFinding({ version: 'v2', heard: 'I could not help it' }));
     expect(screen.getByRole('alert').textContent).toContain('The evidence changed');
-    for (const name of [/^Needs pickup/, /^Fix in edit/, /^Waive/, /^Defer/, /^Next note$/, /^Previous note$/]) {
+    for (const name of [/^Needs pickup/, /^Fix in edit/, /^Fine as read/, /^Defer/, /^Next note$/, /^Previous note$/]) {
       expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
     }
-    await userEvent.click(decision(/^Waive/));
+    await userEvent.click(decision(/^Fine as read/));
     expect(t.findingsReview).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: 'Use the new evidence' }));
     expect(screen.queryByRole('alert')).toBeNull();
-    await userEvent.click(decision(/^Waive/));
+    await userEvent.click(decision(/^Fine as read/));
     expect(t.findingsReview).toHaveBeenCalledWith(expect.objectContaining({ evidenceVersion: 'v2' }));
   });
 
@@ -156,7 +158,7 @@ describe('slots-for-the-rest', () => {
     cleanup();
     setup();
     expect(screen.queryByTestId('spot')).toBeNull();
-    expect(screen.getByRole('button', { name: /^Waive/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Fine as read/ })).toBeTruthy();
   });
 });
 
@@ -167,5 +169,34 @@ describe('open-in-script-and-booth-are-links-not-moves', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open this chapter in Booth' }));
     expect(t.onOpenScript).toHaveBeenCalledWith('chapter-2');
     expect(t.onOpenBooth).toHaveBeenCalledWith('chapter-2');
+  });
+});
+
+// Issue #2251 item 30: a phrase said twice is a second take, fixed on Editing; the note says so and opens the line there.
+describe('a-note-said-twice-opens-in-editing', () => {
+  const said = inspectorFinding({
+    category: 'duplicate_read',
+    manuscript: { chapter_id: 'c-1', expected: 'I could not help it', recorded: 'sorry I could not help it' },
+    evidence: { kind: 'EXTRA', repeat_of: 'I could not help it' },
+  });
+
+  it('says the words were said twice and opens the finding on Editing', () => {
+    const onOpenEditing = vi.fn();
+    setup(said, { onOpenEditing });
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toBe('Said twice');
+    expect(screen.getByText('Said twice. The second take is on Editing, where you can keep both, compare them or delete one.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Open in Editing' }));
+    expect(onOpenEditing).toHaveBeenCalledWith('c-1', 'f1');
+  });
+
+  it('offers nothing for any other note, or with no chapter or no handler', () => {
+    setup(inspectorFinding({ manuscript: { chapter_id: 'c-1', expected: 'a', recorded: 'b' } }), { onOpenEditing: vi.fn() });
+    expect(screen.queryByRole('button', { name: 'Open in Editing' })).toBeNull();
+    cleanup();
+    setup({ ...said, manuscript: { expected: 'x', recorded: 'x x' } }, { onOpenEditing: vi.fn() });
+    expect(screen.queryByRole('button', { name: 'Open in Editing' })).toBeNull();
+    cleanup();
+    setup(said);
+    expect(screen.queryByRole('button', { name: 'Open in Editing' })).toBeNull();
   });
 });

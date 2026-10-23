@@ -72,7 +72,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 140
+const hostAPIVersion = 141
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -278,7 +278,8 @@ type Host struct {
 	// dawSyncProject is the .rpp the last DawTransportSync call resolved as this book's project, so each streamed position can say whether REAPER
 	// has it open without reading the disk 4 times a second.
 	dawSyncProject struct {
-		mu   sync.Mutex
+		mu sync.Mutex
+		// +checklocks:mu
 		path string
 	}
 	// backupKeeper is the DAW port's backups role: on an Audacity launch with a project open, the Audacity adapter's,
@@ -398,7 +399,9 @@ type Host struct {
 	// backgroundChecks is what the background recording check loop remembers (coverage_background.go).
 	backgroundChecks backgroundChecks
 	// powerState is a seam for tests: nil means platformPower, the operating system's own answer.
-	powerState     func() coverage.Power
+	powerState func() coverage.Power
+	// liveFollowing is a seam for tests: nil means the teleprompter's own answer, whether the Booth's live tracking is running.
+	liveFollowing  func() bool
 	transcriptRuns transcriptWatch
 	// coverageRuns turns recording check states into job ends (bindings_coverage.go).
 	coverageRuns coverageWatch
@@ -416,6 +419,15 @@ type Host struct {
 	// reaperRunning says whether REAPER is already running; nil means daw.IsRunning.
 	reaperRunning func() bool
 	reaperLocate  func() (path, source string, err error)
+	// dawAutoEnabled lets the host install its bridge into REAPER, start REAPER on its own (reaperbridge.go), and turn Audacity's
+	// scripting on and start Audacity on its own (audacityauto.go); only the app's
+	// real start and the tests that give the seams below set it. reaperResourceSeam is REAPER's resource folder and reaperFilesSeam the
+	// bridge files to install, for tests; nil means the real ones.
+	dawAutoEnabled     atomic.Bool
+	reaperResourceSeam func() string
+	reaperFilesSeam    fs.FS
+	reaperBridgeOnce   sync.Once
+	reaperBridge       *reaperBridgeState
 	// audacityLocate is DawChoice's seam for daw.LocateAudacityExecutable (bindings_dawchoice.go); nil means the real one.
 	audacityLocate func() (path, source string, err error)
 	// audacityRunning, audacityLaunch and audacityConfig are the link state's seams (bindings_audacity_link.go, dawlaunch.go): nil
@@ -487,6 +499,8 @@ type config struct {
 	compareBackend                          string
 	teleprompterPython, teleprompterBackend string
 	reaperLauncher                          string
+	// reaperStartupHooked is whether REAPER runs the bridge itself when it opens (reaperbridge.go), so a start needs no launcher argument.
+	reaperStartupHooked bool
 }
 
 func NewHost() *Host {
@@ -600,6 +614,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.chapterSyncWatchLoop(runtimeContext)
 	go h.backgroundCheckLoop(runtimeContext)
 	go h.punchAnchorLoop(runtimeContext)
+	h.dawAutoEnabled.Store(true)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
 	go h.cleanStaleDownloads()
@@ -938,8 +953,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if _, err := os.Stat(filepath.Join(target, ".complete")); err == nil {
 		// The payload may be unchanged while the app executable moves (for
 		// example after a user relocates a portable install). Refresh this
-		// tiny launcher pointer on every startup; REAPER import itself remains
-		// an explicit, user-controlled action.
+		// tiny launcher pointer on every startup.
 		_ = writeReaperLauncherPath(target, executable)
 		_ = syncStableLauncher(source, stableLauncherDir(userCache), executable)
 		return target, nil
@@ -984,11 +998,8 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if err := os.Rename(staging, target); err != nil {
 		return "", err
 	}
-	// The REAPER action is intentionally materialized beside the immutable
-	// sidecars.  It needs the installed Wails executable rather than a
-	// checkout-relative path; the Lua launcher reads this one-line file.
-	// REAPER is never modified automatically: Settings shows this path for a
-	// user-controlled import or re-import.
+	// The REAPER scripts are materialized beside the immutable sidecars and in the stable launcher folder, each with the app's
+	// path the launcher reads. The copy REAPER runs is the one reaperbridge.go installs into REAPER's own Scripts folder.
 	_ = writeReaperLauncherPath(target, executable)
 	_ = syncStableLauncher(source, stableLauncherDir(userCache), executable)
 	return target, nil
@@ -1468,6 +1479,13 @@ func (h *Host) canAttachLocked() bool {
 // idleLocked reports whether nothing is running that a restart or a project switch would displace: an import draft, a Story Bible
 // build, a download, a comparison, a measurement, a diagnostics check, a teleprompter session or a REAPER take this app started. The caller holds h.mu.
 func (h *Host) idleLocked() bool {
+	return h.idleLockedFor(false)
+}
+
+// idleLockedFor is idleLocked, leaving out the Booth's live tracking when background is true: a background recording check
+// may run between takes while the teleprompter follows a reading, below normal priority and on its share of the processors
+// (coverage.BackgroundCPUs). REAPER recording still holds it off (coverage.NextBackground). The caller holds h.mu.
+func (h *Host) idleLockedFor(background bool) bool {
 	if h.manuscript != nil && !h.manuscript.CanSwitchProject() {
 		return false
 	}
@@ -1509,7 +1527,7 @@ func (h *Host) idleLocked() bool {
 	if h.coverage != nil && h.coverage.Busy() {
 		return false
 	}
-	if h.teleprompter != nil && h.teleprompter.Busy() {
+	if !background && h.teleprompter != nil && h.teleprompter.Busy() {
 		return false
 	}
 	if h.recorder != nil && h.recorder.Busy() {
@@ -1812,6 +1830,13 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
 		// Chapters a Check recordings run checks at once; they share the processors.
 		{"parallel_chapters", "Chapters checked at once", "number", nil},
+		// The background check's own settings (coverage_background.go): the first-time notice's answer, its model pair and
+		// its processors. Its pair is separate from the cascade above, so a heavy choice for the narrator's own check never
+		// runs unannounced in the background.
+		{"background_checks_confirmed", "The narrator answered the background checks notice", "bool", nil},
+		{"background_first_pass_model", "Model for background checks", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
+		{"background_recheck_model", "Double-check model for background checks", "choice", []string{"none", "tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
+		{"background_processors", "Processors for background checks (0 = half this computer's)", "number", nil},
 	},
 	// StageRecommendations (see docs/architecture/stage-recommendations.md) chooses which signals must be
 	// met for a stage suggestion: one choice field per signal id a provider declares (apps/desktop/bindings_stages.go's

@@ -16,11 +16,24 @@ const LISTENING_WORD = '[data-word="32"] [data-highlight="Cursor"]';
 const SAMPLES = `${RECORD_ON}&mockVoiceSamples=bible`;
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
+// Record while it cannot start: off (`aria-disabled`) but pressable, and behind a dialog once one opens.
+const recordOff = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
+// A chapter with no linked track (REAPER's Experimental reads on, so the Booth reads the chapter's track; Record on).
+const UNLINKED = '?mockDawExperimentalOn=1&mockRecordCapabilityOn=1&mockReaperState=no_link';
+
+// Record switched off is a chip; a press of Record opens the dialog that turns it on.
+async function turnOnRecord(page: Page): Promise<void> {
+  await recordOff(page).click({ force: true });
+  await page
+    .getByRole('dialog', { name: /^Recording in .* is experimental$/ })
+    .getByRole('button', { name: 'Turn on Record' })
+    .click();
+}
 
 async function readyToRecord(page: Page, query = RECORD_ON): Promise<void> {
   await openBooth(page, query);
-  await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
-  await record(page).and(page.locator(':enabled')).waitFor();
+  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+  await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
 }
 
 // A take running on a paused clock; focus leaves Stop, so the page's own keys (Escape, R) reach the page as they do once the
@@ -99,36 +112,94 @@ export const boothDrivers: Record<string, Driver> = {
   refusal: async (page) => {
     await openBooth(page);
     await page.getByText('Experimental: switched off in Settings.').waitFor();
-    await page.getByRole('heading', { name: 'Recording in REAPER is experimental' }).waitFor();
-    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await page.getByRole('button', { name: 'Record is switched off. Show details' }).waitFor();
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+  },
+  // The same Booth after Record was pressed: the press opens the dialog that turns Record on, and nothing records.
+  'refusal-pressed': async (page) => {
+    await openBooth(page);
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await recordOff(page).click({ force: true });
+    await page.getByRole('dialog', { name: 'Recording in REAPER is experimental' }).getByRole('button', { name: 'Turn on Record' }).waitFor();
+  },
+  // A chapter with no track: the link dialog opens by itself, with the project's tracks to choose from and the offer to create one.
+  'record-unlinked': async (page) => {
+    await openBooth(page, UNLINKED);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    await dialog.getByRole('combobox', { name: /^Track for / }).waitFor();
+    await dialog.getByRole('button', { name: 'Create a new track' }).waitFor();
+  },
+  // Closed with its X: the chip above the footer and the footer's sentence say what Record waits for; a press of Record reopens the dialog.
+  'record-unlinked-closed': async (page) => {
+    await openBooth(page, UNLINKED);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    await dialog.getByRole('button', { name: 'Create a new track' }).waitFor();
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page.locator('#brec-link').getByRole('button', { name: 'Not linked to a track. Show details' }).waitFor();
+    await page
+      .locator('#brec-why')
+      .getByText(/has no track to record on/)
+      .waitFor();
+  },
+  // Create a new track: REAPER adds one named after the chapter and it is linked; the message says so and Record is ready.
+  'record-unlinked-created': async (page) => {
+    await openBooth(page, UNLINKED);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track$/ });
+    await dialog.getByRole('button', { name: 'Create a new track' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page
+      .getByRole('status')
+      .getByText(/added in REAPER and linked to/)
+      .first()
+      .waitFor();
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'record-connect': async (page) => {
     await openBooth(page, '?mockDawConnected=0&mockRecordCapabilityOn=1');
-    await page.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
+    // The bridge is down and the project is not linked: the dialog opens by itself, with the launcher steps and Open in REAPER (off until a file is linked).
+    await page.getByRole('dialog', { name: /is not connected/ }).waitFor();
     await page.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
+  },
+  // The same with the dialog closed by its X: the quiet mark stands above the footer and reopens it.
+  'record-connect-closed': async (page) => {
+    await openBooth(page, '?mockDawConnected=0&mockRecordCapabilityOn=1');
+    const dialog = page.getByRole('dialog', { name: /is not connected/ });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page
+      .locator('#brec-setup')
+      .getByRole('button', { name: /REAPER not connected/ })
+      .waitFor();
   },
   'record-turned-away': async (page) => {
     await openBooth(page, '?mockDaw=busy');
     const notice = page.locator('#brec-setup');
-    await notice.getByRole('button', { name: 'Turn on Record' }).click();
-    await notice.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
-    await notice.getByRole('button', { name: 'Link in Settings' }).click();
+    await turnOnRecord(page);
+    const connect = page.getByRole('dialog', { name: /is not connected/ });
+    await connect.getByRole('button', { name: 'Link in Settings' }).click();
     await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
-    await notice.getByRole('alert').waitFor();
+    await notice.getByRole('button').click();
+    await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    await connect.getByRole('alert').waitFor();
+    // The app waits ten seconds for the bridge with the button busy (dimmed); the state is the settled dialog, with the button offered again.
+    await connect.locator('button:not([aria-busy])', { hasText: 'Open in REAPER and connect' }).waitFor({ timeout: 20_000 });
   },
   'record-other-project': async (page) => {
     await openBooth(page, '?mockDaw=different');
     const notice = page.locator('#brec-setup');
-    await notice.getByRole('button', { name: 'Turn on Record' }).click();
-    await notice.getByRole('heading', { name: 'Connect REAPER to record' }).waitFor();
-    await notice.getByRole('button', { name: 'Link in Settings' }).click();
+    await turnOnRecord(page);
+    const connect = page.getByRole('dialog', { name: /is not connected/ });
+    await connect.getByRole('button', { name: 'Link in Settings' }).click();
     await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: 'Open in REAPER and connect' }).click();
-    await notice.getByRole('heading', { name: 'REAPER has a different project open' }).waitFor({ timeout: 15_000 });
-    await notice.getByText(/Last checked \d+ s ago/).waitFor();
+    await notice.getByRole('button').click();
+    await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
+    // It opens by itself: a take would land in the wrong project.
+    const other = page.getByRole('dialog', { name: 'REAPER has a different project open' });
+    await other.waitFor({ timeout: 15_000 });
+    await other.getByText(/Last checked \d+ s ago/).waitFor();
   },
   // The app's own recorder: the chip names it, Record needs no track, and what stops a take is said in its own words.
   'builtin-setup': async (page) => {
@@ -137,11 +208,11 @@ export const boothDrivers: Record<string, Driver> = {
       .getByRole('button', { name: /^Recording setup: / })
       .filter({ hasText: /Built-in/ })
       .waitFor();
-    await record(page).and(page.locator(':enabled')).waitFor();
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'builtin-refusal': async (page) => {
     await openBooth(page, '?mockEngine=builtin');
-    await page.getByRole('heading', { name: 'Recording in the built-in recorder is experimental' }).waitFor();
+    await page.getByRole('button', { name: 'Record is switched off. Show details' }).waitFor();
     await page.getByText('Experimental: switched off in Settings.').waitFor();
   },
   'builtin-recording': (page) => startTake(page, '?mockEngine=builtin&mockRecordCapabilityOn=1'),
@@ -156,7 +227,7 @@ export const boothDrivers: Record<string, Driver> = {
       .getByText(/kept in the project's Recordings folder/)
       .first()
       .waitFor();
-    await record(page).and(page.locator(':enabled')).waitFor();
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   recording: (page) => startTake(page),
   'leave-dialog': async (page) => {
@@ -215,12 +286,12 @@ export const boothDrivers: Record<string, Driver> = {
   'listening-no-mic': async (page) => {
     await openBooth(page, `${RECORD_ON}&mockNoDevices=1`);
     await page.locator('#blisten-why', { hasText: 'The text cannot follow your voice: No microphone found.' }).waitFor();
-    await record(page).and(page.locator(':enabled')).waitFor();
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'model-required': async (page) => {
     // No resume line here: finding where the recording ends needs the same missing model.
     await openBooth(page, `${RECORD_ON}&mockAssets=missing`);
-    await record(page).and(page.locator(':enabled')).waitFor();
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
     await page.clock.install({ time: REC_START });
     await page.clock.pauseAt(REC_START + 1_000);
     await record(page).click();
@@ -261,7 +332,7 @@ export const boothDrivers: Record<string, Driver> = {
     // The Script's "Marked …" toast would otherwise sit over the Booth's footer.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
     await page.locator('[data-booth-text] [data-word][title]', { hasText: 'tired' }).click();
     await page.locator('#booth-reference').getByText('Lean on it: she is bored, not sleepy.').waitFor();
   },
@@ -271,6 +342,16 @@ export const boothDrivers: Record<string, Driver> = {
     await page.keyboard.press('b');
     await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
     await page.getByText('Bookmark added.').waitFor();
+  },
+  // Ctrl+F opens the jump menu; a match under "In this chapter" moves the reading to it and tints every match in the text.
+  'search-shown': async (page) => {
+    await readyToRecord(page);
+    await page.keyboard.press('Control+f');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('the');
+    await page.getByRole('listbox', { name: 'Jump menu results' }).getByText('In this chapter', { exact: true }).waitFor();
+    await page.getByRole('option', { name: /¶/ }).nth(2).click();
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
+    await page.locator('[data-booth-text] [data-find="current"]').first().waitFor();
   },
   // Pickups' "Open in Booth at this line": the Booth in a pickup session, the line listed in the side panel and marked in the text.
   'pickup-session': async (page) => {
@@ -302,8 +383,8 @@ export const boothDrivers: Record<string, Driver> = {
     await settlePage(page);
     await chooseTheme(page, 'Dark');
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
-    await record(page).and(page.locator(':enabled')).waitFor();
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'companion-default': async (page) => {
     await openCompanion(page);

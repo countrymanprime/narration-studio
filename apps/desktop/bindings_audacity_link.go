@@ -391,7 +391,8 @@ func (h *Host) pollAudacityLink() {
 			conn.probing = false
 			conn.mu.Unlock()
 		}()
-		h.audacityLinkRefreshWith(svc, true, false)
+		link := h.audacityLinkRefreshWith(svc, true, false)
+		h.audacityAutoConnect(svc, conn, link)
 	}()
 }
 

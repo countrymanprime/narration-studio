@@ -17,14 +17,15 @@ describe('decision-buttons-set-the-status-and-show-the-key', () => {
     render(<DecisionButtons status="unreviewed" fix="pickup" onDecide={() => {}} />);
     const group = screen.getByRole('group', { name: 'Resolution' });
     expect(group.querySelectorAll('button')).toHaveLength(4);
-    expect([...group.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Needs pickupP', 'Fix in editE', 'WaiveW', 'DeferD']);
+    expect([...group.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Needs pickupP', 'Fix in editE', 'Fine as readW', 'DeferD']);
     expect(pressed()).toEqual([]);
   });
 
-  it('maps the buttons to the stored statuses: pickup and edit are accepted, Waive is dismissed, Defer is deferred', async () => {
+  it('maps the buttons to the stored statuses: pickup and edit are accepted, Fine as read is dismissed, Defer is deferred', async () => {
     const onDecide = vi.fn();
     render(<DecisionButtons status="unreviewed" fix="pickup" onDecide={onDecide} />);
-    for (const name of ['Needs pickup', 'Fix in edit', 'Waive', 'Defer']) await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
+    for (const name of ['Needs pickup', 'Fix in edit', 'Fine as read', 'Defer'])
+      await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
     expect(onDecide.mock.calls.map(([s]) => s)).toEqual(['accepted', 'accepted', 'dismissed', 'deferred']);
   });
 
@@ -43,7 +44,7 @@ describe('decision-buttons-set-the-status-and-show-the-key', () => {
     rerender(<DecisionButtons status="accepted" fix="pickup" onDecide={() => {}} />);
     expect(pressed()).toEqual(['Needs pickupP']);
     rerender(<DecisionButtons status="dismissed" fix="pickup" onDecide={() => {}} />);
-    expect(pressed()).toEqual(['WaiveW']);
+    expect(pressed()).toEqual(['Fine as readW']);
     rerender(<DecisionButtons status="deferred" fix="pickup" onDecide={() => {}} />);
     expect(pressed()).toEqual(['DeferD']);
   });
@@ -51,7 +52,7 @@ describe('decision-buttons-set-the-status-and-show-the-key', () => {
   it('is inert when disabled', async () => {
     const onDecide = vi.fn();
     render(<DecisionButtons status="unreviewed" fix="pickup" disabled onDecide={onDecide} />);
-    await userEvent.click(screen.getByRole('button', { name: /^Waive/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Fine as read/ }));
     expect(onDecide).not.toHaveBeenCalled();
   });
 });

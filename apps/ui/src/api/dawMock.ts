@@ -44,6 +44,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   project_read: 'supported',
   track_state: 'experimental',
   track_select: 'experimental',
+  track_create: 'experimental',
   follow_position: 'experimental',
   transport_sync: 'experimental',
   record: 'experimental',
@@ -84,6 +85,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   project_read: 'nothing',
   track_state: 'running',
   track_select: 'running',
+  track_create: 'running',
   follow_position: 'running',
   transport_sync: 'running',
   record: 'running',
@@ -112,8 +114,8 @@ const MESSAGE_NO_INPUT_LEVEL = (who: string) => `${who} cannot set an audio inte
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
  * every other refusal (apps/desktop/internal/dawport/resolver.go, apps/desktop/internal/dawport/reaper/reaper.go). */
-const MESSAGE_STANDALONE_REAPER = 'REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.';
-const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.';
+const MESSAGE_STANDALONE_REAPER = 'REAPER is not connected to this app. Open REAPER; the app connects to it by itself.';
+const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.';
 const MESSAGE_NO_ENGINE = 'No DAW is connected to this app. Open this app from your DAW to use it.';
 const MESSAGE_TURNED_OFF = 'Turned off in Settings.';
 const MESSAGE_EXPERIMENTAL_OFF = 'Experimental: switched off in Settings.';
@@ -142,6 +144,7 @@ const AUDACITY_EXPERIMENTAL: ReadonlySet<DawCapabilityKey> = new Set<DawCapabili
   'project_read',
   'track_state',
   'track_select',
+  'track_create',
   'follow_position',
   'regions',
   'navigate',

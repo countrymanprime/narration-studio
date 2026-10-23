@@ -141,6 +141,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterTrackCreateSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
@@ -308,13 +309,19 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const before = (await api.findingsSummary()).total;
     const accepted = await api.coverageGapAccept(chapterId, first.id);
     expectMatches(findingSchema, accepted, 'mock accepted gap');
-    expect(accepted).toMatchObject({ category: 'pickup', confidence: null, review: { status: 'accepted' } });
+    // The mock's first gap is a line said twice: a duplicate read (an edit), as the host files it (issue #2251 item 30).
+    expect(first.repeatOf).toBeDefined();
+    expect(accepted).toMatchObject({ category: 'duplicate_read', confidence: null, review: { status: 'accepted' }, evidence: { repeat_of: first.repeatOf } });
     expect((await api.findingsSummary()).total).toBe(before + 1);
     expect(await api.coverageGapAccept(chapterId, first.id)).toEqual(accepted);
     expect((await api.findingsSummary()).total).toBe(before + 1);
 
     await api.coverageGapIgnore(chapterId, second.id);
     expect((await api.findingsSummary()).total).toBe(before + 1);
+    // Any other gap stays a pickup.
+    const fresh = createMockApi({}, { coverage: { pickups: [chapterId] } });
+    expect(second.repeatOf).toBeUndefined();
+    expect(await fresh.coverageGapAccept(chapterId, second.id)).toMatchObject({ category: 'pickup' });
     const read = await api.coverageGapReviews(chapterId);
     expectMatches(coverageGapReviewsSchema, read, 'mock gap reviews');
     expect(read).toEqual({ [first.id]: 'accepted', [second.id]: 'ignored' });
@@ -357,6 +364,11 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     const older = Object.fromEntries(Object.entries(golden.result).filter(([key]) => key !== 'gaps' && key !== 'unfinished'));
     const parsed = parseWire(coverageResultSchema, { ...golden, result: older }, ctx('coverage result'));
     expect([parsed.result?.gaps, parsed.result?.unfinished]).toEqual([[], { start: 0, end: 0 }]);
+  });
+
+  it('an extra gap that says the chapter text again names what it repeats; any other gap has no repeatOf', () => {
+    const [gap] = parseWire(coverageResultSchema, readGolden('coverage-result-repeat.json'), ctx('coverage result')).result?.gaps ?? [];
+    expect(gap).toMatchObject({ kind: 'extra', text: 'sorry beginning to get', repeatOf: 'beginning to get' });
   });
 
   it('a gap has a known kind and a confidence that is null or comes with its reason', () => {
@@ -1460,6 +1472,28 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
   });
 
+  it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link' });
+    const chapters = await api.manuscriptChapters();
+    expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('no_link');
+    const created = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, created');
+    if (created.outcome !== 'created') throw new Error('expected a created track');
+    expect(created.link).toMatchObject({ chapterId: chapters[0].id, trackGuid: created.track.guid });
+    expect(created.mappings.filter((mapping) => mapping.chapterId === chapters[0].id)).toHaveLength(1);
+    // The host reads the new link: the chapter that had no track is ready to record.
+    expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('ready');
+    const second = await api.chapterTrackCreate(chapters[0].id);
+    if (second.outcome !== 'created') throw new Error('expected a created track');
+    expect(second.track.guid).not.toBe(created.track.guid);
+    await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
+    for (const reaperState of ['unavailable', 'experimental_off', 'recording_elsewhere'] as const) {
+      const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);
+      expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
+      expect(refused.outcome).toBe('refused');
+    }
+  });
+
   it('the ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks answers', async () => {
     const api = createMockApi();
     const chapters = await api.manuscriptChapters();
@@ -1919,6 +1953,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const stale = await createMockApi({}, { mastering: { choice: 'dolby-atmos' } }).masteringProviders();
     expectMatches(masteringProvidersSchema, stale, 'mock mastering chains (a stored choice this version does not have)');
     expect(stale).toEqual(readGolden('mastering-providers-unknown-choice.json'));
+  });
+
+  it('the DAW choice while the app opens REAPER: the host golden and the mock agree on the state, the start and the bridge', async () => {
+    const golden = parseWire(dawChoiceSchema, readGolden('daw-choice-starting.json'), ctx('daw choice starting'));
+    expect({ state: golden.state, starting: golden.starting !== null, bridge: golden.bridge }).toEqual({
+      state: 'starting',
+      starting: true,
+      bridge: { installed: true, startsWithReaper: true, problem: null },
+    });
+    for (const name of ['default', 'found', 'linked'] as const) {
+      parseWire(dawChoiceSchema, readGolden(`daw-choice-${name}.json`), ctx(`daw choice ${name}`));
+    }
+    const mock = await createMockApi({}, { dawChoice: { linkedFile: 'Alice.rpp', bridge: false, starting: true }, daw: { connected: false } }).dawChoice();
+    expectMatches(dawChoiceSchema, mock, 'mock daw choice (starting)');
+    expect({ state: mock.state, starting: mock.starting !== null, bridge: mock.bridge }).toEqual({
+      state: golden.state,
+      starting: true,
+      bridge: golden.bridge,
+    });
   });
 
   it("the project's DAW choice: the mock passes the schema, lists every engine and links the one .rpp found", async () => {
@@ -2766,6 +2819,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const unknown = await api.workspaceAlignment('no-such-chapter');
     expectMatches(workspaceAlignmentResultSchema, unknown, 'mock workspace alignment, never');
     expect(unknown).toMatchObject({ state: 'never', paragraphs: [], tokens: [] });
+  });
+
+  it('an extra run that says the chapter text again names the tokens and its own words; an older run reads as no repeat', () => {
+    const golden = z.looseObject({ extras: z.array(z.record(z.string(), z.unknown())) }).parse(readGolden('workspace-alignment-repeat.json'));
+    const [extra] = workspaceAlignmentResultSchema.parse(golden).extras;
+    expect(extra.repeatOf).toEqual({ start: 5, end: 7, first: 1, last: 3, text: 'very tired.' });
+    const older = { ...golden, extras: golden.extras.map(({ repeatOf: _repeatOf, ...rest }) => rest) };
+    expect(workspaceAlignmentResultSchema.parse(older).extras[0].repeatOf).toBeUndefined();
+    const plain = workspaceAlignmentResultSchema.parse(readGolden('workspace-alignment-current.json'));
+    expect(plain.extras.every((run) => run.repeatOf === undefined)).toBe(true);
+    const bad = (repeatOf: Record<string, unknown>) => ({ ...golden, extras: [{ ...golden.extras[0], repeatOf }] });
+    expect(workspaceAlignmentResultSchema.safeParse(bad({ start: 6, end: 5, first: 1, last: 3, text: 'x' })).success).toBe(false);
+    expect(workspaceAlignmentResultSchema.safeParse(bad({ start: 5, end: 7, first: 2, last: 2, text: 'x' })).success).toBe(false);
   });
 
   it('the heard words: a score is null with a reason, only an extra run is added, and the mock carries both', async () => {
@@ -4165,6 +4231,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterTrackMapConfirm',
       'chapterTrackMapClear',
       'chapterTrackSet',
+      'chapterTrackCreate',
       'chapterTrackUnlink',
       'chapterSyncState',
       'chapterSyncPreview',

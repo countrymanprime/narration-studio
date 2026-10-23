@@ -111,6 +111,9 @@ test.describe('The jump menu returns focus on Escape', () => {
       });
       await page.keyboard.press('Control+k');
       await page.getByRole('dialog').waitFor();
+      // The control's hint (the header's project button shows one on focus) lingers for a few frames after focus moves into the menu,
+      // and a hint owns Escape while it shows (Dialog.tsx): an Escape sent before it is gone closes the hint and leaves the menu open.
+      await expect(page.locator('[data-hint-popup]')).toHaveCount(0);
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
       await expect(page.locator('[data-was-focused]')).toBeFocused();
@@ -161,7 +164,7 @@ const focusedName = (page: Page) =>
   });
 
 test.describe('Proof: focus stays with the control that acted', () => {
-  for (const decision of ['Waive', 'Defer']) {
+  for (const decision of ['Fine as read', 'Defer']) {
     test(`pressing ${decision} keeps focus on ${decision} for the next note`, async ({ page }) => {
       await openProof(page);
       await page
@@ -196,7 +199,7 @@ test.describe('Proof: focus stays with the control that acted', () => {
     await openProof(page);
     await page
       .locator(INSPECTOR)
-      .getByRole('button', { name: /^Waive/ })
+      .getByRole('button', { name: /^Fine as read/ })
       .click();
     await page.waitForTimeout(600);
     await page.locator('section[aria-label="Notes"] tbody tr').first().click();

@@ -108,6 +108,7 @@ func TestNewRefusesANilClient(t *testing.T) {
 var experimentalCapability = map[string]dawport.Capability{
 	"chapter_track_state": dawport.CapTrackState,
 	"select_track":        dawport.CapTrackSelect,
+	"track_create":        dawport.CapTrackCreate,
 	"arm_only":            dawport.CapRecord,
 	"record_start":        dawport.CapRecord,
 	"record_stop":         dawport.CapRecord,

@@ -80,6 +80,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterTrackCreateSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
@@ -721,6 +722,7 @@ export const wailsClient: NarrationApi = {
   chapterTrackMapConfirm: (trackGuid, chapterId) => decode(trackMappingSchema, 'ChapterTrackMapConfirm', host.ChapterTrackMapConfirm(trackGuid, chapterId)),
   chapterTrackMapClear: (trackGuid) => decode(chapterTrackMappingSchema, 'ChapterTrackMapClear', host.ChapterTrackMapClear(trackGuid)),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),
+  chapterTrackCreate: (chapterId) => decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId)),
   chapterTrackUnlink: (chapterId) => decode(chapterTrackMappingSchema, 'ChapterTrackUnlink', host.ChapterTrackUnlink(chapterId)),
   chapterSyncState: () => decode(chapterSyncStateSchema, 'ChapterSyncState', host.ChapterSyncState()),
   chapterSyncPreview: () => decode(chapterSyncPreviewSchema, 'ChapterSyncPreview', host.ChapterSyncPreview()),

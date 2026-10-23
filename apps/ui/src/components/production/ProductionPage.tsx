@@ -33,7 +33,9 @@ import { checkCounts, deliveryCounts, stageSegments, type OverviewTarget } from 
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
-import { DawBanner } from './pipeline/DawBanner';
+import { ConnectionResolveDialog } from '../connection/ConnectionResolveDialog';
+import { useOpenOnce } from '../connection/useOpenOnce';
+import { DawIndicator } from './pipeline/DawIndicator';
 import { DAW_CONNECT_GRACE_MS, useConnectGrace } from './pipeline/dawConnectGrace';
 import { NextUp } from './pipeline/NextUp';
 import { NoManuscript } from './pipeline/NoManuscript';
@@ -111,9 +113,6 @@ function TimerFigures({ overview }: { overview: ProductionOverview }) {
  * features the mock has no equivalent for (the row menu's chapter track, status override and checks, the credits rows, the Restore list)
  * stay as built.
  */
-const CONNECT_POLLS = 10;
-const CONNECT_POLL_MS = 1000;
-
 export function ProductionPage({
   data,
   go,
@@ -144,8 +143,6 @@ export function ProductionPage({
   const chapterSyncPort = usePort('chapterSync');
   const measurements = usePort('measurements');
   const daw = usePort('daw');
-  const project = usePort('project');
-  const system = usePort('system');
   const found = Boolean(data.manuscript);
   const manuscriptKey = data.manuscript ? `${data.manuscript.id}:${data.manuscript.importedAt}` : 'no-manuscript';
   const manuscriptImport = useManuscriptImport({ data, go, notify, refreshBootstrap });
@@ -177,41 +174,24 @@ export function ProductionPage({
   // The host pushes the DAW picture whenever it changes (a heartbeat starts or stops, a bridge session is attached), so the banner
   // follows without the narrator pressing Retry.
   useEffect(() => daw.subscribeCapabilities?.(setCaps), [daw]);
-  // The banner's Retry reads the DAW again and, when it is still not running, says so (the mock's toast); a DAW now running drops the banner.
-  const retryDaw = useCallback(() => {
-    daw.capabilities().then(
-      (next) => {
-        setCaps(next);
-        notify(next.reachable ? `${next.daw} is connected.` : `Still not running. Start ${next.daw} and try again.`);
-      },
-      (error: unknown) => notify(describeApiError(error), 'error'),
-    );
-  }, [daw, notify]);
-
-  // Connect starts or reaches REAPER with the launcher (a REAPER already open runs it in place), then reads the DAW until the bridge answers.
-  const [connecting, setConnecting] = useState(false);
-  const connectDaw = useCallback(async () => {
-    setConnecting(true);
-    try {
-      await system.saveSettings('DAW', 'global', { auto_start_launcher: 'true' });
-      await project.launchDaw();
-      notify('Connecting to REAPER…');
-      for (let attempt = 0; attempt < CONNECT_POLLS; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, CONNECT_POLL_MS));
-        const next = await daw.capabilities();
-        setCaps(next);
-        if (next.reachable) {
-          notify(`${next.daw} is connected.`);
-          return;
-        }
-      }
-      notify('REAPER has not connected yet. Press Retry in a moment.');
-    } catch (error) {
-      notify(describeApiError(error), 'error');
-    } finally {
-      setConnecting(false);
-    }
-  }, [daw, project, system, notify]);
+  // Check again reads the DAW now; the connect dialog says when it last looked and what it heard.
+  const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  const [readFailed, setReadFailed] = useState(false);
+  const takeCaps = useCallback((next: DawCapabilities) => {
+    setCaps(next);
+    setCheckedAt(Date.now());
+    setReadFailed(false);
+  }, []);
+  const checkDaw = useCallback(
+    () =>
+      daw.capabilities().then(takeCaps, () => {
+        setReadFailed(true);
+      }),
+    [daw, takeCaps],
+  );
+  const dawOff = Boolean(caps && !caps.reachable && caps.daw !== 'none');
+  // The dialog opens by itself once per connection loss, after the app has had its time to connect on its own.
+  const dawDialog = useOpenOnce(dawOff && caps ? `reaper-off:${caps.daw}` : null, settling);
 
   // The open lines of the Pickups page's list, so the tile, Next up and the pickup hours count what that page lists.
   const openLines = useOpenPickups();
@@ -380,15 +360,24 @@ export function ProductionPage({
   return (
     <div className="flex flex-col gap-4">
       {caps && !caps.reachable && caps.daw !== 'none' && (
-        <DawBanner
-          reachable={false}
-          daw={caps.daw}
-          onRetry={retryDaw}
-          onConnect={connectDaw}
-          connecting={connecting}
-          settling={settling}
-          onUseBuiltIn={() => go('/settings')}
-        />
+        <>
+          <div className="flex">
+            <DawIndicator daw={caps.daw} settling={settling} onOpen={dawDialog.reopen} />
+          </div>
+          {dawDialog.open && !settling && (
+            <ConnectionResolveDialog
+              variant="reaper-off"
+              daw={caps.daw}
+              sentence={`${caps.daw} is not running.`}
+              stillWorks={`Progress that comes from ${caps.daw} may be out of date until it is running again.`}
+              checkedAt={checkedAt}
+              readFailed={readFailed}
+              onCheckAgain={checkDaw}
+              onCaps={takeCaps}
+              onClose={dawDialog.close}
+            />
+          )}
+        </>
       )}
       <PageHeader
         loading={load.status === 'loading'}

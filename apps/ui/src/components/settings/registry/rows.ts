@@ -8,6 +8,12 @@ const WHISPER: Record<string, OptionNote> = {
   'large-v3-turbo': whisper('large-v3-turbo', 'Large v3 turbo'),
   'large-v3': whisper('large-v3', 'Large v3'),
 };
+/** The models a background check may be told to use: a large one costs minutes of every processor it is given. */
+const HEAVY_MODELS = new Set(['medium', 'large-v3-turbo', 'large-v3']);
+const heavyModel = (value: string): string | undefined =>
+  HEAVY_MODELS.has(value) ? 'A large model makes every background check much slower and keeps this computer busy for longer.' : undefined;
+/** This computer's processors as the browser reports them; the host plans with its own count. */
+const processorCount = (): number => (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4;
 const LIVE_MODEL: Record<string, OptionNote> = {
   tiny: { label: 'Tiny', asset: { kind: { followRow: 'stt.live' }, id: 'tiny' } },
   small: { label: 'Small', asset: { kind: { followRow: 'stt.live' }, id: 'small' } },
@@ -105,7 +111,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'computer',
     def: 'true',
     field: { tool: 'DAW', key: 'auto_start_launcher' },
-    desc: 'Passes the launcher to REAPER as its startup script so the link is ready when REAPER opens.',
+    desc: 'Puts the app’s bridge in REAPER’s Scripts folder and has REAPER start it each time it opens, so REAPER connects with no step in REAPER. Off: the app writes nothing into REAPER.',
     used: ['booth'],
     needs: 'reaper',
     also: 'Booth › Set up recording',
@@ -280,6 +286,62 @@ export const ROWS: readonly SettingMeta[] = [
     used: ['production', 'proof'],
     advanced: true,
     syn: 'seconds overlap',
+  },
+
+  {
+    id: 'stt.background',
+    cat: 'speech',
+    section: 'Background checks',
+    label: 'Check recordings in the background',
+    scope: 'both',
+    def: 'true',
+    field: { tool: 'RecordingCoverage', key: 'background_checks' },
+    desc: 'Checks what you record while you work, so Editing and Pickups are ready. Only audio no check has listened to is checked, below everything else, and never while REAPER records. Its progress shows at the bottom left of every page.',
+    used: ['booth', 'editing', 'pickups'],
+    syn: 'background automatic recheck progress pause',
+  },
+  {
+    id: 'stt.backgroundModel',
+    cat: 'speech',
+    section: 'Background checks',
+    label: 'Model for background checks',
+    scope: 'both',
+    def: 'tiny',
+    field: { tool: 'RecordingCoverage', key: 'background_first_pass_model' },
+    options: WHISPER,
+    desc: 'Listens to everything a background check covers. Your own Check recording keeps the models set above.',
+    used: ['booth', 'editing'],
+    heavy: heavyModel,
+  },
+  {
+    id: 'stt.backgroundRecheck',
+    cat: 'speech',
+    section: 'Background checks',
+    label: 'Double-check model for background checks',
+    scope: 'both',
+    def: 'small',
+    field: { tool: 'RecordingCoverage', key: 'background_recheck_model' },
+    options: { none: { label: 'None (one model)' }, ...WHISPER },
+    desc: 'Listens again to the passages the first model was unsure of, alongside it.',
+    used: ['booth', 'editing'],
+    heavy: heavyModel,
+  },
+  {
+    id: 'stt.backgroundProcessors',
+    cat: 'speech',
+    section: 'Background checks',
+    label: 'Processors for background checks',
+    scope: 'computer',
+    def: '0',
+    field: { tool: 'RecordingCoverage', key: 'background_processors' },
+    desc: '0 lets the app choose: half of this computer’s processors, a quarter while the Booth follows your reading.',
+    used: ['booth', 'editing'],
+    advanced: true,
+    syn: 'threads cpu workers parallel performance slow',
+    heavy: (value) =>
+      Number(value) > processorCount() / 2
+        ? `More than half of this computer’s ${processorCount()} processors: the Booth and the rest of the app may slow down while a check runs.`
+        : undefined,
   },
 
   // ---- Voice & pronunciation

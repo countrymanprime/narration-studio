@@ -124,7 +124,9 @@ describe('a pickup session in the Booth', () => {
     expect(document.querySelectorAll('[data-pj]')).toHaveLength(3);
     // The first line is the current one.
     expect(document.querySelector('[data-pj="a"]')?.getAttribute('aria-current')).toBe('true');
-    expect(within(document.querySelector('[data-pj="a"]') as HTMLElement).getByText('Ch 3 · 1:05')).toBeTruthy();
+    const card = (document.querySelector('[data-pj="a"]') as HTMLElement).closest('li') as HTMLElement;
+    expect(within(card).getByText('Ch 3 · 1:05')).toBeTruthy();
+    expect(within(card).getByText('Open')).toBeTruthy();
   });
 
   it('n-goes-to-the-next-pickup-even-in-another-chapter: Shift+N back, wrapping', async () => {
@@ -240,7 +242,7 @@ describe('a pickup session in the Booth', () => {
     const first = mount(h, { ids: ['a', 'b'] });
     expect(await screen.findByText('Pickups · 1 open')).toBeTruthy();
     expect(bars()[0]).toBe('Text of p1.:ok');
-    expect(document.querySelector('[data-pj="a"]')?.textContent).toContain('✓');
+    expect(within((document.querySelector('[data-pj="a"]') as HTMLElement).closest('li') as HTMLElement).getByText('Recorded')).toBeTruthy();
     first.unmount();
     cleanup();
     h.inDaw('a', false);
@@ -290,6 +292,6 @@ describe('the side panel section', () => {
     );
     const text = (await screen.findByRole('complementary', { name: 'Side panel' })).textContent ?? '';
     expect(text).toContain('Pickups · 2 open');
-    expect(text.indexOf('Pickups')).toBeLessThan(text.indexOf('Voices in this scene'));
+    expect(text.indexOf('Pickups')).toBeLessThan(text.indexOf('In this chapter'));
   });
 });

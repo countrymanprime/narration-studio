@@ -34,13 +34,29 @@ type TokenLine struct {
 // ExtraLine is one COVERAGE_EXTRA line: one run of transcript words the
 // chapter's tokens do not account for (a retake, a false start, an aside).
 // AfterToken is the doc token index of the last token heard before this run,
-// or nil when the run comes before anything was heard.
+// or nil when the run comes before anything was heard. RepeatOf is set when
+// the run says the chapter text beside it again (a second take), nil for an
+// aside and in a report from a sidecar before it.
 type ExtraLine struct {
 	Text       string         `json:"text"`
 	Tokens     int            `json:"tokens"`
 	Start      RegionPosition `json:"start"`
 	End        RegionPosition `json:"end"`
 	AfterToken *int           `json:"afterToken"`
+	RepeatOf   *ExtraRepeat   `json:"repeatOf"`
+}
+
+// ExtraRepeat is the chapter text an extra run says again (issue #2251 item
+// 30, the sidecar's recording_coverage.repeat_of): the run's words
+// [First, Last) are the doc tokens [Start, End), the ones heard just before
+// or just after it, and Text is those tokens as the manuscript writes them.
+// The rest of the run is an aside ("sorry", "once more").
+type ExtraRepeat struct {
+	Start int    `json:"start"`
+	End   int    `json:"end"`
+	First int    `json:"first"`
+	Last  int    `json:"last"`
+	Text  string `json:"text"`
 }
 
 // HasAlignment reports whether the results carry the per-token alignment at
@@ -56,8 +72,9 @@ func (r Report) HasAlignment() bool {
 // results file carried, when it carried any: a token's status is one the
 // check assigns, its index is its position in the file (the sidecar writes
 // them in order), and it names a source position only when its status is one
-// that may be heard. An extra run's token count must be positive and its
-// AfterToken, when set, must name an earlier token.
+// that may be heard. An extra run's token count must be positive, its
+// AfterToken, when set, must name an earlier token, and its RepeatOf, when
+// set, must name chapter tokens and words of the run.
 func (r Report) checkAlignment() error {
 	for i, token := range r.Tokens {
 		if !tokenStatuses[token.Status] {
@@ -80,6 +97,14 @@ func (r Report) checkAlignment() error {
 		}
 		if extra.AfterToken != nil && (*extra.AfterToken < 0 || *extra.AfterToken >= len(r.Tokens)) {
 			return fmt.Errorf("coverage extra run %d follows a token index out of range", i)
+		}
+		if repeat := extra.RepeatOf; repeat != nil {
+			if repeat.Start < 0 || repeat.End <= repeat.Start || repeat.End > len(r.Tokens) {
+				return fmt.Errorf("coverage extra run %d repeats chapter tokens out of range", i)
+			}
+			if repeat.First < 0 || repeat.Last <= repeat.First || repeat.Last > extra.Tokens {
+				return fmt.Errorf("coverage extra run %d's repeat is not inside its words", i)
+			}
 		}
 	}
 	return nil
