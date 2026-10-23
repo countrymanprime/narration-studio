@@ -745,9 +745,12 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       await deps.ready;
       const target = recordTarget(chapterId);
       if (!target) throw new Error('that chapter is not part of the current manuscript');
+      // The host refuses before anything starts: the seed's refusal comes first, so the mock DAW never starts a take the answer then refuses.
+      const answer = mockReadAloudRecording(seedFor(chapterId), 'start', target.title);
+      if (answer.outcome === 'refused') return answer;
       const gate = deps.dawRecord?.('start');
       if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
-      return mockReadAloudRecording(seedFor(chapterId), 'start', target.title);
+      return answer;
     },
     // ReadAloudRecordStartAt checks the time before anything else, then answers as a start does, from the punch.
     readAloudRecordStartAt: async (chapterId, at) => {
@@ -755,9 +758,10 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       if (!Number.isFinite(at) || at < 0) return { outcome: 'refused', reason: 'bad_time', message: DAW_ANSWERS.recordBadTime };
       const target = recordTarget(chapterId);
       if (!target) throw new Error('that chapter is not part of the current manuscript');
+      const started = mockReadAloudRecording(seedFor(chapterId), 'start', target.title);
+      if (started.outcome === 'refused') return started;
       const gate = deps.dawRecord?.('start');
       if (gate) return { outcome: 'refused', reason: gate.reason === 'unavailable' ? 'failed' : gate.reason, message: gate.message };
-      const started = mockReadAloudRecording(seedFor(chapterId), 'start', target.title);
       return started.outcome === 'started' ? { ...started, position: at, message: recordingFromAnswer(at) } : started;
     },
     readAloudRecordStop: async () => {

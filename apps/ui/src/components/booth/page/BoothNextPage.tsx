@@ -106,6 +106,9 @@ type Props = {
 /** How long a chapter asked for counts as the place the next step starts from, if it never arrives. */
 const PENDING_STEP_MS = 2000;
 
+/** The topic of the message that says the chapter is linked (or its track was added): gone once a take starts. */
+const LINKED_TOPIC = 'booth-linked';
+
 export function BoothNextPage({ hasManuscript, navigate, onImport, exitTo = BOOTH_LINKS.script }: Props) {
   // The page title is visually hidden: the reading surface is the page (as the old Booth's).
   return (
@@ -481,6 +484,10 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
     if (noticeUp) return setRecordAsks((n) => n + 1);
     overlay.toast(block.reason, { tone: 'error', action: { label: 'Check again', onAction: control.checkAgain } });
   };
+  // The message about the link is for before the take: once one starts it would only cover the text.
+  useEffect(() => {
+    if (control.recording) overlay.dismissTopic(LINKED_TOPIC);
+  }, [overlay, control.recording]);
   const linked = (created?: { name: string }) => {
     control.refresh();
     overlay.toast(
@@ -488,7 +495,7 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
         ? `Track “${created.name}” added in ${page.dawName} and linked to ${recordName}. Save the ${page.dawName} project to keep it.`
         : `${recordName} is linked to its track. Press Record when you are ready.`,
       // The save the narrator owes REAPER is worth more than the usual five seconds.
-      { durationMs: 12_000 },
+      { durationMs: 12_000, topic: LINKED_TOPIC },
     );
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
