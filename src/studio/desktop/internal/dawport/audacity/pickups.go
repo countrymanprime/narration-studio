@@ -19,7 +19,7 @@ import (
 
 // Pickups is the pickup list over Audacity (docs/reference/daw/capabilities.md#pickups). REAPER keeps a pickup as a project marker
 // named `PICKUP: <body>` (open) or `PICKUP_DONE: <body>`; Audacity has no project markers, so a pickup is a label on the "Narration
-// Utils" label track, `[nu:pickup open] <body>` or `[nu:pickup done] <body>`, where <body> is the note or `[tag] note`. Resolving or
+// Studio" label track, `[nu:pickup open] <body>` or `[nu:pickup done] <body>`, where <body> is the note or `[tag] note`. Resolving or
 // reopening one rewrites the prefix with SetLabel. Only a label with this prefix is ever changed: the narrator's own labels, and a
 // pickup the narrator edited by hand into another shape, are read as they stand. The answers are REAPER's events (PICKUPS_IMPORTED,
 // PICKUPS_EXPORTED, PICKUP_NEXT, PICKUP_RESOLVED, PICKUP_REOPENED, PICKUP_MARKERS_LISTED, PICKUPS_COUNTED), queued as each request

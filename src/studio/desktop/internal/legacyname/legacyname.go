@@ -190,7 +190,7 @@ func LauncherShim() (name string, content []byte) {
 func moveFolder(old, current string, rewrite bool, logf Logf) error {
 	if !isDir(old) {
 		if rewrite {
-			return finishRewrite(current, logf)
+			return rewriteAfterMove(current, logf)
 		}
 		return nil
 	}
@@ -203,7 +203,7 @@ func moveFolder(old, current string, rewrite bool, logf Logf) error {
 	if _, err := os.Lstat(current); errors.Is(err, fs.ErrNotExist) {
 		if err := os.Rename(old, current); err == nil {
 			logf("moved %s to %s", old, current)
-			return finishRewrite(current, logf)
+			return rewriteAfterMove(current, logf)
 		}
 		if err := copyThenSwap(old, current); err != nil {
 			dropTag(old, rewrite)
@@ -221,14 +221,14 @@ func moveFolder(old, current string, rewrite bool, logf Logf) error {
 		if len(conflicts) > 0 {
 			logf("kept %s: %d file(s) in it differ from the ones in %s (first: %s)", old, len(conflicts), current, conflicts[0])
 			dropTag(old, rewrite)
-			return finishRewrite(current, logf)
+			return rewriteAfterMove(current, logf)
 		}
 		logf("copied what was missing from %s into %s", old, current)
 	}
 	if err := os.RemoveAll(old); err != nil {
 		logf("could not remove %s after copying it: %v", old, err)
 	}
-	return finishRewrite(current, logf)
+	return rewriteAfterMove(current, logf)
 }
 
 func dropTag(folder string, rewrite bool) {
@@ -337,9 +337,23 @@ func sameContent(a, b string) (bool, error) {
 	return bytes.Equal(left, right), nil
 }
 
-// oldSegment matches the old folder name as one part of a path inside JSON text: after the start of a string or a separator
-// ("/" or a JSON-escaped "\\"), and before a separator or the end of the string.
-var oldSegment = regexp.MustCompile(`(["/]|\\\\)` + regexp.QuoteMeta(oldDirName) + `(["/]|\\\\)`)
+// The old folder name as one part of a path inside JSON text, so a narrator's own words are left alone: a part with a separator
+// ("/" or a JSON-escaped "\\") after it, at the start of a string or after a separator; or the last part of a path, after a
+// separator and before the end of the string. A string that is only the old name is not a path and is left as it is.
+var (
+	oldInnerSegment = regexp.MustCompile(`(["/]|\\\\)` + regexp.QuoteMeta(oldDirName) + `(/|\\\\)`)
+	oldLastSegment  = regexp.MustCompile(`(/|\\\\)` + regexp.QuoteMeta(oldDirName) + `(")`)
+)
+
+// rewriteAfterMove finishes the rewrite once the folder is in place. A failure here does not undo the move or stop the folder
+// being used: the narrator's data is whole in the new folder, only some saved paths may still name the old one. It is logged,
+// the tag stays, and the next run tries again.
+func rewriteAfterMove(folder string, logf Logf) error {
+	if err := finishRewrite(folder, logf); err != nil {
+		logf("%v", err)
+	}
+	return nil
+}
 
 // finishRewrite rewrites the old folder name in the paths held by the JSON files under folder when its tag says a move has not
 // finished that yet, then removes the tag. Each file is replaced through a temporary file, so a run cut short leaves every file
@@ -395,7 +409,8 @@ func finishRewrite(folder string, logf Logf) error {
 func rewriteSegments(text []byte) []byte {
 	// Two passes: adjacent segments share a separator, which one pass of a non-overlapping match would skip.
 	for range 2 {
-		text = oldSegment.ReplaceAll(text, []byte("${1}"+newDirName+"${2}"))
+		text = oldInnerSegment.ReplaceAll(text, []byte("${1}"+newDirName+"${2}"))
+		text = oldLastSegment.ReplaceAll(text, []byte("${1}"+newDirName+"${2}"))
 	}
 	return text
 }

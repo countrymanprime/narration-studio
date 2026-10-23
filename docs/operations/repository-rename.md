@@ -63,7 +63,7 @@ so the many documentation links are tidiness, not breakage.
 | `source_url` and issue links in `.claude/skills/agent-train/` and the worker templates | Launch prompts and the links the train posts |
 
 The Go module path, the Nx and package names and the program's file name followed later, with every other use of the old
-product name ([#2251](https://github.com/countrymanprime/narration-studio/issues/2251), item 41). This page and the four migration
+product name ([#2251](https://github.com/countrymanprime/narration-studio/issues/2251), item 41). This page and the three migration
 files listed in [Codebase map](../architecture/codebase-map.md#product-and-technical-names) are the only places that still write the
 old name, and `scripts/ci/old-name.mjs` keeps it that way.
 
@@ -86,7 +86,7 @@ Found on 2026-10-19:
   `gh api` and `--repo` commands, the scripts, the issue templates, the agent-train `source_url` and the Pages name and URLs. The
   Pages workflow publishes `src/web`; only its names changed.
 - **The documentation links** to `github.com/countrymanprime/narration-utils/...` were rewritten to the new name with the rest of the
-  old name (#2251 item 41); the ADRs keep theirs, as records.
+  old name (#2251 item 41). No ADR held one.
 
 ### Builds already installed with the old name
 

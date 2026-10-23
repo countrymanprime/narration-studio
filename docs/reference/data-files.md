@@ -159,7 +159,10 @@ newer build moves them once, in `src/studio/desktop/internal/legacyname` (called
 
 A folder is renamed in one step when it can be; otherwise it is copied beside the new name and renamed into place once complete,
 and the old one is removed only after that. On any error the old folder is left as it was, the host log says why, and the next
-start (or the next open of the project) tries again. A project whose data folder cannot be moved is not opened: the narrator is
+start (or the next open of the project) tries again. The rewrite of a project's saved paths comes after the move: if it fails
+there, the data is already whole in the new folder, so the project opens, the host log says which file, and the next open finishes
+it. The rewrite changes only path parts (the old name with a `/` or `\` beside it), never a string that is only the name or a
+narrator's sentence. A project whose data folder cannot be moved is not opened: the narrator is
 told, and nothing in the project is changed. When both names exist (an earlier copy whose old folder could not be removed), what
 the new folder lacks is copied in and a file that differs is kept in the old folder and logged.
 

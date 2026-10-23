@@ -13,25 +13,28 @@ import { fileURLToPath } from 'node:url';
 
 import { readTrackedText, trackedFiles } from './layout.mjs';
 
-// Written as a pattern so this file does not match itself.
+// Written as patterns so this file does not match itself. In text the two words may also be split across a line break, as
+// wrapped prose and comments split them, with the next line's indent or comment marker between.
 export const OLD_NAME = /narration[-_ .]?utils/i;
+const OLD_NAME_IN_TEXT = /narration(?:[-_ .]|[ \t]*\r?\n[ \t>*#/-]*)?utils/gi;
 
 // The only tracked files that may hold the old name, each with why. The migration files move what a narrator's machine and
 // projects hold under the old names (docs/reference/data-files.md#the-move-from-the-old-name).
 export const ALLOWED = new Map([
   ['src/studio/desktop/internal/legacyname/legacyname.go', 'the migration: the old folder, key, track and file names it moves from'],
-  ['src/studio/desktop/internal/legacyname/legacyname_test.go', "the migration's tests: a fake install from before the rename"],
   ['src/studio/integrations/reaper/narration_rename.lua', 'the migration of REAPER P_EXT keys in an open project'],
   ['src/studio/desktop/build/windows/installer/legacy.nsh', 'the migration of an install: its uninstall entry, program and shortcuts'],
   ['docs/operations/repository-rename.md', 'names the old GitHub repository, which a checkout or a session may still point at'],
 ]);
 
-/** The line numbers (1-based) and lines of text that hold the old name. */
+/** The line numbers (1-based) and lines of text where the old name starts. */
 export function findOldName(text) {
+  const lines = text.split('\n');
   const hits = [];
-  text.split('\n').forEach((line, index) => {
-    if (OLD_NAME.test(line)) hits.push({ line: index + 1, text: line.trim().slice(0, 160) });
-  });
+  for (const match of text.matchAll(OLD_NAME_IN_TEXT)) {
+    const line = text.slice(0, match.index).split('\n').length;
+    hits.push({ line, text: lines[line - 1].trim().slice(0, 160) });
+  }
   return hits;
 }
 
@@ -43,8 +46,10 @@ export function checkTracked(files = trackedFiles(), texts = readTrackedText(fil
     if (OLD_NAME.test(file)) problems.push(`${file}: the path holds the old name`);
     for (const hit of findOldName(texts.get(file) ?? '')) problems.push(`${file}:${hit.line}: ${hit.text}`);
   }
+  // The list stays as short as it can be: an allowed file that is gone, or no longer needs the old name, leaves it.
   for (const file of ALLOWED.keys()) {
     if (!files.includes(file)) problems.push(`${file} is allowed to hold the old name but is not tracked: remove it from ALLOWED`);
+    else if (findOldName(texts.get(file) ?? '').length === 0) problems.push(`${file} is allowed to hold the old name but does not: remove it from ALLOWED`);
   }
   return problems;
 }
@@ -61,13 +66,38 @@ export function checkFolder(folder) {
         walk(path);
       } else if (entry.isFile()) {
         const bytes = readFileSync(path);
-        if (bytes.includes(0)) continue; // a zip, an image or a program: its name was checked, its bytes are not text
+        // A zip (the update package) is checked by the names it holds, which the updater unpacks; another binary (an image, a
+        // program) only by its own name.
+        const inside = entry.name.toLowerCase().endsWith('.zip') ? zipEntryNames(bytes) : null;
+        if (inside) {
+          for (const inner of inside) if (OLD_NAME.test(inner)) problems.push(`${name}!${inner}: the name holds the old name`);
+          continue;
+        }
+        if (bytes.includes(0)) continue;
         for (const hit of findOldName(bytes.toString('utf8'))) problems.push(`${name}:${hit.line}: ${hit.text}`);
       }
     }
   };
   walk(folder);
   return problems;
+}
+
+/** The file names a zip's central directory lists, or null when the bytes are not a zip. */
+export function zipEntryNames(bytes) {
+  const names = [];
+  // The end-of-central-directory record is in the last 64 KiB + 22 bytes; it gives the directory's offset and entry count.
+  for (let end = bytes.length - 22; end >= Math.max(0, bytes.length - 65557); end--) {
+    if (bytes.readUInt32LE(end) !== 0x06054b50) continue;
+    let at = bytes.readUInt32LE(end + 16);
+    const count = bytes.readUInt16LE(end + 10);
+    for (let index = 0; index < count && at + 46 <= bytes.length && bytes.readUInt32LE(at) === 0x02014b50; index++) {
+      const nameLength = bytes.readUInt16LE(at + 28);
+      names.push(bytes.subarray(at + 46, at + 46 + nameLength).toString('utf8'));
+      at += 46 + nameLength + bytes.readUInt16LE(at + 30) + bytes.readUInt16LE(at + 32);
+    }
+    return names;
+  }
+  return null;
 }
 
 function main(args) {

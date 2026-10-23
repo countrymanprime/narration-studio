@@ -271,3 +271,57 @@ func TestOldNamesInsideFiles(t *testing.T) {
 		t.Fatalf("LauncherShim = %s, %s", name, content)
 	}
 }
+
+func TestARewriteThatFailsAfterTheMoveKeepsTheDataAndIsRetried(t *testing.T) {
+	project := t.TempDir()
+	old := filepath.Join(project, oldDirName)
+	write(t, filepath.Join(old, "a.json"), `{"p":"`+oldDirName+`/x"}`)
+	write(t, filepath.Join(old, "b.wav"), "RIFF")
+	// A folder where the rewrite's temporary file must go, so writing it fails.
+	if err := os.MkdirAll(filepath.Join(old, "a.json"+partialSuffix), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var lines []string
+	if err := MigrateProject(project, collect(&lines)); err != nil {
+		t.Fatalf("a rewrite failure after the move stopped the project from opening: %v", err)
+	}
+	current := filepath.Join(project, newDirName)
+	if got := read(t, filepath.Join(current, "b.wav")); got != "RIFF" {
+		t.Fatalf("the moved data is not whole: %q", got)
+	}
+	if !exists(filepath.Join(current, rewritePendingTag)) {
+		t.Fatal("the pending tag was dropped although the rewrite did not finish")
+	}
+	if !strings.Contains(strings.Join(lines, "\n"), "%v") {
+		t.Fatalf("the failed rewrite was not logged: %v", lines)
+	}
+	// The failed attempt removes its own temporary path; whatever blocked it is gone by the next start.
+	if err := os.RemoveAll(filepath.Join(current, "a.json"+partialSuffix)); err != nil {
+		t.Fatal(err)
+	}
+	if err := MigrateProject(project, func(string, ...any) {}); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, filepath.Join(current, "a.json")); got != `{"p":"`+newDirName+`/x"}` {
+		t.Fatalf("the retried rewrite did not finish: %s", got)
+	}
+	if exists(filepath.Join(current, rewritePendingTag)) {
+		t.Fatal("the pending tag is still there after the retry")
+	}
+}
+
+func TestTheRewriteLeavesANarratorsWordsAlone(t *testing.T) {
+	for text, want := range map[string]string{
+		`{"title":"` + oldDirName + `"}`:                     `{"title":"` + oldDirName + `"}`,
+		`{"note":"the ` + oldDirName + ` story"}`:            `{"note":"the ` + oldDirName + ` story"}`,
+		`{"note":"` + oldDirName + `-ish"}`:                  `{"note":"` + oldDirName + `-ish"}`,
+		`{"p":"` + oldDirName + `/a"}`:                       `{"p":"` + newDirName + `/a"}`,
+		`{"p":"C:/Book/` + oldDirName + `"}`:                 `{"p":"C:/Book/` + newDirName + `"}`,
+		`{"p":"C:\\Book\\` + oldDirName + `\\a"}`:            `{"p":"C:\\Book\\` + newDirName + `\\a"}`,
+		`{"p":"/x/` + oldDirName + `/` + oldDirName + `/y"}`: `{"p":"/x/` + newDirName + `/` + newDirName + `/y"}`,
+	} {
+		if got := string(rewriteSegments([]byte(text))); got != want {
+			t.Errorf("rewriteSegments(%s) = %s, want %s", text, got, want)
+		}
+	}
+}
