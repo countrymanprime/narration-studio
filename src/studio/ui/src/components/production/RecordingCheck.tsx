@@ -202,7 +202,7 @@ export function RecordingCheck({
       <AssetInstallPrompt
         ask={{
           title: 'Download local Whisper model?',
-          body: `The ${modelRequired.model.displayName} Whisper model is needed to transcribe this chapter's recording. It is not bundled with Narration Studio and will be stored in your per-user asset cache.`,
+          body: `The ${modelRequired.model.displayName} Whisper model is needed to transcribe this chapter's recording. It is not bundled with the app and will be stored in your per-user asset cache.`,
           confirmLabel: 'Download model',
         }}
         workTitle="Downloading Whisper model"
@@ -236,7 +236,7 @@ export function RecordingCheck({
       <AssetInstallPrompt
         ask={{
           title: 'Download the re-check model?',
-          body: `The ${recheckRequired.model.displayName} Whisper model re-checks anything the fast first pass reports missing. It is not bundled with Narration Studio and will be stored in your per-user asset cache.`,
+          body: `The ${recheckRequired.model.displayName} Whisper model re-checks anything the fast first pass reports missing. It is not bundled with the app and will be stored in your per-user asset cache.`,
           confirmLabel: 'Download model',
           alternative: {
             label: 'Check with tiny only',

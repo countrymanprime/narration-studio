@@ -1,5 +1,6 @@
 import type { DawActionKind, DawCapabilities, DawLastAction, DawResult } from '../api/contracts/daw';
 import { DAW_RESULT_MAX_UNDO_STEPS } from '../api/contracts/daw';
+import { brand } from '../brand.gen';
 
 // The mock DAW's undo history: a stack of the undo labels REAPER's script closes its blocks with, so the mock's `dawLastAction` and
 // `dawUndoLast` answer as narration_undo.lua and dawport/reaper's undo_last role do. The labels are the mock's model of the DAW
@@ -8,27 +9,27 @@ import { DAW_RESULT_MAX_UNDO_STEPS } from '../api/contracts/daw';
 /** The label each mocked DAW edit leaves on the history, as the Lua command closes its undo block. */
 export const MOCK_DAW_UNDO_LABELS = {
   /** narration_range.lua's UNDO_DELETE_WORDS (narration_bridge_core.lua's cut_range): delete_range, for a cut and a trim. */
-  cut: 'Narration Studio: delete words',
-  addChain: 'Narration Studio: add chain to range',
-  removeChain: 'Narration Studio: remove chain from range',
-  setParam: 'Narration Studio: change effect setting',
-  bypass: 'Narration Studio: bypass effect',
-  enable: 'Narration Studio: turn effect back on',
-  reduceGain: 'Narration Studio: lower stretches',
-  repairClicks: 'Narration Studio: repair clicks',
+  cut: `${brand.name}: delete words`,
+  addChain: `${brand.name}: add chain to range`,
+  removeChain: `${brand.name}: remove chain from range`,
+  setParam: `${brand.name}: change effect setting`,
+  bypass: `${brand.name}: bypass effect`,
+  enable: `${brand.name}: turn effect back on`,
+  reduceGain: `${brand.name}: lower stretches`,
+  repairClicks: `${brand.name}: repair clicks`,
   /** narration_takes.lua */
-  hideTakes: 'Narration Studio: hide other takes',
-  stack: 'Narration Studio: stack takes',
-  unstack: 'Narration Studio: unstack takes',
-  split: 'Narration Studio: split take',
+  hideTakes: `${brand.name}: hide other takes`,
+  stack: `${brand.name}: stack takes`,
+  unstack: `${brand.name}: unstack takes`,
+  split: `${brand.name}: split take`,
   /** narration_workspace.lua */
-  useTake: 'Narration Studio: use take',
+  useTake: `${brand.name}: use take`,
   /** narration_navigation.lua */
-  addMarker: 'Narration Studio: add approved marker',
+  addMarker: `${brand.name}: add approved marker`,
   /** narration_pickups.lua */
-  importPickups: 'Narration Studio: import pickups',
-  resolvePickup: 'Narration Studio: resolve pickup',
-  reopenPickup: 'Narration Studio: reopen pickup',
+  importPickups: `${brand.name}: import pickups`,
+  resolvePickup: `${brand.name}: resolve pickup`,
+  reopenPickup: `${brand.name}: reopen pickup`,
 } as const;
 
 /** The one label each action kind may undo (narration_bridge_core.lua's table). */

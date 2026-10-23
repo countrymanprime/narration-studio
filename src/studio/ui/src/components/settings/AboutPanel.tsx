@@ -1,3 +1,4 @@
+import { brand } from '../../brand.gen';
 /** The development build's version: what a program built without the release stamp reports (src/studio/desktop/version.go). */
 const DEVELOPMENT_VERSION = '0.0.0-dev';
 
@@ -11,7 +12,7 @@ export function AboutPanel({ version }: { version: string }) {
   return (
     <div className="mb-4 space-y-3 text-sm">
       <div className="rounded-md p-3" style={{ background: 'var(--surface-2)' }}>
-        <div className="font-medium">Narration Studio</div>
+        <div className="font-medium">{brand.name}</div>
         <div>Version {version}</div>
         {isDevelopmentBuild(version) && (
           <p className="mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -19,7 +20,7 @@ export function AboutPanel({ version }: { version: string }) {
           </p>
         )}
       </div>
-      <p style={{ color: 'var(--text-muted)' }}>Narration Studio is free software, licensed under the GNU Affero General Public License, version 3 or later.</p>
+      <p style={{ color: 'var(--text-muted)' }}>The app is free software, licensed under the GNU Affero General Public License, version 3 or later.</p>
     </div>
   );
 }

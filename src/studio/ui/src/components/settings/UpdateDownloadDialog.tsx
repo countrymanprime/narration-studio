@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { UpdateAvailable, UpdateJob, WorkJob } from '../../types';
 import { WorkDialog } from '../primitives/WorkDialog';
+import { brand } from '../../brand.gen';
 
 const POLL_MS = 400;
 const BYTES_PER_MB = 1024 * 1024;
@@ -92,7 +93,7 @@ export function UpdateDownloadDialog({ available, close }: { available: UpdateAv
   const canCancel = job?.phase === 'downloading';
   return (
     <WorkDialog
-      title={`Download Narration Studio ${available.version}`}
+      title={`Download ${brand.name} ${available.version}`}
       job={workJob}
       close={() => close(failure ? 'error' : (job?.phase ?? 'error'))}
       cancel={

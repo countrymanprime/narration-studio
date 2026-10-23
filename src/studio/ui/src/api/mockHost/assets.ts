@@ -7,6 +7,7 @@ import type { CoverageEngines } from '../contracts/coverage';
 import { MOCK_DICTIONARY, MOCK_DICTIONARY_DISK_SIZE, MOCK_DICTIONARY_DOWNLOAD_SIZE } from '../dictionaryMock';
 import { MOCK_ANALYSIS_TOOLS } from './analysisTools';
 import type { MockApiSeed } from './state';
+import { brand } from '../../brand.gen';
 
 type AssetFactsSource = {
   id: string;
@@ -22,7 +23,7 @@ type AssetFactsSource = {
 };
 
 /** Where the mock says downloaded assets are kept. */
-export const MOCK_ASSET_ROOT = 'C:/Users/narrator/AppData/Local/narration-studio/assets';
+export const MOCK_ASSET_ROOT = `C:/Users/narrator/AppData/Local/${brand.identity.dataFolder}/assets`;
 
 /** The asset bindings: the preview voice, the Whisper and Moonshine models, the language model and the dictionary. */
 export function createAssetsMock(initial: MockApiSeed) {

@@ -6,6 +6,7 @@ import { Heading } from '../primitives/Heading';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 import { ExtensionBanner } from '../../appExtension';
+import { brand } from '../../brand.gen';
 
 export type StartupState = 'connecting' | 'error' | 'timeout' | 'disconnected';
 
@@ -34,7 +35,7 @@ export function StartupScreen({ state, error, details, diagnosticId, retry }: Pr
       : state === 'timeout'
         ? 'The desktop host did not respond within 10 seconds.'
         : state === 'disconnected'
-          ? 'Lost connection to the Narration Studio server. It may have been closed or crashed - check that it is still running.'
+          ? 'Lost connection to the app’s server. It may have been closed or crashed - check that it is still running.'
           : error;
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -43,7 +44,7 @@ export function StartupScreen({ state, error, details, diagnosticId, retry }: Pr
         <Panel className="max-w-lg">
           <div className="text-center">
             <Heading
-              title={waiting ? 'Opening Narration Studio…' : 'Desktop host needs attention'}
+              title={waiting ? `Opening ${brand.name}…` : 'Desktop host needs attention'}
               icon={waiting ? <FontAwesomeIcon icon={faCircleNotch} spin /> : undefined}
             />
             <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>

@@ -139,7 +139,7 @@ export type ProductionReportInclude = {
 
 /**
  * What one status report export wrote (ProductionStatusReport): the folder
- * relative to the project (`narration-studio/production/reports`), the two file names in it, and whether the narrator
+ * relative to the project (`<app>/production/reports`), the two file names in it, and whether the narrator
  * chose to include the contracted amount and effective rate (off by default: a status report is often shared with
  * someone the narrator would not otherwise tell their rate).
  */

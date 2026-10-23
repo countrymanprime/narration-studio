@@ -12,6 +12,7 @@ import { CommandRouter } from './input/router';
 import { contextItemsFor } from './registries/context';
 import { MAX_ADDRESS_TEXT } from './navigation/address';
 import { ThemeProvider } from './theme/ThemeContext';
+import { brand } from './brand.gen';
 
 configure({ asyncUtilTimeout: 12_000 });
 beforeEach(() => window.history.replaceState(null, '', '/'));
@@ -256,7 +257,7 @@ describe("cross-page matrix: Delivery's two ways into Master & QC (S13)", () => 
 describe('cross-page matrix: state a hand-off needs is not there', () => {
   it('with no project open, a hand-off address shows the project picker and keeps the address', async () => {
     mountApp('/booth?chapter=chapter-2', { projectFolder: '' });
-    await waitFor(() => expect(screen.queryByText(/Opening Narration Studio/)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(new RegExp(`Opening ${brand.name}`))).toBeNull());
     expect(screen.queryByRole('heading', { level: 2, name: 'This link could not be opened' })).toBeNull();
     expect(here()).toBe('/booth?chapter=chapter-2');
   });

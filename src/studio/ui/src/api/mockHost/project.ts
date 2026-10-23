@@ -2,14 +2,15 @@
 import type { DawCatalogEntry, NarrationApi, ProjectAttachState, RecentProject } from '../../types';
 import { wireClone } from '../mockFixtures';
 import type { MockApiSeed } from './state';
+import { brand } from '../../brand.gen';
 
 /** The host's words for a project handed over while this app is busy (src/studio/desktop/app.go's attachBusyReason). */
 const ATTACH_BUSY_REASON = 'The app is busy, so the current project was left unchanged.';
 const DEFAULT_PROJECT_FOLDER = 'C:/Projects/Alice-in-Wonderland';
 const DEFAULT_PROJECT_NAME = 'Alice’s Adventures in Wonderland';
-// Mirrors the Go host's default (`~/NarrationStudio`, project.DefaultDirName): what an empty parent
+// Mirrors the Go host's default (`~/<default projects folder>`, project.DefaultDirName): what an empty parent
 // resolves to in ProjectCreateIn.
-const DEFAULT_PROJECTS_DIRECTORY = 'C:/Users/Mock/NarrationStudio';
+const DEFAULT_PROJECTS_DIRECTORY = `C:/Users/Mock/${brand.identity.defaultProjectsFolder}`;
 
 /** Mirrors the Go backend's `filepath.Base(path)` default-naming rule for a folder chosen with no explicit name. */
 function basename(path: string): string {

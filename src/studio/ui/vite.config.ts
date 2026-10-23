@@ -2,6 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { assignShard, relativeSpec } from './scripts/vitest-shards.mjs';
+import { brand } from './src/brand.gen';
+
+// index.html's <title> is the product name from the brand module (config/brand.json), written in at dev and build time.
+const brandTitle = { name: 'brand-title', transformIndexHtml: (html: string) => html.replaceAll('%BRAND_NAME%', brand.name) };
 
 // `vitest --shard=i/N` (the `js-test` CI jobs) splits the files by cost instead of by a hash of their paths: see
 // scripts/vitest-shards.mjs. Only a Vitest run loads Vitest; dev, build and Storybook do not.
@@ -19,7 +23,7 @@ async function costBalancedSequencer() {
 }
 
 export default defineConfig(async () => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), brandTitle],
   build: { outDir: 'dist', emptyOutDir: true },
   test: {
     // tests/visual/**/*.spec.ts and tests/aria/**/*.spec.ts are Playwright specs (run via `pnpm run

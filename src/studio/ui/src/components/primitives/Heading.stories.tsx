@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { Heading } from './Heading';
+import { brand } from '../../brand.gen';
 
 // Heading renders the page-level <h1> by default, with an optional muted line under it. `level` changes the tag only
 // (2 or 3 under another heading); the look is the same at every level. The sizes are the mocks': Barlow
@@ -110,5 +111,5 @@ export const MatchesTheMock: Story = {
 
 // The start-up screen's spinner leads the title while the app opens.
 export const WithIcon: Story = {
-  args: { title: 'Opening Narration Studio…', icon: <span aria-hidden className="inline-block size-4 rounded-full border-2 border-[var(--accent)]" /> },
+  args: { title: `Opening ${brand.name}…`, icon: <span aria-hidden className="inline-block size-4 rounded-full border-2 border-[var(--accent)]" /> },
 };

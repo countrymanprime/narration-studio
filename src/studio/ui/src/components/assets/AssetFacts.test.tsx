@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AssetFacts, formatSize } from './AssetFacts';
+import { brand } from '../../brand.gen';
 
 afterEach(cleanup);
 
@@ -16,7 +17,7 @@ const facts = {
   provenanceUrl: 'https://github.com/explosion/spacy-models/releases/tag/en_core_web_sm-3.8.0',
   downloadSize: 12_806_118,
   diskSize: 15_251_718,
-  installPath: 'C:/Users/narrator/AppData/Local/narration-studio/assets/spacy/en_core_web_sm/3.8.0',
+  installPath: `C:/Users/narrator/AppData/Local/${brand.identity.dataFolder}/assets/spacy/en_core_web_sm/3.8.0`,
 };
 
 describe('formatSize', () => {

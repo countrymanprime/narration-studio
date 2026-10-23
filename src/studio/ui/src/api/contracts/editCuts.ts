@@ -1,4 +1,4 @@
-// The narrator's cuts, kept in the project's narration-studio/editing/cuts.json (src/studio/desktop/internal/editlog):
+// The narrator's cuts, kept in the project's <app>/editing/cuts.json (src/studio/desktop/internal/editlog):
 // the host's memory of the words a deleteRange hid in the DAW, so struck words survive a restart. The DAW owns the audio:
 // a cut is recorded only after the DAW accepted it, and it never deletes anything. `a` and `b` are in the chapter
 // recording as it was before any cut (the editing model's `origTime` converts them); the host stores the numbers. A cut
