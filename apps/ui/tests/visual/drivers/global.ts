@@ -1,6 +1,6 @@
 // How to reach each `global` state in STATE_CATALOG (see app.drivers.ts).
 import { settlePage } from '../helpers/settle';
-import { type Driver, chooseTheme, clickVisible, compareRun, confirmDialog, freezeClock, goToPage, openProofChapter } from './shared';
+import { type Driver, chooseTheme, clickVisible, compareRun, confirmDialog, freezeClock, goToPage, openBooth, openProofChapter } from './shared';
 
 export const globalDrivers: Record<string, Driver> = {
   tooltip: async (page) => {
@@ -67,6 +67,17 @@ export const globalDrivers: Record<string, Driver> = {
       .getByRole('region', { name: 'Background recording check' })
       .getByText(/in the background · 42%/)
       .waitFor();
+  },
+  'background-check-booth': async (page) => {
+    await openBooth(page, '?mockBackgroundChecks=running');
+    await page.getByRole('button', { name: /Checking in the background · 42%/ }).waitFor();
+  },
+  'background-check-hidden': async (page) => {
+    await page.goto('/?mockBackgroundChecks=running');
+    await settlePage(page);
+    await goToPage(page, 'Editing');
+    await page.getByRole('region', { name: 'Background recording check' }).getByRole('button', { name: 'Hide' }).click();
+    await page.getByRole('button', { name: /Checking in the background · 42%/ }).waitFor();
   },
   'background-check-waiting': async (page) => {
     await page.goto('/?mockBackgroundChecks=waiting');

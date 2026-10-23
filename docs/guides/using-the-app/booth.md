@@ -316,7 +316,8 @@ press **Check recording** chapter by chapter.
   runs below everything else.
 - **You can see and stop it.** Its progress shows at the bottom left on every page, with the chapter, how far it has got and
   how many chapters wait. **Pause** turns background checks off (the message that follows has **Resume**), and **Cancel** stops
-  this check until the chapter changes again.
+  this check until the chapter changes again. **Hide** folds it to a one-line chip; in the Booth it starts folded, so it never
+  covers the text you read, and pressing the chip opens it.
 
 ![The first-time notice before the app checks recordings in the background](../../images/ui/background-check-notice.webp)
 

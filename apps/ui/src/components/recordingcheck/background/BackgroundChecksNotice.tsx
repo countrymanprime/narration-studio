@@ -6,7 +6,7 @@ import { modelPairText } from './backgroundCheckText';
 /**
  * "Check recordings in the background?" shown once, the first time the host has a changed chapter it would check on its own
  * (`background.wait` is `confirm`). Nothing starts until the narrator answers: Check in the background confirms; Not now turns
- * background checks off (Settings > Speech > Recording check turns them on again).
+ * background checks off (Settings > Speech to text > Background checks turns them on again).
  */
 export function BackgroundChecksNotice({
   background,
@@ -50,7 +50,7 @@ export function BackgroundChecksNotice({
         <li>A bar at the bottom left shows its progress on every page, with Pause and Cancel.</li>
       </ul>
       <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-        Change the models, the processors it may use or turn it off in Settings &rsaquo; Speech &rsaquo; Recording check.
+        Change the models, the processors it may use or turn it off in Settings &rsaquo; Speech to text &rsaquo; Background checks.
       </p>
     </Dialog>
   );

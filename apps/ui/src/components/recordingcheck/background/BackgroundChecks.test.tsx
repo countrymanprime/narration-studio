@@ -16,12 +16,12 @@ afterEach(() => {
 });
 
 /** App's wiring: one chapter sync subscription handed down. */
-function Harness({ api }: { api: NarrationApi }) {
+function Harness({ api, folded }: { api: NarrationApi; folded?: boolean }) {
   const chapterSync = useChapterSync(api);
-  return <BackgroundChecks chapterSync={chapterSync} />;
+  return <BackgroundChecks chapterSync={chapterSync} folded={folded} />;
 }
 
-function mount(seed: MockApiSeed) {
+function mount(seed: MockApiSeed, folded = false) {
   const api = createMockApi({}, seed);
   const saveSettings = vi.spyOn(api, 'saveSettings');
   const coverageCancel = vi.spyOn(api, 'coverageCancel');
@@ -34,7 +34,7 @@ function mount(seed: MockApiSeed) {
   };
   render(
     <ApiProvider api={api}>
-      <Harness api={api} />
+      <Harness api={api} folded={folded} />
     </ApiProvider>,
   );
   // Ends the mock's held background run as a finished check, as the host's coverage:state does.
@@ -71,7 +71,7 @@ describe('BackgroundChecks', () => {
       expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { background_checks_confirmed: 'true', background_checks: 'false' }),
     );
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-    expect(toast).toHaveBeenCalledWith(expect.stringContaining('Settings › Speech › Recording check'));
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('Settings › Speech to text › Background checks'));
   });
 
   it('shows a running check with its models and queue, and toasts its start once', async () => {
@@ -122,5 +122,20 @@ describe('BackgroundChecks', () => {
     await waitFor(() =>
       expect(screen.getByRole('region', { name: 'Background recording check' }).textContent).toContain('Background checks done: 1 chapter checked'),
     );
+  });
+
+  it('Hide folds the corner to a chip that opens it again', async () => {
+    mount({ backgroundChecks: 'running' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Hide' }));
+    const chip = await screen.findByRole('button', { name: /Checking in the background · 42%/ });
+    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    fireEvent.click(chip);
+    expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
+  });
+
+  it('starts folded in the Booth, so it never covers the text being read', async () => {
+    mount({ backgroundChecks: 'running' }, true);
+    expect(await screen.findByRole('button', { name: /Checking in the background · 42%/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
   });
 });

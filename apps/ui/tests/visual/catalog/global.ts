@@ -40,6 +40,16 @@ export const globalStates: StateEntry[] = [
   },
   {
     page: 'global',
+    state: 'background-check-booth',
+    description: 'A background check in progress while the Booth is open: the corner starts folded to its chip, so it never covers the text being read',
+  },
+  {
+    page: 'global',
+    state: 'background-check-hidden',
+    description: 'The background check corner folded to its one-line chip with Hide',
+  },
+  {
+    page: 'global',
     state: 'background-check-waiting',
     description: 'Two chapters waiting for a background check while REAPER records, bottom left, with Pause',
   },

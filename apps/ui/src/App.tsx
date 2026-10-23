@@ -1067,7 +1067,7 @@ function AppRoutes() {
                 linkingDawFile: dawLink.isBusy,
               }}
             />
-            <BackgroundChecks chapterSync={chapterSync} />
+            <BackgroundChecks chapterSync={chapterSync} folded={location.pathname === '/booth'} />
             {chapterSync?.ask && (
               <ChapterSyncConsentDialog
                 projectFile={chapterSync.projectFile}

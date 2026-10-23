@@ -20,9 +20,10 @@ function titleIn(titles: ReadonlyMap<string, string>, chapterId: string | undefi
 /**
  * Background recording checks, app-wide (#2251): the first-time notice before the host checks anything on its own, a toast when
  * a background check starts (`job:ended` already says when it ends), and the progress that stays on screen whatever page the
- * narrator is on, with Pause and Cancel. `chapterSync` is App's one `chaptersync:state` subscription.
+ * narrator is on, with Pause and Cancel. `chapterSync` is App's one `chaptersync:state` subscription; `folded` starts the progress folded
+ * to its chip (the Booth, where it would cover the text being read).
  */
-export function BackgroundChecks({ chapterSync }: { chapterSync: ChapterSyncState | undefined }) {
+export function BackgroundChecks({ chapterSync, folded = false }: { chapterSync: ChapterSyncState | undefined; folded?: boolean }) {
   const coverage = usePort('coverage');
   const system = usePort('system');
   const [running, setRunning] = useState<CoverageState>();
@@ -87,7 +88,7 @@ export function BackgroundChecks({ chapterSync }: { chapterSync: ChapterSyncStat
     setAnswering(true);
     void save(allow ? { background_checks_confirmed: 'true' } : { background_checks_confirmed: 'true', background_checks: 'false' })
       .then(() => {
-        if (!allow) overlay.toast('Background checks are off. Turn them on in Settings › Speech › Recording check.');
+        if (!allow) overlay.toast('Background checks are off. Turn them on in Settings › Speech to text › Background checks.');
       })
       .catch((error) => overlay.toast(describeApiError(error), { tone: 'error' }))
       .finally(() => setAnswering(false));
@@ -125,6 +126,7 @@ export function BackgroundChecks({ chapterSync }: { chapterSync: ChapterSyncStat
         onPause={pause}
         onCancel={cancel}
         onResume={resume}
+        folded={folded}
       />
       {background && needsNotice(background) && !chapterSync?.ask && (
         <BackgroundChecksNotice background={background} busy={answering} onAllow={() => answer(true)} onNotNow={() => answer(false)} />
