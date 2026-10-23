@@ -21,7 +21,7 @@ local ok_bridge, bridge = pcall(dofile, join(SHARED, 'narration_ui_bridge.lua'))
 if not ok_core or not ok_proc or not ok_bridge then
   -- The first failure names the file that could not be loaded (a missing or broken bridge feature file, say).
   local failure = (not ok_core and common) or (not ok_proc and process) or bridge
-  reaper.ShowMessageBox('Could not load the app\'s shared libraries from:\n' .. SHARED .. '\n\n' .. tostring(failure), 'REAPER launcher', 0)
+  reaper.ShowMessageBox("Could not load the app's shared libraries from:\n" .. SHARED .. '\n\n' .. tostring(failure), 'REAPER launcher', 0)
   return
 end
 local BRAND = bridge.brand
@@ -81,7 +81,8 @@ local session_dir = live_session or bridge.new_session_dir()
 
 if not release_mode and not common.file_exists(shared_python) then
   reaper.ShowMessageBox(
-    BRAND.name .. ' has not been set up in this checkout yet.\n\n'
+    BRAND.name
+      .. ' has not been set up in this checkout yet.\n\n'
       .. 'From the repository root, run:\n\n'
       .. '  pnpm run bootstrap\n\n'
       .. 'It creates the local Python environment and builds the workspace.\n'
@@ -96,7 +97,13 @@ end
 
 if not common.file_exists(app_exe) then
   reaper.ShowMessageBox(
-    'The ' .. BRAND.name .. ' app has not been built yet.\n\n' .. 'From this checkout, run:\n  pnpm run bootstrap\n\n' .. 'Then launch ' .. BRAND.name .. ' again.',
+    'The '
+      .. BRAND.name
+      .. ' app has not been built yet.\n\n'
+      .. 'From this checkout, run:\n  pnpm run bootstrap\n\n'
+      .. 'Then launch '
+      .. BRAND.name
+      .. ' again.',
     BRAND.name .. ' setup required',
     0
   )
