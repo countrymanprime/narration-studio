@@ -14,6 +14,10 @@ function H.join(base, child)
   return base .. SEP .. child
 end
 
+-- The product name and identity values the bridge reads (narration_brand.lua, generated from config/brand.json), so a test
+-- names a key, a label or a folder the way the code does and a rename changes no test.
+H.brand = dofile(H.join(host.reaper_dir, 'narration_brand.lua'))
+
 -- Reads a whole file, or returns nil when it does not exist.
 function H.read_file(path)
   local handle = io.open(path, 'rb')

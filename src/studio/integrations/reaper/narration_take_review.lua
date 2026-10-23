@@ -7,9 +7,9 @@ local event, pipe_fields = core.event, core.pipe_fields
 
 -- Namespaced take extension data (extending docs/architecture/manuscript-line-identity.md to take granularity): which finding produced this
 -- take, the candidate's source file, and the matched source range within it. Never item notes or take names.
-local FINDING_ID_KEY = 'P_EXT:narration_studio_take_finding_id'
-local SOURCE_FILE_KEY = 'P_EXT:narration_studio_take_source_file'
-local SOURCE_RANGE_KEY = 'P_EXT:narration_studio_take_source_range'
+local FINDING_ID_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'take_finding_id'
+local SOURCE_FILE_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'take_source_file'
+local SOURCE_RANGE_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'take_source_range'
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()
@@ -114,7 +114,7 @@ local function create_take(session_dir, run_id, payload_path)
   reaper.GetSetMediaItemTakeInfo_String(take, SOURCE_FILE_KEY, payload.source_file, true)
   reaper.GetSetMediaItemTakeInfo_String(take, SOURCE_RANGE_KEY, string.format('%.6f|%.6f', start, stop), true)
   local new_take_guid = take_guid(take)
-  reaper.Undo_EndBlock2(0, 'Narration Studio: add take', -1)
+  reaper.Undo_EndBlock2(0, core.brand.name .. ': add take', -1)
   reaper.UpdateArrange()
 
   local resolved_item = items_by_guid()[normalized_target]

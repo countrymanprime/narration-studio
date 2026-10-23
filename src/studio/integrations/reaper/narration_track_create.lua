@@ -6,14 +6,14 @@
 -- it was given, so the host can link the chapter to it. The name is trimmed and a line break or tab inside it becomes a
 -- space (a track name is one line); a name that is empty after that is refused. It refuses while REAPER records, so no
 -- track appears in the middle of a take, and changes nothing else: no other track's selection, arm, mute or name. It is one
--- undo point ("Narration Studio: add track") and never saves the project. It is not idempotent: each call adds a track.
+-- undo point ("<app name>: add track") and never saves the project. It is not idempotent: each call adds a track.
 --
 -- Events: TRACK_CREATED|run|guid|index|name, or ERROR|run|message.
 
 local core = ...
 local event = core.event
 
-local UNDO_ADD_TRACK = 'Narration Studio: add track'
+local UNDO_ADD_TRACK = core.brand.name .. ': add track'
 local RECORDING = 'REAPER is recording. Stop recording first.'
 local NO_NAME = 'The new track needs a name.'
 

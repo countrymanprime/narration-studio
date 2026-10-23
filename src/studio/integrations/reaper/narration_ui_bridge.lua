@@ -1,4 +1,4 @@
--- File-session adapter for the React-owned Narration Studio workspace.
+-- File-session adapter for the React-owned workspace of the app.
 -- No UI lives here: this module only reads REAPER selection state, applies
 -- take markers, and moves the edit cursor on commands from the Go host.
 --
@@ -58,6 +58,7 @@ end
 
 local directory = own_directory()
 local core = dofile(directory .. package.config:sub(1, 1) .. 'narration_bridge_core.lua')
+M.brand = core.brand
 local features = {}
 for _, name in ipairs(M.FEATURE_FILES) do
   local chunk = assert(loadfile(core.join(directory, name)))
@@ -84,8 +85,8 @@ M.HEARTBEAT_INTERVAL_SECONDS = 1.5
 
 -- The bridge running in this REAPER publishes its session folder in a non-persistent ExtState, which every script in the same
 -- REAPER reads and which is gone when REAPER closes, so the launcher action reuses it instead of starting a second loop
--- (NarrationStudio_Startup.lua starts one at every REAPER start). The marker file says the loop that wrote it has not stopped.
-M.SESSION_SECTION, M.SESSION_KEY, M.RUNNING_FILE = 'NarrationStudio', 'session', 'bridge-running.txt'
+-- (the startup script starts one at every REAPER start). The marker file says the loop that wrote it has not stopped.
+M.SESSION_SECTION, M.SESSION_KEY, M.RUNNING_FILE = core.brand.identity.reaperResourceFolder, 'session', 'bridge-running.txt'
 
 -- The session folder of the bridge loop running in this REAPER, or nil when none runs.
 function M.live_session()
@@ -96,9 +97,9 @@ function M.live_session()
   return session_dir
 end
 
--- A new session folder under <resource path>/NarrationStudio/sessions, with its commands folder; the app finds the sessions there.
+-- A new session folder under <resource path>/<launcher folder>/sessions, with its commands folder; the app finds the sessions there.
 function M.new_session_dir()
-  local root = core.join(core.join(reaper.GetResourcePath(), 'NarrationStudio'), 'sessions')
+  local root = core.join(core.join(reaper.GetResourcePath(), core.brand.identity.reaperResourceFolder), 'sessions')
   local session_dir = core.join(root, 'hub_' .. tostring(reaper.time_precise()):gsub('[%.]', ''))
   reaper.RecursiveCreateDirectory(core.join(session_dir, 'commands'), 0)
   return session_dir

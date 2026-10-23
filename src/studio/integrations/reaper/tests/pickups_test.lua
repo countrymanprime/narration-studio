@@ -39,7 +39,7 @@ H.test('import_pickups adds one PICKUP: marker per row in one undo step', functi
   H.eq(s.fake.markers[1].pos, 1.5)
   H.eq(s.fake.markers[1].is_region, false)
   H.eq(s.fake.markers[2].name, 'PICKUP: Second pickup')
-  H.eq(s.fake:undo_labels(), { 'Narration Studio: import pickups' })
+  H.eq(s.fake:undo_labels(), { H.brand.name .. ': import pickups' })
   H.eq(s.fake.arrange_updates, 1)
 end)
 
@@ -251,7 +251,7 @@ H.test('resolve_pickup renames the nearest open pickup to PICKUP_DONE, keeping i
   H.eq(s:events(), { { 'PICKUP_RESOLVED', 't2', '9.25', 'narrator', 'Open one' } })
   H.eq(s.fake.markers[1].name, 'PICKUP_DONE: [narrator] Open one')
   H.eq(s.fake.markers[1].pos, 9.25)
-  H.eq(s.fake:undo_labels(), { 'Narration Studio: import pickups', 'Narration Studio: resolve pickup' })
+  H.eq(s.fake:undo_labels(), { H.brand.name .. ': import pickups', H.brand.name .. ': resolve pickup' })
 end)
 
 H.test('resolve_pickup is idempotent: resolving an already-done pickup finds no open match', function()
@@ -286,9 +286,9 @@ H.test('reopen_pickup renames a done marker back to PICKUP, keeping its body, in
   H.eq(s.fake.markers[1].name, 'PICKUP: [narrator] Fix this | now')
   H.eq(s.fake.markers[1].pos, 9.25)
   H.eq(s.fake:undo_labels(), {
-    'Narration Studio: import pickups',
-    'Narration Studio: resolve pickup',
-    'Narration Studio: reopen pickup',
+    H.brand.name .. ': import pickups',
+    H.brand.name .. ': resolve pickup',
+    H.brand.name .. ': reopen pickup',
   })
 end)
 

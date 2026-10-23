@@ -16,7 +16,7 @@
 local core = ...
 local event = core.event
 
-local LINE_ID_KEY = 'P_EXT:narration_studio_line_id'
+local LINE_ID_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'line_id'
 -- REAPER's I_FREEMODE for fixed item lanes (1 is free item positioning).
 local FIXED_LANE_MODE = 2
 -- Track C_LANEPLAYS value that makes a lane the only one playing (0 silent, 2 plays with others).
@@ -68,7 +68,7 @@ local function resolve_retake(line_id, guid)
     return nil,
       nil,
       string.format(
-        'The track "%s" is not in fixed item lane mode, so it has no lanes to choose from. Narration Studio never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
+        'The track "%s" is not in fixed item lane mode, so it has no lanes to choose from. The app never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
         name
       )
   end
@@ -98,7 +98,7 @@ local function pick_retake_lane(session_dir, run_id, line_id, raw_guid, host_run
 
   reaper.Undo_BeginBlock2(0)
   reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)
-  reaper.Undo_EndBlock2(0, 'Narration Studio: play retake lane ' .. (lane + 1), -1)
+  reaper.Undo_EndBlock2(0, core.brand.name .. ': play retake lane ' .. (lane + 1), -1)
   if reaper.APIExists('UpdateTimeline') then
     reaper.UpdateTimeline()
   end

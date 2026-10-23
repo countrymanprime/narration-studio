@@ -25,7 +25,7 @@
 -- fills the gap the cut leaves with the chapter's room tone instead of silence: the first region named "Room tone" (any
 -- case) that lies inside one item on the cut item's track and clear of the cut. Copies of that stretch, each a new item
 -- whose take opens the same file the marked item plays (a path read from the project, never sent by the host), are laid
--- end to end across the gap with the seam fade at each edge and P_EXT:narration_studio_room_tone set, in the same undo block.
+-- end to end across the gap with the seam fade at each edge and P_EXT:<prefix>room_tone set, in the same undo block.
 -- With no such region, the command refuses and cuts nothing. The answer is RANGE_CUT as above.
 --
 -- The bridge splits a command line into at most eight fields and the last keeps the rest, so pad and room_tone arrive in
@@ -133,7 +133,7 @@ local event = core.event
 -- The cut's undo label is the cut_range kind's (narration_bridge_core.lua), the one undo_last may undo (narration_undo.lua).
 local UNDO_DELETE_WORDS = core.undo_label('cut_range')
 -- The Cuts track's key and name. The key is what the bridge looks for; the name is what the narrator sees.
-local CUTS_KEY = 'P_EXT:narration_studio_cuts'
+local CUTS_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'cuts'
 local CUTS_NAME = 'Cuts'
 local MAX_FADE_MS = 500
 -- How far outside an item's bounds a range may fall and still count as inside it, and how close to an edge a range end
@@ -148,19 +148,19 @@ local RECORDING = 'REAPER is recording. Stop recording first.'
 local MAX_PAD = 0.5
 -- The item P_EXT key a room-tone piece carries, the region name that marks the room tone, and the most pieces one gap
 -- takes: a stretch so short that the gap needs more is refused rather than laid as hundreds of items.
-local ROOM_TONE_KEY = 'P_EXT:narration_studio_room_tone'
+local ROOM_TONE_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'room_tone'
 local ROOM_TONE_REGION = 'room tone'
 local MAX_ROOM_TONE_PIECES = 64
 local BAD_PAD = 'The pad must be from 0 to 500 milliseconds.'
 local NO_ROOM_TONE = 'This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone.'
 
-local UNDO_ADD_CHAIN = 'Narration Studio: add chain to range'
-local UNDO_REMOVE_CHAIN = 'Narration Studio: remove chain from range'
+local UNDO_ADD_CHAIN = core.brand.name .. ': add chain to range'
+local UNDO_REMOVE_CHAIN = core.brand.name .. ': remove chain from range'
 -- The take P_EXT keys apply_fx_range writes: the chain's name, and the GUIDs of the FX it added, space-separated.
-local CHAIN_KEY = 'P_EXT:narration_studio_fx_range_chain'
-local CHAIN_FX_KEY = 'P_EXT:narration_studio_fx_range_fx'
+local CHAIN_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'fx_range_chain'
+local CHAIN_FX_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'fx_range_fx'
 -- The GUIDs of the pieces apply_fx_range split off either side, '-' for none: the only items remove_fx_range joins back.
-local CHAIN_SEAMS_KEY = 'P_EXT:narration_studio_fx_range_seams'
+local CHAIN_SEAMS_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'fx_range_seams'
 -- list_fx_chains' depth: a chain at most three folders under FXChains (narration_workspace.lua's CHAIN_DEPTH_LIMIT).
 local CHAIN_PARTS_LIMIT = 4
 local BAD_CHAIN = 'That FX chain is not in the FXChains folder REAPER lists.'
@@ -856,7 +856,7 @@ end
 
 -- reduce_range_gain ------------------------------------------------------------------------------------------------
 
-local UNDO_REDUCE_GAIN = 'Narration Studio: lower stretches'
+local UNDO_REDUCE_GAIN = core.brand.name .. ': lower stretches'
 local REDUCE_GAIN_UNREADABLE = 'The stretches to lower are not readable, so nothing changed.'
 local BAD_REDUCTION = 'The reduction must be from 1 to 24 dB.'
 local MIN_REDUCE_DB, MAX_REDUCE_DB = 1, 24
@@ -1070,7 +1070,7 @@ end
 
 -- repair_click ------------------------------------------------------------------------------------------------------
 
-local UNDO_REPAIR_CLICKS = 'Narration Studio: repair clicks'
+local UNDO_REPAIR_CLICKS = core.brand.name .. ': repair clicks'
 local CLICKS_UNREADABLE = 'The clicks to repair are not readable, so nothing changed.'
 local MAX_CLICKS = 500
 -- The longest click repaired, in seconds: a click lasts a few milliseconds, and a longer dip would be heard as a gap.
@@ -1237,9 +1237,9 @@ end
 
 -- fx_range_params, fx_range_set_param, fx_range_bypass ---------------------------------------------------------------
 
-local UNDO_SET_PARAM = 'Narration Studio: change effect setting'
-local UNDO_BYPASS = 'Narration Studio: bypass effect'
-local UNDO_ENABLE = 'Narration Studio: turn effect back on'
+local UNDO_SET_PARAM = core.brand.name .. ': change effect setting'
+local UNDO_BYPASS = core.brand.name .. ': bypass effect'
+local UNDO_ENABLE = core.brand.name .. ': turn effect back on'
 -- The most parameters fx_range_params lists, over every FX of the chain: a plug-in can have thousands.
 local MAX_FX_PARAMS = 512
 local FX_EDIT_NEEDED = {

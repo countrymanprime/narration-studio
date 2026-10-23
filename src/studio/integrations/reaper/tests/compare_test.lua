@@ -7,9 +7,9 @@ local function project_session(options)
   options = options or {}
   local root = host.tmpdir()
   local folder = H.join(root, 'Book')
-  host.makedirs(H.join(H.join(folder, 'narration-studio'), 'manuscript'))
+  host.makedirs(H.join(H.join(folder, H.brand.identity.projectFolder), 'manuscript'))
   if options.manuscript ~= false then
-    H.write_file(H.join(H.join(H.join(folder, 'narration-studio'), 'manuscript'), 'manuscript.json'), '{"version":1}')
+    H.write_file(H.join(H.join(H.join(folder, H.brand.identity.projectFolder), 'manuscript'), 'manuscript.json'), '{"version":1}')
   end
   local s = H.session({ project_path = options.saved == false and '' or H.join(folder, 'Book.rpp') })
   return s, folder
@@ -43,7 +43,7 @@ end)
 H.test('prepare_compare needs an imported manuscript', function()
   local s = project_session({ manuscript = false })
   s:send('prepare_compare', 'r1')
-  H.eq(first_event(s), { 'ERROR', 'r1', 'Import a manuscript in Narration Studio before starting Transcript Compare.' })
+  H.eq(first_event(s), { 'ERROR', 'r1', 'Import a manuscript in the app before starting Transcript Compare.' })
 end)
 
 H.test('prepare_compare needs a selection', function()
@@ -85,7 +85,7 @@ H.test('prepare_compare writes the manifest of the selected items in time order 
     'COMPARE_PREPARED',
     'r1',
     manifest_path,
-    H.join(H.join(H.join(folder, 'narration-studio'), 'manuscript'), 'manuscript.json'),
+    H.join(H.join(H.join(folder, H.brand.identity.projectFolder), 'manuscript'), 'manuscript.json'),
     'Alice: chapter 1',
     diff_path,
     '2',
@@ -135,9 +135,9 @@ end)
 local function app_folder(options)
   options = options or {}
   local folder = H.join(host.tmpdir(), 'App project')
-  host.makedirs(H.join(H.join(folder, 'narration-studio'), 'manuscript'))
+  host.makedirs(H.join(H.join(folder, H.brand.identity.projectFolder), 'manuscript'))
   if options.manuscript ~= false then
-    H.write_file(H.join(H.join(H.join(folder, 'narration-studio'), 'manuscript'), 'manuscript.json'), '{"version":1}')
+    H.write_file(H.join(H.join(H.join(folder, H.brand.identity.projectFolder), 'manuscript'), 'manuscript.json'), '{"version":1}')
   end
   return folder
 end
@@ -150,10 +150,10 @@ H.test('prepare_compare uses the project folder the app passes, not the .rpp fol
   s:send('prepare_compare', 'r1', folder)
   local event = first_event(s)
   H.eq(event[1], 'COMPARE_PREPARED')
-  H.eq(event[4], H.join(H.join(H.join(folder, 'narration-studio'), 'manuscript'), 'manuscript.json'))
+  H.eq(event[4], H.join(H.join(H.join(folder, H.brand.identity.projectFolder), 'manuscript'), 'manuscript.json'))
   H.eq(event[6], H.join(H.join(H.join(folder, 'TranscriptCompare'), 'diffs'), 'Narrator_r1.diff'))
   H.eq(host.listdir(H.join(H.join(folder, 'TranscriptCompare'), 'diffs')), {}, 'the diffs directory is made in the app folder')
-  H.eq(host.listsubdirs(rpp_folder), { 'narration-studio' }, 'nothing is written beside the .rpp')
+  H.eq(host.listsubdirs(rpp_folder), { H.brand.identity.projectFolder }, 'nothing is written beside the .rpp')
 end)
 
 H.test('prepare_compare refuses a passed folder without a manuscript rather than falling back to the .rpp folder', function()
@@ -162,7 +162,7 @@ H.test('prepare_compare refuses a passed folder without a manuscript rather than
   local track = audio_track(s)
   s.fake:add_item(track, { selected = true, position = 0, length = 10, source = 'a.wav' })
   s:send('prepare_compare', 'r1', folder)
-  H.eq(s:events(), { { 'ERROR', 'r1', 'Import a manuscript in Narration Studio before starting Transcript Compare.' } })
+  H.eq(s:events(), { { 'ERROR', 'r1', 'Import a manuscript in the app before starting Transcript Compare.' } })
 end)
 
 H.test('prepare_compare with a passed folder works for a project REAPER has not saved', function()

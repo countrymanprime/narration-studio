@@ -7,6 +7,7 @@
 local H = require('harness')
 
 local LINE = 'line-000004'
+local LINE_ID_KEY = H.brand.identity.reaperExtPrefix .. 'line_id'
 
 -- Three retakes of one line on lanes 0 to 2 of a lane track, every lane playing, plus another line's item on lane 0
 -- and a second lane track holding a comp copy of the same line (a line id names several items on lane tracks).
@@ -23,15 +24,15 @@ local function new_session()
       lane = lane,
       take_name = 'retake ' .. (lane + 1),
     })
-    item.ext.narration_studio_line_id = LINE
+    item.ext[LINE_ID_KEY] = LINE
     s.retakes[lane] = item
   end
   s.other = s.fake:add_item(s.track, { source = 'next.wav', position = 4, length = 3, lane = 0 })
-  s.other.ext.narration_studio_line_id = 'line-000005'
+  s.other.ext[LINE_ID_KEY] = 'line-000005'
   s.second_track = s.fake:add_track('Comp')
   s.fake:set_fixed_lanes(s.second_track, 2)
   s.copy = s.fake:add_item(s.second_track, { source = 'retake2.wav', position = 0, length = 3, lane = 1 })
-  s.copy.ext.narration_studio_line_id = LINE
+  s.copy.ext[LINE_ID_KEY] = LINE
   return s
 end
 
@@ -68,7 +69,7 @@ local function project_snapshot(s)
       item.length,
       item.lane,
       item.selected,
-      item.ext.narration_studio_line_id or '',
+      item.ext[LINE_ID_KEY] or '',
       item.active_index or 1,
       takes,
     }
@@ -92,7 +93,7 @@ H.test('pick_retake_lane sets exactly one value, in one undo block, and nothing 
   s:send('pick_retake_lane', 't1', LINE, s.retakes[2].guid)
   H.eq(setter_calls(s), { { 'SetMediaTrackInfo_Value', 'C_LANEPLAYS:2', 1 } })
   H.eq(#s.fake.undo, 1, 'one undo step, so one Undo in REAPER restores the previous play state')
-  H.eq(s.fake.undo[1].label, 'Narration Studio: play retake lane 3')
+  H.eq(s.fake.undo[1].label, H.brand.name .. ': play retake lane 3')
   H.eq(s.fake.open_undo_blocks, 0)
 end)
 
@@ -139,14 +140,14 @@ H.test('pick_retake_lane refuses a track that is not in fixed-lane mode, and nev
   local s = new_session()
   local plain = s.fake:add_track('Takes')
   local item = s.fake:add_item(plain, { source = 'a.wav' })
-  item.ext.narration_studio_line_id = LINE
+  item.ext[LINE_ID_KEY] = LINE
   local before = project_snapshot(s)
   s:send('pick_retake_lane', 't1', LINE, item.guid)
   H.eq(s:events(), {
     {
       'ERROR',
       't1',
-      'The track "Takes" is not in fixed item lane mode, so it has no lanes to choose from. Narration Studio never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
+      'The track "Takes" is not in fixed item lane mode, so it has no lanes to choose from. The app never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
     },
   })
   H.eq(setter_calls(s), {})
@@ -167,10 +168,10 @@ end)
 H.test('pick_retake_lane changes nothing when the item no longer carries the line', function()
   local s = new_session()
   local stale = 'That retake no longer belongs to this line. Save the project in REAPER and open the list again.'
-  s.retakes[1].ext.narration_studio_line_id = 'line-000009'
+  s.retakes[1].ext[LINE_ID_KEY] = 'line-000009'
   s:send('pick_retake_lane', 't1', LINE, s.retakes[1].guid)
   H.eq(s:events(), { { 'ERROR', 't1', stale } })
-  s.retakes[1].ext.narration_studio_line_id = nil
+  s.retakes[1].ext[LINE_ID_KEY] = nil
   s:send('pick_retake_lane', 't2', LINE, s.retakes[1].guid)
   H.eq(s:events(), { { 'ERROR', 't2', stale } })
   H.eq(setter_calls(s), {})

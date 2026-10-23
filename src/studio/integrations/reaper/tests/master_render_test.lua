@@ -18,7 +18,7 @@ end
 -- A project folder with the app's run folder made in it, the way the daw row makes it before it asks for a render.
 local function run_folder(s, name)
   local project = s:path('Book')
-  local folder = H.join(H.join(H.join(project, 'narration-studio'), 'mastering'), name or 'run1')
+  local folder = H.join(H.join(H.join(project, H.brand.identity.projectFolder), 'mastering'), name or 'run1')
   host.makedirs(folder)
   return folder, project
 end
@@ -227,10 +227,10 @@ H.test('render_with_fx refuses a folder that is not a run folder the app made in
   local s = new_session()
   s.fake:add_region(0, 5, 'Chapter 1')
   local folder, project = run_folder(s)
-  local mastering = H.join(H.join(project, 'narration-studio'), 'mastering')
+  local mastering = H.join(H.join(project, H.brand.identity.projectFolder), 'mastering')
   local refused = {
     '',
-    'narration-studio' .. SEP .. 'mastering' .. SEP .. 'run1', -- relative
+    H.brand.identity.projectFolder .. SEP .. 'mastering' .. SEP .. 'run1', -- relative
     project, -- the project folder itself
     H.join(project, 'Renders'), -- not the app's folder
     H.join(mastering, '..'), -- escapes
@@ -250,10 +250,10 @@ H.test('render_with_fx refuses a run folder reached through a .. part, even one 
   local s = new_session()
   s.fake:add_region(0, 5, 'Chapter 1')
   local _, project = run_folder(s)
-  local elsewhere = H.join(H.join(H.join(H.join(project, 'Elsewhere'), 'narration-studio'), 'mastering'), 'run1')
+  local elsewhere = H.join(H.join(H.join(H.join(project, 'Elsewhere'), H.brand.identity.projectFolder), 'mastering'), 'run1')
   host.makedirs(elsewhere)
-  local mastering = H.join(H.join(project, 'narration-studio'), 'mastering')
-  local escaping = H.join(H.join(H.join(H.join(H.join(H.join(mastering, '..'), '..'), 'Elsewhere'), 'narration-studio'), 'mastering'), 'run1')
+  local mastering = H.join(H.join(project, H.brand.identity.projectFolder), 'mastering')
+  local escaping = H.join(H.join(H.join(H.join(H.join(H.join(mastering, '..'), '..'), 'Elsewhere'), H.brand.identity.projectFolder), 'mastering'), 'run1')
   s:send('render_with_fx', 'r1', APPROVAL, escaping, 'Chapter 1')
   H.eq(s:events(), { { 'ERROR', 'r1', 'The render folder is not one the app made in the project.' } })
   H.eq(render_triggers(s), 0)
@@ -263,7 +263,7 @@ H.test('render_with_fx refuses a run folder that does not exist', function()
   local s = new_session()
   s.fake:add_region(0, 5, 'Chapter 1')
   local _, project = run_folder(s)
-  local missing = H.join(H.join(H.join(project, 'narration-studio'), 'mastering'), 'run9')
+  local missing = H.join(H.join(H.join(project, H.brand.identity.projectFolder), 'mastering'), 'run9')
   s:send('render_with_fx', 'r1', APPROVAL, missing, 'Chapter 1')
   H.eq(s:events(), { { 'ERROR', 'r1', 'The render folder is not one the app made in the project.' } })
   H.eq(render_triggers(s), 0)
