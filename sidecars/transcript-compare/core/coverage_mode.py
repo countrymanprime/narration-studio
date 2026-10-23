@@ -16,7 +16,8 @@ skipped, Q5 and Q10), this mode:
    Whisper was not sure of, which the host may re-check with a larger model); then
    the word alignment the edit and proof workspace reads: one
    `COVERAGE_TOKEN|` per chapter token and one `COVERAGE_EXTRA|` per run of words heard that the
-   chapter does not account for. The results file is written atomically, so it exists only when
+   chapter does not account for, with `repeatOf` set when the run says the chapter text beside it
+   again (a second take, `recording_coverage.repeat_of`). The results file is written atomically, so it exists only when
    the run finished.
 
 With `--align-only` the mode never transcribes: it re-aligns from the words files alone and fails
@@ -792,7 +793,8 @@ def _alignment_lines(aligned: coverage_model.AlignedChapter, alignment: dict, ti
                 payload["heard"] = timeline.words[word][0]
         lines.append(_line("COVERAGE_TOKEN", payload))
     heard_at = [(token.audio, i) for i, token in enumerate(tokens) if token.audio is not None]
-    for start, end in extras:
+    repeats = coverage_model.repeats(aligned, tokens, extras)
+    for (start, end), repeat in zip(extras, repeats, strict=True):
         first, last = index_map[start], index_map[end - 1]
         before = [i for audio, i in heard_at if audio < start]
         payload = {
@@ -801,6 +803,15 @@ def _alignment_lines(aligned: coverage_model.AlignedChapter, alignment: dict, ti
             "start": timeline.word_edge(first, 1),
             "end": timeline.word_edge(last, 2),
             "afterToken": before[-1] if before else None,
+            "repeatOf": None
+            if repeat is None
+            else {
+                "start": repeat.start,
+                "end": repeat.end,
+                "first": repeat.first,
+                "last": repeat.last,
+                "text": " ".join(aligned.doc_words[repeat.start : repeat.end]),
+            },
         }
         lines.append(_line("COVERAGE_EXTRA", payload))
     return lines
