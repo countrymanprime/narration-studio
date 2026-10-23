@@ -35,7 +35,6 @@ import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
 import { ConnectionResolveDialog } from '../connection/ConnectionResolveDialog';
 import { useOpenOnce } from '../connection/useOpenOnce';
-import { Button } from '../primitives/Button';
 import { DawIndicator } from './pipeline/DawIndicator';
 import { DAW_CONNECT_GRACE_MS, useConnectGrace } from './pipeline/dawConnectGrace';
 import { NextUp } from './pipeline/NextUp';
@@ -376,13 +375,7 @@ export function ProductionPage({
               onCheckAgain={checkDaw}
               onCaps={takeCaps}
               onClose={dawDialog.close}
-            >
-              <p>
-                <Button variant="link" onClick={() => go('/settings')}>
-                  Use the built-in recorder instead
-                </Button>
-              </p>
-            </ConnectionResolveDialog>
+            />
           )}
         </>
       )}

@@ -40,6 +40,8 @@ const choice = (over: Partial<DawChoice> = {}): DawChoice => ({
   launcherAutoStart: true,
   experimental: false,
   options: [],
+  starting: null,
+  bridge: null,
   ...over,
 });
 

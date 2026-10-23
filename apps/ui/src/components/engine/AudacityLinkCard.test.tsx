@@ -65,7 +65,7 @@ describe('AudacityLinkCard states', () => {
     await user.click(screen.getByRole('button', { name: 'Start Audacity' }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Started Audacity/)));
     // Open before scripting was turned on: no button can fix it, and the sentence says to close Audacity.
-    expect((await card()).textContent).toMatch(/Close Audacity first/);
+    expect((await card()).textContent).toMatch(/Close Audacity: it saves its settings when it closes/);
     expect(screen.queryByRole('button', { name: 'Turn on scripting' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Check again' }));
     await user.click(await screen.findByRole('button', { name: 'Turn on scripting' }));

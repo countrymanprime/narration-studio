@@ -96,15 +96,15 @@ A chip above the footer names each problem the Booth can fix and opens its dialo
 
   ![Booth - Record pressed while switched off: the Recording in REAPER is experimental dialog with Turn on Record, DAW settings and Check again](../../images/ui/booth-record-refused.webp)
 
-- **REAPER not connected** (or **REAPER not answering**). The app records in REAPER through a small script, the
-  launcher, that runs inside REAPER. A quiet mark above the footer says so, and a dialog opens by itself once, after the app
-  has had a few seconds to connect on its own; the X closes it and the mark opens it again. The dialog gives the host's
-  reason, what still works, and the steps: load the launcher once (in REAPER, choose **Actions > Show action list > New
-  action > Load ReaScript** and pick the launcher file it shows; **Copy path** copies it; load it again after you update the app,
-  because the file moves with each update), then, with the chapter's project open in REAPER, run
-  **Script: NarrationStudio_Launcher.lua**. **Open in REAPER and connect** opens the linked project with the launcher in
-  one go, or connects the REAPER you already have open. If no REAPER project is linked yet it is off, with **Link in Settings**
-  beside the reason. A refusal or a start that never answers is written in the dialog.
+- **REAPER not connected** (or **REAPER not answering**). The app records in REAPER through its bridge, a small script
+  that runs inside REAPER. You load nothing: the app puts the bridge in REAPER's Scripts folder by itself, and REAPER starts it
+  each time it opens. When REAPER opens with the chapter's project, the app connects and Record turns on. When the project opens
+  in the app and REAPER is not running, the app opens REAPER on the linked project by itself. Until it connects, a quiet mark
+  above the footer says so, and a dialog opens by itself once, after the app has had a few seconds to connect on its own; the X
+  closes it, and the mark or a press of Record opens it again. The dialog gives the host's reason, what still works, and what
+  the app does. **Open in REAPER and connect** opens the linked project in REAPER, or connects the REAPER you already have open.
+  If no REAPER project is linked yet it is off, with **Link in Settings** beside the reason. A refusal or a start that never
+  answers is written in the dialog. The Booth never offers the built-in recorder while REAPER is linked.
 
   ![Booth - the REAPER not connected dialog, with the two steps, Open in REAPER and connect and Check again](../../images/ui/booth-record-setup.webp)
 

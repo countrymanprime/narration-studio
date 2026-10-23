@@ -1,4 +1,4 @@
 {
   "connection": "standalone",
-  "message": "REAPER is not connected to this app. To go to findings in REAPER, open this app from the Narration Studio action in REAPER."
+  "message": "REAPER is not connected to this app. To go to findings in REAPER, open REAPER; the app connects to it by itself."
 }

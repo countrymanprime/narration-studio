@@ -94,9 +94,9 @@ func readAloudTrackGUID(svc hostServices, chapterID string) (string, *ReadAloudR
 // readAloudConnectionRefusal is the refusal for a bridge that is not connected or not answering, worded from name.
 func readAloudConnectionRefusal(name, connection string) ReadAloudRecording {
 	if connection == reaperNotRunning {
-		return readAloudRefused(reaperNotRunning, fmt.Sprintf("%s is not answering. Check that %s is open and the Narration Studio action is running, then try again.", name, name))
+		return readAloudRefused(reaperNotRunning, fmt.Sprintf("%s is not answering. Check that %s is open, then try again; the app reconnects by itself.", name, name))
 	}
-	return readAloudRefused(connection, fmt.Sprintf("%s is not connected to this app. To record with reading, open this app from the Narration Studio action in %s.", name, name))
+	return readAloudRefused(connection, fmt.Sprintf("%s is not connected to this app. To record with reading, open %s; the app connects to it by itself.", name, name))
 }
 
 // readAloudExperimentalOffRefusal is the refusal while the record (or, for a punch, the punch) capability is switched off: it

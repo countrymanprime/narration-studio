@@ -5,14 +5,21 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 
 const UNSAVED = 'unsaved changes in the project';
 
-/** The project's DAW and how it stands, from the host's choice payload: linked (and to which file), not linked, connected, not
- * running. The words name the DAW only from the payload. */
+/** The project's DAW and how it stands, from the host's choice payload: linked (and to which file), not linked, connected, starting,
+ * not running, and the host's sentence when its bridge in the DAW has a problem. The words name the DAW only from the payload. */
 function choiceDetail(choice: DawChoice): string {
+  const detail = stateDetail(choice);
+  return choice.bridge?.problem ? `${detail} · ${choice.bridge.problem}` : detail;
+}
+
+function stateDetail(choice: DawChoice): string {
   const { daw, state, linkedFile, foundFiles } = choice;
   const linked = linkedFile ? `${daw} linked: ${linkedFile}` : `${daw} linked`;
   switch (state) {
     case 'connected':
       return linked;
+    case 'starting':
+      return `${linked} · opening ${daw}, connecting on its own`;
     case 'linked':
       return `${linked} · not running · start it from Recording settings`;
     case 'not_running':

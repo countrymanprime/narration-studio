@@ -54,7 +54,7 @@ export type ReaperOffDialogProps = {
   polls?: number;
   /** The way out the header X takes. */
   onClose: () => void;
-  /** More for the body: the Booth's one-time steps, an escape to the built-in recorder. */
+  /** More for the body: the Booth's connect steps. */
   children?: ReactNode;
 };
 

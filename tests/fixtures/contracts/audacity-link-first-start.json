@@ -6,7 +6,7 @@
   "installed": true,
   "linked": false,
   "linkedFile": null,
-  "message": "Audacity has not set itself up yet. Start it once, close it, then press Turn on scripting here and start it again. The first start cannot load scripting, so this takes two starts.",
+  "message": "Audacity has not set itself up yet: it makes its settings file the first time it starts, and that start cannot load scripting. Start it here, close it once it has opened, and the app turns scripting on and starts it again: two starts, the first time only.",
   "openProject": "unknown",
   "running": false,
   "state": "module_off",

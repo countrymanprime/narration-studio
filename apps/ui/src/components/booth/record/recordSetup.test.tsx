@@ -11,7 +11,6 @@ import { PortOverrides } from '../../../ports/usePort';
 import type { DawClient } from '../../../ports/daw';
 import type { NarrationApi } from '../../../types';
 import { dawClientFor } from './fixtures';
-import { REAPER_LAUNCHER_ACTION as LAUNCHER_ACTION } from '../../engine/dawConnectGuide';
 import { resetOpenOnce } from '../../connection/useOpenOnce';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor, type RecordSetupFacts } from './recordSetupModel';
@@ -211,7 +210,7 @@ describe('RecordSetup', () => {
     expect(onChanged).not.toHaveBeenCalled();
   });
 
-  it('connect-lists-the-launcher-steps-with-the-path-to-copy', async () => {
+  it('connect-says-what-the-app-does-with-the-bridge-and-asks-for-nothing-in-reaper', async () => {
     const writeText = vi.fn(async () => {});
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     const { say } = mount(recordRefused('standalone'));
@@ -221,9 +220,10 @@ describe('RecordSetup', () => {
       .getAllByRole('listitem')
       .map((item) => item.textContent ?? '');
     expect(steps).toHaveLength(2);
-    expect(steps[0]).toContain('Load ReaScript');
+    expect(steps[0]).toContain('puts its bridge in REAPER’s Scripts folder by itself');
     expect(steps[0]).toContain(LAUNCHER);
-    expect(steps[1]).toContain(LAUNCHER_ACTION);
+    expect(steps[1]).toContain('connects on its own');
+    expect(steps.join(' ')).not.toMatch(/Load ReaScript|action list|built-in/i);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Copy path' }));
     expect(writeText).toHaveBeenCalledWith(LAUNCHER);
     await waitFor(() => expect(say).toHaveBeenCalledWith('Launcher file path copied.'));
