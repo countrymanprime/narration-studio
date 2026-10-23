@@ -141,6 +141,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterTrackCreateSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
@@ -1469,6 +1470,28 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(cleared.mappings).toHaveLength(0);
 
     await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
+  });
+
+  it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link' });
+    const chapters = await api.manuscriptChapters();
+    expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('no_link');
+    const created = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, created');
+    if (created.outcome !== 'created') throw new Error('expected a created track');
+    expect(created.link).toMatchObject({ chapterId: chapters[0].id, trackGuid: created.track.guid });
+    expect(created.mappings.filter((mapping) => mapping.chapterId === chapters[0].id)).toHaveLength(1);
+    // The host reads the new link: the chapter that had no track is ready to record.
+    expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('ready');
+    const second = await api.chapterTrackCreate(chapters[0].id);
+    if (second.outcome !== 'created') throw new Error('expected a created track');
+    expect(second.track.guid).not.toBe(created.track.guid);
+    await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
+    for (const reaperState of ['unavailable', 'experimental_off', 'recording_elsewhere'] as const) {
+      const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);
+      expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
+      expect(refused.outcome).toBe('refused');
+    }
   });
 
   it('the ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks answers', async () => {
@@ -4208,6 +4231,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterTrackMapConfirm',
       'chapterTrackMapClear',
       'chapterTrackSet',
+      'chapterTrackCreate',
       'chapterTrackUnlink',
       'chapterSyncState',
       'chapterSyncPreview',

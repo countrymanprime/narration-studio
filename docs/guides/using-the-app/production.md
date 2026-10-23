@@ -29,11 +29,11 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 
 The app connects to the REAPER you have open by itself. For the first ten seconds after it opens, an
 engine that is not connected yet shows a quiet "Connecting to REAPER…" line. If it has not connected by
-then, a line at the top says progress that comes from it may be out of date, with **Retry**,
-and **Connect REAPER**. The line goes by itself as soon as the engine connects. It never offers the built-in recorder:
+then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
+that progress that comes from it may be out of date until it is running again, and when the app last checked.
+**Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. The X closes the dialog and the
+mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
 switching recorders is a choice in [Settings > Recording & DAW](settings.md).
-**Retry** checks again and says what it found; **Connect REAPER** runs the launcher in the REAPER you have
-open (or starts REAPER on the linked project) and waits up to ten seconds for it to answer.
 
 If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
 be loaded" with the reason and a **Retry** button, which reads it again.

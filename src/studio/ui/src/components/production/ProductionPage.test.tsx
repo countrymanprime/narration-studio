@@ -17,10 +17,12 @@ import { OverlayHost } from '../../overlay/OverlayHost';
 import { contextItemsFor } from '../../registries/context';
 import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
+import { resetOpenOnce } from '../connection/useOpenOnce';
 import { ProductionPage } from './ProductionPage';
 
 afterEach(() => {
   cleanup();
+  resetOpenOnce();
   // Layers the overlay singleton still holds belong to the test that opened them.
   act(() => overlay.getSnapshot().dialogs.forEach((entry) => ('close' in entry ? entry.close() : entry.answer(false))));
 });
@@ -249,40 +251,74 @@ describe('timer-and-chip-still-work', () => {
   });
 });
 
-describe('daw-banner-retry', () => {
-  it('reads the DAW again on Retry and says so when it is still not running (the mock)', async () => {
+describe('daw-dialog-check-again', () => {
+  it('opens the connect dialog by itself, reads the DAW again on Check again and says when it last looked', async () => {
     const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off']));
-    const { notify } = await renderPage({ overrides: { dawCapabilities } });
-    await userEvent.click(await screen.findByRole('button', { name: 'Retry' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('Still not running. Start REAPER and try again.'));
-    expect(dawCapabilities.mock.calls.length).toBeGreaterThanOrEqual(2);
+    await renderPage({ overrides: { dawCapabilities } });
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('REAPER is not connected')).toBeTruthy();
+    expect(dialog.textContent).toContain('REAPER is not running.');
+    expect(dialog.textContent).toContain('Progress that comes from REAPER may be out of date until it is running again.');
+    const before = dawCapabilities.mock.calls.length;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(dawCapabilities.mock.calls.length).toBeGreaterThan(before));
+    expect(dialog.textContent).toMatch(/Waiting for REAPER to answer\. Last checked \d+ s ago\./);
   });
 
-  it('drops the banner on Retry once the DAW is running, and says nothing', async () => {
+  it('drops the mark and the dialog on Check again once the DAW is running', async () => {
     let running = false;
     const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS[running ? 'reaper' : 'reaper-off']));
-    const { notify } = await renderPage({ overrides: { dawCapabilities } });
-    const retry = await screen.findByRole('button', { name: 'Retry' });
+    await renderPage({ overrides: { dawCapabilities } });
+    const dialog = await screen.findByRole('dialog');
     running = true;
-    await userEvent.click(retry);
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
-    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/^Still not running/));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check again' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByRole('button', { name: /REAPER not connected/ })).toBeNull();
+  });
+
+  it('closes with the header X and stays closed; the mark reopens it', async () => {
+    await renderPage({ overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])) } });
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: /REAPER not connected/ }));
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+  });
+
+  it('Start REAPER runs the host’s launcher and the dialog goes once REAPER answers', async () => {
+    let running = false;
+    const dawCapabilities = vi.fn(async () => structuredClone(DAW_SETUPS[running ? 'reaper' : 'reaper-off']));
+    const launchDaw = vi.fn(async () => {
+      running = true;
+      return { launched: true, path: 'C:/REAPER/reaper.exe', source: 'uninstall_registry' };
+    });
+    await renderPage({ overrides: { dawCapabilities, launchDaw } });
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Start REAPER' }));
+    await waitFor(() => expect(launchDaw).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: 4000 });
+  });
+
+  it('writes a refused Start in the dialog', async () => {
+    const launchDaw = vi.fn(async () => Promise.reject(new Error('Link a REAPER project file before starting REAPER.')));
+    await renderPage({ overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])), launchDaw } });
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Start REAPER' }));
+    expect((await within(dialog).findByRole('alert')).textContent).toContain('Link a REAPER project file before starting REAPER.');
   });
 });
 
-describe('daw-banner-connect-grace', () => {
-  it('shows Connecting while the app has just opened, then the not-running banner if it never connects', async () => {
+describe('daw-connect-grace', () => {
+  it('shows Connecting while the app has just opened, then the mark and the dialog if it never connects', async () => {
     await renderPage({
       overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])) },
       dawConnectGraceMs: Date.now() - APP_STARTED_AT + 400,
     });
     expect(await screen.findByText('Connecting to REAPER…')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-    expect(await screen.findByRole('button', { name: 'Retry' }, { timeout: 3000 })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(await screen.findByRole('dialog', {}, { timeout: 3000 })).toBeTruthy();
     expect(screen.queryByText('Connecting to REAPER…')).toBeNull();
   });
 
-  it('never shows the banner when the host connects inside the grace', async () => {
+  it('never shows the dialog when the host connects inside the grace', async () => {
     let push: (next: (typeof DAW_SETUPS)['reaper']) => void = () => {};
     await renderPage({
       overrides: {
@@ -297,12 +333,13 @@ describe('daw-banner-connect-grace', () => {
     await screen.findByText('Connecting to REAPER…');
     act(() => push(structuredClone(DAW_SETUPS['reaper'])));
     await waitFor(() => expect(screen.queryByText('Connecting to REAPER…')).toBeNull());
-    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('button', { name: /not connected/ })).toBeNull();
   });
 });
 
-describe('daw-banner-follows-the-host', () => {
-  it('drops the banner when the host pushes a reachable DAW, with no Retry', async () => {
+describe('daw-dialog-follows-the-host', () => {
+  it('drops the dialog when the host pushes a reachable DAW, with no Check again', async () => {
     let push: (next: (typeof DAW_SETUPS)['reaper']) => void = () => {};
     const subscribeDawCapabilities = vi.fn((onUpdate: typeof push) => {
       push = onUpdate;
@@ -311,9 +348,10 @@ describe('daw-banner-follows-the-host', () => {
     await renderPage({
       overrides: { dawCapabilities: vi.fn(async () => structuredClone(DAW_SETUPS['reaper-off'])), subscribeDawCapabilities },
     });
-    await screen.findByRole('button', { name: 'Retry' });
+    await screen.findByRole('dialog');
     act(() => push(structuredClone(DAW_SETUPS['reaper'])));
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByRole('button', { name: /REAPER not connected/ })).toBeNull();
   });
 });
 

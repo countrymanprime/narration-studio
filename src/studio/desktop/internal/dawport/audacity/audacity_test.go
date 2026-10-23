@@ -60,7 +60,7 @@ func TestTheDeclarationIsWhatIsBuilt(t *testing.T) {
 
 // built is what the adapter builds, Experimental until the owner's pass.
 func built(c dawport.Capability) bool {
-	return c == dawport.CapReview || c == dawport.CapPickups || c == dawport.CapTrackSelect || c == dawport.CapTrackState || c == dawport.CapFollowPosition ||
+	return c == dawport.CapReview || c == dawport.CapPickups || c == dawport.CapTrackSelect || c == dawport.CapTrackCreate || c == dawport.CapTrackState || c == dawport.CapFollowPosition ||
 		c == dawport.CapRegions || c == dawport.CapProjectRead || c == dawport.CapNavigate || c == dawport.CapMarkers || c == dawport.CapMacroRender || c == dawport.CapBackups ||
 		slices.Contains(backupRows, c)
 }

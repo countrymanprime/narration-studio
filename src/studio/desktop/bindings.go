@@ -909,6 +909,17 @@ func (h *Host) ChapterTrackUnlink(chapterID string) (string, error) {
 }
 func (h *Host) ChapterTrackLinks() (string, error) { return encodeBinding(h.chapterTrackLinks()) }
 
+// ChapterTrackCreate adds a track named after chapterID's title at the end
+// of the DAW project's track list and links the chapter to it
+// (chaptertrackcreate.go). Outcome "created" carries ChapterTrackSet's
+// payload and the new track; "refused" says why nothing was added. A
+// chapter the manuscript does not have is an error.
+func (h *Host) ChapterTrackCreate(chapterID string) (string, error) {
+	svc := h.services()
+	creator, support := trackCreatorFrom(svc)
+	return encodeBinding(chapterTrackCreateIn(context.Background(), svc, creator, support, chapterID))
+}
+
 // ChapterRegionsPreview and ChapterRegionsCreate are the chapter and credits
 // regions (chapterregions.go): Preview plans one region per linked
 // chapter, plus the opening and closing credits when their tracks are given

@@ -1,4 +1,5 @@
 // The mock host (mockApi.ts): tracks, chapter links and chapter sync.
+import type { ChapterTrackCreateResult } from '../contracts/chapterTrackMap';
 import type {
   ChapterSyncBackground,
   ChapterSyncBatch,
@@ -225,6 +226,32 @@ export function createChapterTracksMock(
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid && existing.chapterId !== chapterId), link];
       return wireClone({ documentId: mockDocumentId, link, displaced, mappings: s.chapterTrackMappings });
     },
+    // ChapterTrackCreate (src/studio/desktop/chapterlinks.go): `?mockReaperState=` decides what the DAW answers, as it does for Select in REAPER.
+    // The new track is not in the saved project the matcher reads until the narrator saves in REAPER, so only the link changes here.
+    chapterTrackCreate: async (chapterId) => {
+      await manuscriptReady;
+      const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
+      const title = chapter?.title ?? CREDITS_CHECK_TITLE[chapterId];
+      if (!title) throw new Error('that chapter is not part of the current manuscript');
+      const refusal = mockCreateRefusal(initial.reaperState);
+      if (refusal) return refusal;
+      s.createdTracks += 1;
+      const track = {
+        guid: `{c0ffee00-0000-4000-8000-${String(s.createdTracks).padStart(12, '0')}}`,
+        name: title,
+        index: WIRE_TRACKS_PROJECT.tracks.length + s.createdTracks - 1,
+      };
+      const link: TrackMapping = {
+        trackGuid: track.guid,
+        chapterId,
+        chapterTitle: title,
+        confirmedAt: new Date().toISOString(),
+        origin: 'manual',
+        match: null,
+      };
+      s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.chapterId !== chapterId), link];
+      return wireClone({ outcome: 'created' as const, documentId: mockDocumentId, link, displaced: null, mappings: s.chapterTrackMappings, track });
+    },
     chapterTrackUnlink: async (chapterId) => {
       await manuscriptReady;
       if (!s.chapters.some((candidate) => candidate.id === chapterId)) throw new Error('that chapter is not part of the current manuscript');
@@ -377,4 +404,22 @@ function mockSyncActivity(): ChapterSyncBatch[] {
       newTracks: [],
     },
   ];
+}
+
+/** ChapterTrackCreate's refusals for the `?mockReaperState=` seeds that stop it, in the host's words; null when the DAW adds the track. */
+function mockCreateRefusal(seed: MockApiSeed['reaperState']): ChapterTrackCreateResult | null {
+  if (seed === 'unavailable')
+    return {
+      outcome: 'refused',
+      reason: 'standalone',
+      message: 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.',
+    };
+  if (seed === 'experimental_off')
+    return {
+      outcome: 'refused',
+      reason: 'experimental_off',
+      message: 'Adding tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.',
+    };
+  if (seed === 'recording_elsewhere') return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' };
+  return null;
 }

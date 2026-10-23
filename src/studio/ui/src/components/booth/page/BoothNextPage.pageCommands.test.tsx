@@ -118,7 +118,8 @@ describe('Booth page commands', () => {
     renderPage();
     await ready();
     const record = item('transport.record');
-    expect(record).toMatchObject({ label: 'Record', group: 'Transport', icon: 'record', disabledReason: undefined });
+    expect(record).toMatchObject({ label: 'Record', group: 'Transport', icon: 'record' });
+    expect(record.disabledReason).toBeUndefined();
     expect(item('transport.roll').disabledReason).toMatch(/Start recording first/);
     expect(item('transport.next').disabledReason).toBeUndefined();
     expect(item('transport.prev').disabledReason).toBeUndefined();
@@ -130,7 +131,8 @@ describe('Booth page commands', () => {
     await run('transport.record');
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     expect(page.recordStart).toHaveBeenCalledTimes(1);
-    expect(item('transport.record')).toMatchObject({ label: 'Stop recording', icon: 'stop', disabledReason: undefined });
+    expect(item('transport.record')).toMatchObject({ label: 'Stop recording', icon: 'stop' });
+    expect(item('transport.record').disabledReason).toBeUndefined();
     expect(item('transport.roll').disabledReason).toBeUndefined();
     // The chapter cannot change during a take, as the picker says.
     expect(item('chapter.c2').disabledReason).toMatch(/Stop the take first/);
@@ -139,10 +141,12 @@ describe('Booth page commands', () => {
     expect(item('chapter.c2').disabledReason).toBeUndefined();
   });
 
+  // The item stays runnable: a press that cannot start a take says why in front of the narrator (a dialog or a message), never by a greyed item.
   it('a-DAW-that-is-not-answering-turns-Record-off-with-the-Booths-own-sentence', async () => {
     const page = renderPage({ setup: 'reaper-off' });
     await screen.findByText('Nobody', { exact: false });
-    await waitFor(() => expect(item('transport.record').disabledReason).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-disabled')).toBe('true'));
+    expect(item('transport.record').disabledReason).toBeUndefined();
     await run('transport.record');
     expect(page.recordStart).not.toHaveBeenCalled();
   });
