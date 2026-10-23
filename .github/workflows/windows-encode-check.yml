@@ -28,14 +28,11 @@ jobs:
       - name: Install the catalogued FFmpeg (size and SHA-256 checked against config/encoder-assets.json)
         shell: pwsh
         run: ./scripts/release/install-ffmpeg-asset.ps1 -OutDir "$env:RUNNER_TEMP/ffmpeg"
-      - name: Read the product's names from the brand file
-        shell: bash
-        run: node scripts/brand/env.mjs >> "$GITHUB_ENV"
       - name: Run the real-binary encode tests
         shell: bash
         working-directory: src/studio/desktop
         run: |
-          export "${BRAND_ENV_PREFIX}FFMPEG=$(cygpath -w "$FFMPEG_PATH")"
+          export "$(node ../../../scripts/brand/env.mjs BRAND_ENV_PREFIX)FFMPEG=$(cygpath -w "$FFMPEG_PATH")"
           go test -count=1 -v -run 'TestTheRealFFmpegWritesMP3s' ./internal/encodeport/... 2>&1 | tee "$RUNNER_TEMP/encode.log"
           {
             echo '### 9.1 MP3 encode with the catalogued FFmpeg'
@@ -47,7 +44,7 @@ jobs:
         shell: bash
         working-directory: src/studio/desktop
         run: |
-          export "${BRAND_ENV_PREFIX}FFMPEG=$(cygpath -w "$FFMPEG_PATH")"
+          export "$(node ../../../scripts/brand/env.mjs BRAND_ENV_PREFIX)FFMPEG=$(cygpath -w "$FFMPEG_PATH")"
           go test -count=1 ./internal/encodeport/...
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
