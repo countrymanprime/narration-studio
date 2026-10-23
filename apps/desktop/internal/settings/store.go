@@ -1,4 +1,4 @@
-// Package settings preserves Narration Utils' three-layer JSON settings
+// Package settings preserves Narration Studio' three-layer JSON settings
 // contract: project overrides, then per-user global settings, then repository
 // defaults. It intentionally reads existing files without rewriting schemas.
 package settings
@@ -104,7 +104,7 @@ var builtinDefaults = map[string]Values{
 	// docs/architecture/native-notifications.md). debug_logging defaults
 	// off: decision records are opt-in, on the Settings page or with
 	// NARRATION_DEBUG=1.
-	"General": {"log_verbosity": "normal", "notifications": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
+	"General": {"log_verbosity": "normal", "notifications": "true", "close_import_when_done": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
 	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
 	// analysis_prompt defaults to ask: the optional analysis tools are offered until the narrator chooses "Don't ask again" (basic).
 	"ManuscriptGuide": {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},
@@ -140,17 +140,19 @@ var builtinDefaults = map[string]Values{
 		"capability.stack_takes": "auto", "capability.backups": "auto",
 		"capability.file_preview": "auto", "capability.file_reveal": "auto", "capability.range_gain": "auto",
 		"capability.click_repair": "auto", "capability.undo_last": "auto",
-		"capability.monitor_level": "auto", "capability.input_level": "auto", "capability.follow_position": "auto"},
+		"capability.monitor_level": "auto", "capability.input_level": "auto", "capability.follow_position": "auto", "capability.transport_sync": "auto"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
 	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md).
 	// background_checks defaults on: it only ever runs with the model installed, on mains power and while
 	// REAPER is idle (coverage.NextBackground).
 	// cascade_enabled defaults off (MC1 in docs/utilities/recording-coverage.md); the two model settings default
-	// to tiny (first pass) and large-v3-turbo (re-check), MC2.
+	// to tiny (first pass) and large-v3-turbo (re-check), MC2. A background check has its own pair, tiny with small as the
+	// double-check, and starts nothing until the narrator answers its first-time notice (background_checks_confirmed, #2251).
 	"RecordingCoverage": {
 		"min_paragraph_present": "0.8", "max_missing_run": "3", "max_misread_run": "8", "min_anchor_run": "3", "background_checks": "true",
 		"cascade_enabled": "false", "cascade_first_pass_model": "tiny", "cascade_recheck_model": "large-v3-turbo",
-		"cascade_unsure_below": "0.5", "parallel_workers": "0", "chunk_seconds": "300", "chunk_overlap_seconds": "6", "parallel_chapters": "1",
+		"cascade_unsure_below": "0.5", "cascade_pipeline": "true", "parallel_workers": "0", "chunk_seconds": "300", "chunk_overlap_seconds": "6", "parallel_chapters": "1",
+		"background_checks_confirmed": "false", "background_first_pass_model": "tiny", "background_recheck_model": "small", "background_processors": "0",
 	},
 	// StageRecommendations defaults every signal to required and suggestions on
 	// (docs/architecture/stage-recommendations.md): a narrator who never opens this settings page gets the engine's

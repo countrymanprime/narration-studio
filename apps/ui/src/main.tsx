@@ -10,6 +10,7 @@ import { wailsClient } from './api/wailsClient';
 import { enableUiLog } from './api/uiLog';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
+import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
 import { scenarioFromToday } from './api/productionMock';
 import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
@@ -145,6 +146,9 @@ const mockRemoved = mockParams.get('mockRemoved') === '1';
 const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activity', 'background'] as const).find(
   (seed) => seed === mockParams.get('mockChapterSync'),
 );
+// `?mockBackgroundChecks=confirm|running|waiting`: background recording checks at boot (`confirm` shows the first-time notice, `running`
+// has a background check held at 42% with one chapter waiting, `waiting` has two chapters waiting while REAPER records).
+const mockBackgroundChecks = (['confirm', 'running', 'waiting'] as const).find((seed) => seed === mockParams.get('mockBackgroundChecks'));
 // `?mockBooth=huge-chapter|many-chapters|emoji|rtl|odd-titles` replaces the manuscript with the Booth's worst cases (fixtures/boothStress.ts): a
 // 100,000-word chapter, 5000 chapters, all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
 // or ones with quotes, newlines, right-to-left text and emoji in their names, to the teleprompter and the built-in recorder.
@@ -153,6 +157,9 @@ const mockMicsStress = MIC_STRESS.find((name) => name === mockParams.get('mockMi
 // `?mockNoDevices=1` boots the teleprompter with an empty device listing, so the
 // blocked "No microphone found" state (no typed fallback) can be seen without a host.
 const mockNoDevices = mockParams.has('mockNoDevices');
+// `?mockAudioOutputs=none|long|refused` changes the computer's audio outputs the Editing page's Output popover and Settings > Voice sample output list:
+// none named (the choice is off), long and right-to-left names, or an audio system that refuses every named one. Without it the mock names two outputs.
+const mockAudioOutputs = MOCK_AUDIO_OUTPUT_MODES.find((mode) => mode === mockParams.get('mockAudioOutputs'));
 // `?mockCredits=filled` boots the project with its credits values set (title, author, narrator), so the credits read on the
 // teleprompter with every token resolved can be seen without saving them in Settings first.
 // `?mockCredits=extras` does that too and adds a chapter announcement template and a retail sample on lines 1-3 of
@@ -532,6 +539,7 @@ const mockInitial = {
   ...(mockResume ? { resume: mockResume } : {}),
   ...(mockRemoved ? { removedChapter: true } : {}),
   ...(mockChapterSync ? { chapterSync: mockChapterSync } : {}),
+  ...(mockBackgroundChecks ? { backgroundChecks: mockBackgroundChecks } : {}),
   ...(mockCreditsFilled ? { creditValues: { title: 'Alice’s Adventures in Wonderland', author: 'Lewis Carroll', narrator: 'Ada Finch' } } : {}),
   ...(mockCreditsSetupNarratorDefault ? { creditValues: { narrator: 'Jamie Rivers' } } : {}),
   ...(mockCreditsExtras ? { chapterAnnouncement: '[Chapter]{: [Chapter Title]}.', retailSample: { chapterIndex: 2, startLine: 1, endLine: 3 } } : {}),
@@ -649,6 +657,7 @@ const mockInitial = {
     mockDawRecording ? { transport: { playing: true, recording: true, position: 12 } } : undefined,
   ),
 };
+if (import.meta.env.VITE_USE_MOCK_API === '1') installMockAudioOutputs(mockAudioOutputs);
 const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
 if (hostApi === wailsClient) enableUiLog();
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.

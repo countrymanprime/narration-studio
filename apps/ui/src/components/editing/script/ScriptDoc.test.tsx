@@ -153,14 +153,31 @@ describe('click-shift-click-drag-and-double-click', () => {
     const drag = (from: string, to: string): string[] => {
       cleanup();
       show(marksDoc());
-      fireEvent.mouseDown(word(from));
-      fireEvent.mouseOver(word(to), { buttons: 1 });
+      fireEvent.mouseDown(word(from), { clientX: 100, clientY: 100 });
+      fireEvent.mouseOver(word(to), { buttons: 1, clientX: 140, clientY: 100 });
       fireEvent.mouseUp(document);
       return [...document.querySelectorAll<HTMLElement>('[data-sel]')].map((e) => e.dataset.k!);
     };
     const forward = drag(keys[1], keys[5]);
     expect(forward).toEqual(keys.slice(1, 6));
     expect(drag(keys[5], keys[1])).toEqual(forward);
+  });
+  it('a click with a little movement over the next word is still a click, not a drag', () => {
+    // A slow page can deliver the pointer's small wobble over a neighbouring word before the button-up: only a real drag selects.
+    show(marksDoc());
+    fireEvent.mouseDown(word(keys[1]), { clientX: 100, clientY: 100 });
+    fireEvent.mouseOver(word(keys[2]), { buttons: 1, clientX: 102, clientY: 101 });
+    fireEvent.mouseUp(document);
+    expect(state()).toMatchObject({ cursor: keys[1], sel: null });
+    expect(document.querySelectorAll('[data-sel]')).toHaveLength(0);
+  });
+  it('moving past the slop starts the drag from the word that was pressed', () => {
+    show(marksDoc());
+    fireEvent.mouseDown(word(keys[1]), { clientX: 100, clientY: 100 });
+    fireEvent.mouseOver(word(keys[2]), { buttons: 1, clientX: 102, clientY: 101 });
+    expect(state().sel).toBeNull();
+    fireEvent.mouseOver(word(keys[4]), { buttons: 1, clientX: 130, clientY: 100 });
+    expect(state().sel).toEqual({ anchor: keys[1], head: keys[4] });
   });
   it('a drag does nothing once the button is up', () => {
     show(marksDoc());
@@ -282,5 +299,28 @@ describe('the playing word', () => {
     act(() => page.dispatch({ type: 'play', t: (target.t0 as number) + 0.01 }));
     expect(document.querySelector('[data-now]')).toBe(word(target.key));
     expect(document.querySelector('[data-pid="p-2"]')!.hasAttribute('data-active')).toBe(true);
+  });
+});
+
+// Scrolling the bottom waveform by hand moves the page with it: the lines on screen there are marked, and the first is brought into view.
+describe('the script follows the scrolled waveform', () => {
+  it('marks the lines in the view and scrolls to the first, and lets them go when the cursor moves', () => {
+    const doc = marksDoc();
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    show(doc);
+    const second = doc.paras[1];
+    act(() => page.dispatch({ type: 'view', t0: (second.start as number) + 0.1, t1: (second.end as number) - 0.1 }));
+    const marked = [...document.querySelectorAll('[data-in-view]')].map((e) => e.getAttribute('data-pid'));
+    expect(marked).toEqual([second.p.id]);
+    expect(scrolled).toHaveBeenCalledWith({ block: 'nearest' });
+    act(() => page.dispatch({ type: 'place', key: doc.paras[0].items[0].key }));
+    expect(document.querySelectorAll('[data-in-view]')).toHaveLength(0);
+  });
+  it('marks every line a zoomed-out view reaches', () => {
+    const doc = marksDoc();
+    show(doc);
+    act(() => page.dispatch({ type: 'view', t0: 0, t1: 1e6 }));
+    expect(document.querySelectorAll('[data-in-view]').length).toBe(doc.paras.filter((p) => p.start != null && p.end != null).length);
   });
 });

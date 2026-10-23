@@ -132,7 +132,7 @@ func mergeSourceMetadata(byToken map[string]Candidate, metadata sourceMetadataDo
 		if value == "" {
 			return
 		}
-		byToken[token] = Candidate{Token: token, Value: value, Source: "the document's own front matter", Confidence: ConfidenceHigh}
+		byToken[token] = Candidate{Token: token, Value: value, Source: "the document's own title page", Confidence: ConfidenceHigh}
 	}
 	set(TokenTitle, metadata.Title)
 	set(TokenSubtitle, metadata.Subtitle)

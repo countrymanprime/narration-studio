@@ -1,26 +1,32 @@
-// What the Script page registers while it is mounted (SNB-7b): its four search sources, its right-click provider and its keys
-// (Alt+Down and Alt+Up, Ctrl+F, the reader's Left and Right, Escape; mock `pages/script/keys.ts`). Each registration is removed when
-// the page unmounts. The page passes the handlers that move its own view (open Find on a term, show a mark, go to a chapter); the data,
-// the commands and the Find and drawer state come from the page's hooks, so nothing here holds state. The reader's Left and Right are
+// What the Script page registers while it is mounted (SNB-7b): its three search sources, its items for the jump menu (chapters, Story Bible
+// entries, mark types and, while a search shows, its steps), its right-click provider and its keys (Alt+Down and Alt+Up, F3 and Shift+F3,
+// the reader's Left and Right, Escape; mock `pages/script/keys.ts`). Each registration is removed when the page unmounts. The page passes
+// the handlers that move its own view (show a search on a term, show a mark, go to a chapter); the data, the commands and the search and
+// drawer state come from the page's hooks, so nothing here holds state. Ctrl+F is the shell's `jump.page`, not a Script key. The reader's Left and Right are
 // the `script.prep.*` rows, so the page passes the Reader no `onStepPrep` of its own.
 
 import { useMemo, useRef } from 'react';
 import type { Mark } from '../../../../api/contracts/marks';
 import { EDITABLE } from '../../../../input/targets';
+import { usePageCommands, type PageItem } from '../../../../input/pageCommands';
 import { useCommand } from '../../../../input/useCommand';
 import { POPOVER_POPUP_SELECTOR } from '../../../primitives/Popover';
 import { useContextProvider } from '../../../../registries/context';
 import { useSearchSource } from '../../../../registries/search';
-import type { ChapterNameInput } from '../../../../chapterName';
+import { chapterName, type ChapterNameInput } from '../../../../chapterName';
 import type { ScriptViewState } from '../data/scriptView';
 import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, useScriptView } from '../data/useScriptData';
-import { closeFind, escapeClosesFind, openFind } from '../tools/find/findState';
+import { closeFind, escapeClosesFind, stepFind } from '../tools/find/findState';
 import { scriptContextProvider, type MenuHandlers } from './contextProvider';
-import { entriesSource, manuscriptSource, marksSource, wordsSource, type ManuscriptLine } from './searchSources';
+import { manuscriptSource, marksSource, wordsSource, type ManuscriptLine } from './searchSources';
 
 export type ScriptRegistryOptions = MenuHandlers & {
   /** The lines of every chapter read so far, for the manuscript source. */
   lines: () => readonly ManuscriptLine[];
+  /** Where a match is, for its muted line in the menu ("Chapter 3 · ¶ 12"). */
+  locationOf: (spot: { chapterId: string; paragraphId: string }) => string;
+  /** How many matches the search showing in the reader has. */
+  matchCount: () => number;
   /** The Story Bible kinds a selection can be added as. */
   kinds: readonly string[];
   /** The chapter at the top of the reader. */
@@ -54,8 +60,8 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
   const entries = useEntries();
   const prep = useScriptPrep();
   const commands = useScriptCommands();
-  const [, updateView] = useScriptView((state) => state.find);
-  const { lines, kinds, currentChapterId, stops, ...handlers } = options;
+  const [find, updateView] = useScriptView((state) => state.find);
+  const { lines, locationOf, matchCount, kinds, currentChapterId, stops, ...handlers } = options;
   // The sources and the provider read the latest handlers, so a new function from the page does not register them again.
   const latest = useRef(handlers);
   latest.current = handlers;
@@ -72,8 +78,7 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
   const chapterList = useMemo(() => chapters ?? [], [chapters]);
   const marksSnapshot = useMemo(() => ({ types: marks.types, marks: marks.marks }), [marks.types, marks.marks]);
 
-  useSearchSource(useMemo(() => manuscriptSource({ lines, chapters: chapterList, onFind: stable.openFind }), [lines, chapterList, stable]));
-  useSearchSource(useMemo(() => entriesSource(() => entries.entries, stable.showEntry), [entries.entries, stable]));
+  useSearchSource(useMemo(() => manuscriptSource({ lines, locationOf, onFind: stable.openFind }), [lines, locationOf, stable]));
   useSearchSource(useMemo(() => marksSource(() => marksSnapshot, stable.showMark), [marksSnapshot, stable]));
   useSearchSource(useMemo(() => wordsSource(() => prep.words, stable.showWord), [prep.words, stable]));
 
@@ -89,7 +94,62 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     ),
   );
 
-  // Alt+Down, Alt+Up and Ctrl+F carry a modifier, so the router lets them through a field; the check is repeated here.
+  // What the jump menu lists first while the Script is showing. Read each time the menu opens, so the selection and the search are the ones it opens on.
+  usePageCommands({ id: 'script', label: 'Script', supersedes: ['Chapters'] }, () => {
+    const items: PageItem[] = [];
+    if (find.open) {
+      const count = matchCount();
+      const none = count === 0 ? 'No matches' : undefined;
+      const where = count === 0 ? `No matches for “${find.q}”` : `${Math.min(find.i, count - 1) + 1} of ${count} for “${find.q}”`;
+      items.push(
+        { id: 'search.next', label: 'Next match', group: 'Search', hint: where, icon: 'next', disabledReason: none, run: () => updateView(stepFind(1, count)) },
+        {
+          id: 'search.prev',
+          label: 'Previous match',
+          group: 'Search',
+          hint: where,
+          icon: 'previous',
+          disabledReason: none,
+          run: () => updateView(stepFind(-1, count)),
+        },
+        { id: 'search.clear', label: 'Clear the search', group: 'Search', icon: 'close', run: () => updateView(closeFind) },
+      );
+    }
+    for (const chapter of stops ?? chapterList) {
+      items.push({
+        id: `chapter.${chapter.id}`,
+        label: chapterName(chapter, 'full'),
+        group: 'Chapters',
+        icon: 'goToChapter',
+        run: () => latest.current.goToChapter(chapter.id),
+      });
+    }
+    for (const entry of entries.entries) {
+      items.push({
+        id: `entry.${entry.id}`,
+        label: entry.canonical_name,
+        group: 'Story Bible',
+        hint: entry.category,
+        keywords: entry.aliases.map((alias) => alias.text),
+        icon: 'locate',
+        run: () => stable.showEntry(entry.id),
+      });
+    }
+    const picked = latest.current.selectionAt(document.body);
+    for (const type of marks.types) {
+      items.push({
+        id: `mark-type.${type.key}`,
+        label: `Mark the selection as ${type.name}`,
+        group: 'Mark types',
+        icon: 'markText',
+        disabledReason: picked ? undefined : 'Select some text in the reader first',
+        run: () => picked && latest.current.composeMark(type.key, picked),
+      });
+    }
+    return items;
+  });
+
+  // Alt+Down and Alt+Up carry a modifier, so the router lets them through a field; the check is repeated here.
   const step = (delta: 1 | -1, target: EventTarget | null) => {
     if (typing(target)) return;
     const order = stops ?? chapterList;
@@ -100,10 +160,9 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
   useCommand('editing.chapter.next', (e) => step(1, e.target));
   useCommand('editing.chapter.prev', (e) => step(-1, e.target));
 
-  // Ctrl+F opens Find on the query it had, as the mock's does (a term comes from the menus' Find items), but not while typing in a field.
-  useCommand('script.find', (e) => {
-    if (!typing(e.target)) updateView(openFind());
-  });
+  // F3 and Shift+F3 step the search the jump menu chose, only while one shows.
+  useCommand('script.search.next', () => updateView(stepFind(1, matchCount())), find.open);
+  useCommand('script.search.prev', () => updateView(stepFind(-1, matchCount())), find.open);
 
   // The chapter in view, or the first, as the reader's own key handling has it.
   const stepPrep = (delta: 1 | -1, target: EventTarget | null) => {

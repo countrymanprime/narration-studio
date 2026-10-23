@@ -25,6 +25,7 @@ import type {
   WorkspaceToken,
 } from '../types';
 import { REAPER_MESSAGES, type MockReaper } from './findingsMock';
+import { SPEECH_PEAKS_MINMAX, SPEECH_PEAKS_PER_SECOND } from './fixtures/speechPeaks';
 
 type Deps = {
   chapters: () => ManuscriptChapter[];
@@ -198,27 +199,34 @@ function reaperRefusal(mode: MockReaper): FindingNavigation | undefined {
   return undefined;
 }
 
-/** A deterministic stand-in for measure.ComputePeaks: a smooth
- * envelope rather than real sample data, but the same bucket rate and byte layout the host sends, and identical
- * from one call to the next - the visual suite masks a waveform state only when its content is non-deterministic
- * (state-catalog.ts), and this mock's is not. */
-const MOCK_BUCKETS_PER_SECOND = 50;
+/** A deterministic stand-in for measure.ComputePeaks: a real narrator's peaks (`fixtures/speechPeaks.ts`) repeated over the item's length,
+ * in the same bucket rate and byte layout the host sends, and identical from one call to the next - the visual suite masks a waveform state
+ * only when its content is non-deterministic (state-catalog.ts), and this mock's is not. */
+const MOCK_BUCKETS_PER_SECOND = SPEECH_PEAKS_PER_SECOND;
+
+let speech: Int8Array | null = null;
+const speechBytes = (): Int8Array => {
+  if (!speech) {
+    const binary = atob(SPEECH_PEAKS_MINMAX);
+    speech = new Int8Array(Uint8Array.from(binary, (ch) => ch.charCodeAt(0)).buffer);
+  }
+  return speech;
+};
 
 function mockPeaksFor(item: WorkspaceItem): WorkspacePeaks {
   const playedSeconds = Math.max(0, (item.length ?? 0) * (item.playRate ?? 1));
   const buckets = Math.round(playedSeconds * MOCK_BUCKETS_PER_SECOND);
+  const source = speechBytes();
+  const sourceBuckets = source.length / 2;
   const bytes = new Int8Array(buckets * 2);
   for (let bucket = 0; bucket < buckets; bucket += 1) {
-    // A slow envelope (a "paragraph" of louder and quieter passages) plus a fast, cheap ripple - never random, so
-    // the same chapter always draws the same strip.
-    const envelope = 40 + 35 * Math.sin(bucket / 60) ** 2;
-    const ripple = 20 * Math.sin(bucket * 1.3) * Math.sin(bucket / 7);
-    const amplitude = Math.max(0, Math.min(126, Math.round(envelope + ripple)));
-    bytes[2 * bucket] = -amplitude;
-    bytes[2 * bucket + 1] = amplitude;
+    const from = bucket % sourceBuckets;
+    bytes[2 * bucket] = source[2 * from];
+    bytes[2 * bucket + 1] = source[2 * from + 1];
   }
-  const minMax = btoa(String.fromCharCode(...new Uint8Array(bytes.buffer)));
-  return { startSeconds: 0, bucketsPerSecond: MOCK_BUCKETS_PER_SECOND, buckets, minMax, sampleRate: 48000, channels: 1 };
+  let binary = '';
+  for (const byte of new Uint8Array(bytes.buffer)) binary += String.fromCharCode(byte);
+  return { startSeconds: 0, bucketsPerSecond: MOCK_BUCKETS_PER_SECOND, buckets, minMax: btoa(binary), sampleRate: 48000, channels: 1 };
 }
 
 export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTakes' | 'workspaceTakesCompareStart' | 'workspaceUseTake'> {
@@ -242,9 +250,11 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
       };
       const chapter = deps.chapters().find((candidate) => candidate.id === chapterId);
       if (!chapter) return base;
+      // The chapter's heading, as the host sends it, for the page to set against what was heard.
+      const heading = { ...(chapter.title ? { title: chapter.title } : {}), ...(chapter.subtitle ? { subtitle: chapter.subtitle } : {}) };
       const chapterParagraphs = deps.paragraphs().filter((paragraph) => paragraph.chapterId === chapterId);
       // Nothing checked yet: the chapter still reads its script, with nothing heard (as the host answers).
-      if (result.state === 'never') return { ...base, paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })) };
+      if (result.state === 'never') return { ...base, ...heading, paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })) };
       const liveItem = mockLiveItem(deps, chapterId);
       const { tokens, extras } = mockTokens(chapterParagraphs, result.result, liveItem?.index);
       const resolvedExtras = extras.map((extra) => ({
@@ -255,6 +265,7 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
       }));
       return {
         ...base,
+        ...heading,
         paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })),
         tokens: tokens.map((token) => ({ ...token, conf: null, confReason: NO_WORD_SCORES })),
         extras: resolvedExtras,
@@ -268,7 +279,7 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
       return reaperRefusal(mode) ?? { outcome: 'navigated', projectTime: token.start ?? 0 };
     },
     workspaceListFXChains: async (): Promise<WorkspaceFXChainsResult> => {
-      if (mode !== 'connected') throw new Error('REAPER is not connected to this app: open the app from the Narration Utils action in REAPER');
+      if (mode !== 'connected') throw new Error('REAPER is not connected to this app: open the app from the Narration Studio action in REAPER');
       return { names: deps.fxChains ?? DEFAULT_MOCK_FX_CHAINS, truncated: false };
     },
     workspacePeaks: async (chapterId) => {

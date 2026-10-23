@@ -1,3 +1,4 @@
+import { usePrefetchPeaks } from './ribbon/useRibbonPeaks';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { chapterHeading } from '../../chapterHeading';
 import { CommandScope } from '../../input/router';
@@ -19,6 +20,7 @@ import { EditingHeader } from './page/EditingHeader';
 import { EditingBodySkeleton } from './page/EditingSkeleton';
 import { useChapterSource } from './page/useChapterSource';
 import { useDawStatus } from './page/useDawStatus';
+import { useEditingChapterCommands } from './page/useEditingPageCommands';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
@@ -113,6 +115,11 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
 
   const list = useMemo(() => (chapters ?? []).map((c) => ({ id: c.id, name: headingName(c) })), [chapters]);
   const chapter = list.find((c) => c.id === chosen) ?? list[0];
+  // The other chapters' waveforms are read in the background, in order, and kept until the app closes.
+  usePrefetchPeaks(
+    list.map((c) => c.id),
+    chapter?.id,
+  );
   const choose = useCallback(
     (id: string) => {
       setChosen(id);
@@ -130,6 +137,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
     [list, chapter, choose],
   );
 
+  useEditingChapterCommands(list, chapter?.id, choose);
   const stepper = chapter ? <ChapterStepper chapters={list} value={chapter.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={choose} onStep={step} /> : null;
   const banner = daw.off ? <DawOffBanner sentence={daw.off} dawName={daw.dawName} onRetry={daw.retry} /> : null;
   // A deep link applies to the chapter it was given for, until the narrator moves on.

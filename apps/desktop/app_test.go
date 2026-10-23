@@ -44,8 +44,8 @@ func TestResourceKeyChangesWithEmbeddedContent(t *testing.T) {
 }
 
 func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {
-	if hostAPIVersion != 140 {
-		t.Fatalf("host API version = %d, want 140; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
+	if hostAPIVersion != 141 {
+		t.Fatalf("host API version = %d, want 141; update it with apps/ui/src/hostApi.ts", hostAPIVersion)
 	}
 }
 
@@ -661,10 +661,10 @@ func TestOnSecondInstanceRefreshesSessionDirFromNewArgs(t *testing.T) {
 
 func TestWriteReaperLauncherPathRefreshesMovedExecutable(t *testing.T) {
 	root := t.TempDir()
-	if err := writeReaperLauncherPath(root, `C:\old\Narration Utils.exe`); err != nil {
+	if err := writeReaperLauncherPath(root, `C:\old\Narration Studio.exe`); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeReaperLauncherPath(root, `D:\moved\Narration Utils.exe`); err != nil {
+	if err := writeReaperLauncherPath(root, `D:\moved\Narration Studio.exe`); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(root, "reaper", "narration-utils-app-path.txt")
@@ -672,7 +672,7 @@ func TestWriteReaperLauncherPathRefreshesMovedExecutable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := string(bytes), "D:\\moved\\Narration Utils.exe\n"; got != want {
+	if got, want := string(bytes), "D:\\moved\\Narration Studio.exe\n"; got != want {
 		t.Fatalf("launcher target = %q, want %q", got, want)
 	}
 }

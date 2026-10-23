@@ -67,6 +67,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'next_pickup',
     'pick_retake_lane',
     'ping',
+    'play_from',
     'play_position',
     'prepare_compare',
     'preview_file_range',
@@ -86,14 +87,17 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'roll',
     'select_track',
     'set_active_take',
+    'set_cursor',
     'split_take',
     'stack_takes',
     'stamp_item_lines',
     'stop_file_preview',
     'stop_fx_compare',
     'stop_loop',
+    'stop_play',
     'undo_last',
     'unstack_takes',
+    'watch_transport',
   })
 end)
 

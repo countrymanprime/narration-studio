@@ -340,10 +340,8 @@ jobs:
     #   - repo-scripts: the plain-Node scripts (GitHub metadata, release, the layout guard, the guide-screenshots tests,
     #     which need the UI project's `sharp`, so it installs too). `always`: the layout and
     #     project guards read every tracked file.
-    #   - docs-site (tools/docs-site): unit tests only while GitHub Pages is paused (D75) - the
-    #     strict MkDocs build and its link check over the built HTML are redundant with the Links (offline)
-    #     (lychee, every pull request) and Markdown lint (changed files) steps of Docs / Docs checks, so they run only from pages.yml's
-    #     manual build-site target, not here or in `pnpm check`. `always`: docs/ belongs to no Nx project.
+    #   - docs-site (tools/docs-site): unit tests only - Pages publishes apps/site, so the strict MkDocs build
+    #     is not run in CI, and the built site's link check (check_site.py) runs from pages.yml. `always`: docs/ belongs to no Nx project.
     #   - python: ruff and pytest for libs/python, the sidecars, scripts/ and tests/fixtures.
     #   - reaper: stylua, then the bridge harness (integrations/reaper/tests: Lua 5.4 from lupa, a fake `reaper` driven
     #     through the file protocol, the mutation checks). quick-windows runs it on Windows too.

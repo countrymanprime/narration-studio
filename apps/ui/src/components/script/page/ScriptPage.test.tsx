@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { providedCommands } from '../../../input/commandProviders';
+import { currentPageContext } from '../../../input/pageCommands';
 import { overlay } from '../../../overlay/overlayService';
 import { CommandRouter } from '../../../input/router';
 import { contextItemsFor } from '../../../registries/context';
@@ -195,18 +196,20 @@ describe('registers-and-unregisters', () => {
   it('registers the search sources, the right-click provider, the keys and the bookmark commands once, and removes them on unmount', async () => {
     const { unmount } = mount();
     await firstHeading();
-    await waitFor(() => expect(searchAll('Alice').some((hit) => hit.group === 'In the manuscript')).toBe(true));
+    await waitFor(() => expect(searchAll('Alice').some((hit) => hit.group === 'In the script')).toBe(true));
     const p = document.querySelector('p[data-pid]')!;
     expect(contextItemsFor(p)).not.toBeNull();
     const ours = () => providedCommands().filter((row) => row.id.startsWith('bookmark.menu.'));
     expect(ours().map((row) => row.id)).toEqual(['bookmark.menu.here', 'bookmark.menu.next', 'bookmark.menu.prev']);
 
-    // Ctrl+F is the page's: it opens Find.
+    // Ctrl+F is the shell's jump.page now: the page opens no search of its own.
     press('KeyF', 'f', { ctrlKey: true });
-    expect(view.find.open).toBe(true);
+    expect(view.find.open).toBe(false);
+    expect(currentPageContext()).toMatchObject({ id: 'script', label: 'Script' });
 
     unmount();
-    expect(searchAll('Alice').some((hit) => hit.group === 'In the manuscript')).toBe(false);
+    expect(currentPageContext()).toBeNull();
+    expect(searchAll('Alice').some((hit) => hit.group === 'In the script')).toBe(false);
     expect(contextItemsFor(p)).toBeNull();
     expect(ours()).toEqual([]);
   });
@@ -481,8 +484,6 @@ describe('view-state-is-one-module', () => {
     await firstHeading();
     fireEvent.click(screen.getByRole('tab', { name: 'Queries' }));
     await waitFor(() => expect(view.tab).toBe('queries'));
-    fireEvent.click(screen.getByRole('button', { name: 'Find in the manuscript (Ctrl+F)' }));
-    expect(view.find.open).toBe(true);
   });
 
   it('no file of the page or its layout keeps its own copy of a view-module field', () => {
@@ -572,7 +573,7 @@ describe('key-hints-under-the-reader', () => {
     const hints = within(reader).getByRole('note', { name: 'Keyboard shortcuts' });
     // The mock Legend's hints, drawn from the key catalogue; the caps are the default keymap's.
     expect(hints.textContent).toContain('Select text to mark it, add a note or query, or look it up.');
-    for (const label of ['scroll', 'prep state', 'chapter', 'bookmark', 'bookmarks', 'find']) expect(within(hints).getByText(label)).toBeTruthy();
+    for (const label of ['scroll', 'prep state', 'chapter', 'bookmark', 'bookmarks', 'search']) expect(within(hints).getByText(label)).toBeTruthy();
     // Under the reader's text, not above it.
     expect(reader.lastElementChild).toBe(hints);
   });
@@ -659,12 +660,42 @@ describe('bookmarks-from-the-jump-menu', () => {
   });
 });
 
-describe('find-address', () => {
-  it('/script?find=Alice opens the Find bar on Alice', async () => {
+describe('search-through-the-jump-menu', () => {
+  it('the toolbar has no Find button and the page draws no search bar', async () => {
+    mount();
+    await firstHeading();
+    expect(screen.queryByRole('button', { name: /Find in the manuscript/ })).toBeNull();
+    expect(screen.queryByRole('search')).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Find in the manuscript' })).toBeNull();
+  });
+
+  it('a result chosen in the menu marks every match in the reader, makes the chosen one current, and the menu steps them', async () => {
+    mount();
+    await firstHeading();
+    await waitFor(() => expect(searchAll('the').filter((hit) => hit.group === 'In the script').length).toBeGreaterThan(2));
+    const hits = searchAll('the').filter((hit) => hit.group === 'In the script');
+    expect(hits[0]!.snippet!.hit.toLowerCase()).toBe('the');
+    expect(hits[0]!.sub).toMatch(/¶/);
+    act(() => hits[2]!.run());
+    expect(view.find).toMatchObject({ open: true, q: 'the', i: 2 });
+    await waitFor(() => expect(document.querySelectorAll('mark[data-kind="search"]').length).toBeGreaterThan(2));
+    expect(document.querySelectorAll('.a-find-cur')).toHaveLength(1);
+    const items = () => currentPageContext()!.items.filter((row) => row.group === 'Search');
+    expect(items()[0]!.hint).toMatch(/^3 of \d+ for “the”$/);
+    act(() => items()[0]!.run());
+    expect(view.find.i).toBe(3);
+    press('F3', 'F3', { shiftKey: true });
+    await waitFor(() => expect(view.find.i).toBe(2));
+    press('Escape', 'Escape');
+    await waitFor(() => expect(view.find.open).toBe(false));
+    expect(document.querySelectorAll('.a-find-cur')).toHaveLength(0);
+  });
+
+  it('/script?find=Alice marks Alice in the reader', async () => {
     mount({ at: '/script?find=Alice' });
     await firstHeading();
-    await waitFor(() => expect(view.find).toMatchObject({ open: true, q: 'Alice' }));
-    expect((within(await screen.findByRole('search')).getByRole('textbox') as HTMLInputElement).value).toBe('Alice');
+    await waitFor(() => expect(view.find).toMatchObject({ open: true, q: 'Alice', i: 0 }));
+    expect(screen.queryByRole('search')).toBeNull();
   });
 
   it('takes the query off the address once read, so Back does not search again', async () => {

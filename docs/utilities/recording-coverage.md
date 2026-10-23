@@ -42,14 +42,51 @@ until there is a track to check. The row is still clickable in every state: open
 shows the same in-place track-link prompt a refused check always has.
 
 A chapter whose recording changed since its check is also re-checked in the background
-:
-one at a time, the oldest change first, and only when the setting **Check changed chapters in the background** is on,
-no other job runs, the Whisper model is installed, the computer is on mains power, REAPER is closed or its heartbeat
-says it is not recording ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md);
-a REAPER that is running but has not sent the transport yet counts as recording), and nothing has changed for three
-minutes. It is the same check as a press, labelled background, and pressing **Check recording** pre-empts it.
-`chaptersync:state`'s `background.wait` says why none runs, and the engine panel's Chapter sync section shows it in
-words.
+([coverage_background.go](../../apps/desktop/coverage_background.go), [background.go](../../apps/desktop/internal/coverage/background.go)):
+one at a time, the oldest change first, and only when the setting **Check recordings in the background** is on, the narrator has
+answered its first-time notice (`RecordingCoverage.background_checks_confirmed`; until then `background.wait` is `confirm` and
+nothing starts), no other job the narrator started runs, the model is installed, the computer is on mains power, REAPER is closed
+or its heartbeat says it is not recording ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md); a REAPER
+that is running but has not sent the transport yet counts as recording), and nothing has changed for 45 seconds
+(`coverage.BackgroundQuiet`). The Booth's live tracking does not hold it off: a check runs between takes while the teleprompter
+follows a reading.
+
+A background check is not the narrator's own Check recording:
+
+- It runs its own model pair, `background_first_pass_model` (tiny) with `background_recheck_model` (small) double-checking the
+  passages the first doubts, pipelined in one sidecar process; `none` runs the first model alone. The narrator's cascade settings
+  apply only to their own checks.
+- It plans for `background_processors` processors, or, at 0, half the computer's, a quarter while the Booth follows a reading
+  (`coverage.BackgroundCPUs`, the sidecar's `--cpus`), and its sidecar runs below normal priority
+  (`process.WithLowPriority`: `BELOW_NORMAL_PRIORITY_CLASS` on Windows, nice 10 elsewhere).
+- Pressing **Check recording** pre-empts it.
+
+`chaptersync:state`'s `background` says why none runs (`wait`), how many changed chapters wait (`queued`) and the model pair
+(`firstPassModel`, `recheckModel`). The app shows a running background check, and the chapters that wait with their reason, at
+the bottom left of every page with Pause (turns background checks off) and Cancel (this check; it starts again only when the chapter
+changes) ([BackgroundChecks.tsx](../../apps/ui/src/components/recordingcheck/background/BackgroundChecks.tsx)).
+
+A check, background or not, transcribes only audio no check has covered with the same models: [Incremental checks](#incremental-checks).
+
+## Incremental checks
+
+A check never sends audio to a model that has already transcribed it with the same settings:
+
+- **The ledger is the words files.** Each item's words are cached per source and played range in the evidence cache under a key that names both
+  models, the language, the hotwords and the VAD setting (`wordsParamHash`, [params.go](../../apps/desktop/internal/coverage/params.go)). A first pass
+  reuses a cached file that covers the item's range (`covers`), so only new or widened items are transcribed. A changed model is a new key and a changed
+  recording a new source, so either is checked again.
+- **What the larger model checked is recorded and kept.** A re-check splice gives its range to the larger model in the file's `spans`; a whole-chapter
+  re-check leaves files that model made. `checked_ranges` ([coverage_mode.py](../../sidecars/transcript-compare/core/coverage_mode.py)) and
+  `readCheckedRanges` ([checked.go](../../apps/desktop/internal/coverage/checked.go)) read them back, and:
+  - the pipeline asks the larger model only for doubtful passages outside those ranges, and its whole-chapter escalation skips items it already checked
+    whole ([coverage_pipeline.py](../../sidecars/transcript-compare/core/coverage_pipeline.py));
+  - a first pass that is not the pipeline names the larger model with `--checked-by`, so it reuses that model's whole-chapter words and does not report
+    passages it re-checked as unsure again;
+  - the host's planner drops windows already checked before it weighs the whole-chapter fallback (`planRecheckUnchecked`,
+    [plan.go](../../apps/desktop/internal/coverage/plan.go)), and the windows-only `--recheck` skips them too.
+
+  A passage the larger model is still unsure of stays as it heard it: its doubt is final until the audio or a model changes.
 
 ## How it works
 
@@ -167,7 +204,8 @@ The `RecordingCoverage` settings tool, layered project over global over the buil
 | `cascade_first_pass_model` | `tiny` | Whisper model, cascade only | The fast first pass's own model (MC2), independent of `TranscriptCompare.model_size` |
 | `cascade_recheck_model` | `large-v3-turbo` | Whisper model, cascade only | The model that re-checks anything the first pass reports missing (MC2) |
 | `cascade_unsure_below` | 0.5 | number, cascade only | The Whisper word score under which a passage is re-checked even when its text is all there. 0 re-checks only what is missing |
-| `parallel_workers` | 0 | number | Whisper processes working on a long item's chunks. 0 takes the model's own memory cap; a named number is kept up to the computer's processors |
+| `cascade_pipeline` | on | switch, cascade only | The re-check model works on each item as soon as the first pass has finished it, in one process ([design](../design/recording-check-pipeline.md)). Needs `cascade_unsure_below` above 0; off, the stages run one after the other |
+| `parallel_workers` | 0 | number | Items checked at once, and Whisper processes working on a long item's chunks. 0 takes the smaller of the model's memory cap and half the processors; a named number is an upper bound, kept up to the items and the processors |
 | `chunk_seconds` | 300 | choice | Each chunk's length. 0 transcribes an item whole, in one process |
 | `chunk_overlap_seconds` | 6 | number | The crossover: how much neighbouring chunks overlap, where their words are joined |
 | `parallel_chapters` | 1 | number | Chapters a Check recordings run checks at once. Each is its own run; with workers left to the host they share the processors |
@@ -229,8 +267,9 @@ flowchart LR
   (`asset_required`, shared with Transcript Compare and the teleprompter): not installed, the check cannot run.
   A missing re-check model instead answers `recheck_asset_required`, and the dialog offers "Check with tiny only"
   beside the download - a one-run choice (`CoverageStart`'s `options.skipRecheck`), never a settings change.
+- **Pipelined first stage.** With `cascade_pipeline` on and a score line above 0, the first stage is one process that also re-checks each item's doubtful passages as soon as the item is done; only the passages left missing still go to `--recheck` and `--align-only` ([design](../design/recording-check-pipeline.md)). The process reports its re-checks in `COVERAGE_RECHECKED` lines, which the host adds to the stored `recheck` label.
 - **Live progress** (`coverage:state`'s `pass`, `firstPassModel`, `recheckModel`, `recheckWindows`) names which of
-  the up to four stages is running, ahead of the sidecar's own message: "First pass (tiny)", "Re-checking 3
+  the up to four stages is running, ahead of the sidecar's own message: "First pass (tiny)", "First pass (tiny), re-checking as it goes (large-v3-turbo)" (`pipeline`), "Re-checking 3
   passages (large-v3-turbo)", "Re-checking the whole chapter (large-v3-turbo)" or "Combining the two passes".
 - **Staleness and caching are unchanged in kind.** A cascade result is judged, evaluated for staleness and read
   back exactly like a plain one (Q13); the words cache key gains the re-check model (empty for a plain check), so
@@ -259,6 +298,7 @@ flowchart LR
   longer than one chunk, or `chunk_seconds` 0, is one chunk, and a tail too short to be worth its own joins the last chunk. A crossover of half
   the chunk or more is shrunk to a quarter of it. `merge_chunks` cuts at the middle of each overlap and keeps a word in the chunk its midpoint falls in,
   so no word is repeated or lost, and each chunk's edge (where Whisper is least reliable) is half the crossover from the cut.
+- **Item pool.** Items are transcribed `parallel_workers` at a time on threads sharing one loaded model per process (`num_workers`, `cpu_threads`), and a long item's chunk processes share the threads its worker owns ([design](../design/recording-check-pipeline.md#processors)).
 - **Parallel processes.** Chunks are handed to a pool of spawned processes, each loading its own copy of the model and given its share of the
   processors as `cpu_threads`. `parallel_workers` 0 takes `compare.MAX_WORKERS_BY_MODEL` (`tiny` 8, `small` 4, `medium` and `large-v3-turbo` 2, `large-v3` 1); a
   named number is kept up to the processors and the chunks; a GPU runs one. The first chunk runs alone in the sidecar's process, so the model is read
@@ -271,9 +311,9 @@ flowchart LR
   confident words. `planRecheck` adds a window for each, bounded to the item's played range, beside the windows of the missing regions, and merges and pads
   them by the same rules (MC3). A word with no score (a file written before scores) is never doubted. Scores never score a gap.
 - **One decision about what runs.** `resolveCoverageChoices` (`apps/desktop/coverage_choices.go`) reads the settings and the run's options once. The
-  Check recordings dialog, a press from a chapter's panel and a background check all call it, so the same chapter is checked the same way wherever it
-  is started. The dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice; a background check uses the settings alone and
-  never downloads a model.
+  Check recordings dialog and a press from a chapter's panel call it, so the same chapter is checked the same way wherever the narrator starts it. The
+  dialog shows the host's `defaults` (`CoverageEngines`) and sends every choice. A background check takes the chunking and the doubt line from it and
+  its own model pair and processors from the background settings above, and never downloads a model.
 - **Several chapters at once**.
   `coverage.Service` holds one job per run, each with its own sidecar, folder and state. A start is refused while `Request.Concurrent` runs are
   already in progress (1 when it names none, the old rule) and while the same chapter is being checked. A Check recordings run names

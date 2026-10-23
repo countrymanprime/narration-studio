@@ -92,7 +92,7 @@ H.test('pick_retake_lane sets exactly one value, in one undo block, and nothing 
   s:send('pick_retake_lane', 't1', LINE, s.retakes[2].guid)
   H.eq(setter_calls(s), { { 'SetMediaTrackInfo_Value', 'C_LANEPLAYS:2', 1 } })
   H.eq(#s.fake.undo, 1, 'one undo step, so one Undo in REAPER restores the previous play state')
-  H.eq(s.fake.undo[1].label, 'Narration Utils: play retake lane 3')
+  H.eq(s.fake.undo[1].label, 'Narration Studio: play retake lane 3')
   H.eq(s.fake.open_undo_blocks, 0)
 end)
 
@@ -146,7 +146,7 @@ H.test('pick_retake_lane refuses a track that is not in fixed-lane mode, and nev
     {
       'ERROR',
       't1',
-      'The track "Takes" is not in fixed item lane mode, so it has no lanes to choose from. Narration Utils never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
+      'The track "Takes" is not in fixed item lane mode, so it has no lanes to choose from. Narration Studio never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
     },
   })
   H.eq(setter_calls(s), {})

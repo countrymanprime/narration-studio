@@ -70,6 +70,7 @@ export type DawCapabilityKey =
   | 'track_state'
   | 'track_select'
   | 'follow_position'
+  | 'transport_sync'
   | 'record'
   | 'punch'
   | 'regions'
@@ -118,6 +119,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'track_state', label: 'Read track arm state' },
   { key: 'track_select', label: 'Select a track in the recording tool' },
   { key: 'follow_position', label: "Follow the narrator's place in the project" },
+  { key: 'transport_sync', label: "Play and follow the project's transport" },
   { key: 'record', label: 'Record' },
   { key: 'punch', label: 'Punch and roll' },
   { key: 'regions', label: 'Chapter regions' },
@@ -491,6 +493,30 @@ export interface DawPlaceApi {
   /** Select the chapter's linked track in the DAW and put its cursor at `where`. A time that is not a finite, non-negative number of seconds, a
    * chapter with no or several linked tracks, a track the DAW no longer has and a refused capability are refused with nothing moved. */
   dawGoToChapter(chapterId: string, where: DawGoToWhere, seconds: number): Promise<DawResult>;
+}
+
+/** What `daw_position_changed` carries (apps/desktop/bindings_daw_transportsync.go): the DAW's play state, play head and edit cursor in project seconds
+ * as its last streamed position said, and whether the DAW has this book's project open (a position of another project must not move the page). It is
+ * pushed only while the page holds a `watch` lease: on a play-state change or a cursor move, and about four times a second while the DAW plays. */
+export type DawPosition = {
+  playing: boolean;
+  recording: boolean;
+  playPosition: number;
+  editCursor: number;
+  sameProject: boolean;
+};
+
+/** The actions `dawTransportSync` takes: put the DAW's cursor at `seconds`, play from `seconds`, stop, and take or renew the lease on the position stream
+ * (`seconds` is ignored by the last two). */
+export type DawSyncAction = 'cursor' | 'play' | 'stop' | 'watch';
+
+/** DawTransportSync and the daw_position_changed event (apps/desktop/bindings_daw_transportsync.go): the Editing page and the DAW's transport follow
+ * each other, behind the `transport_sync` capability (docs/design/editing-daw-transport-sync.md). A refusal (the capability's own sentence, a DAW with
+ * another project open, a recording, a time that is not usable) is `ok` false with the sentence and nothing changed; none adds an undo step. */
+export interface DawTransportSyncApi {
+  dawTransportSync(action: DawSyncAction, seconds: number): Promise<DawResult>;
+  /** Each position the DAW streams while a `watch` lease holds. Returns the unsubscribe. */
+  subscribeDawPosition(onUpdate: (position: DawPosition) => void): () => void;
 }
 
 /** DawBackupAround, DawRestoreBackup and DawBackups (SN-D82, docs/reference/daw/audacity-3.md; apps/desktop/bindings_daw_backups.go): clone the audio around a

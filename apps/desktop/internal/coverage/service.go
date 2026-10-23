@@ -32,7 +32,7 @@ type Config struct {
 	Python  string
 	Backend string
 	// ProjectFile resolves the saved .rpp the narrator chose for the project
-	// (the audio engine panel's selection). It must be directly inside Project.
+	// (the audio engine panel's selection). It may be anywhere.
 	ProjectFile func() (string, error)
 	// LoadManuscript returns the canonical manuscript (manuscript.Service.Load).
 	LoadManuscript func() (map[string]any, error)
@@ -99,7 +99,7 @@ type State struct {
 	// Pass, FirstPassModel, RecheckModel and RecheckWindows are the model cascade's own live progress:
 	// set only for a run that asked for a re-check (Request.Recheck.Model non-empty), so the dialog can name which
 	// pass is running and how many passages the plan found without waiting for the stored result. Pass is one of
-	// "first_pass", "recheck_windows", "recheck_whole" or "realign" (stage.label()).
+	// "first_pass", "pipeline" (both models working at once), "recheck_windows", "recheck_whole" or "realign" (job.passLabel()).
 	Pass           string `json:"pass,omitempty"`
 	FirstPassModel string `json:"firstPassModel,omitempty"`
 	RecheckModel   string `json:"recheckModel,omitempty"`
@@ -126,9 +126,31 @@ type Request struct {
 	// UnsureBelow, above 0, has the first pass report the passages whose words Whisper scored under it, so the
 	// re-check can take them as well as what is missing. 0 reports none.
 	UnsureBelow float64
+	// Pipeline runs the first pass and the re-check of the passages it doubts in one sidecar process, the larger model starting on an
+	// item as soon as the smaller one has finished it (docs/design/recording-check-pipeline.md). It needs Recheck and UnsureBelow; without
+	// either, or false, the stages run one after the other as before, which is also the oracle the pipelined result is checked against.
+	Pipeline bool
 	// Concurrent is how many runs may be in progress when this one starts, itself included: the narrator's Check
 	// recordings run of several chapters sets it above 1. 0 or 1 starts only when nothing else is running.
 	Concurrent int
+	// CPUs, above 0, is the most processors the sidecar plans its workers for (--cpus): a background check leaves the
+	// rest to the Booth's live tracking. 0 plans for every processor.
+	CPUs int
+}
+
+// launchContext is the context every stage of the run starts its sidecar with: a background run's sidecar runs below
+// normal priority, so the narrator's own work and the Booth's live tracking come first.
+func (r Request) launchContext() context.Context {
+	if r.Background {
+		return process.WithLowPriority(context.Background())
+	}
+	return context.Background()
+}
+
+// pipelined reports whether the first pass is the one-process cascade: a re-check model, a score line to find the doubtful passages
+// by, and the narrator's (or the default) permission.
+func (r Request) pipelined() bool {
+	return r.Pipeline && r.Recheck.Model != "" && r.UnsureBelow > 0
 }
 
 // Service runs coverage analyses and reads results back. It runs one at a time unless a Start asks for more
@@ -315,8 +337,8 @@ func (s *Service) notify(state State) {
 }
 
 // savedProject resolves, checks and parses the saved .rpp: the only basis a
-// coverage run or result has (Q6). The file must be directly inside the
-// project folder, as tracks.Discover finds it.
+// coverage run or result has (Q6). The file is read wherever it is: in the project
+// folder at any depth, or in a separate DAW folder, as the link allows.
 func (s *Service) savedProject() (tracks.Project, evidence.LedgerProjectFile, error) {
 	if s.config.ProjectFile == nil {
 		return tracks.Project{}, evidence.LedgerProjectFile{}, unknown(ReasonNoProjectFile, "no REAPER project file is chosen for this project")
@@ -325,9 +347,8 @@ func (s *Service) savedProject() (tracks.Project, evidence.LedgerProjectFile, er
 	if err != nil {
 		return tracks.Project{}, evidence.LedgerProjectFile{}, unknownf(ReasonNoProjectFile, "choose the saved REAPER project file in the audio engine panel first (%v)", err)
 	}
-	relative, err := filepath.Rel(s.config.Project, path)
-	if err != nil || relative != filepath.Base(relative) || relative == "." || relative == ".." || !strings.EqualFold(filepath.Ext(relative), ".rpp") {
-		return tracks.Project{}, evidence.LedgerProjectFile{}, unknown(ReasonNoProjectFile, "the chosen REAPER project file is not in the project folder")
+	if !strings.EqualFold(filepath.Ext(path), ".rpp") {
+		return tracks.Project{}, evidence.LedgerProjectFile{}, unknown(ReasonNoProjectFile, "the chosen file is not a REAPER project file (.rpp)")
 	}
 	info, err := os.Stat(path)
 	if err != nil {
@@ -440,7 +461,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 		_ = os.RemoveAll(running.dir)
 		return nil, err
 	}
-	child, err := s.launch(context.Background(), s.config.Python, s.sidecarArgs(running, request.Transcription)...)
+	child, err := s.launch(request.launchContext(), s.config.Python, s.sidecarArgs(running, request.Transcription)...)
 	if err != nil {
 		_ = os.RemoveAll(running.dir)
 		return nil, fmt.Errorf("could not start the recording check: %w", err)
@@ -475,8 +496,22 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 		args = append(args, "--language", transcription.Language)
 	}
 	args = append(args, running.request.Parallel.args()...)
+	if running.request.CPUs > 0 {
+		args = append(args, "--cpus", strconv.Itoa(running.request.CPUs))
+	}
+	// A stage under the first pass's model keeps what the larger model has already checked: its whole-chapter words serve as they
+	// are, and the passages it re-checked are not reported unsure again (the pipelined first pass names it with --recheck-model).
+	if larger := running.request.Recheck.Model; larger != "" && transcription.Model != larger && (running.stage != stageFirstPass || !running.request.pipelined()) {
+		args = append(args, "--checked-by", larger)
+	}
 	if running.stage == stageFirstPass && running.request.UnsureBelow > 0 {
 		args = append(args, "--unsure-below", strconv.FormatFloat(running.request.UnsureBelow, 'f', -1, 64))
+		if running.request.pipelined() {
+			args = append(args, "--recheck-model", running.request.Recheck.Model)
+			if running.request.Recheck.ModelDir != "" {
+				args = append(args, "--recheck-model-dir", running.request.Recheck.ModelDir)
+			}
+		}
 	}
 	if s.config.Backend != "" {
 		args = append([]string{s.config.Backend}, args...)
@@ -502,6 +537,9 @@ func (s *Service) recheckArgs(running *job) []string {
 	}
 	if transcription.Language != "" {
 		args = append(args, "--language", transcription.Language)
+	}
+	if running.request.CPUs > 0 {
+		args = append(args, "--cpus", strconv.Itoa(running.request.CPUs))
 	}
 	if s.config.Backend != "" {
 		args = append([]string{s.config.Backend}, args...)

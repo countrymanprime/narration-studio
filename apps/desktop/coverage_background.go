@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"time"
 
@@ -16,17 +17,35 @@ import (
 // not tried again, so a narrator's Cancel sticks until the chapter changes.
 
 const (
-	backgroundCheckInterval = 30 * time.Second
+	backgroundCheckInterval = 15 * time.Second
 	// settingBackgroundChecks is RecordingCoverage.background_checks, on by default.
 	settingBackgroundChecks = "background_checks"
+	// settingBackgroundConfirmed is RecordingCoverage.background_checks_confirmed: false until the narrator answers the
+	// first-time notice, and nothing starts on its own before then (coverage.WaitConfirm).
+	settingBackgroundConfirmed = "background_checks_confirmed"
+	// settingBackgroundFirstPassModel and settingBackgroundRecheckModel are the background check's own model pair, tiny and
+	// small by default: the narrator's Check recording keeps its own cascade settings, so a heavy choice there never runs
+	// unannounced in the background. The re-check model "none" checks with the first-pass model alone.
+	settingBackgroundFirstPassModel = "background_first_pass_model"
+	settingBackgroundRecheckModel   = "background_recheck_model"
+	// settingBackgroundProcessors is RecordingCoverage.background_processors: the processors a background check may plan for, 0
+	// for coverage.BackgroundCPUs' own share.
+	settingBackgroundProcessors = "background_processors"
+	// backgroundNoRecheck is the re-check model value that turns the double-check off.
+	backgroundNoRecheck = "none"
 )
 
-// chapterSyncBackground is chaptersync:state's word on background checks: whether they are on, and why none runs now
-// (a coverage.BackgroundWait: off, busy, model, battery, recording, quiet, nothing; "" when one was just started or
-// the host has not looked yet).
+// chapterSyncBackground is chaptersync:state's word on background checks: whether they are on, why none runs now
+// (a coverage.BackgroundWait: off, confirm, busy, model, battery, recording, quiet, nothing; "" when one was just started or
+// the host has not looked yet), how many changed chapters wait for a check besides one running, and the model pair a
+// background check runs (RecheckModel "" when it runs the first pass alone), so the first-time notice and the progress can
+// name them.
 type chapterSyncBackground struct {
-	Enabled bool   `json:"enabled"`
-	Wait    string `json:"wait"`
+	Enabled        bool   `json:"enabled"`
+	Wait           string `json:"wait"`
+	Queued         int    `json:"queued"`
+	FirstPassModel string `json:"firstPassModel"`
+	RecheckModel   string `json:"recheckModel"`
 }
 
 // backgroundChecks is what the loop remembers for the open project.
@@ -53,14 +72,45 @@ func (b *backgroundChecks) forFolderLocked(folder string) {
 }
 
 // stateFor is chaptersync:state's background field for folder.
-func (b *backgroundChecks) stateFor(folder string, enabled bool) chapterSyncBackground {
+func (b *backgroundChecks) stateFor(folder string, svc hostServices) chapterSyncBackground {
+	first, recheck := backgroundModels(svc)
+	state := chapterSyncBackground{Enabled: backgroundChecksEnabled(svc), FirstPassModel: first, RecheckModel: recheck}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	state := chapterSyncBackground{Enabled: enabled}
 	if b.folder == folder && b.looked {
-		state.Wait = string(b.last.Wait)
+		state.Wait, state.Queued = string(b.last.Wait), b.last.Queued
 	}
 	return state
+}
+
+// backgroundSetting reads one RecordingCoverage setting, or fallback when none is set.
+func backgroundSetting(svc hostServices, key, fallback string) string {
+	if svc.settings == nil {
+		return fallback
+	}
+	value, _ := svc.settings.Effective(coverage.SettingsTool, key, fallback)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+// backgroundModels is the background check's model pair: the first pass, and the double-check model or "" for none.
+func backgroundModels(svc hostServices) (first, recheck string) {
+	first = backgroundSetting(svc, settingBackgroundFirstPassModel, "tiny")
+	recheck = backgroundSetting(svc, settingBackgroundRecheckModel, "small")
+	if recheck == backgroundNoRecheck || recheck == first {
+		recheck = ""
+	}
+	return first, recheck
+}
+
+// backgroundLive reports whether the Booth's live tracking is following a reading.
+func (h *Host) backgroundLive(svc hostServices) bool {
+	if h.liveFollowing != nil {
+		return h.liveFollowing()
+	}
+	return svc.teleprompter != nil && svc.teleprompter.Busy()
 }
 
 // backgroundCheckLoop runs the scheduler until ctx ends (ServiceStartup).
@@ -112,14 +162,15 @@ func (h *Host) backgroundCheckTick(now time.Time) coverage.BackgroundDecision {
 		}
 	}
 	conditions := coverage.BackgroundConditions{
-		Enabled: backgroundChecksEnabled(svc), ModelReady: modelReady, Busy: !h.idle(), Power: power,
+		Enabled: backgroundChecksEnabled(svc), Confirmed: backgroundSetting(svc, settingBackgroundConfirmed, "false") == "true",
+		ModelReady: modelReady, Busy: !h.idleForBackground(), Power: power,
 		ReaperRunning: reaperRunning, RecordingKnown: recordingKnown, Recording: recording,
 		LastActivity: h.chapterSyncWatch.lastActivityFor(folder), Now: now,
 	}
 
 	b := &h.backgroundChecks
 	candidates := []coverage.BackgroundCandidate{}
-	if conditions.Enabled && !conditions.Busy {
+	if conditions.Enabled {
 		if state, err := h.chapterSyncState(); err == nil {
 			b.mu.Lock()
 			b.forFolderLocked(folder)
@@ -171,10 +222,19 @@ func (h *Host) backgroundCheckTick(now time.Time) coverage.BackgroundDecision {
 	return decision
 }
 
-// backgroundRequest is the check a background run starts: the same choices a press with no options would make
-// (resolveCoverageChoices), so a chapter changed in REAPER is re-checked the way the narrator has set the check up. It never
-// downloads a model: a first-pass model that is not installed is false (the check waits), and a second-pass model
-// that is not installed is dropped, so the first pass still runs alone.
+// idleForBackground is idle without the Booth's live tracking (idleLockedFor).
+func (h *Host) idleForBackground() bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.idleLockedFor(true)
+}
+
+// backgroundRequest is the check a background run starts: the background check's own model pair (backgroundModels, tiny with
+// small as the double-check by default), pipelined, with the narrator's alignment and chunking, on its share of the
+// processors (coverage.BackgroundCPUs) and below normal priority (Request.Background). Its words are cached per item and
+// range under that pair, so a later check transcribes only audio no check has covered yet. It never downloads a model: a
+// first-pass model that is not installed is false (the check waits), and a double-check model that is not installed is
+// dropped, so the first pass still runs alone.
 func (h *Host) backgroundRequest(svc hostServices, chapterID string) (coverage.Request, bool) {
 	models := h.registry().whisper
 	if models == nil {
@@ -184,20 +244,28 @@ func (h *Host) backgroundRequest(svc hostServices, chapterID string) (coverage.R
 	if err != nil {
 		return coverage.Request{}, false
 	}
-	if _, known := models.Model(choices.FirstPass); !known {
+	first, recheckModel := backgroundModels(svc)
+	if _, known := models.Model(first); !known {
 		return coverage.Request{}, false
 	}
-	modelDir, err := models.Dir(choices.FirstPass)
+	modelDir, err := models.Dir(first)
 	if err != nil {
 		return coverage.Request{}, false
 	}
+	chosen, _ := strconv.Atoi(backgroundSetting(svc, settingBackgroundProcessors, "0"))
 	request := coverage.Request{
-		ChapterID: chapterID, Transcription: coverage.Transcription{Model: choices.FirstPass, ModelDir: modelDir},
-		Alignment: coverageSettings(svc.settings).Alignment, Parallel: choices.Parallel, Background: true,
+		ChapterID: chapterID, Transcription: coverage.Transcription{Model: first, ModelDir: modelDir},
+		Alignment: coverageSettings(svc.settings).Alignment, Parallel: choices.Parallel, Pipeline: true, Background: true,
+		CPUs: coverage.BackgroundCPUs(coverageCPUs(), chosen, h.backgroundLive(svc)),
 	}
-	if choices.Recheck != "" {
-		if recheck, required, err := resolveCoverageRecheck(models, choices.Recheck); err == nil && required == nil {
+	// One chapter at a time: the processors' share is this run's whole budget.
+	request.Parallel.Chapters, request.Parallel.Workers = 0, 0
+	if recheckModel != "" {
+		if recheck, required, err := resolveCoverageRecheck(models, recheckModel); err == nil && required == nil {
 			request.Recheck, request.UnsureBelow = recheck, choices.UnsureBelow
+			if request.UnsureBelow <= 0 {
+				request.UnsureBelow = coverage.DefaultSettings.Cascade.UnsureBelow
+			}
 		}
 	}
 	return request, true

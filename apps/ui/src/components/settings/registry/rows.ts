@@ -8,6 +8,12 @@ const WHISPER: Record<string, OptionNote> = {
   'large-v3-turbo': whisper('large-v3-turbo', 'Large v3 turbo'),
   'large-v3': whisper('large-v3', 'Large v3'),
 };
+/** The models a background check may be told to use: a large one costs minutes of every processor it is given. */
+const HEAVY_MODELS = new Set(['medium', 'large-v3-turbo', 'large-v3']);
+const heavyModel = (value: string): string | undefined =>
+  HEAVY_MODELS.has(value) ? 'A large model makes every background check much slower and keeps this computer busy for longer.' : undefined;
+/** This computer's processors as the browser reports them; the host plans with its own count. */
+const processorCount = (): number => (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4;
 const LIVE_MODEL: Record<string, OptionNote> = {
   tiny: { label: 'Tiny', asset: { kind: { followRow: 'stt.live' }, id: 'tiny' } },
   small: { label: 'Small', asset: { kind: { followRow: 'stt.live' }, id: 'small' } },
@@ -136,6 +142,19 @@ export const ROWS: readonly SettingMeta[] = [
     advanced: true,
     syn: 'record punch markers regions fx chains',
   },
+  {
+    id: 'daw.syncActivity',
+    cat: 'recording',
+    section: 'Chapter sync',
+    label: 'Sync activity',
+    scope: 'project',
+    def: '',
+    desc: 'What each chapter sync did, newest first. Undo removes a link sync made, and sync never makes it again.',
+    used: ['production'],
+    needs: 'reaper',
+    advanced: true,
+    syn: 'chapter sync log history undo link diagnostics track',
+  },
 
   // ---- Speech to text
   {
@@ -221,6 +240,19 @@ export const ROWS: readonly SettingMeta[] = [
     advanced: true,
   },
   {
+    id: 'stt.pipeline',
+    cat: 'speech',
+    section: 'Recording check',
+    label: 'Run both models together',
+    scope: 'both',
+    def: 'true',
+    field: { tool: 'RecordingCoverage', key: 'cascade_pipeline' },
+    desc: 'The re-check model starts on each item as soon as the first-pass model has finished it. Off, it waits until every item has had its first pass.',
+    used: ['production'],
+    advanced: true,
+    syn: 'cascade pipeline overlap parallel faster',
+  },
+  {
     id: 'stt.workers',
     cat: 'speech',
     section: 'Recording check',
@@ -228,7 +260,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'both',
     def: '0',
     field: { tool: 'RecordingCoverage', key: 'parallel_workers' },
-    desc: '0 lets the app choose from the model and this computer’s memory.',
+    desc: '0 lets the app choose: several items at once, each given its share of this computer’s processors, never more than the model’s memory allows.',
     used: ['production', 'proof'],
     advanced: true,
     syn: 'threads cpu performance',
@@ -254,6 +286,62 @@ export const ROWS: readonly SettingMeta[] = [
     used: ['production', 'proof'],
     advanced: true,
     syn: 'seconds overlap',
+  },
+
+  {
+    id: 'stt.background',
+    cat: 'speech',
+    section: 'Background checks',
+    label: 'Check recordings in the background',
+    scope: 'both',
+    def: 'true',
+    field: { tool: 'RecordingCoverage', key: 'background_checks' },
+    desc: 'Checks what you record while you work, so Editing and Pickups are ready. Only audio no check has listened to is checked, below everything else, and never while REAPER records. Its progress shows at the bottom left of every page.',
+    used: ['booth', 'editing', 'pickups'],
+    syn: 'background automatic recheck progress pause',
+  },
+  {
+    id: 'stt.backgroundModel',
+    cat: 'speech',
+    section: 'Background checks',
+    label: 'Model for background checks',
+    scope: 'both',
+    def: 'tiny',
+    field: { tool: 'RecordingCoverage', key: 'background_first_pass_model' },
+    options: WHISPER,
+    desc: 'Listens to everything a background check covers. Your own Check recording keeps the models set above.',
+    used: ['booth', 'editing'],
+    heavy: heavyModel,
+  },
+  {
+    id: 'stt.backgroundRecheck',
+    cat: 'speech',
+    section: 'Background checks',
+    label: 'Double-check model for background checks',
+    scope: 'both',
+    def: 'small',
+    field: { tool: 'RecordingCoverage', key: 'background_recheck_model' },
+    options: { none: { label: 'None (one model)' }, ...WHISPER },
+    desc: 'Listens again to the passages the first model was unsure of, alongside it.',
+    used: ['booth', 'editing'],
+    heavy: heavyModel,
+  },
+  {
+    id: 'stt.backgroundProcessors',
+    cat: 'speech',
+    section: 'Background checks',
+    label: 'Processors for background checks',
+    scope: 'computer',
+    def: '0',
+    field: { tool: 'RecordingCoverage', key: 'background_processors' },
+    desc: '0 lets the app choose: half of this computer’s processors, a quarter while the Booth follows your reading.',
+    used: ['booth', 'editing'],
+    advanced: true,
+    syn: 'threads cpu workers parallel performance slow',
+    heavy: (value) =>
+      Number(value) > processorCount() / 2
+        ? `More than half of this computer’s ${processorCount()} processors: the Booth and the rest of the app may slow down while a check runs.`
+        : undefined,
   },
 
   // ---- Voice & pronunciation
@@ -561,6 +649,18 @@ export const ROWS: readonly SettingMeta[] = [
     field: { tool: 'General', key: 'notifications' },
     desc: 'Shows a Windows notification when a check or export ends while you are in another program.',
     used: ['production', 'proof', 'master'],
+  },
+  {
+    id: 'app.importClose',
+    cat: 'app',
+    section: 'Importing',
+    label: 'Close the manuscript import when it finishes',
+    scope: 'computer',
+    def: 'true',
+    field: { tool: 'General', key: 'close_import_when_done' },
+    desc: 'Closes the import window as soon as the manuscript is written. Turn it off to read the import log first.',
+    used: ['production'],
+    syn: 'import dialog auto close finish complete',
   },
   {
     id: 'app.debug',

@@ -38,7 +38,8 @@ export function TitleSubtitle({
         {subtitle && (
           <>
             {' '}
-            <span className="sr-only">—</span> <span className={`block font-normal text-[var(--text-muted)] ${truncate ? 'truncate' : ''}`}>{subtitle}</span>
+            <span className="sr-only">—</span>{' '}
+            <span className={`block text-[0.85em] font-normal text-[var(--text-muted)] ${truncate ? 'truncate' : ''}`}>{subtitle}</span>
           </>
         )}
       </span>

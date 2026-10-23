@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
 import { createMockApi } from '../../../../api/mockApi';
 import { gesture } from '../../../../input/gestures';
+import { currentPageContext } from '../../../../input/pageCommands';
 import type { GestureEvent, InputSource } from '../../../../input/InputSource';
 import { CommandRouter, CommandScope } from '../../../../input/router';
 import { useCommand } from '../../../../input/useCommand';
@@ -54,7 +55,15 @@ function setup(extra: Partial<ScriptRegistryOptions> = {}) {
   );
   const hook = renderHook(
     () => {
-      useScriptRegistry({ ...handlers, lines: () => [], kinds: ['Character'], currentChapterId: () => current, ...extra });
+      useScriptRegistry({
+        ...handlers,
+        lines: () => [],
+        locationOf: () => '',
+        matchCount: () => 0,
+        kinds: ['Character'],
+        currentChapterId: () => current,
+        ...extra,
+      });
       const [view, update] = useScriptView((state) => state);
       return { ...useChapters(), view, update, prepOf: useScriptPrep().prepOf };
     },
@@ -70,11 +79,72 @@ function reader(): HTMLElement {
 }
 
 describe('registrations', () => {
-  it('search-sources: the entries answer once the Story Bible has loaded, and the manuscript from the lines the page gives', async () => {
+  it('search-sources: the manuscript answers under In the script from the lines the page gives; the Story Bible is a page item, not a second hit', async () => {
     const lines = [{ chapterId: 'c1', id: 'p1', index: 0, text: 'The White Rabbit ran' }];
     setup({ lines: () => lines });
-    await waitFor(() => expect(searchAll('rabbit').some((hit) => hit.group === 'Story Bible' && hit.title === 'White Rabbit')).toBe(true));
-    expect(searchAll('rabbit').some((hit) => hit.group === 'In the manuscript')).toBe(true);
+    await waitFor(() => expect(currentPageContext()!.items.some((row) => row.group === 'Story Bible' && row.label === 'White Rabbit')).toBe(true));
+    const hits = searchAll('rabbit');
+    expect(hits.some((hit) => hit.group === 'In the script')).toBe(true);
+    expect(hits.some((hit) => hit.group === 'Story Bible')).toBe(false);
+  });
+
+  it('page-items: the Script offers its chapters, the Story Bible entries and the mark types, and replaces the global Chapters group', async () => {
+    const { hook, handlers } = setup({ kinds: ['Character'] });
+    await waitFor(() => expect(hook.result.current.value?.length).toBeGreaterThan(1));
+    await waitFor(() => expect(currentPageContext()!.items.some((row) => row.group === 'Story Bible')).toBe(true));
+    const context = currentPageContext()!;
+    expect(context).toMatchObject({ id: 'script', label: 'Script', supersedes: ['Chapters'] });
+    const groups = [...new Set(context.items.map((row) => row.group))];
+    expect(groups).toEqual(expect.arrayContaining(['Chapters', 'Story Bible', 'Mark types']));
+    const chapter = context.items.find((row) => row.group === 'Chapters')!;
+    expect(chapter.icon).toBe('goToChapter');
+    chapter.run();
+    expect(handlers.goToChapter).toHaveBeenCalledWith(chapter.id.replace('chapter.', ''));
+    const entry = context.items.find((row) => row.label === 'White Rabbit')!;
+    expect(entry.keywords?.length).toBeGreaterThan(0);
+    entry.run();
+    expect(handlers.showEntry).toHaveBeenCalledWith(entry.id.replace('entry.', ''));
+  });
+
+  it('page-items: a mark type is off with the reason until text is selected, then marks that selection', async () => {
+    let picked: { chapterId: string; paragraphId: string; start: number; end: number; quote: string } | null = null;
+    const { hook, handlers } = setup({ selectionAt: () => picked as never });
+    await waitFor(() => expect(currentPageContext()!.items.some((row) => row.group === 'Mark types')).toBe(true));
+    const type = () => currentPageContext()!.items.find((row) => row.group === 'Mark types')!;
+    expect(type().label).toMatch(/^Mark the selection as /);
+    expect(type().disabledReason).toBe('Select some text in the reader first');
+    picked = { chapterId: 'c1', paragraphId: 'p1', start: 0, end: 3, quote: 'The' };
+    expect(type().disabledReason).toBeUndefined();
+    type().run();
+    expect(handlers.composeMark).toHaveBeenCalledWith(expect.any(String), picked);
+    hook.unmount();
+  });
+
+  it('page-items: while a search is showing the menu offers the next and previous match and clearing it, with the count; none of them otherwise', () => {
+    const { hook } = setup({ matchCount: () => 3 });
+    const search = () => (currentPageContext()?.items ?? []).filter((row) => row.group === 'Search');
+    expect(search()).toEqual([]);
+    act(() => hook.result.current.update({ find: { open: true, q: 'rabbit', i: 0 } }));
+    expect(search().map((row) => row.label)).toEqual(['Next match', 'Previous match', 'Clear the search']);
+    expect(search()[0]!.hint).toBe('1 of 3 for “rabbit”');
+    act(() => search()[0]!.run());
+    expect(hook.result.current.view.find.i).toBe(1);
+    act(() => search()[1]!.run());
+    act(() => search()[1]!.run());
+    expect(hook.result.current.view.find.i).toBe(2);
+    act(() => search()[2]!.run());
+    expect(hook.result.current.view.find.open).toBe(false);
+  });
+
+  it('keys: F3 and Shift+F3 step the matches, wrapping, and do nothing while no search shows', () => {
+    const { hook, press } = setup({ matchCount: () => 3 });
+    press('F3');
+    expect(hook.result.current.view.find.i).toBe(0);
+    act(() => hook.result.current.update({ find: { open: true, q: 'rabbit', i: 0 } }));
+    press('F3', ['Shift']);
+    expect(hook.result.current.view.find.i).toBe(2);
+    press('F3');
+    expect(hook.result.current.view.find.i).toBe(0);
   });
 
   it('the provider answers for the Script’s targets only', async () => {
@@ -121,24 +191,16 @@ describe('registrations', () => {
     expect(handlers.goToChapter).not.toHaveBeenCalled();
   });
 
-  it('script-find-is-a-catalogue-row: Ctrl+F opens the Script’s Find and keeps the query, through the handler the page registers', async () => {
-    const { hook, press } = setup();
-    act(() => hook.result.current.update({ find: { open: false, q: 'rabbit', i: 2, list: false } }));
-    const nonce = hook.result.current.view.findNonce;
-    press('KeyF', ['Ctrl']);
-    expect(hook.result.current.view.find).toEqual({ open: true, q: 'rabbit', i: 2, list: true });
-    expect(hook.result.current.view.findNonce).toBe(nonce + 1);
-  });
-
-  it('script-find-is-a-catalogue-row: on every other page Ctrl+F still opens the jump menu, and on Script it does not', () => {
+  it('ctrl-f-is-the-jump-menus: on Script, as on every other page, Ctrl+F reaches jump.page and the page opens no find bar of its own', () => {
     let listener: ((event: GestureEvent) => void) | undefined;
     const source: InputSource = { subscribe: (onGesture) => ((listener = onGesture), () => void (listener = undefined)) };
     const ctrlF = () => act(() => listener?.({ gesture: gesture('keyboard', 'KeyF', ['Ctrl']), target: null, preventDefault: () => {} }));
     const jump = vi.fn();
     function Jump() {
-      useCommand('jump.open', jump);
+      useCommand('jump.page', jump);
       return null;
     }
+    let view: ReturnType<typeof useScriptView<unknown>>[0] | undefined;
     function Script() {
       useScriptRegistry({
         selectionAt: () => null,
@@ -151,30 +213,29 @@ describe('registrations', () => {
         goToChapter: vi.fn(),
         composeMark: vi.fn(),
         lines: () => [],
+        locationOf: () => '',
+        matchCount: () => 0,
         kinds: [],
         currentChapterId: () => null,
       });
+      [view] = useScriptView((state) => state.find);
       return null;
     }
-    const tree = (onScript: boolean) => (
+    render(
       <ApiProvider api={createMockApi()}>
         <StudioProvider>
           <CommandRouter source={source}>
             <Jump />
-            <CommandScope kind="page">{onScript ? <Script /> : null}</CommandScope>
+            <CommandScope kind="page">
+              <Script />
+            </CommandScope>
           </CommandRouter>
         </StudioProvider>
-      </ApiProvider>
+      </ApiProvider>,
     );
-    const view = render(tree(false));
     ctrlF();
     expect(jump).toHaveBeenCalledTimes(1);
-    view.rerender(tree(true));
-    ctrlF();
-    expect(jump).toHaveBeenCalledTimes(1);
-    view.rerender(tree(false));
-    ctrlF();
-    expect(jump).toHaveBeenCalledTimes(2);
+    expect(view).toMatchObject({ open: false });
   });
 
   it('keys-follow-the-mock: Left and Right on the reader step the prep state of the chapter in view', async () => {
@@ -206,7 +267,7 @@ describe('registrations', () => {
   it('keys-follow-the-mock: Escape closes Find when no menu is open and no drawer shows', () => {
     const { hook, press } = setup();
     const scroller = reader();
-    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true } }));
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0 } }));
     press('Escape', [], scroller);
     expect(hook.result.current.view.find.open).toBe(false);
   });
@@ -214,7 +275,7 @@ describe('registrations', () => {
   it('keys-follow-the-mock: Escape closes the drawer and leaves Find open while a drawer shows', () => {
     const { hook, press } = setup();
     const scroller = reader();
-    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true }, drawer: 'rail' }));
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0 }, drawer: 'rail' }));
     press('Escape', [], scroller);
     expect(hook.result.current.view.drawer).toBeNull();
     expect(hook.result.current.view.find.open).toBe(true);
@@ -222,7 +283,7 @@ describe('registrations', () => {
 
   it('keys-follow-the-mock: Escape leaves Find open while a menu or popover is open (it closes itself), and closes the drawer only once it is gone', () => {
     const { hook, press } = setup();
-    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true } }));
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0 } }));
     document.body.innerHTML = '<div role="menu"><span id="item">Copy</span></div>';
     press('Escape', [], document.getElementById('item'));
     document.body.innerHTML = '<div id="page"></div><div data-popover-popup=""></div>';
@@ -238,25 +299,22 @@ describe('registrations', () => {
     expect(hook.result.current.view.find.open).toBe(true);
   });
 
-  it('none fires while typing in a field: Escape and Ctrl+F', () => {
+  it('none fires while typing in a field: Escape', () => {
     const { hook, press } = setup();
     reader();
-    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0, list: true }, drawer: 'rail' }));
+    act(() => hook.result.current.update({ find: { open: true, q: 'x', i: 0 }, drawer: 'rail' }));
     press('Escape', [], document.getElementById('f'));
     expect(hook.result.current.view.drawer).toBe('rail');
     expect(hook.result.current.view.find.open).toBe(true);
-    const nonce = hook.result.current.view.findNonce;
-    press('KeyF', ['Ctrl'], document.getElementById('f'));
-    expect(hook.result.current.view.findNonce).toBe(nonce);
   });
 
   it('unregister-on-unmount: the Script keys are gone too', () => {
     const { hook, press } = setup();
     const scroller = reader();
-    act(() => hook.result.current.update({ find: { open: false, q: '', i: 0, list: true } }));
+    act(() => hook.result.current.update({ find: { open: false, q: '', i: 0 } }));
     const view = hook.result.current.view;
     hook.unmount();
-    press('KeyF', ['Ctrl']);
+    press('F3');
     press('Escape', [], scroller);
     expect(view.find.open).toBe(false);
   });

@@ -36,7 +36,7 @@ const lines: LinePassage = {
   script: 'Alice was tired',
   takes: [take('t-1', 'Take 1', true), take('t-2', 'Take 2'), take('t-3', 'Retake on lane 2'), take('t-4', 'Pickup read')],
 };
-const noStrip: TimelineStripProps = { passage: null, playingId: null, onPlay: () => undefined, chapterId: '5' };
+const noStrip: TimelineStripProps = { passage: null, playingId: null, onPlay: () => undefined };
 
 /** `width` picks the tabs (Timeline below 1360). Column or overlay follows the window, as in the mock: beside the text above 1280, over it at 1280 and below. */
 function frame(width: number, tab: DrawerTab, backups: boolean, strip: TimelineStripProps = noStrip) {
@@ -80,7 +80,7 @@ const args = {
   onClose: fn(),
   flagKind: null,
   onReview: fn(),
-  strip: { passage: null, playingId: null, onPlay: () => undefined, chapterId: '5' },
+  strip: { passage: null, playingId: null, onPlay: () => undefined },
 };
 
 const meta = { title: 'Editing/Drawer', component: Drawer, parameters: { layout: 'fullscreen' } } satisfies Meta<typeof Drawer>;
@@ -121,7 +121,8 @@ export const TimelineTabWithTakes: Story = {
   args,
   render: () => frame(1280, 'timeline', false, { ...noStrip, passage: lines }),
   play: async ({ canvasElement }) => {
-    await waitFor(() => expect(canvasElement.querySelectorAll('#timeline [data-lane]')).toHaveLength(5));
+    // One lane per take; the line's audio is the waveform docked above the bar, not a lane.
+    await waitFor(() => expect(canvasElement.querySelectorAll('#timeline [data-lane]')).toHaveLength(4));
     // jsdom has no layout: the measurements below are the browser run's (the atlas).
     if (drawer0(canvasElement).getBoundingClientRect().width === 0) return;
     for (const lane of canvasElement.querySelectorAll<HTMLElement>('#timeline [data-lane^="t-"]')) {

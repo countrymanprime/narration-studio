@@ -198,6 +198,26 @@ describe('AnalysisToolsSection', () => {
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('installed'), SLOW);
   });
 
+  it('Try again pressed the moment a failure is drawn still starts the download', async () => {
+    const { fake } = mount({ installs: { gliner: { fails: 'Not enough disk space.' } } });
+    await download('gliner', 'GLiNER');
+    const gliner = await row('gliner');
+    // A mutation observer runs in the microtask after the commit that draws the failure, before React runs that commit's effects:
+    // the narrowest moment a click can land, and the one a loaded runner reaches.
+    await new Promise<void>((resolve) => {
+      const observer = new MutationObserver(() => {
+        const retry = within(gliner).queryByRole('button', { name: 'Try GLiNER again' });
+        if (!retry) return;
+        observer.disconnect();
+        fake.plan('gliner', 'completes');
+        fireEvent.click(retry);
+        resolve();
+      });
+      observer.observe(gliner, { subtree: true, childList: true, attributes: true });
+    });
+    await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('installed'), SLOW);
+  });
+
   it('one-registry-two-faces', async () => {
     const fake = createFakeTools();
     const api = createMockApi({ ...fake.port });

@@ -1973,6 +1973,28 @@ def main():
         help="With --coverage: report passages whose words Whisper gave a probability under this (0 to 1) as COVERAGE_UNSURE lines (default: none)",
     )
     ap.add_argument(
+        "--recheck-model",
+        default=None,
+        help="With --coverage and --unsure-below: pipeline the model cascade in this one process: as the first pass (--model) finishes each item, "
+        "this larger model re-checks its doubtful passages and splices them into the item's words file; one alignment runs when both are done",
+    )
+    ap.add_argument(
+        "--recheck-model-dir", default=None, help="With --recheck-model: the local, already-verified directory of that model (the host's asset manager)"
+    )
+    ap.add_argument(
+        "--checked-by",
+        default=None,
+        help="With --coverage: the model cascade's larger model, when this stage is not the pipeline: a words file it made whole serves this "
+        "run as it is, and a passage it already re-checked is not reported unsure again, so a check of unchanged audio never redoes its work",
+    )
+    ap.add_argument(
+        "--cpus",
+        type=int,
+        default=0,
+        help="With --coverage: the most processors this run plans its workers for (0 = all of them); a background check leaves the rest to "
+        "the Booth's live tracking",
+    )
+    ap.add_argument(
         "--capabilities",
         action="store_true",
         help="Print every row this process has registered in ENGINES (batch ASR), by name (one JSON object: "
@@ -2089,9 +2111,15 @@ def _main_coverage(ap, args):
         ap.error("--unsure-below must be from 0 to 1")
     if args.chunk_overlap_seconds is not None and args.chunk_overlap_seconds < 0:
         ap.error("--chunk-overlap-seconds cannot be negative")
-    if args.chunk_seconds < 0 or args.parallel_workers < 0:
-        ap.error("--chunk-seconds and --parallel-workers cannot be negative")
+    if args.chunk_seconds < 0 or args.parallel_workers < 0 or args.cpus < 0:
+        ap.error("--chunk-seconds, --parallel-workers and --cpus cannot be negative")
+    if args.checked_by and (args.recheck or args.recheck_model):
+        ap.error("--checked-by is for a first pass or an align-only re-run, not with --recheck or --recheck-model")
 
+    if args.recheck_model and not args.unsure_below:
+        ap.error("--recheck-model needs --unsure-below above 0: the pipeline re-checks the passages the first pass doubts")
+    if args.recheck_model and (args.recheck or args.align_only):
+        ap.error("--recheck-model cannot be used with --recheck or --align-only")
     if args.recheck:
         if args.align_only:
             ap.error("--align-only cannot be used with --recheck")

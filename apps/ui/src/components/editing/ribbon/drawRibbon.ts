@@ -1,4 +1,5 @@
 import type { PeakColumn } from './peaksWindow';
+import { BAR_RADIUS, barLayout, barPosition, FULL_SCALE, grownHalf, halfHeight, playheadAt, type PeakScale } from './ribbonBars';
 import type { RibbonLayout } from './ribbonLayout';
 
 import { kindColour, type KindId } from '../../../kinds/kindMap';
@@ -10,6 +11,8 @@ const TINT_KIND: Record<TintKind, KindId> = { extra: 'extra', mis: 'misread', lo
 /** The colour tokens the canvas draws with, read from CSS when drawn (a canvas cannot resolve `var()` itself). */
 const RIBBON_TOKENS = {
   bars: '--waveform',
+  /** The bars not yet played while a playhead is drawn. The played ones keep `bars`. */
+  unplayed: '--non-text',
   tick: '--line-strong',
   band: '--info',
   playhead: '--accent',
@@ -45,13 +48,34 @@ export interface RibbonSize {
 /** A cut word has no length in the document; the gap marker is at least this wide (CSS pixels). */
 const MIN_GAP = 6;
 
-/** Draws the line's window: tints, selection band, bars from the peaks columns, ticks, hatched cut gaps, then the playhead. Sizes the canvas to the device pixel ratio. */
-export function drawRibbon(canvas: HTMLCanvasElement, size: RibbonSize, layout: RibbonLayout, columns: PeakColumn[], colors: RibbonColors): void {
+/** What moves in one frame. Without `animate` the bars are drawn at rest and the playhead where the host last said it was. */
+export interface RibbonFrame {
+  /** The frame clock in milliseconds, the beat's phase. */
+  nowMs: number;
+  /** Milliseconds since the host last published the playhead, to move it on between updates. */
+  sinceUpdateMs: number;
+  animate: boolean;
+}
+export const STILL_FRAME: RibbonFrame = { nowMs: 0, sinceUpdateMs: 0, animate: false };
+
+/** Draws the line's window: tints, selection band, rounded bars from the peaks columns (grown near the playhead), ticks, hatched cut gaps, then the playhead. Sizes the canvas to the device pixel ratio. */
+export function drawRibbon(
+  canvas: HTMLCanvasElement,
+  size: RibbonSize,
+  layout: RibbonLayout,
+  columns: PeakColumn[],
+  colors: RibbonColors,
+  frame: RibbonFrame = STILL_FRAME,
+  scale: PeakScale = FULL_SCALE,
+): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const { width, height, dpr } = size;
-  canvas.width = Math.round(width * dpr);
-  canvas.height = Math.round(height * dpr);
+  // Assigning a canvas's size clears and reallocates it, so it is set only when it changes, not on every animation frame.
+  const pxWidth = Math.round(width * dpr);
+  const pxHeight = Math.round(height * dpr);
+  if (canvas.width !== pxWidth) canvas.width = pxWidth;
+  if (canvas.height !== pxHeight) canvas.height = pxHeight;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
   const span = layout.t1 - layout.t0;
@@ -72,16 +96,8 @@ export function drawRibbon(canvas: HTMLCanvasElement, size: RibbonSize, layout: 
     ctx.restore();
   }
 
-  const mid = height / 2;
-  ctx.strokeStyle = colors.bars;
-  ctx.lineWidth = 1;
-  columns.forEach(([lo, hi], c) => {
-    const px = (c + 0.5) * (width / columns.length);
-    ctx.beginPath();
-    ctx.moveTo(px, mid - (hi / 127) * mid - 0.5);
-    ctx.lineTo(px, mid - (lo / 127) * mid + 0.5);
-    ctx.stroke();
-  });
+  const head = layout.playhead == null ? null : frame.animate ? playheadAt(layout.playhead, frame.sinceUpdateMs, layout.t1) : layout.playhead;
+  drawBars(ctx, width, height, columns, colors, head == null ? null : barPosition(head, layout.t0, layout.t1, columns.length), frame, scale);
 
   ctx.save();
   ctx.globalAlpha = 0.7;
@@ -113,12 +129,49 @@ export function drawRibbon(canvas: HTMLCanvasElement, size: RibbonSize, layout: 
     ctx.restore();
   }
 
-  if (layout.playhead != null) {
+  if (head != null) {
     ctx.strokeStyle = colors.playhead;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x(layout.playhead), 0);
-    ctx.lineTo(x(layout.playhead), height);
+    ctx.moveTo(x(head), 0);
+    ctx.lineTo(x(head), height);
     ctx.stroke();
   }
+}
+
+/**
+ * The bars, centred on the middle line. With a playhead (`headBar`, in bars) the played bars are `colors.bars` and the rest `colors.unplayed`, and, while
+ * animating, the bars near it grow toward the lane's edge (`grownHalf`). Each colour is one path, filled once. Without one every bar is `colors.bars`.
+ */
+function drawBars(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  columns: PeakColumn[],
+  colors: RibbonColors,
+  headBar: number | null,
+  frame: RibbonFrame,
+  scale: PeakScale,
+): void {
+  const mid = height / 2;
+  const { pitch, barWidth } = barLayout(width, columns.length);
+  const radius = Math.min(BAR_RADIUS, barWidth / 2);
+  const halfAt = (i: number): number => {
+    const half = halfHeight(columns[i], mid, scale);
+    return headBar == null ? half : grownHalf(half, mid - 0.5, i + 0.5 - headBar, !frame.animate);
+  };
+  // One path and one fill for each colour, not one stroke for each bar.
+  const fillBars = (colour: string, from: number, to: number): void => {
+    ctx.beginPath();
+    for (let i = from; i < to; i += 1) {
+      const half = halfAt(i);
+      ctx.roundRect(i * pitch, mid - half, barWidth, half * 2, radius);
+    }
+    ctx.fillStyle = colour;
+    ctx.fill();
+  };
+  // Bars whose centre the playhead has passed are played.
+  const split = headBar == null ? columns.length : Math.max(0, Math.min(columns.length, Math.ceil(headBar - 0.5)));
+  fillBars(colors.bars, 0, split);
+  if (split < columns.length) fillBars(colors.unplayed, split, columns.length);
 }

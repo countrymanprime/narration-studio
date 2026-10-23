@@ -30,7 +30,7 @@ func TestA3T08ProjectIdentity(t *testing.T) {
 	g.must("SelectNone")
 	g.must("SelectTime: Start=0 End=0 RelativeTo=ProjectStart")
 	g.must("AddLabel")
-	g.must(`SetTrackStatus: Name="Narration Utils"`) // acts on the selected track, which AddLabel made
+	g.must(`SetTrackStatus: Name="Narration Studio"`) // acts on the selected track, which AddLabel made
 	g.must(`SetLabel: Label=0 Text="[nu:project abc]"`)
 	g.must(fmt.Sprintf(`SaveProject2: Filename="%s"`, a))
 	time.Sleep(800 * time.Millisecond)

@@ -19,6 +19,8 @@ export function EditingPageProvider({ doc, children }: { doc: ChapterDoc; childr
   useEffect(() => {
     if (stale) dispatch({ type: 'reset' });
   }, [stale]);
+  // A new document means the words may have moved: the range keeps its words, not its exact times.
+  useEffect(() => dispatch({ type: 'dropSpan' }), [doc]);
   const selected = useMemo(() => selectedKeysOf(doc, state), [doc, state]);
   const value = useMemo(() => ({ doc, state, dispatch, selected }), [doc, state, selected]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

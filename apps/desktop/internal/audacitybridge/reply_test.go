@@ -137,13 +137,13 @@ func TestParseLabelsIsStrict(t *testing.T) {
 func TestParseTracks(t *testing.T) {
 	got, err := parseTracks(lines(`[ { "name":"Chapter 1", "focused":"true", "selected":"false", "kind":"wave", "start":0, "end":12.5,
  "pan":0, "volume":1, "channels":1, "solo":"false", "mute":"false" },
- { "name":"Narration Utils", "focused":0, "selected":1, "kind":"label" } ]`))
+ { "name":"Narration Studio", "focused":0, "selected":1, "kind":"label" } ]`))
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := []TrackInfo{
 		{Index: 0, Name: "Chapter 1", Kind: "wave", Focused: true, Start: 0, End: 12.5, Channels: 1, HasRange: true},
-		{Index: 1, Name: "Narration Utils", Kind: "label", Selected: true},
+		{Index: 1, Name: "Narration Studio", Kind: "label", Selected: true},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v\nwant %+v", got, want)

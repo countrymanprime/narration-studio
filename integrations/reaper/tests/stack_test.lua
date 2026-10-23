@@ -6,8 +6,8 @@
 
 local H = require('harness')
 
-local STACK_LABEL = 'Narration Utils: stack takes'
-local UNSTACK_LABEL = 'Narration Utils: unstack takes'
+local STACK_LABEL = 'Narration Studio: stack takes'
+local UNSTACK_LABEL = 'Narration Studio: unstack takes'
 local CUTS_KEY = 'narration_utils_cuts'
 local RECORD_KEY = 'narration_utils_stacked_from'
 

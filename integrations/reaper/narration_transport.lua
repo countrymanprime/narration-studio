@@ -4,6 +4,15 @@
 -- as the chunk argument. The read side (which tracks are armed, whether REAPER records) is chapter_track_state in
 -- narration_track_state.lua; this file holds only the commands that change the transport or the arms.
 --
+-- The same file holds the four commands of the Editing page's transport sync (docs/design/editing-daw-transport-sync.md):
+-- set_cursor, play_from, stop_play and watch_transport. None adds an undo point or selects a track, and none touches a
+-- recording (each answers 'REAPER is recording. Stop recording first.'). set_cursor moves the edit cursor and never seeks
+-- playback. play_from puts the cursor at a time and starts the transport from it (a playing REAPER is seeked, a paused one
+-- is stopped first so Play starts at the time). stop_play stops a playing or paused transport. watch_transport takes a
+-- lease of 1 to 10 seconds and, while it holds, makes the tick loop send TRANSPORT|<empty run>|playState|playPosition|
+-- editCursor: at once when the play state changes or the cursor moves by more than a millisecond, and about four times a
+-- second while REAPER plays. A lease that is not renewed runs out, so a host that closed leaves no stream behind.
+--
 -- arm_only arms one track and disarms every other, remembering the arms the narrator had before the first arm_only.
 -- They are put back when a recording this bridge started stops, whether record_stop stops it or the narrator stops it
 -- in REAPER (a short defer watch notices), and only where an arm is still what arm_only left it: an arm the narrator
@@ -90,6 +99,114 @@ end
 local function finish(state)
   state.recording = nil
   return restore_arms(state)
+end
+
+-- A time in seconds written as plain decimal digits (no sign, exponent, hex or comma), at most MAX_SECONDS, or nil. The host
+-- writes seconds this way; anything else is refused so a mangled number never moves the cursor to 0.
+local MAX_SECONDS = 10000000
+local function seconds_from(text)
+  if type(text) ~= 'string' or not (text:match('^%d+$') or text:match('^%d+%.%d+$')) or #text > 24 then
+    return nil
+  end
+  local value = tonumber(text)
+  if not value or value > MAX_SECONDS then
+    return nil
+  end
+  return value
+end
+local RECORDING = 'REAPER is recording. Stop recording first.'
+
+local function set_cursor(session_dir, run_id, text)
+  local seconds = seconds_from(text)
+  if not seconds then
+    event(session_dir, 'ERROR', run_id, 'The place to put the cursor is not a usable number of seconds.')
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  -- Scroll the view, do not seek playback: like go_to and punch_to, going somewhere is not an edit.
+  reaper.SetEditCurPos(seconds, true, false)
+  event(session_dir, 'CURSOR_SET', run_id, string.format('%.6f', seconds))
+end
+
+local function play_from(session_dir, run_id, text)
+  local seconds = seconds_from(text)
+  if not seconds then
+    event(session_dir, 'ERROR', run_id, 'The place to play from is not a usable number of seconds.')
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local play_state = reaper.GetPlayState()
+  if play_state % 2 == 1 then
+    reaper.SetEditCurPos(seconds, true, true)
+  else
+    if play_state ~= 0 then
+      -- Paused: Play would carry on from where it paused, not from the time.
+      reaper.OnStopButton()
+    end
+    reaper.SetEditCurPos(seconds, true, false)
+    reaper.OnPlayButton()
+  end
+  event(session_dir, 'TRANSPORT_PLAYING', run_id, string.format('%.6f', seconds))
+end
+
+local function stop_play(session_dir, run_id)
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  if reaper.GetPlayState() > 0 then
+    reaper.OnStopButton()
+  end
+  event(session_dir, 'TRANSPORT_STOPPED', run_id, string.format('%.6f', reaper.GetCursorPosition()))
+end
+
+-- The watch: the longest lease a host can take, how often a playing position is sent, and how far the cursor must move to count as moved.
+local MAX_LEASE_SECONDS = 10
+local POSITION_INTERVAL_SECONDS = 0.25
+local CURSOR_EPSILON = 0.001
+
+local function watch_transport(session_dir, state, run_id, text)
+  local lease = seconds_from(text)
+  if not lease or lease <= 0 then
+    event(session_dir, 'ERROR', run_id, 'The watch lease is not a usable number of seconds.')
+    return
+  end
+  lease = math.min(lease, MAX_LEASE_SECONDS)
+  local expires = reaper.time_precise() + lease
+  if state.watch then
+    state.watch.expires = expires
+  else
+    state.watch = { expires = expires }
+  end
+  event(session_dir, 'TRANSPORT_WATCHING', run_id, string.format('%d', math.floor(lease + 0.5)))
+end
+
+-- One tick of the watch, called by the bridge's tick loop after the commands: sends TRANSPORT when the play state changed, the
+-- cursor moved, or REAPER has been playing for POSITION_INTERVAL_SECONDS since the last one, and drops the watch once its lease is up.
+local function watch_tick(session_dir, state)
+  local watch = state.watch
+  if not watch then
+    return
+  end
+  local now = reaper.time_precise()
+  if now >= watch.expires then
+    state.watch = nil
+    return
+  end
+  local play_state, cursor = reaper.GetPlayState(), reaper.GetCursorPosition()
+  local changed = watch.sent_at == nil or play_state ~= watch.play_state or math.abs(cursor - watch.cursor) > CURSOR_EPSILON
+  local due = play_state % 2 == 1 and watch.sent_at ~= nil and (now - watch.sent_at) >= POSITION_INTERVAL_SECONDS
+  if not (changed or due) then
+    return
+  end
+  watch.play_state, watch.cursor, watch.sent_at = play_state, cursor, now
+  event(session_dir, 'TRANSPORT', '', play_state, string.format('%.6f', reaper.GetPlayPosition() or 0), string.format('%.6f', cursor))
 end
 
 local function arm_only(session_dir, state, run_id, guid_text)
@@ -269,6 +386,22 @@ return function(registry)
   registry.register('record_stop', function(ctx, args)
     record_stop(ctx.session_dir, state, args[1] or '')
   end)
+  registry.register('set_cursor', function(ctx, args)
+    set_cursor(ctx.session_dir, args[1] or '', args[2] or '')
+  end)
+  registry.register('play_from', function(ctx, args)
+    play_from(ctx.session_dir, args[1] or '', args[2] or '')
+  end)
+  registry.register('stop_play', function(ctx, args)
+    stop_play(ctx.session_dir, args[1] or '')
+  end)
+  registry.register('watch_transport', function(ctx, args)
+    watch_transport(ctx.session_dir, state, args[1] or '', args[2] or '')
+  end)
+  -- Called by the tick loop (narration_ui_bridge.lua) once a tick after the commands.
+  registry.transport_watch_tick = function(ctx)
+    watch_tick(ctx.session_dir, state)
+  end
   -- The recording this bridge started, or nil: narration_roll.lua restarts only that one (docs/reference/daw/capabilities.md).
   registry.transport_recording = function()
     return state.recording
