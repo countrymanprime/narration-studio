@@ -45,7 +45,7 @@ sequenceDiagram
   participant A as apps/desktop: internal/dawport/reaper review session
   participant TS as apps/desktop: internal/transcript Service
   participant H as apps/desktop: app.go autoConnectLoop and transcriptLoop
-  N->>L: Open REAPER (or the app opens it); Scripts/__startup.lua runs the startup script
+  N->>L: Open REAPER (or the app opens it), and Scripts/__startup.lua runs the startup script
   L->>L: create NarrationStudio/sessions/hub_id/commands
   L->>Br: run(session_dir), a reaper.defer tick loop
   H->>F: find the hub whose events.log changed in the last 15 s, attach it (dawautoconnect.go)
