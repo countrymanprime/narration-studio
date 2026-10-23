@@ -80,7 +80,7 @@ Method: each mock case is a row below, mapped to a real test by name and by read
 | bible-batch-a.test.tsx | `a name added to an entry takes the default source's pronunciation when there is one` | ported | sidecars/manuscript-guide/tests/test_manuscript_guide.py::test_a_new_aliass_pronunciation_prefers_the_narrators_default_source |  |
 | bible-batch-a.test.tsx | `there are no query / confirmed / researched states on names` | ported | apps/ui/src/components/storybible/source/source.test.tsx::no-query-states-anywhere |  |
 | bible-batch-a.test.tsx | `the Story Bible shows the source icon and name, and a menu of the data-driven sources switches it` | ported | apps/ui/src/components/storybible/source/source.test.tsx::tag-shows-icon-and-name |  |
-| bible-batch-a.test.tsx | `the Words tab shows the source of the word and switches it` | ported | apps/ui/src/components/script/page/rail/words/WordsTab.test.tsx::lists each flagged word with its say-value, source icon and status |  |
+| bible-batch-a.test.tsx | `the Words tab shows the source of the word and switches it` | ported | apps/ui/src/components/script/page/rail/words/WordsTab.test.tsx::lists each flagged word with a play button and source icon, no phonetic text and no status; Enter or a click selects it |  |
 | bible-batch-a.test.tsx | `"Use" on a definition records the definition source` | ported | apps/ui/src/components/script/page/rail/words/WordsTab.test.tsx::Use fills the input with the definition |  |
 | bible-batch-a.test.tsx | `nameOwner finds another entry with the name, ignoring case; the add is refused` | mock-only |  | GAP G15: the real alias box looks for a matching entry as the narrator types (GuideDetail.tsx aliasMatches); no test checks the match ignores case or that the add is refused. |
 | bible-batch-a.test.tsx | `combines names and say-values, re-points relationships by id, and is one undo` | mock-only |  | GAP G14: the real Merge deletes the source after a confirm and has no Undo; no test checks the names and say-values combine or that relationships re-point. |
@@ -133,7 +133,7 @@ Each agreed ruling whose behaviour a real test asserts. The test cell is the bes
 | SB-9 | apps/ui/src/components/storybible/GuideDetail.actions.test.tsx::chip-with-the-count-filters: counts the flagged and the to-verify entries once and filters to them |
 | SB-12 | apps/ui/src/components/storybible/AppearsIn.test.tsx::names the chapters and opens one in Script |
 | SB-13 | apps/ui/src/components/script/page/rail/threads/ThreadsTab.test.tsx::Reply appends as the author, Resolve and Reopen toggle the status |
-| SB-14 | apps/ui/src/components/script/page/ScriptPage.test.tsx::Bookmark here adds a ribbon, opens its editor, lists it in the tab, and Next and Previous move between bookmarks, wrapping |
+| SB-14 | apps/ui/src/components/script/page/ScriptPage.test.tsx::Bookmark here adds a ribbon, opens its editor, and Next and Previous move between bookmarks, wrapping |
 
 Agreed rulings with no row, and why:
 
