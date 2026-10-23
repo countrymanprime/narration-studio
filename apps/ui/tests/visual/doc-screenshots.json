@@ -1100,6 +1100,13 @@
   },
   {
     "page": "booth",
+    "state": "search-shown",
+    "viewport": "desktop",
+    "docName": "booth-search",
+    "caption": "Booth after a search for \"the\": every match in the text is tinted and the chosen one is ringed and being read"
+  },
+  {
+    "page": "booth",
     "state": "pickup-session",
     "viewport": "desktop",
     "docName": "booth-pickup-session",

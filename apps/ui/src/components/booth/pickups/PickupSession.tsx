@@ -1,6 +1,5 @@
 import { createContext, useContext } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
-import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -44,19 +43,20 @@ function PickupCard({
       <div className="flex items-center gap-2">
         <StatusBadge tone={statusTone(state)} label={statusLabel(state)} />
         {automatic ? <StatusBadge tone="neutral" label="Automatic" shape="tag" /> : null}
-        <span className="min-w-0 flex-1 truncate text-right font-mono text-xs text-[var(--text-muted)]">{rowLabel(line, chapterLabel)}</span>
+        <span className="flex-1" />
         {automatic && !line.done ? <IconButton action="close" label={`Dismiss: ${line.script}`} size="sm" onClick={() => void onDismiss(line.id)} /> : null}
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
+      {/* native-control-ok: the whole card body is one jump target, set as running text, which Button's padded chrome would box in */}
+      <button
+        type="button"
         data-pj={line.id}
         aria-current={current ? 'true' : undefined}
         onClick={() => onJump(line.id)}
-        className="h-auto min-w-0 justify-start py-1 text-left font-normal normal-case"
+        className="flex w-full cursor-pointer flex-col gap-0.5 rounded-md border-0 bg-transparent p-0 pr-2 text-left text-sm text-[var(--text)]"
       >
-        <span className={`line-clamp-2 min-w-0 whitespace-normal ${line.done && !current ? 'text-[var(--text-muted)]' : ''}`}>{line.script}</span>
-      </Button>
+        <span className="font-mono text-xs text-[var(--text-muted)]">{rowLabel(line, chapterLabel)}</span>
+        <span className={`line-clamp-3 ${line.done && !current ? 'text-[var(--text-muted)]' : ''}`}>{line.script}</span>
+      </button>
     </InsetCard>
   );
 }

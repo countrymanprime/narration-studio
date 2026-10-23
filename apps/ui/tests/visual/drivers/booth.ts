@@ -277,7 +277,7 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page);
     await page.keyboard.press('Control+f');
     await page.getByRole('combobox', { name: 'Jump menu' }).fill('the');
-    await page.getByText('In this chapter', { exact: true }).first().waitFor();
+    await page.getByRole('listbox', { name: 'Jump menu results' }).getByText('In this chapter', { exact: true }).waitFor();
     await page.getByRole('option', { name: /¶/ }).nth(2).click();
     await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
     await page.locator('[data-booth-text] [data-find="current"]').first().waitFor();
