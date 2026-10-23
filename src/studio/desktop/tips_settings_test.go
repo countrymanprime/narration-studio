@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/layout"
+	"desktop/internal/settings"
 )
 
 // The first-use tips the narrator has dismissed are one global setting: saved and read back for the narrator, and refused for a project,
