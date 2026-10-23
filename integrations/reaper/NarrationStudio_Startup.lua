@@ -4,9 +4,16 @@
 -- be opened for anything, and the app finds this bridge by its heartbeat when it opens. It also puts the launcher in the action
 -- list, so the narrator can open the app from REAPER.
 
+-- This file is run by dofile from Scripts/__startup.lua, so the action context names __startup.lua, not this file: the chunk's own
+-- source names the folder.
 local function script_dir()
-  local _, path = reaper.get_action_context()
-  return path:match('^(.*)[\\/]') or '.'
+  local source = debug and debug.getinfo and debug.getinfo(1, 'S').source or ''
+  local path = source:match('^@(.+)$')
+  if not path then
+    local _, action_path = reaper.get_action_context()
+    path = action_path
+  end
+  return (path or ''):match('^(.*)[\\/][^\\/]-$') or '.'
 end
 
 local SHARED = script_dir()

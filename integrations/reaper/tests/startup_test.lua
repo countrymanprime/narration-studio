@@ -29,7 +29,8 @@ local function installed(options)
   local fake = Fake.new(host)
   fake.os_name = options.os_name or 'Linux64'
   fake.resource_path = resource
-  fake.action_path = H.join(scripts, 'NarrationStudio_Startup.lua')
+  -- __startup.lua runs the startup script by dofile, so the running action is __startup.lua, one folder up.
+  fake.action_path = H.join(H.join(resource, 'Scripts'), '__startup.lua')
   fake.project_path = H.join(H.join(root, 'Projects'), 'Book.rpp')
   reaper = fake.reaper
   return fake, scripts, app
