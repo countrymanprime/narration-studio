@@ -282,7 +282,7 @@ export function EditingBody(props: EditingBodyProps) {
   // Ranges: delete and mute, FX, accept.
   const cut = useCutWords({ journal, chapterId, chapterName, cuts: read.cuts, locator, onCuts: props.onCuts });
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
-  const accept = useAcceptWords({ journal, chapterId, onChange: props.onAccepted });
+  const accept = useAcceptWords({ journal, chapterId, doc, onChange: props.onAccepted });
   // Mark the selected words as how a character sounds: the dialog plays a range of its own, so the page's playback stops as it opens.
   const voice = useVoiceSample({ chapterId, workspace: read.workspace, items: read.items, mediaUrl: tracks.mediaUrl, stopPlayback: playback.stop });
   // The dots after the last word of each marked range, with a play control for each sample: a sample plays in the app's own audio, so the page's own playback stops when one starts.

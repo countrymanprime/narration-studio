@@ -21,7 +21,10 @@ export interface CleanupRow {
   /** Source-file seconds of the same window, when the analyzer had them. */
   sourceStart?: number;
   sourceEnd?: number;
-  /** The narrator already accepted it. */
+  /**
+   * Nothing is left to apply: the latest measurement did not find it again, or (a gap) the chapter's cuts already trimmed it. An
+   * accepted finding is not done: the findings contract's `accepted` is "real and needs fixing" (findings-contract.md).
+   */
   done: boolean;
   /** The ids of the findings this row stands for (a finding and a candidate of the same sound). */
   ids: string[];
@@ -42,7 +45,10 @@ function kindOf(finding: Finding): CleanupKind | null {
   return null;
 }
 
-function rowOf(finding: Finding, kind: CleanupKind): CleanupRow | null {
+/** Whether the chapter's cuts already hold a trim of this gap (`useCleanupDeps`'s `trimmed`). */
+export type TrimmedCheck = (row: Pick<CleanupRow, 'itemGuid' | 'sec' | 'end'>) => boolean;
+
+function rowOf(finding: Finding, kind: CleanupKind, trimmed?: TrimmedCheck): CleanupRow | null {
   const range = finding.time_range;
   if (!range || finding.review.status === 'dismissed') return null;
   const dur = num(finding.evidence?.['duration_seconds']) ?? range.end - range.start;
@@ -60,17 +66,17 @@ function rowOf(finding: Finding, kind: CleanupKind): CleanupRow | null {
     ...(takeGuid ? { takeGuid } : {}),
     ...(range.source_start !== undefined ? { sourceStart: range.source_start } : {}),
     ...(range.source_end !== undefined ? { sourceEnd: range.source_end } : {}),
-    done: finding.review.status === 'accepted',
+    done: finding.not_in_latest_run === true || (kind === 'gaps' && trimmed?.({ itemGuid, sec: range.start, end: range.end }) === true),
     ids: [finding.id],
   };
 }
 
 /** Every row of this operation among the findings, in time order, a finding and a candidate of one sound as one row. */
-export function cleanupRows(findings: readonly Finding[], kind: CleanupKind): CleanupRow[] {
+export function cleanupRows(findings: readonly Finding[], kind: CleanupKind, trimmed?: TrimmedCheck): CleanupRow[] {
   const rows: CleanupRow[] = [];
   for (const finding of findings) {
     if (kindOf(finding) !== kind) continue;
-    const row = rowOf(finding, kind);
+    const row = rowOf(finding, kind, trimmed);
     if (!row) continue;
     const twin = rows.find((r) => r.itemGuid === row.itemGuid && Math.abs(r.sec - row.sec) < SAME_SOUND);
     if (!twin) {
@@ -90,12 +96,12 @@ function passes(kind: CleanupKind, params: CleanupParams, row: CleanupRow): bool
 }
 
 /** The rows the list shows: those that pass the thresholds, and those already done. */
-export const proposals = (findings: readonly Finding[], kind: CleanupKind, params: CleanupParams): CleanupRow[] =>
-  cleanupRows(findings, kind).filter((r) => r.done || passes(kind, params, r));
+export const proposals = (findings: readonly Finding[], kind: CleanupKind, params: CleanupParams, trimmed?: TrimmedCheck): CleanupRow[] =>
+  cleanupRows(findings, kind, trimmed).filter((r) => r.done || passes(kind, params, r));
 
 /** How many findings of each operation pass its thresholds and are not yet done. */
-export function countsOf(findings: readonly Finding[], params: Record<CleanupKind, CleanupParams>): Record<CleanupKind, number> {
-  return Object.fromEntries(CLEANUP_OPS.map((o) => [o.kind, proposals(findings, o.kind, params[o.kind]).filter((r) => !r.done).length])) as Record<
+export function countsOf(findings: readonly Finding[], params: Record<CleanupKind, CleanupParams>, trimmed?: TrimmedCheck): Record<CleanupKind, number> {
+  return Object.fromEntries(CLEANUP_OPS.map((o) => [o.kind, proposals(findings, o.kind, params[o.kind], trimmed).filter((r) => !r.done).length])) as Record<
     CleanupKind,
     number
   >;

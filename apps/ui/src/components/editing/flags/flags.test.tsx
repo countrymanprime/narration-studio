@@ -100,7 +100,7 @@ describe('accepting records the words and Undo puts the flag back', () => {
     );
   }
   function Inner({ journal, chapterId, keys }: { journal: Journal; chapterId: string; keys: string[] }) {
-    const accept = useAcceptWords({ journal, chapterId });
+    const accept = useAcceptWords({ journal, chapterId, doc });
     return <button onClick={() => void accept(keys)}>go</button>;
   }
 
@@ -122,6 +122,49 @@ describe('accepting records the words and Undo puts the flag back', () => {
     });
     expect(unaccept).toHaveBeenCalledWith('c1', ['p-1:7']);
     expect(changed).not.toHaveBeenCalled();
+  });
+
+  it('marks the Proof note on the same words fine as read, and Undo puts it back as it was', async () => {
+    const api = createMockApi();
+    const word = doc.items.find((i) => i.kind === 'w')!;
+    const note = (await api.findingsList({})).findings[0]!;
+    const linked = {
+      ...note,
+      id: 'linked',
+      category: 'transcript_discrepancy',
+      review: { status: 'accepted' as const, note: 'check this' },
+      manuscript: { chapter_id: 'c1', expected: word.text, span: { paragraph_id: word.pid } },
+    };
+    vi.spyOn(api, 'findingsList').mockResolvedValue({ findings: [linked], total: 1 });
+    const review = vi
+      .spyOn(api, 'findingsReview')
+      .mockImplementation(async (request) => ({ ...linked, review: { status: request.status, note: request.note } }));
+    vi.spyOn(api, 'editingAccept').mockResolvedValue({ chapterId: 'c1', words: [], changed: [word.key] });
+    vi.spyOn(api, 'editingUnaccept').mockResolvedValue({ chapterId: 'c1', words: [], changed: [word.key] });
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    render(<Harness journal={journal} chapterId="c1" keys={[word.key]} api={api} />);
+    fireEvent.click(screen.getByText('go'));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalled());
+    expect(toastUndo.mock.calls[0][0]).toBe('Not flagged any more. The note on Proof is fine as read.');
+    expect(review).toHaveBeenCalledWith({ id: 'linked', evidenceVersion: linked.evidence_version ?? '', status: 'dismissed', note: 'check this' });
+    await act(async () => {
+      expect((await toastUndo.mock.calls[0][1]()).ok).toBe(true);
+    });
+    expect(review).toHaveBeenLastCalledWith({ id: 'linked', evidenceVersion: linked.evidence_version ?? '', status: 'accepted', note: 'check this' });
+  });
+
+  it('keeps the accept when the note cannot be read, and says the note on Proof was not changed', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'findingsList').mockRejectedValue(new Error('The findings could not be read.'));
+    vi.spyOn(api, 'editingAccept').mockResolvedValue({ chapterId: 'c1', words: [], changed: ['p-1:7'] });
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    render(<Harness journal={journal} chapterId="c1" keys={['p-1:7']} api={api} />);
+    fireEvent.click(screen.getByText('go'));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalled());
+    expect(toastUndo.mock.calls[0][0]).toBe('Not flagged any more. The note on Proof was not changed: The findings could not be read.');
+    expect((await journal.entries()).length).toBe(1);
   });
 
   it('the card’s accept buttons call accept with the word’s keys, then close', () => {
