@@ -202,12 +202,14 @@ jobs:
     # The split is by measured time (scripts/ci/visual-shards.mjs and apps/ui/tests/visual/shard-weights.json), not by test count:
     # Playwright's --shard cut the list into equal counts, and the shards ran 12 m 14 s to 14 m 22 s with `aria` on the longest.
     # The split puts `aria` (about 49 s) on whichever shard the balance wants.
-    # 20 minutes: shards 1 and 2 ran 12.7 to 14.5 minutes of a 15 minute limit and then timed out once the overlay guard
-    # (a test per overlay, window size and position, for every page that adopts it) grew.
+    # 30 minutes: shards 1 and 2 ran 12.7 to 14.5 minutes of a 15 minute limit and then timed out once the overlay guard
+    # (a test per overlay, window size and position, for every page that adopts it) grew. A 20 minute limit then cancelled passing
+    # shards on 2026-10-23: `setup-playwright` (the system libraries, `playwright install --with-deps`) took 7.5 minutes on a slow
+    # runner and left about 12 for the screenshots.
     name: ui-visual (shard ${{ matrix.shard }}/3)
     needs: scope
     if: inputs.full && needs.scope.outputs.ui == 'true'
-    timeout-minutes: 20
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -295,10 +297,11 @@ jobs:
     # The component library: every Storybook story x light/dark x wide/narrow, with play() interactions, axe accessibility
     # and overflow checks (apps/ui/tests/atlas). Half the stories per job (Playwright --shard): one job took 6.4 min. Each
     # story is judged on its own, so the shards need nothing merged. `pnpm atlas` builds Storybook first (seconds).
+    # 25 minutes: the same slow `setup-playwright` as the visual shards (up to 7.5 minutes) cancelled passing runs at 15.
     name: ui-atlas (shard ${{ matrix.shard }}/2)
     needs: scope
     if: inputs.full && needs.scope.outputs.ui == 'true'
-    timeout-minutes: 15
+    timeout-minutes: 25
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
