@@ -1,4 +1,5 @@
 // How to reach each `global` state in STATE_CATALOG (see app.drivers.ts).
+import { settlePage } from '../helpers/settle';
 import { type Driver, chooseTheme, clickVisible, compareRun, confirmDialog, freezeClock, goToPage, openProofChapter } from './shared';
 
 export const globalDrivers: Record<string, Driver> = {
@@ -52,6 +53,28 @@ export const globalDrivers: Record<string, Driver> = {
     // Base UI's scroll lock only reserves a scrollbar gutter on <html> when the document itself can scroll:
     // with the document locked, a modal over Story Bible must leave no inline scrollbar-gutter behind.
     await page.waitForFunction(() => document.documentElement.style.scrollbarGutter === '');
+  },
+  'background-check-notice': async (page) => {
+    await page.goto('/?mockBackgroundChecks=confirm');
+    await settlePage(page);
+    await page.getByRole('alertdialog', { name: 'Check recordings in the background?' }).waitFor();
+  },
+  'background-check-running': async (page) => {
+    await page.goto('/?mockBackgroundChecks=running');
+    await settlePage(page);
+    await goToPage(page, 'Editing');
+    await page
+      .getByRole('region', { name: 'Background recording check' })
+      .getByText(/in the background · 42%/)
+      .waitFor();
+  },
+  'background-check-waiting': async (page) => {
+    await page.goto('/?mockBackgroundChecks=waiting');
+    await settlePage(page);
+    await page
+      .getByRole('region', { name: 'Background recording check' })
+      .getByText(/waiting to be checked/)
+      .waitFor();
   },
   'shortcut-sheet': async (page) => {
     await goToPage(page, 'Production');

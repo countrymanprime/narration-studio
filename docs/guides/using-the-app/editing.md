@@ -74,8 +74,15 @@ not in the saved project, or the track is empty) and opens the audio engine pane
 the built-in recorder there is no track to link, so the banner points at recording the chapter in the Booth. A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
 **Check recording** button beside it that opens the chapter's recording check. Close the check and the page reads the chapter again, so
-what it found shows without a reload. The check never starts on its own. The check's **Check options** (a closed section in its panel) are the same
+what it found shows without a reload. Opening Editing never starts a check. The check's **Check options** (a closed section in its panel) are the same
 choices as [Check recordings](production.md#checking-a-chapters-recording) offers.
+
+A chapter you recorded since its last check may be checked in the background, whatever page is open
+([Checking what you recorded](booth.md#checking-what-you-recorded)). While one runs, the bottom left of the page names the
+chapter, how far it has got, the models and how many chapters wait, with **Pause** and **Cancel**. When it finishes, the
+words it heard show the next time you open the chapter.
+
+![Editing - a background check in progress at the bottom left, with Pause and Cancel](../../images/ui/background-check-running.webp)
 
 ## Selecting words
 

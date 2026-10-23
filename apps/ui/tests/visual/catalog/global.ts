@@ -27,6 +27,22 @@ export const globalStates: StateEntry[] = [
     description: 'Global confirm dialog overlay',
     sameAs: { of: 'storybible/delete-confirm', reason: 'The global overlay is captured by opening the same delete-entity confirm dialog.' },
   },
+  // Background recording checks (#2251): the first-time notice, a check in progress shown on another page, and chapters waiting.
+  {
+    page: 'global',
+    state: 'background-check-notice',
+    description: 'The first-time "Check recordings in the background?" notice, naming the models before anything starts',
+  },
+  {
+    page: 'global',
+    state: 'background-check-running',
+    description: 'A background check in progress on the Editing page: chapter, percent, models and what waits, with Pause and Cancel, bottom left',
+  },
+  {
+    page: 'global',
+    state: 'background-check-waiting',
+    description: 'Two chapters waiting for a background check while REAPER records, bottom left, with Pause',
+  },
   {
     page: 'global',
     state: 'shortcut-sheet',
