@@ -25,6 +25,7 @@ export const IDENTITY_KEYS = {
   audacityLabelTrack: "the label track the app makes in narrators' Audacity projects and finds again by name, and the start of its take and backup track names",
   credentialEntropy: 'the DPAPI entropy of stored credentials; another value cannot read them back',
   envPrefix: 'the prefix of the environment variables the app and its scripts read',
+  productIdentifier: "the program's identity in its Windows manifest (assemblyIdentity) and Wails' build assets",
 };
 
 const NAME = /^[A-Z][A-Za-z0-9]*( [A-Z0-9][A-Za-z0-9]*)*$/;

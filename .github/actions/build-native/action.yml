@@ -1,5 +1,5 @@
 name: Build native package
-description: Build the Wails app on the current runner and package it as release-assets/narration-studio-<version>-<platform>.<ext> with a .sha256 beside it (Windows also gets its setup program and notices)
+description: Build the Wails app on the current runner and package it as release-assets/<prefix>-<version>-<platform>.<ext> with a .sha256 beside it (Windows also gets its setup program and notices)
 
 inputs:
   platform:
@@ -37,11 +37,11 @@ runs:
         node scripts/release/sync-version.mjs
     - name: Clear frontend dist placeholder
       shell: bash
-      run: rm -rf src/studio/desktop/cmd/narration-studio/frontend/dist
+      run: rm -rf src/studio/desktop/cmd/app/frontend/dist
     - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: ui-dist
-        path: src/studio/desktop/cmd/narration-studio/frontend/dist
+        path: src/studio/desktop/cmd/app/frontend/dist
     # The Windows setup program is compiled with NSIS by scripts/release/wails-build.mjs --installer (definition in
     # src/studio/desktop/build/windows/installer, docs/operations/ci-and-releases.md#the-windows-setup-program and 0200). The hosted runner does not ship makensis, so it is installed here at a
     # pinned version. The build fails if makensis is missing or no installer came out, so a runner image change cannot silently drop it.
@@ -160,7 +160,8 @@ runs:
       run: |
         mkdir -p "$SMOKE_CACHE"
         status=0
-        LOCALAPPDATA="$SMOKE_CACHE" src/studio/desktop/build/bin/narration-studio.exe --smoke --report "$SMOKE_REPORT" || status=$?
+        exe="$(node scripts/brand/env.mjs BRAND_EXECUTABLE)"
+        LOCALAPPDATA="$SMOKE_CACHE" "src/studio/desktop/build/bin/$exe.exe" --smoke --report "$SMOKE_REPORT" || status=$?
         # A GUI-subsystem program's stdout can be lost, so the report file is what is shown and summarised.
         if [ -f "$SMOKE_REPORT" ]; then
           cat "$SMOKE_REPORT"

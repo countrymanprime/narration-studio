@@ -26,7 +26,8 @@ const goName = (key) => key[0].toUpperCase() + key.slice(1);
 const quote = (value) => JSON.stringify(value);
 const singleQuote = (value) => `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
 
-/** Every generated file: its repo-relative path and its text for a brand. */
+/** Every generated file: its repo-relative path and its text for a brand (`render(brand, current)`; current is the file's text
+ * or null, for a target that patches a file it does not own whole). */
 export const TARGETS = [
   {
     path: 'src/studio/desktop/internal/brand/brand_gen.go',
@@ -75,6 +76,41 @@ export const TARGETS = [
       return `${lines.join('\n')}\n`;
     },
   },
+  {
+    // The installer's names (project.nsi includes this file): the program, the uninstall key, the setup file and the install folder.
+    path: 'src/studio/desktop/build/windows/installer/brand.nsh',
+    identityOnly: true,
+    render: (brand) => {
+      const define = (name, value) => `!define ${name} "${value}"`;
+      return `${[
+        `; This file is ${HEADER}`,
+        '; The installer reads the product name from wails.json (INFO_PRODUCTNAME); these are identity values and do not follow a rename.',
+        define('BRAND_EXECUTABLE', `${brand.identity.executable}.exe`),
+        define('BRAND_UNINSTALL_KEY', brand.identity.uninstallKey),
+        define('BRAND_SETUP_FILE', `${brand.identity.releaseAssetPrefix}-windows-x64-setup.exe`),
+        define('BRAND_INSTALL_FOLDER', brand.identity.installFolder),
+        define('BRAND_DATA_FOLDER', brand.identity.dataFolder),
+      ].join('\n')}\n`;
+    },
+  },
+  {
+    // The product facts of the desktop build (scripts/release/wails-build.mjs renders the version resource, manifest and installer
+    // defines from them). Only these fields follow the brand; the rest of the file, the version among it, is left as it is.
+    path: 'src/studio/desktop/wails.json',
+    render: (brand, current) => {
+      const product = JSON.parse(current ?? '{}');
+      product.name = brand.name;
+      product.outputfilename = brand.identity.executable;
+      product.info = {
+        ...product.info,
+        companyName: brand.name,
+        productName: brand.name,
+        copyright: `Copyright © ${brand.name}`,
+        productIdentifier: brand.identity.productIdentifier,
+      };
+      return `${JSON.stringify(product, null, 2)}\n`;
+    },
+  },
 ];
 
 // A brand region in a Markdown or HTML file: `<!-- brand:<key> -->value<!-- /brand -->`. The key is a path into the derived
@@ -103,8 +139,9 @@ export function staleFiles(root = REPOSITORY_ROOT, brand = loadBrand(root), file
   const stale = [];
   const read = (path) => (existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : null);
   for (const target of TARGETS) {
-    const text = target.render(brand);
-    if (read(target.path) !== text) stale.push({ path: target.path, text });
+    const current = read(target.path);
+    const text = target.render(brand, current);
+    if (current !== text) stale.push({ path: target.path, text });
   }
   for (const path of files.filter((file) => REGION_FILE.test(file))) {
     const current = read(path);

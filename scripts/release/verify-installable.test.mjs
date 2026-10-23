@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { loadBrand } from '../brand/brand.mjs';
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -36,7 +37,7 @@ function healthyTree() {
 }
 
 function verify(runtime) {
-  const result = spawnSync(process.execPath, [script], { env: { ...process.env, NARRATION_STUDIO_RUNTIME_DIR: runtime }, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [script], { env: { ...process.env, [`${loadBrand().identity.envPrefix}RUNTIME_DIR`]: runtime }, encoding: 'utf8' });
   return { status: result.status, output: `${result.stdout}${result.stderr}` };
 }
 

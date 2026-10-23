@@ -55,3 +55,6 @@ const CredentialEntropy = "narration-studio credentialstore v1"
 
 // EnvPrefix is the prefix of the environment variables the app and its scripts read. Identity: it does not follow a rename.
 const EnvPrefix = "NARRATION_STUDIO_"
+
+// ProductIdentifier is the program's identity in its Windows manifest (assemblyIdentity) and Wails' build assets. Identity: it does not follow a rename.
+const ProductIdentifier = "com.narrationstudio.app"

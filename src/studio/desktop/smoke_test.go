@@ -735,6 +735,15 @@ func TestTheReaperFileListIsEveryTopLevelLuaScriptOfTheIntegration(t *testing.T)
 	for _, match := range regexp.MustCompile(`'([^']+\.lua)'`).FindAllStringSubmatch(string(script), -1) {
 		buildTime = append(buildTime, match[1])
 	}
+	// The launcher and the startup script are named from the brand file there, as smokeReaperFiles names them from internal/brand.
+	for expression, name := range map[string]string{
+		"identity.reaperLauncher,":                        brand.ReaperLauncher,
+		"`${identity.reaperResourceFolder}_Startup.lua`,": brand.ReaperResourceFolder + "_Startup.lua",
+	} {
+		if strings.Contains(string(script), expression) {
+			buildTime = append(buildTime, name)
+		}
+	}
 	slices.Sort(buildTime)
 	if !slices.Equal(buildTime, listed) {
 		t.Fatalf("scripts/release/reaper-files.mjs %v differs from smokeReaperFiles %v", buildTime, listed)

@@ -1,15 +1,17 @@
 Unicode true
 
 ####
-## The Narration Studio installer. `scripts/release/wails-build.mjs --installer` compiles it with makensis on Wails v3
+## The app's installer. `scripts/release/wails-build.mjs --installer` compiles it with makensis on Wails v3
 ##: it renders wails_tools.nsh for the release version on every build (it is generated and not checked in) with
 ## `wails3 update build-assets`, and this file includes it, so only what must differ from the Wails default is here:
 ##
 ##  - Per user. No administrator prompt; the program goes under %LOCALAPPDATA%\Programs and the uninstall entry under HKCU. The app
 ##    replaces itself in place when it updates (docs/architecture/in-app-update.md) and needs an install folder it can write to.
-##  - The program is narration-studio.exe, the name the REAPER launcher and the updater expect, not "Narration Studio.exe".
-##  - The setup file is built as narration-studio-windows-x64-setup.exe (scripts/release/assets.mjs, and a test keeps the two equal);
-##    packaging releases it as narration-studio-<version>-windows-x64-setup.exe, like every other release asset.
+##  - The program, the uninstall key, the setup file and the install folder are identity values from brand.nsh, which
+##    `pnpm run brand:sync` writes from config/brand.json: the program keeps the name the REAPER launcher and the updater expect,
+##    and a rename of the product does not move an install. The product name shown (INFO_PRODUCTNAME) comes from wails.json.
+##  - The setup file is built as <release asset prefix>-windows-x64-setup.exe (scripts/release/assets.mjs, and a test keeps the two
+##    equal); packaging releases it as <prefix>-<version>-windows-x64-setup.exe, like every other release asset.
 ##  - The Start Menu entries are always made: the app, and "for Audacity" (--daw Audacity, the Audacity launcher). The desktop
 ##    shortcut is a choice on the components page.
 ##  - The uninstaller removes only what the installer and the updater put in the install folder, never the folder's other contents
@@ -31,11 +33,12 @@ Unicode true
   !define REQUEST_EXECUTION_LEVEL "user"
 !endif
 !if "${WAILS_INSTALL_SCOPE}" != "user"
-  !error "Narration Studio installs per user: the updater must be able to replace the program in its folder."
+  !error "The app installs per user: the updater must be able to replace the program in its folder."
 !endif
-!define PRODUCT_EXECUTABLE "narration-studio.exe"
-!define UNINST_KEY_NAME "NarrationStudio"
-!define SETUP_FILE "narration-studio-windows-x64-setup.exe"
+!include "brand.nsh"
+!define PRODUCT_EXECUTABLE "${BRAND_EXECUTABLE}"
+!define UNINST_KEY_NAME "${BRAND_UNINSTALL_KEY}"
+!define SETUP_FILE "${BRAND_SETUP_FILE}"
 
 !include "wails_tools.nsh"
 
@@ -62,7 +65,7 @@ ManifestDPIAware true
 
 !define MUI_WELCOMEPAGE_TEXT "This installs ${INFO_PRODUCTNAME} ${INFO_PRODUCTVERSION} for your user account only. It needs no administrator rights.$\r$\n$\r$\nThis build is not signed, so Windows may have warned you before this window opened.$\r$\n$\r$\nClose ${INFO_PRODUCTNAME} first if it is running. Once installed, it updates itself from Settings, About and updates, after you click."
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXECUTABLE}"
-!define MUI_UNCONFIRMPAGE_TEXT_TOP "This removes ${INFO_PRODUCTNAME} and its shortcuts from this computer.$\r$\n$\r$\nIt leaves your settings (%APPDATA%\narration-studio), the voices and models you downloaded (%LOCALAPPDATA%\narration-studio) and everything in your project folders where they are. Delete those yourself if you want them gone."
+!define MUI_UNCONFIRMPAGE_TEXT_TOP "This removes ${INFO_PRODUCTNAME} and its shortcuts from this computer.$\r$\n$\r$\nIt leaves your settings (%APPDATA%\${BRAND_DATA_FOLDER}), the voices and models you downloaded (%LOCALAPPDATA%\${BRAND_DATA_FOLDER}) and everything in your project folders where they are. Delete those yourself if you want them gone."
 
 !insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
 !insertmacro MUI_PAGE_COMPONENTS # The desktop shortcut is optional.
@@ -77,7 +80,7 @@ ManifestDPIAware true
 
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\bin\${SETUP_FILE}" # Name of the installer's file.
-InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}" # Default installing folder, in the user's profile.
+InstallDir "$LOCALAPPDATA\Programs\${BRAND_INSTALL_FOLDER}" # Default installing folder, in the user's profile.
 InstallDirRegKey HKCU "${UNINST_KEY}" "InstallLocation" # An update of an existing install goes where it was installed.
 ShowInstDetails show # This will always show the installation details.
 ShowUninstDetails show
@@ -96,9 +99,6 @@ Section "${INFO_PRODUCTNAME} (required)"
 
     !insertmacro wails.files
 
-    # Versions before the rename named the entries "Narration Studio"; an install over one replaces them.
-    Delete "$SMPROGRAMS\Narration Studio.lnk"
-    Delete "$SMPROGRAMS\Narration Studio for Audacity.lnk"
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     # The Audacity launcher: Audacity cannot start a program, so this entry does it instead,
     # with exactly --daw Audacity. The narrator picks the project in the app.
@@ -113,7 +113,6 @@ SectionEnd
 
 Section "Desktop shortcut"
     !insertmacro wails.setShellContext
-    Delete "$DESKTOP\Narration Studio.lnk"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 SectionEnd
 
@@ -139,5 +138,5 @@ Section "uninstall"
     # Removes the folder only when nothing else is in it: the folder may be one the narrator chose and shares with other files.
     RMDir "$INSTDIR"
 
-    DetailPrint "Left in place: your settings (%APPDATA%\narration-studio), your downloaded voices and models (%LOCALAPPDATA%\narration-studio) and your project folders."
+    DetailPrint "Left in place: your settings (%APPDATA%\${BRAND_DATA_FOLDER}), your downloaded voices and models (%LOCALAPPDATA%\${BRAND_DATA_FOLDER}) and your project folders."
 SectionEnd

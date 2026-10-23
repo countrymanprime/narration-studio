@@ -23,5 +23,6 @@ export const brand = {
     audacityLabelTrack: 'Narration Studio',
     credentialEntropy: 'narration-studio credentialstore v1',
     envPrefix: 'NARRATION_STUDIO_',
+    productIdentifier: 'com.narrationstudio.app',
   },
 } as const;

@@ -36,7 +36,10 @@ from dataclasses import dataclass
 from importlib import metadata
 from pathlib import Path
 
-REPOSITORY = "https://github.com/countrymanprime/narration-studio"
+# The product name and repository (config/brand.json), so the notices follow a rename.
+_BRAND = json.loads((Path(__file__).resolve().parents[2] / "config" / "brand.json").read_text(encoding="utf-8"))
+PROGRAM = _BRAND["name"]
+REPOSITORY = f"https://github.com/{_BRAND['repository']['owner']}/{_BRAND['repository']['name']}"
 PROGRAM_LICENSE = "AGPL-3.0-or-later"
 SIDECARS = ("manuscript-guide", "transcript-compare", "manuscript-teleprompter")
 # The Python packages the sidecars import at run time, which the frozen bundle must therefore contain (pyproject.toml lists test and
@@ -480,10 +483,10 @@ def render_report(
             + ", ".join(bare)
         )
 
-    out = [f"THIRD-PARTY NOTICES\nnarration-studio {version}\n"]
+    out = [f"THIRD-PARTY NOTICES\n{PROGRAM} {version}\n"]
     out.append(_section("The program and where its source is"))
     out.append(
-        f"narration-studio is free software under the {PROGRAM_LICENSE} licence (the full text is at the end of this file).\n"
+        f"{PROGRAM} is free software under the {PROGRAM_LICENSE} licence (the full text is at the end of this file).\n"
         f"Source offer: the complete corresponding source of this release is published at {REPOSITORY}, at {where}\n"
         f"(a release candidate is tagged v{version}-rc, the promoted release v{version}). Anyone who receives this program may fetch it there, or ask for it by opening an\n"
         f"issue at {REPOSITORY}/issues. The version and the tag are the same as the ones the program prints with --version.\n"
@@ -492,7 +495,7 @@ def render_report(
     out.append(_section("Copyleft components"))
     if copyleft:
         out.append(
-            "These components are under a copyleft licence. Narration Studio is itself AGPL-3.0-or-later, so they are used under terms it\n"
+            "These components are under a copyleft licence. The program is itself AGPL-3.0-or-later, so they are used under terms it\n"
             "is compatible with, and their source is available: from the address on each entry, at the version named there, and with this\n"
             "program's own source above.\n\n" + "\n".join(f"  - {c.name} {c.version}: {names[c]}" for c in copyleft) + "\n"
         )
@@ -525,7 +528,7 @@ def render_report(
                 out.append(f"    Attribution: {item['attribution']}\n")
     else:
         out.append("None.\n")
-    out.append(_section(f"{PROGRAM_LICENSE}: the licence of narration-studio"))
+    out.append(_section(f"{PROGRAM_LICENSE}: the licence of {PROGRAM}"))
     out.append(program_license.strip() + "\n")
     return "".join(out)
 

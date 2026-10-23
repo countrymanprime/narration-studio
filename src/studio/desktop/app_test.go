@@ -25,8 +25,8 @@ import (
 )
 
 func TestResourceKeyChangesWithEmbeddedContent(t *testing.T) {
-	first := fstest.MapFS{"cmd/narration-studio/resources/config.json": {Data: []byte(`{"version":1}`)}}
-	second := fstest.MapFS{"cmd/narration-studio/resources/config.json": {Data: []byte(`{"version":2}`)}}
+	first := fstest.MapFS{"cmd/app/resources/config.json": {Data: []byte(`{"version":1}`)}}
+	second := fstest.MapFS{"cmd/app/resources/config.json": {Data: []byte(`{"version":2}`)}}
 
 	firstKey, err := resourceKeyFor(first)
 	if err != nil {

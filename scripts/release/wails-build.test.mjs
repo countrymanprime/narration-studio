@@ -16,6 +16,12 @@ import {
   versionFlag,
   withFourPartManifestVersion,
 } from './wails-build.mjs';
+import { loadBrand } from '../brand/brand.mjs';
+
+const BRAND = loadBrand();
+const PREFIX = BRAND.identity.releaseAssetPrefix;
+const EXE = `${BRAND.identity.executable}.exe`;
+const esc = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 test('the version flag stamps a bare semver into the Go variable the app reports', () => {
   assert.equal(versionFlag('0.2.7'), '-X main.version=0.2.7');
@@ -30,7 +36,7 @@ test('a release candidate and its promotion are the same bytes, so a version wit
 const product = JSON.parse(readFileSync(new URL('../../src/studio/desktop/wails.json', import.meta.url), 'utf8'));
 
 test('the Go build is a production build that always stamps the version', () => {
-  assert.deepEqual(goBuildArguments('0.2.7', 'linux', 'build/bin/narration-studio'), [
+  assert.deepEqual(goBuildArguments('0.2.7', 'linux', `build/bin/${PREFIX}`), [
     'build',
     '-tags',
     'production',
@@ -39,14 +45,14 @@ test('the Go build is a production build that always stamps the version', () => 
     '-ldflags',
     '-w -s -X main.version=0.2.7',
     '-o',
-    'build/bin/narration-studio',
+    `build/bin/${PREFIX}`,
     '.',
   ]);
 });
 
 // Without -H windowsgui a console window opens beside the app, and without the production tag WebView2's DevTools stay on.
 test('the Windows program is a window program with no console', () => {
-  const args = goBuildArguments('0.2.7', 'windows', 'build/bin/narration-studio.exe');
+  const args = goBuildArguments('0.2.7', 'windows', `build/bin/${EXE}`);
   assert.equal(args[args.indexOf('-ldflags') + 1], '-w -s -H windowsgui -X main.version=0.2.7');
   assert.equal(args[args.indexOf('-tags') + 1], 'production');
 });
@@ -56,9 +62,9 @@ test('a version with a suffix never reaches the Go build', () => {
 });
 
 // The REAPER launcher, the updater and the installer all look for exactly this name.
-test('the program is narration-studio, with .exe on Windows only', () => {
-  assert.equal(programName(product, 'windows'), 'narration-studio.exe');
-  assert.equal(programName(product, 'linux'), 'narration-studio');
+test(`the program is ${PREFIX}, with .exe on Windows only`, () => {
+  assert.equal(programName(product, 'windows'), `${EXE}`);
+  assert.equal(programName(product, 'linux'), `${PREFIX}`);
 });
 
 // Windows is the only shipped platform; Linux builds only as a development host.
@@ -74,7 +80,7 @@ test('the rendered build assets carry the product facts of wails.json and the re
   const value = (flag) => args[args.indexOf(flag) + 1];
   assert.deepEqual(args.slice(0, 2), ['update', 'build-assets']);
   assert.equal(value('-dir'), '/tmp/assets');
-  assert.equal(value('-binaryname'), 'narration-studio');
+  assert.equal(value('-binaryname'), `${PREFIX}`);
   assert.equal(value('-productname'), product.info.productName);
   assert.equal(value('-productcompany'), product.info.companyName);
   assert.equal(value('-productcopyright'), product.info.copyright);
@@ -83,17 +89,17 @@ test('the rendered build assets carry the product facts of wails.json and the re
 });
 
 test('a wails.json without a product fact the rendered files need is refused', () => {
-  assert.throws(() => buildAssetsArguments({ outputfilename: 'narration-studio', info: { productName: 'N' } }, '0.2.7', '/tmp'), /info\.companyName/);
+  assert.throws(() => buildAssetsArguments({ outputfilename: `${PREFIX}`, info: { productName: 'N' } }, '0.2.7', '/tmp'), /info\.companyName/);
 });
 
 // Wails v3's manifest template writes the product version as it is, and Windows refuses to start a program whose manifest
 // assemblyIdentity version is not four numbers.
 test('the Windows manifest gets the four-part version Windows requires', () => {
   const manifest =
-    '<assembly>\n    <assemblyIdentity type="win32" name="com.narrationstudio.app" version="0.2.7" processorArchitecture="*"/>\n' +
+    '<assembly>\n    <assemblyIdentity type="win32" name="com.example.app" version="0.2.7" processorArchitecture="*"/>\n' +
     '    <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*"/>\n</assembly>';
   const fixed = withFourPartManifestVersion(manifest, '0.2.7');
-  assert.match(fixed, /name="com\.narrationstudio\.app" version="0\.2\.7\.0"/);
+  assert.match(fixed, /name="com\.example\.app" version="0\.2\.7\.0"/);
   assert.match(fixed, /Common-Controls" version="6\.0\.0\.0"/);
   assert.throws(() => withFourPartManifestVersion('<assembly/>', '0.2.7'), /no assemblyIdentity/);
 });
@@ -108,7 +114,7 @@ test('an installer is expected exactly when the build was asked for one', () => 
 test('a build that asked for an installer and made none fails and says how to get makensis', () => {
   const bin = mkdtempSync(join(tmpdir(), 'wails-bin-'));
 
-  assert.throws(() => assertInstallerBuilt(['--installer'], bin), /narration-studio-windows-x64-setup\.exe.*makensis/s);
+  assert.throws(() => assertInstallerBuilt(['--installer'], bin), new RegExp(`${esc(PREFIX)}-windows-x64-setup\\.exe.*makensis`, 's'));
 });
 
 test('a build that asked for an installer and made it passes', () => {

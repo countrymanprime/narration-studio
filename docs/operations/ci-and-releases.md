@@ -276,7 +276,7 @@ names looks for `narration-studio-windows-x64.zip`, finds nothing on a newer rel
 
 ## The Windows setup program
 
-A narrator installs from `narration-studio-<version>-windows-x64-setup.exe`, an NSIS installer that the build script compiles on Wails v3 ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)).
+A narrator installs from `<prefix>-<version>-windows-x64-setup.exe` (the prefix is the brand's `releaseAssetPrefix`, today `<!-- brand:identity.releaseAssetPrefix -->narration-studio<!-- /brand -->`), an NSIS installer that the build script compiles on Wails v3 ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)).
 
 - **How it is built.** `.github/actions/build-native` passes `--installer` to `scripts/release/wails-build.mjs` on `windows-x64`, after a
   step that installs NSIS when `makensis` is not already on the runner: the official 3.11 zip from SourceForge, checked against a SHA-256 pinned in the step (the digest SourceForge lists for the file), with `choco install nsis` at the same version as the fallback, because the Chocolatey feed answered 503 for four minutes on 2026-10-19. The step fails when `makensis -VERSION` cannot run afterwards. The script
@@ -285,14 +285,18 @@ A narrator installs from `narration-studio-<version>-windows-x64-setup.exe`, an 
   `src/studio/desktop/build/windows/installer`. It removes a setup program left by an earlier build first and fails when `makensis` cannot start
   or the file is not there afterwards, and `assets.mjs package` refuses to package Windows without it. The log shows `makensis version:`
   and makensis's own `Output:` line, and the job summary lists the release files with their sizes.
-- **What it does.** Per user (no elevation, `%LOCALAPPDATA%\Programs\Narration Studio`, uninstall entry under `HKCU`), `narration-studio.exe`
-  as the program name, a Start Menu shortcut and a second one, "Narration Studio for Audacity", that passes `--daw Audacity` ([Audacity boundary](../architecture/daw-integration.md#audacity-boundary)),
+- **What it does.** Per user (no elevation, `%LOCALAPPDATA%\Programs\<install folder>`, uninstall entry under `HKCU`), `<executable>.exe`
+  as the program name, a Start Menu shortcut and a second one, "<product name> for Audacity", that passes `--daw Audacity` ([Audacity boundary](../architecture/daw-integration.md#audacity-boundary)),
   a desktop shortcut the narrator can untick, the WebView2 runtime installed by Microsoft's
   bootstrapper only when it is missing, and an uninstaller that removes the program, the update copies (`.new`, `.old`, `.failed`) and the
   shortcuts and leaves settings, downloaded assets, the WebView2 data and project folders alone. The definition is
   `src/studio/desktop/build/windows/installer/project.nsi`; `wails_tools.nsh` beside it is rendered on every installer build and is not checked in. The
   publisher, product name and version come from `src/studio/desktop/wails.json` (`info`), whose version `sync-version.mjs` keeps equal to the
-  release version.
+  release version and whose names `pnpm run brand:sync` keeps equal to `config/brand.json`. The program, the uninstall key, the setup
+  file and the install folder are identity values in `brand.nsh`, which the same sync writes beside `project.nsi`: a rename of the
+  product changes the names a narrator sees and not where an install lives. The workflows read the same values from
+  `node scripts/brand/env.mjs BRAND_EXECUTABLE` (one value per call, never through `$GITHUB_ENV`), so none spells the product's
+  name or an identity value.
 - **What CI showed on Wails v2** (the `Build (Windows)` job of pull request 224, 2026-09-21): `makensis` was not on the runner; the pinned step installed `nsis.install` 3.11.0 and printed `makensis version: v3.11`; Wails printed `Building 'amd64' installer: Done.`; the setup program was 196,676,207 bytes and the zip 195,290,110; the bootstrapper check printed `Valid, CN=Microsoft Corporation`. The NSIS step adds about 15 seconds and the installer build about a minute.
 - **Why per user.** The in-app updater renames the running program in its folder and never asks for elevation; under Program Files
   it would answer that it cannot replace itself. Per machine is not offered.

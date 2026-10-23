@@ -34,9 +34,10 @@ test('sync writes every target from another brand, and a second run changes noth
   mkdirSync(join(root, 'docs'));
   writeFileSync(join(root, 'docs', 'a.md'), 'Open <!-- brand:name -->Old Name<!-- /brand -->.\n');
   cpSync(join(REPOSITORY_ROOT, TARGETS[0].path), join(root, TARGETS[0].path));
+  cpSync(join(REPOSITORY_ROOT, 'src/studio/desktop/wails.json'), join(root, 'src/studio/desktop/wails.json'));
 
   assert.deepEqual(sync(root).sort(), [...TARGETS.map((target) => target.path), 'docs/a.md'].sort());
   assert.deepEqual(sync(root), []);
   assert.equal(readFileSync(join(root, 'docs', 'a.md'), 'utf8'), 'Open <!-- brand:name -->Zebra Audio Lab<!-- /brand -->.\n');
-  for (const target of TARGETS) assert.match(readFileSync(join(root, target.path), 'utf8'), /Zebra Audio Lab/, target.path);
+  for (const target of TARGETS.filter((t) => !t.identityOnly)) assert.match(readFileSync(join(root, target.path), 'utf8'), /Zebra Audio Lab/, target.path);
 });

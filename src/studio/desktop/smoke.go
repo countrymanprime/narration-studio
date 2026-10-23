@@ -58,7 +58,7 @@ import (
 const smokeFlag = "--smoke"
 
 // resourcesRoot is where the release resources sit inside the embedded file system (main.go).
-const resourcesRoot = "cmd/narration-studio/resources"
+const resourcesRoot = "cmd/app/resources"
 
 // smokeCommandTimeout bounds one sidecar command. A frozen sidecar starts in under a second; this is generous for a cold, scanned disk.
 const smokeCommandTimeout = 90 * time.Second
