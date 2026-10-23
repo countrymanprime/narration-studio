@@ -430,10 +430,11 @@ describe('Voice & pronunciation', () => {
     expect(await within(local).findByText('Installed')).toBeTruthy();
     fireEvent.click(within(local).getByRole('button', { name: 'Remove the local dictionary' }));
     expect(await within(local).findByText('Not installed')).toBeTruthy();
-    expect(notify).toHaveBeenCalledWith('Local dictionary removed.');
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Local dictionary removed.'));
     fireEvent.click(within(local).getByRole('button', { name: 'Download the local dictionary' }));
     expect(await within(local).findByText('Installed', {}, { timeout: 5000 })).toBeTruthy();
-    expect(notify).toHaveBeenCalledWith('Local dictionary downloaded.');
+    // The row can read Installed a tick before the toast is raised, so wait for the toast too.
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Local dictionary downloaded.'));
   });
 
   it('starts without the dictionary when the host has none installed', async () => {
