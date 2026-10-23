@@ -47,7 +47,7 @@ If "open" and "cleared" have one definition in one selector, the page, the rail 
 ## What We're NOT Building
 
 - Proofer CSV import or export, a proofer packet.
-- A full chapter player on Proof (Editing plays the whole chapter), play ±3 s and go-to-by-id (owner unclear), tone-match clip, print pickup script, a marker confirmation gate.
+- A full chapter player on Proof (Editing plays the whole chapter), go-to-by-id (owner unclear), tone-match clip, print pickup script, a marker confirmation gate. Play ±3 s was on this list; it is built (see Hear it, Show where and Fine as read below).
 - A new decision store: the findings store stays the audit log.
 - Punch or cursor move on Pickups (DQ-6): the existing Punch is deleted in the swap.
 - A Proof percent other than the mock's (DQ-16).
@@ -75,6 +75,7 @@ Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has 
 - **DQ-18.** Capability-driven take management for Audacity, as in the mock; is superseded to that extent.
 - **SN0-Q8.** Screenshots are compared against the Studio Next mock page.
 - **Applied by the SN-Q9 swap (2026-10-12).** The Studio Next mock replaced the old pages: (DQ-1), [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go) (DQ-16), [Codebase map](../architecture/codebase-map.md) (DQ-15) and (DQ-18) are superseded by the mock to the extent above. The proofer CSV import and export stay on Proof's notes, by the owner's "all defaults" ruling on #992.
+- **Hear it, Show where and Fine as read (2026-10-23, [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 26).** The owner's test found that Proof could not play a flagged note, so a note that sounded right could not be judged by ear. This supersedes the "play ±3 s (owner unclear)" line of What We're NOT Building and labels the mock's Waive. Proof decides, Pickups queues, Editing fixes, and a finding has the same three verbs on all three pages ([research note, section A](../research/proof-pickups-editing-split.md#a-what-each-page-can-do-with-a-finding-item-26)): **Hear it** plays the note with 3 s either side (Space, as the mock's Play ±3 s), looped in the DAW through `FindingsLoop` and in the app's player when the DAW cannot; **Show where** gives the time and the note's paragraph with the ones before and after; **Fine as read** is the mock's Waive, writing `dismissed`. Pickups, whose mock has neither, gains Show where under the selected line and **Fine, not a pickup** (the line's note dismissed, so the line leaves the list), beside the mock's "Go to the note in Proof"; this supersedes DQ-6's "only points to the Booth" to that extent.
 - **Process defaults, taken as recommended (2026-10-11).** "Waived" maps to `dismissed` with reason `waived` (no new status, no migration); "as of last save" is the DAW's `savedAt` ([DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md)).
 
 ## Users & Context

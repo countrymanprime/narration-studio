@@ -48,7 +48,6 @@ src/studio/desktop/build/windows/*
 !src/studio/desktop/build/windows/installer/
 src/studio/desktop/build/windows/installer/*
 !src/studio/desktop/build/windows/installer/project.nsi
-!src/studio/desktop/build/windows/installer/legacy.nsh
 .release-build/
 .nx/
 .test-tmp/

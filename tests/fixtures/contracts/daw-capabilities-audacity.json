@@ -198,6 +198,12 @@
       "message": "Experimental: switched off in Settings.",
       "reason": "experimental_off"
     },
+    "track_create": {
+      "available": false,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "reason": "experimental_off"
+    },
     "track_select": {
       "available": false,
       "level": "experimental",

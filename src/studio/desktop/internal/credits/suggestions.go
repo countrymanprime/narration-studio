@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
 )
 
 // SuggestFromManuscript seeds Title and Author suggestions from the current project's imported manuscript: a thin
@@ -42,8 +40,7 @@ func storedSourcePath(projectFolder, storedPath string) (string, bool) {
 		return "", false
 	}
 	sourcesDir := filepath.Join(projectFolder, "narration-studio", "manuscript", "sources")
-	// A manuscript imported before the rename stored the path under the data folder's old name.
-	resolved := filepath.Join(projectFolder, filepath.FromSlash(legacyname.ProjectRelative(storedPath)))
+	resolved := filepath.Join(projectFolder, filepath.FromSlash(storedPath))
 	relative, err := filepath.Rel(sourcesDir, resolved)
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return "", false

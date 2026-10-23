@@ -6,18 +6,18 @@
 
 | File | Role |
 | --- | --- |
-| `NarrationStudio_Launcher.lua` | The one REAPER action. Finds the app executable, starts it with the session directory, project and DAW arguments, then runs the bridge loop. Its name and path are stable: the narrator imports it into REAPER's action list. |
-| `narration_rename.lua` | Not a feature: before the first command for a project in a session, carries the app's P_EXT keys from the product's old name to `narration_studio_*`. The host keeps a shim under the launcher's old file name in the launcher folder from before the rename (`internal/legacyname`), so an action REAPER holds there keeps working. |
+| `NarrationStudio_Startup.lua` | Run by the app's block in `Scripts/__startup.lua` at every REAPER start ([`internal/reaperinstall`](../../src/studio/desktop/internal/reaperinstall/install.go) installs both). Starts the bridge loop on a new session without opening the app, and adds the launcher to the action list (`AddRemoveReaScript`). |
+| `NarrationStudio_Launcher.lua` | The REAPER action that opens the app. Finds the app executable and starts it with the session directory, project and DAW arguments. It reuses the bridge loop already running in this REAPER (`live_session`), or starts one. The app installs it into `Scripts/NarrationStudio/`, and the startup script adds it to the action list, so the narrator never imports it. |
 | `narration_ui_bridge.lua` | The command loop and the registry it dispatches through: polls `commands/` from a `reaper.defer` loop, looks each command up, appends results to `events.log`. Lists the feature files in `FEATURE_FILES` and loads them next to itself. |
 | `narration_bridge_core.lua` | Shared by the bridge and every feature file: the percent-encoding and field-splitting helpers, `event`, file and path helpers, and `new_registry()`. |
-| `narration_cleanup.lua`, `narration_compare.lua`, `narration_line_identity.lua`, `narration_pickups.lua`, `narration_render.lua`, `narration_project_state.lua`, `narration_retake_lanes.lua`, `narration_take_review.lua`, `narration_navigation.lua`, `narration_track_state.lua`, `narration_track_select.lua`, `narration_transport.lua`, `narration_workspace.lua`, `narration_regions.lua`, `narration_level_normalize.lua`, `narration_punch.lua`, `narration_master_render.lua`, `narration_takes.lua`, `narration_roll.lua`, `narration_range.lua`, `narration_media_file.lua` | The commands, one file per feature (the cleanup launchers; the cleanup preview markers and approved trims; the level-match gain; punch-to; the mastering chain read and FX render; Transcript Compare; manuscript line identity; the pickup list; per-chapter render configuration; the live project-change indicator; the retake-lane pick; take creation; going to and looping a finding, and adding its approved marker; the live transport and track state; selecting a chapter's track; arming and recording; the workspace's take and FX actions; chapter and credits regions; hiding other takes; rolling again while recording; cutting words and their audio; playing and showing a file on disk). |
+| `narration_cleanup.lua`, `narration_compare.lua`, `narration_line_identity.lua`, `narration_pickups.lua`, `narration_render.lua`, `narration_project_state.lua`, `narration_retake_lanes.lua`, `narration_take_review.lua`, `narration_navigation.lua`, `narration_track_state.lua`, `narration_track_select.lua`, `narration_track_create.lua`, `narration_transport.lua`, `narration_workspace.lua`, `narration_regions.lua`, `narration_level_normalize.lua`, `narration_punch.lua`, `narration_master_render.lua`, `narration_takes.lua`, `narration_roll.lua`, `narration_range.lua`, `narration_media_file.lua` | The commands, one file per feature (the cleanup launchers; the cleanup preview markers and approved trims; the level-match gain; punch-to; the mastering chain read and FX render; Transcript Compare; manuscript line identity; the pickup list; per-chapter render configuration; the live project-change indicator; the retake-lane pick; take creation; going to and looping a finding, and adding its approved marker; the live transport and track state; selecting a chapter's track; adding a chapter's track; arming and recording; the workspace's take and FX actions; chapter and credits regions; hiding other takes; rolling again while recording; cutting words and their audio; playing and showing a file on disk). |
 | `reaper_common_core.lua`, `reaper_common_process.lua` | Small helpers the launcher loads: files and paths, hidden process launch, pipe splitting. |
 | `tests/` | The harness (below). Not shipped: `scripts/release/prepare-resources.py` leaves `tests/`, `spikes/` and `project.json` out of the app's embedded REAPER package. |
 | `spikes/` | Scripts that run inside a real REAPER, isolated in a temp resource directory, to find out what a fake cannot ([README](../../src/studio/integrations/reaper/spikes/README.md); the S0 result is [reaper-spike-s0-item-extension-data.md](../research/reaper-spike-s0-item-extension-data.md)). Research tools, not product code. |
 
 ## The file protocol
 
-The Go host (`src/studio/desktop/internal/bridge`) and the Lua bridge share one session directory, `<REAPER resource path>/NarrationStudio/sessions/hub_<id>/`, created by the launcher.
+The Go host (`src/studio/desktop/internal/bridge`) and the Lua bridge share one session directory, `<REAPER resource path>/NarrationStudio/sessions/hub_<id>/`, created by the startup script or the launcher (`new_session_dir`). The running loop publishes it in a non-persistent ExtState (`NarrationStudio`/`session`) with a `bridge-running.txt` marker, both withdrawn when it stops, so a later launcher reuses it.
 
 - **Commands** go one way. `Client.Send` writes `commands/NNNNNNNN.cmd` atomically (a `.tmp` file, then a rename) holding one line of percent-encoded, `|`-separated fields: protocol version `1`, the command name, then its arguments. The bridge reads the first line of each `.cmd` file in name order, deletes it, and dispatches. It splits at most eight fields; a payload that needs more travels as a file whose path is an argument.
 - **Events** come back through the append-only `events.log`, one percent-encoded, `|`-separated line per event with the tag first. **The first argument of every event is the run ID of the command that caused it** (the command's own first argument), so a consumer can tell its events from another's. On Windows Lua writes CRLF in text mode, so a reader trims a trailing carriage return (the Go client does).
@@ -37,17 +37,17 @@ Starting the bridge, and one Transcript Compare command travelling through it an
 sequenceDiagram
   autonumber
   actor N as Narrator
-  participant L as src/studio/integrations/reaper: NarrationStudio_Launcher.lua
+  participant L as src/studio/integrations/reaper: NarrationStudio_Startup.lua
   participant Br as src/studio/integrations/reaper: narration_ui_bridge.lua
   participant F as session folder: commands/, events.log
   participant C as src/studio/desktop: internal/bridge Client
   participant A as src/studio/desktop: internal/dawport/reaper review session
   participant TS as src/studio/desktop: internal/transcript Service
-  participant H as src/studio/desktop: app.go transcriptLoop
-  N->>L: Run the action in REAPER
+  participant H as src/studio/desktop: app.go autoConnectLoop and transcriptLoop
+  N->>L: Open REAPER (or the app opens it), and Scripts/__startup.lua runs the startup script
   L->>L: create NarrationStudio/sessions/hub_id/commands
-  L->>H: start narration-studio.exe with --session-dir, --project-folder, --daw
   L->>Br: run(session_dir), a reaper.defer tick loop
+  H->>F: find the hub whose events.log changed in the last 15 s, attach it (dawautoconnect.go)
   N->>TS: Start a comparison (TranscriptStart)
   TS->>A: PrepareReview(runId)
   A->>C: Send("prepare_compare", runId)
@@ -68,7 +68,7 @@ sequenceDiagram
   TS->>TS: handlePrepared, start the transcript-compare sidecar
 ```
 
-*Verified 2026-09-21 against `NarrationStudio_Launcher.lua`, `narration_ui_bridge.lua` (`M.run`, the `tick` loop), `narration_bridge_core.lua`, `src/studio/desktop/internal/bridge/{bridge,events,wire}.go`, `src/studio/desktop/internal/dawport/reaper/review.go`, `src/studio/desktop/internal/transcript/service.go` (`Start`, `Drain`, `Handle`) and `src/studio/desktop/app.go` (`transcriptLoop`, `pollTranscript`), and by the harness, which drives the same protocol ([The DAW port](daw-integration.md#the-daw-port)). The command names here are generic on purpose: every command travels this way, so the diagram does not change when one is added ([The DAW port](daw-integration.md#the-daw-port)). The threats at steps 6 to 11 are rows 5a to 5c of the [threat model](threat-model.md#5-the-reaper-file-bridge-not-in-securitymd-see-the-note-under-the-table).*
+*Verified 2026-09-21 against `NarrationStudio_Launcher.lua`, and 2026-10-23 for the startup script (`NarrationStudio_Startup.lua`, `dawautoconnect.go`), `narration_ui_bridge.lua` (`M.run`, the `tick` loop), `narration_bridge_core.lua`, `src/studio/desktop/internal/bridge/{bridge,events,wire}.go`, `src/studio/desktop/internal/dawport/reaper/review.go`, `src/studio/desktop/internal/transcript/service.go` (`Start`, `Drain`, `Handle`) and `src/studio/desktop/app.go` (`transcriptLoop`, `pollTranscript`), and by the harness, which drives the same protocol ([The DAW port](daw-integration.md#the-daw-port)). The command names here are generic on purpose: every command travels this way, so the diagram does not change when one is added ([The DAW port](daw-integration.md#the-daw-port)). The threats at steps 6 to 11 are rows 5a to 5c of the [threat model](threat-model.md#5-the-reaper-file-bridge-not-in-securitymd-see-the-note-under-the-table).*
 
 ## Reading events in the host: the fan-out
 
@@ -183,6 +183,10 @@ it deselects every other track and selects the named one (`SetOnlyTrackSelected`
 in REAPER without having to hunt for it. It opens no undo block, the same choice `arm_only` makes for record arms: a
 selection change is not project data. A track named by a GUID that no longer resolves is `TRACK_STALE`, and nothing
 is selected in that case - the same shape `chapter_track_state` already uses for a stale GUID.
+
+### Adding a chapter's track (`narration_track_create.lua`)
+
+`track_create` is "Create a track for this chapter and link it" (the [`track_create`](../reference/daw/capabilities.md#track_create) capability), offered when a chapter has no track to record on. It adds one track after the last (`InsertTrackAtIndex(CountTracks(0), false)`), names it (`P_NAME`) in one undo block "Narration Studio: add track", and answers `TRACK_CREATED` with the new track's GUID, index and name. The name is trimmed and a line break or tab inside it becomes a space; an empty name and a REAPER that is recording are refused with `ERROR`. It changes no other track, never saves the project, and adds a track on every call. The host names the track after the chapter's display title and links the chapter to the GUID it answers (`ChapterTrackCreate`, `src/studio/desktop/chaptertrackcreate.go`; [threat model](threat-model.md), row 5t). What the fake cannot show, and the verification pass checks (row C19): the GUID REAPER answers, that one Undo removes the track, and the record input a new track gets.
 
 ### Playing and showing a file on disk (`narration_media_file.lua`)
 

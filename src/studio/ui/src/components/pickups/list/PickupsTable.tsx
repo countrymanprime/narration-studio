@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import type { OverlayService } from '../../../overlay/overlayService';
@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { AddPickup } from './AddPickup';
 import { clock, groupByChapter, reasonSentence, inScope, sourceLabel, sourceTitle, pickupKind, typeLabel, ALL_SCOPE, type ChapterRef } from './pickupRows';
 import { ScriptLine } from './ScriptLine';
-import { PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
+import { FINE_LABEL, fineUnavailable, NO_NOTE, PICKUP_ROW, usePickupsContextMenu } from './usePickupsContextMenu';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 /** What a removal gives back to undo it: the page's journal entry. */
@@ -83,6 +83,8 @@ export function PickupsTable({
   onOpenInBooth,
   onOpenInScript,
   onGoToProof,
+  onFine,
+  where,
 }: {
   /** Every pickup the host lists. */
   pickups: readonly PickupItem[];
@@ -117,6 +119,10 @@ export function PickupsTable({
   onOpenInScript: (chapterId: string) => void;
   /** Goes to the note a pickup came from, in Proof; with no id, to Proof. */
   onGoToProof: (findingId?: string) => void;
+  /** Marks a line from a note fine as read (its note dismissed, so it leaves the list) and answers how to take that back. */
+  onFine?: (pickup: PickupItem) => Promise<{ undo: RemoveUndo; entry: number } | undefined>;
+  /** Show where for the selected line: its paragraph and the ones around it (research note A4). */
+  where?: (pickup: PickupItem) => ReactNode;
 }) {
   const overlay = useOverlay();
   const body = useRef<HTMLDivElement>(null);
@@ -179,6 +185,22 @@ export function PickupsTable({
       });
     });
 
+  const fine = (pickup: PickupItem) =>
+    once(pickup.id, async () => {
+      if (!onFine || fineUnavailable(pickup)) return;
+      let answer: { undo: RemoveUndo; entry: number } | undefined;
+      let done = false;
+      await said(overlay, async () => {
+        answer = await onFine(pickup);
+        done = true;
+      });
+      if (!done) return;
+      const text = `${clock(pickup.time)} is fine as read: its note on Proof is cleared and it is off the list.`;
+      if (answer) overlay.toastUndo(text, answer.undo, { entry: answer.entry });
+      else overlay.toast(text);
+      region.current?.focus();
+    });
+
   usePickupsContextMenu(list, {
     onSetIncluded: setIncluded,
     onSetDone: setDone,
@@ -191,6 +213,7 @@ export function PickupsTable({
     onOpenInBooth,
     onOpenInScript,
     onGoToNote: (pickup) => onGoToProof(pickup.findingId),
+    ...(onFine ? { onFine: fine } : {}),
   });
 
   /* Up and Down move between lines; Space includes or leaves out; Enter opens the line in the Booth. */
@@ -296,68 +319,78 @@ export function PickupsTable({
               {groups.map((group) => (
                 <GroupRows key={group.chapter.id} name={group.chapter.name} open={group.open}>
                   {group.items.map((pickup) => (
-                    /* native-control-ok: a pickup row keeps one row in the tab order and its own Up, Down, Space and Enter keys; TableRow makes every row a tab stop. */
-                    <tr
-                      key={pickup.id}
-                      {...{ [PICKUP_ROW]: pickup.id }}
-                      tabIndex={pickup.id === tabbable ? 0 : -1}
-                      aria-selected={pickup.id === selected}
-                      onClick={(event) => {
-                        if ((event.target as Element).closest(OWN_KEYS)) return;
-                        setSelected(pickup.id);
-                        event.currentTarget.focus();
-                      }}
-                      onKeyDown={(event) => rowKey(event, pickup)}
-                      className={`${ROW_HEIGHT} cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${pickup.id === selected ? 'bg-[var(--row-selected)]' : ''}`}
-                    >
-                      <TableCell>
-                        <Checkbox checked={pickup.included && !pickup.done} disabled={pickup.done} onChange={(checked) => setIncluded(pickup.id, checked)}>
-                          <span className="sr-only">Include {clock(pickup.time)} in the session</span>
-                        </Checkbox>
-                      </TableCell>
-                      <TableCell numeric align="left">
-                        {clock(pickup.time)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="whitespace-nowrap">
-                          <PickupType pickup={pickup} />
-                        </span>
-                      </TableCell>
-                      <TableCell style={{ fontSize: 16 }}>
-                        <ScriptLine text={pickup.script} plain={pickup.source === 'you'} />
-                      </TableCell>
-                      <TableCell muted>
-                        <span title={sourceTitle(pickup)}>{sourceLabel(pickup)}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span title={pickup.done && pickup.waiting ? WAITING : undefined}>
-                          <StatusBadge
-                            tone={statusTone(pickup.done ? 'recorded' : 'open_pickup')}
-                            label={statusLabel(pickup.done ? 'recorded' : 'open_pickup')}
-                          />
-                          {pickup.done && pickup.waiting && (
-                            <span className="mt-1 block text-[0.75rem] leading-tight text-[var(--text-muted)]">Not in the DAW yet</span>
-                          )}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-nowrap items-center justify-end gap-1">
-                          <IconButton
-                            action={original?.playingId === pickup.id ? 'stop' : 'play'}
-                            label={original?.playingId === pickup.id ? 'Stop the original' : 'Hear the original in context'}
-                            disabledReason={original ? original.unavailable(pickup) : PLAY_OFF}
-                            onClick={() => original?.play(pickup)}
-                          />
-                          <IconButton action="openInBooth" label="Open in Booth at this line" onClick={() => onOpenInBooth([pickup])} />
-                          <IconButton
-                            action={pickup.done ? 'markedDone' : 'markDone'}
-                            label={pickup.done ? 'Mark open again' : 'Mark recorded'}
-                            onClick={() => setDone(pickup.id, !pickup.done)}
-                          />
-                          <IconButton action="remove" label="Remove from pickups" variant="danger" onClick={() => remove(pickup)} />
-                        </div>
-                      </TableCell>
-                    </tr>
+                    <Fragment key={pickup.id}>
+                      {/* native-control-ok: a pickup row keeps one row in the tab order and its own Up, Down, Space and Enter keys; TableRow makes every row a tab stop. */}
+                      <tr
+                        {...{ [PICKUP_ROW]: pickup.id }}
+                        tabIndex={pickup.id === tabbable ? 0 : -1}
+                        aria-selected={pickup.id === selected}
+                        onClick={(event) => {
+                          if ((event.target as Element).closest(OWN_KEYS)) return;
+                          setSelected(pickup.id);
+                          event.currentTarget.focus();
+                        }}
+                        onKeyDown={(event) => rowKey(event, pickup)}
+                        className={`${ROW_HEIGHT} cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--focus)] ${pickup.id === selected ? 'bg-[var(--row-selected)]' : ''}`}
+                      >
+                        <TableCell>
+                          <Checkbox checked={pickup.included && !pickup.done} disabled={pickup.done} onChange={(checked) => setIncluded(pickup.id, checked)}>
+                            <span className="sr-only">Include {clock(pickup.time)} in the session</span>
+                          </Checkbox>
+                        </TableCell>
+                        <TableCell numeric align="left">
+                          {clock(pickup.time)}
+                        </TableCell>
+                        <TableCell>
+                          <span className="whitespace-nowrap">
+                            <PickupType pickup={pickup} />
+                          </span>
+                        </TableCell>
+                        <TableCell style={{ fontSize: 16 }}>
+                          <ScriptLine text={pickup.script} plain={pickup.source === 'you'} />
+                        </TableCell>
+                        <TableCell muted>
+                          <span title={sourceTitle(pickup)}>{sourceLabel(pickup)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span title={pickup.done && pickup.waiting ? WAITING : undefined}>
+                            <StatusBadge
+                              tone={statusTone(pickup.done ? 'recorded' : 'open_pickup')}
+                              label={statusLabel(pickup.done ? 'recorded' : 'open_pickup')}
+                            />
+                            {pickup.done && pickup.waiting && (
+                              <span className="mt-1 block text-[0.75rem] leading-tight text-[var(--text-muted)]">Not in the DAW yet</span>
+                            )}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-nowrap items-center justify-end gap-1">
+                            <IconButton
+                              action={original?.playingId === pickup.id ? 'stop' : 'play'}
+                              label={original?.playingId === pickup.id ? 'Stop the original' : 'Hear the original in context'}
+                              disabledReason={original ? original.unavailable(pickup) : PLAY_OFF}
+                              onClick={() => original?.play(pickup)}
+                            />
+                            <IconButton action="openInBooth" label="Open in Booth at this line" onClick={() => onOpenInBooth([pickup])} />
+                            <IconButton
+                              action={pickup.done ? 'markedDone' : 'markDone'}
+                              label={pickup.done ? 'Mark open again' : 'Mark recorded'}
+                              onClick={() => setDone(pickup.id, !pickup.done)}
+                            />
+                            <IconButton action="remove" label="Remove from pickups" variant="danger" onClick={() => remove(pickup)} />
+                          </div>
+                        </TableCell>
+                      </tr>
+                      {pickup.id === selected && (
+                        <ShowWhere
+                          pickup={pickup}
+                          where={where}
+                          canFine={Boolean(onFine)}
+                          onFine={() => fine(pickup)}
+                          onGoToNote={() => onGoToProof(pickup.findingId)}
+                        />
+                      )}
+                    </Fragment>
                   ))}
                 </GroupRows>
               ))}
@@ -376,6 +409,46 @@ export function PickupsTable({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Show where under the selected line (research note A4): its paragraph with the ones before and after, from the page, and the two
+ * verbs a line from a note has on Pickups, Fine, not a pickup and Go to the note in Proof. A line from no note has both off, saying why.
+ */
+function ShowWhere({
+  pickup,
+  where,
+  canFine,
+  onFine,
+  onGoToNote,
+}: {
+  pickup: PickupItem;
+  where?: (pickup: PickupItem) => ReactNode;
+  canFine: boolean;
+  onFine: () => void;
+  onGoToNote: () => void;
+}) {
+  const noNote = !pickup.findingId;
+  return (
+    <TableRow data={{ 'data-show-where': pickup.id }}>
+      <TableCell colSpan={7} className="bg-[var(--surface-2)]">
+        <section aria-label={`Where ${clock(pickup.time)} is`} className="sticky left-2 flex max-w-[min(60rem,calc(100vw-5rem))] flex-col gap-2 py-1">
+          {where?.(pickup)}
+          <div className="flex flex-wrap items-center gap-2">
+            {canFine && (
+              <Button variant="secondary" size="sm" aria-disabled={noNote || undefined} onClick={noNote ? undefined : onFine}>
+                {FINE_LABEL}
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" aria-disabled={noNote || undefined} onClick={noNote ? undefined : onGoToNote}>
+              Go to the note in Proof
+            </Button>
+            {noNote && <span className="text-sm text-[var(--text-muted)]">{NO_NOTE}</span>}
+          </div>
+        </section>
+      </TableCell>
+    </TableRow>
   );
 }
 

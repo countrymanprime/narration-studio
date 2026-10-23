@@ -55,8 +55,9 @@ function Quote({ label, markup, which }: { label: string; markup: string; which:
  * The Studio Next Inspector for one note: the time and type, the steps, what the script says against what was heard, the DAW and link
  * actions, the decision with its optional note, and the check's confidence. It reads no store and imports no router: the note, the host
  * reads and the handlers come in as props, and `useShownEvidence` keeps what the narrator was shown against the latest evidence, so a
- * decision made after a re-check is refused until they read what changed. `spot` (the takes at this note's spot, SN-Q7) renders after
- * the quotes and `typeControl` (SN-Q44) replaces the plain type label; with neither the Inspector is complete.
+ * decision made after a re-check is refused until they read what changed. `around` (the note's paragraph and its neighbours, research
+ * note A5) and `spot` (the takes at this note's spot, SN-Q7) render after the quotes, and `typeControl` (SN-Q44) replaces the plain type
+ * label; with none of them the Inspector is complete.
  */
 export function Inspector({
   finding,
@@ -66,6 +67,7 @@ export function Inspector({
   onChanged,
   onOpenScript,
   onOpenBooth,
+  around,
   onOpenEditing,
   spot,
   typeControl,
@@ -79,6 +81,7 @@ export function Inspector({
   onChanged: (finding: Finding, decided: boolean) => void;
   onOpenScript: (chapterId: string) => void;
   onOpenBooth: (chapterId: string) => void;
+  around?: ReactNode;
   /** Opens a note on Editing: a line said twice is fixed there. Absent: the note offers no link. */
   onOpenEditing?: (chapterId: string, findingId: string) => void;
   spot?: ReactNode;
@@ -125,6 +128,7 @@ export function Inspector({
           <Quote label="Heard" markup={quotes.heard} which="heard" />
         </div>
       )}
+      {around}
       {saidTwice && (
         <p className="flex flex-wrap items-center gap-2 text-sm">
           <span>Said twice. The second take is on Editing, where you can keep both, compare them or delete one.</span>

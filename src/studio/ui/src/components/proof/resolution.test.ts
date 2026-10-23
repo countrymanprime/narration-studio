@@ -51,14 +51,14 @@ describe('decisionLabel and savedMessage', () => {
   it('names the accept button for the fix it records', () => {
     expect(decisionLabel('accepted', 'pickup')).toBe('Pickup');
     expect(decisionLabel('accepted', 'edit')).toBe('Fix in edit');
-    expect(decisionLabel('dismissed', 'pickup')).toBe('Waive');
+    expect(decisionLabel('dismissed', 'pickup')).toBe('Fine as read');
     expect(decisionLabel('deferred', 'edit')).toBe('Defer');
   });
 
   it('confirms a saved decision in the same words', () => {
     expect(savedMessage('accepted', 'pickup')).toBe('Saved: needs a pickup.');
     expect(savedMessage('accepted', 'edit')).toBe('Saved: fix in edit.');
-    expect(savedMessage('dismissed', 'pickup')).toBe('Saved: waived.');
+    expect(savedMessage('dismissed', 'pickup')).toBe('Saved: fine as read.');
     expect(savedMessage('deferred', 'pickup')).toBe('Saved: deferred.');
     expect(savedMessage('unreviewed', 'pickup')).toBe('Put back in the queue.');
   });

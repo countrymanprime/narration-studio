@@ -60,6 +60,8 @@ var realEvents = map[string][]string{
 	"TRACK_STALE":     {"TRACK_STALE", "t1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}"},
 	// src/studio/integrations/reaper/tests/track_select_test.lua (select_track).
 	"TRACK_SELECTED": {"TRACK_SELECTED", "t1", "{00000001-0000-4000-8000-000000000001}"},
+	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create).
+	"TRACK_CREATED": {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm"},
 	// src/studio/integrations/reaper/tests/media_file_test.lua (preview_file_range, stop_file_preview, reveal_file).
 	"FILE_PREVIEW_STARTED": {"FILE_PREVIEW_STARTED", "p1", "C:/Renders/Chapter 01.wav", "12.500000", "5.000000"},
 	"FILE_PREVIEW_STOPPED": {"FILE_PREVIEW_STOPPED", "s1", "1"},

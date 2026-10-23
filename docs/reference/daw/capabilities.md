@@ -30,10 +30,10 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 - **Intent:** put the engine's cursor on a finding, loop the audio around it, and stop the loop.
 - **Role:** `Navigator`, synchronous (`Navigate`, `Loop`, `StopLoop`).
-- **Result:** `Navigate` returns the project time the cursor is at. `Loop` returns the window it looped, which is the finding padded by 2 s each side (never below 0). `StopLoop` returns what it restored and what it kept. A stale finding (`item`, `take` or `range`) changes nothing. Nothing makes an undo point.
+- **Result:** `Navigate` returns the project time the cursor is at. `Loop` returns the window it looped, which is the finding padded by 3 s each side (never below 0). `StopLoop` returns what it restored and what it kept. A stale finding (`item`, `take` or `range`) changes nothing. Nothing makes an undo point.
 - **REAPER:** `navigate_item`, `loop_context`, `stop_loop`. Navigate selects only the finding's item. Loop sets the time selection and loop points, turns repeat on and plays; Stop puts back the narrator's time selection, loop points and repeat, and keeps a value the narrator changed while listening ([going to and looping a finding](../../architecture/reaper-navigation.md)).
 - **Audacity 3.x:** `Navigate` stops playback and puts the cursor at the target's time. `Loop` selects the padded time and plays it looped (`SelectTime`, then `PlayAtSpeedLooped`). `StopLoop` stops playback and restores nothing, because Audacity keeps no loop state. A target that names an item is refused: Audacity has no items or takes ([session.go](../../../src/studio/desktop/internal/dawport/audacity/session.go)). The host places a finding for Audacity by its time range in project seconds, not by item and take, and refuses a read of a grouped finding (no takes) with a sentence.
-- **Checked:** REAPER, a scripted REAPER 7.80 run and the harness (`navigation_test.lua`). Audacity: `Navigate` and `StopLoop` ran in a real Audacity 3.7.7 on Linux (A3-T12, A3-T13, [first run](../../research/audacity-3-real-run-foundation.md)); `Loop` did not loop (`PlayAtSpeedLooped` plays the range once), so the capability stays Experimental. The owner's pass is pending.
+- **Checked:** REAPER, a scripted REAPER 7.80 run and the harness (`navigation_test.lua`), both with the earlier 2 s padding; the 3 s window has not been run in REAPER or Audacity yet. Audacity: `Navigate` and `StopLoop` ran in a real Audacity 3.7.7 on Linux (A3-T12, A3-T13, [first run](../../research/audacity-3-real-run-foundation.md)); `Loop` did not loop (`PlayAtSpeedLooped` plays the range once), so the capability stays Experimental. The owner's pass is pending.
 
 ### `markers`
 
@@ -150,6 +150,16 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **REAPER:** `select_track`.
 - **Audacity 3.x:** Experimental. Re-reads the tracks, finds the one whose id matches and selects only it (`SelectTracks`, Mode Set). A track that is gone is a stale error and the selection is left as it was.
 - **Checked:** harness (`track_select_test.lua`); expected result is row A11; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-studio/issues/510)).
+
+### `track_create`
+
+- **Intent:** add a track for a chapter that has none, so the chapter can be linked to it and recorded.
+- **Role:** `TrackCreator`, synchronous.
+- **Result:** one new track at the end of the project's track list, named as asked (trimmed), with the engine's id for it, its name and its 0-based index. No other track changes and the project is not saved. One undo point. Each call adds a track: it is not idempotent. A blank name is refused before anything is sent, and the engine refuses while it records, so no track appears in the middle of a take. The host links the chapter to the id it answers (`ChapterTrackCreate`).
+- **REAPER:** `track_create` (`TRACK_CREATED`), Experimental, in `narration_track_create.lua`: `InsertTrackAtIndex(CountTracks(0), false)` and `P_NAME` in one undo block "Narration Studio: add track". A line break or tab inside the name becomes a space. Refused with `ERROR` while `GetPlayState` has the recording bit.
+- **Audacity 3.x:** Experimental. `NewMonoTrack` (`NewStereoTrack` when the last audio track is stereo), then `SetTrackStatus` with the name, which selects the new track alone ([Audacity 3.x](audacity-3.md)); one undo step, since `NewMonoTrack` adds one and `SetTrackStatus` none. The id is the one `track_select` and `track_state` find it by (`audacity:<name>`, `#n` when the name repeats). A name the pipe cannot carry (a double quote, a backslash, a control character) is refused before any track is added. A recording this app started is refused; one started in Audacity's own window cannot be seen, and the first command ends it, as for every Audacity role.
+- **Audacity 4.x:** not available: no scripting interface ([Audacity 4.x](audacity-4.md)).
+- **Checked:** harness (`track_create_test.lua`) and the Audacity adapter's fake pipe (`trackcreate_test.go`); expected result is row C19; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-studio/issues/510)). Not run in Audacity.
 
 ### `follow_position`
 

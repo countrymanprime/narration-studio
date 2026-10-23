@@ -41,6 +41,12 @@ type audacityConn struct {
 	lastSnap *audacity.Snapshot
 	// +checklocks:mu
 	lastSnapAt time.Time
+	// autoEnabled and autoStarted are whether the app already turned scripting on, or started Audacity, by itself for this
+	// connection (audacityauto.go): each is done at most once per opened project.
+	// +checklocks:mu
+	autoEnabled bool
+	// +checklocks:mu
+	autoStarted bool
 }
 
 // newAudacityConn is the connection for the project at project: the pipe client, the adapter whose roles share it, and the backups

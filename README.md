@@ -102,10 +102,7 @@ The supported way to get the app is a GitHub release. From the [releases page](h
 The app updates itself from these releases after you click (Settings > App & updates); it never installs an update on its
 own. That works because the install folder is yours to write to. `narration-studio-<version>-windows-x64.zip` on the release is
 the update package the app fetches, not something to run by hand. A copy installed before the version was in the file names
-cannot find the new names: install the next release by hand once, and it updates itself from then on. The same holds for a copy
-released before the product's old name was dropped from the program and the release files: the setup program installs over it in
-the same folder and removes the old program and its shortcuts, and the app's first start moves your settings, downloads and each
-project's data folder to the new names ([Data files](docs/reference/data-files.md#the-move-from-the-old-name)).
+cannot find the new names: install the next release by hand once, and it updates itself from then on.
 
 **Uninstall** from Settings > Apps > Installed apps. That removes the program and its shortcuts and **leaves your settings**
 (`%APPDATA%\narration-studio`), **the voices and models you downloaded** (`%LOCALAPPDATA%\narration-studio`, also where the

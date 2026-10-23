@@ -141,6 +141,7 @@ import {
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
+  chapterTrackCreateSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
@@ -1471,6 +1472,28 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
   });
 
+  it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link' });
+    const chapters = await api.manuscriptChapters();
+    expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('no_link');
+    const created = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, created');
+    if (created.outcome !== 'created') throw new Error('expected a created track');
+    expect(created.link).toMatchObject({ chapterId: chapters[0].id, trackGuid: created.track.guid });
+    expect(created.mappings.filter((mapping) => mapping.chapterId === chapters[0].id)).toHaveLength(1);
+    // The host reads the new link: the chapter that had no track is ready to record.
+    expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('ready');
+    const second = await api.chapterTrackCreate(chapters[0].id);
+    if (second.outcome !== 'created') throw new Error('expected a created track');
+    expect(second.track.guid).not.toBe(created.track.guid);
+    await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
+    for (const reaperState of ['unavailable', 'experimental_off', 'recording_elsewhere'] as const) {
+      const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);
+      expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
+      expect(refused.outcome).toBe('refused');
+    }
+  });
+
   it('the ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks answers', async () => {
     const api = createMockApi();
     const chapters = await api.manuscriptChapters();
@@ -1930,6 +1953,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const stale = await createMockApi({}, { mastering: { choice: 'dolby-atmos' } }).masteringProviders();
     expectMatches(masteringProvidersSchema, stale, 'mock mastering chains (a stored choice this version does not have)');
     expect(stale).toEqual(readGolden('mastering-providers-unknown-choice.json'));
+  });
+
+  it('the DAW choice while the app opens REAPER: the host golden and the mock agree on the state, the start and the bridge', async () => {
+    const golden = parseWire(dawChoiceSchema, readGolden('daw-choice-starting.json'), ctx('daw choice starting'));
+    expect({ state: golden.state, starting: golden.starting !== null, bridge: golden.bridge }).toEqual({
+      state: 'starting',
+      starting: true,
+      bridge: { installed: true, startsWithReaper: true, problem: null },
+    });
+    for (const name of ['default', 'found', 'linked'] as const) {
+      parseWire(dawChoiceSchema, readGolden(`daw-choice-${name}.json`), ctx(`daw choice ${name}`));
+    }
+    const mock = await createMockApi({}, { dawChoice: { linkedFile: 'Alice.rpp', bridge: false, starting: true }, daw: { connected: false } }).dawChoice();
+    expectMatches(dawChoiceSchema, mock, 'mock daw choice (starting)');
+    expect({ state: mock.state, starting: mock.starting !== null, bridge: mock.bridge }).toEqual({
+      state: golden.state,
+      starting: true,
+      bridge: golden.bridge,
+    });
   });
 
   it("the project's DAW choice: the mock passes the schema, lists every engine and links the one .rpp found", async () => {
@@ -4189,6 +4231,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterTrackMapConfirm',
       'chapterTrackMapClear',
       'chapterTrackSet',
+      'chapterTrackCreate',
       'chapterTrackUnlink',
       'chapterSyncState',
       'chapterSyncPreview',

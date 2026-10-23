@@ -1,4 +1,5 @@
 {
+  "bridge": null,
   "chosen": null,
   "daw": "Built-in",
   "experimental": false,
@@ -40,5 +41,6 @@
   ],
   "reachable": true,
   "source": "default",
+  "starting": null,
   "state": "app"
 }

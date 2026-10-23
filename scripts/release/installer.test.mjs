@@ -102,8 +102,7 @@ test('the uninstaller never removes a folder recursively, so a folder the narrat
 });
 
 test('the uninstaller leaves settings, the asset cache, the WebView2 data and project sidecars alone', () => {
-  const touchesUserData =
-    /\$(APPDATA|LOCALAPPDATA|DOCUMENTS|PROFILE)|%APPDATA%|%LOCALAPPDATA%|narration-studio"|RMDir\s+\/r|DeleteRegKey\s+HKCU\s+"Software\\Narration/i;
+  const touchesUserData = /\$(APPDATA|LOCALAPPDATA|DOCUMENTS|PROFILE)|%APPDATA%|%LOCALAPPDATA%|narration-studio"|RMDir\s+\/r|DeleteRegKey\s+HKCU\s+"Software\\Narration/i;
   const withoutMessages = uninstallSection
     .split('\n')
     .filter((line) => !/^\s*DetailPrint /.test(line))
@@ -131,36 +130,4 @@ test('git tracks the definition and ignores what Wails generates beside it', () 
   assert.equal(gitCheckIgnore(`${installerDir}/project.nsi`), 1, 'project.nsi must not be ignored');
   assert.equal(gitCheckIgnore(`${installerDir}/wails_tools.nsh`), 0, 'wails_tools.nsh is generated and must stay ignored');
   assert.equal(gitCheckIgnore(`${installerDir}/MicrosoftEdgeWebview2Setup.exe`), 0, 'the bootstrapper is written by the build and must stay ignored');
-});
-
-// legacy.nsh is the installer's half of the one-time move from the product's name before the rename (internal/legacyname is the
-// app's): an install over an old one takes its folder and replaces it, and touches nothing of the narrator's.
-const legacy = readFileSync(join(repository, installerDir, 'legacy.nsh'), 'utf8').replace(/\r\n/g, '\n');
-const legacyCode = legacy
-  .split('\n')
-  .filter((line) => !/^\s*#/.test(line))
-  .join('\n');
-const legacyMacro = (name) => legacyCode.slice(legacyCode.indexOf(`!macro ${name}`), legacyCode.indexOf('!macroend', legacyCode.indexOf(`!macro ${name}`)));
-
-test('an install over one from before the rename takes its folder and replaces it', () => {
-  assert.match(code, /^!include "legacy\.nsh"$/m);
-  assert.equal(gitCheckIgnore(`${installerDir}/legacy.nsh`), 1, 'legacy.nsh must not be ignored');
-  assert.match(code.slice(code.indexOf('Function .onInit'), code.indexOf('FunctionEnd')), /!insertmacro legacy\.adoptInstallDir/);
-  const installSection = code.slice(code.indexOf('Section "${INFO_PRODUCTNAME} (required)"'), code.indexOf('SectionEnd'));
-  assert.ok(
-    installSection.indexOf('!insertmacro legacy.removeOldInstall') > installSection.indexOf('wails.writeUninstaller'),
-    'the old entry goes only after the new uninstaller is written',
-  );
-  // The folder is adopted only when this product has no entry of its own yet.
-  assert.match(legacyMacro('legacy.adoptInstallDir'), /ReadRegStr \$0 HKCU "\$\{UNINST_KEY\}" "InstallLocation"\n\s*\$\{If\} \$0 == ""/);
-});
-
-test('removing the old install touches only that install, and only when it is the folder just installed into', () => {
-  const remove = legacyMacro('legacy.removeOldInstall');
-  assert.match(remove, /\$\{AndIf\} \$0 == \$INSTDIR/);
-  for (const line of remove.split('\n').filter((l) => /^\s*(Delete|DeleteRegKey|RMDir)\b/.test(l))) {
-    assert.match(line, /^\s*(Delete "\$(INSTDIR|SMPROGRAMS|DESKTOP)\\[^"]+"|DeleteRegKey HKCU "\$\{LEGACY_UNINST_KEY\}")$/, line);
-  }
-  assert.match(legacyCode, /^!define LEGACY_UNINST_KEY "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\[A-Za-z]+"$/m);
-  assert.doesNotMatch(legacyCode, /\$(APPDATA|LOCALAPPDATA|DOCUMENTS|PROFILE)|RMDir|inetc|NSISdl|https?:\/\/|\bExec(Wait|Shell)?\s/i);
 });

@@ -52,6 +52,3 @@ const CredentialEntropy = "narration-studio credentialstore v1"
 
 // EnvPrefix is the prefix of the environment variables the app and its scripts read. Identity: it does not follow a rename.
 const EnvPrefix = "NARRATION_STUDIO_"
-
-// RetiredNames are the names the product had before.
-var RetiredNames = []string{"Narration Utils"}

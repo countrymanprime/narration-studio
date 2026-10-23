@@ -23,5 +23,4 @@ export const brand = {
     credentialEntropy: 'narration-studio credentialstore v1',
     envPrefix: 'NARRATION_STUDIO_',
   },
-  retiredNames: ['Narration Utils'],
 } as const;

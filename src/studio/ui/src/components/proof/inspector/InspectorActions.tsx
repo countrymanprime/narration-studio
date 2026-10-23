@@ -7,9 +7,10 @@ import type { Finding, NarrationApi } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { noteTime } from '../findingFormat';
+import { HearIt, type HearItApi } from './HearIt';
 
-/** The one host call the icon row makes itself; the marker goes through the DAW port. */
-export type InspectorActionsApi = Pick<NarrationApi, 'findingsGoTo'>;
+/** The host calls the icon row makes itself (Go to, and Hear it's loop); the marker goes through the DAW port. */
+export type InspectorActionsApi = Pick<NarrationApi, 'findingsGoTo'> & HearItApi;
 
 // Why a control is off when the note itself cannot be placed; the host refuses the same notes in the same words
 // (src/studio/desktop/bindings_navigation.go and bindings_marker.go), so a button is never on for a request that can only be refused. Any note
@@ -33,7 +34,7 @@ function gateOf(capabilities: DawCapabilities | undefined, name: string): Gate {
 }
 
 /**
- * The Studio Next Inspector's icon row: Show in <DAW>, Add marker in <DAW>, Open this chapter in Script, Open this chapter in Booth,
+ * The Studio Next Inspector's icon row: Hear it (the note with 3 s either side, `HearIt`), Show in <DAW>, Add marker in <DAW>, Open this chapter in Script, Open this chapter in Booth,
  * and Reopen once a decision is made. The two DAW actions follow `usePort('daw').capabilities()` (`navigate` and `markers`), which also
  * names the DAW, and the note itself; when one is off, the capability's own sentence is shown beside the row. The two links are the
  * caller's: this file imports no router. While the evidence is changed (`inert`) every control in the row is off.
@@ -109,6 +110,7 @@ export function InspectorActions({
   return (
     <div className="flex flex-col gap-2">
       <div role="group" aria-label="Actions" className="flex flex-wrap items-center gap-1">
+        <HearIt finding={finding} api={api} dawName={dawName} inert={inert} onResult={setResult} />
         <IconButton
           action="showInReaper"
           label={`Show in ${dawName}`}

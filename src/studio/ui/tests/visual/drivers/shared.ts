@@ -69,7 +69,7 @@ const PAGE_CONTENT: Partial<Record<AppPage, (page: Page) => Locator>> = {
   Production: (page) => page.getByRole('table', { name: 'Chapter pipeline' }),
   Script: (page) => page.locator('p[data-pid]'),
   // The footer's Record control, drawn once the chapter has loaded (credits states pick theirs afterwards).
-  Booth: (page) => page.getByRole('button', { name: /^(Record|Stop)$/ }),
+  Booth: (page) => page.getByRole('button', { name: /^(Record|Stop)$/, includeHidden: true }),
 };
 
 // Clicks an item of the app's own navigation, and only that: the Settings category rail reuses the labels "Proof"
@@ -143,7 +143,8 @@ export async function openWithoutManuscript(page: Page, name: AppPage): Promise<
 
 export async function goToPage(page: Page, name: AppPage): Promise<void> {
   await clickNav(page, name);
-  await page.getByRole('heading', { level: 1, name: PAGE_HEADING[name], exact: true }).waitFor();
+  // includeHidden: a dialog that opens by itself on arrival (the Booth's connect dialog, Editing's link dialog) hides the page from the accessibility tree.
+  await page.getByRole('heading', { level: 1, name: PAGE_HEADING[name], exact: true, includeHidden: true }).waitFor();
   await PAGE_CONTENT[name]?.(page).first().waitFor();
 }
 

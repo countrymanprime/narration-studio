@@ -81,7 +81,7 @@ The menu knows the page you are on. What the page offers right now is listed fir
 | Script | **Chapters**; **Story Bible** entries (found by any of their names); **Mark types** (mark the selected text; off until some is selected); **Search**, while a search is showing ([Searching the script](script.md#searching-the-script)) |
 | Booth | **Chapters** (off during a take), **Transport** (record or stop, punch and roll, next and back one phrase), the pickup steps when a pickup session is open |
 | Editing | **Chapters**; **Selection** (delete, mute and add FX, off with the reason until words are selected or when the DAW cannot); **Checks** (check the recording); **Drawer** tabs the DAW offers |
-| Proof | **Chapters** with their open-note counts; **Selected note** (needs pickup, fix in edit, waive, defer; off until a note is selected); **Checks** |
+| Proof | **Chapters** with their open-note counts; **Selected note** (needs pickup, fix in edit, fine as read, defer; off until a note is selected); **Checks** |
 | Pickups | the open **Pickups** lines (shows and selects the line), **Chapter** (show every chapter or only one), **Actions** (check recordings, open in the Booth, add as markers in the DAW) |
 | Settings | **Categories**, and every setting by its label under its category, including the settings that live on another page; a setting that does not apply to this project's recording tool is off with the reason |
 
@@ -205,9 +205,9 @@ all (such as a MIDI item). To hear a chapter, open it on [Editing](editing.md).
 ### REAPER tools
 
 When the project has tracks, the REAPER tools sit in a row under the project. **Link chapters…** and
-**Prepare chapter render…** change the project open in REAPER, through the Narration Studio script
-the launcher runs there; nothing is written until you press the dialog's action button. The app connects
-to the launcher in the REAPER you have open without you running it by hand.
+**Prepare chapter render…** change the project open in REAPER, through the Narration Studio bridge
+REAPER starts when it opens; nothing is written until you press the dialog's action button. The app puts the
+bridge in REAPER and connects to it without you running anything in REAPER.
 
 **Link chapters…** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
 items that hold its recording. Choose the track for each chapter; **Items to stamp** shows how many of

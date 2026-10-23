@@ -1,5 +1,5 @@
 {
-  "$comment": "The product's name, in one place (docs/research/app-name-injection.md). `pnpm run brand:sync` writes every generated brand module from this file; `pnpm run rename-app -- \"<New Name>\"` edits it and runs the sync. `name` and `repository` are display values: everything that shows the name follows them. `identity` holds the values already written to narrators' machines and projects: they do NOT follow a rename, and changing one needs a migration like src/studio/desktop/internal/legacyname. `retiredNames` are names the product had before; the name guard fails on them outside the migration files.",
+  "$comment": "The product's name, in one place (docs/research/app-name-injection.md). `pnpm run brand:sync` writes every generated brand module from this file; `pnpm run rename-app -- \"<New Name>\"` edits it and runs the sync. `name` and `repository` are display values: everything that shows the name follows them. `identity` holds the values already written to narrators' machines and projects: they do NOT follow a rename, because the app finds each one again by its exact value, so changing one strands what is already on a machine or in a project.",
   "name": "Narration Studio",
   "repository": {
     "owner": "countrymanprime",
@@ -19,6 +19,5 @@
     "audacityLabelTrack": "Narration Studio",
     "credentialEntropy": "narration-studio credentialstore v1",
     "envPrefix": "NARRATION_STUDIO_"
-  },
-  "retiredNames": ["Narration Utils"]
+  }
 }

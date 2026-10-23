@@ -6,8 +6,6 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
-
-	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
 )
 
 // protection is how this build seals a value: DPAPI, current-user scope (ADR 0002 Q10).
@@ -32,15 +30,10 @@ func protect(plain []byte) ([]byte, error) {
 	return takeBlob(out), nil
 }
 
-// unprotect opens a sealed value. A value sealed before the rename used the old entropy (legacyname.CredentialEntropy); it opens
-// with that, and is sealed with the current entropy the next time the narrator saves the key.
 func unprotect(sealed []byte) ([]byte, error) {
 	var out windows.DataBlob
-	err := windows.CryptUnprotectData(blob(sealed), nil, blob(entropy), 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out)
-	if err != nil {
-		if legacyErr := windows.CryptUnprotectData(blob(sealed), nil, blob(legacyname.CredentialEntropy), 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out); legacyErr != nil {
-			return nil, err
-		}
+	if err := windows.CryptUnprotectData(blob(sealed), nil, blob(entropy), 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out); err != nil {
+		return nil, err
 	}
 	return takeBlob(out), nil
 }

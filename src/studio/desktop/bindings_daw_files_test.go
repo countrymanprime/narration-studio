@@ -215,8 +215,8 @@ func TestTheFileBindingsWordWhatTheEngineRefused(t *testing.T) {
 		bridge.ErrRecording:           "REAPER is recording. Stop recording first.",
 		bridge.ErrPreviewUnsupported:  "Playing part of a file needs the SWS extension in REAPER.",
 		bridge.ErrMediaFileUnreadable: "REAPER could not open the file to play it.",
-		bridge.ErrNoAnswer:            "REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.",
-		bridge.ErrScriptOutdated:      "The Narration Studio script in REAPER is older than this app. Import it again from this app's REAPER folder.",
+		bridge.ErrNoAnswer:            "REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.",
+		bridge.ErrScriptOutdated:      "The Narration Studio script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed.",
 		errors.New("something else"):  "REAPER could not do that: something else.",
 	}
 	for err, sentence := range cases {

@@ -33,7 +33,7 @@ func trackSelectRefused(reason, message string) TrackSelectResult {
 // select_track. messageNotRunning (bindings_navigation.go) is already feature-neutral, so that one is reused as is.
 const (
 	messageTrackSelectExperimentalOff = "Selecting a track in REAPER is an experimental action. Turn on Experimental DAW actions in Settings to use it."
-	messageTrackSelectStandalone      = "REAPER is not connected to this app. To select a track in REAPER, open this app from the Narration Studio action in REAPER."
+	messageTrackSelectStandalone      = "REAPER is not connected to this app. To select a track in REAPER, open REAPER; the app connects to it by itself."
 )
 
 // trackSelectConnectionMessage words a connection refusal for this action, mirroring readAloudConnectionMessage's shape.

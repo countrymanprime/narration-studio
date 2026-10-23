@@ -193,6 +193,12 @@
       "message": "Experimental: switched off in Settings.",
       "reason": "experimental_off"
     },
+    "track_create": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "track_select": {
       "available": false,
       "level": "unsupported",

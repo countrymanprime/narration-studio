@@ -9,6 +9,5 @@ test('the generated brand module matches config/brand.json', () => {
   const file = JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', 'config', 'brand.json'), 'utf8'));
   expect(brand.name).toBe(file.name);
   expect(brand.identity).toEqual(file.identity);
-  expect(brand.retiredNames).toEqual(file.retiredNames);
   expect(brand.repository.url).toBe(`https://github.com/${file.repository.owner}/${file.repository.name}`);
 });

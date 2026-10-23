@@ -29,6 +29,7 @@ type (
 	TrackState    = bridge.TrackState
 	TrackItem     = bridge.TrackItem
 	SelectedTrack = bridge.SelectedTrack
+	CreatedTrack  = bridge.CreatedTrack
 	Armed         = bridge.Armed
 	RecordStarted = bridge.RecordStarted
 	RecordOptions = bridge.RecordOptions
@@ -263,6 +264,13 @@ type TrackStateReader interface {
 // every other one. It changes nothing else.
 type TrackSelector interface {
 	SelectTrack(ctx context.Context, trackGUID string) (SelectedTrack, error)
+}
+
+// TrackCreator adds one track named name at the end of the project's track list and answers it: the engine's id for it (GUID),
+// the name it was given and its 0-based index among the project's tracks. It changes no other track, never saves the project,
+// refuses while the engine records, and is not idempotent: each call adds a track.
+type TrackCreator interface {
+	CreateTrack(ctx context.Context, name string) (CreatedTrack, error)
 }
 
 // Place is where the narrator is in the project, in terms every engine can answer: TrackID is the engine's id for the one selected

@@ -68,24 +68,6 @@ H.test('the launcher starts the app with the session, project and DAW arguments,
   H.eq(host.listdir(H.join(H.join(session_root, 'hub_1001'), 'commands')), {}, 'the command folder exists')
 end)
 
-H.test('a shim beside the launcher runs it, so an action REAPER holds under an older file name keeps working', function()
-  local fake, _, scripts = bundle()
-  -- The same body the host writes into the launcher's folder from before the rename (internal/legacyname.LauncherShim).
-  local shim = H.join(scripts, 'Older_Launcher.lua')
-  H.write_file(
-    shim,
-    'local _, path = reaper.get_action_context()\n'
-      .. "local dir = path:match('^(.*)[\\\\/]') or '.'\n"
-      .. "return dofile(dir .. package.config:sub(1, 1) .. 'NarrationStudio_Launcher.lua')\n"
-  )
-  fake.action_path = shim
-  dofile(shim)
-  H.eq(#calls_named(fake, 'ShowMessageBox'), 0, 'no setup dialog')
-  H.eq(#calls_named(fake, 'ExecProcess'), 1, 'the app was started once')
-  H.contains(calls_named(fake, 'ExecProcess')[1].command, H.join(H.join(fake.resource_path, 'NarrationStudio'), 'sessions'), 'the session is in the new folder')
-  H.eq(#fake.deferred, 1, 'the bridge loop is running')
-end)
-
 H.test('the launcher reads the app path the app wrote beside it, whatever the program is called', function()
   local fake, root, scripts = bundle({ shell = false })
   local elsewhere = H.join(root, 'Program Files')

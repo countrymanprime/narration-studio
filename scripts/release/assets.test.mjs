@@ -96,10 +96,7 @@ test('windows packaging fails, naming the generator, when the notices were not w
   const bin = stageWailsOutput({ 'narration-studio.exe': 'raw exe', [WINDOWS_INSTALLER]: 'setup bytes' });
   const out = scratch('out');
 
-  assert.throws(
-    () => packageAsset({ platform: 'windows-x64', binDir: bin, outDir: out, version: V }),
-    /THIRD-PARTY-NOTICES\.txt.*scripts\/licenses\/notices\.py/s,
-  );
+  assert.throws(() => packageAsset({ platform: 'windows-x64', binDir: bin, outDir: out, version: V }), /THIRD-PARTY-NOTICES\.txt.*scripts\/licenses\/notices\.py/s);
   assert.deepEqual(readdirSync(out), []);
 });
 
@@ -174,10 +171,7 @@ test('verifyAssets reports a Windows release that has no third-party notices', (
   rmSync(join(dir, noticesName('windows-x64', V)));
   rmSync(join(dir, `${noticesName('windows-x64', V)}.sha256`));
 
-  assert.deepEqual(verifyAssets(dir, V), [
-    'Missing narration-studio-0.2.7-THIRD-PARTY-NOTICES.txt',
-    'Missing narration-studio-0.2.7-THIRD-PARTY-NOTICES.txt.sha256',
-  ]);
+  assert.deepEqual(verifyAssets(dir, V), ['Missing narration-studio-0.2.7-THIRD-PARTY-NOTICES.txt', 'Missing narration-studio-0.2.7-THIRD-PARTY-NOTICES.txt.sha256']);
 });
 
 test('verifyAssets reports notices that no longer match their checksum', () => {
@@ -188,16 +182,6 @@ test('verifyAssets reports notices that no longer match their checksum', () => {
 
   assert.equal(problems.length, 1);
   assert.match(problems[0], /narration-studio-0\.2\.7-THIRD-PARTY-NOTICES\.txt.*checksum/);
-});
-
-// The release check is where a rename that missed a release file is caught before it is published (scripts/ci/old-name.mjs).
-test("verifyAssets reports a release file that says the product's old name", () => {
-  const dir = stageRelease(['windows-x64']);
-  const old = ['Narration', 'Utils'].join(' ');
-  writeFileSync(join(dir, noticesName('windows-x64', V)), `Third-party notices for ${old}\n`);
-  writeFileSync(join(dir, `${noticesName('windows-x64', V)}.sha256`), `${sha256File(join(dir, noticesName('windows-x64', V)))}  x\n`);
-
-  assert.deepEqual(verifyAssets(dir, V), [`The product's old name: ${noticesName('windows-x64', V)}:1: Third-party notices for ${old}`]);
 });
 
 test('verifyAttestations checks the notices like every other file of the release', () => {
@@ -216,10 +200,7 @@ test('verifyAssets reports a Windows release that has the zip but no setup progr
   rmSync(join(dir, installerName('windows-x64', V)));
   rmSync(join(dir, `${installerName('windows-x64', V)}.sha256`));
 
-  assert.deepEqual(verifyAssets(dir, V), [
-    'Missing narration-studio-0.2.7-windows-x64-setup.exe',
-    'Missing narration-studio-0.2.7-windows-x64-setup.exe.sha256',
-  ]);
+  assert.deepEqual(verifyAssets(dir, V), ['Missing narration-studio-0.2.7-windows-x64-setup.exe', 'Missing narration-studio-0.2.7-windows-x64-setup.exe.sha256']);
 });
 
 test('verifyAssets reports a setup program that no longer matches its checksum', () => {
@@ -398,19 +379,14 @@ test('verifyAttestations passes the release signer and the repository it was giv
 
   verifyAttestations(dir, { repository: 'someone/else', version: V, run });
 
-  assert.deepEqual(
-    calls[0],
-    attestationArgs({ file: join(dir, 'narration-studio-0.2.7-windows-x64.zip'), repository: 'someone/else', platform: 'windows-x64' }),
-  );
+  assert.deepEqual(calls[0], attestationArgs({ file: join(dir, 'narration-studio-0.2.7-windows-x64.zip'), repository: 'someone/else', platform: 'windows-x64' }));
   assert.ok(calls[0].includes('someone/else/.github/workflows/prerelease.yml'));
 });
 
 test('the verify command rejects a flag it does not know instead of skipping the check', () => {
   const dir = stageRelease(['windows-x64']);
 
-  const result = spawnSync(process.execPath, [fileURLToPath(new URL('./assets.mjs', import.meta.url)), 'verify', dir, V, '--attestation'], {
-    encoding: 'utf8',
-  });
+  const result = spawnSync(process.execPath, [fileURLToPath(new URL('./assets.mjs', import.meta.url)), 'verify', dir, V, '--attestation'], { encoding: 'utf8' });
 
   assert.equal(result.status, 2);
   assert.match(result.stderr, /Unknown flag --attestation/);
@@ -434,10 +410,7 @@ test('verifyAssets rejects the files of another version as unexpected, and misse
   const problems = verifyAssets(dir, V);
 
   assert.ok(problems.includes('Missing narration-studio-0.2.7-windows-x64.zip'), problems.join('\n'));
-  assert.ok(
-    problems.some((problem) => problem.startsWith('Unexpected file narration-studio-0.2.6-windows-x64.zip:')),
-    problems.join('\n'),
-  );
+  assert.ok(problems.some((problem) => problem.startsWith('Unexpected file narration-studio-0.2.6-windows-x64.zip:')), problems.join('\n'));
 });
 
 test('the verify command needs the version the files are named for', () => {

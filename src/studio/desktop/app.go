@@ -419,6 +419,15 @@ type Host struct {
 	// reaperRunning says whether REAPER is already running; nil means daw.IsRunning.
 	reaperRunning func() bool
 	reaperLocate  func() (path, source string, err error)
+	// dawAutoEnabled lets the host install its bridge into REAPER, start REAPER on its own (reaperbridge.go), and turn Audacity's
+	// scripting on and start Audacity on its own (audacityauto.go); only the app's
+	// real start and the tests that give the seams below set it. reaperResourceSeam is REAPER's resource folder and reaperFilesSeam the
+	// bridge files to install, for tests; nil means the real ones.
+	dawAutoEnabled     atomic.Bool
+	reaperResourceSeam func() string
+	reaperFilesSeam    fs.FS
+	reaperBridgeOnce   sync.Once
+	reaperBridge       *reaperBridgeState
 	// audacityLocate is DawChoice's seam for daw.LocateAudacityExecutable (bindings_dawchoice.go); nil means the real one.
 	audacityLocate func() (path, source string, err error)
 	// audacityRunning, audacityLaunch and audacityConfig are the link state's seams (bindings_audacity_link.go, dawlaunch.go): nil
@@ -490,6 +499,8 @@ type config struct {
 	compareBackend                          string
 	teleprompterPython, teleprompterBackend string
 	reaperLauncher                          string
+	// reaperStartupHooked is whether REAPER runs the bridge itself when it opens (reaperbridge.go), so a start needs no launcher argument.
+	reaperStartupHooked bool
 }
 
 func NewHost() *Host {
@@ -603,6 +614,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.chapterSyncWatchLoop(runtimeContext)
 	go h.backgroundCheckLoop(runtimeContext)
 	go h.punchAnchorLoop(runtimeContext)
+	h.dawAutoEnabled.Store(true)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
 	go h.cleanStaleDownloads()
@@ -627,13 +639,6 @@ func (h *Host) cleanStaleDownloads() {
 // not explicitly name development sidecars.
 func (h *Host) configureLocked(next config) {
 	next.repoRoot = layout.FindRoot(next.repoRoot)
-	if next.projectFolder != "" {
-		if problem := migrateProjectFolder(next.projectFolder, h.log); problem != "" {
-			next.projectFolder, next.projectName, next.projectFile = "", "", ""
-			// h.mu is held here and noticeNarrator takes it, so the notice goes out once this returns.
-			go h.noticeNarrator(problem)
-		}
-	}
 	h.config = next
 	h.logConfigure()
 	h.settings = settings.New(h.config.repoRoot, h.config.projectFolder)
@@ -948,10 +953,9 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if _, err := os.Stat(filepath.Join(target, ".complete")); err == nil {
 		// The payload may be unchanged while the app executable moves (for
 		// example after a user relocates a portable install). Refresh this
-		// tiny launcher pointer on every startup; REAPER import itself remains
-		// an explicit, user-controlled action.
+		// tiny launcher pointer on every startup.
 		_ = writeReaperLauncherPath(target, executable)
-		_ = syncLaunchers(source, userCache, executable)
+		_ = syncStableLauncher(source, stableLauncherDir(userCache), executable)
 		return target, nil
 	}
 	staging := target + ".staging"
@@ -994,13 +998,10 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if err := os.Rename(staging, target); err != nil {
 		return "", err
 	}
-	// The REAPER action is intentionally materialized beside the immutable
-	// sidecars.  It needs the installed Wails executable rather than a
-	// checkout-relative path; the Lua launcher reads this one-line file.
-	// REAPER is never modified automatically: Settings shows this path for a
-	// user-controlled import or re-import.
+	// The REAPER scripts are materialized beside the immutable sidecars and in the stable launcher folder, each with the app's
+	// path the launcher reads. The copy REAPER runs is the one reaperbridge.go installs into REAPER's own Scripts folder.
 	_ = writeReaperLauncherPath(target, executable)
-	_ = syncLaunchers(source, userCache, executable)
+	_ = syncStableLauncher(source, stableLauncherDir(userCache), executable)
 	return target, nil
 }
 
@@ -1008,15 +1009,6 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 // folder changes with every update, and a launcher path that moves meant re-adding the REAPER action after each one.
 func stableLauncherDir(userCache string) string {
 	return filepath.Join(userCache, "narration-studio", "reaper")
-}
-
-// syncLaunchers keeps the REAPER scripts current in the stable launcher folder and, while it is there, in the one from before
-// the rename (legacy_names.go).
-func syncLaunchers(source fs.FS, userCache, executable string) error {
-	if err := syncStableLauncher(source, stableLauncherDir(userCache), executable); err != nil {
-		return err
-	}
-	return syncLegacyLauncher(func(dir string) error { return syncStableLauncher(source, dir, executable) }, userCache)
 }
 
 // syncStableLauncher updates the embedded REAPER scripts in place under dir and points the launcher at executable. A file is

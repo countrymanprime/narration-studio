@@ -168,12 +168,24 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'unlinked',
     description:
-      'Editing on Chapter 1 with no track linked (?mockChapterLink=none) - the banner says why there is no audio to edit and opens the audio engine panel, the legend says "No audio to edit", and the script reads plain with no word boxed "not read"',
+      'Editing on Chapter 1 with no track linked (?mockChapterLink=none) - the dialog that opens by itself names the chapter, lists the tracks the host found with the best match chosen, and offers Link track and Check again; behind it the legend says "No audio to edit" and the script reads plain with no word boxed "not read"',
+  },
+  {
+    page: 'editing',
+    state: 'unlinked-closed',
+    description:
+      'Editing on Chapter 1 with no track linked, after the dialog was closed with its X - the quiet "Not linked to a track" mark stands where the banner stood and reopens it',
   },
   {
     page: 'editing',
     state: 'daw-off',
-    description: 'Editing with the DAW not connected (?mockDaw=Audacity) - the banner with its reason and Retry; the edit actions wait',
+    description:
+      "Editing with the DAW not connected (?mockDaw=Audacity) - the dialog with the host's reason, what still works, when it last checked, Start and Check again; the edit actions wait",
+  },
+  {
+    page: 'editing',
+    state: 'daw-off-closed',
+    description: 'Editing with the DAW not connected, after the dialog was closed with its X - the quiet "not connected" mark in the header reopens it',
   },
   {
     page: 'editing',

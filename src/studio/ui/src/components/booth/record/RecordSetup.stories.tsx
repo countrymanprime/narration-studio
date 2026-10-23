@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, within } from 'storybook/test';
+import { useState } from 'react';
+import { expect, fn, screen, userEvent, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
+import { resetOpenOnce } from '../../connection/useOpenOnce';
 import { RecordSetup } from './RecordSetup';
 
 // The Booth's one-time recording setup, above the footer while Record is unavailable for a reason the narrator can fix from the Booth:
@@ -27,6 +29,8 @@ type Args = {
 };
 
 function Strip({ capabilities, linked, open, say, onSettings, onChanged }: Args) {
+  // The connect dialog opens by itself once; a story that is played again starts as if the Booth had just opened.
+  useState(resetOpenOnce);
   return (
     <ApiProvider api={createMockApi()}>
       <div className="max-w-full bg-[var(--surface)] py-2">
@@ -36,6 +40,7 @@ function Strip({ capabilities, linked, open, say, onSettings, onChanged }: Args)
           say={say}
           onSettings={onSettings}
           onChanged={onChanged}
+          graceMs={0}
         />
       </div>
     </ApiProvider>
@@ -57,10 +62,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Record switched off: a chip above the footer, and the dialog it opens (as a press of Record does) turns Record on in one click. */
 export const TurnOnRecord: Story = {
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('heading', { name: 'Recording in REAPER is experimental' })).toBeVisible();
-    await expect(within(canvasElement).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Record is switched off. Show details' }));
+    const open = await screen.findByRole('dialog', { name: 'Recording in REAPER is experimental' });
+    await expect(within(open).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
   },
 };
 
@@ -77,33 +84,42 @@ export const TurnOnRecordBuiltIn: Story = {
     linked: false,
   },
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('heading', { name: 'Recording in the built-in recorder is experimental' })).toBeVisible();
-    await expect(within(canvasElement).getByText(/saved in the project's Recordings folder/)).toBeInTheDocument();
-    await expect(within(canvasElement).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Record is switched off. Show details' }));
+    const open = await screen.findByRole('dialog', { name: 'Recording in the built-in recorder is experimental' });
+    await expect(within(open).getByText(/saved in the project's Recordings folder/)).toBeInTheDocument();
+    await expect(within(open).getByRole('button', { name: 'Turn on Record' })).toBeEnabled();
   },
 };
 
+/** REAPER is not connected: a chip stands in the Booth and a dialog opens by itself once with the launcher steps and Open in REAPER. */
 export const ConnectReaper: Story = {
   args: { capabilities: refused('standalone', 'REAPER is not connected to this app. Open this app from REAPER to use it.') },
+  play: async () => {
+    await expect(await within(await screen.findByRole('dialog')).findByRole('button', { name: 'Open in REAPER and connect' })).toBeEnabled();
+  },
 };
 
 export const ReaperNotAnswering: Story = {
   args: { capabilities: refused('not_running', 'REAPER is not answering. Check that REAPER is open, then try again.') },
+  play: async () => {
+    await expect(within(await screen.findByRole('dialog')).getByText(/REAPER is not answering/)).toBeVisible();
+  },
 };
 
 export const NoProjectLinked: Story = {
   args: { capabilities: refused('standalone', 'No DAW is connected to this app. Open this app from your DAW to use it.'), linked: false },
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Open in REAPER and connect' })).toBeDisabled();
+  play: async () => {
+    await expect(await screen.findByRole('button', { name: 'Open in REAPER and connect' })).toHaveAttribute('aria-disabled', 'true');
   },
 };
 
 /** Record could start, but the DAW has another project open than the one linked: link the open one, or open the linked one and check again. */
 export const OtherProjectOpen: Story = {
   args: { capabilities: DAW_SETUPS.reaper, open: 'different' },
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('heading', { name: 'REAPER has a different project open' })).toBeVisible();
-    await expect(within(canvasElement).getByRole('button', { name: 'Link the open project' })).toBeEnabled();
-    await expect(within(canvasElement).getByRole('button', { name: 'DAW settings' })).toBeEnabled();
+  play: async () => {
+    // A take would land in the wrong project: the dialog opens by itself.
+    const open = await screen.findByRole('dialog', { name: 'REAPER has a different project open' });
+    await expect(within(open).getByRole('button', { name: 'Link the open project' })).toBeEnabled();
+    await expect(within(open).getByRole('button', { name: 'DAW settings' })).toBeEnabled();
   },
 };

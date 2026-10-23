@@ -1,6 +1,6 @@
 # App name injection: one place for the product name
 
-Researched 2026-10-23 for the owner (#2251 item 41), on `refactor/purge-old-name` at `661c617`. The counts are for that commit and are not kept current; `scripts/ci/old-name.mjs` reports what is left.
+Researched 2026-10-23 for the owner (#2251 item 41), on `refactor/purge-old-name` at `661c617`; the design is rebased on #2264, which retires the old name with no migration. The counts are for that commit and are not kept current; `scripts/ci/old-name.mjs` reports what is left.
 
 **Question.** Where does the product name appear, and how does each place get it from one file, so that renaming the product is one edit plus one command?
 
@@ -40,8 +40,7 @@ Not found: an AppUserModelID (the app sets none; Windows derives one from the pr
 
 - **`name`**, the display name. Its other spellings (`slug`, `snake`, `pascal`, `constant`) are derived by `scripts/brand/brand.mjs` (`nameForms`), not stored, so there is one value to change.
 - **`repository`**, the GitHub owner and repository name. The repository URL and the public site URL are derived from it. It is apart from `name` because renaming the product does not rename the repository; the owner does that on GitHub.
-- **`identity`**, the values already written to narrators' machines and projects: the per-user and project data folders, the default projects folder, the program and release asset names, the install folder, the uninstall key, the REAPER P_EXT key prefix, launcher file and resource folder, the Audacity label track, the credential entropy and the environment variable prefix. **They do not follow a rename.** Each one is found again by its exact value (an installed copy downloads its update by the asset name; the bridge reads its own P_EXT keys from saved projects; DPAPI needs the same entropy to decrypt), so changing one strands the narrator's data unless a migration moves it, as `internal/legacyname` did for the old name. `IDENTITY_KEYS` in `brand.mjs` says what each one names.
-- **`retiredNames`**, the names the product had before. The guard fails on them.
+- **`identity`**, the values already written to narrators' machines and projects: the per-user and project data folders, the default projects folder, the program and release asset names, the install folder, the uninstall key, the REAPER P_EXT key prefix, launcher file and resource folder, the Audacity label track, the credential entropy and the environment variable prefix. **They do not follow a rename.** Each one is found again by its exact value (an installed copy downloads its update by the asset name; the bridge reads its own P_EXT keys from saved projects; DPAPI needs the same entropy to decrypt), so changing one strands what is already on a narrator's machine or in their projects. The app has no migration for them (the old name was retired before the first release, with none). `IDENTITY_KEYS` in `brand.mjs` says what each one names.
 
 ### How each kind of place gets the name
 
@@ -62,8 +61,8 @@ Not found: an AppUserModelID (the app sets none; Windows derives one from the pr
 
 ### The guard
 
-`scripts/ci/old-name.mjs` already fails the gate on the old name in any spelling. It grows to read every name from the brand file: the current name and the retired names, in every spelling, in tracked paths and text, in the built site and in release assets. The brand file, the generated modules and a short allowlist (the migration files, the guard's own tests) are exempt, as are links to the brand's own repository, which `rename-app` rewrites. It reports while the places above move to the brand, and fails the gate once they have.
+`scripts/ci/old-name.mjs` already fails the gate on the old name in any spelling, with no exception (#2264). The retired names live in the guard as patterns, not in the brand file, so the brand file and the generated modules never hold them and need no exemption. The guard grows to read the current name from the brand file and fail on it, in every spelling, in tracked paths and text, in the built site and in release assets. The brand file, the generated modules and a short allowlist, each entry with its reason, are exempt, as are links to the brand's own repository, which `rename-app` rewrites. It reports while the places above move to the brand, and fails the gate once they have.
 
 ### The rename
 
-`pnpm run rename-app -- "<New Name>"` (with `--dry-run`) moves the current name to `retiredNames`, writes the new one, runs `brand:sync` and prints what it cannot do. That list is the GitHub repository's own name, and the screenshots, which `scripts/dev/guide-screenshots.mjs` retakes. A CI rehearsal renames a copy of the repository to "Zebra Audio Lab" and runs the generators, the guard and the tests that read the name, so a rename that needs a second edit fails before it is needed.
+`pnpm run rename-app -- "<New Name>"` (with `--dry-run`) adds the current name to the guard's retired-name patterns, writes the new one, runs `brand:sync` and prints what it cannot do. That list is the GitHub repository's own name, and the screenshots, which `scripts/dev/guide-screenshots.mjs` retakes. A CI rehearsal renames a copy of the repository to "Zebra Audio Lab" and runs the generators, the guard and the tests that read the name, so a rename that needs a second edit fails before it is needed.

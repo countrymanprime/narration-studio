@@ -68,10 +68,16 @@ reports one and the app is not playing its own audio. When the DAW stops, its la
 cursor.
 
 A chapter has to be linked to a track (see [Linking chapters to tracks](navigation.md#linking-chapters-to-tracks)) for
-its words to carry the times they were heard at. A chapter with no audio to edit says so in a banner over the script
-and shows the script plain, with no word marked "not read": it names the cause (no track linked, the linked track is
-not in the saved project, or the track is empty) and opens the audio engine panel, where **Link chapters…** is. With
-the built-in recorder there is no track to link, so the banner points at recording the chapter in the Booth. A chapter
+its words to carry the times they were heard at. A chapter with no audio to edit shows the script plain, with no word marked
+"not read". When the cause is a link (no track linked, or the linked track is not in the saved project), a dialog opens by
+itself, once for the chapter: it names the chapter, offers the REAPER tracks the app found in a dropdown, with the best match chosen, and
+**Link track** links the one you pick, after which the page reads the chapter at once. **Create a new track** has REAPER add a
+track named after the chapter and links it instead (the main button when the project has no tracks); save the REAPER project
+so the page can read the new track. If you close it with the X, the
+**Not linked to a track** mark in the header opens it again. The page also reads the chapter again whenever you come back
+to its window, so a link made in REAPER or the audio engine panel shows without a reload. When the track is empty, or with the
+built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
+A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
 **Check recording** button beside it that opens the chapter's recording check. Close the check and the page reads the chapter again, so
 what it found shows without a reload. Opening Editing never starts a check. The check's **Check options** (a closed section in its panel) are the same
@@ -322,19 +328,26 @@ If REAPER refuses (it is recording, say), a message gives its reason and the app
 
 ## When the DAW is not connected
 
-A banner at the top says the DAW is not answering, or that the chosen DAW is not supported here yet, with **Check again**
-beside it, which asks the DAW again. It names only that cause: a setting that keeps Delete, Mute and Add FX off is the line above
-the bar, never the banner. You can still read, select and play; the
-actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
+A dialog says the DAW is not connected, in the app's own words: the DAW's reason ("REAPER is not running."), what the host
+knows (the project is linked but REAPER has not connected; it connected before and stopped answering; no project file is
+linked, so it cannot be started from here), what still works, and when the app last checked. **Start REAPER** runs the
+launcher, and **Check again** asks the DAW now. It opens by itself once per lost connection, a few seconds after the app
+opens so a DAW that connects on its own never shows it; the X closes it, and the **REAPER not connected** mark in the header
+opens it again. A setting that keeps Delete, Mute and Add FX off is the line above the bar, never this dialog. You can still
+read, select and play; the actions that change the DAW (delete, mute, effects, keeping a take) wait until it is back.
 
-![Editing - the banner when the DAW is not answering, with Check again](../../images/ui/editing-daw-off.webp)
+![Editing - the dialog when the DAW is not connected, with Start REAPER and Check again](../../images/ui/editing-daw-off.webp)
+
+![Editing - the mark that reopens the dialog once it is closed](../../images/ui/editing-daw-off-closed.webp)
 
 ## When the chapter has no audio
 
-With no track linked to the chapter there is nothing to edit yet. A banner at the top says why and opens the audio
-engine panel, the legend reads **No audio to edit**, and the script shows no word as not read.
+With no track linked to the chapter there is nothing to edit yet. The legend reads **No audio to edit**, the script shows no
+word as not read, and the dialog described above lists the tracks to link.
 
-![Editing with no track linked - the banner saying why there is no audio to edit, and the legend](../../images/ui/editing-unlinked.webp)
+![Editing with no track linked - the dialog naming the chapter and with its track dropdown, the best match chosen](../../images/ui/editing-unlinked.webp)
+
+![Editing with no track linked, dialog closed - the Not linked to a track mark, and the legend](../../images/ui/editing-unlinked-closed.webp)
 
 ---
 
