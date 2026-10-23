@@ -3,7 +3,7 @@ import { capturePointer, releasePointer } from './pointerCapture';
 import type { RibbonView } from './useRibbonView';
 
 /** A pointer that moves less than this many pixels while the right button is held was a click: it opens the menu instead of scrolling. */
-export const SCROLL_SLOP_PX = 4;
+const SCROLL_SLOP_PX = 4;
 /** How long after a right-drag ends its own `contextmenu` (Windows sends it on the button-up) is still swallowed. */
 const AFTER_DRAG_MS = 500;
 

@@ -4,7 +4,6 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { useEditingPage } from '../script/EditingPageState';
 import { activePid } from '../ribbon/ribbonLayout';
-import { MiniWave } from '../takes/MiniWave';
 import type { LinePassage, LineTake } from '../takes/types';
 import { stripLayout } from './stripLayout';
 
@@ -103,9 +102,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay,
             <span
               className={`absolute inset-y-0.5 block overflow-hidden rounded-[var(--radius-button)] ${take.active ? 'bg-[var(--info-soft)]' : 'bg-[var(--surface)]'}`}
               style={{ left: pct(start, t0, t1), width: `${((length / (t1 - t0)) * 100).toFixed(2)}%` }}
-            >
-              <MiniWave id={take.id} seconds={length} />
-            </span>
+            ></span>
             {layout.band && take.active ? (
               <i
                 data-selband

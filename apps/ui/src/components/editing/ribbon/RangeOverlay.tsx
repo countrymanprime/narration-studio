@@ -100,13 +100,14 @@ export function RangeNotes({ shown, covered, words }: { shown: Span | null; cove
   const partial = partialText(covered, words);
   const sub = subWordNote(shown, covered.applied);
   return (
-    <div className="flex flex-col gap-0.5 px-3 text-xs text-[var(--text-muted)]" data-range-notes>
+    // One wrapping paragraph, so the notes take only the lines they need in the waveform's fixed height.
+    <p className="m-0 px-3 text-xs text-[var(--text-muted)]" data-range-notes>
       <span>
         Range <span className="font-mono text-[var(--text)]">{rangeLabel(shown, covered.keys.length)}</span>
-        {covered.keys.length ? '' : '. This range covers no words.'}
+        {covered.keys.length ? '.' : '. This range covers no words.'}
       </span>
-      {partial ? <span data-testid="range-partial">{partial}</span> : null}
-      {sub ? <span data-subword>{sub}</span> : null}
-    </div>
+      {partial ? <span data-testid="range-partial"> {partial}</span> : null}
+      {sub ? <span data-subword> {sub}</span> : null}
+    </p>
   );
 }

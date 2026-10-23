@@ -68,7 +68,7 @@ export function peaksWindowAll(entries: readonly DocPeaks[], t0: number, t1: num
 }
 
 /** The share of the chapter's sounding buckets that may be louder than its reference level: a click or a plosive, not the speech. */
-export const REFERENCE_PERCENTILE = 0.99;
+const REFERENCE_PERCENTILE = 0.99;
 
 const scales = new WeakMap<object, PeakScale>();
 

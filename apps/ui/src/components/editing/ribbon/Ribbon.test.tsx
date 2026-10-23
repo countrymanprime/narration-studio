@@ -139,7 +139,7 @@ describe('one waveform, docked', () => {
     await waitFor(() => expect(document.querySelector('[data-ribbon-surface]')).not.toBeNull());
     const dock = () => document.querySelector('[data-wave-dock]') as HTMLElement;
     const height = dock().style.height;
-    expect(height).toBe('128px');
+    expect(height).toBe('140px');
     cleanup();
     page(doc, withPeaks(undefined, 'No waveform: the source is not a WAV.'));
     await waitFor(() => expect(screen.getByText(/No audio to draw/)).toBeTruthy());

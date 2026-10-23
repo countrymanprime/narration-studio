@@ -335,7 +335,7 @@ describe('partial words are shown as they are', () => {
     expect(note.textContent).toContain('0:05.54 to 0:06.30');
     expect(note.textContent).toContain('0:05.60 to 0:06.20');
     const partial = screen.getByTestId('range-partial');
-    expect(partial.textContent).toBe('Start: covers the last 20% of “was” (not selected). End: covers the first 32% of “sitting” (not selected).');
+    expect(partial.textContent).toBe(' Start: covers the last 20% of “was” (not selected). End: covers the first 32% of “sitting” (not selected).');
   });
 
   it('says nothing about sub-word edges when the range sits on whole words', async () => {
@@ -352,7 +352,7 @@ describe('partial words are shown as they are', () => {
     await ready();
     drag(surface(), xAt(7.5), xAt(7.55));
     await waitFor(() => expect(state.state.sel).toEqual({ anchor: 'p-1:8', head: 'p-1:8' }));
-    expect(screen.getByTestId('range-partial').textContent).toBe('Covers 14% of “sister” (selected).');
+    expect(screen.getByTestId('range-partial').textContent).toBe(' Covers 14% of “sister” (selected).');
   });
 
   it('says so when a range covers no words, which a gap between words allows', () => {

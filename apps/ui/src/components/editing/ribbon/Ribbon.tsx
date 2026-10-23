@@ -18,12 +18,12 @@ import { useRibbonView } from './useRibbonView';
 import { useScrollGestures } from './useScrollGestures';
 
 /** The waveform's own height (CSS pixels): the lane, not the peaks in it. */
-export const HEIGHT = 56;
+const HEIGHT = 56;
 /**
  * The whole waveform's height when it is a place to choose (the bottom of the Editing page): the row above, the lane and two lines of notes
- * under it. Fixed, so a range, a note or a line without audio never moves what is around it (#2251, item 29).
+ * under it (three when a range's notes need them). Fixed, so a range, a note or a line without audio never moves what is around it (#2251, item 29).
  */
-export const DOCK_HEIGHT = 128;
+const DOCK_HEIGHT = 140;
 /** Width used where nothing can measure the canvas (a test environment without ResizeObserver). */
 const FALLBACK_WIDTH = 640;
 
@@ -33,7 +33,7 @@ const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1
 const COARSE_PX = 10;
 
 /** What makes the waveform a place to choose a range: the words, the range now, and what to do when it changes or is tapped. Without it the waveform only shows. */
-export interface RibbonRange {
+interface RibbonRange {
   words: readonly DocItem[];
   range: Span | null;
   onRange: (span: Span, phase: 'drag' | 'commit') => void;
@@ -329,7 +329,7 @@ export function RibbonView({
         <div className="flex min-w-0 flex-1 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface)]">{lane}</div>
         <ScrollEnd dir={1} ribbon={ribbon} />
       </div>
-      <div className="line-clamp-2 min-h-0 flex-1 overflow-hidden" data-ribbon-notes>
+      <div className="min-h-0 flex-1 overflow-hidden" data-ribbon-notes>
         {empty ? null : coarse ? (
           <p data-peaks-detail className="m-0 px-3 text-xs text-[var(--text-muted)]">
             Each bar is {Math.round(1000 / bps)} ms of audio at this zoom: the host keeps {bps} peaks a second.
