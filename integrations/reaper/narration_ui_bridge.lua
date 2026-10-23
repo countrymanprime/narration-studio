@@ -7,7 +7,7 @@
 -- (narration_cleanup.lua, narration_compare.lua, narration_line_identity.lua, narration_pickups.lua,
 -- narration_render.lua, narration_project_state.lua, narration_retake_lanes.lua, narration_take_review.lua, narration_navigation.lua,
 -- narration_track_state.lua, narration_transport.lua, narration_workspace.lua, narration_regions.lua,
--- narration_punch.lua, narration_track_select.lua, narration_master_render.lua, narration_takes.lua,
+-- narration_punch.lua, narration_track_select.lua, narration_track_create.lua, narration_master_render.lua, narration_takes.lua,
 -- narration_roll.lua, narration_range.lua, narration_media_file.lua, narration_undo.lua, narration_levels.lua).
 -- To add a command, put it in a new narration_<feature>.lua that returns
 -- `function(registry)` and calls `registry.register(name, function(ctx, args) ... end)`,
@@ -35,6 +35,7 @@ M.FEATURE_FILES = {
   'narration_punch.lua',
   'narration_regions.lua',
   'narration_track_select.lua',
+  'narration_track_create.lua',
   'narration_master_render.lua',
   'narration_takes.lua',
   'narration_roll.lua',

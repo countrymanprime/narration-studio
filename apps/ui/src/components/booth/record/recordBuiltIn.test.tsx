@@ -96,7 +96,8 @@ describe('Record with the built-in recorder', () => {
         />
       </ApiProvider>,
     );
-    expect(screen.getByRole('heading', { name: 'Recording in the built-in recorder is experimental' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Record is switched off. Show details' }));
+    expect(screen.getByRole('dialog', { name: 'Recording in the built-in recorder is experimental' })).toBeTruthy();
     expect(screen.getByText(/saved in the project's Recordings folder/)).toBeTruthy();
     expect(screen.queryByText(/chapter's own track/)).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Turn on Record' }));

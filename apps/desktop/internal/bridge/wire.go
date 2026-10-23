@@ -136,6 +136,9 @@ var eventSpecs = map[string]eventSpec{
 	// select_track (narration_track_select.lua): "Select in REAPER" deselected every other track and selected guid. It
 	// opens no undo block.
 	"TRACK_SELECTED": {required: []fieldSpec{text("run"), text("guid")}},
+	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
+	// was given, in one undo point.
+	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
 	// arm_only, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
 	// record_start whose recording the narrator stopped in REAPER.

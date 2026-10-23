@@ -14,12 +14,15 @@ import { STRIP_MIN_WIDTH } from './drawer/drawerTabs';
 import { useWindowWidth } from './drawer/useDrawer';
 import { EditingPageProvider } from './script/EditingPageState';
 import { Skeleton } from '../primitives/Skeleton';
-import { DawOffBanner } from './page/DawOffBanner';
 import { EditingBody, type DeepLink, type PanelsState } from './page/EditingBody';
 import { EditingHeader } from './page/EditingHeader';
 import { EditingBodySkeleton } from './page/EditingSkeleton';
 import { useChapterSource } from './page/useChapterSource';
 import { useDawStatus } from './page/useDawStatus';
+import { ConnectionIndicator } from '../connection/ConnectionIndicator';
+import { ConnectionResolveDialog } from '../connection/ConnectionResolveDialog';
+import { useOpenOnce } from '../connection/useOpenOnce';
+import { DAW_CONNECT_GRACE_MS, useConnectGrace } from '../production/pipeline/dawConnectGrace';
 import { useEditingChapterCommands } from './page/useEditingPageCommands';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
@@ -52,6 +55,8 @@ export interface EditingPageProps {
   onGoToParagraph?: (chapterId: string, index: number) => void;
   /** Opens a character's Story Bible entry (the voice-sample dots' "Open in Story Bible"). Absent: no link is drawn. */
   onOpenStoryBible?: (entityId: string) => void;
+  /** How long after the app opens an unconnected DAW is waited for before its dialog opens by itself (tests pass 0). */
+  dawConnectGraceMs?: number;
 }
 
 /** The strip and the drawer: page state that a chapter change keeps. */
@@ -74,7 +79,7 @@ function usePanels(initial?: DrawerTab): PanelsState {
 
 /**
  * The Editing page (the Studio Next mock's `pages/Editing.tsx`): the chapter's script is the editor. The header with the chapter step, the
- * legend and the strip and drawer buttons; the DAW-off banner; the script with takes, cards and the ribbon under its lines; the strip, the
+ * legend and the strip and drawer buttons; the DAW-off mark, which opens the connect dialog; the script with takes, cards and the ribbon under its lines; the strip, the
  * bar, the key hints and the drawer. Routed at `/editing/:chapterId` (App.tsx), where it replaced Proof's chapter workspace (SN-E9).
  */
 export function EditingPage(props: EditingPageProps) {
@@ -82,10 +87,23 @@ export function EditingPage(props: EditingPageProps) {
   return <EditingLoaded {...props} />;
 }
 
-function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onChapter, onGoToParagraph, onOpenStoryBible }: EditingPageProps) {
+function EditingLoaded({
+  chapterId: asked,
+  passageId,
+  findingId,
+  t,
+  drawer,
+  onChapter,
+  onGoToParagraph,
+  onOpenStoryBible,
+  dawConnectGraceMs = DAW_CONNECT_GRACE_MS,
+}: EditingPageProps) {
   const manuscript = usePort('manuscript');
   const keymap = useUserKeymap();
   const daw = useDawStatus();
+  // The DAW dialog opens by itself once per connection loss, after the app has had its time to connect on its own.
+  const settling = useConnectGrace(dawConnectGraceMs);
+  const dawDialog = useOpenOnce(daw.off ? `reaper-off:${daw.dawName}` : null, settling);
   const panels = usePanels(drawer);
   const width = useWindowWidth();
   const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
@@ -139,12 +157,26 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
 
   useEditingChapterCommands(list, chapter?.id, choose);
   const stepper = chapter ? <ChapterStepper chapters={list} value={chapter.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={choose} onStep={step} /> : null;
-  const banner = daw.off ? <DawOffBanner sentence={daw.off} dawName={daw.dawName} onRetry={daw.retry} /> : null;
+  const dawIndicator = daw.off ? <ConnectionIndicator id="dawoff" label={`${daw.dawName} not connected`} onOpen={dawDialog.reopen} /> : null;
   // A deep link applies to the chapter it was given for, until the narrator moves on.
   const link: DeepLink = !moved && chapter && chapter.id === (asked ?? list[0]?.id) ? { passageId, findingId, t } : {};
 
   return (
     <CommandScope kind="page">
+      {daw.off && dawDialog.open ? (
+        <ConnectionResolveDialog
+          variant="reaper-off"
+          daw={daw.caps?.daw ?? 'none'}
+          sentence={daw.off}
+          stillWorks={`You can look at takes, findings and effects. Changes wait until ${daw.dawName} is running.`}
+          checkedAt={daw.checkedAt}
+          heardAt={daw.heardAt}
+          readFailed={daw.readFailed}
+          onCheckAgain={daw.retry}
+          onCaps={daw.take}
+          onClose={dawDialog.close}
+        />
+      ) : null}
       <section aria-label="Script editor" className="flex h-full min-h-0 flex-col">
         <div className="flex h-full min-h-0 flex-col">
           {error ? (
@@ -156,7 +188,8 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
               chapterName={chapter.name}
               link={link}
               stepper={stepper}
-              banner={banner}
+              dawIndicator={dawIndicator}
+              dawDialogOpen={dawDialog.open}
               panels={panels}
               caps={daw.caps}
               keymap={keymap}
@@ -174,10 +207,10 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
             // Still reading the chapters: the page's own header stays, the script is blocks.
             <div className="min-h-0 flex-1 px-4 pb-3">
               <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
-                {banner}
                 <EditingHeader
                   stepper={<Skeleton className="h-8 w-56 max-w-full" />}
                   legend={null}
+                  status={dawIndicator}
                   strip={panels.strip}
                   stripFits={width >= STRIP_MIN_WIDTH}
                   drawerOpen={panels.drawer.open}
@@ -198,7 +231,9 @@ type ChapterProps = {
   chapterName: string;
   link: DeepLink;
   stepper: ReactNode;
-  banner: ReactNode;
+  dawIndicator: ReactNode;
+  /** The DAW dialog is up: the chapter dialog waits for it. */
+  dawDialogOpen: boolean;
   panels: PanelsState;
   caps: ReturnType<typeof useDawStatus>['caps'];
   keymap: ReturnType<typeof useUserKeymap>;
@@ -215,7 +250,8 @@ function EditingChapter({
   chapterName: name,
   link,
   stepper,
-  banner,
+  dawIndicator,
+  dawDialogOpen,
   panels,
   caps,
   keymap,
@@ -231,10 +267,10 @@ function EditingChapter({
     return (
       <div className="min-h-0 flex-1 px-4 pb-3">
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
-          {banner}
           <EditingHeader
             stepper={stepper}
             legend={null}
+            status={dawIndicator}
             strip={panels.strip}
             stripFits={stripFits}
             drawerOpen={panels.drawer.open}
@@ -276,7 +312,8 @@ function EditingChapter({
         chapterStep={step}
         link={link}
         stepper={stepper}
-        banner={banner}
+        dawIndicator={dawIndicator}
+        dawDialogOpen={dawDialogOpen}
       />
     </EditingPageProvider>
   );

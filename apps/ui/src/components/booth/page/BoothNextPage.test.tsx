@@ -254,10 +254,12 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
     const page = renderPage({ setup: 'reaper-off' });
     await screen.findByText('Nobody', { exact: false });
     const button = await screen.findByRole('button', { name: /^Record$/ });
-    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
     expect(button.getAttribute('aria-describedby')).toBe('brec-why');
     await space();
     expect(page.daw.recordStart).not.toHaveBeenCalled();
+    // The press is answered in front of the narrator, never only by the footer's sentence.
+    await waitFor(() => expect(screen.queryByRole('dialog') ?? page.overlay.getSnapshot().toasts[0]).toBeTruthy());
   });
 });
 

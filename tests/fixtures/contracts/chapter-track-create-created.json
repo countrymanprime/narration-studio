@@ -1,0 +1,28 @@
+{
+  "displaced": null,
+  "documentId": "id-1",
+  "link": {
+    "chapterId": "c-0002",
+    "chapterTitle": "Chapter II: The Pool of Tears",
+    "confirmedAt": "2026-09-21T10:00:00Z",
+    "match": null,
+    "origin": "manual",
+    "trackGuid": "{00000003-0000-4000-8000-000000000003}"
+  },
+  "mappings": [
+    {
+      "chapterId": "c-0002",
+      "chapterTitle": "Chapter II: The Pool of Tears",
+      "confirmedAt": "2026-09-21T10:00:00Z",
+      "match": null,
+      "origin": "manual",
+      "trackGuid": "{00000003-0000-4000-8000-000000000003}"
+    }
+  ],
+  "outcome": "created",
+  "track": {
+    "guid": "{00000003-0000-4000-8000-000000000003}",
+    "index": 3,
+    "name": "Chapter II: The Pool of Tears"
+  }
+}

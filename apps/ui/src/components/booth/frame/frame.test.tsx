@@ -8,7 +8,6 @@ import { defaultKeymap } from '../../../input/keymap';
 import type { NarrationApi, TeleprompterEvent } from '../../../types';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { BOOTH_SIZE_STORAGE_KEY, useTextChoices } from '../page/useTextChoices';
-import { EnginePanelProvider } from '../../engine/EnginePanelContext';
 import { BoothFooter } from './BoothFooter';
 import { BoothTop } from './BoothTop';
 
@@ -193,41 +192,17 @@ describe('the-microphone-choice-follows-the-recorder', () => {
   });
 });
 
-describe('a-track-link-problem-points-to-the-audio-engine-panel', () => {
+describe('the-footer-never-sends-the-narrator-to-the-audio-engine-panel', () => {
   const sentence = '“Chapter 1” has no linked track. Link it to its REAPER track in the audio engine panel.';
 
-  it('offers the engine panel beside the sentence when the link is what stops Record', async () => {
-    const openPanel = vi.fn();
-    render(
-      <ApiProvider api={api().value}>
-        <EnginePanelProvider value={openPanel}>
-          <BoothFooter
-            record={<button>Record</button>}
-            seconds={0}
-            recording={false}
-            mic={mic}
-            roomTone="Room"
-            keymap={defaultKeymap()}
-            why={sentence}
-            whyFixInEnginePanel
-          />
-        </EnginePanelProvider>
-      </ApiProvider>,
-    );
-    expect(screen.getByText(sentence)).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Open the audio engine panel' }));
-    expect(openPanel).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows no panel button for a sentence the panel cannot fix', () => {
-    footer(api(), { why: 'REAPER is already recording. Stop it in REAPER before recording here.' });
+  // Removed 'offers the engine panel beside the sentence when the link is what stops Record': the footer no longer links to the panel; the
+  // Booth's link chip and dialog (ChapterLinkNotice, boothChapterLink.test.tsx) fix an unlinked chapter now.
+  it('shows no panel button beside any sentence', () => {
+    footer(api(), { why: sentence });
     expect(screen.queryByRole('button', { name: 'Open the audio engine panel' })).toBeNull();
   });
 
-  it('shows no panel button when there is no sentence, even if asked', () => {
-    footer(api(), { whyFixInEnginePanel: true });
-    expect(screen.queryByRole('button', { name: 'Open the audio engine panel' })).toBeNull();
-  });
+  // Removed 'shows no panel button when there is no sentence, even if asked': the footer has no way to ask for the panel any more.
 });
 
 describe('with-a-daw-levels-names-the-microphone-the-booth-listens-to', () => {

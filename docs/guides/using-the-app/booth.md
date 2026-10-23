@@ -63,52 +63,76 @@ this computer. It is a shortcut to the same setting as **Punch pre-roll** under 
 ## Recording
 
 Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
-track and starts at the end of the last item on it, so a take never records over an earlier one. When Record cannot start it is
-disabled and the footer says why, in the DAW's own words: the DAW is not running, the record action is switched off in Settings,
-the chapter has no track, or the DAW is already playing. When the reason is a missing or doubled track link, the footer also
-offers **Open the audio engine panel**, where **Chapter links** sets the chapter's track.
+track and starts at the end of the last item on it, so a take never records over an earlier one.
+
+When Record cannot start, it looks off and the footer says why, but you can still press it: the press opens the dialog that
+fixes the problem, or, when there is nothing to fix from the Booth, a message that says why with **Check again**. Nothing
+records, and the app does not start listening or play the start tone first. A refusal the DAW gives at the press (a full disk,
+REAPER not confirming in time) is a message with **Check again** too.
 
 ![Booth - six seconds into a take: the text follows the voice](../../images/ui/booth-following.webp)
 
-When the reason is one you can fix from the Booth, a box above the footer shows the steps:
+A chip above the footer names each problem the Booth can fix and opens its dialog again:
 
-- **Recording in REAPER is experimental.** Recording in a DAW starts switched off until it has been checked in that DAW.
-  **Turn on Record** turns it on for this computer (Settings > Recording & DAW > Capabilities > Record), and Record is ready at once.
+- **Not linked to a track.** The chapter has no track in the DAW project (or several). The dialog opens by itself the first
+  time you open the chapter, and again each time you press Record. It offers two fixes:
+  - **Link track**: choose one of the project's tracks (the best match by name is chosen for you). A track linked to another
+    chapter says so, and linking it here moves it.
+  - **Create a new track**: REAPER adds a track named after the chapter at the end of the project and links it. With no tracks
+    to choose from, this is the main button. Save the REAPER project afterwards so the new track is kept; the message after
+    creating it reminds you.
 
-  ![Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings](../../images/ui/booth-record-refused.webp)
+  Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording, not connected, or the Experimental
+  actions are off), the dialog says why and links nothing. Audacity 3 adds the track too (an Experimental action, like REAPER's);
+  Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
 
-- **Connect REAPER to record** (or **REAPER is not answering**). The app records in REAPER through its bridge, a small
-  script that runs inside REAPER. You load nothing: the app puts the bridge in REAPER's Scripts folder by itself, and
-  REAPER starts it each time it opens. When REAPER opens with the chapter's project, the app connects and Record turns on.
-  When the project opens in the app and REAPER is not running, the app opens REAPER on the linked project by itself.
-  **Open in REAPER and connect** does the same on demand, or connects the REAPER you already have open. If no REAPER
-  project is linked yet, the first step links it. The Booth never offers the built-in recorder while REAPER is linked.
+  ![Booth - the Chapter 1 is not linked to a track dialog, with the project's tracks, Link track, Create a new track and Check again](../../images/ui/booth-record-unlinked.webp)
 
-  ![Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason](../../images/ui/booth-record-setup.webp)
+  ![Booth - the dialog closed: the Not linked to a track chip above the footer, and the footer saying the chapter has no track to record on](../../images/ui/booth-record-unlinked-closed.webp)
 
-  Both boxes say what they are waiting for ("Waiting for REAPER to connect") and when the app last looked ("Last checked 4 s
+- **Record is switched off.** Recording in a DAW starts switched off until it has been checked in that DAW. Press Record (or the
+  chip) and the dialog explains it; **Turn on Record** turns it on for this computer (Settings > Recording & DAW > Capabilities >
+  Record), and Record is ready at once.
+
+  ![Booth - Record pressed while switched off: the Recording in REAPER is experimental dialog with Turn on Record, DAW settings and Check again](../../images/ui/booth-record-refused.webp)
+
+- **REAPER not connected** (or **REAPER not answering**). The app records in REAPER through its bridge, a small script
+  that runs inside REAPER. You load nothing: the app puts the bridge in REAPER's Scripts folder by itself, and REAPER starts it
+  each time it opens. When REAPER opens with the chapter's project, the app connects and Record turns on. When the project opens
+  in the app and REAPER is not running, the app opens REAPER on the linked project by itself. Until it connects, a quiet mark
+  above the footer says so, and a dialog opens by itself once, after the app has had a few seconds to connect on its own; the X
+  closes it, and the mark or a press of Record opens it again. The dialog gives the host's reason, what still works, and what
+  the app does. **Open in REAPER and connect** opens the linked project in REAPER, or connects the REAPER you already have open.
+  If no REAPER project is linked yet it is off, with **Link in Settings** beside the reason. A refusal or a start that never
+  answers is written in the dialog. The Booth never offers the built-in recorder while REAPER is linked.
+
+  ![Booth - the REAPER not connected dialog, with the two steps, Open in REAPER and connect and Check again](../../images/ui/booth-record-setup.webp)
+
+  ![Booth - the dialog closed: the REAPER not connected mark above the footer, which reopens it](../../images/ui/booth-record-connect-closed.webp)
+
+  The dialog says what it is waiting for ("Waiting for REAPER to connect") and when the app last looked ("Last checked 4 s
   ago"). The Booth asks again by itself every few seconds while it waits, when you come back to its window, and when you press
-  **Check again**. If REAPER stops answering, the box says so instead of showing an old answer as fact. In a short window the
-  steps fold into one line, **Steps to connect**, so the text keeps room to read.
+  **Check again**. If REAPER stops answering, the dialog says it cannot tell instead of showing an old answer as fact.
 
   If the app is busy (an import, a build or a download is running) when REAPER starts and hands over its project, the app
-  keeps the project it has and says so, in the box and in a message that stays until you dismiss it. Finish or cancel what is
-  running, then press **Open in REAPER and connect** again.
+  keeps the project it has and says so in the dialog, which opens again for it. Finish or cancel what is running, then press
+  **Open in REAPER and connect** again.
 
-  ![Booth - REAPER started from the Connect box, but the app was busy and turned its project away: the box says so and what to do](../../images/ui/booth-record-turned-away.webp)
+  ![Booth - REAPER started from the dialog, but the app was busy and turned its project away: the dialog says so and what to do](../../images/ui/booth-record-turned-away.webp)
 
 - **REAPER has a different project open.** REAPER answers, but the project it has open is not the one linked here, so a take
-  would not land where the book expects it. **Link the open project** opens the project picker (choose the file REAPER has
-  open); or open the linked project in REAPER and press **Check again**. The Booth also asks again every few seconds while the
-  box is up, and by itself every 15 seconds otherwise, because REAPER sends no message when another project is opened.
+  would not land where the book expects it. The dialog opens by itself, and again when you press Record. **Link the open
+  project** opens the project picker (choose the file REAPER has open); or open the linked project in REAPER and press **Check
+  again**. The Booth also asks again every few seconds while the chip is up, and by itself every 15 seconds otherwise, because
+  REAPER sends no message when another project is opened. The dialog says what it waits for and when the app last looked.
 
-  ![Booth - REAPER has a different project open: the box offers Link the open project, DAW settings and Check again](../../images/ui/booth-record-other-project.webp)
+  ![Booth - REAPER has a different project open: the dialog offers Link the open project, DAW settings and Check again](../../images/ui/booth-record-other-project.webp)
 
-  Record also says why when REAPER already has a take running that the app did not start ("REAPER is already recording. Stop
-  it in REAPER before recording here.") and when REAPER does not answer. It is ready again as soon as that is fixed, without a
-  restart.
+  When REAPER already has a take running that the app did not start, a press of Record says so as a message ("REAPER is
+  already recording. Stop it in REAPER before recording here.") with **Check again**. Record is ready again as soon as the
+  problem is fixed, without a restart.
 
-  A message is never drawn over these boxes: it rises above them. The same sentence is one message however often it is asked
+  A message is never drawn over the chips: it rises above them. The same sentence is one message however often it is asked
   for, and a message about REAPER starting goes as soon as Record is ready.
 
 ### Recording without a DAW
@@ -119,10 +143,11 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 
 ![Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link](../../images/ui/booth-builtin-setup.webp)
 
-- **Experimental.** Like recording in a DAW, it starts switched off until it has been checked on your microphone. The box above
-  the footer says so and **Turn on Record** turns it on, the same switch as in Settings > Recording & DAW > Capabilities > Record.
+- **Experimental.** Like recording in a DAW, it starts switched off until it has been checked on your microphone. The **Record
+  is switched off** chip above the footer says so; it, or a press of Record, opens the dialog whose **Turn on Record** turns it
+  on, the same switch as in Settings > Recording & DAW > Capabilities > Record.
 
-  ![Booth - the built-in recorder with Experimental actions off: Record disabled with the reason, and the Recording in the built-in recorder is experimental box above it with Turn on Record](../../images/ui/booth-builtin-refusal.webp)
+  ![Booth - the built-in recorder with Experimental actions off: Record off with the reason, and the Record is switched off chip above the footer](../../images/ui/booth-builtin-refusal.webp)
 
 - **The microphone.** The take records on the microphone you chose in **Levels**. With none chosen it uses the one the project
   last recorded with, then the only one the computer lists. With several listed and none chosen, Record says **Choose the
