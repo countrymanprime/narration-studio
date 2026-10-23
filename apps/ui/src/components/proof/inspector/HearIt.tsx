@@ -79,7 +79,8 @@ export function HearIt({
   useEffect(() => {
     if (playing !== 'app' || isPlaying) return;
     setPlaying(null);
-    if (loadError) report.current({ message: APP_FAILED, failed: true });
+    // The clip ended: its "Playing" line goes with it.
+    report.current(loadError ? { message: APP_FAILED, failed: true } : undefined);
   }, [playing, isPlaying, loadError]);
 
   const stop = () =>
@@ -115,7 +116,7 @@ export function HearIt({
       }
       const refusal = answer?.outcome === 'refused' ? answer : undefined;
       // A DAW that is recording keeps the room quiet: the app does not play over it.
-      if (refusal?.reason === 'recording') return setResult({ message: refusal.message, failed: true });
+      if (refusal?.reason === 'recording') return setResult({ message: `${dawName} is recording, so nothing plays. Stop recording first.`, failed: true });
       const range = appRange(finding);
       if (!range) return setResult({ message: `${refusal?.message ?? failure} ${NO_FILE}`.trim(), failed: true });
       player.play(range);

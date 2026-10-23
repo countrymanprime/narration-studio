@@ -114,7 +114,8 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
   it('never plays in the app while the DAW records: shows the DAW’s sentence', async () => {
     setup(placed(), refusedAs('recording', 'REAPER is recording, so nothing was moved. Stop recording first.'));
     await userEvent.click(hear());
-    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'REAPER is recording, so nothing was moved. Stop recording first.');
+    // The host's sentence is about moving the cursor; Hear it says what it means for playing.
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'REAPER is recording, so nothing plays. Stop recording first.');
     expect(play).not.toHaveBeenCalled();
   });
 
@@ -144,6 +145,17 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     answer(looping);
     await waitFor(() => expect(status()).toMatch(/Playing in REAPER/));
     expect(t.api.findingsLoop).toHaveBeenCalledTimes(1);
+  });
+
+  it('the app clip ending puts the button back and clears its Playing line', async () => {
+    setup(placed(), refusedAs('standalone'));
+    await userEvent.click(hear());
+    await waitFor(() => expect(status()).toMatch(/^Playing in the app/));
+    const audio = play.mock.contexts.at(-1) as HTMLMediaElement;
+    Object.defineProperty(audio, 'currentTime', { configurable: true, get: () => 99 });
+    audio.dispatchEvent(new Event('timeupdate'));
+    await waitFor(() => expect(hear()).toBeTruthy());
+    expect(status()).toBe('');
   });
 
   it('a second press stops the app player', async () => {
