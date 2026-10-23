@@ -100,7 +100,7 @@ describe('proof-page-commands', () => {
     renderPage({ api, at: '/proof?chapter=chapter-1' });
     await ready();
     await notesLoaded();
-    expect(items('Selected note').map((row) => row.label)).toEqual(['Needs pickup', 'Fix in edit', 'Waive', 'Defer']);
+    expect(items('Selected note').map((row) => row.label)).toEqual(['Needs pickup', 'Fix in edit', 'Fine as read', 'Defer']);
     await waitFor(() => expect(byId('note.waive').disabledReason).toBeUndefined());
     act(() => byId('note.waive').run());
     await waitFor(() => expect(review).toHaveBeenCalledTimes(1));

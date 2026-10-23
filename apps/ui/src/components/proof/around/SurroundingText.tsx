@@ -1,19 +1,22 @@
+import type { KindId } from '../../../kinds/kindMap';
+import { Highlight } from '../../primitives/Highlight';
+import { KindMark } from '../../primitives/KindMark';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import type { Around } from './paragraphsAround';
 
 const NEIGHBOUR = 'line-clamp-2 text-sm text-[var(--text-muted)] [overflow-wrap:anywhere]';
 
 /**
- * Show where's text (research note A4, A5): the note's paragraph with its words marked, and the paragraphs before and after, muted and
- * cut to two lines. `reason` says why there is no paragraph to show; with neither it draws nothing. Each paragraph keeps its own
+ * Show where's text (research note A4, A5): the note's paragraph with its words marked in the note's own kind (`kind`, the search
+ * mark when it has none), and the paragraphs before and after, muted and cut to two lines. `reason` says why there is no paragraph to show; with neither it draws nothing. Each paragraph keeps its own
  * direction (`dir="auto"`), so a right-to-left line reads as written.
  */
-export function SurroundingText({ around, reason }: { around: Around | undefined; reason?: string }) {
+export function SurroundingText({ around, reason, kind }: { around: Around | undefined; reason?: string; kind?: KindId | null }) {
   if (!around) return reason ? <p className="text-sm text-[var(--text-muted)]">{reason}</p> : null;
   const { at, mark } = around;
   return (
     <section aria-label="In the script" className="flex flex-col gap-1">
-      <SectionLabel as="h3">In the script</SectionLabel>
+      <SectionLabel>In the script</SectionLabel>
       {around.before !== undefined && (
         <p data-around="before" dir="auto" className={NEIGHBOUR}>
           {around.before}
@@ -23,7 +26,7 @@ export function SurroundingText({ around, reason }: { around: Around | undefined
         {mark ? (
           <>
             {at.slice(0, mark.start)}
-            <mark className="rounded-sm bg-[var(--accent-soft)] px-0.5 text-[var(--text)]">{at.slice(mark.start, mark.end)}</mark>
+            {kind ? <KindMark kind={kind}>{at.slice(mark.start, mark.end)}</KindMark> : <Highlight kind="Search">{at.slice(mark.start, mark.end)}</Highlight>}
             {at.slice(mark.end)}
           </>
         ) : (
