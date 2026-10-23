@@ -15,7 +15,7 @@ import { readTrackedText, trackedFiles } from './layout.mjs';
 
 // Written as patterns so this file does not match itself. In text the two words may also be split across a line break, as
 // wrapped prose and comments split them, with the next line's indent or comment marker between.
-export const OLD_NAME = /narration[-_ .]?utils/i;
+const OLD_NAME = /narration[-_ .]?utils/i;
 const OLD_NAME_IN_TEXT = /narration(?:[-_ .]|[ \t]*\r?\n[ \t>*#/-]*)?utils/gi;
 
 // The only tracked files that may hold the old name, each with why. The migration files move what a narrator's machine and
