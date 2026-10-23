@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { within, act, cleanup, render, renderHook, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import userEvent from '@testing-library/user-event';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -73,8 +73,12 @@ describe('SuspectedLines', () => {
   it('a-skip-or-restart-is-listed-as-a-suspected-line: shows the script words and what was heard', async () => {
     const { view } = host();
     render(view([skipped, again]));
-    expect(await screen.findByText(/Skipped · down the hole/)).toBeTruthy();
-    expect(screen.getByText(/Read again · Alice was beginning/)).toBeTruthy();
+    // Each is a card: a chip for what was suspected, then the line.
+    const cards = await screen.findAllByRole('listitem');
+    expect(within(cards[0]).getByText('Skipped')).toBeTruthy();
+    expect(within(cards[0]).getByText(/down the hole/)).toBeTruthy();
+    expect(within(cards[1]).getByText('Read again')).toBeTruthy();
+    expect(within(cards[1]).getAllByText(/Alice was beginning/).length).toBeGreaterThan(0);
     expect(screen.getByText(/heard “Alice was be Alice was beginning”/)).toBeTruthy();
     expect(screen.getByText('Suspected · 2')).toBeTruthy();
   });
