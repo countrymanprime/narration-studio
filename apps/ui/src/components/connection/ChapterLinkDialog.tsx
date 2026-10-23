@@ -148,7 +148,7 @@ export function ChapterLinkDialog({
       )}
       {noTracks && (
         <p>
-          The saved {dawName} project has no tracks yet. {createFirst && !createOff ? `${createLabel} adds one named “${chapterName}” and links it.` : ''}
+          The saved {dawName} project has no tracks yet. {createFirst && !createOff ? `${createLabel} adds one named after the chapter and links it.` : ''}
         </p>
       )}
       {read.status === 'ready' && !noTracks && (
@@ -160,9 +160,7 @@ export function ChapterLinkDialog({
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
-            <span className="text-[var(--text-muted)]">
-              Or add a track named “{chapterName}” in {dawName} and link it:
-            </span>
+            <span className="text-[var(--text-muted)]">Or have {dawName} add a new track for this chapter, named after it, and link it:</span>
             <Button
               variant="secondary"
               size="sm"

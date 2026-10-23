@@ -287,7 +287,7 @@ describe('the not-linked dialog', () => {
     const onLinked = vi.fn();
     view(<ConnectionResolveDialog {...link({ onLinked })} />, { chapterTrackMatch: async () => match(), chapterTrackCreate });
     await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
-    expect(screen.getByText(/Or add a track named “Chapter 3” in REAPER/)).toBeTruthy();
+    expect(screen.getByText(/Or have REAPER add a new track for this chapter/)).toBeTruthy();
     const create = screen.getByRole('button', { name: 'Create a new track' });
     await userEvent.dblClick(create);
     await userEvent.click(create);
