@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { HeardWord } from './align';
@@ -131,5 +133,15 @@ describe('saysScriptAgain: extra words that say the script beside them again (is
     expect(saysScriptAgain(['مرحبا', 'بك', 'صديقي'], ['قال', 'مرحبا', 'بك', 'صديقي'], 3, null)).toBe(true);
     expect(saysScriptAgain(['🐢', 'slow', 'and'], ['🐢', 'slow', 'and', 'steady'], null, 0)).toBe(true);
     expect(saysScriptAgain(['SLOW', 'and', 'Steady!'], ['🐢', 'slow', 'and', 'steady'], 3, null)).toBe(true);
+  });
+});
+
+describe('saysScriptAgain answers the parity cases the sidecar answers too (tests/fixtures/repeat-rule)', () => {
+  const file = fileURLToPath(new URL('../../../../../../tests/fixtures/repeat-rule/parity-cases.json', import.meta.url));
+  const { cases } = JSON.parse(readFileSync(file, 'utf8')) as {
+    cases: Array<{ name: string; run: string; script: string; prev: number | null; next: number | null; repeat: boolean }>;
+  };
+  it.each(cases.map((c) => [c.name, c] as const))('%s', (_name, c) => {
+    expect(saysScriptAgain(c.run.split(' '), c.script.split(' '), c.prev, c.next)).toBe(c.repeat);
   });
 });

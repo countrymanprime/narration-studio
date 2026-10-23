@@ -56,7 +56,11 @@ A chapter shows its **Recording check** card and its recording:
   decision: **Accept** turns one into a note with that decision, and **Ignore** keeps it out of your notes and is
   remembered. Words that say the script beside them again (a retake or a restart) are listed as **Said twice**, with the
   words said again and **Fix in edit**, not as extra words: they are a second take. **Open in Editing** opens the line on
-  [Editing](editing.md#a-line-said-twice), where you keep both as takes, hear both or delete one.
+  [Editing](editing.md#a-line-said-twice), where you hear both reads, delete one, or split the line into two takes when
+  it is one take the DAW can split.
+
+  ![Proof - the recording check's findings: a line said twice listed as Said twice, suggesting Fix in edit, with Open in Editing](../../images/ui/proof-check-findings.webp)
+
 - A kind of finding is the same colour everywhere in the app, here in the card's counts, the findings, the notes' Type
   column and the waveform pins: red when the words are wrong (misread, skipped, extra, repeat, a long silence), amber when
   the recording is in doubt (breath, click, noise, plosive) and blue for a pronunciation. The word on the chip says which.

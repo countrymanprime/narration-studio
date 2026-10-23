@@ -123,6 +123,8 @@ of its own is checked the same way. Their card says **Read twice** and when the 
 
 Proof lists the same words as **Said twice** with an **Open in Editing** link, which opens this card.
 
+![Editing - words said again found by the recording check: the Read twice card with Stack as 2 takes, Hear both reads, Leave in place and Delete second read](../../images/ui/editing-read-twice.webp)
+
 ![Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and their band on the waveform](../../images/ui/editing-selection.webp)
 
 ## The waveform

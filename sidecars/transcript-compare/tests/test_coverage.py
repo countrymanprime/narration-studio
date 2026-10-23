@@ -2,6 +2,8 @@
 executable: docs/utilities/recording-coverage.md, docs/utilities/recording-coverage.md, Q1, Q3 and Q11."""
 
 import difflib
+import json
+from pathlib import Path
 
 import pytest
 from coverage_spike import compare, cov
@@ -349,3 +351,12 @@ def test_words_that_are_not_the_chapter_text_beside_them_are_no_repeat():
 def test_a_run_before_anything_was_heard_can_repeat_the_words_after_it():
     *_, (repeat,) = _repeat_of([P1], f"alpha bravo charlie {P1}")
     assert repeat is not None and (repeat.start, repeat.end) in ((0, 3), (3, 6))
+
+
+def test_the_repeat_rule_answers_the_shared_parity_cases():
+    # The Editing page runs the same rule (apps/ui/src/components/editing/model/duplicates.ts saysScriptAgain) on the same file.
+    path = Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "repeat-rule" / "parity-cases.json"
+    for case in json.loads(path.read_text(encoding="utf-8"))["cases"]:
+        script = case["script"].split()
+        found = cov.repeat_of(case["run"].split(), script, [0] * len(script), case["prev"], case["next"])
+        assert (found is not None) == case["repeat"], case["name"]

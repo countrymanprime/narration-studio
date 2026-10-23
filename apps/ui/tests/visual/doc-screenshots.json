@@ -161,6 +161,13 @@
     "caption": "Proof - the Check recordings dialog before a run, with the options shared with every page"
   },
   {
+    "page": "proof",
+    "state": "check-findings",
+    "viewport": "desktop",
+    "docName": "proof-check-findings",
+    "caption": "Proof - the recording check's findings: a line said twice listed as Said twice, suggesting Fix in edit, with Open in Editing"
+  },
+  {
     "page": "production",
     "state": "stage-suggestion-options",
     "viewport": "desktop",
@@ -628,6 +635,13 @@
     "viewport": "desktop",
     "docName": "editing-selection",
     "caption": "Editing - four words selected: the floating toolbar under them, the bar naming the selection with its times, and their band on the waveform"
+  },
+  {
+    "page": "editing",
+    "state": "read-twice",
+    "viewport": "desktop",
+    "docName": "editing-read-twice",
+    "caption": "Editing - words said again found by the recording check: the Read twice card with Stack as 2 takes, Hear both reads, Leave in place and Delete second read"
   },
   {
     "page": "editing",
