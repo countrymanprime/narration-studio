@@ -218,7 +218,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           </div>
         </Section>
         <Section title="Note at playhead" badge={<StatusBadge tone="neutral" label="Coming soon" />}>
-          <p style={{ color: 'var(--text-muted)' }}>The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Waive, will show here.</p>
+          <p style={{ color: 'var(--text-muted)' }}>The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Fine as read, will show here.</p>
         </Section>
         <Section title="Pickups">
           <PickupsCompanionSummary />
