@@ -221,7 +221,7 @@ describe('marks-and-threads-are-journalled', () => {
 
     await run(() => hook.result.current.commands.resolve(id, 'you', ''));
     expect(markOf(hook, id)?.status).toBe('resolved');
-    expect(toast).toHaveBeenCalledWith('Query resolved.');
+    expect(toast).toHaveBeenCalledWith('Note resolved.');
     expect((await lastEntry(hook))?.label).toBe('Resolved a query');
     await undoLast(hook);
     expect(markOf(hook, id)?.status).toBe('open');

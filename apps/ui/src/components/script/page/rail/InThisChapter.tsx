@@ -49,7 +49,7 @@ export function InThisChapter({ label, rows, empty }: { label: string; rows: rea
                       {row.kind && <Swatch colour={row.kind.colour} />}
                       {row.kind?.label}
                       {row.detail && (
-                        <span>
+                        <span className="whitespace-nowrap">
                           {row.kind ? ` · ` : ''}
                           {row.detail}
                         </span>

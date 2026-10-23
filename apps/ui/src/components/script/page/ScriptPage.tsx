@@ -536,6 +536,8 @@ function ScriptWorkspace({
             onKeyUp={(event) => event.shiftKey && setSelection(getSelection())}
           >
             {/* The mock draws no page title: the reader is the page, so the title is for screen readers only, as the Booth's. */}
+            {/* First in the page's order, so a keyboard narrator reaches Got it before the whole book; it is drawn over the reader's top edge. */}
+            <FirstUseTip id="script.select-text" used={selection !== null} />
             <ScriptTitle />
             <div className="min-h-0 flex-1">
               <Reader
@@ -580,7 +582,6 @@ function ScriptWorkspace({
                 onTextClick={() => setPlace((current) => (current.at ? { ...current, at: null } : current))}
               />
             </div>
-            <FirstUseTip id="script.select-text" used={selection !== null} />
             <KeyHints id="skeys" hints={hints} />
           </div>
         }

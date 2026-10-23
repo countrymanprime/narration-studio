@@ -574,6 +574,8 @@ describe('first-use-tip-for-the-selection-tools', () => {
     const tip = await screen.findByRole('complementary', { name: 'Tip' });
     expect(tip.textContent).toContain('Select text in the reader to mark it, add a note, or look it up.');
     expect(document.getElementById('reader')!.contains(tip)).toBe(true);
+    // First in the reader, so Tab reaches Got it before the book's own controls.
+    expect(tip.compareDocumentPosition(document.querySelector('p[data-pid]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     fireEvent.click(within(tip).getByRole('button', { name: 'Got it' }));
     await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Tip' })).toBeNull());
     await waitFor(async () => expect((await api.settingsForScope('global')).Tips?.[0]?.effectiveValue).toBe('script.select-text'));

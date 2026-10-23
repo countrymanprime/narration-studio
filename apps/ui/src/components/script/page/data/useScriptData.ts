@@ -309,7 +309,7 @@ export function useScriptCommands() {
       async resolve(id: string, who: MarkThreadAuthor, text: string) {
         if (text.trim() && !said(await commands.replyToMark(env, id, who, text))) return false;
         if (!said(await commands.setMarkStatus(env, id, 'resolved'))) return false;
-        overlay.toast('Query resolved.');
+        overlay.toast('Note resolved.');
         return true;
       },
       setPrep: async (chapter: ChapterNameInput & { id: string }, state: PrepState) => said(await commands.setPrep(env, chapter, state)) !== null,
