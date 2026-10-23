@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import type { Finding } from '../../api/contracts/findings';
 import { useContextProvider } from '../../registries/context';
+import { HEAR_LABEL, STOP_HEARING_LABEL } from './inspector/HearIt';
 import { TRIM_LABEL, trimmableGap } from './inspector/TrimGap';
 import { DECISIONS, press } from './useProofKeys';
 
@@ -22,10 +23,9 @@ type NoteMenu = {
 };
 
 /**
- * The right-click menu of a note on Proof (mock `registerContext` for the Proof page): decide it, reopen it, go to it in the DAW, trim
- * a gap note's gap, or open its chapter in Script or the Booth. The decisions, the DAW action and the trim press the Inspector's own
- * controls, so the stale-evidence guard and the DAW's capability apply to the menu as they do to the buttons. There is no Play ±3 s
- * (not built, PRD).
+ * The right-click menu of a note on Proof (mock `registerContext` for the Proof page): hear it, decide it, reopen it, go to it in the
+ * DAW, trim a gap note's gap, or open its chapter in Script or the Booth. Hear it, the decisions, the DAW action and the trim press the
+ * Inspector's own controls, so the stale-evidence guard and the DAW's capability apply to the menu as they do to the buttons.
  */
 export function useNoteContextMenu(menu: NoteMenu): void {
   const live = useRef(menu);
@@ -47,9 +47,10 @@ export function useNoteContextMenu(menu: NoteMenu): void {
         const noChapter = chapterId ? undefined : 'This note names no chapter.';
         const decided = note.review.status !== 'unreviewed';
         return [
+          { key: 'note-hear', label: HEAR_LABEL, onSelect: () => press(HEAR_LABEL, STOP_HEARING_LABEL) },
           { key: 'note-pickup', label: 'Needs pickup', onSelect: () => press(DECISIONS.pickup) },
           { key: 'note-edit', label: 'Fix in edit', onSelect: () => press(DECISIONS.edit) },
-          { key: 'note-waive', label: 'Waive', onSelect: () => press(DECISIONS.waive) },
+          { key: 'note-waive', label: DECISIONS.waive, onSelect: () => press(DECISIONS.waive) },
           { key: 'note-defer', label: 'Defer', onSelect: () => press(DECISIONS.defer) },
           { key: 'note-reopen', label: 'Reopen', unavailable: decided ? undefined : 'Not decided yet.', onSelect: () => press('Reopen') },
           { key: 'note-goto', label: `Go to ${dawShown()}`, onSelect: () => press(SHOW_IN) },

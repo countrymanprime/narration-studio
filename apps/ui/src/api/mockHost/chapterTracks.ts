@@ -1,5 +1,15 @@
 // The mock host (mockApi.ts): tracks, chapter links and chapter sync.
-import type { ChapterSyncBatch, ChapterSyncChapter, ChapterSyncConsent, ChapterSyncState, ChapterSyncTrigger, NarrationApi, TrackMapping } from '../../types';
+import type { ChapterTrackCreateResult } from '../contracts/chapterTrackMap';
+import type {
+  ChapterSyncBackground,
+  ChapterSyncBatch,
+  ChapterSyncChapter,
+  ChapterSyncConsent,
+  ChapterSyncState,
+  ChapterSyncTrigger,
+  NarrationApi,
+  TrackMapping,
+} from '../../types';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireClone } from '../mockFixtures';
 import { mockChapterRegionPlan, mockChapterSyncPreview, mockChapterTrackLinks, mockChapterTrackMatch } from '../chapterTrackMatchMock';
 import { mockChaptersForTracks, mockChapterSuggestion } from '../chapterSuggestionMock';
@@ -29,6 +39,22 @@ export function createChapterTracksMock(
         ? '2026-09-24T09:00:00Z'
         : null;
   const chapterSyncRejected = new Set<string>();
+  // Background recording checks (apps/desktop/coverage_background.go): the `backgroundChecks` seed, then what the narrator saves.
+  const background: ChapterSyncBackground = {
+    enabled: true,
+    wait:
+      initial.backgroundChecks === 'confirm'
+        ? 'confirm'
+        : initial.chapterSync === 'background' || initial.backgroundChecks === 'waiting'
+          ? 'recording'
+          : initial.backgroundChecks === 'running'
+            ? ''
+            : 'nothing',
+    queued: initial.backgroundChecks === 'confirm' || initial.backgroundChecks === 'waiting' ? 2 : initial.backgroundChecks === 'running' ? 1 : 0,
+    firstPassModel: 'tiny',
+    recheckModel: 'small',
+  };
+  const mockBackground = (): ChapterSyncBackground => ({ ...background });
   const chapterSyncUnsavedEdits = initial.chapterSync === 'unsaved';
   // The Sync activity list, newest first (the host keeps 20): the unsaved seed shows one row from a save in REAPER.
   let chapterSyncActivity: ChapterSyncBatch[] =
@@ -92,7 +118,7 @@ export function createChapterTracksMock(
       chapters: links.project === 'ready' ? mockChapterSyncRows(links) : [],
       // The `background` seed shows the engine panel's wait
       // line for the reason this stream landed: REAPER is running and its heartbeat says it is recording.
-      background: { enabled: true, wait: initial.chapterSync === 'background' ? 'recording' : 'nothing' },
+      background: mockBackground(),
     };
   };
   // The status rows, as the host builds them: the link, and the recording check's own answer (the coverage mock's).
@@ -125,6 +151,20 @@ export function createChapterTracksMock(
       };
     });
   const publishChapterSync = (state: ChapterSyncState) => chapterSyncSubscribers.forEach((fn) => fn(wireClone(state)));
+  // A RecordingCoverage save the host's background loop reads at once: on or off, the notice answered, the model pair.
+  const backgroundSettingsSaved = (tool: string, values: Record<string, string | null>) => {
+    if (tool !== 'RecordingCoverage' || !Object.keys(values).some((key) => key.startsWith('background_'))) return;
+    if ('background_checks' in values) background.enabled = values.background_checks !== 'false';
+    if (values.background_checks_confirmed === 'true' && background.wait === 'confirm') background.wait = 'quiet';
+    if ('background_first_pass_model' in values) background.firstPassModel = values.background_first_pass_model ?? 'tiny';
+    if ('background_recheck_model' in values) {
+      const model = values.background_recheck_model ?? 'small';
+      background.recheckModel = model === 'none' ? '' : model;
+    }
+    if (!background.enabled) background.wait = 'off';
+    else if (background.wait === 'off') background.wait = background.queued > 0 ? 'quiet' : 'nothing';
+    void manuscriptReady.then(() => publishChapterSync(mockChapterSyncState(null)));
+  };
   // One sync, as the host's runChapterSync does it: the confident links written as auto, the batch when anything was linked.
   const runMockChapterSync = (trigger: ChapterSyncTrigger): ChapterSyncState => {
     const plan = mockChapterSyncPreview(mockLinksRead(), chapterSyncRejected);
@@ -185,6 +225,32 @@ export function createChapterTracksMock(
       const link: TrackMapping = { trackGuid, chapterId, chapterTitle: chapter.title, confirmedAt: new Date().toISOString(), origin: 'manual', match: null };
       s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.trackGuid !== trackGuid && existing.chapterId !== chapterId), link];
       return wireClone({ documentId: mockDocumentId, link, displaced, mappings: s.chapterTrackMappings });
+    },
+    // ChapterTrackCreate (apps/desktop/chapterlinks.go): `?mockReaperState=` decides what the DAW answers, as it does for Select in REAPER.
+    // The new track is not in the saved project the matcher reads until the narrator saves in REAPER, so only the link changes here.
+    chapterTrackCreate: async (chapterId) => {
+      await manuscriptReady;
+      const chapter = s.chapters.find((candidate) => candidate.id === chapterId);
+      const title = chapter?.title ?? CREDITS_CHECK_TITLE[chapterId];
+      if (!title) throw new Error('that chapter is not part of the current manuscript');
+      const refusal = mockCreateRefusal(initial.reaperState);
+      if (refusal) return refusal;
+      s.createdTracks += 1;
+      const track = {
+        guid: `{c0ffee00-0000-4000-8000-${String(s.createdTracks).padStart(12, '0')}}`,
+        name: title,
+        index: WIRE_TRACKS_PROJECT.tracks.length + s.createdTracks - 1,
+      };
+      const link: TrackMapping = {
+        trackGuid: track.guid,
+        chapterId,
+        chapterTitle: title,
+        confirmedAt: new Date().toISOString(),
+        origin: 'manual',
+        match: null,
+      };
+      s.chapterTrackMappings = [...s.chapterTrackMappings.filter((existing) => existing.chapterId !== chapterId), link];
+      return wireClone({ outcome: 'created' as const, documentId: mockDocumentId, link, displaced: null, mappings: s.chapterTrackMappings, track });
     },
     chapterTrackUnlink: async (chapterId) => {
       await manuscriptReady;
@@ -273,7 +339,7 @@ export function createChapterTracksMock(
         return {
           outcome: 'refused',
           reason: 'standalone',
-          message: 'REAPER is not connected to this app. To select a track in REAPER, open this app from the Narration Studio action in REAPER.',
+          message: 'REAPER is not connected to this app. To select a track in REAPER, open REAPER; the app connects to it by itself.',
         };
       }
       if (initial.reaperState === 'experimental_off') {
@@ -298,7 +364,7 @@ export function createChapterTracksMock(
       return wireClone(mockChaptersForTracks(guids, s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings));
     },
   } satisfies Partial<NarrationApi>;
-  return { bindings, publishChapterSync, mockChapterSyncState };
+  return { bindings, publishChapterSync, mockChapterSyncState, backgroundSettingsSaved };
 }
 
 /** The activity seed's Sync activity, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */
@@ -338,4 +404,22 @@ function mockSyncActivity(): ChapterSyncBatch[] {
       newTracks: [],
     },
   ];
+}
+
+/** ChapterTrackCreate's refusals for the `?mockReaperState=` seeds that stop it, in the host's words; null when the DAW adds the track. */
+function mockCreateRefusal(seed: MockApiSeed['reaperState']): ChapterTrackCreateResult | null {
+  if (seed === 'unavailable')
+    return {
+      outcome: 'refused',
+      reason: 'standalone',
+      message: 'REAPER is not connected to this app, so no track can be added. Start REAPER, then try again.',
+    };
+  if (seed === 'experimental_off')
+    return {
+      outcome: 'refused',
+      reason: 'experimental_off',
+      message: 'Adding tracks is an experimental action. Turn on Experimental DAW actions in Settings to use it.',
+    };
+  if (seed === 'recording_elsewhere') return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then create the track.' };
+  return null;
 }

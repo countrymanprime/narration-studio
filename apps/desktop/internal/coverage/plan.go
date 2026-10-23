@@ -55,6 +55,13 @@ func (p recheckPlan) needed() bool { return p.WholeChapter || len(p.Windows) > 0
 // passage the first pass was unsure of (it called the chapter complete, and was sure of every word)
 // both mean nothing to plan: there is no second pass when nothing is missing or in doubt.
 func planRecheck(report Report, items []plannedItem, recheckModel string) recheckPlan {
+	return planRecheckUnchecked(report, items, recheckModel, nil)
+}
+
+// planRecheckUnchecked is planRecheck without the windows checked already holds: a window the re-check model has
+// transcribed is checked, whatever the first pass still says about it, so a check of unchanged audio plans nothing. The
+// whole-chapter fallback weighs only what is left.
+func planRecheckUnchecked(report Report, items []plannedItem, recheckModel string, checked checkedRanges) recheckPlan {
 	if recheckModel == "" || (len(report.Regions) == 0 && len(report.Unsure) == 0) {
 		return recheckPlan{}
 	}
@@ -94,7 +101,15 @@ func planRecheck(report Report, items []plannedItem, recheckModel string) rechec
 		itemBounds := bounds[w.ItemIndex]
 		raw[i] = padWindow(w, itemBounds[0], itemBounds[1])
 	}
-	merged := mergeWindows(raw)
+	merged := []window{}
+	for _, w := range mergeWindows(raw) {
+		if !checked.contains(w.WordsFile, w.Start, w.End) {
+			merged = append(merged, w)
+		}
+	}
+	if len(merged) == 0 {
+		return recheckPlan{}
+	}
 	if totalLength(merged) > windowWholeChapterFraction*totalPlayed(ordered) {
 		return recheckPlan{WholeChapter: true}
 	}

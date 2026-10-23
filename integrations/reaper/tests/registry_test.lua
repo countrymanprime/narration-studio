@@ -95,6 +95,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'stop_fx_compare',
     'stop_loop',
     'stop_play',
+    'track_create',
     'undo_last',
     'unstack_takes',
     'watch_transport',
@@ -107,6 +108,7 @@ H.test('every feature file the bridge loads is a Lua file in its folder, and the
   local infrastructure = {
     ['NarrationStudio_Launcher.lua'] = true,
     ['NarrationUtils_Launcher.lua'] = true, -- the deprecated shim (#1816)
+    ['NarrationStudio_Startup.lua'] = true, -- run by Scripts/__startup.lua (apps/desktop/internal/reaperinstall)
     ['reaper_common_core.lua'] = true,
     ['reaper_common_process.lua'] = true,
     ['narration_ui_bridge.lua'] = true,

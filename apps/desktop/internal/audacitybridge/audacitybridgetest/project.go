@@ -118,6 +118,14 @@ func (p *Project) handle(line string) ([]string, bool) {
 		p.Playing, p.Looping = true, true
 		p.LoopStart, p.LoopEnd = p.SelStart, p.SelEnd
 		return nil, true
+	case "NewMonoTrack", "NewStereoTrack":
+		// A new audio track goes last, selected alone, under Audacity's default name ("Audio 1" in A3-T32's German run as in English).
+		// The fake keeps no channel count, so both add the same track.
+		for i := range p.Tracks {
+			p.Tracks[i].Selected = false
+		}
+		p.Tracks = append(p.Tracks, Track{Name: fmt.Sprintf("Audio %d", len(p.Tracks)+1), Kind: "wave", Selected: true})
+		return nil, true
 	case "SetTrackStatus":
 		// Audacity 3.7.7: Name, Selected and Focused only, applied to the selected track; a Track parameter is ignored without an error
 		// (tests/audacity3/real/edits, A3-T17).

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { usePort } from '../../../ports/usePort';
 
@@ -9,9 +9,20 @@ export interface DawStatus {
   off: string | null;
   /** The DAW's own name for the banner, or "the DAW" when the launch names none. */
   dawName: string;
-  /** Asks the DAW again. */
-  retry: () => void;
+  /** When the DAW was last asked and answered (ms since the epoch), null before it has; the dialog says "last checked N s ago" from it. */
+  checkedAt: number | null;
+  /** When the DAW was last seen reachable, null when it has not been since the page opened. */
+  heardAt: number | null;
+  /** The last read failed: the dialog says it cannot tell, and `caps` is still what was heard before. */
+  readFailed: boolean;
+  /** Asks the DAW again, resolving once the answer is in. */
+  retry: () => Promise<void>;
+  /** Takes a read made elsewhere (the dialog's wait after Start), so the page's picture follows it. */
+  take: (caps: DawCapabilities) => void;
 }
+
+/** How often an off DAW is asked again while the page is open. */
+const RECHECK_MS = 10_000;
 
 /** The DAW-neutral name the banner uses: the DAW's own, or "The DAW" when the launch names none. */
 const nameOf = (caps: DawCapabilities | null): string => (!caps || caps.daw === 'none' || caps.daw === 'Built-in' ? 'the DAW' : caps.daw);
@@ -35,21 +46,39 @@ export function useDawStatus(): DawStatus {
   const daw = usePort('daw');
   const events = usePort('dawCapabilities');
   const [caps, setCaps] = useState<DawCapabilities | null>(null);
-  const [asked, setAsked] = useState(0);
+  const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  const [heardAt, setHeardAt] = useState<number | null>(null);
+  const [readFailed, setReadFailed] = useState(false);
+  const live = useRef(true);
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+    };
+  }, []);
+
+  const take = useCallback((next: DawCapabilities) => {
+    if (!live.current) return;
+    const now = Date.now();
+    setCaps(next);
+    setCheckedAt(now);
+    setReadFailed(false);
+    if (next.reachable) setHeardAt(now);
+  }, []);
+  // A failed read keeps what was heard before and says it failed, so the page never turns a quiet DAW into a fact it did not read.
+  const read = useCallback(
+    () =>
+      daw.capabilities().then(take, () => {
+        if (live.current) setReadFailed(true);
+      }),
+    [daw, take],
+  );
 
   useEffect(() => {
-    let live = true;
-    daw.capabilities().then(
-      (c) => live && setCaps(c),
-      () => live && setCaps(null),
-    );
-    return () => {
-      live = false;
-    };
-  }, [daw, asked]);
-  useEffect(() => events.subscribeDawCapabilities(() => setAsked((n) => n + 1)), [events]);
-
-  const retry = useCallback(() => setAsked((n) => n + 1), []);
+    void read();
+  }, [read]);
+  useEffect(() => events.subscribeDawCapabilities(() => void read()), [events, read]);
+  const retry = read;
   const recordRow = caps?.capabilities['record'];
   const record =
     caps && recordRow?.reason && NOT_BUILT_REASONS.has(recordRow.reason)
@@ -58,5 +87,16 @@ export function useDawStatus(): DawStatus {
   const aSetting = record?.reason !== undefined && SETTING_REASONS.has(record.reason);
   const name = !caps || caps.daw === 'none' || caps.daw === 'Built-in' ? 'The DAW' : caps.daw;
   const off = caps && !caps.reachable ? ((aSetting ? undefined : record?.message) ?? `${name} is ${aSetting ? 'not answering' : 'not running'}.`) : null;
-  return { caps, off, dawName: nameOf(caps), retry };
+  // While the DAW is off the page asks again on its own: when the window is focused again (the narrator just started it) and every few seconds.
+  const isOff = off !== null;
+  useEffect(() => {
+    const onFocus = () => void read();
+    window.addEventListener('focus', onFocus);
+    const timer = isOff ? window.setInterval(() => void read(), RECHECK_MS) : undefined;
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [read, isOff]);
+  return { caps, off, dawName: nameOf(caps), checkedAt, heardAt, readFailed, retry, take };
 }

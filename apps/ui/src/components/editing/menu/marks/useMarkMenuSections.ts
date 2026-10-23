@@ -20,6 +20,7 @@ export function useMarkMenuSections(chapterId: string): void {
   const { types } = useMarks();
   const { addMark } = useScriptCommands();
   const pickups = usePort('pickups');
+  const findings = usePort('findings');
   const journal = useJournal();
   const latest = useRef({ doc, types, addMark, chapterId });
   useEffect(() => {
@@ -34,7 +35,7 @@ export function useMarkMenuSections(chapterId: string): void {
     };
     const pickup = (keys: readonly string[]) => {
       const { doc: now, chapterId: chapter } = latest.current;
-      return markForPickup({ pickups, journal, overlay }, chapter, now, keys);
+      return markForPickup({ pickups, findings, journal, overlay }, chapter, now, keys);
     };
     const removeSections = registerMarkMenuSections({
       types: () => latest.current.types,
@@ -61,5 +62,5 @@ export function useMarkMenuSections(chapterId: string): void {
       removeSections();
       removeFlagAction();
     };
-  }, [pickups, journal]);
+  }, [pickups, findings, journal]);
 }

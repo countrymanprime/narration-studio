@@ -21,6 +21,7 @@ import type {
   JobEnded,
   ManuscriptChapter,
 } from '../types';
+import { WIRE_CHAPTERS } from './mockFixtures';
 import { MOCK_ASSET_ROOT } from './mockHost/assets';
 
 type AssetRequired = Extract<CoverageStartResult, { status: 'asset_required' }>;
@@ -61,6 +62,9 @@ export type CoverageSeed = {
   /** The next start (without options.skipRecheck) answers recheck_asset_required instead of running, so the
    * "Download model" / "Check with tiny only" choice can be seen without a host. */
   recheckAssetRequired?: boolean;
+  /** Boots with a background check of the first chapter held at 42% (tiny with small as the double-check), as the host's own
+   * background loop starts one: the progress at the bottom left can be seen without waiting for the loop. Cancel ends it. */
+  backgroundRun?: boolean;
 };
 
 /** The engines the mock offers: the approved catalog, plus (when the seed stands for the cascade being on) the larger model the mock gates on, chosen from the start. */
@@ -85,6 +89,8 @@ type Deps = {
   endJob: (event: JobEnded) => void;
   /** Where an accepted gap's finding is saved: the findings mock the review page reads. */
   saveFinding: (finding: Finding) => void;
+  /** A paragraph's text, so the line said twice names its real words (the workspace mock says them again). */
+  paragraphText?: (paragraphId: string) => string | undefined;
   seed?: CoverageSeed;
 };
 
@@ -133,9 +139,9 @@ const MOCK_THRESHOLDS = { minParagraphPresent: 0.8, maxMissingRun: 3 };
 const plural = (count: number, noun: string) => (count === 1 ? `1 ${noun}` : `${count} ${noun}s`);
 
 /** A report of a chapter read with `fraction` of its words present; what is missing is its tail. */
-function reportFor(chapter: ManuscriptChapter, fraction: number): CoverageReport {
+function reportFor(chapter: ManuscriptChapter, fraction: number, textOf?: TextOf): CoverageReport {
   const report = baseReportFor(chapter, fraction);
-  return { ...report, ...classifyMock(report) };
+  return { ...report, ...classifyMock(report, textOf) };
 }
 
 function baseReportFor(chapter: ManuscriptChapter, fraction: number): Omit<CoverageReport, 'gaps' | 'unfinished'> {
@@ -181,9 +187,9 @@ function baseReportFor(chapter: ManuscriptChapter, fraction: number): Omit<Cover
 /** A report with two interior pickups (a skip and a short read) plus a small tail, so the summary's headline, "Recorded
  * to" line and Pickups list can all be seen together. Built from the
  * same proportional paragraph split as reportFor, so it stays sane for whichever chapter is seeded. */
-function pickupsReportFor(chapter: ManuscriptChapter): CoverageReport {
+function pickupsReportFor(chapter: ManuscriptChapter, textOf?: TextOf): CoverageReport {
   const report = basePickupsReportFor(chapter);
-  return { ...report, ...classifyMock(report) };
+  return { ...report, ...classifyMock(report, textOf) };
 }
 
 function basePickupsReportFor(chapter: ManuscriptChapter): Omit<CoverageReport, 'gaps' | 'unfinished'> {
@@ -254,7 +260,15 @@ function basePickupsReportFor(chapter: ManuscriptChapter): Omit<CoverageReport, 
 
 /** The host's `coverage.ClassifyGaps` for a mock report: a skip is missing, a short read is misread, an
  * unread start or end is unfinished and never a gap, and confidence is null with its reason. */
-function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { gaps: CoverageGap[]; unfinished: CoverageUnfinished } {
+type TextOf = (paragraphId: string) => string | undefined;
+
+/** The words the mock's line said twice says again: the last three of the paragraph, or stand-ins without its text. */
+export function mockRepeatedWords(text: string | undefined): string[] {
+  const words = (text ?? '').split(/\s+/).filter(Boolean);
+  return words.length >= 4 ? words.slice(-3) : ['so', 'very', 'tired.'];
+}
+
+function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>, textOf?: TextOf): { gaps: CoverageGap[]; unfinished: CoverageUnfinished } {
   const read = report.paragraphs.map((paragraph) => paragraph.present > 0);
   const first = read.indexOf(true);
   const last = read.lastIndexOf(true);
@@ -266,6 +280,29 @@ function classifyMock(report: Omit<CoverageReport, 'gaps' | 'unfinished'>): { ga
     if (!kind || indexes.some((index) => index < first || index > last)) return [];
     return [{ ...region, id: `${kind}:${region.paragraphIds[0] ?? ''}:${indexes[0] ?? 0}`, kind, confidence: null, confReason: 'no_word_scores' }];
   });
+  // One line said twice, at the end of the first read paragraph (issue #2251 item 30): the host's extra gap with repeatOf, which Proof
+  // calls "Said twice". Only inside the read part, as the host's extras are.
+  const said = report.paragraphs[first];
+  if (first < last && said) {
+    const sourceTime = Math.round(report.playedSeconds * 0.05);
+    const itemGuid = report.items[0]?.itemGuid ?? '';
+    const again = mockRepeatedWords(textOf?.(said.id));
+    gaps.unshift({
+      id: `extra:${said.id}:${said.tokens}`,
+      kind: 'extra',
+      paragraphIds: [said.id],
+      tokenCount: again.length + 1,
+      firstWord: 'sorry',
+      lastWord: again[again.length - 1],
+      text: ['sorry', ...again].join(' '),
+      repeatOf: again.join(' '),
+      position: { itemIndex: 0, itemGuid, sourceTime },
+      before: { itemIndex: 0, itemGuid, sourceTime },
+      after: { itemIndex: 0, itemGuid, sourceTime: sourceTime + 2 },
+      confidence: null,
+      confReason: 'no_word_scores',
+    });
+  }
   return { gaps, unfinished: { start: first, end: report.paragraphs.length - 1 - last } };
 }
 
@@ -312,7 +349,8 @@ export function judgeMock(report: CoverageReport, thresholds = MOCK_THRESHOLDS):
 /** The finding an accepted gap becomes (apps/desktop/internal/gapreview): a pickup of the gap's line, accepted, with a null
  * confidence and its reason. */
 function gapFinding(chapterId: string, gap: CoverageGap, recordId: string): Finding {
-  const expected = gap.kind === 'extra' ? '' : gap.lastWord && gap.lastWord !== gap.firstWord ? `${gap.firstWord} … ${gap.lastWord}` : gap.firstWord;
+  const expected =
+    gap.repeatOf ?? (gap.kind === 'extra' ? '' : gap.lastWord && gap.lastWord !== gap.firstWord ? `${gap.firstWord} … ${gap.lastWord}` : gap.firstWord);
   return {
     schema_version: 1,
     id: `recording-check:${chapterId}:${gap.id}:${recordId}`,
@@ -325,12 +363,21 @@ function gapFinding(chapterId: string, gap: CoverageGap, recordId: string): Find
       ...(gap.text ? { recorded: gap.text } : {}),
       ...(gap.paragraphIds[0] ? { span: { paragraph_id: gap.paragraphIds[0] } } : {}),
     },
-    category: 'pickup',
+    // A line said twice is a duplicate read, fixed in the edit, as the host files it.
+    category: gap.repeatOf ? 'duplicate_read' : 'pickup',
     severity: 'info',
     confidence: gap.confidence,
     confidence_reason: gap.confReason,
     evidence_version: `${gap.kind}:${gap.tokenCount}:${gap.firstWord}:${gap.lastWord}`,
-    evidence: { kind: gap.kind, gap_id: gap.id, evidence_key: recordId, token_count: gap.tokenCount, first_word: gap.firstWord, last_word: gap.lastWord },
+    evidence: {
+      kind: gap.kind,
+      gap_id: gap.id,
+      evidence_key: recordId,
+      token_count: gap.tokenCount,
+      first_word: gap.firstWord,
+      last_word: gap.lastWord,
+      ...(gap.repeatOf ? { repeat_of: gap.repeatOf } : {}),
+    },
     review: { status: 'accepted', timestamp: MOCK_TIME },
   };
 }
@@ -340,7 +387,21 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
   withMeasurement: (chapter: ManuscriptChapter) => ManuscriptChapter;
   peekResult: (chapterId: string) => CoverageResult;
 } {
-  let state: CoverageState = { ...idle };
+  let state: CoverageState = deps.seed?.backgroundRun
+    ? {
+        runId: 'mock-background-run',
+        chapterId: WIRE_CHAPTERS[0].id,
+        phase: 'running',
+        percent: 42,
+        stage: 'TRANSCRIBE',
+        message: 'Transcribing item 2/3... 0:41 / 1:30',
+        startedAt: '2026-09-24T10:00:00Z',
+        background: true,
+        pass: 'pipeline',
+        firstPassModel: 'tiny',
+        recheckModel: 'small',
+      }
+    : { ...idle };
   let timers: ReturnType<typeof setTimeout>[] = [];
   const subscribers = new Set<(state: CoverageState) => void>();
   // Fractions measured by a check run in this session; they replace the fixture's.
@@ -354,7 +415,7 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
     recheck: { model: 'large-v3-turbo', wholeChapter: false, windows: 1, seconds: Math.max(25, Math.round(report.missingTokens / (WORDS_PER_MINUTE / 60))) },
   });
   const reportOf = (chapter: ManuscriptChapter, fraction: number) => {
-    const report = pickupChapters.has(chapter.id) ? pickupsReportFor(chapter) : reportFor(chapter, fraction);
+    const report = pickupChapters.has(chapter.id) ? pickupsReportFor(chapter, deps.paragraphText) : reportFor(chapter, fraction, deps.paragraphText);
     return cascadeChapters.has(chapter.id) ? withCascade(report) : report;
   };
 

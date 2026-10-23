@@ -60,9 +60,18 @@ end
 
 -- Assertions -----------------------------------------------------------------------------------------------------
 
+-- %q leaves a byte at or above 0x80 raw or escapes it as the C runtime's isprint decides, and Windows' cp1252 calls most of
+-- them printable but not all (0x9D in the Hebrew U+05DD is not): a UTF-8 character could come out half raw, half escaped, and
+-- the runner cannot read the message back. Every such byte is escaped here, so a failure reads the same on every platform.
+local function quote(text)
+  return (string.format('%q', text):gsub('[\128-\255]', function(byte)
+    return string.format('\\%d', byte:byte())
+  end))
+end
+
 local function show(value, seen)
   if type(value) ~= 'table' then
-    return type(value) == 'string' and string.format('%q', value) or tostring(value)
+    return type(value) == 'string' and quote(value) or tostring(value)
   end
   seen = seen or {}
   if seen[value] then
@@ -117,7 +126,7 @@ end
 
 function H.contains(text, needle, label)
   if not tostring(text):find(needle, 1, true) then
-    error(string.format('%sexpected %s to contain %q', label and (label .. ': ') or '', show(text), needle), 2)
+    error(string.format('%sexpected %s to contain %s', label and (label .. ': ') or '', show(text), quote(needle)), 2)
   end
 end
 

@@ -72,7 +72,7 @@ var (
 )
 
 // ContextPaddingSeconds is how much audio a loop plays before and after a finding, as REAPER's loop does (bridge.ContextPaddingSeconds).
-const ContextPaddingSeconds = 2.0
+const ContextPaddingSeconds = 3.0
 
 // markerTolerance is how close an existing label must be to count as the same marker (bridge's add_finding_marker uses 0.15 s).
 const markerTolerance = 0.15

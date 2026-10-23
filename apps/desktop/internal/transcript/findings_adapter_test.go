@@ -1,6 +1,8 @@
 package transcript
 
 import (
+	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -130,6 +132,41 @@ func TestBuildFindingsMapsConfidenceLabelsAndTimingGap(t *testing.T) {
 	}
 	if extra.Evidence["existing_marker_name"] != "TAKE 2" || extra.Evidence["marker_state"] != "existing" {
 		t.Errorf("EXTRA evidence did not carry markerState/existingMarkerName: %#v", extra.Evidence)
+	}
+}
+
+// TestAnExtraThatSaysTheChapterTextAgainIsADuplicateRead: issue #2251 item 30. compare.py's 13th MARKER field names
+// the chapter words an EXTRA says again; that finding is a second take (duplicate_read), with the timing gap still read
+// from field 12. An EXTRA with the field empty, or from a 12-field sidecar, stays a transcript discrepancy.
+func TestAnExtraThatSaysTheChapterTextAgainIsADuplicateRead(t *testing.T) {
+	results := filepath.Join(t.TempDir(), "results.txt")
+	lines := "SUMMARY|x\n" +
+		"MARKER|0|10.000|EXTRA|EXTRA: 'sorry it was a dark'|||Chapter One|4|ctx|ctx|high|1.250|It was a dark\n" +
+		"MARKER|0|20.000|EXTRA|EXTRA: 'um well'|||Chapter One|4|ctx|ctx|low|0.100|\n" +
+		"MARKER|0|30.000|EXTRA|EXTRA: 'hm'|||Chapter One|4|ctx|ctx|medium|0.500\n"
+	if err := os.WriteFile(results, []byte(lines), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rows := []map[string]any{
+		fixtureRow("Chapter One", 4, 0, 10, 10, "EXTRA", "", "sorry it was a dark", "", "", "pending", ""),
+		fixtureRow("Chapter One", 4, 0, 20, 20, "EXTRA", "", "um well", "", "", "pending", ""),
+		fixtureRow("Chapter One", 4, 0, 30, 30, "EXTRA", "", "hm", "", "", "pending", ""),
+	}
+	grouped, err := BuildFindings(rows, results, manifestFixture(), findings.Project{}, &fakeLookup{chapterID: "chapter-1", chapterOK: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	again := findByAudio(t, grouped["chapter-1"], "sorry it was a dark")
+	if again.Category != findings.CategoryDuplicateRead || again.Manuscript.Expected != "It was a dark" || again.Evidence["repeat_of"] != "It was a dark" {
+		t.Fatalf("repeat = %s %+v %#v", again.Category, again.Manuscript, again.Evidence)
+	}
+	if again.Evidence["timing_gap_seconds"] != 1.25 || again.Confidence == nil || *again.Confidence != 0.9 {
+		t.Fatalf("the 13th field must not hide the timing gap: %#v %v", again.Evidence, again.Confidence)
+	}
+	for _, audio := range []string{"um well", "hm"} {
+		if aside := findByAudio(t, grouped["chapter-1"], audio); aside.Category != findings.CategoryTranscriptDiscrepancy || aside.Evidence["timing_gap_seconds"] == nil {
+			t.Fatalf("%q = %s %#v", audio, aside.Category, aside.Evidence)
+		}
 	}
 }
 

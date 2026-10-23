@@ -1,5 +1,5 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
@@ -38,6 +38,14 @@ export const editingDrivers: Record<string, Driver> = {
   default: async (page) => {
     await openEditing(page, LINKED);
   },
+  // Issue #2251 item 30: the next flag key steps to the mock's line said twice and opens its Read twice card.
+  'read-twice': async (page) => {
+    await openEditing(page, LINKED);
+    const card = page.locator('[data-flagcard="dup"]');
+    await page.getByRole('textbox', { name: 'Script with what was heard' }).focus();
+    for (let step = 0; step < 10 && (await card.count()) === 0; step++) await page.keyboard.press(']');
+    await card.getByRole('button', { name: /Hear both reads/ }).waitFor();
+  },
   // The menu knows the page: with nothing selected the selection actions are listed off, each with its reason.
   'jump-menu': async (page) => {
     await openEditing(page, LINKED);
@@ -62,8 +70,41 @@ export const editingDrivers: Record<string, Driver> = {
     await page.mouse.move(box.x + box.width * 0.66, box.y + box.height / 2, { steps: 6 });
     await page.mouse.up();
     await page.getByRole('slider', { name: 'Start of range' }).waitFor();
-    await page.getByRole('button', { name: 'Zoom in' }).click();
-    await page.getByRole('slider', { name: 'Visible part' }).waitFor();
+    const shown = page.locator('[data-view-label]');
+    const before = await shown.textContent();
+    await page.getByRole('region', { name: 'Waveform of the chapter' }).getByRole('button', { name: 'Zoom in' }).click();
+    await expect(shown).not.toHaveText(before ?? '');
+  },
+  // The right button held and moved drags the waveform along; the script marks the line it now shows.
+  'wave-scrolled': async (page) => {
+    await openEditing(page, LINKED);
+    await page.locator('[data-k="p-1:1"]').click();
+    const surface = page.locator('[data-ribbon-surface]');
+    await surface.waitFor();
+    const box = await surface.boundingBox();
+    if (!box) throw new Error('The docked waveform has no box to drag.');
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * 0.9, y);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(box.x + box.width * 0.1, y, { steps: 8 });
+    await page.mouse.up({ button: 'right' });
+    await page.locator('[data-in-view]').first().waitFor();
+    // No menu opens after a drag.
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  },
+  // A right click without a drag opens the waveform's own menu.
+  'wave-menu': async (page) => {
+    await openEditing(page, LINKED);
+    await page.locator('[data-k="p-1:1"]').click();
+    const surface = page.locator('[data-ribbon-surface]');
+    await surface.waitFor();
+    await surface.click({ button: 'right', position: { x: 120, y: 28 } });
+    const last = page.getByRole('menuitem', { name: 'Show the whole recording' });
+    await last.waitFor();
+    await last.evaluate(async (el) => {
+      const popup = el.closest('[role="menu"]');
+      await Promise.all(popup?.getAnimations().map((a) => a.finished) ?? []);
+    });
   },
   'output-popover': async (page) => {
     await openEditing(page, EDITS);
@@ -217,22 +258,40 @@ export const editingDrivers: Record<string, Driver> = {
     await openEditing(page, LINKED);
     await page.getByRole('button', { name: /^Chapter: .*Change chapter$/ }).click();
     await page.getByRole('menuitemradio', { name: /^Chapter 7\b/ }).click();
-    // Nothing was checked and the fixture leaves the chapter without a track: the script still reads, plain, under the no-audio banner.
-    await page.getByRole('textbox', { name: 'Script with what was heard' }).waitFor();
+    // Nothing was checked and the fixture leaves the chapter without a track: the script still reads, plain, and the link dialog opens over it.
+    await page.getByRole('textbox', { name: 'Script with what was heard', includeHidden: true }).waitFor();
     await page.locator('#noaudio').waitFor();
   },
+  // The chapter has no linked track: a dialog opens by itself once, names the chapter and offers the tracks the host found.
   unlinked: async (page) => {
-    await page.goto('/?mockChapterLink=none');
-    await settlePage(page);
-    await goToPage(page, 'Editing');
-    await page.getByRole('textbox', { name: 'Script with what was heard' }).waitFor();
-    await page.locator('#noaudio').waitFor();
+    await openUnlinked(page);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track/ });
+    await dialog.waitFor();
+    await dialog.getByRole('combobox').waitFor();
     // Nothing is boxed "not read" in a recording that is not there.
     if (await page.locator('[data-mark="miss"]').count()) throw new Error('Words are marked "not read" in a chapter with no audio.');
   },
+  // The X closes it; the quiet mark stands where the banner stood and reopens it.
+  'unlinked-closed': async (page) => {
+    await openUnlinked(page);
+    const dialog = page.getByRole('dialog', { name: /is not linked to a track/ });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: /Not linked to a track/ }).waitFor();
+  },
+  // The DAW is not answering: the dialog opens once the app has had its time to connect on its own.
   'daw-off': async (page) => {
     await openEditing(page, `${LINKED}&mockDaw=Audacity`);
+    await page.getByRole('dialog', { name: /is not connected/ }).waitFor({ timeout: 20_000 });
     await page.getByRole('button', { name: 'Check again' }).waitFor();
+  },
+  'daw-off-closed': async (page) => {
+    await openEditing(page, `${LINKED}&mockDaw=Audacity`);
+    const dialog = page.getByRole('dialog', { name: /is not connected/ });
+    await dialog.waitFor({ timeout: 20_000 });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: /not connected/ }).waitFor();
   },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Editing');
@@ -304,6 +363,15 @@ async function openEditing(page: Page, query: string): Promise<void> {
   await goToPage(page, 'Editing');
   await page.getByRole('textbox', { name: 'Script with what was heard' }).waitFor();
   await page.locator('[data-tchip]').first().waitFor();
+}
+
+/** Editing on Chapter 1 with no track linked. The link dialog opens by itself and hides the page from the accessibility tree, so the page's heading is not waited for. */
+async function openUnlinked(page: Page): Promise<void> {
+  await page.goto('/?mockChapterLink=none');
+  await settlePage(page);
+  await clickNav(page, 'Editing');
+  await page.getByRole('textbox', { name: 'Script with what was heard', includeHidden: true }).waitFor();
+  await page.locator('#noaudio').waitFor();
 }
 
 /** Selects the second to the fifth word of the first line: a click, then a Shift+click. */

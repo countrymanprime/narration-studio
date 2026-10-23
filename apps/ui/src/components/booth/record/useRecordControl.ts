@@ -5,7 +5,7 @@ import { usePort } from '../../../ports/usePort';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { playTakeTone } from '../takeTone';
-import { recordCheck, type ChapterRecordState, type OpenProject } from './recordCheck';
+import { recordCheck, type ChapterRecordState, type OpenProject, type RecordRefusal } from './recordCheck';
 import type { RecordSetupFacts } from './recordSetupModel';
 
 /** How often the Booth asks the DAW again while Record cannot start or the last read failed: a lost event must not leave a notice up for ever. */
@@ -25,6 +25,13 @@ function tracksOf(status: ReadAloudReaperStatus, reason?: ReadAloudReaperReason)
   return reason === 'several_links' ? 'several' : 'none';
 }
 
+/**
+ * Why a press of Record did not start a take: a precondition the Booth already knew (`recordCheck`'s codes), a DAW it cannot hear (`unknown`),
+ * the host's refusal at the press (`host_refused`) or a host call that failed (`failed`). The page turns each into a dialog that fixes it or a
+ * message with an action, never only the footer's sentence.
+ */
+export type RecordBlock = { cause: RecordRefusal['code'] | 'unknown' | 'host_refused' | 'failed'; reason: string };
+
 export type RecordControlState = {
   capabilities: DawCapabilities | null;
   /** The DAW project as last saved and whether it has unsaved changes; null until the DAW port answers. */
@@ -34,8 +41,8 @@ export type RecordControlState = {
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
   reason: string;
-  /** `reason` is about the chapter's track link (none, or several), which the audio engine panel fixes. */
-  reasonIsTrackLink?: boolean;
+  /** What stops a press now, or null when Record can start: the same precondition the press would be refused for. */
+  gate: RecordBlock | null;
   disabled: boolean;
   /** Start or stop a take (the `reading.toggle` command), a start at `at` seconds when it is a punch. A start that a precondition stops says why through `notify` and starts nothing. Answers whether the take started. A narrator's press within `START_GUARD_MS` of a start is ignored (a double click or key repeat is not a Stop); an `automatic` stop, the Booth's own, is never. */
   toggle: (at?: number, how?: { automatic?: boolean }) => Promise<boolean>;
@@ -107,7 +114,16 @@ export const skipStartGuard = (): void => {
   lastStartAt = 0;
 };
 
-export function useRecordControl({ chapterId, notify }: { chapterId: string; notify: (sentence: string, topic?: string) => void }): RecordControlState {
+export function useRecordControl({
+  chapterId,
+  notify,
+  onBlocked,
+}: {
+  chapterId: string;
+  notify: (sentence: string, topic?: string) => void;
+  /** A press that did not start a take, and why; absent, the sentence is said as a message. */
+  onBlocked?: (block: RecordBlock) => void;
+}): RecordControlState {
   const daw = usePort('daw');
   const system = usePort('system');
   const teleprompter = usePort('teleprompter');
@@ -132,6 +148,9 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const lostTake = useRef(false);
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
+  const blockedRef = useRef(onBlocked);
+  blockedRef.current = onBlocked;
+  const block = (blocked: RecordBlock) => (blockedRef.current ? blockedRef.current(blocked) : notifyRef.current(blocked.reason));
   // A take the recorder ended by itself (the microphone unplugged, the disk full): its own sentence says why, read when the end is heard.
   const recorderRef = useRef(recorder);
   recorderRef.current = recorder;
@@ -377,7 +396,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
   const quiet = readFailed ? cantTell(capabilities?.daw, checkedAt, Date.now()) : '';
   const reason = check?.reason ?? (shown || quiet);
 
-  const gate = check?.reason ?? (blind ? quiet : '');
+  const gate: RecordBlock | null = check ? { cause: check.code, reason: check.reason } : blind ? { cause: 'unknown', reason: quiet } : null;
   const gateRef = useRef(gate);
   gateRef.current = gate;
   const capabilitiesRef = useRef(capabilities);
@@ -389,7 +408,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     async (at?: number, how?: { automatic?: boolean }): Promise<boolean> => {
       if (busy.current) return false;
       if (!recordingRef.current && gateRef.current) {
-        notify(gateRef.current);
+        block(gateRef.current);
         return false;
       }
       if (recordingRef.current && !how?.automatic && Date.now() - lastStartAt < START_GUARD_MS) {
@@ -406,7 +425,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
           if (fresh && fresh.dawFileLinked && fresh.dawReachable && !fresh.dawProjectMatches) {
             setLink((last) => ({ ...last, open: 'different' }));
             const wrong = recordCheck(capabilitiesRef.current, { tracks: 'unread', message: '' }, 'different');
-            if (wrong) notify(wrong.reason);
+            if (wrong) block({ cause: wrong.code, reason: wrong.reason });
             return false;
           }
         }
@@ -419,14 +438,20 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
           setRecording(starting);
           return starting;
         } else {
-          setRefused({ chapterId, sentence: result.refused ?? result.message });
+          const sentence = result.refused ?? result.message;
+          setRefused({ chapterId, sentence });
           // The app's own recorder refuses a stop only when no take is recording: the take is over, so the Booth stops holding it.
           if (!starting && recordsInApp(capabilitiesRef.current?.daw)) setRecording(false);
+          // The host knew something the last read did not (a track gone, a link removed elsewhere): read again, so the notice that fixes it shows.
+          setReads((n) => n + 1);
+          block({ cause: result.code === 'stale' ? 'no_track' : 'host_refused', reason: sentence });
         }
       } catch (error) {
         // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
         const what = starting ? 'Record did not start' : 'Stop did not go through';
-        setRefused({ chapterId, sentence: `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.` });
+        const sentence = `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.`;
+        setRefused({ chapterId, sentence });
+        block({ cause: 'failed', reason: sentence });
       } finally {
         busy.current = false;
       }
@@ -447,7 +472,7 @@ export function useRecordControl({ chapterId, notify }: { chapterId: string; not
     stopped,
     startedByApp: true,
     reason,
-    reasonIsTrackLink: check?.code === 'no_track' || check?.code === 'several_tracks',
+    gate,
     disabled: !recording && (!!check || blind),
     toggle,
     refresh,

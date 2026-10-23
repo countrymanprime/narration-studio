@@ -52,6 +52,55 @@ function setup(over: Partial<Props> = {}) {
 const rowOf = (time: string): HTMLElement => screen.getByText(time, { selector: 'td' }).closest('tr')!;
 
 // Issue 1718: a narrow window scrolls the table sideways inside its panel instead of cutting Status and the row buttons off.
+describe('show-where-and-fine-as-read-on-a-selected-line', () => {
+  const select = async (user: ReturnType<typeof userEvent.setup>, time: string) => user.click(within(rowOf(time)).getAllByRole('cell')[1]!);
+
+  it('a selected line shows where it is, with Fine, not a pickup and Go to the note in Proof', async () => {
+    const where = vi.fn((p: { id: string }) => <p>where {p.id}</p>);
+    const { user, onGoToProof } = setup({ where, onFine: vi.fn().mockResolvedValue(undefined) });
+    expect(screen.queryByRole('region', { name: /^Where 00:12.0/ })).toBeNull();
+    await select(user, '00:12.0');
+    const detail = screen.getByRole('region', { name: 'Where 00:12.0 is' });
+    expect(within(detail).getByText(`where ${PROOF.id}`)).toBeTruthy();
+    await user.click(within(detail).getByRole('button', { name: 'Go to the note in Proof' }));
+    expect(onGoToProof).toHaveBeenCalledWith('f9');
+  });
+
+  it('Fine, not a pickup calls the page, says what happened and offers Undo', async () => {
+    const undo = vi.fn().mockResolvedValue({ ok: true });
+    const onFine = vi.fn().mockResolvedValue({ undo, entry: 7 });
+    const { user, toasts } = setup({ onFine, where: () => null });
+    await select(user, '00:12.0');
+    await user.click(within(screen.getByRole('region', { name: 'Where 00:12.0 is' })).getByRole('button', { name: 'Fine, not a pickup' }));
+    expect(onFine).toHaveBeenCalledWith(PROOF);
+    await waitFor(() => expect(toasts().map((t) => t.text)).toContain('00:12.0 is fine as read: its note on Proof is cleared and it is off the list.'));
+  });
+
+  it('a line from no note has both buttons off, with the reason', async () => {
+    const { user } = setup({ onFine: vi.fn(), where: () => null });
+    await select(user, '00:44.0');
+    const detail = screen.getByRole('region', { name: 'Where 00:44.0 is' });
+    for (const name of ['Fine, not a pickup', 'Go to the note in Proof']) {
+      expect(within(detail).getByRole('button', { name }).getAttribute('aria-disabled')).toBe('true');
+    }
+    expect(within(detail).getByText(/This line did not come from a note in Proof/)).toBeTruthy();
+  });
+
+  it('a refused Fine, not a pickup is a toast in the host’s words', async () => {
+    const onFine = vi.fn().mockRejectedValue(new Error('The evidence for this note changed.'));
+    const { user, toasts } = setup({ onFine, where: () => null });
+    await select(user, '00:12.0');
+    await user.click(within(screen.getByRole('region', { name: 'Where 00:12.0 is' })).getByRole('button', { name: 'Fine, not a pickup' }));
+    await waitFor(() =>
+      expect(
+        toasts()
+          .map((t) => t.text)
+          .join(' '),
+      ).toMatch(/The evidence for this note changed/),
+    );
+  });
+});
+
 describe('the-pickups-table-scrolls-instead-of-clipping', () => {
   it('keeps a width of its own inside a scroll region the keyboard can reach', () => {
     setup();
@@ -283,7 +332,8 @@ describe('PickupsTable', () => {
   });
 
   it('context-menu-rows: the provider offers the row actions and runs them', async () => {
-    const { onSetIncluded, onOpenInBooth, onOpenInScript, onSetDone, onRemove, onGoToProof } = setup();
+    const onFine = vi.fn().mockResolvedValue(undefined);
+    const { onSetIncluded, onOpenInBooth, onOpenInScript, onSetDone, onRemove, onGoToProof } = setup({ onFine });
     const items = contextItemsFor(rowOf('00:12.0'))!;
     expect(items.map((i) => i.label)).toEqual([
       'Leave out of the session',
@@ -291,6 +341,7 @@ describe('PickupsTable', () => {
       'Open this chapter in Script',
       'Mark recorded',
       'Remove from pickups',
+      'Fine, not a pickup',
       'Go to the note in Proof',
     ]);
     expect(items.every((i) => !i.unavailable)).toBe(true);
@@ -305,6 +356,12 @@ describe('PickupsTable', () => {
     expect(onSetDone).toHaveBeenCalledWith(PROOF.id, true);
     await waitFor(() => expect(onRemove).toHaveBeenCalledWith(PROOF.id));
     expect(onGoToProof).toHaveBeenCalledWith('f9');
+    await waitFor(() => expect(onFine).toHaveBeenCalledWith(PROOF));
+  });
+
+  it('context-menu-rows: Fine, not a pickup is offered only for a line that came from a note', () => {
+    setup({ onFine: vi.fn() });
+    expect(contextItemsFor(rowOf('00:44.0'))!.find((i) => i.label === 'Fine, not a pickup')?.unavailable).toMatch(/did not come from a note/);
   });
 
   it('rapid-double-fire: a second Remove, Mark recorded or include on a line still being answered is ignored', async () => {

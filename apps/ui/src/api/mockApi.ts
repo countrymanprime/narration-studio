@@ -155,7 +155,10 @@ export function createMockApi(
   });
   const settings = createSettingsMock(
     () => base.bootstrap(),
-    (tool, _scope, values) => dawControl.settingsSaved(tool, values),
+    (tool, _scope, values) => {
+      dawControl.settingsSaved(tool, values);
+      chapterTracks.backgroundSettingsSaved(tool, values);
+    },
     initial.settings,
     initial.daw?.experimentalOn,
   );
@@ -181,6 +184,7 @@ export function createMockApi(
   const extraction = createExtractionMock(endJob);
   const character = createCharacterMock(s);
   const series = createSeriesMock(s, (characterId) => s.entities.find((entity) => entity.id === characterId)?.canonical_name);
+  const mockStartedAt = Date.now();
   const teleprompter = createTeleprompterMock({
     ready: manuscriptReady,
     chapters: () => s.chapters,
@@ -197,6 +201,8 @@ export function createMockApi(
     resume: initial.resume,
     dawRecord: (kind) => dawControl.record(kind),
     dawRecording: () => dawControl.recording(),
+    // Only a link made during this session: the seeded project already links its chapters, which `?mockReaperState=no_link` overrides.
+    linked: (chapterId) => s.chapterTrackMappings.some((link) => link.chapterId === chapterId && Date.parse(link.confirmedAt) >= mockStartedAt),
   });
   const {
     withMeasurement,
@@ -207,12 +213,13 @@ export function createMockApi(
     assetRequired: assets.whisperAssetRequired,
     engines: assets.coverageEngines,
     saveFinding: (finding) => saveFinding(finding),
+    paragraphText: (id) => s.paragraphs.find((paragraph) => paragraph.id === id)?.text,
     // A finished check changes its chapter's status row, so chaptersync:state goes out again.
     endJob: (event) => {
       endJob(event);
       chapterTracks.publishChapterSync(chapterTracks.mockChapterSyncState(null));
     },
-    seed: initial.coverage,
+    seed: initial.backgroundChecks === 'running' ? { ...initial.coverage, backgroundRun: true } : initial.coverage,
   });
   const workspaceDeps = {
     chapters: () => s.chapters,

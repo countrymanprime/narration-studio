@@ -46,7 +46,8 @@ export const Refused: Story = {
   args: { tracks: 'none' },
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole('button', { name: 'Record' });
-    await expect(button).toBeDisabled();
+    // Off (aria-disabled) but pressable: the page answers a press with the dialog that links the chapter.
+    await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(button).toHaveAccessibleDescription(REFUSALS.none);
   },
 };

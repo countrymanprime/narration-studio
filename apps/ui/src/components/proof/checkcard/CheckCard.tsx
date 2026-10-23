@@ -37,6 +37,7 @@ import {
   type ReviewStatus,
 } from './cardSelectors';
 import { FindingRow } from './FindingRow';
+import { addressPath } from '../../../navigation/address';
 import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 const STATE_TONE: Record<'none' | 'checking' | 'current' | 'stale', StatusTone> = {
@@ -313,6 +314,7 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
                   finding={finding}
                   resolved={resolved[finding.id]}
                   busy={busy}
+                  {...(finding.paragraphId ? { editing: addressPath({ page: 'editing', chapter: chapterId, passage: finding.paragraphId }) } : {})}
                   onAccept={() => accept(finding.id)}
                   onIgnore={() => ignore(finding.id)}
                 />

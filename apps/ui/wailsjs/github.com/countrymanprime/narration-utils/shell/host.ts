@@ -235,6 +235,17 @@ export function ChapterTagsPreview(): $CancellablePromise<string> {
     return $Call.ByID(800337126);
 }
 
+/**
+ * ChapterTrackCreate adds a track named after chapterID's title at the end
+ * of the DAW project's track list and links the chapter to it
+ * (chaptertrackcreate.go). Outcome "created" carries ChapterTrackSet's
+ * payload and the new track; "refused" says why nothing was added. A
+ * chapter the manuscript does not have is an error.
+ */
+export function ChapterTrackCreate(chapterID: string): $CancellablePromise<string> {
+    return $Call.ByID(626919906, chapterID);
+}
+
 export function ChapterTrackLinks(): $CancellablePromise<string> {
     return $Call.ByID(488920311);
 }

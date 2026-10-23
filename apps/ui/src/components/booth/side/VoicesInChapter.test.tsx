@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The state matrix (definition of done, rule 3) for "Voices in this scene" with voice samples, written with the change. The control is each voice's play
+// The state matrix (definition of done, rule 3) for "In this chapter" with voice samples, written with the change. The control is each voice's play
 // control, its count and its list of samples. What the samples are and how they play is samples/useBoothSamples.test.tsx; here they are a stand-in.
 //
 //   no samples provided (a story, a test)  'without the page\'s samples the section is as it was'
@@ -22,7 +22,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { VoiceSample } from '../../../api/contracts/voiceSamples';
 import { BoothSamplesProvider } from '../samples/BoothSamplesContext';
 import type { BoothSamples } from '../samples/useBoothSamples';
-import { NO_SAMPLE_NOTE, VoicesNearby } from './VoicesNearby';
+import { NO_SAMPLE_NOTE, VoicesInChapter } from './VoicesInChapter';
 
 afterEach(cleanup);
 
@@ -75,11 +75,11 @@ function stand(over: Partial<BoothSamples> = {}): BoothSamples {
 }
 
 function setup(samples: BoothSamples | null = stand(), voices = VOICES) {
-  render(samples ? <BoothSamplesProvider value={samples}>{<VoicesNearby voices={voices} />}</BoothSamplesProvider> : <VoicesNearby voices={voices} />);
+  render(samples ? <BoothSamplesProvider value={samples}>{<VoicesInChapter voices={voices} />}</BoothSamplesProvider> : <VoicesInChapter voices={voices} />);
   return samples;
 }
 
-describe('Voices in this scene, with voice samples', () => {
+describe('In this chapter, with voice samples', () => {
   it("without the page's samples the section is as it was", () => {
     setup(null);
     expect(screen.getByText('Shrill, impatient.')).toBeTruthy();

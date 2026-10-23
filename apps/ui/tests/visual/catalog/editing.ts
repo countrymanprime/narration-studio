@@ -16,19 +16,33 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'default',
     description:
-      'Editing, Chapter 1 linked to its track - the header with the chapter step and the legend, the script with each line’s takes chip and time, the bar and the key hints',
+      'Editing, Chapter 1 linked to its track - the header with the chapter step and the legend, the script with each line’s takes chip and time, the one waveform docked above the bar, the bar and the key hints',
   },
   {
     page: 'editing',
     state: 'selection',
-    description: 'Editing, four words selected - the floating toolbar under them, the bar naming "4 words" with their times, and the line’s audio ribbon',
+    description:
+      'Editing, four words selected - the floating toolbar under them, the bar naming "4 words" with their times, and their band on the waveform docked above the bar',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'editing',
     state: 'range',
     description:
-      'Editing, a range drawn on the line’s waveform with an edge inside a word and the view zoomed in once - the handles, the pan strip, the partial word and the sub-word preview',
+      'Editing, a range drawn on the docked waveform with an edge inside a word and the view zoomed in once - the handles, the arrows at its ends (no scrollbar), the partial word and the sub-word preview',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'wave-scrolled',
+    description:
+      'Editing, the docked waveform dragged with the right button to the next line - the script marks the line now on screen in the waveform and brings it into view, the cursor stays where it was',
+  },
+  {
+    page: 'editing',
+    state: 'wave-menu',
+    description:
+      'Editing, a right click on the docked waveform without a drag - its own menu: play from that moment, put the cursor on the word there, select the line, zoom and show the whole line or recording',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
@@ -107,6 +121,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'read-twice',
+    description:
+      'Editing, Chapter 1 linked, the next flag key stepped to words said again: their Read twice card says the recording reads the line twice and offers Stack as 2 takes, Hear both reads, Leave in place and Delete second read',
+  },
+  {
+    page: 'editing',
     state: 'takes-open',
     description:
       'Editing, the first line’s takes opened under it - the suggested take with the steps that would make it surer, each take’s evidence, and how retries are kept',
@@ -136,7 +156,7 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'drawer-timeline',
     description:
-      'Editing, the drawer on Timeline (the strip does not fit beside the text at these widths) - the waveform and takes of the line the cursor is on',
+      'Editing, the drawer on Timeline (the strip does not fit beside the text at these widths) - the takes of the line the cursor is on, one lane each, with the waveform docked above the bar',
   },
   {
     page: 'editing',
@@ -148,12 +168,24 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'unlinked',
     description:
-      'Editing on Chapter 1 with no track linked (?mockChapterLink=none) - the banner says why there is no audio to edit and opens the audio engine panel, the legend says "No audio to edit", and the script reads plain with no word boxed "not read"',
+      'Editing on Chapter 1 with no track linked (?mockChapterLink=none) - the dialog that opens by itself names the chapter, lists the tracks the host found with the best match chosen, and offers Link track and Check again; behind it the legend says "No audio to edit" and the script reads plain with no word boxed "not read"',
+  },
+  {
+    page: 'editing',
+    state: 'unlinked-closed',
+    description:
+      'Editing on Chapter 1 with no track linked, after the dialog was closed with its X - the quiet "Not linked to a track" mark stands where the banner stood and reopens it',
   },
   {
     page: 'editing',
     state: 'daw-off',
-    description: 'Editing with the DAW not connected (?mockDaw=Audacity) - the banner with its reason and Retry; the edit actions wait',
+    description:
+      "Editing with the DAW not connected (?mockDaw=Audacity) - the dialog with the host's reason, what still works, when it last checked, Start and Check again; the edit actions wait",
+  },
+  {
+    page: 'editing',
+    state: 'daw-off-closed',
+    description: 'Editing with the DAW not connected, after the dialog was closed with its X - the quiet "not connected" mark in the header reopens it',
   },
   {
     page: 'editing',

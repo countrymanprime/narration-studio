@@ -3,7 +3,6 @@ import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
 import { useToastClearance } from '../../../hooks/useToastClearance';
-import { EnginePanelLink } from '../../engine/EnginePanelContext';
 import { KeyHints } from '../../primitives/KeyHints';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
 import { timerText } from './progressLine';
@@ -50,7 +49,6 @@ export function BoothFooter({
   seconds,
   recording,
   why,
-  whyFixInEnginePanel = false,
   listenWhy,
   mic,
   roomTone,
@@ -62,8 +60,6 @@ export function BoothFooter({
   seconds: number;
   recording: boolean;
   why?: string;
-  /** The sentence is about the chapter's track link, which is made in the audio engine panel: the footer offers the panel beside it. */
-  whyFixInEnginePanel?: boolean;
   /** Why the text cannot follow the voice (no microphone, the session's error); the take itself is not affected. */
   listenWhy?: string;
   mic: Mic;
@@ -90,12 +86,6 @@ export function BoothFooter({
         {why ? (
           <span id="brec-why" className="text-sm text-[var(--text-muted)]">
             {why}
-            {whyFixInEnginePanel ? (
-              <>
-                {' '}
-                <EnginePanelLink className="text-sm font-semibold" />
-              </>
-            ) : null}
           </span>
         ) : null}
         {listenWhy ? (

@@ -85,7 +85,14 @@ describe('Recording & DAW: Record with', () => {
     await waitFor(() => expect(radios[0]!.getAttribute('aria-checked')).toBe('true'));
     fireEvent.click(radios[1]!);
     await waitFor(() => expect(choose).toHaveBeenCalledWith('Audacity'));
+    // REAPER's file is linked, so the built-in recorder is a last resort behind a confirm that says what changes.
+    fireEvent.click(within(group).getAllByRole('radio')[0]!);
+    await waitFor(() => expect(choose).toHaveBeenCalledWith('REAPER'));
     fireEvent.click(radios[2]!);
+    const confirm = await screen.findByRole('alertdialog', { name: 'Stop recording with REAPER?' });
+    expect(confirm.textContent).toContain('Takes already recorded in REAPER stay in REAPER, but the Booth, Editing and Proof stop reading them');
+    expect(choose).not.toHaveBeenCalledWith('Built-in');
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Switch to the built-in recorder' }));
     await waitFor(() => expect(choose).toHaveBeenCalledWith('Built-in'));
     await waitFor(() => expect(within(group).getAllByRole('radio')[2]!.getAttribute('aria-checked')).toBe('true'));
     expect(screen.getByText('Recording happens in the app. Nothing to connect.')).toBeTruthy();
@@ -94,7 +101,11 @@ describe('Recording & DAW: Record with', () => {
 
   it('a REAPER that is not running stays chosen, says so, and Test connection fails', async () => {
     await renderPage({ api: createMockApi({}, notRunningSeed), category: 'Recording & DAW' });
-    expect(await screen.findByText('Not running')).toBeTruthy();
+    expect(await screen.findByText('Not answering')).toBeTruthy();
+    // The card says what the app does; it never offers another recorder or steps to run in REAPER.
+    const card = screen.getByRole('group', { name: 'Connection' });
+    expect(card.textContent).toContain('Start it here and it connects.');
+    expect(card.textContent).not.toMatch(/another recorder|built-in|action list|Load ReaScript/i);
     expect(screen.getByRole('radio', { name: /^REAPER\./ }).getAttribute('aria-checked')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
     expect(await screen.findByText('No answer from REAPER.')).toBeTruthy();
@@ -109,7 +120,7 @@ describe('Recording & DAW: Record with', () => {
       return () => undefined;
     });
     await renderPage({ api, category: 'Recording & DAW' });
-    expect(await screen.findByText('Not running')).toBeTruthy();
+    expect(await screen.findByText('Not answering')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Test connection' }));
     expect(await screen.findByText('No answer from REAPER.')).toBeTruthy();
     const current = await api.dawChoice();
@@ -220,21 +231,55 @@ describe('Recording & DAW: Record with', () => {
     await waitFor(() => expect(row('daw.reaperPath')).toBeTruthy());
   });
 
-  it('keeps the REAPER launcher path reachable, with Copy path', async () => {
+  it('shows no launcher steps: the app keeps the bridge in REAPER and says so', async () => {
     const launcher = 'C:\\Apps\\Narration Studio\\launcher.lua';
     const base = await createMockApi().bootstrap();
     const api = createMockApi({
       bootstrap: async () => ({ ...base, runtime: { ...base.runtime, Reaper: { ...base.runtime.Reaper!, launcherPath: launcher } } }),
     });
-    const write = vi.fn(async () => undefined);
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText: write }, configurable: true });
-    const { notify } = await renderPage({ api, category: 'Recording & DAW' });
-    const summary = await screen.findByText('REAPER launcher script');
-    fireEvent.click(summary);
-    expect(screen.getByText(launcher!)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Copy path' }));
-    await waitFor(() => expect(write).toHaveBeenCalledWith(launcher));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith('REAPER launcher path copied.'));
+    await renderPage({ api, category: 'Recording & DAW' });
+    expect(await screen.findByText(/The app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens/)).toBeTruthy();
+    expect(screen.queryByText('REAPER launcher script')).toBeNull();
+    expect(screen.queryByText(launcher)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy path' })).toBeNull();
+  });
+
+  it('while the app opens REAPER the card says so; a start that never answered shows the host sentence', async () => {
+    await renderPage({
+      api: createMockApi({}, { dawChoice: { linkedFile: 'Alice.rpp', bridge: false, starting: true }, daw: { connected: false } }),
+      category: 'Recording & DAW',
+    });
+    expect(await screen.findByText('Starting REAPER')).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Connection' }).textContent).toMatch(
+      /The app opened REAPER and connects on its own once REAPER has the project open\. Opened \d+ s ago\./,
+    );
+    expect(screen.queryByRole('button', { name: 'Start REAPER' })).toBeNull();
+  });
+
+  it('a bridge problem is the host sentence, under the card', async () => {
+    await renderPage({
+      api: createMockApi(
+        {},
+        {
+          dawChoice: { linkedFile: 'Alice.rpp', bridge: false, bridgeProblem: 'The app opened REAPER, but REAPER’s bridge has not answered.' },
+          daw: { connected: false },
+        },
+      ),
+      category: 'Recording & DAW',
+    });
+    expect(await screen.findByText('The app opened REAPER, but REAPER’s bridge has not answered.')).toBeTruthy();
+  });
+
+  it('Keep REAPER in the confirm leaves the project on REAPER', async () => {
+    const api = createMockApi({}, { daw: { experimentalOn: true } });
+    const choose = vi.spyOn(api, 'dawChoose');
+    await renderPage({ api, category: 'Recording & DAW' });
+    fireEvent.click(await screen.findByRole('radio', { name: /^Built-in recorder/ }));
+    const confirm = await screen.findByRole('alertdialog', { name: 'Stop recording with REAPER?' });
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Keep REAPER' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(choose).not.toHaveBeenCalled();
+    expect(screen.getByRole('radio', { name: /^REAPER\./ }).getAttribute('aria-checked')).toBe('true');
   });
 });
 

@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/proof/inspector/HearIt.tsx#1':
+    'Leaving a note stops the DAW loop its Hear it started, after the Inspector has moved on: there is no row left to say it on, and the loop the DAW is still playing is in plain sight there, where Stop works as always.',
   'src/components/voicesamples/audioOutputs.ts#1':
     'Putting the sample player back on the system default failed after the chosen output could not be used: the element stays where it was, the caller already says the sample is not on the chosen output, and the sample still plays.',
   'src/components/editing/voicesample/sampleMarksContext.tsx#1':
@@ -177,6 +179,8 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Reading Script.definition_source for the Words tab's source menu (or moving the old localStorage choice into it); a failed read keeps the source the menu shows, and the next window focus reads again. A choice the narrator makes has its own toast on failure.",
   'src/components/script/page/reader/readerPosition.ts#1':
     'Remembering where the Script reader was in localStorage; with storage blocked or full the page opens at the top of the chapter next time, and the reader still scrolls as asked.',
+  'src/components/booth/page/lastPlace.ts#1':
+    "Remembering the Booth's last chapter and place in localStorage, per project; with storage blocked or full the next visit opens on the DAW's chapter or the first, as it did before the place was kept.",
   'src/components/booth/page/useTextChoices.ts#1':
     "Remembering the Booth's text size in localStorage; with storage blocked or full the size lasts for this visit and the next one opens at 40 px.",
   'src/components/script/page/tools/text/readerText.ts#1':

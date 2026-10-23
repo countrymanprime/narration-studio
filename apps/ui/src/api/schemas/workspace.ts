@@ -3,6 +3,7 @@ import type {
   WorkspaceAlignmentResult,
   WorkspaceExtra,
   WorkspaceExtraWord,
+  WorkspaceRepeat,
   WorkspaceFXChainsResult,
   WorkspaceItem,
   WorkspaceParagraph,
@@ -57,12 +58,19 @@ const extraWordSchema = z
   })
   .refine(scoredOrReasoned, { message: 'a score is a number beside no reason, or null with one' }) satisfies z.ZodType<WorkspaceExtraWord>;
 
+const repeatSchema = z
+  .object({ start: z.number().int().min(0), end: z.number().int(), first: z.number().int().min(0), last: z.number().int(), text: z.string() })
+  .refine((r) => r.end > r.start && r.last > r.first, {
+    message: 'a repeat says at least one chapter word with one of its own',
+  }) satisfies z.ZodType<WorkspaceRepeat>;
+
 const extraSchema = z.object({
   text: z.string(),
   tokens: z.number(),
   start: audioPositionSchema,
   end: audioPositionSchema,
   afterToken: optionalFromNull(z.number()),
+  repeatOf: optionalFromNull(repeatSchema),
   words: listFromNull(extraWordSchema),
 }) satisfies z.ZodType<WorkspaceExtra>;
 

@@ -8,7 +8,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      "Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (Voices in this scene, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
+      "Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
     ...REFLOW,
   },
   {
@@ -29,28 +29,63 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'refusal',
     description:
-      'Booth with the record capability switched off (the mock\'s default): Record is disabled and the footer says why in the capability\'s own sentence ("Experimental: switched off in Settings."), naming no DAW of its own; above the footer, "Recording in REAPER is experimental" with Turn on Record and DAW settings',
+      'Booth with the record capability switched off (the mock\'s default): Record looks off (aria-disabled, still pressable) and the footer says why in the capability\'s own sentence ("Experimental: switched off in Settings."), naming no DAW of its own; above the footer, the quiet "Record is switched off" chip that opens the dialog',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'refusal-pressed',
+    description:
+      'The same Booth after Record was pressed (issue 2251 item 3: a press that cannot start a take is answered in front of the narrator): the "Recording in REAPER is experimental" dialog explains it and offers Turn on Record, Check again and DAW settings, with what it waits for and when it last checked; nothing records',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-unlinked',
+    description:
+      'Booth on a chapter with no linked track (?mockDawExperimentalOn=1&mockRecordCapabilityOn=1&mockReaperState=no_link, issue 2251 items 3 and 4): the "Chapter 1 is not linked to a track" dialog opens by itself, saying Record cannot start until the chapter has a track, with the project\'s tracks to choose from (best match preselected), Link track, the offer to create a new track named after the chapter, Check again and when it last checked',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-unlinked-closed',
+    description:
+      'The same Booth after the dialog was closed: the "Not linked to a track" chip above the footer reopens it, Record looks off and the footer says the chapter has no track to record on and that Record links one; a press of Record reopens the dialog',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-unlinked-created',
+    description:
+      'The same Booth after Create a new track: REAPER added a track named after the chapter and it is linked; the message says so and that the REAPER project should be saved, the chip is gone and Record is ready',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-connect',
     description:
-      'Booth opened without REAPER\'s bridge (?mockDawConnected=0 with the record capability on, the app started on its own): Record is disabled with the capability\'s sentence, and above the footer "Connect REAPER to record" lists loading the launcher action once (the mock reports no launcher path, so the step names the file; the Booth/RecordSetup stories show the path with Copy path) and running it, with Open in REAPER and connect',
+      "Booth opened without REAPER's bridge (?mockDawConnected=0 with the record capability on, the app started on its own): Record is disabled with the capability's sentence, and a dialog opens by itself saying REAPER is not connected, with what still works, when it last checked, the launcher steps (the mock reports no launcher path, so the step names the file; the Booth/RecordSetup stories show the path with Copy path), Open in REAPER and connect (off until a project file is linked) and Check again",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'record-connect-closed',
+    description:
+      'The same Booth after the dialog was closed with its X: the quiet "REAPER not connected" mark stands above the footer and reopens it; Record stays disabled with the capability\'s sentence',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-turned-away',
     description:
-      'Booth after REAPER was started from its connect notice but the busy app turned the project away (?mockDaw=busy, Record turned on and the project linked first): the connect notice says "REAPER started, but this app turned its project away: Narration Studio is busy, so the current project was left unchanged. Finish or cancel what is running, then press Open in REAPER and connect again.", and the host\'s sentence stays as a message until it is dismissed; Record stays off',
+      'Booth after REAPER was started from its connect notice but the busy app turned the project away (?mockDaw=busy, Record turned on and the project linked first): the connect dialog (reopened for it) says "REAPER started, but this app turned its project away: Narration Studio is busy, so the current project was left unchanged. Finish or cancel what is running, then press Open in REAPER and connect again.", and the host\'s sentence stays as a message until it is dismissed; Record stays off',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-other-project',
     description:
-      'Booth after REAPER was started from its connect notice and answered with another project open (?mockDaw=different, Record turned on and the project linked first): above the footer, "REAPER has a different project open" says a take would not land in the linked project, with Link the open project, DAW settings, what it waits for and when it last checked, and Check again; Record stays off and the footer gives the same reason in its own sentence',
+      'Booth after REAPER was started from its connect notice and answered with another project open (?mockDaw=different, Record turned on and the project linked first): the "REAPER has a different project open" dialog opens by itself, saying a take would not land in the linked project, with Link the open project, DAW settings, what it waits for and when it last checked, and Check again; behind it the chip above the footer, Record off and the footer\'s same reason in its own sentence',
     ...REFLOW,
   },
   {
@@ -64,7 +99,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'builtin-refusal',
     description:
-      'Booth for a project that records with the built-in recorder while Experimental actions are off (?mockEngine=builtin): Record is disabled and the footer says why in the capability\'s own sentence; above the footer, "Recording in the built-in recorder is experimental" says the take is saved in the project\'s Recordings folder, with Turn on Record and DAW settings',
+      'Booth for a project that records with the built-in recorder while Experimental actions are off (?mockEngine=builtin): Record looks off and the footer says why in the capability\'s own sentence; above the footer, the "Record is switched off" chip opens the dialog that says the take is saved in the project\'s Recordings folder, with Turn on Record',
     ...REFLOW,
   },
   {
@@ -113,7 +148,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'voice-samples-panel',
     description:
-      'Booth, "Voices in this scene" in the side panel with voice samples: a play control and the count on each voice that has some, the Queen of Hearts opened to list her samples (the primary starred), and where to make one for a voice with none',
+      'Booth, "In this chapter" in the side panel with voice samples: a play control and the count on each voice that has some, the Queen of Hearts opened to list her samples (the primary starred), and where to make one for a voice with none',
     ...REFLOW,
     ...SIDE_PANEL_DEPENDS_ON_WIDTH,
   },
@@ -188,6 +223,13 @@ export const boothStates: StateEntry[] = [
     state: 'bookmarks-ribbon',
     description:
       'Booth (as setup) after B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'search-shown',
+    description:
+      'Booth (as setup) after Ctrl+F, "the" and choosing a match under "In this chapter": every match in the text tinted, the chosen one ringed and the reading position on it',
     ...REFLOW,
   },
   {

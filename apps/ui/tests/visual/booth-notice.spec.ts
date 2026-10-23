@@ -11,9 +11,9 @@ const CASES: Case[] = [
   { name: 'turn-on notice at 1440x900, Text size 72', width: 1440, height: 900, larger: 14, query: '?mockDaw=live' },
   { name: 'turn-on notice at 1440x500, Text size 72', width: 1440, height: 500, larger: 14, query: '?mockDaw=live' },
   { name: 'turn-on notice at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDaw=live' },
-  { name: 'connect notice at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
-  { name: 'connect notice at 400x700', width: 400, height: 700, larger: 0, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
-  { name: 'connect notice at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
+  { name: 'connect mark at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
+  { name: 'connect mark at 400x700', width: 400, height: 700, larger: 0, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
+  { name: 'connect mark at 400x700, Text size 72', width: 400, height: 700, larger: 14, query: '?mockDawConnected=0&mockRecordCapabilityOn=1' },
   // The DAW answers with another project open (the heartbeat's project is not the linked file): the open-project notice (Booth pass 3).
   { name: 'open-project notice at 1440x500', width: 1440, height: 500, larger: 0, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
   { name: 'open-project notice at 800x600', width: 800, height: 600, larger: 0, query: '?mockDawMismatch=1&mockRecordCapabilityOn=1' },
@@ -41,8 +41,14 @@ for (const c of CASES) {
     await page.goto(`/${c.query}`);
     await settlePage(page);
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
     await expect(page.locator('#brec-setup')).toBeVisible();
+    // The connect case is a mark and a dialog that opened by itself: the narrator closes it to read on.
+    const dialog = page.getByRole('dialog');
+    if (await dialog.isVisible()) {
+      await dialog.getByRole('button', { name: 'Close' }).click();
+      await dialog.waitFor({ state: 'detached' });
+    }
     for (let i = 0; i < c.larger; i++) await page.keyboard.press('Equal');
     // Read on: move the reading position down a few phrases, as a narrator would, so the page has to follow it.
     for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowDown');
@@ -74,14 +80,15 @@ for (const c of [
     await page.goto('/?mockDawMismatch=1&mockRecordCapabilityOn=1');
     await settlePage(page);
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/ }).waitFor();
+    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
     await expect(page.locator('#brec-setup')).toBeVisible();
-    // Space cannot record while the notice is up: it says why, as a toast.
-    await page.keyboard.press('Space');
-    const toast = page
-      .getByRole('status')
-      .getByText(/different project open/)
-      .first();
+    // The open-project dialog opens by itself; the narrator closes it and reads on with the chip above the footer.
+    const dialog = page.getByRole('dialog', { name: 'REAPER has a different project open' });
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.waitFor({ state: 'detached' });
+    // Any message will do: Next bookmark with none says so as a toast.
+    await page.keyboard.press('Alt+BracketRight');
+    const toast = page.getByRole('status').getByText('No bookmarks yet.').first();
     await expect(toast).toBeVisible();
     const notice = (await page.locator('#brec-setup').boundingBox())!;
     const hit = (await toast.boundingBox())!;

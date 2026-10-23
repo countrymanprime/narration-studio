@@ -92,13 +92,24 @@ export type ChapterSyncState = {
   chapters: ChapterSyncChapter[];
   /** Background recording checks: on or off (`RecordingCoverage.background_checks`), and why none runs
    * now; `wait` is '' before the host has looked or when one just started. */
-  background: { enabled: boolean; wait: ChapterSyncBackgroundWait };
+  background: ChapterSyncBackground;
 };
 
-/** Why no background check runs: off; a job the narrator started runs; the Whisper model is not installed; on battery (or the
- * power state is unknown); REAPER is running and may be recording; REAPER or the chapter changed in the last three minutes;
- * nothing has changed since its check. */
-export type ChapterSyncBackgroundWait = '' | 'off' | 'busy' | 'model' | 'battery' | 'recording' | 'quiet' | 'nothing';
+/** Background recording checks (`apps/desktop/coverage_background.go`): on or off, why none runs now, how many changed chapters
+ * wait for a check besides one running, and the model pair a background check runs (`recheckModel` '' when it runs the first
+ * pass alone), so the first-time notice and the progress can name them. */
+export type ChapterSyncBackground = {
+  enabled: boolean;
+  wait: ChapterSyncBackgroundWait;
+  queued: number;
+  firstPassModel: string;
+  recheckModel: string;
+};
+
+/** Why no background check runs: off; on, but the narrator has not answered the first-time notice; a job the narrator started
+ * runs; the Whisper model is not installed; on battery (or the power state is unknown); REAPER is running and may be recording;
+ * REAPER or the chapter changed in the last 45 seconds; nothing has changed since its check. */
+export type ChapterSyncBackgroundWait = '' | 'off' | 'confirm' | 'busy' | 'model' | 'battery' | 'recording' | 'quiet' | 'nothing';
 
 export type ChapterSyncAutoLink = { trackGuid: string; trackName: string; chapterId: string; chapterTitle: string; match: TrackLinkMatch };
 export type ChapterSyncNeedsYou = {

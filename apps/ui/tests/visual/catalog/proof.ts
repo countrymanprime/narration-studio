@@ -54,6 +54,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'check-findings',
+    description:
+      'Proof, Chapter 1 linked, its recording check’s findings shown: a line said twice listed as Said twice with the words said again, Fix in edit and Open in Editing, above the gaps',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'check-never',
     description: 'Proof, Chapter 7 never checked: the check card with no check yet and Check recordings',
     ...REFLOW,
@@ -82,8 +89,15 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'hear-it',
+    description:
+      'Proof, all chapters, Hear it pressed on the misread at 00:12.4 ("pink eyes"): Stop hearing it in the Inspector\'s row, "Playing in REAPER, 3 s either side" under it, and In the script with the note\'s paragraph, its words marked, between the paragraphs before and after',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'notes-filtered',
-    description: 'Proof, all chapters with the To review chip pressed: "Notes · 3 of 4" and the waived note left out',
+    description: 'Proof, all chapters with the To review chip pressed: "Notes · 3 of 4" and the note marked fine as read left out',
     ...REFLOW,
   },
   {

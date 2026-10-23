@@ -19,6 +19,8 @@ import {
   faBookOpen,
   faCalendarDays,
   faCaretDown,
+  faCaretLeft,
+  faCaretRight,
   faCheck,
   faChevronDown,
   faChevronUp,
@@ -142,6 +144,7 @@ export const TOOLTIP_VERBS = [
   'Retry',
   'Save',
   'Scan',
+  'Scroll',
   'Show',
   'Stop',
   'Toggle',
@@ -211,6 +214,8 @@ export const CATALOG = {
   record: action(faCircle, 'record', 'Record my own clip'),
   zoomIn: action(faMagnifyingGlassPlus, 'zoom in', 'Zoom in'),
   zoomOut: action(faMagnifyingGlassMinus, 'zoom out', 'Zoom out'),
+  scrollWaveBack: action(faCaretLeft, 'scroll the waveform back', 'Scroll the waveform back a window'),
+  scrollWaveForward: action(faCaretRight, 'scroll the waveform forward', 'Scroll the waveform forward a window'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
 
   // State: outline is off, solid is on (audit rule 3).

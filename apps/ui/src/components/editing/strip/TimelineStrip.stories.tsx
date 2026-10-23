@@ -1,26 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { sameClock } from '../ribbon/docClock';
 import { useEffect, type ReactNode } from 'react';
 import { expect, waitFor, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
-import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
 import { EditingPageProvider, useEditingPage } from '../script/EditingPageState';
 import { marksDoc } from '../script/scriptFixtures';
 import type { LinePassage, LineTake } from '../takes/types';
 import { TimelineStrip } from './TimelineStrip';
-
-/** A steady tone-shaped entry over `seconds`, so the bars read the same on every run. */
-function peaksOf(seconds: number): WorkspacePeaks {
-  const n = Math.round(seconds * 50);
-  const bytes = new Uint8Array(n * 2);
-  for (let i = 0; i < n; i += 1) {
-    const amp = Math.round(20 + 80 * Math.abs(Math.sin(i / 3.7)) * (0.4 + 0.6 * Math.abs(Math.sin(i / 17))));
-    bytes[2 * i] = 256 - amp;
-    bytes[2 * i + 1] = amp;
-  }
-  return { startSeconds: 0, bucketsPerSecond: 50, buckets: n, minMax: btoa(String.fromCharCode(...bytes)), sampleRate: 48000, channels: 1 };
-}
 
 const take = (id: string, label: string, active = false): LineTake => ({
   id,
@@ -36,13 +22,7 @@ const one = passage(take('t-1', 'A', true));
 const three = passage(take('t-1', 'A'), take('t-2', 'B', true), take('t-3', 'C'));
 
 const doc = marksDoc();
-const api = (withPeaks: boolean) => ({
-  ...createMockApi(),
-  workspacePeaks: async (chapterId: string) => ({
-    chapterId,
-    items: [{ index: 0, ...(withPeaks ? { peaks: peaksOf(30) } : { reason: 'No waveform: the source is not a WAV.' }) }],
-  }),
-});
+const api = createMockApi();
 
 function Seed({ select, playT }: { select?: [string, string]; playT?: number }) {
   const { dispatch } = useEditingPage();
@@ -55,10 +35,10 @@ function Seed({ select, playT }: { select?: [string, string]; playT?: number }) 
 }
 
 /** `width` is the frame's width; the page decides whether the strip is offered (from a 1360 px window). */
-function frame(width: number, node: ReactNode, seed: { select?: [string, string]; playT?: number } = {}, withPeaks = true) {
+function frame(width: number, node: ReactNode, seed: { select?: [string, string]; playT?: number } = {}) {
   return (
     <div style={{ width }} className="bg-[var(--surface)] text-[var(--text)]">
-      <ApiProvider api={api(withPeaks)}>
+      <ApiProvider api={api}>
         <EditingPageProvider doc={doc}>
           <Seed {...seed} />
           {node}
@@ -68,17 +48,15 @@ function frame(width: number, node: ReactNode, seed: { select?: [string, string]
   );
 }
 
-const strip = (p: LinePassage | null, playingId: string | null = null) => (
-  <TimelineStrip passage={p} playingId={playingId} onPlay={() => undefined} chapterId="5" clocks={sameClock([0])} />
-);
+const strip = (p: LinePassage | null, playingId: string | null = null) => <TimelineStrip passage={p} playingId={playingId} onPlay={() => undefined} />;
 
 const meta = { title: 'Editing/TimelineStrip', component: TimelineStrip, parameters: { layout: 'fullscreen' } } satisfies Meta<typeof TimelineStrip>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// One take: the audio and one lane.
+// One take: one lane. The line's audio is the page's one waveform, docked above the transport, not a lane here.
 export const OneTake: Story = {
-  args: { passage: one, playingId: null, onPlay: () => undefined, chapterId: '5', clocks: sameClock([0]) },
+  args: { passage: one, playingId: null, onPlay: () => undefined },
   render: () => frame(1440, strip(one)),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(within(canvasElement).getByRole('button', { name: 'Play take A' })).toBeTruthy());
@@ -87,19 +65,18 @@ export const OneTake: Story = {
 
 // Three takes of the line, each in a lane of its own on the one axis.
 export const ThreeTakes: Story = {
-  args: { passage: three, playingId: null, onPlay: () => undefined, chapterId: '5', clocks: sameClock([0]) },
+  args: { passage: three, playingId: null, onPlay: () => undefined },
   render: () => frame(1440, strip(three)),
   play: async ({ canvasElement }) => {
-    await waitFor(() => expect(canvasElement.querySelectorAll('[data-lane]')).toHaveLength(4));
+    await waitFor(() => expect(canvasElement.querySelectorAll('[data-lane]')).toHaveLength(3));
   },
 };
 
 // A stacked passage: its takes start at the same time.
 export const Stacked: Story = {
-  args: { passage: three, playingId: null, onPlay: () => undefined, chapterId: '5', clocks: sameClock([0]) },
+  args: { passage: three, playingId: null, onPlay: () => undefined },
   render: () => frame(1440, strip(three)),
   play: async ({ canvasElement }) => {
-    // The lanes are drawn once the peaks have been read.
     await waitFor(() => {
       const lefts = [...canvasElement.querySelectorAll('[data-lane^="t-"] span.absolute')].map((e) => (e as HTMLElement).style.left);
       expect(lefts.length).toBeGreaterThan(0);
@@ -108,36 +85,37 @@ export const Stacked: Story = {
   },
 };
 
-// Words selected: the band on the audio and on the active take, with its length.
+// Words selected: the band on the active take, with its length.
 export const Selection: Story = {
-  args: { passage: three, playingId: null, onPlay: () => undefined, chapterId: '5', clocks: sameClock([0]) },
+  args: { passage: three, playingId: null, onPlay: () => undefined },
   render: () => frame(1440, strip(three), { select: ['p-1:1', 'p-1:3'] }),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelector('[data-selband]')).toBeTruthy());
   },
 };
 
-// The playing moment as one line across the audio and every lane.
+// The playing moment as one line across every lane.
 export const Playing: Story = {
-  args: { passage: three, playingId: 't-2', onPlay: () => undefined, chapterId: '5', clocks: sameClock([0]) },
+  args: { passage: three, playingId: 't-2', onPlay: () => undefined },
   render: () => frame(1440, strip(three, 't-2'), { playT: (doc.paras[0].start as number) + 1 }),
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelectorAll('[data-now]')).toHaveLength(3));
   },
 };
 
-// No peaks: the audio lane says so.
-export const NoAudio: Story = {
-  args: { passage: null, playingId: null, onPlay: () => undefined, chapterId: '5', clocks: sameClock([0]) },
-  render: () => frame(1440, strip(null), {}, false),
+// A line with no takes: the axis and no lanes.
+export const NoTakes: Story = {
+  args: { passage: null, playingId: null, onPlay: () => undefined },
+  render: () => frame(1440, strip(null)),
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByText(/No audio to draw/)).toBeTruthy();
+    await waitFor(() => expect(canvasElement.querySelector('#timeline')).toBeTruthy());
+    await expect(canvasElement.querySelectorAll('[data-lane]')).toHaveLength(0);
   },
 };
 
 // Below a 1360 px window the page offers the strip in the drawer's Timeline tab instead; drawn in a narrow frame it still lays out.
 export const Narrow: Story = {
-  args: { passage: three, playingId: null, onPlay: () => undefined, chapterId: '5', clocks: sameClock([0]) },
+  args: { passage: three, playingId: null, onPlay: () => undefined },
   render: () => frame(1100, strip(three)),
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('#timeline')?.className).not.toContain('hidden');

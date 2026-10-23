@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAW_SETUPS, type DawSetupId } from '../../fixtures/daw';
-import { EnginePanelProvider } from '../engine/EnginePanelContext';
+import { resetOpenOnce } from '../connection/useOpenOnce';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
@@ -33,6 +33,7 @@ const audios: FakeAudio[] = [];
 let width = 1440;
 
 beforeEach(() => {
+  resetOpenOnce();
   audios.length = 0;
   width = 1440;
   vi.stubGlobal(
@@ -68,16 +69,20 @@ afterEach(() => {
 
 type Options = Partial<EditingPageProps> & { setup?: DawSetupId; daw?: DawClient; api?: Partial<NarrationApi> & { heard?: boolean } };
 
+/** The DAW dialog waits this long after the app opens before it opens by itself; the page tests that are not about it never see it. */
+const NEVER = 1_000_000_000;
+
 function mount({ setup = 'reaper', daw, api = {}, ...props }: Options = {}) {
   const view = render(
     <EditingHost api={pageApi(api)} daw={daw ?? dawFor(setup)} journal={newJournal()}>
-      <EditingPage hasManuscript {...props} />
+      <EditingPage hasManuscript dawConnectGraceMs={NEVER} {...props} />
     </EditingHost>,
   );
   return view;
 }
 
-const script = () => screen.findByRole('textbox', { name: 'Script with what was heard' });
+// `hidden`: a connection dialog that opened by itself hides the page behind it from the accessibility tree, and the script is still what is being waited for.
+const script = () => screen.findByRole('textbox', { name: 'Script with what was heard', hidden: true });
 const cursorKey = () => screen.getByRole('textbox', { name: 'Script with what was heard' }).getAttribute('aria-activedescendant');
 const word = (key: string) => document.querySelector<HTMLElement>(`[data-k="${key}"]`)!;
 const codeOf = (key: string): string => (key.length === 1 ? `Key${key.toUpperCase()}` : key);
@@ -157,53 +162,150 @@ describe('EditingPage', () => {
         return note!;
       });
 
-    it('no track linked: the script is plain, nothing is boxed "not read", and the banner offers the audio engine panel', async () => {
-      const openPanel = vi.fn();
-      render(
-        <EditingHost api={pageApi(unlinked)} daw={dawFor('reaper')} journal={newJournal()}>
-          <EnginePanelProvider value={openPanel}>
-            <EditingPage hasManuscript />
-          </EnginePanelProvider>
-        </EditingHost>,
-      );
+    const dialog = () => screen.findByRole('dialog');
+    const closeDialog = async () => {
+      const open = await dialog();
+      fireEvent.click(within(open).getByRole('button', { name: 'Close' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    };
+    const track = (guid: string, name: string, index: number) => ({ guid, name, index });
+    const match = (over: Partial<Awaited<ReturnType<NarrationApi['chapterTrackMatch']>>> = {}) => ({
+      chapterId: 'c1',
+      chapterTitle: 'Chapter One',
+      projectFile: 'C:/p.rpp',
+      savedAt: '2026-09-01T12:00:00Z',
+      status: 'matched' as const,
+      track: null,
+      candidates: [],
+      warnings: [],
+      tracks: [track('{T-A}', 'Intro', 0), track('{T-B}', 'Chapter One', 1), track('{T-C}', 'Chapter Two', 2)],
+      recordedEnd: null,
+      ...over,
+    });
+    const best = { trackGuid: '{T-B}', trackName: 'Chapter One', trackIndex: 1, score: 1, source: 'track-name' as const, region: null };
+
+    it('no track linked: the script is plain, nothing is boxed "not read", and a dialog opens by itself to link the chapter', async () => {
+      mount({ api: { ...unlinked, chapterTrackMatch: async () => match({ track: best, candidates: [best] }) } });
       await script();
-      const note = await shown();
-      expect(note.getAttribute('role')).toBe('status');
-      expect(note.textContent).toMatch(/Chapter One is not linked to a track/);
-      expect(note.textContent).toMatch(/no audio to edit/);
+      const open = await dialog();
+      expect(within(open).getByText('Chapter One is not linked to a track')).toBeTruthy();
+      expect(open.textContent).toMatch(/no audio to edit/);
+      await closeDialog();
+      const mark = await shown();
+      expect(mark.textContent).toBe('Not linked to a track');
       expect(document.querySelectorAll('[data-mark="miss"]')).toHaveLength(0);
       expect(document.querySelectorAll('[data-k]').length).toBeGreaterThan(0);
       expect(screen.queryByRole('group', { name: /What is marked/ })).toBeNull();
       expect(screen.queryByText('Not transcribed yet')).toBeNull();
       expect(screen.getByText('No audio to edit')).toBeTruthy();
-      fireEvent.click(within(note).getByRole('button', { name: 'Open the audio engine panel' }));
-      expect(openPanel).toHaveBeenCalledOnce();
     });
 
-    it.each([
-      ['missing', /linked track is not in the saved project/],
-      ['empty', /track has no audio on it/],
-    ] as const)('a linked track that is %s says so', async (kind, sentence) => {
-      mount({ api: noAudioApi(kind) });
+    it('opens by itself once for the chapter: the mark reopens it, and moving off the chapter and back does not', async () => {
+      mount({ api: { ...unlinked, chapterTrackMatch: async () => match() } });
       await script();
-      expect((await shown()).textContent).toMatch(sentence);
+      await closeDialog();
+      await act(async () => {});
+      expect(screen.queryByRole('dialog')).toBeNull();
+      fireEvent.click(within(await shown()).getByRole('button', { name: /Not linked to a track/ }));
+      expect(await dialog()).toBeTruthy();
     });
 
-    it('Read again reads the chapter again, so a link made in the audio engine panel opens the chapter', async () => {
+    it('preselects the best match, lists every track the host found, and links the chosen one in place, then reads the chapter again', async () => {
+      const whole = pageApi();
+      let linked = false;
+      const chapterTrackSet = vi.fn(async (chapterId: string, trackGuid: string) => {
+        linked = true;
+        return { documentId: 'd', link: { trackGuid, chapterId, chapterTitle: 'Chapter One', confirmedAt: '' }, displaced: null, mappings: [] };
+      });
+      mount({
+        api: {
+          chapterTrackMapList: async () => (linked ? await whole.chapterTrackMapList() : { documentId: 'd', mappings: [] }),
+          workspaceAlignment: async (chapterId: string) => (linked ? await whole.workspaceAlignment(chapterId) : await unlinked.workspaceAlignment!(chapterId)),
+          chapterTrackMatch: async () => match({ track: best, candidates: [best] }),
+          chapterTrackSet,
+        },
+      });
+      await script();
+      const open = await dialog();
+      const select = (await within(open).findByRole('combobox', { name: 'Track for Chapter One' })) as HTMLSelectElement;
+      // The best match heads the list under its own heading and is the one chosen; every other track follows.
+      expect(select.value).toBe('{T-B}');
+      expect(
+        within(select)
+          .getAllByRole('option')
+          .map((o) => o.textContent),
+      ).toEqual(['Chapter One', 'Intro', 'Chapter Two']);
+      expect(within(select).getByRole('group', { name: 'Best match' })).toBeTruthy();
+      fireEvent.click(within(open).getByRole('button', { name: 'Link track' }));
+      await waitFor(() => expect(chapterTrackSet).toHaveBeenCalledWith('c1', '{T-B}'));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await waitFor(() => expect(banner()).toBeNull());
+      expect(document.querySelector('[data-mark="mis"]')).not.toBeNull();
+    });
+
+    it('shows a refused link in the dialog and keeps it open', async () => {
+      mount({
+        api: {
+          ...unlinked,
+          chapterTrackMatch: async () => match({ track: best, candidates: [best] }),
+          chapterTrackSet: async () => Promise.reject(new Error('The chapter is not in the manuscript.')),
+        },
+      });
+      await script();
+      const open = await dialog();
+      await within(open).findByRole('combobox');
+      fireEvent.click(within(open).getByRole('button', { name: 'Link track' }));
+      expect((await within(open).findByRole('alert')).textContent).toContain('The chapter is not in the manuscript.');
+    });
+
+    it('says when the saved project has no tracks, and a failed read of them, each with Check again', async () => {
+      let tracks = true;
+      mount({
+        api: {
+          ...unlinked,
+          chapterTrackMatch: async () => (tracks ? match({ tracks: [] }) : Promise.reject(new Error('The project file could not be read.'))),
+        },
+      });
+      await script();
+      const open = await dialog();
+      expect(await within(open).findByText(/has no tracks yet/)).toBeTruthy();
+      expect(within(open).queryByRole('combobox')).toBeNull();
+      tracks = false;
+      fireEvent.click(within(open).getByRole('button', { name: 'Check again' }));
+      expect((await within(open).findByRole('alert')).textContent).toContain('The project file could not be read.');
+    });
+
+    it('reads the chapter again when the window is focused while it has no audio, so a link made in REAPER or the engine panel opens it', async () => {
       const whole = pageApi();
       let linked = false;
       mount({
         api: {
           chapterTrackMapList: async () => (linked ? await whole.chapterTrackMapList() : { documentId: 'd', mappings: [] }),
           workspaceAlignment: async (chapterId: string) => (linked ? await whole.workspaceAlignment(chapterId) : await unlinked.workspaceAlignment!(chapterId)),
+          chapterTrackMatch: async () => match(),
         },
       });
       await script();
-      const note = await shown();
+      await closeDialog();
       linked = true;
-      fireEvent.click(within(note).getByRole('button', { name: 'Read again' }));
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
       await waitFor(() => expect(banner()).toBeNull());
       expect(document.querySelector('[data-mark="mis"]')).not.toBeNull();
+    });
+
+    it('a linked track that is missing is the dialog’s, and one with nothing on it is the banner’s', async () => {
+      mount({ api: { ...noAudioApi('missing'), chapterTrackMatch: async () => match() } });
+      await script();
+      const open = await dialog();
+      expect(within(open).getByText('Chapter One’s track is not in the project')).toBeTruthy();
+      expect(open.textContent).toMatch(/Linking a track replaces the old link/);
+      cleanup();
+      mount({ api: noAudioApi('empty') });
+      await script();
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect((await shown()).textContent).toMatch(/track has no audio on it/);
     });
 
     it('a chapter with its track and its words has no banner, and the words keep their marks', async () => {
@@ -218,24 +320,102 @@ describe('EditingPage', () => {
       await script();
       const note = await shown();
       expect(note.textContent).toMatch(/Nothing is recorded for Chapter One yet/);
-      expect(within(note).queryByRole('button', { name: 'Open the audio engine panel' })).toBeNull();
+      expect(screen.queryByRole('dialog')).toBeNull();
     });
   });
 
-  describe('daw-off-banner-is-read-only-and-plays-still-work', () => {
-    it('shows the capability’s sentence with Check again, disables the edits with it, and still plays', async () => {
-      mount({ setup: 'reaper-off' });
+  describe('daw-off-dialog-is-read-only-and-plays-still-work', () => {
+    const dawDialog = () => screen.findByRole('dialog');
+    const markOf = () => waitFor(() => document.querySelector<HTMLElement>('#dawoff')!);
+
+    it('shows the capability’s sentence with Start and Check again in a dialog, disables the edits, and still plays', async () => {
+      mount({ setup: 'reaper-off', dawConnectGraceMs: 0 });
       await script();
-      const banner = await waitFor(() => document.querySelector<HTMLElement>('#offbanner')!);
+      const open = await dawDialog();
       const sentence = DAW_SETUPS['reaper-off'].capabilities['record'].message!;
-      expect(banner.textContent).toContain(sentence);
-      expect(within(banner).getByRole('button', { name: 'Check again' })).toBeTruthy();
+      expect(open.textContent).toContain(sentence);
+      expect(within(open).getByRole('button', { name: 'Check again' })).toBeTruthy();
+      expect(within(open).getByRole('button', { name: 'Start REAPER' })).toBeTruthy();
+      expect(within(open).getByText(/You can look at takes, findings and effects/)).toBeTruthy();
+      fireEvent.click(within(open).getByRole('button', { name: 'Close' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       fireEvent.mouseDown(word('p1:1'), { button: 0, detail: 2 });
       const bar = screen.getByRole('toolbar', { name: 'Playback and selection' });
       const del = await within(bar).findByRole('button', { name: /Delete/ });
       await waitFor(() => expect(del.getAttribute('aria-disabled') === 'true' || (del as HTMLButtonElement).disabled).toBe(true));
       fireEvent.click(within(bar).getByRole('button', { name: 'Play the selection' }));
       await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
+    });
+
+    it('draws no red banner: a quiet mark stands where it stood and reopens the dialog', async () => {
+      mount({ setup: 'reaper-off', dawConnectGraceMs: 0 });
+      await script();
+      fireEvent.click(within(await dawDialog()).getByRole('button', { name: 'Close' }));
+      expect(document.querySelector('#offbanner')).toBeNull();
+      const mark = await markOf();
+      fireEvent.click(within(mark).getByRole('button', { name: /REAPER not connected/ }));
+      expect(await dawDialog()).toBeTruthy();
+    });
+
+    it('waits for the app to connect on its own before the dialog opens, and the mark is there meanwhile', async () => {
+      mount({ setup: 'reaper-off' });
+      await script();
+      await markOf();
+      await act(async () => {});
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('opens by itself once per connection: closing it keeps it closed through later reads, and a lost connection opens it again', async () => {
+      const quiet = DAW_SETUPS['reaper-off'];
+      const base = createMockDawClient(quiet, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] });
+      let current = quiet;
+      const daw = { ...base, capabilities: async () => current, subscribeCapabilities: undefined } as DawClient;
+      mount({ daw, dawConnectGraceMs: 0 });
+      await script();
+      fireEvent.click(within(await dawDialog()).getByRole('button', { name: 'Close' }));
+      // The window is focused again and the DAW is asked again: still quiet, still closed.
+      await act(async () => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      expect(screen.queryByRole('dialog')).toBeNull();
+      // It connects: the mark and the dialog go.
+      current = DAW_SETUPS['reaper'];
+      await act(async () => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await waitFor(() => expect(document.querySelector('#dawoff')).toBeNull());
+      // It is lost again: a new connection loss opens the dialog once more.
+      current = quiet;
+      await act(async () => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      expect(await dawDialog()).toBeTruthy();
+    });
+
+    it('Check again asks the DAW now and says when it last looked; a read that fails says it cannot tell', async () => {
+      const quiet = DAW_SETUPS['reaper-off'];
+      const base = createMockDawClient(quiet, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] });
+      let failing = false;
+      const capabilities = vi.fn(async () => (failing ? Promise.reject(new Error('The host did not answer.')) : quiet));
+      mount({ daw: { ...base, capabilities } as DawClient, dawConnectGraceMs: 0 });
+      await script();
+      const open = await dawDialog();
+      expect(open.textContent).toMatch(/Waiting for REAPER to answer\. Last checked \d+ s ago\./);
+      const before = capabilities.mock.calls.length;
+      failing = true;
+      fireEvent.click(within(open).getByRole('button', { name: 'Check again' }));
+      await waitFor(() => expect(capabilities.mock.calls.length).toBeGreaterThan(before));
+      await waitFor(() => expect(open.textContent).toMatch(/Can't tell whether REAPER is answering\. Last heard|Can't tell whether REAPER is answering\./));
+    });
+
+    it('Start REAPER runs the host’s launcher, and a refusal is written in the dialog', async () => {
+      const launchDaw = vi.fn(async () => Promise.reject(new Error('Link a REAPER project file before starting REAPER.')));
+      mount({ setup: 'reaper-off', dawConnectGraceMs: 0, api: { launchDaw } });
+      await script();
+      const open = await dawDialog();
+      fireEvent.click(within(open).getByRole('button', { name: 'Start REAPER' }));
+      await waitFor(() => expect(launchDaw).toHaveBeenCalledOnce());
+      expect((await within(open).findByRole('alert')).textContent).toContain('Link a REAPER project file before starting REAPER.');
     });
 
     it('says why Delete, Mute and Add FX are off in words on the page, not only in a hint', async () => {
@@ -253,15 +433,17 @@ describe('EditingPage', () => {
       expect(document.querySelector('#editoff')).toBeNull();
     });
 
-    it('keeps the setting out of the banner: a quiet DAW is "not answering", and the switched-off edits are the notice’s to say', async () => {
+    it('keeps the setting out of the dialog: a quiet DAW is "not answering", and the switched-off edits are the notice’s to say', async () => {
       const off = { level: 'experimental', available: false, reason: 'experimental_off', message: 'Experimental: switched off in Settings.' } as const;
       const quiet = DAW_SETUPS['reaper-off'];
       const setting = { ...quiet, capabilities: { ...quiet.capabilities, record: off, cut_range: off, fx_range: off } };
-      mount({ daw: createMockDawClient(setting, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] }) });
+      mount({ daw: createMockDawClient(setting, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] }), dawConnectGraceMs: 0 });
       await script();
-      const banner = await waitFor(() => document.querySelector<HTMLElement>('#offbanner')!);
-      expect(banner.textContent).toContain('REAPER is not answering.');
-      expect(banner.textContent).not.toContain('Experimental');
+      const open = await dawDialog();
+      expect(open.textContent).toContain('REAPER is not answering.');
+      expect(open.textContent).not.toContain('Experimental');
+      fireEvent.click(within(open).getByRole('button', { name: 'Close' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       expect(document.querySelector('#editoff')!.textContent).toContain('Experimental: switched off in Settings.');
     });
 
@@ -275,11 +457,11 @@ describe('EditingPage', () => {
         capabilities: { ...audacity.capabilities, navigate: { level: 'experimental', available: false, reason: 'not_running', message: notAnswering } },
       } as const;
       expect(audacity.capabilities['record'].reason).toBe('not_yet');
-      mount({ daw: createMockDawClient(quiet, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] }) });
+      mount({ daw: createMockDawClient(quiet, { chapterIds: ['c1', 'c2'], candidateIds: ['t1', 't2'], findingIds: [] }), dawConnectGraceMs: 0 });
       await script();
-      const banner = await waitFor(() => document.querySelector<HTMLElement>('#offbanner')!);
-      expect(banner.textContent).toContain(notAnswering);
-      expect(banner.textContent).not.toContain('Record is not available');
+      const open = await dawDialog();
+      expect(open.textContent).toContain(notAnswering);
+      expect(open.textContent).not.toContain('Record is not available');
     });
 
     it('keeps one takes chip in the Tab order: the cursor’s line, or the first before there is a cursor', async () => {
@@ -297,12 +479,12 @@ describe('EditingPage', () => {
       mount({ setup: 'reaper' });
       await script();
       await act(async () => {});
-      expect(document.querySelector('#offbanner')).toBeNull();
+      expect(document.querySelector('#dawoff')).toBeNull();
       cleanup();
       mount({ setup: 'builtin', passageId: 'ps-1' });
       await script();
       await waitFor(() => expect(document.querySelectorAll('[data-takes="p1"] [data-take]')).toHaveLength(2));
-      expect(document.querySelector('#offbanner')).toBeNull();
+      expect(document.querySelector('#dawoff')).toBeNull();
       // Keeping one of the app's own takes goes through without the DAW being asked to be running.
       const keepT2 = await screen.findByRole('button', { name: 'Keep T-2' });
       await waitFor(() => expect(keepT2.getAttribute('aria-disabled')).not.toBe('true'));
@@ -321,7 +503,7 @@ describe('EditingPage', () => {
     const support = (await base.capabilities()).capabilities;
     expect(support.takes).toMatchObject({ available: true, level: 'experimental' });
     expect(support.cut_range).toMatchObject({ available: true, level: 'experimental', mode: 'app' });
-    expect(document.querySelector('#offbanner')).toBeNull();
+    expect(document.querySelector('#dawoff')).toBeNull();
     const keep = await screen.findByRole('button', { name: 'Keep T-2' });
     await waitFor(() => expect(keep.getAttribute('aria-disabled')).not.toBe('true'));
     fireEvent.click(keep);
@@ -524,6 +706,52 @@ describe('EditingPage', () => {
       await act(async () => {});
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('3 words')).toBeTruthy();
     });
+    // Issue #2251 item 30: Chapter One with "and walked away." said again after "sorry" at the end of p2, as the recording check reports it.
+    const withRepeat = async (chapterId: string) => {
+      const plain = await pageApi().workspaceAlignment(chapterId);
+      if (chapterId !== 'c1') return plain;
+      const at = (n: number) => ({ itemIndex: 0, itemGuid: plain.items[0].itemGuid, sourceTime: n });
+      const words = ['sorry', 'and', 'walked', 'away.'].map((text, k) => ({
+        text,
+        item: 0,
+        start: 5.1 + k * 0.4,
+        end: 5.45 + k * 0.4,
+        conf: 0.9,
+        added: true as const,
+        timing: 'spread' as const,
+      }));
+      const repeat = {
+        text: 'sorry and walked away.',
+        tokens: 4,
+        start: at(5.1),
+        end: at(6.65),
+        afterToken: 9,
+        repeatOf: { start: 7, end: 10, first: 1, last: 4, text: 'and walked away.' },
+        words,
+      };
+      return { ...plain, extras: [...plain.extras, repeat] };
+    };
+    // Proof's "Open in Editing" on a line said twice opens the Read twice card, on the live page (no take per line): from a note (a finding) and
+    // from the recording check's list (the line).
+    it('opens a duplicate read on the Read twice card of the line said twice', async () => {
+      const said = { id: 'f-twice', category: 'duplicate_read', manuscript: { chapter_id: 'c1', expected: 'and walked away.', span: { paragraph_id: 'p2' } } };
+      mount({ findingId: 'f-twice', api: { workspaceAlignment: withRepeat, findingsGet: async () => said } as never });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-flagcard="dup"]')).not.toBeNull());
+      const card = document.querySelector<HTMLElement>('[data-flagcard="dup"]')!;
+      expect(card.textContent).toContain('The recording reads the line twice.');
+      expect(within(card).getByRole('button', { name: /Hear both reads/ })).toBeTruthy();
+    });
+    it('opens a line said twice on its Read twice card, and a line read once on its first word', async () => {
+      mount({ chapterId: 'c1', passageId: 'p2', api: { workspaceAlignment: withRepeat } as never });
+      await script();
+      await waitFor(() => expect(document.querySelector('[data-flagcard="dup"]')).not.toBeNull());
+      cleanup();
+      mount({ chapterId: 'c1', passageId: 'p2' });
+      await script();
+      await waitFor(() => expect(cursorKey()).toBe('w-p2:0'));
+      expect(document.querySelector('[data-flagcard="dup"]')).toBeNull();
+    });
     // SN-E9: the editing check's "Clean up in Editing" opens the page with the drawer on Clean up.
     it('opens with the drawer on the tab it is given', async () => {
       mount({ drawer: 'cleanup' });
@@ -550,7 +778,12 @@ describe('EditingPage', () => {
 
   it('chapter-step-keeps-the-page-state-clean', async () => {
     const onChapter = vi.fn();
-    mount({ onChapter, findingId: FINDING.id, t: 1.1 });
+    // Both chapters are linked, so no link dialog opens when the page steps to the second (that is the next test's).
+    const links = {
+      documentId: 'd',
+      mappings: ['c1', 'c2'].map((chapterId) => ({ chapterId, trackGuid: '{TRACK-1}', chapterTitle: chapterId, confirmedAt: '' })),
+    };
+    mount({ onChapter, findingId: FINDING.id, t: 1.1, api: { chapterTrackMapList: async () => links } });
     await script();
     const bar = () => screen.getByRole('toolbar', { name: 'Playback and selection' });
     // A card open on the finding's word, and the playhead where the link put it.

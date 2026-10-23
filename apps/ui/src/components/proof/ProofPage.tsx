@@ -1,7 +1,7 @@
 import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Finding, FindingNoteType, FindingsSummary } from '../../api/contracts/findings';
+import { shownFindingNoteType, type Finding, type FindingNoteType, type FindingsSummary } from '../../api/contracts/findings';
 import type { PickupItem } from '../../api/contracts/pickups';
 import { describeApiError } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
@@ -39,6 +39,8 @@ import { inBookOrder, NOTE_KIND, noteRow, queryFor, type NoteSort } from './note
 import { openPickupsBeyondNotes, proofProgress } from './proof.selectors';
 import { ProoferSheet } from './ProoferSheet';
 import { recallSelection, rememberSelection } from './proofMemory';
+import { SurroundingText } from './around/SurroundingText';
+import { useParagraphsAround } from './around/useParagraphsAround';
 import { SpotTakes } from './spot/SpotTakes';
 import { TakeLanes } from './spot/TakeLanes';
 import { TakesBadge } from './spot/TakesBadge';
@@ -341,6 +343,9 @@ export function ProofPage({
   const total = timeline?.total ?? 0;
   const spots = useSpotTakes(chapter?.id ?? '', chapterNotes);
   const spot = selected ? spots.spotFor(selected.id) : null;
+  // Show where's text: the selected note's paragraph and its neighbours, its own words marked (research note A5).
+  const shownWords = selected?.manuscript?.expected ? { text: selected.manuscript.expected, ordinal: selected.manuscript.span?.ordinal } : undefined;
+  const around = useParagraphsAround(manuscriptApi, selected?.manuscript?.chapter_id, selected?.manuscript?.span?.paragraph_id, shownWords);
 
   // The window follows the selected note (mock `followSelection`).
   const selectedSecond = selected?.time_range && timeline ? timeline.toTimeline(selected.time_range.start) : null;
@@ -539,6 +544,7 @@ export function ProofPage({
                 onChanged={changed}
                 onOpenScript={goToScript}
                 onOpenBooth={goToBooth}
+                onOpenEditing={(chapterId, findingId) => goToEditing(chapterId, findingId)}
                 typeControl={
                   <TypeSelect
                     finding={selected}
@@ -550,6 +556,7 @@ export function ProofPage({
                     }
                   />
                 }
+                around={<SurroundingText around={around.around} reason={around.reason} kind={NOTE_KIND[shownFindingNoteType(selected)]} />}
                 spot={
                   <SpotTakes spot={spot} refusal={spots.refusalFor(selected.id)} onOpenInEditing={(id, passageId) => goToEditing(id, selected.id, passageId)} />
                 }

@@ -19,7 +19,8 @@ import { boothUnits, type ReadingParagraph } from '../reading/boothUnits';
 import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
-import { useRecordControl } from '../record/useRecordControl';
+import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
+import { retryAction } from '../../primitives/Toast';
 import { resumeOfferFor, type KeptResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
@@ -74,6 +75,8 @@ export type BoothPageOptions = {
   menuItems?: (target: Element) => ContextMenuItem[];
   /** Escape is the voice sample's first: true when a sample was playing and this press stopped it, so the page is not left on the same press. */
   escapeStoppedSample?: () => boolean;
+  /** A press of Record (or R, or a roll) that could not start a take, and why: the page opens the dialog that fixes it or says it with an action. */
+  onRecordBlocked?: (block: RecordBlock) => void;
 };
 
 /**
@@ -83,8 +86,18 @@ export type BoothPageOptions = {
  */
 export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo } = options;
-  const extras = useRef({ onTakeStopped: options.onTakeStopped, menuItems: options.menuItems, escapeStoppedSample: options.escapeStoppedSample });
-  extras.current = { onTakeStopped: options.onTakeStopped, menuItems: options.menuItems, escapeStoppedSample: options.escapeStoppedSample };
+  const extras = useRef({
+    onTakeStopped: options.onTakeStopped,
+    menuItems: options.menuItems,
+    escapeStoppedSample: options.escapeStoppedSample,
+    onRecordBlocked: options.onRecordBlocked,
+  });
+  extras.current = {
+    onTakeStopped: options.onTakeStopped,
+    menuItems: options.menuItems,
+    escapeStoppedSample: options.escapeStoppedSample,
+    onRecordBlocked: options.onRecordBlocked,
+  };
   // The Booth changes chapter without changing its address: an Undo toast about the last one's take or pickups is no longer true.
   useEffect(() => overlay.dismissUndo(), [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
@@ -104,7 +117,10 @@ export function useBoothPage(options: BoothPageOptions) {
   const { setSize } = text;
   const view = useRef<BrowseView>(null);
 
-  const control = useRecordControl({ chapterId: recordId, notify });
+  const blocked = useCallback((block: RecordBlock) => (extras.current.onRecordBlocked ?? ((b: RecordBlock) => notify(b.reason)))(block), [notify]);
+  const control = useRecordControl({ chapterId: recordId, notify, onBlocked: blocked });
+  // The press of Record, for a message's Retry that is said before the press itself is defined.
+  const retryTake = useRef<() => Promise<void>>(async () => {});
   const { recording, toggle: recordToggle } = control;
   // The take's length is the wall clock's (`useTakeClock`): a question that holds the reading never holds the clock, the DAW records on.
   const takeClock = useTakeClock(recording);
@@ -232,7 +248,11 @@ export function useBoothPage(options: BoothPageOptions) {
         if (!latest.current.session.active) {
           const listening = await latest.current.session.start();
           if (!listening.ok) {
-            notify(`Recording did not start: the text cannot follow your voice (${listening.reason || 'listening failed'}). Nothing was recorded.`);
+            // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
+            overlay.toast(`Recording did not start: the text cannot follow your voice (${listening.reason || 'listening failed'}). Nothing was recorded.`, {
+              tone: 'error',
+              action: retryAction(() => void retryTake.current()),
+            });
             return;
           }
         }
@@ -400,17 +420,24 @@ export function useBoothPage(options: BoothPageOptions) {
   useFullscreenKey();
 
   // The keys: every one is a catalogue command; the router keeps a field's own keys and any modified press away from them.
+  // A press that cannot start a take says so before anything else runs: no model question, no listening session, no start tone.
   const toggleTake = useCallback(async () => {
     if (latest.current.recording) await control.toggle();
+    else if (control.gate) blocked(control.gate);
     else await roll.startTake();
-  }, [control, roll]);
+  }, [control, roll, blocked]);
+  retryTake.current = toggleTake;
+  const punchAndRoll = useCallback(() => {
+    if (!latest.current.recording && control.gate) return blocked(control.gate);
+    void roll.punchAndRoll();
+  }, [control.gate, roll, blocked]);
   useCommand('reading.toggle', () => void toggleTake());
   usePedalSpace(toggleTake);
   useCommand('booth.phrase.next', () => moveTo(nextPhrase(latest.current.units, latest.current.at)));
   useCommand('booth.phrase.prev', () => moveTo(backPhrase(latest.current.at)));
   useCommand('booth.word.next', () => moveTo(stepWord(latest.current.units, latest.current.at, 1)));
   useCommand('booth.word.prev', () => moveTo(stepWord(latest.current.units, latest.current.at, -1)));
-  useCommand('booth.roll', () => void roll.punchAndRoll());
+  useCommand('booth.roll', punchAndRoll);
   useCommand('booth.view.down', () => view.current?.down(0.8));
   useCommand('booth.view.up', () => view.current?.up(0.8));
   useCommand('booth.text.larger', () => setSize((s) => Math.min(TEXT_SIZE.max, s + TEXT_SIZE.step)));
@@ -495,7 +522,7 @@ export function useBoothPage(options: BoothPageOptions) {
     leave,
     toggleTake,
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
-    punchAndRoll: () => void roll.punchAndRoll(),
+    punchAndRoll,
     /** Moves the reading one phrase on or back, as the Down and Up keys do. */
     movePhrase: (direction: 1 | -1) => moveTo(direction === 1 ? nextPhrase(latest.current.units, latest.current.at) : backPhrase(latest.current.at)),
   };

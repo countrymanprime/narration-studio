@@ -116,6 +116,15 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
   }, [log, chapterId, patch]);
 
   const read = state.chapterId === chapterId ? state.read : null;
+  // While the chapter has no audio to edit, the link or the recording may be made elsewhere (REAPER, the audio engine panel): read again whenever the
+  // window is focused, not only when the chapter was opened.
+  const noAudio = read !== null && read.audio.kind !== 'ready';
+  useEffect(() => {
+    if (!noAudio) return;
+    const again = () => setReads((n) => n + 1);
+    window.addEventListener('focus', again);
+    return () => window.removeEventListener('focus', again);
+  }, [noAudio]);
   const error = state.chapterId === chapterId ? state.error : null;
   const source = useMemo((): ChapterSource => {
     if (error) return { status: 'error', message: error };

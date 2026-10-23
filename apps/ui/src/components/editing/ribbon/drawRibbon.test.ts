@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { drawRibbon, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
 import type { PeakColumn } from './peaksWindow';
-import { BAR_GAP, BAR_RADIUS, barLayout, halfHeight } from './ribbonBars';
+import { BAR_GAP, BAR_RADIUS, barLayout, halfHeight, MIN_BAR_HEIGHT } from './ribbonBars';
 import type { RibbonLayout } from './ribbonLayout';
 
 const colors: RibbonColors = {
@@ -113,11 +113,11 @@ describe('drawRibbon bars', () => {
     expect(last.x + last.w).toBeCloseTo(700, 6);
   });
 
-  it('draws silence as a bar of the minimum height, not nothing', () => {
+  it('draws silence as a hairline of the minimum height, not nothing', () => {
     const r = recorder();
     drawRibbon(r.canvas, r.size, layout(), [[0, 0]], colors);
     expect(r.bars).toHaveLength(1);
-    expect(r.bars[0].h).toBe(4);
+    expect(r.bars[0].h).toBe(MIN_BAR_HEIGHT);
   });
 
   it('with no playhead every bar is the one colour and none is grown', () => {
@@ -160,7 +160,9 @@ describe('drawRibbon motion', () => {
   it('grows the bars under the playhead and not the ones far from it', () => {
     const still = heights(STILL_FRAME);
     const live = heights(moving(TOP_OF_BEAT));
-    expect(live[20]).toBeGreaterThan(still[20] * 1.4);
+    // half way from its height at rest to the lane's edge, give or take the bar's distance from the playhead
+    expect(live[20]).toBeGreaterThan(still[20] + (55 - still[20]) * 0.4);
+    expect(live[20]).toBeLessThanOrEqual(55);
     expect(live[0]).toBe(still[0]);
     expect(live[40]).toBe(still[40]);
   });
@@ -238,7 +240,7 @@ describe('drawRibbon overlays', () => {
     const r = recorder(560);
     drawRibbon(r.canvas, r.size, layout({ t1: 4.35 }), cols, colors);
     expect(r.bars).toHaveLength(80);
-    expect(r.bars.slice(72).every((b) => b.h === 4)).toBe(true);
+    expect(r.bars.slice(72).every((b) => b.h === MIN_BAR_HEIGHT)).toBe(true);
     expect(r.bars[79].x + r.bars[79].w).toBeCloseTo(560, 6);
   });
 });

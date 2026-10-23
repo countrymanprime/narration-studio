@@ -26,7 +26,11 @@ const accepted = () => placed({ review: { status: 'accepted' } });
 function setup(finding: Finding, setupId: DawSetupId = 'reaper', props: { inert?: boolean } = {}) {
   const daw: DawClient = createMockDawClient(DAW_SETUPS[setupId], { chapterIds: [], candidateIds: [], findingIds: ['f1'] });
   const addMarker = vi.spyOn(daw, 'addMarker');
-  const api: InspectorActionsApi = { findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 12.4 })) };
+  const api: InspectorActionsApi = {
+    findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 12.4 })),
+    findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 7, loopEnd: 14 })),
+    findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
+  };
   const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn() };
   render(
     <ApiProvider api={createMockApi()}>
@@ -40,6 +44,17 @@ function setup(finding: Finding, setupId: DawSetupId = 'reaper', props: { inert?
 
 const button = (name: string) => screen.getByRole('button', { name });
 const enabled = (name: string) => button(name).getAttribute('aria-disabled') !== 'true' && !(button(name) as HTMLButtonElement).disabled;
+
+describe('hear-it-leads-the-row', () => {
+  it('puts Hear it first, loops the note in the DAW and says so in the row’s status line', async () => {
+    const t = setup(placed());
+    const row = screen.getByRole('group', { name: 'Actions' });
+    expect(row.querySelector('button')!.getAttribute('aria-label')).toBe('Hear it, 3 s either side');
+    await userEvent.click(button('Hear it, 3 s either side'));
+    expect(t.api.findingsLoop).toHaveBeenCalledWith('f1');
+    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/^Playing in REAPER, 3 s either side/));
+  });
+});
 
 describe('actions-follow-the-daw-capability', () => {
   it('turns Show in REAPER on and calls findingsGoTo, then shows the result', async () => {

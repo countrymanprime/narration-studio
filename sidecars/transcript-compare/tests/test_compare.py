@@ -154,6 +154,29 @@ def test_a_partial_recording_marks_no_skips_outside_the_recorded_span():
     assert covered_range == (1, 1)
 
 
+def _repeat_markers(said):
+    _units, tokens, unit_idx, raw_words = compare.build_chapter_units({"title": "Chapter 1", "paragraphs": PARAGRAPHS})
+    words = [(word, index * 0.4, index * 0.4 + 0.3) for index, word in enumerate(said.split())]
+    markers, _covered, _alignment = compare.diff_and_build_markers(tokens, unit_idx, raw_words, words, 1)
+    return [(marker[1], marker[4], marker[12]) for marker in markers]
+
+
+def test_a_sentence_said_twice_is_an_extra_marker_that_names_what_it_repeats():
+    # Issue #2251 item 30: an EXTRA that says the chapter text beside it again carries that text.
+    said = "ada opened the ledger at the first page she read the column twice she read the column twice then she closed the book"
+    assert _repeat_markers(said) == [("EXTRA", "she read the column twice", "She read the column twice.")]
+
+
+def test_an_aside_is_an_extra_marker_that_repeats_nothing():
+    said = "ada opened the ledger at the first page what a lovely day she read the column twice then she closed the book"
+    assert _repeat_markers(said) == [("EXTRA", "what a lovely day", "")]
+
+
+def test_the_results_file_writes_the_repeated_text_as_the_thirteenth_marker_field():
+    assert "MARKER|<item_index>|<srcpos_seconds>|<kind>|<name>|<doc_text>|<audio_text>|" in compare.__doc__
+    assert "<confidence>|<timing_gap_seconds>|<repeat_of>" in compare.__doc__
+
+
 def test_a_skip_inside_the_recorded_span_is_marked():
     markers, _covered = _markers("Chapter 1", PARAGRAPHS, "ada opened the ledger at the first page then she closed the book")
 

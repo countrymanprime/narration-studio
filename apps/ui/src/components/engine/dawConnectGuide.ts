@@ -1,41 +1,39 @@
 import type { DawKind } from '../../api/contracts/daw';
 
 /**
- * How a narrator connects a DAW to this app, in that DAW's own words, for a page that must not word a DAW itself (the Booth's setup
- * steps). Only REAPER has a bridge to connect: the app never installs anything into REAPER (docs/architecture/daw-integration.md), so
- * the narrator loads the launcher action once and runs it, and REAPER started by this app with the launcher connects at once.
+ * How a DAW connects to this app, in that DAW's own words, for a page that must not word a DAW itself (the Booth's setup notice).
+ * Only REAPER has a bridge: the app puts it in REAPER's Scripts folder and REAPER starts it each time it opens
+ * (apps/desktop/internal/reaperinstall, docs/architecture/daw-integration.md), so the narrator links the project file and the app
+ * does the rest. Each string says what the app does, never a step for the narrator to take in REAPER.
  */
 export type DawConnectGuide = {
   dawName: string;
   /** The step that links the project to the DAW's project file, while none is linked. */
   link: string;
-  /** The one-time step that puts the bridge into the DAW; the launcher file's path follows it when the host knows it. */
+  /** What the app does to put its bridge into the DAW; the bridge file's path follows it when the host knows it. */
   install: string;
   /** The file `install` names, when the host did not report its path. */
   installFile: string;
-  /** Said under `install`: why it may need doing again. */
+  /** Said under `install`: when the app does it again. */
   installAgain: string;
-  /** The step that connects, every session. */
+  /** How the bridge comes up each session. */
   run: string;
   /** The button that starts the DAW on the linked project and connects in one go, the setting it saves first, and what it does. */
   launch: { label: string; settings: Record<string, string>; note: string };
 };
 
-/** The REAPER action the launcher file becomes once it is loaded, as REAPER's action list names it. */
-export const REAPER_LAUNCHER_ACTION = 'Script: NarrationStudio_Launcher.lua';
-
 const REAPER_GUIDE: DawConnectGuide = {
   dawName: 'REAPER',
   link: 'Link this project’s REAPER project file (.rpp).',
-  install: 'Once only: in REAPER, choose Actions, Show action list, then New action, Load ReaScript, and pick the launcher file',
-  installFile: 'NarrationStudio_Launcher.lua, in the reaper folder beside this app',
-  installAgain: 'Load it again after this app is updated: the file moves with each update.',
-  run: `With the chapter’s project open in REAPER, run ${REAPER_LAUNCHER_ACTION} from the action list. This app connects and Record turns on here.`,
+  install: 'This app puts its bridge in REAPER’s Scripts folder by itself, and REAPER starts it each time it opens. The bridge',
+  installFile: 'NarrationStudio_Launcher.lua, in REAPER’s Scripts folder',
+  installAgain: 'The app updates it when this app is updated. Nothing needs loading in REAPER.',
+  run: 'When REAPER opens with the chapter’s project, this app connects on its own and Record turns on here.',
   launch: {
     label: 'Open in REAPER and connect',
     // REAPER runs a script it is started with, so the launcher connects this launch whether or not the action was loaded.
     settings: { auto_start_launcher: 'true' },
-    note: 'Opens the linked project in REAPER and connects, or connects the REAPER you already have open. Settings then starts the link each time this app opens REAPER.',
+    note: 'Opens the linked project in REAPER and connects, or connects the REAPER you already have open.',
   },
 };
 

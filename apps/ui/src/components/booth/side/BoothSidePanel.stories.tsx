@@ -27,7 +27,7 @@ type Story = StoryObj<typeof meta>;
 export const Sections: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Voices in this scene')).toBeTruthy();
+    await expect(canvas.getByText('In this chapter')).toBeTruthy();
     await expect(canvas.getByText('Coming up')).toBeTruthy();
     await expect(canvas.getByText('This session')).toBeTruthy();
   },

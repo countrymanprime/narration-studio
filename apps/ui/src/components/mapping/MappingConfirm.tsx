@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../primitives/Button';
-import { Select } from '../primitives/Select';
+import { plainTrackChoices } from './trackChoices';
+import { TrackSelect } from './TrackSelect';
 import type { Track } from '../../types';
 
 type Props = {
@@ -40,8 +41,8 @@ export function MappingConfirm({
 }: Props) {
   const hasLink = Boolean(linkedTrackGuid);
   const [picking, setPicking] = useState(!hasLink);
-  const options = tracks.map((track) => ({ value: track.guid, label: track.name || `Track ${track.index + 1}` }));
-  const [chosen, setChosen] = useState(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : (options[0]?.value ?? ''));
+  const choices = plainTrackChoices(tracks);
+  const [chosen, setChosen] = useState(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : (choices[0]?.guid ?? ''));
 
   // A confirm or clear call comes back through the caller's own state, as a new `linkedTrackGuid` prop, not through
   // this component's local `picking` intent: once the caller reports a link (a fresh confirm, or a Change followed
@@ -64,7 +65,7 @@ export function MappingConfirm({
     );
   }
 
-  if (options.length === 0) {
+  if (choices.length === 0) {
     return (
       <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
         No REAPER tracks to link
@@ -74,7 +75,7 @@ export function MappingConfirm({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select label={`Track for ${chapterTitle}`} value={chosen} onChange={setChosen} options={options} />
+      <TrackSelect label={`Track for ${chapterTitle}`} choices={choices} value={chosen} onChange={setChosen} />
       <Button onClick={() => onConfirm(chosen)} pending={busy}>
         Confirm
       </Button>

@@ -359,6 +359,20 @@
       "effectiveSource": "repo_default",
       "effectiveValue": "auto",
       "isSet": false,
+      "key": "capability.track_create",
+      "kind": "choice",
+      "label": "Add a track for a chapter",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
       "key": "capability.follow_position",
       "kind": "choice",
       "label": "Follow the narrator's place in the project",
@@ -1214,6 +1228,65 @@
         "min": 1,
         "step": 1,
         "unit": "chapters"
+      },
+      "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "false",
+      "isSet": false,
+      "key": "background_checks_confirmed",
+      "kind": "bool",
+      "label": "The narrator answered the background checks notice",
+      "value": ""
+    },
+    {
+      "choices": [
+        "tiny",
+        "small",
+        "medium",
+        "large-v3-turbo",
+        "large-v3"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "tiny",
+      "isSet": false,
+      "key": "background_first_pass_model",
+      "kind": "choice",
+      "label": "Model for background checks",
+      "value": ""
+    },
+    {
+      "choices": [
+        "none",
+        "tiny",
+        "small",
+        "medium",
+        "large-v3-turbo",
+        "large-v3"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "small",
+      "isSet": false,
+      "key": "background_recheck_model",
+      "kind": "choice",
+      "label": "Double-check model for background checks",
+      "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "0",
+      "isSet": false,
+      "key": "background_processors",
+      "kind": "number",
+      "label": "Processors for background checks (0 = half this computer's)",
+      "number": {
+        "max": 32,
+        "min": 0,
+        "step": 1,
+        "unit": "processors"
       },
       "value": ""
     }

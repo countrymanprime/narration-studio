@@ -696,7 +696,14 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
   it('route-and-rail: /editing/:chapterId draws the Editing page on that chapter, and the Editing item opens /editing', async () => {
     window.history.replaceState(null, '', `/editing/${WIRE_CHAPTERS[1].id}`);
-    renderApp();
+    // The chapters are linked to their tracks (the visual suite's ?mockChapterLink=confirmed), so no link dialog opens over the page.
+    const links = WIRE_CHAPTERS.map((chapter, i) => ({
+      trackGuid: WIRE_TRACKS_PROJECT.tracks[i % WIRE_TRACKS_PROJECT.tracks.length].guid,
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+      confirmedAt: '2026-09-01T12:00:00Z',
+    }));
+    renderApp({}, { chapterTrackMappings: links });
     const page = await screen.findByRole('region', { name: 'Script editor' });
     await waitFor(() => expect(within(page).getAllByText(new RegExp(WIRE_CHAPTERS[1].title)).length).toBeGreaterThan(0));
     expect(screen.queryByRole('heading', { name: /^Proof · / })).toBeNull();
@@ -710,7 +717,14 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   // The editing check's "Clean up in Editing" (?drawer=cleanup) opens the page's drawer on Clean up.
   it('every-workspace-deep-link-lands-on-editing: ?drawer=cleanup opens Editing with the Clean up tab', async () => {
     window.history.replaceState(null, '', `/editing/${WIRE_CHAPTERS[0].id}?drawer=cleanup`);
-    renderApp();
+    // The chapters are linked to their tracks (the visual suite's ?mockChapterLink=confirmed), so no link dialog opens over the page.
+    const links = WIRE_CHAPTERS.map((chapter, i) => ({
+      trackGuid: WIRE_TRACKS_PROJECT.tracks[i % WIRE_TRACKS_PROJECT.tracks.length].guid,
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+      confirmedAt: '2026-09-01T12:00:00Z',
+    }));
+    renderApp({}, { chapterTrackMappings: links });
     expect(await screen.findByRole('region', { name: 'Clean up findings' }, { timeout: 4000 })).toBeTruthy();
   });
 
