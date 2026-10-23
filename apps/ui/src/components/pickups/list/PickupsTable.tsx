@@ -63,6 +63,7 @@ async function said(overlay: OverlayService, run: () => unknown): Promise<void> 
 export function PickupsTable({
   pickups,
   returnTo = null,
+  reveal = null,
   read,
   onReload,
   checking = false,
@@ -87,6 +88,8 @@ export function PickupsTable({
   pickups: readonly PickupItem[];
   /** The line to select and focus once it is listed: the one the narrator opened in the Booth and came back from. */
   returnTo?: string | null;
+  /** A line the jump menu picked: selected and focused once it is drawn. */
+  reveal?: { id: string; n: number } | null;
   read: PickupsRead;
   /** Reads the list again now (Retry on a failed read, Check again over a list already shown). */
   onReload: () => void;
@@ -129,6 +132,14 @@ export function PickupsTable({
     setSelected(returnTo);
     body.current?.querySelector<HTMLTableRowElement>(`tr[${PICKUP_ROW}="${CSS.escape(returnTo)}"]`)?.focus();
   }, [returnTo, pickups]);
+
+  useEffect(() => {
+    if (!reveal) return;
+    setSelected(reveal.id);
+    // The pick can change the chapter showing, so the row exists only after this render has drawn.
+    const frame = requestAnimationFrame(() => body.current?.querySelector<HTMLTableRowElement>(`tr[${PICKUP_ROW}="${CSS.escape(reveal.id)}"]`)?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [reveal]);
 
   const list = inScope(pickups, scope);
   const groups = groupByChapter(list, chapters);

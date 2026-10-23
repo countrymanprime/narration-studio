@@ -46,7 +46,21 @@ export const scriptStates: StateEntry[] = [
     description: 'Script, B pressed in the reader: the "Bookmark added." toast with Undo, and the bookmark ribbon beside its line',
     ...TOAST_FADES_OUT,
   },
-  { page: 'script', state: 'find', description: 'Script, Find open on "Alice": the bar over the reader with its count, the matches lit and the results list' },
+  {
+    page: 'script',
+    state: 'jump-menu',
+    description: 'Script, the jump menu opened with Ctrl+K: "On this page" first with one row per group (Chapters, Story Bible, Mark types), then the commands',
+  },
+  {
+    page: 'script',
+    state: 'search-menu',
+    description: 'Script, Ctrl+F then "Alice": the menu searching only the page, its matches under "In the script" with the matched word marked',
+  },
+  {
+    page: 'script',
+    state: 'search-shown',
+    description: 'Script, a match chosen in the menu: every match of "Alice" lit in the text and the chosen one ringed and in view',
+  },
   {
     page: 'script',
     state: 'selection-tools',

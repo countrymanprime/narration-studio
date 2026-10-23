@@ -39,12 +39,20 @@ describe('COMMAND_CATALOG metadata', () => {
 });
 
 describe('the jump menu row', () => {
-  it('jump-open-row: Mod+K and Mod+F, global, on help and settings, not in the jump menu', () => {
+  it('jump-open-row: Mod+K, global, on help and settings, not in the jump menu', () => {
     const row = findCommand('jump.open');
     expect(row?.scope).toBe('global');
-    expect(row?.defaults.map((gesture) => `${gesture.modifiers.join('+')}+${gesture.code}`)).toEqual(['Mod+KeyK', 'Mod+KeyF']);
+    expect(row?.defaults.map((gesture) => `${gesture.modifiers.join('+')}+${gesture.code}`)).toEqual(['Mod+KeyK']);
     expect(row?.surfaces).toEqual(['help', 'settings']);
     expect(row?.surfaces).not.toContain('jumpMenu');
+  });
+
+  it('jump-page-row: Mod+F opens the jump menu scoped to the page, global, on help and settings, not in the jump menu', () => {
+    const row = findCommand('jump.page');
+    expect(row?.label).toBe('Search this page');
+    expect(row?.scope).toBe('global');
+    expect(row?.defaults.map((gesture) => `${gesture.modifiers.join('+')}+${gesture.code}`)).toEqual(['Mod+KeyF']);
+    expect(row?.surfaces).toEqual(['help', 'settings']);
   });
 });
 
@@ -238,14 +246,18 @@ describe('the Editing rows', () => {
 describe('the Script rows', () => {
   const chord = (id: string) => findCommand(id)?.defaults.map((gesture) => [...gesture.modifiers, gesture.code].join('+'));
 
-  it('script-find-is-a-catalogue-row: script.find is a page row on Mod+F that shadows jump.open, so the catalogue has zero conflicts', () => {
-    const row = findCommand('script.find');
-    expect(row?.label).toBe('Find in the manuscript');
-    expect(row?.scope).toBe('page');
-    expect(chord('script.find')).toEqual(['Mod+KeyF']);
-    expect(row?.shadows).toEqual(['jump.open']);
-    expect(chord('jump.open')).toContain('Mod+KeyF');
+  it('the-find-row-is-gone: Ctrl+F is the jump menu scoped to the page, so Script has no find row of its own', () => {
+    expect(findCommand('script.find')).toBeUndefined();
     for (const isMac of [false, true]) expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, isMac))).toEqual([]);
+  });
+
+  it('search-steps: F3 and Shift+F3 step the matches the menu chose, as page rows in the Script group', () => {
+    expect(chord('script.search.next')).toEqual(['F3']);
+    expect(chord('script.search.prev')).toEqual(['Shift+F3']);
+    for (const id of ['script.search.next', 'script.search.prev']) {
+      expect(findCommand(id)?.scope, id).toBe('page');
+      expect(findCommand(id)?.group, id).toBe('Script');
+    }
   });
 
   it('keys-follow-the-mock: Left and Right step prep and Escape closes Find or the drawer, each shadowing the row that holds its key', () => {
@@ -256,7 +268,7 @@ describe('the Script rows', () => {
   });
 
   it('help-and-footer-list-the-keys: each Script row is a Script-group row on help and settings, not the jump menu', () => {
-    for (const id of ['script.find', 'script.prep.prev', 'script.prep.next', 'script.escape']) {
+    for (const id of ['script.search.next', 'script.search.prev', 'script.prep.prev', 'script.prep.next', 'script.escape']) {
       expect(findCommand(id)?.group, id).toBe('Script');
       expect(findCommand(id)?.surfaces, id).toEqual(['help', 'settings']);
     }

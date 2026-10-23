@@ -20,7 +20,6 @@ import { useCleanupDeps } from '../cleanup/useCleanupDeps';
 import { Drawer, flagTotal } from '../drawer/Drawer';
 import { DrawerLayout } from '../drawer/DrawerLayout';
 import { resolveTab, tabsFor, type DrawerTab } from '../drawer/drawerTabs';
-import { useDrawerCommands } from '../drawer/useDrawerCommands';
 import { useTabCounts } from '../drawer/useTabCounts';
 import { effectsCount } from '../effects/EffectsTab';
 import { registerEffectsSection } from '../effects/registerEffectsSection';
@@ -38,6 +37,7 @@ import { findingWords, flagged, type ChapterDoc, type FlagKind } from '../model'
 import type { RangeLocator } from '../range/common/locate';
 import { useCutWords } from '../range/cut/useCutWords';
 import { useFxWords } from '../range/fx/useFxWords';
+import { itemClocks } from '../ribbon/docClock';
 import { Ribbon } from '../ribbon/Ribbon';
 import { activePid } from '../ribbon/ribbonLayout';
 import { useEditingPage } from '../script/EditingPageState';
@@ -62,7 +62,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { closedCutsOf, doubledCut, doubledStart, itemIndexOf, wordAt, type ChapterRead } from './chapterSource';
+import { closedCutsOf, doubledCut, doubledStart, itemIndexesOf, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -77,6 +77,7 @@ import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
 import { useChapterLink } from './useChapterLink';
+import { useEditingActionCommands } from './useEditingPageCommands';
 import { useRecordingCheck } from './useRecordingCheck';
 import { ScriptNotesProvider } from '../script/paragraphNotes';
 import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
@@ -185,6 +186,8 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Playback: the chapter on the document's clock, and a take on its own.
   const closedCuts = useMemo(() => closedCutsOf(read), [read]);
+  // The host's peaks are in source seconds and the page's axis is the document's: this puts each item's peaks where its audio is heard.
+  const clocks = useMemo(() => itemClocks(doc, read.answer), [doc, read.answer]);
   const { prefs: output, change: changeOutput } = useOutputPrefs();
   const [deviceProblem, setDeviceProblem] = useState<string | null>(null);
   const playback = useScriptPlayback({
@@ -370,7 +373,6 @@ export function EditingBody(props: EditingBodyProps) {
   const offered = tabsFor(backups, stripFits);
   const tab = resolveTab(panels.drawer.want, offered);
   const tabCounts = useTabCounts(chapterId, backups);
-  useDrawerCommands(offered, panels.drawer.openTab);
   const selectWords = useCallback((keys: string[]) => keys.length && dispatch({ type: 'select', anchor: keys[0], head: keys[keys.length - 1] }), [dispatch]);
   const fxMarkers = useMemo(
     () => ({ effects: read.effects, onSelect: (f: WordFx) => void selectWords(f.keys), onRemove: (f: WordFx) => void fx.remove(f) }),
@@ -450,6 +452,8 @@ export function EditingBody(props: EditingBodyProps) {
     },
   });
 
+  useEditingActionCommands({ doc, selected, cuts: read.cuts, cut, fx, checkRecording: check.open, tabs: offered, openTab, keymap });
+
   // The keys hook binds nothing for a chapter with no text, so the page keeps the chapter step working there.
   const empty = doc.items.length === 0;
   useCommand('editing.chapter.next', () => chapterStep(1), empty);
@@ -463,6 +467,7 @@ export function EditingBody(props: EditingBodyProps) {
     playingId: takePlayer.isPlaying ? playingTake : null,
     onPlay: playTake,
     chapterId,
+    clocks,
   };
   const cursorItem = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1] : undefined;
   const cursorOnFlag = cursorItem !== undefined && flagged(doc).some((x) => x.key === cursorItem.key);
@@ -598,7 +603,13 @@ export function EditingBody(props: EditingBodyProps) {
               </InHost>
             ) : null}
             {pid === current && doc.aligned ? (
-              <Ribbon chapterId={chapterId} pid={pid} take={line?.takes.find((t) => t.active)?.label ?? null} item={itemIndexOf(read, pid)} />
+              <Ribbon
+                chapterId={chapterId}
+                pid={pid}
+                take={line?.takes.find((t) => t.active)?.label ?? null}
+                items={itemIndexesOf(read, pid)}
+                clocks={clocks}
+              />
             ) : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard

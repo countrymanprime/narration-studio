@@ -23,6 +23,7 @@ import { ConnectionIndicator } from '../connection/ConnectionIndicator';
 import { ConnectionResolveDialog } from '../connection/ConnectionResolveDialog';
 import { useOpenOnce } from '../connection/useOpenOnce';
 import { DAW_CONNECT_GRACE_MS, useConnectGrace } from '../production/pipeline/dawConnectGrace';
+import { useEditingChapterCommands } from './page/useEditingPageCommands';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
@@ -154,6 +155,7 @@ function EditingLoaded({
     [list, chapter, choose],
   );
 
+  useEditingChapterCommands(list, chapter?.id, choose);
   const stepper = chapter ? <ChapterStepper chapters={list} value={chapter.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={choose} onStep={step} /> : null;
   const dawIndicator = daw.off ? <ConnectionIndicator id="dawoff" label={`${daw.dawName} not connected`} onOpen={dawDialog.reopen} /> : null;
   // A deep link applies to the chapter it was given for, until the narrator moves on.

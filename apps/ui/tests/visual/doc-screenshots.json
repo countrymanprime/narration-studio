@@ -833,6 +833,20 @@
     "caption": "The jump menu open over the page: type to find a page, a chapter or a command"
   },
   {
+    "page": "editing",
+    "state": "jump-menu",
+    "viewport": "desktop",
+    "docName": "nav-jump-menu-editing",
+    "caption": "Editing - the jump menu typed \"selected\": the selection actions under On this page, each off with its reason"
+  },
+  {
+    "page": "settings",
+    "state": "jump-menu",
+    "viewport": "desktop",
+    "docName": "nav-jump-menu-settings",
+    "caption": "Settings - the jump menu typed \"microphone\": the setting under its category in On this page"
+  },
+  {
     "page": "shell",
     "state": "zoom-level",
     "viewport": "desktop",
@@ -981,10 +995,10 @@
   },
   {
     "page": "script",
-    "state": "find",
+    "state": "search-menu",
     "viewport": "desktop",
-    "docName": "script-find",
-    "caption": "Script - Find on \"Alice\": the count, the matches lit in the text and the results list"
+    "docName": "script-search",
+    "caption": "Script - Ctrl+F then \"Alice\": the menu lists the matches under In the script, the matched word marked"
   },
   {
     "page": "script",

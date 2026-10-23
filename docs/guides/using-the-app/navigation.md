@@ -55,7 +55,7 @@ There are no Back and Forward, Undo or History buttons, folder icon or always-vi
 ### Jump to or run
 
 Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or type `>` to list commands only. Escape, or a press anywhere outside the menu,
-closes it. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it:
+closes it, and focus returns to where it was. The menu is a list box: a screen reader hears the page's name when it opens ("On the Script page"), then the number of results as you type. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it:
 
 | Command | Key | Off when |
 | --- | --- | --- |
@@ -71,11 +71,31 @@ closes it. The header has no other buttons, so everything else you might look fo
 
 ![The jump menu open over the page: type to find a page, a chapter or a command](../../images/ui/nav-jump-menu.webp)
 
+### On this page
+
+The menu knows the page you are on. What the page offers right now is listed first, under **On this page**, one row per group (with nothing typed) or the matching items (when you type), and the commands above come after it. What a page offers follows what is on it, not only which page it is, and an item that cannot run now stays listed, off, with the reason. A chapter the page lists is not listed again under **Chapters**.
+
+| Page | Offers |
+| --- | --- |
+| Production | **Chapters** (scrolls to its row), **Checks** (check recordings, read the stage suggestions again), **Actions** (export the status report, start a session, stop the timer, off while none runs) |
+| Script | **Chapters**; **Story Bible** entries (found by any of their names); **Mark types** (mark the selected text; off until some is selected); **Search**, while a search is showing ([Searching the script](script.md#searching-the-script)) |
+| Booth | **Chapters** (off during a take), **Transport** (record or stop, punch and roll, next and back one phrase), the pickup steps when a pickup session is open |
+| Editing | **Chapters**; **Selection** (delete, mute and add FX, off with the reason until words are selected or when the DAW cannot); **Checks** (check the recording); **Drawer** tabs the DAW offers |
+| Proof | **Chapters** with their open-note counts; **Selected note** (needs pickup, fix in edit, waive, defer; off until a note is selected); **Checks** |
+| Pickups | the open **Pickups** lines (shows and selects the line), **Chapter** (show every chapter or only one), **Actions** (check recordings, open in the Booth, add as markers in the DAW) |
+| Settings | **Categories**, and every setting by its label under its category, including the settings that live on another page; a setting that does not apply to this project's recording tool is off with the reason |
+
+![Editing - the jump menu typed "selected": the selection actions under On this page, each off with its reason](../../images/ui/nav-jump-menu-editing.webp)
+
+![Settings - the jump menu typed "microphone": the setting under its category in On this page](../../images/ui/nav-jump-menu-settings.webp)
+
+`Ctrl+F` opens the same menu searching only the page: its items and its text, no pages or commands. `Backspace` on an empty field widens it to everything. On a page that offers nothing, `Ctrl+F` opens the whole menu. [Proof](proof.md) keeps `Ctrl+F` for its notes. Items that need the DAW or the host are added a moment after the menu opens, and the menu never waits for them.
+
 Undo takes back the last change you made in the app, and says why when it cannot. The undo history lists the changes you can undo, each with the time it was made, in a panel that slides in from the right; it keeps the newest 40 and says so when it is full, and `Ctrl+Z` works with the panel open too, and the list follows.
 The **Undo** on a message beside a change goes away once it would no longer be true: when you undo that change another way (`Ctrl+Z`, the jump menu or the history), open another page or chapter, or switch project.
 A running [production stage timer](production.md#the-stage-timer) is not in the header: its clock and chapter ("0:42:07 · timer on Chapter 6") sit beside **Stop timer** at the top of the Production page, and only there.
 
-Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Find a page, chapter or command** (`Ctrl+F`; Script and Proof keep `Ctrl+F` for their own find, so it shows no key there) and a **View** submenu of the zoom steps and the theme.
+Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Search this page** (`Ctrl+F`; Proof keeps `Ctrl+F` for its notes, so it shows no key there) and a **View** submenu of the zoom steps and the theme.
 
 The engine chip at the right of the header names the audio engine the project records with (REAPER, Audacity or Built-in), with a
 dot for how it is doing. Hover it for the detail, and click it to open the [audio engine panel](#the-audio-engine-panel), where the
