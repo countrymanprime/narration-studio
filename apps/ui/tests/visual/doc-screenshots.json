@@ -1258,5 +1258,19 @@
     "viewport": "desktop",
     "docName": "proof-note-thread",
     "caption": "Proof - Notes on this finding: a note of your own and a proofer's reply, with Proofer replied chosen for the next"
+  },
+  {
+    "page": "global",
+    "state": "background-check-notice",
+    "viewport": "desktop",
+    "docName": "background-check-notice",
+    "caption": "Check recordings in the background? - the first-time notice names the models before anything starts"
+  },
+  {
+    "page": "global",
+    "state": "background-check-running",
+    "viewport": "desktop",
+    "docName": "background-check-running",
+    "caption": "Editing - a background check in progress at the bottom left, with Pause and Cancel"
   }
 ]

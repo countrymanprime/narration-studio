@@ -3,6 +3,9 @@
   "ask": false,
   "background": {
     "enabled": true,
+    "firstPassModel": "tiny",
+    "queued": 0,
+    "recheckModel": "small",
     "wait": ""
   },
   "batch": null,
