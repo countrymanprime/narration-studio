@@ -46,6 +46,7 @@ describe('surrounding-text-draws-the-paragraphs', () => {
     render(<SurroundingText around={{ before: 'First line.', at: 'The White Rabbit ran by.', after: 'Oh dear!', mark: { start: 4, end: 16 } }} />);
     const section = screen.getByRole('region', { name: 'In the script' });
     expect(section.querySelector('[data-around=at] mark')?.textContent).toBe('White Rabbit');
+    expect(section.querySelector('[data-around=at] mark')?.getAttribute('data-highlight')).toBe('Search');
     expect(section.querySelector('[data-around=before]')?.textContent).toBe('First line.');
     expect(section.querySelector('[data-around=after]')?.textContent).toBe('Oh dear!');
   });

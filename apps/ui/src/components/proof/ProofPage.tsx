@@ -1,7 +1,7 @@
 import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Finding, FindingNoteType, FindingsSummary } from '../../api/contracts/findings';
+import { shownFindingNoteType, type Finding, type FindingNoteType, type FindingsSummary } from '../../api/contracts/findings';
 import type { PickupItem } from '../../api/contracts/pickups';
 import { describeApiError } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
@@ -555,7 +555,7 @@ export function ProofPage({
                     }
                   />
                 }
-                around={<SurroundingText around={around.around} reason={around.reason} />}
+                around={<SurroundingText around={around.around} reason={around.reason} kind={NOTE_KIND[shownFindingNoteType(selected)]} />}
                 spot={
                   <SpotTakes spot={spot} refusal={spots.refusalFor(selected.id)} onOpenInEditing={(id, passageId) => goToEditing(id, selected.id, passageId)} />
                 }
