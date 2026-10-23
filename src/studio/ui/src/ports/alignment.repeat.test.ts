@@ -8,7 +8,7 @@ import { createHostAlignment, type HeardWord } from './alignment';
 
 // Issue #2251 item 30: an extra run that says the chapter text again is a second take. The port marks its words with the
 // side of the script they repeat, so the Editing page can show "Read twice" on the live page.
-const GOLDEN = fileURLToPath(new URL('../../../../tests/fixtures/contracts/workspace-alignment-repeat.json', import.meta.url));
+const GOLDEN = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/workspace-alignment-repeat.json', import.meta.url));
 const golden = workspaceAlignmentResultSchema.parse(JSON.parse(readFileSync(GOLDEN, 'utf8')));
 
 const heard = async (result: WorkspaceAlignmentResult): Promise<HeardWord[]> => {
