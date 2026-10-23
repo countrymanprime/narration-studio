@@ -4,7 +4,6 @@ import { statusLabel, statusTone, type StatusId } from '../../../kinds/statusTon
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { clockText } from '../../booth/boothProgress';
 import { Diff } from './TakeDiff';
-import { MiniWave } from './MiniWave';
 import { Suggested } from './Suggested';
 import { TakeCompare } from './TakeCompare';
 import { TakeEvidence } from './TakeEvidence';
@@ -66,9 +65,13 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
         <StatusBadge tone={statusTone(state)} label={statusLabel(state)} shape="tag" />
         {firstReadId === take.id ? <StatusBadge tone={statusTone('first_read')} label={statusLabel('first_read')} shape="tag" /> : null}
         {suggestedId === take.id ? <StatusBadge tone={statusTone('suggested_take')} label={statusLabel('suggested_take')} shape="tag" /> : null}
-        <span className="min-w-[3rem] flex-1" style={{ maxWidth: `${Math.max(3, Math.round(take.sourceLength * 16))}px` }}>
-          <MiniWave id={take.id} seconds={take.sourceLength} />
-        </span>
+        {/* The take's length as a bar, not a waveform: the page draws one waveform, docked above the bar (#2251, item 29). */}
+        <span
+          data-take-length
+          aria-hidden="true"
+          className="block h-1.5 min-w-[3rem] flex-1 rounded-full bg-[var(--line-strong)]"
+          style={{ maxWidth: `${Math.max(3, Math.round(take.sourceLength * 16))}px` }}
+        />
         <span
           className="ml-auto font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
           title="Share of the script's words this take read as written"

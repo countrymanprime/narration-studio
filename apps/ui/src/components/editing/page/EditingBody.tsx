@@ -38,7 +38,7 @@ import type { RangeLocator } from '../range/common/locate';
 import { useCutWords } from '../range/cut/useCutWords';
 import { useFxWords } from '../range/fx/useFxWords';
 import { itemClocks } from '../ribbon/docClock';
-import { Ribbon } from '../ribbon/Ribbon';
+import { WaveDock } from '../ribbon/WaveDock';
 import { activePid } from '../ribbon/ribbonLayout';
 import { useEditingPage } from '../script/EditingPageState';
 import { NO_TEXT, ScriptDoc } from '../script/ScriptDoc';
@@ -62,7 +62,7 @@ import type { LinePassage, LineTake } from '../takes/types';
 import { useLineTakes } from '../takes/useLineTakes';
 import { useTakesGate } from '../takes/useTakesGate';
 import type { PlaylistSegment } from '../../proof/playlist';
-import { closedCutsOf, doubledCut, doubledStart, itemIndexesOf, wordAt, type ChapterRead } from './chapterSource';
+import { closedCutsOf, doubledCut, doubledStart, wordAt, type ChapterRead } from './chapterSource';
 import { EditingOutput } from '../output/EditingOutput';
 import { EditingHeader } from './EditingHeader';
 import { EditOffNotice } from './EditOffNotice';
@@ -230,6 +230,7 @@ export function EditingBody(props: EditingBodyProps) {
   // Takes: kept, hidden, prepared; open under their line.
   const current = activePid(doc, state);
   const currentLine = current ? (lines.byId.get(current) ?? null) : null;
+  const dockTake = currentLine?.takes.find((t) => t.active)?.label ?? null;
   const keep = useKeepTakes(journal);
   const passageOf = useCallback((sel: WordMenuSelection) => lineOfKey(sel.doc, lines.byId, sel.keys[0]), [lines.byId]);
   const currentRef = useRef(currentLine);
@@ -466,8 +467,6 @@ export function EditingBody(props: EditingBodyProps) {
     hidden: new Set(currentLine ? hide.hiddenIds(currentLine.id) : []),
     playingId: takePlayer.isPlaying ? playingTake : null,
     onPlay: playTake,
-    chapterId,
-    clocks,
   };
   const cursorItem = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1] : undefined;
   const cursorOnFlag = cursorItem !== undefined && flagged(doc).some((x) => x.key === cursorItem.key);
@@ -568,6 +567,15 @@ export function EditingBody(props: EditingBodyProps) {
             {check.panel}
             {panels.strip.open && stripFits ? <TimelineStrip {...stripProps} /> : null}
             {cut.plan?.kind === 'refused' ? <EditOffNotice reason={cut.plan.reason} /> : null}
+            {doc.paras.length ? (
+              <WaveDock
+                chapterId={chapterId}
+                clocks={clocks}
+                take={dockTake}
+                playFrom={playlist.length ? (start, end) => playback.playFrom(start, end) : undefined}
+                reason={reason ?? undefined}
+              />
+            ) : null}
             <SelectionBar
               playback={playback}
               end={total}
@@ -601,15 +609,6 @@ export function EditingBody(props: EditingBodyProps) {
               <InHost root={root} selector={`${rowOf(pid)} [data-gutter]`} name={`badge-${pid}`} className="contents" watch={doc}>
                 <TakeBadge count={line.takes.length} open={open} controls={`takes-${pid}`} active={pid === current} onToggle={() => setLineOpen(pid, !open)} />
               </InHost>
-            ) : null}
-            {pid === current && doc.aligned ? (
-              <Ribbon
-                chapterId={chapterId}
-                pid={pid}
-                take={line?.takes.find((t) => t.active)?.label ?? null}
-                items={itemIndexesOf(read, pid)}
-                clocks={clocks}
-              />
             ) : null}
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard

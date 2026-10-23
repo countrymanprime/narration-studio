@@ -95,7 +95,11 @@
     "parallel_workers": "0",
     "chunk_seconds": "300",
     "chunk_overlap_seconds": "6",
-    "parallel_chapters": "1"
+    "parallel_chapters": "1",
+    "background_checks_confirmed": "false",
+    "background_first_pass_model": "tiny",
+    "background_recheck_model": "small",
+    "background_processors": "0"
   },
   "StageRecommendations": {
     "suggestions_enabled": "true",

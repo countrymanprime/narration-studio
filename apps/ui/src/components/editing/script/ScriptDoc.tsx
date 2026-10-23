@@ -46,6 +46,21 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
   const touched = useMemo(() => new Set(Array.from(selSet, (k) => doc.items[doc.index.get(k) ?? -1]?.pid)), [selSet, doc]);
   const cursorPid = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1]?.pid : undefined;
   const flagPid = state.flag ? (state.flag.startsWith('dup:') ? state.flag.slice(4) : doc.items[doc.index.get(state.flag) ?? -1]?.pid) : undefined;
+  // The lines on screen in the bottom waveform while it is scrolled by hand: marked, and the first of them brought into view.
+  const view = state.view;
+  const viewed = useMemo(() => {
+    if (!view) return null;
+    const out = new Set<string>();
+    for (const dp of doc.paras) if (dp.start != null && dp.end != null && dp.end >= view.t0 && dp.start <= view.t1) out.add(dp.p.id);
+    return out;
+  }, [doc, view]);
+  const box = useRef<HTMLDivElement>(null);
+  const firstViewed = viewed ? doc.paras.find((dp) => viewed.has(dp.p.id))?.p.id : undefined;
+  useEffect(() => {
+    if (!firstViewed) return;
+    const row = box.current?.querySelector<HTMLElement>(`[data-pid="${CSS.escape(firstViewed)}"]`);
+    row?.scrollIntoView?.({ block: 'nearest' });
+  }, [firstViewed]);
   useAnnounceCursor();
 
   useEffect(() => {
@@ -109,6 +124,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
         aria-label="Script with what was heard"
         aria-activedescendant={state.cursor && doc.index.has(state.cursor) ? `w-${state.cursor}` : undefined}
         data-script
+        ref={box}
         onMouseDown={onDown}
         onMouseOver={onOver}
       >
@@ -124,6 +140,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
               nowKey={nowPid === pid ? nowKey : null}
               flag={flagPid === pid ? state.flag : null}
               active={pid === activePid}
+              inView={!!viewed?.has(pid)}
               onRender={onParagraphRender}
             />
           );

@@ -1,5 +1,5 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
@@ -62,8 +62,41 @@ export const editingDrivers: Record<string, Driver> = {
     await page.mouse.move(box.x + box.width * 0.66, box.y + box.height / 2, { steps: 6 });
     await page.mouse.up();
     await page.getByRole('slider', { name: 'Start of range' }).waitFor();
-    await page.getByRole('button', { name: 'Zoom in' }).click();
-    await page.getByRole('slider', { name: 'Visible part' }).waitFor();
+    const shown = page.locator('[data-view-label]');
+    const before = await shown.textContent();
+    await page.getByRole('region', { name: 'Waveform of the chapter' }).getByRole('button', { name: 'Zoom in' }).click();
+    await expect(shown).not.toHaveText(before ?? '');
+  },
+  // The right button held and moved drags the waveform along; the script marks the line it now shows.
+  'wave-scrolled': async (page) => {
+    await openEditing(page, LINKED);
+    await page.locator('[data-k="p-1:1"]').click();
+    const surface = page.locator('[data-ribbon-surface]');
+    await surface.waitFor();
+    const box = await surface.boundingBox();
+    if (!box) throw new Error('The docked waveform has no box to drag.');
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * 0.9, y);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(box.x + box.width * 0.1, y, { steps: 8 });
+    await page.mouse.up({ button: 'right' });
+    await page.locator('[data-in-view]').first().waitFor();
+    // No menu opens after a drag.
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  },
+  // A right click without a drag opens the waveform's own menu.
+  'wave-menu': async (page) => {
+    await openEditing(page, LINKED);
+    await page.locator('[data-k="p-1:1"]').click();
+    const surface = page.locator('[data-ribbon-surface]');
+    await surface.waitFor();
+    await surface.click({ button: 'right', position: { x: 120, y: 28 } });
+    const last = page.getByRole('menuitem', { name: 'Show the whole recording' });
+    await last.waitFor();
+    await last.evaluate(async (el) => {
+      const popup = el.closest('[role="menu"]');
+      await Promise.all(popup?.getAnimations().map((a) => a.finished) ?? []);
+    });
   },
   'output-popover': async (page) => {
     await openEditing(page, EDITS);

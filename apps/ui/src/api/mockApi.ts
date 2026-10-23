@@ -155,7 +155,10 @@ export function createMockApi(
   });
   const settings = createSettingsMock(
     () => base.bootstrap(),
-    (tool, _scope, values) => dawControl.settingsSaved(tool, values),
+    (tool, _scope, values) => {
+      dawControl.settingsSaved(tool, values);
+      chapterTracks.backgroundSettingsSaved(tool, values);
+    },
     initial.settings,
     initial.daw?.experimentalOn,
   );
@@ -215,7 +218,7 @@ export function createMockApi(
       endJob(event);
       chapterTracks.publishChapterSync(chapterTracks.mockChapterSyncState(null));
     },
-    seed: initial.coverage,
+    seed: initial.backgroundChecks === 'running' ? { ...initial.coverage, backgroundRun: true } : initial.coverage,
   });
   const workspaceDeps = {
     chapters: () => s.chapters,

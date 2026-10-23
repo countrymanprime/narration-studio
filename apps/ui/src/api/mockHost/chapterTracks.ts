@@ -1,6 +1,15 @@
 // The mock host (mockApi.ts): tracks, chapter links and chapter sync.
 import type { ChapterTrackCreateResult } from '../contracts/chapterTrackMap';
-import type { ChapterSyncBatch, ChapterSyncChapter, ChapterSyncConsent, ChapterSyncState, ChapterSyncTrigger, NarrationApi, TrackMapping } from '../../types';
+import type {
+  ChapterSyncBackground,
+  ChapterSyncBatch,
+  ChapterSyncChapter,
+  ChapterSyncConsent,
+  ChapterSyncState,
+  ChapterSyncTrigger,
+  NarrationApi,
+  TrackMapping,
+} from '../../types';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT, wireClone } from '../mockFixtures';
 import { mockChapterRegionPlan, mockChapterSyncPreview, mockChapterTrackLinks, mockChapterTrackMatch } from '../chapterTrackMatchMock';
 import { mockChaptersForTracks, mockChapterSuggestion } from '../chapterSuggestionMock';
@@ -30,6 +39,22 @@ export function createChapterTracksMock(
         ? '2026-09-24T09:00:00Z'
         : null;
   const chapterSyncRejected = new Set<string>();
+  // Background recording checks (apps/desktop/coverage_background.go): the `backgroundChecks` seed, then what the narrator saves.
+  const background: ChapterSyncBackground = {
+    enabled: true,
+    wait:
+      initial.backgroundChecks === 'confirm'
+        ? 'confirm'
+        : initial.chapterSync === 'background' || initial.backgroundChecks === 'waiting'
+          ? 'recording'
+          : initial.backgroundChecks === 'running'
+            ? ''
+            : 'nothing',
+    queued: initial.backgroundChecks === 'confirm' || initial.backgroundChecks === 'waiting' ? 2 : initial.backgroundChecks === 'running' ? 1 : 0,
+    firstPassModel: 'tiny',
+    recheckModel: 'small',
+  };
+  const mockBackground = (): ChapterSyncBackground => ({ ...background });
   const chapterSyncUnsavedEdits = initial.chapterSync === 'unsaved';
   // The Sync activity list, newest first (the host keeps 20): the unsaved seed shows one row from a save in REAPER.
   let chapterSyncActivity: ChapterSyncBatch[] =
@@ -93,7 +118,7 @@ export function createChapterTracksMock(
       chapters: links.project === 'ready' ? mockChapterSyncRows(links) : [],
       // The `background` seed shows the engine panel's wait
       // line for the reason this stream landed: REAPER is running and its heartbeat says it is recording.
-      background: { enabled: true, wait: initial.chapterSync === 'background' ? 'recording' : 'nothing' },
+      background: mockBackground(),
     };
   };
   // The status rows, as the host builds them: the link, and the recording check's own answer (the coverage mock's).
@@ -126,6 +151,20 @@ export function createChapterTracksMock(
       };
     });
   const publishChapterSync = (state: ChapterSyncState) => chapterSyncSubscribers.forEach((fn) => fn(wireClone(state)));
+  // A RecordingCoverage save the host's background loop reads at once: on or off, the notice answered, the model pair.
+  const backgroundSettingsSaved = (tool: string, values: Record<string, string | null>) => {
+    if (tool !== 'RecordingCoverage' || !Object.keys(values).some((key) => key.startsWith('background_'))) return;
+    if ('background_checks' in values) background.enabled = values.background_checks !== 'false';
+    if (values.background_checks_confirmed === 'true' && background.wait === 'confirm') background.wait = 'quiet';
+    if ('background_first_pass_model' in values) background.firstPassModel = values.background_first_pass_model ?? 'tiny';
+    if ('background_recheck_model' in values) {
+      const model = values.background_recheck_model ?? 'small';
+      background.recheckModel = model === 'none' ? '' : model;
+    }
+    if (!background.enabled) background.wait = 'off';
+    else if (background.wait === 'off') background.wait = background.queued > 0 ? 'quiet' : 'nothing';
+    void manuscriptReady.then(() => publishChapterSync(mockChapterSyncState(null)));
+  };
   // One sync, as the host's runChapterSync does it: the confident links written as auto, the batch when anything was linked.
   const runMockChapterSync = (trigger: ChapterSyncTrigger): ChapterSyncState => {
     const plan = mockChapterSyncPreview(mockLinksRead(), chapterSyncRejected);
@@ -325,7 +364,7 @@ export function createChapterTracksMock(
       return wireClone(mockChaptersForTracks(guids, s.chapters, WIRE_TRACKS_PROJECT, s.chapterTrackMappings));
     },
   } satisfies Partial<NarrationApi>;
-  return { bindings, publishChapterSync, mockChapterSyncState };
+  return { bindings, publishChapterSync, mockChapterSyncState, backgroundSettingsSaved };
 }
 
 /** The activity seed's Sync activity, newest first: a link a save in REAPER made, a new track that is not a chapter, the first sync. */

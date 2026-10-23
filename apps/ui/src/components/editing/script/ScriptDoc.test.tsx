@@ -301,3 +301,26 @@ describe('the playing word', () => {
     expect(document.querySelector('[data-pid="p-2"]')!.hasAttribute('data-active')).toBe(true);
   });
 });
+
+// Scrolling the bottom waveform by hand moves the page with it: the lines on screen there are marked, and the first is brought into view.
+describe('the script follows the scrolled waveform', () => {
+  it('marks the lines in the view and scrolls to the first, and lets them go when the cursor moves', () => {
+    const doc = marksDoc();
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    show(doc);
+    const second = doc.paras[1];
+    act(() => page.dispatch({ type: 'view', t0: (second.start as number) + 0.1, t1: (second.end as number) - 0.1 }));
+    const marked = [...document.querySelectorAll('[data-in-view]')].map((e) => e.getAttribute('data-pid'));
+    expect(marked).toEqual([second.p.id]);
+    expect(scrolled).toHaveBeenCalledWith({ block: 'nearest' });
+    act(() => page.dispatch({ type: 'place', key: doc.paras[0].items[0].key }));
+    expect(document.querySelectorAll('[data-in-view]')).toHaveLength(0);
+  });
+  it('marks every line a zoomed-out view reaches', () => {
+    const doc = marksDoc();
+    show(doc);
+    act(() => page.dispatch({ type: 'view', t0: 0, t1: 1e6 }));
+    expect(document.querySelectorAll('[data-in-view]').length).toBe(doc.paras.filter((p) => p.start != null && p.end != null).length);
+  });
+});

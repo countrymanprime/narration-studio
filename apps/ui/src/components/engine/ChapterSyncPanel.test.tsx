@@ -107,7 +107,12 @@ describe('ChapterSyncPanel', () => {
 
   it('says why background checks wait, when they are on and something is blocking them', async () => {
     const base = await createMockApi({}, {}).chapterSyncState();
-    const api = createMockApi({ chapterSyncState: async () => ({ ...base, background: { enabled: true, wait: 'recording' } }) }, {});
+    const api = createMockApi(
+      {
+        chapterSyncState: async () => ({ ...base, background: { enabled: true, wait: 'recording', queued: 0, firstPassModel: 'tiny', recheckModel: 'small' } }),
+      },
+      {},
+    );
     render(<ApiProvider api={api}>{<ChapterSyncPanel notify={() => {}} onChanged={() => {}} />}</ApiProvider>);
     await screen.findByText(/REAPER is recording/);
   });

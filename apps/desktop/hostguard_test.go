@@ -67,6 +67,7 @@ var permanentDirectReaders = map[string]string{
 	"configureLocked": "the only writer of the fields; its caller holds h.mu",
 	"canAttachLocked": "runs inside attachProjectLocked, whose caller holds h.mu",
 	"idleLocked":      "the body of canAttachLocked (and of idle, which takes the read lock first); its caller holds h.mu",
+	"idleLockedFor":   "idleLocked's body, and idleForBackground's under the read lock; its caller holds h.mu",
 	"services":        "the accessor: the one place that reads the fields under the lock",
 }
 

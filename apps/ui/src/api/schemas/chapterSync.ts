@@ -76,7 +76,10 @@ export const chapterSyncStateSchema = z
     chapters: listFromNull(chapterSchema),
     background: z.object({
       enabled: z.boolean(),
-      wait: z.enum(['', 'off', 'busy', 'model', 'battery', 'recording', 'quiet', 'nothing']),
+      wait: z.enum(['', 'off', 'confirm', 'busy', 'model', 'battery', 'recording', 'quiet', 'nothing']),
+      queued: z.number().int().nonnegative(),
+      firstPassModel: z.string().min(1),
+      recheckModel: z.string(),
     }),
   })
   .refine((state) => !state.ask || (state.consent === 'undecided' && state.manuscript && state.dawLinked), {
