@@ -22,6 +22,7 @@ import type {
   ProductionSession,
 } from './contracts/production';
 import type { StageRecommendations } from './contracts/stages';
+import { brand } from '../brand.gen';
 
 type SeedLog = 'on-pace' | 'at-risk';
 
@@ -391,7 +392,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       reportExports += 1;
       const stem = `production-status-20260921-100000Z${reportExports > 1 ? `-${reportExports}` : ''}`;
       return {
-        folder: 'narration-studio/production/reports',
+        folder: `${brand.identity.projectFolder}/production/reports`,
         htmlFile: `${stem}.html`,
         jsonFile: `${stem}.json`,
         contractedAmountIncluded: include.money,
@@ -416,7 +417,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       return {
         html,
         json,
-        folder: 'narration-studio/production/reports',
+        folder: `${brand.identity.projectFolder}/production/reports`,
         stem: 'production-status-20260921-100000Z',
         contractedAmountIncluded: include.money,
         include: { ...include },

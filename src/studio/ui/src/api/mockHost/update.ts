@@ -3,6 +3,7 @@ import type { NarrationApi } from '../../types';
 import type { UpdateJob, UpdateStatus } from '../contracts/update';
 import { wireClone } from '../mockFixtures';
 import type { MockApiSeed } from './state';
+import { brand } from '../../brand.gen';
 
 /** The version the mock host reports as its own; the update states (`MockUpdateSeed`) offer a newer one. */
 const MOCK_APP_VERSION = '0.2.6';
@@ -31,8 +32,7 @@ function seedUpdateStatus(seed: MockUpdateSeed | undefined): UpdateStatus {
       return {
         ...seedUpdateStatus('available'),
         canInstall: false,
-        installBlockedReason:
-          'Narration Studio is installed where it is not allowed to replace itself. Download the update and replace the program yourself, or ask whoever manages this computer.',
+        installBlockedReason: `${brand.name} is installed where it is not allowed to replace itself. Download the update and replace the program yourself, or ask whoever manages this computer.`,
       };
     case 'available':
     case 'found':
@@ -47,7 +47,7 @@ function seedUpdateStatus(seed: MockUpdateSeed | undefined): UpdateStatus {
           version: '0.2.7',
           tag: 'v0.2.7-rc',
           candidate: true,
-          notesUrl: 'https://github.com/countrymanprime/narration-studio/releases/tag/v0.2.7-rc',
+          notesUrl: `${brand.repository.url}/releases/tag/v0.2.7-rc`,
           size: 419_895_808,
           publishedAt: '2026-09-20T10:00:00Z',
           replaces: true,
@@ -106,7 +106,7 @@ export function createUpdateMock(initial: MockApiSeed) {
         id: 'mock-update',
         version: available.version,
         phase: 'downloading',
-        message: `Downloading Narration Studio ${available.version}…`,
+        message: `Downloading ${brand.name} ${available.version}…`,
         percent: 0,
         bytesDone: 0,
         bytesTotal: total,
@@ -148,7 +148,7 @@ export function createUpdateMock(initial: MockApiSeed) {
           'The app is busy, so the update was not installed. Finish or stop what is running (an import, a Story Bible build, a download, a comparison or a teleprompter session), then try again.',
         );
       }
-      updateJob = { ...updateJob, phase: 'installing', message: `Installing version ${updateJob.version}. Narration Studio restarts in a moment.` };
+      updateJob = { ...updateJob, phase: 'installing', message: `Installing version ${updateJob.version}. ${brand.name} restarts in a moment.` };
       return wireClone(updateJob);
     },
     updateShowDownload: async () => undefined,

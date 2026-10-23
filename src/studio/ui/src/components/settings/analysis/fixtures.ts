@@ -1,7 +1,8 @@
 import type { AssetCatalog, AssetInstallJob, AssetItem } from '../../../types';
 import type { ComponentsPort } from './useAnalysisTools';
+import { brand } from '../../../brand.gen';
 
-const ROOT = 'C:/Users/narrator/AppData/Local/narration-studio/assets/analysis';
+const ROOT = `C:/Users/narrator/AppData/Local/${brand.identity.dataFolder}/assets/analysis`;
 
 const tool = (row: Omit<AssetItem, 'kind' | 'kindLabel' | 'path' | 'installState' | 'installedAt' | 'verifiedAt' | 'activeJobId'>): AssetItem => ({
   kind: 'analysis',
@@ -87,9 +88,9 @@ export const ANALYSIS_TOOLS: AssetItem[] = [
     version: 'none',
     publisher: 'Not chosen',
     license: 'To be confirmed',
-    licenseUrl: 'https://github.com/countrymanprime/narration-studio',
-    modelCardUrl: 'https://github.com/countrymanprime/narration-studio',
-    provenanceUrl: 'https://github.com/countrymanprime/narration-studio',
+    licenseUrl: `${brand.repository.url}`,
+    modelCardUrl: `${brand.repository.url}`,
+    provenanceUrl: `${brand.repository.url}`,
     attribution: 'Licence to be confirmed before it is offered.',
     downloadSize: 0,
     diskSize: 0,

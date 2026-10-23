@@ -9,6 +9,7 @@
 import type { DeliveryProfile, DiagnosticsJob, JobEnded, MeasureApi, MeasureFileResult, MeasureJob, MeasureReport } from '../types';
 import { evaluateMockBook, evaluateMockFile, MOCK_ACX } from './deliveryProfilesMock';
 import { wireClone } from './mockFixtures';
+import { brand } from '../brand.gen';
 
 /** What the mock's picker chooses: three rendered chapters, the third one not a WAV. */
 export const MOCK_MEASURE_PATHS = [
@@ -352,7 +353,7 @@ export function createMeasureMock(
       const stem = `delivery-report-20260923-140000Z${exports > 1 ? `-${exports}` : ''}`;
       const all = [...judged().files.flatMap((file) => file.findings), ...checkedFiles.flatMap((file) => (file.status === 'checked' ? file.findings : []))];
       return {
-        folder: 'narration-studio/delivery',
+        folder: `${brand.identity.projectFolder}/delivery`,
         htmlFile: `${stem}.html`,
         jsonFile: `${stem}.json`,
         files: new Set([...job.files, ...checkedFiles].map((file) => file.path)).size,

@@ -3,6 +3,7 @@
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, clickNav, clickVisible, confirmDialog, freezeClock, openAdvanced, openSettings, showSettingsRow } from './shared';
+import { brand } from '../../../src/brand.gen';
 
 const WHISPER_SMALL = 'whisper/small';
 
@@ -402,7 +403,7 @@ export const settingsDrivers: Record<string, Driver> = {
   'about-download-progress': async (page) => {
     await openUpdates(page, 'downloading');
     await startUpdateDownload(page);
-    await page.getByRole('dialog', { name: 'Download Narration Studio 0.2.7' }).waitFor();
+    await page.getByRole('dialog', { name: `Download ${brand.name} 0.2.7` }).waitFor();
     await page
       .getByText(/160 of 400 MB/)
       .first()
@@ -426,7 +427,7 @@ export const settingsDrivers: Record<string, Driver> = {
     await openUpdates(page, 'ready');
     await page.getByRole('button', { name: 'Install and restart' }).click();
     await confirmDialog(page, 'Install version 0.2.7 and restart?').getByRole('button', { name: 'Install and restart' }).click();
-    await page.getByRole('dialog', { name: 'Installing Narration Studio 0.2.7' }).waitFor();
+    await page.getByRole('dialog', { name: `Installing ${brand.name} 0.2.7` }).waitFor();
   },
   'about-install-refused': async (page) => {
     await openUpdates(page, 'install-refused');

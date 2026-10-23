@@ -22,6 +22,7 @@ import type {
 } from '../types';
 import { MOCK_ACX, deliveryProfileKey } from './deliveryProfilesMock';
 import { wireClone } from './mockFixtures';
+import { brand } from '../brand.gen';
 
 /** What the mock's picker chooses: two chapters, opening and closing credits, and a retail sample. */
 export const MOCK_EXPORT_PATHS = [
@@ -85,8 +86,8 @@ function deliveryExport(): ExportJob {
     files: items.map((item, index) => ({
       ...item,
       status: 'done' as const,
-      masteredPath: `C:/Users/Narrator/Wonderland/narration-studio/render-encode-master/mastered/${index + 1}.wav`,
-      encodedPath: `C:/Users/Narrator/Wonderland/narration-studio/render-encode-master/encoded/${index + 1}.mp3`,
+      masteredPath: `C:/Users/Narrator/Wonderland/${brand.identity.projectFolder}/render-encode-master/mastered/${index + 1}.wav`,
+      encodedPath: `C:/Users/Narrator/Wonderland/${brand.identity.projectFolder}/render-encode-master/encoded/${index + 1}.mp3`,
     })),
   };
 }
@@ -218,9 +219,9 @@ export function createRenderEncodeMasterMock(
     if (index < 0) return;
     const item = exportJob.files[index];
     const masteredPath = exportJob.master
-      ? `C:/Users/Narrator/Wonderland/narration-studio/render-encode-master/mastered/${index + 1}${extOf(item.path)}`
+      ? `C:/Users/Narrator/Wonderland/${brand.identity.projectFolder}/render-encode-master/mastered/${index + 1}${extOf(item.path)}`
       : undefined;
-    const encodedPath = `C:/Users/Narrator/Wonderland/narration-studio/render-encode-master/encoded/${index + 1}.${exportJob.format}`;
+    const encodedPath = `C:/Users/Narrator/Wonderland/${brand.identity.projectFolder}/render-encode-master/encoded/${index + 1}.${exportJob.format}`;
     encoded.add(encodedPath);
     exportJob = {
       ...exportJob,
@@ -424,7 +425,7 @@ export function createRenderEncodeMasterMock(
         if (cached) return cached;
         const reencoded = req.items.map((item) => ({
           ...item,
-          path: `C:/Users/Narrator/Wonderland/narration-studio/render-encode-master/encoded-${format}/${item.kind}.${format}`,
+          path: `C:/Users/Narrator/Wonderland/${brand.identity.projectFolder}/render-encode-master/encoded-${format}/${item.kind}.${format}`,
         }));
         itemsByFormat.set(format, reencoded);
         return reencoded;

@@ -5,6 +5,7 @@ import type { DeliveryReportExport } from '../../types';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
+import { brand } from '../../brand.gen';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -48,8 +49,8 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
     >
       <p className="text-sm" style={MUTED}>
         Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s
-        narration-studio/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your
-        audio is never changed.
+        {brand.identity.projectFolder}/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s
+        approval, and your audio is never changed.
       </p>
       {!measured && (
         <p className="mt-2 text-sm" style={MUTED}>

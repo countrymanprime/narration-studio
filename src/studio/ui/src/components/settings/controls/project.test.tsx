@@ -13,6 +13,7 @@ import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { SettingsPage } from '../page/SettingsPage';
+import { brand } from '../../../brand.gen';
 
 afterEach(() => {
   cleanup();
@@ -309,7 +310,7 @@ describe('Settings: App & updates', () => {
   it('says what is running and reports Check now', async () => {
     const { data } = await renderApp();
     const about = await screen.findByRole('region', { name: 'This version' });
-    expect(within(about).getByText('Narration Studio')).toBeTruthy();
+    expect(within(about).getByText(`${brand.name}`)).toBeTruthy();
     expect(within(about).getByText(`Version ${data.version}`)).toBeTruthy();
     await userEvent.click(await within(about).findByRole('button', { name: 'Check now' }));
     expect(await within(about).findByText(/You have the latest version/)).toBeTruthy();

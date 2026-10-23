@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseWire } from '../wire/parseWire';
 import { WireError } from '../wire/WireError';
 import { updateJobSchema, updateStatusSchema } from './update';
+import { brand } from '../../brand.gen';
 
 const ctx = { boundary: 'host.binding', payload: 'UpdateStatus' };
 
@@ -9,7 +10,7 @@ const available = {
   version: '0.2.7',
   tag: 'v0.2.7-rc',
   candidate: true,
-  notesUrl: 'https://github.com/countrymanprime/narration-studio/releases/tag/v0.2.7-rc',
+  notesUrl: `${brand.repository.url}/releases/tag/v0.2.7-rc`,
   size: 419895808,
   publishedAt: '2026-09-20T10:00:00Z',
   replaces: true,

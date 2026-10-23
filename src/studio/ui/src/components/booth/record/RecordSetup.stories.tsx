@@ -7,11 +7,12 @@ import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { resetOpenOnce } from '../../connection/useOpenOnce';
 import { RecordSetup } from './RecordSetup';
+import { brand } from '../../../brand.gen';
 
 // The Booth's one-time recording setup, above the footer while Record is unavailable for a reason the narrator can fix from the Booth:
 // the Experimental record capability switched off with its one-click turn-on, and REAPER not connected or not answering with
 // the launcher steps. It is drawn on the footer's surface, as on the page.
-const LAUNCHER = 'C:\\Users\\narrator\\AppData\\Local\\narration-studio\\runtime\\5f2c\\reaper\\NarrationStudio_Launcher.lua';
+const LAUNCHER = `C:\\Users\\narrator\\AppData\\Local\\${brand.identity.dataFolder}\\runtime\\5f2c\\reaper\\${brand.identity.reaperLauncher}`;
 
 const refused = (reason: 'experimental_off' | 'standalone' | 'not_running', message: string): DawCapabilities => ({
   ...DAW_SETUPS.reaper,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { amountOffered, reportPath } from './reportModel';
+import { brand } from '../../../brand.gen';
 
 describe('amountOffered', () => {
   it('only a per-hour plan with an amount offers it', () => {
@@ -14,7 +15,9 @@ describe('amountOffered', () => {
 
 describe('reportPath', () => {
   it('keeps the folder’s own separators', () => {
-    expect(reportPath('narration-studio/production/reports', 'status-1', 'html')).toBe('narration-studio/production/reports/status-1.html');
+    expect(reportPath(`${brand.identity.projectFolder}/production/reports`, 'status-1', 'html')).toBe(
+      `${brand.identity.projectFolder}/production/reports/status-1.html`,
+    );
     expect(reportPath('C:\\Books\\Dune\\reports', 'status-1', 'json')).toBe('C:\\Books\\Dune\\reports\\status-1.json');
     expect(reportPath('reports/', 'status-1', 'json')).toBe('reports/status-1.json');
   });

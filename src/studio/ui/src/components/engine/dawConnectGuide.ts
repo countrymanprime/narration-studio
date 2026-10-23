@@ -1,4 +1,5 @@
 import type { DawKind } from '../../api/contracts/daw';
+import { brand } from '../../brand.gen';
 
 /**
  * How a DAW connects to this app, in that DAW's own words, for a page that must not word a DAW itself (the Booth's setup notice).
@@ -26,7 +27,7 @@ const REAPER_GUIDE: DawConnectGuide = {
   dawName: 'REAPER',
   link: 'Link this project’s REAPER project file (.rpp).',
   install: 'This app puts its bridge in REAPER’s Scripts folder by itself, and REAPER starts it each time it opens. The bridge',
-  installFile: 'NarrationStudio_Launcher.lua, in REAPER’s Scripts folder',
+  installFile: `${brand.identity.reaperLauncher}, in REAPER’s Scripts folder`,
   installAgain: 'The app updates it when this app is updated. Nothing needs loading in REAPER.',
   run: 'When REAPER opens with the chapter’s project, this app connects on its own and Record turns on here.',
   launch: {

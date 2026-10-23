@@ -1,6 +1,7 @@
 // The mock host (mockApi.ts): the Story Bible analysis tools, as the real host lists them (tests/fixtures/contracts/assets-list.json,
 // written by the Go catalog test). The rows carry the facts only; the install state, path and job are the asset mock's.
 import type { AssetItem } from '../contracts/assets';
+import { brand } from '../../brand.gen';
 
 export type MockAnalysisTool = Omit<AssetItem, 'kind' | 'kindLabel' | 'path' | 'installState' | 'installedAt' | 'verifiedAt' | 'activeJobId'>;
 
@@ -80,9 +81,9 @@ export const MOCK_ANALYSIS_TOOLS: readonly MockAnalysisTool[] = [
     version: 'none',
     publisher: 'Not chosen',
     license: 'To be confirmed',
-    licenseUrl: 'https://github.com/countrymanprime/narration-studio/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md',
-    modelCardUrl: 'https://github.com/countrymanprime/narration-studio/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md',
-    provenanceUrl: 'https://github.com/countrymanprime/narration-studio/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md',
+    licenseUrl: `${brand.repository.url}/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md`,
+    modelCardUrl: `${brand.repository.url}/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md`,
+    provenanceUrl: `${brand.repository.url}/blob/main/docs/research/mockups/studio-next/research/local-llm-research.md`,
     attribution: 'Licence to be confirmed before it is offered.',
     downloadSize: 0,
     diskSize: 0,

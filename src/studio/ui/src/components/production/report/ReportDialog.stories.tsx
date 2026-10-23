@@ -4,6 +4,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import type { ProductionPlan, ProductionReportInclude, ProductionReportPreview } from '../../../api/contracts/production';
 import { createMockApi } from '../../../api/mockApi';
 import { ReportDialog } from './ReportDialog';
+import { brand } from '../../../brand.gen';
 
 const PLAN: ProductionPlan = { deadline: '2026-11-01', contractedAmount: 250, payment: 'per_finished_hour', milestones: [] };
 const previewOf = (include: ProductionReportInclude): ProductionReportPreview => ({
@@ -11,7 +12,7 @@ const previewOf = (include: ProductionReportInclude): ProductionReportPreview =>
     include.money ? '<dt>Contracted amount</dt><dd>250.00</dd><dt>Effective rate</dt><dd>31.25</dd>' : ''
   }</dl></body></html>`,
   json: `${JSON.stringify({ hoursLogged: 41.5, bookPfh: 5.2, ...(include.money ? { contractedAmount: 250, effectiveRate: 31.25 } : {}) }, null, 2)}\n`,
-  folder: 'narration-studio/production/reports',
+  folder: `${brand.identity.projectFolder}/production/reports`,
   stem: 'production-status-20260921-100000Z',
   contractedAmountIncluded: include.money,
   include,

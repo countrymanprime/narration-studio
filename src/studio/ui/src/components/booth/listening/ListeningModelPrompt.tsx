@@ -14,7 +14,7 @@ export function ListeningModelPrompt({ session }: { session: Pick<TeleprompterSe
     <AssetInstallPrompt
       ask={{
         title: `Download local ${engine} model?`,
-        body: `The ${prompt.model.displayName} ${engine} model listens for your voice. It is not bundled with Narration Studio and will be stored in your per-user asset cache.`,
+        body: `The ${prompt.model.displayName} ${engine} model listens for your voice. It is not bundled with the app and will be stored in your per-user asset cache.`,
         confirmLabel: 'Download model',
       }}
       workTitle={`Downloading ${engine} model`}

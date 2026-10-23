@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NewProjectDialog } from './NewProjectDialog';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { brand } from '../../brand.gen';
 
 afterEach(cleanup);
 
@@ -77,9 +78,9 @@ describe('NewProjectDialog', () => {
   });
 
   it('shows the real default projects folder until another location is chosen', async () => {
-    renderDialog({ projectDefaultLocation: async () => ({ path: 'C:/Users/Alice/NarrationStudio' }) });
+    renderDialog({ projectDefaultLocation: async () => ({ path: `C:/Users/Alice/${brand.identity.defaultProjectsFolder}` }) });
 
-    expect(await screen.findByText('C:/Users/Alice/NarrationStudio')).toBeTruthy();
+    expect(await screen.findByText(`C:/Users/Alice/${brand.identity.defaultProjectsFolder}`)).toBeTruthy();
     expect(screen.getByText(/default projects folder/)).toBeTruthy();
   });
 

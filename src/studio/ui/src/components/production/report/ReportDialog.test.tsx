@@ -9,6 +9,7 @@ import { overlay } from '../../../overlay/overlayService';
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { openReportDialog } from './openReportDialog';
 import { ReportDialog } from './ReportDialog';
+import { brand } from '../../../brand.gen';
 
 afterEach(cleanup);
 
@@ -17,7 +18,7 @@ const DEFAULTS: ProductionReportInclude = { words: true, stages: true, milestone
 const previewOf = (include: ProductionReportInclude): ProductionReportPreview => ({
   html: `<h1>Status</h1>${include.money ? '<p>Contracted amount 250.00</p>' : ''}${include.words ? '<p>Words</p>' : ''}`,
   json: include.money ? '{"amount":250}\n' : '{}\n',
-  folder: 'narration-studio/production/reports',
+  folder: `${brand.identity.projectFolder}/production/reports`,
   stem: 'production-status-1',
   contractedAmountIncluded: include.money,
   include,
@@ -26,7 +27,7 @@ const previewOf = (include: ProductionReportInclude): ProductionReportPreview =>
 function mount(overrides: Record<string, unknown> = {}, plan: ProductionPlan = PLAN) {
   const preview = vi.fn(async (include: ProductionReportInclude) => previewOf(include));
   const write = vi.fn(async (include: ProductionReportInclude) => ({
-    folder: 'narration-studio/production/reports',
+    folder: `${brand.identity.projectFolder}/production/reports`,
     htmlFile: 'production-status-1.html',
     jsonFile: 'production-status-1.json',
     contractedAmountIncluded: include.money,
@@ -101,10 +102,10 @@ describe('ReportDialog', () => {
 
   it('format-switch-changes-the-pane-and-the-path', async () => {
     mount();
-    const path = await screen.findByText('narration-studio/production/reports/production-status-1.html');
+    const path = await screen.findByText(`${brand.identity.projectFolder}/production/reports/production-status-1.html`);
     expect(path.tagName).toBe('CODE');
     await userEvent.click(screen.getByRole('button', { name: 'JSON' }));
-    expect(screen.getByText('narration-studio/production/reports/production-status-1.json').tagName).toBe('CODE');
+    expect(screen.getByText(`${brand.identity.projectFolder}/production/reports/production-status-1.json`).tagName).toBe('CODE');
   });
 
   it('export-writes-and-says-where, then closes on the second press', async () => {
@@ -114,7 +115,9 @@ describe('ReportDialog', () => {
     await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
     expect(write).toHaveBeenCalledWith(DEFAULTS);
     await waitFor(() =>
-      expect(document.body.textContent).toContain('Wrote production-status-1.html and production-status-1.json to narration-studio/production/reports.'),
+      expect(document.body.textContent).toContain(
+        `Wrote production-status-1.html and production-status-1.json to ${brand.identity.projectFolder}/production/reports.`,
+      ),
     );
     expect(screen.getByText('The contracted amount and effective rate are left out.')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
