@@ -183,6 +183,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Decision | Choice | Alternatives | Rationale |
 | --- | --- | --- | --- |
+| Said twice (owner, #2251 item 30) | Extra words that say the chapter text beside them again are a `duplicate_read` (an edit), shown as **Said twice** with the words said again, on the check card and on the note, with **Open in Editing**, which opens the line's Read twice card. The mock lists them as extra words | "Not in the script" and a pickup | Owner's test, #2251 item 30 |
 | Store stays | Findings store is the audit log | New decision store | Already append-only and versioned |
 | The mock's Proof percent (owner, DQ-16) | `noteProgress`, never 100 while a pickup is open, plus decided and cleared | A different percent or cap | The mock is the spec |
 | Waived maps to dismissed | Reason code | New status | No migration |

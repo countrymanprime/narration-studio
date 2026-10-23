@@ -57,7 +57,32 @@ describe('one card per kind, with the mock’s answers', () => {
   it('read twice', () => {
     card({ flag: 'dup:p-2' }, dupDoc());
     expect(within(screen.getByRole('note')).getByText('Read twice')).toBeTruthy();
-    expect(buttons()).toEqual(['Stack as 2 takes', 'Leave in place', 'Delete second read…']);
+    expect(buttons()).toEqual(['Stack as 2 takes', 'Hear both reads', 'Leave in place', 'Delete second read…']);
+  });
+
+  // Issue #2251 item 30: on the live page a line has no take of its own, and the card names the recording instead.
+  it('read twice on a line with no take says the recording reads it twice', () => {
+    const d = dupDoc();
+    d.paras[1].take = undefined;
+    card({ flag: 'dup:p-2' }, d);
+    expect(within(screen.getByRole('note')).getByText(/^The recording reads the line twice\./)).toBeTruthy();
+  });
+
+  it('Hear both reads plays the second read with as long again either side, inside the line, so both reads are heard', () => {
+    const d = dupDoc();
+    const run = d.paras[1].items.filter((i) => i.dup);
+    const props = card({ flag: 'dup:p-2' }, d);
+    fireEvent.click(screen.getByRole('button', { name: /Hear both reads/ }));
+    const [a, b] = [run[0].t0 ?? 0, run[run.length - 1].t1 ?? 0];
+    const [start, end] = [Math.max(d.paras[1].start ?? 0, a - (b - a) - 0.3), Math.min(d.paras[1].end ?? b, b + (b - a) + 0.3)];
+    expect(props.hear).toHaveBeenCalledWith(start, end);
+  });
+
+  it('Hear both reads is disabled with the reason when there is no audio', () => {
+    card({ flag: 'dup:p-2', hear: null }, dupDoc());
+    const b = screen.getByRole('button', { name: /Hear both reads/ }) as HTMLButtonElement;
+    expect(b.disabled).toBe(true);
+    expect(b.getAttribute('title')).toBe('There is no audio for this chapter to play.');
   });
 });
 

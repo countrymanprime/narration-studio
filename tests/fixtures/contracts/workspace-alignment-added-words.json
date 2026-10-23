@@ -17,6 +17,7 @@
         "itemIndex": 0,
         "sourceTime": 4.6
       },
+      "repeatOf": null,
       "start": {
         "itemGuid": "{ITEM-A}",
         "itemIndex": 0,
@@ -54,6 +55,7 @@
         "itemIndex": 1,
         "sourceTime": 0
       },
+      "repeatOf": null,
       "start": {
         "itemGuid": "{ITEM-A}",
         "itemIndex": 0,
@@ -91,6 +93,7 @@
         "itemIndex": 1,
         "sourceTime": 0.8
       },
+      "repeatOf": null,
       "start": {
         "itemGuid": "{ITEM-B}",
         "itemIndex": 1,

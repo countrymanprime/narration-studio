@@ -10,6 +10,7 @@ export const coverageGoldens: Record<string, z.ZodType> = {
   'coverage-result-unmapped.json': coverageResultSchema,
   // The model cascade's own result (MC5): result.recheck names the re-check model and its windows.
   'coverage-result-cascade.json': coverageResultSchema,
+  'coverage-result-repeat.json': coverageResultSchema,
   'coverage-engines.json': coverageEnginesSchema,
   // An accepted gap is an ordinary finding; the reviews map follows it.
   'coverage-gap-review-accepted.json': findingSchema,

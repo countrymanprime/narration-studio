@@ -119,6 +119,43 @@ func TestExtrasInsideTheReadPartAreExtraGaps(t *testing.T) {
 	}
 }
 
+// TestARepeatInsideTheReadPartIsAnExtraGapNamingTheWordsItRepeats: issue #2251 item 30. The gap stays an extra (the
+// UI's kinds are unchanged) and carries the chapter words said again, so a reader can call it a second take.
+func TestARepeatInsideTheReadPartIsAnExtraGapNamingTheWordsItRepeats(t *testing.T) {
+	again := extraAfter(1, "once more w w")
+	again.RepeatOf = &ExtraRepeat{Start: 0, End: 2, First: 2, Last: 4, Text: "w w"}
+	report := Report{
+		Paragraphs: paras("p1", 4, "p2", 4),
+		Tokens:     []TokenLine{tokenAt(0, "p1", "read"), tokenAt(1, "p1", "read"), tokenAt(2, "p2", "read"), tokenAt(3, "p2", "read")},
+		Extras:     []ExtraLine{again, extraAfter(2, "um well")},
+	}
+	gaps, _ := ClassifyGaps(report)
+	if len(gaps) != 2 || gaps[0].Kind != GapExtra || gaps[0].RepeatOf == nil || *gaps[0].RepeatOf != "w w" {
+		t.Fatalf("the repeat must be an extra gap naming what it repeats: %+v", gaps)
+	}
+	if gaps[1].RepeatOf != nil {
+		t.Fatalf("an aside repeats nothing: %+v", gaps[1])
+	}
+}
+
+// TestARestartIsAGapOnTheLineItRestarts: a run that says the next line's first words again sits after the line before,
+// but the second take is of the next line, so the gap names that one (the Editing page shows it there).
+func TestARestartIsAGapOnTheLineItRestarts(t *testing.T) {
+	restart := extraAfter(1, "w w w sorry")
+	restart.RepeatOf = &ExtraRepeat{Start: 2, End: 5, First: 0, Last: 3, Text: "w w w"}
+	report := Report{
+		Paragraphs: paras("p1", 4, "p2", 4),
+		Tokens: []TokenLine{
+			tokenAt(0, "p1", "read"), tokenAt(1, "p1", "read"), tokenAt(2, "p2", "read"), tokenAt(3, "p2", "read"), tokenAt(4, "p2", "read"), tokenAt(5, "p2", "read"),
+		},
+		Extras: []ExtraLine{restart},
+	}
+	gaps, _ := ClassifyGaps(report)
+	if len(gaps) != 1 || !reflect.DeepEqual(gaps[0].ParagraphIDs, []string{"p2"}) || gaps[0].ID != "extra:p2:2" {
+		t.Fatalf("a restart is a gap on the line it restarts: %+v", gaps)
+	}
+}
+
 func TestConfidenceIsNullWithAReason(t *testing.T) {
 	report := Report{
 		Paragraphs: paras("p1", 4, "p2", 0, "p3", 4),

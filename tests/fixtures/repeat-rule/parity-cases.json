@@ -1,0 +1,16 @@
+{
+  "about": "Cases for the rule that a run of extra words says the script beside it again (issue #2251 item 30). The sidecar (recording_coverage.repeat_of) and the Editing page (duplicates.ts saysScriptAgain) must both answer `repeat` for each. `script` is one line; `prev` and `next` are the indexes of the script words heard just before and just after the run, null at either end. Words are plain lower case: each side's own normalisation is tested beside it.",
+  "cases": [
+    { "name": "a retake of the last three words", "run": "get very tired", "script": "alice was beginning to get very tired", "prev": 6, "next": null, "repeat": true },
+    { "name": "a retake after an aside", "run": "sorry to get very", "script": "alice was beginning to get very tired", "prev": 5, "next": null, "repeat": true },
+    { "name": "a restart before an aside", "run": "alice was beginning sorry", "script": "alice was beginning to get very tired", "prev": null, "next": 0, "repeat": true },
+    { "name": "two words only", "run": "very tired", "script": "alice was beginning to get very tired", "prev": 6, "next": null, "repeat": false },
+    { "name": "words from elsewhere in the line", "run": "alice was beginning", "script": "alice was beginning to get very tired", "prev": 6, "next": null, "repeat": false },
+    { "name": "nothing heard on either side", "run": "alice was beginning", "script": "alice was beginning to get very tired", "prev": null, "next": null, "repeat": false },
+    { "name": "an aside", "run": "what a lovely day", "script": "alice was beginning to get very tired", "prev": 3, "next": 4, "repeat": false },
+    { "name": "a whole one-word line", "run": "yes", "script": "yes", "prev": 0, "next": null, "repeat": true },
+    { "name": "a whole two-word line", "run": "down down", "script": "down down", "prev": 1, "next": null, "repeat": true },
+    { "name": "a two-word restart of a longer line", "run": "the cat", "script": "the cat sat on the mat", "prev": null, "next": 0, "repeat": false },
+    { "name": "a stutter of one word", "run": "sat", "script": "the cat sat on the mat", "prev": 2, "next": 3, "repeat": false }
+  ]
+}

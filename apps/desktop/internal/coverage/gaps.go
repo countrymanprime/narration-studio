@@ -54,6 +54,7 @@ type GapLine struct {
 	FirstWord    string          `json:"firstWord"`
 	LastWord     string          `json:"lastWord"`
 	Text         *string         `json:"text,omitempty"`
+	RepeatOf     *string         `json:"repeatOf,omitempty"`
 	Position     *RegionPosition `json:"position,omitempty"`
 	Before       *RegionPosition `json:"before,omitempty"`
 	After        *RegionPosition `json:"after,omitempty"`
@@ -135,9 +136,15 @@ func ClassifyGaps(report Report) ([]GapLine, Unfinished) {
 		if after == nil || *after < firstHeard || *after >= lastHeard || *after >= len(report.Tokens) {
 			continue
 		}
+		// The line the gap is on: the one heard before it, or, for a restart (a run that says the words after it
+		// again), the line it restarts.
+		owner := *after
+		if repeat := extra.RepeatOf; repeat != nil && repeat.Start > owner && repeat.Start < len(report.Tokens) {
+			owner = repeat.Start
+		}
 		ids := []string{}
 		paragraph := first
-		if id := report.Tokens[*after].ParagraphID; id != nil {
+		if id := report.Tokens[owner].ParagraphID; id != nil {
 			ids = []string{*id}
 			paragraph = paragraphIndex(ids, index)
 		}
@@ -148,6 +155,9 @@ func ClassifyGaps(report Report) ([]GapLine, Unfinished) {
 		}
 		if len(words) > 0 {
 			line.FirstWord, line.LastWord = words[0], words[len(words)-1]
+		}
+		if extra.RepeatOf != nil {
+			line.RepeatOf = &extra.RepeatOf.Text
 		}
 		found = append(found, placed{paragraph, *after + 1, line})
 	}
