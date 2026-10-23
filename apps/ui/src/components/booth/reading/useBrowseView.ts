@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref, type RefObject, type WheelEvent } from 'react';
 
 /** Page Up and Page Down: move the view by a share of its height, eased. The reading position stays. */
-export type BrowseView = { up: (screens: number) => void; down: (screens: number) => void };
+export type BrowseView = {
+  up: (screens: number) => void;
+  down: (screens: number) => void;
+  /** Brings a paragraph into the resting place without moving the reading position (a search hit during a take). */
+  show: (paragraphId: string) => void;
+};
 
 type Options = {
   /** The box the text scrolls in, and the text that moves inside it. */
@@ -17,6 +22,8 @@ type Options = {
 };
 
 const LINE_PX = 40;
+/** How long after a jump to a far paragraph its place is worked out once more: the text's move (`--motion-slow`) has ended by then. */
+const SETTLE_MS = 700;
 const REST = 0.4;
 /** The gap kept between the word being read and the edge of the box when the box is too short for the word to rest 40% down. */
 const EDGE_PX = 8;
@@ -92,7 +99,31 @@ export function useBrowseView({ box, text, cur, wcur, browse, onBrowse, viewRef 
   );
 
   const height = () => box.current?.clientHeight ?? 0;
-  useImperativeHandle(viewRef, () => ({ down: (screens) => scrollBy(screens * height(), true), up: (screens) => scrollBy(-screens * height(), true) }));
+  const show = useCallback(
+    (paragraphId: string): void => {
+      const area = box.current;
+      const content = text.current;
+      const rest = restingY();
+      const target = content && Array.from(content.querySelectorAll<HTMLElement>('[data-paragraph]')).find((item) => item.dataset.paragraph === paragraphId);
+      if (!area || !content || !target || rest === null) return;
+      content.style.transition = '';
+      // A paragraph far from the view is held at an estimated height until it is drawn, so the first place is only near; once the paragraphs
+      // on the way are drawn at their real heights it is worked out again (twice, as a frame after layout is not always the last one).
+      const put = (): void => {
+        const y = clampY(-(target.offsetTop - restAt(area.clientHeight, target.offsetHeight)));
+        away.current = y - rest;
+        content.style.transform = `translateY(${y}px)`;
+        onBrowse(Math.abs(away.current) > 1);
+      };
+      put();
+      // The paragraphs on the way are drawn as the text moves, so it is worked out again when the move ends (and, with no motion, a frame on).
+      content.addEventListener('transitionend', put, { once: true });
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(put));
+      setTimeout(put, SETTLE_MS);
+    },
+    [box, text, restingY, clampY, onBrowse],
+  );
+  useImperativeHandle(viewRef, () => ({ down: (screens) => scrollBy(screens * height(), true), up: (screens) => scrollBy(-screens * height(), true), show }));
 
   const onWheel = (event: WheelEvent): void => {
     if (!event.deltaY) return;

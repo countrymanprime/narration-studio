@@ -953,7 +953,12 @@ function AppRoutes() {
                   path="/booth"
                   element={gated(
                     'booth',
-                    <BoothNextPage hasManuscript={Boolean(data.manuscript)} navigate={guardedNavigate} onImport={() => guardedNavigate('/')} />,
+                    <BoothNextPage
+                      hasManuscript={Boolean(data.manuscript)}
+                      navigate={guardedNavigate}
+                      onImport={() => guardedNavigate('/')}
+                      projectFolder={data.projectFolder}
+                    />,
                   )}
                 />
                 <Route
