@@ -4,7 +4,8 @@ import { ARRIVE_CLASSES } from '../../primitives/changeHighlight';
 
 /**
  * The banner over the page while the DAW cannot be reached (DQ-5: the wording names the DAW the capability reports, never a fixed one).
- * Nothing draws while it is reachable.
+ * Nothing draws while it is reachable. It never offers the built-in recorder: a project linked to a DAW records there, and switching
+ * recorders is a deliberate choice in Settings, behind a confirm (#2251).
  */
 export function DawBanner({
   reachable,
@@ -13,7 +14,6 @@ export function DawBanner({
   onConnect,
   connecting = false,
   settling = false,
-  onUseBuiltIn,
 }: {
   reachable: boolean;
   daw: string;
@@ -21,7 +21,6 @@ export function DawBanner({
   onConnect?: () => void;
   connecting?: boolean;
   settling?: boolean;
-  onUseBuiltIn: () => void;
 }) {
   if (reachable) return null;
   // Just after the app opens the host is still finding the DAW: say so quietly, and only show the failure if it does not connect in time.
@@ -49,9 +48,6 @@ export function DawBanner({
           {connecting ? 'Connecting…' : `Connect ${daw}`}
         </Button>
       )}
-      <Button variant="ghost" size="sm" onClick={onUseBuiltIn}>
-        Use built-in recorder
-      </Button>
     </div>
   );
 }

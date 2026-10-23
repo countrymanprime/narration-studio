@@ -168,9 +168,9 @@ test.describe('Booth with a moving mock DAW', () => {
     const chip = page.getByRole('button', { name: /^REAPER: / });
     await expect(chip).toHaveAccessibleName('REAPER: Linked');
     await expect(connection.getByText(/REAPER is open and answering/)).toBeVisible();
-    await expect(connection.getByText(/is not running/)).toHaveCount(0);
+    await expect(connection.getByText(/is not answering/)).toHaveCount(0);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.quiet());
-    await expect(connection.getByText(/is not running/)).toBeVisible();
+    await expect(connection.getByText(/is not answering/)).toBeVisible();
     await expect(chip).toHaveAccessibleName('REAPER: Not running');
     await expect(connection.getByText(/REAPER is open and answering/)).toHaveCount(0);
     await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.heartbeat());

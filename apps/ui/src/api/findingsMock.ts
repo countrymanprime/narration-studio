@@ -132,13 +132,13 @@ export type MockReaper = 'connected' | 'standalone' | 'not-running' | 'stale' | 
 
 // The host's words (apps/desktop/bindings_navigation.go); findingsMock.test.ts checks them against its golden payloads.
 export const REAPER_MESSAGES = {
-  standalone: 'REAPER is not connected to this app. To go to findings in REAPER, open this app from the Narration Studio action in REAPER.',
-  notRunning: 'REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.',
+  standalone: 'REAPER is not connected to this app. To go to findings in REAPER, open REAPER; the app connects to it by itself.',
+  notRunning: 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.',
   noItem: 'This finding has no REAPER item to go to, because it came from an older check. Run the check again to record one.',
   noSourceTime: 'This finding has no time in its audio to loop. Go to it instead.',
   stale: "This finding's item is no longer in the REAPER project, so nothing was moved. Run the check again to find it where it is now.",
   recording: 'REAPER is recording, so nothing was moved. Stop recording first.',
-  outdated: "The Narration Studio script in REAPER is older than this app. Import it again from this app's REAPER folder, then try again.",
+  outdated: 'The Narration Studio script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again.',
   // The approved marker's own words (apps/desktop/bindings_marker.go).
   markerNoItem: 'This finding has no REAPER item to mark, because it came from an older check. Run the check again to record one.',
   markerNoSourceTime: 'This finding has no time in its audio to put a marker at.',
