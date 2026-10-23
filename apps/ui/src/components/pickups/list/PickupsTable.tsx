@@ -431,24 +431,24 @@ function ShowWhere({
 }) {
   const noNote = !pickup.findingId;
   return (
-    <tr data-show-where={pickup.id}>
+    <TableRow data={{ 'data-show-where': pickup.id }}>
       <TableCell colSpan={7} className="bg-[var(--surface-2)]">
         <section aria-label={`Where ${clock(pickup.time)} is`} className="sticky left-2 flex max-w-[min(60rem,calc(100vw-5rem))] flex-col gap-2 py-1">
           {where?.(pickup)}
           <div className="flex flex-wrap items-center gap-2">
             {canFine && (
-              <Button variant="secondary" size="sm" aria-disabled={noNote || undefined} onClick={() => !noNote && onFine()}>
+              <Button variant="secondary" size="sm" aria-disabled={noNote || undefined} onClick={noNote ? undefined : onFine}>
                 {FINE_LABEL}
               </Button>
             )}
-            <Button variant="secondary" size="sm" aria-disabled={noNote || undefined} onClick={() => !noNote && onGoToNote()}>
+            <Button variant="secondary" size="sm" aria-disabled={noNote || undefined} onClick={noNote ? undefined : onGoToNote}>
               Go to the note in Proof
             </Button>
             {noNote && <span className="text-sm text-[var(--text-muted)]">{NO_NOTE}</span>}
           </div>
         </section>
       </TableCell>
-    </tr>
+    </TableRow>
   );
 }
 
