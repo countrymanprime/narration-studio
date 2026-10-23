@@ -66,7 +66,7 @@ Not found: an AppUserModelID (the app sets none; Windows derives one from the pr
 `scripts/ci/brand-name.mjs` fails on the current name from the brand file, in every spelling and across a wrapped line, in a tracked file's path or text. `brand-name.test.mjs` runs it in the `repo-scripts` check. It does not judge:
 
 - the brand file and the files `brand:sync` writes (`TARGETS` in `scripts/brand/sync.mjs`);
-- a brand region (`<!-- brand:name -->...<!-- /brand -->`);
+- a brand region (`<!-- brand:… -->value<!-- /brand -->`);
 - the identity file names (the REAPER launcher and its startup script);
 - the repository's own addresses (`github.com/<owner>/<repository>`, its Pages URL and the `/<repository>/` sub-path), which name the repository, not the product;
 - `ALLOWED`: dated research, ADRs, the changelog, recorded spike output, contract fixtures and saved REAPER projects that hold identity values, each with its reason.
