@@ -470,6 +470,20 @@
   },
   {
     "page": "settings",
+    "state": "recording-starting",
+    "viewport": "desktop",
+    "docName": "settings-recording-starting",
+    "caption": "Settings - Recording: the app opening REAPER on the linked project, connecting on its own"
+  },
+  {
+    "page": "settings",
+    "state": "recording-builtin-confirm",
+    "viewport": "desktop",
+    "docName": "settings-recording-builtin-confirm",
+    "caption": "Settings - Recording: the confirm before a project linked to REAPER switches to the built-in recorder"
+  },
+  {
+    "page": "settings",
     "state": "speech-costly-confirm",
     "viewport": "desktop",
     "docName": "settings-speech-confirm",
@@ -740,6 +754,13 @@
     "viewport": "desktop",
     "docName": "proof-default",
     "caption": "Proof - all chapters: the cleared ring, the chapter strip of open notes, the notes queue grouped by chapter and the Inspector on the first note"
+  },
+  {
+    "page": "proof",
+    "state": "hear-it",
+    "viewport": "desktop",
+    "docName": "proof-hear-it",
+    "caption": "Proof - Hear it on a note: Stop hearing it while it loops in REAPER with 3 s either side, and the note's paragraph in the script with the ones before and after"
   },
   {
     "page": "proof",

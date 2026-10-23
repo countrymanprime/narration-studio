@@ -51,13 +51,13 @@ export const AUDACITY_LINK_MOCK_SEEDS = {
 export type AudacityLinkMockName = keyof typeof AUDACITY_LINK_MOCK_SEEDS;
 
 const STATE_MESSAGES: Record<AudacityLinkState, string> = {
-  unsupported: 'Linking Audacity works on Windows only. Record with the built-in recorder or REAPER on this computer.',
-  not_installed: 'Audacity was not found on this computer. Install Audacity 3 (Audacity 4 has no scripting and cannot be linked), or choose another recorder.',
+  unsupported: 'Linking Audacity works on Windows only, so the app cannot connect to Audacity on this computer.',
+  not_installed: 'Audacity was not found on this computer. Install Audacity 3 (Audacity 4 has no scripting and cannot be linked), and the app connects to it.',
   not_running: 'Audacity is not running. Start it here and the app connects.',
   module_off: '',
   needs_restart: 'Audacity is open but the app cannot reach it. Audacity reads its scripting setting when it starts: close Audacity, then start it from here.',
   audacity4:
-    'The Audacity on this computer looks like Audacity 4, which has no scripting pipe, so the app cannot connect to it. Install Audacity 3.7, or choose another recorder.',
+    'The Audacity on this computer looks like Audacity 4, which has no scripting pipe, so the app cannot connect to it. Install Audacity 3.7 to use Audacity with the app.',
   dialog:
     'Audacity is open but did not answer. It may be waiting on a dialog: look for a message box in Audacity, close it, and the app reconnects by itself. Nothing is sent to Audacity meanwhile.',
   no_project:
@@ -110,18 +110,18 @@ function classify(f: Facts): Pick<AudacityLink, 'state' | 'message' | 'action' |
   if (f.running)
     return v(
       'module_off',
-      "Audacity's scripting is not turned on. Close Audacity first (it saves its settings when it closes), then press Turn on scripting here and start Audacity again.",
+      "Audacity's scripting is not turned on, and Audacity is open. Close Audacity: it saves its settings when it closes, so the app can turn scripting on only then. The app turns it on as soon as Audacity is closed and starts it again.",
     );
   if (f.module === 'on') return f.looks4 ? v('audacity4', STATE_MESSAGES.audacity4) : v('not_running', STATE_MESSAGES.not_running, 'launch');
   if (f.module === 'off')
     return v(
       'module_off',
-      "Audacity's scripting is not turned on. Press Turn on scripting, then start Audacity. Audacity may need to start twice before the connection works: the first start can fail to load scripting.",
+      "Audacity's scripting is not turned on. The app turns it on by itself while Audacity is closed, then starts Audacity. Audacity may need to start twice before the connection works: the first start can fail to load scripting.",
       'enable_module',
     );
   return v(
     'module_off',
-    'Audacity has not set itself up yet. Start it once, close it, then press Turn on scripting here and start it again. The first start cannot load scripting, so this takes two starts.',
+    'Audacity has not set itself up yet: it makes its settings file the first time it starts, and that start cannot load scripting. Start it here, close it once it has opened, and the app turns scripting on and starts it again: two starts, the first time only.',
     'launch',
   );
 }

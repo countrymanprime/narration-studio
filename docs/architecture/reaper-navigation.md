@@ -32,7 +32,7 @@ Transcript Compare records the item, take and track GUIDs of each item when it p
 
 ## Looping
 
-`loop_context` takes the item and take GUIDs and a source window. The host pads the finding's source range by `ContextPaddingSeconds` (2 s) on each side (never below 0); REAPER keeps the window inside the item. Then, in this order: stop the transport if it is playing, set the time selection and the loop points to the window, turn repeat on, move the edit cursor to the window start and press Play. Both ranges are set because repeat loops the loop points and REAPER only links them to the time selection by preference (on by default in REAPER 7.80).
+`loop_context` takes the item and take GUIDs and a source window. The host pads the finding's source range by `ContextPaddingSeconds` (3 s) on each side (never below 0); REAPER keeps the window inside the item. Then, in this order: stop the transport if it is playing, set the time selection and the loop points to the window, turn repeat on, move the edit cursor to the window start and press Play. Both ranges are set because repeat loops the loop points and REAPER only links them to the time selection by preference (on by default in REAPER 7.80).
 
 The first `loop_context` remembers the narrator's time selection, loop points and repeat. A second one (Loop on another finding) re-targets the loop and keeps that memory, so Stop always returns to what the narrator had before any loop.
 

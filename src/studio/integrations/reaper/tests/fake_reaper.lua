@@ -512,6 +512,31 @@ function Fake:add_project_api(api)
     fake.clock = (fake.clock or 1000) + (fake.clock_step or 1)
     return fake.clock
   end
+  -- ExtState with persist false: one value per section and key, shared by every script in this REAPER and gone when it
+  -- closes; an unset key reads ''. Seen in REAPER 7.82 (docs/research/reaper-startup-bridge-2026-10-23.md): a script started
+  -- later read the value __startup.lua set. Persisted ExtState (reaper-extstate.ini) is not modelled; the bridge never uses it.
+  fake.ext_state = fake.ext_state or {}
+  function api.SetExtState(section, key, value, _)
+    fake.ext_state[section .. '\0' .. key] = tostring(value)
+  end
+  function api.GetExtState(section, key)
+    return fake.ext_state[section .. '\0' .. key] or ''
+  end
+  function api.DeleteExtState(section, key, _)
+    fake.ext_state[section .. '\0' .. key] = nil
+  end
+  -- AddRemoveReaScript(add, section, path, commit): adding a path already in the action list answers the same command id, as
+  -- REAPER 7.82 did (53004 twice for one path, docs/research/reaper-startup-bridge-2026-10-23.md).
+  fake.script_actions = fake.script_actions or {}
+  function api.AddRemoveReaScript(add, section, path, commit)
+    fake.calls[#fake.calls + 1] = { name = 'AddRemoveReaScript', add = add, section = section, path = path, commit = commit }
+    if not add then
+      fake.script_actions[path] = nil
+      return 0
+    end
+    fake.script_actions[path] = fake.script_actions[path] or (53000 + #fake.calls)
+    return fake.script_actions[path]
+  end
   function api.ShowMessageBox(text, title, kind)
     fake.calls[#fake.calls + 1] = { name = 'ShowMessageBox', text = text, title = title, kind = kind }
     return 1

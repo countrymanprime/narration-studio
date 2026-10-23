@@ -209,7 +209,7 @@ describe('focus-follows-a-selection-the-page-moves', () => {
 describe('type-and-resolution-chips-are-words-and-shapes', () => {
   it('reads each decision as a word', () => {
     render(<Harness />);
-    for (const word of ['To review', 'Needs pickup', 'Fix in edit', 'Waive', 'Defer']) expect(screen.getAllByText(word).length).toBeGreaterThan(0);
+    for (const word of ['To review', 'Needs pickup', 'Fix in edit', 'Fine as read', 'Defer']) expect(screen.getAllByText(word).length).toBeGreaterThan(0);
   });
   it('shows the confidence, or the reason on hover when there is none', () => {
     render(<Harness />);

@@ -166,7 +166,7 @@ type Adapter interface {
 }
 
 // Explainer is an adapter that words its own refusals, for example Audacity's "not available yet" sentence or REAPER's
-// "open this app from the Narration Studio action in REAPER". An empty answer falls back to the resolver's wording.
+// "open REAPER; the app connects to it by itself". An empty answer falls back to the resolver's wording.
 type Explainer interface {
 	Explain(c Capability, r Reason) string
 }

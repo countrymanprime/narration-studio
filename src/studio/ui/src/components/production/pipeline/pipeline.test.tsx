@@ -287,32 +287,31 @@ describe('PageHeader', () => {
 });
 
 describe('DawBanner and NoManuscript', () => {
-  it('banner-and-empty-state: the banner shows only when the DAW is unreachable, with Retry and the built-in recorder', async () => {
+  it('banner-and-empty-state: the banner shows only when the DAW is unreachable, with Retry and never the built-in recorder', async () => {
     const onRetry = vi.fn();
-    const onUseBuiltIn = vi.fn();
-    const { rerender } = view(<DawBanner reachable daw="REAPER" onRetry={onRetry} onUseBuiltIn={onUseBuiltIn} />);
+    const { rerender } = view(<DawBanner reachable daw="REAPER" onRetry={onRetry} />);
     expect(screen.queryByRole('status')).toBeNull();
     rerender(
       <TooltipProvider>
-        <DawBanner reachable={false} daw="REAPER" onRetry={onRetry} onUseBuiltIn={onUseBuiltIn} />
+        <DawBanner reachable={false} daw="REAPER" onRetry={onRetry} />
       </TooltipProvider>,
     );
     const banner = screen.getByRole('status');
     expect(banner.textContent).toContain('REAPER is not running.');
     expect(banner.textContent).toContain('Progress that comes from REAPER may be out of date until it is running again.');
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Use built-in recorder' }));
+    expect(screen.queryByRole('button', { name: /built-in/i })).toBeNull();
+    expect(banner.textContent).not.toMatch(/built-in/i);
     expect(onRetry).toHaveBeenCalledOnce();
-    expect(onUseBuiltIn).toHaveBeenCalledOnce();
   });
 
   it('the banner offers Connect, naming the DAW, only when the page can connect it', async () => {
     const onConnect = vi.fn();
-    const { rerender } = view(<DawBanner reachable={false} daw="REAPER" onRetry={vi.fn()} onUseBuiltIn={vi.fn()} />);
+    const { rerender } = view(<DawBanner reachable={false} daw="REAPER" onRetry={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Connect REAPER' })).toBeNull();
     rerender(
       <TooltipProvider>
-        <DawBanner reachable={false} daw="REAPER" onRetry={vi.fn()} onConnect={onConnect} onUseBuiltIn={vi.fn()} />
+        <DawBanner reachable={false} daw="REAPER" onRetry={vi.fn()} onConnect={onConnect} />
       </TooltipProvider>,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Connect REAPER' }));

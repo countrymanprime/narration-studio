@@ -173,6 +173,8 @@ describe('SetupChip with the project DAW choice', () => {
     launcherAutoStart: false,
     experimental: false,
     options: [],
+    starting: null,
+    bridge: null,
   };
   const tooltipOf = async () => {
     await userEvent.hover(screen.getByRole('group'));
@@ -195,6 +197,24 @@ describe('SetupChip with the project DAW choice', () => {
     );
     expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER');
     expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp');
+  });
+
+  it('daw-chip-starting: the app opening REAPER says so, and a bridge problem is the host sentence in the tooltip', async () => {
+    const capabilities = setupCapabilities('reaper');
+    const starting = { ...base, state: 'starting' as const, linkedFile: 'Book.rpp', starting: { since: '2026-10-23T09:30:00Z' } };
+    const { unmount } = render(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={starting} />);
+    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, starting');
+    expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp · opening REAPER, connecting on its own');
+    unmount();
+    const problem = 'The app opened REAPER, but REAPER’s bridge has not answered.';
+    render(
+      <SetupChip
+        capabilities={capabilities}
+        standaloneName="Recorder"
+        choice={{ ...base, state: 'linked', linkedFile: 'Book.rpp', bridge: { installed: true, startsWithReaper: true, problem } }}
+      />,
+    );
+    expect(await tooltipOf()).toContain(`not running · start it from Recording settings · ${problem}`);
   });
 
   it('names the project choice even when the capability report names none, and the page name when it records in the app', () => {

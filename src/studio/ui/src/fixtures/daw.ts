@@ -23,7 +23,7 @@ import type { MeasureReport } from '../api/contracts/measure';
 
 export type DawSetupId = 'reaper' | 'reaper-off' | 'builtin' | 'audacity' | 'audacity-backups';
 
-const REAPER_NOT_RUNNING = 'REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.';
+const REAPER_NOT_RUNNING = 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.';
 const MACRO_UNSUPPORTED = 'Mastering with an effect macro is not something REAPER can do.';
 /** The resolver's sentence for a capability Audacity does not build yet (dawport's `message`; audacity.go's Explain leaves it to it). */
 const audacityNotYet = (key: DawCapabilityKey): string =>

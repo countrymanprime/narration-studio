@@ -1,8 +1,8 @@
-// The browser mock's findings store, answering the review bindings the way src/studio/desktop/internal/findings does:
+// The browser mock's findings store, answering the review bindings the way apps/desktop/internal/findings does:
 // the same filters, sort keys (a missing value sorts last either way), ties by chapter then id, paging with the
 // total before paging, counts over the latest run, and a decision refused when the evidence changed.
 // It exists so the Review page can be built and screenshotted without a host; the host's rules are the ones that
-// count, and src/studio/desktop/internal/findings/query_test.go pins them.
+// count, and apps/desktop/internal/findings/query_test.go pins them.
 import { z } from 'zod';
 import type {
   Finding,
@@ -130,16 +130,16 @@ const rerun = (findings: Finding[]): Finding[] =>
  */
 export type MockReaper = 'connected' | 'standalone' | 'not-running' | 'stale' | 'recording' | 'outdated';
 
-// The host's words (src/studio/desktop/bindings_navigation.go); findingsMock.test.ts checks them against its golden payloads.
+// The host's words (apps/desktop/bindings_navigation.go); findingsMock.test.ts checks them against its golden payloads.
 export const REAPER_MESSAGES = {
-  standalone: 'REAPER is not connected to this app. To go to findings in REAPER, open this app from the Narration Studio action in REAPER.',
-  notRunning: 'REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.',
+  standalone: 'REAPER is not connected to this app. To go to findings in REAPER, open REAPER; the app connects to it by itself.',
+  notRunning: 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.',
   noItem: 'This finding has no REAPER item to go to, because it came from an older check. Run the check again to record one.',
   noSourceTime: 'This finding has no time in its audio to loop. Go to it instead.',
   stale: "This finding's item is no longer in the REAPER project, so nothing was moved. Run the check again to find it where it is now.",
   recording: 'REAPER is recording, so nothing was moved. Stop recording first.',
-  outdated: "The Narration Studio script in REAPER is older than this app. Import it again from this app's REAPER folder, then try again.",
-  // The approved marker's own words (src/studio/desktop/bindings_marker.go).
+  outdated: 'The Narration Studio script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again.',
+  // The approved marker's own words (apps/desktop/bindings_marker.go).
   markerNoItem: 'This finding has no REAPER item to mark, because it came from an older check. Run the check again to record one.',
   markerNoSourceTime: 'This finding has no time in its audio to put a marker at.',
   markerStale: "This finding's item is no longer in the REAPER project, so no marker was added. Run the check again to find it where it is now.",
@@ -147,7 +147,7 @@ export const REAPER_MESSAGES = {
 } as const;
 
 /**
- * The approved marker's name as the host builds it (approvedMarker in src/studio/desktop/bindings_marker.go): the finding's kind (or its
+ * The approved marker's name as the host builds it (approvedMarker in apps/desktop/bindings_marker.go): the finding's kind (or its
  * category), then what the script says and what was heard, eight words at most each, like Transcript Compare's own markers.
  */
 export function approvedMarkerName(finding: Finding): string {
@@ -163,9 +163,9 @@ export function approvedMarkerName(finding: Finding): string {
   return `${kind.toUpperCase()}: ${body}`;
 }
 
-/** ContextPaddingSeconds (src/studio/desktop/internal/bridge/navigation.go): the audio a loop plays either side of a finding
+/** ContextPaddingSeconds (apps/desktop/internal/bridge/navigation.go): the audio a loop plays either side of a finding
  * or, reused for the same bridge.Navigator.Loop, a workspace passage (workspaceMock.ts). */
-const LOOP_PADDING_SECONDS = 2;
+const LOOP_PADDING_SECONDS = 3;
 
 type FindingsMockOptions = {
   /** After the first list the page gets, the analyzer runs again, so a decision on what that list showed is refused as stale. */

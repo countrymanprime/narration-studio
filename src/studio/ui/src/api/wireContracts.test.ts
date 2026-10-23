@@ -1932,6 +1932,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(stale).toEqual(readGolden('mastering-providers-unknown-choice.json'));
   });
 
+  it('the DAW choice while the app opens REAPER: the host golden and the mock agree on the state, the start and the bridge', async () => {
+    const golden = parseWire(dawChoiceSchema, readGolden('daw-choice-starting.json'), ctx('daw choice starting'));
+    expect({ state: golden.state, starting: golden.starting !== null, bridge: golden.bridge }).toEqual({
+      state: 'starting',
+      starting: true,
+      bridge: { installed: true, startsWithReaper: true, problem: null },
+    });
+    for (const name of ['default', 'found', 'linked'] as const) {
+      parseWire(dawChoiceSchema, readGolden(`daw-choice-${name}.json`), ctx(`daw choice ${name}`));
+    }
+    const mock = await createMockApi({}, { dawChoice: { linkedFile: 'Alice.rpp', bridge: false, starting: true }, daw: { connected: false } }).dawChoice();
+    expectMatches(dawChoiceSchema, mock, 'mock daw choice (starting)');
+    expect({ state: mock.state, starting: mock.starting !== null, bridge: mock.bridge }).toEqual({
+      state: golden.state,
+      starting: true,
+      bridge: golden.bridge,
+    });
+  });
+
   it("the project's DAW choice: the mock passes the schema, lists every engine and links the one .rpp found", async () => {
     const linked = await createMockApi().dawChoice();
     expectMatches(dawChoiceSchema, linked, 'mock daw choice (linked, connected)');

@@ -369,7 +369,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     surfaces: ['help', 'settings'],
   },
   // The Proof page's keys (SNQ-9; mock `Proof.tsx` `registerKeys('proof')`). `useProofKeys` registers the handlers while the page is mounted.
-  // Like the Script rows, each that takes a key another page row holds names it in `shadows`. Space is not claimed: Proof has no Play ±3 s.
+  // Like the Script rows, each that takes a key another page row holds names it in `shadows`.
   {
     id: 'proof.note.next',
     label: 'Next note',
@@ -406,9 +406,19 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'Proof',
     surfaces: ['help', 'settings'],
   },
+  {
+    id: 'proof.note.hear',
+    label: 'Hear the note, 3 s either side',
+    scope: 'page',
+    noisy: true,
+    defaults: [key('Space')],
+    shadows: ['workspace.play'],
+    group: 'Proof',
+    surfaces: ['help', 'settings'],
+  },
   { id: 'proof.decide.pickup', label: 'Needs pickup', scope: 'page', defaults: [key('KeyP')], group: 'Proof', surfaces: ['help', 'settings'] },
   { id: 'proof.decide.edit', label: 'Fix in edit', scope: 'page', defaults: [key('KeyE')], group: 'Proof', surfaces: ['help', 'settings'] },
-  { id: 'proof.decide.waive', label: 'Waive', scope: 'page', defaults: [key('KeyW')], group: 'Proof', surfaces: ['help', 'settings'] },
+  { id: 'proof.decide.waive', label: 'Fine as read', scope: 'page', defaults: [key('KeyW')], group: 'Proof', surfaces: ['help', 'settings'] },
   { id: 'proof.decide.defer', label: 'Defer', scope: 'page', defaults: [key('KeyD')], group: 'Proof', surfaces: ['help', 'settings'] },
   {
     id: 'proof.find',
