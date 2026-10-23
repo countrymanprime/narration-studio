@@ -15,7 +15,6 @@ import {
   markMessages,
   marksInChapter,
   mentionsIn,
-  openQueries,
   phrasesOf,
   pronOfWord,
   pronStatus,
@@ -77,14 +76,12 @@ const entity = (id: string, name: string, category: string, aliases: string[] = 
 });
 
 describe('marks', () => {
-  it('a query is a mark whose type asks; open queries leave resolved ones out', () => {
+  it('a mark whose type asks tracks a reply', () => {
     const open = mark('c1', 'ask');
-    const done = mark('c1', 'ask', { status: 'resolved' });
     const note = mark('c1', 'stress');
     expect(isAsk(TYPES, open)).toBe(true);
     expect(isAsk(TYPES, note)).toBe(false);
     expect(isAsk(TYPES, mark('c1', 'gone'))).toBe(false);
-    expect(openQueries(TYPES, [open, done, note])).toEqual([open]);
     expect(marksInChapter([open, mark('c2', 'stress')], 'c1')).toEqual([open]);
   });
 
@@ -101,8 +98,8 @@ describe('marks', () => {
 describe('chapter-facts-line-is-pure', () => {
   it('reads the counts with the mock singular and plural rules', () => {
     const input = { types: TYPES, marks: [mark('c1', 'stress'), mark('c1', 'ask')], words: [word('knave', '', [flag('c1')])], unattributed: 0 };
-    expect(chapterFacts(input, 'c1')).toBe('1 mark · 1 open query · 1 without pronunciation');
-    expect(chapterFacts({ types: TYPES, marks: [], words: [], unattributed: 0 }, 'c1')).toBe('0 marks · 0 open queries · 0 without pronunciation');
+    expect(chapterFacts(input, 'c1')).toBe('2 notes · 1 without pronunciation');
+    expect(chapterFacts({ types: TYPES, marks: [], words: [], unattributed: 0 }, 'c1')).toBe('0 notes · 0 without pronunciation');
   });
 
   it('adds the speaker clause only when a phrase has no speaker, and counts per chapter', () => {
@@ -119,8 +116,8 @@ describe('chapter-facts-line-is-pure', () => {
       words: [word('knave', '', [flag('c1'), flag('c1'), flag('c2')]), word('queen', 'kween', [flag('c1')])],
       unattributed: 2,
     };
-    expect(chapterFacts(input, 'c1')).toBe('2 marks · 2 open queries · 2 without pronunciation · 2 without a speaker');
-    expect(chapterFacts({ ...input, unattributed: 1 }, 'c2')).toBe('1 mark · 0 open queries · 1 without pronunciation · 1 without a speaker');
+    expect(chapterFacts(input, 'c1')).toBe('5 notes · 2 without pronunciation · 2 without a speaker');
+    expect(chapterFacts({ ...input, unattributed: 1 }, 'c2')).toBe('1 note · 1 without pronunciation · 1 without a speaker');
   });
 
   it('same input, same output, and the input is not mutated', () => {
@@ -138,7 +135,7 @@ describe('chapter-facts-line-is-pure', () => {
         const first = chapterFacts(input, 'c1');
         expect(chapterFacts(input, 'c1')).toBe(first);
         expect(input).toEqual(copy);
-        expect(first).toMatch(/^(1 mark|(?!1 )\d+ marks) · (1 open query|(?!1 )\d+ open queries) · \d+ without pronunciation( · [1-9]\d* without a speaker)?$/);
+        expect(first).toMatch(/^(1 note|(?!1 )\d+ notes) · \d+ without pronunciation( · [1-9]\d* without a speaker)?$/);
         expect(first.endsWith('without a speaker')).toBe(un > 0);
       }),
     );

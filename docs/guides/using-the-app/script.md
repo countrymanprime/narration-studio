@@ -6,24 +6,24 @@ The Script page is where you prep the book before recording, under **Prep** in t
 three parts side by side:
 
 - **Chapters** on the left: every narration chapter, the one in view marked, each with a dot for how far its prep is
-  (**Not started**, **In progress** or **Prepped**; the key is under the list). A **?** beside a chapter means it has
-  questions for the author still open. Press a chapter to go to it. When the project has opening credits, an
+  (**Not started**, **In progress** or **Prepped**; the key is under the list). Press a chapter to go to it. When the project has opening credits, an
   **Opening credits** row comes first, and when it has closing credits, a **Closing credits** row comes last; each goes
   to those credits in the reader, and its dot is the prep state you set on them.
 - **The reader** in the middle: the whole book as one scrolling text. Each chapter starts with a dashed line that ends
   the one before ("End of chapter 1 · 2,140 words"), then a card with the chapter's label and title, its word count,
-  its finished audio, its marks and open queries, and **My prep**, where you set the chapter's prep state.
+  its finished audio, its notes, and **My prep**, where you set the chapter's prep state.
   Your marks are drawn in the text in their own colours and lines. A Story Bible name is tinted and underlined in its
   type's colour, the same as in the Booth, and a name still marked Needs Review or Draft is amber. A word flagged for
   pronunciation has a blue dotted underline. A speaker's lines carry a chip with their name in the speaker's own
   colour: a dashed border means the speaker is only suggested, and a grey dashed chip with a question mark means nobody
-  is set. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has **Bookmarks**
-  and the **text settings** (font, size, line spacing, 1.7 at first, and column width). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
-- **The rail** on the right, with five tabs: **Words**, **Story Bible**, **Notes**, **Queries** and **Bookmarks**.
+  is set. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has the **text settings** (font, size, line spacing, 1.7 at first, and column width). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
+- **The rail** on the right, with three tabs: **Words**, **Story Bible** and **Notes**. Bookmarks are not a tab: go to one from the [jump menu](navigation.md#jump-to-or-run) (`Ctrl+F`, then type *bookmark*), and add, edit or delete one from the right-click menu (see [Bookmarks](#bookmarks)).
 
 While the manuscript is being read, the page shows the same three columns as grey blocks; if it cannot be read, the page says so with **Retry**.
 
-A bar under the reader lists its keys: select text to mark it, add a note or query, or look it up; **↑** **↓** scroll;
+The first time you open the page, a small tip over the reader says to select text to mark it, add a note, or look it up. **Got it** hides it for good, and so does selecting text; it is not shown again (see [First-use tips](#first-use-tips)).
+
+A bar under the reader lists its keys: **↑** **↓** scroll;
 **←** **→** change the prep state of the chapter in view; **Alt+↑** **Alt+↓** go to the previous or next chapter (the
 credits included) and say where you land, such as "Chapter 2, The Pool of Tears, ¶ 1 of 26"; **B**
 bookmarks the line, says "Bookmark added." and opens the bookmark's label and note (the selection toolbar's **Bookmark here** adds it with Undo instead), or says the spot already has one; **Alt+[** **Alt+]** go to
@@ -68,7 +68,7 @@ page at the same place, as do the links from Proof and the Story Bible.
 
 Select words in the reader and a dark toolbar appears over them:
 
-- **Mark** puts one of your marks on them, with a note (a query for the author is a mark too), marks a word for its
+- **Mark** puts one of your marks on them, with a note (a question for the author is a note you can reply to), marks a word for its
   pronunciation (**Pronunciation (a word)**), or opens **Define marks…**, where you name your marks and choose each
   one's colour and line.
 - **Story Bible** makes a new entry of the kind you choose from the words; the kinds are the Story Bible's own types,
@@ -83,7 +83,7 @@ Select words in the reader and a dark toolbar appears over them:
 Right-click the text for the same actions, in labelled groups: **Mark as** (your marks and **Pronunciation (a word)**),
 **Add to the Story Bible as** (left out when the words are already an entry's name or alias, where the entry's own row finds them),
 then **Look up**, **Find** (lights the matches in the text), **Copy**, **Bookmark here** and **Record from here**. Where you click adds more: on a speaker's line, **Speaker: …** to change who
-speaks it; on one of your marks, open it, change its type, resolve or reopen a query, or delete it; on a marked word,
+speaks it; on one of your marks, open it, change its type, resolve or reopen its thread, or delete it; on a marked word,
 **Show in Words** or **Remove from my words**. Right-click a chapter in the list or its card in the reader to go to it,
 record it in the Booth or set its prep state, and a word on the **Words** tab to show it or remove it. Click a marked
 word in the text to open it on the **Words** tab.
@@ -96,23 +96,22 @@ word in the text to open it on the **Words** tab.
 
 ## The rail
 
+- **In this chapter** is the same list on **Words** and on **Story Bible**: who and what the chapter has, one row each with the name, its
+  kind where it has one, and a **Hear** button where there is a pronunciation to play. It lists who is in the chapter, not who speaks,
+  and it has no status column: a row without a **Hear** button has no pronunciation yet.
 - **Words** lists the words marked for pronunciation in the chapter in view. A word's card has **How I will say it**
   with its source (a dictionary, eSpeak or the one you typed), the **Definition**, **Forvo** and **YouGlish** pages for
   it, and its definition from where **Definitions from** says: the web page (the default), the offline dictionary
   ([Settings, Models and downloads](settings.md#models-and-downloads)) or the online service on your own key. The choice is saved
   for every project, and Settings' **Definitions and pronunciations** panel changes the same one.
-- **Story Bible** lists the entries met in the chapter, one row each with its type's swatch, its type and the chapter it first appears in (**Chapter 1**); a row opens the entry's summary. The entry's header is one row:
+- **Story Bible** lists the entries met in the chapter, one row each with its type's swatch, its type, the chapter it first appears in (**Chapter 1**) and **Hear** where the entry has a pronunciation; a row opens the entry's summary. The entry's header is one row:
   its name, its type, **first:** and its chapter, then **Find in the manuscript**, **Add a note** and **Open in Story Bible**, which goes there.
   **Look up** on selected words with no entry shows them as a card instead, with their definition from where **Definitions from** says, **Create an entry**
   (the kinds are the Story Bible's own types) and the **Definition**, **Forvo** and **YouGlish** pages.
-- **Notes** and **Queries** list the chapter's marks with a note and its questions for the author; one goes to its
-  place in the text.
-- **Bookmarks** lists your bookmarks under their chapters, each with its line; one goes to its place, its pencil
-  button edits its label and note, and its bin button deletes it. The reader's margin shows a ribbon where each one is.
+- **Notes** lists the chapter's marks, each a thread you can reply to, resolve or reopen, with the note and the replies; one goes to its
+  place in the text. A question for the author is a note like the others.
 
 A Story Bible name met in the chapter is listed on **Words** too, marked with the Story Bible icon and read-only there: its pronunciation is the entry's, edited in the Story Bible.
-
-![Script - the rail's Queries tab, with no queries in this chapter](../../images/ui/script-rail-queries.webp)
 
 ![Script - the rail's Story Bible tab: the entries met in this chapter](../../images/ui/script-rail-story-bible.webp)
 
@@ -120,7 +119,17 @@ A Story Bible name met in the chapter is listed on **Words** too, marked with th
 
 ![Script - the rail's Notes tab](../../images/ui/script-note-sidebar.webp)
 
-![Script - the rail's Bookmarks tab with a bookmark placed from the selection toolbar](../../images/ui/script-bookmark.webp)
+## Bookmarks
+
+Press **B** to bookmark the line you are on (or use **Bookmark here** on the selection toolbar or the right-click menu). A ribbon in the reader's margin marks it; press the ribbon to edit its label and note, or right-click it for **Edit bookmark** and **Delete bookmark**. **Alt+[** and **Alt+]** go to the previous and next bookmark. The [jump menu](navigation.md#jump-to-or-run) lists every bookmark under **Bookmarks**, with **Bookmark here**, **Next bookmark** and **Previous bookmark**, so a bookmark is one search away.
+
+![Script - B pressed in the reader: the bookmark's ribbon in the margin and the Bookmark added toast with Undo](../../images/ui/script-bookmark.webp)
+
+## First-use tips
+
+A tip is a short note over the page that explains something the first time you could use it. It shows once for you, not once for each project: **Got it** (or doing what it describes) hides it, and the page remembers. Script has one, about selecting text.
+
+![Script - the first time it opens: a tip over the reader about selecting text, with Got it](../../images/ui/script-first-use-tip.webp)
 
 The reader follows the Light, Dark or System theme.
 

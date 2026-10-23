@@ -7,7 +7,7 @@ import { Select } from '../../../../primitives/Select';
 import type { ReaderSelection } from '../../registry/contextProvider';
 
 const TITLE_SHOWN = 60;
-export const QUERY_NEEDED = 'Write the query first.';
+export const QUERY_NEEDED = 'Write the question first.';
 
 /** The selected words as the dialog's title, shortened with an ellipsis past 60 characters. */
 export const composerTitle = (quote: string): string => (quote.length > TITLE_SHOWN ? `${quote.slice(0, TITLE_SHOWN)}…` : quote);
@@ -37,7 +37,7 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
     const mark = await commands.addMark(selection, chosen, text);
     setSaving(false);
     if (!mark) return;
-    updateView({ tab: asks ? 'queries' : 'marks', sel: mark.id });
+    updateView({ tab: 'marks', sel: mark.id });
     onClose();
   };
 
@@ -77,8 +77,8 @@ export function MarkComposer({ type, selection, onClose }: { type: string; selec
           </div>
         </div>
         <Field
-          key={asks ? 'query' : 'note'}
-          label={asks ? 'Your query' : 'Note (optional)'}
+          key={asks ? 'question' : 'note'}
+          label={asks ? 'Your question' : 'Note (optional)'}
           textarea
           autoFocus
           value={text}
