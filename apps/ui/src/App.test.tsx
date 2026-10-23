@@ -1405,8 +1405,8 @@ describe('App shell mounts', () => {
     }
   });
 
-  const openJumpFromHeader = async () => {
-    await screen.findByRole('heading', { level: 1, name: 'Production' });
+  const openJumpFromHeader = async (page = 'Production') => {
+    await screen.findByRole('heading', { level: 1, name: page });
     const button = screen.getByRole('button', { name: /Jump to or run/ });
     // A real press focuses the button, which is where the dialog gives focus back.
     button.focus();
@@ -1414,17 +1414,30 @@ describe('App shell mounts', () => {
     return button;
   };
 
-  // The chapters slot answers after the shell has mounted, and a late answer can redraw the open menu. So the filter is applied again on
-  // every poll rather than once: the wait ends as soon as the chapters are listed.
-  const chapterOptions = () =>
-    waitFor(() => {
-      const field = screen.getByRole('combobox', { name: 'Jump menu' });
-      fireEvent.change(field, { target: { value: '' } });
-      fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-      const options = screen.getAllByRole('option', { name: /^Go to Chapter/ });
-      expect(options.length).toBeGreaterThan(0);
-      return options;
-    });
+  // The menu asks the command providers once per open, and the chapters slot answers after the shell has mounted (later still on a loaded
+  // runner), so a menu opened first may not list the chapters: it is closed and opened again until it does. This is a loop that yields between
+  // attempts, not a waitFor: typing and closing inside a waitFor callback change the DOM, which runs the callback again at once, so the timer
+  // that delivers the chapters would never get to run.
+  // The slot's chapters are listed as "Go to <chapter>" on a page that does not list its own chapters. Production, Editing, Booth, Proof and
+  // Script do (their page items replace the Chapters group), so these tests start on Schedule, which does not.
+  const CHAPTER_OPTION = /^Go to Chapter \d+/;
+  const onSchedule = () => window.history.replaceState(null, '', '/schedule');
+  const optionsAfterReopening = async (button: HTMLElement, term: string, name: RegExp) => {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const field = await screen.findByRole('combobox', { name: 'Jump menu' });
+      fireEvent.change(field, { target: { value: term } });
+      const options = screen.queryAllByRole('option', { name });
+      if (options.length > 0) return options;
+      fireEvent.keyDown(field, { key: 'Escape' });
+      await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      button.focus();
+      fireEvent.click(button);
+    }
+    throw new Error(`The jump menu never listed an option matching ${name}.`);
+  };
 
   it('overlay-host-is-mounted-once: overlay.confirm from outside React shows one confirm over the page', async () => {
     const { overlay } = await import('./overlay/overlayService');
@@ -1457,9 +1470,10 @@ describe('App shell mounts', () => {
   });
 
   it('jump-menu-chapters-come-from-the-slot: lists "Go to <chapter>" for every chapter of the manuscript', async () => {
+    onSchedule();
     renderApp();
-    await openJumpFromHeader();
-    expect((await chapterOptions()).length).toBeGreaterThan(0);
+    const button = await openJumpFromHeader('Schedule');
+    expect((await optionsAfterReopening(button, 'Go to Chapter', CHAPTER_OPTION)).length).toBeGreaterThan(0);
   });
 
   it('jump-menu-chapters-come-from-the-slot: with no manuscript the list is empty and nothing is loaded', async () => {
@@ -1476,19 +1490,21 @@ describe('App shell mounts', () => {
     const chapters = await createMockApi().manuscriptChapters();
     let list = chapters.slice(0, 1);
     const extra = { ...chapters[0]!, id: 'chapter-new', index: 99, title: 'Zzyzx Afterword' };
+    onSchedule();
     renderApp({ manuscriptChapters: async () => list, subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)) });
-    const button = await openJumpFromHeader();
-    let field = await screen.findByRole('combobox', { name: 'Jump menu' });
+    const button = await openJumpFromHeader('Schedule');
+    // The first chapter is listed once the slot has answered; "Zzyzx" is not in the first list.
+    await optionsAfterReopening(button, 'Go to Chapter', CHAPTER_OPTION);
+    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
     fireEvent.change(field, { target: { value: 'Zzyzx' } });
     expect(screen.queryByRole('option', { name: /Zzyzx/ })).toBeNull();
     fireEvent.keyDown(field, { key: 'Escape' });
     list = [...chapters, extra];
     await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
     await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+    button.focus();
     fireEvent.click(button);
-    field = await screen.findByRole('combobox', { name: 'Jump menu' });
-    fireEvent.change(field, { target: { value: 'Zzyzx' } });
-    expect(await screen.findByRole('option', { name: /Zzyzx/ })).toBeTruthy();
+    expect((await optionsAfterReopening(button, 'Zzyzx', /Zzyzx/)).length).toBeGreaterThan(0);
   });
 
   it('failed-load-keeps-the-last-list: a failing read leaves the chapters in the menu', async () => {
@@ -1497,6 +1513,7 @@ describe('App shell mounts', () => {
     const ended = (event: never) => listeners.forEach((l) => l(event));
     const base = createMockApi();
     const chapters = await base.manuscriptChapters();
+    onSchedule();
     renderApp({
       manuscriptChapters: async () => {
         if (fail) throw new Error('boom');
@@ -1504,28 +1521,12 @@ describe('App shell mounts', () => {
       },
       subscribeJobEnded: (cb) => (listeners.add(cb as never), () => void listeners.delete(cb as never)),
     });
-    // The menu asks for its commands once per open, and the chapters slot answers after the shell has mounted (later still on a
-    // loaded runner), so a menu opened first never lists them: it is reopened until it does.
-    const button = await openJumpFromHeader();
-    let before = 0;
-    await waitFor(
-      async () => {
-        const field = await screen.findByRole('combobox', { name: 'Jump menu' });
-        fireEvent.change(field, { target: { value: 'Go to Chapter' } });
-        before = screen.queryAllByRole('option', { name: /^Go to Chapter/ }).length;
-        if (before === 0) {
-          fireEvent.keyDown(field, { key: 'Escape' });
-          await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
-          fireEvent.click(button);
-        }
-        expect(before).toBeGreaterThan(0);
-      },
-      { timeout: 5000 },
-    );
+    const button = await openJumpFromHeader('Schedule');
+    const before = (await optionsAfterReopening(button, 'Go to Chapter', CHAPTER_OPTION)).length;
     fail = true;
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await act(async () => ended({ id: 'j', kind: 'manuscript_import', outcome: 'success', message: '', durationMs: 1 } as never));
-    expect(screen.getAllByRole('option', { name: /^Go to Chapter/ })).toHaveLength(before);
+    expect(screen.getAllByRole('option', { name: CHAPTER_OPTION })).toHaveLength(before);
   });
 
   it('jump-menu-opens-from-key-and-header-button: Ctrl+K opens it too', async () => {
@@ -1542,7 +1543,7 @@ describe('App shell mounts', () => {
     const page = main.querySelector('.scroll-chrome-hidden') as HTMLElement;
     fireEvent.contextMenu(page);
     const menu = await screen.findByRole('menu');
-    for (const name of ['Go to', 'View', 'Jump menu…', 'Find a page, chapter or command']) {
+    for (const name of ['Go to', 'View', 'Jump menu…', 'Search this page']) {
       expect(within(menu).getByRole('menuitem', { name: new RegExp(`^${name}`) })).toBeTruthy();
     }
     // The key hints the mock draws beside the two search rows, and the current page checked under Go to.
@@ -1813,6 +1814,15 @@ describe('App shell mounts', () => {
 describe('App page change signal', () => {
   const focusIsInMain = () => screen.getByRole('main').contains(document.activeElement);
 
+  // The overlay service outlives a test: a test that ends with the jump menu open must not hand it to the next one.
+  afterEach(async () => {
+    const { overlay } = await import('./overlay/overlayService');
+    for (const entry of overlay.getSnapshot().dialogs) {
+      if (entry.kind === 'confirm') entry.answer(false);
+      else entry.close();
+    }
+  });
+
   it('titles the document with the page for rail clicks, the jump menu and Back/Forward', async () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -1829,6 +1839,37 @@ describe('App page change signal', () => {
     fireEvent.keyDown(document, { key: 'ArrowRight', code: 'ArrowRight', altKey: true });
     await screen.findByRole('heading', { name: 'Script' });
     await waitFor(() => expect(document.title).toBe('Script · Narration Studio'));
+  });
+
+  it('ctrl-f-searches-the-page: on Script it opens the menu scoped to the page, and a chapter is listed once, under On this page', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
+    await screen.findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 4000 });
+    fireEvent.keyDown(document.body, { key: 'f', code: 'KeyF', ctrlKey: true });
+    const field = await screen.findByRole('combobox', { name: 'Jump menu' });
+    expect(document.getElementById(field.getAttribute('aria-describedby')!)!.textContent).toMatch(/Script page. Searching this page only/);
+    fireEvent.change(field, { target: { value: 'rabbit' } });
+    const names = () => screen.getAllByRole('option').map((option) => option.textContent ?? '');
+    await waitFor(() => expect(names().some((name) => /Down the Rabbit-Hole/.test(name))).toBe(true));
+    expect(names().some((name) => /^Go to /.test(name))).toBe(false);
+    expect(screen.queryByRole('search')).toBeNull();
+    // The overlay service is shared by the file's tests, so the menu is closed before the next one opens its own.
+    fireEvent.keyDown(field, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Jump menu' })).toBeNull());
+  });
+
+  it('ctrl-k-lists-the-page-first: the whole menu opens with On this page before Commands', async () => {
+    renderApp();
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    fireEvent.click(within(screen.getByRole('complementary', { name: 'Primary navigation' })).getByRole('button', { name: 'Script' }));
+    await screen.findByRole('heading', { level: 2, name: 'Down the Rabbit-Hole' }, { timeout: 4000 });
+    fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
+    await screen.findByRole('combobox', { name: 'Jump menu' });
+    const headings = () => Array.from(document.querySelectorAll('[role="listbox"] [role="presentation"]')).map((node) => node.textContent);
+    expect(headings()).toContain('Commands');
+    expect(headings()[0]).toBe('On this page');
   });
 
   it('leaves focus in the page after the jump menu picks one', async () => {

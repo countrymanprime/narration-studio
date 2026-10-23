@@ -98,7 +98,13 @@ const ARRIVALS: Arrival[] = [
   },
   { seam: 'S6', what: 'Script, a malformed escape', address: '/script#c%E0%A4%A', shows: () => blocked('Script') },
   { seam: 'S6', what: 'Script, an absurd line number', address: `/script#p${'9'.repeat(400)}`, shows: () => blocked('Script') },
-  { seam: 'S7', what: 'Script with Find open on a name', address: '/script?find=Alice', shows: () => screen.findByDisplayValue('Alice'), leavesAt: '/script' },
+  {
+    seam: 'S7',
+    what: 'Script with a search showing on a name',
+    address: '/script?find=Alice',
+    shows: () => waitFor(() => expect(document.querySelector('mark[data-kind="search"]')).not.toBeNull()),
+    leavesAt: '/script',
+  },
   { seam: 'S8', what: 'Story Bible at an entry', address: '/story-bible#entity-1', shows: () => heading('Story Bible'), leavesAt: '/story-bible' },
   {
     seam: 'S8',

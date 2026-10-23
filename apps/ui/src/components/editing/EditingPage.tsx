@@ -20,6 +20,7 @@ import { EditingHeader } from './page/EditingHeader';
 import { EditingBodySkeleton } from './page/EditingSkeleton';
 import { useChapterSource } from './page/useChapterSource';
 import { useDawStatus } from './page/useDawStatus';
+import { useEditingChapterCommands } from './page/useEditingPageCommands';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
@@ -136,6 +137,7 @@ function EditingLoaded({ chapterId: asked, passageId, findingId, t, drawer, onCh
     [list, chapter, choose],
   );
 
+  useEditingChapterCommands(list, chapter?.id, choose);
   const stepper = chapter ? <ChapterStepper chapters={list} value={chapter.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={choose} onStep={step} /> : null;
   const banner = daw.off ? <DawOffBanner sentence={daw.off} dawName={daw.dawName} onRetry={daw.retry} /> : null;
   // A deep link applies to the chapter it was given for, until the narrator moves on.

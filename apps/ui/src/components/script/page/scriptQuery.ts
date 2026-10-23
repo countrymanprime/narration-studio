@@ -1,4 +1,4 @@
-// The Script page's address: `/script?find=<text>` opens the Find bar with that text (the Story Bible's Find button, SN-B92, opens it).
+// The Script page's address: `/script?find=<text>` shows a search for that text in the reader (the Story Bible's Find button, SN-B92, opens it).
 // Chapters and paragraphs are the hash's (`layout/useDeepLink.ts`); the query holds only what the page is asked to search for.
 
 /** The address that opens Find on `text`, relative to `/script`. */

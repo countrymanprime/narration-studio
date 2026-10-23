@@ -22,7 +22,7 @@ const HOMES = [HOME, 'src/components/primitives/KindMark.tsx'];
 const ALLOWED: Record<string, { marks: number; reason: string }> = {
   'src/components/script/page/reader/Para.tsx': {
     marks: 1,
-    reason: 'marks a Find bar match in the search colour, not an entry category (docs/design/design-system.md#primitive-components is about entry text)',
+    reason: 'marks a search match in the search colour, not an entry category (docs/design/design-system.md#primitive-components is about entry text)',
   },
 };
 

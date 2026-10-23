@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { shiftPeaks } from './docClock';
 import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import { peaksWindow } from './peaksWindow';
 
@@ -30,26 +31,26 @@ describe('peaksWindow', () => {
   ]);
 
   it('cuts the window of the span, one column per pixel', () => {
-    const w = peaksWindow(peaks, 2.2, 2.6, 4);
+    const w = peaksWindow(shiftPeaks(peaks, 0), 2.2, 2.6, 4);
     expect(w).not.toBeNull();
     expect(w!.map((c) => c[1])).toEqual([30, 40, 50, 60]);
     expect(w![0][0]).toBe(-30);
   });
 
   it('is null when the span lies outside the entry', () => {
-    expect(peaksWindow(peaks, 5, 6, 4)).toBeNull();
-    expect(peaksWindow(peaks, 0, 1.5, 4)).toBeNull();
+    expect(peaksWindow(shiftPeaks(peaks, 0), 5, 6, 4)).toBeNull();
+    expect(peaksWindow(shiftPeaks(peaks, 0), 0, 1.5, 4)).toBeNull();
   });
 
   it('draws the covered part only when the span overlaps the entry edge', () => {
-    const w = peaksWindow(peaks, 2.8, 3.2, 4);
+    const w = peaksWindow(shiftPeaks(peaks, 0), 2.8, 3.2, 4);
     expect(w![0][1]).toBe(90);
     expect(w![3]).toEqual([0, 0]);
   });
 
   it('is null for an empty span or no columns', () => {
-    expect(peaksWindow(peaks, 3, 3, 4)).toBeNull();
-    expect(peaksWindow(peaks, 2, 3, 0)).toBeNull();
+    expect(peaksWindow(shiftPeaks(peaks, 0), 3, 3, 4)).toBeNull();
+    expect(peaksWindow(shiftPeaks(peaks, 0), 2, 3, 0)).toBeNull();
   });
 });
 
@@ -62,9 +63,9 @@ describe('peaksWindow decoding', () => {
       [-40, 40],
     ]);
     const atob = vi.spyOn(globalThis, 'atob');
-    const a = peaksWindow(peaks, 2, 2.4, 4);
-    const b = peaksWindow(peaks, 2, 2.4, 2);
-    const c = peaksWindow(peaks, 2.1, 2.4, 3);
+    const a = peaksWindow(shiftPeaks(peaks, 0), 2, 2.4, 4);
+    const b = peaksWindow(shiftPeaks(peaks, 0), 2, 2.4, 2);
+    const c = peaksWindow(shiftPeaks(peaks, 0), 2.1, 2.4, 3);
     expect(atob).toHaveBeenCalledTimes(1);
     expect(a).toEqual([
       [-10, 10],
@@ -82,8 +83,8 @@ describe('peaksWindow decoding', () => {
 
   it('decodes a new entry object again, so a changed chapter is never drawn from a stale cache', () => {
     const atob = vi.spyOn(globalThis, 'atob');
-    peaksWindow(entry([[-1, 1]]), 2, 2.1, 1);
-    peaksWindow(entry([[-2, 2]]), 2, 2.1, 1);
+    peaksWindow(shiftPeaks(entry([[-1, 1]]), 0), 2, 2.1, 1);
+    peaksWindow(shiftPeaks(entry([[-2, 2]]), 0), 2, 2.1, 1);
     expect(atob).toHaveBeenCalledTimes(2);
     atob.mockRestore();
   });

@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import type { WorkspacePeaks } from '../../../api/contracts/workspace';
 import type { TimeWindow } from '../../proof/frame/windowMath';
 import type { ChapterDoc, DocItem } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
 import { reducedMotion } from '../../../motion';
+import type { DocPeaks, ItemClocks } from './docClock';
 import { drawRibbon, readRibbonColors, STILL_FRAME, type RibbonColors, type RibbonFrame } from './drawRibbon';
 import { subscribeFrames } from './frameLoop';
-import { peaksWindowAll } from './peaksWindow';
+import { peakGain, peaksWindowAll } from './peaksWindow';
 import { barLayout } from './ribbonBars';
 import { activePid, ribbonLayout, type RibbonLayout } from './ribbonLayout';
 import { pickEntries, useRibbonPeaks } from './useRibbonPeaks';
 import { RangeNotes, RangeOverlay } from './RangeOverlay';
-import { spanOfKeys, wordAtTime, wordsCovered, type Span } from './rangeMath';
+import { wordAtTime, wordsCovered, type Span } from './rangeMath';
 import { PanStrip, ZoomRow } from './RibbonControls';
 import { useRangeInteraction } from './useRangeInteraction';
 import { useRibbonView } from './useRibbonView';
@@ -45,16 +45,19 @@ export function RibbonView({
   head,
   choose,
   initialView,
+  gain = 1,
 }: {
   layout: RibbonLayout;
-  /** The audio the line covers: one entry, or every item it runs across. */
-  peaks?: WorkspacePeaks | readonly WorkspacePeaks[];
+  /** The audio the line covers: every item it runs across, each on the document clock (the layout's clock). */
+  peaks?: readonly DocPeaks[];
   reason?: string;
   /** The header row above the waveform: the active take's name (null for a line heard in the recording) and the span it draws. Omitted, no row. */
   head?: { take: string | null };
   choose?: RibbonRange;
   /** The part of the line to open on, seconds from its start; the whole line when left out. */
   initialView?: TimeWindow;
+  /** How much the bars are scaled up for display (`peakGain`); 1 draws the raw level. */
+  gain?: number;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -110,15 +113,15 @@ export function RibbonView({
   const columns = useMemo(() => {
     if (!peaks || width <= 0) return null;
     // One column for each bar, so the window is reduced once per span and width, not once per frame.
-    return peaksWindowAll(Array.isArray(peaks) ? peaks : [peaks as WorkspacePeaks], shownLayout.t0, shownLayout.t1, barLayout(width).count);
+    return peaksWindowAll(peaks, shownLayout.t0, shownLayout.t1, barLayout(width).count);
   }, [peaks, shownLayout.t0, shownLayout.t1, width]);
   const empty = peaks ? columns === null && width > 0 : true;
   // The host's resolution, for the note on what a bar is at this zoom.
-  const bps = (Array.isArray(peaks) ? peaks[0] : peaks)?.bucketsPerSecond;
+  const bps = peaks?.[0]?.peaks.bucketsPerSecond;
 
   // What the frame loop reads, so it keeps running while the host's playhead and the layout change under it.
-  const latest = useRef({ layout: shownLayout, columns, width });
-  latest.current = { layout: shownLayout, columns, width };
+  const latest = useRef({ layout: shownLayout, columns, width, gain });
+  latest.current = { layout: shownLayout, columns, width, gain };
   const colors = useRef<RibbonColors | null>(null);
   // When the host last moved the playhead, for the loop to move it on from.
   const headStamp = useRef(0);
@@ -128,10 +131,10 @@ export function RibbonView({
 
   const paint = (frame: RibbonFrame): void => {
     const canvas = canvasRef.current;
-    const { layout: l, columns: cols, width: w } = latest.current;
+    const { layout: l, columns: cols, width: w, gain: g } = latest.current;
     if (!canvas || !cols || w <= 0) return;
     colors.current ??= readRibbonColors(canvas);
-    drawRibbon(canvas, { width: w, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, l, cols, colors.current, frame);
+    drawRibbon(canvas, { width: w, height: HEIGHT, dpr: window.devicePixelRatio || 1 }, l, cols, colors.current, frame, g);
   };
 
   const playing = layout.playhead != null && columns !== null;
@@ -142,7 +145,7 @@ export function RibbonView({
   useEffect(() => {
     colors.current = null;
     paint(playing && !reducedMotion() ? frameNow() : STILL_FRAME);
-  }, [columns, shownLayout, width, theme, playing]);
+  }, [columns, shownLayout, width, theme, playing, gain]);
 
   // One shared frame loop, only while this line is playing and motion is wanted; stopping or reducing motion draws the still look once.
   useEffect(() => {
@@ -152,7 +155,7 @@ export function RibbonView({
       stop();
       paint(STILL_FRAME);
     };
-  }, [playing, theme, width]);
+  }, [playing, theme, width, gain]);
 
   const why = reason ?? 'This line lies outside the audio the host read.';
   return (
@@ -207,10 +210,23 @@ export function RibbonView({
 
 /** The ribbon under the active line: renders for the cursor's paragraph, else the selection head's, else the playing word's, and for no other. */
 /** `take` is the line's active take, named in the header; a line with none is heard in the recording. */
-export function Ribbon({ chapterId, pid, take = null, item }: { chapterId: string; pid: string; take?: string | null; item?: number }) {
+export function Ribbon({
+  chapterId,
+  pid,
+  take = null,
+  items,
+  clocks,
+}: {
+  chapterId: string;
+  pid: string;
+  take?: string | null;
+  items?: readonly number[];
+  /** Where each item's source seconds sit on the document clock (`itemClocks`); the peaks are in source seconds. */
+  clocks: ItemClocks;
+}) {
   const { doc, state, selected } = useEditingPage();
   if (activePid(doc, state) !== pid) return null;
-  return <ActiveRibbon chapterId={chapterId} doc={doc} pid={pid} selected={selected} playT={state.playT} take={take} item={item} />;
+  return <ActiveRibbon chapterId={chapterId} doc={doc} pid={pid} selected={selected} playT={state.playT} take={take} items={items} clocks={clocks} />;
 }
 
 function ActiveRibbon({
@@ -220,7 +236,8 @@ function ActiveRibbon({
   selected,
   playT,
   take,
-  item,
+  items,
+  clocks,
 }: {
   chapterId: string;
   doc: ChapterDoc;
@@ -228,14 +245,15 @@ function ActiveRibbon({
   selected: string[];
   playT: number | null;
   take: string | null;
-  item: number | undefined;
+  items: readonly number[] | undefined;
+  clocks: ItemClocks;
 }) {
   const { state, dispatch } = useEditingPage();
   const peaks = useRibbonPeaks(chapterId);
   const layout = useMemo(() => ribbonLayout(doc, pid, selected, playT), [doc, pid, selected, playT]);
   const words = useMemo(() => doc.paras.find((p) => p.p.id === pid)?.items ?? [], [doc, pid]);
-  // The range is what the narrator drew, else the span of the words that are selected.
-  const range = useMemo(() => state.span ?? spanOfKeys(words, selected), [state.span, words, selected]);
+  // The range is only what the narrator drew: selecting a word does not draw one.
+  const range = state.span ?? null;
   // While a drag runs the page follows only when the words it covers change, so the script is not redrawn at every pixel.
   const lastKeys = useRef('');
   const onRange = useCallback(
@@ -262,6 +280,14 @@ function ActiveRibbon({
   );
   const choose = useMemo(() => ({ words, range, onRange, onTap }), [words, range, onRange, onTap]);
   if (!layout) return null;
-  const entry = pickEntries(peaks, layout.t0, layout.t1, item);
-  return <RibbonView layout={layout} head={{ take }} choose={choose} {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })} />;
+  const entry = pickEntries(peaks, clocks, layout.t0, layout.t1, items);
+  return (
+    <RibbonView
+      layout={layout}
+      head={{ take }}
+      choose={choose}
+      gain={peakGain(peaks)}
+      {...('peaks' in entry ? { peaks: entry.peaks } : { reason: entry.reason })}
+    />
+  );
 }

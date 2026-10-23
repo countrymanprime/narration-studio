@@ -37,25 +37,23 @@ export function barLayout(width: number, fixedCount?: number): BarLayout {
   return { count, pitch, barWidth: Math.max(1, Math.min(pitch - BAR_GAP, width)) };
 }
 
-/** A column's half height in pixels: the larger of its two peaks as a share of `mid`, kept between the minimum bar and the headroom. */
-export function halfHeight(column: PeakColumn, mid: number): number {
-  const level = Math.max(Math.abs(column[0]), Math.abs(column[1])) / 127;
+/** A column's half height in pixels: the larger of its two peaks, scaled up by `gain`, as a share of `mid`, kept between the minimum bar and the headroom. */
+export function halfHeight(column: PeakColumn, mid: number, gain = 1): number {
+  const level = (Math.max(Math.abs(column[0]), Math.abs(column[1])) / 127) * gain;
   return Math.max(MIN_BAR_HEIGHT / 2, Math.min(1, level) * mid * PEAK_HEADROOM);
 }
 
-/** How the bars near the playhead move. Distances are in bars so the look is the same for a one second window and a one minute window. */
+/**
+ * The wave that rides the playhead. Distances are in bars so the look is the same for a one second window and a one minute window. Nothing
+ * oscillates in time: the bump sits on the playhead and moves with it, so a bar grows as the playhead comes up to it, is tallest while it is
+ * under it, and shrinks again as the playhead leaves.
+ */
 export const PULSE = {
   /** The bump reaches this many bars behind the playhead (already played) and ahead of it (about to play). */
   behind: 8,
   ahead: 6,
-  /** The bar under the playhead grows by up to this share of its height at the top of a beat. */
+  /** The bar under the playhead is this share taller than at rest. */
   grow: 0.5,
-  /** How much of that growth is the beat; the rest is steady. 0 holds the bump still, 1 lets it fall to nothing between beats. */
-  depth: 0.9,
-  /** The ripple's wavelength in bars: the crest leaves the playhead and reaches a bar this far off one beat later. */
-  wavelength: 6,
-  /** Beats per second. */
-  hz: 2.4,
 } as const;
 
 /** The bump's shape at `d` bars from the playhead (positive ahead of it): 1 under the playhead, easing to 0 at the reach by a half cosine. */
@@ -66,20 +64,10 @@ export function pulseEnvelope(d: number): number {
   return 0.5 * (1 + Math.cos((Math.PI * x) / reach));
 }
 
-/** The beat at `nowMs`: 0 to 1 and back, eased, `PULSE.hz` times a second. */
-export function beat(nowMs: number): number {
-  return 0.5 - 0.5 * Math.cos(2 * Math.PI * PULSE.hz * (nowMs / 1000));
-}
-
-/** The beat as a wave: a bar `d` bars from the playhead is behind the playhead's own beat by `|d| / PULSE.wavelength` of a beat, so the crest runs outward. */
-export function ripple(d: number, nowMs: number): number {
-  return 0.5 - 0.5 * Math.cos(2 * Math.PI * (PULSE.hz * (nowMs / 1000) - Math.abs(d) / PULSE.wavelength));
-}
-
-/** The factor a bar `d` bars from the playhead is taller by at `nowMs`. 1 for a bar out of reach and always 1 when motion is reduced. */
-export function barScale(d: number, nowMs: number, reduced: boolean): number {
+/** The factor a bar `d` bars from the playhead is taller by. 1 for a bar out of reach and always 1 when motion is reduced. */
+export function barScale(d: number, reduced: boolean): number {
   if (reduced) return 1;
-  return 1 + PULSE.grow * pulseEnvelope(d) * (1 - PULSE.depth + PULSE.depth * ripple(d, nowMs));
+  return 1 + PULSE.grow * pulseEnvelope(d);
 }
 
 /** The host publishes the position a few times a second; between updates the drawing moves the playhead on at the playing rate, but never further than this. */
