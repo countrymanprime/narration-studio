@@ -58,9 +58,8 @@ describe('the operations and their levels', () => {
 
 describe('rows come from findings and candidates', () => {
   it('shows a finding and a candidate of one sound once, and a done one as done', () => {
-    const twin = [finding({ id: 'a', start: 10, end: 12.4, cls: 'silence' }), finding({ id: 'b', start: 10.01, end: 12.4, cls: 'silence', extra: {} })];
-    twin[1] = { ...twin[1]!, not_in_latest_run: true };
-    const rows = cleanupRows(twin, 'gaps');
+    const twin = [finding({ id: 'a', start: 10, end: 12.4, cls: 'silence' }), finding({ id: 'b', start: 10.01, end: 12.4, cls: 'silence' })];
+    const rows = cleanupRows(twin, 'gaps', (row) => row.sec === 10.01);
     expect(rows).toHaveLength(1);
     expect(rows[0]?.ids).toEqual(['a', 'b']);
     expect(rows[0]?.done).toBe(true);
@@ -71,10 +70,6 @@ describe('rows come from findings and candidates', () => {
     expect(rows.map((r) => r.done)).toEqual([false]);
     expect(selectedRows(rows, [])).toHaveLength(1);
     expect(countsOf([finding({ id: 'a', start: 10, end: 12.4, cls: 'silence', status: 'accepted' })], standard).gaps).toBe(1);
-  });
-  it('a finding the latest measurement did not find again is done, whatever its decision', () => {
-    const gone = { ...finding({ id: 'a', start: 10, end: 12.4, cls: 'silence', status: 'accepted' }), not_in_latest_run: true };
-    expect(cleanupRows([gone], 'gaps')[0]?.done).toBe(true);
   });
   it('a gap the chapter’s cuts already trimmed is done, so it is never trimmed twice', () => {
     const gap = finding({ id: 'a', start: 10, end: 12.4, cls: 'silence', status: 'accepted' });

@@ -22,8 +22,8 @@ export interface CleanupRow {
   sourceStart?: number;
   sourceEnd?: number;
   /**
-   * Nothing is left to apply: the latest measurement did not find it again, or (a gap) the chapter's cuts already trimmed it. An
-   * accepted finding is not done: the findings contract's `accepted` is "real and needs fixing" (findings-contract.md).
+   * Nothing is left to apply: a gap the chapter's cuts already trimmed (here, or by Proof's Trim the gap, which then decides the note
+   * accepted). An accepted finding is not done: the findings contract's `accepted` is "real and needs fixing" (findings-contract.md).
    */
   done: boolean;
   /** The ids of the findings this row stands for (a finding and a candidate of the same sound). */
@@ -66,7 +66,7 @@ function rowOf(finding: Finding, kind: CleanupKind, trimmed?: TrimmedCheck): Cle
     ...(takeGuid ? { takeGuid } : {}),
     ...(range.source_start !== undefined ? { sourceStart: range.source_start } : {}),
     ...(range.source_end !== undefined ? { sourceEnd: range.source_end } : {}),
-    done: finding.not_in_latest_run === true || (kind === 'gaps' && trimmed?.({ itemGuid, sec: range.start, end: range.end }) === true),
+    done: kind === 'gaps' && trimmed?.({ itemGuid, sec: range.start, end: range.end }) === true,
     ids: [finding.id],
   };
 }

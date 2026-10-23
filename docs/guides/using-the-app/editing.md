@@ -108,7 +108,8 @@ The key hints at the foot of the page name what **Enter** does where the cursor 
 A flagged word opens its card: what the script says and what was heard, and the choice to keep the word as read, which
 clears the mark (with Undo in the message that confirms it). When [Proof](proof.md) has a note on the same words, keeping
 them as read marks that note **Fine as read** too, so it is cleared on Proof and leaves [Pickups](pickups.md); the message
-says so, and Undo puts the note back as it was.
+says so, and Undo puts the note back as it was. This holds for a note already decided **Needs pickup** too: its line
+leaves Pickups.
 
 **Mark for pickup** on a word that Proof has a note about decides that note **Needs pickup**, so the line on Pickups is the
 note's own and Pickups can take you back to it; the message says "Added to Pickups, with its note on Proof." A word with no
@@ -269,9 +270,8 @@ with the kind's sample mark and **Review** to step through them) and, under **In
 breaths, clicks, plosives and noise. The tab's count adds the words found to the findings that pass the thresholds, and the
 Backups tab counts this chapter's backups.
 Pick a strength, **Preview** to hear the first three findings with two seconds either side, and apply the change to
-the findings you selected. A finding reads **Fixed** once the latest measurement of the chapter no longer finds it, or,
-for a gap, once the chapter's cuts hold its trim (from here or from **Trim the gap** on Proof), so a gap is never trimmed
-twice. A finding decided **Needs pickup** or **Fix in edit** on Proof is still to be fixed, so it stays in the list. Clean-up actions that are still
+the findings you selected. A gap reads **Fixed** once the chapter's cuts hold its trim (from here or from **Trim the gap**
+on Proof), so a gap is never trimmed twice. A finding decided **Needs pickup** or **Fix in edit** on Proof is still to be fixed, so it stays in the list. Clean-up actions that are still
 experimental stay off until you turn them on in [Settings](settings.md).
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
