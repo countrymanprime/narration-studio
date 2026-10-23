@@ -265,7 +265,7 @@ export const ChapterCreateUnavailable: Story = {
   play: async () => {
     const open = await dialog();
     await expect(await within(open).findByText(/cannot add a track for a chapter from this app/)).toBeVisible();
-    await expect(within(open).getByRole('button', { name: 'Create a new track' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(await within(open).findByRole('button', { name: 'Create a new track' })).toHaveAttribute('aria-disabled', 'true');
   },
 };
 
