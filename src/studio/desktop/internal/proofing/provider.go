@@ -6,8 +6,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/stages"
 )
 
 // Config is what the proofing provider reads. Findings is the project's

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/tts"
+	"desktop/internal/guide"
+	"desktop/internal/process"
+	"desktop/internal/settings"
+	"desktop/internal/tts"
 )
 
 const (

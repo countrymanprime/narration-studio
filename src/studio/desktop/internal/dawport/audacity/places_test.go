@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 func placesProject(t *testing.T) (*Session, *abt.Server) {

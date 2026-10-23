@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/update"
 )
 
 // stagedHost is a Host that has downloaded version 0.2.7 and is ready to install it; the caller replaces the install and the quit.

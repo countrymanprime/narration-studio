@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // newClickService is newTestService with item-a's source replaced by speech,

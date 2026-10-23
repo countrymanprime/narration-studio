@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/contractfile"
+	"desktop/internal/process"
 )
 
 // runFakeLocator stands in for the sidecar's `--locate` mode (locate.py): one `locate` line, then exit. In the ok mode

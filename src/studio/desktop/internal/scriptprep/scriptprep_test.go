@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 func book() Book {

@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // ReadOnlyNames reads project's own Story Bible and returns each non-Draft entity's canonical name by id - the

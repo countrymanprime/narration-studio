@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/evidence"
 )
 
 func latestRecord(t *testing.T, p *testProject) evidence.LedgerRecord {

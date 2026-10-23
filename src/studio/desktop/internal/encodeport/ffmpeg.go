@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/measure"
+	"desktop/internal/port"
+	"desktop/internal/process"
 )
 
 // The FFmpeg row: WAV to constant-bit-rate MP3 with libmp3lame, run as a separate

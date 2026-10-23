@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/chaptername"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/bridge"
+	"desktop/internal/chaptername"
+	"desktop/internal/dawport"
+	"desktop/internal/tracks"
 )
 
 // This file is the host half of the chapter regions (from matched tracks) and of the credits regions: one plan of

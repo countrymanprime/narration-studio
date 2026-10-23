@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/production"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/production"
+	"desktop/internal/project"
 )
 
 // Delivery profiles: the built-in profiles are compiled into

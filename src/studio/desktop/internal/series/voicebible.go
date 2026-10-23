@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/character"
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"desktop/internal/character"
+	"desktop/internal/guide"
 )
 
 // VoiceBibleClip is one approved reference clip shown in the series voice bible: the fields the UI needs

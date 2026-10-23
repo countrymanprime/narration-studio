@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/mastering"
-	"github.com/countrymanprime/narration-studio/shell/internal/packager"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/encodeport"
+	"desktop/internal/mastering"
+	"desktop/internal/packager"
+	"desktop/internal/runlog"
 )
 
 // renderExportHost is a host whose export picker answers paths, with a project folder, recording every job end.

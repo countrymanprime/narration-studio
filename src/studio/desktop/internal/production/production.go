@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/persist"
+	"desktop/internal/stages"
 )
 
 // sessionsSchemaVersion is the only sessions.json version this package reads

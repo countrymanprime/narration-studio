@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/update"
+	"desktop/internal/hostlog"
+	"desktop/internal/update"
 )
 
 // startupUpdateDelay is how long the automatic update check waits after the window is up: the check is metadata only and must

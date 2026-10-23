@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
+	"desktop/internal/pathfixtures"
 )
 
 // The path guard (definition of done, rule 1): every function in this package that resolves a project folder or a DAW project

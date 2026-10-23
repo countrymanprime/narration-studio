@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 var _ dawport.TrackCreator = (*Session)(nil)

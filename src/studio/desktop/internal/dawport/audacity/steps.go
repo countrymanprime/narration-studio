@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
 )
 
 // steps is the role of each capability Audacity has only with backups on (takes, punch, stack_takes, cut_range, fx_range,

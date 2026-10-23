@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/extraction"
+	"desktop/internal/port"
 )
 
 // Source names, as a suggestion's source field spells them (the mock's EXTRACTION_SOURCES ids).

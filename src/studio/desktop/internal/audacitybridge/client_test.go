@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/audacitybridge"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
 )
 
 func newClient(t *testing.T, timeout time.Duration) (*audacitybridge.Client, *abt.Server) {

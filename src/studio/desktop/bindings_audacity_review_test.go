@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/findings"
 )
 
 // newAudacityReviewHost is an Audacity project whose Audacity answers (a project with one audio track, 10 to 610 s), with the

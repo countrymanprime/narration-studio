@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/editing"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/coverage"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/editing"
+	"desktop/internal/findings"
+	"desktop/internal/manuscript"
+	"desktop/internal/persist"
+	"desktop/internal/proofing"
+	"desktop/internal/settings"
+	"desktop/internal/stages"
 )
 
 // The chapter stage recommendation bindings (docs/architecture/stage-recommendations.md). StageRecommendations only

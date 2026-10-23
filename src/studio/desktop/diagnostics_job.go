@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
+	"desktop/internal/runlog"
 )
 
 // The Diagnostics view's job. It runs the windowed analyzers

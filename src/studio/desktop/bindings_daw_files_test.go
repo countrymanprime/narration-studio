@@ -11,10 +11,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
 )
 
 // DawPreviewFileRange, DawStopFilePreview and DawRevealFile (SN-B98) over a host with a bridge, fake file roles standing in for

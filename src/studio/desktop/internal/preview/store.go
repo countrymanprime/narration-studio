@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // This file holds the sidecar I/O for PinnedRange, kept separate from the pure, no-I/O engine files

@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/mastering"
-	"github.com/countrymanprime/narration-studio/shell/internal/packager"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/encodeport"
+	"desktop/internal/mastering"
+	"desktop/internal/packager"
+	"desktop/internal/runlog"
 )
 
 // The Master & QC export flow: the narrator picks rendered chapter (and credits, and retail sample) WAV files,

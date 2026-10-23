@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"desktop/internal/deliveryprofile"
 )
 
 func TestTargetsFromACX(t *testing.T) {

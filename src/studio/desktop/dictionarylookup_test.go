@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dictionary"
-	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
+	"desktop/internal/dictionary"
+	"desktop/internal/hostlog"
 )
 
 // lookupFixture is a host whose registry holds only a dictionary: a two-word release in the Open English WordNet JSON shape, served by a

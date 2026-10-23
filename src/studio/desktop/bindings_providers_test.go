@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/assets"
+	"desktop/internal/contractfile"
 )
 
 // TestProviderCapabilitiesGoldenIsCurrent pins providerCapabilitiesPayload for the two platforms that answer differently today:

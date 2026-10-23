@@ -12,7 +12,7 @@ Method: `git grep -n -I -i -E "narration[ _-]?studio"` over the tracked files (l
 
 | Kind | Example | Lines | Files | Where | Decision |
 | --- | --- | --- | --- | --- | --- |
-| Go module path | `github.com/countrymanprime/narration-studio/shell/internal/...` | 2,088 | 869 | every Go import, `go.mod`, `.golangci.yml`, the generated Wails bindings path in the UI | Brand-neutral module path; no product name |
+| Go module path | `github.com/<owner>/<repository>/shell/internal/...` | 2,088 | 869 | every Go import, `go.mod`, `.golangci.yml`, the generated Wails bindings path in the UI | Brand-neutral module path; no product name |
 | Display name | "Narration Studio" | 580 | 256 | UI text and mocks (119), Go messages and reports (114), Lua dialogs (102), docs (139), the site (24), release notes, installer | Injected from the brand (`brand.Name`, `brand.name`); "the app" where the name adds nothing |
 | Repository URL | `https://github.com/countrymanprime/narration-studio/issues/188` | 421 | 135 | issue and run links in docs (354), the update checker, the site, release scripts | From `brand.repository`; links in docs are rewritten by `rename-app` when the repository moves |
 | Other slug uses | `narration-studio` in comments, test names, temp folders | 350 | 198 | everywhere | Generic phrase, or the matching identity constant |

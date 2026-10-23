@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/dawport"
 )
 
 // Factory builds the adapter under test over a closed transport: an engine that has gone away, so every request it makes fails. A

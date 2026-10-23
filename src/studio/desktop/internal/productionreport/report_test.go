@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/production"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/production"
+	"desktop/internal/project"
+	"desktop/internal/stages"
 )
 
 // The golden files are written by this test, never by hand: run it with UPDATE_GOLDEN=1 after an intended change and

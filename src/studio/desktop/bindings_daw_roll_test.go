@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
 )
 
 // DawRoll (SND-6a) over readaloudreaper_test.go's Alice project, its first chapter linked to readAloudTrack, and a fake

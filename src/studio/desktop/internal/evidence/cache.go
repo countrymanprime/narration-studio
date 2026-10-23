@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // cacheSchemaVersion is the schema version every entry written by this

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/stages"
 )
 
 // This file is the one read the Production page makes. BuildOverview is pure: the host hands it the chapters (status

@@ -1,6 +1,6 @@
 package main
 
-import "github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+import "desktop/internal/deliveryprofile"
 
 // The measurement bindings. The job is in
 // measure_job.go; the wire-contract schema, golden payloads and mock are in src/studio/ui/src/api. The job reads no project

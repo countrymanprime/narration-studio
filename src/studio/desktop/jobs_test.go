@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 // collectJobEnds routes every job:ended event of h to the returned channel, so a test waits for the one it expects.

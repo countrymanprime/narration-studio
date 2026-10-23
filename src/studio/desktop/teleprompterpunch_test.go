@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
+	"desktop/internal/settings"
+	"desktop/internal/teleprompter"
 )
 
 // newHostForPunchTest is newHostWithARunningTeleprompter (teleprompter_test.go) plus host.config.projectFolder, which

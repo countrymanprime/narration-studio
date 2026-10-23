@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/reaper"
+	"desktop/internal/manuscript"
 )
 
 // lineStamperRole wraps client in the REAPER adapter and takes its LineStamper role, the way

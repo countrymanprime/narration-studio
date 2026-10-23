@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/audacitybridge/audacitybridgetest"
 )
 
 // goldenDir holds the exact reply bytes a real Audacity 3.7.7 wrote, saved by A3-T3 of the real-Audacity suite

@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/acoustic"
+	"desktop/internal/acoustic"
 )
 
 func TestVectorIsUnavailableWithoutAMeasuredPitch(t *testing.T) {

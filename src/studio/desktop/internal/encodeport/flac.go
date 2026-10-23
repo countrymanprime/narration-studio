@@ -8,7 +8,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 // FLAC output: FFmpeg's own native "flac" encoder writes a lossless file - there is no

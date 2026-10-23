@@ -16,7 +16,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // what names the file for the narrator in a persist notice or an error.

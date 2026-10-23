@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/settings"
 )
 
 func TestDecideAutoConnect(t *testing.T) {

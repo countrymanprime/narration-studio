@@ -15,8 +15,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/assets"
+	"desktop/internal/layout"
 )
 
 // testManager is a manager over a one-dictionary catalog whose archive is the fixture, served by a test server that counts requests.

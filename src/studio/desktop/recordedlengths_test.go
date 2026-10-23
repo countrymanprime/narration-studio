@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/evidence"
+	"desktop/internal/settings"
 )
 
 // chapterRecorded reads each chapter's recorded length the way Home does: through ManuscriptChapters.

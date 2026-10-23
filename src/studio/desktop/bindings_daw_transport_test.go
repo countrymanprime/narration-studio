@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
 )
 
 // newTestHostWithHeartbeat is a REAPER launch with a live bridge whose last heartbeat is fields (after the tag and the

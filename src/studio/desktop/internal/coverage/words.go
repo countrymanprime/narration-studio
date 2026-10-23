@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/evidence"
 )
 
 // wordsBlobVersion is the version of the cache blob this package keeps per

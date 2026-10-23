@@ -18,7 +18,7 @@ package captureport
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/port"
 )
 
 // The backends, as the sidecar's registry names them.

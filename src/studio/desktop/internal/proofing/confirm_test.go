@@ -18,9 +18,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/findings"
+	"desktop/internal/stages"
 )
 
 // confirmFixture is a one-chapter project whose status Confirm and Revert

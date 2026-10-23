@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"desktop/internal/editlog"
 )
 
 // polishFxRequest is "the Queen shouted." (words 4 to 6 of the bookmarks manuscript's p-000001), from 12 s to 13.5 s of the

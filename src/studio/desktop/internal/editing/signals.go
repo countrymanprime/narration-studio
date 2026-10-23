@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/evidence"
+	"desktop/internal/stages"
 )
 
 // EmptySpaceSignalID, ClickSignalID and BreathSignalID are this package's

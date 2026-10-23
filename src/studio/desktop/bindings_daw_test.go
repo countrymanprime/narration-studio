@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
+	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
+	"desktop/internal/recording/recordingtest"
 )
 
 // newTestHostForDawCapabilities builds a Host with no bridge and no session directory (a launch with no REAPER file

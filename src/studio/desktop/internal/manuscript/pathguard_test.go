@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/importer"
-	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
+	"desktop/internal/importer"
+	"desktop/internal/pathfixtures"
 )
 
 // The path guard (definition of done, rule 1): every function here that resolves a manuscript path or the project folder it is

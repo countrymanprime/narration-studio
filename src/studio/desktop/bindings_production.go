@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/production"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/manuscript"
+	"desktop/internal/production"
+	"desktop/internal/project"
+	"desktop/internal/stages"
 )
 
 // Production plan bindings: the book's deadline, contracted amount, payment type

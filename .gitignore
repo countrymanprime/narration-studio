@@ -68,3 +68,5 @@ src/studio/ui/playwright.local.config.ts
 src/studio/integrations/reaper/narration-studio-app-path.txt
 src/studio/integrations/reaper/narration-studio-app-path.txt.tmp
 /dist-site/
+# A program `go build` writes beside its sources (cmd/spike-storage once committed one); releases are built elsewhere.
+*.exe

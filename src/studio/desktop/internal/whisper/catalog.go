@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"desktop/internal/assets"
 )
 
 type File = assets.File

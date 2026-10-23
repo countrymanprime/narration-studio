@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/contractfile"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/measure"
 )
 
 // What MeasurePickFiles, MeasureAnalyze, MeasureState and MeasureCancel send: the picker's answer, the idle job, a

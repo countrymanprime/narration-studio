@@ -9,10 +9,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
 )
 
 // DawRepairClick (SN-E101). What REAPER does with the clicks is narration_range.lua's (repair_click_test.lua) and what the role

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // "Alice 😀 was beginning to get very tired": the emoji is two UTF-16 code units, so an offset after it is where the

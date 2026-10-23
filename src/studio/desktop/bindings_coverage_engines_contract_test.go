@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 // TestCoverageEnginesContract pins CoverageEngines' answer for tests/fixtures/contracts/coverage-engines.json

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/asrport"
+	"desktop/internal/port"
 )
 
 func fakeEntry(name string) port.Entry[asrport.Engine] {

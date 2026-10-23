@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/chaptermatch"
+	"desktop/internal/persist"
 )
 
 // mappingSchemaVersion is the schema version every file written by this

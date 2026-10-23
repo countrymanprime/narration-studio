@@ -7,8 +7,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 // rollTimeout bounds one roll: the stop, the cursor move and REAPER reporting that it records again (narration_roll.lua

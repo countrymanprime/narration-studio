@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"desktop/internal/editlog"
+	"desktop/internal/manuscript"
 )
 
 // The narrator's Editing records, kept in <project>/narration-studio/editing/ and checked against the current text

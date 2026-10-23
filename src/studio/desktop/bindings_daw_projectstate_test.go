@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
 )
 
 // savedRPP writes a .rpp whose modification time is 2026-09-26 08:40 local time, so savedAt reads the same in every

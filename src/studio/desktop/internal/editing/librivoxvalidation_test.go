@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 // librivoxSignalCorpusEnv is the variable measure's TestLibriVoxSignalCorpus

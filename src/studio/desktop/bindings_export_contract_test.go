@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/mastering"
-	"github.com/countrymanprime/narration-studio/shell/internal/packager"
+	"desktop/internal/contractfile"
+	"desktop/internal/mastering"
+	"desktop/internal/packager"
 )
 
 // What ExportPickFiles, ExportState, PackageState and their siblings send: the

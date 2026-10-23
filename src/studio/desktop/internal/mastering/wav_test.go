@@ -6,7 +6,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 // seekBuffer is an in-memory io.WriteSeeker.

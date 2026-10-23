@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/tracks"
 )
 
 // This file holds the played range, the analysis key and the item/track

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/layout"
 )
 
 // TestGeneratedConstantsMatchTheBrandFile fails when brand_gen.go was edited by hand or the brand file changed without

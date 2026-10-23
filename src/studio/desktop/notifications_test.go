@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/hostlog"
+	"desktop/internal/settings"
 )
 
 // fakeNotificationSender is the seam over the Wails notification API, so these tests never touch the real OS registry

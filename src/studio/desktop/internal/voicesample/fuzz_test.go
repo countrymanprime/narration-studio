@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/zerocross"
+	"desktop/internal/zerocross"
 )
 
 // FuzzMarkSource marks a sample from whatever bytes a take's source file holds. Any header must end in a refusal, an error, or a

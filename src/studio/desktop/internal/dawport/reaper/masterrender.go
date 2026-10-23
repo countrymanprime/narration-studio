@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 // The mastering port's DAW row: render_with_fx and master_chain_read

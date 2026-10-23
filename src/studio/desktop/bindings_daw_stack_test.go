@@ -8,12 +8,12 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagetakes"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
+	"desktop/internal/passagetakes"
+	"desktop/internal/tracks"
 )
 
 // DawStackTakes and DawUnstackTakes (SND-7b). What the plan is (which read stays, what moves, the shift) is

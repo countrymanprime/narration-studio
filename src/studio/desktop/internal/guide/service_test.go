@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/port"
+	"desktop/internal/process"
+	"desktop/internal/settings"
 )
 
 func TestEntitiesToleratesMissingGuide(t *testing.T) {

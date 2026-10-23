@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/evidence"
 )
 
 func TestRenderLedgerRoundTrip(t *testing.T) {

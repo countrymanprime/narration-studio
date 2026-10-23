@@ -47,8 +47,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/editlog"
+	"desktop/internal/persist"
 )
 
 const (

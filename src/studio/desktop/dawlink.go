@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/dawport"
+	"desktop/internal/persist"
+	"desktop/internal/project"
+	"desktop/internal/settings"
 )
 
 // ProjectLinkDawFile is the one shared binding behind the audio engine panel

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/evidence"
+	"desktop/internal/stages"
 )
 
 // RecordingSignalID is the recording stage's one signal (the stage

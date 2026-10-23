@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/dawport"
+	"desktop/internal/evidence"
+	"desktop/internal/persist"
+	"desktop/internal/process"
+	"desktop/internal/tracks"
 )
 
 // defaultPollInterval is how often a run's progress file and exit are checked.

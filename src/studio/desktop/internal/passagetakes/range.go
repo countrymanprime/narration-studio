@@ -3,8 +3,8 @@ package passagetakes
 import (
 	"math"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/coverage"
+	"desktop/internal/dawport"
 )
 
 // Sentences ResolveRange refuses with. The stale ones carry dawport.CodeStale.

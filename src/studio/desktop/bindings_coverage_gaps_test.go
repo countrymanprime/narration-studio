@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/gapreview"
+	"desktop/internal/coverage"
+	"desktop/internal/gapreview"
 )
 
 // coverageManuscriptJSON is the manuscript coverageProject writes.

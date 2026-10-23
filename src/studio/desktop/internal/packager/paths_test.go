@@ -9,9 +9,9 @@ import (
 	"testing"
 	"unicode/utf16"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/encodeport"
+	"desktop/internal/pathfixtures"
+	"desktop/internal/port"
 )
 
 // The Delivery page's path and file-name guard (definition of done, rule 1, "Paths"): the folder a package is written into runs the

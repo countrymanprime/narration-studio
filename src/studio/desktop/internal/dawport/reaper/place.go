@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 // placeFollower is the follow_position role over bridge's read_place and go_to (narration_track_select.lua). It only translates between

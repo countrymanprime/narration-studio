@@ -4,8 +4,8 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/measure"
+	"desktop/internal/settings"
 )
 
 // The silence cleanup analyzer's own thresholds (src/studio/desktop/internal/measure/cleanup.go: "the settings keys and saved presets in the layered store... are the host's"). They live

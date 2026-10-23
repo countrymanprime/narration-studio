@@ -16,11 +16,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/findings"
+	"desktop/internal/persist"
+	"desktop/internal/process"
+	"desktop/internal/pronunciationport"
+	"desktop/internal/settings"
 )
 
 type Service struct {

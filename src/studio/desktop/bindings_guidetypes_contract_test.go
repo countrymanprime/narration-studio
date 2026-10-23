@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"desktop/internal/contractfile"
+	"desktop/internal/guide"
 )
 
 // What GuideTypes sends the UI before the narrator has changed a type: the default list. The list after edits is pinned in

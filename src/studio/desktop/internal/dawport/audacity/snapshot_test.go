@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
 )
 
 func TestSnapshotRecordsAudioTracksClipsAndLabels(t *testing.T) {

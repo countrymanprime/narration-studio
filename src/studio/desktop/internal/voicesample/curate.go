@@ -9,7 +9,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"desktop/internal/editlog"
 )
 
 // view is one stored sample as the page gets it, its provenance checked against book and its clip against the file on disk.

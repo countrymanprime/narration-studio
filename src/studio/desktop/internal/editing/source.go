@@ -10,8 +10,8 @@
 package editing
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/evidence"
+	"desktop/internal/tracks"
 )
 
 // UnknownReason is a stable, typed reason one item's audio could not be

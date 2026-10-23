@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/measure"
+	"desktop/internal/tracks"
 )
 
 // The chapter workspace's waveform strip: host-computed peaks (measure.ComputePeaks/PeaksFile) for every

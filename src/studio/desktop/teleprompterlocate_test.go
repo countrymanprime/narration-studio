@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"desktop/internal/contractfile"
+	"desktop/internal/process"
+	"desktop/internal/teleprompter"
 )
 
 // fakeLocateArgsEnv names a file the fake sidecar writes its `--locate` arguments to, one per line.

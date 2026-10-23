@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/evidence"
+	"desktop/internal/persist"
 )
 
 // storedResultVersion is the version of a stored coverage result.

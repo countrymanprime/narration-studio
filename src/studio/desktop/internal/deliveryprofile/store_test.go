@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/measure"
+	"desktop/internal/persist"
 )
 
 func newTestStore(t *testing.T) (*Store, string) {

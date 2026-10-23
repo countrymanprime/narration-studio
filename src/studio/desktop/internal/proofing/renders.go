@@ -21,10 +21,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/evidence"
+	"desktop/internal/measure"
+	"desktop/internal/stages"
+	"desktop/internal/tracks"
 )
 
 // AnalyzerRenderMeasurement is the ledger analyzer id of a render measurement.

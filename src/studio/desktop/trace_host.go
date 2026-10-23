@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/trace"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
+	"desktop/internal/project"
+	"desktop/internal/trace"
 )
 
 // The host's side of the activity trace (docs/prds/activity-trace.prd.md): what the host records about the DAW bridge and

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"desktop/internal/bridge"
 )
 
 // fakeBridgeClient is dawport.TakeCreator without a real REAPER session directory or event log: CreateTake hands the

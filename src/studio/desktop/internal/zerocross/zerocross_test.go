@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 // sine is f Hz at rate, amplitude 0.5, for frames frames, as 16-bit PCM over channels identical channels (or, with

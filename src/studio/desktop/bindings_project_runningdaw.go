@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/recents"
+	"desktop/internal/project"
+	"desktop/internal/recents"
 )
 
 // ProjectRunningDaw answers {linked, path, name} for the project picker's "REAPER is running with a project linked to <name>"

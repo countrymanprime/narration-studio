@@ -14,9 +14,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/findings"
+	"desktop/internal/stages"
+	"desktop/internal/tracks"
 )
 
 // AnalyzerProoferMarkers identifies the proofer PICKUP: marker source.

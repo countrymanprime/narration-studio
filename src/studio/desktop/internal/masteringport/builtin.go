@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/mastering"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/mastering"
+	"desktop/internal/port"
 )
 
 // Builtin is the built-in chain's row name, the default.

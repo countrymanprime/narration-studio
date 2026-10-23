@@ -1,6 +1,6 @@
 package chaptermatch
 
-import "github.com/countrymanprime/narration-studio/shell/internal/tracks"
+import "desktop/internal/tracks"
 
 // Basis is which of the saved .rpp's tracks a suggestion was read from.
 type Basis string

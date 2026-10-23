@@ -12,13 +12,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-studio/shell/internal/retakelanes"
-	"github.com/countrymanprime/narration-studio/shell/internal/takecompare"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/coverage"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
+	"desktop/internal/passagemap"
+	"desktop/internal/retakelanes"
+	"desktop/internal/takecompare"
+	"desktop/internal/tracks"
 )
 
 // Where a candidate comes from (EP6's three sources) and what choosing it does (EP7).

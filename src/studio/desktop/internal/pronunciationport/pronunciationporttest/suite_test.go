@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+	"desktop/internal/port"
+	"desktop/internal/pronunciationport"
 )
 
 type src = pronunciationport.Source

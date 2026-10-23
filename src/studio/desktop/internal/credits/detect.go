@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"desktop/internal/importer"
 )
 
 // tokenOrder is a fixed, deterministic order Detect's result is sorted into, so its JSON is stable for the golden

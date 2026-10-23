@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/importer"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/importer"
+	"desktop/internal/layout"
 )
 
 // commitHeadingMisread imports one of the constructed heading cases with the narrator's subtitle choices and returns the canonical

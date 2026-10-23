@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/layout"
+	"desktop/internal/manuscript"
+	"desktop/internal/settings"
 )
 
 // chapterRegionsSubtitleTrackI and chapterRegionsSubtitleTrackII hold "CHAPTER ONE"'s and "Chapter Two"'s recordings,

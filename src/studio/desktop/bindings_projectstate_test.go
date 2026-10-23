@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 // ProjectStateChangedSince's answer: the "changed since comparison"

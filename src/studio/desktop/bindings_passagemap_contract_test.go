@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
+	"desktop/internal/recording/recordingtest"
 )
 
 // The two bindings' payloads, the goldens the UI's schema is checked against: a recorded run stamped with the built-in

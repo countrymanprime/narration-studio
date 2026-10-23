@@ -15,13 +15,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/analysistools"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/analysistools"
+	"desktop/internal/extraction"
+	"desktop/internal/extraction/apply"
+	"desktop/internal/extraction/store"
+	"desktop/internal/extractionport"
+	"desktop/internal/port"
+	"desktop/internal/process"
 )
 
 // scanSource is a test source: it is available unless unavailable gives a reason, and extract is what it offers.

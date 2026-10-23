@@ -5,7 +5,7 @@ package main
 import (
 	"unsafe"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"desktop/internal/coverage"
 	"golang.org/x/sys/windows"
 )
 

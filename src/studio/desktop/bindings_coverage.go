@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/settings"
+	"desktop/internal/whisper"
 )
 
 // The recording coverage bindings (docs/utilities/recording-coverage.md). A check runs only when the narrator

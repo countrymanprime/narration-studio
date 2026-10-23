@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"desktop/internal/coverage"
 )
 
 const rate = 16000

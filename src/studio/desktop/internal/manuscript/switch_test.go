@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/layout"
 )
 
 // Switching project must point Load at the new project's manuscript and never serve the previous project's cached parse.

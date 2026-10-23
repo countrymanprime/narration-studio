@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/dawport"
+	"desktop/internal/port"
 )
 
 // Audacity is the row that masters with the narrator's chosen Audacity effect macro.

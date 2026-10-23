@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/bridge"
+	"desktop/internal/findings"
 )
 
 // What FindingsAddMarker sends, over a finding the real Transcript Compare adapter writes

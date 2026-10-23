@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"desktop/internal/extraction"
+	"desktop/internal/guide"
 )
 
 // The review and colour bindings change the Story Bible in the host (guide.Service, mutate.go): no sidecar process, and the change is in

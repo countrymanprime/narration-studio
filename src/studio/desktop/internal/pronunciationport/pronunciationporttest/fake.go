@@ -1,6 +1,6 @@
 package pronunciationporttest
 
-import "github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+import "desktop/internal/pronunciationport"
 
 // Fake is a test-only pronunciation source: it is what its caller says it is.
 type Fake struct{ name, browserHost string }

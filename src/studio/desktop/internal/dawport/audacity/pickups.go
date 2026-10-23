@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
 )
 
 // Pickups is the pickup list over Audacity (docs/reference/daw/capabilities.md#pickups). REAPER keeps a pickup as a project marker

@@ -3,8 +3,8 @@ package main
 import (
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/marks"
+	"desktop/internal/manuscript"
+	"desktop/internal/marks"
 )
 
 // The Script page's marks: a range of one paragraph marked with one of the narrator's mark types, with an optional note, or

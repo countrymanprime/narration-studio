@@ -14,10 +14,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/evidence"
+	"desktop/internal/findings"
+	"desktop/internal/stages"
+	"desktop/internal/tracks"
 )
 
 // SignalProvider is the editing stage's stages.Provider.

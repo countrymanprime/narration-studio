@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/retakelanes"
+	"desktop/internal/retakelanes"
 )
 
 // The retakes-as-fixed-lanes bindings.

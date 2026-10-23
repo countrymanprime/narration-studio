@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/chaptersync"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/chaptersync"
+	"desktop/internal/contractfile"
+	"desktop/internal/layout"
+	"desktop/internal/manuscript"
+	"desktop/internal/project"
 )
 
 // Chapter sync's consent and first sync. The chapter-match host is Alice's three chapters and a .rpp with a "Chapter I"

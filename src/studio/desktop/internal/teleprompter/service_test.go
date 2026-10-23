@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/process"
 )
 
 const fakeSidecarEnv = "TELEPROMPTER_FAKE_SIDECAR"

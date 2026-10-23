@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/manuscript"
+	"desktop/internal/stages"
 )
 
 // metProvider reports recording.text met for every chapter.

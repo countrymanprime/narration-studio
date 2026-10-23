@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bookmarks"
+	"desktop/internal/bookmarks"
 )
 
 // bookmarksManuscript is a two-chapter manuscript the reader would show, written where the manuscript service reads it.

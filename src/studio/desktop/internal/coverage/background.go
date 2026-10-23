@@ -4,7 +4,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/evidence"
 )
 
 // Background recording checks. NextBackground decides, from what the host

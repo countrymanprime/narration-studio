@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/project"
 )
 
 // ProductionPlan's, ProductionSetDeadline's, ProductionSetPayment's and ProductionSaveMilestones's payload:

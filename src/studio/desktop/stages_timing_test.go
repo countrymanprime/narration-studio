@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/evidence"
+	"desktop/internal/tracks"
 )
 
 // stagesTimingEnv names a project folder to time StageRecommendations on to check that evaluation is read-only and

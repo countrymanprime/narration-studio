@@ -27,7 +27,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 type mergeStep struct {

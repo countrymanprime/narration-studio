@@ -7,7 +7,7 @@ package asrport
 import (
 	"slices"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/port"
 )
 
 // Engine names, as the sidecars' --engine flag and the Teleprompter.engine setting spell them.

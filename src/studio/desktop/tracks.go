@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/audacity"
+	"desktop/internal/dawport/reaper"
+	"desktop/internal/persist"
+	"desktop/internal/project"
+	"desktop/internal/settings"
+	"desktop/internal/tracks"
 )
 
 // tracksDiscover lists every *.rpp file discovered in the project folder,

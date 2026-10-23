@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
-	"github.com/countrymanprime/narration-studio/shell/internal/importer"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/guide"
+	"desktop/internal/importer"
+	"desktop/internal/process"
+	"desktop/internal/settings"
 )
 
 // fakeGuideCountEnv turns this test binary into a Story Bible sidecar that only records how it was called: one JSON line of arguments per

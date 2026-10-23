@@ -17,7 +17,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 // RenderScan is what one whole-file decode of a chapter's rendered WAV

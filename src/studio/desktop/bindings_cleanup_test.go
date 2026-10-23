@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/dawporttest"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/levelnormalize"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/dawporttest"
+	"desktop/internal/evidence"
+	"desktop/internal/levelnormalize"
+	"desktop/internal/measure"
 )
 
 // fakeResolver builds a resolver over a dawporttest.Fake declaring every capability at level, with a live, reachable

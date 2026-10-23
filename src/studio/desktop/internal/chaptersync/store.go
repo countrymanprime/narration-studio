@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/evidence"
+	"desktop/internal/persist"
 )
 
 // snapshotSchemaVersion is chapter-sync.json's version. A newer file reads as

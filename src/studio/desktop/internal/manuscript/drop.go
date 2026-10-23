@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"desktop/internal/importer"
 )
 
 // DroppedFile checks the paths the operating system handed over for a file dropped on the window and returns the one manuscript to

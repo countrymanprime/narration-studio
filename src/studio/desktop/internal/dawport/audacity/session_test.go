@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/dawport"
 )
 
 func newSession(t *testing.T) (*Session, *abt.Server) {

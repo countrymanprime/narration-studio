@@ -26,7 +26,7 @@ import (
 	"unicode"
 	"unicode/utf16"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // SchemaVersion is the only script-prep.json version this package reads or writes.

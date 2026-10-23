@@ -7,9 +7,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
+	"desktop/internal/extraction"
+	"desktop/internal/extraction/apply"
+	"desktop/internal/extraction/store"
 )
 
 // The Story Bible's extraction suggestions: what a source offered, kept in

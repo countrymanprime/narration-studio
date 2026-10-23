@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/bridge"
+	"desktop/internal/runlog"
 )
 
 // A request's timing reaches run.jsonl as the command name, an outcome word and milliseconds, and nothing from the request's

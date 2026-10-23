@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/measure"
+	"desktop/internal/proofing"
+	"desktop/internal/stages"
 )
 
 // The chapter-to-render association bindings: the narrator chooses which rendered file a chapter's delivery checks are

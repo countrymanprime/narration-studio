@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // aliceBook is a two-chapter manuscript: "Off with her head!" is words 0 to 3 of p-000001.

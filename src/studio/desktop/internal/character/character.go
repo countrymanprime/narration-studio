@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/dawport"
+	"desktop/internal/findings"
+	"desktop/internal/persist"
+	"desktop/internal/tracks"
 )
 
 // NarrationCharacterID is the reserved character id for plain narration as a

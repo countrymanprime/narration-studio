@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/credits"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/credits"
+	"desktop/internal/layout"
+	"desktop/internal/settings"
 )
 
 // The credits on the teleprompter: the host renders the text with

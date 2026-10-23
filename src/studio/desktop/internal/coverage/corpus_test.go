@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/stages"
 )
 
 // The recording-coverage corpus: the committed synthetic cases, and

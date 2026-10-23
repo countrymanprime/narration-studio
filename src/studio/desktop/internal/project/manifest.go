@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/credits"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/credits"
+	"desktop/internal/persist"
 )
 
 // Marker is the manifest's "this is a Narration Studio project" field: its presence and value, not just the file's

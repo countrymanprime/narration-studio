@@ -6,8 +6,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/evidence"
+	"desktop/internal/stages"
 )
 
 // SignalSources are what the recording signal needs from the host besides

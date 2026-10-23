@@ -29,11 +29,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/guide"
+	"desktop/internal/manuscript"
+	"desktop/internal/process"
+	"desktop/internal/settings"
+	"desktop/internal/tracks"
 )
 
 type sample struct {

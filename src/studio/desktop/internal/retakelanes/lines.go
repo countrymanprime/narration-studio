@@ -11,7 +11,7 @@ package retakelanes
 import (
 	"sort"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/tracks"
 )
 
 // LineIDKey is the item extension key that names an item's manuscript line.

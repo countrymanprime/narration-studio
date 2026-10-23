@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/spacy"
+	"desktop/internal/guide"
+	"desktop/internal/settings"
+	"desktop/internal/spacy"
 )
 
 // plainModelName is what a spaCy package name looks like: letters, digits, underscores, dots and dashes, and not starting with a dash.

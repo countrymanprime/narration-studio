@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"desktop/internal/assets"
+	"desktop/internal/layout"
 )
 
 // A small wheel: the model folder the way spaCy ships it, and its notices.

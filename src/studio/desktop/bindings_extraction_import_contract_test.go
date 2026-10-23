@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
+	"desktop/internal/extraction"
+	"desktop/internal/extraction/apply"
+	"desktop/internal/extraction/store"
 )
 
 // The payloads the UI's import schemas are checked against: the preview of a file with every action and a row error, the preview of a

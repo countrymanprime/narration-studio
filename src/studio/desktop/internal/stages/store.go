@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // decisionsSchemaVersion is the version every decisions file this package

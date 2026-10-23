@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/evidence"
+	"desktop/internal/process"
 )
 
 // --- a project on disk ---

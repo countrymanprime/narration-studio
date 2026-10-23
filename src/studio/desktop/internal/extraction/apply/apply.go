@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
+	"desktop/internal/extraction"
+	"desktop/internal/extraction/store"
 )
 
 // The sentences a refusal says.

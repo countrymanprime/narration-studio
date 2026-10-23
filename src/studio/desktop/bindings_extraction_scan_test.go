@@ -6,7 +6,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/process"
 )
 
 func decodeSources(t *testing.T) func(string, error) []ExtractionSource {

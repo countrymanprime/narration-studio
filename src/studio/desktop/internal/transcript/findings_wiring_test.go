@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // compareMarkerEvent builds the exact COMPARE_MARKER field list

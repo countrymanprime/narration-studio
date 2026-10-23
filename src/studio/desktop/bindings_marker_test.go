@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/bridge"
+	"desktop/internal/daw"
+	"desktop/internal/findings"
+	"desktop/internal/settings"
 )
 
 // markerFinding is a Transcript Compare MISREAD as the adapter writes it: kind in the evidence, what the script says

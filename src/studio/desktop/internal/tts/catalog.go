@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"desktop/internal/assets"
 )
 
 // File is one downloadable file of a voice, as internal/assets describes it.

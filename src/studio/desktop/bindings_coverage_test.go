@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
+	"desktop/internal/contractfile"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/whisper"
 )
 
 // whisperWithSmall is a Whisper catalog with the Transcript Compare default model, small, installed when install is set.

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 func decisionAt(chapterID string, kind DecisionKind, minute int) Decision {

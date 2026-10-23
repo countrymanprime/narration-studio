@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/process"
 )
 
 // runFakeDeviceLister stands in for the sidecar's `--list-devices` mode. It is checked before runFakeSidecar's normal

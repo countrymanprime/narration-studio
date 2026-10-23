@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/extraction"
+	"desktop/internal/extractionport"
+	"desktop/internal/port"
 )
 
 type src = extractionport.Source

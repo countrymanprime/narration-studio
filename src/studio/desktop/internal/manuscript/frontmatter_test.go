@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"desktop/internal/importer"
 )
 
 // Front matter is never a chapter. The import keeps its lines on the side, for the credits to read the title and author from, and writes

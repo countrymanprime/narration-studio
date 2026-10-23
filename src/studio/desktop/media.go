@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/voicesample"
+	"desktop/internal/voicesample"
 )
 
 const mediaRoute = "/media"

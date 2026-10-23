@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/persist"
 )
 
 // denyListing removes the current user's permission to list dir's own

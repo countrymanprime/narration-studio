@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
+	"desktop/internal/contractfile"
+	"desktop/internal/recording"
+	"desktop/internal/recording/recordingtest"
 )
 
 // The Booth records without a DAW through ReadAloudRecordStart and ReadAloudRecordStop, the same two bindings it uses for

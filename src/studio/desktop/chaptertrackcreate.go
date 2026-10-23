@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 // "Create a track for this chapter and link it": offered when a chapter has no track to record on. The engine's half is the

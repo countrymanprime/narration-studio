@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/findings"
+	"desktop/internal/process"
+	"desktop/internal/settings"
 )
 
 // writeGuideFile writes a manuscript_guide.json with one entity at the given

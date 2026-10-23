@@ -17,7 +17,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/measure"
 )
 
 const (

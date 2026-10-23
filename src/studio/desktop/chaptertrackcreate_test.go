@@ -9,13 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/dawporttest"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/coverage"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/dawporttest"
+	"desktop/internal/manuscript"
+	"desktop/internal/settings"
 )
 
 const createdTrackGUID = "{00000003-0000-4000-8000-000000000003}"

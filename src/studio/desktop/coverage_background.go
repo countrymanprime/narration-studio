@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
 )
 
 // Background recording checks. Every

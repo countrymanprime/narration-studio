@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/settings"
 )
 
 func newTestHostForMedia(t *testing.T, folder string) *Host {

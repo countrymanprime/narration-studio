@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/gapreview"
+	"desktop/internal/coverage"
+	"desktop/internal/gapreview"
 )
 
 // The narrator's call on a recording-check gap. A check only measures: nothing here runs on its own, and

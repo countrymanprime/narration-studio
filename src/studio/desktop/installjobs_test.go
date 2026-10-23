@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/tts"
-	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
+	"desktop/internal/assets"
+	"desktop/internal/hostlog"
+	"desktop/internal/tts"
+	"desktop/internal/whisper"
 )
 
 // installFixture is a voice catalog of two files whose server answers only when the test lets it, so a test can look at a job between

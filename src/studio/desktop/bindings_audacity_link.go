@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitylink"
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
+	"desktop/internal/audacitylink"
+	"desktop/internal/daw"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/audacity"
 )
 
 // Linking Audacity 3: AudacityLink and its live event audacity_link_changed tell the UI how far the project is from talking to

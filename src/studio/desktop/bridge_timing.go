@@ -3,7 +3,7 @@ package main
 import (
 	"log/slog"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"desktop/internal/bridge"
 )
 
 // recordBridgeTiming writes one `bridge.timing` record to the app run in run.jsonl for each REAPER request: the command's name, a fixed

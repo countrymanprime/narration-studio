@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/dawporttest"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/dawporttest"
+	"desktop/internal/recording"
 )
 
 // recording.Service is the recorder the host hands the adapter; the adapter only names the methods it calls.

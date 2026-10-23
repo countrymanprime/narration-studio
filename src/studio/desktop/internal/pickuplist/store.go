@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/findings"
+	"desktop/internal/persist"
 )
 
 // SchemaVersion is the only pickup-list.json version this package reads or writes.

@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/extractionporttest"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/extraction"
+	"desktop/internal/extractionport"
+	"desktop/internal/extractionport/extractionporttest"
+	"desktop/internal/port"
+	"desktop/internal/process"
 )
 
 // The test binary doubles as the sidecar: started with fakeEnv set, TestMain runs fakeSidecar instead of the tests.

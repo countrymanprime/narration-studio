@@ -7,9 +7,9 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
+	"desktop/internal/measure"
 )
 
 // MasterPlayQuietest and MasterOpenInDaw (SN-M97) over filesHost (bindings_daw_files_test.go) with a finished measurement of

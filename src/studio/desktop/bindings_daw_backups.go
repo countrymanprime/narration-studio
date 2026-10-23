@@ -12,12 +12,12 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
-	"github.com/countrymanprime/narration-studio/shell/internal/passagetakes"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/audacity"
+	"desktop/internal/passagetakes"
+	"desktop/internal/persist"
+	"desktop/internal/settings"
 )
 
 // backupTimeout bounds one backup or restore: Audacity copies and pastes up to the window either side of the edit, which at the

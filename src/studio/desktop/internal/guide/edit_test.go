@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/process"
+	"desktop/internal/settings"
 )
 
 // hostEditService is a Service whose sidecar does not exist, so an edit that started a process would fail with "configure the

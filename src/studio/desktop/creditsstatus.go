@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/credits"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"desktop/internal/credits"
+	"desktop/internal/project"
 )
 
 // Credits row statuses: the opening and closing credits rows

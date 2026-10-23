@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/contractfile"
+	"desktop/internal/measure"
+	"desktop/internal/proofing"
+	"desktop/internal/stages"
 )
 
 // The chapter-to-render association bindings: ProofingChooseRender opens a file dialog (a test-only seam,

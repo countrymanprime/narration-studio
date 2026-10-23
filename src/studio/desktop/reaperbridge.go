@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/daw"
-	"github.com/countrymanprime/narration-studio/shell/internal/reaperinstall"
+	"desktop/internal/daw"
+	"desktop/internal/reaperinstall"
 )
 
 // The app's bridge in REAPER (internal/reaperinstall): the host puts the bridge into REAPER's Scripts folder and hooks

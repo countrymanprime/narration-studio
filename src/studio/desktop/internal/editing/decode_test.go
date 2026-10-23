@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/evidence"
+	"desktop/internal/measure"
 )
 
 const testRate = 8000

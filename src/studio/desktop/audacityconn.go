@@ -5,11 +5,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/audacity"
+	"desktop/internal/persist"
+	"desktop/internal/settings"
 )
 
 // audacityConn is the open project's one Audacity connection. Audacity's scripting pipe serves one client, so every role the

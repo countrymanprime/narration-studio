@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"desktop/internal/dawport"
+	"desktop/internal/teleprompter"
 )
 
 type fakePuncherRole struct {

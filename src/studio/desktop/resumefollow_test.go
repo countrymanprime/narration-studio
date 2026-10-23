@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
 )
 
 // Following REAPER while the resume prompt shows: REAPER playing or

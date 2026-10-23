@@ -11,8 +11,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/ttsport"
+	"desktop/internal/port"
+	"desktop/internal/ttsport"
 )
 
 // Run fails t once per broken promise of entry.

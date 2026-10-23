@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/marks"
+	"desktop/internal/marks"
 )
 
 func decodeDeleted(t *testing.T) func(string, error) marks.Deleted {

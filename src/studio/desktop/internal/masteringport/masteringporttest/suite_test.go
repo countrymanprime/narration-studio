@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/dawport"
+	"desktop/internal/masteringport"
+	"desktop/internal/port"
 )
 
 func TestTheMockRowPassesTheSuite(t *testing.T) {

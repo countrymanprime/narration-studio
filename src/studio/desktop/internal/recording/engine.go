@@ -19,7 +19,7 @@ package recording
 import (
 	"context"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
+	"desktop/internal/captureport"
 )
 
 // Device is one input device the engine can open, by the name that opens it.

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/process"
 )
 
 // SidecarRequest is everything the sidecar's --find-repeats mode needs

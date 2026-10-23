@@ -1,8 +1,8 @@
 package coverage
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/evidence"
+	"desktop/internal/tracks"
 )
 
 // Result reads the chapter's newest complete coverage run back and says

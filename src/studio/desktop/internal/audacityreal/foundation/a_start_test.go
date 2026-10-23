@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/audacityreal"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/audacityreal"
 )
 
 // A3-T1: the first start on a profile Audacity has never seen. Five whole cycles; the one-start outcome is recorded and never relied on.

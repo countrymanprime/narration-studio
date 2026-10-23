@@ -3,7 +3,7 @@ package daw
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"desktop/internal/bridge"
 )
 
 func transportEvent(fields ...string) bridge.Event {

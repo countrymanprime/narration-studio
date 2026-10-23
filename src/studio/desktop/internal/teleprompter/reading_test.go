@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 // The prompter's last position per chapter.

@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/dawport"
 )
 
 // daw_transport_changed tells the UI whether the DAW is playing or recording, read from the

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/measure"
+	"desktop/internal/stages"
 )
 
 var measuredAt = time.Date(2026, 9, 26, 11, 30, 0, 0, time.UTC)

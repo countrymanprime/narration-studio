@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawcatalog"
+	"desktop/internal/dawcatalog"
 )
 
 // fakeDetector returns a Detector that reports installed at path/source when installed is true, and "not found"

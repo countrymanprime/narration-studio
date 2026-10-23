@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/reaper"
-	"github.com/countrymanprime/narration-studio/shell/internal/retakelanes"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/reaper"
+	"desktop/internal/retakelanes"
 )
 
 // newTestHostForRetakeLanes opens a project folder holding the S7 spike project (fixed-lanes.rpp) as its only .rpp,

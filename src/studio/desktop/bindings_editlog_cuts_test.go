@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"desktop/internal/editlog"
 )
 
 func undoSteps(n int) *int { return &n }

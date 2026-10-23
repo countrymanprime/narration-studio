@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/pickuplist"
-	"github.com/countrymanprime/narration-studio/shell/internal/pickups"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/manuscript"
+	"desktop/internal/pickuplist"
+	"desktop/internal/pickups"
+	"desktop/internal/stages"
 )
 
 // The pickup list: the lines to record again, merged from the recording check's gaps, the notes decided

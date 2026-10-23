@@ -10,9 +10,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/recording"
+	"desktop/internal/captureport"
+	"desktop/internal/port"
+	"desktop/internal/recording"
 )
 
 // Backend is a capture row stand-in: wasapi, Experimental.

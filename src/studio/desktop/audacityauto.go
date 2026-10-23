@@ -3,7 +3,7 @@ package main
 import (
 	"log/slog"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitylink"
+	"desktop/internal/audacitylink"
 )
 
 // audacityAutoConnect does for an Audacity project what the narrator would otherwise do by hand, as far as Audacity allows, at most

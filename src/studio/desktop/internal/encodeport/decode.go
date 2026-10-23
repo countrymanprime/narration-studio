@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/measure"
+	"desktop/internal/port"
 )
 
 // The decode direction, needed to measure levels on an already-encoded MP3: the same catalogued FFmpeg build that

@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/dawporttest"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/audacity"
+	"desktop/internal/dawport/dawporttest"
 )
 
 // newClient is a bridge client over a fresh session directory, and that directory.

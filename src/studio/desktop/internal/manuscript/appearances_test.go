@@ -3,7 +3,7 @@ package manuscript
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"desktop/internal/importer"
 )
 
 func appearancesOf(t *testing.T, draft importer.Draft) map[string]int {

@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/dawport"
 )
 
 // Config is the session path the service needs to talk to REAPER over the file bridge.

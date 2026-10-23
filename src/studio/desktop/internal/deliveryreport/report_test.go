@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // The golden files are written by this test, never by hand: run it with UPDATE_GOLDEN=1 after an intended change and

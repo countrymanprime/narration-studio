@@ -11,8 +11,8 @@ package editing
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
 )
 
 // analyzerName is this package's findings.Finding.Analyzer value, shared by

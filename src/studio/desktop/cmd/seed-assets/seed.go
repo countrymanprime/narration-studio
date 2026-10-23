@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/moonshine"
-	"github.com/countrymanprime/narration-studio/shell/internal/spacy"
-	"github.com/countrymanprime/narration-studio/shell/internal/tts"
-	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
+	"desktop/internal/assets"
+	"desktop/internal/moonshine"
+	"desktop/internal/spacy"
+	"desktop/internal/tts"
+	"desktop/internal/whisper"
 )
 
 // kind is one kind of approved asset as the seeding command sees it: the ids its catalog approves, and the operations on one of them. It

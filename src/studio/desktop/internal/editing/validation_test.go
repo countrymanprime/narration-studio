@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/evidence"
+	"desktop/internal/stages"
 )
 
 // passingRun is a held-out result that clears RecallTarget in every

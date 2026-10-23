@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"desktop/internal/asrport"
+	"desktop/internal/process"
 )
 
 // defaultGrace is how long a stopping sidecar gets to flush and exit on its

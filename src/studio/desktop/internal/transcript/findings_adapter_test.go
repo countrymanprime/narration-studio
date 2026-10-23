@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // fixtureRow builds a row exactly as Service.Handle builds one from a

@@ -4,16 +4,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/analysistools"
-	"github.com/countrymanprime/narration-studio/shell/internal/assets"
-	"github.com/countrymanprime/narration-studio/shell/internal/dictionary"
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/ffmpeg"
-	"github.com/countrymanprime/narration-studio/shell/internal/layout"
-	"github.com/countrymanprime/narration-studio/shell/internal/moonshine"
-	"github.com/countrymanprime/narration-studio/shell/internal/spacy"
-	"github.com/countrymanprime/narration-studio/shell/internal/tts"
-	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
+	"desktop/internal/analysistools"
+	"desktop/internal/assets"
+	"desktop/internal/dictionary"
+	"desktop/internal/encodeport"
+	"desktop/internal/ffmpeg"
+	"desktop/internal/layout"
+	"desktop/internal/moonshine"
+	"desktop/internal/spacy"
+	"desktop/internal/tts"
+	"desktop/internal/whisper"
 )
 
 // The per-asset-kind folders under the asset cache (internal/assets names them once, for the host and for the seeding command alike).

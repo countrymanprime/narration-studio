@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/audacitybridge"
+	abt "desktop/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/dawport"
+	"desktop/internal/persist"
 )
 
 // pipeAudacity is a fake Audacity for the backups: the scripting commands spike 1g sends (docs/operations/daw-spike-run-sheet.md,

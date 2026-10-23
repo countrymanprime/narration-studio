@@ -1,8 +1,8 @@
 package captureporttest
 
 import (
-	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/captureport"
+	"desktop/internal/port"
 )
 
 // Fake is a test-only capture backend: it is what its caller says it is, and Supported.

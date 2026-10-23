@@ -8,8 +8,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"desktop/internal/contractfile"
+	"desktop/internal/evidence"
 )
 
 // pinResult pins a CoverageResult answer (docs/utilities/recording-coverage.md). The basis label

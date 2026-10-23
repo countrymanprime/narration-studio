@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/credits"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"desktop/internal/credits"
+	"desktop/internal/project"
+	"desktop/internal/teleprompter"
 )
 
 // Credits bindings: the

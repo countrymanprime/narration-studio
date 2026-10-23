@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
-	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/transcript"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/evidence"
+	"desktop/internal/manuscript"
+	"desktop/internal/measure"
+	"desktop/internal/persist"
+	"desktop/internal/proofing"
+	"desktop/internal/settings"
+	"desktop/internal/transcript"
 )
 
 // comparisonRecorder is the transcript service's run recorder: every

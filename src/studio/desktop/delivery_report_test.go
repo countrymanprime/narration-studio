@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryreport"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	projectmanifest "github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/contractfile"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/deliveryreport"
+	"desktop/internal/findings"
+	"desktop/internal/measure"
+	projectmanifest "desktop/internal/project"
+	"desktop/internal/settings"
 )
 
 // The report export and the host's judgement of a measurement against the project's delivery

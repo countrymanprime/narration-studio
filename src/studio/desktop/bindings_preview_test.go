@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 // previewSuggestProject writes a project folder with just a canonical manuscript

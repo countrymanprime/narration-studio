@@ -1,6 +1,6 @@
 package ttsporttest
 
-import "github.com/countrymanprime/narration-studio/shell/internal/ttsport"
+import "desktop/internal/ttsport"
 
 // Fake is a test-only voice engine: it is what its caller says it is.
 type Fake struct{ name, assetKind string }

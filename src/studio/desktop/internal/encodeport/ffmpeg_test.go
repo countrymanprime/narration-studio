@@ -17,10 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/chaptertags"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/chaptertags"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/encodeport"
+	"desktop/internal/measure"
 )
 
 // The test binary stands in for FFmpeg: re-run with fakeFFmpegEnv set, it reads the command line the encoder passes and writes

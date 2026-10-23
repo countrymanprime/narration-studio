@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/audacitybridge/audacitybridgetest"
 )
 
 func TestCommandEncoding(t *testing.T) {

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/guide"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
-	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline/pronunciationonlinetest"
-	"github.com/countrymanprime/narration-studio/shell/internal/wiktextract"
+	"desktop/internal/guide"
+	"desktop/internal/pronunciationonline"
+	"desktop/internal/pronunciationonline/pronunciationonlinetest"
+	"desktop/internal/wiktextract"
 )
 
 func sourcesOf(t *testing.T, host *Host) PronunciationSourceList {

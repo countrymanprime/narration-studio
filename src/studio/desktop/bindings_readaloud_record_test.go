@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport/dawporttest"
+	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
+	"desktop/internal/dawport/dawporttest"
 )
 
 // fakeRecorder stands in for bridge.Actions' Recorder role (its own tests drive a fake REAPER through the file

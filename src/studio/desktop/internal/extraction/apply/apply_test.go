@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
+	"desktop/internal/extraction"
+	"desktop/internal/extraction/store"
 )
 
 type harness struct {

@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-studio/shell/internal/packager"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/encodeport"
+	"desktop/internal/packager"
+	"desktop/internal/runlog"
 )
 
 // Multi-platform export: one mastered/encoded source produces packages for

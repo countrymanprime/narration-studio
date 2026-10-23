@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/coverage"
+	"desktop/internal/evidence"
+	"desktop/internal/manuscript"
+	"desktop/internal/settings"
+	"desktop/internal/tracks"
 )
 
 // CreditsRecordedLengths is a credits row's "actual recorded": the same

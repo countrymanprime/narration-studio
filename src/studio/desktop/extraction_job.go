@@ -10,15 +10,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/booknlp"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/gliner"
-	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/rules"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"desktop/internal/extraction"
+	"desktop/internal/extraction/apply"
+	"desktop/internal/extraction/store"
+	"desktop/internal/extractionport"
+	"desktop/internal/extractionport/booknlp"
+	"desktop/internal/extractionport/gliner"
+	"desktop/internal/extractionport/rules"
+	"desktop/internal/port"
+	"desktop/internal/runlog"
 )
 
 // The Story Bible's scan as a job (the mock's scanManuscript): the rules, then each source the narrator asked

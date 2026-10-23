@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/audacitybridge"
+	"desktop/internal/dawport"
 )
 
 // Review is the review workflow's role over Audacity (docs/reference/daw/capabilities.md#review). The transcript service speaks to a

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/dawport"
+	"desktop/internal/tracks"
 )
 
 // An Audacity project is a SQLite file (.aup3) the app does not read, and scripting reports no project path, so the saved project

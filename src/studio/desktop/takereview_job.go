@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/chaptersync"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/process"
-	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/takereview"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/chaptersync"
+	"desktop/internal/findings"
+	"desktop/internal/process"
+	"desktop/internal/runlog"
+	"desktop/internal/takereview"
+	"desktop/internal/tracks"
 )
 
 // The pickup and duplicate scan as a job: the Review

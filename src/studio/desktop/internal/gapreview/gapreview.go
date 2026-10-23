@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"desktop/internal/coverage"
+	"desktop/internal/findings"
+	"desktop/internal/persist"
 )
 
 // SchemaVersion is the only gap-reviews.json version this package reads or writes.

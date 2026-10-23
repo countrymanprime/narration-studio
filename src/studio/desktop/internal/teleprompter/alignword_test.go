@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"desktop/internal/contractfile"
 )
 
 // runFakeAligner stands in for the sidecar's `--align-word` mode (align_word.py): one `word_time` line, then exit. In

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"desktop/internal/findings"
 )
 
 // Line identity for a native take: REAPER

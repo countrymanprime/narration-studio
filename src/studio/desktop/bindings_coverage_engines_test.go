@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"desktop/internal/coverage"
 )
 
 // engineList decodes CoverageEngines' answer into its engine rows and default.

@@ -11,8 +11,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/captureport"
+	"desktop/internal/port"
 )
 
 // Run fails t once per broken promise of entry.

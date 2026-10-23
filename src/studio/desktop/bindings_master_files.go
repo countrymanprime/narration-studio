@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"desktop/internal/dawport"
+	"desktop/internal/measure"
 )
 
 // Master & QC's file actions (SN-M97): Play the quietest 5 s and Open in the DAW, over the file bindings

@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
-	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-studio/shell/internal/mastering"
-	"github.com/countrymanprime/narration-studio/shell/internal/measure"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/dawport"
+	"desktop/internal/deliveryprofile"
+	"desktop/internal/mastering"
+	"desktop/internal/measure"
+	"desktop/internal/port"
 )
 
 // The modes a row may declare: what it masters from.

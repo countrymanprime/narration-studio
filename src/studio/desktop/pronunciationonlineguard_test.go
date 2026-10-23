@@ -16,7 +16,7 @@ import (
 // the adapter and the API's host are each reachable from exactly one place, so no other code can read the narrator's
 // key or build a request to Merriam-Webster, and no future edit can quietly add a second caller.
 
-const onlineGuardModule = "github.com/countrymanprime/narration-studio/shell/"
+const onlineGuardModule = "desktop/"
 
 // goSources is every non-test Go file in the desktop module, relative to it with forward slashes.
 func onlineGuardSources(t *testing.T) map[string]*ast.File {

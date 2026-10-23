@@ -3,8 +3,8 @@ package audacity
 import (
 	"sync"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 // eventHub is the event side of an asynchronous role over Audacity (dawport.Events). The services above the roles speak to a DAW in

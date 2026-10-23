@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"desktop/internal/stages"
 )
 
 var nineAM = time.Date(2026, 9, 27, 9, 0, 0, 0, time.UTC)

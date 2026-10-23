@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
-	"github.com/countrymanprime/narration-studio/shell/internal/asrport/asrporttest"
-	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"desktop/internal/asrport"
+	"desktop/internal/asrport/asrporttest"
+	"desktop/internal/port"
 )
 
 func TestEveryRegisteredEnginePassesTheSuite(t *testing.T) {

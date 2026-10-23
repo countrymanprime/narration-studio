@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"desktop/internal/bridge"
 )
 
 // stubAdapter declares what a test says and hands back the roles it was given. The conformance suite's fake (dawporttest)

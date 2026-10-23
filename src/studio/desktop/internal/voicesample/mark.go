@@ -13,9 +13,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
-	"github.com/countrymanprime/narration-studio/shell/internal/zerocross"
+	"desktop/internal/editlog"
+	"desktop/internal/tracks"
+	"desktop/internal/zerocross"
 )
 
 // tolerance is how far a range may stand outside the item's played range before it counts as outside: the project file and the

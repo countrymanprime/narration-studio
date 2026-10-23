@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/recents"
+	"desktop/internal/recents"
 )
 
 func TestProjectRunningDawIsUnlinkedWithoutABridge(t *testing.T) {

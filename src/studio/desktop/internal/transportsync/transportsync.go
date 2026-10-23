@@ -10,8 +10,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
-	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"desktop/internal/bridge"
+	"desktop/internal/dawport"
 )
 
 // Timeout bounds one call to the DAW: each is a single quick request.

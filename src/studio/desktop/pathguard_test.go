@@ -11,10 +11,10 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
-	"github.com/countrymanprime/narration-studio/shell/internal/project"
-	"github.com/countrymanprime/narration-studio/shell/internal/recents"
-	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"desktop/internal/pathfixtures"
+	"desktop/internal/project"
+	"desktop/internal/recents"
+	"desktop/internal/settings"
 )
 
 // The path guard (definition of done, rule 1): the host's own path resolvers run the shared fixture set in

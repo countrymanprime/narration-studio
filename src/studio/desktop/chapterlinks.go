@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
-	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/chaptermatch"
+	"desktop/internal/evidence"
+	"desktop/internal/tracks"
 )
 
 // This file holds an atomic "set this chapter's track" and "unlink this

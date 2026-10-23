@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-studio/shell/internal/findings"
-	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
+	"desktop/internal/findings"
+	"desktop/internal/tracks"
 )
 
 // AnalyzerName is Finding.Analyzer for a comparison and the store folder it is saved under.
