@@ -18,7 +18,7 @@ describe('sections are a registry', () => {
     );
     expect(boothSections().map((s) => s.id)).toEqual(['reference', 'suspected', 'last-punch', 'voices', 'coming-up', 'numbers']);
     const text = screen.getByRole('complementary', { name: 'Side panel' }).textContent ?? '';
-    expect(text.indexOf('Last punch')).toBeLessThan(text.indexOf('Voices in this scene'));
+    expect(text.indexOf('Last punch')).toBeLessThan(text.indexOf('In this chapter'));
   });
 
   it('renders a section registered later at its order, with no edit here', () => {
@@ -30,7 +30,7 @@ describe('sections are a registry', () => {
       </ApiProvider>,
     );
     const text = screen.getByRole('complementary', { name: 'Side panel' }).textContent ?? '';
-    expect(text.indexOf('Pickups')).toBeLessThan(text.indexOf('Voices in this scene'));
+    expect(text.indexOf('Pickups')).toBeLessThan(text.indexOf('In this chapter'));
     expect(text.indexOf('Coming up')).toBeLessThan(text.indexOf('Bookmarks'));
     expect(text.indexOf('Bookmarks')).toBeLessThan(text.indexOf('This session'));
   });

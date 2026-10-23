@@ -55,12 +55,12 @@ function EscExit({ onExit }: { onExit: () => void }) {
 
 const panel = () => screen.getByLabelText('Side panel', { selector: 'aside' });
 
-describe('voices nearby and the numbers', () => {
-  it('lists the voices nearby with their Story Bible voice note, coming-up words and the session numbers', () => {
+describe('who is in the chapter and the numbers', () => {
+  it('lists who is in the chapter with their Story Bible voice note, coming-up words and the session numbers', () => {
     matchMedia(false);
     render(<Harness />);
     const side = within(panel());
-    expect(side.getByText('Voices in this scene')).toBeTruthy();
+    expect(side.getByText('In this chapter')).toBeTruthy();
     expect(side.getByText('Clipped and loud. Never asks twice.')).toBeTruthy();
     expect(side.getByText('No voice note yet')).toBeTruthy();
     expect(side.getByText('Coming up')).toBeTruthy();

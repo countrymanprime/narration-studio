@@ -9,7 +9,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import { sampleLength, clipProblem } from '../../storybible/voicesamples/voiceSampleModel';
 import { useBoothSamplesContext } from '../samples/BoothSamplesContext';
 import type { BoothSamples } from '../samples/useBoothSamples';
-import type { NearbyVoice } from './nearby';
+import type { ChapterVoice } from './nearby';
 import { DIM_CLASS, ROW_CLASS, SideSection } from './SideSection';
 
 /** What a voice with no sample says: where to make one. */
@@ -18,10 +18,10 @@ export const NO_SAMPLE_NOTE = 'No voice sample yet. Mark one in Editing.';
 const plural = (count: number) => `${count} ${count === 1 ? 'sample' : 'samples'}`;
 
 /** The speakers in and around the current phrase, each with the Story Bible's note on how they talk and, when the project has voice samples, how to hear them. */
-export function VoicesNearby({ voices }: { voices: readonly NearbyVoice[] }) {
+export function VoicesInChapter({ voices }: { voices: readonly ChapterVoice[] }) {
   const samples = useBoothSamplesContext();
   return (
-    <SideSection title="Voices in this scene">
+    <SideSection title="In this chapter">
       {samples?.cantTell ? <CantTell samples={samples} /> : null}
       {samples?.listeningPaused ? (
         <p role="status" className="m-0 flex flex-wrap items-center gap-2" data-listening-paused>
@@ -40,7 +40,7 @@ export function VoicesNearby({ voices }: { voices: readonly NearbyVoice[] }) {
           </div>
         ))
       ) : (
-        <div className={DIM_CLASS}>No one speaks nearby.</div>
+        <div className={DIM_CLASS}>No one is named in this chapter yet.</div>
       )}
     </SideSection>
   );
@@ -58,7 +58,7 @@ function CantTell({ samples }: { samples: BoothSamples }) {
   );
 }
 
-function VoiceRow({ voice, samples }: { voice: NearbyVoice; samples: BoothSamples | null }) {
+function VoiceRow({ voice, samples }: { voice: ChapterVoice; samples: BoothSamples | null }) {
   const [open, setOpen] = useState(false);
   const mine = samples?.loaded ? samples.samplesOf(voice.name) : [];
   const primary = samples?.primaryOf(voice.name);
@@ -123,7 +123,7 @@ function VoiceRow({ voice, samples }: { voice: NearbyVoice; samples: BoothSample
 }
 
 /** One listed sample: its label and length, a star on the primary, and a press plays it (or stops it while it plays). */
-function SampleButton({ sample, voice, samples }: { sample: VoiceSample; voice: NearbyVoice; samples: BoothSamples }) {
+function SampleButton({ sample, voice, samples }: { sample: VoiceSample; voice: ChapterVoice; samples: BoothSamples }) {
   const problem = clipProblem(sample);
   const active = samples.statusOf(sample.id) !== 'idle';
   const name = sample.label.trim() === '' ? voice.name : sample.label;

@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref, type RefObject, type WheelEvent } from 'react';
 
 /** Page Up and Page Down: move the view by a share of its height, eased. The reading position stays. */
-export type BrowseView = { up: (screens: number) => void; down: (screens: number) => void };
+export type BrowseView = {
+  up: (screens: number) => void;
+  down: (screens: number) => void;
+  /** Brings a paragraph into the resting place without moving the reading position (a search hit during a take). */
+  show: (paragraphId: string) => void;
+};
 
 type Options = {
   /** The box the text scrolls in, and the text that moves inside it. */
@@ -92,7 +97,22 @@ export function useBrowseView({ box, text, cur, wcur, browse, onBrowse, viewRef 
   );
 
   const height = () => box.current?.clientHeight ?? 0;
-  useImperativeHandle(viewRef, () => ({ down: (screens) => scrollBy(screens * height(), true), up: (screens) => scrollBy(-screens * height(), true) }));
+  const show = useCallback(
+    (paragraphId: string): void => {
+      const area = box.current;
+      const content = text.current;
+      const rest = restingY();
+      const target = content && Array.from(content.querySelectorAll<HTMLElement>('[data-paragraph]')).find((item) => item.dataset.paragraph === paragraphId);
+      if (!area || !content || !target || rest === null) return;
+      const y = clampY(-(target.offsetTop - restAt(area.clientHeight, target.offsetHeight)));
+      away.current = y - rest;
+      content.style.transition = '';
+      content.style.transform = `translateY(${y}px)`;
+      onBrowse(Math.abs(away.current) > 1);
+    },
+    [box, text, restingY, clampY, onBrowse],
+  );
+  useImperativeHandle(viewRef, () => ({ down: (screens) => scrollBy(screens * height(), true), up: (screens) => scrollBy(-screens * height(), true), show }));
 
   const onWheel = (event: WheelEvent): void => {
     if (!event.deltaY) return;
