@@ -18,7 +18,7 @@ import (
 // The app's bridge in REAPER (internal/reaperinstall): the host puts the bridge into REAPER's Scripts folder and hooks
 // __startup.lua, so REAPER runs the bridge whenever it opens and the app finds it by its heartbeat (dawautoconnect.go). The host also
 // starts REAPER itself, once per opened project, when that project records with REAPER, its file is linked and REAPER is not running.
-// Nothing here runs unless reaperBridgeEnabled is set: the app's real start sets it, and a test sets it with its own seams, so no test
+// Nothing here runs unless dawAutoEnabled is set: the app's real start sets it, and a test sets it with its own seams, so no test
 // writes into a REAPER folder on the machine running it.
 
 // reaperStartWait is how long a REAPER the app started has to answer before the start counts as failed.
@@ -104,7 +104,7 @@ func (h *Host) reaperBridgeFiles(launcher string) fs.FS {
 // launcher. Install writes only what changed, so it runs on every check. DAW.auto_start_launcher off means the narrator does not want
 // the app to run its script in REAPER: nothing is installed then.
 func (h *Host) ensureReaperBridge(svc hostServices) {
-	if !h.reaperBridgeEnabled.Load() || svc.settings == nil {
+	if !h.dawAutoEnabled.Load() || svc.settings == nil {
 		return
 	}
 	state := h.bridgeState()
@@ -200,7 +200,7 @@ func (h *Host) reaperStarting(project string, reachable bool, now time.Time) *da
 // reaperBridgeReport is the DawChoice payload's bridge field for project; nil when the bridge was never checked (a project that
 // does not record with REAPER, or a launch where the app does not manage it).
 func (h *Host) reaperBridgeReport(project string, reachable bool, now time.Time) *reaperBridgeStatus {
-	if !h.reaperBridgeEnabled.Load() || h.reaperBridge == nil {
+	if !h.dawAutoEnabled.Load() || h.reaperBridge == nil {
 		return nil
 	}
 	state := h.bridgeState()

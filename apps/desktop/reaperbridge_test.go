@@ -37,7 +37,7 @@ func newStartHost(t *testing.T) *startHost {
 	if err := os.MkdirAll(filepath.Join(s.resource, "Scripts"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	s.host.reaperBridgeEnabled.Store(true)
+	s.host.dawAutoEnabled.Store(true)
 	s.host.reaperResourceSeam = func() string { return s.resource }
 	s.host.reaperFilesSeam = fstest.MapFS{
 		reaperinstall.StartupScript:  {Data: []byte("-- startup\n")},
@@ -169,7 +169,7 @@ func TestTheLauncherSettingOffInstallsNothing(t *testing.T) {
 
 func TestWithoutTheEnabledFlagNothingIsInstalledOrStarted(t *testing.T) {
 	s := newStartHost(t)
-	s.host.reaperBridgeEnabled.Store(false)
+	s.host.dawAutoEnabled.Store(false)
 	s.host.ensureReaperBridge(s.host.services())
 	if reaperinstall.Installed(s.resource) {
 		t.Fatal("a host the app's start did not enable writes nothing into REAPER")

@@ -3,6 +3,7 @@ import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/cont
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
+import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { useSecondsSince } from '../../layout/CheckLine';
@@ -18,7 +19,7 @@ function optionDescription(option: DawChoiceOption): ReactNode {
     lines.push(
       <span key="installed">
         {option.daw === 'Audacity'
-          ? 'Audacity 3 was not found on this computer. Install it, or choose another recorder. '
+          ? 'Audacity 3 was not found on this computer. Install it to record with it. '
           : `${option.daw} was not found on this computer. Install it, or set where it is under Advanced, in the REAPER program setting below. `}
       </span>,
     );
@@ -37,26 +38,43 @@ function optionDescription(option: DawChoiceOption): ReactNode {
   return lines.length > 0 ? <>{lines}</> : undefined;
 }
 
+/** Whether the project records into a DAW whose project file is linked: then the built-in recorder is a last resort, behind a confirm. */
+function dawLinked(choice: DawChoice): boolean {
+  return choice.daw !== 'Built-in' && choice.daw !== 'none' && choice.state !== 'not_linked' && (choice.daw !== 'REAPER' || choice.linkedFile !== null);
+}
+
 function optionsFor(choice: DawChoice, disabled: boolean): RadioOption<ChoosableDaw>[] {
-  return choice.options.map((option) => ({
-    value: option.daw,
-    label: option.daw === 'Built-in' ? 'Built-in recorder. Recordings live in the app.' : `${option.daw}. Recordings live in the DAW.`,
-    description: optionDescription(option) && <span className="text-[0.8125rem]">{optionDescription(option)}</span>,
-    disabled,
-  }));
+  const linked = dawLinked(choice);
+  return choice.options.map((option) => {
+    const lastResort = linked && option.daw === 'Built-in';
+    const detail = optionDescription(option);
+    return {
+      value: option.daw,
+      label: option.daw === 'Built-in' ? 'Built-in recorder. Recordings live in the app.' : `${option.daw}. Recordings live in the DAW.`,
+      description: (detail || lastResort) && (
+        <span className="text-[0.8125rem]">
+          {lastResort && `Only if ${choice.daw} cannot be used at all: takes already in ${choice.daw} stay there and this app stops reading them. `}
+          {detail}
+        </span>
+      ),
+      disabled,
+    };
+  });
 }
 
 type Status = { tone: StatusTone; title: string; detail: string };
 
-/** What the connection card says, from the host's state for the project's engine. `undefined`: nothing to show (no engine, or none chosen yet). */
-function statusOf(choice: DawChoice, opts: { projectMatches?: boolean }): Status | undefined {
+/** What the connection card says, from the host's state for the project's engine. `undefined`: nothing to show (no engine, or none
+ * chosen yet). A DAW short of connected is the app's to connect: the card says what the app is doing, never steps for the narrator,
+ * and never offers another recorder. */
+function statusOf(choice: DawChoice, opts: { projectMatches?: boolean; startedFor?: number }): Status | undefined {
   const { daw, state, foundFiles } = choice;
   if (state === 'app') return { tone: 'neutral', title: 'Built-in recorder', detail: 'Recording happens in the app. Nothing to connect.' };
   if (state === 'none') return undefined;
   const linkedFile = daw === 'REAPER' ? choice.linkedFile : null;
   const installed = choice.options.find((option) => option.daw === daw)?.installed;
   if (installed === false)
-    return { tone: 'warning', title: 'Not found', detail: `${daw} was not found on this computer. Install it, or choose another recorder.` };
+    return { tone: 'warning', title: 'Not found', detail: `${daw} was not found on this computer. Install it, and this app connects to it.` };
   if (state === 'connected') {
     const mismatch = daw === 'REAPER' && opts.projectMatches === false ? ' Its open project does not match the one linked here.' : '';
     return {
@@ -78,43 +96,35 @@ function statusOf(choice: DawChoice, opts: { projectMatches?: boolean }): Status
     };
   }
   const linked = linkedFile ? `Linked to ${linkedFile}. ` : '';
-  if (state === 'linked') {
+  if (state === 'starting') {
+    const since = opts.startedFor === undefined ? '' : ` Opened ${opts.startedFor} s ago.`;
     return {
       tone: 'neutral',
-      title: 'Not running',
-      detail: `${linked}${daw} is not running. ${
-        choice.launcherAutoStart
-          ? 'Start it here and it connects.'
-          : `Start it here, then run the Narration Studio action in ${daw} to connect, or turn on "Start the launcher script with REAPER" below.`
-      }`,
+      title: `Starting ${daw}`,
+      detail: `${linked}The app opened ${daw} and connects on its own once ${daw} has the project open.${since}`,
     };
   }
-  return { tone: 'warning', title: 'Not running', detail: `${linked}${daw} is chosen but is not running. Start ${daw}, or choose another recorder.` };
+  const off = choice.launcherAutoStart ? '' : ` "Start the launcher script with REAPER" is off below, so ${daw} does not connect until it is on.`;
+  if (state === 'linked') return { tone: 'neutral', title: 'Not running', detail: `${linked}${daw} is not running. Start it here and it connects.${off}` };
+  return { tone: 'warning', title: 'Not answering', detail: `${linked}${daw} is not answering. Start it here and it connects.${off}` };
 }
 
-/** REAPER's launcher script: where it is, and how to load it once. The path is the app's own; the app never changes REAPER for you. */
-function LauncherPath({ path }: { path: string }) {
-  const { notify } = useSettingsHost();
-  const copy = () => {
-    const done = () => notify('REAPER launcher path copied.');
-    const fail = () => notify('Could not copy the REAPER launcher path.', 'error');
-    if (!navigator.clipboard) fail();
-    else void navigator.clipboard.writeText(path).then(done, fail);
-  };
-  return (
-    <details className="text-[0.8125rem] text-[var(--text-muted)]">
-      <summary className="cursor-pointer font-medium text-[var(--text)]">REAPER launcher script</summary>
-      <p className="mt-1.5 max-w-[60ch]">
-        Load this file once in REAPER (Actions, Show action list, New action, Load ReaScript), then run it with your project open to connect. Load it again
-        after Narration Studio is moved or updated: the path changes. The app never changes REAPER for you.
+/** The app's bridge in REAPER, as the host reports it: installed and started by REAPER itself, or the host's sentence for what is wrong. */
+function BridgeLine({ choice }: { choice: DawChoice }) {
+  const { bridge } = choice;
+  if (!bridge) return null;
+  if (bridge.problem) {
+    return (
+      <p role="status" data-bridge="problem" className="text-[0.8125rem] text-[var(--text-muted)]">
+        {bridge.problem}
       </p>
-      <code className="mt-2 block rounded p-2 text-xs break-all" style={{ background: 'var(--surface-2)' }}>
-        {path}
-      </code>
-      <Button variant="secondary" size="sm" className="mt-2" onClick={copy}>
-        Copy path
-      </Button>
-    </details>
+    );
+  }
+  if (!bridge.installed || !bridge.startsWithReaper) return null;
+  return (
+    <p data-bridge="ok" className="text-[0.8125rem] text-[var(--text-muted)]">
+      The app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so there is nothing to set up in REAPER.
+    </p>
   );
 }
 
@@ -135,9 +145,12 @@ export function EngineBody() {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [confirmBuiltIn, setConfirmBuiltIn] = useState(false);
   const [test, setTest] = useState<{ phase: 'idle' | 'testing' | 'ok' | 'bad'; text: string; file?: string | null; at?: number }>({ phase: 'idle', text: '' });
   const live = useRef(true);
   const testedFor = useSecondsSince(test.at);
+  const startedAt = choice?.starting ? Date.parse(choice.starting.since) : undefined;
+  const startedFor = useSecondsSince(startedAt !== undefined && Number.isFinite(startedAt) ? startedAt : undefined);
 
   const read = useCallback(
     () =>
@@ -227,10 +240,16 @@ export function EngineBody() {
   const { daw, state, foundFiles } = choice;
   const linkedFile = daw === 'REAPER' ? choice.linkedFile : null;
   const overridden = choice.source === 'launch' && choice.chosen !== null && choice.chosen !== daw;
-  const status = statusOf(choice, { projectMatches: data.dawReachable ? data.dawProjectMatches : undefined });
+  const status = statusOf(choice, {
+    projectMatches: data.dawReachable ? data.dawProjectMatches : undefined,
+    startedFor: choice.starting ? (startedFor ?? undefined) : undefined,
+  });
   const notInstalled = choice.options.find((option) => option.daw === daw)?.installed === false;
   const linkable = state === 'not_linked' || linkedFile !== null;
-  const launcher = daw === 'REAPER' ? data.runtime.Reaper?.launcherPath : undefined;
+  const choose = (next: ChoosableDaw) => {
+    if (next === 'Built-in' && next !== daw && dawLinked(choice)) setConfirmBuiltIn(true);
+    else void act(() => dawChoice.dawChoose(next));
+  };
 
   return (
     <div className="flex max-w-[60ch] flex-col gap-3">
@@ -238,7 +257,7 @@ export function EngineBody() {
       <RadioGroup<ChoosableDaw>
         label="Record with"
         value={daw === 'none' ? ('' as ChoosableDaw) : daw}
-        onChange={(next) => void act(() => dawChoice.dawChoose(next))}
+        onChange={choose}
         options={optionsFor(choice, busy || !choice.hasProject)}
       />
       {overridden && (
@@ -297,7 +316,34 @@ export function EngineBody() {
           {error}
         </p>
       )}
-      {launcher && <LauncherPath path={launcher} />}
+      {daw === 'REAPER' && <BridgeLine choice={choice} />}
+      {confirmBuiltIn && (
+        <ConfirmDialog
+          title={`Stop recording with ${daw}?`}
+          body={
+            <>
+              <p>
+                New takes would be recorded by this app and kept in the project’s own folder, not in {daw}
+                {linkedFile ? ` (${linkedFile})` : ''}.
+              </p>
+              <p className="mt-2">
+                Takes already recorded in {daw} stay in {daw}, but the Booth, Editing and Proof stop reading them, and nothing from {daw} reaches the app while
+                the built-in recorder is chosen. The link to {daw} is kept: choosing {daw} again brings those takes back.
+              </p>
+              <p className="mt-2">Use this only when {daw} cannot be used at all.</p>
+            </>
+          }
+          confirmLabel="Switch to the built-in recorder"
+          confirmVariant="danger"
+          cancelLabel={`Keep ${daw}`}
+          focusCancel
+          confirm={() => {
+            setConfirmBuiltIn(false);
+            void act(() => dawChoice.dawChoose('Built-in'));
+          }}
+          cancel={() => setConfirmBuiltIn(false)}
+        />
+      )}
     </div>
   );
 }

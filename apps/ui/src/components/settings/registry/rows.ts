@@ -105,7 +105,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'computer',
     def: 'true',
     field: { tool: 'DAW', key: 'auto_start_launcher' },
-    desc: 'Passes the launcher to REAPER as its startup script so the link is ready when REAPER opens.',
+    desc: 'Puts the app’s bridge in REAPER’s Scripts folder and has REAPER start it each time it opens, so REAPER connects with no step in REAPER. Off: the app writes nothing into REAPER.',
     used: ['booth'],
     needs: 'reaper',
     also: 'Booth › Set up recording',
