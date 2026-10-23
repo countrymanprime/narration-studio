@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/binary"
 	"math"
 	"os"
@@ -129,7 +130,7 @@ func TestWorkspacePeaksCachesAcrossCalls(t *testing.T) {
 	if first.Items[0].Peaks.Buckets != second.Items[0].Peaks.Buckets {
 		t.Fatalf("first = %d buckets, second = %d buckets; the cached answer must match", first.Items[0].Peaks.Buckets, second.Items[0].Peaks.Buckets)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-studio", "analysis", "cache")); err != nil {
+	if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "analysis", "cache")); err != nil {
 		t.Fatalf("expected the evidence cache directory to exist after the first call: %v", err)
 	}
 }

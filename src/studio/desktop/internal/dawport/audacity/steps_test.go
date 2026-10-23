@@ -3,6 +3,7 @@ package audacity
 import (
 	"bufio"
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"io"
@@ -836,7 +837,7 @@ func TestAudacityReducesRangeGainAfterABackupOrRefuses(t *testing.T) {
 				t.Errorf("edits %v were sent", got)
 			}
 			if project != "" {
-				if _, err := os.Stat(filepath.Join(project, "narration-studio", "backups.json")); err == nil {
+				if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "backups.json")); err == nil {
 					t.Errorf("a refusal made a backup")
 				}
 			}
@@ -909,7 +910,7 @@ func TestAudacityRepairsClicksAfterABackupOrRefuses(t *testing.T) {
 				t.Errorf("edits %v were sent", got)
 			}
 			if project != "" {
-				if _, err := os.Stat(filepath.Join(project, "narration-studio", "backups.json")); err == nil {
+				if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "backups.json")); err == nil {
 					t.Errorf("a refusal made a backup")
 				}
 			}

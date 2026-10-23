@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -193,7 +194,7 @@ func TestAudacityLinkTellsLinkedOtherAndUnlabelledProjects(t *testing.T) {
 	f.server.With(func(p *abt.Project) {
 		p.Tracks = nil
 		p.AddWaveTrack("Other", 0, 10)
-		p.AddLabelTrack("Narration Studio", abt.Label{Text: "[nu:project zzzzzzzzzz]"})
+		p.AddLabelTrack(brand.AudacityLabelTrack, abt.Label{Text: "[nu:project zzzzzzzzzz]"})
 	})
 	if link := f.check(t); link.OpenProject != "other" || !strings.Contains(link.Message, "different project") {
 		t.Errorf("another project's link = %+v", link)

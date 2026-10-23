@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -47,7 +48,7 @@ func TestInstallHandsTheStagedProgramTheArgumentsAndTheVersionsAndThenClosesTheA
 	if job.Phase != "installing" || !strings.Contains(job.Message, "restarts") {
 		t.Fatalf("job = %+v", job)
 	}
-	if got.From != "0.2.6" || got.To != "0.2.7" || got.PID != os.Getpid() || got.PendingPath != host.pendingPath || filepath.Base(got.Executable) != "narration-studio.exe" {
+	if got.From != "0.2.6" || got.To != "0.2.7" || got.PID != os.Getpid() || got.PendingPath != host.pendingPath || filepath.Base(got.Executable) != brand.Executable+".exe" {
 		t.Fatalf("options = %+v", got)
 	}
 	if got.Staged.Executable == "" || got.Staged.ExecutableSHA256 == "" || len(got.Args) != len(os.Args[1:]) {
@@ -96,7 +97,7 @@ func TestStatusSaysWhyTheAppCannotReplaceItselfBeforeTheNarratorTries(t *testing
 		t.Fatalf("a writable install can be replaced: %+v", status)
 	}
 	// A folder the program may not write to (here, one that is not there).
-	host.executable = func() (string, error) { return filepath.Join(t.TempDir(), "missing", "narration-studio.exe"), nil }
+	host.executable = func() (string, error) { return filepath.Join(t.TempDir(), "missing", brand.Executable+".exe"), nil }
 	if status := host.updateStatus(); status.CanInstall || !strings.Contains(status.InstallBlockedReason, "replace itself") {
 		t.Fatalf("status = %+v", status)
 	}
@@ -256,7 +257,7 @@ func TestASecondInstallWhileTheFirstIsCopyingIsRefusedAndAFailureMakesTheUpdateR
 func TestTheWritableProbeIsNotRepeatedOnEveryStatus(t *testing.T) {
 	host, _ := stagedHost(t)
 	dir := t.TempDir()
-	host.executable = func() (string, error) { return filepath.Join(dir, "narration-studio.exe"), nil }
+	host.executable = func() (string, error) { return filepath.Join(dir, brand.Executable+".exe"), nil }
 	if reason := host.installBlockedReason(); reason != "" {
 		t.Fatalf("reason = %q", reason)
 	}

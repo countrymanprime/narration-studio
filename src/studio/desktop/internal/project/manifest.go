@@ -4,6 +4,7 @@
 package project
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,9 +15,9 @@ import (
 	"desktop/internal/persist"
 )
 
-// Marker is the manifest's "this is a Narration Studio project" field: its presence and value, not just the file's
+// Marker is the manifest's "this is a project of this app" field: its presence and value, not just the file's
 // existence, identify a folder as a project.
-const Marker = "narration-studio-project"
+const Marker = brand.ProjectFolder + "-project"
 
 const fileName = "project.json"
 
@@ -104,9 +105,9 @@ func New(name string, now time.Time) *Manifest {
 }
 
 // Path is where projectFolder's manifest lives, alongside the project's other
-// narration-studio sidecar files (settings.json, manuscript-notes.json, ...).
+// app's files in the project (settings.json, manuscript-notes.json, ...).
 func Path(projectFolder string) string {
-	return filepath.Join(projectFolder, "narration-studio", fileName)
+	return filepath.Join(projectFolder, brand.ProjectFolder, fileName)
 }
 
 // Load reads projectFolder's manifest. A project that has none yet (never
@@ -141,7 +142,7 @@ func Load(reporter *persist.Reporter, projectFolder string) (*Manifest, bool, er
 }
 
 // Save atomically writes the manifest to projectFolder's project.json, creating
-// the narration-studio sidecar folder if needed. It follows the same
+// the app's folder in the project if needed. It follows the same
 // write-to-temp-then-rename pattern as settings.Store.Save and the manuscript
 // notes writer, so a crash mid-write never leaves a half-written manifest.
 func (m *Manifest) Save(projectFolder string) error {
@@ -153,7 +154,7 @@ func (m *Manifest) Save(projectFolder string) error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
+		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
 	bytes, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {

@@ -3,6 +3,7 @@ package guide
 import (
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -62,7 +63,7 @@ func (s *Service) guidePath() string {
 	return filepath.Join(s.project, "ManuscriptGuide", "manuscript_guide.json")
 }
 func (s *Service) manuscript() string {
-	return filepath.Join(s.project, "narration-studio", "manuscript", "manuscript.json")
+	return filepath.Join(s.project, brand.ProjectFolder, "manuscript", "manuscript.json")
 }
 
 // SetPersist says where to report a Story Bible file that cannot be read.
@@ -764,7 +765,7 @@ const (
 	// previewCacheTag versions the cache key. Bump it when the key's inputs
 	// change so files rendered under the old key are never trusted again (v1
 	// ignored the voice id; v2 to v3 added the chosen pronunciation).
-	previewCacheTag = "narration-studio-tts-preview-v3"
+	previewCacheTag = brand.DataFolder + "-tts-preview-v3"
 	// wavHeaderBytes is the size of a canonical WAV header. A file no larger
 	// than that holds no samples, so it is never a usable preview.
 	wavHeaderBytes = 44

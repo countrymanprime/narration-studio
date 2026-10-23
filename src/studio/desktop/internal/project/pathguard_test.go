@@ -1,6 +1,7 @@
 package project
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -214,8 +215,8 @@ func TestPathGuardManifestLoadSave(t *testing.T) {
 			if saveErr == nil {
 				t.Fatal("saved a manifest into the working directory for an empty project folder")
 			}
-			if _, err := os.Stat("narration-studio"); err == nil {
-				t.Fatal("an empty project folder wrote narration-studio/ into the working directory")
+			if _, err := os.Stat(brand.ProjectFolder); err == nil {
+				t.Fatal("an empty project folder wrote " + brand.ProjectFolder + "/ into the working directory")
 			}
 			return
 		case p.Class == pathfixtures.FileForFolder:

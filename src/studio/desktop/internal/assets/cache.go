@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"desktop/internal/brand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,5 +33,5 @@ func CacheBase() (string, error) {
 
 // CacheBaseIn is the asset cache inside a given per-user cache folder (what os.UserCacheDir returns).
 func CacheBaseIn(userCache string) string {
-	return filepath.Join(userCache, "narration-studio", "assets")
+	return filepath.Join(userCache, brand.DataFolder, "assets")
 }

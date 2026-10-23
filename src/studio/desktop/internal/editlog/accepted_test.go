@@ -1,6 +1,7 @@
 package editlog
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -264,7 +265,7 @@ func TestAcceptedFileIsNarratorData(t *testing.T) {
 		}
 	})
 	t.Run("the file sits in the project's editing folder", func(t *testing.T) {
-		if want := filepath.Join("p", "narration-studio", "editing", "accepted.json"); AcceptedFile("p") != want {
+		if want := filepath.Join("p", brand.ProjectFolder, "editing", "accepted.json"); AcceptedFile("p") != want {
 			t.Fatalf("AcceptedFile = %s, want %s", AcceptedFile("p"), want)
 		}
 	})

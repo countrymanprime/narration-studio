@@ -3,6 +3,7 @@ package audacity
 import (
 	"bytes"
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"math"
@@ -417,7 +418,7 @@ func (s *Session) MarkReviewed(ctx context.Context, id string) (changed bool, er
 
 // ExportFolder is where the adapter writes, inside the app's project folder: never beside the narrator's own files.
 func ExportFolder(projectFolder string) string {
-	return filepath.Join(projectFolder, "narration-studio", "audacity")
+	return filepath.Join(projectFolder, brand.ProjectFolder, "audacity")
 }
 
 var unsafeName = regexp.MustCompile(`[^A-Za-z0-9._-]+`)

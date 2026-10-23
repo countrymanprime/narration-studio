@@ -1,6 +1,7 @@
-package brand
+package brand_test
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"testing"
@@ -22,15 +23,15 @@ func TestGeneratedConstantsMatchTheBrandFile(t *testing.T) {
 	if err := json.Unmarshal(text, &file); err != nil {
 		t.Fatal(err)
 	}
-	if file.Name != Name {
-		t.Errorf("Name = %q, the brand file says %q", Name, file.Name)
+	if file.Name != brand.Name {
+		t.Errorf("Name = %q, the brand file says %q", brand.Name, file.Name)
 	}
 	identity := map[string]string{
-		"dataFolder": DataFolder, "projectFolder": ProjectFolder, "defaultProjectsFolder": DefaultProjectsFolder,
-		"executable": Executable, "releaseAssetPrefix": ReleaseAssetPrefix, "installFolder": InstallFolder,
-		"uninstallKey": UninstallKey, "reaperExtPrefix": ReaperExtPrefix, "reaperLauncher": ReaperLauncher,
-		"reaperResourceFolder": ReaperResourceFolder, "audacityLabelTrack": AudacityLabelTrack,
-		"credentialEntropy": CredentialEntropy, "envPrefix": EnvPrefix,
+		"dataFolder": brand.DataFolder, "projectFolder": brand.ProjectFolder, "defaultProjectsFolder": brand.DefaultProjectsFolder,
+		"executable": brand.Executable, "releaseAssetPrefix": brand.ReleaseAssetPrefix, "installFolder": brand.InstallFolder,
+		"uninstallKey": brand.UninstallKey, "reaperExtPrefix": brand.ReaperExtPrefix, "reaperLauncher": brand.ReaperLauncher,
+		"reaperResourceFolder": brand.ReaperResourceFolder, "audacityLabelTrack": brand.AudacityLabelTrack,
+		"credentialEntropy": brand.CredentialEntropy, "envPrefix": brand.EnvPrefix,
 	}
 	if len(identity) != len(file.Identity) {
 		t.Errorf("the brand file has %d identity values, the package %d", len(file.Identity), len(identity))

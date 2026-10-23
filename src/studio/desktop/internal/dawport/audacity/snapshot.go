@@ -2,6 +2,7 @@ package audacity
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,10 +19,10 @@ import (
 // An Audacity project is a SQLite file (.aup3) the app does not read, and scripting reports no project path, so the saved project
 // the rest of the app reads offline (the track list, the chapter links, the recorded lengths, the regions and pickup markers the
 // readiness signals count) is a snapshot: whenever Audacity answers, the host writes the tracks, clips and labels GetInfo reports
-// into narration-studio/audacity-snapshot.json, and SnapshotReader turns that file into the same tracks.Project a REAPER .rpp
+// into <app>/audacity-snapshot.json, and SnapshotReader turns that file into the same tracks.Project a REAPER .rpp
 // becomes (docs/reference/daw/audacity-3.md, "The snapshot"). It is only as fresh as the last time Audacity was answering.
 
-// SnapshotFile is the snapshot's file name inside the project's narration-studio folder.
+// SnapshotFile is the snapshot's file name inside the app's folder in the project.
 const SnapshotFile = "audacity-snapshot.json"
 
 // SnapshotVersion is the file's schema version; a newer one is refused, never read as this one.
@@ -29,7 +30,7 @@ const SnapshotVersion = 1
 
 // SnapshotPath is where the project's snapshot lives.
 func SnapshotPath(project string) string {
-	return filepath.Join(project, "narration-studio", SnapshotFile)
+	return filepath.Join(project, brand.ProjectFolder, SnapshotFile)
 }
 
 // IsSnapshot reports whether path names a snapshot file, which is how the offline readers tell it from a REAPER .rpp.

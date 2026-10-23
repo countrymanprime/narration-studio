@@ -8,7 +8,7 @@ import (
 	"desktop/internal/audacitybridge"
 )
 
-// A project's link lives in its Audacity project as one label, `[nu:project <id>]`, at the start of the "Narration Studio" label
+// A project's link lives in its Audacity project as one label, `[nu:project <id>]`, at the start of the app's label
 // track. Audacity scripting reports no project file path, so the label is how the app tells which Audacity project is open and
 // whether it is the one linked to this app project (docs/reference/daw/audacity-3.md, "Linking"). It is not a finding label: a
 // finding's identity has no space in it, so ParseFindingLabel never reads this one.
@@ -51,7 +51,7 @@ func (s *Session) ProjectLink(ctx context.Context) (id string, found bool, err e
 	return "", false, nil
 }
 
-// LinkProject writes link id into the open project: a label at the start of the "Narration Studio" label track, made if the project
+// LinkProject writes link id into the open project: a label at the start of the app's label track, made if the project
 // has none. A project that already carries this id is left alone (changed is false); one that carries another id has that label
 // renamed, so a project is never linked twice. The narrator's own labels are never touched.
 func (s *Session) LinkProject(ctx context.Context, id string) (changed bool, err error) {

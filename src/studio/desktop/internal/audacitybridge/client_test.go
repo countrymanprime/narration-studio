@@ -2,6 +2,7 @@ package audacitybridge_test
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"reflect"
 	"sync"
@@ -31,7 +32,7 @@ func TestPingEchoes(t *testing.T) {
 	if !client.Reachable() || client.LastSeen().IsZero() {
 		t.Error("a complete reply must mark the client reachable")
 	}
-	if got := server.Log(); !reflect.DeepEqual(got, []string{`Message: Text="narration-studio ping"`}) {
+	if got := server.Log(); !reflect.DeepEqual(got, []string{`Message: Text="ping from ` + brand.Executable + `"`}) {
 		t.Errorf("sent %q", got)
 	}
 }

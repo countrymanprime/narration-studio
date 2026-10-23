@@ -1,6 +1,7 @@
 package manuscript
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -252,7 +253,7 @@ func (s *Service) loadNotes() map[string]any {
 	// The notes, reader state and chapter statuses are the narrator's own work: a file that cannot be read is kept aside, the
 	// narrator is told, and a fresh one is started, so the next note never replaces it without a trace.
 	var raw map[string]any
-	s.persist.Load().ReadJSON(filepath.Join(project, "narration-studio", "manuscript-notes.json"), "notes", persist.NarratorData, func(bytes []byte) error {
+	s.persist.Load().ReadJSON(filepath.Join(project, brand.ProjectFolder, "manuscript-notes.json"), "notes", persist.NarratorData, func(bytes []byte) error {
 		var decoded map[string]any
 		if err := json.Unmarshal(bytes, &decoded); err != nil {
 			return err
@@ -276,7 +277,7 @@ func (s *Service) saveNotes(notes map[string]any) error {
 	if project == "" {
 		return fmt.Errorf("save the REAPER project first")
 	}
-	path := filepath.Join(project, "narration-studio", "manuscript-notes.json")
+	path := filepath.Join(project, brand.ProjectFolder, "manuscript-notes.json")
 	if err := persist.CanOverwrite(path, "notes"); err != nil {
 		return err
 	}

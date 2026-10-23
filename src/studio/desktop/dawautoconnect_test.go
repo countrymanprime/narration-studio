@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,9 +49,9 @@ func TestDecideAutoConnect(t *testing.T) {
 	}
 }
 
-// REAPER's bridge writes its session folders under <resource path>/NarrationStudio/sessions (narration_ui_bridge.lua); the
+// REAPER's bridge writes its session folders under <resource path>/<launcher folder>/sessions (narration_ui_bridge.lua); the
 // folder it used before the rename is never where a live bridge is.
-func TestLiveBridgeSessionReadsTheNarrationStudioFolder(t *testing.T) {
+func TestLiveBridgeSessionReadsTheLauncherFolder(t *testing.T) {
 	appData := t.TempDir()
 	now := time.Now()
 	writeHub := func(folder, hub string, at time.Time) {
@@ -66,10 +67,10 @@ func TestLiveBridgeSessionReadsTheNarrationStudioFolder(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	writeHub("NarrationStudio", "hub_live", now.Add(-time.Second))
-	writeHub("NarrationStudio", "hub_old", now.Add(-time.Hour))
+	writeHub(brand.ReaperResourceFolder, "hub_live", now.Add(-time.Second))
+	writeHub(brand.ReaperResourceFolder, "hub_old", now.Add(-time.Hour))
 
-	if got := liveBridgeSession(filepath.Join(appData, "REAPER", "NarrationStudio", "sessions"), now); got != "hub_live" {
+	if got := liveBridgeSession(filepath.Join(appData, "REAPER", brand.ReaperResourceFolder, "sessions"), now); got != "hub_live" {
 		t.Fatalf("liveBridgeSession = %q, want hub_live", got)
 	}
 }
@@ -79,7 +80,7 @@ func TestLiveBridgeSessionReadsTheNarrationStudioFolder(t *testing.T) {
 func TestAutoConnectLaunchSummaryNamesTheArgsAndNoPaths(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	folder, rpp := linkedProject(t)
-	launcher := filepath.Join(t.TempDir(), "NarrationStudio_Launcher.lua")
+	launcher := filepath.Join(t.TempDir(), brand.ReaperLauncher)
 	if err := os.WriteFile(launcher, []byte("-- launcher"), 0o644); err != nil {
 		t.Fatal(err)
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -45,7 +46,7 @@ func TestMain(m *testing.M) {
 // t.Setenv never writes the per-user recent-projects or credit-templates file into the runner's real profile (Windows)
 // or, with APPDATA unset, into a relative AppData folder inside the source tree (Linux, macOS).
 func runIsolated(m *testing.M) int {
-	appData, err := os.MkdirTemp("", "narration-studio-test-appdata-")
+	appData, err := os.MkdirTemp("", "test-appdata-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -92,7 +93,7 @@ func newHostWithARunningTeleprompter(t *testing.T) *Host {
 	t.Helper()
 	t.Setenv(fakeTeleprompterEnv, "1")
 	project := t.TempDir()
-	manuscriptPath := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	manuscriptPath := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(manuscriptPath), 0o755); err != nil {
 		t.Fatal(err)
 	}

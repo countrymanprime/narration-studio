@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -27,7 +28,7 @@ func TestTheAssetCacheLivesUnderTheUsersCacheFolder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join("narration-studio", "assets"); filepath.Base(filepath.Dir(base)) != "narration-studio" || filepath.Base(base) != "assets" {
+	if want := filepath.Join(brand.ProjectFolder, "assets"); filepath.Base(filepath.Dir(base)) != brand.ProjectFolder || filepath.Base(base) != "assets" {
 		t.Fatalf("assetCacheBase = %q, want a path ending %q", base, want)
 	}
 }

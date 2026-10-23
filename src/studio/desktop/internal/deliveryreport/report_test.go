@@ -2,6 +2,7 @@ package deliveryreport
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -72,7 +73,7 @@ func sampleInput() Input {
 		SourceKind: &kind, Thresholds: &thresholds,
 		Review: func(string) (findings.ReviewState, bool) { return findings.ReviewState{}, false },
 		Assets: []Asset{
-			{Kind: "whisper", ID: "small", Name: "Whisper small", Version: "1.0", Publisher: "OpenAI", ProvenanceURL: "https://huggingface.co/openai/whisper-small", Path: `C:\Users\AdaLovelace\AppData\Local\narration-studio\whisper\small`},
+			{Kind: "whisper", ID: "small", Name: "Whisper small", Version: "1.0", Publisher: "OpenAI", ProvenanceURL: "https://huggingface.co/openai/whisper-small", Path: `C:\Users\AdaLovelace\AppData\Local\` + brand.DataFolder + `\whisper\small`},
 			{Kind: "piper", ID: "en_US-ljspeech-high", Name: "LJSpeech", Version: "1.0.0"},
 		},
 	}

@@ -118,7 +118,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Link chapters…');
-    const message = page.getByText(/Narration Studio script/).first();
+    const message = page.getByText(/app’s script/).first();
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },

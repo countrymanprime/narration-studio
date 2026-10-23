@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
@@ -35,7 +36,7 @@ func newReleaseFiles(t *testing.T) *releaseFiles {
 	fake := &releaseFiles{executable: []byte(strings.Repeat("MZ a program ", 200000))}
 	var buffer bytes.Buffer
 	writer := zip.NewWriter(&buffer)
-	entry, err := writer.Create("narration-studio.exe")
+	entry, err := writer.Create(brand.Executable + ".exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +49,7 @@ func newReleaseFiles(t *testing.T) *releaseFiles {
 	fake.zip = buffer.Bytes()
 	fake.checksum = func(body []byte) string {
 		sum := sha256.Sum256(body)
-		return hex.EncodeToString(sum[:]) + "  narration-studio-0.2.7-windows-x64.zip\n"
+		return hex.EncodeToString(sum[:]) + "  " + brand.ReleaseAssetPrefix + "-0.2.7-windows-x64.zip\n"
 	}
 	fake.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -58,7 +59,7 @@ func newReleaseFiles(t *testing.T) *releaseFiles {
 				Size int64  `json:"size"`
 			}
 			list := []map[string]any{{"tag_name": "v0.2.7-rc", "prerelease": true, "published_at": "2026-09-20T10:00:00Z", "assets": []asset{
-				{Name: "narration-studio-0.2.7-windows-x64.zip", Size: int64(len(fake.zip))}, {Name: "narration-studio-0.2.7-windows-x64.zip.sha256", Size: 100},
+				{Name: brand.ReleaseAssetPrefix + "-0.2.7-windows-x64.zip", Size: int64(len(fake.zip))}, {Name: brand.ReleaseAssetPrefix + "-0.2.7-windows-x64.zip.sha256", Size: 100},
 			}}}
 			body, _ := json.Marshal(list)
 			_, _ = w.Write(body)
@@ -88,7 +89,7 @@ func downloadHost(t *testing.T, fake *releaseFiles) *Host {
 	host := NewHost()
 	host.version = "0.2.6"
 	installDir := t.TempDir()
-	host.executable = func() (string, error) { return filepath.Join(installDir, "narration-studio.exe"), nil }
+	host.executable = func() (string, error) { return filepath.Join(installDir, brand.Executable+".exe"), nil }
 	host.pendingPath = filepath.Join(t.TempDir(), "pending.json")
 	platform, _ := update.PlatformFor("windows", "amd64")
 	host.updates = &update.Checker{
@@ -256,7 +257,9 @@ func TestOnlyOneDownloadRunsAtATimeAndItCanBeCancelled(t *testing.T) {
 
 func TestAFailedDownloadEndsInAnErrorTheNarratorCanRead(t *testing.T) {
 	fake := newReleaseFiles(t)
-	fake.checksum = func([]byte) string { return strings.Repeat("0", 64) + "  narration-studio-0.2.7-windows-x64.zip\n" }
+	fake.checksum = func([]byte) string {
+		return strings.Repeat("0", 64) + "  " + brand.ReleaseAssetPrefix + "-0.2.7-windows-x64.zip\n"
+	}
 	host := downloadHost(t, fake)
 	if _, err := host.UpdateCheck(); err != nil {
 		t.Fatal(err)
@@ -275,7 +278,7 @@ func TestAFailedDownloadEndsInAnErrorTheNarratorCanRead(t *testing.T) {
 	// The failure is not a wall: a good download can follow.
 	fake.checksum = func(body []byte) string {
 		sum := sha256.Sum256(body)
-		return hex.EncodeToString(sum[:]) + "  narration-studio-0.2.7-windows-x64.zip\n"
+		return hex.EncodeToString(sum[:]) + "  " + brand.ReleaseAssetPrefix + "-0.2.7-windows-x64.zip\n"
 	}
 	again := startDownload(t, host)
 	if job := waitForJob(t, host, again.ID, finished); job.Phase != "ready" {
@@ -311,10 +314,10 @@ func TestAnUnknownJobIsAnErrorAndClosingTheAppCancelsTheDownload(t *testing.T) {
 // The payloads the download bindings send.
 func TestContractUpdateJob(t *testing.T) {
 	pin := func(name string, job map[string]any) { contractfile.Check(t, name, job) }
-	pin("update-job-downloading", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseDownloading, message: "Downloading Narration Studio 0.2.7…", done: 104857600, total: 209715200}))
+	pin("update-job-downloading", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseDownloading, message: "Downloading " + brand.Name + " 0.2.7…", done: 104857600, total: 209715200}))
 	pin("update-job-verifying", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseVerifying, message: "Checking the download against the release's checksum…", done: 209715200, total: 209715200}))
 	pin("update-job-ready", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseReady, message: "Version 0.2.7 is downloaded and checked.", done: 209715200, total: 209715200}))
-	pin("update-job-installing", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseInstalling, message: "Installing version 0.2.7. Narration Studio restarts in a moment.", done: 209715200, total: 209715200}))
+	pin("update-job-installing", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseInstalling, message: "Installing version 0.2.7. " + brand.Name + " restarts in a moment.", done: 209715200, total: 209715200}))
 	pin("update-job-error", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseError, message: "The checksum in the release and GitHub's own record of the file disagree, so the update was not used.", errorText: "The checksum in the release and GitHub's own record of the file disagree, so the update was not used.", done: 52428800, total: 209715200}))
 	pin("update-job-cancelled", snapshotUpdateJob(&updateJob{id: "update-1", version: "0.2.7", phase: updatePhaseCancelled, message: "The update download was cancelled.", done: 52428800, total: 209715200}))
 }

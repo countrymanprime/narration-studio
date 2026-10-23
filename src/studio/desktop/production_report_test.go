@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -13,7 +14,7 @@ import (
 
 // The Production page's status report export (ProductionStatusReport): the host builds it from exactly
 // the overview and plan ProductionOverview just answered, and writes it into the project's own
-// narration-studio/production/reports folder, never over an earlier report.
+// <app>/production/reports folder, never over an earlier report.
 
 // defaultReportInclude is the dialog's first state: every section but the money one.
 var defaultReportInclude = ProductionReportInclude{Words: true, Stages: true, Milestones: true, Pickups: true, Delivery: true}
@@ -35,7 +36,7 @@ func TestProductionStatusReportWritesFilesAndLeavesOutTheContractedAmountByDefau
 		t.Fatalf("want the contracted amount left out by default, got %v", answer)
 	}
 	folder, _ := answer["folder"].(string)
-	if folder != "narration-studio/production/reports" {
+	if folder != brand.ProjectFolder+"/production/reports" {
 		t.Fatalf("want the reports folder, got %q", folder)
 	}
 	htmlFile, _ := answer["htmlFile"].(string)
@@ -122,13 +123,13 @@ func TestProductionStatusReportPreviewEqualsTheWrittenFile(t *testing.T) {
 
 func TestProductionStatusReportPreviewWritesNothing(t *testing.T) {
 	host := productionHost(t)
-	reports := filepath.Join(host.config.projectFolder, filepath.FromSlash("narration-studio/production/reports"))
-	before, _ := os.ReadDir(filepath.Join(host.config.projectFolder, "narration-studio", "production"))
+	reports := filepath.Join(host.config.projectFolder, filepath.FromSlash(brand.ProjectFolder+"/production/reports"))
+	before, _ := os.ReadDir(filepath.Join(host.config.projectFolder, brand.ProjectFolder, "production"))
 	previewOf(t, host, withMoney)
 	if _, err := os.Stat(reports); !os.IsNotExist(err) {
 		t.Fatalf("a preview created the reports folder: %v", err)
 	}
-	after, _ := os.ReadDir(filepath.Join(host.config.projectFolder, "narration-studio", "production"))
+	after, _ := os.ReadDir(filepath.Join(host.config.projectFolder, brand.ProjectFolder, "production"))
 	if len(before) != len(after) {
 		t.Fatalf("a preview changed the production folder: %d -> %d entries", len(before), len(after))
 	}
@@ -164,7 +165,7 @@ func TestProductionStatusReportPreviewRequiresAnOpenProject(t *testing.T) {
 func TestProductionStatusReportPreviewNamesTheNextFile(t *testing.T) {
 	host := productionHost(t)
 	first := previewOf(t, host, defaultReportInclude)
-	if first["folder"] != "narration-studio/production/reports" {
+	if first["folder"] != brand.ProjectFolder+"/production/reports" {
 		t.Fatalf("folder = %v", first["folder"])
 	}
 	// The preview's stem is the name it would use now; an export a later second may name differently.

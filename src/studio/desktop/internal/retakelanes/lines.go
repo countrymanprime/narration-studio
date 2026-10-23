@@ -9,13 +9,14 @@
 package retakelanes
 
 import (
+	"desktop/internal/brand"
 	"sort"
 
 	"desktop/internal/tracks"
 )
 
 // LineIDKey is the item extension key that names an item's manuscript line.
-const LineIDKey = "narration_studio_line_id"
+const LineIDKey = brand.ReaperExtPrefix + "line_id"
 
 // Retake is one item of a line on a fixed lane.
 type Retake struct {

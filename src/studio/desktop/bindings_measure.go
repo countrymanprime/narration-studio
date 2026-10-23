@@ -35,7 +35,7 @@ func (h *Host) MeasureCancel() (string, error) {
 }
 
 // DeliveryExportReport writes the report of the last measurement and diagnostics check as an HTML and a JSON
-// file in the project's narration-studio/delivery folder, and answers where. includePaths is the narrator's choice to
+// file in the project's <app>/delivery folder, and answers where. includePaths is the narrator's choice to
 // write each file's full path; off, only file names are written. It refuses without a project, while a measurement or a
 // check runs, or when nothing has been measured or checked.
 func (h *Host) DeliveryExportReport(includePaths bool) (string, error) {

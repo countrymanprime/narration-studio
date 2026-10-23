@@ -1392,7 +1392,7 @@ func TestFXRangeEditRefusals(t *testing.T) {
 		{"recording", []string{"ERROR", "REAPER is recording. Stop recording first."}, dawport.Refused("REAPER is recording. Stop recording first.")},
 		{"outside", []string{"ERROR", "That value is outside what the setting takes."}, dawport.Refused("That value is outside what the setting takes.")},
 		{"old script", []string{"ERROR", "Unsupported workspace command"},
-			dawport.Refused("The Narration Studio script in REAPER is older than this app and cannot read or change an effect on words, so nothing was changed. Import the script again from this app's REAPER folder.")},
+			dawport.Refused("The app's script in REAPER is older than this app and cannot read or change an effect on words, so nothing was changed. Import the script again from this app's REAPER folder.")},
 	} {
 		_, editor := fxEditorAnswering(t, func(command []string) [][]string {
 			return [][]string{append([]string{tc.answer[0], command[1]}, tc.answer[1:]...)}

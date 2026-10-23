@@ -1,6 +1,7 @@
 package findings
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -88,7 +89,7 @@ func TestSaveAnalyzerFindingsWritesUnderTheDocumentedLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	path := filepath.Join(project, "narration-studio", "findings", "transcript_compare", "c-0001.json")
+	path := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
 	if _, err := os.Stat(path); err != nil {
 		t.Fatalf("expected a scope file at %s: %v", path, err)
 	}
@@ -326,7 +327,7 @@ func TestListFiltersByQuery(t *testing.T) {
 
 func TestCorruptScopeFileIsHealedNotSwallowed(t *testing.T) {
 	project := t.TempDir()
-	scopeDir := filepath.Join(project, "narration-studio", "findings", "transcript_compare")
+	scopeDir := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare")
 	if err := os.MkdirAll(scopeDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -352,7 +353,7 @@ func TestCorruptScopeFileIsHealedNotSwallowed(t *testing.T) {
 
 func TestCorruptReviewHistoryIsQuarantinedNotSwallowed(t *testing.T) {
 	project := t.TempDir()
-	findingsDir := filepath.Join(project, "narration-studio", "findings")
+	findingsDir := filepath.Join(project, brand.ProjectFolder, "findings")
 	if err := os.MkdirAll(findingsDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -432,7 +433,7 @@ func TestReviewHistoryIsAppendOnlyAcrossMultipleDecisions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	raw, err := os.ReadFile(filepath.Join(project, "narration-studio", "findings", "review.json"))
+	raw, err := os.ReadFile(filepath.Join(project, brand.ProjectFolder, "findings", "review.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -528,7 +529,7 @@ func TestScopeFilesFailsWhenAnAnalyzerSubdirectoryCannotBeListed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	analyzerDir := filepath.Join(project, "narration-studio", "findings", "transcript_compare")
+	analyzerDir := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare")
 	denyListing(t, analyzerDir)
 
 	if _, err := store.List(Query{}); err == nil {
@@ -538,7 +539,7 @@ func TestScopeFilesFailsWhenAnAnalyzerSubdirectoryCannotBeListed(t *testing.T) {
 
 func TestSaveAnalyzerFindingsFailsWhenThePreviousScopeFileCannotBeRead(t *testing.T) {
 	project := t.TempDir()
-	scopeDir := filepath.Join(project, "narration-studio", "findings", "transcript_compare")
+	scopeDir := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare")
 	if err := os.MkdirAll(filepath.Join(scopeDir, "c-0001.json"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -551,7 +552,7 @@ func TestSaveAnalyzerFindingsFailsWhenThePreviousScopeFileCannotBeRead(t *testin
 
 func TestSaveAnalyzerFindingsFailsWhenTheReviewHistoryCannotBeRead(t *testing.T) {
 	project := t.TempDir()
-	reviewPath := filepath.Join(project, "narration-studio", "findings", "review.json")
+	reviewPath := filepath.Join(project, brand.ProjectFolder, "findings", "review.json")
 	if err := os.MkdirAll(reviewPath, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -564,7 +565,7 @@ func TestSaveAnalyzerFindingsFailsWhenTheReviewHistoryCannotBeRead(t *testing.T)
 
 func TestSaveAnalyzerFindingsFailsWhenTheAnalyzerNameCollidesWithAFile(t *testing.T) {
 	project := t.TempDir()
-	dir := filepath.Join(project, "narration-studio", "findings")
+	dir := filepath.Join(project, brand.ProjectFolder, "findings")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -582,7 +583,7 @@ func TestSaveAnalyzerFindingsFailsWhenTheAnalyzerNameCollidesWithAFile(t *testin
 
 func TestRecordDecisionFailsWhenTheReviewHistoryFileCannotBeOverwritten(t *testing.T) {
 	project := t.TempDir()
-	reviewPath := filepath.Join(project, "narration-studio", "findings", "review.json")
+	reviewPath := filepath.Join(project, brand.ProjectFolder, "findings", "review.json")
 	if err := os.MkdirAll(reviewPath, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -600,7 +601,7 @@ func TestRecordDecisionFailsWhenWritingTheUpdatedScopeFileFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scopePath := filepath.Join(project, "narration-studio", "findings", "transcript_compare", "c-0001.json")
+	scopePath := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
 	// writeJSONFile writes to path+".tmp" before renaming it into place; make
 	// that temporary path a directory so the write itself fails.
 	if err := os.MkdirAll(scopePath+".tmp", 0o755); err != nil {
@@ -687,7 +688,7 @@ func TestListFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scopePath := filepath.Join(project, "narration-studio", "findings", "transcript_compare", "c-0001.json")
+	scopePath := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
 	denyRead(t, scopePath)
 
 	if _, err := store.List(Query{}); err == nil {
@@ -702,7 +703,7 @@ func TestGetFailsWhenAScopeFileCannotBeRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scopePath := filepath.Join(project, "narration-studio", "findings", "transcript_compare", "c-0001.json")
+	scopePath := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
 	denyRead(t, scopePath)
 
 	if _, _, err := store.Get("f1"); err == nil {

@@ -9,6 +9,7 @@ package audacity
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -157,7 +158,7 @@ func TestAudacityVerificationPass(t *testing.T) {
 	}
 	run.record("A5", "Label text round trip (escaping)", err, fmt.Sprintf("added %v", res.Added))
 
-	// A6: import three findings, then again: nothing added the second time, all on the Narration Studio track.
+	// A6: import three findings, then again: nothing added the second time, all on the app's label track.
 	findings := []Finding{
 		{ID: "pass-1", Start: 2, End: 2.5, Words: "misread: their for there"},
 		{ID: "pass-2", Start: 5, End: 5, Words: "skipped: very"},
@@ -190,7 +191,7 @@ func TestAudacityVerificationPass(t *testing.T) {
 	if err == nil && labelTracks != 1 {
 		err = fmt.Errorf("%d label tracks, want 1", labelTracks)
 	}
-	run.record("A6", "Import findings as labels, twice: idempotent, one Narration Studio track", err, fmt.Sprintf("first %+v, second %+v", first, second))
+	run.record("A6", "Import findings as labels, twice: idempotent, one "+brand.AudacityLabelTrack+" track", err, fmt.Sprintf("first %+v, second %+v", first, second))
 
 	// A7: mark one reviewed, in place.
 	changed, err := session.MarkReviewed(ctx, "pass-2")

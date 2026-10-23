@@ -2,6 +2,7 @@ package coverage
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -86,7 +87,7 @@ type corpusProject struct {
 func newCorpusProject(t *testing.T, manuscript []byte, chapterID string) *corpusProject {
 	t.Helper()
 	p := &corpusProject{testProject: newTestProject(t), statuses: map[string]stages.Stage{}}
-	p.writeFile("narration-studio/manuscript/manuscript.json", string(manuscript))
+	p.writeFile(brand.ProjectFolder+"/manuscript/manuscript.json", string(manuscript))
 	p.confirm(corpusDocument, testTrack, chapterID)
 	return p
 }

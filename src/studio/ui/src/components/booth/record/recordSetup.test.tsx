@@ -160,12 +160,12 @@ describe('RecordSetup when the app turns the launch away', () => {
     const attach = mountWithAttach();
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('alert')).toBeNull();
-    attach({ attached: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' });
+    attach({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' });
     // It opens again for this: the headline says what happened, not "not answering" (REAPER did start): walkthrough M15.
     const dialog = await screen.findByRole('dialog');
     expect(dialog.textContent).toContain('REAPER started, but its project was turned away.');
     const alert = within(dialog).getByRole('alert');
-    expect(alert.textContent).toContain('Narration Studio is busy');
+    expect(alert.textContent).toContain('The app is busy');
     expect(alert.textContent).toContain('Finish or cancel what is running, then press Open in REAPER and connect again.');
     attach({ attached: true });
     expect(screen.queryByRole('alert')).toBeNull();

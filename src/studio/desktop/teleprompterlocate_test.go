@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -408,7 +409,7 @@ func TestTeleprompterLocateOffersTheLastReadingOfAChapterWithNoTrack(t *testing.
 func TestTeleprompterLocateDropsALastReadingOfAnEditedChapter(t *testing.T) {
 	f := newTestHostForLocate(t, true)
 	f.writeLastReading(t, f.chapters[0], 58)
-	path := filepath.Join(f.host.config.projectFolder, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(f.host.config.projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json")
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

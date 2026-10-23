@@ -2,6 +2,7 @@ package audacitybridge
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -13,7 +14,7 @@ import (
 // through Command's guarded setters, so a value the syntax cannot carry is refused before anything is written to the pipe.
 
 // pingText is what Ping asks Audacity to echo back.
-const pingText = "narration-studio ping"
+const pingText = "ping from " + brand.Executable
 
 // Ping asks Audacity to echo a fixed text (Message: Text=...) and checks the echo, which proves the pipe is in step. It changes
 // nothing in the project.

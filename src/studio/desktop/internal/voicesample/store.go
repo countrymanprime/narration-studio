@@ -2,6 +2,7 @@ package voicesample
 
 import (
 	"crypto/rand"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -44,7 +45,7 @@ var (
 
 // Dir is where this package keeps its data under a project. manuscript.Service.Clear removes it; a replace keeps it.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-studio", "voice-samples")
+	return filepath.Join(project, brand.ProjectFolder, "voice-samples")
 }
 
 func storePath(project string) string { return filepath.Join(Dir(project), "samples.json") }

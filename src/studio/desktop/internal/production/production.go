@@ -11,6 +11,7 @@ package production
 
 import (
 	"crypto/rand"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -45,7 +46,7 @@ var ErrTimerRunning = errors.New("a timer is already running")
 // derived data a manuscript re-import clears, the time log is kept: the
 // hours were worked whatever the manuscript later became.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-studio", "production")
+	return filepath.Join(project, brand.ProjectFolder, "production")
 }
 
 func sessionsPath(project string) string {

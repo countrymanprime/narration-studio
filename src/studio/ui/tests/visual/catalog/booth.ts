@@ -78,7 +78,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'record-turned-away',
     description:
-      'Booth after REAPER was started from its connect notice but the busy app turned the project away (?mockDaw=busy, Record turned on and the project linked first): the connect dialog (reopened for it) says "REAPER started, but this app turned its project away: Narration Studio is busy, so the current project was left unchanged. Finish or cancel what is running, then press Open in REAPER and connect again.", and the host\'s sentence stays as a message until it is dismissed; Record stays off',
+      'Booth after REAPER was started from its connect notice but the busy app turned the project away (?mockDaw=busy, Record turned on and the project linked first): the connect dialog (reopened for it) says "REAPER started, but this app turned its project away: The app is busy, so the current project was left unchanged. Finish or cancel what is running, then press Open in REAPER and connect again.", and the host\'s sentence stays as a message until it is dismissed; Record stays off',
     ...REFLOW,
   },
   {

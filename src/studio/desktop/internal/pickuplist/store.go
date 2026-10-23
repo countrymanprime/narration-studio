@@ -1,6 +1,7 @@
 package pickuplist
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,7 +20,7 @@ const what = "pickup list"
 
 // File is where a project's pickup list changes are kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-studio", "pickups", "pickup-list.json")
+	return filepath.Join(project, brand.ProjectFolder, "pickups", "pickup-list.json")
 }
 
 // added is a line the narrator typed. Time is seconds into the chapter's recording.

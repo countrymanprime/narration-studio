@@ -2,6 +2,7 @@ package passagetakes
 
 import (
 	"cmp"
+	"desktop/internal/brand"
 	"fmt"
 	"math"
 	"slices"
@@ -21,7 +22,7 @@ import (
 
 // StackedFromKey is the take P_EXT stack_takes writes on each stacked take (narration_takes.lua's STACK_KEY):
 // `read item|read take|track|start|offset from the first read`, GUIDs and seconds.
-const StackedFromKey = "narration_studio_stacked_from"
+const StackedFromKey = brand.ReaperExtPrefix + "stacked_from"
 
 // stackTolerance is how far apart two reads may start and still be on one spot (narration_takes.lua's POSITION_TOLERANCE,
 // the mock's EPS).

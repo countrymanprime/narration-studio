@@ -1,6 +1,7 @@
 package tracks
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -195,27 +196,27 @@ func TestTheParserNowReadsMuteRateStretchFxAndExtensionData(t *testing.T) {
 	}
 
 	stamped := project.Tracks[5].Items[0]
-	if stamped.Ext["narration_studio_line_id"] != "line-000001" {
-		t.Errorf("item extension data narration_studio_line_id = %q", stamped.Ext["narration_studio_line_id"])
+	if stamped.Ext[brand.ReaperExtPrefix+"line_id"] != "line-000001" {
+		t.Errorf("item extension data "+brand.ReaperExtPrefix+"line_id = %q", stamped.Ext[brand.ReaperExtPrefix+"line_id"])
 	}
-	if stamped.Ext["narration_studio_line_text"] != `The first line, with | a pipe.` {
-		t.Errorf("item extension data narration_studio_line_text = %q", stamped.Ext["narration_studio_line_text"])
+	if stamped.Ext[brand.ReaperExtPrefix+"line_text"] != `The first line, with | a pipe.` {
+		t.Errorf("item extension data "+brand.ReaperExtPrefix+"line_text = %q", stamped.Ext[brand.ReaperExtPrefix+"line_text"])
 	}
-	if stamped.Active().Ext["narration_studio_take_note"] != "take-level value" {
-		t.Errorf("take extension data narration_studio_take_note = %q", stamped.Active().Ext["narration_studio_take_note"])
+	if stamped.Active().Ext[brand.ReaperExtPrefix+"take_note"] != "take-level value" {
+		t.Errorf("take extension data "+brand.ReaperExtPrefix+"take_note = %q", stamped.Active().Ext[brand.ReaperExtPrefix+"take_note"])
 	}
 
 	tricky := project.Tracks[5].Items[1]
 	wantHostile := "She said \"hello\", then left.\\ Café 100% done; it's fine."
-	if tricky.Ext["narration_studio_line_text"] != wantHostile {
-		t.Errorf("hostile-value extension data = %q, want %q", tricky.Ext["narration_studio_line_text"], wantHostile)
+	if tricky.Ext[brand.ReaperExtPrefix+"line_text"] != wantHostile {
+		t.Errorf("hostile-value extension data = %q, want %q", tricky.Ext[brand.ReaperExtPrefix+"line_text"], wantHostile)
 	}
-	longValue := tricky.Ext["narration_studio_long"]
+	longValue := tricky.Ext[brand.ReaperExtPrefix+"long"]
 	if !strings.HasPrefix(longValue, "word word word") || !strings.HasSuffix(longValue, "word end") || len(longValue) < 3000 {
-		t.Errorf("<BIN> extension data narration_studio_long decoded wrong: prefix/suffix/length = %q.../%q/%d", firstN(longValue, 20), lastN(longValue, 20), len(longValue))
+		t.Errorf("<BIN> extension data "+brand.ReaperExtPrefix+"long decoded wrong: prefix/suffix/length = %q.../%q/%d", firstN(longValue, 20), lastN(longValue, 20), len(longValue))
 	}
-	if tricky.Ext["narration_studio_multiline"] != "first line\nsecond line" {
-		t.Errorf("<BIN> extension data narration_studio_multiline = %q", tricky.Ext["narration_studio_multiline"])
+	if tricky.Ext[brand.ReaperExtPrefix+"multiline"] != "first line\nsecond line" {
+		t.Errorf("<BIN> extension data "+brand.ReaperExtPrefix+"multiline = %q", tricky.Ext[brand.ReaperExtPrefix+"multiline"])
 	}
 }
 

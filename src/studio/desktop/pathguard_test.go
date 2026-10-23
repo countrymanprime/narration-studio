@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -140,8 +141,8 @@ func TestPathGuardLinkDawFile(t *testing.T) {
 					t.Fatalf("linking into the missing project folder %q created it", p.Dir)
 				}
 			}
-			if _, statErr := os.Stat("narration-studio"); p.Dir == "" && statErr == nil {
-				t.Fatal("linking wrote narration-studio/ into the working directory")
+			if _, statErr := os.Stat(brand.ProjectFolder); p.Dir == "" && statErr == nil {
+				t.Fatal("linking wrote " + brand.ProjectFolder + "/ into the working directory")
 			}
 		case p.DirReadOnly:
 			if err == nil {

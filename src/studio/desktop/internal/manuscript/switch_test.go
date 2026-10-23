@@ -1,6 +1,7 @@
 package manuscript
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -78,7 +79,7 @@ func TestClearRemovesTheManuscriptSoLoadFails(t *testing.T) {
 	if err := service.Clear(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-studio", "manuscript")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "manuscript")); !os.IsNotExist(err) {
 		t.Fatalf("manuscript directory should be gone, stat err = %v", err)
 	}
 	if _, err := service.Load(); err == nil {

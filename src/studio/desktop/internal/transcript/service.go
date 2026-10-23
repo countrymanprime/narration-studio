@@ -6,6 +6,7 @@ package transcript
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -94,7 +95,7 @@ func (s *Service) SetFindings(store *findings.Store, lookup ManuscriptLookup) {
 // handleInvalid ends the run in progress with a message that names the event and the field that could not be read (never a value).
 // The advice is the fix for the usual cause: the REAPER script the narrator imported is older or newer than this app.
 func (s *Service) handleInvalid(event dawport.Event, reason error) {
-	message := fmt.Sprintf("The Narration Studio script in REAPER sent a message this app could not read (%v). Import the script from this app's REAPER folder again, then start a new comparison.", reason)
+	message := fmt.Sprintf("The app's script in REAPER sent a message this app could not read (%v). Import the script from this app's REAPER folder again, then start a new comparison.", reason)
 	s.mu.Lock()
 	if !runInProgress(s.state) {
 		s.mu.Unlock()
@@ -167,7 +168,7 @@ func (s *Service) notify() {
 }
 
 func (s *Service) Start(options map[string]string) error {
-	if s.config.Project == "" || !exists(filepath.Join(s.config.Project, "narration-studio", "manuscript", "manuscript.json")) {
+	if s.config.Project == "" || !exists(filepath.Join(s.config.Project, brand.ProjectFolder, "manuscript", "manuscript.json")) {
 		return fmt.Errorf("save the REAPER project and import a manuscript first")
 	}
 	hintsPath := filepath.Join(s.config.Project, "TranscriptCompare", "vocabulary_hints.txt")

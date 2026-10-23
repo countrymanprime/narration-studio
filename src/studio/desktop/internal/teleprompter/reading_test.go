@@ -1,6 +1,7 @@
 package teleprompter
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -18,7 +19,7 @@ const readingManuscript = `{"documentId":"doc-1","chapters":[{"id":"c1","title":
 
 func writeManuscript(t *testing.T, project, body string) {
 	t.Helper()
-	dir := filepath.Join(project, "narration-studio", "manuscript")
+	dir := filepath.Join(project, brand.ProjectFolder, "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +43,7 @@ func TestAReadingRoundTripsWhileTheChapterTextIsUnchanged(t *testing.T) {
 	if got == nil || got.ChapterID != "c1" || got.Read != 3 || got.Tokens != 4 || got.Status != "listening" || !got.EndedAt.Equal(readingTime) || got.ScriptHash == "" || got.Version != readingSchemaVersion {
 		t.Fatalf("LoadReading = %+v", got)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-studio", "teleprompter", "c1.reading.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "teleprompter", "c1.reading.json")); err != nil {
 		t.Fatal(err)
 	}
 	if other, _ := LoadReading(project, "c2"); other != nil {

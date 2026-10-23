@@ -1,6 +1,7 @@
 package preview
 
 import (
+	"desktop/internal/brand"
 	"path/filepath"
 	"testing"
 
@@ -88,7 +89,7 @@ func TestMapParagraphsToTimeAgainstARealReaperSavedFixture(t *testing.T) {
 	var items []StampedItem
 	for _, track := range project.Tracks {
 		for _, item := range track.Items {
-			lineID, ok := item.Ext["narration_studio_line_id"]
+			lineID, ok := item.Ext[brand.ReaperExtPrefix+"line_id"]
 			if !ok {
 				continue
 			}

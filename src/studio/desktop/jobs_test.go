@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"strings"
 	"testing"
 	"time"
@@ -154,7 +155,9 @@ func TestAnUpdateDownloadEndsWithAJobEventWhetherItWorksOrNot(t *testing.T) {
 	noMoreJobEnds(t, events)
 
 	bad := newReleaseFiles(t)
-	bad.checksum = func([]byte) string { return strings.Repeat("0", 64) + "  narration-studio-0.2.7-windows-x64.zip\n" }
+	bad.checksum = func([]byte) string {
+		return strings.Repeat("0", 64) + "  " + brand.ReleaseAssetPrefix + "-0.2.7-windows-x64.zip\n"
+	}
 	failing := downloadHost(t, bad)
 	if _, err := failing.UpdateCheck(); err != nil {
 		t.Fatal(err)

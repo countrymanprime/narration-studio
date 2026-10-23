@@ -5,7 +5,7 @@ import (
 	"desktop/internal/manuscript"
 )
 
-// The narrator's Editing records, kept in <project>/narration-studio/editing/ and checked against the current text
+// The narrator's Editing records, kept in <project>/<app>/editing/ and checked against the current text
 // on every read. A word is named by its key, `paragraphId:ordinal` (its place among the paragraph's whitespace-separated
 // words), together with the text it had, so a record whose word changed comes back stale rather than moved. The bindings take
 // ids and keys only, never a path.

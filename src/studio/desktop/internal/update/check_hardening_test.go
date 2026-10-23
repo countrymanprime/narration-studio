@@ -2,6 +2,7 @@ package update
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,7 +37,7 @@ func TestACacheThatHoldsABadDigestIsDroppedWithItsETag(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(checker.CachePath), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	bad := `{"schema":1,"etag":"\"v1\"","checkedAt":"2026-09-20T00:00:00Z","releases":[{"tag":"v0.2.7-rc","asset":{"name":"narration-studio-0.2.7-windows-x64.zip","size":10,"digest":"nonsense"},"checksum":{"name":"narration-studio-0.2.7-windows-x64.zip.sha256","size":10}}]}`
+	bad := `{"schema":1,"etag":"\"v1\"","checkedAt":"2026-09-20T00:00:00Z","releases":[{"tag":"v0.2.7-rc","asset":{"name":"` + brand.ReleaseAssetPrefix + `-0.2.7-windows-x64.zip","size":10,"digest":"nonsense"},"checksum":{"name":"` + brand.ReleaseAssetPrefix + `-0.2.7-windows-x64.zip.sha256","size":10}}]}`
 	if err := os.WriteFile(checker.CachePath, []byte(bad), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +129,7 @@ func TestAPlatformWithNoReleaseIsNeverDueAndMakesNoRequest(t *testing.T) {
 // The updater refuses redirects, so a build that holds a stale repository name sees a 301 and never finds a release
 // (docs/operations/repository-rename.md). A rename changes this constant first.
 func TestTheCompiledInRepositoryIsTheRenamedOne(t *testing.T) {
-	if Repository != "countrymanprime/narration-studio" {
+	if Repository != brand.RepositorySlug {
 		t.Fatalf("Repository %q", Repository)
 	}
 }

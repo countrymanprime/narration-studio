@@ -10,6 +10,7 @@
 package productionreport
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -22,8 +23,8 @@ import (
 const SchemaVersion = 2
 
 // Dir is the sidecar folder the host writes reports to, relative to the project folder; distinct from
-// narration-studio/production's own sessions.json, so an export never touches the time log.
-const Dir = "narration-studio/production/reports"
+// <app>/production's own sessions.json, so an export never touches the time log.
+const Dir = brand.ProjectFolder + "/production/reports"
 
 // Options are the narrator's choices for one export.
 type Options struct {
@@ -78,7 +79,7 @@ func Build(in Input) Report {
 	report := Report{
 		SchemaVersion: SchemaVersion,
 		GeneratedAt:   in.GeneratedAt,
-		App:           App{Name: "Narration Studio", Version: in.AppVersion},
+		App:           App{Name: brand.Name, Version: in.AppVersion},
 		Notice:        notice,
 		Book:          BookSummary{Chapters: in.Overview.Totals.Chapters, FinalizedChapters: in.Overview.Totals.FinalizedChapters},
 		Privacy:       privacyOf(include),

@@ -236,7 +236,7 @@ const (
 	messageNoItem         = "This finding has no REAPER item to go to, because it came from an older check. Run the check again to record one."
 	messageNoSourceTime   = "This finding has no time in its audio to loop. Go to it instead."
 	messageRecording      = "REAPER is recording, so nothing was moved. Stop recording first."
-	messageScriptOutdated = "The Narration Studio script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again."
+	messageScriptOutdated = "The app's script in REAPER is older than this app. Restart REAPER so it loads the bridge this app installed, then try again."
 	messageStaleSuffix    = ", so nothing was moved. Run the check again to find it where it is now."
 
 	// What Audacity answers where REAPER's item and take are not there to use (docs/reference/daw/capabilities.md#navigate).

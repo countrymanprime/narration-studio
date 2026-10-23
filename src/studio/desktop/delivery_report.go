@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"os"
@@ -17,7 +18,7 @@ import (
 // Master & QC's report export. The page sends only the
 // narrator's one choice, whether to include full paths; the host builds the report from what it already holds (the last
 // measurement and diagnostics check, the project's delivery profile, the project's review store, the installed assets) and writes
-// an HTML and a JSON file into the project's narration-studio/delivery folder. It never writes next to the audio, never
+// an HTML and a JSON file into the project's <app>/delivery folder. It never writes next to the audio, never
 // changes a source file, and never overwrites an earlier report.
 
 // maxReportNameAttempts bounds the search for a free file name when reports are exported within the same second.
@@ -68,7 +69,7 @@ func (h *Host) exportDeliveryReport(includePaths bool) (DeliveryReportExport, er
 	svc := h.services()
 	project := svc.config.projectFolder
 	if project == "" {
-		return DeliveryReportExport{}, errors.New("open a project first; the report is kept in its narration-studio/delivery folder")
+		return DeliveryReportExport{}, errors.New("open a project first; the report is kept in its " + brand.ProjectFolder + "/delivery folder")
 	}
 	in, err := h.deliveryReportInput(svc, includePaths)
 	if err != nil {

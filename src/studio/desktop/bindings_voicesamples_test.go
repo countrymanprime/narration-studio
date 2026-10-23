@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"desktop/internal/brand"
 	"encoding/binary"
 	"encoding/json"
 	"math"
@@ -298,7 +299,7 @@ func TestVoiceSampleMarkIsRefusedWhenTheCheckIsStale(t *testing.T) {
 	host, project := voiceSamplesHost(t)
 	record := currentRecordID(t, host)
 	// The manuscript changed after the chapter was checked.
-	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"),
+	writeNested(t, filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"),
 		`{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c-0001","title":"Chapter One","contentKind":"narration"}],"paragraphs":[{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice, again."}]}`)
 	answer := voiceAnswerOf(t)(host.VoiceSampleMark(aliceRequest(record, voiceCharacter)))
 	if answer.Status != "refused" || answer.Reason != voicesample.ReasonStaleAlignment {
@@ -353,7 +354,7 @@ func TestVoiceSamplesStorageSettingAcceptsOnlyProject(t *testing.T) {
 	if err := host.saveSettings("VoiceSamples", "project", map[string]*string{"storage": &project1}); err != nil {
 		t.Fatal(err)
 	}
-	writeNested(t, filepath.Join(project, "narration-studio", "settings.json"), `{"VoiceSamples":{"storage":"daw"}}`)
+	writeNested(t, filepath.Join(project, brand.ProjectFolder, "settings.json"), `{"VoiceSamples":{"storage":"daw"}}`)
 	if value, _ := store.Effective("VoiceSamples", "storage", ""); value != "project" {
 		t.Fatalf("a hand-edited daw reads as %q", value)
 	}

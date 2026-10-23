@@ -12,7 +12,7 @@ import (
 // The Booth's passage map (docs/architecture/manuscript-teleprompter.md#the-passage-map): when a recording stops, the UI
 // sends the run of marks it noted (where each take began, and where the one before it ended), the host checks them against
 // the manuscript, stamps them with the ids the DAW gave the recorded item and take, and keeps them in
-// <project>/narration-studio/passagemap.json. The UI never sends an id the DAW gave: the host reads it from the chapter's
+// <project>/<app>/passagemap.json. The UI never sends an id the DAW gave: the host reads it from the chapter's
 // linked track, or the built-in recorder's take name (threat-model row 5k).
 
 // passageMapStampTimeout bounds how long the stamp waits for the DAW to report the chapter's track: on a timeout the run is

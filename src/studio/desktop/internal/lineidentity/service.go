@@ -184,7 +184,7 @@ func (s *Service) ownsRun(runID string) bool {
 // handleInvalid ends the run in progress with a message naming the event and the field that could not be
 // read (never a value, since a field can hold the narrator's words): the same shape as transcript.Service.
 func (s *Service) handleInvalid(event dawport.Event, reason error) {
-	message := fmt.Sprintf("The Narration Studio script in REAPER sent a message this app could not read (%v). Import the script from this app's REAPER folder again, then try again.", reason)
+	message := fmt.Sprintf("The app's script in REAPER sent a message this app could not read (%v). Import the script from this app's REAPER folder again, then try again.", reason)
 	s.mu.Lock()
 	if !runInProgress(s.state) {
 		s.mu.Unlock()

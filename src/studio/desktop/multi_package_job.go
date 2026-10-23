@@ -226,7 +226,7 @@ func (h *Host) startMultiPackage(req MultiPackageRequest) (MultiPackageJob, erro
 		return h.multiPackageState(), nil
 	}
 	if inSidecarTree(projectFolder, rootDir) {
-		return MultiPackageJob{}, errors.New("a delivery package cannot be saved inside the project's narration-studio folder; choose a different folder")
+		return MultiPackageJob{}, errors.New("a delivery package cannot be saved inside the app's folder in the project; choose a different folder")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

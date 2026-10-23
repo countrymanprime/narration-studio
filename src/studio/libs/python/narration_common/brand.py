@@ -6,6 +6,7 @@ Identity values do not follow a rename."""
 
 NAME = "Narration Studio"
 SLUG = "narration-studio"
+REPOSITORY_SLUG = "countrymanprime/narration-studio"
 REPOSITORY_URL = "https://github.com/countrymanprime/narration-studio"
 REPOSITORY_PAGES_URL = "https://countrymanprime.github.io/narration-studio/"
 DATA_FOLDER = "narration-studio"

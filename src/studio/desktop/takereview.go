@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -43,7 +44,7 @@ func takeReviewChapterID(chapterTrackName string) string {
 // the document the repeated-span detector aligns transcribed reads
 // against.
 func takeReviewManuscriptPath(projectFolder string) string {
-	return filepath.Join(projectFolder, "narration-studio", "manuscript", "manuscript.json")
+	return filepath.Join(projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json")
 }
 
 // takeReviewSessionDir mirrors configureLocked's teleprompterDir fallback
@@ -54,7 +55,7 @@ func takeReviewSessionDir(sessionDir string) string {
 	if sessionDir != "" {
 		return sessionDir
 	}
-	return filepath.Join(os.TempDir(), "narration-studio")
+	return filepath.Join(os.TempDir(), brand.DataFolder)
 }
 
 // takeReviewRunnerFor builds the real SidecarRunner from project config,

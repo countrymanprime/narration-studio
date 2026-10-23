@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"strings"
 	"testing"
@@ -90,7 +91,7 @@ func TestUndoLastRefusesWhileRecordingAndPassesOnTheScriptsSentence(t *testing.T
 func TestUndoLastAndLastActionCheckTheirArgumentsBeforeAnythingIsSent(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
-	for _, kind := range []string{"", "fx_range", "Narration Studio: delete words", "CUT_RANGE"} {
+	for _, kind := range []string{"", "fx_range", brand.Name + ": delete words", "CUT_RANGE"} {
 		if _, err := actions.LastAction(context.Background(), kind); !errors.Is(err, ErrUndoKind) {
 			t.Errorf("LastAction(%q) = %v, want ErrUndoKind", kind, err)
 		}

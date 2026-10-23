@@ -1,6 +1,7 @@
 package manuscript
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -75,7 +76,7 @@ func TestDetectSourceIgnoresUnsupportedFormatsWordLockFilesAndDirectories(t *tes
 func TestDetectSourceStaysQuietOnceAManuscriptIsImported(t *testing.T) {
 	project := t.TempDir()
 	touch(t, filepath.Join(project, "manuscript.docx"))
-	target := filepath.Join(project, "narration-studio", "manuscript")
+	target := filepath.Join(project, brand.ProjectFolder, "manuscript")
 	if err := os.MkdirAll(target, 0o755); err != nil {
 		t.Fatal(err)
 	}

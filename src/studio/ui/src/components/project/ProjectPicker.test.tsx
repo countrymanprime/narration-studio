@@ -138,14 +138,14 @@ describe('ProjectPicker', () => {
   it('does not tell the app a project was created when the host refuses it', async () => {
     const onCreated = vi.fn();
     const { api } = renderPicker({}, { onCreated });
-    vi.spyOn(api, 'createProject').mockResolvedValue({ switched: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' });
+    vi.spyOn(api, 'createProject').mockResolvedValue({ switched: false, reason: 'The app is busy, so the current project was left unchanged.' });
     await waitFor(() => screen.getByRole('button', { name: 'New project' }));
     fireEvent.click(screen.getByRole('button', { name: 'New project' }));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Fresh Project' } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(await screen.findByText('Narration Studio is busy, so the current project was left unchanged.')).toBeTruthy();
+    expect(await screen.findByText('The app is busy, so the current project was left unchanged.')).toBeTruthy();
     expect(onCreated).not.toHaveBeenCalled();
   });
 
@@ -177,13 +177,13 @@ describe('ProjectPicker', () => {
   it('renders the refusal reason when a switch is rejected', async () => {
     renderPicker({
       selectProjectFolder: async () => ({ selected: true, path: 'C:\\Projects\\New-Project' }),
-      switchProject: async () => ({ switched: false, reason: 'Narration Studio is busy, so the current project was left unchanged.' }),
+      switchProject: async () => ({ switched: false, reason: 'The app is busy, so the current project was left unchanged.' }),
     });
     await waitFor(() => screen.getByRole('button', { name: 'Browse folders…' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Browse folders…' }));
 
-    expect(await screen.findByText('Narration Studio is busy, so the current project was left unchanged.')).toBeTruthy();
+    expect(await screen.findByText('The app is busy, so the current project was left unchanged.')).toBeTruthy();
   });
 
   describe('removing a recent project (#1778)', () => {

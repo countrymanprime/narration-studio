@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -557,12 +558,12 @@ func noticePayload(text string) map[string]any { return map[string]any{"text": t
 // lines.
 func recentProjectsPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-studio", "recent-projects.json")
+		return filepath.Join(value, brand.DataFolder, "recent-projects.json")
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-studio", "recent-projects.json")
+		return filepath.Join(value, "AppData", "Roaming", brand.DataFolder, "recent-projects.json")
 	}
-	return filepath.Join("AppData", "Roaming", "narration-studio", "recent-projects.json")
+	return filepath.Join("AppData", "Roaming", brand.DataFolder, "recent-projects.json")
 }
 
 // creditTemplatesPath resolves the per-user credit-templates file, alongside
@@ -571,12 +572,12 @@ func recentProjectsPath() string {
 // a few lines and user-level storage is not project-scoped.
 func creditTemplatesPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-studio", "credit-templates.json")
+		return filepath.Join(value, brand.DataFolder, "credit-templates.json")
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-studio", "credit-templates.json")
+		return filepath.Join(value, "AppData", "Roaming", brand.DataFolder, "credit-templates.json")
 	}
-	return filepath.Join("AppData", "Roaming", "narration-studio", "credit-templates.json")
+	return filepath.Join("AppData", "Roaming", brand.DataFolder, "credit-templates.json")
 }
 
 // seriesPath resolves the per-user series file, alongside
@@ -584,12 +585,12 @@ func creditTemplatesPath() string {
 // %APPDATA%-with-%USERPROFILE%-fallback chain rather than sharing it.
 func seriesPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-studio", "series.json")
+		return filepath.Join(value, brand.DataFolder, "series.json")
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-studio", "series.json")
+		return filepath.Join(value, "AppData", "Roaming", brand.DataFolder, "series.json")
 	}
-	return filepath.Join("AppData", "Roaming", "narration-studio", "series.json")
+	return filepath.Join("AppData", "Roaming", brand.DataFolder, "series.json")
 }
 
 // ServiceStartup is Wails v3's start hook for the Host service (main.go): it runs once, before the window loads the UI, with a
@@ -659,7 +660,7 @@ func (h *Host) configureLocked(next config) {
 	}
 	if packagedRoot != "" {
 		cache, _ := os.UserCacheDir()
-		h.config.reaperLauncher = filepath.Join(stableLauncherDir(cache), "NarrationStudio_Launcher.lua")
+		h.config.reaperLauncher = filepath.Join(stableLauncherDir(cache), brand.ReaperLauncher)
 	} else {
 		h.config.reaperLauncher = layout.Path(h.config.repoRoot, layout.LauncherFile)
 		// A checkout's launcher would otherwise run whatever build sits in build/bin; point it at the program that is running.
@@ -676,7 +677,7 @@ func (h *Host) configureLocked(next config) {
 	h.guide = guide.New(h.config.projectFolder, h.config.manuscriptPython, h.config.manuscriptBackend, h.settings, h.sidecars)
 	h.guide.SetPersist(h.persist)
 	h.guide.SetFindings(h.findings)
-	// The session directory is REAPER's file bridge (NarrationStudio_Launcher.lua makes it). An Audacity launch never opens it,
+	// The session directory is REAPER's file bridge (the launcher script makes it). An Audacity launch never opens it,
 	// even when one is passed, so nothing on that launch writes REAPER bridge commands.
 	// The project's DAW (projectdaw.go): the launch's --daw, else the project's own choice or what its folder holds.
 	projectKind := h.projectDaw(hostServices{config: h.config, settings: h.settings}).kind
@@ -909,7 +910,7 @@ func (h *Host) configureLocked(next config) {
 	h.projectState = projectstate.New(projectstate.Config{SessionDir: h.config.sessionDir}, projectStateReader, h.emitProjectState)
 	teleprompterDir := h.config.sessionDir
 	if teleprompterDir == "" {
-		teleprompterDir = filepath.Join(os.TempDir(), "narration-studio")
+		teleprompterDir = filepath.Join(os.TempDir(), brand.DataFolder)
 	}
 	// NARRATION_TELEPROMPTER_EVAL=1 is the teleprompter evaluation aid:
 	// a developer/evaluation-only opt-in, same pattern as NARRATION_DEBUG (runlog), never a Settings toggle.
@@ -941,7 +942,7 @@ func (h *Host) packagedResources() string {
 	return root
 }
 
-// materializeResources unpacks the resources embedded in source into <userCache>/narration-studio/runtime/<key> and returns that folder.
+// materializeResources unpacks the resources embedded in source into <userCache>/<data>/runtime/<key> and returns that folder.
 // The folder is content-addressed and is only written when it is missing or incomplete, so it is safe to call at every start. The
 // packaged smoke test (smoke.go) calls it with the embedded resources of the real executable.
 func materializeResources(source fs.FS, userCache, executable string) (string, error) {
@@ -949,7 +950,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if err != nil {
 		return "", err
 	}
-	target := filepath.Join(userCache, "narration-studio", "runtime", key)
+	target := filepath.Join(userCache, brand.DataFolder, "runtime", key)
 	if _, err := os.Stat(filepath.Join(target, ".complete")); err == nil {
 		// The payload may be unchanged while the app executable moves (for
 		// example after a user relocates a portable install). Refresh this
@@ -1008,7 +1009,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 // stableLauncherDir is the one folder REAPER's launcher runs from, whatever version is installed: the content-addressed runtime
 // folder changes with every update, and a launcher path that moves meant re-adding the REAPER action after each one.
 func stableLauncherDir(userCache string) string {
-	return filepath.Join(userCache, "narration-studio", "reaper")
+	return filepath.Join(userCache, brand.DataFolder, "reaper")
 }
 
 // syncStableLauncher updates the embedded REAPER scripts in place under dir and points the launcher at executable. A file is
@@ -1039,7 +1040,7 @@ func syncStableLauncher(source fs.FS, dir, executable string) error {
 	if executable == "" {
 		return nil
 	}
-	return writeIfChanged(filepath.Join(dir, "narration-studio-app-path.txt"), []byte(executable+"\n"))
+	return writeIfChanged(filepath.Join(dir, brand.Executable+"-app-path.txt"), []byte(executable+"\n"))
 }
 
 func writeIfChanged(target string, content []byte) error {
@@ -1062,12 +1063,12 @@ func executablePath() string {
 }
 
 // writeCheckoutLauncherPointer writes the running program's path beside a checkout's launcher script, the file the launcher reads
-// first (NarrationStudio_Launcher.lua), so the REAPER action starts this program, which the single-instance check then forwards to.
+// first (the launcher script), so the REAPER action starts this program, which the single-instance check then forwards to.
 func writeCheckoutLauncherPointer(launcher, executable string) error {
 	if launcher == "" || executable == "" {
 		return nil
 	}
-	target := filepath.Join(filepath.Dir(launcher), "narration-studio-app-path.txt")
+	target := filepath.Join(filepath.Dir(launcher), brand.Executable+"-app-path.txt")
 	temporary := target + ".tmp"
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
@@ -1083,7 +1084,7 @@ func writeReaperLauncherPath(root, executable string) error {
 	if err := os.MkdirAll(directory, 0o755); err != nil {
 		return err
 	}
-	target := filepath.Join(directory, "narration-studio-app-path.txt")
+	target := filepath.Join(directory, brand.Executable+"-app-path.txt")
 	temporary := target + ".tmp"
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
@@ -1309,7 +1310,7 @@ func (h *Host) ServiceShutdown() error {
 
 // attachBusyReason is what the UI is told when an attach is refused because
 // in-flight work would be displaced.
-const attachBusyReason = "Narration Studio is busy, so the current project was left unchanged."
+const attachBusyReason = "The app is busy, so the current project was left unchanged."
 
 // canAttach reports, under a read lock, whether a project switch would be
 // accepted right now. It is only a pre-check: attachProjectLocked asks again
@@ -1447,7 +1448,7 @@ func (h *Host) resolveProjectFileLocked(next config) config {
 }
 
 // unresolvedLaunchReason reports what to tell the narrator when a REAPER launch (--daw REAPER, set unconditionally by
-// NarrationStudio_Launcher.lua) still has no project folder after matching, so they land on the picker with nothing chosen for
+// the launcher script) still has no project folder after matching, so they land on the picker with nothing chosen for
 // them: an unsaved rpp (next.projectFile empty) or a saved one no project has linked yet. Any other launch without a
 // folder, an Audacity one included, lands on the picker silently: both reasons are about a REAPER project it does not have.
 func unresolvedLaunchReason(next config) (string, bool) {
@@ -1460,13 +1461,13 @@ func unresolvedLaunchReason(next config) (string, bool) {
 // startupProjectFileReason is the narrator-facing explanation emitted when a
 // REAPER launch could not be resolved to any project: an unsaved REAPER
 // project has no file to match at all, and a saved one may simply not be
-// linked to a Narration Studio project yet. Either way the picker (already
+// linked to a project yet. Either way the picker (already
 // shown whenever projectFolder is empty) is where the narrator resolves it.
 func startupProjectFileReason(projectFile string) string {
 	if projectFile == "" {
-		return "This REAPER project has not been saved yet, so it has no file to link. Save it in REAPER, or choose or create a Narration Studio project."
+		return "This REAPER project has not been saved yet, so it has no file to link. Save it in REAPER, or choose or create a project."
 	}
-	return "This REAPER project isn't linked to a Narration Studio project yet. Choose or create one to link it."
+	return "This REAPER project isn't linked to a project yet. Choose or create one to link it."
 }
 
 // canAttachLocked implements the REAPER single-instance rule: attach a new
@@ -1594,7 +1595,7 @@ func (h *Host) Bootstrap() map[string]any {
 	config := svc.config
 	var imported any
 	if config.projectFolder != "" {
-		if bytes, err := os.ReadFile(filepath.Join(config.projectFolder, "narration-studio", "manuscript", "manuscript.json")); err == nil {
+		if bytes, err := os.ReadFile(filepath.Join(config.projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json")); err == nil {
 			var data map[string]any
 			if json.Unmarshal(bytes, &data) == nil {
 				importer, _ := data["importer"].(map[string]any)
@@ -1778,7 +1779,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"punch_preroll_seconds", "Punch pre-roll (seconds)", "number", nil},
 	},
 	// DAW.reaper_path is a global override for daw.Resolve (empty means auto-detect, src/studio/desktop/internal/daw).
-	// DAW.auto_start_launcher: the app may pass NarrationStudio_Launcher.lua as REAPER's trailing script argument when
+	// DAW.auto_start_launcher: the app may pass the launcher script as REAPER's trailing script argument when
 	// it starts REAPER, so the bridge is live without the narrator running the action by hand - but only when this is on, and
 	// it defaults off.
 	// DAW.experimental_reaper_actions is an owner decision: the REAPER bridge commands built before the owner's
@@ -2329,10 +2330,10 @@ func isHex(value string) bool {
 	return true
 }
 
-// evalExtraArgs reads the evaluation aid's extra sidecar flags from teleprompter-extra-args.txt in the temp folder's narration-studio folder (whitespace
+// evalExtraArgs reads the evaluation aid's extra sidecar flags from teleprompter-extra-args.txt in the temp folder's <data> folder (whitespace
 // separated) each time a session starts, so a developer can change them between runs. A missing or unreadable file is no flags.
 func evalExtraArgs() []string {
-	text, err := os.ReadFile(filepath.Join(os.TempDir(), "narration-studio", "teleprompter-extra-args.txt"))
+	text, err := os.ReadFile(filepath.Join(os.TempDir(), brand.DataFolder, "teleprompter-extra-args.txt"))
 	if err != nil {
 		return nil
 	}

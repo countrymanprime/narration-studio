@@ -235,7 +235,7 @@ func (s *Store) writeLocked(file seriesFile) error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
-		return fmt.Errorf("could not create the narration-studio folder: %w", err)
+		return fmt.Errorf("could not create the app's data folder: %w", err)
 	}
 	file.SchemaVersion = seriesSchemaVersion
 	bytes, err := json.MarshalIndent(file, "", "  ")

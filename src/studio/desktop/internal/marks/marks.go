@@ -12,6 +12,7 @@ package marks
 
 import (
 	"crypto/rand"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -76,7 +77,7 @@ var typeKeyPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,40}$`)
 
 // File is where a project's marks are kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-studio", "marks.json")
+	return filepath.Join(project, brand.ProjectFolder, "marks.json")
 }
 
 // MarkType is one of the narrator's ways of marking up. Key names it in each mark; Asks makes its marks questions that track a
@@ -714,7 +715,7 @@ func (s *Service) write(file marksFile) error {
 	file.MigratedNotes = true
 	path := File(s.config.Project)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
+		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

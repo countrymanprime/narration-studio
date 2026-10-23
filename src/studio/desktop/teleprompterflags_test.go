@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -25,7 +26,7 @@ const flagsManuscript = `{"schemaVersion":1,"documentId":"alice-1","importedAt":
 func newTestHostForFlags(t *testing.T) (*Host, string) {
 	t.Helper()
 	project := t.TempDir()
-	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +63,7 @@ func TestTeleprompterSaveFlagsWritesSuspectedUnreviewedFindings(t *testing.T) {
 			t.Fatalf("%s: status %s confidence %v; a live flag is unreviewed and unscored", f.ID, f.Review.Status, f.Confidence)
 		}
 	}
-	file := filepath.Join(project, "narration-studio", "findings", "teleprompter", "ch-1.json")
+	file := filepath.Join(project, brand.ProjectFolder, "findings", "teleprompter", "ch-1.json")
 	raw, err := os.ReadFile(file)
 	if err != nil {
 		t.Fatalf("findings file not written: %v", err)
@@ -116,7 +117,7 @@ func TestTeleprompterSaveFlagsRecordsADismissOnceAndKeepsIt(t *testing.T) {
 	if again[0].Review.Status != findings.StatusDismissed {
 		t.Fatalf("a dismissed flag raised again came back %s", again[0].Review.Status)
 	}
-	raw, err := os.ReadFile(filepath.Join(project, "narration-studio", "findings", "review.json"))
+	raw, err := os.ReadFile(filepath.Join(project, brand.ProjectFolder, "findings", "review.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +132,7 @@ func TestTeleprompterSaveFlagsRejectsWhatTheManuscriptDoesNotHave(t *testing.T) 
 	if _, err := host.teleprompterSaveFlags("ch-1", bad, flagsNow); err == nil || !strings.Contains(err.Error(), "p-404") {
 		t.Fatalf("err = %v, want the unknown paragraph named", err)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-studio", "findings")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "findings")); !os.IsNotExist(err) {
 		t.Fatal("a rejected save wrote something")
 	}
 	if _, err := host.teleprompterSaveFlags("ch-9", sessionFlags, flagsNow); err == nil {
@@ -145,7 +146,7 @@ func TestTeleprompterSaveFlagsWithNothingToSaveWritesNothing(t *testing.T) {
 	if err != nil || len(saved) != 0 {
 		t.Fatalf("saved %v, err %v", saved, err)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-studio", "findings")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, brand.ProjectFolder, "findings")); !os.IsNotExist(err) {
 		t.Fatal("an empty save wrote a findings folder")
 	}
 }

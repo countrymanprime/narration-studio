@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -40,7 +41,7 @@ func writeExtrasManuscript(t *testing.T, folder string, wordsPer int) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(folder, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(folder, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

@@ -125,7 +125,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await linkProject(page);
     await startReaper(page);
     // The host's own sentence as a message that stays until it is dismissed, and the notice says what it means for Record.
-    await expect(page.getByText('Narration Studio is busy, so the current project was left unchanged.').first()).toBeVisible();
+    await expect(page.getByText('The app is busy, so the current project was left unchanged.').first()).toBeVisible();
     await expect(dialog(page).getByRole('alert')).toContainText('Finish or cancel what is running, then press Open in REAPER and connect again.');
     await expect(record(page)).toBeDisabled();
     // The button reads Connecting… while the app waits ten seconds for the bridge, then offers the press again.

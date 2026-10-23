@@ -3,6 +3,7 @@ package teleprompter
 import (
 	"bufio"
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -140,7 +141,7 @@ func (s *Service) runOverRecording(ctx context.Context, request LocateRequest, a
 	if project == "" {
 		return 0, "", "", errors.New("save the REAPER project and import a manuscript first")
 	}
-	manuscript := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
+	manuscript := filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json")
 	if _, err := os.Stat(manuscript); err != nil {
 		return 0, "", "", errors.New("import a manuscript first")
 	}

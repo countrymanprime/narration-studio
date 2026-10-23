@@ -1,6 +1,7 @@
 package liveflags
 
 import (
+	"desktop/internal/brand"
 	"strings"
 	"testing"
 
@@ -63,7 +64,7 @@ func TestAMisreadIsASuspectedTranscriptDiscrepancyOnTheManuscriptWords(t *testin
 	if f.TimeRange != nil || f.Source != (findings.Source{}) {
 		t.Fatal("no take is known yet, so the finding carries no time range or source")
 	}
-	if f.Project.OutputPath != "narration-studio/findings/teleprompter/ch-1.json" {
+	if f.Project.OutputPath != brand.ProjectFolder+"/findings/teleprompter/ch-1.json" {
 		t.Fatalf("output path = %q", f.Project.OutputPath)
 	}
 }

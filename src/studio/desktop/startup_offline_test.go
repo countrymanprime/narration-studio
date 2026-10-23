@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"net/http"
 	"os"
@@ -203,7 +204,7 @@ func TestTheUpdateCheckIsTheOnlyRequestAtStartupAndOnlyToTheGitHubReleasesAPI(t 
 	if len(seen) != 1 {
 		t.Fatalf("the update check should be the only request, got %v", seen)
 	}
-	if want := "GET https://api.github.com/repos/countrymanprime/narration-studio/releases"; !strings.HasPrefix(seen[0], want) {
+	if want := "GET " + "https://api.github.com/repos/" + brand.RepositorySlug + "/releases"; !strings.HasPrefix(seen[0], want) {
 		t.Fatalf("the request was %q, want a GET of %s", seen[0], want)
 	}
 	if files := filesUnder(t, cache); len(files) != 0 {
@@ -340,7 +341,7 @@ func TestAFileInARetiredBootstrapFolderIsNeverAnInstalledAsset(t *testing.T) {
 func TestARetiredBootstrapFolderNextToTheRealCacheIsIgnoredAtLaunch(t *testing.T) {
 	cache := emptyUserProfile(t)
 	guard := closeTheNetwork(t)
-	appData := filepath.Dir(filepath.Dir(cache)) // the per-user cache folder that holds narration-studio/
+	appData := filepath.Dir(filepath.Dir(cache)) // the per-user cache folder that holds <data>/
 	for _, home := range []string{filepath.Join(appData, ".piper"), filepath.Join(appData, ".runtime"), filepath.Join(appData, ".bootstrap"), filepath.Join(cache, ".piper")} {
 		if err := os.MkdirAll(home, 0o755); err != nil {
 			t.Fatal(err)

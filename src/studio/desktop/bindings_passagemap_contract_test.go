@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -24,7 +25,7 @@ func TestPassageMapContractGoldens(t *testing.T) {
 	// The narrator re-imports without a reset and the first paragraph is gone: the start and the roll (whose previous
 	// place was in it) are stale, never moved; the stop still fits.
 	edited := strings.Replace(previewManuscriptOK, `{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice walked through the forest, alone with her thoughts."},`, "", 1)
-	writeNested(t, filepath.Join(host.config.projectFolder, "narration-studio", "manuscript", "manuscript.json"), edited)
+	writeNested(t, filepath.Join(host.config.projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json"), edited)
 	payload, err = host.PassageMapList("c-0001")
 	checkBindingContract(t, "passagemap-list", payload)
 	list := decodePassageMarks(t)(payload, err)

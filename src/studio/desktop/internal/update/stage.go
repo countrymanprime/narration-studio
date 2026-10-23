@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"context"
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -51,7 +52,7 @@ func (p Progress) Percent() int {
 
 const (
 	// windowsExecutable is the one file the Windows release zip holds (scripts/release/assets.mjs).
-	windowsExecutable = "narration-studio.exe"
+	windowsExecutable = brand.Executable + ".exe"
 	// stagedProvider is the folder under the update root that holds one directory per platform and version.
 	stagedProvider = "app-update"
 	stagedRecord   = "staged.json"

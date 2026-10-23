@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -26,13 +27,13 @@ import (
 //
 // Every stage writes a NEW file and never the source, following chaptertags' and mastering's own "new copy, never
 // the source" rule. Mastered and encoded files are derived, intermediate data, so they live under the project's own
-// narration-studio/ sidecar tree (exportDir); the assembled package is the narrator's deliverable and is never
+// <app>/ sidecar tree (exportDir); the assembled package is the narrator's deliverable and is never
 // written there - PackageStart asks for an output folder with the operating system's own picker.
 
 // exportScratchDir is where a project's mastered and encoded intermediates are written, never the deliverable
-// itself: <project>/narration-studio/render-encode-master/<mastered|encoded>.
+// itself: <project>/<app>/render-encode-master/<mastered|encoded>.
 func exportScratchDir(projectFolder, stage string) string {
-	return filepath.Join(projectFolder, "narration-studio", "render-encode-master", stage)
+	return filepath.Join(projectFolder, brand.ProjectFolder, "render-encode-master", stage)
 }
 
 // The status words of one file in an export job.

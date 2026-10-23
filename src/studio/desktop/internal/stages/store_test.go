@@ -1,6 +1,7 @@
 package stages
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -208,8 +209,8 @@ func TestDecisionStoreRemoveReportsACorruptFile(t *testing.T) {
 func TestDecisionStoreReportsEachWriteFailure(t *testing.T) {
 	t.Run("folder cannot be created", func(t *testing.T) {
 		project := t.TempDir()
-		// A file where the narration-studio folder should be.
-		if err := os.WriteFile(filepath.Join(project, "narration-studio"), []byte("x"), 0o600); err != nil {
+		// A file where the app's folder in the project should be.
+		if err := os.WriteFile(filepath.Join(project, brand.ProjectFolder), []byte("x"), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if err := NewDecisionStore(project, nil).Append("doc-1", decisionAt("c-0001", DecisionConfirmed, 1)); err == nil {

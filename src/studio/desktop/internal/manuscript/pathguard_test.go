@@ -1,6 +1,7 @@
 package manuscript
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -93,8 +94,8 @@ func TestPathGuardImportAndLoad(t *testing.T) {
 			if err == nil && committed.Phase == "success" {
 				t.Fatal("imported a manuscript into a read-only project folder")
 			}
-			if _, statErr := os.Stat(filepath.Join(p.Dir, "narration-studio")); statErr == nil {
-				t.Fatal("a refused import left narration-studio/ behind")
+			if _, statErr := os.Stat(filepath.Join(p.Dir, brand.ProjectFolder)); statErr == nil {
+				t.Fatal("a refused import left " + brand.ProjectFolder + "/ behind")
 			}
 			return
 		}
@@ -127,8 +128,8 @@ func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 			if _, err := commit("", p.Manuscript, importer.Draft{}, nil, nil); err == nil {
 				t.Fatal("committed into the working directory for an empty project folder")
 			}
-			if _, err := os.Stat("narration-studio"); err == nil {
-				t.Fatal("an empty project folder wrote narration-studio/ into the working directory")
+			if _, err := os.Stat(brand.ProjectFolder); err == nil {
+				t.Fatal("an empty project folder wrote " + brand.ProjectFolder + "/ into the working directory")
 			}
 			return
 		}
@@ -139,7 +140,7 @@ func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 			if err == nil {
 				t.Errorf("committed from %q, which is not a manuscript file", p.Manuscript)
 			}
-			if entries, _ := os.ReadDir(filepath.Join(scratch, "narration-studio")); len(entries) != 0 {
+			if entries, _ := os.ReadDir(filepath.Join(scratch, brand.ProjectFolder)); len(entries) != 0 {
 				t.Errorf("a refused commit from %q left %v behind", p.Manuscript, entries)
 			}
 		} else if err != nil {
@@ -150,7 +151,7 @@ func TestPathGuardCommitLeavesNothingBehindWhenRefused(t *testing.T) {
 			t.Errorf("committed from a source that is not there")
 		}
 		if p.Usable && !p.DirReadOnly {
-			if entries, _ := os.ReadDir(filepath.Join(p.Dir, "narration-studio")); len(entries) != 0 {
+			if entries, _ := os.ReadDir(filepath.Join(p.Dir, brand.ProjectFolder)); len(entries) != 0 {
 				t.Errorf("a refused commit into %q left %v behind", p.Dir, entries)
 			}
 		}

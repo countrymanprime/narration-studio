@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,7 @@ func audacityProject(t *testing.T) string {
 	t.Helper()
 	project := t.TempDir()
 	writeNested(t, filepath.Join(project, "Book.aup3"), "not a real Audacity project")
-	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), `{}`)
+	writeNested(t, filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), `{}`)
 	return project
 }
 
@@ -44,8 +45,8 @@ func TestAnAudacityLaunchResolvesEveryTierOfTheLayeredSettings(t *testing.T) {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	project := audacityProject(t)
-	writeNested(t, filepath.Join(appData, "narration-studio", "global-settings.json"), `{"TranscriptCompare": {"model_size": "medium"}}`)
-	writeNested(t, filepath.Join(project, "narration-studio", "settings.json"), `{"TranscriptCompare": {"color_misread": "112233"}}`)
+	writeNested(t, filepath.Join(appData, brand.DataFolder, "global-settings.json"), `{"TranscriptCompare": {"model_size": "medium"}}`)
+	writeNested(t, filepath.Join(project, brand.ProjectFolder, "settings.json"), `{"TranscriptCompare": {"color_misread": "112233"}}`)
 
 	host := NewHost()
 	host.configureLocked(parseConfigArgs(host.config.repoRoot, []string{"--project-folder", project, "--project-name", "Book", "--daw", "Audacity"}))
@@ -132,7 +133,7 @@ func TestOnlyAReaperLaunchExplainsAMissingProjectFolder(t *testing.T) {
 	}
 }
 
-// The installer's "Narration Studio for Audacity" shortcut starts the app with `--daw Audacity` and no project folder, so the narrator picks the project in the app. The picker's switch keeps the launch an Audacity one; any other launch,
+// The installer's Audacity shortcut starts the app with `--daw Audacity` and no project folder, so the narrator picks the project in the app. The picker's switch keeps the launch an Audacity one; any other launch,
 // a REAPER one included, becomes "Standalone" as before, because the project the narrator picked is not the one REAPER has open.
 func TestAPickerSwitchKeepsAnAudacityLaunchAnAudacityOne(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())

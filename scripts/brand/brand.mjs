@@ -22,7 +22,7 @@ export const IDENTITY_KEYS = {
   reaperExtPrefix: "the prefix of the P_EXT keys the bridge writes into narrators' REAPER projects",
   reaperLauncher: "the REAPER launcher script's file name, which narrators may have added as an action",
   reaperResourceFolder: "the launcher's folder in REAPER's resource path (bridge sessions)",
-  audacityLabelTrack: "the label track the app makes in narrators' Audacity projects and finds again by name",
+  audacityLabelTrack: "the label track the app makes in narrators' Audacity projects and finds again by name, and the start of its take and backup track names",
   credentialEntropy: 'the DPAPI entropy of stored credentials; another value cannot read them back',
   envPrefix: 'the prefix of the environment variables the app and its scripts read',
 };

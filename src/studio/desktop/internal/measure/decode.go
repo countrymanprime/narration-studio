@@ -38,7 +38,7 @@ func decodeAndMeasureLevels(ctx context.Context, decoder Decoder, path string, r
 	if err := ctx.Err(); err != nil {
 		return Report{}, err
 	}
-	dir, err := os.MkdirTemp("", "narration-studio-mp3decode-*")
+	dir, err := os.MkdirTemp("", "mp3decode-*")
 	if err != nil {
 		// Nothing wrong with the MP3 itself; the container measurement still stands.
 		return report, nil

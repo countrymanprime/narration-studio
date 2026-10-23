@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"os"
@@ -149,7 +150,7 @@ func TestTheLinkFactsTraceNamesWhyThereIsNoMatch(t *testing.T) {
 func TestNoCanaryReachesTheHostTrace(t *testing.T) {
 	host, reach := newTestHostWithHeartbeat(t, `C:\Users\CANARYUSER\Books\CANARY_Novel\Book.rpp`, "0")
 	host.tracer.SetProjectRoot(`C:\Users\CANARYUSER\Books\CANARY_Novel`)
-	host.traceDawBridge(dawport.KindREAPER, `C:\Users\CANARYUSER\AppData\REAPER\NarrationStudio\sessions\hub_CANARY`, true, true, errors.New(`open C:\Users\CANARYUSER\x: denied`))
+	host.traceDawBridge(dawport.KindREAPER, `C:\Users\CANARYUSER\AppData\REAPER\`+brand.ReaperResourceFolder+`\sessions\hub_CANARY`, true, true, errors.New(`open C:\Users\CANARYUSER\x: denied`))
 	host.pollDawCapabilities()
 	host.traceDawLink(`C:\Users\CANARYUSER\Books\CANARY_Novel`, reach, true, true, true)
 	host.traceDrain(errors.New(`read C:\Users\CANARYUSER\events.log: CANARY_TEXT`))

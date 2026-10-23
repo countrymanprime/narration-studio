@@ -1,6 +1,7 @@
 package preview
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -22,7 +23,7 @@ const pinSchemaVersion = 1
 // data: chapter and paragraph ids reset on a re-import, so a stale pin from before would resolve against ids that
 // no longer mean the same thing.
 func PinFile(project string) string {
-	return filepath.Join(project, "narration-studio", "preview-pin.json")
+	return filepath.Join(project, brand.ProjectFolder, "preview-pin.json")
 }
 
 type pinFileShape struct {
@@ -102,7 +103,7 @@ func (s *PinStore) Clear() error {
 // writeLocked writes file through a temp file and a rename. The caller holds mu.
 func (s *PinStore) writeLocked(file pinFileShape) error {
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
+		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

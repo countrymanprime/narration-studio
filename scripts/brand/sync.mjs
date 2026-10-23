@@ -17,6 +17,7 @@ const DISPLAY = [
   ['slug', 'Slug', 'the display name in lower case with dashes'],
 ];
 const REPOSITORY = [
+  ['slug', 'RepositorySlug', 'the GitHub repository as owner/name'],
   ['url', 'RepositoryURL', 'the GitHub repository'],
   ['pagesUrl', 'PagesURL', 'the public site'],
 ];

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -201,7 +202,7 @@ func TestChapterTrackLinksReportsEachProjectStateWithoutFailing(t *testing.T) {
 
 func TestChapterTrackLinksListsNarrationChaptersOnly(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
-	path := filepath.Join(host.config.projectFolder, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(host.config.projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

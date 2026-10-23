@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -108,7 +109,7 @@ func TestTheRealSidecarRefusesAChapterItDoesNotHave(t *testing.T) {
 	// fails with exit 1 and an ERROR line, and the run is recorded as failed.
 	service.config.LoadManuscript = func() (map[string]any, error) {
 		data, err := p.loadManuscript()
-		p.writeFile("narration-studio/manuscript/manuscript.json", `{"schemaVersion":1,"documentId":"doc-1","chapters":[],"paragraphs":[]}`)
+		p.writeFile(brand.ProjectFolder+"/manuscript/manuscript.json", `{"schemaVersion":1,"documentId":"doc-1","chapters":[],"paragraphs":[]}`)
 		return data, err
 	}
 

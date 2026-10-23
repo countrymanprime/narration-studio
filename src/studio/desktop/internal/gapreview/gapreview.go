@@ -4,13 +4,14 @@
 // records it accepted, so the note is an ordinary Proof note; ignoring writes only a review entry, so the gap reads
 // as ignored and stays out of the card's to-review count. Running a check never does either.
 //
-// Reviews are kept in narration-studio/coverage/gap-reviews.json, keyed by the chapter, the result's evidence key (the
+// Reviews are kept in <app>/coverage/gap-reviews.json, keyed by the chapter, the result's evidence key (the
 // ledger record id) and the gap id. A new check run has a new evidence key, so earlier entries stop matching any gap
 // and drop out of what is read, but they stay in the file.
 package gapreview
 
 import (
 	"crypto/sha256"
+	"desktop/internal/brand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -57,7 +58,7 @@ var idPattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 // File is where a project's gap reviews are kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-studio", "coverage", "gap-reviews.json")
+	return filepath.Join(project, brand.ProjectFolder, "coverage", "gap-reviews.json")
 }
 
 // Current is a chapter's current check result as this package needs it.

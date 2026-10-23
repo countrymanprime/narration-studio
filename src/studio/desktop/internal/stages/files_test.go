@@ -3,6 +3,7 @@ package stages_test
 import (
 	"bytes"
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"io/fs"
 	"os"
@@ -29,7 +30,7 @@ func (metProvider) Signals(context.Context, stages.ChapterContext, stages.Eviden
 
 func writeCanonical(t *testing.T, project string) {
 	t.Helper()
-	dir := filepath.Join(project, "narration-studio", "manuscript")
+	dir := filepath.Join(project, brand.ProjectFolder, "manuscript")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +116,7 @@ func TestConfirmWritesOnlyTheStatusAndTheDecisionsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []string{"narration-studio/manuscript-notes.json", "narration-studio/stage-decisions.json"}
+	want := []string{brand.ProjectFolder + "/manuscript-notes.json", brand.ProjectFolder + "/stage-decisions.json"}
 	if got := changedFiles(before, snapshot(t, project)); !slices.Equal(got, want) {
 		t.Fatalf("Confirm changed %v, want exactly %v", got, want)
 	}

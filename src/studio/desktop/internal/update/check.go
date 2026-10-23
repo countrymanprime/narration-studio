@@ -2,6 +2,7 @@ package update
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,7 +20,7 @@ import (
 
 // Repository is the only place the app looks for a newer version. It is compiled in on purpose: no setting, argument or response
 // can point the updater somewhere else.
-const Repository = "countrymanprime/narration-studio"
+const Repository = brand.RepositorySlug
 
 // APIBase is GitHub's REST API. A test points a Checker at a fake server instead.
 const APIBase = "https://api.github.com"
@@ -229,7 +230,7 @@ func (c *Checker) fetch(ctx context.Context, etag string) (body []byte, newETag 
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	request.Header.Set("User-Agent", "narration-studio/"+c.Current)
+	request.Header.Set("User-Agent", brand.ProjectFolder+"/"+c.Current)
 	if etag != "" {
 		request.Header.Set("If-None-Match", etag)
 	}

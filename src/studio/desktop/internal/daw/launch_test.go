@@ -1,6 +1,7 @@
 package daw
 
 import (
+	"desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,7 +11,7 @@ import (
 // launchHelperEnv, when set, makes this test binary itself stand in for the program Launch starts: TestMain
 // intercepts before the real test suite runs, the same self-exec pattern src/studio/desktop/internal/guide/preview_test.go
 // uses for a fake sidecar.
-const launchHelperEnv = "NARRATION_STUDIO_DAW_LAUNCH_TEST_HELPER"
+const launchHelperEnv = brand.EnvPrefix + "DAW_LAUNCH_TEST_HELPER"
 
 func TestMain(m *testing.M) {
 	if marker := os.Getenv(launchHelperEnv); marker != "" {

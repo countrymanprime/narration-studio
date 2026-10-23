@@ -2,6 +2,7 @@ package update
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"os"
 	"path/filepath"
@@ -55,7 +56,7 @@ func TestUserErrorsAreShownAsWrittenAndAnythingElseBecomesTheFallback(t *testing
 
 func TestTheDefaultReleasesBaseIsTheCompiledInRepository(t *testing.T) {
 	checker := &Checker{Repository: Repository}
-	if got := checker.releasesBase(); got != "https://github.com/countrymanprime/narration-studio/releases" {
+	if got := checker.releasesBase(); got != brand.RepositoryURL+"/releases" {
 		t.Fatalf("releasesBase = %s", got)
 	}
 	checker.DownloadBase = "http://127.0.0.1:1/releases"
@@ -168,15 +169,15 @@ func TestAPendingRecordCannotBeUsedToTouchAnotherProgramsFiles(t *testing.T) {
 
 func TestPathsAreComparedTheWayTheSystemDoes(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "App", "narration-studio.exe")
-	if !samePath(path, filepath.Join(dir, "App", "..", "App", "narration-studio.exe")) {
+	path := filepath.Join(dir, "App", brand.Executable+".exe")
+	if !samePath(path, filepath.Join(dir, "App", "..", "App", brand.Executable+".exe")) {
 		t.Fatal("a path with a dot-dot is the same program")
 	}
 	upper := strings.ToUpper(path)
 	if got := samePath(path, upper); got != (runtime.GOOS == "windows") {
 		t.Fatalf("case: samePath = %v on %s", got, runtime.GOOS)
 	}
-	if samePath(path, filepath.Join(dir, "Other", "narration-studio.exe")) {
+	if samePath(path, filepath.Join(dir, "Other", brand.Executable+".exe")) {
 		t.Fatal("different folders are different programs")
 	}
 }

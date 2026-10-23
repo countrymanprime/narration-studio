@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -16,7 +17,7 @@ const bookmarksManuscript = `{"schemaVersion":1,"documentId":"doc-1","chapters":
 func bookmarksHost(t *testing.T) (*Host, string) {
 	t.Helper()
 	project := t.TempDir()
-	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), bookmarksManuscript)
+	writeNested(t, filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), bookmarksManuscript)
 	host := NewHost()
 	next := host.config
 	next.projectFolder = project

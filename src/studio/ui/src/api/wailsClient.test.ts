@@ -492,10 +492,10 @@ describe('wailsClient', () => {
   });
 
   it('surfaces a refusal reason when switching project fails', async () => {
-    const switchProject = vi.fn().mockResolvedValue(JSON.stringify({ switched: false, reason: 'Narration Studio is busy.' }));
+    const switchProject = vi.fn().mockResolvedValue(JSON.stringify({ switched: false, reason: 'The app is busy.' }));
     standInHost({ ProjectSwitch: switchProject });
 
-    await expect(wailsClient.switchProject('C:/Projects/Alice')).resolves.toEqual({ switched: false, reason: 'Narration Studio is busy.' });
+    await expect(wailsClient.switchProject('C:/Projects/Alice')).resolves.toEqual({ switched: false, reason: 'The app is busy.' });
   });
 
   it('reads the default projects folder through ProjectDefaultLocation', async () => {

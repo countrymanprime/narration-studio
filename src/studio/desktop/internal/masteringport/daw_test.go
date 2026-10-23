@@ -2,6 +2,7 @@ package masteringport_test
 
 import (
 	"context"
+	"desktop/internal/brand"
 	"errors"
 	"os"
 	"path/filepath"
@@ -55,7 +56,7 @@ func TestTheDAWRowRendersTheRegionThroughTheProjectsFXAndReportsTheChain(t *test
 	if !regexp.MustCompile(`^[0-9a-f]{32}$`).MatchString(renders[0].Approval) {
 		t.Errorf("approval %q is not a 128-bit hex token", renders[0].Approval)
 	}
-	if rel, _ := filepath.Rel(filepath.Join(project, "narration-studio", "mastering"), renders[0].OutputFolder); !regexp.MustCompile(`^master-[0-9a-f]{16}$`).MatchString(rel) {
+	if rel, _ := filepath.Rel(filepath.Join(project, brand.ProjectFolder, "mastering"), renders[0].OutputFolder); !regexp.MustCompile(`^master-[0-9a-f]{16}$`).MatchString(rel) {
 		t.Errorf("run folder %q is not a new folder in the project's mastering folder", renders[0].OutputFolder)
 	}
 	if _, err := os.Stat(renders[0].OutputFolder); !errors.Is(err, os.ErrNotExist) {

@@ -18,6 +18,7 @@ package latency
 // operating system's file cache cannot be dropped without administrator rights); p50, p95 and max cover the runs after it.
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -279,7 +280,7 @@ func TestLatency(t *testing.T) {
 	var report strings.Builder
 
 	full := t.TempDir()
-	target := filepath.Join(full, "narration-studio", "manuscript", "manuscript.json")
+	target := filepath.Join(full, brand.ProjectFolder, "manuscript", "manuscript.json")
 	fullWords := 0
 	if supplied := os.Getenv("LATENCY_MANUSCRIPT"); supplied != "" {
 		raw, err := os.ReadFile(supplied)
@@ -300,7 +301,7 @@ func TestLatency(t *testing.T) {
 	}
 	if !goOnly {
 		small := t.TempDir()
-		smallWords, err := synthManuscript(filepath.Join(small, "narration-studio", "manuscript", "manuscript.json"), 3, 10)
+		smallWords, err := synthManuscript(filepath.Join(small, brand.ProjectFolder, "manuscript", "manuscript.json"), 3, 10)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -145,7 +145,7 @@ export function createUpdateMock(initial: MockApiSeed) {
       if (!updateJob || updateJob.id !== jobId || updateJob.phase !== 'ready') throw new Error('The update is not downloaded yet.');
       if (initial.update === 'install-refused') {
         throw new Error(
-          'Narration Studio is busy, so the update was not installed. Finish or stop what is running (an import, a Story Bible build, a download, a comparison or a teleprompter session), then try again.',
+          'The app is busy, so the update was not installed. Finish or stop what is running (an import, a Story Bible build, a download, a comparison or a teleprompter session), then try again.',
         );
       }
       updateJob = { ...updateJob, phase: 'installing', message: `Installing version ${updateJob.version}. Narration Studio restarts in a moment.` };

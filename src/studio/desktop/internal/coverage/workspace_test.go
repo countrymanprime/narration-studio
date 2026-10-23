@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"desktop/internal/brand"
 	"encoding/json"
 	"math"
 	"os"
@@ -130,7 +131,7 @@ func TestAlignmentOfAChapterNeverCheckedAnswersNeverWithItsScript(t *testing.T) 
 // the manuscript, whether or not the chapter was ever checked. A credits row has no heading to read and carries none.
 func TestAlignmentCarriesTheChaptersTitleAndSubtitle(t *testing.T) {
 	p := newTestProject(t)
-	path := filepath.Join(p.dir, "narration-studio", "manuscript", "manuscript.json")
+	path := filepath.Join(p.dir, brand.ProjectFolder, "manuscript", "manuscript.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

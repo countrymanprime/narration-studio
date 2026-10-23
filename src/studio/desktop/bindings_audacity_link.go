@@ -153,7 +153,7 @@ func (h *Host) linkAudacityFile(path string) error {
 }
 
 // AudacityLinkOpenProject writes this project's link label into the project open in Audacity, so the app can tell that project
-// from any other. It adds one label to the "Narration Studio" label track and touches nothing else. It needs Audacity to answer.
+// from any other. It adds one label to the app's label track and touches nothing else. It needs Audacity to answer.
 func (h *Host) AudacityLinkOpenProject() (string, error) {
 	svc := h.services()
 	conn := svc.audacity
@@ -180,7 +180,7 @@ func (h *Host) AudacityLinkOpenProject() (string, error) {
 }
 
 // AudacityUnlink forgets the linked Audacity project. The label stays in the Audacity project, where it is one line in the
-// "Narration Studio" label track that the narrator can delete.
+// the app's label track that the narrator can delete.
 func (h *Host) AudacityUnlink() (string, error) {
 	svc := h.services()
 	if svc.settings == nil || svc.config.projectFolder == "" {
