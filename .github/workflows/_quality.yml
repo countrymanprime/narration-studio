@@ -462,4 +462,3 @@ jobs:
         with:
           targets: test-schedules
           projects: narration-utils-shell
-          configuration: ${{ matrix.configuration }}
