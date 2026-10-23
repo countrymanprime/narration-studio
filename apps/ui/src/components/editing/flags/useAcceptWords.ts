@@ -20,7 +20,7 @@ export interface AcceptOptions {
 type Accepted = { changed: LinkedChange[]; failed?: string };
 
 /** What the toast says: the flag is gone, and what happened to the note on Proof. */
-export function acceptedMessage({ changed, failed }: Accepted): string {
+function acceptedMessage({ changed, failed }: Accepted): string {
   const note = changed.length === 1 ? 'The note on Proof is fine as read.' : changed.length > 1 ? `${changed.length} notes on Proof are fine as read.` : '';
   return ['Not flagged any more.', note, failed ? `The note on Proof was not changed: ${failed}` : ''].filter(Boolean).join(' ');
 }
