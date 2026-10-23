@@ -52,7 +52,7 @@ function PickupCard({
         data-pj={line.id}
         aria-current={current ? 'true' : undefined}
         onClick={() => onJump(line.id)}
-        className="flex w-full cursor-pointer flex-col gap-0.5 rounded-md border-0 bg-transparent p-0 pr-2 text-left text-sm text-[var(--text)]"
+        className="flex w-full cursor-pointer flex-col gap-0.5 border-0 bg-transparent p-0 pr-2 text-left text-sm text-[var(--text)]"
       >
         <span className="font-mono text-xs text-[var(--text-muted)]">{rowLabel(line, chapterLabel)}</span>
         <span className={`line-clamp-3 ${line.done && !current ? 'text-[var(--text-muted)]' : ''}`}>{line.script}</span>
