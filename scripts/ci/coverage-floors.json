@@ -23,7 +23,7 @@
     {"tool":"go","project":"src/studio/desktop","path":"internal/takecompare","floor":87,"reason":"Take comparison (take-review p10); 87.2% measured. The uncovered statements are ProcessRunner.TakeDivergence starting the real sidecar (process glue, like takereview's ProcessRunner) and a neighbour WAV that cannot be read"},
     {"tool":"go","project":"src/studio/desktop","path":"internal/recents","floor":85},
     {"tool":"go","project":"src/studio/desktop","path":"internal/retakelanes","floor":91},
-    {"tool":"go","project":"src/studio/desktop","path":"internal/stages","floor":100,"nonWindowsFloor":99,"nonWindowsReason":"Measured 99.7% on Linux; Windows CI reaches 100. \"folder cannot be created\" stands a file where the narration-studio folder belongs. Off Windows the read through it fails with ENOTDIR and Append stops before the write; on Windows it reads as \"not found\", so writeLocked reaches its MkdirAll error."},
+    {"tool":"go","project":"src/studio/desktop","path":"internal/stages","floor":100,"nonWindowsFloor":99,"nonWindowsReason":"Measured 99.7% on Linux; Windows CI reaches 100. \"folder cannot be created\" stands a file where the app's folder in the project belongs. Off Windows the read through it fails with ENOTDIR and Append stops before the write; on Windows it reads as \"not found\", so writeLocked reaches its MkdirAll error."},
     {"tool":"go","project":"src/studio/desktop","path":"internal/teleprompter","floor":93},
     {"tool":"go","project":"src/studio/desktop","path":"internal/trace","floor":83},
     {"tool":"go","project":"src/studio/desktop","path":"internal/transportsync","floor":96},

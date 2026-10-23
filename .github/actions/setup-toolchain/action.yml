@@ -9,7 +9,7 @@ inputs:
     description: Install pnpm and run `pnpm install --frozen-lockfile` (implies need-node)
     default: 'true'
   pnpm-filter:
-    description: Limit the install to workspace projects, space-separated (for example `narration-studio` for the root tooling, enough to run Nx); empty installs every workspace project
+    description: Limit the install to workspace projects, space-separated (for example `workspace` for the root tooling, enough to run Nx); empty installs every workspace project
     default: ''
   need-python:
     description: Install Python and uv, and sync the locked environment

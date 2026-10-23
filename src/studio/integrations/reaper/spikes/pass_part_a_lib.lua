@@ -13,6 +13,9 @@
 --
 -- Research tool, not product code (src/studio/integrations/reaper/spikes/README.md).
 
+-- The product name and the identity values (../narration_brand.lua, generated from config/brand.json), so a P_EXT key or an undo
+-- label here is the one the bridge writes.
+local BRAND = dofile(((debug.getinfo(1, 'S').source:match('^@(.+)[\\/][^\\/]*$')) or '.') .. '/../narration_brand.lua')
 local M = {}
 
 -- Protocol ---------------------------------------------------------------------------------------------------------
@@ -744,11 +747,7 @@ function rows.A4(ctx, r)
     table.concat(armed, '|')
   )
   r:check('A4.2 only Chapter 1 is armed', arms(ctx) == '100', arms(ctx))
-  r:check(
-    'A4.3 no "Narration Studio" undo point',
-    daw.undo_label() == undo_before,
-    "'" .. tostring(undo_before) .. "' -> '" .. tostring(daw.undo_label()) .. "'"
-  )
+  r:check('A4.3 no undo point of the app', daw.undo_label() == undo_before, "'" .. tostring(undo_before) .. "' -> '" .. tostring(daw.undo_label()) .. "'")
   local undone = daw.undo()
   if undone == nil then
     r:not_run('A4.4 Undo does not change the arms', 'the harness fake has no undo')
@@ -808,7 +807,7 @@ function rows.A9(ctx, r)
   end
   r:check('A9.2 the regions appear with their titles and bounds', found == 3, found)
   r:check('A9.3 with the colour sent', #colors == 3 and colors[1] ~= 0 and colors[1] == colors[2] and colors[2] == colors[3], table.concat(colors, ','))
-  r:check('A9.4 in one undo point "Narration Studio: create regions"', daw.undo_label() == 'Narration Studio: create regions', daw.undo_label())
+  r:check('A9.4 in one undo point "' .. BRAND.name .. ': create regions"', daw.undo_label() == BRAND.name .. ': create regions', daw.undo_label())
   local count_made = daw.change_count()
   local again = find(ctx.send('create_regions', path, '3C7FB3', ''), 'REGIONS_CREATED')
   r:check('A9.5 the second send creates none', table.concat(again, '|', 3) == '0|3|0|0|0|0', table.concat(again, '|'))
@@ -897,7 +896,7 @@ function rows.A14(ctx, r)
     show(events)
   )
   r:check('A14.2 REAPER reads D_VOL back as 0.501187', close_to(daw.item_facts(fx.fast).vol, 0.501187, 0.000001), daw.item_facts(fx.fast).vol)
-  r:check('A14.3 one undo point "Narration Studio: apply level-match gain"', daw.undo_label() == 'Narration Studio: apply level-match gain', daw.undo_label())
+  r:check('A14.3 one undo point "' .. BRAND.name .. ': apply level-match gain"', daw.undo_label() == BRAND.name .. ': apply level-match gain', daw.undo_label())
   local others = true
   for _, facts in ipairs(daw.track_items(fx.ch1)) do
     others = others and (facts.guid == daw.normalize(fx.fast) or close_to(facts.vol, 1, 0.000001))

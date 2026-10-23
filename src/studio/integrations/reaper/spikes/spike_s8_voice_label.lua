@@ -20,15 +20,15 @@
 
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  local wanted = os.getenv('REAPER_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'REAPER_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
+local PACK = assert(os.getenv('REAPER_SPIKE_OUT'), 'set REAPER_SPIKE_OUT (run-reaper.ps1 does)')
 PACK = PACK:gsub(string.char(92), '/')
 local function native(path)
   return (path:gsub('/', string.char(92)))

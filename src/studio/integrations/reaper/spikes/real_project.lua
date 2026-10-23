@@ -5,11 +5,14 @@
 
 -- Guard (owner decision D3): refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1 passed,
 -- and the audio device is closed. A script that is started any other way stops here instead of touching real settings.
+-- The product name and the identity values (../narration_brand.lua, generated from config/brand.json), so a P_EXT key or an undo
+-- label here is the one the bridge writes.
+local BRAND = dofile(((debug.getinfo(1, 'S').source:match('^@(.+)[\\/][^\\/]*$')) or '.') .. '/../narration_brand.lua')
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  local wanted = os.getenv('REAPER_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'REAPER_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   -- REAPER opens the default Windows audio device (WaveOut, Sound Mapper) on start even when the first-run prompt is
   -- answered No. Nothing is recorded or played, but close it at once and prove it is closed.
@@ -21,8 +24,8 @@ local BS = string.char(92)
 local function native(path)
   return (path:gsub('/', BS))
 end
-local OUT = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
-local REPO_REAPER = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
+local OUT = assert(os.getenv('REAPER_SPIKE_OUT'), 'set REAPER_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
+local REPO_REAPER = assert(os.getenv('REAPER_SPIKE_BRIDGE_DIR'), 'set REAPER_SPIKE_BRIDGE_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
 local STAMP_COUNT = 5
 local report = {}
 local function log(text)
@@ -122,7 +125,9 @@ local body = function()
   log(string.format('items whose media file is not present here: %d of %d (the copy holds only the .rpp)', offline, items))
   local stamped_before = 0
   for index = 0, items - 1 do
-    if select(2, reaper.GetSetMediaItemInfo_String(reaper.GetMediaItem(0, index), 'P_EXT:narration_studio_line_id', '', false)) ~= '' then
+    if
+      select(2, reaper.GetSetMediaItemInfo_String(reaper.GetMediaItem(0, index), 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. 'line_id', '', false)) ~= ''
+    then
       stamped_before = stamped_before + 1
     end
   end

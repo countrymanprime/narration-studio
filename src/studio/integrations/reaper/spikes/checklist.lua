@@ -5,11 +5,14 @@
 
 -- Guard (owner decision D3): refuse to run unless REAPER's resource path is the scratch -Cfg folder run-reaper.ps1 passed,
 -- and the audio device is closed. A script that is started any other way stops here instead of touching real settings.
+-- The product name and the identity values (../narration_brand.lua, generated from config/brand.json), so a P_EXT key or an undo
+-- label here is the one the bridge writes.
+local BRAND = dofile(((debug.getinfo(1, 'S').source:match('^@(.+)[\\/][^\\/]*$')) or '.') .. '/../narration_brand.lua')
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  local wanted = os.getenv('REAPER_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'REAPER_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   -- REAPER opens the default Windows audio device (WaveOut, Sound Mapper) on start even when the first-run prompt is
   -- answered No. Nothing is recorded or played, but close it at once and prove it is closed.
@@ -22,8 +25,8 @@ local function native(path)
   return (path:gsub('/', BS))
 end
 -- run-reaper.ps1 sets both: the scratch folder (holding media/) and the repository's src/studio/integrations/reaper folder.
-local CHK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
-local REPO_REAPER = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
+local CHK = assert(os.getenv('REAPER_SPIKE_OUT'), 'set REAPER_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
+local REPO_REAPER = assert(os.getenv('REAPER_SPIKE_BRIDGE_DIR'), 'set REAPER_SPIKE_BRIDGE_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
 local report, failures = {}, 0
 
 local function log(text)
@@ -147,7 +150,7 @@ local function item_guid(item)
   return guid
 end
 local function ext(item, key)
-  local ok, value = reaper.GetSetMediaItemInfo_String(item, 'P_EXT:narration_studio_' .. key, '', false)
+  local ok, value = reaper.GetSetMediaItemInfo_String(item, 'P_EXT:' .. BRAND.identity.reaperExtPrefix .. key, '', false)
   return ok and value or nil
 end
 local function stamped_count()
@@ -209,7 +212,7 @@ local body = function()
   check('2. stamp: LINES_STAMPED|t1|1|0|0|0', join_events(events) == 'LINES_STAMPED|t1|1|0|0|0', join_events(events))
   check('2. stamp: item carries id and text', ext(items[1], 'line_id') == 'line-000001' and ext(items[1], 'line_text') == 'First line.')
   local label = reaper.Undo_CanUndo2(0)
-  check('2. stamp: undo entry "Narration Studio: stamp manuscript line IDs"', label == 'Narration Studio: stamp manuscript line IDs', label)
+  check('2. stamp: undo entry "' .. BRAND.name .. ': stamp manuscript line IDs"', label == BRAND.name .. ': stamp manuscript line IDs', label)
   -- Undo and redo replace REAPER's item objects, so every item is looked up by GUID again afterwards.
   local function refresh()
     local by_guid = items_by_guid()
@@ -287,7 +290,7 @@ local body = function()
   if reaper.CountMediaItems(0) == items_before_paste then
     -- Fall back to what a paste does to the item: its state chunk (including extension data) copied onto another item.
     local _, chunk = reaper.GetItemStateChunk(items[1], '', false)
-    log('INFO  the item state chunk carries the extension block: ' .. tostring(chunk:find('narration_studio_line_id', 1, true) ~= nil))
+    log('INFO  the item state chunk carries the extension block: ' .. tostring(chunk:find(BRAND.identity.reaperExtPrefix .. 'line_id', 1, true) ~= nil))
     local copy = reaper.AddMediaItemToTrack(reaper.GetTrack(0, 0))
     reaper.SetItemStateChunk(copy, chunk, false)
     after_paste = stamped_count()
@@ -346,8 +349,8 @@ local body = function()
 
   -- 10 (bridge side only). Transcript Compare commands with a hand-made results file -----------------------------------
   local project_folder = CHK
-  reaper.RecursiveCreateDirectory(native(project_folder .. '/narration-studio/manuscript'), 0)
-  write_file(native(project_folder .. '/narration-studio/manuscript/manuscript.json'), '{"version":1}')
+  reaper.RecursiveCreateDirectory(native(project_folder .. '/' .. BRAND.identity.projectFolder .. '/manuscript'), 0)
+  write_file(native(project_folder .. '/' .. BRAND.identity.projectFolder .. '/manuscript/manuscript.json'), '{"version":1}')
   reaper.SelectAllMediaItems(0, false)
   local target = map_after[guid_b]
   reaper.SetMediaItemSelected(target, true)

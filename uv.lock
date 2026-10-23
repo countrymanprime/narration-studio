@@ -809,81 +809,6 @@ wheels = [
 ]
 
 [[package]]
-name = "narration-studio"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "av" },
-    { name = "ctranslate2" },
-    { name = "fastapi" },
-    { name = "faster-whisper" },
-    { name = "httpx" },
-    { name = "hypothesis" },
-    { name = "moonshine-voice", marker = "sys_platform == 'win32'" },
-    { name = "numpy" },
-    { name = "phonemizer" },
-    { name = "piper-tts" },
-    { name = "pronouncing" },
-    { name = "pyinstaller" },
-    { name = "pypdf" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "python-docx" },
-    { name = "ruff" },
-    { name = "sounddevice", marker = "sys_platform == 'win32'" },
-    { name = "spacy" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-lua = [
-    { name = "lupa" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "av", specifier = "==19.0.1" },
-    { name = "ctranslate2", specifier = "==4.8.3" },
-    { name = "fastapi", specifier = "==0.143.3" },
-    { name = "faster-whisper", specifier = "==1.2.1" },
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "hypothesis", specifier = "==6.170.1" },
-    { name = "moonshine-voice", marker = "sys_platform == 'win32'", specifier = "==0.1.5" },
-    { name = "numpy", specifier = "==2.5.4" },
-    { name = "phonemizer", specifier = ">=3.3" },
-    { name = "piper-tts", specifier = "==1.8.0" },
-    { name = "pronouncing", specifier = ">=0.2" },
-    { name = "pyinstaller", specifier = "==6.22.3" },
-    { name = "pypdf", specifier = "==6.21.0" },
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-cov", specifier = "==7.1.0" },
-    { name = "python-docx", specifier = "==1.2.0" },
-    { name = "ruff", specifier = "==0.17.1" },
-    { name = "sounddevice", marker = "sys_platform == 'win32'", specifier = "==0.5.6" },
-    { name = "spacy", specifier = ">=3.7" },
-    { name = "uvicorn", specifier = "==0.54.0" },
-]
-
-[package.metadata.requires-dev]
-docs = [
-    { name = "mkdocs", specifier = "==1.6.1" },
-    { name = "mkdocs-material", specifier = "==9.7.7" },
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "ruff", specifier = "==0.17.1" },
-]
-lua = [
-    { name = "lupa", specifier = "==2.8" },
-    { name = "ruff", specifier = "==0.17.1" },
-]
-
-[[package]]
 name = "numpy"
 version = "2.5.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1675,6 +1600,81 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ce/e5/e272bb9a045105a1fdf4b798d8086f5932a178f4d738f17a74f5c9e0ae9a/weasel-1.0.0.tar.gz", hash = "sha256:7b129b44c90cc543b760532974ca1e4eb30dad2aa2026f57bdce66354ae610fc", size = 38682, upload-time = "2026-03-20T08:10:25.266Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/07/57ebf7a6798b016c064bd0ca81b4c6a99daa4dc377b898bc7b41eb6b5af0/weasel-1.0.0-py3-none-any.whl", hash = "sha256:89518acee027f49d743126c3502d35e6dd14f5768be5c37c9af47c171b6005cc", size = 50713, upload-time = "2026-03-20T08:10:23.637Z" },
+]
+
+[[package]]
+name = "workspace"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "av" },
+    { name = "ctranslate2" },
+    { name = "fastapi" },
+    { name = "faster-whisper" },
+    { name = "httpx" },
+    { name = "hypothesis" },
+    { name = "moonshine-voice", marker = "sys_platform == 'win32'" },
+    { name = "numpy" },
+    { name = "phonemizer" },
+    { name = "piper-tts" },
+    { name = "pronouncing" },
+    { name = "pyinstaller" },
+    { name = "pypdf" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "python-docx" },
+    { name = "ruff" },
+    { name = "sounddevice", marker = "sys_platform == 'win32'" },
+    { name = "spacy" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+lua = [
+    { name = "lupa" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "av", specifier = "==19.0.1" },
+    { name = "ctranslate2", specifier = "==4.8.3" },
+    { name = "fastapi", specifier = "==0.143.3" },
+    { name = "faster-whisper", specifier = "==1.2.1" },
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "hypothesis", specifier = "==6.170.1" },
+    { name = "moonshine-voice", marker = "sys_platform == 'win32'", specifier = "==0.1.5" },
+    { name = "numpy", specifier = "==2.5.4" },
+    { name = "phonemizer", specifier = ">=3.3" },
+    { name = "piper-tts", specifier = "==1.8.0" },
+    { name = "pronouncing", specifier = ">=0.2" },
+    { name = "pyinstaller", specifier = "==6.22.3" },
+    { name = "pypdf", specifier = "==6.21.0" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-cov", specifier = "==7.1.0" },
+    { name = "python-docx", specifier = "==1.2.0" },
+    { name = "ruff", specifier = "==0.17.1" },
+    { name = "sounddevice", marker = "sys_platform == 'win32'", specifier = "==0.5.6" },
+    { name = "spacy", specifier = ">=3.7" },
+    { name = "uvicorn", specifier = "==0.54.0" },
+]
+
+[package.metadata.requires-dev]
+docs = [
+    { name = "mkdocs", specifier = "==1.6.1" },
+    { name = "mkdocs-material", specifier = "==9.7.7" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "ruff", specifier = "==0.17.1" },
+]
+lua = [
+    { name = "lupa", specifier = "==2.8" },
+    { name = "ruff", specifier = "==0.17.1" },
 ]
 
 [[package]]

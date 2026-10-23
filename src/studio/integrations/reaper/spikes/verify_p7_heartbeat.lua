@@ -11,17 +11,17 @@
 -- passed, and the audio device is closed. A script started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
+  local wanted = os.getenv('REAPER_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'REAPER_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
 local BS = string.char(92)
-local OUT = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
-local REPO_REAPER = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
+local OUT = assert(os.getenv('REAPER_SPIKE_OUT'), 'set REAPER_SPIKE_OUT (run-reaper.ps1 does)'):gsub(BS, '/')
+local REPO_REAPER = assert(os.getenv('REAPER_SPIKE_BRIDGE_DIR'), 'set REAPER_SPIKE_BRIDGE_DIR (run-reaper.ps1 does)'):gsub(BS, '/')
 
 local function native(path)
   return (path:gsub('/', BS))
@@ -36,7 +36,7 @@ local session_dir = native(OUT .. '/session')
 -- bridge.New (src/studio/desktop/internal/bridge/bridge.go) always creates commands/ before the Lua side ever runs;
 -- reproduce that here since nothing else in this spike drives the real Go host.
 reaper.RecursiveCreateDirectory(session_dir .. BS .. 'commands', 0)
--- The real production module, loaded exactly like NarrationStudio_Launcher.lua loads it.
+-- The real production module, loaded exactly like the launcher script loads it.
 local bridge = dofile(REPO_REAPER .. '/narration_ui_bridge.lua')
 bridge.run(session_dir)
 

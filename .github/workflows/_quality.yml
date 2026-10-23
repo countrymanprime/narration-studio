@@ -3,7 +3,7 @@ on:
   workflow_call:
     outputs:
       ui-affected:
-        description: "'true' when Nx found narration-studio-ui affected, so the visual shards ran and ci.yml's `CI passed` judges their records"
+        description: "'true' when Nx found ui affected, so the visual shards ran and ci.yml's `CI passed` judges their records"
         value: ${{ jobs.scope.outputs.ui }}
     inputs:
       full:
@@ -56,21 +56,21 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-          pnpm-filter: narration-studio
+          pnpm-filter: workspace
       - id: ui
         uses: ./.github/actions/nx-affected
         with:
-          projects: narration-studio-ui
+          projects: ui
           pins: 'true'
       - id: shell
         uses: ./.github/actions/nx-affected
         with:
-          projects: narration-studio-shell
+          projects: desktop
           pins: 'true'
       - id: winquick
         uses: ./.github/actions/nx-affected
         with:
-          projects: reaper,narration-studio-shell
+          projects: reaper,desktop
           pins: 'true'
       # Only a pull request can be a pin bump; elsewhere the classifier is skipped and the self-scoped jobs start.
       - id: pins
@@ -106,7 +106,7 @@ jobs:
       - uses: ./.github/actions/nx-run
         with:
           targets: lint format architecture test-node
-          projects: narration-studio-ui
+          projects: ui
       # The public site (src/web) is its own Nx project: its static checks, typecheck, node:test suites (the build scripts) and its Vitest run (the
       # extension code it plugs into the app) used to run inside the UI project and `repo-scripts`. It is affected by a change to the UI, which it builds on.
       - uses: ./.github/actions/nx-run
@@ -117,11 +117,11 @@ jobs:
       - uses: ./.github/actions/nx-run
         with:
           targets: knip
-          projects: narration-studio
+          projects: workspace
           always: 'true'
 
   js-test-shard:
-    # The Vitest run of src/studio/ui (the `test` target of narration-studio-ui: every test, coverage on the gated logic files), a third
+    # The Vitest run of src/studio/ui (the `test` target of ui: every test, coverage on the gated logic files), a third
     # of it per job. One job took 11 m 44 s on a 2-vCPU runner. `vitest --shard=i/3` splits the files by cost
     # (src/studio/ui/scripts/vitest-shards.mjs: Vitest's own split is by a hash of the path and left one of three shards with 48% of the
     # time). A shard checks no coverage floor, since it covers a third of the files: it uploads a blob of its results and
@@ -150,7 +150,7 @@ jobs:
       - id: scope
         uses: ./.github/actions/nx-affected
         with:
-          projects: narration-studio-ui
+          projects: ui
       # No Nx cache and no retry: a green shard means its tests ran. Not through `nx run-many`, whose `test` target is the
       # whole run (`pnpm check` and a developer's machine run that).
       - if: steps.scope.outputs.affected == 'true'
@@ -185,7 +185,7 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-          pnpm-filter: narration-studio-ui
+          pnpm-filter: ui
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: vitest-blob-*
@@ -230,7 +230,7 @@ jobs:
       - id: scope
         uses: ./.github/actions/nx-affected
         with:
-          projects: narration-studio-ui
+          projects: ui
       - if: steps.scope.outputs.affected == 'true'
         uses: ./.github/actions/setup-playwright
       # Lists the suite (no browser), gives this shard its tests and says whether this shard also runs `aria`. Fails if the shards do not
@@ -320,7 +320,7 @@ jobs:
       - id: scope
         uses: ./.github/actions/nx-affected
         with:
-          projects: narration-studio-ui
+          projects: ui
       - if: steps.scope.outputs.affected == 'true'
         uses: ./.github/actions/setup-playwright
       - if: steps.scope.outputs.affected == 'true'
@@ -359,7 +359,7 @@ jobs:
           need-wails-tools: 'false'
           need-linux-native-deps: 'false'
           python-sync-args: --group docs
-          pnpm-filter: narration-studio narration-studio-ui
+          pnpm-filter: workspace ui
       - name: repo-scripts
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
@@ -408,7 +408,7 @@ jobs:
           need-wails-tools: 'false'
           need-golangci-lint: 'true'
           python-sync-args: --only-group lua
-          pnpm-filter: narration-studio
+          pnpm-filter: workspace
       - name: reaper (Lua)
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
@@ -420,7 +420,7 @@ jobs:
         uses: ./.github/actions/nx-run
         with:
           targets: lint
-          projects: narration-studio-shell
+          projects: desktop
           configuration: ci
 
   go-test:
@@ -451,14 +451,14 @@ jobs:
           need-python: 'false'
           need-wails-tools: 'false'
           need-stylua: 'false'
-          pnpm-filter: narration-studio
+          pnpm-filter: workspace
       - uses: ./.github/actions/nx-run
         with:
           targets: test
-          projects: narration-studio-shell
+          projects: desktop
           configuration: ${{ matrix.configuration }}
       - if: ${{ matrix.schedules && !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
           targets: test-schedules
-          projects: narration-studio-shell
+          projects: desktop
