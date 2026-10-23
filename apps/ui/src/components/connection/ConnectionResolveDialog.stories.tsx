@@ -84,12 +84,12 @@ type Story = StoryObj<typeof meta>;
 
 const dialog = () => screen.findByRole('dialog');
 
-/** REAPER is closed, or open without the launcher: the project is linked, so Start opens it and connects. */
+/** REAPER is closed, or its bridge has not started: the project is linked, so Start opens it and connects. */
 export const NotConnected: Story = {
   play: async () => {
     const open = await dialog();
     await expect(within(open).getByText('REAPER is not connected')).toBeVisible();
-    await expect(await within(open).findByText(/closed, or open without the launcher run/)).toBeVisible();
+    await expect(await within(open).findByText(/closed, or its bridge has not started yet/)).toBeVisible();
     await expect(within(open).getByText(/Last checked \d+ s ago/)).toBeVisible();
     await userEvent.click(within(open).getByRole('button', { name: 'Close' }));
     await expect(off.onClose).toHaveBeenCalledOnce();

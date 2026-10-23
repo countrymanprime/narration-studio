@@ -11,7 +11,9 @@ import { useReaperLaunch } from './useReaperLaunch';
 function choiceSentence(choice: DawChoice | null | undefined, name: string): string | null {
   switch (choice?.state) {
     case 'linked':
-      return `The project is linked, but ${name} has not connected: it is closed, or open without the launcher run.`;
+      return `The project is linked, but ${name} has not connected: it is closed, or its bridge has not started yet.`;
+    case 'starting':
+      return `This app opened ${name} on the linked project and is waiting for its bridge to answer.`;
     case 'not_running':
       return `${name} connected before and has stopped answering.`;
     case 'not_linked':
