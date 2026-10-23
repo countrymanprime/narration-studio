@@ -72,6 +72,7 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
   proof: [
     { id: 'proof.note.prev', with: ['proof.note.next'], label: 'Notes' },
     { id: 'proof.chapter.prev', with: ['proof.chapter.next'], label: 'Chapter' },
+    { id: 'proof.note.hear', label: 'Hear' },
     { id: 'proof.decide.pickup', label: 'Pickup' },
     { id: 'proof.decide.edit', label: 'Edit' },
     { id: 'proof.decide.waive', label: 'Fine' },

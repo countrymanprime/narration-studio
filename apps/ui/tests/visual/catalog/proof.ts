@@ -84,7 +84,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'hear-it',
     description:
-      'Proof, all chapters, Hear it pressed on the first note: Stop hearing it in the Inspector\'s row, "Playing in REAPER, 3 s either side" under it, and In the script with the note\'s paragraph, its words marked, between the paragraphs before and after',
+      'Proof, all chapters, Hear it pressed on the misread at 00:12.4 ("pink eyes"): Stop hearing it in the Inspector\'s row, "Playing in REAPER, 3 s either side" under it, and In the script with the note\'s paragraph, its words marked, between the paragraphs before and after',
     ...REFLOW,
   },
   {
