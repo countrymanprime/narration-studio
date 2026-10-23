@@ -16,6 +16,13 @@ export const pickupsDrivers: Record<string, Driver> = {
     await openPickups(page);
     await page.getByRole('heading', { name: 'Pickup session' }).waitFor();
   },
+  'show-where': async (page) => {
+    await openPickups(page);
+    await list(page).locator('tr[data-pk]').filter({ hasText: '07:30.9' }).getByRole('cell').nth(1).click();
+    const where = list(page).getByRole('region', { name: 'Where 07:30.9 is' });
+    await where.getByRole('button', { name: 'Fine, not a pickup' }).waitFor();
+    await where.getByRole('region', { name: 'In the script' }).waitFor();
+  },
   scoped: async (page) => {
     await openPickups(page);
     await list(page)

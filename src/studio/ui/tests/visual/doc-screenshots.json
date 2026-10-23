@@ -1254,6 +1254,13 @@
   },
   {
     "page": "pickups",
+    "state": "show-where",
+    "viewport": "desktop",
+    "docName": "pickups-show-where",
+    "caption": "Pickups - a selected line: its paragraph in the script with the ones before and after, Fine, not a pickup and Go to the note in Proof"
+  },
+  {
+    "page": "pickups",
     "state": "list",
     "viewport": "desktop",
     "docName": "pickups-list",
