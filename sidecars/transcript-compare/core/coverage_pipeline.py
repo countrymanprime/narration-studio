@@ -44,8 +44,15 @@ POLL_SECONDS = 0.1
 
 
 def cpu_count() -> int:
-    """The processors this run may use. A function so a test can name a computer."""
+    """The processors this computer has. A function so a test can name a computer."""
     return os.cpu_count() or 1
+
+
+def cpus_for(args) -> int:
+    """The processors this run may use: the computer's, or fewer when the host gave the run a budget (`--cpus`, a background check
+    leaving the rest to the Booth's live tracking)."""
+    budget = getattr(args, "cpus", None) or 0
+    return max(1, min(cpu_count(), budget)) if budget > 0 else cpu_count()
 
 
 @dataclass(frozen=True)
@@ -245,7 +252,7 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
     import coverage_mode as mode  # a sibling module; imported late because it imports this one
 
     playing = [item for item in items if not item.muted]
-    pending = [item for item in playing if not mode._is_covered(words_dir, item, args.model)]
+    pending = [item for item in playing if not mode._is_covered(words_dir, item, args)]
     first_seconds = sum(item.length for item in pending)
     progress = mode._Progress(engine, args.progress, first_seconds * (1 + DOUBT_SHARE))
     current = {item.index: mode._ItemResult(item, None, None, ()) for item in items if item.muted}
@@ -292,15 +299,24 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
             current[item.index] = updated
             return updated, windows, whole
 
+    def checked_whole(target) -> bool:
+        """Whether the large model has already transcribed all of the item's played range: nothing in it is asked for again."""
+        words = current[target.index].words
+        return words is not None and mode.inside_ranges(target.start_offset, target.end, mode.checked_ranges(words, args.recheck_model))
+
     def plan(item, result):
-        runs = mode.unsure_runs(result, below)
+        if checked_whole(item):
+            return
+        runs = mode.unchecked_runs(result, below, args.recheck_model)
         windows, tripped = doubt.windows_for(item, runs)
         scheduled = []
         if windows:
             scheduled.append((item, windows, doubt.escalated))
         if tripped:  # the large model is about to redo most of the chapter: finish the items already past the gate whole too
             scheduled.extend(
-                (earlier, [(earlier.start_offset, earlier.end)], True) for earlier in playing if earlier.index in first_done and earlier is not item
+                (earlier, [(earlier.start_offset, earlier.end)], True)
+                for earlier in playing
+                if earlier.index in first_done and earlier is not item and not checked_whole(earlier)
             )
         for target, target_windows, whole in scheduled:
             seconds = sum(end - start for start, end in target_windows)

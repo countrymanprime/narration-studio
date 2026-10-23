@@ -225,7 +225,10 @@ def test_auto_leaves_each_item_worker_two_threads_on_four_cpus():
 # the pipeline
 
 
-def test_the_second_items_first_pass_overlaps_the_first_items_recheck(tmp_path, progress, cpus):
+def test_the_second_items_first_pass_overlaps_the_first_items_recheck(tmp_path, progress, cpus, monkeypatch):
+    # One token a call: the fake re-check below blocks inside the gate until item 2 starts, and with each call holding every processor it
+    # would hold the tokens item 2 needs, so the test would pass or time out on which thread reached the gate first. The gate has its own tests.
+    monkeypatch.setattr(pipeline.CpuGate, "tokens_for", lambda _self, _threads: 1)
     manuscript, manifest, truth = _corpus(tmp_path)
     second_started = threading.Event()
     overlapped = []
@@ -741,3 +744,166 @@ def test_the_pipeline_flags_are_checked_before_anything_runs(monkeypatch, capsys
 
     assert exit_info.value.code == 2
     assert "recheck-model" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("extra", "named"),
+    [
+        (["--cpus", "-1"], "--cpus"),
+        (["--checked-by", "small", "--recheck", "windows.json", "--words-dir", "w"], "--checked-by"),
+        (["--checked-by", "small", "--recheck-model", "small", "--unsure-below", "0.5"], "--checked-by"),
+    ],
+)
+def test_the_incremental_flags_are_checked_before_anything_runs(monkeypatch, capsys, extra, named):
+    monkeypatch.setattr("sys.argv", ["compare.py", "--coverage", "--manuscript", "m.json", *extra])
+
+    with pytest.raises(SystemExit) as exit_info:
+        compare.main()
+
+    assert exit_info.value.code == 2
+    assert named in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# incremental checks: a range a model has checked is never checked by it again (#2251 item 5)
+
+
+def _hard_recheck(truth, *, calls):
+    """The large model: the truth, but still unsure of the corrupted word: a passage it has re-checked can stay doubtful."""
+
+    def transcribe(item, on_seconds):
+        calls.append((item.index, item.start_offset, item.end))
+        inside = tuple(word for word in truth[item.index] if item.start_offset <= (word[1] + word[2]) / 2 <= item.end)
+        scores = tuple(0.2 if text in CORRUPT else 0.99 for text, _s, _e in inside)
+        on_seconds(item.length)
+        return mode.ItemWords(inside, item.start_offset, item.end, "large-v3-turbo", "en", None, scores=scores)
+
+    return transcribe
+
+
+def test_a_second_check_of_unchanged_audio_transcribes_nothing(tmp_path, progress, cpus):
+    manuscript, manifest, truth = _corpus(tmp_path)
+    first_calls, recheck_calls = [], []
+    args = _cascade_args(tmp_path, manuscript, manifest)
+    mode.run(
+        args,
+        compare,
+        transcriber=_first_pass(truth, on_call=lambda item: first_calls.append(item.index)),
+        recheck_transcriber=_hard_recheck(truth, calls=recheck_calls),
+    )
+    assert first_calls and recheck_calls  # the first check did the work
+    first_calls.clear()
+    recheck_calls.clear()
+
+    mode.run(
+        args,
+        compare,
+        transcriber=_first_pass(truth, on_call=lambda item: first_calls.append(item.index)),
+        recheck_transcriber=_hard_recheck(truth, calls=recheck_calls),
+    )
+
+    assert first_calls == []  # every words file is reused
+    assert recheck_calls == []  # the large model already checked every doubtful passage, however unsure it still is
+
+
+def test_a_new_item_is_the_only_audio_a_later_check_transcribes(tmp_path, progress, cpus):
+    manuscript, manifest, truth = _corpus(tmp_path, count=2)
+    first_calls, recheck_calls = [], []
+    args = _cascade_args(tmp_path, manuscript, manifest)
+    mode.run(args, compare, transcriber=_first_pass(truth), recheck_transcriber=_hard_recheck(truth, calls=recheck_calls))
+    recheck_calls.clear()
+    # the narrator records the next paragraph: a third item joins the chapter
+    truth[2] = _truth(P3)
+    manifest = _write_manifest(tmp_path / "m.json", [_item(n, f"{{G{n}}}", f"s{n}.wav", 0.0, ITEM_SECONDS) for n in range(3)])
+
+    mode.run(
+        _cascade_args(tmp_path, manuscript, manifest),
+        compare,
+        transcriber=_first_pass(truth, on_call=lambda item: first_calls.append(item.index)),
+        recheck_transcriber=_hard_recheck(truth, calls=recheck_calls),
+    )
+
+    assert first_calls == [2]
+    assert {index for index, _start, _end in recheck_calls} <= {2}
+
+
+def test_an_escalated_chapter_is_not_rechecked_whole_again(tmp_path, progress, cpus):
+    manuscript, manifest, truth = _corpus(tmp_path, seconds=30.0)
+    calls = []
+
+    def doubtful(item, on_seconds):
+        words = tuple((text, start, end) for text, start, end in truth[item.index])
+        on_seconds(item.length)
+        return mode.ItemWords(words, item.start_offset, item.end, "tiny", "en", None, scores=tuple(0.1 for _ in words))
+
+    def unsure_large(item, on_seconds):
+        calls.append(item.index)
+        inside = tuple(word for word in truth[item.index] if item.start_offset <= (word[1] + word[2]) / 2 <= item.end)
+        on_seconds(item.length)
+        return mode.ItemWords(inside, item.start_offset, item.end, "large-v3-turbo", "en", None, scores=tuple(0.1 for _ in inside))
+
+    args = _cascade_args(tmp_path, manuscript, manifest)
+    mode.run(args, compare, transcriber=doubtful, recheck_transcriber=unsure_large)
+    assert set(calls) == {0, 1, 2}
+    calls.clear()
+
+    mode.run(args, compare, transcriber=doubtful, recheck_transcriber=unsure_large)
+
+    assert calls == []
+
+
+def test_words_the_larger_model_made_whole_count_as_checked_for_the_first_pass(tmp_path, progress, cpus):
+    """The host's whole-chapter re-check (MC3) leaves words files made by the larger model; the next check's first pass
+    (`--checked-by` names that model) reuses them instead of transcribing the chapter again with the smaller one."""
+    manuscript, manifest, truth = _corpus(tmp_path)
+    large = _args(tmp_path, manuscript, manifest, model="large-v3-turbo")
+    mode.run(large, compare, transcriber=_recheck(truth))
+
+    plain = _args(tmp_path, manuscript, manifest, model="tiny", checked_by="large-v3-turbo", unsure_below=0.5)
+    mode.run(plain, compare, transcriber=base._never_transcribe)
+
+    assert "COVERAGE_UNSURE" not in _lines(plain.out)
+
+
+def test_a_passage_the_larger_model_rechecked_is_not_reported_unsure_again(tmp_path, progress, cpus):
+    manuscript, manifest, truth = _corpus(tmp_path)
+    calls = []
+    sequential = _args(tmp_path, manuscript, manifest, model="tiny", unsure_below=0.5)
+    mode.run(sequential, compare, transcriber=_first_pass(truth))
+    unsure = _lines(sequential.out)["COVERAGE_UNSURE"]
+    assert unsure
+    words_dir = Path(sequential.words_dir)
+    for passage in unsure:  # what the host's windows-only re-check does with these passages
+        item = next(item for item in mode.read_manifest(manifest) if item.index == passage["itemIndex"])
+        path = words_dir / item.words_file
+        start, end = pipeline.pad_window(passage["start"], passage["end"], item.start_offset, item.end)
+        window = mode.Window(item.index, item.item_guid, item.source_file, item.words_file, start, end)
+        piece = mode.ManifestItem(item.index, item.item_guid, item.source_file, start, end - start, item.words_file, False)
+        mode.write_words_file(
+            path, mode.splice_window(mode.read_words_file(path), window, _hard_recheck(truth, calls=calls)(piece, lambda _s: None), "large-v3-turbo")
+        )
+
+    again = _args(tmp_path, manuscript, manifest, model="tiny", unsure_below=0.5, checked_by="large-v3-turbo")
+    mode.run(again, compare, transcriber=base._never_transcribe)
+
+    assert "COVERAGE_UNSURE" not in _lines(again.out)
+
+
+def test_the_cpu_budget_caps_the_processors_a_check_plans_for(tmp_path, progress, cpus):
+    cpus(8)
+    manuscript, manifest, truth = _corpus(tmp_path)
+    seen = []
+    original = pipeline.plan_budget
+
+    def spy(cpu, *rest):
+        budget = original(cpu, *rest)
+        seen.append(budget.cpus)
+        return budget
+
+    pipeline.plan_budget = spy
+    try:
+        mode.run(_cascade_args(tmp_path, manuscript, manifest, cpus=2), compare, transcriber=_first_pass(truth), recheck_transcriber=_recheck(truth))
+    finally:
+        pipeline.plan_budget = original
+
+    assert seen == [2]

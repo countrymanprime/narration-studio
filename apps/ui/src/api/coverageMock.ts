@@ -21,6 +21,7 @@ import type {
   JobEnded,
   ManuscriptChapter,
 } from '../types';
+import { WIRE_CHAPTERS } from './mockFixtures';
 import { MOCK_ASSET_ROOT } from './mockHost/assets';
 
 type AssetRequired = Extract<CoverageStartResult, { status: 'asset_required' }>;
@@ -61,6 +62,9 @@ export type CoverageSeed = {
   /** The next start (without options.skipRecheck) answers recheck_asset_required instead of running, so the
    * "Download model" / "Check with tiny only" choice can be seen without a host. */
   recheckAssetRequired?: boolean;
+  /** Boots with a background check of the first chapter held at 42% (tiny with small as the double-check), as the host's own
+   * background loop starts one: the progress at the bottom left can be seen without waiting for the loop. Cancel ends it. */
+  backgroundRun?: boolean;
 };
 
 /** The engines the mock offers: the approved catalog, plus (when the seed stands for the cascade being on) the larger model the mock gates on, chosen from the start. */
@@ -340,7 +344,21 @@ export function createCoverageMock(deps: Deps): CoverageApi & {
   withMeasurement: (chapter: ManuscriptChapter) => ManuscriptChapter;
   peekResult: (chapterId: string) => CoverageResult;
 } {
-  let state: CoverageState = { ...idle };
+  let state: CoverageState = deps.seed?.backgroundRun
+    ? {
+        runId: 'mock-background-run',
+        chapterId: WIRE_CHAPTERS[0].id,
+        phase: 'running',
+        percent: 42,
+        stage: 'TRANSCRIBE',
+        message: 'Transcribing item 2/3... 0:41 / 1:30',
+        startedAt: '2026-09-24T10:00:00Z',
+        background: true,
+        pass: 'pipeline',
+        firstPassModel: 'tiny',
+        recheckModel: 'small',
+      }
+    : { ...idle };
   let timers: ReturnType<typeof setTimeout>[] = [];
   const subscribers = new Set<(state: CoverageState) => void>();
   // Fractions measured by a check run in this session; they replace the fixture's.

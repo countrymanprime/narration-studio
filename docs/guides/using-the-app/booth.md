@@ -309,6 +309,27 @@ While its chapters are being read, the panel shows its title and grey blocks, an
 
 ![The Companion, the Booth's small window beside your DAW](../../images/ui/booth-companion.webp)
 
+## Checking what you recorded
+
+With **Check recordings in the background** on (Settings > Speech to text > Background checks), the app listens back to each
+take you record and marks skipped or misread words for [Editing](editing.md) and [Pickups](pickups.md), so you do not have to
+press **Check recording** chapter by chapter.
+
+- **It asks first.** The first time a recorded chapter is ready to check, **Check recordings in the background?** names the
+  models it would use (`tiny`, with `small` double-checking what `tiny` was unsure of). Nothing is checked until you choose
+  **Check in the background**; **Not now** turns background checks off.
+- **It waits for you.** It never runs while REAPER is recording. About 45 seconds after you stop a take, it checks what you
+  just read, while you read ahead, and the Booth keeps following your voice.
+- **It checks only new audio.** Earlier takes are not checked again unless you change a model or the recording changes.
+- **It stays out of the way.** It uses half of this computer's processors, a quarter while the Booth follows your reading, and
+  runs below everything else.
+- **You can see and stop it.** Its progress shows at the bottom left on every page, with the chapter, how far it has got and
+  how many chapters wait. **Pause** turns background checks off (the message that follows has **Resume**), and **Cancel** stops
+  this check until the chapter changes again. **Hide** folds it to a one-line chip; in the Booth it starts folded, so it never
+  covers the text you read, and pressing the chip opens it.
+
+![The first-time notice before the app checks recordings in the background](../../images/ui/background-check-notice.webp)
+
 ## Leaving the Booth
 
 Escape (when nothing is open on top of the Booth) takes you to Script. While a take is recording, every way out asks first

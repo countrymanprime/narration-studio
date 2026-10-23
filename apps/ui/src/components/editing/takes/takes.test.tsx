@@ -149,11 +149,13 @@ describe('chip-under-a-line-with-more-than-one-take', () => {
 });
 
 describe('each-take-is-a-sub-line-with-its-evidence', () => {
-  it('draws the level, the matched share, the figures and the Diff against the script', () => {
+  it('draws the length, the matched share, the figures and the Diff against the script', () => {
     mount();
     fireEvent.click(chip());
     const row = document.querySelector<HTMLElement>('[data-take="t-8"]')!;
-    expect(row.querySelector('svg.mini')).not.toBeNull();
+    // The take's length as a bar; no invented waveform (the page has one, docked above the bar).
+    expect(row.querySelector('[data-take-length]')).not.toBeNull();
+    expect(row.querySelector('svg.mini')).toBeNull();
     expect(row.textContent).toContain('90%');
     expect(row.querySelector('[data-evidence]')!.textContent).toMatch(
       /Matched 90%.*Pause 1\.2 s.*Level −20\.4 dB.*Noise −61\.0 dB.*Clarity: Not measured.*Breaths 2/,

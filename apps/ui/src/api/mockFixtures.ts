@@ -901,6 +901,16 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     choice('chunk_seconds', 'Chunk length in seconds (0 = each item whole)', ['0', '60', '120', '300', '600', '900'], '300'),
     recordingCheck('chunk_overlap_seconds', 'Crossover between neighbouring chunks', '6', { min: 0, max: 60, step: 1, unit: 's' }),
     recordingCheck('parallel_chapters', 'Chapters checked at once', '1', { min: 1, max: 8, step: 1, unit: 'chapters' }),
+    // The background check's own: the first-time notice's answer, its model pair (tiny with small as the double-check) and its processors.
+    bool('background_checks_confirmed', 'The narrator answered the background checks notice', 'false'),
+    choice('background_first_pass_model', 'Model for background checks', ['tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'tiny'),
+    choice('background_recheck_model', 'Double-check model for background checks', ['none', 'tiny', 'small', 'medium', 'large-v3-turbo', 'large-v3'], 'small'),
+    recordingCheck('background_processors', "Processors for background checks (0 = half this computer's)", '0', {
+      min: 0,
+      max: 32,
+      step: 1,
+      unit: 'processors',
+    }),
   ],
   // The silence cleanup analyzer's five thresholds (apps/desktop/internal/measure/cleanup.go), mirroring the host's fieldSchemas and numberSpecs:
   // measure.DefaultCleanupOptions' own starting values, all still unset at every scope (repo default only) the way a fresh install reads them.

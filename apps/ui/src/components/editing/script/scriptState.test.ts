@@ -86,3 +86,20 @@ describe('a range on the waveform', () => {
     expect(initialPageState.span ?? null).toBeNull();
   });
 });
+
+// The bottom waveform scrolled by hand: the page holds what it shows so the script can follow, until the cursor moves.
+describe('the waveform view the script follows', () => {
+  it('holds the stretch the waveform was scrolled to, and the same stretch again changes nothing', () => {
+    const viewed = run({ type: 'place', key: a }, { type: 'view', t0: 1, t1: 4 });
+    expect(viewed.view).toEqual({ t0: 1, t1: 4 });
+    expect(pageReducer(viewed, { type: 'view', t0: 1, t1: 4 })).toBe(viewed);
+    expect(pageReducer(viewed, { type: 'view', t0: 2, t1: 5 }).view).toEqual({ t0: 2, t1: 5 });
+  });
+  it('lets it go when the cursor or the selection moves, and keeps it while playback ticks', () => {
+    const viewed = run({ type: 'place', key: a }, { type: 'view', t0: 1, t1: 4 });
+    expect(pageReducer(viewed, { type: 'place', key: b }).view).toBeNull();
+    expect(pageReducer(viewed, { type: 'select', anchor: a, head: c }).view).toBeNull();
+    expect(pageReducer(viewed, { type: 'play', t: 2 }).view).toEqual({ t0: 1, t1: 4 });
+    expect(pageReducer(viewed, { type: 'reset' }).view).toBeUndefined();
+  });
+});
