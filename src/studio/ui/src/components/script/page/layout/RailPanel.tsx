@@ -1,9 +1,8 @@
-// The Script page's side panel (the mock's `pages/script/Rail.tsx`): the tabs Words, Story Bible, Notes, Queries and Bookmarks (an icon
-// tab), and the selected tab's body. Left and Right move along the tabs and select as they go, wrapping at the ends. The tab is the page's
+// The Script page's side panel (the mock's `pages/script/Rail.tsx`): the tabs Words, Story Bible and Notes, and the selected tab's body.
+// Left and Right move along the tabs and select as they go, wrapping at the ends. The tab is the page's
 // view state, so a lookup elsewhere on the page can switch it. Where the panel is a drawer its header shows, with a close button.
 
 import type { ReactNode } from 'react';
-import { Icon } from '../../../primitives/Icon';
 import { PANEL_FRAME_CLASS } from '../../../primitives/panelStyles';
 import { IconButton } from '../../../primitives/IconButton';
 import { Tab, TabList, TabPanel, Tabs } from '../../../primitives/Tabs';
@@ -16,8 +15,6 @@ const RAIL_TABS: ReadonlyArray<readonly [RailTab, string]> = [
   ['pron', 'Words'],
   ['bible', 'Story Bible'],
   ['marks', 'Notes'],
-  ['queries', 'Queries'],
-  ['bookmarks', 'Bookmarks'],
 ];
 
 export const RAIL_LABEL = 'Words, Story Bible and marks';
@@ -35,14 +32,7 @@ export function RailPanel({ body, onClose }: { body: (tab: RailTab) => ReactNode
         <TabList label={RAIL_LABEL} activation="automatic" className="flex-none px-1">
           {RAIL_TABS.map(([key, label]) => (
             <Tab key={key} value={key}>
-              {key === 'bookmarks' ? (
-                <span data-tab={key} className="inline-flex items-center">
-                  <Icon name="bookmarks" />
-                  <span className="sr-only">{label}</span>
-                </span>
-              ) : (
-                <span data-tab={key}>{label}</span>
-              )}
+              <span data-tab={key}>{label}</span>
             </Tab>
           ))}
         </TabList>

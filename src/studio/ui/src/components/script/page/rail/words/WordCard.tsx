@@ -10,6 +10,7 @@ import { PronSourceTag } from '../../../../storybible/source/PronSourceTag';
 import { usePronunciationSources } from '../../../../storybible/source/usePronunciationSources';
 import { useScriptCommands, useScriptPrep } from '../../data/useScriptData';
 import type { LineRange } from '../../data/scriptCommands';
+import { hearReference } from '../InThisChapter';
 import { RailFieldRow, RailOptionRow } from '../RailOptionRow';
 import { DefinitionBlock } from './DefinitionBlock';
 import { ExternalLinks } from './ExternalLinks';
@@ -59,7 +60,7 @@ export function WordCard({ word, host, selection }: { word: string; host: WordsH
         <h3 className="m-0 text-base font-semibold">{word}</h3>
         <StatusBadge tone={statusTone(status)} label={statusLabel(status)} />
         <span className="flex-1" />
-        <IconButton action="hear" onClick={() => overlay.toast(`Playing “${word}” reference clip`)} />
+        <IconButton action="hear" onClick={() => hearReference(word)} />
         <IconButton action="record" onClick={() => overlay.toast('Recording your own pronunciation')} />
       </div>
       <RailOptionRow label="How I will say it">

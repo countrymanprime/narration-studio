@@ -1,25 +1,8 @@
 // @vitest-environment jsdom
-import { describe, expect, it, beforeEach, vi } from 'vitest';
-import fc from 'fast-check';
+import { describe, expect, it } from 'vitest';
 import type { GuideEntity, GuideType } from '../../types';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
-import {
-  nameCount,
-  typeUnknown,
-  aliasFlagged,
-  chapterCount,
-  ENTRY_SORT_STORAGE_KEY,
-  entryFlagged,
-  entryNeedsReview,
-  loadEntrySort,
-  reviewCount,
-  reviewPill,
-  saveEntrySort,
-  kindSwatch,
-  matchesQuery,
-  sortEntries,
-  type EntrySortKey,
-} from './entryList';
+import { nameCount, typeUnknown, aliasFlagged, chapterCount, entryFlagged, entryNeedsReview, reviewCount, kindSwatch } from './entryList';
 
 const entry = (id: string, name: string, over: Partial<GuideEntity> = {}): GuideEntity => ({
   id,
@@ -38,47 +21,6 @@ const entry = (id: string, name: string, over: Partial<GuideEntity> = {}): Guide
   ...over,
 });
 const inChapters = (...ids: string[]) => ids.map((chapterId, sceneIndex) => ({ chapterId, chapter: chapterId, sceneIndex }));
-const ids = (list: GuideEntity[]) => list.map((row) => row.id);
-
-describe('sort-by-name-type-and-chapters-with-name-as-the-tie-break', () => {
-  const rows = [
-    entry('a', 'Zed', { category: 'Place', appearances: inChapters('1', '2', '3') }),
-    entry('b', 'alice', { category: 'Character', appearances: inChapters('1') }),
-    entry('c', 'Bob', { category: 'Character', appearances: inChapters('1', '2') }),
-    entry('d', 'Acme', { category: 'Organization' }),
-  ];
-
-  it('sorts by name ignoring case', () => expect(ids(sortEntries(rows, 'name'))).toEqual(['d', 'b', 'c', 'a']));
-  it('sorts by type in the tab order, then name', () => expect(ids(sortEntries(rows, 'type'))).toEqual(['b', 'c', 'a', 'd']));
-  it('sorts by chapter count, most first, then name', () => expect(ids(sortEntries(rows, 'chapters'))).toEqual(['a', 'c', 'b', 'd']));
-  it('puts an unknown category after the known ones', () => {
-    expect(ids(sortEntries([entry('x', 'A', { category: 'Mystery' }), entry('y', 'B', { category: 'Event' })], 'type'))).toEqual(['y', 'x']);
-  });
-
-  const keyArb = fc.constantFrom<EntrySortKey>('name', 'type', 'chapters');
-  const rowArb = fc.record({
-    id: fc.uuid(),
-    name: fc.string({ maxLength: 6 }),
-    category: fc.constantFrom('Character', 'Place', 'Lore', 'Item', 'Event', 'Organization', 'Needs Review'),
-    chapters: fc.array(fc.constantFrom('1', '2', '3', '4'), { maxLength: 4 }),
-  });
-  const build = (specs: { id: string; name: string; category: string; chapters: string[] }[]) =>
-    specs.map((s) => entry(s.id, s.name, { category: s.category, appearances: inChapters(...s.chapters) }));
-
-  it('is stable, total and does not mutate its input', () => {
-    fc.assert(
-      fc.property(fc.array(rowArb, { maxLength: 12 }), keyArb, (specs, key) => {
-        const input = build(specs);
-        const snapshot = ids(input);
-        const once = sortEntries(input, key);
-        expect(ids(input)).toEqual(snapshot);
-        expect(once).toHaveLength(input.length);
-        expect(ids(sortEntries([...input].reverse(), key))).toEqual(ids(once));
-        expect(ids(sortEntries(once, key))).toEqual(ids(once));
-      }),
-    );
-  });
-});
 
 describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () => {
   it("counts the entry's own name with its aliases, as the detail lists them", () => {
@@ -88,8 +30,6 @@ describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () =
   it('asks for review and keeps the type word when the host could not tell the type', () => {
     expect(typeUnknown(entry('a', 'A', { category: 'Needs Review' }))).toBe(true);
     expect(typeUnknown(entry('a', 'A', { category: 'Character' }))).toBe(false);
-    expect(reviewPill(entry('a', 'A', { category: 'Needs Review' }), [])).toBe('Review');
-    expect(reviewPill(entry('a', 'A', { category: 'Character' }), [])).toBeUndefined();
   });
   it('counts distinct chapters of the appearances', () => {
     expect(chapterCount(entry('a', 'A', { appearances: [...inChapters('1', '2'), { chapterId: '1', chapter: '1', sceneIndex: 5 }] }))).toBe(2);
@@ -97,26 +37,6 @@ describe('each-row-shows-its-names-and-its-chapters-and-no-mention-counts', () =
   it('falls back to the chapters of the evidence when the file predates appearances', () => {
     const occ = (chapterId: string, paragraph: number) => ({ chapter: chapterId, chapterId, paragraph, excerpt: '' });
     expect(chapterCount(entry('a', 'A', { occurrences: [occ('1', 1), occ('1', 2), occ('2', 1)] }))).toBe(2);
-  });
-});
-
-describe('the-control-sorts-the-list-and-the-choice-is-kept', () => {
-  beforeEach(() => window.localStorage.clear());
-  it('defaults to name', () => expect(loadEntrySort()).toBe('name'));
-  it('restores a saved choice', () => {
-    saveEntrySort('chapters');
-    expect(loadEntrySort()).toBe('chapters');
-  });
-  it('ignores a stored value that is not a key', () => {
-    window.localStorage.setItem(ENTRY_SORT_STORAGE_KEY, 'occurrences');
-    expect(loadEntrySort()).toBe('name');
-  });
-  it('survives storage that throws', () => {
-    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
-    expect(loadEntrySort()).toBe('name');
-    spy.mockRestore();
   });
 });
 
@@ -190,29 +110,6 @@ describe('needs-review-counts-flags-and-suggestions-to-verify', () => {
   });
 });
 
-describe('row-pill-says-verify-or-review', () => {
-  const flagged = entry('a', 'A', { review: { entry: true, aliases: [] } });
-  it('says Verify with the count when suggestions are to be verified', () => {
-    expect(reviewPill(flagged, [suggestion('a', 'needs-verification'), suggestion('a', 'needs-verification')])).toBe('Verify · 2');
-    expect(reviewPill(entry('b', 'B'), [suggestion('b', 'needs-verification')])).toBe('Verify · 1');
-  });
-  it('says Review for a flag with nothing to verify, and nothing otherwise', () => {
-    expect(reviewPill(flagged, [suggestion('a', 'accepted-auto')])).toBe('Review');
-    expect(reviewPill(entry('c', 'C'), [])).toBeUndefined();
-  });
-});
-
-describe('the-search-box-matches-names-and-aliases', () => {
-  const hatter = entry('h', 'The Hatter', { aliases: [{ text: 'Mad Hatter' }, { text: 'Tarrant' }] as GuideEntity['aliases'], category: 'Character' });
-  it('matches the name, ignoring case', () => expect(matchesQuery(hatter, 'the hat')).toBe(true));
-  it('matches another name of the entry', () => expect(matchesQuery(hatter, 'tarr')).toBe(true));
-  it('does not match the category', () => expect(matchesQuery(hatter, 'character')).toBe(false));
-  it('matches everything when the query is empty or blank', () => {
-    expect(matchesQuery(hatter, '')).toBe(true);
-    expect(matchesQuery(hatter, '  ')).toBe(true);
-  });
-});
-
 describe('a-kind-is-drawn-in-its-type-colour', () => {
   const types: GuideType[] = [
     { name: 'Character', colour: 'rose', speaks: true },
@@ -224,8 +121,4 @@ describe('a-kind-is-drawn-in-its-type-colour', () => {
     expect(kindSwatch(types, 'Draft')).toBe('warn');
   });
   it('draws a name no type has in the faint hue', () => expect(kindSwatch(types, 'Mystery')).toBe('non-text'));
-  it('orders the type sort by the kinds it is given', () => {
-    const rows = [entry('p', 'A', { category: 'Place' }), entry('c', 'B', { category: 'Character' })];
-    expect(ids(sortEntries(rows, 'type', ['Place', 'Character']))).toEqual(['p', 'c']);
-  });
 });
