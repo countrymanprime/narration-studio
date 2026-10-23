@@ -151,7 +151,7 @@
   - region "Note at playhead":
     - heading "Note at playhead" [level=2]
     - text: Coming soon
-    - paragraph: The proofer's note at REAPER's playhead, with Resolve and Waive, will show here.
+    - paragraph: The proofer's note at REAPER's playhead, with Resolve and Fine as read, will show here.
   - region "Pickups":
     - heading "Pickups" [level=2]
     - paragraph: /\d+ pickups? remaining of \d+/

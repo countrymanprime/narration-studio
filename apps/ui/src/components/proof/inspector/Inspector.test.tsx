@@ -21,6 +21,8 @@ function setup(initial: Finding = inspectorFinding(), props: Partial<React.Compo
     findingsReview,
     findingsGet: vi.fn(async (id: string) => inspectorFinding({ id })),
     findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 1 })),
+    findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 0, loopEnd: 4 })),
+    findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
     findingsThread: vi.fn(async (id: string) => inspectorFinding({ id })),
   };
   const handlers = { onSelect: vi.fn(), onChanged: vi.fn(), onOpenScript: vi.fn(), onOpenBooth: vi.fn() };
@@ -69,11 +71,11 @@ describe('markup-is-only-four-tags', () => {
 describe('decision-buttons-set-the-status-and-show-the-key', () => {
   it('saves a decision with the shown version, presses the chosen button and says it was saved', async () => {
     const t = setup();
-    await userEvent.click(decision(/^Waive/));
+    await userEvent.click(decision(/^Fine as read/));
     expect(t.findingsReview).toHaveBeenCalledWith({ id: 'f1', evidenceVersion: 'v1', status: 'dismissed', note: '' });
     expect(t.onChanged).toHaveBeenCalledWith(expect.objectContaining({ id: 'f1' }), true);
-    await waitFor(() => expect(decision(/^Waive/).getAttribute('aria-pressed')).toBe('true'));
-    expect(screen.getByText('Saved: waived.')).toBeTruthy();
+    await waitFor(() => expect(decision(/^Fine as read/).getAttribute('aria-pressed')).toBe('true'));
+    expect(screen.getByText('Saved: fine as read.')).toBeTruthy();
   });
 
   it('is named "Resolution" and keeps the other three unpressed', () => {
@@ -129,14 +131,14 @@ describe('note-steps-and-banner-are-the-merged-ones', () => {
     const t = setup();
     t.recheck(inspectorFinding({ version: 'v2', heard: 'I could not help it' }));
     expect(screen.getByRole('alert').textContent).toContain('The evidence changed');
-    for (const name of [/^Needs pickup/, /^Fix in edit/, /^Waive/, /^Defer/, /^Next note$/, /^Previous note$/]) {
+    for (const name of [/^Needs pickup/, /^Fix in edit/, /^Fine as read/, /^Defer/, /^Next note$/, /^Previous note$/]) {
       expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
     }
-    await userEvent.click(decision(/^Waive/));
+    await userEvent.click(decision(/^Fine as read/));
     expect(t.findingsReview).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: 'Use the new evidence' }));
     expect(screen.queryByRole('alert')).toBeNull();
-    await userEvent.click(decision(/^Waive/));
+    await userEvent.click(decision(/^Fine as read/));
     expect(t.findingsReview).toHaveBeenCalledWith(expect.objectContaining({ evidenceVersion: 'v2' }));
   });
 
@@ -156,7 +158,7 @@ describe('slots-for-the-rest', () => {
     cleanup();
     setup();
     expect(screen.queryByTestId('spot')).toBeNull();
-    expect(screen.getByRole('button', { name: /^Waive/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Fine as read/ })).toBeTruthy();
   });
 });
 

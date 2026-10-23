@@ -35,7 +35,7 @@ export function decisionLabel(status: FindingReviewStatus, fix: FixKind): string
     case 'accepted':
       return fix === 'edit' ? 'Fix in edit' : 'Pickup';
     case 'dismissed':
-      return 'Waive';
+      return 'Fine as read';
     case 'deferred':
       return 'Defer';
     default:
@@ -48,7 +48,7 @@ export function savedMessage(status: FindingReviewStatus, fix: FixKind): string 
     case 'accepted':
       return fix === 'edit' ? 'Saved: fix in edit.' : 'Saved: needs a pickup.';
     case 'dismissed':
-      return 'Saved: waived.';
+      return 'Saved: fine as read.';
     case 'deferred':
       return 'Saved: deferred.';
     default:

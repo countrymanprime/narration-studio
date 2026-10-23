@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Story Bible entry list</title>
+<style>
+/* Tokens copied from docs/research/mockups/studio-next/src/styles/app.css so the draft reads like the spec mock. System fonts only: nothing loads from the network. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --faint:#766F60;
+  --copper:#B04F17; --copper-ink:#FFFFFF; --copper-soft:#F1DDC9; --copper-text:#8F3F0F;
+  --ok:#2F6B3E; --ok-soft:#D9EAD9; --warn:#8A5A00; --warn-soft:#F5E6BF; --bad:#A3302A; --bad-soft:#F4D6D2; --info:#2A5C86; --info-soft:#D8E5F2; --violet:#6B4C9A; --violet-soft:#E6DDF3;
+  --focus:#1F5FBF; --shadow:0 1px 2px rgba(36,33,28,.08),0 10px 28px rgba(36,33,28,.14);
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding:16px;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;letter-spacing:.01em}
+h2{font-size:22px;margin:28px 0 12px}
+kbd{font:500 12px/1 var(--f-mono);background:var(--raised);border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;padding:2px 5px;color:var(--muted)}
+.sub{color:var(--muted);font-size:13px}
+.label{font:600 12px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.spacer{flex:1}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{height:32px;padding:0 14px;border-radius:6px;border:1px solid var(--btn-line);background:var(--surface);font:600 13px var(--f-display);letter-spacing:.09em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--raised)}
+.btn.primary{background:var(--copper);border-color:var(--copper);color:var(--copper-ink)}
+.btn.link{border:0;background:none;height:auto;padding:0;color:var(--copper-text);text-transform:none;letter-spacing:0;font:500 13px var(--f-body);text-decoration:underline}
+.btn svg{width:14px;height:14px;fill:currentColor}
+.ibtn{width:32px;height:32px;border-radius:50%;border:1px solid var(--btn-line);background:var(--surface);display:inline-grid;place-items:center;flex:none;padding:0;position:relative}
+.ibtn:hover{background:var(--raised)}
+.ibtn svg{width:14px;height:14px;fill:currentColor}
+.ibtn.sm{width:26px;height:26px;border-color:var(--line-strong)}
+.ibtn.sm svg{width:12px;height:12px}
+.ibtn[aria-expanded="true"],.ibtn.on{background:var(--copper-soft);border-color:var(--copper);color:var(--copper-text)}
+.ibtn .badge{position:absolute;top:-5px;right:-6px;min-width:17px;height:17px;border-radius:99px;background:var(--copper);color:var(--copper-ink);font:600 11px/17px var(--f-mono);padding:0 4px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.neutral{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+
+/* Page chrome of this draft */
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.bar h1{font-size:28px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:none;padding:4px 12px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--copper-soft);color:var(--copper-text)}
+.draft{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;margin-bottom:12px}
+.tag{display:inline-block;font:600 11px var(--f-display);letter-spacing:.12em;text-transform:uppercase;border-radius:4px;padding:1px 6px;vertical-align:middle}
+.tag.new{background:var(--copper-soft);color:var(--copper-text)}
+.tag.changed{background:var(--info-soft);color:var(--info)}
+.tag.kept{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px;align-items:start}
+.frame{display:flex;flex-direction:column;gap:8px;min-width:0}
+.frame>.cap b{font:700 15px var(--f-display);letter-spacing:.08em;text-transform:uppercase;margin-right:6px}
+.frame>.note{color:var(--muted);font-size:13px;margin:0}
+.frame>.note li{margin:2px 0}
+.frame>.note ul{margin:0;padding-left:18px}
+
+/* The page: header, list pane, entry pane */
+.page{display:flex;flex-direction:column;gap:16px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:16px;height:720px}
+.page-head{display:flex;align-items:center;gap:8px}
+.page-head h1{font-size:30px}
+.page-body{display:grid;grid-template-columns:minmax(17rem,32%) minmax(0,1fr);gap:16px;min-height:0;flex:1}
+.entry{padding:16px 20px;overflow:auto}
+.entry h3{font-size:26px;display:flex;align-items:center;gap:10px}
+.entry dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:16px 0}
+.entry dt{color:var(--muted)}
+.entry dd{margin:0}
+@media (max-width:1023px){.page{height:auto}.page-body{grid-template-columns:1fr}.page-body .pane{max-height:26rem}}
+
+.pane{display:flex;flex-direction:column;min-height:0;container-type:inline-size;position:relative;height:100%}
+.frame .pane{height:540px}
+.page .pane{height:auto}
+.pane-top{display:flex;flex-direction:column;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+.search{position:relative;flex:1;min-width:0}
+.search svg{position:absolute;left:10px;top:50%;width:14px;height:14px;margin-top:-7px;fill:var(--muted)}
+.search input{width:100%;height:34px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);padding:0 32px 0 30px}
+.search input::placeholder{color:var(--faint)}
+.search .clear{position:absolute;right:4px;top:4px;width:26px;height:26px;border:0;background:none;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.search .clear svg{position:static;margin:0;width:12px;height:12px}
+.tools{display:flex;gap:6px;align-items:center}
+.scope{display:flex;gap:6px;align-items:center;min-width:0}
+.scope .seg{flex:none}
+.chap{min-width:0;flex:1;height:28px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);padding:0 8px;display:flex;align-items:center;gap:6px;font-size:13px}
+.chap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chap svg{width:10px;height:10px;fill:currentColor;flex:none;margin-left:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:4px;height:24px;border-radius:99px;padding:0 4px 0 10px;background:var(--copper-soft);color:var(--copper-text);font-size:12px;font-weight:500;border:0}
+.chip svg{width:10px;height:10px;fill:currentColor}
+.chip .x{width:18px;height:18px;border-radius:50%;display:grid;place-items:center}
+.chip:hover .x{background:rgba(0,0,0,.08)}
+.scan{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.scan .track{flex:1;height:4px;border-radius:2px;background:var(--raised);overflow:hidden}
+.scan .track i{display:block;height:100%;background:var(--copper)}
+
+.scroll{flex:1;min-height:0;overflow:auto}
+table.list{width:100%;border-collapse:collapse;table-layout:fixed}
+.list th{position:sticky;top:0;z-index:1;background:var(--surface);border-bottom:1px solid var(--line);text-align:left;padding:0;height:30px}
+.list th button{border:0;background:none;width:100%;height:30px;text-align:left;padding:0 10px;font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:4px}
+.list th[aria-sort] button{color:var(--copper-text)}
+.list col.kind{width:7.5rem}
+.list col.say{width:40px}
+.list td{height:36px;padding:0 10px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list tr.r{cursor:pointer}
+.list tr.r:hover td{background:var(--raised)}
+.list tr.r[aria-selected="true"] td{background:var(--copper-soft)}
+.list tr.r[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(--copper)}
+.list tr.r:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.list tr.r.focus td{box-shadow:inset 0 2px 0 var(--focus),inset 0 -2px 0 var(--focus)}
+.list tr.r.focus td:first-child{box-shadow:inset 2px 0 0 var(--focus),inset 0 2px 0 var(--focus),inset 0 -2px 0 var(--focus)}
+.list tr.r.focus td:last-child{box-shadow:inset -2px 0 0 var(--focus),inset 0 2px 0 var(--focus),inset 0 -2px 0 var(--focus)}
+.list td.name b{font-weight:600}
+.list td.name .aka{color:var(--muted);font-size:12.5px;margin-left:6px}
+.list mark{background:var(--warn-soft);color:inherit;border-radius:2px;padding:0 1px}
+.list td.kind{color:var(--muted);font-size:13px}
+.list td.kind .k{display:inline-flex;align-items:center;gap:6px;max-width:100%}
+.list td.kind .k>span{overflow:hidden;text-overflow:ellipsis}
+.list td.say{padding:0 6px;text-align:center}
+.sw{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block}
+.list tr.group td{height:34px;background:var(--raised);color:var(--muted);font-size:13px}
+.list tr.group button{border:0;background:none;padding:0;display:inline-flex;gap:6px;align-items:center;color:inherit;font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase}
+.list tr.group svg{width:10px;height:10px;fill:currentColor}
+.list tr.loose td{background:var(--warn-soft)}
+.list tr.loose .kind{color:var(--warn)}
+.list .msg td{height:auto;padding:16px 12px;white-space:normal;color:var(--muted);border:0}
+.skel{height:12px;border-radius:4px;background:var(--raised);display:block}
+.err{margin:12px;border:1px solid var(--bad);background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+@container (max-width:320px){.list col.kind{width:2.2rem}.list td.kind .k>span:not(.sw),.list th.kind button span{display:none}.scope .seg button{padding:4px 8px}}
+
+/* Menus */
+.menu{position:absolute;z-index:5;background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;box-shadow:var(--shadow);padding:6px;min-width:15rem}
+.menu .h{padding:6px 8px 2px}
+.menu .it{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:4px 8px;border-radius:5px;font-size:13px}
+.menu .it:hover,.menu .it.hl{background:var(--raised)}
+.menu .it .ct{margin-left:auto;font:500 12px var(--f-mono);color:var(--muted)}
+.menu .box{width:14px;height:14px;border:1.5px solid var(--btn-line);border-radius:3px;display:grid;place-items:center;flex:none}
+.menu .box.radio{border-radius:50%}
+.menu .it[aria-checked="true"] .box{background:var(--copper);border-color:var(--copper)}
+.menu .it[aria-checked="true"] .box::after{content:"";width:6px;height:6px;border-radius:1px;background:var(--copper-ink)}
+.menu .it[aria-checked="true"] .box.radio::after{border-radius:50%}
+.menu hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+
+/* Jump menu */
+.jump{background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.jump .q{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.jump .q svg{width:14px;height:14px;fill:var(--muted)}
+.jump .q span{flex:1}
+.jump .grp{padding:8px 12px 2px}
+.jump .it{display:flex;gap:8px;align-items:center;padding:6px 12px}
+.jump .it.hl{background:var(--copper-soft)}
+.jump .it .hint{margin-left:auto;color:var(--muted);font-size:12px}
+
+/* Script rail stub */
+.rail{width:100%}
+.rail .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 8px}
+.rail .tabs button{border:0;background:none;padding:10px 10px 8px;font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:2px solid transparent}
+.rail .tabs button[aria-selected="true"]{color:var(--copper-text);border-bottom-color:var(--copper)}
+.rail .body{padding:12px}
+
+table.cmp{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;font-size:13px}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+table.cmp th{font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.keys{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Story Bible entry list</h1>
+  <span class="sub">Draft mock, 2026-10-23. Research note: <code>docs/research/story-bible-entry-list.md</code></span>
+  <span class="spacer"></span>
+  <div class="seg" role="group" aria-label="Theme">
+    <button type="button" data-theme-set="system" aria-pressed="true">System</button>
+    <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+    <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="draft">Draft for the owner's review, not approved. It redraws the left pane of PR #2242 (owner request SNB-D1: a table of Name and Kind) and adds what a narrator with a 500-entry book needs. Tags: <span class="tag new">New</span> not in #2242, <span class="tag changed">Changed</span> #2242 does it differently, <span class="tag kept">Kept</span> as #2242 builds it. Sample data is invented: 527 entries, the size the rules-only scan found in an 88,000-word book.</p>
+
+<h2>1. The page, live <span class="tag changed">Changed</span></h2>
+<div class="frame" id="f-live">
+  <p class="note">Type in the search, open the filter and sort menus, switch to <b>This chapter</b>, use the arrow keys. Everything else on the page (Add entry, More actions, the entry) is #2242 unchanged and stubbed here.</p>
+  <div class="page" data-shot="page">
+    <div class="page-head">
+      <h1>Story Bible</h1><span class="spacer"></span>
+      <button class="btn primary" type="button"><svg viewBox="0 0 16 16"><path d="M7 2h2v5h5v2H9v5H7V9H2V7h5z"/></svg>Add entry</button>
+      <button class="ibtn" type="button" aria-label="More actions"><svg viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.6"/><circle cx="8" cy="8" r="1.6"/><circle cx="13" cy="8" r="1.6"/></svg></button>
+    </div>
+    <div class="page-body">
+      <section class="panel pane" aria-label="Entries" id="live"></section>
+      <section class="panel entry" aria-label="Entry" id="live-entry"></section>
+    </div>
+  </div>
+</div>
+
+<h2>2. States</h2>
+<div class="grid" id="states"></div>
+
+<h2>3. Ctrl+F on the Story Bible <span class="tag new">New</span></h2>
+<div class="grid">
+  <div class="frame" data-shot="jump">
+    <div class="cap"><b>Jump menu, this page</b><span class="tag new">New</span></div>
+    <div class="jump" role="dialog" aria-label="Search this page">
+      <div class="q"><svg viewBox="0 0 16 16"><path d="M6.5 1a5.5 5.5 0 0 1 4.4 8.8l3.7 3.7-1.4 1.4-3.7-3.7A5.5 5.5 0 1 1 6.5 1zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></svg><span>ferr</span><kbd>Esc</kbd></div>
+      <div class="grp label">On this page · Story Bible</div>
+      <div class="it hl"><span class="sw" style="background:var(--violet)"></span><b>Ferrin Ostrava</b><span class="hint">Character</span></div>
+      <div class="it"><span class="sw" style="background:var(--info)"></span><b>Ferry at Wend</b><span class="hint">Place</span></div>
+      <div class="it"><span class="sw" style="background:var(--violet)"></span><b>Old Mother Ferrow</b><span class="hint">Character · also “the Ferrywoman”</span></div>
+      <div class="grp label">Go to</div>
+      <div class="it"><span>Script: find “ferr” in the manuscript</span></div>
+    </div>
+    <p class="note">Ctrl+F already opens the jump menu scoped to the page on every page but Proof (<code>apps/ui/src/input/commands.catalog.ts:520-536</code>), but the Story Bible registers no items, so it finds nothing of its own. Here the page lists its entries (name, kind, the alias that matched); Enter opens the entry and selects its row. Ctrl+K stays the global menu.</p>
+  </div>
+  <div class="frame">
+    <div class="cap"><b>Keys</b><span class="tag changed">Changed</span></div>
+    <div class="panel" style="padding:12px">
+      <div class="keys">
+        <span><kbd>Ctrl</kbd> <kbd>F</kbd></span><span>Jump menu scoped to this page; lists entries <span class="tag new">New</span></span>
+        <span><kbd>↓</kbd> in the search</span><span>To the first row; the search keeps its text <span class="tag new">New</span></span>
+        <span><kbd>Esc</kbd> in the search</span><span>Clears it; a second Esc leaves it</span>
+        <span><kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd></span><span>Move between rows; one tab stop <span class="tag kept">Kept</span></span>
+        <span><kbd>PgUp</kbd> <kbd>PgDn</kbd></span><span>A screenful <span class="tag new">New</span></span>
+        <span><kbd>Enter</kbd></span><span>Opens the entry <span class="tag kept">Kept</span></span>
+        <span><kbd>Space</kbd></span><span>Plays the pronunciation, when there is one <span class="tag new">New</span></span>
+        <span><kbd>Shift</kbd> <kbd>F10</kbd> / <kbd>Menu</kbd></span><span>Row menu: Open, Find in the manuscript, Mark reviewed, Delete <span class="tag kept">Kept</span></span>
+      </div>
+      <p class="sub" style="margin:10px 0 0">These live on the key sheet and in Settings, not as text on the page (#2251 item 21).</p>
+    </div>
+  </div>
+</div>
+
+<h2>4. The same row on the Script page <span class="tag new">New</span></h2>
+<div class="grid">
+  <div class="frame" data-shot="script-rail">
+    <div class="cap"><b>Script rail, Story Bible tab</b></div>
+    <div class="panel rail">
+      <div class="tabs" role="tablist"><button role="tab" aria-selected="false">Words</button><button role="tab" aria-selected="true">Story Bible</button><button role="tab" aria-selected="false">Notes</button></div>
+      <div class="body" id="rail"></div>
+    </div>
+    <p class="note">PR #2259 already makes one <code>InThisChapter</code> list (name, kind, detail, Hear) for the Words and Story Bible tabs. The Story Bible page's <b>This chapter</b> scope draws that row too, with the page's search and filters on top. One row component, two places: the rail has no search, filter or sort, the page has all three.</p>
+  </div>
+  <div class="frame">
+    <div class="cap"><b>What the two share</b></div>
+    <table class="cmp">
+      <tr><th></th><th>Script rail</th><th>Story Bible, This chapter</th></tr>
+      <tr><td>Row</td><td colspan="2">Name, kind dot and word, “first here” for an entry new in the chapter, Hear button when a pronunciation exists</td></tr>
+      <tr><td>Order</td><td colspan="2">First mention in the chapter</td></tr>
+      <tr><td>Chapter name</td><td colspan="2"><code>chapterName()</code>: full in the picker, short (“Chapter 7”) in a row's detail</td></tr>
+      <tr><td>Search, filter, sort</td><td>None</td><td>Yes</td></tr>
+      <tr><td>Press a row</td><td>Opens the entry card in the rail</td><td>Opens the entry beside the list</td></tr>
+    </table>
+  </div>
+</div>
+
+<h2>5. Against #2242</h2>
+<table class="cmp">
+  <tr><th>Part</th><th>#2242</th><th>This draft</th></tr>
+  <tr><td>Columns</td><td>Name, Kind (sortable headers)</td><td><span class="tag kept">Kept</span> Name, Kind, plus an unlabelled Hear column <span class="tag new">New</span></td></tr>
+  <tr><td>Search</td><td>“Find in any column”: name, aliases, kind and the hidden status label</td><td><span class="tag changed">Changed</span> Name and aliases only; the alias that matched shows in the row; the match is marked; the placeholder says how many entries</td></tr>
+  <tr><td>Kind filter</td><td>Kind select, one kind</td><td><span class="tag changed">Changed</span> Filter menu: several kinds at once</td></tr>
+  <tr><td>Show filter</td><td>Show select (All, Needs review, Needs verification)</td><td><span class="tag changed">Changed</span> Same choices in the Filter menu, plus <b>Pronunciation: none yet</b> <span class="tag new">New</span></td></tr>
+  <tr><td>Active filters</td><td>Two selects always drawn</td><td><span class="tag changed">Changed</span> One Filter icon button with a count; removable chips only while a filter is on</td></tr>
+  <tr><td>Sort</td><td>Header click (Name, Kind)</td><td><span class="tag kept">Kept</span> headers, plus a Sort menu with <b>Book order</b> and <b>Most mentioned</b> <span class="tag new">New</span> (no count column)</td></tr>
+  <tr><td>Long tail</td><td>Every entry in one list, windowed after 100</td><td><span class="tag kept">Kept</span> windowing, plus <b>Minor</b> group (2 mentions or fewer) folded at the end of the whole-book list <span class="tag new">New</span></td></tr>
+  <tr><td>Scope</td><td>Whole book</td><td><b>Whole book / This chapter</b> with a chapter picker <span class="tag new">New</span></td></tr>
+  <tr><td>Ctrl+F</td><td>Page jump menu finds nothing on this page</td><td>Lists the entries <span class="tag new">New</span></td></tr>
+  <tr><td>Loading, empty, no match, scan</td><td>Skeleton, “No entries yet…”, “No entries match.” with Clear filters, scan progress</td><td><span class="tag kept">Kept</span> (text unchanged)</td></tr>
+</table>
+
+<script>
+// ---------- data ----------
+const KINDS = [
+  { name: 'Character', c: 'var(--violet)' }, { name: 'Place', c: 'var(--info)' }, { name: 'Organization', c: 'var(--ok)' },
+  { name: 'Lore', c: 'var(--copper)' }, { name: 'Item', c: 'var(--warn)' }, { name: 'Event', c: 'var(--bad)' },
+];
+const colour = (k) => (KINDS.find((x) => x.name === k) || { c: 'var(--faint)' }).c;
+const CHAPTERS = [
+  'Salt and Silence', 'The Harbour Ledger', 'A Debt in Kessa', 'Lanterns over Ostrava', 'The Glass Archive', 'Night Crossing',
+  'The Ferry at Wend', 'What the Tide Keeps', 'Ashmark', 'The Ninefold Court', 'A Letter Unsealed', 'Brine Road',
+].map((sub, i) => ({ title: `Chapter ${i + 1}`, subtitle: sub }));
+for (let i = 13; i <= 42; i++) CHAPTERS.push({ title: `Chapter ${i}`, subtitle: '' });
+const chapterName = (c, form = 'full') => (form === 'short' || !c.subtitle ? c.title : `${c.title} — ${c.subtitle}`);
+
+let seed = 7;
+const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+const pick = (a) => a[Math.floor(rnd() * a.length)];
+
+// [name, kind, mentions, first chapter, has pronunciation, aliases, flags]
+const MAJOR = [
+  ['Ferrin Ostrava', 'Character', 812, 1, true, ['Ferr', 'the harbourmaster’s boy']],
+  ['Ysolde Marr', 'Character', 604, 1, true, ['Sol', 'the Archivist']],
+  ['Captain Teodric Vane', 'Character', 341, 2, true, ['Vane', 'the Captain']],
+  ['Old Mother Ferrow', 'Character', 122, 7, true, ['the Ferrywoman']],
+  ['Kessa', 'Place', 288, 3, true, []],
+  ['Ostrava', 'Place', 201, 1, true, []],
+  ['Ferry at Wend', 'Place', 64, 7, false, ['Wend crossing']],
+  ['The Ninefold Court', 'Organization', 133, 4, true, ['the Court', 'the Nine']],
+  ['Glass Archive', 'Place', 97, 5, true, []],
+  ['Saltwrights', 'Organization', 88, 2, false, []],
+  ['The Unsealing', 'Event', 41, 11, false, []],
+  ['Brine compass', 'Item', 56, 6, true, ['the compass']],
+  ['Ashmark', 'Place', 49, 9, true, []],
+  ['Quillon Dace', 'Character', 77, 4, false, ['Dace']],
+  ['Hespera Lowe', 'Character', 63, 3, true, []],
+  ['Tidewardens', 'Organization', 52, 8, true, []],
+  ['Ninth Tide', 'Lore', 38, 8, false, []],
+  ['Maelis', 'Character', 35, 7, false, ['Mae']],
+  ['Ilyan Corso', 'Character', 31, 10, true, []],
+  ['Saint Odrun', 'Lore', 22, 6, true, []],
+];
+const SYL = ['ar', 'bel', 'cor', 'dra', 'el', 'fen', 'gar', 'hal', 'is', 'jor', 'kel', 'lun', 'mar', 'nor', 'ov', 'pel', 'quin', 'ros', 'sev', 'tal', 'ul', 'var', 'wen', 'yr', 'zan'];
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
+const word = () => cap(pick(SYL) + pick(SYL) + (rnd() < 0.4 ? pick(SYL) : ''));
+const ENTRIES = [];
+MAJOR.forEach(([name, kind, mentions, first, pron, aka], i) => ENTRIES.push({ id: 'm' + i, name, kind, mentions, first, pron, aka }));
+const used = new Set(ENTRIES.map((e) => e.name));
+while (ENTRIES.length < 527) {
+  const kind = rnd() < 0.55 ? 'Character' : rnd() < 0.5 ? 'Place' : pick(KINDS).name;
+  let name = kind === 'Character' ? `${word()} ${word()}` : kind === 'Place' ? word() + pick(['', ' Quay', ' Reach', 'mouth', ' Hollow']) : word();
+  if (used.has(name)) continue;
+  used.add(name);
+  const r = rnd();
+  const mentions = r < 0.6 ? 1 + Math.floor(rnd() * 2) : r < 0.9 ? 3 + Math.floor(rnd() * 8) : 11 + Math.floor(rnd() * 30);
+  ENTRIES.push({ id: 'g' + ENTRIES.length, name, kind, mentions, first: 1 + Math.floor(rnd() * 42), pron: mentions > 10 ? rnd() < 0.8 : rnd() < 0.15, aka: [] });
+}
+ENTRIES.find((e) => e.name === 'Maelis').review = true;
+ENTRIES.find((e) => e.name === 'Ninth Tide').review = true;
+ENTRIES[60].review = true;
+['Quillon Dace', 'Saltwrights', 'Ferry at Wend'].forEach((n) => (ENTRIES.find((e) => e.name === n).verify = 2));
+ENTRIES[44].verify = 1; ENTRIES[90].verify = 1; ENTRIES[131].verify = 1;
+const LOOSE = [{ id: 'l1', name: 'the Drowned King', kind: 'Character', score: '72%' }, { id: 'l2', name: 'Varrow Quay', kind: 'Place', score: 'No score' }];
+// Chapter 7's entries in order of first mention there.
+const CH7 = ['Ferrin Ostrava', 'Ferry at Wend', 'Old Mother Ferrow', 'Ysolde Marr', 'Maelis', 'Brine compass', 'Kessa', 'Saint Odrun', 'Captain Teodric Vane']
+  .map((n) => ENTRIES.find((e) => e.name === n)).concat(ENTRIES.filter((e) => e.first === 7 && e.id[0] === 'g').slice(0, 5));
+const MINOR_AT = 2;
+
+// ---------- icons ----------
+const I = {
+  search: '<svg viewBox="0 0 16 16"><path d="M6.5 1a5.5 5.5 0 0 1 4.4 8.8l3.7 3.7-1.4 1.4-3.7-3.7A5.5 5.5 0 1 1 6.5 1zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/></svg>',
+  x: '<svg viewBox="0 0 16 16"><path d="M3.4 2 8 6.6 12.6 2 14 3.4 9.4 8l4.6 4.6-1.4 1.4L8 9.4 3.4 14 2 12.6 6.6 8 2 3.4z"/></svg>',
+  filter: '<svg viewBox="0 0 16 16"><path d="M1 2h14l-5.5 6.5V14l-3-1.5v-4z"/></svg>',
+  sort: '<svg viewBox="0 0 16 16"><path d="M4 1 7.5 5H5v10H3V5H.5zM12 15l-3.5-4H11V1h2v10h2.5z"/></svg>',
+  hear: '<svg viewBox="0 0 16 16"><path d="M2 6h3l4-3.5v11L5 10H2zM11 5.2a4 4 0 0 1 0 5.6l-1-1a2.6 2.6 0 0 0 0-3.6zM12.8 3.2a6.8 6.8 0 0 1 0 9.6l-1-1a5.4 5.4 0 0 0 0-7.6z"/></svg>',
+  down: '<svg viewBox="0 0 16 16"><path d="M2 5h12l-6 7z"/></svg>',
+  right: '<svg viewBox="0 0 16 16"><path d="M5 2v12l7-6z"/></svg>',
+  stop: '<svg viewBox="0 0 16 16"><rect x="3" y="3" width="10" height="10" rx="1"/></svg>',
+};
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function marked(text, words) {
+  if (!words.length) return esc(text);
+  const f = fold(text);
+  const hits = new Array(text.length).fill(false);
+  for (const w of words) { let i = f.indexOf(w); while (i >= 0) { for (let j = i; j < i + w.length; j++) hits[j] = true; i = f.indexOf(w, i + 1); } }
+  let out = '', open = false;
+  for (let i = 0; i < text.length; i++) {
+    if (hits[i] && !open) { out += '<mark>'; open = true; }
+    if (!hits[i] && open) { out += '</mark>'; open = false; }
+    out += esc(text[i]);
+  }
+  return out + (open ? '</mark>' : '');
+}
+
+// ---------- the list pane ----------
+const BASE = { scope: 'book', chapter: 6, query: '', kinds: [], pron: 'any', show: 'all', sort: 'name', dir: 1, menu: null, status: 'ready', scan: null, open: 'm0', focus: null, minorOpen: false, empty: false };
+const SORTS = [['name', 'Name'], ['kind', 'Kind'], ['book', 'Book order'], ['mentions', 'Most mentioned']];
+
+function rowsOf(s) {
+  const words = fold(s.query).split(/\s+/).filter(Boolean);
+  let list = s.empty ? [] : s.scope === 'chapter' ? (s.chapterEmpty ? [] : CH7) : ENTRIES;
+  list = list.filter((e) => {
+    if (s.kinds.length && !s.kinds.includes(e.kind)) return false;
+    if (s.pron === 'none' && e.pron) return false;
+    if (s.pron === 'set' && !e.pron) return false;
+    if (s.show === 'review' && !(e.review || e.verify)) return false;
+    if (s.show === 'verify' && !e.verify) return false;
+    if (!words.length) return true;
+    const names = [e.name, ...e.aka].map(fold);
+    return words.every((w) => names.some((n) => n.includes(w)));
+  });
+  if (s.scope === 'book') {
+    const by = { name: (a, b) => a.name.localeCompare(b.name), kind: (a, b) => KINDS.findIndex((k) => k.name === a.kind) - KINDS.findIndex((k) => k.name === b.kind) || a.name.localeCompare(b.name), book: (a, b) => a.first - b.first || b.mentions - a.mentions, mentions: (a, b) => b.mentions - a.mentions || a.name.localeCompare(b.name) }[s.sort];
+    list = [...list].sort((a, b) => s.dir * by(a, b));
+  }
+  return { list, words };
+}
+const filtering = (s) => s.query.trim() || s.kinds.length || s.pron !== 'any' || s.show !== 'all';
+const filterCount = (s) => s.kinds.length + (s.pron !== 'any') + (s.show !== 'all');
+
+function rowHtml(e, s, words, i) {
+  const akaHit = words.length && !words.every((w) => fold(e.name).includes(w)) ? e.aka.find((a) => words.some((w) => fold(a).includes(w))) : null;
+  const chapter = s.scope === 'chapter';
+  const detail = chapter && e.first === s.chapter + 1 ? 'first here' : '';
+  return `<tr class="r${s.focus === e.id ? ' focus' : ''}" data-id="${e.id}" aria-selected="${s.open === e.id}" tabindex="${(s.focus ?? s.open) === e.id ? 0 : -1}" aria-rowindex="${i + 2}">
+    <td class="name"><b dir="auto">${marked(e.name, words)}</b>${akaHit ? `<span class="aka">also “${marked(akaHit, words)}”</span>` : ''}${detail ? `<span class="aka">${detail}</span>` : ''}</td>
+    <td class="kind"><span class="k"><span class="sw" style="background:${colour(e.kind)}" title="${e.kind}"></span><span>${e.kind}</span></span></td>
+    <td class="say">${e.pron ? `<button class="ibtn sm" type="button" tabindex="-1" aria-label="Hear ${esc(e.name)}">${I.hear}</button>` : ''}</td></tr>`;
+}
+
+function bodyHtml(s) {
+  if (s.status === 'loading') return `<tbody>${Array.from({ length: 9 }, (_, i) => `<tr><td><span class="skel" style="width:${50 + ((i * 37) % 40)}%"></span></td><td><span class="skel" style="width:60%"></span></td><td></td></tr>`).join('')}</tbody>`;
+  const { list, words } = rowsOf(s);
+  let html = '';
+  if (s.show === 'verify') html += LOOSE.map((l) => `<tr class="r loose" data-id="${l.id}" aria-selected="false" tabindex="-1"><td class="name"><b>${esc(l.name)}</b></td><td class="kind"><span class="k"><span class="sw" style="background:${colour(l.kind)}"></span><span>${l.kind} · not in the Story Bible yet · ${l.score}</span></span></td><td></td></tr>`).join('');
+  if (!list.length) {
+    const msg = s.empty ? 'No entries yet. Add one, or scan the manuscript from More actions.'
+      : s.scope === 'chapter' && !filtering(s) ? 'No Story Bible entries in this chapter.'
+      : `No entries match. <button class="btn link" type="button" data-act="clear">Clear filters</button>`;
+    return `<tbody>${html}<tr class="msg"><td colspan="3">${msg}</td></tr></tbody>`;
+  }
+  const fold_ = s.scope === 'book' && !filtering(s) && (s.sort === 'name' || s.sort === 'kind');
+  const main = fold_ ? list.filter((e) => e.mentions > MINOR_AT) : list;
+  const minor = fold_ ? list.filter((e) => e.mentions <= MINOR_AT) : [];
+  html += main.slice(0, s.limit || 400).map((e, i) => rowHtml(e, s, words, i)).join('');
+  if (minor.length) {
+    html += `<tr class="group"><td colspan="3"><button type="button" data-act="minor" aria-expanded="${s.minorOpen}">${s.minorOpen ? I.down : I.right} Minor · ${minor.length}</button> <span class="sub">2 mentions or fewer</span></td></tr>`;
+    if (s.minorOpen) html += minor.slice(0, 200).map((e, i) => rowHtml(e, s, words, main.length + i)).join('');
+  }
+  return `<tbody>${html}</tbody>`;
+}
+
+function menuHtml(s) {
+  const all = s.scope === 'chapter' ? CH7 : ENTRIES;
+  const ct = (f) => all.filter(f).length;
+  if (s.menu === 'filter') {
+    const it = (on, label, count, act, radio) => `<button class="it" type="button" role="${radio ? 'menuitemradio' : 'menuitemcheckbox'}" aria-checked="${on}" data-act="${act}"><span class="box${radio ? ' radio' : ''}"></span>${label}<span class="ct">${count}</span></button>`;
+    return `<div class="menu" role="menu" aria-label="Filter entries" style="top:52px;right:12px">
+      <div class="h label">Kind</div>${KINDS.map((k) => it(s.kinds.includes(k.name), `<span class="sw" style="background:${k.c}"></span>${k.name}`, ct((e) => e.kind === k.name), 'kind:' + k.name)).join('')}
+      <hr><div class="h label">Pronunciation</div>${it(s.pron === 'any', 'Any', all.length, 'pron:any', 1)}${it(s.pron === 'none', 'None yet', ct((e) => !e.pron), 'pron:none', 1)}${it(s.pron === 'set', 'Has one', ct((e) => e.pron), 'pron:set', 1)}
+      <hr><div class="h label">Show</div>${it(s.show === 'all', 'All entries', all.length, 'show:all', 1)}${it(s.show === 'review', 'Needs review', ct((e) => e.review || e.verify), 'show:review', 1)}${it(s.show === 'verify', 'Needs verification', ct((e) => e.verify), 'show:verify', 1)}</div>`;
+  }
+  if (s.menu === 'sort') return `<div class="menu" role="menu" aria-label="Sort entries" style="top:52px;right:12px;min-width:12rem">${SORTS.map(([k, l]) => `<button class="it${s.sort === k ? ' hl' : ''}" type="button" role="menuitemradio" aria-checked="${s.sort === k}" data-act="sort:${k}"><span class="box radio"></span>${l}</button>`).join('')}<hr><div class="h sub">Book order: by the chapter each entry first appears in.</div></div>`;
+  if (s.menu === 'chapter') return `<div class="menu" role="listbox" aria-label="Chapter" style="top:90px;left:12px;right:12px;max-height:16rem;overflow:auto">${CHAPTERS.slice(3, 11).map((c, i) => `<button class="it${i + 3 === s.chapter ? ' hl' : ''}" type="button" role="option" aria-selected="${i + 3 === s.chapter}">${esc(chapterName(c))}<span class="ct">${[18, 22, 9, 14, 16, 11, 19, 7][i]}</span></button>`).join('')}</div>`;
+  return '';
+}
+
+function chipsHtml(s) {
+  if (!filterCount(s)) return '';
+  const chip = (label, act) => `<button class="chip" type="button" data-act="${act}" aria-label="Remove filter ${label}">${label}<span class="x">${I.x}</span></button>`;
+  return `<div class="chips">${s.kinds.map((k) => chip(k, 'kind:' + k)).join('')}${s.pron === 'none' ? chip('No pronunciation', 'pron:any') : s.pron === 'set' ? chip('Has a pronunciation', 'pron:any') : ''}${s.show === 'review' ? chip('Needs review', 'show:all') : s.show === 'verify' ? chip('Needs verification', 'show:all') : ''}<button class="btn link" type="button" data-act="clear">Clear all</button></div>`;
+}
+
+function paneHtml(s) {
+  const total = s.empty ? 0 : s.scope === 'chapter' ? CH7.length : ENTRIES.length;
+  const sorted = (k) => (s.scope === 'book' && s.sort === k ? ` aria-sort="${s.dir > 0 ? 'ascending' : 'descending'}"` : '');
+  const arrow = (k) => (s.scope === 'book' && s.sort === k ? (s.dir > 0 ? ' ↑' : ' ↓') : '');
+  const fc = filterCount(s);
+  return `<div class="pane-top">
+      <div class="tools">
+        <div class="search">${I.search}<input type="search" aria-label="Search entries" placeholder="Search ${total} entries" value="${esc(s.query)}">${s.query ? `<button class="clear" type="button" aria-label="Clear search" data-act="q">${I.x}</button>` : ''}</div>
+        <button class="ibtn" type="button" aria-label="Filter${fc ? `, ${fc} on` : ''}" aria-haspopup="menu" aria-expanded="${s.menu === 'filter'}" data-act="menu:filter">${I.filter}${fc ? `<span class="badge">${fc}</span>` : ''}</button>
+        <button class="ibtn" type="button" aria-label="Sort: ${SORTS.find((x) => x[0] === s.sort)[1]}" aria-haspopup="menu" aria-expanded="${s.menu === 'sort'}" data-act="menu:sort" ${s.scope === 'chapter' ? 'disabled style="opacity:.45"' : ''}>${I.sort}</button>
+      </div>
+      <div class="scope">
+        <div class="seg" role="group" aria-label="Scope"><button type="button" aria-pressed="${s.scope === 'book'}" data-act="scope:book">Whole book</button><button type="button" aria-pressed="${s.scope === 'chapter'}" data-act="scope:chapter">This chapter</button></div>
+        ${s.scope === 'chapter' ? `<button class="chap" type="button" aria-haspopup="listbox" aria-expanded="${s.menu === 'chapter'}" data-act="menu:chapter" aria-label="Chapter"><span>${esc(chapterName(CHAPTERS[s.chapter]))}</span>${I.down}</button>` : ''}
+      </div>
+      ${chipsHtml(s)}
+      ${s.scan ? `<div class="scan" role="status"><span>Scanning · chapter 19 of 42</span><span class="track"><i style="width:${s.scan}%"></i></span><button class="ibtn sm" type="button" aria-label="Cancel scan">${I.stop}</button></div>` : ''}
+    </div>
+    ${s.status === 'error' ? `<div class="err" role="alert"><b>The Story Bible could not be read.</b><span>The file is locked by another program.</span><button class="btn" type="button">Retry</button></div>` : `<div class="scroll"><table class="list" aria-label="Story Bible entries" aria-rowcount="${total + 1}"><colgroup><col><col class="kind"><col class="say"></colgroup>
+      <thead><tr><th${sorted('name')}><button type="button" data-act="head:name">Name${arrow('name')}</button></th><th class="kind"${sorted('kind')}><button type="button" data-act="head:kind"><span>Kind</span>${arrow('kind')}</button></th><th class="say"><span class="sr">Pronunciation</span></th></tr></thead>
+      ${bodyHtml(s)}</table></div>`}
+    ${menuHtml(s)}`;
+}
+
+// ---------- live pane ----------
+let live = { ...BASE };
+const liveEl = document.getElementById('live');
+function entryHtml() {
+  const e = ENTRIES.find((x) => x.id === live.open) || ENTRIES[0];
+  return `<h3><span class="sw" style="background:${colour(e.kind)}"></span>${esc(e.name)} <span class="pill neutral">${e.kind}</span></h3>
+    <p class="sub">The entry pane is #2242 (and main) unchanged.</p>
+    <dl><dt>Other names</dt><dd>${e.aka.length ? e.aka.map(esc).join(', ') : '—'}</dd><dt>Pronunciation</dt><dd>${e.pron ? 'Set · <button class="btn link" type="button">Hear</button>' : '<span class="pill warn">None yet</span>'}</dd>
+    <dt>First appears</dt><dd>${esc(chapterName(CHAPTERS[e.first - 1]))}</dd><dt>Mentions</dt><dd class="mono">${e.mentions}</dd></dl>`;
+}
+function renderLive(keepFocus) {
+  const had = document.activeElement;
+  const wasSearch = had && had.matches && had.matches('#live input');
+  const pos = wasSearch ? had.selectionStart : 0;
+  const scroll = liveEl.querySelector('.scroll')?.scrollTop || 0;
+  liveEl.innerHTML = paneHtml(live);
+  document.getElementById('live-entry').innerHTML = entryHtml();
+  const sc = liveEl.querySelector('.scroll'); if (sc) sc.scrollTop = scroll;
+  if (wasSearch) { const i = liveEl.querySelector('input'); i.focus(); i.setSelectionRange(pos, pos); }
+  if (keepFocus) { const r = liveEl.querySelector(`tr[data-id="${keepFocus}"]`); if (r) { r.focus(); r.scrollIntoView({ block: 'nearest' }); } }
+}
+function act(s, a) {
+  const [k, v] = a.split(':');
+  if (k === 'menu') s.menu = s.menu === v ? null : v;
+  else if (k === 'kind') s.kinds = s.kinds.includes(v) ? s.kinds.filter((x) => x !== v) : [...s.kinds, v];
+  else if (k === 'pron') s.pron = v;
+  else if (k === 'show') s.show = v;
+  else if (k === 'sort') { s.sort = v; s.dir = 1; s.menu = null; }
+  else if (k === 'head') { if (s.sort === v) s.dir = -s.dir; else { s.sort = v; s.dir = 1; } }
+  else if (k === 'scope') { s.scope = v; s.menu = null; }
+  else if (k === 'clear') { s.query = ''; s.kinds = []; s.pron = 'any'; s.show = 'all'; }
+  else if (k === 'q') s.query = '';
+  else if (k === 'minor') s.minorOpen = !s.minorOpen;
+}
+liveEl.addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-act]');
+  if (live.menu && !ev.target.closest('.menu') && !(b && b.dataset.act.startsWith('menu:'))) live.menu = null;
+  if (b) { act(live, b.dataset.act); return renderLive(); }
+  if (ev.target.closest('.ibtn.sm')) return;
+  const r = ev.target.closest('tr.r');
+  if (r && !r.classList.contains('loose')) { live.open = r.dataset.id; live.focus = null; renderLive(r.dataset.id); }
+});
+document.addEventListener('click', (ev) => { if (live.menu && ev.target.isConnected && !liveEl.contains(ev.target)) { live.menu = null; renderLive(); } });
+liveEl.addEventListener('input', (ev) => { if (ev.target.matches('input')) { live.query = ev.target.value; renderLive(); } });
+liveEl.addEventListener('keydown', (ev) => {
+  const rows = [...liveEl.querySelectorAll('tr.r')];
+  if (ev.target.matches('input')) {
+    if (ev.key === 'ArrowDown' && rows[0]) { ev.preventDefault(); rows[0].focus(); }
+    if (ev.key === 'Escape') { if (live.query) { live.query = ''; renderLive(); } else ev.target.blur(); }
+    return;
+  }
+  const r = ev.target.closest('tr.r');
+  if (!r) { if (ev.key === 'Escape' && live.menu) { live.menu = null; renderLive(); } return; }
+  const i = rows.indexOf(r);
+  const go = (j) => { const t = rows[Math.max(0, Math.min(rows.length - 1, j))]; if (t) { rows.forEach((x) => (x.tabIndex = -1)); t.tabIndex = 0; t.focus(); t.scrollIntoView({ block: 'nearest' }); } };
+  const page = Math.max(1, Math.floor((liveEl.querySelector('.scroll').clientHeight - 30) / 37));
+  const keys = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: rows.length - 1, PageDown: i + page, PageUp: i - page };
+  if (ev.key in keys) { ev.preventDefault(); go(keys[ev.key]); }
+  if (ev.key === 'ArrowUp' && i === 0) liveEl.querySelector('input').focus();
+  if (ev.key === 'Enter') { live.open = r.dataset.id; renderLive(r.dataset.id); }
+  if (ev.key === ' ') { ev.preventDefault(); r.querySelector('.ibtn.sm')?.classList.toggle('on'); }
+});
+
+// ---------- static state frames ----------
+const STATES = [
+  { id: 'default', title: 'Whole book, resting', tags: ['changed'], s: {}, note: 'Name and Kind as #2242; a Hear button where a pronunciation exists (none drawn where there is none, as the Script rail in #2259). Entries with 2 mentions or fewer fold into <b>Minor</b> at the end, so the 200-odd that matter are not buried among 300 one-off names.' },
+  { id: 'search-alias', title: 'Search matches an alias', tags: ['changed'], s: { query: 'archiv' }, note: 'Searches names and aliases only. A row found by an alias says which one. #2242 also matched the kind and a hidden status label, so a row could match on text it does not draw. Minor entries are searched too; the fold only applies to a list nobody has narrowed.' },
+  { id: 'filter-menu', title: 'Filter menu', tags: ['new'], s: { menu: 'filter', kinds: ['Character'] }, note: 'One icon button replaces the Kind and Show selects. Kinds are checkboxes (several at once); Pronunciation and Show are single choices. Every choice shows its count. Show keeps #2242\'s rule: Needs review and Needs verification are offered while some exist.' },
+  { id: 'filters-on', title: 'Filters on', tags: ['new'], s: { kinds: ['Character', 'Place'], pron: 'none', open: 'm6' }, note: 'The triage list: characters and places with no pronunciation yet. Chips show what is on and remove one at a time; the button carries the count. Nothing is drawn while no filter is on.' },
+  { id: 'sort-menu', title: 'Sort menu', tags: ['new'], s: { menu: 'sort', sort: 'book' }, note: '<b>Book order</b> lists entries by the chapter they first appear in (prep before a session). <b>Most mentioned</b> puts the main cast first. Neither draws a count column; the owner asked for none on the rows. Name and Kind still sort from their headers.' },
+  { id: 'chapter', title: 'This chapter', tags: ['new'], s: { scope: 'chapter', open: 'm6' }, note: 'The entries mentioned in the chosen chapter, in order of first mention, with “first here” on the ones new in it: the Script rail\'s <code>InThisChapter</code> row. The chapter defaults to the one last open in Script or the Booth; the picker uses the full chapter name. Sort is off: reading order is the point.' },
+  { id: 'chapter-menu', title: 'Choosing the chapter', tags: ['new'], s: { scope: 'chapter', menu: 'chapter' }, note: 'Chapters with their entry counts, names in <code>chapterName()</code> full form.' },
+  { id: 'focus', title: 'Keyboard focus', tags: ['kept'], s: { focus: 'm3', open: 'm1' }, note: 'One tab stop; the arrow keys move the focus ring, Enter opens. The open entry keeps its copper bar while focus moves.' },
+  { id: 'verify', title: 'Needs verification', tags: ['kept'], s: { show: 'verify' }, note: 'As #2242: suggestions with no entry yet head the list, then the entries with suggestions waiting.' },
+  { id: 'scan', title: 'Scan running', tags: ['changed'], s: { scan: 45 }, note: 'Progress under the controls (where #2242 puts it) so nothing the pointer is on moves; Cancel is an icon button.' },
+  { id: 'loading', title: 'Loading', tags: ['kept'], s: { status: 'loading' }, note: 'Skeleton rows until the first read ends.' },
+  { id: 'empty', title: 'Empty book', tags: ['kept'], s: { empty: true }, note: '#2242\'s text unchanged.' },
+  { id: 'nomatch', title: 'No match', tags: ['kept'], s: { query: 'zzq' }, note: '“No entries match.” with Clear filters.' },
+  { id: 'chapter-empty', title: 'Chapter with no entries', tags: ['new'], s: { scope: 'chapter', chapterEmpty: true }, note: 'The Script rail\'s sentence.' },
+  { id: 'error', title: 'Could not be read', tags: ['kept'], s: { status: 'error' }, note: 'The host\'s reason and Retry; a later failed reload keeps the rows and toasts.' },
+  { id: 'narrow', title: 'Narrow pane', tags: ['new'], s: { open: 'm2' }, width: 280, note: 'Below about 320 px of its own width the Kind column keeps only its colour dot (the word is its tooltip and accessible name). The page stacks the pane over the entry under 1024 px, as #2242 does.' },
+];
+const statesEl = document.getElementById('states');
+const TAG = { new: '<span class="tag new">New</span>', changed: '<span class="tag changed">Changed</span>', kept: '<span class="tag kept">Kept</span>' };
+statesEl.innerHTML = STATES.map((x) => `<div class="frame" data-shot="state-${x.id}"><div class="cap"><b>${x.title}</b>${x.tags.map((t) => TAG[t]).join(' ')}</div>
+  <section class="panel pane" aria-label="Entries: ${x.title}" style="${x.width ? `width:${x.width}px` : ''}">${paneHtml({ ...BASE, limit: 14, ...x.s })}</section><p class="note">${x.note}</p></div>`).join('');
+
+// ---------- Script rail ----------
+document.getElementById('rail').innerHTML = `<div class="label" style="margin-bottom:6px">In this chapter</div><table class="list" aria-label="Story Bible entries in this chapter"><colgroup><col><col class="kind"><col class="say"></colgroup><tbody>${CH7.slice(0, 8).map((e, i) => rowHtml(e, { ...BASE, scope: 'chapter', open: i === 1 ? e.id : null }, [], i)).join('')}</tbody></table>`;
+
+// ---------- theme ----------
+const setTheme = (t) => {
+  if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme = t;
+  document.querySelectorAll('[data-theme-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)));
+};
+document.querySelectorAll('[data-theme-set]').forEach((b) => b.addEventListener('click', () => setTheme(b.dataset.themeSet)));
+const qt = new URLSearchParams(location.search).get('theme');
+if (qt === 'light' || qt === 'dark') setTheme(qt);
+renderLive();
+</script>
+</body>
+</html>
