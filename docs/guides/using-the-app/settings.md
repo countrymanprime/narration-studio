@@ -68,7 +68,7 @@ If REAPER was already open before the app put its bridge there, the app runs the
 
 ![Settings - Recording: the app opening REAPER on the linked project, connecting on its own](../../images/ui/settings-recording-starting.webp)
 
-With **Audacity** chosen, **Connection** is **Audacity connection** instead: a status, one sentence that says what to do next, when Audacity was last heard from, and a **Set up Audacity** checklist. Audacity must be Audacity 3 with its scripting turned on. While Audacity is closed the app turns scripting on by itself and then starts Audacity on the linked project, once each time the project opens. Two things it cannot do for you, and the sentence says so: Audacity saves its settings when it closes, so if it is open with scripting off you close it and the app does the rest; and the first start of a new Audacity makes its settings and cannot load scripting, so that first time you close Audacity once after it opens. **Turn on scripting** and **Start Audacity** are still there to do either by hand. Once Audacity answers, **Link the open Audacity project** marks the project open in Audacity as this project's, with one label in a track named "Narration Studio"; **Choose Audacity project file** records the `.aup3` so **Start Audacity** opens it; **Unlink** forgets both and leaves the label in Audacity. **Check again** asks Audacity now. If Audacity may be waiting on a dialog, the card says so; close the dialog in Audacity and the app reconnects by itself. The same status shows on the header's engine chip and in the engine panel.
+With **Audacity** chosen, **Connection** is **Audacity connection** instead: a status, one sentence that says what to do next, when Audacity was last heard from, and a **Set up Audacity** checklist. Audacity must be Audacity 3 with its scripting turned on. While Audacity is closed the app turns scripting on by itself and then starts Audacity on the linked project, once each time the project opens. Two things it cannot do for you, and the sentence says so: Audacity saves its settings when it closes, so if it is open with scripting off you close it and the app does the rest; and the first start of a new Audacity makes its settings and cannot load scripting, so that first time you close Audacity once after it opens. **Turn on scripting** and **Start Audacity** are still there to do either by hand. Once Audacity answers, **Link the open Audacity project** marks the project open in Audacity as this project's, with one label in a track named "<!-- brand:identity.audacityLabelTrack -->Narration Studio<!-- /brand -->"; **Choose Audacity project file** records the `.aup3` so **Start Audacity** opens it; **Unlink** forgets both and leaves the label in Audacity. **Check again** asks Audacity now. If Audacity may be waiting on a dialog, the card says so; close the dialog in Audacity and the app reconnects by itself. The same status shows on the header's engine chip and in the engine panel.
 
 Also here: **Microphone** (a list of the computer's inputs, with **Refresh the list**; the Booth uses the same
 one); with REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
@@ -167,7 +167,7 @@ for longer.
 
 ## Models and downloads
 
-One list of everything Narration Studio can keep on this computer: Whisper models, Moonshine models, the preview voice, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
+One list of everything the app can keep on this computer: Whisper models, Moonshine models, the preview voice, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
 removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager. When the list cannot be read, the message offers **Retry** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
 
@@ -273,7 +273,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ### About and updates
 
-Under the rows of **App & updates**, **This version** shows which version of Narration Studio you are running and looks
+Under the rows of **App & updates**, **This version** shows which version of the app you are running and looks
 after updates.
 
 ![Settings - App & updates with a newer version found](../../images/ui/settings-about-updates.webp)
@@ -286,18 +286,18 @@ after updates.
 - **Download update** asks first, then downloads the new version with a progress bar showing the megabytes received, and
   checks it against the release's checksum. You can cancel while it downloads; the checks and unpacking after it cannot be
   cancelled, and the dialog says so.
-- **Install and restart** asks again, then closes Narration Studio and starts it again on the new version with the same
+- **Install and restart** asks again, then closes the app and starts it again on the new version with the same
   project. It will not install while an import, a Story Bible build, a download, a comparison or a teleprompter session is
   running: finish or stop it and try again. If the new version does not start, the previous one comes back by itself.
-- If Narration Studio is installed somewhere it is not allowed to change (for example under Program Files) it says so and
+- If the app is installed somewhere it is not allowed to change (for example under Program Files) it says so and
   offers **Show the downloaded file**, so you can replace the program yourself. It never asks for administrator rights.
 - **Release notes** opens the release page in your browser.
 
-Narration Studio runs on Windows only, for now, so updates are for Windows.
+The app runs on Windows only, for now, so updates are for Windows.
 Releases are not yet signed, so Windows SmartScreen or your antivirus may ask about a new version the first time.
 
-If Narration Studio will not start after an update and the program file is missing from its folder, rename
-`narration-studio.exe.old` back to `narration-studio.exe`.
+If the app will not start after an update and the program file is missing from its folder, rename
+<!-- brand:identity.executable -->narration-studio<!-- /brand -->.exe.old back to <!-- brand:identity.executable -->narration-studio<!-- /brand -->.exe.
 
 ## Set on a page
 

@@ -63,7 +63,7 @@ already showing, it stays, marked "The list below may be out of date".
 **Folder** says where the package went. Before a build it reads "Chosen when you build": Windows opens its own
 folder window when you press **Build ACX package** (named for the profile), and the app never takes a typed
 path. Pressing the button twice opens the window once. If you close it without choosing a folder, Delivery says
-no package was built. A package cannot be saved inside the project's own `narration-studio` folder.
+no package was built. A package cannot be saved inside the project's own <!-- brand:identity.projectFolder -->narration-studio<!-- /brand --> folder.
 
 Build is on once every chapter passes, and files have been mastered and encoded in Master & QC. Until then it
 says how many chapters fail and how many are not ready, that there are no chapters, that you must master all

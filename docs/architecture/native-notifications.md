@@ -27,7 +27,7 @@ the in-app toast queue ([interaction feedback](interaction-feedback.md)), never 
   notifies only through the build's own `job:ended` event, once the build itself clears the threshold; a fast import
   stays quiet on its own account like anything else under 10 seconds.
 - **Windows-only, plain title and body.** No action buttons, categories, reply fields, or macOS/Linux behavior.
-- **Toast identity** on a dev build shows the executable's base name, not "Narration Studio"; the installed build is
+- **Toast identity** on a dev build shows the executable's base name, not the display name; the installed build is
   an owner verification step.
 
 ## Tests

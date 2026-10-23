@@ -2,6 +2,8 @@
 
 What `pnpm check` and CI verify beyond "it lints and the example tests pass", how to run each check on its own, and how to add to it. How the jobs are wired is in [CI and releases](ci-and-releases.md); the reasons are in ADRs [0043](ci-and-releases.md#coverage-ratchet), and 0062.
 
+`<data>` stands for values in `config/brand.json` ([Product and technical names](../architecture/codebase-map.md#product-and-technical-names)).
+
 | Check                                                                                                                                                                                 | Runs in                                                   | Run it alone                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Formatting: ruff (Python, the only Python formatter), Prettier (UI), gofmt, StyLua                                                                                                    | `lint` and `format` targets                               | `pnpm exec nx run <project>:lint`                                                            |
@@ -133,7 +135,7 @@ Four scripts in `scripts/ci/` check what merges while no person watches each pul
 
 ## Reading a run
 
-Every tool run (a host job, a sidecar launch, a Go tool decision) writes one JSON line per event to `%APPDATA%\narration-studio\logs\run.jsonl` (`run`, `tool`, `event`, `ts`, `level`, plus the event's own fields; never manuscript, audio or transcript text), rotated at 5 MiB with two backups (`internal/runlog`). `grep '"run":"<id>"' run.jsonl` (or `jq 'select(.run=="<id>")'`) isolates one run; `Begin`/`End` bound it and `Decision` records why a tool chose what it chose. A sidecar's own stderr for a run with debug on is captured separately, one file per run, at `logs/runs/<run-id>.stderr.jsonl` (pruned to the newest 20, or 7 days).
+Every tool run (a host job, a sidecar launch, a Go tool decision) writes one JSON line per event to `%APPDATA%\<data>\logs\run.jsonl` (`run`, `tool`, `event`, `ts`, `level`, plus the event's own fields; never manuscript, audio or transcript text), rotated at 5 MiB with two backups (`internal/runlog`). `grep '"run":"<id>"' run.jsonl` (or `jq 'select(.run=="<id>")'`) isolates one run; `Begin`/`End` bound it and `Decision` records why a tool chose what it chose. A sidecar's own stderr for a run with debug on is captured separately, one file per run, at `logs/runs/<run-id>.stderr.jsonl` (pruned to the newest 20, or 7 days).
 
 Turning on Settings > App & updates > Advanced > "Debug logging" raises the level from `info` to `debug` for new runs (a `NARRATION_DEBUG=1` environment variable forces `debug` for the whole session and cannot be turned back off from Settings, for a support session run from a terminal). "Open log folder" and "Copy diagnostics" (Settings; `SystemOpenLogFolder`, `SystemCopyDiagnostics`) reach the same files: the former opens `logs/` in the file manager, the latter saves one `.jsonl` bundle (the matching `run.jsonl` lines plus, for "last run", that run's stderr file) to a folder the narrator picks, for handing to an agent or attaching to a bug report.
 

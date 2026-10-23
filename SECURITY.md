@@ -2,7 +2,9 @@
 
 ## Supported versions
 
-Narration Studio is pre-1.0. Only the latest release (including the latest pre-release candidate) receives fixes. Windows x64 is the only supported platform ([Supported platforms](README.md#supported-platforms)): a report that applies only to a macOS or Linux build is out of scope, because no such build is released.
+The app is pre-1.0. Only the latest release (including the latest pre-release candidate) receives fixes. Windows x64 is the only supported platform ([Supported platforms](README.md#supported-platforms)): a report that applies only to a macOS or Linux build is out of scope, because no such build is released.
+
+`<app>` and `<launcher folder>` stand for values in `config/brand.json` ([Product and technical names](docs/architecture/codebase-map.md#product-and-technical-names)).
 
 ## Reporting a vulnerability
 
@@ -15,7 +17,7 @@ within about a week and a fix or a plan as soon as practical. Reports are credit
 
 ## What is in scope
 
-Narration Studio runs locally and processes your manuscripts and audio on your machine. Reports about these are
+The app runs locally and processes your manuscripts and audio on your machine. Reports about these are
 especially welcome:
 
 - Anything that sends manuscript, audio, or project content off the machine without an explicit action.
@@ -37,7 +39,7 @@ especially welcome:
   or holds a cell that runs as a formula in a spreadsheet (row 6h;
   [Status report](docs/guides/using-the-app/production.md#status-report)).
 - The run log every tool run writes (`logs/run.jsonl`, `logs/runs/*.stderr.jsonl`; [Reading a run](docs/operations/verification-tooling.md#reading-a-run)) and the diagnostics bundle Settings can save from it (`SystemCopyDiagnostics`) or the folder it can open (`SystemOpenLogFolder`): manuscript, audio or transcript text reaching either is in scope, as is the export landing anywhere but the folder the narrator picked in that session's file picker.
-- A file the app keeps in a project or user folder (the Editing records in `narration-studio/editing/`, `stacks.json` among them, are
+- A file the app keeps in a project or user folder (the Editing records in `<app>/editing/`, `stacks.json` among them, are
   such files) that makes it run, open, fetch or write anything else, or puts markup into
   the page ([data files](docs/reference/data-files.md); threat model row 6i, and rows 6m and 6zc for a file that names a path
   the host opens). A hand-edited copy that only changes the narrator's own notes, marks, decisions, dates or verdicts crosses no
@@ -55,7 +57,7 @@ especially welcome:
   narrator did not choose or left open after they stop, a file written outside the project's `Recordings` folder, or captured
   audio leaving the machine.
 - The Master & QC export (rows 6q, 6r and 6s): a file written to a path the narrator did not choose, inside the project's own
-  `narration-studio/` folder, over an existing file or over its own source, or a package subfolder that escapes the chosen root.
+  `<app>/` folder, over an existing file or over its own source, or a package subfolder that escapes the chosen root.
 - The file protocol between the app and REAPER (the session folder under REAPER's resource path, the command files the Lua bridge
   reads and the paths it opens), the arguments a DAW or a shortcut starts the app with, and the local `/media` route that plays a
   project's audio: a command that another process can forge into opening or writing a path, running an action or code, rendering,
@@ -71,11 +73,11 @@ especially welcome:
   network share, adds the file to the project, makes an undo point, or plays longer than its stretch; a `monitor_level` that sets anything but the master track's first hardware output send, or a value outside 0 to 100; a `play_from`, `stop_play` or `set_cursor` that acts while REAPER records, adds an undo point, selects a track, runs an action other than Play or Stop, or takes a time that is not plain decimal seconds, or a `watch_transport` lease that outlives ten seconds; or a route that serves a file
   the project does not name (rows 5a to 5o, 5r, 6b, 6e and 6f).
 - What the app writes into REAPER's own resource folder so REAPER runs the bridge at every start (row 5s): a write outside
-  `Scripts/NarrationStudio/` other than the app's marked block in `Scripts/__startup.lua`, a change to the narrator's own lines in
+  `Scripts/<launcher folder>/` other than the app's marked block in `Scripts/__startup.lua`, a change to the narrator's own lines in
   that file, a replaced file that was not backed up first, a write to `reaper.ini` or `reaper-kb.ini`, or a block that runs
   anything but the app's own startup script, is a vulnerability. So is the host starting REAPER on anything but the project's
   linked `.rpp`.
-- The Audacity scripting pipe (`mod-script-pipe`, [The DAW port](docs/architecture/daw-integration.md#the-daw-port)): a label text, path or other value from the app that changes the command Audacity runs, an export that writes anywhere but a local file with an audio extension, or a reply from the pipe that the app uses as anything but data; and a mastering-port render through Audacity's Macro Manager (`ApplyMacro`, the mastering port's `audacity` row; [Provider ports](docs/architecture/provider-ports.md), [`macro_render`](docs/reference/daw/capabilities.md#macro_render); Experimental, and not yet sent by any screen in this version), which imports the source to master as its own new track and applies the narrator's named macro only to that track, never to whatever else is open, and only after the narrator approves that one render, with a one-time approval: a macro applied without approval, applied to more than the imported track, or an exported file written outside the run folder this app made or over an existing file, is a vulnerability. Audacity backups (`backups`, [Audacity 3.x: what the app relies on](docs/reference/daw/audacity-3.md); Experimental): a restore that pastes audio outside the window its row names or onto a track the row does not name, a prune that removes a track the app did not make for a pruned row, a `narration-studio/backups.json` that makes the app open a path or send text from the file to Audacity, or a backup's label from the page that reaches Audacity as anything but a row in that file, is a vulnerability. The edits Audacity makes in steps after a backup (a roll, a cut, an effect on a range with the narrator's macro, a stack and an un-stack; Experimental): an edit sent to Audacity before its backup was made, an edit on a track or time other than the request's, or an un-stack that removes a track that is not one of that stack's take tracks, is a vulnerability.
+- The Audacity scripting pipe (`mod-script-pipe`, [The DAW port](docs/architecture/daw-integration.md#the-daw-port)): a label text, path or other value from the app that changes the command Audacity runs, an export that writes anywhere but a local file with an audio extension, or a reply from the pipe that the app uses as anything but data; and a mastering-port render through Audacity's Macro Manager (`ApplyMacro`, the mastering port's `audacity` row; [Provider ports](docs/architecture/provider-ports.md), [`macro_render`](docs/reference/daw/capabilities.md#macro_render); Experimental, and not yet sent by any screen in this version), which imports the source to master as its own new track and applies the narrator's named macro only to that track, never to whatever else is open, and only after the narrator approves that one render, with a one-time approval: a macro applied without approval, applied to more than the imported track, or an exported file written outside the run folder this app made or over an existing file, is a vulnerability. Audacity backups (`backups`, [Audacity 3.x: what the app relies on](docs/reference/daw/audacity-3.md); Experimental): a restore that pastes audio outside the window its row names or onto a track the row does not name, a prune that removes a track the app did not make for a pruned row, a `<app>/backups.json` that makes the app open a path or send text from the file to Audacity, or a backup's label from the page that reaches Audacity as anything but a row in that file, is a vulnerability. The edits Audacity makes in steps after a backup (a roll, a cut, an effect on a range with the narrator's macro, a stack and an un-stack; Experimental): an edit sent to Audacity before its backup was made, an edit on a track or time other than the request's, or an un-stack that removes a track that is not one of that stack's take tracks, is a vulnerability.
 - The desktop shell itself: it runs on the Wails v3 beta, pinned at v3.0.0-beta.26 ([ADR 0001](docs/adr/0001-the-app-is-written-in-go.md)). A way for the page, or anything else, to call the app beyond its own bindings, or to reach the app's Wails runtime endpoint from anything but its own window, is in scope.
 - Device input the webview reads directly: a MIDI footswitch or controller through the Web MIDI API, or a HID pedal or button device through the WebHID API, feature-detected and read only where a webview exposes them ([the Web MIDI/WebHID spike](docs/research/web-midi-hid-webview-spike.md); [Studio shell and registries](docs/architecture/studio-shell-and-registries.md)). What either produces is a command already reachable from the keyboard; a malformed, oversized or out-of-range device message crashing the app or reaching further than a normalised press instead of being dropped is in scope.
 - A one-click web pronunciation lookup (Forvo, YouGlish, Merriam-Webster, Howjsay; `PronunciationLookupOpen`) opens the narrator's default browser to one of four fixed URL templates with the manuscript's own word path-escaped into it; the app never fetches, scrapes or caches any of the four sites and sends no request of its own. A fifth destination (`PronunciationCommonsAudioOpen`) opens a Wikimedia Commons recording named by the locally installed Wiktextract pronunciation index, never a word the narrator typed into a URL. A lookup that reaches a host other than that site's own, or that is usable to run or replace something outside the browser, is in scope.

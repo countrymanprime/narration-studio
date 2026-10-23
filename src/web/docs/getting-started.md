@@ -21,7 +21,7 @@ Launching the app without a project folder attached shows **Choose your project*
 
 1. Press **New project**.
 2. Type a name. The line under the field lists the characters and names it cannot use.
-3. Check **Location**: the default projects folder (`NarrationStudio` in your user folder), or press **Change location…** to pick another.
+3. Check **Location**: the default projects folder, in your user folder, or press **Change location…** to pick another.
 4. Confirm. The new project opens on [Script](script.md), which says it has no manuscript yet.
 
 ![New project, with the name rules and the location line showing the default projects folder](../../../docs/images/ui/project-new-dialog.webp "New project")

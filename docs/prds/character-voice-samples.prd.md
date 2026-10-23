@@ -2,6 +2,8 @@
 
 **Source:** owner request of 2026-10-17; tracking issue [#1820](https://github.com/countrymanprime/narration-studio/issues/1820).
 
+`<app>` stands for values in `config/brand.json` ([Product and technical names](../architecture/codebase-map.md#product-and-technical-names)).
+
 **Constraints:** [Threat model](../architecture/threat-model.md), [Story Bible](../guides/using-the-app/story-bible.md), [Manuscript line identity in the REAPER project](../architecture/manuscript-line-identity.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [The standard](../architecture/interaction-feedback.md#the-standard), [Booth](../guides/using-the-app/booth.md), [voicebible.go](../../src/studio/desktop/internal/series/voicebible.go), [Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec), [Data files](../reference/data-files.md), [DAW capabilities: what each one is and what it returns](../reference/daw/capabilities.md). Proposed by this PRD: [What is stored](#what-is-stored), [Playback](#playback).
 
 **Status (2026-10-18):** phase 0 (the PRD and a draft mock) is merged. Phase 1, the Go host's store and bindings, is merged and has no page. Phase 2, playback (`GET /media?sample=<id>` and the page's `useSamplePlayer`), is merged. Phase 3, marking a sample in Editing (**V**, the selection toolbar and the word menu open the **Voice sample** dialog), is built: a narrator can save a sample and undo it. Phase 4, the Story Bible's **Voice samples** section and the **Voice data** panel's additions, is built: a narrator can play, rename, make primary, move and delete samples there; the Booth's picker and side panel play them, **V** plays the current speaker's primary sample in the text, and the primary samples of the chapter's speakers are warmed when the Booth opens (phase 5). The owner has decided open questions 1 to 9 (see the [Decisions Log](#decisions-log)), and has approved playing in the app's own audio (see Playback under Technical Approach). Nothing in this PRD is waiting on the owner. The owner approved the draft mock on 2026-10-17, so phases 3 to 5 are no longer waiting on it.
@@ -36,7 +38,7 @@ The narrator wants to mark, while editing, the stretches where a voice came out 
 ## Proposed Solution
 
 1. **Mark in Editing.** The narrator selects words, presses **V** (or **Voice sample** on the selection toolbar, or the word menu), picks the character, optionally names the sample ("angry, to the Duke") and adds a note, hears the range, and saves. The same selection works for **Narration**.
-2. **Where a sample is kept is a setting.** The default copies the marked stretch (with a short handle each side, cut at the nearest zero crossing) into `<project>/narration-studio/voice-samples/`, and the record keeps where it came from as provenance only; this works with every DAW and with none, and playing it never touches the DAW or the narrator's place in the project ([What is stored](#what-is-stored)). Where the DAW can label an item (REAPER), the narrator can instead, or as well, keep the sample as a label in the DAW project, so the DAW is the record and the narrator can see it outside the app ([Where a sample is kept](#where-a-sample-is-kept)).
+2. **Where a sample is kept is a setting.** The default copies the marked stretch (with a short handle each side, cut at the nearest zero crossing) into `<project>/<app>/voice-samples/`, and the record keeps where it came from as provenance only; this works with every DAW and with none, and playing it never touches the DAW or the narrator's place in the project ([What is stored](#what-is-stored)). Where the DAW can label an item (REAPER), the narrator can instead, or as well, keep the sample as a label in the DAW project, so the DAW is the record and the narrator can see it outside the app ([Where a sample is kept](#where-a-sample-is-kept)).
 3. **Play it in the app's own audio, served by id.** The host serves a clip by sample id through the existing `/media` handler, never by path, and the page plays it with one shared player ([Playback](#playback)). Playing is refused while a take records, and a Booth session that is listening to the narrator pauses its listening while a sample plays.
 4. **Story Bible.** A character entry gets a **Voice samples** section: play, primary, label and note, where it came from with **Open in Editing**, and, after **Edit**, delete and move. Narration's samples sit in the **Voice data** panel.
 5. **Booth.** The speaker picker shows a play control on each character who has a sample; **Voices in this scene** does the same and lists every sample; a key plays the primary sample of the current phrase's speaker without leaving the text.
@@ -209,7 +211,7 @@ Phases 1 to 4: mark in Editing, list and play in the Story Bible. Phase 5 (the B
 One sidecar folder under the project, written by the host only:
 
 ```text
-<project>/narration-studio/voice-samples/
+<project>/<app>/voice-samples/
   samples.json            schemaVersion 1
   clips/<id>.wav          one clip per sample, id = 32 lowercase hex
 ```

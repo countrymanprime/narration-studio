@@ -2,6 +2,8 @@
 
 **Source:** owner rulings of 2026-10-17; tracking issue [#1827](https://github.com/countrymanprime/narration-studio/issues/1827).
 
+`<data>` stands for values in `config/brand.json` ([Product and technical names](../architecture/codebase-map.md#product-and-technical-names)).
+
 **Constraints:** local-first, with nothing uploaded and no content in a log ([threat model](../architecture/threat-model.md)); the typed-boundary rules in [wire contracts](../architecture/wire-contracts.md); the tool-run log in [verification tooling](../operations/verification-tooling.md#reading-a-run).
 
 ## Problem Statement
@@ -49,7 +51,7 @@ Narrators who hit a failure and want to send a file to a maintainer, and maintai
 ## Solution Detail
 
 **Must**
-- A new package, `src/studio/desktop/internal/trace`, writes `%APPDATA%\narration-studio\logs\trace.jsonl` through the same slog JSON handler and record envelope as `runlog`: 10 MiB cap and two backups, a buffered writer flushed every second and on exit or panic. Every record carries `ts`, `seq`, `level`, `sess` (an id per launch), `area` and `event`, and `run` and `cid` when known. `run.jsonl` and its run ids are unchanged.
+- A new package, `src/studio/desktop/internal/trace`, writes `%APPDATA%\<data>\logs\trace.jsonl` through the same slog JSON handler and record envelope as `runlog`: 10 MiB cap and two backups, a buffered writer flushed every second and on exit or panic. Every record carries `ts`, `seq`, `level`, `sess` (an id per launch), `area` and `event`, and `run` and `cid` when known. `run.jsonl` and its run ids are unchanged.
 - A registry of event definitions. Each field has a kind: `enum`, `int`, `bool`, `duration_ms`, `id`, `path`, `errclass` or `len`. There is no free-string kind; `slog.Any`, `fmt` and `%v` are banned in the package by a lint rule, and an unknown event or field is dropped and counted. UI events cross in one batched binding and are validated against the same registry.
 - Content is never recorded:
   - A `path` becomes `{class, ext, h}`: class is inside the project, beside it, in the user profile, other local, network or removable, and `h` is eight hex characters of an HMAC-SHA256 over the lowercased normalised path with a per-install salt. A raw path, a home directory or a user name never appears.

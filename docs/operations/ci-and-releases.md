@@ -9,10 +9,12 @@ Python, Go, and Lua files. Use `pnpm run check` for the full quality suite (ever
 project's lint, format, test and build targets; see [Nx projects and the quality
 gate](#nx-projects-and-the-quality-gate)).
 
+`<app name>`, `<app>`, `<data>`, `<executable>`, `<asset prefix>`, `<install folder>`, `<uninstall key>`, `<launcher folder>`, `<launcher script>` and `<env prefix>` stand for values in `config/brand.json` ([Product and technical names](../architecture/codebase-map.md#product-and-technical-names)). `gh api` fills `{owner}` and `{repo}` from the checkout.
+
 ## What the repository enforces, and what CI is for
 
 GitHub Actions cannot configure repository settings from a workflow, so this section records what is set on the
-repository (read with `gh api repos/countrymanprime/narration-studio/rulesets`, and `.../environments` and `.../actions/permissions`, on
+repository (read with `gh api repos/{owner}/{repo}/rulesets`, and `.../environments` and `.../actions/permissions`, on
 2026-09-21) and what that means for CI. The docs follow the settings, not the other way round.
 
 - **`Main Protection` ruleset** (active): deleting `main`, force-pushing to it and re-creating it are blocked. The
@@ -213,23 +215,23 @@ package, and its `publish` job creates the GitHub pre-release with the Windows
 zip and the Windows setup program ([The Windows setup program](#the-windows-setup-program)). No other platform is built or
 attached: the macOS and Linux preview builds were removed ([Supported platforms](../../README.md#supported-platforms)).
 
-The one platform, `windows-x64`, ships an asset named `narration-studio-<version>-<platform>.<ext>`, with a
+The one platform, `windows-x64`, ships an asset named `<asset prefix>-<version>-<platform>.<ext>`, with a
 `.sha256` beside it, and its setup program and its third-party notices, named and checksummed the same way. All three files are
 required: a build that lost its setup program or its notices is not promotable:
 
 | Platform      | Asset                                               | Contents                                                                                                                                                  |
 | ------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `windows-x64` | `narration-studio-<version>-windows-x64.zip`         | `narration-studio.exe` (what the in-app updater downloads)                                                                                                 |
-| `windows-x64` | `narration-studio-<version>-windows-x64-setup.exe`   | the NSIS setup program (what a narrator runs first; [below](#the-windows-setup-program))                                                                  |
-| `windows-x64` | `narration-studio-<version>-THIRD-PARTY-NOTICES.txt` | the licences of everything the program contains, the AGPL text and the source offer ([Third-party notices](#third-party-notices)); **not** inside the zip |
+| `windows-x64` | `<asset prefix>-<version>-windows-x64.zip`         | `<executable>.exe` (what the in-app updater downloads)                                                                                                 |
+| `windows-x64` | `<asset prefix>-<version>-windows-x64-setup.exe`   | the NSIS setup program (what a narrator runs first; [below](#the-windows-setup-program))                                                                  |
+| `windows-x64` | `<asset prefix>-<version>-THIRD-PARTY-NOTICES.txt` | the licences of everything the program contains, the AGPL text and the source offer ([Third-party notices](#third-party-notices)); **not** inside the zip |
 
 `<version>` is the bare version (`0.2.7`), the same on a candidate (`v0.2.7-rc`) and its promotion (`v0.2.7`), so promote
 re-publishes the files without renaming them, and downloads of different releases can be told apart by name
 . The program inside keeps a name with no version
-(`narration-studio.exe`, which the REAPER launcher looks for); the version is also stamped **into** the program
+(`<executable>.exe`, which the REAPER launcher looks for); the version is also stamped **into** the program
 ([The version inside the program](#the-version-inside-the-program)), where the app can show it and compare it with a newer release
 . The build folder keeps unversioned
-names too (`narration-studio-windows-x64-setup.exe`, `THIRD-PARTY-NOTICES.txt`); packaging gives the released ones.
+names too (`<asset prefix>-windows-x64-setup.exe`, `THIRD-PARTY-NOTICES.txt`); packaging gives the released ones.
 
 `scripts/release/assets.mjs` owns that table, packages each asset in CI
 (`pnpm release:package <platform>`, named for the root `package.json` version unless a version follows the platform), and checks a
@@ -256,27 +258,26 @@ version that depends on who built it. `Bootstrap` returns it and Settings > App 
 - The version is **bare semver** (`0.2.7`). A release candidate and its promotion are the same bytes, so they report the same
   version; `wails-build.mjs` refuses a version with a suffix, and sets every Go flag itself, so a caller cannot replace the stamp.
 - A build with no stamp (`go run`, `go test`, `pnpm --dir src/studio/desktop dev`) reports `0.0.0-dev`.
-- `narration-studio --version` prints the stamped version and exits without opening a window. On Windows the program is a GUI
+- `<executable> --version` prints the stamped version and exits without opening a window. On Windows the program is a GUI
   application, so a console shows nothing; a program that reads its standard output (a test, the update flow) gets the text.
-- The program is named by `wails.json` `outputfilename` (`narration-studio`, `.exe` on Windows). Clean old build output before you
-  test the REAPER launcher: `src/studio/desktop/build/bin/narration-studio-shell.exe` from a build before the rename is no longer
-  looked for.
+- The program is named by `wails.json` `outputfilename` (`<executable>`, `.exe` on Windows; `brand:sync` writes it from the brand). Clean old build output before you
+  test the REAPER launcher: a program under an older name in `src/studio/desktop/build/bin/` is no longer looked for.
 
 ### What the in-app updater depends on
 
 The app replaces itself from these releases ([in-app update](../architecture/in-app-update.md)), so the shape of a Windows release is
-a contract: the asset is `narration-studio-<version>-windows-x64.zip`, `<version>` being the tag's bare version, with a
-`narration-studio-<version>-windows-x64.zip.sha256` beside it in `sha256sum` format naming that zip; the zip holds exactly one entry, `narration-studio.exe`; the tag is `v<version>-rc` for a
+a contract: the asset is `<asset prefix>-<version>-windows-x64.zip`, `<version>` being the tag's bare version, with a
+`<asset prefix>-<version>-windows-x64.zip.sha256` beside it in `sha256sum` format naming that zip; the zip holds exactly one entry, `<executable>.exe`; the tag is `v<version>-rc` for a
 candidate (a pre-release) and `v<version>` for its promotion; and the program reports its own bare version for `--version`.
 The updater refuses anything else, so changing one of these means changing `src/studio/desktop/internal/update` in the same pull request
 (`scripts/release/assets.mjs` and the updater's `PlatformFor` and `Platform.AssetName` mirror each other). The setup program is not part of
 that contract: the updater matches its zip and checksum by exact name and ignores every other asset. A copy built before the version was in the
-names looks for `narration-studio-windows-x64.zip`, finds nothing on a newer release and is updated once by hand
+names looks for `<asset prefix>-windows-x64.zip`, finds nothing on a newer release and is updated once by hand
 .
 
 ## The Windows setup program
 
-A narrator installs from `<prefix>-<version>-windows-x64-setup.exe` (the prefix is the brand's `releaseAssetPrefix`, today `<!-- brand:identity.releaseAssetPrefix -->narration-studio<!-- /brand -->`), an NSIS installer that the build script compiles on Wails v3 ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)).
+A narrator installs from `<asset prefix>-<version>-windows-x64-setup.exe` (the prefix is the brand's `identity.releaseAssetPrefix`, today <!-- brand:identity.releaseAssetPrefix -->narration-studio<!-- /brand -->), an NSIS installer that the build script compiles on Wails v3 ([ADR 0001](../adr/0001-the-app-is-written-in-go.md)).
 
 - **How it is built.** `.github/actions/build-native` passes `--installer` to `scripts/release/wails-build.mjs` on `windows-x64`, after a
   step that installs NSIS when `makensis` is not already on the runner: the official 3.11 zip from SourceForge, checked against a SHA-256 pinned in the step (the digest SourceForge lists for the file), with `choco install nsis` at the same version as the fallback, because the Chocolatey feed answered 503 for four minutes on 2026-10-19. The step fails when `makensis -VERSION` cannot run afterwards. The script
@@ -286,7 +287,7 @@ A narrator installs from `<prefix>-<version>-windows-x64-setup.exe` (the prefix 
   or the file is not there afterwards, and `assets.mjs package` refuses to package Windows without it. The log shows `makensis version:`
   and makensis's own `Output:` line, and the job summary lists the release files with their sizes.
 - **What it does.** Per user (no elevation, `%LOCALAPPDATA%\Programs\<install folder>`, uninstall entry under `HKCU`), `<executable>.exe`
-  as the program name, a Start Menu shortcut and a second one, "<product name> for Audacity", that passes `--daw Audacity` ([Audacity boundary](../architecture/daw-integration.md#audacity-boundary)),
+  as the program name, a Start Menu shortcut and a second one, "`<app name>` for Audacity", that passes `--daw Audacity` ([Audacity boundary](../architecture/daw-integration.md#audacity-boundary)),
   a desktop shortcut the narrator can untick, the WebView2 runtime installed by Microsoft's
   bootstrapper only when it is missing, and an uninstaller that removes the program, the update copies (`.new`, `.old`, `.failed`) and the
   shortcuts and leaves settings, downloaded assets, the WebView2 data and project folders alone. The definition is
@@ -312,8 +313,8 @@ A narrator installs from `<prefix>-<version>-windows-x64-setup.exe` (the prefix 
   uninstaller deletes, no network, no signing, that the file is tracked); `assets.test.mjs` and `wails-build.test.mjs` cover packaging, the
   checksum, the promote checks and the missing-installer failure. `makensis` is not on a development machine as a rule (it can be: NSIS runs on Linux,
   and the Wails v3 migration compiled `project.nsi` there against a cross-built program), so the compile is proven by the `Build (Windows)` job; an install on a clean machine is the owner's check (the first stable rehearsal).
-- **Install and uninstall by hand** for a check: run the setup program; `narration-studio-<version>-windows-x64-setup.exe /S` installs silently
-  (both shortcuts) and `"%LOCALAPPDATA%\Programs\Narration Studio\uninstall.exe" /S` removes it.
+- **Install and uninstall by hand** for a check: run the setup program; `<asset prefix>-<version>-windows-x64-setup.exe /S` installs silently
+  (both shortcuts) and `"%LOCALAPPDATA%\Programs\<install folder>\uninstall.exe" /S` removes it.
 
 ## The Windows release-gate evidence workflows
 
@@ -321,8 +322,8 @@ Three manual workflows (`workflow_dispatch` only; no ruleset requires them, noth
 
 | Workflow | Check | What it does |
 | --- | --- | --- |
-| `windows-release-checks.yml` | 9.2, 9.3, 9.4 | Downloads the setup program and `narration-studio.exe` of two published releases (`scripts/release/fetch-release-assets.sh`, which checks the whole asset set against its `.sha256` files with `scripts/release/assets.mjs verify` before anything is unpacked or run. That is the integrity half of what promote runs: promote also passes `--attestations` to prove who built the files, which this script does not, so a replaced release with matching checksums would pass; the newest and the one before, or the tags given as inputs). `scripts/release/windows-install-check.ps1` installs silently, asserts a per-user install (`HKCU` entry, none under `HKLM`, `%LOCALAPPDATA%\Programs`), both Start Menu shortcuts and the desktop one, starts the app, uninstalls and asserts removal; for 9.3 it installs the older release first, seeds `global-settings.json` and `recent-projects.json`, runs the newer setup over it and checks both files, the install folder, the reported version and the shortcuts. It accepts the uninstall key `NarrationStudio` or `NarrationStudio` ([#1816](https://github.com/countrymanprime/narration-studio/issues/1816) phase 2). The third job runs `go test -tags rehearsal` on the two real `narration-studio.exe` builds ([in-app update](../architecture/in-app-update.md)). |
-| `windows-encode-check.yml` | 9.1 | `scripts/release/install-ffmpeg-asset.ps1` downloads the file in `config/encoder-assets.json`, checks its size and SHA-256 and the kept binary's, then `NARRATION_STUDIO_FFMPEG=<ffmpeg.exe> go test ./internal/encodeport/...` encodes synthetic chapters and the ACX format and sample-rate checks read them. |
+| `windows-release-checks.yml` | 9.2, 9.3, 9.4 | Downloads the setup program and `<executable>.exe` of two published releases (`scripts/release/fetch-release-assets.sh`, which checks the whole asset set against its `.sha256` files with `scripts/release/assets.mjs verify` before anything is unpacked or run. That is the integrity half of what promote runs: promote also passes `--attestations` to prove who built the files, which this script does not, so a replaced release with matching checksums would pass; the newest and the one before, or the tags given as inputs). `scripts/release/windows-install-check.ps1` installs silently, asserts a per-user install (`HKCU` entry, none under `HKLM`, `%LOCALAPPDATA%\Programs`), both Start Menu shortcuts and the desktop one, starts the app, uninstalls and asserts removal; for 9.3 it installs the older release first, seeds `global-settings.json` and `recent-projects.json`, runs the newer setup over it and checks both files, the install folder, the reported version and the shortcuts. It accepts the uninstall key `<uninstall key>` ([#1816](https://github.com/countrymanprime/narration-studio/issues/1816) phase 2). The third job runs `go test -tags rehearsal` on the two real `<executable>.exe` builds ([in-app update](../architecture/in-app-update.md)). |
+| `windows-encode-check.yml` | 9.1 | `scripts/release/install-ffmpeg-asset.ps1` downloads the file in `config/encoder-assets.json`, checks its size and SHA-256 and the kept binary's, then `<env prefix>FFMPEG=<ffmpeg.exe> go test ./internal/encodeport/...` encodes synthetic chapters and the ACX format and sample-rate checks read them. |
 | `windows-reaper-transport.yml` | 9.7 | Installs the REAPER evaluation build silently. The `installer-sha256` input is required and the installer is not run unless its SHA-256 matches (`installer-size` adds a size check); the hash and signature are recorded in `reaper-installer.txt`, and a run with a wrong or unknown pin is meant to fail with the hash it saw (this path has not been run yet), which the owner checks against REAPER's published one before pinning. It then runs `src/studio/integrations/reaper/spikes/transport_timing.lua` through `run-reaper.ps1` (which gained a branch that dismisses REAPER's "Error opening devices" dialog on a runner with no audio hardware) in an isolated `-cfgfile`, and records, for Play, Stop, Record, Pause during Record, Pause again and Stop, when `GetPlayState()` and the real bridge's heartbeat showed the change. The runner has no audio hardware: a state REAPER refuses to enter is a finding in the report, not a failure. |
 | `real-reaper-bridge.yml` | none yet | Manual prototype (`risk:high`). Windows job: same pinned install as `windows-reaper-transport.yml` (`installer-sha256` required, not yet run). Linux job: REAPER 7.82 under `xvfb` from a SHA-256-pinned tarball (`scripts/ci/real-reaper/run-linux-check.sh`; ran green locally on 2026-10-19, not yet on a GitHub runner). Both fetch one pinned LibriVox chapter (`tests/fixtures/audio/librivox-alice/sources.json`), start REAPER isolated with `src/studio/integrations/reaper/spikes/ci_real_reaper_launcher.lua`, and drive the real bridge over the file protocol with `scripts/ci/real-reaper/drive.py`. The Linux job also installs `jackd2` and runs REAPER on `jackd -d dummy` (a sound server with no hardware) so playback and recording rows run, then runs the scenario suites in `scripts/ci/real-reaper/scenarios_*.py` (one scenario per Experimental behaviour, asserting on project state and rendered samples). The job summary lists a PASS, FAIL or SKIP per action and per capability, and any FAIL fails the job. Design and limits: [real-REAPER CI integration](../research/real-reaper-ci-integration.md). |
 | `real-audacity3-foundation.yml` | none (evidence, not a gate) | Manual dispatch (`pattern` input) and a pull request that touches `src/studio/desktop/internal/audacityreal/`, `src/studio/desktop/internal/audacitybridge/`, `src/studio/tests/audacity3/real/foundation/` or the workflow. Runs `src/studio/tests/audacity3/real/foundation/run.sh` on `ubuntu-24.04`: the SHA-256-pinned Audacity 3.7.7 AppImage (extracted, never uploaded), Xvfb, a PulseAudio null sink, the pinned LibriVox chapter; tests A3-T1 to T13, T24 to T29 and T34 of [the capability matrix](../research/audacity-3-capability-matrix.md#test-plan). Each test records pass, fail, skip and measurement rows and the raw reply bytes into `results.json`, uploaded as the `real-audacity3-foundation` artifact and summarised in the job summary. The earlier prototype is `real-audacity3.yml`. See the [suite's README](../../src/studio/tests/audacity3/real/foundation/README.md). |
@@ -334,14 +335,14 @@ What these cannot show stays with the owner: a launch from REAPER after an in-ap
 ## The packaged-app smoke test
 
 A release must start on a machine that has none of the repository. Wails is a GUI program, so CI cannot start it and look at a
-window; instead the executable has a non-interactive mode, `narration-studio --smoke` (`src/studio/desktop/smoke.go`), that runs before
+window; instead the executable has a non-interactive mode, `<executable> --smoke` (`src/studio/desktop/smoke.go`), that runs before
 the update relaunch logic, the single-instance lock and the window exist, checks what the release carries, prints a JSON report
 and exits: `0` when every check passed, `1` when one failed, `2` for a bad command line. It downloads nothing.
 
 | Check                           | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `resources`                     | the embedded resources unpack into the per-user cache (the same code the app runs at launch)                                                                                                                                                                                                                                                                                                                                            |
-| `asset-cache`                   | the asset cache folder (`<user cache>/narration-studio/assets`) can be created and written                                                                                                                                                                                                                                                                                                                                               |
+| `asset-cache`                   | the asset cache folder (`<user cache>/<data>/assets`) can be created and written                                                                                                                                                                                                                                                                                                                                               |
 | `sidecar:<name>`                | each of the three frozen sidecars is in the unpacked tree and starts (`--help` exits 0)                                                                                                                                                                                                                                                                                                                                                 |
 | `guide:cmudict`, `guide:espeak` | the frozen Story Bible sidecar reads the CMU dictionary and starts the espeak-ng phonemizer Piper speaks through, from `piper/espeak-ng-data` (`manuscript-guide self-check`); a freeze that loses either data set fails here, and a self-check that stops reporting one of them fails too                                                                                                                                              |
 | `guide:synthesis`               | only with `--piper-model FILE`: the frozen guide loads that voice and speaks one word                                                                                                                                                                                                                                                                                                                                                   |
@@ -349,7 +350,7 @@ and exits: `0` when every check passed, `1` when one failed, `2` for a bad comma
 | `guide:capabilities`            | the frozen Story Bible sidecar's `capabilities` subcommand names every TTS and pronunciation row this build declares                                                                                                                                                                                                                                                                                                                    |
 | `compare:capabilities`          | the frozen Transcript Compare sidecar's `--capabilities` report names every batch ASR row this build declares                                                                                                                                                                                                                                                                                                                           |
 | `catalogs`                      | the four approved asset catalogs load and name assets                                                                                                                                                                                                                                                                                                                                                                                   |
-| `reaper`                        | the launcher (`NarrationStudio_Launcher.lua`), the startup script REAPER runs from `__startup.lua` (`NarrationStudio_Startup.lua`) and their scripts are present and the launcher points at this executable (the shipped list is `scripts/release/reaper-files.mjs`, which names `narration_undo.lua` and `narration_levels.lua` among the feature files, and the generated `narration_brand.lua`)                                                                                                              |
+| `reaper`                        | the launcher (`<launcher script>`), the startup script REAPER runs from `__startup.lua` (`<launcher folder>_Startup.lua`) and their scripts are present and the launcher points at this executable (the shipped list is `scripts/release/reaper-files.mjs`, which names `narration_undo.lua` and `narration_levels.lua` among the feature files, and the generated `narration_brand.lua`)                                                                                                              |
 
 CI runs it in the `Smoke test the packaged app` step of `.github/actions/build-native`, on `windows-x64` only, after the Wails
 build and before the release asset is packaged, so both `Build (Windows)` in `ci.yml` and the Windows release build of
@@ -357,7 +358,7 @@ build and before the release asset is packaged, so both `Build (Windows)` in `ci
 restrict it to package changes: the build itself runs on every non-docs change, and the check adds a few seconds. The step points
 `LocalAppData` at an empty folder, writes the report to a file (a GUI-subsystem program's standard output can be lost) and shows it
 in the log and the job summary. To run it locally, build as in `README.md`, then
-`narration-studio.exe --smoke --report smoke.json` (set `LocalAppData` to an empty folder to leave your own cache alone; add
+`<executable>.exe --smoke --report smoke.json` (set `LocalAppData` to an empty folder to leave your own cache alone; add
 `--piper-model <the installed .onnx>` to hear one word spoken by the frozen sidecar).
 
 **Decision: CI does not speak a word.** A real synthesis needs the 114 MB voice, and downloading that on every run would cost
@@ -391,7 +392,7 @@ level 3). The subjects are identified by digest:
 
 | Platform | Signed by (the workflow the certificate names)        | Subjects                                                                                                                                                                                                                                                   |
 | -------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows  | `.github/workflows/prerelease.yml`, the `publish` job | `narration-studio-<version>-windows-x64.zip`, `narration-studio-<version>-windows-x64-setup.exe`, the notices, their `.sha256` files, and `narration-studio.exe` (so the executable can be checked after the zip is extracted, which an in-app update can do) |
+| Windows  | `.github/workflows/prerelease.yml`, the `publish` job | `<asset prefix>-<version>-windows-x64.zip`, `<asset prefix>-<version>-windows-x64-setup.exe`, the notices, their `.sha256` files, and `<executable>.exe` (so the executable can be checked after the zip is extracted, which an in-app update can do) |
 
 - The step runs before anything is published. Windows builds in `windows-build`, which records the SHA-256 of every file
   as a job output; `publish` downloads the files, refuses any that do not match those digests (or that the build did not
@@ -425,7 +426,7 @@ level 3). The subjects are identified by digest:
 With the [GitHub CLI](https://cli.github.com), in the folder holding the file:
 
 ```bash
-gh attestation verify narration-studio-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio
+gh attestation verify <asset prefix>-0.2.7-windows-x64-setup.exe --repo countrymanprime/narration-studio
 ```
 
 Success prints the workflow, commit and run that built the file; a modified or unattested file fails. To insist on the
@@ -502,7 +503,7 @@ Each part is read from the thing the release is built from, so nobody keeps a li
 
 The run **fails, and writes nothing**, rather than guess: when a licence cannot be named (`UNKNOWN`, or pnpm's `Unknown`; a person decides and records it under `licenses` in `scripts/licenses/reviewed.json`, as for PyInstaller, and an entry that names a component whose licence is known, or one that is not shipped, is itself an error so a stale decision cannot hide a change); when a component ships no licence text (MIT, BSD and Apache ask for it to travel: three are recorded with their reason under `noText`, [#246](https://github.com/countrymanprime/narration-studio/issues/246)); when a frozen module no installed distribution owns, or a vendored native folder (`av.libs`) has no entry in `manual.json`; when the environment is not the one that was frozen (a different version of a package, or one that is not installed); when a table of contents is missing or is not one; or when the report lacks a direct dependency: the nine Python packages the sidecars import (moonshine-voice among them: the report is of the Windows release), every production dependency in `src/studio/ui/package.json` and every direct requirement of `src/studio/desktop/go.mod` that the Windows build links. A GNU licence text is classified by its title at the top, not by the licences it quotes (GPL-3.0 names the Affero licence in section 13). `scripts/licenses/tests/test_notices.py` pins each reader and each of those refusals on fixtures and, where `go` and the UI's `node_modules` exist, runs the real npm and Go readers against the tree. **On the release.** The Windows build writes the file after the freeze (the `Write the third-party notices` step of `.github/actions/build-native`, which also installs the UI's packages for `pnpm licenses`, on Windows only; every pull request's `Build (Windows)` runs it, so a change that makes the generator refuse fails the pull request that caused it) into `src/studio/desktop/build/bin`, and `scripts/release/assets.mjs package` copies it to `release-assets/THIRD-PARTY-NOTICES.txt` with a `.sha256`, refusing to package a build that has no notices before it zips anything. It is then attested with the other files (`release-assets/*`), verified by `assets.mjs verify` (a Windows release without it, or with a changed one, is not promotable) and by `verify --attestations`, and the release notes point at it (`## Licences and source`). The source offer names the tag the build came from (`v<version>-rc`) **and its commit**: a release candidate's tag is pruned once ten newer ones exist (`prerelease.yml`), and a promotion re-attaches these same bytes, so the commit is what keeps the offer true for the promoted release.
 
-**It is not in the update zip.** The in-app updater refuses a zip that holds anything but `narration-studio.exe` ([in-app update](../architecture/in-app-update.md), [The install and the rollback](../architecture/in-app-update.md#the-install-and-the-rollback)), and an already installed client would refuse every update to a two-file zip. So the notices are their own asset, and a copy in the setup program, or a change to the updater, is left to the owner (Proposed; [#250](https://github.com/countrymanprime/narration-studio/issues/250)). `scripts/release/verify-installable.mjs` is unchanged: it checks the resources the app needs to start, and the notices are written after it runs.
+**It is not in the update zip.** The in-app updater refuses a zip that holds anything but `<executable>.exe` ([in-app update](../architecture/in-app-update.md), [The install and the rollback](../architecture/in-app-update.md#the-install-and-the-rollback)), and an already installed client would refuse every update to a two-file zip. So the notices are their own asset, and a copy in the setup program, or a change to the updater, is left to the owner (Proposed; [#250](https://github.com/countrymanprime/narration-studio/issues/250)). `scripts/release/verify-installable.mjs` is unchanged: it checks the resources the app needs to start, and the notices are written after it runs.
 
 ## The Pages workflow
 
@@ -559,7 +560,7 @@ fails if it gains one, or if `docs_dir` stops being `docs/`.
   `tools/docs-site/tests/test_build.py` builds a tiny tree in which a dead page link, a dead heading link and a stale include line each fail
   the build.
 - **Build and browse it.** `pnpm exec nx run docs-site:build-site` writes `tools/docs-site/build/site` (ignored); serve that folder from a
-  directory that has it as `narration-studio/` to see the site under its real base path. the Nx targets run `uv run --locked --only-group docs`, which installs MkDocs (the `docs`
+  directory that has it as `<app>/` to see the site under its real base path. the Nx targets run `uv run --locked --only-group docs`, which installs MkDocs (the `docs`
   uv group, not a default group) into `.venv` on first use; `NO_MKDOCS_2_WARNING=true` silences Material's MkDocs 2.0 notice.
 - **Navigation** is generated from the folders; `mkdocs.yml` (`extra.nav_titles`, `extra.nav_order`) names the sections and orders the top
   level, and a page's title is its first heading. Search is local; the site loads no font and asks no third-party service (the repository link

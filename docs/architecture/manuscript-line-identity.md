@@ -2,6 +2,8 @@
 
 **Status: Lua commands implemented, tested in the harness and verified in a scripted REAPER 7.80 run.** `stamp_item_lines` and `read_line_ids` are driven from the app (`src/studio/desktop/internal/lineidentity`, the "Link chapters" dialog in the audio engine panel, `src/studio/ui/src/components/engine/LinkChaptersDialog.tsx`), and `create_regions` from `src/studio/ui/src/components/engine/CreateChapterRegionsDialog.tsx`. The REAPER run and the two steps still pending with the owner (a real paste of a stamped item, and Transcript Compare through the app) are in [the REAPER verification pass](../operations/reaper-verification-pass.md#line-identity-in-reaper). The shared chapter-to-track matcher is `src/studio/desktop/internal/chaptermatch` (`docs/utilities/tracks.md`), used by `src/studio/desktop/chapterlinks.go`.
 
+`<prefix>` stands for values in `config/brand.json` ([Product and technical names](codebase-map.md#product-and-technical-names)).
+
 ## Why
 
 The features that follow from the [REAPER automation research](../research/reaper-automation-surface.md) (anchoring live teleprompter flags to takes, pickup lists, per-chapter render and export) all need a durable link between a manuscript line and the REAPER item that records it. Storing that link in the `.rpp` itself, keyed by item GUID, means it survives moves, splits, and copies, and needs no sidecar to stay in sync.
@@ -18,7 +20,7 @@ Two commands in [`src/studio/integrations/reaper/narration_line_identity.lua`](.
 
 Behaviour that is deliberate:
 
-- Identity is stored as two namespaced item extension keys, `P_EXT:narration_studio_line_id` and `P_EXT:narration_studio_line_text`. Item notes and take names are never touched; they belong to the narrator.
+- Identity is stored as two namespaced item extension keys, `P_EXT:<prefix>line_id` and `P_EXT:<prefix>line_text`. Item notes and take names are never touched; they belong to the narrator.
 - Items are found by GUID only. A GUID that no longer resolves is reported as stale and no neighbouring item is used instead.
 - An item that already carries a different line ID is a conflict and is left alone unless the narrator explicitly overwrites.
 - Each write command is one undo step, and nothing is written (and no undo point created) when there is nothing to change. Re-running with the same payload is a no-op.

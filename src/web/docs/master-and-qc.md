@@ -33,6 +33,6 @@ Every project is judged against **ACX (September 2026)** until you choose anothe
 
 1. Check the **Delivery package** panel on the right: the package checks from the profile's rules, the files that fail and how many chapters are not ready.
 2. Press **Open Delivery** to build the package. To build for several platforms from the same mastered files, use **Multi-platform export** below it.
-3. Press **Export report**, at the bottom of the page, to write the last check and diagnostics as an HTML and a JSON file in your project's `narration-studio/delivery` folder.
+3. Press **Export report**, at the bottom of the page, to write the last check and diagnostics as an HTML and a JSON file in the `delivery` folder the app keeps in your project.
 
 > **Note:** The report is a measurement, not a distributor's approval.

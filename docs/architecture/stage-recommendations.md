@@ -2,6 +2,8 @@
 
 **Status: delivered.** The Go types, the `Provider` interface and the pure engine are in [`src/studio/desktop/internal/stages`](../../src/studio/desktop/internal/stages). The recording signal, `recording.text_present`, and its provider are in [`src/studio/desktop/internal/coverage`](../../src/studio/desktop/internal/coverage) (`signal.go`, `provider.go`; [Settings](../utilities/recording-coverage.md#settings)). The decision store and the service that composes the providers, the engine and the manuscript's status path are in `internal/stages` too (`store.go`, `service.go`, `assess.go`;). `coverage.Service.EvidenceView` builds the view every provider shares (`stages.Config.View`). The host builds the service for each project and four bindings reach it (`src/studio/desktop/bindings_stages.go`, see [The bindings](#the-bindings)); the UI is described under [On the Production board](#on-the-production-board).
 
+`<app>` stands for values in `config/brand.json` ([Product and technical names](codebase-map.md#product-and-technical-names)).
+
 This page is for whoever implements a signal: recording coverage (`recording`), editing readiness (`editing`) and
 proofing readiness (`proofing`).
 
@@ -126,7 +128,7 @@ provider. Nothing is cached: each call is a fresh read.
 | `Dismiss(chapter, target, basisKey)` | The same checks; a suggestion already dismissed on this basis is left as it is | A `dismissed` record only |
 | `Revert(chapter)` | A live confirmation, else `ErrNothingToRevert` | A `reverted` record, then the status back to the confirmation's `from`, with the same rollback |
 
-Decisions are an append-only list in `<project>/narration-studio/stage-decisions.json`:
+Decisions are an append-only list in `<project>/<app>/stage-decisions.json`:
 
 ```json
 {

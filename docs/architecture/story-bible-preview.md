@@ -2,6 +2,8 @@
 
 The play button beside a Story Bible name, or beside one of its aliases, speaks it with the local Piper preview voice. This page is how that path works and how it fails. The messages the narrator sees, and what to do about each, are in the [Story Bible guide](../guides/using-the-app/story-bible.md#hearing-a-name).
 
+`<data>` stands for values in `config/brand.json` ([Product and technical names](codebase-map.md#product-and-technical-names)).
+
 ## The path
 
 1. `GuideDetail.tsx` calls `usePreviewAudio`, which calls `api.guidePreview(entityId, aliasIndex)` (`Host.GuidePreview`, `src/studio/desktop/bindings.go`).
@@ -12,7 +14,7 @@ The play button beside a Story Bible name, or beside one of its aliases, speaks 
 ## What keeps a failure from hurting the next try
 
 - **The cache never trusts an empty file.** A file no larger than a WAV header counts as a miss and is replaced, and a failed run removes its output. The sidecar renders to `<name>.<pid>.part` and renames on success, so a partial file cannot exist under the final name.
-- **The cache key holds the voice.** The hash input is the tag `previewCacheTag` (`narration-studio-tts-preview-v3`), the voice id, provider and version, the chosen pronunciation and the text. Changing the voice changes the path, and the tag is bumped whenever the key's inputs change so files rendered under an older key are never trusted.
+- **The cache key holds the voice.** The hash input is the tag `previewCacheTag` (`<data>-tts-preview-v3`), the voice id, provider and version, the chosen pronunciation and the text. Changing the voice changes the path, and the tag is bumped whenever the key's inputs change so files rendered under an older key are never trusted.
 - **The real error is reported.** The wave writer is closed by hand, so its own "# channels not specified" cannot replace the synthesis error, and a name that phonemizes to no audio says so: `"<name>" could not be spoken: <reason>`.
 - **UTF-8 pipes.** The sidecar writes UTF-8 to stdout and stderr (`use_utf8_stdio`), the encoding the host reads, so a project folder outside the Windows code page does not fail the first run.
 - **The two-minute deadline** stops a hung process (a cold start of the frozen sidecar is the slow case) with `the preview took longer than 2m0s and was stopped`. The other sidecar commands are long-running by design and are not bounded.

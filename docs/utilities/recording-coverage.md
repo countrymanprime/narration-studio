@@ -7,6 +7,8 @@ The model cascade (a fast first pass, then a stronger re-check of what it report
 and off by default until a real corpus confirms the first pass never gives a false "met" (see
 [The model cascade](#the-model-cascade)). A long chapter is transcribed in overlapping chunks by parallel processes ([Long chapters](#long-chapters)).
 
+`<app>` stands for values in `config/brand.json` ([Product and technical names](../architecture/codebase-map.md#product-and-technical-names)).
+
 ## User problem
 
 A chapter is recorded when all of its text is on the track, in order, even with mistakes. Before this check the app
@@ -107,7 +109,7 @@ flowchart LR
   tracks, the linked track missing, a missing or non-audio source, an empty range, not a narration chapter, or no
   project file.
 - **Words are kept per source range.** The sidecar keeps one words file per item. The host moves them between the
-  run's `--words-dir` and the evidence cache (`narration-studio/analysis/cache/`). The cache is keyed by source identity,
+  run's `--words-dir` and the evidence cache (`<app>/analysis/cache/`). The cache is keyed by source identity,
   model, language and hints, so a trim that narrows a range reuses the words and only a changed item is transcribed
   again.
 - **The alignment is the take markers' own.** `core/recording_coverage.py` reads the `SequenceMatcher` opcodes that
@@ -141,7 +143,7 @@ flowchart LR
   chapter's paragraphs and no tokens, extras or items, so the Editing page can show the script before any check has run.
   Every run writes one ledger record
   (`complete`, `partial` on cancel, or `failed`). A complete run's report is stored under
-  `narration-studio/analysis/coverage/results/` with a hash of the chapter's text. The host applies the thresholds when
+  `<app>/analysis/coverage/results/` with a hash of the chapter's text. The host applies the thresholds when
   it reads a report, so a threshold change never transcribes or aligns again.
 - **Progress is real and a check runs only on a press.** Progress is the seconds transcribed over the seconds to
   transcribe. Cancel keeps the finished items. One check runs at a time, and a run ends with one `job:ended` event

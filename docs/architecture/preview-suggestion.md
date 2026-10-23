@@ -11,6 +11,8 @@ UI is the Preview panel in the Proof chapter view
 [the Proof guide](../guides/using-the-app/proof.md)). The
 tracking issue is [#728](https://github.com/countrymanprime/narration-studio/issues/728).
 
+`<app>` stands for values in `config/brand.json` ([Product and technical names](codebase-map.md#product-and-technical-names)).
+
 ## What the feature does
 
 A narrator who wants to judge an audiobook without listening to all of it is shown up to three candidate
@@ -54,7 +56,7 @@ The narrator may pin one candidate to keep it, and move its edges by one paragra
 :
 
 - **One pin per book** (`preview.PinStore`, `store.go`): setting a new pin replaces whatever was pinned before, in
-  any chapter. The sidecar is `<project>/narration-studio/preview-pin.json`, an atomic write (temp file, rename)
+  any chapter. The sidecar is `<project>/<app>/preview-pin.json`, an atomic write (temp file, rename)
   like `chaptersync`'s own sidecar, and disposable like a reader bookmark - a file that cannot be
   read is treated as no pin, never surfaced as an error.
 - **Staleness** (`CheckStale`, `pin.go`): the pin stores each pinned paragraph's text at pin (or last adjustment)

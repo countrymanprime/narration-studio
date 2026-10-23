@@ -2,11 +2,13 @@
 
 The file format, rules and bindings of the Script page's marks: host store, bindings, schemas and mock (host API 97), with threads on a mark (host API 98). Where the file sits and how long it is kept is its row in [data files](data-files.md).
 
+`<app>` stands for values in `config/brand.json` ([Product and technical names](../architecture/codebase-map.md#product-and-technical-names)).
+
 A mark is a range of one paragraph of the manuscript, marked with one of the narrator's mark types, with an optional note, or a question when the type asks. It is the Studio Next mock's `Annotation` of type `mark` (`docs/research/mockups/studio-next/src/domain/schemas.ts`); pronunciation flags (`pron`) are not marks. The store is `src/studio/desktop/internal/marks`, the bindings `src/studio/desktop/bindings_marks.go`, and the UI contract `src/studio/ui/src/api/contracts/marks.ts`.
 
 ## The file
 
-`<project>/narration-studio/marks.json`, schema version 1:
+`<project>/<app>/marks.json`, schema version 1:
 
 | Field | Holds |
 | --- | --- |
@@ -30,7 +32,7 @@ It is narrator data, read through `persist`: a corrupt file, one over the byte c
 
 ## The old notes and the prep markup
 
-The first read of a project with no `marks.json` brings the reader's notes (`narration-studio/manuscript-notes.json`) across once: one `note` mark per note, on its anchor range when it has one, else an empty range at the start of its line, its text made plain and cut to the cap. The file is then written with `migratedNotes: true`, so a later read does not import again. The old file is only read, never changed or deleted. The old prep markup (`prep/markup.json`: stress, pause, speaker tags) is not carried: the mock has no such markup. Both old stores keep working until the Studio Next Script page replaces the old one.
+The first read of a project with no `marks.json` brings the reader's notes (`<app>/manuscript-notes.json`) across once: one `note` mark per note, on its anchor range when it has one, else an empty range at the start of its line, its text made plain and cut to the cap. The file is then written with `migratedNotes: true`, so a later read does not import again. The old file is only read, never changed or deleted. The old prep markup (`prep/markup.json`: stress, pause, speaker tags) is not carried: the mock has no such markup. Both old stores keep working until the Studio Next Script page replaces the old one.
 
 ## The bindings
 
