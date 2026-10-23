@@ -14,6 +14,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from narration_common import brand
+
 MODULE_PATH = Path(__file__).parents[1] / "core" / "manuscript_guide.py"
 SPEC = importlib.util.spec_from_file_location("manuscript_guide", MODULE_PATH)
 guide = importlib.util.module_from_spec(SPEC)
@@ -33,7 +35,7 @@ def _write_manuscript(root: Path, paragraph_texts: list[str]) -> Path:
         "documentId": "test-document",
         "importedAt": "2026-01-01T00:00:00+00:00",
         "importer": {"format": "markdown", "version": guide.canonical_manuscript.IMPORTER_VERSION},
-        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": "narration-studio/manuscript/sources/fixture.md"},
+        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": brand.PROJECT_FOLDER + "/manuscript/sources/fixture.md"},
         "chapters": [{"id": "c-0001", "title": "Chapter 1", "subtitle": None, "index": 0, "wordCount": 1, "sections": []}],
         "paragraphs": paragraphs,
     }

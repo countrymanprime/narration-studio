@@ -6,8 +6,8 @@ ExtState equivalent) gets this for free instead of needing its own port.
 
 Three tiers, each a JSON file shaped {"<ToolName>": {"<key>": value, ...}}:
   1. config/defaults.json   - hand-authored, read-only, checked in.
-  2. %APPDATA%/narration-studio/global-settings.json - per-user, machine-wide.
-  3. <project folder>/narration-studio/settings.json - per-project override.
+  2. %APPDATA%/<data>/global-settings.json - per-user, machine-wide.
+  3. <project folder>/<app>/settings.json - per-project override.
 Lookup order for get() is project -> global -> repo default -> the caller's
 own hardcoded literal. A project override is "present" (even if set to an
 empty string) rather than merely non-empty, so a project can deliberately
@@ -21,6 +21,8 @@ Python at all, so that pair stays resolved by the DAW side itself.
 import json
 import os
 from pathlib import Path
+
+from narration_common import brand
 
 _REPO_DEFAULTS_CACHE = None
 
@@ -74,7 +76,7 @@ def get_default(tool: str, key: str, hardcoded_default):
 def global_settings_path() -> Path:
     appdata = os.environ.get("APPDATA")
     base = Path(appdata) if appdata else Path.home() / "AppData" / "Roaming"
-    return base / "narration-studio" / "global-settings.json"
+    return base / brand.DATA_FOLDER / "global-settings.json"
 
 
 def load_global_settings(tool: str) -> dict:
@@ -100,7 +102,7 @@ def seed_global_if_missing(tool: str, seed: dict) -> None:
 def project_settings_path(project_folder: str) -> Path | None:
     if not project_folder:
         return None
-    return Path(project_folder) / "narration-studio" / "settings.json"
+    return Path(project_folder) / brand.PROJECT_FOLDER / "settings.json"
 
 
 def load_project_settings(project_folder: str, tool: str) -> dict:

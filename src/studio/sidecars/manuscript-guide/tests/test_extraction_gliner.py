@@ -36,7 +36,7 @@ def _load(name: str):
 guide = sys.modules.get("manuscript_guide") or _load("manuscript_guide")
 gliner = _load("extraction_gliner")
 
-from narration_common import contract_files
+from narration_common import brand, contract_files
 from narration_common.ports import extraction_conformance
 from narration_common.ports.extraction import BUILT_IN, GLINER, KINDS, NotSupportedError
 
@@ -63,7 +63,7 @@ def _write_manuscript(root: Path) -> Path:
         "documentId": "test-document",
         "importedAt": "2026-01-01T00:00:00+00:00",
         "importer": {"format": "markdown", "version": guide.canonical_manuscript.IMPORTER_VERSION},
-        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": "narration-studio/manuscript/sources/fixture.md"},
+        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": brand.PROJECT_FOLDER + "/manuscript/sources/fixture.md"},
         "chapters": [{"id": "c-0001", "title": "One", "subtitle": None, "index": 0, "wordCount": 20, "sections": []}],
         "paragraphs": [
             {"id": p["id"], "index": i, "chapterId": p["chapterId"], "chapterTitle": "One", "sectionId": None, "text": p["text"], "sourceIndex": i}

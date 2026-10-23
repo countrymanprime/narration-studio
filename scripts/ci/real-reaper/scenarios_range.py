@@ -7,10 +7,11 @@ fails. Rows: docs/operations/reaper-verification-pass.md, "Real-REAPER CI run (L
 
 from __future__ import annotations
 
+from drive import BRAND, undo_label
 from scenario import Env, db, items_on, near, scenario
 from scenarios_session import GUID_NONE, make_chains, undo_once
 
-CUT_LABEL = "Narration Studio: delete words"
+CUT_LABEL = undo_label("delete words")
 
 
 def chapter(env: Env, file: str = "steps", length: float = 12.0, later: float = 14.0) -> dict:
@@ -115,7 +116,9 @@ def cut_room_tone(env: Env) -> str:
         f"no room tone pieces in the gap: {[(i['position'], i['length']) for i in items_on(state, 'Chapter 1')]}"
     )
     marked = env.lua(
-        "local n = 0 for i = 0, reaper.CountMediaItems(0) - 1 do local ok, v = reaper.GetSetMediaItemInfo_String(reaper.GetMediaItem(0, i), 'P_EXT:narration_studio_room_tone', '', false) if ok and v == '1' then n = n + 1 end end return n"
+        "local n = 0 for i = 0, reaper.CountMediaItems(0) - 1 do local ok, v = reaper.GetSetMediaItemInfo_String(reaper.GetMediaItem(0, i), 'P_EXT:"
+        + BRAND["identity"]["reaperExtPrefix"]
+        + "room_tone', '', false) if ok and v == '1' then n = n + 1 end end return n"
     )
     assert marked == len(pieces), f"{marked} items carry the room-tone mark, {len(pieces)} pieces lie in the gap"
     gap = env.render_mix("room_tone", 4.0, 7.0)
@@ -157,7 +160,7 @@ def undo_last(env: Env) -> str:
     kept = env.ok("undo_last", "cut_range", "3", until="UNDONE_LAST")
     assert kept[4] == "0", f"undone {kept[4]}: the narrator's own point was undone"
     assert positions(env, "Chapter 2") == [(1.0, 6.0)] and positions(env, "Chapter 1")[0] == (0.0, 4.5), "undo_last changed the project past a foreign point"
-    env.refused("undo_last", "Narration Studio: delete words", "1")
+    env.refused("undo_last", undo_label("delete words"), "1")
     env.refused("last_action", "no_such_kind")
     return "this/other answered; one Undo reverses the cut whole; a later narrator point is never undone; a label in place of a kind is refused"
 
@@ -188,7 +191,7 @@ def fx_range(env: Env) -> str:
     pieces = items_on(state, "Chapter 1")
     assert [len(p["takes"][0]["fx"]) for p in pieces[:3]] == [0, 1, 0], "the chain is not only on the middle piece"
     assert "Volume Adjustment" in pieces[1]["takes"][0]["fx"][0]["name"] and pieces[1]["guid"] == middle_guid
-    assert state["undo"] == "Narration Studio: add chain to range", state["undo"]
+    assert state["undo"] == undo_label("add chain to range"), state["undo"]
     mix = env.render_mix("fx_on", 0.0, 12.0)
     plain, heard = mix.tone(1.0, 3.0, 440.0), mix.tone(4.2, 5.8, 440.0)
     near(db(heard / plain), -12.0, 0.4, "the chain's level on the range (dB)")
@@ -207,7 +210,7 @@ def fx_range(env: Env) -> str:
     none = env.ok("remove_fx_range", removed[2], CHAIN, until="RANGE_FX_REMOVED")
     assert none[4] == "0", f"removing again opened {none[4]} undo points"
     undone = undo_once(env)
-    assert undone == "Narration Studio: remove chain from range", f"undid {undone!r}"
+    assert undone == undo_label("remove chain from range"), f"undid {undone!r}"
     return f"three pieces, chain on the middle ({db(heard / plain):+.1f} dB), remove joins them into one 12 s item, a second remove changes nothing"
 
 
@@ -215,7 +218,7 @@ def fx_range(env: Env) -> str:
 def fx_range_undo(env: Env) -> str:
     applied(env)
     undone = undo_once(env)
-    assert undone == "Narration Studio: add chain to range", f"undid {undone!r}"
+    assert undone == undo_label("add chain to range"), f"undid {undone!r}"
     items = items_on(env.snapshot(), "Chapter 1")
     assert [(i["position"], i["length"], len(i["takes"][0]["fx"])) for i in items][:1] == [(0.0, 12.0, 0)], (
         f"after Undo {[(i['position'], i['length']) for i in items]}"
@@ -246,7 +249,7 @@ def fx_range_edit(env: Env) -> str:
     assert set_[2:4] == [item, take] and abs(float(set_[6]) - value) < 1e-6 and set_[8] == "1", f"answered {set_[2:]}"
     mix = env.render_mix("param", 0.0, 12.0)
     near(db(mix.tone(4.2, 5.8, 440.0) / mix.tone(1.0, 3.0, 440.0)), -6.0, 0.4, "the changed setting is heard (dB)")
-    assert env.snapshot()["undo"] == "Narration Studio: change effect setting", env.snapshot()["undo"]
+    assert env.snapshot()["undo"] == undo_label("change effect setting"), env.snapshot()["undo"]
     same = env.ok("fx_range_set_param", item, take, CHAIN, "0", str(first_param), str(value), until="RANGE_FX_PARAM_SET")
     assert same[8] == "0", f"setting it again opened {same[8]} undo points"
     env.refused("fx_range_set_param", item, take, CHAIN, "0", str(first_param), "999999")
@@ -329,14 +332,14 @@ def range_gain(env: Env) -> str:
     points = [p for p in item["takes"][0]["envelope_points"] if p["time"] > 0]  # REAPER adds its own point at 0 s when it makes the envelope
     assert len(points) == 8, f"{len(points)} envelope points, expected 4 per stretch: {item['takes'][0]['envelope_points']}"
     assert (item["position"], item["length"]) == (0.0, 12.0) and item["takes"][0]["file"] == "click.wav", "the item or its source changed"
-    assert state["undo"] == "Narration Studio: lower stretches", state["undo"]
+    assert state["undo"] == undo_label("lower stretches"), state["undo"]
     mix = env.render_mix("lowered", 0.0, 12.0)
     base = mix.tone(8.0, 11.0, 440.0)
     for first, last in ((2.1, 2.9), (6.1, 6.9)):
         near(db(mix.tone(first, last, 440.0) / base), -9.0, 0.5, f"stretch {first}-{last} (dB)")
     near(db(mix.tone(3.5, 4.5, 440.0) / base), 0.0, 0.3, "between the stretches (dB)")
     undone = undo_once(env)
-    assert undone == "Narration Studio: lower stretches", f"undid {undone!r}"
+    assert undone == undo_label("lower stretches"), f"undid {undone!r}"
     after = items_on(env.snapshot(), "Chapter 1")[0]["takes"][0]
     assert not [p for p in after["envelope_points"] if p["time"] > 0], f"the points are still there after Undo: {after['envelope_points']}"
     flat = env.render_mix("lowered_undone", 0.0, 12.0)
@@ -357,13 +360,13 @@ def click_repair(env: Env) -> str:
     state = env.snapshot()
     points = [p for p in items_on(state, "Chapter 1")[0]["takes"][0]["envelope_points"] if p["time"] > 0]  # REAPER's own point at 0 s is not ours
     assert len(points) == 4, f"expected 4 envelope points for one click: {items_on(state, 'Chapter 1')[0]['takes'][0]['envelope_points']}"
-    assert state["undo"] == "Narration Studio: repair clicks", state["undo"]
+    assert state["undo"] == undo_label("repair clicks"), state["undo"]
     after = env.render_mix("click_after", 0.0, 12.0)
     assert after.peak(5.0005, 5.0015) < 0.05, f"the click still peaks at {after.peak(5.0005, 5.0015):.3f} (was {before.peak(5.0005, 5.0015):.3f})"
     near(db(after.rms(6.0, 9.0) / before.rms(6.0, 9.0)), 0.0, 0.2, "the tone away from the click (dB)")
     near(db(after.rms(4.5, 4.9) / before.rms(4.5, 4.9)), 0.0, 0.2, "the tone just before the click (dB)")
     undone = undo_once(env)
-    assert undone == "Narration Studio: repair clicks", f"undid {undone!r}"
+    assert undone == undo_label("repair clicks"), f"undid {undone!r}"
     assert render_peak(env) > 0.5, "after Undo the click is not back"
     env.refused("repair_click", fx["item"], fx["take"], "5.0:5.5")
     env.refused("repair_click", fx["item"], fx["take"], "50:50.001", tag="ITEM_STALE")

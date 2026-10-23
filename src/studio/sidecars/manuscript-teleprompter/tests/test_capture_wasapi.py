@@ -169,7 +169,7 @@ def test_a_failing_listing_is_a_sentence_not_an_exception():
 
 def test_the_wasapi_backend_passes_the_capture_ports_conformance_suite():
     sd = FakeSounddevice([_device(MIC)], blocks=400)
-    capture_conformance.run(_backend(sd), missing_device="Narration Studio conformance: no such device")
+    capture_conformance.run(_backend(sd), missing_device=capture_conformance.MISSING_DEVICE)
     assert all(stream.closed == 1 and stream.extra_settings.exclusive is False for stream in sd.streams)
 
 

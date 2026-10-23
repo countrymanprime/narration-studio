@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 
+from drive import undo_label
 from scenario import Env, items_on, scenario
 from scenarios_session import GUID_NONE, two_chapters, undo_once
 
@@ -158,7 +159,7 @@ def line_ids(env: Env) -> str:
     assert any(e[0] == "LINES_CONFLICT" for e in conflict) and conflict[-1][2:6] == ["0", "0", "0", "1"], f"conflict answered {conflict}"
     over = env.ok("stamp_item_lines", env.payload("o.txt", [f"{fx['third']}|line-999999|other"]), "1", until="LINES_STAMPED")
     assert over[2] == "1"
-    assert undo_once(env) == "Narration Studio: stamp manuscript line IDs"
+    assert undo_once(env) == undo_label("stamp manuscript line IDs")
     env.ok("read_line_ids", str(report), until="LINES_READ")
     assert "line-000003" in report.read_text(encoding="utf-8"), "one Undo did not restore the earlier id"
     return "ids survive save/reload and a move; a deleted item is LINES_STALE and no neighbour is stamped; a conflict is kept unless overwrite; one Undo restores the id"
@@ -170,7 +171,7 @@ def line_ids(env: Env) -> str:
 def undo_redo(env: Env) -> str:
     fx = two_chapters(env)
     env.ok("delete_range", fx["first"], "4", "6", "close", "10", until="RANGE_CUT")
-    assert undo_once(env) == "Narration Studio: delete words"
+    assert undo_once(env) == undo_label("delete words")
     assert env.lua("return reaper.Undo_DoRedo2(0)") == 1, "REAPER would not redo"
     assert env.ok("last_action", "cut_range", until="LAST_ACTION")[3] == "this", "after Redo the cut is not on top"
     undone = env.ok("undo_last", "cut_range", "1", until="UNDONE_LAST")

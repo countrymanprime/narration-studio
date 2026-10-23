@@ -1,7 +1,7 @@
 """Local backend for the independent REAPER Manuscript Guide.
 
 The only shared contract with other REAPER tools is the project's canonical
-``narration-studio/manuscript/manuscript.json`` file. All output belongs in the caller-provided
+``<app>/manuscript/manuscript.json`` file. All output belongs in the caller-provided
 ManuscriptGuide directory.
 """
 
@@ -2103,7 +2103,7 @@ def run_self_check(
 ) -> list[dict[str, Any]]:
     """Runs every check, never stopping at the first failure, and returns one result per check.
 
-    The packaged-app smoke test (``narration-studio --smoke``) runs this against the frozen sidecar. The dictionary and the espeak-ng
+    The packaged-app smoke test (the program run with ``--smoke``) runs this against the frozen sidecar. The dictionary and the espeak-ng
     data are what a freeze can silently lose (PyInstaller has no hook for either), and losing them made previews fail and names lose
     their pronunciation. The 114 MB voice is not needed for them; pass ``piper_model`` to also speak a word. Given the folder the
     optional GLiNER download is installed in (the smoke test passes it), the last line reports its version, or "not installed",
