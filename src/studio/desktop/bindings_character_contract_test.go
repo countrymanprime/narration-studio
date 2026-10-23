@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/character"
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/character"
+	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // What CharacterListRegions, CharacterApprove/CharacterReferences and GuideDialogueCues send to the UI

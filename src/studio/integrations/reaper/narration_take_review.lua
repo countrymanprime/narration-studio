@@ -7,9 +7,9 @@ local event, pipe_fields = core.event, core.pipe_fields
 
 -- Namespaced take extension data (extending docs/architecture/manuscript-line-identity.md to take granularity): which finding produced this
 -- take, the candidate's source file, and the matched source range within it. Never item notes or take names.
-local FINDING_ID_KEY = 'P_EXT:narration_utils_take_finding_id'
-local SOURCE_FILE_KEY = 'P_EXT:narration_utils_take_source_file'
-local SOURCE_RANGE_KEY = 'P_EXT:narration_utils_take_source_range'
+local FINDING_ID_KEY = 'P_EXT:narration_studio_take_finding_id'
+local SOURCE_FILE_KEY = 'P_EXT:narration_studio_take_source_file'
+local SOURCE_RANGE_KEY = 'P_EXT:narration_studio_take_source_range'
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()

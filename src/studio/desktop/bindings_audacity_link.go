@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitylink"
-	"github.com/countrymanprime/narration-utils/shell/internal/daw"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitylink"
+	"github.com/countrymanprime/narration-studio/shell/internal/daw"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
 )
 
 // Linking Audacity 3: AudacityLink and its live event audacity_link_changed tell the UI how far the project is from talking to
@@ -153,7 +153,7 @@ func (h *Host) linkAudacityFile(path string) error {
 }
 
 // AudacityLinkOpenProject writes this project's link label into the project open in Audacity, so the app can tell that project
-// from any other. It adds one label to the "Narration Utils" label track and touches nothing else. It needs Audacity to answer.
+// from any other. It adds one label to the "Narration Studio" label track and touches nothing else. It needs Audacity to answer.
 func (h *Host) AudacityLinkOpenProject() (string, error) {
 	svc := h.services()
 	conn := svc.audacity
@@ -180,7 +180,7 @@ func (h *Host) AudacityLinkOpenProject() (string, error) {
 }
 
 // AudacityUnlink forgets the linked Audacity project. The label stays in the Audacity project, where it is one line in the
-// "Narration Utils" label track that the narrator can delete.
+// "Narration Studio" label track that the narrator can delete.
 func (h *Host) AudacityUnlink() (string, error) {
 	svc := h.services()
 	if svc.settings == nil || svc.config.projectFolder == "" {

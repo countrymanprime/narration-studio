@@ -28,7 +28,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
 )
 
 const analyzerName = "transcript-compare"

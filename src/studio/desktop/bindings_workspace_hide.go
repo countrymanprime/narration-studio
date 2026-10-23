@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/passagetakes"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/passagetakes"
 )
 
 // hideTakesTimeout bounds one hide_takes request: a single undo block in REAPER, like set_active_take.

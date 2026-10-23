@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 func TestTheMockRowPassesTheSuite(t *testing.T) {
@@ -117,7 +117,7 @@ func TestTheFakeDAWRefusesWhatTheBridgeRefuses(t *testing.T) {
 	project := t.TempDir()
 	daw := NewFakeDAW(project)
 	renderer := daw.Role(dawport.CapRenderWithFX).(dawport.FXRenderer)
-	runs := filepath.Join(project, "narration-utils", "mastering")
+	runs := filepath.Join(project, "narration-studio", "mastering")
 	full := filepath.Join(runs, "full")
 	if err := os.MkdirAll(full, 0o750); err != nil {
 		t.Fatal(err)

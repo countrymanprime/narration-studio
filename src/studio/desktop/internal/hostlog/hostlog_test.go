@@ -143,7 +143,7 @@ func TestNilLogIsANoOp(t *testing.T) {
 
 func TestDefaultPathSitsBesideTheOtherPerUserFiles(t *testing.T) {
 	t.Setenv("APPDATA", filepath.Join("C:", "Users", "n", "AppData", "Roaming"))
-	want := filepath.Join("C:", "Users", "n", "AppData", "Roaming", "narration-utils", "logs", "host.log")
+	want := filepath.Join("C:", "Users", "n", "AppData", "Roaming", "narration-studio", "logs", "host.log")
 	if got := DefaultPath(); got != want {
 		t.Fatalf("DefaultPath = %q, want %q", got, want)
 	}
@@ -152,7 +152,7 @@ func TestDefaultPathSitsBesideTheOtherPerUserFiles(t *testing.T) {
 func TestDefaultPathFallsBackToTheUserProfile(t *testing.T) {
 	t.Setenv("APPDATA", "")
 	t.Setenv("USERPROFILE", filepath.Join("C:", "Users", "n"))
-	want := filepath.Join("C:", "Users", "n", "AppData", "Roaming", "narration-utils", "logs", "host.log")
+	want := filepath.Join("C:", "Users", "n", "AppData", "Roaming", "narration-studio", "logs", "host.log")
 	if got := DefaultPath(); got != want {
 		t.Fatalf("DefaultPath = %q, want %q", got, want)
 	}

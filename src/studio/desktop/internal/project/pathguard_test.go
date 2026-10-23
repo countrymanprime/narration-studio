@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/pathfixtures"
+	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
 )
 
 // The path guard (definition of done, rule 1): every function in this package that resolves a project folder or a DAW project
@@ -214,8 +214,8 @@ func TestPathGuardManifestLoadSave(t *testing.T) {
 			if saveErr == nil {
 				t.Fatal("saved a manifest into the working directory for an empty project folder")
 			}
-			if _, err := os.Stat("narration-utils"); err == nil {
-				t.Fatal("an empty project folder wrote narration-utils/ into the working directory")
+			if _, err := os.Stat("narration-studio"); err == nil {
+				t.Fatal("an empty project folder wrote narration-studio/ into the working directory")
 			}
 			return
 		case p.Class == pathfixtures.FileForFolder:

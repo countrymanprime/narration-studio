@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/recording"
-	"github.com/countrymanprime/narration-utils/shell/internal/recording/recordingtest"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
 )
 
 func writeTake(t *testing.T, folder, name string) {

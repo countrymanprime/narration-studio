@@ -1,7 +1,7 @@
 import type { AssetCatalog, AssetInstallJob, AssetItem } from '../../../types';
 import type { ComponentsPort } from './useAnalysisTools';
 
-const ROOT = 'C:/Users/narrator/AppData/Local/narration-utils/assets/analysis';
+const ROOT = 'C:/Users/narrator/AppData/Local/narration-studio/assets/analysis';
 
 const tool = (row: Omit<AssetItem, 'kind' | 'kindLabel' | 'path' | 'installState' | 'installedAt' | 'verifiedAt' | 'activeJobId'>): AssetItem => ({
   kind: 'analysis',

@@ -15,7 +15,7 @@ What is delivered, and what is deliberately not:
   catalog file, a provider and a row on the page, with no new binding); the
   first-use dialog for Piper, Whisper and Story Bible (with the rules-only choice); Settings > Models & downloads; no download and no
   request at startup other than the switch-off-able update check (tests in `src/studio/desktop/startup_offline_test.go`); the
-  legacy-cache policy; the developer seeding command; and the packaged smoke test, `narration-utils --smoke`, which CI runs on the
+  legacy-cache policy; the developer seeding command; and the packaged smoke test, `narration-studio --smoke`, which CI runs on the
   Windows build. Each shipped artifact's record (publisher, version, URL, SHA-256, licences, install location, update policy) is in
   [local dependency evaluation](../research/local-dependency-evaluation.md#shipped-assets).
 - **Not bundled.** No model, voice or dictionary is inside the release; a narrator downloads each one, once, after confirming.
@@ -24,7 +24,7 @@ What is delivered, and what is deliberately not:
 - **Windows only.** The setup program and the in-app update are Windows features ([CI and releases](../operations/ci-and-releases.md#the-windows-setup-program)),
   and Windows is the only platform the app ships on ([Supported platforms](../../README.md#supported-platforms)).
   The setup program is built in CI; its clean-machine run and the first stable release rehearsal are
-  [#231](https://github.com/countrymanprime/narration-utils/issues/231).
+  [#231](https://github.com/countrymanprime/narration-studio/issues/231).
 
 ## Product and implementation rules
 
@@ -52,7 +52,7 @@ What is delivered, and what is deliberately not:
   compatible choice solely because it has not been downloaded yet.
 - Put downloaded assets in a per-user application-data cache outside the
   installed release and outside a project folder. The Windows location is
-  `%LOCALAPPDATA%\narration-utils\assets`, nothing ever deletes an asset except the
+  `%LOCALAPPDATA%\narration-studio\assets`, nothing ever deletes an asset except the
   narrator's Remove, and there is one per-user folder, which every version and install of that user
   reuses, and no second store (an owner decision); asset paths must never be stored as checkout-relative paths.
 - Download to a temporary file, verify its hash and expected content before
@@ -115,7 +115,7 @@ each file against the catalog (revisit then, not before). The tests
 
 `src/studio/desktop/internal/assets` owns the lifecycle for every asset kind:
 
-- **Layout.** `<per-user cache>/narration-utils/assets/<kind>/<provider>/<id>/<version>/`. The cache folder is `os.UserCacheDir()`; when the operating system cannot name it there is no fallback to the temporary folder, the catalog is unavailable and the host log says why. Nothing ever deletes an installed asset except the narrator's Remove.
+- **Layout.** `<per-user cache>/narration-studio/assets/<kind>/<provider>/<id>/<version>/`. The cache folder is `os.UserCacheDir()`; when the operating system cannot name it there is no fallback to the temporary folder, the catalog is unavailable and the host log says why. Nothing ever deletes an installed asset except the narrator's Remove.
 - **Manifest.** `manifest.json` in the install folder records provider, id, exact version, every file with its size, SHA-256, source URL and modification time, when it was installed and last verified, and whether the last Verify found it damaged.
 - **State is cheap.** A listing trusts the manifest: an asset whose manifest names the catalog's files, sizes and hashes and whose files still have the recorded size and modification time is `installed` without reading a byte (all five Whisper models, 5.3 GB, list in 0.6 ms; reading them was 3.2 s). Anything else is hashed. The first use of an asset in a session (`assets.Ready`, called by `Paths` and `Dir`) reads it in full once, so damage since the install is found before the model loads. `Verify` always reads it in full and records the result; a failed one marks the asset `verification_failed` until `Repair`.
 - **Install and repair.** Files download to `<version>.installing`, each is checked against its size and SHA-256, and the folder is renamed into place; a folder that is already there is renamed aside first and removed only when the new one is in, and put back if that fails. A file the catalog does not name never lands in an install. `Repair` reads the asset, downloads it again only if it is damaged, and leaves a good one alone.
@@ -185,7 +185,7 @@ Settings > Models & downloads (a category of the Settings page, [Settings](../gu
 
 ## The packaged smoke test (implemented)
 
-`narration-utils --smoke` proves what "the release contains everything needed to start" claims, on the executable that ships: it
+`narration-studio --smoke` proves what "the release contains everything needed to start" claims, on the executable that ships: it
 unpacks the bundled resources, starts every frozen sidecar, checks that the frozen Story Bible sidecar can load its dictionary and
 start its speech phonemizer (the data a freeze silently loses), loads the approved catalogs (`checkCatalogs` in `src/studio/desktop/smoke.go`), writes the asset cache and checks
 the REAPER package, prints a JSON report and exits non-zero on any failure, with no window and no download. CI runs it on the

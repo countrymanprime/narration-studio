@@ -4,7 +4,7 @@
 // and call sites ask it by the name the setting stores rather than comparing names. The ttsporttest suite runs over every row.
 package ttsport
 
-import "github.com/countrymanprime/narration-utils/shell/internal/port"
+import "github.com/countrymanprime/narration-studio/shell/internal/port"
 
 // Piper is the one voice engine today, as the Piper.tts_provider setting spells it.
 const Piper = "piper"

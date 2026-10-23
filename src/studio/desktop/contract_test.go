@@ -10,22 +10,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/dictionary"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-utils/shell/internal/moonshine"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/repeats"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
-	"github.com/countrymanprime/narration-utils/shell/internal/spacy"
-	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
-	"github.com/countrymanprime/narration-utils/shell/internal/takereview"
-	"github.com/countrymanprime/narration-utils/shell/internal/tts"
-	"github.com/countrymanprime/narration-utils/shell/internal/whisper"
+	"github.com/countrymanprime/narration-studio/shell/internal/analysistools"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/dictionary"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/moonshine"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/repeats"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/spacy"
+	"github.com/countrymanprime/narration-studio/shell/internal/takecompare"
+	"github.com/countrymanprime/narration-studio/shell/internal/takereview"
+	"github.com/countrymanprime/narration-studio/shell/internal/tts"
+	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
 )
 
 // The Bootstrap payloads the UI receives. The UI's contract tests validate these files against its schemas and
@@ -55,7 +55,7 @@ func fixedBootstrap(host *Host) map[string]any {
 
 func TestContractBootstrapWithAnImportedManuscript(t *testing.T) {
 	project := t.TempDir()
-	path := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestContractPreviewNeedsAVoice(t *testing.T) {
 		License: "CC0-1.0", LicenseURL: "https://example.test/license", ModelCardURL: "https://example.test/card", ProvenanceURL: "https://example.test/source",
 		Attribution: "LJ Speech dataset", Files: []tts.File{{Name: "voice.onnx", Size: 114_000_000}, {Name: "voice.onnx.json", Size: 4_800}},
 	}
-	contractfile.Check(t, "guide-preview-asset-required", voiceAssetRequired(voice, "not_installed", "C:/Users/narrator/AppData/Local/narration-utils/assets/tts/piper/en_US-ljspeech-high/1.0.0"))
+	contractfile.Check(t, "guide-preview-asset-required", voiceAssetRequired(voice, "not_installed", "C:/Users/narrator/AppData/Local/narration-studio/assets/tts/piper/en_US-ljspeech-high/1.0.0"))
 }
 
 // What SystemLookup answers: a lookup the installed dictionary made, through the real
@@ -129,7 +129,7 @@ func TestContractDictionaryLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 	entry, _ := approved.Default()
-	contractfile.Check(t, "system-lookup-asset-required", dictionaryAssetRequired(entry, "not_installed", "C:/Users/narrator/AppData/Local/narration-utils/assets/dictionary/oewn/oewn-2025/2025"))
+	contractfile.Check(t, "system-lookup-asset-required", dictionaryAssetRequired(entry, "not_installed", "C:/Users/narrator/AppData/Local/narration-studio/assets/dictionary/oewn/oewn-2025/2025"))
 }
 
 // TestContractCopyDiagnostics pins SystemCopyDiagnostics's answer shape.
@@ -214,9 +214,9 @@ func TestContractAssetsListAndVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The cache folder is a per-machine path; the golden holds a fixed one so the file is the same everywhere.
-	list["cacheRoot"] = "C:/Users/narrator/AppData/Local/narration-utils/assets"
+	list["cacheRoot"] = "C:/Users/narrator/AppData/Local/narration-studio/assets"
 	for _, entry := range list["assets"].([]map[string]any) {
-		entry["path"] = "C:/Users/narrator/AppData/Local/narration-utils/assets/" + entry["kind"].(string) + "/" + entry["id"].(string)
+		entry["path"] = "C:/Users/narrator/AppData/Local/narration-studio/assets/" + entry["kind"].(string) + "/" + entry["id"].(string)
 	}
 	contractfile.Check(t, "assets-list", list)
 	contractfile.Check(t, "asset-install-downloading", snapshotInstall(&installJob{id: "tts-1", kind: installKindTts, assetID: "en_US-ljspeech-high", phase: installPhaseDownloading, message: "Downloading and verifying the approved voice…", done: 45678901, total: 114203981}))
@@ -229,7 +229,7 @@ func TestContractAFirstUseGateForAModel(t *testing.T) {
 	if !ok {
 		t.Fatal("the approved catalog has no small model")
 	}
-	contractfile.Check(t, "transcript-start-asset-required", modelAssetRequired(model, svc.registry.whisper.State(model), "C:/Users/narrator/AppData/Local/narration-utils/assets/whisper/faster-whisper/small/536b0662742c02347bc0e980a01041f333bce120"))
+	contractfile.Check(t, "transcript-start-asset-required", modelAssetRequired(model, svc.registry.whisper.State(model), "C:/Users/narrator/AppData/Local/narration-studio/assets/whisper/faster-whisper/small/536b0662742c02347bc0e980a01041f333bce120"))
 	contractfile.Check(t, "transcript-start-started", map[string]any{"status": "started"})
 }
 
@@ -248,8 +248,8 @@ func TestContractTheTeleprompterFirstUseGateForEachEngine(t *testing.T) {
 	if !ok {
 		t.Fatal("the approved Moonshine catalog has no tiny model")
 	}
-	contractfile.Check(t, "teleprompter-start-asset-required-whisper", liveAssetRequired("whisper", previewModel(whisperModel), modelDownloadSize(whisperModel), svc.registry.whisper.State(whisperModel), "C:/Users/narrator/AppData/Local/narration-utils/assets/whisper/faster-whisper/tiny/"+whisperModel.Version))
-	contractfile.Check(t, "teleprompter-start-asset-required-moonshine", liveAssetRequired("moonshine", previewMoonshineModel(moonshineModel), moonshineDownloadSize(moonshineModel), liveModels.State(moonshineModel), "C:/Users/narrator/AppData/Local/narration-utils/assets/moonshine/moonshine/tiny/"+moonshineModel.Version))
+	contractfile.Check(t, "teleprompter-start-asset-required-whisper", liveAssetRequired("whisper", previewModel(whisperModel), modelDownloadSize(whisperModel), svc.registry.whisper.State(whisperModel), "C:/Users/narrator/AppData/Local/narration-studio/assets/whisper/faster-whisper/tiny/"+whisperModel.Version))
+	contractfile.Check(t, "teleprompter-start-asset-required-moonshine", liveAssetRequired("moonshine", previewMoonshineModel(moonshineModel), moonshineDownloadSize(moonshineModel), liveModels.State(moonshineModel), "C:/Users/narrator/AppData/Local/narration-studio/assets/moonshine/moonshine/tiny/"+moonshineModel.Version))
 }
 
 // The Settings page's fields for both scopes, from the real field schemas and the repository's defaults.

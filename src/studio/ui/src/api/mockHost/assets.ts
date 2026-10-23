@@ -22,7 +22,7 @@ type AssetFactsSource = {
 };
 
 /** Where the mock says downloaded assets are kept. */
-export const MOCK_ASSET_ROOT = 'C:/Users/narrator/AppData/Local/narration-utils/assets';
+export const MOCK_ASSET_ROOT = 'C:/Users/narrator/AppData/Local/narration-studio/assets';
 
 /** The asset bindings: the preview voice, the Whisper and Moonshine models, the language model and the dictionary. */
 export function createAssetsMock(initial: MockApiSeed) {

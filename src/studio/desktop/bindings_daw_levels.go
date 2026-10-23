@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // monitorLevelTimeout bounds one monitor_level request: a read or a set of one send's volume.

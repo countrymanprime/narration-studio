@@ -6,7 +6,7 @@ import (
 	"math"
 	"slices"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/acoustic"
+	"github.com/countrymanprime/narration-studio/shell/internal/acoustic"
 )
 
 // The calibration from the acoustic trial

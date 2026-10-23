@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // defaultPollInterval is how often a run's progress file and exit are checked.
@@ -396,7 +396,7 @@ func (s *Service) basisAndText(chapterID string) (basis ChapterBasis, text strin
 // manuscriptPath is the real project's canonical manuscript file: the sidecar's own --manuscript argument for a
 // manuscript chapter's check, and the depth writeCreditsManuscript's stand-in file matches for a credits one.
 func (s *Service) manuscriptPath() string {
-	return filepath.Join(s.config.Project, "narration-utils", "manuscript", "manuscript.json")
+	return filepath.Join(s.config.Project, "narration-studio", "manuscript", "manuscript.json")
 }
 
 func (s *Service) prepareAndLaunch(request Request) (*job, error) {

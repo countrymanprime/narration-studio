@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 )
 
 // stagedHost is a Host that has downloaded version 0.2.7 and is ready to install it; the caller replaces the install and the quit.
@@ -47,7 +47,7 @@ func TestInstallHandsTheStagedProgramTheArgumentsAndTheVersionsAndThenClosesTheA
 	if job.Phase != "installing" || !strings.Contains(job.Message, "restarts") {
 		t.Fatalf("job = %+v", job)
 	}
-	if got.From != "0.2.6" || got.To != "0.2.7" || got.PID != os.Getpid() || got.PendingPath != host.pendingPath || filepath.Base(got.Executable) != "narration-utils.exe" {
+	if got.From != "0.2.6" || got.To != "0.2.7" || got.PID != os.Getpid() || got.PendingPath != host.pendingPath || filepath.Base(got.Executable) != "narration-studio.exe" {
 		t.Fatalf("options = %+v", got)
 	}
 	if got.Staged.Executable == "" || got.Staged.ExecutableSHA256 == "" || len(got.Args) != len(os.Args[1:]) {
@@ -96,7 +96,7 @@ func TestStatusSaysWhyTheAppCannotReplaceItselfBeforeTheNarratorTries(t *testing
 		t.Fatalf("a writable install can be replaced: %+v", status)
 	}
 	// A folder the program may not write to (here, one that is not there).
-	host.executable = func() (string, error) { return filepath.Join(t.TempDir(), "missing", "narration-utils.exe"), nil }
+	host.executable = func() (string, error) { return filepath.Join(t.TempDir(), "missing", "narration-studio.exe"), nil }
 	if status := host.updateStatus(); status.CanInstall || !strings.Contains(status.InstallBlockedReason, "replace itself") {
 		t.Fatalf("status = %+v", status)
 	}
@@ -256,7 +256,7 @@ func TestASecondInstallWhileTheFirstIsCopyingIsRefusedAndAFailureMakesTheUpdateR
 func TestTheWritableProbeIsNotRepeatedOnEveryStatus(t *testing.T) {
 	host, _ := stagedHost(t)
 	dir := t.TempDir()
-	host.executable = func() (string, error) { return filepath.Join(dir, "narration-utils.exe"), nil }
+	host.executable = func() (string, error) { return filepath.Join(dir, "narration-studio.exe"), nil }
 	if reason := host.installBlockedReason(); reason != "" {
 		t.Fatalf("reason = %q", reason)
 	}

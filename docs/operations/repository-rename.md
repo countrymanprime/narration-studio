@@ -42,7 +42,7 @@ with made-up results.
 
 `create_session` takes `source_url`. Use `https://github.com/countrymanprime/narration-studio`. The Routine prompts, scheduled tasks
 and Claude environments that still hold the old URL are owner settings, not files: list them with `list_triggers` and fix the prompt
-with `update_trigger`, or report them on [#992](https://github.com/countrymanprime/narration-utils/issues/992) for the owner.
+with `update_trigger`, or report them on [#992](https://github.com/countrymanprime/narration-studio/issues/992) for the owner.
 
 Not recorded yet: whether the Claude GitHub App needs the repository
 re-selected. The owner records the result under [After the rename](#after-the-rename).
@@ -61,15 +61,15 @@ so the many documentation links are tidiness, not breakage.
 | GitHub Pages URL and base path `/narration-utils/` in `.github/workflows/pages.yml`, `tools/docs-site/mkdocs.yml` and `check_site.py` | The site URL changes with the name. The site is built by `src/web` ([CI and releases](ci-and-releases.md#the-pages-workflow)) |
 | `LINK_BASE` in `scripts/dev/owner-qa-list.mjs`, `REPOSITORY` in `scripts/licenses/notices.py`, `config/analysis-assets.json`, issue templates, test fixtures with release URLs | Links and notices that carry the name |
 | `source_url` and issue links in `.claude/skills/agent-train/` and the worker templates | Launch prompts and the links the train posts |
-| About 900 files with `github.com/countrymanprime/narration-utils/...` links | Work through the redirect, update when convenient |
 
-These do **not** need to change with the rename, and changing them is a separate decision: the Go module path
-`github.com/countrymanprime/narration-utils/shell` (about 1,900 imports; nothing outside the repository imports it), the Nx project
-names `narration-utils*`, and the `narration-utils.exe` file name.
+The Go module path, the Nx and package names and the program's file name followed later, with every other use of the old
+product name ([#2251](https://github.com/countrymanprime/narration-studio/issues/2251), item 41). This page and the four migration
+files listed in [Codebase map](../architecture/codebase-map.md#product-and-technical-names) are the only places that still write the
+old name, and `scripts/ci/old-name.mjs` keeps it that way.
 
 ## For the owner: order of the rename
 
-1. Tick `HOLD` on [#989](https://github.com/countrymanprime/narration-utils/issues/989) and let running sessions finish or pause.
+1. Tick `HOLD` on [#989](https://github.com/countrymanprime/narration-studio/issues/989) and let running sessions finish or pause.
 2. Rename the repository in GitHub settings. Rulesets, Pages settings and secrets move with it.
 3. Fix what holds the old name outside the repository: Routines and scheduled tasks, Claude environments and the GitHub App's repository list.
 4. Open one pull request that changes the table above (updater constant first), and edit the first lines of this page to "renamed on <date>".
@@ -84,10 +84,9 @@ Found on 2026-10-19:
 - **Routine prompts** that held the old `source_url` were updated by the coordinator.
 - **This repository** now names itself `countrymanprime/narration-studio` in the updater constant, the verify-download commands, the
   `gh api` and `--repo` commands, the scripts, the issue templates, the agent-train `source_url` and the Pages name and URLs. The
-  Pages workflow publishes `src/web`; only its names changed. The Go module path, the Nx project names and `narration-utils.exe` keep the old
-  name on purpose.
-- **About 900 documentation links** to `github.com/countrymanprime/narration-utils/...` were left as they are. They work through the
-  redirect, and rewriting them is churn without a benefit.
+  Pages workflow publishes `src/web`; only its names changed.
+- **The documentation links** to `github.com/countrymanprime/narration-utils/...` were rewritten to the new name with the rest of the
+  old name (#2251 item 41); the ADRs keep theirs, as records.
 
 ### Builds already installed with the old name
 

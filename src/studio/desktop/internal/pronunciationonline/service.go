@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/credentialstore"
+	"github.com/countrymanprime/narration-studio/shell/internal/credentialstore"
 )
 
 // key is a pasted key's shape: Merriam-Webster's keys are UUIDs; this accepts any run of letters, digits and hyphens

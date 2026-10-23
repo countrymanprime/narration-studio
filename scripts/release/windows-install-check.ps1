@@ -5,7 +5,7 @@
 # Without -PreviousSetup: install, assert, start, uninstall, assert (9.2). With it: install the previous setup, seed the narrator's
 # settings and recent projects, run the new setup over it, assert what survived and the version it reports (9.3), then uninstall.
 # It writes <OutDir>/install-check.json and install-check.md and exits 1 when any check failed. Evidence for the owner, not a gate.
-# It changes the machine it runs on (installs a program, writes %APPDATA%\narration-utils): run it only on a disposable runner.
+# It changes the machine it runs on (installs a program, writes %APPDATA%\narration-studio): run it only on a disposable runner.
 param(
   [Parameter(Mandatory)][string]$Setup,
   [string]$PreviousSetup = '',
@@ -21,9 +21,9 @@ function Check([string]$name, [bool]$ok, [string]$detail = '') {
   Write-Host ("{0} {1}{2}" -f ($(if ($ok) { 'PASS' } else { 'FAIL' })), $name, $(if ($detail) { " :: $detail" } else { '' }))
 }
 
-# The uninstall key is NarrationUtils today (project.nsi UNINST_KEY_NAME) and NarrationStudio after #1816 phase 2: look for both.
+# The uninstall key is NarrationStudio (project.nsi UNINST_KEY_NAME).
 $uninstallRoot = 'Software\Microsoft\Windows\CurrentVersion\Uninstall'
-$keyNames = @('NarrationUtils', 'NarrationStudio')
+$keyNames = @('NarrationStudio')
 function Get-UninstallEntries([string]$hive) {
   $found = @()
   foreach ($name in $keyNames) {
@@ -74,8 +74,8 @@ function Assert-Installed([string]$phase) {
   $dir = if ($entry) { $entry.InstallLocation } else { '' }
   $expected = Join-Path $env:LOCALAPPDATA "Programs\$ProductName"
   Check "${phase}: installed under %LOCALAPPDATA%\Programs" ($dir -and ($dir.TrimEnd('\') -ieq $expected)) "InstallLocation=$dir"
-  $exe = if ($dir) { Join-Path $dir 'narration-utils.exe' } else { '' }
-  Check "${phase}: narration-utils.exe is there" ($exe -and (Test-Path $exe)) $exe
+  $exe = if ($dir) { Join-Path $dir 'narration-studio.exe' } else { '' }
+  Check "${phase}: narration-studio.exe is there" ($exe -and (Test-Path $exe)) $exe
   Check "${phase}: uninstall.exe is there" ($dir -and (Test-Path (Join-Path $dir 'uninstall.exe')))
   Check "${phase}: no files under Program Files" (-not (Test-Path "$env:ProgramFiles\$ProductName"))
   $app = Get-Shortcut $lnkApp
@@ -113,19 +113,19 @@ function Invoke-Uninstall($entry, [string]$phase) {
   $uninstaller = Join-Path $dir 'uninstall.exe'
   # NSIS copies a silent uninstaller to %TEMP% and returns at once, so removal is polled for.
   Start-Process -FilePath $uninstaller -ArgumentList '/S' | Out-Null
-  $gone = Wait-Gone (Join-Path $dir 'narration-utils.exe') 120
-  Check "${phase}: uninstall removed narration-utils.exe" $gone
+  $gone = Wait-Gone (Join-Path $dir 'narration-studio.exe') 120
+  Check "${phase}: uninstall removed narration-studio.exe" $gone
   Start-Sleep -Seconds 5
   Check "${phase}: uninstall removed the HKCU uninstall entry" ((Get-UserEntries).Count -eq 0)
   Check "${phase}: uninstall removed the Start Menu shortcuts" (-not (Test-Path $lnkApp) -and -not (Test-Path $lnkAudacity))
   Check "${phase}: uninstall removed the desktop shortcut" (-not (Test-Path $lnkDesktop))
-  Check "${phase}: the install folder is gone (or empty of the program)" (-not (Test-Path $dir) -or -not (Get-ChildItem $dir -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'narration-utils.exe*' }))
+  Check "${phase}: the install folder is gone (or empty of the program)" (-not (Test-Path $dir) -or -not (Get-ChildItem $dir -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'narration-studio.exe*' }))
 }
 
 $report = [ordered]@{ setup = (Split-Path $Setup -Leaf); previousSetup = $(if ($PreviousSetup) { Split-Path $PreviousSetup -Leaf } else { $null }) }
 Check 'the machine starts clean (no uninstall entry, no install folder)' ((Get-UserEntries).Count -eq 0 -and -not (Test-Path (Join-Path $env:LOCALAPPDATA "Programs\$ProductName")))
 
-$settingsDir = Join-Path $env:APPDATA 'narration-utils'
+$settingsDir = Join-Path $env:APPDATA 'narration-studio'
 $seeded = @{
   'global-settings.json'  = '{"installCheckSeed":"settings survive an upgrade"}'
   'recent-projects.json'  = '{"installCheckSeed":"recent projects survive an upgrade"}'
@@ -135,7 +135,7 @@ if ($PreviousSetup) {
   # 9.3: previous release first, then the new setup over it.
   if (Invoke-Silent $PreviousSetup 'previous setup /S') {
     $before = Assert-Installed 'previous'
-    $exe = Join-Path $before.InstallLocation 'narration-utils.exe'
+    $exe = Join-Path $before.InstallLocation 'narration-studio.exe'
     $report.previousVersion = Get-ReportedVersion $exe
     $report.previousKey = $before.Name
     Write-Host "previous version: $($report.previousVersion), uninstall key $($before.Name)"
@@ -146,7 +146,7 @@ if ($PreviousSetup) {
       $report.newKey = $after.Name
       Check 'upgrade installed to the folder the previous install used' ($after.InstallLocation -ieq $before.InstallLocation)
       if ($before.Name -ne $after.Name) { Write-Host "NOTE uninstall key moved from $($before.Name) to $($after.Name) (#1816 phase 2)" }
-      $newExe = Join-Path $after.InstallLocation 'narration-utils.exe'
+      $newExe = Join-Path $after.InstallLocation 'narration-studio.exe'
       $report.newVersion = Get-ReportedVersion $newExe
       Check 'the program now reports a different version than before' ($report.newVersion -and ($report.newVersion -ne $report.previousVersion)) "$($report.previousVersion) -> $($report.newVersion)"
       Check 'the uninstall entry reports the new version' ($after.DisplayVersion -and ("$($report.newVersion)" -like "*$($after.DisplayVersion)*" -or "$($after.DisplayVersion)" -like "*$($report.newVersion)*")) "DisplayVersion=$($after.DisplayVersion)"
@@ -167,8 +167,7 @@ if ($PreviousSetup) {
   if (Invoke-Silent $Setup 'setup /S') {
     $entry = Assert-Installed 'installed'
     $report.uninstallKey = $entry.Name
-    if ($entry.Name -eq 'NarrationUtils') { Write-Host 'NOTE the uninstall key is still NarrationUtils (#1816 phase 2 pending)' }
-    $exe = Join-Path $entry.InstallLocation 'narration-utils.exe'
+    $exe = Join-Path $entry.InstallLocation 'narration-studio.exe'
     $report.version = Test-AppStarts $exe 'installed'
     Check 'the uninstall entry reports the version the program reports' ($entry.DisplayVersion -and ("$($report.version)" -like "*$($entry.DisplayVersion)*" -or "$($entry.DisplayVersion)" -like "*$($report.version)*")) "DisplayVersion=$($entry.DisplayVersion)"
     Invoke-Uninstall $entry 'installed'

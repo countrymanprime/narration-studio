@@ -170,7 +170,7 @@ func TestAThreadNoteOnAFindingNotStoredYetIsKeptForLater(t *testing.T) {
 
 func TestRecordThreadFailsWhenTheHistoryOrTheScopeFileCannotBeWritten(t *testing.T) {
 	project := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(project, "narration-utils", "findings", "review.json"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(project, "narration-studio", "findings", "review.json"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := NewStore(project).RecordThread("f1", ThreadEntry{Op: ThreadAdd, Who: ThreadYou, Text: "hi"}, "t"); err == nil {
@@ -178,7 +178,7 @@ func TestRecordThreadFailsWhenTheHistoryOrTheScopeFileCannotBeWritten(t *testing
 	}
 
 	store := threadStore(t)
-	scopePath := filepath.Join(store.project, "narration-utils", "findings", "transcript_compare", "c-0001.json")
+	scopePath := filepath.Join(store.project, "narration-studio", "findings", "transcript_compare", "c-0001.json")
 	if err := os.MkdirAll(scopePath+".tmp", 0o755); err != nil {
 		t.Fatal(err)
 	}

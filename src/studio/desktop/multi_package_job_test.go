@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-utils/shell/internal/packager"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/packager"
 )
 
 // m4bProfile is a synthetic profile requiring the M4B format (no built-in profile asks for anything but MP3 today):

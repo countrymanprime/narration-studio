@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
 )
 
 // What WorkspaceGoTo sends, over workspaceNavigationHost's stored alignment (one item, one heard token

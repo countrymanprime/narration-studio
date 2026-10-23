@@ -13,12 +13,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/asrport"
-	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationport"
-	"github.com/countrymanprime/narration-utils/shell/internal/ttsport"
+	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
+	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationport"
+	"github.com/countrymanprime/narration-studio/shell/internal/ttsport"
 )
 
 // The provider-ports guard: no host code outside a port package compares a provider name. A call site asks a
@@ -107,7 +107,7 @@ func providerConstants(files []guardFile, names map[string]bool) map[string]bool
 
 // importDirs maps each import's local name to its directory relative to src/studio/desktop (only this module's imports).
 func importDirs(file *ast.File) map[string]string {
-	const module = "github.com/countrymanprime/narration-utils/shell/"
+	const module = "github.com/countrymanprime/narration-studio/shell/"
 	dirs := map[string]string{}
 	for _, spec := range file.Imports {
 		importPath, _ := strconv.Unquote(spec.Path.Value)
@@ -309,7 +309,7 @@ const (
 `
 	const aliasSource = `package teleprompter
 
-import "github.com/countrymanprime/narration-utils/shell/internal/asrport"
+import "github.com/countrymanprime/narration-studio/shell/internal/asrport"
 
 const EngineMoonshine = asrport.Moonshine
 
@@ -318,8 +318,8 @@ func Local(engine string) bool { return engine == EngineMoonshine }
 	const hostSource = `package main
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/asrport"
-	tp "github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
+	tp "github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
 )
 
 const installKindMoonshine = "moonshine"

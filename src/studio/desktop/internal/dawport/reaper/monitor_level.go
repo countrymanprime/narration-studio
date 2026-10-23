@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // monitorLeveler is the monitor_level role over bridge's monitor_level (narration_levels.lua): the volume of the master track's

@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // itemGUIDPattern is a REAPER item GUID as the saved project writes it (IGUID {XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX}).

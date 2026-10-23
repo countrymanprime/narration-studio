@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
 )
 
 // extractionParagraphs are the two lines every fixture suggestion quotes.

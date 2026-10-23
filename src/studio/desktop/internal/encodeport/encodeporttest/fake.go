@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
 )
 
 // FakeEncoder is a test-only encoder: it "encodes" by copying the WAV behind a one-line header naming the format.

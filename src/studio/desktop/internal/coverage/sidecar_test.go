@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
 )
 
 // realSidecar finds the checkout's Python environment and compare.py, or
@@ -108,7 +108,7 @@ func TestTheRealSidecarRefusesAChapterItDoesNotHave(t *testing.T) {
 	// fails with exit 1 and an ERROR line, and the run is recorded as failed.
 	service.config.LoadManuscript = func() (map[string]any, error) {
 		data, err := p.loadManuscript()
-		p.writeFile("narration-utils/manuscript/manuscript.json", `{"schemaVersion":1,"documentId":"doc-1","chapters":[],"paragraphs":[]}`)
+		p.writeFile("narration-studio/manuscript/manuscript.json", `{"schemaVersion":1,"documentId":"doc-1","chapters":[],"paragraphs":[]}`)
 		return data, err
 	}
 

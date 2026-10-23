@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 func renderer(a *Adapter) dawport.FXRenderer {
@@ -22,7 +22,7 @@ func renderer(a *Adapter) dawport.FXRenderer {
 // render_with_fx carries the run, the approval, the run folder and the regions, one per line (narration_master_render.lua).
 func TestRenderWithFXWritesTheApprovalTheFolderAndTheRegions(t *testing.T) {
 	adapter, dir := newAdapter(t, nil)
-	render := dawport.FXRender{Regions: []string{"Chapter 2", "Chapter 1"}, OutputFolder: "C:/p/narration-utils/mastering/run1",
+	render := dawport.FXRender{Regions: []string{"Chapter 2", "Chapter 1"}, OutputFolder: "C:/p/narration-studio/mastering/run1",
 		Approval: "0123456789abcdef0123456789abcdef"}
 	if err := renderer(adapter).RenderWithFX("r1", render); err != nil {
 		t.Fatalf("RenderWithFX: %v", err)
@@ -36,7 +36,7 @@ func TestRenderWithFXWritesTheApprovalTheFolderAndTheRegions(t *testing.T) {
 // The adapter refuses a request the bridge would refuse anyway before anything is written: no approval, no folder, no region, or a
 // region name that would split into two.
 func TestRenderWithFXRefusesAnIncompleteRequestAndWritesNothing(t *testing.T) {
-	ok := dawport.FXRender{Regions: []string{"Chapter 1"}, OutputFolder: "C:/p/narration-utils/mastering/run1", Approval: "0123456789abcdef0123456789abcdef"}
+	ok := dawport.FXRender{Regions: []string{"Chapter 1"}, OutputFolder: "C:/p/narration-studio/mastering/run1", Approval: "0123456789abcdef0123456789abcdef"}
 	for name, tc := range map[string]struct {
 		change func(*dawport.FXRender)
 		want   error

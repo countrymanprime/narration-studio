@@ -10,7 +10,7 @@
 //   - you: lines the narrator added by hand.
 //
 // The narrator's own changes (lines added, pickups removed, pickups left out of a session, and the done state of a
-// pickup the DAW could not be told about) are kept in narration-utils/pickups/pickup-list.json, narrator data read
+// pickup the DAW could not be told about) are kept in narration-studio/pickups/pickup-list.json, narrator data read
 // through persist. The DAW's pickup markers stay the DAW-side truth for done: when the DAW answers and a listed marker
 // sits at a pickup's position, its name (PICKUP: or PICKUP_DONE:) says whether the pickup is done.
 package pickuplist
@@ -29,10 +29,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
 )
 
 // Source is where a pickup came from.

@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // TestCoverageGapReviewContract pins the answers of the gap review bindings for

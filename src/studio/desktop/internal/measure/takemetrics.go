@@ -7,7 +7,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // Take metrics are per-category evidence about one take: each

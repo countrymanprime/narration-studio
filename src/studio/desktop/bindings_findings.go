@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
 )
 
 // The review bindings: every analyzer's

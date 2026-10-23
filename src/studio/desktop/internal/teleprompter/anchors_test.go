@@ -22,7 +22,7 @@ func TestAnchorsRoundTripSortedAndDeduplicated(t *testing.T) {
 	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
 		t.Fatalf("LoadAnchors = %+v, want %+v", got, want)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-utils", "teleprompter", "c1.anchors.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(project, "narration-studio", "teleprompter", "c1.anchors.json")); err != nil {
 		t.Fatal(err)
 	}
 	if other, err := LoadAnchors(project, "c2"); err != nil || other != nil {
@@ -78,7 +78,7 @@ func TestLoadAnchorsIsEmptyWithNoFile(t *testing.T) {
 
 func TestLoadAnchorsIgnoresACorruptFile(t *testing.T) {
 	project := t.TempDir()
-	dir := filepath.Join(project, "narration-utils", "teleprompter")
+	dir := filepath.Join(project, "narration-studio", "teleprompter")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}

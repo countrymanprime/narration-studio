@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/repeats"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/repeats"
 )
 
 const (

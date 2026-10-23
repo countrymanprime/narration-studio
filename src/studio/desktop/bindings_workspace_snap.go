@@ -6,8 +6,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
-	"github.com/countrymanprime/narration-utils/shell/internal/zerocross"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/zerocross"
 )
 
 // The alignment port's snap: a cut point in an item's source moved to the nearest zero crossing within

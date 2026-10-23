@@ -10,15 +10,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport/booknlp"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport/gliner"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport/rules"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/booknlp"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/gliner"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport/rules"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
 )
 
 // The Story Bible's scan as a job (the mock's scanManuscript): the rules, then each source the narrator asked
@@ -435,7 +435,7 @@ func (h *Host) rulesCommand() (rules.Command, error) {
 	}
 	command := rules.Command{
 		Program:    config.manuscriptPython,
-		Manuscript: filepath.Join(config.projectFolder, "narration-utils", "manuscript", "manuscript.json"),
+		Manuscript: filepath.Join(config.projectFolder, "narration-studio", "manuscript", "manuscript.json"),
 		Guide:      filepath.Join(config.projectFolder, "ManuscriptGuide", "manuscript_guide.json"),
 	}
 	if _, err := os.Stat(command.Program); err != nil {

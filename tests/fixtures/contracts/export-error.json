@@ -19,8 +19,8 @@
       "title": "Chapter 01",
       "path": "C:/Renders/Chapter 01.wav",
       "status": "done",
-      "masteredPath": "C:/Project/narration-utils/render-encode-master/mastered/01-chapter.wav",
-      "encodedPath": "C:/Project/narration-utils/render-encode-master/encoded/01-chapter.mp3",
+      "masteredPath": "C:/Project/narration-studio/render-encode-master/mastered/01-chapter.wav",
+      "encodedPath": "C:/Project/narration-studio/render-encode-master/encoded/01-chapter.mp3",
       "mastering": {
         "targets": {
           "rms": -20.5,

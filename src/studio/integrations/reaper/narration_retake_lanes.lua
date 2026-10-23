@@ -16,7 +16,7 @@
 local core = ...
 local event = core.event
 
-local LINE_ID_KEY = 'P_EXT:narration_utils_line_id'
+local LINE_ID_KEY = 'P_EXT:narration_studio_line_id'
 -- REAPER's I_FREEMODE for fixed item lanes (1 is free item positioning).
 local FIXED_LANE_MODE = 2
 -- Track C_LANEPLAYS value that makes a lane the only one playing (0 silent, 2 plays with others).

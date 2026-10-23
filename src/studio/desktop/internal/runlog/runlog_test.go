@@ -204,7 +204,7 @@ func TestConcurrentRunsDoNotInterleaveLines(t *testing.T) {
 
 func TestDefaultPathSitsBesideHostLog(t *testing.T) {
 	t.Setenv("APPDATA", filepath.Join("C:", "Users", "n", "AppData", "Roaming"))
-	want := filepath.Join("C:", "Users", "n", "AppData", "Roaming", "narration-utils", "logs", "run.jsonl")
+	want := filepath.Join("C:", "Users", "n", "AppData", "Roaming", "narration-studio", "logs", "run.jsonl")
 	if got := DefaultPath(); got != want {
 		t.Fatalf("DefaultPath = %q, want %q", got, want)
 	}

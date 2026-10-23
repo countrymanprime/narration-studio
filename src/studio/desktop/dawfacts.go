@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // dawLinkFacts computes the three separate DAW facts Bootstrap carries,

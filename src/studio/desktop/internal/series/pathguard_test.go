@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/pathfixtures"
+	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
 )
 
 // The path guard (definition of done, rule 1): a series' member project paths run the shared fixture set in

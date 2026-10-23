@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
 )
 
 type File = assets.File

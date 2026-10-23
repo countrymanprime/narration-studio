@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
 )
 
 // The two LineIdentityState wire payloads src/studio/ui needs for its schema and mock. "line-identity-idle" is what LineIdentityState answers before any run;

@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/voicesample"
+	"github.com/countrymanprime/narration-studio/shell/internal/voicesample"
 )
 
 // markedSample marks "Alice." of the fixture recording as a sample of a character and answers its id and where its clip is.

@@ -3,8 +3,8 @@ package takereview
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/repeats"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/repeats"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 func TestResolveThresholdsFallsBackToConservativeBuiltinDefaults(t *testing.T) {

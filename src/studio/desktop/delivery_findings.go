@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
 )
 
 // Delivery findings on the Review page . Each file a measurement

@@ -1,6 +1,6 @@
 # Character Voice Samples: Mark How You Voiced a Character in Editing, Replay It from the Story Bible and the Booth
 
-**Source:** owner request of 2026-10-17; tracking issue [#1820](https://github.com/countrymanprime/narration-utils/issues/1820).
+**Source:** owner request of 2026-10-17; tracking issue [#1820](https://github.com/countrymanprime/narration-studio/issues/1820).
 
 **Constraints:** [Threat model](../architecture/threat-model.md), [Story Bible](../guides/using-the-app/story-bible.md), [Manuscript line identity in the REAPER project](../architecture/manuscript-line-identity.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [The standard](../architecture/interaction-feedback.md#the-standard), [Booth](../guides/using-the-app/booth.md), [voicebible.go](../../src/studio/desktop/internal/series/voicebible.go), [Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec), [Data files](../reference/data-files.md), [DAW capabilities: what each one is and what it returns](../reference/daw/capabilities.md). Proposed by this PRD: [What is stored](#what-is-stored), [Playback](#playback).
 
@@ -36,7 +36,7 @@ The narrator wants to mark, while editing, the stretches where a voice came out 
 ## Proposed Solution
 
 1. **Mark in Editing.** The narrator selects words, presses **V** (or **Voice sample** on the selection toolbar, or the word menu), picks the character, optionally names the sample ("angry, to the Duke") and adds a note, hears the range, and saves. The same selection works for **Narration**.
-2. **Where a sample is kept is a setting.** The default copies the marked stretch (with a short handle each side, cut at the nearest zero crossing) into `<project>/narration-utils/voice-samples/`, and the record keeps where it came from as provenance only; this works with every DAW and with none, and playing it never touches the DAW or the narrator's place in the project ([What is stored](#what-is-stored)). Where the DAW can label an item (REAPER), the narrator can instead, or as well, keep the sample as a label in the DAW project, so the DAW is the record and the narrator can see it outside the app ([Where a sample is kept](#where-a-sample-is-kept)).
+2. **Where a sample is kept is a setting.** The default copies the marked stretch (with a short handle each side, cut at the nearest zero crossing) into `<project>/narration-studio/voice-samples/`, and the record keeps where it came from as provenance only; this works with every DAW and with none, and playing it never touches the DAW or the narrator's place in the project ([What is stored](#what-is-stored)). Where the DAW can label an item (REAPER), the narrator can instead, or as well, keep the sample as a label in the DAW project, so the DAW is the record and the narrator can see it outside the app ([Where a sample is kept](#where-a-sample-is-kept)).
 3. **Play it in the app's own audio, served by id.** The host serves a clip by sample id through the existing `/media` handler, never by path, and the page plays it with one shared player ([Playback](#playback)). Playing is refused while a take records, and a Booth session that is listening to the narrator pauses its listening while a sample plays.
 4. **Story Bible.** A character entry gets a **Voice samples** section: play, primary, label and note, where it came from with **Open in Editing**, and, after **Edit**, delete and move. Narration's samples sit in the **Voice data** panel.
 5. **Booth.** The speaker picker shows a play control on each character who has a sample; **Voices in this scene** does the same and lists every sample; a key plays the primary sample of the current phrase's speaker without leaving the text.
@@ -209,7 +209,7 @@ Phases 1 to 4: mark in Editing, list and play in the Story Bible. Phase 5 (the B
 One sidecar folder under the project, written by the host only:
 
 ```text
-<project>/narration-utils/voice-samples/
+<project>/narration-studio/voice-samples/
   samples.json            schemaVersion 1
   clips/<id>.wav          one clip per sample, id = 32 lowercase hex
 ```
@@ -313,8 +313,8 @@ A file the app writes and reads back is not a trust boundary, so `samples.json` 
 | 3 | Mark in Editing | Selection action, word menu section, `V` row, the **Voice sample** dialog and its refusals, Editing guide | complete | Yes, with 4 | 1 |
 | 4 | Story Bible | **Voice samples** section, **Voice data** additions, orphan and state rows, entry read-only rules, Story Bible guide | complete | Yes, with 3 | 2 |
 | 5 | Booth | Spike (done, decisions log): pause listening while a sample plays. Then picker play controls with the `Listbox` trailing action, **Voices in this scene**, `V` and `Mod+Enter`, prefetch, the recording and listening guards, Booth guide | pending | No | 2, 4, the picker group |
-| 6 | Keep in the DAW | The `VoiceSamples.storage` choices **In the DAW** and **Both**: a spike in REAPER for the label shape, a bridge command to add, move and read back the label with its harness test and in-REAPER check, a capability row, playing a labelled range from its source, the "not saved in REAPER yet" state, a new ADR, the Settings control and the dialog line | spike written, not run ([S8](../research/reaper-spike-s8-voice-sample-labels.md), [#1963](https://github.com/countrymanprime/narration-utils/issues/1963)) | Yes, with 5 | 3 |
-| 7 | Later | The Editing in-page mark ([#2046](https://github.com/countrymanprime/narration-utils/issues/2046), mock drafted, not approved), merge follow, output device ([#2047](https://github.com/countrymanprime/narration-utils/issues/2047)). The series pooled view was dropped on 2026-10-19 | merge follow built; the rest pending | Yes | 4, 5 |
+| 6 | Keep in the DAW | The `VoiceSamples.storage` choices **In the DAW** and **Both**: a spike in REAPER for the label shape, a bridge command to add, move and read back the label with its harness test and in-REAPER check, a capability row, playing a labelled range from its source, the "not saved in REAPER yet" state, a new ADR, the Settings control and the dialog line | spike written, not run ([S8](../research/reaper-spike-s8-voice-sample-labels.md), [#1963](https://github.com/countrymanprime/narration-studio/issues/1963)) | Yes, with 5 | 3 |
+| 7 | Later | The Editing in-page mark ([#2046](https://github.com/countrymanprime/narration-studio/issues/2046), mock drafted, not approved), merge follow, output device ([#2047](https://github.com/countrymanprime/narration-studio/issues/2047)). The series pooled view was dropped on 2026-10-19 | merge follow built; the rest pending | Yes | 4, 5 |
 
 ### Phase details
 

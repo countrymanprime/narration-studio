@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
 )
 
 // newHostForPunchTest is newHostWithARunningTeleprompter (teleprompter_test.go) plus host.config.projectFolder, which
@@ -20,7 +20,7 @@ func newHostForPunchTest(t *testing.T) (*Host, string) {
 	t.Helper()
 	t.Setenv(fakeTeleprompterEnv, "1")
 	project := t.TempDir()
-	manuscriptPath := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	manuscriptPath := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(manuscriptPath), 0o755); err != nil {
 		t.Fatal(err)
 	}

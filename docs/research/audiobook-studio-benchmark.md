@@ -1,4 +1,4 @@
-# A Best-in-Class Audiobook Narration Studio, and How Narration Utils Compares
+# A Best-in-Class Audiobook Narration Studio, and How Narration Studio Compares
 
 **Status:** research note, 2026-09-26. Nothing here is a decision. Each recommendation needs its own PRD (and an ADR where it
 changes a recorded decision) before it is built.

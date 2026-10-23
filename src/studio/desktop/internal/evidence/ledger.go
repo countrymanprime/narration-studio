@@ -1,5 +1,5 @@
 // This file holds the ledger record type and its one-JSON-file-per-record store
-// under <project>/narration-utils/analysis/ledger/.
+// under <project>/narration-studio/analysis/ledger/.
 //
 // Callers: the recording coverage service (src/studio/desktop/internal/coverage)
 // writes one record per run, and the staleness evaluator (staleness.go) reads
@@ -37,7 +37,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // ledgerSchemaVersion is the schema version every record written by this
@@ -139,11 +139,11 @@ type LedgerRecord struct {
 }
 
 // LedgerDir is the ledger's storage directory under a project
-// (<project>/narration-utils/analysis/ledger/, one JSON file per record). It is exported so
+// (<project>/narration-studio/analysis/ledger/, one JSON file per record). It is exported so
 // manuscript.resetDerived can clear it without this package depending on
 // the manuscript package.
 func LedgerDir(project string) string {
-	return filepath.Join(project, "narration-utils", "analysis", "ledger")
+	return filepath.Join(project, "narration-studio", "analysis", "ledger")
 }
 
 // LedgerStore is the one-JSON-file-per-record store. Writes

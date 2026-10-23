@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // "Remove from recording" and "Restore": a chapter's kind changes after import, its links are cleared, and every

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/production"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/production"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // Delivery profiles: the built-in profiles are compiled into
@@ -25,12 +25,12 @@ const deliverySettingsTool = "Delivery"
 // deliveryProfilesPath resolves the per-user delivery-profiles.json, beside credit-templates.json.
 func deliveryProfilesPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-utils", deliveryprofile.FileName)
+		return filepath.Join(value, "narration-studio", deliveryprofile.FileName)
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-utils", deliveryprofile.FileName)
+		return filepath.Join(value, "AppData", "Roaming", "narration-studio", deliveryprofile.FileName)
 	}
-	return filepath.Join("AppData", "Roaming", "narration-utils", deliveryprofile.FileName)
+	return filepath.Join("AppData", "Roaming", "narration-studio", deliveryprofile.FileName)
 }
 
 // DeliveryProfilesState is what Master & QC and Settings read: every profile the narrator can choose (built-ins

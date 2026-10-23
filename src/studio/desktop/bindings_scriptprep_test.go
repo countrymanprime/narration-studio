@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/scriptprep"
+	"github.com/countrymanprime/narration-studio/shell/internal/scriptprep"
 )
 
 func decodeScriptPrep(t *testing.T) func(string, error) scriptprep.ScriptPrep {

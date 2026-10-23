@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // DAW is the row that masters with the project's own track and master FX, in the DAW.
@@ -145,7 +145,7 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 		return Result{}, err
 	}
 	runID = "master-" + runID
-	folder := filepath.Join(session.ProjectFolder, "narration-utils", "mastering", runID)
+	folder := filepath.Join(session.ProjectFolder, "narration-studio", "mastering", runID)
 	if err := os.MkdirAll(filepath.Dir(folder), 0o750); err != nil {
 		return Result{}, err
 	}

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bookmarks"
+	"github.com/countrymanprime/narration-studio/shell/internal/bookmarks"
 )
 
 // bookmarksManuscript is a two-chapter manuscript the reader would show, written where the manuscript service reads it.
@@ -16,7 +16,7 @@ const bookmarksManuscript = `{"schemaVersion":1,"documentId":"doc-1","chapters":
 func bookmarksHost(t *testing.T) (*Host, string) {
 	t.Helper()
 	project := t.TempDir()
-	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), bookmarksManuscript)
+	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), bookmarksManuscript)
 	host := NewHost()
 	next := host.config
 	next.projectFolder = project

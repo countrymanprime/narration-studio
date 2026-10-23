@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
 )
 
 // SidecarRequest is what the sidecar's --take-divergence mode needs beyond the manifest itself.

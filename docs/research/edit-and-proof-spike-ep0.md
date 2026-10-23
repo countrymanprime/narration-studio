@@ -1,6 +1,6 @@
 # Edit and proof workspace, Phase 0: spike SF, the undo questions and the peaks cost
 
-**Status: desk work done on 2026-09-25. The REAPER run is pending the owner ([#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217)).** Issue: [#546](https://github.com/countrymanprime/narration-utils/issues/546). Nothing below has been observed in a running REAPER yet. The spike script is ready to run unattended, under owner decision D3.
+**Status: desk work done on 2026-09-25. The REAPER run is pending the owner ([#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217)).** Issue: [#546](https://github.com/countrymanprime/narration-studio/issues/546). Nothing below has been observed in a running REAPER yet. The spike script is ready to run unattended, under owner decision D3.
 
 ## What changed since the PRD asked
 
@@ -15,7 +15,7 @@ The commands were built to that decision (`narration_workspace.lua`, #520), each
 | --- | --- |
 | Does a chain file load onto a take by API? | No longer asked: chains never go on a take (`docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`). The spike checks that `TrackFX_AddByName` with a chain's full path loads it onto a track and onto the master track (verification row A8). |
 | What does a split do to take FX, markers and extension data? | `add_take_fx` splits, then adds one plug-in to the middle piece. The spike logs every piece's GUID, position, length, `D_STARTOFFS`, take FX, take markers, the item's line id, the take's `P_EXT` and the fades, before and after (row A8b). |
-| Does `SetActiveTake` leave one undo point? | The spike runs `set_active_take` and checks for exactly one "Narration Utils: use take" point, that a second send adds none, and that one Undo restores take 1 (row A6). |
+| Does `SetActiveTake` leave one undo point? | The spike runs `set_active_take` and checks for exactly one "Narration Studio: use take" point, that a second send adds none, and that one Undo restores take 1 (row A6). |
 | FX folder listing | `list_fx_chains` against real `.RfxChain` files, including a nested folder and a file that is not a chain, written into the isolated resource folder (row A7). |
 | Peaks cost on a 60-minute WAV | See [Peaks cost](#peaks-cost). |
 

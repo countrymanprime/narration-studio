@@ -1,4 +1,4 @@
-# REAPER Automation Surface for narration-utils: Research Report
+# REAPER Automation Surface for narration-studio: Research Report
 
 *Generated: 2026-09-19 | REAPER version checked: v7.80 (13 Sep 2026) | Sources: about 60 (official docs, changelog, SDK headers, GitHub repos, vendor pages) | Confidence: High for documented API names and signatures, Medium for behavior and latency, Low for anything marked (U)*
 

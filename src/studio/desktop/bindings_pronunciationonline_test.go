@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline/merriamwebster"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline/pronunciationonlinetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline/merriamwebster"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline/pronunciationonlinetest"
 )
 
 const onlineTestKey = "0b5c1a3e-7d2f-4e6a-9c8b-2f1e0d9c8b7a"
@@ -106,7 +106,7 @@ func TestPronunciationOnlineNeverLogsTheKeyOrTheWord(t *testing.T) {
 			t.Errorf("a binding's error quotes the key or the word: %v", err)
 		}
 	}
-	logs := filepath.Join(appData, "narration-utils", "logs")
+	logs := filepath.Join(appData, "narration-studio", "logs")
 	read := 0
 	_ = filepath.WalkDir(logs, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || entry.IsDir() {

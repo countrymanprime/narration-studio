@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // The recording-coverage corpus: the committed synthetic cases, and
@@ -86,7 +86,7 @@ type corpusProject struct {
 func newCorpusProject(t *testing.T, manuscript []byte, chapterID string) *corpusProject {
 	t.Helper()
 	p := &corpusProject{testProject: newTestProject(t), statuses: map[string]stages.Stage{}}
-	p.writeFile("narration-utils/manuscript/manuscript.json", string(manuscript))
+	p.writeFile("narration-studio/manuscript/manuscript.json", string(manuscript))
 	p.confirm(corpusDocument, testTrack, chapterID)
 	return p
 }

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/wiktextract"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/wiktextract"
 )
 
 // PronunciationCommonsAudioOpen opens the Wikimedia Commons recording that Wiktextract's own offline pronunciation

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // AlignmentParagraph is one of the chapter's paragraphs, for the workspace to

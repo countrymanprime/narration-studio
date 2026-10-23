@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // A row's label and restored time (SN-D82, for the Backups tab's list): added within version 1, so a file without them still reads.
@@ -59,7 +59,7 @@ func TestAVersionOneFileWithoutLabelsReadsAndOneWithABadLabelIsCorrupt(t *testin
 	path := BackupsFile(project)
 	write := func(row string) {
 		t.Helper()
-		if err := os.MkdirAll(project+"/narration-utils", 0o755); err != nil {
+		if err := os.MkdirAll(project+"/narration-studio", 0o755); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(path, []byte(`{"schemaVersion":1,"backups":[`+row+`]}`), 0o600); err != nil {

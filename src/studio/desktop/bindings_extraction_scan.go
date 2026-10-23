@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
 )
 
 // The Story Bible's scan on the wire (extraction_job.go): the sources a scan can run, starting it, its state and

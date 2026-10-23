@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
 )
 
 // Unit coverage of resolveWorkspaceTarget over a hand-built coverage.AlignmentView: the shape WorkspaceGoTo

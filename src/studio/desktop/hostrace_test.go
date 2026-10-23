@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/liveflags"
-	"github.com/countrymanprime/narration-utils/shell/internal/marks"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/recents"
+	"github.com/countrymanprime/narration-studio/shell/internal/liveflags"
+	"github.com/countrymanprime/narration-studio/shell/internal/marks"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/recents"
 )
 
 // The stress test flips the project while goroutines call the read bindings.

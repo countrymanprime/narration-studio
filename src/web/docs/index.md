@@ -20,6 +20,6 @@ The sidebar follows the job, in groups:
 
 ## First steps
 
-1. Install the app from the [releases page](https://github.com/countrymanprime/narration-utils/releases) and start it.
+1. Install the app from the [releases page](https://github.com/countrymanprime/narration-studio/releases) and start it.
 2. Open or create a project: [Getting started](getting-started.md).
 3. Learn the sidebar and the header: [Navigation](navigation.md).

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // Properties are an ordered list of {key, value} facts on an entity (a Story Bible entry's facts). The host decodes the file to

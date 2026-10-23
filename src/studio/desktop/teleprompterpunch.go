@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
 )
 
 // Punch and roll: "Punch from here" on a flag resolves the flagged word's project time from the punch anchors the poll

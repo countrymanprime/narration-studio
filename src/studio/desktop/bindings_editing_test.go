@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
 )
 
 // editingProject writes a project folder with one saved .rpp (one track, one item), a manuscript and a confirmed
@@ -53,7 +53,7 @@ func editingProject(t *testing.T, unmapped bool) string {
   >
 >
 `)
-	write("narration-utils/manuscript/manuscript.json", `{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c-0001","title":"Chapter One","contentKind":"narration"}],"paragraphs":[{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice."}]}`)
+	write("narration-studio/manuscript/manuscript.json", `{"schemaVersion":1,"documentId":"doc-1","chapters":[{"id":"c-0001","title":"Chapter One","contentKind":"narration"}],"paragraphs":[{"id":"p-000001","chapterId":"c-0001","index":0,"text":"Alice."}]}`)
 	if !unmapped {
 		if _, err := evidence.NewMappingStore(project).Confirm("doc-1", "{TRACK-1}", "c-0001", "Chapter One"); err != nil {
 			t.Fatal(err)

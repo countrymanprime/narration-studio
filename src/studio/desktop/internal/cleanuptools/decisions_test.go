@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
 )
 
 // decisionRecords reads path's JSON lines and returns the ones whose event field is want.

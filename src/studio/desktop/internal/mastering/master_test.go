@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // narration is a speech-like analytic fixture: a 220 Hz voice with a 3 kHz overtone at speechAmp, 40 Hz rumble, a

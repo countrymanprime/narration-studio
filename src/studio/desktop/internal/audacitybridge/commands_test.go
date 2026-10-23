@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-utils/shell/internal/audacitybridge/audacitybridgetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
 )
 
 func ptr[T any](v T) *T { return &v }

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // undoLastTimeout bounds one last_action or undo_last request: a read, or up to 12 of REAPER's own Undo, no track read before it.

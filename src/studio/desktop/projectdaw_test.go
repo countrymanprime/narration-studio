@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // rpp-scan: only .rpp files directly in the folder count, in any case; backups and subfolders do not.

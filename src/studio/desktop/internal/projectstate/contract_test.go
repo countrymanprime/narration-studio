@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // The ProjectStateState wire payloads src/studio/ui needs for its schema and mock: "project-state-idle"

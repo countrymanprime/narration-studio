@@ -3,7 +3,7 @@ package editing
 import (
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // itemWith builds a minimal analyzable item: one WAVE take, source available,

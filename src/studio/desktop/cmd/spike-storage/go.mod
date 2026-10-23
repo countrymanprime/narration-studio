@@ -1,9 +1,9 @@
-module github.com/countrymanprime/narration-utils/shell/cmd/spike-storage
+module github.com/countrymanprime/narration-studio/shell/cmd/spike-storage
 
 go 1.26.0
 
 require (
-	github.com/countrymanprime/narration-utils/shell v0.0.0
+	github.com/countrymanprime/narration-studio/shell v0.0.0
 	github.com/ncruces/go-sqlite3 v0.35.6
 	go.etcd.io/bbolt v1.5.0
 	modernc.org/sqlite v1.60.1
@@ -24,4 +24,4 @@ require (
 	modernc.org/memory v1.12.1 // indirect
 )
 
-replace github.com/countrymanprime/narration-utils/shell => ../..
+replace github.com/countrymanprime/narration-studio/shell => ../..

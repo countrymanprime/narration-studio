@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // The sidecar's own list (test_bible_types.py writes guide-types-default-sidecar.json from manuscript_guide.py DEFAULT_TYPES).

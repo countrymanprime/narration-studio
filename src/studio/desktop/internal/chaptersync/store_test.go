@@ -17,7 +17,7 @@ func TestTheSnapshotRoundTripsAtItsDocumentedPath(t *testing.T) {
 	if err := store.Write(want); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-utils", "chapter-sync.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(project, "narration-studio", "chapter-sync.json")); err != nil {
 		t.Fatal(err)
 	}
 	got := NewStore(project).Read()

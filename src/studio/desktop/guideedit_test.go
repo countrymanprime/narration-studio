@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
-	"github.com/countrymanprime/narration-utils/shell/internal/importer"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // fakeGuideCountEnv turns this test binary into a Story Bible sidecar that only records how it was called: one JSON line of arguments per
@@ -89,7 +89,7 @@ func words(args []string) []string {
 // writeManuscript puts a manuscript with one narrated paragraph in the service's project, where the host searches for a new name.
 func writeManuscript(t *testing.T, project string) {
 	t.Helper()
-	path := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

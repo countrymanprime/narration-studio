@@ -3,8 +3,8 @@ package reaper
 import (
 	"strconv"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // The asynchronous roles: each method writes one bridge command, named and laid out exactly as its service writes it

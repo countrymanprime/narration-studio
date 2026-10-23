@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/importer"
 )
 
 func main() {

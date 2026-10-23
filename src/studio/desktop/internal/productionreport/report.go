@@ -14,16 +14,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/production"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/production"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // SchemaVersion is the version of the JSON report this package writes.
 const SchemaVersion = 2
 
 // Dir is the sidecar folder the host writes reports to, relative to the project folder; distinct from
-// narration-utils/production's own sessions.json, so an export never touches the time log.
-const Dir = "narration-utils/production/reports"
+// narration-studio/production's own sessions.json, so an export never touches the time log.
+const Dir = "narration-studio/production/reports"
 
 // Options are the narrator's choices for one export.
 type Options struct {

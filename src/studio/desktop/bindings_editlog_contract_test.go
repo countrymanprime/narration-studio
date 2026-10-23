@@ -26,7 +26,7 @@ func TestEditLogAcceptedContractGoldens(t *testing.T) {
 	// The narrator re-imports without a reset: "soldiers" became "guards" and the line lost its last word. Both records are
 	// stale, never moved.
 	edited := strings.Replace(bookmarksManuscript, "The soldiers were silent.", "The guards were", 1)
-	writeNested(t, filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), edited)
+	writeNested(t, filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), edited)
 	payload, err = host.EditingAcceptedList("c-0001")
 	checkBindingContract(t, "edit-accepted-list", payload)
 	list := decodeAcceptedWords(t)(payload, err)

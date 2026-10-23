@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
 )
 
 // fakeLocateArgsEnv names a file the fake sidecar writes its `--locate` arguments to, one per line.
@@ -408,7 +408,7 @@ func TestTeleprompterLocateOffersTheLastReadingOfAChapterWithNoTrack(t *testing.
 func TestTeleprompterLocateDropsALastReadingOfAnEditedChapter(t *testing.T) {
 	f := newTestHostForLocate(t, true)
 	f.writeLastReading(t, f.chapters[0], 58)
-	path := filepath.Join(f.host.config.projectFolder, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(f.host.config.projectFolder, "narration-studio", "manuscript", "manuscript.json")
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

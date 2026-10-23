@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	projectmanifest "github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	projectmanifest "github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // The delivery-profile bindings: the profiles and the

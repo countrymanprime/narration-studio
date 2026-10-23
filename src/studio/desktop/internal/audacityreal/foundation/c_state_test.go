@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/audacityreal"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacityreal"
 )
 
 // A3-T4: a modal dialog holds the pipe. The client's own 5 s timeout, the poller's state, no request queued behind it, a dismissal

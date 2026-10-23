@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
-	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
-	"github.com/countrymanprime/narration-utils/shell/internal/whisper"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/transcript"
+	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
 )
 
 func newTestHostForTranscriptStart(t *testing.T, body []byte, server *httptest.Server) *Host {

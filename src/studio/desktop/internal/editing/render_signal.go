@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // RenderScanState is this package's own currency check for a render scan,

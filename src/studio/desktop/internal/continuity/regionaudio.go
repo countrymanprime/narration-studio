@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/character"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/character"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // waveSourceKind is the only source kind measured.

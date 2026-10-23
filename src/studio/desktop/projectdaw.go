@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // The project's DAW is a per-project choice (dawport.ProjectKind): the launch's --daw label is an override, then the project's

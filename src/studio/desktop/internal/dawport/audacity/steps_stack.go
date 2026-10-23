@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // The steps of a stack, in the Studio Next mock's words (STACK_PLAN.steps), and of an un-stack.
@@ -46,10 +46,10 @@ const maxStackMoves = 3
 // takeTrackName is the muted track a stacked read is pasted to. It records what an un-stack needs, as REAPER's take P_EXT does:
 // the take, where the read was recorded, and the backup the stack made, which holds the audio the stack took out of the chapter.
 func takeTrackName(takeID string, from float64, backup string) string {
-	return "Narration Utils take " + takeID + " from " + strconv.FormatFloat(from, 'f', 3, 64) + " s, backup " + backup
+	return "Narration Studio take " + takeID + " from " + strconv.FormatFloat(from, 'f', 3, 64) + " s, backup " + backup
 }
 
-var takeTrack = regexp.MustCompile(`^Narration Utils take (.+) from ([0-9]+\.[0-9]{3}) s, backup (\{[0-9A-F-]{36}\})$`)
+var takeTrack = regexp.MustCompile(`^Narration Studio take (.+) from ([0-9]+\.[0-9]{3}) s, backup (\{[0-9A-F-]{36}\})$`)
 
 // takeOnTrack is a take track as its name records it.
 type takeOnTrack struct {

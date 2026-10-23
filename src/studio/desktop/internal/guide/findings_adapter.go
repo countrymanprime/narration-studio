@@ -30,7 +30,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
 )
 
 // analyzerName is the Store partition this adapter's findings are saved

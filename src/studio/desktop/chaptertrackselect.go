@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // "Select in REAPER": from the chapter track slide-over's Link section, brings the narrator's attention to a track

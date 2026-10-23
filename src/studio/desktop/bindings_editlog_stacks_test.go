@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/recording/recordingtest"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
 )
 
 // stackRequest is a passage's two later reads stacked on its first read, as the app sends it after REAPER accepted stackTakes:

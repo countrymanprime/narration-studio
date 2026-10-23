@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
 )
 
 // sentenceVerifyFirst refuses Mark reviewed on an entry with suggestions still to verify; the UI's button says the same.

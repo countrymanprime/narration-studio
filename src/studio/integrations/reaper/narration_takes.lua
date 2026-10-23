@@ -61,7 +61,7 @@
 local core = ...
 local event = core.event
 
-local HIDDEN_KEY = 'P_EXT:narration_utils_take_hidden_volume'
+local HIDDEN_KEY = 'P_EXT:narration_studio_take_hidden_volume'
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()
@@ -170,9 +170,9 @@ local UNDO_STACK = 'Narration Studio: stack takes'
 local UNDO_UNSTACK = 'Narration Studio: unstack takes'
 -- What a stacked take records: the read's item GUID, its take GUID, its track GUID, its start and its offset from the
 -- first read's start, '|'-separated.
-local STACK_KEY = 'P_EXT:narration_utils_stacked_from'
+local STACK_KEY = 'P_EXT:narration_studio_stacked_from'
 -- The Cuts track's key and name, as narration_range.lua's delete_range writes them.
-local CUTS_KEY = 'P_EXT:narration_utils_cuts'
+local CUTS_KEY = 'P_EXT:narration_studio_cuts'
 local CUTS_NAME = 'Cuts'
 -- How far a read may sit from the time the app sent and still be the read it meant: the host rounds times to a tenth.
 local POSITION_TOLERANCE = 0.05
@@ -740,7 +740,7 @@ end
 
 local UNDO_SPLIT = 'Narration Studio: split take'
 -- What the new take records: the item and take it was cut from and the cut's offset from the item's start, '|'-separated.
-local SPLIT_KEY = 'P_EXT:narration_utils_split_from'
+local SPLIT_KEY = 'P_EXT:narration_studio_split_from'
 local SPLIT_UNREADABLE = 'The split request is not readable, so nothing changed.'
 
 local function split_take(session_dir, run_id, item_text, take_text, at_text)

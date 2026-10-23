@@ -1,6 +1,6 @@
 # Manuscript Teleprompter
 
-**Status: Shipped.** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog) exist. This document is the design record; what the narrator sees is in the [Booth guide](../guides/using-the-app/booth.md). The sidecar follows the narrator's reading in a known script and reports suspected reading errors as flags. It never edits the manuscript or the audio. Open work, including the default engine, is tracked in [#1476](https://github.com/countrymanprime/narration-utils/issues/1476).
+**Status: Shipped.** The ASR sidecar, its Go host relay and the Booth page (which replaced the Teleprompter page and the Manuscript's Read aloud dialog) exist. This document is the design record; what the narrator sees is in the [Booth guide](../guides/using-the-app/booth.md). The sidecar follows the narrator's reading in a known script and reports suspected reading errors as flags. It never edits the manuscript or the audio. Open work, including the default engine, is tracked in [#1476](https://github.com/countrymanprime/narration-studio/issues/1476).
 
 ## Position-tracking behavior
 
@@ -322,7 +322,7 @@ sequenceDiagram
 `scripts/release/verify-installable.mjs`. On Windows it carries the Moonshine
 engine too: `moonshine-voice` is pinned for Windows only, its
 `ctypes`-loaded `moonshine.dll` and `onnxruntime.dll` are collected by hand and
-required by `verify-installable.mjs`, and `narration-utils --smoke` runs
+required by `verify-installable.mjs`, and `narration-studio --smoke` runs
 `manuscript-teleprompter --capabilities --verify` to prove they load
 (this generic flag replaced the bespoke `--check-moonshine`; [live_asr.py](../../src/studio/sidecars/manuscript-teleprompter/core/live_asr.py)). The frozen
 sidecar runs Moonshine only from a `--model-dir` holding every file of
@@ -460,7 +460,7 @@ keep going").
 .
   While REAPER records onto the track, nothing is located (`recording`).
 - **Where the prompter was.** The last word the tracker read, kept per chapter in
-  `<project>/narration-utils/teleprompter/<chapter>.reading.json` when a session
+  `<project>/narration-studio/teleprompter/<chapter>.reading.json` when a session
   ends, and dropped when the chapter's text changes
   ([Data files](../reference/data-files.md)).
 - **The verdict.** `teleprompter.Reconcile` gives one of `agree` (within 10 words
@@ -506,7 +506,7 @@ Nothing here writes to REAPER; moving REAPER's cursor to a word is punch-and-rol
 A punch after its preview reuses the preview's alignment; a successful punch drops the anchors at or after the word.
 What REAPER documents for an unsaved take's file, a `SECTION` source's file name and a take still recording is in
 [REAPER: media sources and recording](../reference/daw/reaper.md#media-sources-and-recording); none of it has been run
-in REAPER yet ([#1476](https://github.com/countrymanprime/narration-utils/issues/1476)).
+in REAPER yet ([#1476](https://github.com/countrymanprime/narration-studio/issues/1476)).
 
 ## The passage map
 
@@ -514,7 +514,7 @@ The Booth writes a passage map while it records, so Editing can list a Booth-rec
 the audio (`PassageMapRecordRun` and `PassageMapList`, `src/studio/desktop/bindings_passagemap.go`,
 `src/studio/desktop/internal/passagemap`; host API 95).
 
-- **The file.** `<project>/narration-utils/passagemap.json`: `{ "schemaVersion": 1, "marks": [...] }`. Each mark is
+- **The file.** `<project>/narration-studio/passagemap.json`: `{ "schemaVersion": 1, "marks": [...] }`. Each mark is
   `{ id, run, chapterId, pid, word, sec, kind, prev?, itemGuid, takeGuid }`; `kind` is `start`, `roll` or `stop`, and a
   roll or a stop's `prev` is where the take before it ended. A run is one Record to Stop of one chapter: a start, any
   rolls, a stop. Run ids are `<chapterId>.<n>` in the order the chapter's runs were recorded, mark ids `<run>.<index>`.

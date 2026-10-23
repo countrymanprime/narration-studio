@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/liveflags"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/liveflags"
 )
 
 // TeleprompterSaveFlags writes a read-aloud session's suspected flags into the project's findings store as unreviewed

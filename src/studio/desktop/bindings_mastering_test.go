@@ -7,10 +7,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport/masteringporttest"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport/masteringporttest"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // TestMasteringProvidersGoldenIsCurrent pins MasteringProviders' five answers on Windows: no project, a project that chose the

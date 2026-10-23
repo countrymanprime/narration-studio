@@ -728,7 +728,7 @@
   {
     "name": "a folder outside the app's mastering folder is accepted",
     "file": "narration_master_render.lua",
-    "find": "if count < 4 or parts[count - 2] ~= 'narration-utils' or parts[count - 1] ~= 'mastering' then",
+    "find": "if count < 4 or parts[count - 2] ~= 'narration-studio' or parts[count - 1] ~= 'mastering' then",
     "replace": "if count < 1 then"
   },
   {
@@ -2474,5 +2474,35 @@
     "file": "narration_transport.lua",
     "find": "text:match('^%d+$') or text:match('^%d+%.%d+$')",
     "replace": "text:match('^-?%d+$') or text:match('^-?%d+%.%d+$')"
+  },
+  {
+    "name": "the carry-over overwrites a value already under the current key",
+    "file": "narration_rename.lua",
+    "find": "if not current or current == '' then",
+    "replace": "if true then"
+  },
+  {
+    "name": "the carry-over leaves the old key in place",
+    "file": "narration_rename.lua",
+    "find": "      get_set(object, OLD .. key, '', true)\n",
+    "replace": "\n"
+  },
+  {
+    "name": "the carry-over runs on every command",
+    "file": "narration_rename.lua",
+    "find": "    if not project or done[key] then",
+    "replace": "    if not project then"
+  },
+  {
+    "name": "takes are not carried over",
+    "file": "narration_rename.lua",
+    "find": "moved = moved + carry(reaper.GetSetMediaItemTakeInfo_String, take, M.TAKE_KEYS)",
+    "replace": "moved = moved"
+  },
+  {
+    "name": "the bridge never carries keys over",
+    "file": "narration_ui_bridge.lua",
+    "find": "          carry_over()\n",
+    "replace": "\n"
   }
 ]

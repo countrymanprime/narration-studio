@@ -1,6 +1,6 @@
 # Public site demo against the real app
 
-**Date:** 2026-10-18. **Status:** evidence for the owner; nothing here is decided or built. **Answers:** where the mockup demo of [PR #1825](https://github.com/countrymanprime/narration-utils/pull/1825) differs from the real app and the Studio Next mock, and which differences are improvements worth taking. **Compared:** [the mockup](mockups/public-site/index.html) (`docs/research/mockups/public-site/index.html`), [its research note](public-site-benchmark.md), the real UI in `src/studio/ui`, the Studio Next mock in `docs/research/mockups/studio-next/` and the guides in `docs/guides/using-the-app/`.
+**Date:** 2026-10-18. **Status:** evidence for the owner; nothing here is decided or built. **Answers:** where the mockup demo of [PR #1825](https://github.com/countrymanprime/narration-studio/pull/1825) differs from the real app and the Studio Next mock, and which differences are improvements worth taking. **Compared:** [the mockup](mockups/public-site/index.html) (`docs/research/mockups/public-site/index.html`), [its research note](public-site-benchmark.md), the real UI in `src/studio/ui`, the Studio Next mock in `docs/research/mockups/studio-next/` and the guides in `docs/guides/using-the-app/`.
 
 ## How this was checked
 

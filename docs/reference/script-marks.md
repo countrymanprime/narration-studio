@@ -6,7 +6,7 @@ A mark is a range of one paragraph of the manuscript, marked with one of the nar
 
 ## The file
 
-`<project>/narration-utils/marks.json`, schema version 1:
+`<project>/narration-studio/marks.json`, schema version 1:
 
 | Field | Holds |
 | --- | --- |
@@ -30,7 +30,7 @@ It is narrator data, read through `persist`: a corrupt file, one over the byte c
 
 ## The old notes and the prep markup
 
-The first read of a project with no `marks.json` brings the reader's notes (`narration-utils/manuscript-notes.json`) across once: one `note` mark per note, on its anchor range when it has one, else an empty range at the start of its line, its text made plain and cut to the cap. The file is then written with `migratedNotes: true`, so a later read does not import again. The old file is only read, never changed or deleted. The old prep markup (`prep/markup.json`: stress, pause, speaker tags) is not carried: the mock has no such markup. Both old stores keep working until the Studio Next Script page replaces the old one.
+The first read of a project with no `marks.json` brings the reader's notes (`narration-studio/manuscript-notes.json`) across once: one `note` mark per note, on its anchor range when it has one, else an empty range at the start of its line, its text made plain and cut to the cap. The file is then written with `migratedNotes: true`, so a later read does not import again. The old file is only read, never changed or deleted. The old prep markup (`prep/markup.json`: stress, pause, speaker tags) is not carried: the mock has no such markup. Both old stores keep working until the Studio Next Script page replaces the old one.
 
 ## The bindings
 

@@ -58,8 +58,8 @@ script text against what was said. The workflow is documented in
 ## Project files
 
 Settings are layered: a repo-wide default, a per-user **Global** value in
-`%APPDATA%\narration-utils\global-settings.json`, and an optional **This Project** override in
-`<project folder>\narration-utils\settings.json`. Both files are plain JSON, not REAPER ExtState.
+`%APPDATA%\narration-studio\global-settings.json`, and an optional **This Project** override in
+`<project folder>\narration-studio\settings.json`. Both files are plain JSON, not REAPER ExtState.
 
 Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 

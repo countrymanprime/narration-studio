@@ -10,8 +10,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // Timeout bounds one call to the DAW: each is a single quick request.
@@ -32,8 +32,8 @@ const (
 const (
 	badTime      = "That place is not a usable number of seconds."
 	unknown      = "Unknown transport action."
-	notConnected = "%s is not connected to this app. Open this app from the Narration Utils action in %s."
-	notAnswering = "%s is not answering. Check that %s is open and the Narration Utils action is running, then try again."
+	notConnected = "%s is not connected to this app. Open this app from the Narration Studio action in %s."
+	notAnswering = "%s is not answering. Check that %s is open and the Narration Studio action is running, then try again."
 	otherProject = "%s does not have this book's project open, so its transport was left alone. Open the project in %s, then try again."
 	recording    = "%s is recording. Stop recording first."
 	failed       = "%s could not do that: %s."

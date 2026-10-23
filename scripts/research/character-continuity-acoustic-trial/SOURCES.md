@@ -46,5 +46,5 @@ be replaced with:
 
 Every generated WAV file, `manifest.json`, and `results.json` this trial produces is scratch
 data written outside this repository (the session's scratch directory, never a path under
-`narration-utils/`). Nothing audio- or output-shaped is committed; only these scripts, this
+`narration-studio/`). Nothing audio- or output-shaped is committed; only these scripts, this
 sources file, and [the write-up](../../../docs/research/character-continuity-acoustic-trial.md) are.

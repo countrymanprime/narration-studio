@@ -7,9 +7,9 @@ Unicode true
 ##
 ##  - Per user. No administrator prompt; the program goes under %LOCALAPPDATA%\Programs and the uninstall entry under HKCU. The app
 ##    replaces itself in place when it updates (docs/architecture/in-app-update.md) and needs an install folder it can write to.
-##  - The program is narration-utils.exe, the name the REAPER launcher and the updater expect, not "Narration Utils.exe".
-##  - The setup file is built as narration-utils-windows-x64-setup.exe (scripts/release/assets.mjs, and a test keeps the two equal);
-##    packaging releases it as narration-utils-<version>-windows-x64-setup.exe, like every other release asset.
+##  - The program is narration-studio.exe, the name the REAPER launcher and the updater expect, not "Narration Studio.exe".
+##  - The setup file is built as narration-studio-windows-x64-setup.exe (scripts/release/assets.mjs, and a test keeps the two equal);
+##    packaging releases it as narration-studio-<version>-windows-x64-setup.exe, like every other release asset.
 ##  - The Start Menu entries are always made: the app, and "for Audacity" (--daw Audacity, the Audacity launcher). The desktop
 ##    shortcut is a choice on the components page.
 ##  - The uninstaller removes only what the installer and the updater put in the install folder, never the folder's other contents
@@ -33,11 +33,12 @@ Unicode true
 !if "${WAILS_INSTALL_SCOPE}" != "user"
   !error "Narration Studio installs per user: the updater must be able to replace the program in its folder."
 !endif
-!define PRODUCT_EXECUTABLE "narration-utils.exe"
-!define UNINST_KEY_NAME "NarrationUtils"
-!define SETUP_FILE "narration-utils-windows-x64-setup.exe"
+!define PRODUCT_EXECUTABLE "narration-studio.exe"
+!define UNINST_KEY_NAME "NarrationStudio"
+!define SETUP_FILE "narration-studio-windows-x64-setup.exe"
 
 !include "wails_tools.nsh"
+!include "legacy.nsh"
 
 # The version information for this two must consist of 4 parts
 VIProductVersion "${INFO_PRODUCTVERSION}.0"
@@ -62,7 +63,7 @@ ManifestDPIAware true
 
 !define MUI_WELCOMEPAGE_TEXT "This installs ${INFO_PRODUCTNAME} ${INFO_PRODUCTVERSION} for your user account only. It needs no administrator rights.$\r$\n$\r$\nThis build is not signed, so Windows may have warned you before this window opened.$\r$\n$\r$\nClose ${INFO_PRODUCTNAME} first if it is running. Once installed, it updates itself from Settings, About and updates, after you click."
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXECUTABLE}"
-!define MUI_UNCONFIRMPAGE_TEXT_TOP "This removes ${INFO_PRODUCTNAME} and its shortcuts from this computer.$\r$\n$\r$\nIt leaves your settings (%APPDATA%\narration-utils), the voices and models you downloaded (%LOCALAPPDATA%\narration-utils) and everything in your project folders where they are. Delete those yourself if you want them gone."
+!define MUI_UNCONFIRMPAGE_TEXT_TOP "This removes ${INFO_PRODUCTNAME} and its shortcuts from this computer.$\r$\n$\r$\nIt leaves your settings (%APPDATA%\narration-studio), the voices and models you downloaded (%LOCALAPPDATA%\narration-studio) and everything in your project folders where they are. Delete those yourself if you want them gone."
 
 !insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
 !insertmacro MUI_PAGE_COMPONENTS # The desktop shortcut is optional.
@@ -84,6 +85,7 @@ ShowUninstDetails show
 
 Function .onInit
    !insertmacro wails.checkArchitecture
+   !insertmacro legacy.adoptInstallDir
 FunctionEnd
 
 Section "${INFO_PRODUCTNAME} (required)"
@@ -96,9 +98,6 @@ Section "${INFO_PRODUCTNAME} (required)"
 
     !insertmacro wails.files
 
-    # Versions before the rename named the entries "Narration Utils"; an install over one replaces them.
-    Delete "$SMPROGRAMS\Narration Utils.lnk"
-    Delete "$SMPROGRAMS\Narration Utils for Audacity.lnk"
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     # The Audacity launcher: Audacity cannot start a program, so this entry does it instead,
     # with exactly --daw Audacity. The narrator picks the project in the app.
@@ -109,11 +108,11 @@ Section "${INFO_PRODUCTNAME} (required)"
 
     !insertmacro wails.writeUninstaller
     WriteRegStr HKCU "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
+    !insertmacro legacy.removeOldInstall
 SectionEnd
 
 Section "Desktop shortcut"
     !insertmacro wails.setShellContext
-    Delete "$DESKTOP\Narration Utils.lnk"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 SectionEnd
 
@@ -139,5 +138,5 @@ Section "uninstall"
     # Removes the folder only when nothing else is in it: the folder may be one the narrator chose and shares with other files.
     RMDir "$INSTDIR"
 
-    DetailPrint "Left in place: your settings (%APPDATA%\narration-utils), your downloaded voices and models (%LOCALAPPDATA%\narration-utils) and your project folders."
+    DetailPrint "Left in place: your settings (%APPDATA%\narration-studio), your downloaded voices and models (%LOCALAPPDATA%\narration-studio) and your project folders."
 SectionEnd

@@ -29,11 +29,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 type sample struct {
@@ -279,7 +279,7 @@ func TestLatency(t *testing.T) {
 	var report strings.Builder
 
 	full := t.TempDir()
-	target := filepath.Join(full, "narration-utils", "manuscript", "manuscript.json")
+	target := filepath.Join(full, "narration-studio", "manuscript", "manuscript.json")
 	fullWords := 0
 	if supplied := os.Getenv("LATENCY_MANUSCRIPT"); supplied != "" {
 		raw, err := os.ReadFile(supplied)
@@ -300,7 +300,7 @@ func TestLatency(t *testing.T) {
 	}
 	if !goOnly {
 		small := t.TempDir()
-		smallWords, err := synthManuscript(filepath.Join(small, "narration-utils", "manuscript", "manuscript.json"), 3, 10)
+		smallWords, err := synthManuscript(filepath.Join(small, "narration-studio", "manuscript", "manuscript.json"), 3, 10)
 		if err != nil {
 			t.Fatal(err)
 		}

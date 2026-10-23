@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/packager"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/packager"
 )
 
 // packageHost is a host with an export job already holding encoded files, ready to package.
@@ -55,16 +55,16 @@ func TestPackageRefusesAnUnknownProfile(t *testing.T) {
 
 func TestPackageRefusesAnOutputFolderInsideTheProjectsSidecarTree(t *testing.T) {
 	project := t.TempDir()
-	encoded := filepath.Join(project, "narration-utils", "render-encode-master", "encoded", "01.mp3")
+	encoded := filepath.Join(project, "narration-studio", "render-encode-master", "encoded", "01.mp3")
 	writeFixtureFile(t, encoded, "encoded")
 	host := packageHost(t, encoded)
 	host.config.projectFolder = project
 	host.pickPackageFolder = func() (string, error) {
-		return filepath.Join(project, "narration-utils", "render-encode-master", "package"), nil
+		return filepath.Join(project, "narration-studio", "render-encode-master", "package"), nil
 	}
 	items := []PackageItem{{Kind: string(packager.KindChapter), Title: "01", Path: encoded}, {Kind: string(packager.KindRetailSample), Path: encoded}, {Kind: string(packager.KindCreditsOpening), Path: encoded}, {Kind: string(packager.KindCreditsClosing), Path: encoded}}
 	_, err := host.startPackage(PackageRequest{ProfileID: "acx", Items: items})
-	if err == nil || !strings.Contains(err.Error(), "narration-utils") {
+	if err == nil || !strings.Contains(err.Error(), "narration-studio") {
 		t.Fatalf("expected a sidecar-tree refusal, got %v", err)
 	}
 }
@@ -257,14 +257,14 @@ func TestDeliveryOpenPackageFolderOpensTheLastBuiltFolderAndRefusesWithoutOne(t 
 }
 
 // TestInSidecarTreeComparesResolvedPaths is the state matrix for the sidecar-tree refusal: every spelling of the
-// project's narration-utils folder that names the same place is refused, and a sibling that only shares a prefix is not.
+// project's narration-studio folder that names the same place is refused, and a sibling that only shares a prefix is not.
 func TestInSidecarTreeComparesResolvedPaths(t *testing.T) {
 	project := t.TempDir()
-	sidecar := filepath.Join(project, "narration-utils")
+	sidecar := filepath.Join(project, "narration-studio")
 	if err := os.MkdirAll(filepath.Join(sidecar, "package"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.MkdirAll(filepath.Join(project, "narration-utils-copy"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(project, "narration-studio-copy"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	elsewhere := t.TempDir()
@@ -285,13 +285,13 @@ func TestInSidecarTreeComparesResolvedPaths(t *testing.T) {
 		{"the sidecar folder", func(*testing.T) string { return sidecar }, true},
 		{"inside it", func(*testing.T) string { return filepath.Join(sidecar, "package") }, true},
 		{"inside it, not made yet", func(*testing.T) string { return filepath.Join(sidecar, "new", "deeper") }, true},
-		{"spelled with dot segments", func(*testing.T) string { return filepath.Join(project, "x", "..", "narration-utils", "package") }, true},
+		{"spelled with dot segments", func(*testing.T) string { return filepath.Join(project, "x", "..", "narration-studio", "package") }, true},
 		{"through a symlink to it", func(t *testing.T) string { return linkTo(t, sidecar) }, true},
 		{"through a symlink to it, not made yet", func(t *testing.T) string { return filepath.Join(linkTo(t, sidecar), "new") }, true},
-		{"through a symlink to the project", func(t *testing.T) string { return filepath.Join(linkTo(t, project), "narration-utils", "package") }, true},
+		{"through a symlink to the project", func(t *testing.T) string { return filepath.Join(linkTo(t, project), "narration-studio", "package") }, true},
 		{"the project folder", func(*testing.T) string { return project }, false},
-		{"a sibling sharing the prefix", func(*testing.T) string { return filepath.Join(project, "narration-utils-copy") }, false},
-		{"a symlink to a sibling", func(t *testing.T) string { return linkTo(t, filepath.Join(project, "narration-utils-copy")) }, false},
+		{"a sibling sharing the prefix", func(*testing.T) string { return filepath.Join(project, "narration-studio-copy") }, false},
+		{"a symlink to a sibling", func(t *testing.T) string { return linkTo(t, filepath.Join(project, "narration-studio-copy")) }, false},
 		{"another folder", func(*testing.T) string { return elsewhere }, false},
 		{"a folder that does not exist", func(*testing.T) string { return filepath.Join(elsewhere, "nope", "deeper") }, false},
 	}
@@ -305,11 +305,11 @@ func TestInSidecarTreeComparesResolvedPaths(t *testing.T) {
 	}
 	t.Run("a sidecar folder that is itself a symlink", func(t *testing.T) {
 		realProject, realSidecar := t.TempDir(), t.TempDir()
-		if err := os.Symlink(realSidecar, filepath.Join(realProject, "narration-utils")); err != nil {
+		if err := os.Symlink(realSidecar, filepath.Join(realProject, "narration-studio")); err != nil {
 			t.Fatalf("cannot create a symlink (Windows needs Developer Mode or an elevated shell): %v", err)
 		}
 		if !inSidecarTree(realProject, filepath.Join(realSidecar, "package")) {
-			t.Fatal("the real folder behind a linked narration-utils was not refused")
+			t.Fatal("the real folder behind a linked narration-studio was not refused")
 		}
 	})
 	t.Run("no open project", func(t *testing.T) {

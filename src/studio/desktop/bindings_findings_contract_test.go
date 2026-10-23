@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/guide"
-	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
-	"github.com/countrymanprime/narration-utils/shell/internal/transcript"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/guide"
+	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
+	"github.com/countrymanprime/narration-studio/shell/internal/transcript"
 )
 
 // contractManuscriptLookup resolves every Transcript Compare chapter title to one chapter and paragraph id, as

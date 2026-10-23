@@ -6,6 +6,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
 )
 
 // protection is how this build seals a value: DPAPI, current-user scope (ADR 0002 Q10).
@@ -13,7 +15,7 @@ const protection = "dpapi"
 
 // entropy ties a sealed value to this app: another program of the same Windows user calling CryptUnprotectData on the
 // blob also needs these bytes. It is not a secret, only a scope.
-var entropy = []byte("narration-utils credentialstore v1")
+var entropy = []byte("narration-studio credentialstore v1")
 
 func blob(b []byte) *windows.DataBlob {
 	if len(b) == 0 {
@@ -30,10 +32,15 @@ func protect(plain []byte) ([]byte, error) {
 	return takeBlob(out), nil
 }
 
+// unprotect opens a sealed value. A value sealed before the rename used the old entropy (legacyname.CredentialEntropy); it opens
+// with that, and is sealed with the current entropy the next time the narrator saves the key.
 func unprotect(sealed []byte) ([]byte, error) {
 	var out windows.DataBlob
-	if err := windows.CryptUnprotectData(blob(sealed), nil, blob(entropy), 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out); err != nil {
-		return nil, err
+	err := windows.CryptUnprotectData(blob(sealed), nil, blob(entropy), 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out)
+	if err != nil {
+		if legacyErr := windows.CryptUnprotectData(blob(sealed), nil, blob(legacyname.CredentialEntropy), 0, nil, windows.CRYPTPROTECT_UI_FORBIDDEN, &out); legacyErr != nil {
+			return nil, err
+		}
 	}
 	return takeBlob(out), nil
 }

@@ -9,10 +9,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/daw"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/daw"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // DawReduceRangeGain (SN-E100). What REAPER does with the stretches is narration_range.lua's (reduce_range_gain_test.lua) and what

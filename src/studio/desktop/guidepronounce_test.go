@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 func TestGuidePronounceSendsTheEntityAndSource(t *testing.T) {

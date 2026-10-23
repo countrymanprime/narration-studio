@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/repeats"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/repeats"
 )
 
 func TestScanPassesTheProgressPathToTheSidecar(t *testing.T) {

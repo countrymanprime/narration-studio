@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // The per-run options CoverageStart reads from its options map, beside "model" and "skipRecheck". Each one a run does not

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/dawporttest"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/dawporttest"
 )
 
 // fakeRoles is a fake REAPER adapter declaring every capability Experimental, so its GainAdjuster role

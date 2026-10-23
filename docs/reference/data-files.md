@@ -4,7 +4,7 @@ The files the app writes and reads back for the narrator: where each one lives, 
 
 A file from outside the app (a manuscript, a REAPER or Audacity project, an archive, a downloaded file, an answered query file from an author) is not listed here; its row is in the [threat model](../architecture/threat-model.md).
 
-Checked against the code on 2026-10-12 (`main` at `5bac319`). Paths in the tables are under `src/studio/desktop/` unless they start with a repo folder.
+Checked against the code on 2026-10-12 (`main` at `5bac319`); folder names updated for the rename on 2026-10-23. Paths in the tables are under `src/studio/desktop/` unless they start with a repo folder.
 
 ## How the app reads a file back
 
@@ -51,7 +51,7 @@ No file has a JSON Schema of its own. A golden under `tests/fixtures/contracts/`
 
 ## Project files
 
-Files under the project's own `narration-utils/` folder. They travel with the project. Location is relative to `<project>/narration-utils/`.
+Files under the project's own `narration-studio/` folder. They travel with the project. Location is relative to `<project>/narration-studio/`.
 
 | File | Location | Written by | Read by | Schema or golden | Retention | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -108,7 +108,7 @@ Location is relative to `<project>/`.
 
 ## Per-user files
 
-Files under `%APPDATA%\narration-utils` (if `APPDATA` is empty, `%USERPROFILE%\AppData\Roaming\narration-utils`). They belong to the Windows user, not to a project. Location is relative to that folder.
+Files under `%APPDATA%\narration-studio` (if `APPDATA` is empty, `%USERPROFILE%\AppData\Roaming\narration-studio`). They belong to the Windows user, not to a project. Location is relative to that folder.
 
 | File | Location | Written by | Read by | Schema or golden | Retention | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -126,26 +126,56 @@ Files under `%APPDATA%\narration-utils` (if `APPDATA` is empty, `%USERPROFILE%\A
 
 ### Per-user cache
 
-Files under `%LOCALAPPDATA%\narration-utils` (Go's `os.UserCacheDir`). Each can be rebuilt or downloaded again.
+Files under `%LOCALAPPDATA%\narration-studio` (Go's `os.UserCacheDir`). Each can be rebuilt or downloaded again.
 
 | File | Location | Written by | Read by | Schema or golden | Retention | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | [`manifest.json`](../../src/studio/desktop/internal/assets/manifest.go) (asset install record) | `assets/<kind>/<provider>/<id>/<version>/manifest.json` | `AssetsInstall`, verify, repair | `AssetsList` and every asset's readiness check | None | Kept until `AssetsRemove`. Staging folders are removed after 7 days and aside copies after 1 hour, except for wiktextract. Safe to delete: the asset is downloaded again | Own reader, no version: a bad manifest means every file is hashed again. The stored URL is never fetched. The extracted file paths are joined to the install folder with no containment check on read |
 | [`index.bin`](../../src/studio/desktop/internal/dictionary/index.go), [`wiktextract-index.json`](../../src/studio/desktop/internal/wiktextract/build.go) | Inside the dictionary and wiktextract asset folders | Built at install or repair | `SystemLookup`; the Story Bible sidecar's pronunciation lookup | None | As the asset | The asset is hashed against its manifest before first use. `index.bin` caps a record at 1 MiB. A wiktextract audio name becomes a Wikimedia Commons URL the browser opens, on a fixed host |
 | Runtime folder | `runtime/v1-<hash>/` | First start of each release build, unpacking the bundled sidecars and scripts | Every sidecar launch | None | A new folder for each build that changes the bundle; old ones are never removed. Safe to delete when the app is closed | Holds programs the host runs; only the `.complete` marker is checked on later starts ([threat model](../architecture/threat-model.md) row 4c) |
-| `narration-utils-app-path.txt` | `<user cache>/narration-utils/reaper/` (the one folder the REAPER scripts run from, updated in place on each start; a copy also sits in `runtime/v1-<hash>/reaper/`) | Every start (`app.go`) | The REAPER launcher script, which runs the program it names (`src/studio/integrations/reaper/NarrationStudio_Launcher.lua`) | None | Rewritten each start | **Names a program REAPER runs** ([The version inside the program](../operations/ci-and-releases.md#the-version-inside-the-program), [in-app update](../architecture/in-app-update.md)) |
+| `narration-studio-app-path.txt` | `<user cache>/narration-studio/reaper/` (the one folder the REAPER scripts run from, updated in place on each start; a copy also sits in `runtime/v1-<hash>/reaper/`) | Every start (`app.go`) | The REAPER launcher script, which runs the program it names (`src/studio/integrations/reaper/NarrationStudio_Launcher.lua`) | None | Rewritten each start | **Names a program REAPER runs** ([The version inside the program](../operations/ci-and-releases.md#the-version-inside-the-program), [in-app update](../architecture/in-app-update.md)) |
 | [`check.json`](../../src/studio/desktop/internal/update/check.go) | `update/check.json` | The update check (at most once a day, or **Check now**) | `UpdateStatus`, startup | `update-status-*.json` (binding) | Overwritten each check. Safe to delete | Healed; `schema` must be 1. Releases are checked again and their URLs rebuilt from the compiled-in repository on every read; the ETag, back-off time and failure text are not (row 2a) |
 | [`pending.json`](../../src/studio/desktop/internal/update/install.go) | `update/pending.json` | The update install | Startup and the first bootstrap after an update | None | Deleted on confirm or rollback, or after 7 days. Deleting it loses the automatic rollback for that update | Own reader, no version. The executable it names is only compared with the running one (row 2e) |
 | [`staged.json`](../../src/studio/desktop/internal/update/stage.go) | `update/staged/app-update/<platform>/<version>/` with the zip and the program | `UpdateDownload`, after the zip's checksum matches | The update install | None | Staging a new version removes the others; the installed version's copy stays until the next update | Own reader, no version: tag, digests, regular file and exact size checked. **Names the program that is installed and run**; the installer hashes it again ([in-app update](../architecture/in-app-update.md)) |
 
 `update/` falls back to the system temp folder when there is no cache folder.
 
+## The move from the old name
+
+Builds before the rename (#2251 item 41) kept every folder and key on this page under the product's old name. The first start of a
+newer build moves them once, in `src/studio/desktop/internal/legacyname` (called from `legacy_names.go`), before anything reads them:
+
+| What | Moved to | When |
+| --- | --- | --- |
+| The per-user folder under `%APPDATA%` | `%APPDATA%\narration-studio` | At start, before the update check and the settings are read |
+| The WebView2 profile Wails keeps beside it, named after the old program file (the page's own storage: reader and output preferences) | `%APPDATA%\narration-studio.exe` (Windows) | At start, before the window opens |
+| The per-user cache folder (downloads, runtime, update) | `%LOCALAPPDATA%\narration-studio`; the old folder's `reaper/` stays (below) | At start |
+| The project data folder | `<project>/narration-studio`, with the paths its JSON files hold rewritten to the new name | When the project is opened, before any of its services start |
+| REAPER P_EXT keys on tracks, items and takes (`narration_studio_*`) | Read under the new names from a saved `.rpp` (`internal/tracks`); in an open project, `narration_rename.lua` copies each one to its new key and clears the old one before the first command of a bridge session | On read; once per project per session |
+| Audacity tracks the app made (its label track, take and backup tracks) | Read under "Narration Studio" (`audacitybridge.Tracks`); the tracks in the narrator's Audacity project keep their names | On read |
+| A key saved in `credentials.json` | Opens with the old DPAPI entropy when the current one fails; sealed with the current one the next time it is saved | On read |
+| The project manifest's marker | Read as the current marker; written so on the next save | On read |
+| The uninstall entry, program and shortcuts | `NarrationStudio`, `narration-studio.exe`; an install over the old one adopts its folder and removes them (`legacy.nsh`) | At install |
+
+A folder is renamed in one step when it can be; otherwise it is copied beside the new name and renamed into place once complete,
+and the old one is removed only after that. On any error the old folder is left as it was, the host log says why, and the next
+start (or the next open of the project) tries again. A project whose data folder cannot be moved is not opened: the narrator is
+told, and nothing in the project is changed. When both names exist (an earlier copy whose old folder could not be removed), what
+the new folder lacks is copied in and a file that differs is kept in the old folder and logged.
+
+Not moved:
+- The default projects folder from before the rename under the home folder: it holds the narrator's projects, which REAPER and
+  Audacity projects name by absolute path, so it is still used when `~/NarrationStudio` does not exist.
+- The REAPER launcher folder in the old cache folder, which a narrator's REAPER action names: every start keeps its scripts
+  current and writes a shim under the launcher's old file name that runs the launcher.
+- REAPER bridge session folders an old build left under REAPER's resource path: they were per session and are no longer read.
+
 ## Files the app writes but does not keep
 
 These are outputs or hand-offs, not read back after the job that made them:
 
-- `<project>/narration-utils/render-encode-master/<stage>/`: mastered and encoded chapters from the export job, read only by a package job in the same session. Never cleared.
-- `<project>/narration-utils/delivery/delivery-report-*` and `<project>/narration-utils/production/reports/production-status-*`: reports for the narrator. Never cleared.
-- `<project>/narration-utils/analysis/coverage/runs/<run>/` and `analysis/coverage/credits-manuscript.json`: the recording check's hand-off to the sidecar, removed when the run ends.
-- `%TEMP%\narration-utils`: prompter, take-review and recorder hand-off files when no bridge session folder is given; most are removed when the run ends, and nothing prunes the folder.
+- `<project>/narration-studio/render-encode-master/<stage>/`: mastered and encoded chapters from the export job, read only by a package job in the same session. Never cleared.
+- `<project>/narration-studio/delivery/delivery-report-*` and `<project>/narration-studio/production/reports/production-status-*`: reports for the narrator. Never cleared.
+- `<project>/narration-studio/analysis/coverage/runs/<run>/` and `analysis/coverage/credits-manuscript.json`: the recording check's hand-off to the sidecar, removed when the run ends.
+- `%TEMP%\narration-studio`: prompter, take-review and recorder hand-off files when no bridge session folder is given; most are removed when the run ends, and nothing prunes the folder.
 - The REAPER bridge's `events.log` and exchange files live in the bridge session folder under REAPER's resource path ([threat model](../architecture/threat-model.md) row 5a).

@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 )
 
 // releaseFiles is a fake GitHub that serves the release list, one release's zip and its checksum, and counts what was asked for.
@@ -35,7 +35,7 @@ func newReleaseFiles(t *testing.T) *releaseFiles {
 	fake := &releaseFiles{executable: []byte(strings.Repeat("MZ a program ", 200000))}
 	var buffer bytes.Buffer
 	writer := zip.NewWriter(&buffer)
-	entry, err := writer.Create("narration-utils.exe")
+	entry, err := writer.Create("narration-studio.exe")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func newReleaseFiles(t *testing.T) *releaseFiles {
 	fake.zip = buffer.Bytes()
 	fake.checksum = func(body []byte) string {
 		sum := sha256.Sum256(body)
-		return hex.EncodeToString(sum[:]) + "  narration-utils-0.2.7-windows-x64.zip\n"
+		return hex.EncodeToString(sum[:]) + "  narration-studio-0.2.7-windows-x64.zip\n"
 	}
 	fake.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -58,7 +58,7 @@ func newReleaseFiles(t *testing.T) *releaseFiles {
 				Size int64  `json:"size"`
 			}
 			list := []map[string]any{{"tag_name": "v0.2.7-rc", "prerelease": true, "published_at": "2026-09-20T10:00:00Z", "assets": []asset{
-				{Name: "narration-utils-0.2.7-windows-x64.zip", Size: int64(len(fake.zip))}, {Name: "narration-utils-0.2.7-windows-x64.zip.sha256", Size: 100},
+				{Name: "narration-studio-0.2.7-windows-x64.zip", Size: int64(len(fake.zip))}, {Name: "narration-studio-0.2.7-windows-x64.zip.sha256", Size: 100},
 			}}}
 			body, _ := json.Marshal(list)
 			_, _ = w.Write(body)
@@ -88,7 +88,7 @@ func downloadHost(t *testing.T, fake *releaseFiles) *Host {
 	host := NewHost()
 	host.version = "0.2.6"
 	installDir := t.TempDir()
-	host.executable = func() (string, error) { return filepath.Join(installDir, "narration-utils.exe"), nil }
+	host.executable = func() (string, error) { return filepath.Join(installDir, "narration-studio.exe"), nil }
 	host.pendingPath = filepath.Join(t.TempDir(), "pending.json")
 	platform, _ := update.PlatformFor("windows", "amd64")
 	host.updates = &update.Checker{
@@ -256,7 +256,7 @@ func TestOnlyOneDownloadRunsAtATimeAndItCanBeCancelled(t *testing.T) {
 
 func TestAFailedDownloadEndsInAnErrorTheNarratorCanRead(t *testing.T) {
 	fake := newReleaseFiles(t)
-	fake.checksum = func([]byte) string { return strings.Repeat("0", 64) + "  narration-utils-0.2.7-windows-x64.zip\n" }
+	fake.checksum = func([]byte) string { return strings.Repeat("0", 64) + "  narration-studio-0.2.7-windows-x64.zip\n" }
 	host := downloadHost(t, fake)
 	if _, err := host.UpdateCheck(); err != nil {
 		t.Fatal(err)
@@ -275,7 +275,7 @@ func TestAFailedDownloadEndsInAnErrorTheNarratorCanRead(t *testing.T) {
 	// The failure is not a wall: a good download can follow.
 	fake.checksum = func(body []byte) string {
 		sum := sha256.Sum256(body)
-		return hex.EncodeToString(sum[:]) + "  narration-utils-0.2.7-windows-x64.zip\n"
+		return hex.EncodeToString(sum[:]) + "  narration-studio-0.2.7-windows-x64.zip\n"
 	}
 	again := startDownload(t, host)
 	if job := waitForJob(t, host, again.ID, finished); job.Phase != "ready" {

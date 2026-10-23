@@ -6,16 +6,16 @@
 -- passed, and the audio device is closed. A script started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local out = os.getenv('NARRATION_UTILS_SPIKE_OUT')
-assert(out and out ~= '', 'NARRATION_UTILS_SPIKE_OUT is not set')
+local out = os.getenv('NARRATION_STUDIO_SPIKE_OUT')
+assert(out and out ~= '', 'NARRATION_STUDIO_SPIKE_OUT is not set')
 
 local function write_file(name, contents)
   local f = assert(io.open(out .. '/' .. name, 'w'))

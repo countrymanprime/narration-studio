@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // ErrNoApproval: a macro render was asked without the narrator's approval for this one render (the mastering port's Audacity row,

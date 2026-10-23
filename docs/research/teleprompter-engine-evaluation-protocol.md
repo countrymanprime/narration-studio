@@ -1,6 +1,6 @@
 # Live engine evaluation: protocol and lag-capture aid
 
-**Date:** moved here on 2026-10-12 from `docs/architecture/manuscript-teleprompter.md`. **Question:** which live engine, Whisper or Moonshine, should the Booth default to? **Tracking:** [#1476](https://github.com/countrymanprime/narration-utils/issues/1476). No real-time run is recorded yet.
+**Date:** moved here on 2026-10-12 from `docs/architecture/manuscript-teleprompter.md`. **Question:** which live engine, Whisper or Moonshine, should the Booth default to? **Tracking:** [#1476](https://github.com/countrymanprime/narration-studio/issues/1476). No real-time run is recorded yet.
 
 **Goal.** Decide the default engine (whisper vs. moonshine) with evidence, per
 the numeric gate in `docs/architecture/manuscript-teleprompter.md` (median cursor lag at least 25% lower than
@@ -53,7 +53,7 @@ device fed by a real-time playback of a recording:
   LibriVox by default, synthetic (e.g. Piper) as the fallback when a suitable
   LibriVox reading isn't available in the working environment; either way,
   results are provisional until re-run on the owner's own material, tracked as
-  a QA item on [#510](https://github.com/countrymanprime/narration-utils/issues/510)
+  a QA item on [#510](https://github.com/countrymanprime/narration-studio/issues/510)
   (ENG-8). Record, next to the recording (never in the recording's own
   metadata, and never the audio file itself — see below): the source URL, the
   reader's name, the book/chapter title, and the public-domain statement (or,

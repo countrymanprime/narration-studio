@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 )
 
 // copyDiagnosticsWindow is the "last 30 minutes" scope of the copied diagnostics.

@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 )
 
 const updateTestRepository = "countrymanprime/narration-studio"
@@ -37,7 +37,7 @@ func newFakeReleaseServer(t *testing.T, tags ...string) *fakeReleaseServer {
 	}
 	var releases []release
 	for _, tag := range tags {
-		prefix := "narration-utils-" + strings.TrimSuffix(strings.TrimPrefix(tag, "v"), "-rc") + "-"
+		prefix := "narration-studio-" + strings.TrimSuffix(strings.TrimPrefix(tag, "v"), "-rc") + "-"
 		releases = append(releases, release{Tag: tag, Prerelease: strings.HasSuffix(tag, "-rc"), PublishedAt: "2026-09-20T10:00:00Z", Assets: []asset{
 			{Name: prefix + "windows-x64.zip", Size: 400 << 20}, {Name: prefix + "windows-x64.zip.sha256", Size: 100},
 			{Name: prefix + "linux-x64.tar.gz", Size: 200 << 20}, {Name: prefix + "macos-arm64.zip", Size: 100 << 20},
@@ -66,7 +66,7 @@ func updateHost(t *testing.T, fake *fakeReleaseServer, current string) *Host {
 	host := NewHost()
 	host.version = current
 	installDir := t.TempDir()
-	host.executable = func() (string, error) { return filepath.Join(installDir, "narration-utils.exe"), nil }
+	host.executable = func() (string, error) { return filepath.Join(installDir, "narration-studio.exe"), nil }
 	host.pendingPath = filepath.Join(t.TempDir(), "pending.json")
 	platform, _ := update.PlatformFor("windows", "amd64")
 	host.updates = &update.Checker{

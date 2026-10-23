@@ -17,7 +17,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
 )
 
 // AnalyzerEditingRender is this package's render-path analyzer id. One

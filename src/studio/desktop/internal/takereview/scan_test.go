@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/repeats"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/repeats"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // fakeRunner is a SidecarRunner that returns canned output instead of

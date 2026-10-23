@@ -25,10 +25,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
 )
 
 // The caps on what the sidecar may print. A run over one is stopped and refused.

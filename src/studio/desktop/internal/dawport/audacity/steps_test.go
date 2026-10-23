@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-utils/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // editAudacity is the backups' fake Audacity (pipeAudacity) with the edit commands the steps send: Split (no change to the fake's
@@ -836,7 +836,7 @@ func TestAudacityReducesRangeGainAfterABackupOrRefuses(t *testing.T) {
 				t.Errorf("edits %v were sent", got)
 			}
 			if project != "" {
-				if _, err := os.Stat(filepath.Join(project, "narration-utils", "backups.json")); err == nil {
+				if _, err := os.Stat(filepath.Join(project, "narration-studio", "backups.json")); err == nil {
 					t.Errorf("a refusal made a backup")
 				}
 			}
@@ -909,7 +909,7 @@ func TestAudacityRepairsClicksAfterABackupOrRefuses(t *testing.T) {
 				t.Errorf("edits %v were sent", got)
 			}
 			if project != "" {
-				if _, err := os.Stat(filepath.Join(project, "narration-utils", "backups.json")); err == nil {
+				if _, err := os.Stat(filepath.Join(project, "narration-studio", "backups.json")); err == nil {
 					t.Errorf("a refusal made a backup")
 				}
 			}

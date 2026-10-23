@@ -9,9 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/analysistools"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
 )
 
 // The kinds of asset install. The wrappers over the voice and model bindings (TtsInstall, WhisperInstall) each start one.

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/captureport"
-	"github.com/countrymanprime/narration-utils/shell/internal/recording"
-	"github.com/countrymanprime/narration-utils/shell/internal/recording/recordingtest"
+	"github.com/countrymanprime/narration-studio/shell/internal/captureport"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
 )
 
 type recorder struct {

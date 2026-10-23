@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // Repository is the only place the app looks for a newer version. It is compiled in on purpose: no setting, argument or response
@@ -229,7 +229,7 @@ func (c *Checker) fetch(ctx context.Context, etag string) (body []byte, newETag 
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	request.Header.Set("User-Agent", "narration-utils/"+c.Current)
+	request.Header.Set("User-Agent", "narration-studio/"+c.Current)
 	if etag != "" {
 		request.Header.Set("If-None-Match", etag)
 	}

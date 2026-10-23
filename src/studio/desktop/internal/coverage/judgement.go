@@ -3,7 +3,7 @@ package coverage
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // Judgement is a stored report judged by the narrator's thresholds: met or

@@ -21,7 +21,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/credentialstore"
+	"github.com/countrymanprime/narration-studio/shell/internal/credentialstore"
 )
 
 // Pronunciation is one pronunciation a dictionary gives for a headword, in that dictionary's own notation (Merriam-Webster

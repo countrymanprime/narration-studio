@@ -1,6 +1,6 @@
 # Phase 0: verifying today's back/forward and zoom behaviour on Wails v3
 
-**Status: done, 2026-09-28.** Issue: [#547](https://github.com/countrymanprime/narration-utils/issues/547). This settles what the PRD's own Evidence section could only infer from source before Phase 1 shipped, plus the four things Phase 0 names explicitly: which zoom gestures work, whether zoom persists, and whether the mouse's back/forward buttons and Alt+Left/Right navigate. No REAPER, no owner, per the phase's own scope.
+**Status: done, 2026-09-28.** Issue: [#547](https://github.com/countrymanprime/narration-studio/issues/547). This settles what the PRD's own Evidence section could only infer from source before Phase 1 shipped, plus the four things Phase 0 names explicitly: which zoom gestures work, whether zoom persists, and whether the mouse's back/forward buttons and Alt+Left/Right navigate. No REAPER, no owner, per the phase's own scope.
 
 ## The question
 
@@ -21,7 +21,7 @@ The PRD's Phase 0 row: "Scripted Windows run of the v3 build: which zoom gesture
 
 A throwaway scripted spike, `scripts/research/app-nav-zoom-p0-verify.ps1` (not wired into the shipped binary or any always-on CI job, the same status as `src/studio/desktop/cmd/spike-globalhotkeys`), run twice by a temporary `workflow_dispatch`/`pull_request`-triggered GitHub Actions job on `windows-latest` (commit `7b919b2` at the time of this note; the workflow itself is deleted once this note lands, per its own comment).
 
-The script builds the real release binary (`.github/actions/build-native`, the same composite action `ci.yml`'s `Build (Windows)` job uses), launches `narration-utils.exe` with `APPDATA`/`LOCALAPPDATA` pointed at a scratch temp folder (so nothing here reads or writes a real per-user profile), and:
+The script builds the real release binary (`.github/actions/build-native`, the same composite action `ci.yml`'s `Build (Windows)` job uses), launches `narration-studio.exe` with `APPDATA`/`LOCALAPPDATA` pointed at a scratch temp folder (so nothing here reads or writes a real per-user profile), and:
 
 - confirms the window opens, using `Process.MainWindowHandle` and Win32 `IsWindowVisible`;
 - drives real Win32 `SendInput` (not Playwright/CDP-synthesized input) for Ctrl+wheel, Ctrl+=/-/0, Alt+Left/Right and the mouse's XBUTTON1/XBUTTON2 - deliberately real OS-level input, because the whole question is what the OS message loop and WebView2 do with it *before* the page ever sees it, which a CDP-dispatched event bypasses entirely;
@@ -38,7 +38,7 @@ This container has no Windows session of its own (the same limitation every othe
 ## Not done, and why
 
 - **The four numbered questions in the PRD's own Research Summary are still not directly observed**, for the reason above: the CDP channel that would have let a script read `devicePixelRatio`, `location.href` or the DOM never came up. This spike adds one new fact (CI can open the window) and one new limit (CI cannot currently read WebView2 state back through this particular mechanism); it does not raise or lower confidence on the zoom or mouse-button questions themselves beyond what the PRD's Evidence section already reasoned from source.
-- **Touchpad pinch and a physical side-button mouse** were never in scope for a script: Win32 has no supported way to synthesize either. Per the PRD's own Phase 0 scope, these stay pending with the owner on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+- **Touchpad pinch and a physical side-button mouse** were never in scope for a script: Win32 has no supported way to synthesize either. Per the PRD's own Phase 0 scope, these stay pending with the owner on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).
 - **Given the CDP channel's absence, the rest of the "not done" list from the PRD's Research Summary now also needs the owner's own machine**, not just their touchpad/mouse: Ctrl+wheel zoom's actual effect, the Ctrl+=/-/0 no-op, whether a zoom level survives a relaunch, and whether the mouse's back/forward buttons or Alt+Left/Right move anything at the OS layer. All four are quick for the owner to check by hand (the PRD's own Research Summary already says as much for two of them), and none of them blocks Phase 2, whose zoom mechanism (`Window.SetZoom`) was already settled independently by the owner (Q3, D29) before this phase ran.
 
 ## Recommendation
@@ -49,4 +49,4 @@ This container has no Windows session of its own (the same limitation every othe
 
 ## Pending with the owner
 
-The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).

@@ -1,6 +1,6 @@
 # Docs-site generator spike: VitePress or MkDocs Material
 
-**Date:** 2026-09-21. **Issue:** [#213](https://github.com/countrymanprime/narration-utils/issues/213). **Answers:** compare VitePress and MkDocs Material on the repository's real cross-folder links, then decide. The decision is [The public docs site](../operations/ci-and-releases.md#the-public-docs-site).
+**Date:** 2026-09-21. **Issue:** [#213](https://github.com/countrymanprime/narration-studio/issues/213). **Answers:** compare VitePress and MkDocs Material on the repository's real cross-folder links, then decide. The decision is [The public docs site](../operations/ci-and-releases.md#the-public-docs-site).
 
 **Verdict: MkDocs (1.6.1) with the Material theme (9.7.7).** It reads this tree as GitHub-flavoured Markdown without changes, treats `README.md` as the folder index, reports every one of the 26 links that need attention (no false negatives, no false positives), and has automatic navigation from the folders. VitePress needed a rewrite workaround for `README.md`, a slug override, a navigation generator, and it fails to compile 9 of the 187 files because it treats prose as a Vue template. Both tools built the tree in under 7 seconds. Neither tool can fail the build for a link to a page the include list leaves out (VitePress can, MkDocs only logs it), so the include list needs link rewriting whichever tool is used; that is phase 11's job.
 
@@ -38,7 +38,7 @@ A second, tool-neutral check read the **built HTML** and confirmed that every re
 | Curated include list | `srcExclude` (fast-glob ignore list; no negation), so an include list is written as exclusions. | `exclude_docs` (gitignore syntax) with negation works: `/*` then `!/guides/`, `!/adr/` and so on gave 147 pages in 2.8 s. **Pitfall:** `/*` also drops the theme's own `assets/`, so `!/assets/` is needed. |
 | Build time (full tree, 187 pages) | 5.3 to 6.7 s (3.2 s for the curated set) | 4.5 to 6.6 s (2.8 s curated) |
 | Output size | 14 MB, 626 files (187 HTML plus 375 per-page JS chunks) | 26 MB, 307 files (curated: 15 MB, 147 pages), with a search index |
-| Base path for Pages (`/narration-utils/`) | `base: '/narration-utils/'` (absolute URLs in the output; the output check passed under that base) | `site_url` with the path; the output uses relative URLs and works under any sub-path |
+| Base path for Pages (`/narration-studio/`) | `base: '/narration-studio/'` (absolute URLs in the output; the output check passed under that base) | `site_url` with the path; the output uses relative URLs and works under any sub-path |
 | Search | Local (minisearch); Algolia optional | Local (lunr); no service |
 
 ## Licence and supply-chain footprint
@@ -79,8 +79,8 @@ What it costs, recorded in the ADR: the MkDocs/Material line is in maintenance w
 # MkDocs
 uv venv .venv && uv pip install --python .venv/Scripts/python.exe mkdocs==1.6.1 mkdocs-material==9.7.7
 cat > mkdocs.yml <<'EOF'
-site_name: narration-utils
-site_url: https://countrymanprime.github.io/narration-utils/
+site_name: narration-studio
+site_url: https://countrymanprime.github.io/narration-studio/
 docs_dir: <path to the repository's docs>
 theme: { name: material }
 validation: { omitted_files: warn, absolute_links: warn, unrecognized_links: warn, anchors: warn }
@@ -101,7 +101,7 @@ EOF
 #     !/assets/
 # VitePress (copy docs/ into the project first: a docs folder outside it cannot resolve `vue`)
 pnpm install --ignore-workspace          # package.json: { "devDependencies": { "vitepress": "1.6.4" } }
-# .vitepress/config.mjs: base '/narration-utils/', srcDir 'docs', rewrites { 'README.md': 'index.md' },
+# .vitepress/config.mjs: base '/narration-studio/', srcDir 'docs', rewrites { 'README.md': 'index.md' },
 #   markdown.config md => md.set({ html: false }), srcExclude for prds/audiobook-credits-templates.prd.md
 npx vitepress build .                    # exit 1, 22 dead links (ignoreDeadLinks: true builds it)
 ```

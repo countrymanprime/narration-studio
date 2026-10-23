@@ -14,8 +14,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 type Values map[string]string
@@ -306,16 +306,16 @@ func projectPath(project string) string {
 	if project == "" {
 		return ""
 	}
-	return filepath.Join(project, "narration-utils", "settings.json")
+	return filepath.Join(project, "narration-studio", "settings.json")
 }
 func globalPath() string {
 	if value := os.Getenv("APPDATA"); value != "" {
-		return filepath.Join(value, "narration-utils", "global-settings.json")
+		return filepath.Join(value, "narration-studio", "global-settings.json")
 	}
 	if value := os.Getenv("USERPROFILE"); value != "" {
-		return filepath.Join(value, "AppData", "Roaming", "narration-utils", "global-settings.json")
+		return filepath.Join(value, "AppData", "Roaming", "narration-studio", "global-settings.json")
 	}
-	return filepath.Join("AppData", "Roaming", "narration-utils", "global-settings.json")
+	return filepath.Join("AppData", "Roaming", "narration-studio", "global-settings.json")
 }
 
 // readTool reads one tool's section of a settings file as text. Every setting is stored as a string, but a hand-edited file may hold

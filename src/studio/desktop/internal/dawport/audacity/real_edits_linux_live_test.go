@@ -24,8 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // ---- the FIFO transport (the app is Windows-only, so PipeTransport has no Linux pipe) -----------------------------------------------
@@ -588,7 +588,7 @@ func TestRealEditsCutAndStack(t *testing.T) {
 	tracks, _ := e.client.Tracks(e.ctx)
 	var take audacitybridge.TrackInfo
 	for _, x := range tracks {
-		if strings.HasPrefix(x.Name, "Narration Utils take take-2") {
+		if strings.HasPrefix(x.Name, "Narration Studio take take-2") {
 			take = x
 		}
 	}
@@ -616,7 +616,7 @@ func TestRealEditsCutAndStack(t *testing.T) {
 	r.check("the take track is gone", !still && func() bool {
 		ts, _ := e.client.Tracks(e.ctx)
 		for _, x := range ts {
-			if strings.HasPrefix(x.Name, "Narration Utils take") {
+			if strings.HasPrefix(x.Name, "Narration Studio take") {
 				return false
 			}
 		}

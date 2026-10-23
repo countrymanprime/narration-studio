@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/wiktextract"
+	"github.com/countrymanprime/narration-studio/shell/internal/wiktextract"
 )
 
 // testWiktextractManager builds a manager whose default source is genuinely installed, through the real Install

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // alignedResults is a results file with the chapter's per-token alignment
@@ -130,7 +130,7 @@ func TestAlignmentOfAChapterNeverCheckedAnswersNeverWithItsScript(t *testing.T) 
 // the manuscript, whether or not the chapter was ever checked. A credits row has no heading to read and carries none.
 func TestAlignmentCarriesTheChaptersTitleAndSubtitle(t *testing.T) {
 	p := newTestProject(t)
-	path := filepath.Join(p.dir, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(p.dir, "narration-studio", "manuscript", "manuscript.json")
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

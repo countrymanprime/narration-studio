@@ -1,5 +1,5 @@
 // Package voicesample keeps the clips a narrator marks as how a character sounds: a stretch of one take, copied out of the
-// recording into <project>/narration-utils/voice-samples/ with a short record of where it came from, so it plays anywhere,
+// recording into <project>/narration-studio/voice-samples/ with a short record of where it came from, so it plays anywhere,
 // with no DAW, no source file and no project of the right version (docs/prds/character-voice-samples.prd.md, What is stored).
 //
 // The page names a stretch by chapter, item and take GUIDs, a range in seconds and two word keys, never a path. The host finds
@@ -21,9 +21,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // Version is the only samples.json version this package reads or writes.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
 )
 
 // Pipe is what one probe of Audacity's scripting pipe found.

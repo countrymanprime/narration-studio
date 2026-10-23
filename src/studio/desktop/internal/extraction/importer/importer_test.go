@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
 )
 
 func f64(v float64) *float64 { return &v }

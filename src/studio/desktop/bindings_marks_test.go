@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/marks"
+	"github.com/countrymanprime/narration-studio/shell/internal/marks"
 )
 
 func decodeMark(t *testing.T) func(string, error) marks.Resolved {
@@ -119,7 +119,7 @@ func TestMarksBindingsWithNoProject(t *testing.T) {
 // The reader's old notes come across once, through the bindings, and the old notes file is left as it was.
 func TestMarksBindingsBringTheReaderNotesAcrossOnce(t *testing.T) {
 	host, project := bookmarksHost(t)
-	notesFile := filepath.Join(project, "narration-utils", "manuscript-notes.json")
+	notesFile := filepath.Join(project, "narration-studio", "manuscript-notes.json")
 	old := `{"notes":[{"id":"n1","chapterId":"c-0001","paragraphId":"p-000001","paragraph":0,"text":"Big breath first.","anchorStart":21,"anchorEnd":30,"anchorText":"the Queen","createdAt":"2026-10-01T10:00:00Z"},{"id":"n2","chapterId":"c-0002","paragraphId":"p-000003","paragraph":2,"text":"Lighter.","createdAt":"2026-10-02T10:00:00Z"}],"chapterStatus":{},"readerState":{}}`
 	writeNested(t, notesFile, old)
 	list := decodeMarks(t)(host.MarksList())

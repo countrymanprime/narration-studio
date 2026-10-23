@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 type heard struct {
@@ -24,7 +24,7 @@ func storeWithReporter(t *testing.T) (*Store, *heard, string) {
 		Log:    func(kind, message string) { spoken.logs = append(spoken.logs, kind+" "+message) },
 		Notify: func(text string) { spoken.notices = append(spoken.notices, text) },
 	})
-	return store, spoken, filepath.Join(appData, "narration-utils", "global-settings.json")
+	return store, spoken, filepath.Join(appData, "narration-studio", "global-settings.json")
 }
 
 func writeSettings(t *testing.T, path, content string) {
@@ -124,7 +124,7 @@ func TestAStoreWithoutAReporterStillKeepsACorruptFile(t *testing.T) {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	t.Setenv("USERPROFILE", appData)
-	path := filepath.Join(appData, "narration-utils", "global-settings.json")
+	path := filepath.Join(appData, "narration-studio", "global-settings.json")
 	writeSettings(t, path, `{`)
 	_ = New(t.TempDir(), "").Global("General")
 	if kept := keptCopies(t, path); len(kept) != 1 {

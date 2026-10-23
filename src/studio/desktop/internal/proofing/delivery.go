@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // RenderLengthSignalID is the cross-check between the render's length and

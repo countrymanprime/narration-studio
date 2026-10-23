@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
 )
 
 // AnalyzerName is both Finding.Analyzer and the folder name the

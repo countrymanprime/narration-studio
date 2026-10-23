@@ -63,7 +63,7 @@ func TestLoadOnAProjectWithNoManifestReturnsNotOkWithoutAnError(t *testing.T) {
 	}
 }
 
-func TestSaveWritesReadableIndentedJSONUnderTheNarrationUtilsSidecarFolder(t *testing.T) {
+func TestSaveWritesReadableIndentedJSONUnderTheNarrationStudioSidecarFolder(t *testing.T) {
 	project := t.TempDir()
 	manifest := New("Alice", time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC))
 
@@ -72,8 +72,8 @@ func TestSaveWritesReadableIndentedJSONUnderTheNarrationUtilsSidecarFolder(t *te
 	}
 
 	path := Path(project)
-	if filepath.Dir(path) != filepath.Join(project, "narration-utils") {
-		t.Fatalf("Path() = %q, want it under %q", path, filepath.Join(project, "narration-utils"))
+	if filepath.Dir(path) != filepath.Join(project, "narration-studio") {
+		t.Fatalf("Path() = %q, want it under %q", path, filepath.Join(project, "narration-studio"))
 	}
 	raw, err := os.ReadFile(path)
 	if err != nil {

@@ -156,7 +156,7 @@ export const teleprompterLocatedSchema = z.object({
   heardText: z.string(),
 }) satisfies z.ZodType<TeleprompterLocated>;
 
-/** The host's per-chapter reading file (`<project>/narration-utils/teleprompter/<chapter>.reading.json`). */
+/** The host's per-chapter reading file (`<project>/narration-studio/teleprompter/<chapter>.reading.json`). */
 export const teleprompterReadingSchema = z
   .object({
     version: z.literal(1),

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // SchemaVersion is the only pickup-list.json version this package reads or writes.
@@ -19,7 +19,7 @@ const what = "pickup list"
 
 // File is where a project's pickup list changes are kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-utils", "pickups", "pickup-list.json")
+	return filepath.Join(project, "narration-studio", "pickups", "pickup-list.json")
 }
 
 // added is a line the narrator typed. Time is seconds into the chapter's recording.

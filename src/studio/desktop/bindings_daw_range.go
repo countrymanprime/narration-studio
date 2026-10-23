@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/passagetakes"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/passagetakes"
 )
 
 // deleteRangeTimeout bounds one delete_range request: a single undo block in REAPER, like hide_takes.

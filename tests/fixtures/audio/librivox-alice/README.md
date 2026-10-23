@@ -35,7 +35,7 @@ uv run --project src/studio/sidecars/transcript-compare python tests/fixtures/au
 ```
 
 The first run downloads the seven recordings (about 45 MB) into `NARRATION_LIBRIVOX_DIR`, or
-`~/.cache/narration-utils/librivox-alice` when it is unset, and keeps each only if its SHA-256 matches `sources.json`.
+`~/.cache/narration-studio/librivox-alice` when it is unset, and keeps each only if its SHA-256 matches `sources.json`.
 After that a build takes about 10 seconds. `build.py fetch` only downloads. `--out` must be outside the repository
 (about 620 MB of WAV). Build one corpus with `coverage`, `characters` or `signal` in place of `all`. The build is
 deterministic: the same recordings give byte-identical files.

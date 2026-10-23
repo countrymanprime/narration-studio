@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptermatch"
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptersync"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptersync"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // Chapter sync's consent and first sync. The narrator is asked once per project, when it has both a

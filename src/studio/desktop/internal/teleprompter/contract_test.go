@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // The `teleprompter:state` snapshot the host builds, pinned for the UI's contract tests. The running snapshot is

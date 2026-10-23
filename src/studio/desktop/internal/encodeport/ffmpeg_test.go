@@ -17,10 +17,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptertags"
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptertags"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // The test binary stands in for FFmpeg: re-run with fakeFFmpegEnv set, it reads the command line the encoder passes and writes
@@ -31,7 +31,7 @@ const (
 	fakeArgsEnv   = "ENCODEPORT_FAKE_FFMPEG_ARGS"
 	// realFFmpegEnv names a real FFmpeg executable for TestTheRealFFmpegWritesMP3sTheACXChecksAccept (the catalogued ffmpeg.exe on
 	// Windows, or any build with libmp3lame); unset, that test is skipped.
-	realFFmpegEnv = "NARRATION_UTILS_FFMPEG"
+	realFFmpegEnv = "NARRATION_STUDIO_FFMPEG"
 )
 
 func TestMain(m *testing.M) {
@@ -598,7 +598,7 @@ func TestASpecNoFLACCanHaveIsRefusedBeforeFFmpegRuns(t *testing.T) {
 }
 
 // TestTheRealFFmpegRoundTripsFLACLosslessly is the real-binary check for FLAC, alongside the MP3 and M4B ones: run it
-// with NARRATION_UTILS_FFMPEG set to the catalogued ffmpeg.exe (or any FFmpeg with a native "flac" encoder) to prove the real
+// with NARRATION_STUDIO_FFMPEG set to the catalogued ffmpeg.exe (or any FFmpeg with a native "flac" encoder) to prove the real
 // binary's FLAC output decodes back to the exact PCM samples it was given - run against this encoder's own fixture rather than a
 // platform profile (v1 has none that asks for FLAC).
 func TestTheRealFFmpegRoundTripsFLACLosslessly(t *testing.T) {
@@ -693,7 +693,7 @@ func TestWithNoFFmpegInstalledTheEncoderSaysSoAndWritesNothing(t *testing.T) {
 	assertOnly(t, dir, "chapter.wav")
 }
 
-// TestTheRealFFmpegWritesMP3sTheACXChecksAccept is the real-binary check for MP3: run it with NARRATION_UTILS_FFMPEG set to
+// TestTheRealFFmpegWritesMP3sTheACXChecksAccept is the real-binary check for MP3: run it with NARRATION_STUDIO_FFMPEG set to
 // the catalogued ffmpeg.exe (or any FFmpeg with libmp3lame) to prove the real binary's output against the app's own checks.
 func TestTheRealFFmpegWritesMP3sTheACXChecksAccept(t *testing.T) {
 	executable := os.Getenv(realFFmpegEnv)
@@ -730,7 +730,7 @@ func TestTheRealFFmpegWritesMP3sTheACXChecksAccept(t *testing.T) {
 }
 
 // TestTheRealFFmpegWritesM4BsWhoseChaptersReadMBack is the real-binary check for M4B, alongside the MP3 one: run it with
-// NARRATION_UTILS_FFMPEG set to the catalogued ffmpeg.exe (or any FFmpeg with a native AAC encoder and an "ipod" muxer) to
+// NARRATION_STUDIO_FFMPEG set to the catalogued ffmpeg.exe (or any FFmpeg with a native AAC encoder and an "ipod" muxer) to
 // prove the real binary's chapters, not just fakeM4B's stand-in for them, read back through ReadM4BChapters.
 func TestTheRealFFmpegWritesM4BsWhoseChaptersReadMBack(t *testing.T) {
 	executable := os.Getenv(realFFmpegEnv)

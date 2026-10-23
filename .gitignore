@@ -30,12 +30,12 @@ logs/
 !.claude/skills/
 !.claude/agents/
 !.claude/rules/
-src/studio/desktop/cmd/narration-utils/frontend/dist/*
-!src/studio/desktop/cmd/narration-utils/frontend/dist/.gitkeep
-src/studio/desktop/cmd/narration-utils/frontend/wailsjs/
-src/studio/desktop/cmd/narration-utils/resources/config/
-src/studio/desktop/cmd/narration-utils/resources/runtime/
-src/studio/desktop/cmd/narration-utils/resources/reaper/
+src/studio/desktop/cmd/narration-studio/frontend/dist/*
+!src/studio/desktop/cmd/narration-studio/frontend/dist/.gitkeep
+src/studio/desktop/cmd/narration-studio/frontend/wailsjs/
+src/studio/desktop/cmd/narration-studio/resources/config/
+src/studio/desktop/cmd/narration-studio/resources/runtime/
+src/studio/desktop/cmd/narration-studio/resources/reaper/
 src/studio/desktop/build/*
 # The Windows icon, version and manifest resource wails-build.mjs embeds and removes after the Go build.
 src/studio/desktop/*.syso
@@ -48,6 +48,7 @@ src/studio/desktop/build/windows/*
 !src/studio/desktop/build/windows/installer/
 src/studio/desktop/build/windows/installer/*
 !src/studio/desktop/build/windows/installer/project.nsi
+!src/studio/desktop/build/windows/installer/legacy.nsh
 .release-build/
 .nx/
 .test-tmp/
@@ -65,6 +66,6 @@ src/studio/ui/playwright.local.config.ts
 
 # The Wails build output (go build in src/studio/desktop names its binary after the directory)
 /src/studio/desktop/shell
-src/studio/integrations/reaper/narration-utils-app-path.txt
-src/studio/integrations/reaper/narration-utils-app-path.txt.tmp
+src/studio/integrations/reaper/narration-studio-app-path.txt
+src/studio/integrations/reaper/narration-studio-app-path.txt.tmp
 /dist-site/

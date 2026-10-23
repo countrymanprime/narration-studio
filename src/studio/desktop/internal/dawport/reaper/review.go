@@ -1,8 +1,8 @@
 package reaper
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // review is the REAPER adapter's ReviewSession (docs/architecture/daw-integration.md#the-daw-port's dawadapter.Review, before this package replaced it): each

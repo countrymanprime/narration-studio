@@ -1,6 +1,6 @@
 -- The verification pass, Part A (docs/operations/reaper-verification-pass.md): the
 -- unattended rows, run in a real REAPER against the real bridge. It builds a scratch project from make_media.py's tones,
--- starts the real bridge loop (narration_ui_bridge.lua from NARRATION_UTILS_REAPER_DIR) on a scratch session folder,
+-- starts the real bridge loop (narration_ui_bridge.lua from NARRATION_STUDIO_REAPER_DIR) on a scratch session folder,
 -- and sends each row's commands through the same file protocol the Go host uses, then checks what REAPER reads back.
 -- The rows themselves are pass_part_a_lib.lua's, proved against the harness's fake by tests/pass_part_a_test.lua.
 -- Rows A6-A8 are spike_ep0_workspace.lua's: run-pass-part-a.ps1 runs it first and this script merges its report.
@@ -18,19 +18,19 @@
 
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local PACK = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)')
-local CFG = assert(os.getenv('NARRATION_UTILS_SPIKE_CFG'), 'set NARRATION_UTILS_SPIKE_CFG (run-reaper.ps1 does)')
-local REAPER_DIR = assert(os.getenv('NARRATION_UTILS_REAPER_DIR'), 'set NARRATION_UTILS_REAPER_DIR (run-reaper.ps1 does)')
-local EP0_REPORT = os.getenv('NARRATION_UTILS_PASS_EP0_REPORT') or ''
-local REV = os.getenv('NARRATION_UTILS_PASS_REV') or 'unknown'
+local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
+local CFG = assert(os.getenv('NARRATION_STUDIO_SPIKE_CFG'), 'set NARRATION_STUDIO_SPIKE_CFG (run-reaper.ps1 does)')
+local REAPER_DIR = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)')
+local EP0_REPORT = os.getenv('NARRATION_STUDIO_PASS_EP0_REPORT') or ''
+local REV = os.getenv('NARRATION_STUDIO_PASS_REV') or 'unknown'
 local SEP = package.config:sub(1, 1)
 
 local function own_directory()

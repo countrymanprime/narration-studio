@@ -391,7 +391,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       reportExports += 1;
       const stem = `production-status-20260921-100000Z${reportExports > 1 ? `-${reportExports}` : ''}`;
       return {
-        folder: 'narration-utils/production/reports',
+        folder: 'narration-studio/production/reports',
         htmlFile: `${stem}.html`,
         jsonFile: `${stem}.json`,
         contractedAmountIncluded: include.money,
@@ -416,7 +416,7 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       return {
         html,
         json,
-        folder: 'narration-utils/production/reports',
+        folder: 'narration-studio/production/reports',
         stem: 'production-status-20260921-100000Z',
         contractedAmountIncluded: include.money,
         include: { ...include },

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 func rangeToken(index int, paragraph string, word int, item *int, start, end float64) coverage.TokenLine {

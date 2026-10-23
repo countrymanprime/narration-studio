@@ -1,6 +1,6 @@
 """
 The script for one chapter of the project's canonical manuscript
-(`narration-utils/manuscript/manuscript.json`, the same data Transcript Compare
+(`narration-studio/manuscript/manuscript.json`, the same data Transcript Compare
 reads through narration_common.manuscript), as the flat token list the script
 tracker follows plus the spans that map token indices back onto the chapter's
 title and paragraphs.

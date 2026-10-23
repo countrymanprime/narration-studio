@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // storedResultVersion is the version of a stored coverage result.
@@ -23,7 +23,7 @@ var recordIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{1,64}$`)
 // it with the ledger and cache, since results name chapter and paragraph ids a
 // re-import resets.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-utils", "analysis", "coverage")
+	return filepath.Join(project, "narration-studio", "analysis", "coverage")
 }
 
 func resultsDir(project string) string { return filepath.Join(Dir(project), "results") }

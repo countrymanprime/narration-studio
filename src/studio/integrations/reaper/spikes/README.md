@@ -15,7 +15,7 @@ Scripts that run **inside a real REAPER** to answer questions a fake cannot: how
 
 | File | What it does |
 | --- | --- |
-| `run-reaper.ps1` | The driver: starts REAPER isolated, answers its first-run and close-time dialogs, waits for a "done" file, closes REAPER. Sets `NARRATION_UTILS_SPIKE_OUT` (scratch folder) and `NARRATION_UTILS_REAPER_DIR` (the bridge sources under test) for the scripts. |
+| `run-reaper.ps1` | The driver: starts REAPER isolated, answers its first-run and close-time dialogs, waits for a "done" file, closes REAPER. Sets `NARRATION_STUDIO_SPIKE_OUT` (scratch folder) and `NARRATION_STUDIO_REAPER_DIR` (the bridge sources under test) for the scripts. |
 | `win.ps1` | Window and dialog helpers for the driver (Win32 and UI Automation). |
 | `make_media.py` | Writes three 3-second synthetic tones into `<out>/media`. |
 | `probe.lua` | Reports the REAPER version, its Lua version and whether `debug.getinfo` works. |

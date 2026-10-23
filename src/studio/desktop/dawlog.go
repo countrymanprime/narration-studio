@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"path/filepath"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // logConfigure records what this app was given to connect with: whether a bridge session came with the launch and which one (the

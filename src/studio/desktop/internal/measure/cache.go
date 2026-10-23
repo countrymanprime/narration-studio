@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
 )
 
 // The peaks cache is keyed per source identity in the evidence cache. It always holds the WHOLE

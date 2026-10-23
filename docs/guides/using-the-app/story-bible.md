@@ -192,7 +192,7 @@ A row says what is wrong with it:
 | --- | --- | --- |
 | **Passage changed** | The words in that chapter are not the words the sample was marked on. The sample still plays. | **Open in Editing** goes to the chapter and tells you the marked words may have moved. |
 | **Chapter removed** | The chapter is no longer in the manuscript. The sample still plays. | Nothing; delete it when you no longer need it. |
-| **Audio file missing** or **Audio file changed** | The sample's audio in the project's `narration-utils/voice-samples/` folder is gone or is not the file that was saved. It cannot play. | **Check again** reads the folder again. Then **Mark again in Editing** (offered while the words are as they were), or press **Edit** and delete it. |
+| **Audio file missing** or **Audio file changed** | The sample's audio in the project's `narration-studio/voice-samples/` folder is gone or is not the file that was saved. It cannot play. | **Check again** reads the folder again. Then **Mark again in Editing** (offered while the words are as they were), or press **Edit** and delete it. |
 | "Couldn't read the voice samples." | The host could not read the list. The last list that was read stays. | **Check again**. |
 
 An entry with none says "No voice samples yet" with **Open Editing**. **Check again** beside the heading looks at every sample's file

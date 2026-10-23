@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
 )
 
 // recordedFractions is RecordedFractions with the default alignment.

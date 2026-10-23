@@ -1,6 +1,6 @@
 {
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
-  "name": "narration-utils-shell",
+  "name": "narration-studio-shell",
   "projectType": "application",
   "tags": ["toolchain:go"],
   "implicitDependencies": ["manuscript-guide", "manuscript-teleprompter", "transcript-compare", "reaper", "config", "fixtures"],
@@ -47,7 +47,7 @@
     },
     "package": {
       "executor": "nx:run-commands",
-      "dependsOn": [{ "projects": ["narration-utils-ui"], "target": "build" }],
+      "dependsOn": [{ "projects": ["narration-studio-ui"], "target": "build" }],
       "options": {
         "command": "pnpm --dir {projectRoot} run build"
       }

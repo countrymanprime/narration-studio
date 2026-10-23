@@ -10,7 +10,7 @@
 //
 // It never changes the project, the manuscript or a chapter status: it reads
 // the saved .rpp, the manuscript and the audio, and writes only under the
-// project's narration-utils/analysis folder.
+// project's narration-studio/analysis folder.
 //
 // Comments here name decisions by their labels (D1, Q3, MC1 and so on); the table is
 // in docs/utilities/recording-coverage.md under Decisions.

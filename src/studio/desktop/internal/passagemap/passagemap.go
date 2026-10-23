@@ -21,7 +21,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // SchemaVersion is the only passagemap.json version this package reads or writes.
@@ -59,7 +59,7 @@ const (
 
 // File is where a project's passage map is kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-utils", "passagemap.json")
+	return filepath.Join(project, "narration-studio", "passagemap.json")
 }
 
 // Place is a spot in the text: a paragraph and a word index in it, from 0 to its word count (the reading reached its end).
@@ -476,7 +476,7 @@ func (s *Service) write(file passageMapFile) error {
 	file.SchemaVersion = SchemaVersion
 	path := File(s.config.Project)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

@@ -2,7 +2,7 @@
 // It holds Build, a pure planner that answers "what should be
 // linked" from the manuscript's chapters, the saved REAPER project, the stored
 // links and the last sync's snapshot, and Store, which keeps that snapshot in
-// narration-utils/chapter-sync.json. Nothing here writes a link: the sync
+// narration-studio/chapter-sync.json. Nothing here writes a link: the sync
 // service (src/studio/desktop/chaptersync.go) hands Plan.Requests to
 // evidence.MappingStore.AutoLink once the narrator has consented for the
 // project.
@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptermatch"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // Input is everything one sync plans against. Links are the stored links of

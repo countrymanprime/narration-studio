@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/takereview"
+	"github.com/countrymanprime/narration-studio/shell/internal/takereview"
 )
 
 // takeReviewCreateTakeTimeout bounds the confirm dialog's own wait, one notch above
@@ -43,7 +43,7 @@ func takeReviewChapterID(chapterTrackName string) string {
 // the document the repeated-span detector aligns transcribed reads
 // against.
 func takeReviewManuscriptPath(projectFolder string) string {
-	return filepath.Join(projectFolder, "narration-utils", "manuscript", "manuscript.json")
+	return filepath.Join(projectFolder, "narration-studio", "manuscript", "manuscript.json")
 }
 
 // takeReviewSessionDir mirrors configureLocked's teleprompterDir fallback
@@ -54,7 +54,7 @@ func takeReviewSessionDir(sessionDir string) string {
 	if sessionDir != "" {
 		return sessionDir
 	}
-	return filepath.Join(os.TempDir(), "narration-utils")
+	return filepath.Join(os.TempDir(), "narration-studio")
 }
 
 // takeReviewRunnerFor builds the real SidecarRunner from project config,

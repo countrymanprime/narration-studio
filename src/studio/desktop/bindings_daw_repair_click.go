@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // repairClickTimeout bounds one repair_click request with the chapter_track_state read before it: a single undo block in REAPER,

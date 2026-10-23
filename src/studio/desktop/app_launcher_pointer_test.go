@@ -11,11 +11,11 @@ import (
 // build sits in build/bin, so a REAPER action in a dev checkout opened an old copy of the app instead of the running one.
 func TestWriteCheckoutLauncherPointerNamesTheRunningProgramBesideTheLauncher(t *testing.T) {
 	dir := t.TempDir()
-	launcher := filepath.Join(dir, "NarrationUtils_Launcher.lua")
+	launcher := filepath.Join(dir, "NarrationStudio_Launcher.lua")
 	if err := writeCheckoutLauncherPointer(launcher, `C:\dev\nu-dev.exe`); err != nil {
 		t.Fatal(err)
 	}
-	got, err := os.ReadFile(filepath.Join(dir, "narration-utils-app-path.txt"))
+	got, err := os.ReadFile(filepath.Join(dir, "narration-studio-app-path.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestWriteCheckoutLauncherPointerNamesTheRunningProgramBesideTheLauncher(t *
 
 func TestWriteCheckoutLauncherPointerWritesNothingWithoutAProgramOrALauncher(t *testing.T) {
 	dir := t.TempDir()
-	if err := writeCheckoutLauncherPointer(filepath.Join(dir, "NarrationUtils_Launcher.lua"), ""); err != nil {
+	if err := writeCheckoutLauncherPointer(filepath.Join(dir, "NarrationStudio_Launcher.lua"), ""); err != nil {
 		t.Fatal(err)
 	}
 	if err := writeCheckoutLauncherPointer("", `C:\dev\nu-dev.exe`); err != nil {

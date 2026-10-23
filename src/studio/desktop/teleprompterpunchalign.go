@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // Punch and roll's offline fallback (owner decision

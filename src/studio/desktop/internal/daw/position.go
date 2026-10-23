@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
 )
 
 // Position is REAPER's transport as a TRANSPORT event reported it (narration_transport.lua's watch_transport): the play state, where the play head

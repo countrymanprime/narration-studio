@@ -14,25 +14,25 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bookmarks"
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptersync"
-	"github.com/countrymanprime/narration-utils/shell/internal/character"
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/editing"
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
-	"github.com/countrymanprime/narration-utils/shell/internal/importer"
-	"github.com/countrymanprime/narration-utils/shell/internal/marks"
-	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/pickuplist"
-	"github.com/countrymanprime/narration-utils/shell/internal/preview"
-	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
-	"github.com/countrymanprime/narration-utils/shell/internal/scriptprep"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
-	"github.com/countrymanprime/narration-utils/shell/internal/voicesample"
+	"github.com/countrymanprime/narration-studio/shell/internal/bookmarks"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptersync"
+	"github.com/countrymanprime/narration-studio/shell/internal/character"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/editing"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/gapreview"
+	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/marks"
+	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/pickuplist"
+	"github.com/countrymanprime/narration-studio/shell/internal/preview"
+	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
+	"github.com/countrymanprime/narration-studio/shell/internal/scriptprep"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/voicesample"
 )
 
 type ImportJob struct {
@@ -362,7 +362,7 @@ func (s *Service) beginCommit(id string, confirmedReset bool) (*ImportJob, error
 	if project == "" {
 		return nil, fmt.Errorf("save the REAPER project before importing a manuscript")
 	}
-	target := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	target := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if job.busy {
@@ -453,7 +453,7 @@ func (s *Service) Load() (map[string]any, error) {
 	if project == "" {
 		return nil, fmt.Errorf("save the REAPER project and import a manuscript first")
 	}
-	path := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, fmt.Errorf("import a manuscript first")
@@ -498,7 +498,7 @@ func commit(project, source string, draft importer.Draft, kinds map[string]strin
 	}
 	defer func() { _ = input.Close() }() // read-only source
 	report(15, fmt.Sprintf("Copying %s (%d KB) into the project and computing its checksum", name, info.Size()/1024))
-	sourceDir := filepath.Join(project, "narration-utils", "manuscript", "sources", newID())
+	sourceDir := filepath.Join(project, "narration-studio", "manuscript", "sources", newID())
 	if err := os.MkdirAll(sourceDir, 0o755); err != nil {
 		return nil, fmt.Errorf("could not create manuscript storage: %w", err)
 	}
@@ -529,7 +529,7 @@ func commit(project, source string, draft importer.Draft, kinds map[string]strin
 		return nil, err
 	}
 	report(70, "Writing manuscript.json")
-	target := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	target := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return nil, err
 	}
@@ -660,7 +660,7 @@ func sourceMetadataFields(metadata *importer.SourceMetadata) map[string]any {
 func resetDerived(project string) error {
 	// Findings are anchored to manuscript chapter and paragraph ids, so a
 	// replace or Clear that invalidates those ids clears findings too.
-	for _, path := range []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, "narration-utils", "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project), editlog.AcceptedFile(project), editlog.CutsFile(project), editlog.WordFxFile(project), editlog.StacksFile(project), bookmarks.File(project), gapreview.File(project), pickuplist.File(project), passagemap.File(project), marks.File(project), scriptprep.File(project)} {
+	for _, path := range []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, "narration-studio", "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project), editlog.AcceptedFile(project), editlog.CutsFile(project), editlog.WordFxFile(project), editlog.StacksFile(project), bookmarks.File(project), gapreview.File(project), pickuplist.File(project), passagemap.File(project), marks.File(project), scriptprep.File(project)} {
 		if err := os.RemoveAll(path); err != nil {
 			return fmt.Errorf("could not clear project data: %w", err)
 		}
@@ -684,8 +684,8 @@ func (s *Service) Clear() error {
 	}
 	// The old script markup file (prep/markup.json) is no longer read since marks replaced it; an explicit clear still
 	// removes it with the rest of the project's data.
-	if err := os.RemoveAll(filepath.Join(project, "narration-utils", "prep", "markup.json")); err != nil {
+	if err := os.RemoveAll(filepath.Join(project, "narration-studio", "prep", "markup.json")); err != nil {
 		return fmt.Errorf("could not clear project data: %w", err)
 	}
-	return os.RemoveAll(filepath.Join(project, "narration-utils", "manuscript"))
+	return os.RemoveAll(filepath.Join(project, "narration-studio", "manuscript"))
 }

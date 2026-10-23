@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
 )
 
 type Child struct {

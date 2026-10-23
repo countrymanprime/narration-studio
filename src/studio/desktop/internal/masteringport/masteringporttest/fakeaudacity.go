@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
 )
 
 // FakeAudacity is the DAW the suite masters a macro_render row through: a dawport.Adapter that
@@ -120,7 +120,7 @@ func (f *FakeAudacity) refusalLocked(req dawport.MacroRender) string {
 		return "no macro named"
 	}
 	folder := filepath.Dir(req.OutputPath)
-	rel, err := filepath.Rel(filepath.Join(f.project, "narration-utils", "mastering"), folder)
+	rel, err := filepath.Rel(filepath.Join(f.project, "narration-studio", "mastering"), folder)
 	if err != nil || rel == "." || strings.HasPrefix(rel, "..") || strings.ContainsRune(rel, filepath.Separator) {
 		return "an output path that is not inside a run folder inside the project"
 	}

@@ -92,7 +92,7 @@ end
 
 -- Runs the script with `env` as its environment, pumping the fake's defer queue until it wrote its done marker.
 local function run_script(env)
-  local fake = reaper_like(env.NARRATION_UTILS_SPIKE_CFG)
+  local fake = reaper_like(env.NARRATION_STUDIO_SPIKE_CFG)
   reaper = fake.reaper
   local getenv = os.getenv
   os.getenv = function(name)
@@ -103,7 +103,7 @@ local function run_script(env)
   if not ok then
     return fake, err
   end
-  local done = H.join(env.NARRATION_UTILS_SPIKE_OUT, 'pass-part-a-done.txt')
+  local done = H.join(env.NARRATION_STUDIO_SPIKE_OUT, 'pass-part-a-done.txt')
   for _ = 1, 20000 do
     if H.read_file(done) then
       break
@@ -122,11 +122,11 @@ local function scratch_env()
   local ep0 = H.join(out, 'ep0-report.txt')
   H.write_file(ep0, 'PASS A6.1 answers ACTIVE_TAKE_SET changed\nPASS A7.1 lists the chain\nPASS A8.1 onto the track\n')
   return {
-    NARRATION_UTILS_SPIKE_OUT = out,
-    NARRATION_UTILS_SPIKE_CFG = cfg,
-    NARRATION_UTILS_REAPER_DIR = host.reaper_dir,
-    NARRATION_UTILS_PASS_EP0_REPORT = ep0,
-    NARRATION_UTILS_PASS_REV = 'abc1234',
+    NARRATION_STUDIO_SPIKE_OUT = out,
+    NARRATION_STUDIO_SPIKE_CFG = cfg,
+    NARRATION_STUDIO_REAPER_DIR = host.reaper_dir,
+    NARRATION_STUDIO_PASS_EP0_REPORT = ep0,
+    NARRATION_STUDIO_PASS_REV = 'abc1234',
   }
 end
 
@@ -134,7 +134,7 @@ H.test('the script runs to its results, merges the workspace report, and quits R
   local env = scratch_env()
   local fake, err = run_script(env)
   H.eq(err, nil)
-  local results = H.read_text(H.join(env.NARRATION_UTILS_SPIKE_OUT, 'pass-part-a-results.md'))
+  local results = H.read_text(H.join(env.NARRATION_STUDIO_SPIKE_OUT, 'pass-part-a-results.md'))
   H.truthy(results, 'pass-part-a-results.md is written')
   H.contains(results, '- REAPER 7.80/x64 on Win64')
   H.contains(results, 'at `abc1234`')
@@ -152,7 +152,7 @@ H.test('the script runs to its results, merges the workspace report, and quits R
     quit = quit or (call.name == 'Main_OnCommand' and call.command_id == 40004)
   end
   H.truthy(quit, 'REAPER is quit at the end')
-  H.eq(fake.saved:find(env.NARRATION_UTILS_SPIKE_OUT, 1, true), 1, 'the project is saved into -Out')
+  H.eq(fake.saved:find(env.NARRATION_STUDIO_SPIKE_OUT, 1, true), 1, 'the project is saved into -Out')
 end)
 
 H.test('the script never records, and says so in its log', function()
@@ -161,25 +161,25 @@ H.test('the script never records, and says so in its log', function()
   for _, call in ipairs(fake.calls) do
     H.truthy(call.name ~= 'CSurf_OnRecord', 'the real CSurf_OnRecord is never called')
   end
-  H.contains(H.read_text(H.join(env.NARRATION_UTILS_SPIKE_OUT, 'pass-part-a-log.txt')), 'record requests (must be 0): 0')
+  H.contains(H.read_text(H.join(env.NARRATION_STUDIO_SPIKE_OUT, 'pass-part-a-log.txt')), 'record requests (must be 0): 0')
 end)
 
 H.test('what the script writes has the scratch paths removed', function()
   local env = scratch_env()
   run_script(env)
   for _, name in ipairs({ 'pass-part-a-results.md', 'pass-part-a-log.txt' }) do
-    local text = H.read_text(H.join(env.NARRATION_UTILS_SPIKE_OUT, name))
-    H.eq(text:find(env.NARRATION_UTILS_SPIKE_OUT, 1, true), nil, name .. ' names -Out')
+    local text = H.read_text(H.join(env.NARRATION_STUDIO_SPIKE_OUT, name))
+    H.eq(text:find(env.NARRATION_STUDIO_SPIKE_OUT, 1, true), nil, name .. ' names -Out')
     H.eq(text:find(host.reaper_dir, 1, true), nil, name .. ' names the bridge folder')
   end
-  H.contains(H.read_text(H.join(env.NARRATION_UTILS_SPIKE_OUT, 'pass-part-a-log.txt')), '<out>')
+  H.contains(H.read_text(H.join(env.NARRATION_STUDIO_SPIKE_OUT, 'pass-part-a-log.txt')), '<out>')
 end)
 
 H.test('without the workspace report, A6 to A8 are not run, never passed', function()
   local env = scratch_env()
-  env.NARRATION_UTILS_PASS_EP0_REPORT = nil
+  env.NARRATION_STUDIO_PASS_EP0_REPORT = nil
   run_script(env)
-  local results = H.read_text(H.join(env.NARRATION_UTILS_SPIKE_OUT, 'pass-part-a-results.md'))
+  local results = H.read_text(H.join(env.NARRATION_STUDIO_SPIKE_OUT, 'pass-part-a-results.md'))
   H.contains(results, '| A6 | `set_active_take` | NOT RUN |')
   H.contains(results, '| A8 | `apply_fx_chain` | NOT RUN |')
 end)
@@ -200,9 +200,9 @@ H.test('the script stops before touching anything when REAPER is not on the scra
   H.eq(fake.saved, nil, 'nothing was saved')
 end)
 
-H.test('the script stops when NARRATION_UTILS_SPIKE_CFG is not set', function()
+H.test('the script stops when NARRATION_STUDIO_SPIKE_CFG is not set', function()
   local env = scratch_env()
-  env.NARRATION_UTILS_SPIKE_CFG = nil
+  env.NARRATION_STUDIO_SPIKE_CFG = nil
   local fake = reaper_like(host.tmpdir())
   reaper = fake.reaper
   local getenv = os.getenv

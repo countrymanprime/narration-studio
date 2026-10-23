@@ -70,7 +70,7 @@ flowchart LR
   tracks, the linked track missing, a missing or non-audio source, an empty range, not a narration chapter, or no
   project file.
 - **Words are kept per source range.** The sidecar keeps one words file per item. The host moves them between the
-  run's `--words-dir` and the evidence cache (`narration-utils/analysis/cache/`). The cache is keyed by source identity,
+  run's `--words-dir` and the evidence cache (`narration-studio/analysis/cache/`). The cache is keyed by source identity,
   model, language and hints, so a trim that narrows a range reuses the words and only a changed item is transcribed
   again.
 - **The alignment is the take markers' own.** `core/recording_coverage.py` reads the `SequenceMatcher` opcodes that
@@ -98,7 +98,7 @@ flowchart LR
   chapter's paragraphs and no tokens, extras or items, so the Editing page can show the script before any check has run.
   Every run writes one ledger record
   (`complete`, `partial` on cancel, or `failed`). A complete run's report is stored under
-  `narration-utils/analysis/coverage/results/` with a hash of the chapter's text. The host applies the thresholds when
+  `narration-studio/analysis/coverage/results/` with a hash of the chapter's text. The host applies the thresholds when
   it reads a report, so a threshold change never transcribes or aligns again.
 - **Progress is real and a check runs only on a press.** Progress is the seconds transcribed over the seconds to
   transcribe. Cancel keeps the finished items. One check runs at a time, and a run ends with one `job:ended` event
@@ -190,7 +190,7 @@ the first sentence after a preamble and turned 0 wrong chapters of 14 into 3
 ## The model cascade
 
 **Status: Implemented, opt-in and off by default.** `RecordingCoverage.cascade_enabled` (MC1). Until a real,
-permissioned corpus confirms the first pass never gives a false "met" ([#425](https://github.com/countrymanprime/narration-utils/issues/425)),
+permissioned corpus confirms the first pass never gives a false "met" ([#425](https://github.com/countrymanprime/narration-studio/issues/425)),
 this stays a narrator's own choice, not the shipped default.
 
 Checking a chapter with the cascade off is unchanged: one pass, `TranscriptCompare.model_size`. With it on, the
@@ -363,4 +363,4 @@ manifest names the audio the sidecar reads and the words files it writes) is row
 
 ## Not done yet
 
-A cross-check against REAPER's own manifest, a real permissioned corpus (which would drop the "uncalibrated" label and turn the cascade on by default, MC1) and playing from a region were tracked in [#425](https://github.com/countrymanprime/narration-utils/issues/425), closed as not planned on 2026-10-11 in favour of the Studio Next work. Spot checks of "met" paragraphs are MC6.
+A cross-check against REAPER's own manifest, a real permissioned corpus (which would drop the "uncalibrated" label and turn the cascade on by default, MC1) and playing from a region were tracked in [#425](https://github.com/countrymanprime/narration-studio/issues/425), closed as not planned on 2026-10-11 in favour of the Studio Next work. Spot checks of "met" paragraphs are MC6.

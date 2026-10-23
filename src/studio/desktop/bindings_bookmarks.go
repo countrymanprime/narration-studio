@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/bookmarks"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/bookmarks"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
 )
 
 // The narrator's bookmarks: a spot in the manuscript, a paragraph and a UTF-16 offset in its text, with an
-// optional label and note, kept in <project>/narration-utils/bookmarks.json and checked against the current text on every
+// optional label and note, kept in <project>/narration-studio/bookmarks.json and checked against the current text on every
 // read, so a bookmark whose line is gone or whose offset no longer fits comes back stale rather than moved.
 
 // BookmarksList returns every bookmark in reading order, each checked against the current manuscript.

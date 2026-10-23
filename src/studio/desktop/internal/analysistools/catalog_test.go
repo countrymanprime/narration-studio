@@ -19,8 +19,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
 )
 
 var sha256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)

@@ -6,9 +6,9 @@
 -- and the audio device is closed. A script that is started any other way stops here instead of touching real settings.
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   -- REAPER opens the default Windows audio device (WaveOut, Sound Mapper) on start even when the first-run prompt is
   -- answered No. Nothing is recorded or played, but close it at once and prove it is closed.
@@ -17,7 +17,7 @@ do
 end
 
 -- run-reaper.ps1 sets this to the scratch folder that holds media/ and receives the saved projects and the report.
-local PACK = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)')
+local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
 PACK = PACK:gsub(string.char(92), '/')
 local function native(path)
   return (path:gsub('/', string.char(92)))
@@ -111,12 +111,12 @@ local ok, err = xpcall(function()
   --    checklist run; here it only proves the round trip through a save.
   local stamped = add_track('Stamped')
   local stamped_item, stamped_take = add_item(stamped, 'take_a.wav', 20, 3, 'stamped line')
-  log('P_EXT missing key', reaper.GetSetMediaItemInfo_String(stamped_item, 'P_EXT:narration_utils_line_id', '', false))
-  log('P_EXT set item', reaper.GetSetMediaItemInfo_String(stamped_item, 'P_EXT:narration_utils_line_id', 'line-000001', true))
-  log('P_EXT set item text', reaper.GetSetMediaItemInfo_String(stamped_item, 'P_EXT:narration_utils_line_text', 'The first line, with | a pipe.', true))
-  log('P_EXT set take', reaper.GetSetMediaItemTakeInfo_String(stamped_take, 'P_EXT:narration_utils_take_note', 'take-level value', true))
-  log('P_EXT read item', reaper.GetSetMediaItemInfo_String(stamped_item, 'P_EXT:narration_utils_line_id', '', false))
-  log('P_EXT read take', reaper.GetSetMediaItemTakeInfo_String(stamped_take, 'P_EXT:narration_utils_take_note', '', false))
+  log('P_EXT missing key', reaper.GetSetMediaItemInfo_String(stamped_item, 'P_EXT:narration_studio_line_id', '', false))
+  log('P_EXT set item', reaper.GetSetMediaItemInfo_String(stamped_item, 'P_EXT:narration_studio_line_id', 'line-000001', true))
+  log('P_EXT set item text', reaper.GetSetMediaItemInfo_String(stamped_item, 'P_EXT:narration_studio_line_text', 'The first line, with | a pipe.', true))
+  log('P_EXT set take', reaper.GetSetMediaItemTakeInfo_String(stamped_take, 'P_EXT:narration_studio_take_note', 'take-level value', true))
+  log('P_EXT read item', reaper.GetSetMediaItemInfo_String(stamped_item, 'P_EXT:narration_studio_line_id', '', false))
+  log('P_EXT read take', reaper.GetSetMediaItemTakeInfo_String(stamped_take, 'P_EXT:narration_studio_take_note', '', false))
   log('item GUID', reaper.GetSetMediaItemInfo_String(stamped_item, 'GUID', '', false))
   log('track GUID', reaper.GetSetMediaTrackInfo_String(stamped, 'GUID', '', false))
 
@@ -124,14 +124,14 @@ local ok, err = xpcall(function()
   local tricky_item = add_item(stamped, 'take_b.wav', 24, 3, 'tricky values')
   local tricky = 'She said "hello", then left.' .. string.char(92) .. ' Caf' .. string.char(195, 169) .. ' 100% done; it' .. string.char(39) .. 's fine.'
   local long = string.rep('word ', 600) .. 'end'
-  local set_ok = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_utils_line_text', tricky, true)
-  reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_utils_line_id', 'line-000002', true)
-  reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_utils_long', long, true)
-  local _, read_back = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_utils_line_text', '', false)
-  local _, read_long = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_utils_long', '', false)
+  local set_ok = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_studio_line_text', tricky, true)
+  reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_studio_line_id', 'line-000002', true)
+  reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_studio_long', long, true)
+  local _, read_back = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_studio_line_text', '', false)
+  local _, read_long = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_studio_long', '', false)
   log('P_EXT tricky value set', set_ok, 'read back identical', read_back == tricky, 'long value length', #long, 'read back identical', read_long == long)
-  local newline_ok = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_utils_multiline', 'first line' .. string.char(10) .. 'second line', true)
-  local _, read_multiline = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_utils_multiline', '', false)
+  local newline_ok = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_studio_multiline', 'first line' .. string.char(10) .. 'second line', true)
+  local _, read_multiline = reaper.GetSetMediaItemInfo_String(tricky_item, 'P_EXT:narration_studio_multiline', '', false)
   log('P_EXT value with a newline: set', newline_ok, 'read back', (read_multiline:gsub(string.char(10), '<LF>')))
 
   -- 7. Project markers (PICKUP: convention) and chapter regions.

@@ -27,7 +27,7 @@ function standInEvents(eventsOn: EventsOn): void {
   fake.eventsOn = eventsOn;
 }
 
-vi.mock('../../wailsjs/github.com/countrymanprime/narration-utils/shell/host', async (importOriginal) => {
+vi.mock('../../wailsjs/github.com/countrymanprime/narration-studio/shell/host', async (importOriginal) => {
   const generated = await importOriginal<Record<string, unknown>>();
   return Object.fromEntries(
     Object.keys(generated).map((name) => [
@@ -436,7 +436,7 @@ describe('wailsClient', () => {
     const preview = {
       html: '<p>x</p>',
       json: '{}\n',
-      folder: 'narration-utils/production/reports',
+      folder: 'narration-studio/production/reports',
       stem: 'production-status-20260921-100000Z',
       contractedAmountIncluded: true,
       include: { words: true, stages: false, milestones: true, pickups: false, delivery: true, money: true },

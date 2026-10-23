@@ -9,12 +9,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/mastering"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport/masteringporttest"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/mastering"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport/masteringporttest"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 func TestEveryRegisteredRowPassesTheSuite(t *testing.T) {

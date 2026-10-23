@@ -35,7 +35,7 @@ PASS 9 a take GUID not on the item is FINDING_STALE take :: FINDING_STALE|n3|{FF
 PASS 10 a spot past the end of the item is FINDING_STALE range, never the neighbour :: FINDING_STALE|n4|{757A69FD-9121-4DEE-ACC1-B7E363BCE354}|range
 PASS 10 ... the cursor stayed at 11.5 s :: 11.5
 PASS 11 after the item moved to 30 s the finding is at 31.5 s :: NAVIGATED|n5|{757A69FD-9121-4DEE-ACC1-B7E363BCE354}|31.500000
-PASS 12 prepare_compare prepares the selected item :: COMPARE_PREPARED|c1|<out>\manifest_c1.txt|<out>\narration-utils\manuscript\manuscript.json|Track 1|<out>\TranscriptCompare\diffs\Track 1_c1.diff|1
+PASS 12 prepare_compare prepares the selected item :: COMPARE_PREPARED|c1|<out>\manifest_c1.txt|<out>\narration-studio\manuscript\manuscript.json|Track 1|<out>\TranscriptCompare\diffs\Track 1_c1.diff|1
 PASS 12 COMPARE_MARKER ends with the item, take and track GUIDs :: COMPARE_MARKER|c1|0@1.500000|MISREAD|MISREAD: alice|Alice|Alyss|11.5|0|Chapter 1|4|script|audio|pending||1.5|{757A69FD-9121-4DEE-ACC1-B7E363BCE354}|{6632433F-DB2B-436A-86DA-6EBFB53D1E8D}|{70502B1D-7FE1-4542-B87B-C3F53B84CC11}
 PASS 12 ... and navigate_item goes to that marker by them :: NAVIGATED|n6|{757A69FD-9121-4DEE-ACC1-B7E363BCE354}|11.500000
 probe: SetMediaItemSelected undo '' -> ''

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
 )
 
 // FakeDAW is the DAW the suite masters ModeDAWRegion rows through: a dawport.Adapter that declares
@@ -196,7 +196,7 @@ func (f *FakeDAW) refusalLocked(render dawport.FXRender) string {
 			return "an approval used twice"
 		}
 	}
-	rel, err := filepath.Rel(filepath.Join(f.project, "narration-utils", "mastering"), render.OutputFolder)
+	rel, err := filepath.Rel(filepath.Join(f.project, "narration-studio", "mastering"), render.OutputFolder)
 	if err != nil || rel == "." || strings.HasPrefix(rel, "..") || strings.ContainsRune(rel, filepath.Separator) {
 		return "a folder that is not a run folder inside the project"
 	}

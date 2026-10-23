@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
 )
 
 func fxComparerAnswering(t *testing.T, answer func(command []string) [][]string) dawport.RangeFXComparer {

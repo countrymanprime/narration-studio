@@ -1,8 +1,8 @@
 package continuity
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/acoustic"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/acoustic"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // FileMeasurer is the ClipMeasurer role over WAV files on disk: the

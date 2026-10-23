@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 var attestedAt = time.Date(2026, 9, 26, 11, 0, 0, 0, time.UTC)

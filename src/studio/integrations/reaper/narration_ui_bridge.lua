@@ -57,6 +57,7 @@ end
 
 local directory = own_directory()
 local core = dofile(directory .. package.config:sub(1, 1) .. 'narration_bridge_core.lua')
+local rename = dofile(core.join(directory, 'narration_rename.lua'))
 local features = {}
 for _, name in ipairs(M.FEATURE_FILES) do
   local chunk = assert(loadfile(core.join(directory, name)))
@@ -84,6 +85,8 @@ M.HEARTBEAT_INTERVAL_SECONDS = 1.5
 function M.run(session_dir, registry)
   registry = registry or M.new_registry()
   local commands_dir, active = core.join(session_dir, 'commands'), true
+  -- A project saved before the rename names the app's P_EXT keys the old way; carry them over before a command reads them.
+  local carry_over = rename.once_per_project()
   local ctx = {
     session_dir = session_dir,
     event = function(tag, ...)
@@ -134,6 +137,7 @@ function M.run(session_dir, registry)
         if command[1] ~= '1' then
           ctx.event('ERROR', '', 'Unsupported hub protocol')
         else
+          carry_over()
           local handler = registry.lookup(command[2])
           if handler then
             local args = {}

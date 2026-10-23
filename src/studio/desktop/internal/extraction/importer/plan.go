@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
 )
 
 // Entry is a Story Bible entry as the plan reads it.

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/runlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/runlog"
 )
 
 // streamStderrTail bounds how much of a streamed child's stderr is kept for

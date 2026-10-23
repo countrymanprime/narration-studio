@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
 )
 
 // State is what a poll tick concluded about Audacity, in the words of the matrix's heartbeat (N3a).

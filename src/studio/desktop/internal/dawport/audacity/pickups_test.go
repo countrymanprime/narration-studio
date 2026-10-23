@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	abt "github.com/countrymanprime/narration-utils/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 type pickupsFixture struct {

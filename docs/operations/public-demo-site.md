@@ -82,7 +82,7 @@ The app moves only when the device allows it ([Motion and animation](../design/m
 
 ## Why the demo is a separate Vite mode
 
-The `site` mode (`src/web/demo/.env.site`, `src/web/demo/vite.config.ts`) differs from the older `demo` mode, which `pages.yml` builds under the absolute `/narration-utils/demo/`:
+The `site` mode (`src/web/demo/.env.site`, `src/web/demo/vite.config.ts`) differs from the older `demo` mode, which `pages.yml` builds under the absolute `/narration-studio/demo/`:
 
 - **One file.** `sitePlugin` in `src/web/demo/vite.config.ts` inlines the single script chunk and the stylesheet into `index.html` and the fonts and icon as data URIs, because a module script or a font fetched from a file beside the page needs CORS headers, which a sandboxed frame's host may not send. The page then opens from any sub-path, from a file server and inside `<iframe sandbox="allow-scripts">` with no network.
 - **Hash routes.** `VITE_ROUTER=hash` makes the extension ask for `hashRouting`, so `App.tsx` uses `HashRouter`, because a static host cannot rewrite `/proof` to `index.html`. A page is `demo/app.html#/proof` (and `demo/index.html#/proof` in the window).

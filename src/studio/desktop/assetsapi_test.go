@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/analysistools"
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/analysistools"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
 )
 
 // answer reads a binding JSON answer into a map, so a test looks at what the UI receives: answer(t)(host.AssetsList()).

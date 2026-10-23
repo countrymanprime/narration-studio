@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/mastering"
-	"github.com/countrymanprime/narration-utils/shell/internal/packager"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/mastering"
+	"github.com/countrymanprime/narration-studio/shell/internal/packager"
 )
 
 // What ExportPickFiles, ExportState, PackageState and their siblings send: the
@@ -45,18 +45,18 @@ func TestContractExportBindings(t *testing.T) {
 
 	finished := contractExportJob()
 	value := func(v float64) *float64 { return &v }
-	masteredPath := "C:/Project/narration-utils/render-encode-master/mastered/01-chapter.wav"
+	masteredPath := "C:/Project/narration-studio/render-encode-master/mastered/01-chapter.wav"
 	summary := &MasteringSummary{
 		Targets: mastering.Targets{RMS: -20.5, Ceiling: -3}, HighPassHz: 80, GainDB: 2.3,
 		BeforeRMSdBFS: value(-22.8), AfterRMSdBFS: value(-20.5), AfterPeakDBFS: value(-3.4),
 	}
-	finished.succeed(0, masteredPath, summary, "C:/Project/narration-utils/render-encode-master/encoded/01-chapter.mp3")
+	finished.succeed(0, masteredPath, summary, "C:/Project/narration-studio/render-encode-master/encoded/01-chapter.mp3")
 	finished.fail(1, errors.New("the encoder rejected this file: unsupported sample format"))
 	finished.finish(false, nil)
 	pinExportJob(t, "export-error", finished.snapshot())
 
 	cancelled := contractExportJob()
-	cancelled.succeed(0, masteredPath, summary, "C:/Project/narration-utils/render-encode-master/encoded/01-chapter.mp3")
+	cancelled.succeed(0, masteredPath, summary, "C:/Project/narration-studio/render-encode-master/encoded/01-chapter.mp3")
 	cancelled.finish(true, nil)
 	pinExportJob(t, "export-cancelled", cancelled.snapshot())
 }

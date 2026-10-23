@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptermatch"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptermatch"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // trackOption is one track the narrator can pick when a chapter's match is not

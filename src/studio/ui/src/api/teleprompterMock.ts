@@ -457,7 +457,7 @@ function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {
         schema_version: 1,
         id,
         analyzer: 'teleprompter',
-        project: { path: 'C:/Projects/Alice', output_path: `narration-utils/findings/teleprompter/${chapterId}.json` },
+        project: { path: 'C:/Projects/Alice', output_path: `narration-studio/findings/teleprompter/${chapterId}.json` },
         source: {},
         manuscript: {
           chapter_id: chapterId,

@@ -247,7 +247,7 @@ class TestReport:
     def test_names_the_program_the_release_the_licence_and_where_the_source_is(self):
         text = notices.render_report(version="0.1.0", components=self.sample(), program_license="AGPL FULL TEXT", catalogs=[])
 
-        assert "narration-utils 0.1.0" in text
+        assert "narration-studio 0.1.0" in text
         assert "AGPL-3.0-or-later" in text
         assert "https://github.com/countrymanprime/narration-studio" in text
         assert "v0.1.0" in text

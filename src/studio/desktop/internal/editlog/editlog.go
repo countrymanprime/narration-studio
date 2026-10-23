@@ -1,5 +1,5 @@
 // Package editlog is the narrator's Editing records: one file per kind of record under the project's
-// narration-utils/editing/ folder, beside the per-chapter source choices. Each names a word by its chapter id, its paragraph
+// narration-studio/editing/ folder, beside the per-chapter source choices. Each names a word by its chapter id, its paragraph
 // id and its ordinal among the paragraph's words, together with the text the word had, and is checked against the current
 // manuscript on every read: a record whose word is gone or whose text changed is reported stale, never moved to a guess
 // (the rule of).
@@ -17,12 +17,12 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // Dir is the project's Editing folder.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-utils", "editing")
+	return filepath.Join(project, "narration-studio", "editing")
 }
 
 // Line is one paragraph of the manuscript as it currently is.

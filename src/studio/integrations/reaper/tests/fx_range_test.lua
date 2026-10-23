@@ -6,8 +6,8 @@ local H = require('harness')
 
 local APPLY_LABEL = 'Narration Studio: add chain to range'
 local REMOVE_LABEL = 'Narration Studio: remove chain from range'
-local CHAIN_KEY = 'narration_utils_fx_range_chain'
-local FX_KEY = 'narration_utils_fx_range_fx'
+local CHAIN_KEY = 'narration_studio_fx_range_chain'
+local FX_KEY = 'narration_studio_fx_range_fx'
 local CHAIN = 'Voice/Radio.RfxChain'
 local BAD_CHAIN = 'That FX chain is not in the FXChains folder REAPER lists.'
 local BAD_RANGE = 'The range for the chain is not a usable pair of times.'

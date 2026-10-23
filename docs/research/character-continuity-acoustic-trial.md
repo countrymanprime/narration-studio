@@ -225,7 +225,7 @@ What this means for the decision above:
   voiced on purpose, are still the deciding corpus (D19). This run is evidence for that decision, not a replacement.
 
 The decision above is left as it stands for the owner to review with this evidence
-([#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217)).
+([#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217)).
 
 ## Re-running this trial
 
@@ -264,5 +264,5 @@ and hand-check each line's timestamps against the source text as the PRD's proto
 `is_reference_eligible` should be `false` for any clip the narrator has not explicitly approved.
 `run_trial.py` does not care whether the corpus was synthesized or recorded.
 
-The owner's review is on [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217); see [Sources](../../scripts/research/character-continuity-acoustic-trial/SOURCES.md) for
+The owner's review is on [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217); see [Sources](../../scripts/research/character-continuity-acoustic-trial/SOURCES.md) for
 full provenance.

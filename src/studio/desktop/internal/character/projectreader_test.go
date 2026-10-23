@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // fakeProjectReader proves savedProject reads through the injected dawport.ProjectReader role

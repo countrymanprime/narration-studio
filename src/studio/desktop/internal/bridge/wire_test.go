@@ -8,7 +8,7 @@ import (
 // Real events, field for field, as src/studio/integrations/reaper/tests/compare_test.lua and line_identity_test.lua pin them: the harness proves
 // what Lua emits, and these prove what Go accepts, so the two halves of the protocol are tied to the same lines.
 var realEvents = map[string][]string{
-	"COMPARE_PREPARED":      {"COMPARE_PREPARED", "r1", "C:/s/manifest.json", "C:/p/narration-utils/manuscript/manuscript.json", "Narrator", "C:/s/diff.txt", "3", "41"},
+	"COMPARE_PREPARED":      {"COMPARE_PREPARED", "r1", "C:/s/manifest.json", "C:/p/narration-studio/manuscript/manuscript.json", "Narrator", "C:/s/diff.txt", "3", "41"},
 	"COMPARE_MARKER":        {"COMPARE_MARKER", "r1", "0@12.500000", "MISREAD", "MISREAD: alice", "Alice", "Alyss", "102.5", "0", "Chapter 1", "4", "script ctx", "audio ctx", "pending", "", "12.5", "{AAAAAAAA-0000-4000-8000-000000000001}", "{AAAAAAAA-0000-4000-8000-0000000000A1}", "{00000001-0000-4000-8000-000000000001}"},
 	"COMPARE_INSPECTED":     {"COMPARE_INSPECTED", "r1", "2 discrepancy(s) found.", "2", "0"},
 	"COMPARE_EXPORT_MARKER": {"COMPARE_EXPORT_MARKER", "r1", "0@12.500000", "exported", ""},
@@ -79,8 +79,8 @@ var realEvents = map[string][]string{
 	// src/studio/integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx).
 	"MASTER_CHAIN_FX":   {"MASTER_CHAIN_FX", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "1"},
 	"MASTER_CHAIN_READ": {"MASTER_CHAIN_READ", "c1", "3", "0"},
-	"FX_RENDER_FILE":    {"FX_RENDER_FILE", "r1", "Chapter 1", "C:/p/narration-utils/mastering/run1/fx-01.wav"},
-	"FX_RENDERED":       {"FX_RENDERED", "r1", "C:/p/narration-utils/mastering/run1", "1"},
+	"FX_RENDER_FILE":    {"FX_RENDER_FILE", "r1", "Chapter 1", "C:/p/narration-studio/mastering/run1/fx-01.wav"},
+	"FX_RENDERED":       {"FX_RENDERED", "r1", "C:/p/narration-studio/mastering/run1", "1"},
 	// src/studio/integrations/reaper/tests/takes_test.lua (hide_takes).
 	"TAKES_HIDDEN": {"TAKES_HIDDEN", "h1", "{AAAAAAAA-0000-4000-8000-000000000001}", "2", "1"},
 	// src/studio/integrations/reaper/tests/reduce_range_gain_test.lua (reduce_range_gain).

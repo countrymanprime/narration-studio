@@ -12,18 +12,18 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// cmd/narration-utils/frontend/dist is populated from src/studio/ui/dist by the shell build script.
+// cmd/narration-studio/frontend/dist is populated from src/studio/ui/dist by the shell build script.
 // Keeping the copy inside the Go module makes release artifacts independent
 // of a checkout path.
 //
-//go:embed all:cmd/narration-utils/frontend/dist
+//go:embed all:cmd/narration-studio/frontend/dist
 var frontendAssets embed.FS
 
 // Release preparation places the immutable Python sidecars and their runtime
 // files here. They are embedded into the native application rather than read
 // from a checkout at runtime.
 //
-//go:embed all:cmd/narration-utils/resources
+//go:embed all:cmd/narration-studio/resources
 var resources embed.FS // its root inside the file system is resourcesRoot (smoke.go)
 
 func main() {
@@ -32,6 +32,8 @@ func main() {
 	if code, handled := runEarlyModes(os.Args[1:], resources, os.Stdout, os.Stderr); handled {
 		os.Exit(code)
 	}
+	// Before anything reads a per-user folder: the update relaunch reads its record from the cache folder.
+	migrateUserFolders()
 	if !startAfterUpdate() {
 		return
 	}

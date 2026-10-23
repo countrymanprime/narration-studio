@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
 )
 
 // "Alice 😀 was beginning to get very tired": the emoji is two UTF-16 code units, so an offset after it is where the
@@ -63,7 +63,7 @@ func TestAMisreadIsASuspectedTranscriptDiscrepancyOnTheManuscriptWords(t *testin
 	if f.TimeRange != nil || f.Source != (findings.Source{}) {
 		t.Fatal("no take is known yet, so the finding carries no time range or source")
 	}
-	if f.Project.OutputPath != "narration-utils/findings/teleprompter/ch-1.json" {
+	if f.Project.OutputPath != "narration-studio/findings/teleprompter/ch-1.json" {
 		t.Fatalf("output path = %q", f.Project.OutputPath)
 	}
 }

@@ -7,24 +7,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bookmarks"
-	"github.com/countrymanprime/narration-utils/shell/internal/character"
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/editing"
-	"github.com/countrymanprime/narration-utils/shell/internal/editlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	extractionstore "github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
-	"github.com/countrymanprime/narration-utils/shell/internal/gapreview"
-	"github.com/countrymanprime/narration-utils/shell/internal/importer"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/marks"
-	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-utils/shell/internal/pickuplist"
-	"github.com/countrymanprime/narration-utils/shell/internal/preview"
-	"github.com/countrymanprime/narration-utils/shell/internal/proofing"
-	"github.com/countrymanprime/narration-utils/shell/internal/scriptprep"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
-	"github.com/countrymanprime/narration-utils/shell/internal/voicesample"
+	"github.com/countrymanprime/narration-studio/shell/internal/bookmarks"
+	"github.com/countrymanprime/narration-studio/shell/internal/character"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/editing"
+	"github.com/countrymanprime/narration-studio/shell/internal/editlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	extractionstore "github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
+	"github.com/countrymanprime/narration-studio/shell/internal/gapreview"
+	"github.com/countrymanprime/narration-studio/shell/internal/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/marks"
+	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
+	"github.com/countrymanprime/narration-studio/shell/internal/pickuplist"
+	"github.com/countrymanprime/narration-studio/shell/internal/preview"
+	"github.com/countrymanprime/narration-studio/shell/internal/proofing"
+	"github.com/countrymanprime/narration-studio/shell/internal/scriptprep"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/voicesample"
 )
 
 func TestCommitCreatesProjectOwnedCanonicalManuscript(t *testing.T) {
@@ -302,14 +302,14 @@ func TestPreviewPayloadCarriesTheRepairsTheImporterMade(t *testing.T) {
 // other derived, manuscript-anchored folders.
 func TestResetDerivedClearsTheFindingsDirectory(t *testing.T) {
 	project := t.TempDir()
-	findingsFile := filepath.Join(project, "narration-utils", "findings", "transcript_compare", "c-0001.json")
+	findingsFile := filepath.Join(project, "narration-studio", "findings", "transcript_compare", "c-0001.json")
 	if err := os.MkdirAll(filepath.Dir(findingsFile), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(findingsFile, []byte("[]"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	settingsFile := filepath.Join(project, "narration-utils", "settings.json")
+	settingsFile := filepath.Join(project, "narration-studio", "settings.json")
 	if err := os.WriteFile(settingsFile, []byte("{}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -318,11 +318,11 @@ func TestResetDerivedClearsTheFindingsDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := os.Stat(filepath.Join(project, "narration-utils", "findings")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, "narration-studio", "findings")); !os.IsNotExist(err) {
 		t.Fatalf("expected the findings directory to be removed, stat err = %v", err)
 	}
 	if _, err := os.Stat(settingsFile); err != nil {
-		t.Fatalf("resetDerived must not touch narration-utils/settings.json: %v", err)
+		t.Fatalf("resetDerived must not touch narration-studio/settings.json: %v", err)
 	}
 }
 

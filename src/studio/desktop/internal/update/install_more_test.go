@@ -168,15 +168,15 @@ func TestAPendingRecordCannotBeUsedToTouchAnotherProgramsFiles(t *testing.T) {
 
 func TestPathsAreComparedTheWayTheSystemDoes(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "App", "narration-utils.exe")
-	if !samePath(path, filepath.Join(dir, "App", "..", "App", "narration-utils.exe")) {
+	path := filepath.Join(dir, "App", "narration-studio.exe")
+	if !samePath(path, filepath.Join(dir, "App", "..", "App", "narration-studio.exe")) {
 		t.Fatal("a path with a dot-dot is the same program")
 	}
 	upper := strings.ToUpper(path)
 	if got := samePath(path, upper); got != (runtime.GOOS == "windows") {
 		t.Fatalf("case: samePath = %v on %s", got, runtime.GOOS)
 	}
-	if samePath(path, filepath.Join(dir, "Other", "narration-utils.exe")) {
+	if samePath(path, filepath.Join(dir, "Other", "narration-studio.exe")) {
 		t.Fatal("different folders are different programs")
 	}
 }

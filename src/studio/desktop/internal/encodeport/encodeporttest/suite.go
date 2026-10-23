@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // undeclared is a format the suite asks for to see it refused; no row declares it.

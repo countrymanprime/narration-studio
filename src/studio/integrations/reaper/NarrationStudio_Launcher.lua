@@ -1,5 +1,5 @@
 -- Narration Studio - the sole REAPER action for the suite.
--- Launches the native Go/Wails app (narration-utils, narration-utils.exe on Windows). Closing the app's window is the only thing that stops it. Python only runs as a
+-- Launches the native Go/Wails app (narration-studio, narration-studio.exe on Windows). Closing the app's window is the only thing that stops it. Python only runs as a
 -- short-lived subprocess the app spawns for Story Bible builds and
 -- transcript comparisons, never as a supervised server. REAPER itself has
 -- no workflow UI; the bridge below only services requests from that
@@ -38,7 +38,7 @@ local BUNDLE_ROOT = join(join(SHARED, '..'), '..')
 -- imported from Settings continues to work after the app moves or updates.
 -- This remains an explicit REAPER import: the app never installs actions.
 -- The path is whatever os.Executable() reported, so the launcher never depends on the program's name: only the two fallbacks below do.
-local configured_app = common.read_file(SHARED .. SEP .. 'narration-utils-app-path.txt'):gsub('[\r\n]+$', '')
+local configured_app = common.read_file(SHARED .. SEP .. 'narration-studio-app-path.txt'):gsub('[\r\n]+$', '')
 
 -- Returns the rpp's own containing folder, a display name, and the rpp's own
 -- exact path (passed to the app as --project-file). An unsaved project has no
@@ -66,7 +66,7 @@ local manuscript_backend = join(manuscript_core, 'manuscript_guide.py')
 local compare_python = shared_python
 local compare_backend = join(compare_core, 'compare.py')
 -- The program is named for the product (wails.json outputfilename; scripts/release/assets.mjs packages exactly this file).
-local app_name = is_windows and 'narration-utils.exe' or 'narration-utils'
+local app_name = is_windows and 'narration-studio.exe' or 'narration-studio'
 local bundled_app = configured_app ~= '' and configured_app or join(BUNDLE_ROOT, app_name)
 local checkout_app = join(join(join(join(join(REPO_ROOT, 'src'), 'studio'), 'desktop'), 'build/bin'), app_name)
 local release_mode = common.file_exists(bundled_app)

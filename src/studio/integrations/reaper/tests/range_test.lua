@@ -6,7 +6,7 @@
 local H = require('harness')
 
 local UNDO_LABEL = 'Narration Studio: delete words'
-local CUTS_KEY = 'narration_utils_cuts'
+local CUTS_KEY = 'narration_studio_cuts'
 
 -- A chapter track with an intro (0-8), the item the words are in (10-30) and a later item (32-37), and a second track
 -- with an item that spans the cut's time (25-35).
@@ -315,7 +315,7 @@ end)
 -- stretch a region named "Room tone" marks inside an item on the same track, in the same undo block. Both omitted, the
 -- command answers as before; asked for, the answer appends the pad and the number of room-tone pieces it laid.
 
-local ROOM_TONE_KEY = 'narration_utils_room_tone'
+local ROOM_TONE_KEY = 'narration_studio_room_tone'
 
 -- span() rounded to microseconds: a pad moves the edges by sums that are not exact in binary.
 local function rspan(item)

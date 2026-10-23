@@ -16,7 +16,7 @@ import (
 	"unicode/utf16"
 	"unicode/utf8"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // what names the file for the narrator in a persist notice or an error.
@@ -44,7 +44,7 @@ var (
 
 // Dir is where this package keeps its data under a project. manuscript.Service.Clear removes it; a replace keeps it.
 func Dir(project string) string {
-	return filepath.Join(project, "narration-utils", "voice-samples")
+	return filepath.Join(project, "narration-studio", "voice-samples")
 }
 
 func storePath(project string) string { return filepath.Join(Dir(project), "samples.json") }

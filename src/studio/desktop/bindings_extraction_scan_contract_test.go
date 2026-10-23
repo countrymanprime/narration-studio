@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/extractionport"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/extractionport"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
 )
 
 // The payloads the UI's scan schemas are checked against: the sources of a fresh install, and a scan that ran the

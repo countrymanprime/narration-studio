@@ -3,8 +3,8 @@ package passagetakes
 import (
 	"context"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // Hider is the DAW's hide_takes (dawport.TakeSelector.HideTakes): mute every take of itemGUID but keepTakeGUID, in one undo step.

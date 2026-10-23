@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "release": {
-    "projects": ["narration-utils"],
+    "projects": ["narration-studio"],
     "projectsRelationship": "fixed",
     "releaseTag": {
       "pattern": "v{version}-rc"

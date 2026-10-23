@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/dawporttest"
-	"github.com/countrymanprime/narration-utils/shell/internal/pickuplist"
-	"github.com/countrymanprime/narration-utils/shell/internal/pickups"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/dawporttest"
+	"github.com/countrymanprime/narration-studio/shell/internal/pickuplist"
+	"github.com/countrymanprime/narration-studio/shell/internal/pickups"
 )
 
 func pickupsOf(t *testing.T, answer map[string]any) []map[string]any {

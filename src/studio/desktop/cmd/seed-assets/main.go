@@ -23,12 +23,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/moonshine"
-	"github.com/countrymanprime/narration-utils/shell/internal/spacy"
-	"github.com/countrymanprime/narration-utils/shell/internal/tts"
-	"github.com/countrymanprime/narration-utils/shell/internal/whisper"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/moonshine"
+	"github.com/countrymanprime/narration-studio/shell/internal/spacy"
+	"github.com/countrymanprime/narration-studio/shell/internal/tts"
+	"github.com/countrymanprime/narration-studio/shell/internal/whisper"
 )
 
 func main() {

@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/marks"
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/marks"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // Scale is one synthetic project size. Every density is per 1,000 script words.
@@ -160,7 +160,7 @@ type WordsBlob struct {
 	Segments      []json.RawMessage `json:"segments"`
 }
 
-func projectRoot(dir string) string { return filepath.Join(dir, "narration-utils") }
+func projectRoot(dir string) string { return filepath.Join(dir, "narration-studio") }
 
 func takeKey(dir string, ch, take int, analyzer string) evidence.CacheEntryKey {
 	return evidence.CacheEntryKey{

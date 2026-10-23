@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/daw"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/daw"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
 )
 
 // Which microphone REAPER uses, for the teleprompter's microphone picker: REAPER's open input device, from chapter_track_state's device read, matched against the names the

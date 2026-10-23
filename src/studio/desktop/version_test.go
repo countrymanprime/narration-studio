@@ -15,7 +15,7 @@ func TestTheStampedVersionIsWhatTheProgramReports(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds the program")
 	}
-	name := "narration-utils-under-test"
+	name := "narration-studio-under-test"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}

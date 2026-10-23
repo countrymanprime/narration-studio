@@ -19,11 +19,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 type Config struct{ Project, SessionDir, Python, Backend string }
@@ -167,7 +167,7 @@ func (s *Service) notify() {
 }
 
 func (s *Service) Start(options map[string]string) error {
-	if s.config.Project == "" || !exists(filepath.Join(s.config.Project, "narration-utils", "manuscript", "manuscript.json")) {
+	if s.config.Project == "" || !exists(filepath.Join(s.config.Project, "narration-studio", "manuscript", "manuscript.json")) {
 		return fmt.Errorf("save the REAPER project and import a manuscript first")
 	}
 	hintsPath := filepath.Join(s.config.Project, "TranscriptCompare", "vocabulary_hints.txt")

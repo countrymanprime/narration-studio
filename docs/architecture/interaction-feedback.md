@@ -57,4 +57,4 @@ The steps for a new call are in the header of `src/studio/ui/src/interactionFeed
 ## Open
 
 - **Operating system notifications** subscribe to `job:ended` ([native notifications](native-notifications.md)).
-- **Owner steps** ([#210](https://github.com/countrymanprime/narration-utils/issues/210)): a screen-reader pass on the live regions and busy buttons, a real desktop run of the job-end toast, and the measurements that need a spaCy model, a Piper voice or antivirus.
+- **Owner steps** ([#210](https://github.com/countrymanprime/narration-studio/issues/210)): a screen-reader pass on the live regions and busy buttons, a real desktop run of the job-end toast, and the measurements that need a spaCy model, a Piper voice or antivirus.

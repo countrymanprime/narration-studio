@@ -39,7 +39,7 @@ var ErrChoicesUnreadable = errors.New("the editing source-choice file could not 
 // manuscript.resetDerived clears it, since a choice is keyed by documentId
 // and chapter id, which a re-import renumbers - the same reasoning
 // proofing.Dir's own doc comment gives.
-func ChoiceDir(project string) string { return filepath.Join(project, "narration-utils", "editing") }
+func ChoiceDir(project string) string { return filepath.Join(project, "narration-studio", "editing") }
 
 // ChoiceFile is the per-chapter source-choice sidecar.
 func ChoiceFile(project string) string {

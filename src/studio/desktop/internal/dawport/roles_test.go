@@ -1,8 +1,8 @@
 package dawport
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/daw"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/daw"
 )
 
 // Today's implementations already have each synchronous role's method set, so the REAPER adapter can hand them out as they are

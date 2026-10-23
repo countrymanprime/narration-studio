@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 func TestLinkDawFileWithAFileInsideTheProjectFolderLinksIt(t *testing.T) {

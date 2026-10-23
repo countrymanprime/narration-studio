@@ -3,6 +3,8 @@ package tracks
 import (
 	"encoding/base64"
 	"strings"
+
+	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
 )
 
 // extensionData reads a <EXTI> (item) or <EXT> (take) chunk into a plain
@@ -32,6 +34,8 @@ func extensionData(n *node) map[string]string {
 	if len(data) == 0 {
 		return nil
 	}
+	// A project saved before the rename holds the app's keys under their old prefix.
+	legacyname.RenameExtKeys(data)
 	return data
 }
 

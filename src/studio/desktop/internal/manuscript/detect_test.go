@@ -75,7 +75,7 @@ func TestDetectSourceIgnoresUnsupportedFormatsWordLockFilesAndDirectories(t *tes
 func TestDetectSourceStaysQuietOnceAManuscriptIsImported(t *testing.T) {
 	project := t.TempDir()
 	touch(t, filepath.Join(project, "manuscript.docx"))
-	target := filepath.Join(project, "narration-utils", "manuscript")
+	target := filepath.Join(project, "narration-studio", "manuscript")
 	if err := os.MkdirAll(target, 0o755); err != nil {
 		t.Fatal(err)
 	}

@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/text/cases"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // systemCategories are manuscript_guide.py SYSTEM_CATEGORIES: states a build or a create sets, never a type an edit can give.

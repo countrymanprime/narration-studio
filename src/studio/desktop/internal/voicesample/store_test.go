@@ -10,7 +10,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // keptAside lists the samples.json.corrupt-* copies next to the store.
@@ -257,7 +257,7 @@ func TestClipPathOnlyNamesFilesInTheClipsFolder(t *testing.T) {
 	project := t.TempDir()
 	good := strings.Repeat("0f", 16)
 	path, ok := ClipPath(project, good)
-	if !ok || path != filepath.Join(project, "narration-utils", "voice-samples", "clips", good+".wav") {
+	if !ok || path != filepath.Join(project, "narration-studio", "voice-samples", "clips", good+".wav") {
 		t.Fatalf("ClipPath = %q, %v", path, ok)
 	}
 	for _, id := range []string{"", "..", "../x", good + ".wav", strings.ToUpper(good), good[:31], good + "0", strings.Repeat("g", 32), "C:\\x", good[:30] + "/x", good[:31] + "\x00"} {

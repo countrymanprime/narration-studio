@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 // The fixture's tracks: "Chapter 1", "Chapter 11", "Narration" (items in the

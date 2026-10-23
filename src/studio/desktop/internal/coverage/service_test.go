@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
 )
 
 func latestRecord(t *testing.T, p *testProject) evidence.LedgerRecord {
@@ -150,7 +150,7 @@ func TestTheSidecarIsGivenOnlyPathsBuiltFromTheSavedProject(t *testing.T) {
 			t.Fatalf("%s = %q is not under the run folder", name, args[name])
 		}
 	}
-	if args["--manuscript"] != filepath.Join(p.dir, "narration-utils", "manuscript", "manuscript.json") || args["--chapter-id"] != testChapter {
+	if args["--manuscript"] != filepath.Join(p.dir, "narration-studio", "manuscript", "manuscript.json") || args["--chapter-id"] != testChapter {
 		t.Fatalf("args = %v", args)
 	}
 	if args["--model"] != "medium" || args["--model-dir"] != `C:\models\medium` || args["--language"] != "en" || args["--max-misread-run"] != "5" || args["--min-anchor-run"] != "2" {
@@ -439,7 +439,7 @@ func TestRefusalsAreTypedAndRunNothing(t *testing.T) {
 		{"a Front Matter chapter", func(_ *testProject, _ *Config, request *Request) { request.ChapterID = "c-0002" }, ReasonNotNarration},
 		{"an unknown chapter", func(_ *testProject, _ *Config, request *Request) { request.ChapterID = "c-0099" }, ReasonChapterNotFound},
 		{"no manuscript", func(p *testProject, _ *Config, _ *Request) {
-			_ = os.Remove(filepath.Join(p.dir, "narration-utils", "manuscript", "manuscript.json"))
+			_ = os.Remove(filepath.Join(p.dir, "narration-studio", "manuscript", "manuscript.json"))
 		}, ReasonNoManuscript},
 		{"a project file elsewhere that does not exist", func(_ *testProject, config *Config, _ *Request) {
 			config.ProjectFile = func() (string, error) { return filepath.Join(os.TempDir(), "elsewhere.rpp"), nil }

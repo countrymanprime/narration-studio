@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // Audacity is the row that masters with the narrator's chosen Audacity effect macro.
@@ -82,7 +82,7 @@ func (audacityChain) Master(ctx context.Context, req Request) (Result, error) {
 		return Result{}, err
 	}
 	runID = "master-" + runID
-	folder := filepath.Join(session.ProjectFolder, "narration-utils", "mastering", runID)
+	folder := filepath.Join(session.ProjectFolder, "narration-studio", "mastering", runID)
 	if err := os.MkdirAll(filepath.Dir(folder), 0o750); err != nil {
 		return Result{}, err
 	}

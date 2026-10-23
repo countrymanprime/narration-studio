@@ -1,6 +1,6 @@
 # Spike: Web MIDI and WebHID availability and permission behaviour in WebView2, WKWebView and WebKitGTK 6.0
 
-**Status: done (desk research only), 2026-09-26.** Issue: [#646](https://github.com/countrymanprime/narration-utils/issues/646). Answers the questions the PRD's Technical Approach and [Studio shell and registries](../architecture/studio-shell-and-registries.md) leave open before any `MidiSource` (Phase 9) or `HidSource` (Phase 11) work starts. **No live Wails v3 build was run** — see [Method](#method) and [Not done, and why](#not-done-and-why).
+**Status: done (desk research only), 2026-09-26.** Issue: [#646](https://github.com/countrymanprime/narration-studio/issues/646). Answers the questions the PRD's Technical Approach and [Studio shell and registries](../architecture/studio-shell-and-registries.md) leave open before any `MidiSource` (Phase 9) or `HidSource` (Phase 11) work starts. **No live Wails v3 build was run** — see [Method](#method) and [Not done, and why](#not-done-and-why).
 
 ## What it settles
 
@@ -68,4 +68,4 @@ Where a finding rests only on a WebSearch synthesis or a single secondary source
 
 ## Pending with the owner
 
-The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).

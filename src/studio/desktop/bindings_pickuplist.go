@@ -4,17 +4,17 @@ import (
 	"context"
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/evidence"
-	"github.com/countrymanprime/narration-utils/shell/internal/manuscript"
-	"github.com/countrymanprime/narration-utils/shell/internal/pickuplist"
-	"github.com/countrymanprime/narration-utils/shell/internal/pickups"
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/evidence"
+	"github.com/countrymanprime/narration-studio/shell/internal/manuscript"
+	"github.com/countrymanprime/narration-studio/shell/internal/pickuplist"
+	"github.com/countrymanprime/narration-studio/shell/internal/pickups"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // The pickup list: the lines to record again, merged from the recording check's gaps, the notes decided
 // "Needs pickup" and the lines the narrator added, with the narrator's removals and leave-outs kept in
-// <project>/narration-utils/pickups/pickup-list.json. Every binding takes ids and plain text only, never a path, and
+// <project>/narration-studio/pickups/pickup-list.json. Every binding takes ids and plain text only, never a path, and
 // answers the whole list, so the page and the Booth read one shape.
 
 // PickupsList answers the merged list and the chapters whose recording check added nothing, and why.

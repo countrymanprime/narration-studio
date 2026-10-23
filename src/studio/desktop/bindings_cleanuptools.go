@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/cleanuptools"
+	"github.com/countrymanprime/narration-studio/shell/internal/cleanuptools"
 )
 
 // The cleanup launcher bindings, src/studio/integrations/reaper/narration_cleanup.lua. h.emitCleanupTools

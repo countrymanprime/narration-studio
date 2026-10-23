@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/credits"
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/credits"
+	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // Marker is the manifest's "this is a Narration Studio project" field: its presence and value, not just the file's
 // existence, identify a folder as a project.
-const Marker = "narration-utils-project"
+const Marker = "narration-studio-project"
 
 const fileName = "project.json"
 
@@ -104,9 +105,9 @@ func New(name string, now time.Time) *Manifest {
 }
 
 // Path is where projectFolder's manifest lives, alongside the project's other
-// narration-utils sidecar files (settings.json, manuscript-notes.json, ...).
+// narration-studio sidecar files (settings.json, manuscript-notes.json, ...).
 func Path(projectFolder string) string {
-	return filepath.Join(projectFolder, "narration-utils", fileName)
+	return filepath.Join(projectFolder, "narration-studio", fileName)
 }
 
 // Load reads projectFolder's manifest. A project that has none yet (never
@@ -120,10 +121,14 @@ func Load(reporter *persist.Reporter, projectFolder string) (*Manifest, bool, er
 		return nil, false, nil // no folder is not "the working directory"
 	}
 	var loaded *Manifest
-	outcome := reporter.ReadJSON(Path(projectFolder), "project", persist.NarratorData, func(bytes []byte) error {
+	// A project not opened since the rename still has its manifest in the old data folder (a scan of the projects folder reads it).
+	outcome := reporter.ReadJSON(filepath.Join(legacyname.ProjectDataDir(projectFolder), fileName), "project", persist.NarratorData, func(bytes []byte) error {
 		var decoded Manifest
 		if err := json.Unmarshal(bytes, &decoded); err != nil {
 			return err
+		}
+		if legacyname.IsProjectMarker(decoded.Marker) {
+			decoded.Marker = Marker
 		}
 		loaded = &decoded
 		return nil
@@ -141,7 +146,7 @@ func Load(reporter *persist.Reporter, projectFolder string) (*Manifest, bool, er
 }
 
 // Save atomically writes the manifest to projectFolder's project.json, creating
-// the narration-utils sidecar folder if needed. It follows the same
+// the narration-studio sidecar folder if needed. It follows the same
 // write-to-temp-then-rename pattern as settings.Store.Save and the manuscript
 // notes writer, so a crash mid-write never leaves a half-written manifest.
 func (m *Manifest) Save(projectFolder string) error {
@@ -153,7 +158,7 @@ func (m *Manifest) Save(projectFolder string) error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
 	}
 	bytes, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {

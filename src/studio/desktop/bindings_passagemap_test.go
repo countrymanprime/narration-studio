@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-utils/shell/internal/recording/recordingtest"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
+	"github.com/countrymanprime/narration-studio/shell/internal/recording/recordingtest"
 )
 
 func decodePassageMarks(t *testing.T) func(string, error) []passagemap.Resolved {

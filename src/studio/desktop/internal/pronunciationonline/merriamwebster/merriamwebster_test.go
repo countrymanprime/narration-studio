@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/credentialstore"
-	"github.com/countrymanprime/narration-utils/shell/internal/pronunciationonline"
+	"github.com/countrymanprime/narration-studio/shell/internal/credentialstore"
+	"github.com/countrymanprime/narration-studio/shell/internal/pronunciationonline"
 )
 
 const rawKey = "0b5c1a3e-7d2f-4e6a-9c8b-2f1e0d9c8b7a"

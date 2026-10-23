@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // The mastering chain a project masters with (owner decision D86): a row of masteringport.Rows, chosen per project.

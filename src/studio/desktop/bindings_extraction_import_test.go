@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/apply"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/importer"
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction/store"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/apply"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/importer"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction/store"
 )
 
 // importFile is a file an LLM might write about extractionParagraphs, against extractionHost's Story Bible: a new entry with a claim

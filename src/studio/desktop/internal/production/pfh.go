@@ -3,7 +3,7 @@ package production
 import (
 	"math"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/stages"
+	"github.com/countrymanprime/narration-studio/shell/internal/stages"
 )
 
 // This file computes PFH (hours worked per finished hour) and the effective

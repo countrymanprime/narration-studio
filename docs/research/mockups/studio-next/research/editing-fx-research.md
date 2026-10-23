@@ -4,14 +4,14 @@ Tags: **[V]** verified from a source I read this session (named inline). **[K]**
 
 **Evidence caveat.** The sandbox blocks most hosts (reaper.fm, cockos.com, musehub.com, vendor help sites). What I could actually read in full:
 - The ReaScript API reference (Ultraschall's rendered copy, same text REAPER generates): <https://github.com/Ultraschall/ultraschall-lua-api-for-reaper/blob/master/ultraschall_api/Documentation/Reaper_Api_Documentation.html> (read via raw.githubusercontent.com).
-- The repo itself (`/home/user/narration-utils`).
+- The repo itself (`/home/user/narration-studio`).
 - iZotope RX 8 help: <https://s3.amazonaws.com/izotopedownloads/docs/rx8/en/module-chain/index.html> and <https://s3.amazonaws.com/izotopedownloads/docs/rx8/en/module-controls/index.html>.
 - VST3 SDK licence (MIT), JUCE licence, CLAP README on GitHub.
 
 Everything else is from web-search snippets. Those are labelled "[V, snippet]" and are weaker than a full read. Vendor UI behaviour for Logic, Pro Tools, Studio One, FL, Hindenburg, Waves and Slate is mostly [K].
 
 **Two findings to read first**
-1. **The owner's new request reverses a recorded decision.** `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` (`/home/user/narration-utils/docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`) (repo, accepted 2026-09-25) says: *chains go only on tracks and the master track; takes and items get single plug-ins, one at a time, never a chain.* The owner now wants to see FX on master, track and take items and to apply saved chains. Applying a chain to a take is not allowed today. This needs an explicit owner ruling and a new ADR (see risks, #1).
+1. **The owner's new request reverses a recorded decision.** `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua` (`/home/user/narration-studio/docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`) (repo, accepted 2026-09-25) says: *chains go only on tracks and the master track; takes and items get single plug-ins, one at a time, never a chain.* The owner now wants to see FX on master, track and take items and to apply saved chains. Applying a chain to a take is not allowed today. This needs an explicit owner ruling and a new ADR (see risks, #1).
 2. **The bridge already covers more than the Studio mock assumes.** `list_fx_chains`, `apply_fx_chain` (track or `master`), `list_fx`, `add_take_fx`, `set_active_take`, `pick_retake_lane` and `master_chain_read` exist, all experimental per `docs/architecture/reaper-bridge.md` [V, repo]. The big gap is READ: nothing reports the FX on a track, on takes, or input FX, with enabled/offline state, apart from `master_chain_read`, which prints names plus enabled for every track and the master.
 
 ---
@@ -57,7 +57,7 @@ Everything else is from web-search snippets. Those are labelled "[V, snippet]" a
 - **Bypass / offline:** `*_SetEnabled`, `*_SetOffline` [V].
 - **Presets:** `TrackFX_SetPreset`, `TrackFX_SetPresetByIndex`, `TrackFX_NavigatePresets` [V names]. Preset names are per plug-in.
 - **Save a chain:** no function for it in the API list I read [V by absence]. Options: (a) chunk route: `GetTrackStateChunk`/`SetTrackStateChunk` with `<FXCHAIN>` text, which the repo's spike used to produce chain text from REAPER's own output [V, repo]; (b) let the user press "Save FX chain" in REAPER. Chunk edits can drop unknown fields and reset undo state [V, repo research doc]; prefer API calls.
-- **Undo:** wrap each Apply in `Undo_BeginBlock2`/`Undo_EndBlock2`; the repo already does this with labels like "Narration Utils: apply FX chain <name> to <track>" [V, repo `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`]. `PreventUIRefresh` for bulk edits [K].
+- **Undo:** wrap each Apply in `Undo_BeginBlock2`/`Undo_EndBlock2`; the repo already does this with labels like "Narration Studio: apply FX chain <name> to <track>" [V, repo `docs/architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua`]. `PreventUIRefresh` for bulk edits [K].
 - **Track templates (.RTrackTemplate):** `Main_openProject("….RTrackTemplate")` or `InsertTrackAtIndex` + `SetTrackStateChunk` [V, repo `reaper-automation-surface.md`]. A template carries FX *and* routing, so it is the wrong unit for "just the voice FX". Prefer `.RfxChain`.
 - **Render with FX / apply FX to items:** action 40209 "apply track/take FX to items" [V, repo]; repo's `render_with_fx` exists (`docs/architecture/reaper-bridge.md`).
 
@@ -74,7 +74,7 @@ Everything else is from web-search snippets. Those are labelled "[V, snippet]" a
 
 ### A5. What the repo bridge exposes today vs what to add
 
-Read from `/home/user/narration-utils/integrations/reaper` [V]:
+Read from `/home/user/narration-studio/integrations/reaper` [V]:
 
 | Exists | Command | Behaviour |
 |---|---|---|
@@ -257,7 +257,7 @@ Tabs: **Saved chains** | **Plug-ins** | **Presets** | **Favourites** | **Recent*
 
 1. Pick level → pick item (chain, plug-in) → **Review** step: shows resulting effective chain, coverage % before/after, latency, compat states.
 2. **Preview**: "Play this passage in REAPER" with the FX added in **bypassed** state then toggled A/B [A]. Needs `fx_set_enabled`.
-3. **Apply** = one undo block; toast "Undo in REAPER: Narration Utils: apply …" [V repo label pattern].
+3. **Apply** = one undo block; toast "Undo in REAPER: Narration Studio: apply …" [V repo label pattern].
 4. Rules by level (v1 proposal, **owner to confirm**):
    - Master: add/remove allowed but behind a confirm ("changes every chapter"); default read-only [A].
    - Track: chain files and single plug-ins allowed.
@@ -306,7 +306,7 @@ Tabs: **Saved chains** | **Plug-ins** | **Presets** | **Favourites** | **Recent*
 |                          | [Take: 2 FX] > [Track: 3 FX] > [Master: 2] | [Add to take][to track] |
 |                          | latency 1,024 smp   FX hear in export: yes |                         |
 +--------------------------+-------------------------------------------+-------------------------+
-| [Preview in REAPER (A/B)]   [Apply: 1 FX to Take 2]   undo: Narration Utils: add take FX …      |
+| [Preview in REAPER (A/B)]   [Apply: 1 FX to Take 2]   undo: Narration Studio: add take FX …      |
 +-----------------------------------------------------------------------------------------------+
 ```
 

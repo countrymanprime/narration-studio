@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // ErrClosed is every fake role call's answer once the fake is closed: the transport is gone, and the call must fail rather than

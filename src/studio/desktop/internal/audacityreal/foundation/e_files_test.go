@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacityreal"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacityreal"
 )
 
 // A3-T24: the LibriVox chapter imported into a 44.1 kHz and a 22.05 kHz project.

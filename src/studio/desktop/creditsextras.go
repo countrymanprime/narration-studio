@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/credits"
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/credits"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
 )
 
 // Credits extras: chapter announcements rendered per narration chapter from

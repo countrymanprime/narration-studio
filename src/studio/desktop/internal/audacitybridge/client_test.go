@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	abt "github.com/countrymanprime/narration-utils/shell/internal/audacitybridge/audacitybridgetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
 )
 
 func newClient(t *testing.T, timeout time.Duration) (*audacitybridge.Client, *abt.Server) {
@@ -31,7 +31,7 @@ func TestPingEchoes(t *testing.T) {
 	if !client.Reachable() || client.LastSeen().IsZero() {
 		t.Error("a complete reply must mark the client reachable")
 	}
-	if got := server.Log(); !reflect.DeepEqual(got, []string{`Message: Text="narration-utils ping"`}) {
+	if got := server.Log(); !reflect.DeepEqual(got, []string{`Message: Text="narration-studio ping"`}) {
 		t.Errorf("sent %q", got)
 	}
 }

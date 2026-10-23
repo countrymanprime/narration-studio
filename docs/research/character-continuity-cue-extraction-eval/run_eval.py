@@ -5,7 +5,7 @@ attributed to characters?"). Reports precision/recall of the rules-based cue ext
 Corpus: an original, synthetic manuscript written for this evaluation (no real or copyrighted text), covering
 the PRD's three required scenarios (ambiguous cues, overlapping/alternating speakers, missing cues) plus a
 three-or-more-speaker scene and an unnamed incidental speaker. Provenance: authored by this worker
-(narration-utils agent train, stream N-B25) specifically for this evaluation; not derived from any source text.
+(narration-studio agent train, stream N-B25) specifically for this evaluation; not derived from any source text.
 Synthetic-data fallback follows the precedent already recorded on #509 (D70/D71) for this PRD's phase 1 trial.
 
 Each paragraph's quotes are labeled in the order `extract_cues_from_text` encounters them (regex reading

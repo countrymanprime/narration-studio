@@ -17,8 +17,8 @@ import (
 	"runtime"
 	"slices"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/assets"
-	"github.com/countrymanprime/narration-utils/shell/internal/encodeport"
+	"github.com/countrymanprime/narration-studio/shell/internal/assets"
+	"github.com/countrymanprime/narration-studio/shell/internal/encodeport"
 )
 
 type File = assets.File

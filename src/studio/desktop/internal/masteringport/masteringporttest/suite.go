@@ -23,10 +23,10 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 // Run fails t once per broken promise of entry.
@@ -181,7 +181,7 @@ func dawProblems(name string, row masteringport.Mastering, daw *FakeDAW, dir str
 	if renders := daw.Renders(); len(renders) != 1 {
 		report("%q asked the DAW to render %d times; only the approved request to a free destination should render", name, len(renders))
 	}
-	runs := filepath.Join(dir, "narration-utils", "mastering")
+	runs := filepath.Join(dir, "narration-studio", "mastering")
 	if left, _ := os.ReadDir(runs); len(left) > 0 {
 		report("%q left its render folder behind in %s", name, runs)
 	}
@@ -217,7 +217,7 @@ func audacityProblems(name string, row masteringport.Mastering, daw *FakeAudacit
 	} else if renders[0].Macro == "" {
 		report("%q asked Audacity to render with no macro named", name)
 	}
-	runs := filepath.Join(dir, "narration-utils", "mastering")
+	runs := filepath.Join(dir, "narration-studio", "mastering")
 	if left, _ := os.ReadDir(runs); len(left) > 0 {
 		report("%q left its render folder behind in %s", name, runs)
 	}

@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/asrport"
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
-	"github.com/countrymanprime/narration-utils/shell/internal/moonshine"
-	"github.com/countrymanprime/narration-utils/shell/internal/process"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/asrport"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/moonshine"
+	"github.com/countrymanprime/narration-studio/shell/internal/process"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
 )
 
 const fakeTeleprompterEnv = "SHELL_FAKE_TELEPROMPTER"
@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 // t.Setenv never writes the per-user recent-projects or credit-templates file into the runner's real profile (Windows)
 // or, with APPDATA unset, into a relative AppData folder inside the source tree (Linux, macOS).
 func runIsolated(m *testing.M) int {
-	appData, err := os.MkdirTemp("", "narration-utils-test-appdata-")
+	appData, err := os.MkdirTemp("", "narration-studio-test-appdata-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -92,7 +92,7 @@ func newHostWithARunningTeleprompter(t *testing.T) *Host {
 	t.Helper()
 	t.Setenv(fakeTeleprompterEnv, "1")
 	project := t.TempDir()
-	manuscriptPath := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	manuscriptPath := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(manuscriptPath), 0o755); err != nil {
 		t.Fatal(err)
 	}

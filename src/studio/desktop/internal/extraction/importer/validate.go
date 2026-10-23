@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/extraction"
+	"github.com/countrymanprime/narration-studio/shell/internal/extraction"
 )
 
 // fields is the loosely typed content of one row before it is checked: strings from CSV, decoded JSON values from JSON.

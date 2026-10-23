@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 const testSourceHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -88,7 +88,7 @@ func TestMapParagraphsToTimeAgainstARealReaperSavedFixture(t *testing.T) {
 	var items []StampedItem
 	for _, track := range project.Tracks {
 		for _, item := range track.Items {
-			lineID, ok := item.Ext["narration_utils_line_id"]
+			lineID, ok := item.Ext["narration_studio_line_id"]
 			if !ok {
 				continue
 			}

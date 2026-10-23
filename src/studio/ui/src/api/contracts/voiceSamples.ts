@@ -1,5 +1,5 @@
 // The narrator's voice samples: stretches of a take marked as how a character sounds, each copied into the project's
-// narration-utils/voice-samples/ folder with a record of where it came from (src/studio/desktop/internal/voicesample,
+// narration-studio/voice-samples/ folder with a record of where it came from (src/studio/desktop/internal/voicesample,
 // docs/prds/character-voice-samples.prd.md). The host finds the audio file in the saved REAPER project by item and take GUID, so a
 // request names ids, word keys and seconds and never a path, and an answer carries the words and a state for where a sample came
 // from, never the file or the GUIDs.

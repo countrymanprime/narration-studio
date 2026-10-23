@@ -105,7 +105,7 @@ func TestResolveDirFallsBackToTheComputedDefaultWhenNoOverrideIsSet(t *testing.T
 	}
 }
 
-func TestDefaultDirKeepsAnExistingNarrationUtilsFolderUntilNarrationStudioExists(t *testing.T) {
+func TestDefaultDirKeepsAnExistingNarrationStudioFolderUntilNarrationStudioExists(t *testing.T) {
 	clearHomeEnv(t)
 	home := t.TempDir()
 	t.Setenv("USERPROFILE", home)
@@ -131,7 +131,7 @@ func TestDefaultDirKeepsAnExistingNarrationUtilsFolderUntilNarrationStudioExists
 	}
 }
 
-func TestDefaultDirIgnoresAFileNamedNarrationUtils(t *testing.T) {
+func TestDefaultDirIgnoresAFileNamedNarrationStudio(t *testing.T) {
 	clearHomeEnv(t)
 	home := t.TempDir()
 	t.Setenv("USERPROFILE", home)

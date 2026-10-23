@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/spacy"
+	"github.com/countrymanprime/narration-studio/shell/internal/spacy"
 )
 
 // spacyFixture is a Story Bible host whose settings choose en_core_web_sm and whose approved catalog holds that one model, a tiny wheel on a

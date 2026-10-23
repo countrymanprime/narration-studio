@@ -13,16 +13,16 @@
 
 do
   local BACKSLASH = string.char(92)
-  local wanted = os.getenv('NARRATION_UTILS_SPIKE_CFG')
+  local wanted = os.getenv('NARRATION_STUDIO_SPIKE_CFG')
   local actual = reaper.GetResourcePath()
-  assert(wanted and wanted ~= '', 'NARRATION_UTILS_SPIKE_CFG is not set: start this script with run-reaper.ps1')
+  assert(wanted and wanted ~= '', 'NARRATION_STUDIO_SPIKE_CFG is not set: start this script with run-reaper.ps1')
   assert(actual:gsub(BACKSLASH, '/'):lower() == wanted:gsub(BACKSLASH, '/'):lower(), 'REAPER is not using the isolated -cfgfile: ' .. actual)
   reaper.Audio_Quit()
   assert(reaper.Audio_IsRunning() == 0, 'the audio device could not be closed')
 end
 
-local PACK = assert(os.getenv('NARRATION_UTILS_SPIKE_OUT'), 'set NARRATION_UTILS_SPIKE_OUT (run-reaper.ps1 does)')
-local REAPER_DIR = assert(os.getenv('NARRATION_UTILS_REAPER_DIR'), 'set NARRATION_UTILS_REAPER_DIR (run-reaper.ps1 does)')
+local PACK = assert(os.getenv('NARRATION_STUDIO_SPIKE_OUT'), 'set NARRATION_STUDIO_SPIKE_OUT (run-reaper.ps1 does)')
+local REAPER_DIR = assert(os.getenv('NARRATION_STUDIO_REAPER_DIR'), 'set NARRATION_STUDIO_REAPER_DIR (run-reaper.ps1 does)')
 local SEP = package.config:sub(1, 1)
 local function path(name)
   return PACK .. SEP .. name
@@ -247,7 +247,7 @@ local ok, err = xpcall(function()
   reaper.SetMediaItemInfo_Value(item, 'D_POSITION', 10)
 
   -- The GUIDs on COMPARE_MARKER, through the real compare commands with a hand-made results file.
-  local manuscript_dir = path('narration-utils') .. SEP .. 'manuscript'
+  local manuscript_dir = path('narration-studio') .. SEP .. 'manuscript'
   reaper.RecursiveCreateDirectory(manuscript_dir, 0)
   local manuscript = io.open(manuscript_dir .. SEP .. 'manuscript.json', 'wb')
   manuscript:write('{"version":1}')

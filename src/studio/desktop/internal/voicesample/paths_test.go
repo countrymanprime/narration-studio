@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/pathfixtures"
+	"github.com/countrymanprime/narration-studio/shell/internal/pathfixtures"
 )
 
 // everything lists every file and folder under root, so a test can say that nothing was made.
@@ -31,7 +31,7 @@ func serviceFor(r *rig, dir, rpp string) *Service {
 }
 
 // TestPathFixtures runs the shared set of project folders (definition of done, rule 1) through the whole life of a sample: mark,
-// list, play (find the clip), remove. A folder the app can use keeps the sample in <project>/narration-utils/voice-samples and
+// list, play (find the clip), remove. A folder the app can use keeps the sample in <project>/narration-studio/voice-samples and
 // finds it again by any spelling of that folder; one it cannot use is refused or fails, and makes nothing anywhere else.
 func TestPathFixtures(t *testing.T) {
 	pathfixtures.Run(t, func(t *testing.T, p pathfixtures.Place) {
@@ -94,7 +94,7 @@ func TestPathFixtures(t *testing.T) {
 		if err != nil {
 			t.Fatalf("mark: %v", err)
 		}
-		folder := filepath.Join(p.Dir, "narration-utils", "voice-samples")
+		folder := filepath.Join(p.Dir, "narration-studio", "voice-samples")
 		for _, file := range []string{filepath.Join(folder, "samples.json"), filepath.Join(folder, "clips", sample.ID+".wav")} {
 			if info, err := os.Stat(file); err != nil || info.IsDir() {
 				t.Fatalf("%s was not written: %v", file, err)

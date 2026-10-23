@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/zerocross"
+	"github.com/countrymanprime/narration-studio/shell/internal/zerocross"
 )
 
 // workspaceSnapHost is a host whose chapter c-0001 was checked over workspacePeaksProject (a 220 Hz sine at 8 kHz on

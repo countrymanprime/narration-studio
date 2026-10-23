@@ -1,7 +1,7 @@
 // The Booth's passage map (docs/architecture/manuscript-teleprompter.md#the-passage-map): when a recording stops, the Booth
 // sends the run of marks it noted (where each take began, and where the one before it ended), and the host checks them
 // against the manuscript, stamps them with the ids the DAW gave the recorded item and take, and keeps them in the project's
-// narration-utils/passagemap.json (src/studio/desktop/internal/passagemap). Editing lists a Booth-recorded chapter's passages from this log. Every read checks the
+// narration-studio/passagemap.json (src/studio/desktop/internal/passagemap). Editing lists a Booth-recorded chapter's passages from this log. Every read checks the
 // marks against the current text, so a mark whose paragraph is gone or whose word is past its end comes back stale rather
 // than moved.
 

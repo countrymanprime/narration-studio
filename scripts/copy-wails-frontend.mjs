@@ -8,7 +8,7 @@ import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 const source = resolve(root, 'src/studio/ui/dist');
-const destination = resolve(root, 'src/studio/desktop/cmd/narration-utils/frontend/dist');
+const destination = resolve(root, 'src/studio/desktop/cmd/narration-studio/frontend/dist');
 
 if (!existsSync(resolve(source, 'index.html'))) {
   throw new Error('Build src/studio/ui before copying Wails frontend assets.');

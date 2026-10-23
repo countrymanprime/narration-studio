@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	abt "github.com/countrymanprime/narration-utils/shell/internal/audacitybridge/audacitybridgetest"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport/audacity"
+	abt "github.com/countrymanprime/narration-studio/shell/internal/audacitybridge/audacitybridgetest"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport/audacity"
 )
 
 func TestTheHeartbeatWritesTheAudacitySnapshotOnlyWhenTheProjectChanged(t *testing.T) {

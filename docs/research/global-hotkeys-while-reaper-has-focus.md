@@ -1,6 +1,6 @@
 # Spike: can a global hotkey fire while REAPER has OS focus?
 
-**Status: done, 2026-09-27.** Issue: [#646](https://github.com/countrymanprime/narration-utils/issues/646). This is research for the future companion-panel PRD, not a shipped feature — the PRD's own Phase 12 row says "Not MVP." Follows the format and rigor of [Phase 8's own spike note](web-midi-hid-webview-spike.md) for this PRD. A throwaway proof-of-concept lives at `src/studio/desktop/cmd/spike-globalhotkeys/main.go` on this spike's branch; it is not wired into the shipped binary and is not meant to ship (see [Method](#method)).
+**Status: done, 2026-09-27.** Issue: [#646](https://github.com/countrymanprime/narration-studio/issues/646). This is research for the future companion-panel PRD, not a shipped feature — the PRD's own Phase 12 row says "Not MVP." Follows the format and rigor of [Phase 8's own spike note](web-midi-hid-webview-spike.md) for this PRD. A throwaway proof-of-concept lives at `src/studio/desktop/cmd/spike-globalhotkeys/main.go` on this spike's branch; it is not wired into the shipped binary and is not meant to ship (see [Method](#method)).
 
 ## The question
 
@@ -26,7 +26,7 @@ This is desk research plus a compiled (not run) proof-of-concept, from a cloud c
 
 What makes this spike stronger than [Phase 8's own spike](web-midi-hid-webview-spike.md) for the same PRD: Phase 8 could not fetch its most authoritative sources (`learn.microsoft.com`, `webkit.org`) and relied on `WebSearch` synthesis and secondhand community reports for its lowest-confidence findings. This spike instead had `go mod download` access to `proxy.golang.org` (unlike the doc hosts Phase 8 hit, this host was not blocked — see [Not done, and why](#not-done-and-why)), so `github.com/wailsapp/wails/v3@v3.0.0-beta.25` — **the exact version pinned in `src/studio/desktop/go.mod`** — was fetched and read directly: `pkg/application/global_shortcut_manager.go`, `global_shortcut_windows.go`, `global_shortcut_darwin.go`, `global_shortcut_linux.go`, `global_shortcut_linux_x11.go`, `global_shortcut_linux_portal.go`, `global_shortcut_unsupported.go`, the shipped `examples/global-shortcuts/main.go` and its `README.md` (which the Wails maintainers themselves mark "Working" per platform, based on their own testing, not this spike's). This is primary-source evidence about this app's own pinned dependency, not a general claim about Wails or about Win32/Carbon/X11 from secondary sources.
 
-The proof-of-concept (`src/studio/desktop/cmd/spike-globalhotkeys/main.go`) is a standalone `main` package — not wired into `cmd/narration-utils`, not built by any CI job — that calls `application.New` and `app.GlobalShortcut.Register("CmdOrCtrl+Shift+F13", …)`, the same call a real companion-panel binding would make. It was:
+The proof-of-concept (`src/studio/desktop/cmd/spike-globalhotkeys/main.go`) is a standalone `main` package — not wired into `cmd/narration-studio`, not built by any CI job — that calls `application.New` and `app.GlobalShortcut.Register("CmdOrCtrl+Shift+F13", …)`, the same call a real companion-panel binding would make. It was:
 - Cross-compiled for `GOOS=windows GOARCH=amd64 CGO_ENABLED=0` — this app's only shipped target (`.github/workflows/ci.yml`, `.github/workflows/prerelease.yml`, `.github/workflows/security.yml` all run `runs-on: windows-latest`; there is no macOS or Linux build job) — using the same flags `scripts/release/wails-build.mjs` uses for the real binary. It built and `go vet`-ed clean.
 - **Not run.** This container has no Windows session to launch the binary on, no REAPER process to bring to the foreground, and no way to press a physical or virtual key while it holds focus. Whether the callback actually fires while REAPER is foregrounded was not observed directly here; it rests on reading `global_shortcut_windows.go`'s use of `RegisterHotKey`/`WM_HOTKEY` (a well-documented, decades-stable Win32 mechanism whose entire purpose is exactly this) and on the Wails maintainers' own "Working" status for their example.
 
@@ -52,4 +52,4 @@ Concretely, for whoever writes that PRD:
 
 ## Pending with the owner
 
-The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-utils/issues/992#issuecomment-6116098217).
+The checks this note could not run are on the owner queue, [#992](https://github.com/countrymanprime/narration-studio/issues/992#issuecomment-6116098217).

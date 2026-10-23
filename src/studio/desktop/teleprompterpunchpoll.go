@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/hostlog"
-	"github.com/countrymanprime/narration-utils/shell/internal/teleprompter"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/hostlog"
+	"github.com/countrymanprime/narration-studio/shell/internal/teleprompter"
 )
 
 // The punch-and-roll anchor poll (owner decision

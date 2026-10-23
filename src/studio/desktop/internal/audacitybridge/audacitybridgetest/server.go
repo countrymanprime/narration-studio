@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
 )
 
 // Fault is a scripted misbehaviour for one command.

@@ -4,18 +4,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
 )
 
 // DefaultDirName is the folder created under the user's home directory as the
 // default projects directory.
 const DefaultDirName = "NarrationStudio"
 
-// LegacyDefaultDirName is the default folder's name before the product became Narration Studio (#1816). A narrator whose
-// projects are in it keeps using it; nothing moves it. Delete it, and the fallback in DefaultDir, when the name is retired.
-const LegacyDefaultDirName = "NarrationUtils"
+// LegacyDefaultDirName is the default folder's name before the product became Narration Studio. A narrator whose projects are in
+// it keeps using it; nothing moves it, because their REAPER and Audacity projects name its files by absolute path.
+const LegacyDefaultDirName = legacyname.ProjectsDirName
 
 // DefaultDir resolves the Go-side computed default projects directory,
-// ~/NarrationStudio, or an existing ~/NarrationUtils when ~/NarrationStudio does not exist yet. It is deliberately not a value in
+// ~/NarrationStudio, or the existing default folder from before the rename (LegacyDefaultDirName) when ~/NarrationStudio does not exist yet. It is deliberately not a value in
 // config/defaults.json: that file holds literal per-tool settings
 // (store_test.go's TestBuiltinDefaultsMatchRepoDefaultsFile keeps it in sync
 // with a hardcoded map), and a computed, per-machine home directory cannot be

@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/layout"
+	"github.com/countrymanprime/narration-studio/shell/internal/layout"
 )
 
 // p95Budget is the release budget: a lookup answers in under 250 ms at the 95th percentile.

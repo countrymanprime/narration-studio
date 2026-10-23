@@ -1,6 +1,6 @@
 # Where the app should animate, and what to take from the mock site
 
-**Date:** 2026-10-18. **Status:** evidence and a proposal for the owner; nothing here is decided or built. **Question:** where should the app have animations, and which of the [mock product site](mockups/public-site/index.html)'s animations should inform them? What does the owner still need to address on that site? **Tracking:** [#1456](https://github.com/countrymanprime/narration-utils/issues/1456) (shared motion tokens and guidance on when to animate).
+**Date:** 2026-10-18. **Status:** evidence and a proposal for the owner; nothing here is decided or built. **Question:** where should the app have animations, and which of the [mock product site](mockups/public-site/index.html)'s animations should inform them? What does the owner still need to address on that site? **Tracking:** [#1456](https://github.com/countrymanprime/narration-studio/issues/1456) (shared motion tokens and guidance on when to animate).
 
 ## Method
 
@@ -22,8 +22,8 @@ Runs:
   - a `devtools.timeline` trace for paint and frame counts.
   The scenarios were: the mock site's hero, its Record tab, and its demo Proof page; and five pages of the real UI's mock build (`pnpm --dir src/studio/ui run build:mock`, served locally). This is Linux headless with software compositing, not WebView2 on Windows with a GPU. The absolute numbers are higher than a narrator's machine would show. The ratios are the finding.
 - **Real app, read.** Read from `src/studio/ui/src`, the visual and atlas Playwright configs, `.storybook/preview-head.html`, the [page guides](../guides/using-the-app/README.md), [the motion reference](../design/motion-and-animation.md), [interaction feedback](../architecture/interaction-feedback.md) and the [latency baseline](interaction-latency-baseline.md).
-- **Issues, read.** Read on GitHub on 2026-10-18: [#1456](https://github.com/countrymanprime/narration-utils/issues/1456), and #1844 to #1848.
-- **Studio Next mock:** not consulted for motion. It is frozen ([#1860](https://github.com/countrymanprime/narration-utils/issues/1860)) and is the spec for what pages draw, not for how they move.
+- **Issues, read.** Read on GitHub on 2026-10-18: [#1456](https://github.com/countrymanprime/narration-studio/issues/1456), and #1844 to #1848.
+- **Studio Next mock:** not consulted for motion. It is frozen ([#1860](https://github.com/countrymanprime/narration-studio/issues/1860)) and is the spec for what pages draw, not for how they move.
 - **Not run:** WebView2 itself, a GPU machine, REAPER recording at the same time, and the real desktop host.
 
 ## Findings
@@ -225,21 +225,21 @@ Decided against animating:
 
 ### 6. The mock site: what is still to address
 
-Mock-site rows are from [the comparison](public-site-demo-vs-app-comparison.md). Issue states were read on GitHub on 2026-10-18. The mockup file has not changed since [#1825](https://github.com/countrymanprime/narration-utils/pull/1825) (`git log`), so all 14 of the comparison's [mock site fixes](public-site-demo-vs-app-comparison.md#mock-site-fixes) still apply to it. It sits under `docs/research/mockups/`, which this work does not edit.
+Mock-site rows are from [the comparison](public-site-demo-vs-app-comparison.md). Issue states were read on GitHub on 2026-10-18. The mockup file has not changed since [#1825](https://github.com/countrymanprime/narration-studio/pull/1825) (`git log`), so all 14 of the comparison's [mock site fixes](public-site-demo-vs-app-comparison.md#mock-site-fixes) still apply to it. It sits under `docs/research/mockups/`, which this work does not edit.
 
 | Item | State on 2026-10-18 | Still to address? |
 | --- | --- | --- |
-| A1 Retry when Proof or Production cannot load | [#1844](https://github.com/countrymanprime/narration-utils/issues/1844) closed by [#1875](https://github.com/countrymanprime/narration-utils/pull/1875) (`ProofPage.tsx:386`, `ProductionPage.tsx:345` use `LoadError`). [#1888](https://github.com/countrymanprime/narration-utils/pull/1888), a follow-up capture fix, is open | Done in the app |
-| A2 Retry on a failed action's toast | [#1845](https://github.com/countrymanprime/narration-utils/issues/1845) open | Yes |
+| A1 Retry when Proof or Production cannot load | [#1844](https://github.com/countrymanprime/narration-studio/issues/1844) closed by [#1875](https://github.com/countrymanprime/narration-studio/pull/1875) (`ProofPage.tsx:386`, `ProductionPage.tsx:345` use `LoadError`). [#1888](https://github.com/countrymanprime/narration-studio/pull/1888), a follow-up capture fix, is open | Done in the app |
+| A2 Retry on a failed action's toast | [#1845](https://github.com/countrymanprime/narration-studio/issues/1845) open | Yes |
 | A3 Rail counts move as you decide | No issue found. `layout/useNavCounts.ts:47` still re-reads on `pathname` | Yes. No tracking issue |
 | A4 All-states and docs page per primitive in Storybook | No issue found. `.storybook/main.ts` has no `addon-docs` or `autodocs` | Unclear whether the owner wants it |
 | A5 "Edit this page" on the docs site | No issue found. `mkdocs.yml` has no `edit_uri`; the site is paused (D75) | Unclear while the site is paused |
-| S1 Edit a pronunciation in place | [#1847](https://github.com/countrymanprime/narration-utils/issues/1847) closed as not planned: the owner wants no edits outside Edit or an explicit action | No. The mock site's always-editable field (fix 9) now contradicts a decision, not just the app |
+| S1 Edit a pronunciation in place | [#1847](https://github.com/countrymanprime/narration-studio/issues/1847) closed as not planned: the owner wants no edits outside Edit or an explicit action | No. The mock site's always-editable field (fix 9) now contradicts a decision, not just the app |
 | S2 Labelled "Open Proof" in the Pickups empty state | No issue found. `PickupsTable.tsx:299` is still the icon-only "Go to Proof" | Unclear: needs the Studio mock first |
-| S3 Delivery names the failing rule and value | [#1846](https://github.com/countrymanprime/narration-utils/issues/1846) closed on 2026-10-18 | Done in the app. The mock site's waive-to-pass (fix 10) is still wrong |
+| S3 Delivery names the failing rule and value | [#1846](https://github.com/countrymanprime/narration-studio/issues/1846) closed on 2026-10-18 | Done in the app. The mock site's waive-to-pass (fix 10) is still wrong |
 | S4 A word in pipeline cells | No issue found; not checked in code | Unclear |
 | S5 Accepting a failing chapter | Needs an owner decision; no issue found | Unclear |
-| Demo host carries Proof decisions | [#1848](https://github.com/countrymanprime/narration-utils/issues/1848) closed by #1880 | Done on the mock host |
+| Demo host carries Proof decisions | [#1848](https://github.com/countrymanprime/narration-studio/issues/1848) closed by #1880 | Done on the mock host |
 | Motion mistakes 1 to 4 in section 1 | New in this note | Yes, if the mockup is kept as a reference: tour-card timing, the ring's dead `--p` transition, loops running off screen and on every view, and width animations |
 
 ## Recommendations
@@ -331,7 +331,7 @@ Slices 1 and 2 land as one PR (owner decision, 2026-10-18). Slice 3 is not start
 
 ## Owner decisions (2026-10-18)
 
-Recorded on [#1456](https://github.com/countrymanprime/narration-utils/issues/1456#issuecomment-6251946598).
+Recorded on [#1456](https://github.com/countrymanprime/narration-studio/issues/1456#issuecomment-6251946598).
 
 | # | Decision |
 | --- | --- |

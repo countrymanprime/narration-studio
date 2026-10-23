@@ -8,11 +8,11 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/deliveryprofile"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport"
-	"github.com/countrymanprime/narration-utils/shell/internal/masteringport/masteringporttest"
-	"github.com/countrymanprime/narration-utils/shell/internal/port"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/deliveryprofile"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport"
+	"github.com/countrymanprime/narration-studio/shell/internal/masteringport/masteringporttest"
+	"github.com/countrymanprime/narration-studio/shell/internal/port"
 )
 
 func audacityRow(t *testing.T) masteringport.Mastering {
@@ -49,7 +49,7 @@ func TestTheAudacityRowImportsAppliesTheMacroAndExports(t *testing.T) {
 		t.Errorf("approval %q is not a 128-bit hex token", renders[0].Approval)
 	}
 	runFolder := filepath.Dir(renders[0].OutputPath)
-	if rel, _ := filepath.Rel(filepath.Join(project, "narration-utils", "mastering"), runFolder); !regexp.MustCompile(`^master-[0-9a-f]{16}$`).MatchString(rel) {
+	if rel, _ := filepath.Rel(filepath.Join(project, "narration-studio", "mastering"), runFolder); !regexp.MustCompile(`^master-[0-9a-f]{16}$`).MatchString(rel) {
 		t.Errorf("run folder %q is not a new folder in the project's mastering folder", runFolder)
 	}
 	if _, err := os.Stat(runFolder); !errors.Is(err, os.ErrNotExist) {

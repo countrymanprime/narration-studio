@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/audacitybridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/audacitybridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // Session is the Audacity work the review workflow needs, over one pipe client: the port's navigate and markers roles, and the
@@ -417,7 +417,7 @@ func (s *Session) MarkReviewed(ctx context.Context, id string) (changed bool, er
 
 // ExportFolder is where the adapter writes, inside the app's project folder: never beside the narrator's own files.
 func ExportFolder(projectFolder string) string {
-	return filepath.Join(projectFolder, "narration-utils", "audacity")
+	return filepath.Join(projectFolder, "narration-studio", "audacity")
 }
 
 var unsafeName = regexp.MustCompile(`[^A-Za-z0-9._-]+`)

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
 )
 
 // go-golden-for-the-file: backups.json as writeBackups writes it, an empty table and one with two rows, pinned for

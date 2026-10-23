@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 func TestDecideAutoConnect(t *testing.T) {
@@ -62,7 +62,7 @@ func TestLiveBridgeSessionReadsTheNarrationStudioFolder(t *testing.T) {
 	}
 	writeHub("NarrationStudio", "hub_live", now.Add(-time.Second))
 	writeHub("NarrationStudio", "hub_old", now.Add(-time.Hour))
-	writeHub("NarrationUtils", "hub_legacy", now)
+	writeHub("SomeOtherTool", "hub_other", now)
 
 	if got := liveBridgeSession(now); got != "hub_live" {
 		t.Fatalf("liveBridgeSession = %q, want hub_live", got)

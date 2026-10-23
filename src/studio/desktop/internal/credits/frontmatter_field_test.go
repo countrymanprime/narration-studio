@@ -8,7 +8,7 @@ import (
 
 func writeManuscriptJSON(t *testing.T, project, body string) {
 	t.Helper()
-	path := filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")
+	path := filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

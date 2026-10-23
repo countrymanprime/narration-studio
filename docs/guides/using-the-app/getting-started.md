@@ -26,7 +26,7 @@ REAPER open on a different project, not when you start the app on its own.
 
 **New project** asks for a name. The line under the field lists what a name cannot be: any of `< > : " / \ | ? *`, ending with a period,
 or a reserved Windows name such as CON, NUL or COM1. **Location** shows the folder the project goes in: the default projects folder
-(`NarrationStudio` in your user folder) until you pick another with **Change location…**. If you already have a `NarrationUtils` folder there and no `NarrationStudio` one, the app keeps using it; it never moves your projects.
+(`NarrationStudio` in your user folder) until you pick another with **Change location…**. If you already have a `NarrationStudio` folder there and no `NarrationStudio` one, the app keeps using it; it never moves your projects.
 
 ![New Project - the name rules, and the location line showing the default projects folder with Change location](../../images/ui/project-new-dialog.webp)
 

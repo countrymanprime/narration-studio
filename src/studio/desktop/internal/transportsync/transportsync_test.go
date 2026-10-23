@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/bridge"
-	"github.com/countrymanprime/narration-utils/shell/internal/contractfile"
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/bridge"
+	"github.com/countrymanprime/narration-studio/shell/internal/contractfile"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
 )
 
 // The Editing page's transport sync host logic (the DawTransportSync binding and the daw_position_changed event). What REAPER does is narration_transport.lua's (transport_sync_test.lua) and what the role

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/project"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/project"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 func linkedProject(t *testing.T) (folder, rpp string) {
@@ -176,7 +176,7 @@ func TestLaunchReaperPassesOnlyTheLauncherWhenReaperIsAlreadyRunning(t *testing.
 	if err := store.Save("DAW", "global", map[string]*string{"auto_start_launcher": ptr("true")}); err != nil {
 		t.Fatal(err)
 	}
-	svc := hostServices{config: config{projectFolder: folder, reaperLauncher: "C:/app/NarrationUtils_Launcher.lua"}, settings: store}
+	svc := hostServices{config: config{projectFolder: folder, reaperLauncher: "C:/app/NarrationStudio_Launcher.lua"}, settings: store}
 	locate := func() (string, string, error) { return "C:/REAPER/reaper.exe", "uninstall_registry", nil }
 	var gotArgs []string
 	launch := func(program string, args []string) error {
@@ -187,7 +187,7 @@ func TestLaunchReaperPassesOnlyTheLauncherWhenReaperIsAlreadyRunning(t *testing.
 	if _, err := launchReaper(svc, nil, locate, launch, running); err != nil {
 		t.Fatal(err)
 	}
-	if len(gotArgs) != 1 || gotArgs[0] != "C:/app/NarrationUtils_Launcher.lua" {
+	if len(gotArgs) != 1 || gotArgs[0] != "C:/app/NarrationStudio_Launcher.lua" {
 		t.Fatalf("args = %v, want only the launcher script", gotArgs)
 	}
 }
@@ -200,7 +200,7 @@ func TestLaunchReaperStillPassesTheLinkedFileWhenReaperIsRunningAndTheLauncherIs
 	if err := store.Save("DAW", "global", map[string]*string{"auto_start_launcher": ptr("false")}); err != nil {
 		t.Fatal(err)
 	}
-	svc := hostServices{config: config{projectFolder: folder, reaperLauncher: "C:/app/NarrationUtils_Launcher.lua"}, settings: store}
+	svc := hostServices{config: config{projectFolder: folder, reaperLauncher: "C:/app/NarrationStudio_Launcher.lua"}, settings: store}
 	locate := func() (string, string, error) { return "C:/REAPER/reaper.exe", "uninstall_registry", nil }
 	var gotArgs []string
 	launch := func(program string, args []string) error {

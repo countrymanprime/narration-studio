@@ -27,8 +27,8 @@
   ...
   IGUID {86C04508-9091-445A-964E-F53883A33A97}
   <EXTI
-    narration_utils_line_id line-000001
-    narration_utils_line_text "The first line, with | a pipe."
+    narration_studio_line_id line-000001
+    narration_studio_line_text "The first line, with | a pipe."
   >
   NAME "take A"
   GUID {01900541-E2B7-4A63-9468-52EF0E33CC23}
@@ -36,7 +36,7 @@
     FILE "media/take_a.wav"
   >
   <EXT
-    narration_utils_take_note "take-level value"
+    narration_studio_take_note "take-level value"
   >
 >
 ```
@@ -45,7 +45,7 @@
 - **Value forms.** A bare token when it has no spaces; `"..."` when it has spaces; a backtick pair for the value with both kinds of quote that was tried (marker names with only double quotes are `'...'` quoted, so a reader must accept all three quote characters); and a `<BIN key` sub-block of base64 (wrapped at 128 characters) for a value with a line break or a very long one. A reader has to handle all four.
 - **API behaviour.** A missing key reads as `false, ''`. Setting returns `true, value`. Multi-line values round-trip in memory and are stored as `<BIN`, but the bridge already flattens line breaks (`one_line`), so line text never takes that path.
 - **Item and take GUIDs.** In REAPER 7 an item chunk has `IGUID` (the item, which is what `GetSetMediaItemInfo_String(item, "GUID")` returns) and one `GUID` per take. The hand-written `basic.rpp` fixture puts the item's GUID under `GUID`; a parser must read `IGUID`.
-- **Undo and pointers.** Undo and redo replace REAPER's item objects, so a script must look items up by GUID again afterwards. The stamp block is one undo entry, "Narration Utils: stamp manuscript line IDs", and Undo then Redo restores the stamp.
+- **Undo and pointers.** Undo and redo replace REAPER's item objects, so a script must look items up by GUID again afterwards. The stamp block is one undo entry, "Narration Studio: stamp manuscript line IDs", and Undo then Redo restores the stamp.
 - **Not exercised.** REAPER's clipboard actions (copy and paste items, actions 40698, 42398, 40058) do nothing when driven headless (no focused arrange window), so a real paste was not tested; a state-chunk copy, which is what a paste serializes, keeps the extension block. A manual paste is on the owner's list.
 
 ## What else the saved files show (fixture pack)

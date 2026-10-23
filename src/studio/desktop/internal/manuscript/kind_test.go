@@ -17,7 +17,7 @@ var kindTime = time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
 
 func manuscriptBytes(t *testing.T, project string) map[string]any {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"))
+	raw, err := os.ReadFile(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestRemovingAChapterFromRecordingReclassifiesItAndKeepsEverythingElse(t *te
 	if listed["status"] != "editing" || listed["contentKind"] != "reference" || listed["removedFromRecording"] != true || listed["kindChangedAt"] != "2026-09-25T12:00:00Z" {
 		t.Fatalf("listed = %v", listed)
 	}
-	if _, err := os.Stat(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json.tmp")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json.tmp")); !os.IsNotExist(err) {
 		t.Fatal("the temporary file was left behind")
 	}
 }
@@ -146,12 +146,12 @@ func TestAChapterKindChangeIsRefusedWhenItWouldBreakSomething(t *testing.T) {
 		t.Fatalf("the last narration chapter: err = %v", err)
 	}
 	// Setting the kind a chapter already has changes nothing, and writes nothing.
-	info, _ := os.Stat(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"))
+	info, _ := os.Stat(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"))
 	result, err := service.SetChapterKind(narration[0], "reference", kindTime.Add(time.Hour))
 	if err != nil || result.PreviousKind != "reference" || result.Chapter["kindChangedAt"] != "2026-09-25T12:00:00Z" {
 		t.Fatalf("result = %+v, err = %v", result, err)
 	}
-	if again, _ := os.Stat(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json")); !again.ModTime().Equal(info.ModTime()) {
+	if again, _ := os.Stat(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json")); !again.ModTime().Equal(info.ModTime()) {
 		t.Fatal("an unchanged kind rewrote the manuscript")
 	}
 }

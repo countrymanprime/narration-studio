@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
-	"github.com/countrymanprime/narration-utils/shell/internal/findings"
-	"github.com/countrymanprime/narration-utils/shell/internal/passagemap"
-	"github.com/countrymanprime/narration-utils/shell/internal/retakelanes"
-	"github.com/countrymanprime/narration-utils/shell/internal/takecompare"
-	"github.com/countrymanprime/narration-utils/shell/internal/tracks"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/findings"
+	"github.com/countrymanprime/narration-studio/shell/internal/passagemap"
+	"github.com/countrymanprime/narration-studio/shell/internal/retakelanes"
+	"github.com/countrymanprime/narration-studio/shell/internal/takecompare"
+	"github.com/countrymanprime/narration-studio/shell/internal/tracks"
 )
 
 const (

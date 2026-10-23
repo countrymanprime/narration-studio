@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/chaptertags"
+	"github.com/countrymanprime/narration-studio/shell/internal/chaptertags"
 )
 
 // The chapter tag embedding bindings. Unlike every other

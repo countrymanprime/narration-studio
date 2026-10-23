@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/dawport"
-	"github.com/countrymanprime/narration-utils/shell/internal/settings"
+	"github.com/countrymanprime/narration-studio/shell/internal/dawport"
+	"github.com/countrymanprime/narration-studio/shell/internal/settings"
 )
 
 // fakeReview is a DAW that is not REAPER: it records what the review workflow asked of it and delivers the events a test queues,
@@ -76,10 +76,10 @@ func (f *fakeReview) queue(fields ...string) {
 func adapterService(t *testing.T) (*Service, *fakeReview) {
 	t.Helper()
 	project := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(project, "narration-utils", "manuscript"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(project, "narration-studio", "manuscript"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(project, "narration-utils", "manuscript", "manuscript.json"), []byte(`{"version":1}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(project, "narration-studio", "manuscript", "manuscript.json"), []byte(`{"version":1}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	fake := &fakeReview{}

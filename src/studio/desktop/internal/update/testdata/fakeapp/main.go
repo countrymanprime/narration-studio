@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/update"
+	"github.com/countrymanprime/narration-studio/shell/internal/update"
 )
 
 // version is set with -ldflags "-X main.version=...", as the real program's is.

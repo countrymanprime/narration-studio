@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/coverage"
+	"github.com/countrymanprime/narration-studio/shell/internal/coverage"
 )
 
 // nonNumberRecordingCoverageFields are the RecordingCoverage fields coverage.ResolveSettings reads that are not one

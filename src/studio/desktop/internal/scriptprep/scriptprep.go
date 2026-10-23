@@ -26,7 +26,7 @@ import (
 	"unicode"
 	"unicode/utf16"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/persist"
+	"github.com/countrymanprime/narration-studio/shell/internal/persist"
 )
 
 // SchemaVersion is the only script-prep.json version this package reads or writes.
@@ -89,7 +89,7 @@ var sourcePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,64}$`)
 
 // File is where a project's script prep is kept.
 func File(project string) string {
-	return filepath.Join(project, "narration-utils", "script-prep.json")
+	return filepath.Join(project, "narration-studio", "script-prep.json")
 }
 
 // Flag is one flagged range as stored. Start and End are UTF-16 code units into the paragraph's text (a JS string index, the
@@ -681,7 +681,7 @@ func (s *Service) write(file prepFile) error {
 	file.SchemaVersion = SchemaVersion
 	path := File(s.config.Project)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return fmt.Errorf("could not create the project's narration-utils folder: %w", err)
+		return fmt.Errorf("could not create the project's narration-studio folder: %w", err)
 	}
 	bytes, err := json.MarshalIndent(file, "", "  ")
 	if err != nil {

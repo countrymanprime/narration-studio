@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/countrymanprime/narration-utils/shell/internal/measure"
+	"github.com/countrymanprime/narration-studio/shell/internal/measure"
 )
 
 // ScanOptions are the parameters one decode pass uses: the silence

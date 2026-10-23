@@ -480,10 +480,10 @@ def render_report(
             + ", ".join(bare)
         )
 
-    out = [f"THIRD-PARTY NOTICES\nnarration-utils {version}\n"]
+    out = [f"THIRD-PARTY NOTICES\nnarration-studio {version}\n"]
     out.append(_section("The program and where its source is"))
     out.append(
-        f"narration-utils is free software under the {PROGRAM_LICENSE} licence (the full text is at the end of this file).\n"
+        f"narration-studio is free software under the {PROGRAM_LICENSE} licence (the full text is at the end of this file).\n"
         f"Source offer: the complete corresponding source of this release is published at {REPOSITORY}, at {where}\n"
         f"(a release candidate is tagged v{version}-rc, the promoted release v{version}). Anyone who receives this program may fetch it there, or ask for it by opening an\n"
         f"issue at {REPOSITORY}/issues. The version and the tag are the same as the ones the program prints with --version.\n"
@@ -525,7 +525,7 @@ def render_report(
                 out.append(f"    Attribution: {item['attribution']}\n")
     else:
         out.append("None.\n")
-    out.append(_section(f"{PROGRAM_LICENSE}: the licence of narration-utils"))
+    out.append(_section(f"{PROGRAM_LICENSE}: the licence of narration-studio"))
     out.append(program_license.strip() + "\n")
     return "".join(out)
 

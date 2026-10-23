@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/countrymanprime/narration-studio/shell/internal/legacyname"
 )
 
 // SuggestFromManuscript seeds Title and Author suggestions from the current project's imported manuscript: a thin
@@ -30,17 +32,18 @@ func SuggestFromManuscript(projectFolder string) map[string]string {
 
 // storedSourcePath resolves manuscript.json's source.storedPath to an absolute path under the project folder. commit()
 // (src/studio/desktop/internal/manuscript/service.go) writes storedPath already relative to the project folder itself
-// ("narration-utils/manuscript/sources/<id>/<name>"), not to "narration-utils/manuscript", so it is joined directly
-// rather than under a second "narration-utils/manuscript" (the defect this fixes: that second join produced a path
+// ("narration-studio/manuscript/sources/<id>/<name>"), not to "narration-studio/manuscript", so it is joined directly
+// rather than under a second "narration-studio/manuscript" (the defect this fixes: that second join produced a path
 // that never existed, so the docProps source never fired on a real import). The result is refused unless it stays
-// under .../narration-utils/manuscript/sources/: manuscript.json is narrator data, but a hand-edited or hostile file
+// under .../narration-studio/manuscript/sources/: manuscript.json is narrator data, but a hand-edited or hostile file
 // must not steer a read to an arbitrary path via ".." or an absolute storedPath.
 func storedSourcePath(projectFolder, storedPath string) (string, bool) {
 	if storedPath == "" {
 		return "", false
 	}
-	sourcesDir := filepath.Join(projectFolder, "narration-utils", "manuscript", "sources")
-	resolved := filepath.Join(projectFolder, filepath.FromSlash(storedPath))
+	sourcesDir := filepath.Join(projectFolder, "narration-studio", "manuscript", "sources")
+	// A manuscript imported before the rename stored the path under the data folder's old name.
+	resolved := filepath.Join(projectFolder, filepath.FromSlash(legacyname.ProjectRelative(storedPath)))
 	relative, err := filepath.Rel(sourcesDir, resolved)
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return "", false
@@ -85,7 +88,7 @@ type sourceMetadataDoc struct {
 }
 
 func readManuscriptDoc(projectFolder string) (manuscriptDoc, bool) {
-	manuscriptPath := filepath.Join(projectFolder, "narration-utils", "manuscript", "manuscript.json")
+	manuscriptPath := filepath.Join(projectFolder, "narration-studio", "manuscript", "manuscript.json")
 	bytes, err := os.ReadFile(manuscriptPath)
 	if err != nil {
 		return manuscriptDoc{}, false
