@@ -16,8 +16,11 @@ export const scriptStates: StateEntry[] = [
   railTab('rail-words', 'Script, the rail on its Words tab with a word chosen: how to say it, its source and the web look-ups'),
   railTab('rail-story-bible', "Script, the rail on its Story Bible tab: the book's entries by kind, one opened"),
   railTab('rail-notes', "Script, the rail on its Notes tab: the chapter's notes, each with where it is"),
-  railTab('rail-queries', "Script, the rail on its Queries tab: the chapter's questions for the author"),
-  railTab('rail-bookmarks', 'Script, the rail on its Bookmarks tab (an icon tab), with a bookmark placed from the selection toolbar'),
+  {
+    page: 'script',
+    state: 'first-use-tip',
+    description: 'Script, the first time it opens: the one-time tip over the reader about selecting text, with Got it',
+  },
   {
     page: 'script',
     state: 'chapter-list',

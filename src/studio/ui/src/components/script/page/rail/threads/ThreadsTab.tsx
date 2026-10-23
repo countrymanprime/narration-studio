@@ -3,7 +3,6 @@ import type { Mark } from '../../../../../api/contracts/marks';
 import { overlay } from '../../../../../overlay/overlayService';
 import { useJournal } from '../../../../../studio/StudioProvider';
 import { Button } from '../../../../primitives/Button';
-import { isAsk } from '../../data/script.selectors';
 import { useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import type { NoteActions } from './NoteCard';
 import { copyQuery } from './copyQuery';
@@ -11,8 +10,6 @@ import { ThreadsPanel } from './ThreadsPanel';
 import { keepFocusOnRemoval } from '../../../../layout/keepFocusOnRemoval';
 
 export type ThreadsTabProps = {
-  /** Notes are the chapter's marks whose type does not ask; queries are the asking marks of the book. */
-  kind: 'notes' | 'queries';
   chapterId: string;
   /** Where a mark is, as the page says it ("Chapter 3 · ¶ 4"). */
   lineOf: (mark: Mark) => string;
@@ -20,20 +17,15 @@ export type ThreadsTabProps = {
   onShowInText: (id: string) => void;
 };
 
-/** The Notes and Queries tabs of the Script rail: two views of the marks, over the page's data layer. */
-export function ThreadsTab({ kind, chapterId, lineOf, onShowInText }: ThreadsTabProps) {
+/** The Notes tab of the Script rail: the chapter's marks, over the page's data layer. */
+export function ThreadsTab({ chapterId, lineOf, onShowInText }: ThreadsTabProps) {
   const marks = useMarks();
   const commands = useScriptCommands();
   const journal = useJournal();
   const [selectedId, update] = useScriptView((state) => state.sel);
-  const [filter] = useScriptView((state) => state.qfilter);
   const [editing] = useScriptView((state) => state.aedit);
 
-  const shown = useMemo(
-    () =>
-      kind === 'queries' ? marks.marks.filter((mark) => isAsk(marks.types, mark)) : marks.inChapter(chapterId).filter((mark) => !isAsk(marks.types, mark)),
-    [kind, chapterId, marks],
-  );
+  const shown = useMemo(() => marks.inChapter(chapterId), [chapterId, marks]);
 
   const actions = useMemo<NoteActions>(
     () => ({
@@ -82,17 +74,5 @@ export function ThreadsTab({ kind, chapterId, lineOf, onShowInText }: ThreadsTab
       </div>
     );
   }
-  return (
-    <ThreadsPanel
-      kind={kind}
-      marks={shown}
-      types={marks.types}
-      filter={filter}
-      onFilter={(next) => update({ qfilter: next })}
-      selectedId={selectedId}
-      editing={editing}
-      lineOf={lineOf}
-      actions={actions}
-    />
-  );
+  return <ThreadsPanel marks={shown} types={marks.types} selectedId={selectedId} editing={editing} lineOf={lineOf} actions={actions} />;
 }

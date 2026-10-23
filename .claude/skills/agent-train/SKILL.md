@@ -103,7 +103,7 @@ Nobody watches the train live, so these checks run without a person and none of 
 | --- | --- | --- |
 | **Train health** | `.github/workflows/train-health.yml`, `scripts/ci/train-health.mjs` | Hourly. Warns on #510 once per stall when #509's `Last pass:` line is more than two hours old and `HOLD` is not ticked |
 | **Main health** | `.github/workflows/main-health.yml` | Nightly. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on #509 and says why. The owner or the coordinator clears it once `main` is green |
-| **Test ratchet** | `.github/workflows/test-ratchet.yml`, `scripts/ci/test-ratchet.mjs` | Fails a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`. The owner clears a deliberate change with the `ratchet-approved` label. Runs the base branch's copy of the script |
+| **Test ratchet** | `.github/workflows/test-ratchet.yml`, `scripts/ci/test-ratchet.mjs` | Advisory. Prints, and raises a warning for, a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`; it never fails. Runs the base branch's copy of the script |
 | **PR risk** | `.github/workflows/pr-risk.yml`, `scripts/ci/pr-risk.mjs` | Labels a PR `risk:high` when it touches a trust boundary or a file that decides what runs unattended: the workflows, agent config, the threat model, the REAPER bridge, the update and sidecar launch, the release scripts, the pinned toolchain and lockfiles, and these checks. Runs the base branch's copy of the script |
 | **Intent review** | the coordinator, below | A fresh session, not the worker, traces each merge-ready PR back to its issue or PRD phase |
 | **Launch limit** | the coordinator, below | Stops a stream that keeps being relaunched without delivering |
@@ -112,7 +112,7 @@ Nobody watches the train live, so these checks run without a person and none of 
 
 **A `risk:high` PR.** Do not merge it. Comment on #992 with the PR number, its head SHA and the reasons the label's workflow printed, then carry on with other PRs. The owner approves by approving the PR on its current head or by replying `approved #<n> <sha>` on #992. A push after that approval needs a new one.
 
-**A failed ratchet.** Do not merge it and do not add the label yourself. Comment on #992 with the violations the check printed. Only the owner adds `ratchet-approved`.
+**A ratchet warning.** The check is advisory and needs no label or approval. Read the violations it printed and expect the PR body to say why each is intended; if it does not, ask the worker for that before merging.
 
 **The launch limit.** The Launches table in #989's body has one row per stream: ID, PRD phases, launches, last launch, PRs merged. A stream's count goes up on every `create_session` for it, resumes and fixers included. At three launches with no PR of the stream merged, mark the stream **blocked**: do not launch it again, comment on #992 with its Resume notes and the last failure, and take the next stream in priority order. The owner unblocks it by resetting its count on #989. A stream that merges a PR resets its own count to zero.
 
@@ -249,7 +249,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide)). There is no match % bar to check (D97);
-   - the `Test ratchet` check succeeded on the head ([Safety net](#safety-net));
+   - the `Test ratchet` check has run on the head and its warnings were read ([Safety net](#safety-net));
    - it has no `risk:high` label, or the owner has approved it on #992 for the current head ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 

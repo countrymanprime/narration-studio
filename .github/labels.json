@@ -23,7 +23,6 @@
   { "name": "blocked", "color": "b60205", "description": "Waiting on something else before it can proceed" },
   { "name": "security", "color": "ee0701", "description": "Security-relevant change or report" },
   { "name": "risk:high", "color": "b60205", "description": "Touches a trust boundary or the agent-train safety net; not merged without the owner" },
-  { "name": "ratchet-approved", "color": "0e8a16", "description": "Owner approval for a change that weakens a test or lowers a coverage floor" },
   { "name": "slice", "color": "5319e7", "description": "A Studio Next slice: one worker, one PR, one slice-meta header" },
   { "name": "ready", "color": "0e8a16", "description": "Slice is groomed and its dependencies are met: a worker can start" },
   { "name": "owner-decision", "color": "d93f0b", "description": "Waiting on an owner decision (queue: #992)" },

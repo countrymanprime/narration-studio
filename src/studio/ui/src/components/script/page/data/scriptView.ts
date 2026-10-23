@@ -5,7 +5,7 @@
 
 import type { LineRange } from './scriptCommands';
 
-type ScriptTab = 'pron' | 'bible' | 'marks' | 'queries' | 'bookmarks';
+type ScriptTab = 'pron' | 'bible' | 'marks';
 
 export type ScriptViewState = {
   tab: ScriptTab;
@@ -24,7 +24,6 @@ export type ScriptViewState = {
   /** Reader scroll requests, consumed once by the reader. */
   pendingJump: string | null;
   pendingPid: string | null;
-  qfilter: 'open' | 'resolved' | 'all';
   /** "markId:messageIndex" being edited. */
   aedit: string | null;
   /** The chapter at the top of the reader. */
@@ -42,7 +41,6 @@ const INITIAL_SCRIPT_VIEW: ScriptViewState = {
   find: { open: false, q: '', i: 0 },
   pendingJump: null,
   pendingPid: null,
-  qfilter: 'open',
   aedit: null,
   spyAt: null,
 };

@@ -1,4 +1,4 @@
-import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { TABLE_CELL_CLASS, TABLE_HEADER_CLASS, TABLE_TEXT_CLASS } from './tableStyles';
 import { Tooltip } from './Tooltip';
 
@@ -11,10 +11,25 @@ import { Tooltip } from './Tooltip';
 // `label` names the table for a screen reader ("Chapters", "Aliases"). `flush` runs it to the side edges of the Panel it
 // sits in, as the mocks draw a table in a card; the cells' own padding keeps the text off the card's border. It spans the
 // Panel body's padding (`--panel-pad`), which is nothing in a `Panel flush`.
-export function Table({ label, flush = false, className = '', children }: { label: string; flush?: boolean; className?: string; children: ReactNode }) {
+// `rowCount` is the number of rows when the caller draws only some of them (a windowed list); each drawn row then says its place with
+// `TableRow rowIndex`, counted from 1 with the header row as row 1.
+export function Table({
+  label,
+  flush = false,
+  rowCount,
+  className = '',
+  children,
+}: {
+  label: string;
+  flush?: boolean;
+  rowCount?: number;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
     <table
       aria-label={label}
+      aria-rowcount={rowCount}
       className={`border-collapse ${TABLE_TEXT_CLASS} ${flush ? '-mx-[var(--panel-pad,1rem)] w-[calc(100%+2*var(--panel-pad,1rem))]' : 'w-full'} ${className}`}
     >
       {children}
@@ -27,8 +42,38 @@ export function TableHead({ sticky = false, children }: { sticky?: boolean; chil
   return <thead className={sticky ? 'sticky top-0 z-[2] bg-[var(--surface)]' : undefined}>{children}</thead>;
 }
 
-export function TableBody({ children }: { children: ReactNode }) {
-  return <tbody>{children}</tbody>;
+// `navigable` moves focus between the pressable rows with Up and Down (Home and End go to the first and last row that is drawn), for
+// a table whose rows share one tab stop (`TableRow tabStop`). A key aimed at a control inside a row is that control's. `onKeyDown` also
+// hears every key, for a caller that draws only some of its rows and so has to find the ends itself.
+export function TableBody({
+  navigable = false,
+  onKeyDown,
+  onFocus,
+  children,
+}: {
+  navigable?: boolean;
+  onKeyDown?: (event: KeyboardEvent<HTMLTableSectionElement>) => void;
+  /** Hears the focus of any row or control in the body (focus bubbles), to follow which row it rests on. */
+  onFocus?: (event: FocusEvent<HTMLTableSectionElement>) => void;
+  children: ReactNode;
+}) {
+  const onKey = (event: KeyboardEvent<HTMLTableSectionElement>) => {
+    onKeyDown?.(event);
+    if (!navigable || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const row = event.target as HTMLElement;
+    if (row.tagName !== 'TR' || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const rows = [...event.currentTarget.querySelectorAll<HTMLElement>('tr[data-row]')];
+    const from = rows.indexOf(row);
+    const to =
+      event.key === 'Home' ? 0 : event.key === 'End' ? rows.length - 1 : Math.min(rows.length - 1, Math.max(0, from + (event.key === 'ArrowDown' ? 1 : -1)));
+    event.preventDefault();
+    rows[to]?.focus();
+  };
+  return (
+    <tbody onKeyDown={navigable || onKeyDown ? onKey : undefined} onFocus={onFocus}>
+      {children}
+    </tbody>
+  );
 }
 
 // How a row stands out without being selected: `current` is the row the work is on (bold, no fill: mock 01's current
@@ -37,10 +82,13 @@ const ROW_EMPHASIS = { current: 'font-semibold', highlight: 'bg-[var(--row-selec
 
 // A row. With `onActivate` it is a control: it takes a tab stop, Enter or Space on the row activates it (a press on a button
 // or link inside it does not, by key or by pointer: that control acts on its own), the pointer shows it is pressable, and `selected` marks the
-// current one (`aria-selected`) and fills it with `--row-selected`. Without `onActivate` it is a plain row. `data-row` marks a pressable row for the
+// current one (`aria-selected`) and fills it with `--row-selected`; `tabStop={false}` takes it out of the tab order (the rows of a
+// `navigable` body share one stop and the arrow keys reach the rest). Without `onActivate` it is a plain row. `data-row` marks a pressable row for the
 // visual suite's drivers.
 export function TableRow({
   onActivate,
+  tabStop = true,
+  rowIndex,
   selected = false,
   emphasis,
   className = '',
@@ -49,6 +97,8 @@ export function TableRow({
   children,
 }: {
   onActivate?: () => void;
+  tabStop?: boolean;
+  rowIndex?: number;
   /** `data-*` attributes for the row, such as the key a right-click menu reads (`data-w` on the Script page's Words rows). */
   data?: Record<`data-${string}`, string>;
   selected?: boolean;
@@ -60,7 +110,7 @@ export function TableRow({
   const emphasisClass = emphasis ? ROW_EMPHASIS[emphasis] : '';
   if (!onActivate) {
     return (
-      <tr {...data} className={`${emphasisClass} ${className}`} style={style}>
+      <tr {...data} aria-rowindex={rowIndex} className={`${emphasisClass} ${className}`} style={style}>
         {children}
       </tr>
     );
@@ -80,7 +130,8 @@ export function TableRow({
     <tr
       {...data}
       data-row=""
-      tabIndex={0}
+      aria-rowindex={rowIndex}
+      tabIndex={tabStop ? 0 : -1}
       aria-selected={selected}
       onClick={onClick}
       onKeyDown={onKeyDown}
@@ -88,6 +139,16 @@ export function TableRow({
       style={style}
     >
       {children}
+    </tr>
+  );
+}
+
+// Holds the place of rows a caller does not draw (the rows above and below a windowed list), `height` px tall and `columns` wide. It is
+// hidden from assistive technology: `Table rowCount` and `TableRow rowIndex` say where the drawn rows stand.
+export function TableSpacer({ height, columns }: { height: number; columns: number }) {
+  return (
+    <tr aria-hidden="true" style={{ height }}>
+      <td colSpan={columns} className="p-0" />
     </tr>
   );
 }

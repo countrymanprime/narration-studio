@@ -96,7 +96,6 @@ export type MarksView = ReadView<Marks> & {
   marks: Mark[];
   isAsk: (mark: Mark) => boolean;
   inChapter: (chapterId: string) => Mark[];
-  openQueries: Mark[];
   messages: typeof select.markMessages;
 };
 
@@ -115,7 +114,6 @@ export function useMarks(): MarksView {
       marks,
       isAsk: (mark: Mark) => select.isAsk(types, mark),
       inChapter: (chapterId: string) => select.marksInChapter(marks, chapterId),
-      openQueries: select.openQueries(types, marks),
       messages: select.markMessages,
     };
   }, [loaded, retry]);
@@ -293,7 +291,7 @@ export function useScriptCommands() {
         const done = said(await commands.addMark(env, range, type, text));
         if (!done) return null;
         const kind = data.getState().marks?.value?.types.find((row) => row.key === type);
-        overlay.toast(kind?.asks ? 'Query saved. Track the reply in the Queries tab.' : `Marked “${range.quote}” as ${kind?.name ?? type}.`);
+        overlay.toast(kind?.asks ? 'Note saved. Track the reply in the Notes tab.' : `Marked “${range.quote}” as ${kind?.name ?? type}.`);
         return done.value;
       },
       removeMark: async (id: string) => said(await commands.removeMark(env, id)) !== null,
@@ -311,7 +309,7 @@ export function useScriptCommands() {
       async resolve(id: string, who: MarkThreadAuthor, text: string) {
         if (text.trim() && !said(await commands.replyToMark(env, id, who, text))) return false;
         if (!said(await commands.setMarkStatus(env, id, 'resolved'))) return false;
-        overlay.toast('Query resolved.');
+        overlay.toast('Note resolved.');
         return true;
       },
       setPrep: async (chapter: ChapterNameInput & { id: string }, state: PrepState) => said(await commands.setPrep(env, chapter, state)) !== null,

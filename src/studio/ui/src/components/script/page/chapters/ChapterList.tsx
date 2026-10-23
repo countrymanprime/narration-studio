@@ -4,8 +4,7 @@ import type { PrepState } from '../../../../api/contracts/scriptPrep';
 import { IconButton } from '../../../primitives/IconButton';
 import { PanelHeader } from '../../../primitives/Panel';
 import { PANEL_FRAME_CLASS } from '../../../primitives/panelStyles';
-import { StatusBadge } from '../../../primitives/StatusBadge';
-import { useMarks, useScriptPrep } from '../data/useScriptData';
+import { useScriptPrep } from '../data/useScriptData';
 import { chapterHeading } from '../../../../chapterHeading';
 import { CREDITS_LABEL, type CreditsKind } from '../../../booth/readerModel';
 import { PrepDot } from './PrepDot';
@@ -37,8 +36,6 @@ export function ChapterList({
   closingCredits?: CreditsRow;
 }) {
   const prep = useScriptPrep();
-  const marks = useMarks();
-  const asking = new Set(marks.openQueries.map((mark) => mark.chapterId));
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   const [focused, setFocused] = useState<string | null>(null);
   const stops = chapterListStops(
@@ -108,11 +105,6 @@ export function ChapterList({
                   )}
                   <span>{title}</span>
                 </span>
-                {asking.has(chapter.id) && (
-                  <span role="img" aria-label="Open queries" title="Open queries">
-                    <StatusBadge tone="warning" label="?" />
-                  </span>
-                )}
               </button>
             </li>
           );
