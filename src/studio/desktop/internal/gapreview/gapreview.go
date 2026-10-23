@@ -244,7 +244,8 @@ func (f reviewFile) find(chapterID, evidenceKey, gapID string) *entry {
 	return nil
 }
 
-// gapFinding builds the finding an accepted gap becomes. Its id is stable over the chapter, the gap and the result's
+// gapFinding builds the finding an accepted gap becomes: a pickup, or a duplicate_read for an extra gap that says the
+// chapter text again. Its id is stable over the chapter, the gap and the result's
 // evidence key, so accepting twice is one finding and a new check run makes a new one.
 func gapFinding(chapterID string, current Current, gap coverage.GapLine) findings.Finding {
 	expected := gap.FirstWord
@@ -252,10 +253,15 @@ func gapFinding(chapterID string, current Current, gap coverage.GapLine) finding
 		expected += " … " + gap.LastWord
 	}
 	manuscript := findings.Manuscript{ChapterID: chapterID, ChapterTitle: current.ChapterTitle}
+	category := findings.CategoryPickup
 	if gap.Kind == coverage.GapExtra {
 		expected = ""
 		if gap.Text != nil {
 			manuscript.Recorded = *gap.Text
+		}
+		// Chapter text said twice is a second take, fixed in the edit (issue #2251 item 30).
+		if gap.RepeatOf != nil {
+			expected, category = *gap.RepeatOf, findings.CategoryDuplicateRead
 		}
 	}
 	manuscript.Expected = expected
@@ -265,6 +271,9 @@ func gapFinding(chapterID string, current Current, gap coverage.GapLine) finding
 	evidence := map[string]any{
 		"kind": string(gap.Kind), "gap_id": gap.ID, "evidence_key": current.EvidenceKey,
 		"token_count": gap.TokenCount, "first_word": gap.FirstWord, "last_word": gap.LastWord,
+	}
+	if gap.RepeatOf != nil {
+		evidence["repeat_of"] = *gap.RepeatOf
 	}
 	source := findings.Source{}
 	if gap.Position != nil {
@@ -278,7 +287,7 @@ func gapFinding(chapterID string, current Current, gap coverage.GapLine) finding
 		Analyzer:         AnalyzerName,
 		Source:           source,
 		Manuscript:       &manuscript,
-		Category:         findings.CategoryPickup,
+		Category:         category,
 		Severity:         findings.SeverityInfo,
 		Confidence:       gap.Confidence,
 		ConfidenceReason: gap.ConfReason,

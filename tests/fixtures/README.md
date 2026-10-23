@@ -103,3 +103,10 @@ path for Unicode PDF text - see the script for how to point it elsewhere.
 Markers and recipes for seven public-domain LibriVox readings of *Alice* chapters (the demo script), which are fetched
 from archive.org to build real-speech test corpora: the recording check, the character-continuity trial and the audio
 diagnostics. See [its README](audio/librivox-alice/README.md) and `tests/fixtures/audio/librivox-alice/README.md`.
+
+## repeat-rule/
+
+`parity-cases.json`: the cases for "a run of extra words says the script beside it again" (issue #2251 item 30), which the
+sidecar (`src/studio/sidecars/transcript-compare/core/recording_coverage.py`, `repeat_of`) and the Editing page
+(`src/studio/ui/src/components/editing/model/duplicates.ts`, `saysScriptAgain`) both implement. `test_coverage.py` and
+`duplicates.test.ts` read the file, so the two copies of the rule cannot drift apart.

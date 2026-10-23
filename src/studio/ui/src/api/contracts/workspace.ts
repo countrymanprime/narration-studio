@@ -51,6 +51,11 @@ export type WorkspaceExtraWord = {
 /** A point in the audio: an item and a time in its source file (as coverage's RegionPosition). */
 export type WorkspaceAudioPosition = { itemIndex: number; itemGuid: string; sourceTime: number };
 
+/** The chapter text an extra run says again, a second take (issue #2251 item 30): the run's words `[first, last)` are
+ * the chapter's tokens `[start, end)`, heard just before or just after the run, and `text` is those tokens as written.
+ * The rest of the run is an aside ("sorry", "once more"). */
+export type WorkspaceRepeat = { start: number; end: number; first: number; last: number; text: string };
+
 /** One run of transcript words the chapter's tokens do not account for (a retake, a false start, an aside).
  * afterToken is the doc token index of the last token heard before this run, absent before anything was heard. */
 export type WorkspaceExtra = {
@@ -59,6 +64,8 @@ export type WorkspaceExtra = {
   start: WorkspaceAudioPosition;
   end: WorkspaceAudioPosition;
   afterToken?: number;
+  /** Set when the run says the chapter text beside it again; absent for an aside and from a host before it. */
+  repeatOf?: WorkspaceRepeat;
   /** The run's words, in order; empty in a payload from before it. */
   words?: WorkspaceExtraWord[];
 };

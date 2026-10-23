@@ -115,7 +115,10 @@ type DecorationRange = { paragraphId: string; start: number; end: number; title?
 
 /** A Story Bible name, tinted in its entry's colour (`kinds/entityColour.ts`), or a narrator's mark in its type's colour and chosen style (`kinds/narratorMark.ts`). */
 export type WordDecoration =
-  (DecorationRange & { kind: 'entity'; colour: EntityColour }) | (DecorationRange & { kind: 'mark'; colour: MarkColour; style: MarkStyle });
+  | (DecorationRange & { kind: 'entity'; colour: EntityColour })
+  | (DecorationRange & { kind: 'mark'; colour: MarkColour; style: MarkStyle })
+  // A match of the narrator's search; `current` is the one the jump menu last chose.
+  | (DecorationRange & { kind: 'find'; current: boolean });
 
 /** A note drawn under a paragraph; `colour` is its mark type's, which its end marker follows (D8). */
 export type ParagraphNote = { id: string; paragraphId: string; name: string; text: string; colour?: MarkColour };
@@ -128,6 +131,7 @@ type WordToken = {
   index: number;
   entity?: WordDecoration;
   mark?: WordDecoration;
+  find?: WordDecoration;
 };
 
 export type UnitWords = { lead: string; words: WordToken[] };
@@ -142,7 +146,7 @@ export function unitWords(paragraph: ReadingParagraph, unit: Pick<BoothUnit, 'st
     const from = unit.start + match.index;
     const to = from + word.length;
     const hit = (kind: WordDecoration['kind']) => own.find((d) => d.kind === kind && d.start < to && d.end > from);
-    words.push({ text: word, gap: match[0].slice(word.length), index: words.length, entity: hit('entity'), mark: hit('mark') });
+    words.push({ text: word, gap: match[0].slice(word.length), index: words.length, entity: hit('entity'), mark: hit('mark'), find: hit('find') });
   }
   return { lead: /^\s*/.exec(text)?.[0] ?? '', words };
 }

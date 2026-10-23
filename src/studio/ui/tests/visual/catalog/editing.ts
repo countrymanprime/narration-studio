@@ -121,6 +121,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'read-twice',
+    description:
+      'Editing, Chapter 1 linked, the next flag key stepped to words said again: their Read twice card says the recording reads the line twice and offers Stack as 2 takes, Hear both reads, Leave in place and Delete second read',
+  },
+  {
+    page: 'editing',
     state: 'takes-open',
     description:
       'Editing, the first line’s takes opened under it - the suggested take with the steps that would make it surer, each take’s evidence, and how retries are kept',

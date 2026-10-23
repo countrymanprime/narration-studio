@@ -8,7 +8,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      "Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (Voices in this scene, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
+      "Booth, ready to record (the record capability on, ?mockRecordCapabilityOn=1): the top bar with the chapter stepper, the progress line, \"Resume at ¶ 14 from the saved project\" and the REAPER setup chip; the text full-bleed with the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
     ...REFLOW,
   },
   {
@@ -113,7 +113,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'voice-samples-panel',
     description:
-      'Booth, "Voices in this scene" in the side panel with voice samples: a play control and the count on each voice that has some, the Queen of Hearts opened to list her samples (the primary starred), and where to make one for a voice with none',
+      'Booth, "In this chapter" in the side panel with voice samples: a play control and the count on each voice that has some, the Queen of Hearts opened to list her samples (the primary starred), and where to make one for a voice with none',
     ...REFLOW,
     ...SIDE_PANEL_DEPENDS_ON_WIDTH,
   },
@@ -188,6 +188,13 @@ export const boothStates: StateEntry[] = [
     state: 'bookmarks-ribbon',
     description:
       'Booth (as setup) after B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'search-shown',
+    description:
+      'Booth (as setup) after Ctrl+F, "the" and choosing a match under "In this chapter": every match in the text tinted, the chosen one ringed and the reading position on it',
     ...REFLOW,
   },
   {

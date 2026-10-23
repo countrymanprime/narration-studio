@@ -91,6 +91,13 @@ export const proofDrivers: Record<string, Driver> = {
     await openChapter(page, 'Chapter 4');
     await page.getByText('Out of date').waitFor();
   },
+  // Issue #2251 item 30: the check card's findings, with the mock's line said twice.
+  'check-findings': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: /Show the findings/ }).click();
+    await page.getByRole('link', { name: /^Open in Editing: Said twice/ }).waitFor();
+  },
   'check-never': async (page) => {
     await openProof(page);
     await openChapter(page, 'Chapter 7');

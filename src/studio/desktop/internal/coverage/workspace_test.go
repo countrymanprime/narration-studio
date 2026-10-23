@@ -242,6 +242,18 @@ var addedWordsResults = append(append([]string{}, alignedResults[:len(alignedRes
 	alignedResults[len(alignedResults)-1],
 )
 
+// repeatResults is alignedResults with its last two words said again after "sorry": a repeat of tokens 5 and 6, a whole
+// line's end said twice (issue #2251 item 30).
+var repeatResults = append(append([]string{}, alignedResults[:len(alignedResults)-1]...),
+	`COVERAGE_EXTRA|{"text":"sorry very tired.","tokens":3,"start":{"itemIndex":1,"itemGuid":"{ITEM-B}","sourceTime":0.6},"end":{"itemIndex":1,"itemGuid":"{ITEM-B}","sourceTime":1.5},"afterToken":6,"repeatOf":{"start":5,"end":7,"first":1,"last":3,"text":"very tired."}}`,
+)
+
+// repeatGapResults has "beginning to get" said again after "get", inside the read part: an extra gap that names what it
+// repeats.
+var repeatGapResults = append(append([]string{}, alignedResults[:len(alignedResults)-1]...),
+	`COVERAGE_EXTRA|{"text":"sorry beginning to get","tokens":4,"start":{"itemIndex":0,"itemGuid":"{ITEM-A}","sourceTime":6.3},"end":{"itemIndex":0,"itemGuid":"{ITEM-A}","sourceTime":7.5},"afterToken":4,"repeatOf":{"start":2,"end":5,"first":1,"last":4,"text":"beginning to get"}}`,
+)
+
 func TestViewCarriesTheEngine(t *testing.T) {
 	p := newTestProject(t)
 	never := alignmentOf(t, p.service(&fakeSidecar{}))

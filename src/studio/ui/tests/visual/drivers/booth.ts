@@ -272,6 +272,16 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
     await page.getByText('Bookmark added.').waitFor();
   },
+  // Ctrl+F opens the jump menu; a match under "In this chapter" moves the reading to it and tints every match in the text.
+  'search-shown': async (page) => {
+    await readyToRecord(page);
+    await page.keyboard.press('Control+f');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('the');
+    await page.getByRole('listbox', { name: 'Jump menu results' }).getByText('In this chapter', { exact: true }).waitFor();
+    await page.getByRole('option', { name: /¶/ }).nth(2).click();
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
+    await page.locator('[data-booth-text] [data-find="current"]').first().waitFor();
+  },
   // Pickups' "Open in Booth at this line": the Booth in a pickup session, the line listed in the side panel and marked in the text.
   'pickup-session': async (page) => {
     await page.goto(`/${RECORD_ON}`);

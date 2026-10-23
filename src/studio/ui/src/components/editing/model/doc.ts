@@ -3,8 +3,9 @@
  * the alignment answer, the cut list and the applied effects, all passed in. The text is never edited; cuts hide words (they stay, struck
  * through) and the cut list stays in the original recording's time.
  */
-import { alignToScript, normKey, type Heard } from './align';
+import { alignToScript, type Heard } from './align';
 import { curTime, origTime, takeLength, takeShift, type DocCut } from './cuts';
+import { saysScriptAgain } from './duplicates';
 
 type ItemState = 'ok' | 'mis' | 'miss' | 'extra';
 
@@ -250,6 +251,7 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
     const { p, pi, take } = pl;
     const unitList = p.units.map((u) => ({ u, ...unitWords(p.text, u.s, u.e) }));
     const script: Array<{ tok: WordTok; u: ScriptUnit }> = unitList.flatMap((x) => x.words.map((tok) => ({ tok, u: x.u })));
+    const scriptWords = script.map((w) => w.tok.text);
     const out: DocUnit[] = unitList.map((x) => ({ u: x.u, lead: x.lead, items: [] }));
     const unitIndex = new Map(out.map((x, i) => [x.u.key, i]));
 
@@ -308,7 +310,6 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
         },
         w.u.key,
       );
-    const dupHead = take ? wordsOf(p.text.slice(take.s, take.e)).slice(0, 4).map(normKey) : [];
 
     if (!segs.length) script.forEach((w, i) => unheard(w, i));
     segs.forEach((seg) => {
@@ -321,16 +322,31 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
       let lastU = script[seg.from]?.u.key ?? p.units[0]?.key ?? '';
       let prevEnd = seg.heard.words.length ? seg.abs(seg.heard.words[0].off0) : 0;
       let xRun: DocItem[] = [];
-      const closeRun = (): void => {
-        if (xRun.length >= 4 && xRun.slice(0, 4).every((x, k) => normKey(x.text) === dupHead[k]))
+      let xRepeats = false;
+      /** The script index (in the paragraph) of the last script word heard before the run, null before any. */
+      let prevI: number | null = null;
+      /* A run is a second read when the recording check said so, or when it says the script beside it again (a take with no check). */
+      const closeRun = (nextI: number | null): void => {
+        if (
+          xRun.length &&
+          (xRepeats ||
+            saysScriptAgain(
+              xRun.map((x) => x.text),
+              scriptWords,
+              prevI,
+              nextI,
+            ))
+        )
           xRun.forEach((x) => {
             x.dup = true;
           });
         xRun = [];
+        xRepeats = false;
       };
       ops.forEach((op) => {
         if (op.kind === 'x') {
           const h = op.heard;
+          if (h.repeats) xRepeats = true;
           const it: DocItem = {
             key: p.id + ':x' + xn++,
             kind: 'x',
@@ -357,7 +373,8 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
           prevEnd = it.t1 ?? prevEnd;
           return;
         }
-        closeRun();
+        closeRun(op.heard ? seg.from + op.i : null);
+        if (op.heard) prevI = seg.from + op.i;
         const w = script[seg.from + op.i];
         const key = p.id + ':' + (seg.from + op.i);
         lastU = w.u.key;
@@ -387,7 +404,7 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
         prevEnd = it.t1 ?? prevEnd;
         push(it, w.u.key);
       });
-      closeRun();
+      closeRun(null);
     });
     /* Words that were cut sit where the cut was, with no length of their own. */
     items.forEach((it) => {

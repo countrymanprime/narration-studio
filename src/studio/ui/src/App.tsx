@@ -23,6 +23,7 @@ import { useUserKeymap } from './input/useUserKeymap';
 import { useNavCounts } from './components/layout/useNavCounts';
 import { StartupScreen, type StartupState } from './components/layout/StartupScreen';
 import { ToastRegion, type ToastTone } from './components/primitives/Toast';
+import { useProjectPicker } from './hooks/useProjectPicker';
 import { useToasts } from './hooks/useToasts';
 import { useChapterSync } from './hooks/useChapterSync';
 import { BackgroundChecks } from './components/recordingcheck/background/BackgroundChecks';
@@ -253,9 +254,7 @@ function AppRoutes() {
   // the completion dialog before its activity log is visible.
   // The project picker over the shell: the header's project name and the jump menu's "Switch project…" open it. It closes when a project is
   // chosen (the project folder changes) or on its own Back button.
-  const [projectPickerOpen, setProjectPickerOpen] = useState(false);
-  const projectFolderOpen = data?.projectFolder;
-  useEffect(() => setProjectPickerOpen(false), [projectFolderOpen]);
+  const [projectPickerOpen, setProjectPickerOpen] = useProjectPicker(data?.projectFolder);
   const refreshBootstrap = useCallback(async () => {
     try {
       const next = await api.bootstrap();
@@ -551,7 +550,7 @@ function AppRoutes() {
       registerCommandProvider(() => [
         { id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => setProjectPickerOpen(true) },
       ]),
-    [],
+    [setProjectPickerOpen],
   );
   const dawName = () => (dawKind ? dawShortName(dawKind) : 'the DAW');
   const openHistory = () => void openHistoryPanel(overlay, journal, dawName);
@@ -953,7 +952,12 @@ function AppRoutes() {
                   path="/booth"
                   element={gated(
                     'booth',
-                    <BoothNextPage hasManuscript={Boolean(data.manuscript)} navigate={guardedNavigate} onImport={() => guardedNavigate('/')} />,
+                    <BoothNextPage
+                      hasManuscript={Boolean(data.manuscript)}
+                      navigate={guardedNavigate}
+                      onImport={() => guardedNavigate('/')}
+                      projectFolder={data.projectFolder}
+                    />,
                   )}
                 />
                 <Route
