@@ -86,3 +86,32 @@ describe('the REAPER program check', () => {
     expect(ROWS.find((row) => row.id === 'daw.reaperPath')?.check).toBe(reaperPathProblem);
   });
 });
+
+describe('the background check rows (#2251)', () => {
+  const row = (id: string) => {
+    const found = ROWS.find((candidate) => candidate.id === id);
+    if (!found) throw new Error(`no row ${id}`);
+    return found;
+  };
+
+  it('warn about a large model and say nothing about the light pair', () => {
+    for (const id of ['stt.backgroundModel', 'stt.backgroundRecheck']) {
+      expect(row(id).heavy?.('large-v3-turbo')).toMatch(/much slower/);
+      expect(row(id).heavy?.('tiny')).toBeUndefined();
+      expect(row(id).heavy?.('small')).toBeUndefined();
+    }
+    expect(row('stt.backgroundRecheck').heavy?.('none')).toBeUndefined();
+  });
+
+  it('warn when the processors asked for pass half the computer', () => {
+    const processors = row('stt.backgroundProcessors');
+    const cores = navigator.hardwareConcurrency || 4;
+    expect(processors.heavy?.('0')).toBeUndefined();
+    expect(processors.heavy?.(String(cores))).toMatch(/may slow down/);
+  });
+
+  it('default to tiny with small as the double-check', () => {
+    expect(row('stt.backgroundModel').def).toBe('tiny');
+    expect(row('stt.backgroundRecheck').def).toBe('small');
+  });
+});

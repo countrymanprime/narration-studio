@@ -72,7 +72,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 140
+const hostAPIVersion = 141
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -398,7 +398,9 @@ type Host struct {
 	// backgroundChecks is what the background recording check loop remembers (coverage_background.go).
 	backgroundChecks backgroundChecks
 	// powerState is a seam for tests: nil means platformPower, the operating system's own answer.
-	powerState     func() coverage.Power
+	powerState func() coverage.Power
+	// liveFollowing is a seam for tests: nil means the teleprompter's own answer, whether the Booth's live tracking is running.
+	liveFollowing  func() bool
 	transcriptRuns transcriptWatch
 	// coverageRuns turns recording check states into job ends (bindings_coverage.go).
 	coverageRuns coverageWatch
@@ -1468,6 +1470,13 @@ func (h *Host) canAttachLocked() bool {
 // idleLocked reports whether nothing is running that a restart or a project switch would displace: an import draft, a Story Bible
 // build, a download, a comparison, a measurement, a diagnostics check, a teleprompter session or a REAPER take this app started. The caller holds h.mu.
 func (h *Host) idleLocked() bool {
+	return h.idleLockedFor(false)
+}
+
+// idleLockedFor is idleLocked, leaving out the Booth's live tracking when background is true: a background recording check
+// may run between takes while the teleprompter follows a reading, below normal priority and on its share of the processors
+// (coverage.BackgroundCPUs). REAPER recording still holds it off (coverage.NextBackground). The caller holds h.mu.
+func (h *Host) idleLockedFor(background bool) bool {
 	if h.manuscript != nil && !h.manuscript.CanSwitchProject() {
 		return false
 	}
@@ -1509,7 +1518,7 @@ func (h *Host) idleLocked() bool {
 	if h.coverage != nil && h.coverage.Busy() {
 		return false
 	}
-	if h.teleprompter != nil && h.teleprompter.Busy() {
+	if !background && h.teleprompter != nil && h.teleprompter.Busy() {
 		return false
 	}
 	if h.recorder != nil && h.recorder.Busy() {
@@ -1812,6 +1821,13 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
 		// Chapters a Check recordings run checks at once; they share the processors.
 		{"parallel_chapters", "Chapters checked at once", "number", nil},
+		// The background check's own settings (coverage_background.go): the first-time notice's answer, its model pair and
+		// its processors. Its pair is separate from the cascade above, so a heavy choice for the narrator's own check never
+		// runs unannounced in the background.
+		{"background_checks_confirmed", "The narrator answered the background checks notice", "bool", nil},
+		{"background_first_pass_model", "Model for background checks", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
+		{"background_recheck_model", "Double-check model for background checks", "choice", []string{"none", "tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
+		{"background_processors", "Processors for background checks (0 = half this computer's)", "number", nil},
 	},
 	// StageRecommendations (see docs/architecture/stage-recommendations.md) chooses which signals must be
 	// met for a stage suggestion: one choice field per signal id a provider declares (apps/desktop/bindings_stages.go's

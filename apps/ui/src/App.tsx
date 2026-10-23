@@ -25,6 +25,7 @@ import { StartupScreen, type StartupState } from './components/layout/StartupScr
 import { ToastRegion, type ToastTone } from './components/primitives/Toast';
 import { useToasts } from './hooks/useToasts';
 import { useChapterSync } from './hooks/useChapterSync';
+import { BackgroundChecks } from './components/recordingcheck/background/BackgroundChecks';
 import { usePendingAction } from './hooks/usePendingAction';
 import { ChapterSyncConsentDialog } from './components/engine/ChapterSyncConsentDialog';
 import type { ChapterSyncPreview } from './api/contracts/chapterSync';
@@ -1066,6 +1067,7 @@ function AppRoutes() {
                 linkingDawFile: dawLink.isBusy,
               }}
             />
+            <BackgroundChecks chapterSync={chapterSync} />
             {chapterSync?.ask && (
               <ChapterSyncConsentDialog
                 projectFile={chapterSync.projectFile}

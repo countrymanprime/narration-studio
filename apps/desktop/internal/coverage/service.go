@@ -133,6 +133,18 @@ type Request struct {
 	// Concurrent is how many runs may be in progress when this one starts, itself included: the narrator's Check
 	// recordings run of several chapters sets it above 1. 0 or 1 starts only when nothing else is running.
 	Concurrent int
+	// CPUs, above 0, is the most processors the sidecar plans its workers for (--cpus): a background check leaves the
+	// rest to the Booth's live tracking. 0 plans for every processor.
+	CPUs int
+}
+
+// launchContext is the context every stage of the run starts its sidecar with: a background run's sidecar runs below
+// normal priority, so the narrator's own work and the Booth's live tracking come first.
+func (r Request) launchContext() context.Context {
+	if r.Background {
+		return process.WithLowPriority(context.Background())
+	}
+	return context.Background()
 }
 
 // pipelined reports whether the first pass is the one-process cascade: a re-check model, a score line to find the doubtful passages
@@ -449,7 +461,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 		_ = os.RemoveAll(running.dir)
 		return nil, err
 	}
-	child, err := s.launch(context.Background(), s.config.Python, s.sidecarArgs(running, request.Transcription)...)
+	child, err := s.launch(request.launchContext(), s.config.Python, s.sidecarArgs(running, request.Transcription)...)
 	if err != nil {
 		_ = os.RemoveAll(running.dir)
 		return nil, fmt.Errorf("could not start the recording check: %w", err)
@@ -484,6 +496,14 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 		args = append(args, "--language", transcription.Language)
 	}
 	args = append(args, running.request.Parallel.args()...)
+	if running.request.CPUs > 0 {
+		args = append(args, "--cpus", strconv.Itoa(running.request.CPUs))
+	}
+	// A stage under the first pass's model keeps what the larger model has already checked: its whole-chapter words serve as they
+	// are, and the passages it re-checked are not reported unsure again (the pipelined first pass names it with --recheck-model).
+	if larger := running.request.Recheck.Model; larger != "" && transcription.Model != larger && !(running.stage == stageFirstPass && running.request.pipelined()) {
+		args = append(args, "--checked-by", larger)
+	}
 	if running.stage == stageFirstPass && running.request.UnsureBelow > 0 {
 		args = append(args, "--unsure-below", strconv.FormatFloat(running.request.UnsureBelow, 'f', -1, 64))
 		if running.request.pipelined() {
@@ -517,6 +537,9 @@ func (s *Service) recheckArgs(running *job) []string {
 	}
 	if transcription.Language != "" {
 		args = append(args, "--language", transcription.Language)
+	}
+	if running.request.CPUs > 0 {
+		args = append(args, "--cpus", strconv.Itoa(running.request.CPUs))
 	}
 	if s.config.Backend != "" {
 		args = append([]string{s.config.Backend}, args...)

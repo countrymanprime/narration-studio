@@ -46,7 +46,8 @@ func TestWithNoOptionsAndTheCascadeOffACheckIsOnePassWithTheTranscriptCompareMod
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := coverageChoices{FirstPass: "medium", Parallel: coverage.DefaultSettings.Parallel}
+	// Pipeline is the setting's own default; it only matters once a re-check model is chosen (Request.pipelined).
+	want := coverageChoices{FirstPass: "medium", Pipeline: coverage.DefaultSettings.Cascade.Pipeline, Parallel: coverage.DefaultSettings.Parallel}
 	if got != want {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}
@@ -255,7 +256,10 @@ func TestEnginesReportWhatACheckWithNoOptionsWouldDo(t *testing.T) {
 	}
 }
 
-func TestABackgroundCheckRunsTheWayAPressWithNoOptionsWould(t *testing.T) {
+// A background check runs its own model pair, not the narrator's cascade (#2251: a heavy pair chosen for Check recording
+// ran unannounced in the background); it keeps the narrator's chunking and doubt line, and its processors' share replaces the
+// worker count.
+func TestABackgroundCheckRunsItsOwnPairWithTheNarratorsChunkingAndDoubtLine(t *testing.T) {
 	models := whisperCatalog(t, map[string]bool{"tiny": true, "small": true, "large-v3-turbo": true})
 	host := coverageHostWithModels(t, coverageProject(t), models, fakeCoverageSidecar(10))
 	if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{
@@ -266,11 +270,11 @@ func TestABackgroundCheckRunsTheWayAPressWithNoOptionsWould(t *testing.T) {
 
 	request, ready := host.backgroundRequest(host.services(), "c-0001")
 
-	if !ready || !request.Background || request.Transcription.Model != "tiny" || request.Recheck.Model != "large-v3-turbo" {
-		t.Fatalf("request = %+v, ready = %v: the cascade's models, not model_size", request, ready)
+	if !ready || !request.Background || request.Transcription.Model != "tiny" || request.Recheck.Model != "small" {
+		t.Fatalf("request = %+v, ready = %v: the background pair, not the cascade's", request, ready)
 	}
-	if request.Parallel.Workers != 2 || request.Parallel.ChunkSeconds != 300 || request.UnsureBelow != 0.5 {
-		t.Fatalf("request = %+v: the settings' parallel run and doubt line", request)
+	if request.Parallel.Workers != 0 || request.CPUs < 1 || request.Parallel.ChunkSeconds != 300 || request.UnsureBelow != 0.5 {
+		t.Fatalf("request = %+v: the settings' chunking and doubt line, on the background's share of the processors", request)
 	}
 }
 

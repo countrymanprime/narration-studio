@@ -20,7 +20,7 @@ const state = (batch: ChapterSyncBatch | null = null): ChapterSyncState => ({
   unsavedEdits: false,
   activity: [],
   chapters: [],
-  background: { enabled: true, wait: 'nothing' },
+  background: { enabled: true, wait: 'nothing', queued: 0, firstPassModel: 'tiny', recheckModel: 'small' },
 });
 
 const batch = (at: string, ...guids: string[]): ChapterSyncBatch => ({
