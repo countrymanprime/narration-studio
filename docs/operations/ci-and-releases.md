@@ -106,7 +106,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `pages.yml` (`Pages`) | push to `main` and pull requests that touch the site's paths, manual | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only off a pull request, on `main` | `build` on a pull request that touches the site: it builds `dist-site/` and checks its links, and uploads and deploys nothing |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old | not a pull request check |
 | `main-health.yml` (`Main health`) | every three hours (minute 37), manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
-| `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened, labeled, unlabeled) | `Test ratchet`: no deleted test file, added skip or focus marker, or lowered coverage floor, unless the owner added `ratchet-approved` | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
+| `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened) | `Test ratchet`: prints each deleted test file, added skip or focus marker and lowered coverage floor, and raises a warning annotation. It never fails, and no label clears or changes it | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
 | `pr-risk.yml` (`PR risk`) | same-repository pull request (opened, synchronize, reopened) | `rate`: adds or removes the `risk:high` label | not a check that gates anything; a `risk:high` pull request is not merged without the owner |
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
 
@@ -727,7 +727,7 @@ removed, fails the run.
   `--update` raises whichever applies on the host. Use it only where the platforms really measure differently: a test that
   stands a file where a folder belongs reaches one more statement on Windows, where a path through a file reads as "not
   found", than elsewhere, where it fails with `ENOTDIR` first (`internal/findings` and `internal/stages`). The test ratchet
-  fails a lowered `nonWindowsFloor` as it does a lowered `floor`; dropping one only makes the gate stricter.
+  flags a lowered `nonWindowsFloor` as it does a lowered `floor`; dropping one only makes the gate stricter.
 - **Not gated on purpose:** UI components, host glue and sidecar-launch code (the list is in the floors file's
   `$comment`).
 - `vitest --coverage` also works by hand and writes `apps/ui/coverage/` (ignored).
