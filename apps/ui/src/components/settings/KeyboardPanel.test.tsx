@@ -89,7 +89,8 @@ describe('KeyboardPanel', () => {
   it('marks a noisy command as playing audio', async () => {
     renderPanel();
     await screen.findByText('Play or pause the chapter');
-    expect(screen.getByText('Plays audio')).toBeTruthy();
+    // Editing's Space and Proof's Hear it are the two commands that play audio.
+    expect(screen.getAllByText('Plays audio')).toHaveLength(2);
   });
 
   it('shows the "?" hint using the live help.shortcuts binding', async () => {

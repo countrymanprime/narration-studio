@@ -111,7 +111,7 @@ describe('type-and-resolution-chips-are-words-and-shapes', () => {
       'To review',
       'Needs pickup',
       'Fix in edit',
-      'Waive',
+      'Fine as read',
       'Defer',
     ]);
   });
