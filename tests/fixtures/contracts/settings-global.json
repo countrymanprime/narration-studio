@@ -1495,6 +1495,18 @@
       "value": ""
     }
   ],
+  "Tips": [
+    {
+      "choices": null,
+      "effectiveSource": "hardcoded",
+      "effectiveValue": "",
+      "isSet": false,
+      "key": "seen",
+      "kind": "text",
+      "label": "Tips already shown",
+      "value": ""
+    }
+  ],
   "TranscriptCompare": [
     {
       "choices": [

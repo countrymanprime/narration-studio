@@ -575,10 +575,10 @@
   },
   {
     "page": "script",
-    "state": "rail-bookmarks",
+    "state": "bookmark-added",
     "viewport": "desktop",
     "docName": "script-bookmark",
-    "caption": "Script - the rail's Bookmarks tab with a bookmark placed from the selection toolbar"
+    "caption": "Script - B pressed in the reader: the bookmark's ribbon in the margin and the Bookmark added toast with Undo"
   },
   {
     "page": "script",
@@ -967,10 +967,10 @@
   },
   {
     "page": "script",
-    "state": "rail-queries",
+    "state": "first-use-tip",
     "viewport": "desktop",
-    "docName": "script-rail-queries",
-    "caption": "Script - the rail's Queries tab, with no queries in this chapter"
+    "docName": "script-first-use-tip",
+    "caption": "Script - the first time it opens: a tip over the reader about selecting text, with Got it"
   },
   {
     "page": "script",

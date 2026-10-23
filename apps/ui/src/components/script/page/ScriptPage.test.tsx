@@ -141,15 +141,14 @@ describe('three-columns-from-1440-and-drawers-below', () => {
 });
 
 describe('rail-tabs-rove-and-show-the-right-body', () => {
-  it('has the five tabs, Bookmarks as an icon tab, and Left and Right move and select, wrapping', async () => {
+  it('has the three tabs, and Left and Right move and select, wrapping', async () => {
     mount();
     await firstHeading();
     const tabs = within(panel('rail')).getAllByRole('tab');
-    expect(tabs.map((tab) => tab.textContent)).toEqual(['Words', 'Story Bible', 'Notes', 'Queries', 'Bookmarks']);
-    expect(tabs[4]!.querySelector('svg')).not.toBeNull();
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Words', 'Story Bible', 'Notes']);
     tabs[0]!.focus();
     fireEvent.keyDown(tabs[0]!, { key: 'ArrowLeft', code: 'ArrowLeft' });
-    await waitFor(() => expect(view.tab).toBe('bookmarks'));
+    await waitFor(() => expect(view.tab).toBe('marks'));
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight', code: 'ArrowRight' });
     await waitFor(() => expect(view.tab).toBe('pron'));
     fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight', code: 'ArrowRight' });
@@ -163,18 +162,18 @@ describe('rail-tabs-rove-and-show-the-right-body', () => {
     await waitFor(() => expect(within(body()).getByText('Definitions from')).toBeTruthy());
     fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
     await waitFor(() => expect(view.tab).toBe('marks'));
-    fireEvent.click(screen.getByRole('tab', { name: 'Bookmarks' }));
-    await waitFor(() => expect(body().textContent).toBe('No bookmarks yet.'));
+    await waitFor(() => expect(body().textContent).toContain('No notes in this chapter yet.'));
     // The rail follows the chapter at the top of the reader.
     fireEvent.click(screen.getByRole('tab', { name: 'Story Bible' }));
     await waitFor(() => expect(view.tab).toBe('bible'));
   });
 
-  it('the header Bookmarks button shows the Bookmarks tab', async () => {
+  it('has no Queries or Bookmarks tab and no header Bookmarks button', async () => {
     mount();
     await firstHeading();
-    fireEvent.click(within(document.querySelector('section[aria-label="Reader"]')!).getByRole('button', { name: 'Bookmarks' }));
-    expect(view.tab).toBe('bookmarks');
+    expect(screen.queryByRole('tab', { name: 'Queries' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Bookmarks' })).toBeNull();
+    expect(within(document.querySelector('section[aria-label="Reader"]')!).queryByRole('button', { name: 'Bookmarks' })).toBeNull();
   });
 });
 
@@ -287,7 +286,7 @@ describe('record-from-here-and-flagged-words', () => {
 });
 
 describe('bookmark-flow-end-to-end', () => {
-  it('Bookmark here adds a ribbon, opens its editor, lists it in the tab, and Next and Previous move between bookmarks, wrapping', async () => {
+  it('Bookmark here adds a ribbon, opens its editor, and Next and Previous move between bookmarks, wrapping', async () => {
     const { api } = mount();
     await firstHeading();
     await waitFor(() => expect(document.querySelector('p[data-pid="p-2"]')).not.toBeNull());
@@ -313,31 +312,18 @@ describe('bookmark-flow-end-to-end', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit bookmark' })).toBeNull());
     window.getSelection()!.removeAllRanges();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Bookmarks' }));
-    const list = document.getElementById('railbody')!;
-    await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(2));
-
-    // From the top of the page the next bookmark is the first, then the second, then round to the first; Previous goes back.
-    const at = () =>
-      within(list)
-        .getAllByRole('button')
-        .find((b) => b.getAttribute('aria-current') === 'true')?.textContent ?? '';
+    // Going to a bookmark lights its ribbon in the reader. From the top of the page the next bookmark is the first, then the second, then round
+    // to the first; Previous goes back.
+    const [one, two] = await api.bookmarksList();
+    const lit = () => document.querySelector<HTMLElement>('[data-bm] [data-just-changed]')?.closest<HTMLElement>('[data-bm]')?.dataset.bm;
     press('BracketRight', ']', { altKey: true });
-    await waitFor(() => expect(at()).toMatch(/^was/));
+    await waitFor(() => expect(lit()).toBe(one!.id));
     press('BracketRight', ']', { altKey: true });
-    await waitFor(() => expect(at()).toMatch(/^she/));
+    await waitFor(() => expect(lit()).toBe(two!.id));
     press('BracketRight', ']', { altKey: true });
-    await waitFor(() => expect(at()).toMatch(/^was/));
+    await waitFor(() => expect(lit()).toBe(one!.id));
     press('BracketLeft', '[', { altKey: true });
-    await waitFor(() => expect(at()).toMatch(/^she/));
-
-    // Going to one lights its ribbon in the reader.
-    fireEvent.click(
-      within(list)
-        .getAllByRole('button')
-        .find((b) => b.textContent?.startsWith('was'))!,
-    );
-    await waitFor(() => expect(document.querySelector(`[data-bm="${first!.id}"] [data-just-changed]`)).not.toBeNull());
+    await waitFor(() => expect(lit()).toBe(two!.id));
   });
 });
 
@@ -378,7 +364,7 @@ describe('credits-cards-and-banner-stay', () => {
     mount();
     const opening = await waitFor(() => card('Opening credits'));
     expect(within(opening).getByText('Credits')).toBeTruthy();
-    expect(within(opening).getByText(/words · about \d+ min finished audio · 0 marks/)).toBeTruthy();
+    expect(within(opening).getByText(/words · about \d+ min finished audio · 0 notes/)).toBeTruthy();
     expect(within(opening).getByRole('group', { name: 'Prep state for Opening credits' })).toBeTruthy();
     // The text the template renders, with the tokens left to fill in, as lines of the reader under the card.
     await waitFor(() => expect(document.querySelectorAll('[data-para][data-ch="credits:opening"]').length).toBeGreaterThan(0));
@@ -482,12 +468,12 @@ describe('view-state-is-one-module', () => {
   it('the tab, the drawer, the word and the selected mark the page shows are the SN-B70 view module’s', async () => {
     mount();
     await firstHeading();
-    fireEvent.click(screen.getByRole('tab', { name: 'Queries' }));
-    await waitFor(() => expect(view.tab).toBe('queries'));
+    fireEvent.click(screen.getByRole('tab', { name: 'Notes' }));
+    await waitFor(() => expect(view.tab).toBe('marks'));
   });
 
   it('no file of the page or its layout keeps its own copy of a view-module field', () => {
-    const fields = ['tab', 'sel', 'word', 'entryId', 'miss', 'find', 'drawer', 'spyAt', 'qfilter'];
+    const fields = ['tab', 'sel', 'word', 'entryId', 'miss', 'find', 'drawer', 'spyAt'];
     const dir = join(__dirname, 'layout');
     const sources = [
       'ScriptPage.tsx',
@@ -572,10 +558,25 @@ describe('key-hints-under-the-reader', () => {
     const reader = document.getElementById('reader')!;
     const hints = within(reader).getByRole('note', { name: 'Keyboard shortcuts' });
     // The mock Legend's hints, drawn from the key catalogue; the caps are the default keymap's.
-    expect(hints.textContent).toContain('Select text to mark it, add a note or query, or look it up.');
+    // The selection tools are a first-use tip now, not a line that stays on the page.
+    expect(hints.textContent).not.toContain('Select text to mark it');
     for (const label of ['scroll', 'prep state', 'chapter', 'bookmark', 'bookmarks', 'search']) expect(within(hints).getByText(label)).toBeTruthy();
     // Under the reader's text, not above it.
     expect(reader.lastElementChild).toBe(hints);
+  });
+});
+
+describe('first-use-tip-for-the-selection-tools', () => {
+  it('tells the narrator once, over the reader, how to use a selection, and Got it keeps it away', async () => {
+    const api = createMockApi();
+    mount({ api });
+    await firstHeading();
+    const tip = await screen.findByRole('complementary', { name: 'Tip' });
+    expect(tip.textContent).toContain('Select text in the reader to mark it, add a note, or look it up.');
+    expect(document.getElementById('reader')!.contains(tip)).toBe(true);
+    fireEvent.click(within(tip).getByRole('button', { name: 'Got it' }));
+    await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Tip' })).toBeNull());
+    await waitFor(async () => expect((await api.settingsForScope('global')).Tips?.[0]?.effectiveValue).toBe('script.select-text'));
   });
 });
 
@@ -595,7 +596,7 @@ describe('dictionary-download-in-place', () => {
     await firstHeading();
     const body = () => document.getElementById('railbody')!;
     // A flagged word's row opens its card, which reads the definition from the chosen source.
-    fireEvent.click((await within(body()).findAllByRole('row', {}, { timeout: 5000 }))[1]!);
+    fireEvent.click((await within(body()).findAllByRole('row', {}, { timeout: 5000 }))[0]!);
     await waitFor(() => expect(within(body()).getByText(/is not installed/)).toBeTruthy(), { timeout: 5000 });
     expect(install).not.toHaveBeenCalled();
     fireEvent.click(within(body()).getByRole('button', { name: 'Download dictionary' }));

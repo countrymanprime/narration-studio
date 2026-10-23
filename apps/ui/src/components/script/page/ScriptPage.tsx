@@ -28,15 +28,14 @@ import { useBookmarkCommands } from '../bookmarks/model/useBookmarkCommands';
 import { useBookmarks } from '../bookmarks/model/useBookmarks';
 import type { LineText, Spot } from '../bookmarks/model/selectors';
 import { useBookmarkContextMenu } from '../bookmarks/ui/bookmarkContextMenu';
-import { BookmarksTab } from '../bookmarks/ui/BookmarksTab';
 import { dictionaryInstallPrompt } from '../dictionaryInstall';
 import { useScriptCredits, useSaveMarkTypes, useWordsHost } from '../scriptPageHost';
 import { ChapterCard } from './chapters/ChapterCard';
 import { ChapterList } from './chapters/ChapterList';
-import { isAsk } from './data/script.selectors';
 import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, useScriptView, useSpeakers } from './data/useScriptData';
 import { BookmarkGutter, GutterContext, type GutterState } from './layout/BookmarkGutter';
 import { NeedManuscript } from '../../layout/NeedManuscript';
+import { FirstUseTip } from '../../../tips/FirstUseTip';
 import { RAIL_LABEL, RailPanel, type RailTab } from './layout/RailPanel';
 import { ScriptColumns } from './layout/ScriptColumns';
 import { ownsOpeningCredits } from '../../credits/creditsEntries';
@@ -140,7 +139,6 @@ function ScriptWorkspace({
   const vars = useMemo(() => readerVars(prefs) as CSSProperties, [prefs]);
 
   const [drawer, update] = useScriptView((state) => state.drawer);
-  const [tab] = useScriptView((state) => state.tab);
   const [selectedMark] = useScriptView((state) => state.sel);
   const [missSel] = useScriptView((state) => state.missSel);
   const [spyAt] = useScriptView((state) => state.spyAt);
@@ -183,10 +181,10 @@ function ScriptWorkspace({
   }, [layout.medium, update]);
   const showMark = useCallback(
     (mark: Mark, scroll = true) => {
-      update({ sel: mark.id, tab: isAsk(marks.types, mark) ? 'queries' : 'marks', ...(scroll ? { pendingPid: mark.paragraphId } : {}) });
+      update({ sel: mark.id, tab: 'marks', ...(scroll ? { pendingPid: mark.paragraphId } : {}) });
       openRailIfDrawer();
     },
-    [marks.types, update, openRailIfDrawer],
+    [update, openRailIfDrawer],
   );
   const showWord = useCallback(
     (word: string) => {
@@ -202,11 +200,6 @@ function ScriptWorkspace({
     },
     [update, openRailIfDrawer],
   );
-  const showBookmarks = () => {
-    if (layout.medium && drawer === 'rail' && tab === 'bookmarks') return update({ drawer: null });
-    update({ tab: 'bookmarks' });
-    openRailIfDrawer();
-  };
   const toggleDrawer = (which: 'ch' | 'rail') => update((state) => ({ drawer: state.drawer === which ? null : which }));
   const goToChapter = useCallback((chapterId: string) => update({ pendingJump: chapterId, drawer: null }), [update]);
   const goToLink = useCallback(
@@ -492,7 +485,6 @@ function ScriptWorkspace({
         aria-expanded={drawer === 'rail'}
         onClick={() => toggleDrawer('rail')}
       />
-      <IconButton action="bookmarks" label="Bookmarks" onClick={showBookmarks} />
       <TextSettingsPopover prefs={prefs} onChange={setPrefs} />
     </>
   );
@@ -506,28 +498,14 @@ function ScriptWorkspace({
       case 'bible':
         return <BibleTab chapterId={inView} host={wordsHost} onOpenStoryBible={focusStoryBibleEntity} />;
       case 'marks':
-      case 'queries':
         return (
           <ThreadsTab
-            kind={current === 'marks' ? 'notes' : 'queries'}
             chapterId={inView}
             lineOf={lineOf}
             onShowInText={(id) => {
               const mark = marks.marks.find((row) => row.id === id);
               if (mark) update({ pendingPid: mark.paragraphId, drawer: null });
             }}
-          />
-        );
-      case 'bookmarks':
-        return (
-          <BookmarksTab
-            bookmarks={list}
-            chapters={named}
-            lineText={lineText}
-            currentId={place.at}
-            onGoTo={goToBookmark}
-            onUpdate={bookmarks.update}
-            onRemove={bookmarks.remove}
           />
         );
     }
@@ -553,7 +531,7 @@ function ScriptWorkspace({
           // A selection is read when the pointer or a key lets go, as the mock's reader does.
           <div
             id="reader"
-            className={`flex h-full min-h-0 flex-col overflow-hidden ${PANEL_FRAME_CLASS}`}
+            className={`relative flex h-full min-h-0 flex-col overflow-hidden ${PANEL_FRAME_CLASS}`}
             onMouseUp={() => setSelection(getSelection())}
             onKeyUp={(event) => event.shiftKey && setSelection(getSelection())}
           >
@@ -602,6 +580,7 @@ function ScriptWorkspace({
                 onTextClick={() => setPlace((current) => (current.at ? { ...current, at: null } : current))}
               />
             </div>
+            <FirstUseTip id="script.select-text" used={selection !== null} />
             <KeyHints id="skeys" hints={hints} />
           </div>
         }

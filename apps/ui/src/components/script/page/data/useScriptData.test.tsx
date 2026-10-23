@@ -165,7 +165,7 @@ describe('marks-and-threads-are-journalled', () => {
     expect(hook.result.current.marks.marks).toEqual([]);
 
     const id = await withQuery(hook);
-    expect(toast).toHaveBeenCalledWith('Query saved. Track the reply in the Queries tab.');
+    expect(toast).toHaveBeenCalledWith('Note saved. Track the reply in the Notes tab.');
     await act(async () => void (await hook.result.current.commands.reply(id, 'author', 'This one.')));
     await act(async () => void (await hook.result.current.commands.removeMark(id)));
     expect(hook.result.current.marks.marks).toEqual([]);
@@ -336,7 +336,7 @@ describe('confirm-a-speaker', () => {
     expect(correct).toHaveBeenLastCalledWith(before!.cueId, before!.speaker!.id);
     expect(hook.result.current.speakers.phrasesOf(line)[0]?.speaker?.id).toBe(before!.speaker!.id);
     expect(hook.result.current.speakers.unattributed('chapter-6')).toBe(1);
-    expect(hook.result.current.facts('chapter-6')).toBe('0 marks · 0 open queries · 0 without pronunciation · 1 without a speaker');
+    expect(hook.result.current.facts('chapter-6')).toBe('0 notes · 0 without pronunciation · 1 without a speaker');
   });
 });
 
@@ -391,7 +391,7 @@ describe('contract-kit', () => {
       expect([r.chapters, r.paragraphs, r.marks, r.prep, r.entries, r.speakers].map((v) => v.status)).toEqual(Array(6).fill('error'));
     });
     expect(hook.result.current.marks.message).toBe('The project folder could not be read.');
-    expect(hook.result.current.facts('chapter-1')).toBe('0 marks · 0 open queries · 0 without pronunciation');
+    expect(hook.result.current.facts('chapter-1')).toBe('0 notes · 0 without pronunciation');
   });
 
   it('every command refusing is a toast and an empty journal', async () => {
@@ -424,7 +424,7 @@ describe('contract-kit', () => {
   it('the view state is shared by every reader of the same host', async () => {
     const hook = setup();
     expect(hook.result.current.view[0]).toBe('pron');
-    act(() => hook.result.current.view[1]({ tab: 'queries' }));
-    expect(hook.result.current.view[0]).toBe('queries');
+    act(() => hook.result.current.view[1]({ tab: 'marks' }));
+    expect(hook.result.current.view[0]).toBe('marks');
   });
 });

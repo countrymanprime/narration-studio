@@ -28,11 +28,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Not started, in progress and prepped side by side, one chapter with an open query, and the current chapter marked.
+// Not started, in progress and prepped side by side, and the current chapter marked.
 export const AllStates: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByTitle('Open queries')).toBeTruthy();
+    await expect((await canvas.findAllByRole('img', { name: 'Prepped' })).length).toBeGreaterThan(0);
+    await expect(canvas.queryByTitle('Open queries')).toBeNull();
     await expect(canvas.getAllByRole('img', { name: 'Prepped' }).length).toBeGreaterThan(0);
   },
 };

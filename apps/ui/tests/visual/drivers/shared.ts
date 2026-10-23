@@ -141,10 +141,24 @@ export async function openWithoutManuscript(page: Page, name: AppPage): Promise<
   await page.getByText('This project has no manuscript yet. Import one to begin.').waitFor();
 }
 
-export async function goToPage(page: Page, name: AppPage): Promise<void> {
+export async function goToPage(page: Page, name: AppPage, options: { keepTips?: boolean } = {}): Promise<void> {
   await clickNav(page, name);
   await page.getByRole('heading', { level: 1, name: PAGE_HEADING[name], exact: true }).waitFor();
   await PAGE_CONTENT[name]?.(page).first().waitFor();
+  // A first-use tip floats over the page the first time it is opened; every state but the tip's own is a picture of the page without it.
+  if (name === 'Script' && !options.keepTips) await dismissTip(page);
+}
+
+/** Presses Got it on the first-use tip once it has loaded, and waits for it to go. A page whose tip was already dismissed has none. */
+async function dismissTip(page: Page): Promise<void> {
+  const tip = page.getByRole('complementary', { name: 'Tip' });
+  try {
+    await tip.waitFor({ timeout: 2000 });
+  } catch {
+    return;
+  }
+  await tip.getByRole('button', { name: 'Got it' }).click();
+  await tip.waitFor({ state: 'detached' });
 }
 
 // Opens Proof's chapter view (`/proof/:chapterId`) with no track linked. Nothing on Proof links to it (the engine panel's

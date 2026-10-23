@@ -18,10 +18,6 @@ export const isAsk = (types: readonly MarkType[], mark: Mark): boolean => typeOf
 
 export const marksInChapter = (marks: readonly Mark[], chapterId: string): Mark[] => marks.filter((mark) => mark.chapterId === chapterId);
 
-/** Queries not yet resolved, in the host's reading order. */
-export const openQueries = (types: readonly MarkType[], marks: readonly Mark[]): Mark[] =>
-  marks.filter((mark) => isAsk(types, mark) && mark.status !== 'resolved');
-
 /** One message of a mark's thread. The mark's own text is the narrator's opening message, at index -1. */
 export type MarkMessage = { who: MarkThreadAuthor; text: string; at: string; index: number };
 
@@ -86,16 +82,15 @@ export type ChapterFactsInput = {
   unattributed: number;
 };
 
-/** The "3 marks · 1 open query · 2 without pronunciation" line on a chapter card, as the mock counts it. */
+/** The "3 notes · 2 without pronunciation" line on a chapter card, as the mock counts it. */
 export function chapterFacts(input: ChapterFactsInput, chapterId: string): string {
   const inChapter = marksInChapter(input.marks, chapterId);
-  const marks = inChapter.filter((mark) => !isAsk(input.types, mark)).length;
-  const queries = inChapter.filter((mark) => isAsk(input.types, mark) && mark.status !== 'resolved').length;
+  const notes = inChapter.length;
   const unsaid = input.words
     .filter((word) => word.status === 'not_set')
     .reduce((n, word) => n + word.flags.filter((flag) => flag.chapterId === chapterId).length, 0);
   const speakers = input.unattributed ? ` · ${input.unattributed} without a speaker` : '';
-  return `${plural(marks, 'mark', 'marks')} · ${queries} open ${queries === 1 ? 'query' : 'queries'} · ${unsaid} without pronunciation${speakers}`;
+  return `${plural(notes, 'note', 'notes')} · ${unsaid} without pronunciation${speakers}`;
 }
 
 /* ---------- Story Bible ---------- */
