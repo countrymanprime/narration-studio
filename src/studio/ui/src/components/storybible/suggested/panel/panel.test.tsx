@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-X42: the Needs verification chip, the loose suggestions, the entry pill and the scan and import buttons, ported from the Studio Next
+// SN-X42: the Needs verification filter, the loose suggestions, the entry pill and the scan and import buttons, ported from the Studio Next
 // mock's tests/extraction.test.tsx (the Story Bible page cases) and tests/analysis-tools.test.tsx (the scan cases).
 import { act, cleanup, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -14,10 +14,11 @@ import type { NarrationApi } from '../../../../types';
 import { SuggestionList } from '../row/SuggestionList';
 import { kindLabel, pct, summaryOf, unattached, verifyCount, verifyOf } from '../row/selectors';
 import { EntryVerifyPill } from './EntryVerifyPill';
-import { ImportButton } from './ImportButton';
+import { ActionsMenu } from '../../ActionsMenu';
+import { Table, TableBody } from '../../../primitives/Table';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
-import { NeedsVerificationChip } from './NeedsVerificationChip';
-import { ScanButton, ScanStatus } from './ScanButton';
+import { Select } from '../../../primitives/Select';
+import { ScanStatus } from './ScanStatus';
 import { filterEntries } from './selectors';
 import { useSuggestions } from './useSuggestions';
 
@@ -28,7 +29,18 @@ const wrap = (children: ReactNode) => (
   </ApiProvider>
 );
 
-/** What SN-B8 builds from these pieces: the header's scan button, the chip, the loose rows above the entries, and the chosen row. */
+/** Opens the actions menu and returns its items by name (the scan, the import and Voice data are behind one icon button). */
+const openMenu = async (u: ReturnType<typeof userEvent.setup>) => {
+  await u.click(await screen.findByRole('button', { name: 'More actions' }));
+  await screen.findAllByRole('menuitem');
+  return (name: string) => screen.queryByRole('menuitem', { name });
+};
+const startScan = async (u: ReturnType<typeof userEvent.setup>) => {
+  await openMenu(u);
+  await u.click(await screen.findByRole('menuitem', { name: 'Scan the manuscript' }));
+};
+
+/** What SN-B8 builds from these pieces: the actions menu, the chip, the loose rows above the entries, and the chosen row. */
 function Panel({ pollMs = 10, entries = [] as { id: string; name: string }[] }) {
   const { suggestions, sources, scan, changed, loaded } = useSuggestions({ pollMs });
   const [on, setOn] = useState(false);
@@ -38,11 +50,23 @@ function Panel({ pollMs = 10, entries = [] as { id: string; name: string }[] }) 
   const picked = loose.find((s) => s.id === chosen);
   return (
     <div>
-      <ScanButton scan={scan} />
+      <ActionsMenu scan={scan} onImport={() => {}} onVoiceData={() => {}} />
       <ScanStatus scan={scan} />
-      <NeedsVerificationChip count={verifyCount(suggestions)} on={on} onToggle={setOn} />
-      <ul aria-label="Entries">
-        <LooseSuggestionRows suggestions={loose} selectedId={chosen} onSelect={setChosen} />
+      <Select
+        label="Show"
+        value={on ? 'verify' : 'all'}
+        onChange={(value) => setOn(value === 'verify')}
+        options={[
+          { value: 'all', label: 'All entries' },
+          { value: 'verify', label: `Needs verification · ${verifyCount(suggestions)}` },
+        ]}
+      />
+      <Table label="Entries">
+        <TableBody>
+          <LooseSuggestionRows suggestions={loose} selectedId={chosen} onSelect={setChosen} />
+        </TableBody>
+      </Table>
+      <ul aria-label="Entry names">
         {filterEntries(entries, suggestions, on).map((entry) => (
           <li key={entry.id}>
             {entry.name} <EntryVerifyPill verify={verifyOf(suggestions, entry.id)} flagged={false} />
@@ -64,34 +88,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// Issue 1715: the mock draws "Needs verification" and "Needs review" as the same chip; the Pill's uppercase bordered button was the old workspace's.
-describe('the-verify-chip-is-the-lists-filter-chip', () => {
-  it('draws the same 28 px fully rounded chip as the other filters over the list, not an uppercase button', () => {
-    render(<NeedsVerificationChip count={3} on={false} onToggle={() => {}} />);
-    const chip = screen.getByRole('button', { name: 'Needs verification · 3' });
-    expect(chip.className).toContain('h-7');
-    expect(chip.className).toContain('rounded-full');
-    expect(chip.className).not.toContain('uppercase');
-    expect(chip.className).not.toContain('tracking-');
-  });
-});
-
-describe('verify-chip-filters-and-counts', () => {
-  it('shows "Needs verification · N" with aria-pressed, only while N > 0 or the filter is on', async () => {
-    const n = verifyCount(await api.extractionList());
-    expect(n).toBeGreaterThan(0);
-    const toggle = vi.fn();
-    const { rerender } = render(<NeedsVerificationChip count={n} on={false} onToggle={toggle} />);
-    const chip = screen.getByRole('button', { name: `Needs verification · ${n}` });
-    expect(chip.getAttribute('aria-pressed')).toBe('false');
-    await userEvent.click(chip);
-    expect(toggle).toHaveBeenCalledWith(true);
-    rerender(<NeedsVerificationChip count={0} on={false} onToggle={toggle} />);
-    expect(screen.queryByRole('button')).toBeNull();
-    rerender(<NeedsVerificationChip count={0} on onToggle={toggle} />);
-    expect(screen.getByRole('button', { name: 'Needs verification · 0' }).getAttribute('aria-pressed')).toBe('true');
-  });
-
+describe('the-show-menu-filters-to-what-needs-verifying-and-counts', () => {
   it('keeps entries with something to verify when on, and the count follows an accept', async () => {
     const list = await api.extractionList();
     const withVerify = list.find((s) => s.entryId && s.status === 'needs-verification')!.entryId!;
@@ -107,10 +104,10 @@ describe('verify-chip-filters-and-counts', () => {
     render(wrap(<Panel />));
     const u = userEvent.setup();
     const n = verifyCount(list);
-    await u.click(await screen.findByRole('button', { name: `Needs verification · ${n}` }));
+    await u.selectOptions(await screen.findByRole('combobox', { name: 'Show' }), 'verify');
     await u.click(document.querySelector<HTMLElement>('[data-loose]')!);
     await u.click(within(document.querySelector('[data-suggested]')!).getByRole('button', { name: /^Accept/ }));
-    await screen.findByRole('button', { name: `Needs verification · ${n - 1}` });
+    await screen.findByRole('option', { name: `Needs verification · ${n - 1}` });
   });
 });
 
@@ -121,19 +118,20 @@ describe('loose-suggestions-list-above-the-entries', () => {
     expect(loose.length).toBeGreaterThan(0);
     render(wrap(<Panel />));
     const u = userEvent.setup();
-    await screen.findByRole('button', { name: /^Needs verification/ });
+    await screen.findByRole('option', { name: /^Needs verification/ });
     expect(document.querySelectorAll('[data-loose]')).toHaveLength(0);
-    await u.click(screen.getByRole('button', { name: /^Needs verification/ }));
+    await u.selectOptions(screen.getByRole('combobox', { name: 'Show' }), 'verify');
     const rows = [...document.querySelectorAll<HTMLElement>('[data-loose]')];
     expect(rows.map((r) => r.dataset.loose)).toEqual(loose.map((s) => s.id));
     loose.forEach((s, i) => {
       expect(rows[i].textContent).toContain(summaryOf(s.payload));
-      expect(rows[i].textContent).toContain(`${kindLabel(s.payload)} · not in the Story Bible yet`);
+      expect(rows[i].textContent).toContain(kindLabel(s.payload));
+      expect(rows[i].textContent).toContain('not in the Story Bible yet');
       expect(rows[i].textContent).toContain(s.confidence === null ? 'No score' : `${pct(s.confidence)}%`);
     });
     expect(document.querySelector('[data-suggested]')).toBeNull();
     await u.click(rows[0]);
-    expect(rows[0].getAttribute('aria-current')).toBe('true');
+    expect(rows[0].getAttribute('aria-selected')).toBe('true');
     expect(document.querySelector('[data-suggested] [data-sug]')).not.toBeNull();
   });
 });
@@ -205,17 +203,16 @@ describe('scan-button-starts-the-job-and-shows-real-progress', () => {
     api = h.host;
     render(wrap(<Panel />));
     const u = userEvent.setup();
-    const scanButton = await screen.findByRole('button', { name: 'Scan the manuscript for suggestions' });
-    expect(scanButton.getAttribute('aria-busy')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Cancel scan' })).toBeNull();
     const sources = await api.extractionSources();
-    await u.click(scanButton);
+    await startScan(u);
     expect(h.calls.scan).toHaveBeenCalledWith(sources.filter((s) => s.runs && s.available).map((s) => s.id));
-    const cancelButton = await screen.findByRole('button', { name: 'Cancel scan' });
-    // The keyboard follows the wand to Cancel, and back to the wand when the scan ends, instead of dropping to the page.
-    expect(document.activeElement).toBe(cancelButton);
-    // The wand gives its slot to Cancel while the job runs, so nothing beside it moves.
-    expect(screen.queryByRole('button', { name: 'Scan the manuscript for suggestions' })).toBeNull();
+    await screen.findByRole('button', { name: 'Cancel scan' });
+    // Cancel stands beside the progress, so the menu has no scan item while the job runs.
+    const menu = await openMenu(u);
+    expect(menu('Scan the manuscript')).toBeNull();
+    expect(menu('Import entries')).toBeTruthy();
+    await u.keyboard('{Escape}');
     h.set({ percent: 40, message: 'Scanning with Rules (1 of 2).' });
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('40% · Scanning with Rules (1 of 2).'));
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('40');
@@ -224,8 +221,9 @@ describe('scan-button-starts-the-job-and-shows-real-progress', () => {
     act(() => h.end('success'));
     await waitFor(() => expect(h.calls.list).toBe(listed + 1));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel scan' })).toBeNull());
-    expect(screen.getByRole('button', { name: 'Scan the manuscript for suggestions' }).getAttribute('aria-busy')).toBeNull();
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Scan the manuscript for suggestions' }));
+    // The keyboard is on the menu button, not dropped to the page, and the scan is on offer again.
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More actions' }));
+    expect((await openMenu(u))('Scan the manuscript')).toBeTruthy();
   });
 
   it('a second start joins the running job instead of starting another', async () => {
@@ -246,13 +244,14 @@ describe('scan-cancel-keeps-what-finished', () => {
     api = h.host;
     render(wrap(<Panel />));
     const u = userEvent.setup();
-    await u.click(await screen.findByRole('button', { name: 'Scan the manuscript for suggestions' }));
+    await startScan(u);
     await u.click(await screen.findByRole('button', { name: 'Cancel scan' }));
     expect(h.calls.cancel).toHaveBeenCalledTimes(1);
     act(() => h.end('cancelled'));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Cancel scan' })).toBeNull());
-    expect(screen.getByRole('button', { name: 'Scan the manuscript for suggestions' }).getAttribute('aria-busy')).toBeNull();
-    expect(screen.getByRole('button', { name: /^Needs verification/ })).toBeTruthy();
+    // Cancel was the button pressed and it is gone, so the keyboard comes back to the menu button.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'More actions' })));
+    expect(screen.getByRole('option', { name: /^Needs verification/ })).toBeTruthy();
   });
 });
 
@@ -262,7 +261,7 @@ describe('scan-failure-names-the-reason', () => {
     api = h.host;
     render(wrap(<Panel />));
     const u = userEvent.setup();
-    await u.click(await screen.findByRole('button', { name: 'Scan the manuscript for suggestions' }));
+    await startScan(u);
     await screen.findByRole('button', { name: 'Cancel scan' });
     h.set({
       phase: 'success',
@@ -273,18 +272,28 @@ describe('scan-failure-names-the-reason', () => {
     });
     act(() => h.end('success'));
     await screen.findByText('GLiNER: the model could not be loaded.');
-    expect(screen.getByRole('button', { name: /^Needs verification/ })).toBeTruthy();
+    expect(screen.getByRole('option', { name: /^Needs verification/ })).toBeTruthy();
   });
 });
 
-describe('import-button-opens-the-dialog-prop', () => {
-  it('has its tooltip name and calls onImport, nothing else', async () => {
+describe('the-actions-menu-offers-scan-import-and-voice-data', () => {
+  it('has one icon button that opens the three, and each item calls its own handler and closes the menu', async () => {
     const onImport = vi.fn();
-    render(wrap(<ImportButton onImport={onImport} />));
-    const button = screen.getByRole('button', { name: 'Import entries (CSV or JSON)' });
-    expect(button.getAttribute('aria-haspopup')).toBe('dialog');
-    await userEvent.click(button);
+    const onVoiceData = vi.fn();
+    const scan = { job: null, starting: false, running: false, start: vi.fn(async () => {}), cancel: vi.fn(async () => {}) };
+    render(wrap(<ActionsMenu scan={scan} onImport={onImport} onVoiceData={onVoiceData} />));
+    const u = userEvent.setup();
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
+    await u.click(trigger);
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Scan the manuscript', 'Import entries', 'Voice data']);
+    await u.click(screen.getByRole('menuitem', { name: 'Import entries' }));
     expect(onImport).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    await u.click(trigger);
+    await u.click(await screen.findByRole('menuitem', { name: 'Voice data' }));
+    expect(onVoiceData).toHaveBeenCalledTimes(1);
+    expect(scan.start).not.toHaveBeenCalled();
   });
 });
 
@@ -294,11 +303,11 @@ describe('no-polling-after-the-end', () => {
     api = h.host;
     render(wrap(<Panel pollMs={5} />));
     const u = userEvent.setup();
-    await screen.findByRole('button', { name: 'Scan the manuscript for suggestions' });
+    await screen.findByRole('button', { name: 'More actions' });
     const idle = h.calls.state;
     await new Promise((resolve) => setTimeout(resolve, 40));
     expect(h.calls.state).toBe(idle);
-    await u.click(screen.getByRole('button', { name: 'Scan the manuscript for suggestions' }));
+    await startScan(u);
     await waitFor(() => expect(h.calls.state).toBeGreaterThan(idle + 2));
     h.set({ phase: 'success', percent: 100, message: '1 suggestion added.' });
     act(() => h.end('success'));

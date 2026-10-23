@@ -8,8 +8,8 @@ import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { Guide } from './Guide';
 
-// The Story Bible page as the Studio Next mock draws it (docs/research/mockups/studio-next/src/pages/Bible.tsx): kind chips over two-line
-// rows, the search box over names and aliases, and the ask for a manuscript when there is none. The `/story-bible` route mounts it.
+// The Story Bible page as the Studio Next mock draws it (docs/research/mockups/studio-next/src/pages/Bible.tsx): kind chips with counts over a
+// table of entries, the search box over names and aliases, and the ask for a manuscript when there is none. The `/story-bible` route mounts it.
 
 // One host for every story: a new one on each render would make the page read its entries again and again.
 const api = createMockApi();
@@ -40,21 +40,23 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Kind chips over the list, a row of two lines for each entry with its type colour, and the open entry beside it. */
+/** Kind chips over the entry table, a row for each entry with its type colour, and the open entry beside it. */
 export const List: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await expect(await view.findByRole('button', { name: 'Place' })).toBeTruthy();
-    await expect(within(view.getByRole('list', { name: 'Story Bible entries' })).getAllByRole('button').length).toBeGreaterThan(3);
+    await expect(await view.findByRole('combobox', { name: 'Kind' })).toBeTruthy();
+    await expect(within(await view.findByRole('table', { name: 'Story Bible entries' })).getAllByRole('row').length).toBeGreaterThan(4);
   },
 };
 
-/** A kind chip on: only the entries of that kind are listed. */
-export const KindChipOn: Story = {
+/** A kind chosen: only the entries of that kind are listed. */
+export const KindChosen: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await userEvent.click(await view.findByRole('button', { name: 'Place' }));
-    await expect(view.getByRole('button', { name: 'Place' }).getAttribute('aria-pressed')).toBe('true');
+    // The kinds are read after the page opens, so wait for the one to choose.
+    await view.findByRole('option', { name: /^Place/ });
+    await userEvent.selectOptions(view.getByRole('combobox', { name: 'Kind' }), 'Place');
+    await expect(view.getByRole('combobox', { name: 'Kind' })).toHaveValue('Place');
   },
 };
 
@@ -72,5 +74,15 @@ export const NeedsManuscript: Story = {
   args: { hasManuscript: false, onImport: fn() },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: 'Import manuscript' })).toBeTruthy();
+  },
+};
+
+/** A header pressed: the table sorts by that column and says so with `aria-sort`. */
+export const SortedByKind: Story = {
+  play: async ({ canvasElement }) => {
+    const view = within(canvasElement);
+    await userEvent.click(await view.findByRole('button', { name: 'Kind' }));
+    // The sort is kept in browser storage, so the press may flip a direction an earlier visit left: either way Kind is the sorted column.
+    await expect(view.getByRole('columnheader', { name: /^Kind/ })).not.toHaveAttribute('aria-sort', 'none');
   },
 };

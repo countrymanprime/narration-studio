@@ -5,7 +5,7 @@ import { IconButton } from '../../../../primitives/IconButton';
 import { Menu } from '../../../../primitives/Menu';
 import { SectionLabel } from '../../../../primitives/SectionLabel';
 import { Swatch } from '../../../../primitives/Swatch';
-import { Table, TableBody, TableCell, TableRow } from '../../../../primitives/Table';
+import { InThisChapter } from '../InThisChapter';
 import { DefinitionBlock } from '../words/DefinitionBlock';
 import { ExternalLinks } from '../words/ExternalLinks';
 import type { WordsHost } from '../words/wordsHost';
@@ -90,28 +90,20 @@ export function BiblePanel({
           <ExternalLinks word={missing} open={(source, word) => void host.openLookup(source, word)} />
         </section>
       ) : null}
-      <SectionLabel as="h3">In this chapter</SectionLabel>
-      {entries.length === 0 ? (
-        <p className="m-0 text-[0.88rem] text-[var(--text-muted)]">No Story Bible entries in this chapter.</p>
-      ) : (
-        <Table label="In this chapter">
-          <TableBody>
-            {entries.map((row) => (
-              <TableRow key={row.id} selected={entry?.id === row.id} onActivate={() => onPick(row.id)} data={{ 'data-e': row.id }}>
-                <TableCell>
-                  <b>{row.canonical_name}</b>
-                </TableCell>
-                <TableCell muted>
-                  <span className="flex items-center gap-1.5">
-                    <Swatch colour={swatchOf(colourOf(row.category))} />
-                    {`${row.category} · first ${firstAppearance(row, tagOf)}`}
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      <InThisChapter
+        label="In this chapter"
+        empty="No Story Bible entries in this chapter."
+        rows={entries.map((row) => ({
+          id: row.id,
+          name: row.canonical_name,
+          kind: { label: row.category, colour: swatchOf(colourOf(row.category)) },
+          detail: `first ${firstAppearance(row, tagOf)}`,
+          hear: Boolean(row.pronunciation.ipa.trim()),
+          selected: entry?.id === row.id,
+          onActivate: () => onPick(row.id),
+          data: { 'data-e': row.id },
+        }))}
+      />
     </div>
   );
 }

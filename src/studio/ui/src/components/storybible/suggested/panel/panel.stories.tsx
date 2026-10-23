@@ -1,63 +1,26 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useEffect, useState, type ReactNode } from 'react';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, within } from 'storybook/test';
 import type { ExtractionScanJob, ExtractionSuggestion } from '../../../../api/contracts/extraction';
 import { createMockApi } from '../../../../api/mockApi';
+import { Table, TableBody } from '../../../primitives/Table';
+import { ActionsMenu } from '../../ActionsMenu';
 import { EntryVerifyPill } from './EntryVerifyPill';
-import { ImportButton } from './ImportButton';
 import { LooseSuggestionRows } from './LooseSuggestionRows';
-import { NeedsVerificationChip } from './NeedsVerificationChip';
-import { ScanButton, ScanStatus } from './ScanButton';
+import { ScanStatus } from './ScanStatus';
 import { unattached } from '../row/selectors';
 import type { ExtractionScan } from './useSuggestions';
 
 // SN-X42: the pieces of the Story Bible page that come from extraction, drawn with props and the mock host's fixture suggestions. The
-// mock page they follow is Bible.tsx in the Studio Next mock (the header buttons, the "Needs verification · N" chip, the loose rows).
+// mock page they follow is Bible.tsx in the Studio Next mock (the header buttons, the "Needs verification · N" filter, the loose rows).
 
-const meta = { title: 'Story Bible/Extraction panel', component: NeedsVerificationChip, args: { count: 7, on: false, onToggle: fn() } } satisfies Meta<
-  typeof NeedsVerificationChip
->;
+const meta = { title: 'Story Bible/Extraction panel', component: EntryVerifyPill, args: { verify: 3, flagged: true } } satisfies Meta<typeof EntryVerifyPill>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 function Surface({ children }: { children: ReactNode }) {
   return <div className="max-w-md rounded-[var(--radius-card)] bg-[var(--surface)] p-4">{children}</div>;
 }
-
-// The chip is off with suggestions waiting; pressing it turns the filter on.
-export const ChipOff: Story = {
-  render: function Render(args) {
-    const [on, setOn] = useState(args.on);
-    return (
-      <Surface>
-        <NeedsVerificationChip count={args.count} on={on} onToggle={setOn} />
-      </Surface>
-    );
-  },
-  play: async ({ canvasElement }) => {
-    const chip = within(canvasElement).getByRole('button', { name: 'Needs verification · 7' });
-    await expect(chip).toHaveAttribute('aria-pressed', 'false');
-    await userEvent.click(chip);
-    await expect(chip).toHaveAttribute('aria-pressed', 'true');
-  },
-};
-
-export const ChipOn: Story = {
-  render: (args) => (
-    <Surface>
-      <NeedsVerificationChip {...args} on />
-    </Surface>
-  ),
-};
-
-// Nothing waits but the filter is still on: the chip stays so it can be turned off.
-export const ChipZeroButOn: Story = {
-  render: (args) => (
-    <Surface>
-      <NeedsVerificationChip {...args} count={0} on />
-    </Surface>
-  ),
-};
 
 export const EntryPills: Story = {
   render: () => (
@@ -81,9 +44,11 @@ function Loose({ pick }: { pick?: boolean }) {
   if (!list) return null;
   return (
     <Surface>
-      <ul>
-        <LooseSuggestionRows suggestions={list} selectedId={pick ? (chosen ?? list[0]?.id ?? null) : chosen} onSelect={setChosen} />
-      </ul>
+      <Table label="Suggestions with no entry yet">
+        <TableBody>
+          <LooseSuggestionRows suggestions={list} selectedId={pick ? (chosen ?? list[0]?.id ?? null) : chosen} onSelect={setChosen} />
+        </TableBody>
+      </Table>
     </Surface>
   );
 }
@@ -117,9 +82,10 @@ const scanStory = (scan: ExtractionScan): Story => ({
   render: () => (
     <Surface>
       <div className="flex items-start gap-2">
-        <ScanButton scan={scan} />
-        <ScanStatus scan={scan} />
-        <ImportButton onImport={fn()} />
+        <ActionsMenu scan={scan} onImport={fn()} onVoiceData={fn()} />
+        <div className="min-w-0 flex-1">
+          <ScanStatus scan={scan} />
+        </div>
       </div>
     </Surface>
   ),
@@ -128,7 +94,7 @@ const scanStory = (scan: ExtractionScan): Story => ({
 export const ScanIdle: Story = {
   ...scanStory(scanOf(job({}))),
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Scan the manuscript for suggestions' })).not.toHaveAttribute('aria-busy');
+    await expect(within(canvasElement).getByRole('button', { name: 'More actions' })).toBeVisible();
     await expect(within(canvasElement).queryByRole('button', { name: 'Cancel scan' })).toBeNull();
   },
 };

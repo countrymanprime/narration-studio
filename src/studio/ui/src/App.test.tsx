@@ -259,7 +259,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
     await waitFor(() => expect(screen.getByRole('heading', { name: /^Story Bible/ })).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add entity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add entry' }));
     expect(await screen.findByDisplayValue(/New entity/)).toBeTruthy();
     expect(guideCreate).not.toHaveBeenCalled();
 

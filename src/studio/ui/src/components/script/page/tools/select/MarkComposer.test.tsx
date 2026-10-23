@@ -78,25 +78,25 @@ describe('composer-creates-a-note-with-its-text', () => {
 });
 
 describe('a-query-needs-its-question', () => {
-  it('asks for "Your query", refuses an empty one with a sentence and no call, then starts the mark open', async () => {
+  it('asks for "Your question", refuses an empty one with a sentence and no call, then starts the mark open', async () => {
     const add = vi.spyOn(api, 'marksAdd');
     const { dialog } = await open('ask');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     expect(within(dialog).getByText(QUERY_NEEDED)).toBeTruthy();
     expect(add).not.toHaveBeenCalled();
-    await userEvent.type(within(dialog).getByLabelText('Your query'), 'Which spelling?');
+    await userEvent.type(within(dialog).getByLabelText('Your question'), 'Which spelling?');
     expect(within(dialog).queryByText(QUERY_NEEDED)).toBeNull();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
     const saved = await add.mock.results[0]!.value;
     expect(saved).toMatchObject({ type: 'ask', status: 'open', text: 'Which spelling?' });
-    expect(view.tab).toBe('queries');
+    expect(view.tab).toBe('marks');
   });
 
   it('changes the field with the type', async () => {
     const { dialog } = await open('stress');
     await userEvent.selectOptions(within(dialog).getByLabelText('Type'), 'ask');
-    expect(within(dialog).getByLabelText('Your query')).toBeTruthy();
+    expect(within(dialog).getByLabelText('Your question')).toBeTruthy();
     expect(within(dialog).getByRole('option', { name: 'Query for author (tracks a reply)' })).toBeTruthy();
   });
 });

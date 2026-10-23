@@ -262,7 +262,7 @@ export const CATALOG = {
   deleteNote: action(faTrashCan, 'discard', 'Delete the note'),
   deleteMessage: action(faTrashCan, 'discard', 'Delete the message'),
   deleteEntry: action(faTrashCan, 'discard', 'Delete this entry'),
-  copyQuery: action(faCopy, 'copy', 'Copy the query'),
+  copyQuery: action(faCopy, 'copy', 'Copy the note'),
   copyPrompt: action(faCopy, 'copy', 'Copy the prompt for your own LLM'),
   copyExample: action(faCopy, 'copy', 'Copy the example'),
   recordInBooth: pageLink(faMicrophone, 'booth', 'Record in Booth'),

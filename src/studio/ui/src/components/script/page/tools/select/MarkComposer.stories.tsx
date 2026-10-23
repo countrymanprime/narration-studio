@@ -7,7 +7,7 @@ import { SELECTION } from './fixtures';
 import { MarkComposer, QUERY_NEEDED } from './MarkComposer';
 
 // The mock's composer (`pages/script/dialogs.tsx`): titled with the selected words, a Type select, "Note (optional)" or, for a
-// type that asks, "Your query", and Cancel and Save. An empty query is refused with a sentence.
+// type that asks, "Your question", and Cancel and Save. An empty query is refused with a sentence.
 const meta = {
   title: 'Script/MarkComposer',
   component: MarkComposer,
@@ -39,7 +39,7 @@ export const Query: Story = {
   play: async ({ canvasElement }) => {
     const dialog = await within(canvasElement.ownerDocument.body).findByRole('dialog', { name: 'tired' });
     // The types arrive from the host after the first paint; only then does the field ask for a query.
-    await within(dialog).findByLabelText('Your query');
+    await within(dialog).findByLabelText('Your question');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await expect(within(dialog).getByText(QUERY_NEEDED)).toBeVisible();
   },
