@@ -20,7 +20,7 @@ Whether the app can make REAPER run its bridge every time REAPER opens, with no 
 - REAPER 7.82 for Linux x86_64 is the tarball `scripts/ci/real-reaper/run-linux-check.sh` pins, with its SHA-256 checked before unpacking. It ran under Xvfb.
 - Each run had its own scratch folder with `-cfgfile <scratch>/cfg/reaper.ini`, and `promptendrec=0`. Probe scripts called `reaper.Audio_Quit()` first. Nothing was armed, recorded or played.
 - Each project was a new, empty `.rpp` written for the run, not a copy of the narrator's.
-- **End to end.** The scratch `Scripts/__startup.lua` held one line of its own, standing in for the narrator's. `reaperinstall.Install` (`apps/desktop/internal/reaperinstall`) then wrote the checkout's `integrations/reaper/*.lua` into it, and REAPER was started with only the project, no script argument:
+- **End to end.** The scratch `Scripts/__startup.lua` held one line of its own, standing in for the narrator's. `reaperinstall.Install` (`src/studio/desktop/internal/reaperinstall`) then wrote the checkout's `src/studio/integrations/reaper/*.lua` into it, and REAPER was started with only the project, no script argument:
   - The narrator's line ran.
   - One `NarrationStudio/sessions/hub_<id>/` appeared, holding `commands/`, `events.log` with `PROJECT_STATUS` lines, and `bridge-running.txt`.
   - `reaper-kb.ini` gained `SCR 4 0 RS… "Custom: NarrationStudio_Launcher.lua" NarrationStudio/NarrationStudio_Launcher.lua`.

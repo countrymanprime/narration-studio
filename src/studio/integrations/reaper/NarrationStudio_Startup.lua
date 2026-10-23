@@ -1,6 +1,6 @@
 -- Narration Studio's REAPER startup script. The app installs the bridge into <resource path>/Scripts/NarrationStudio and adds one
 -- guarded line to Scripts/__startup.lua that runs this file, so REAPER starts the bridge each time it opens and the narrator never
--- runs an action for the app to see REAPER (apps/desktop/internal/reaperinstall). It starts no app and shows no dialog: REAPER may
+-- runs an action for the app to see REAPER (src/studio/desktop/internal/reaperinstall). It starts no app and shows no dialog: REAPER may
 -- be opened for anything, and the app finds this bridge by its heartbeat when it opens. It also puts the launcher in the action
 -- list, so the narrator can open the app from REAPER.
 

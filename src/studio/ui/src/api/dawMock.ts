@@ -1,7 +1,7 @@
 // The mock's DAW port capabilities: a stand-in for the host's dawport.Resolver, over the same
 // three inputs (a declaration per DAW kind, the narrator's per-capability toggles, and reachability) and the same
 // refusal order (declaration, then toggle, then what a capability requires, then runtime) as
-// apps/desktop/internal/dawport/resolver.go. It is stateful like the host: a saved setting, an engine choice, a launch, a
+// src/studio/desktop/internal/dawport/resolver.go. It is stateful like the host: a saved setting, an engine choice, a launch, a
 // heartbeat that stops or returns, and a take each change the picture and push it (daw_capabilities_changed,
 // daw_transport_changed), and `DawMockControl` lets a test or a Playwright driver play REAPER's side (`?mockDaw=`, window.__NARRATION_MOCK_DAW__).
 import type {
@@ -28,7 +28,7 @@ import { wireClone } from './mockFixtures';
 /** Mirrors dawport.Needs (capability.go): what a capability needs from the running engine before it can be used. */
 type DawMockNeeds = 'running' | 'bridge' | 'nothing';
 
-/** REAPER's declaration (apps/desktop/internal/dawport/reaper/reaper.go's `declares`): today's behaviour exactly. */
+/** REAPER's declaration (src/studio/desktop/internal/dawport/reaper/reaper.go's `declares`): today's behaviour exactly. */
 const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   review: 'supported',
   navigate: 'supported',
@@ -111,14 +111,14 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
 const MESSAGE_NO_INPUT_LEVEL = (who: string) => `${who} cannot set an audio interface's input gain. Set it in your interface's own control panel.`;
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
- * every other refusal (apps/desktop/internal/dawport/resolver.go, apps/desktop/internal/dawport/reaper/reaper.go). */
+ * every other refusal (src/studio/desktop/internal/dawport/resolver.go, src/studio/desktop/internal/dawport/reaper/reaper.go). */
 const MESSAGE_STANDALONE_REAPER = 'REAPER is not connected to this app. Open REAPER; the app connects to it by itself.';
 const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER is open, then try again; the app reconnects by itself.';
 const MESSAGE_NO_ENGINE = 'No DAW is connected to this app. Open this app from your DAW to use it.';
 const MESSAGE_TURNED_OFF = 'Turned off in Settings.';
 const MESSAGE_EXPERIMENTAL_OFF = 'Experimental: switched off in Settings.';
 /** An Audacity capability while the project does not record with Audacity, so the host holds no pipe to it (
- * apps/desktop/internal/dawport/audacity/audacity.go's Declaration). */
+ * src/studio/desktop/internal/dawport/audacity/audacity.go's Declaration). */
 const MESSAGE_AUDACITY_NOT_CONNECTED = "Audacity isn't connected to this project. Choose Audacity under Record with in Settings, then follow its steps.";
 /** The Audacity adapter over its pipe, when the pipe is missing or silent (audacity.go's messageNotReachable). */
 const MESSAGE_AUDACITY_NOT_REACHABLE =
@@ -159,7 +159,7 @@ const AUDACITY_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; 
   range_gain: { mode: 'steps' },
   click_repair: { mode: 'steps' },
 };
-/** The built-in recorder's sentences (apps/desktop/internal/dawport/builtin/builtin.go). */
+/** The built-in recorder's sentences (src/studio/desktop/internal/dawport/builtin/builtin.go). */
 const MESSAGE_BUILTIN_UNSUPPORTED = 'Not available with the built-in recorder.';
 const MESSAGE_BUILTIN_NOT_YET = 'Not available with the built-in recorder yet.';
 const MESSAGE_BUILTIN_NO_SAVED_PROJECT = 'The built-in recorder keeps no saved project.';
