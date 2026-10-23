@@ -22,9 +22,9 @@ local function prepare_compare(session_dir, runs, run_id, app_folder)
     event(session_dir, 'ERROR', run_id, 'Save the REAPER project before starting Transcript Compare.')
     return
   end
-  local manuscript = join(join(join(project_folder, 'narration-studio'), 'manuscript'), 'manuscript.json')
+  local manuscript = join(join(join(project_folder, core.brand.identity.projectFolder), 'manuscript'), 'manuscript.json')
   if not file_exists(manuscript) then
-    event(session_dir, 'ERROR', run_id, 'Import a manuscript in Narration Studio before starting Transcript Compare.')
+    event(session_dir, 'ERROR', run_id, 'Import a manuscript in the app before starting Transcript Compare.')
     return
   end
 

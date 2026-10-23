@@ -94,7 +94,7 @@ H.test('launch_cleanup_tool says Magnolius DeClick is not installed, and never i
     {
       'ERROR',
       't1',
-      'Magnolius DeClick is not installed in REAPER. Install it yourself (ReaPack, or Actions > Load ReaScript); Narration Studio never installs it.',
+      'Magnolius DeClick is not installed in REAPER. Install it yourself (ReaPack, or Actions > Load ReaScript); The app never installs it.',
     },
   })
   H.eq(#calls_named(s, 'Main_OnCommand'), 0)

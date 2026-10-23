@@ -8,7 +8,7 @@
 -- file does trigger one, and only on these conditions (threat-model row 5o):
 --   * the command carries an approval the host was given by the narrator for this render: a random hex token, used once
 --     (a second command with the same token is refused, even if the first was refused for another reason);
---   * the output folder is a run folder the app made inside the project (`<project>/narration-studio/mastering/<name>`),
+--   * the output folder is a run folder the app made inside the project (`<project>/<app>/mastering/<name>`),
 --     absolute, with no `.` or `..` part, and empty, so a render never writes over a file;
 --   * REAPER predicts exactly one WAV file per region, inside that folder, before anything renders (RENDER_TARGETS);
 --   * REAPER is not recording.
@@ -74,7 +74,7 @@ local function slash(path)
   return (path:gsub('\\', '/'))
 end
 
--- The run folder's parts when it is `<absolute project>/narration-studio/mastering/<name>` with no `.` or `..` part and a
+-- The run folder's parts when it is `<absolute project>/<app>/mastering/<name>` with no `.` or `..` part and a
 -- plain name; nil otherwise.
 local function run_folder_parts(folder)
   local path = slash(folder):gsub('/+$', '')
@@ -89,7 +89,7 @@ local function run_folder_parts(folder)
     parts[#parts + 1] = part
   end
   local count = #parts
-  if count < 4 or parts[count - 2] ~= 'narration-studio' or parts[count - 1] ~= 'mastering' then
+  if count < 4 or parts[count - 2] ~= core.brand.identity.projectFolder or parts[count - 1] ~= 'mastering' then
     return nil
   end
   if not parts[count]:match('^[%w%-_]+$') then

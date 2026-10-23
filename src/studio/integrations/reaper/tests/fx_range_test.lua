@@ -4,10 +4,10 @@
 
 local H = require('harness')
 
-local APPLY_LABEL = 'Narration Studio: add chain to range'
-local REMOVE_LABEL = 'Narration Studio: remove chain from range'
-local CHAIN_KEY = 'narration_studio_fx_range_chain'
-local FX_KEY = 'narration_studio_fx_range_fx'
+local APPLY_LABEL = H.brand.name .. ': add chain to range'
+local REMOVE_LABEL = H.brand.name .. ': remove chain from range'
+local CHAIN_KEY = H.brand.identity.reaperExtPrefix .. 'fx_range_chain'
+local FX_KEY = H.brand.identity.reaperExtPrefix .. 'fx_range_fx'
 local CHAIN = 'Voice/Radio.RfxChain'
 local BAD_CHAIN = 'That FX chain is not in the FXChains folder REAPER lists.'
 local BAD_RANGE = 'The range for the chain is not a usable pair of times.'
@@ -622,9 +622,9 @@ end)
 -- piece, one setting changed, and the chain bypassed or turned back on. Each finds the chain by the item and take GUIDs
 -- apply_fx_range answered (an empty take GUID: the item's take that carries the chain) and the FX GUIDs the take records.
 
-local SET_LABEL = 'Narration Studio: change effect setting'
-local BYPASS_LABEL = 'Narration Studio: bypass effect'
-local ENABLE_LABEL = 'Narration Studio: turn effect back on'
+local SET_LABEL = H.brand.name .. ': change effect setting'
+local BYPASS_LABEL = H.brand.name .. ': bypass effect'
+local ENABLE_LABEL = H.brand.name .. ': turn effect back on'
 
 -- Applies CHAIN to 14..16 with no call or undo point left over, and answers the piece and its take.
 local function applied_clean(s, p)

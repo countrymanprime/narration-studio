@@ -1,4 +1,4 @@
--- Narration Studio's REAPER startup script. The app installs the bridge into <resource path>/Scripts/NarrationStudio and adds one
+-- The app's REAPER startup script. The app installs the bridge into <resource path>/Scripts/<launcher folder> and adds one
 -- guarded line to Scripts/__startup.lua that runs this file, so REAPER starts the bridge each time it opens and the narrator never
 -- runs an action for the app to see REAPER (src/studio/desktop/internal/reaperinstall). It starts no app and shows no dialog: REAPER may
 -- be opened for anything, and the app finds this bridge by its heartbeat when it opens. It also puts the launcher in the action
@@ -23,10 +23,11 @@ if not ok_bridge then
   -- At REAPER startup nothing may wait for a click; the app reports a bridge it cannot reach.
   return
 end
+local BRAND = bridge.brand
 
 if reaper.APIExists('AddRemoveReaScript') then
   -- Adding a path already in the action list answers its existing command id and adds nothing (seen in REAPER 7.82).
-  reaper.AddRemoveReaScript(true, 0, SHARED .. SEP .. 'NarrationStudio_Launcher.lua', true)
+  reaper.AddRemoveReaScript(true, 0, SHARED .. SEP .. BRAND.identity.reaperLauncher, true)
 end
 
 if bridge.live_session() then

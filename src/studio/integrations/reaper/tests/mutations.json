@@ -386,7 +386,7 @@
   {
     "name": "pick_retake_lane changes the play state outside an undo block",
     "file": "narration_retake_lanes.lua",
-    "find": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)\n  reaper.Undo_EndBlock2(0, 'Narration Studio: play retake lane ' .. (lane + 1), -1)",
+    "find": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)\n  reaper.Undo_EndBlock2(0, core.brand.name .. ': play retake lane ' .. (lane + 1), -1)",
     "replace": "  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)"
   },
   {
@@ -728,7 +728,7 @@
   {
     "name": "a folder outside the app's mastering folder is accepted",
     "file": "narration_master_render.lua",
-    "find": "if count < 4 or parts[count - 2] ~= 'narration-studio' or parts[count - 1] ~= 'mastering' then",
+    "find": "if count < 4 or parts[count - 2] ~= core.brand.identity.projectFolder or parts[count - 1] ~= 'mastering' then",
     "replace": "if count < 1 then"
   },
   {
@@ -855,7 +855,7 @@
     "name": "list opens an undo block",
     "file": "narration_pickups.lua",
     "find": "  local pickups = {}\n  for _, marker in ipairs(project_markers()) do\n    local kind = marker_kind(marker.name)\n    if kind == 'PICKUP' or",
-    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, 'Narration Studio: list pickups', -1)\n  local pickups = {}\n  for _, marker in ipairs(project_markers()) do\n    local kind = marker_kind(marker.name)\n    if kind == 'PICKUP' or"
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, core.brand.name .. ': list pickups', -1)\n  local pickups = {}\n  for _, marker in ipairs(project_markers()) do\n    local kind = marker_kind(marker.name)\n    if kind == 'PICKUP' or"
   },
   {
     "name": "hide_takes: a stale item GUID resolves to another item",
@@ -987,7 +987,7 @@
     "name": "roll: the restart opens an undo block",
     "file": "narration_roll.lua",
     "find": "  reaper.SetEditCurPos(at, true, false)\n  reaper.CSurf_OnRecord()",
-    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetEditCurPos(at, true, false)\n  reaper.CSurf_OnRecord()\n  reaper.Undo_EndBlock2(0, 'Narration Studio: roll', -1)"
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetEditCurPos(at, true, false)\n  reaper.CSurf_OnRecord()\n  reaper.Undo_EndBlock2(0, core.brand.name .. ': roll', -1)"
   },
   {
     "name": "roll: a late restart is taken for the narrator stopping",
@@ -2290,10 +2290,10 @@
     "replace": "  local first = on_top(label)\n  while undone < steps and first do\n"
   },
   {
-    "name": "undo_last matches any Narration Studio label",
+    "name": "undo_last matches any label of the app",
     "file": "narration_undo.lua",
     "find": "  return reaper.Undo_CanUndo2(0) == label\n",
-    "replace": "  return (reaper.Undo_CanUndo2(0) or ''):find('Narration Studio:', 1, true) == 1\n"
+    "replace": "  return (reaper.Undo_CanUndo2(0) or ''):find(core.brand.name .. ':', 1, true) == 1\n"
   },
   {
     "name": "undo_last takes a label the host sent in place of a kind",
@@ -2425,7 +2425,7 @@
     "name": "monitor_level opens an undo block",
     "file": "narration_levels.lua",
     "find": "  local master = master_with_output()\n",
-    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, 'Narration Studio: monitor level', -1)\n  local master = master_with_output()\n"
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, core.brand.name .. ': monitor level', -1)\n  local master = master_with_output()\n"
   },
   {
     "name": "stop_play stops a recording too",

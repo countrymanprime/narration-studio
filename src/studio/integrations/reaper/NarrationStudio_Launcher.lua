@@ -1,5 +1,5 @@
--- Narration Studio - the sole REAPER action for the suite.
--- Launches the native Go/Wails app (narration-studio, narration-studio.exe on Windows). Closing the app's window is the only thing that stops it. Python only runs as a
+-- The app's sole REAPER action for the suite.
+-- Launches the native Go/Wails app (its executable, with .exe on Windows). Closing the app's window is the only thing that stops it. Python only runs as a
 -- short-lived subprocess the app spawns for Story Bible builds and
 -- transcript comparisons, never as a supervised server. REAPER itself has
 -- no workflow UI; the bridge below only services requests from that
@@ -21,14 +21,15 @@ local ok_bridge, bridge = pcall(dofile, join(SHARED, 'narration_ui_bridge.lua'))
 if not ok_core or not ok_proc or not ok_bridge then
   -- The first failure names the file that could not be loaded (a missing or broken bridge feature file, say).
   local failure = (not ok_core and common) or (not ok_proc and process) or bridge
-  reaper.ShowMessageBox('Could not load Narration Studio shared libraries from:\n' .. SHARED .. '\n\n' .. tostring(failure), 'Narration Studio', 0)
+  reaper.ShowMessageBox("Could not load the app's shared libraries from:\n" .. SHARED .. '\n\n' .. tostring(failure), 'REAPER launcher', 0)
   return
 end
+local BRAND = bridge.brand
 
 -- A checkout keeps this file at <repo>/src/studio/integrations/reaper, four directories below the repository root.
 local REPO_ROOT = join(join(join(join(SHARED, '..'), '..'), '..'), '..')
 -- In a release bundle this file lives under
---   <app>/resources/reaper/NarrationStudio_Launcher.lua
+--   <app>/resources/reaper/the launcher script
 -- so the Wails executable is two directories above it. A developer checkout
 -- keeps the older relative layout and explicitly supplies its Python tools.
 local BUNDLE_ROOT = join(join(SHARED, '..'), '..')
@@ -36,9 +37,9 @@ local BUNDLE_ROOT = join(join(SHARED, '..'), '..')
 -- Embedded Wails resources are materialized in a per-user cache.  The Go
 -- host writes the installed executable path beside this script, so an action
 -- imported from Settings continues to work after the app moves or updates.
--- The app writes this file in every place it puts the launcher, the installed copy under Scripts/NarrationStudio included.
+-- The app writes this file in every place it puts the launcher, the installed copy under Scripts/<launcher folder> included.
 -- The path is whatever os.Executable() reported, so the launcher never depends on the program's name: only the two fallbacks below do.
-local configured_app = common.read_file(SHARED .. SEP .. 'narration-studio-app-path.txt'):gsub('[\r\n]+$', '')
+local configured_app = common.read_file(SHARED .. SEP .. BRAND.identity.executable .. '-app-path.txt'):gsub('[\r\n]+$', '')
 
 -- Returns the rpp's own containing folder, a display name, and the rpp's own
 -- exact path (passed to the app as --project-file). An unsaved project has no
@@ -66,28 +67,29 @@ local manuscript_backend = join(manuscript_core, 'manuscript_guide.py')
 local compare_python = shared_python
 local compare_backend = join(compare_core, 'compare.py')
 -- The program is named for the product (wails.json outputfilename; scripts/release/assets.mjs packages exactly this file).
-local app_name = is_windows and 'narration-studio.exe' or 'narration-studio'
+local app_name = is_windows and BRAND.identity.executable .. '.exe' or BRAND.identity.executable
 local bundled_app = configured_app ~= '' and configured_app or join(BUNDLE_ROOT, app_name)
 local checkout_app = join(join(join(join(join(REPO_ROOT, 'src'), 'studio'), 'desktop'), 'build/bin'), app_name)
 local release_mode = common.file_exists(bundled_app)
 local app_exe = release_mode and bundled_app or checkout_app
 
 local project_folder, project_name, project_file = project_context()
--- A bridge already running in this REAPER (NarrationStudio_Startup.lua starts one when REAPER opens) is reused: the app is opened on
+-- A bridge already running in this REAPER (the startup script starts one when REAPER opens) is reused: the app is opened on
 -- its session and no second loop starts.
 local live_session = bridge.live_session()
 local session_dir = live_session or bridge.new_session_dir()
 
 if not release_mode and not common.file_exists(shared_python) then
   reaper.ShowMessageBox(
-    'Narration Studio has not been set up in this checkout yet.\n\n'
+    BRAND.name
+      .. ' has not been set up in this checkout yet.\n\n'
       .. 'From the repository root, run:\n\n'
       .. '  pnpm run bootstrap\n\n'
       .. 'It creates the local Python environment and builds the workspace.\n'
       .. 'Optional spaCy models and Piper voices are not downloaded at setup.\n\n'
       .. 'Diagnostic session:\n'
       .. session_dir,
-    'Narration Studio setup required',
+    BRAND.name .. ' setup required',
     0
   )
   return
@@ -95,8 +97,14 @@ end
 
 if not common.file_exists(app_exe) then
   reaper.ShowMessageBox(
-    'The Narration Studio app has not been built yet.\n\n' .. 'From this checkout, run:\n  pnpm run bootstrap\n\n' .. 'Then launch Narration Studio again.',
-    'Narration Studio setup required',
+    'The '
+      .. BRAND.name
+      .. ' app has not been built yet.\n\n'
+      .. 'From this checkout, run:\n  pnpm run bootstrap\n\n'
+      .. 'Then launch '
+      .. BRAND.name
+      .. ' again.',
+    BRAND.name .. ' setup required',
     0
   )
   return
@@ -149,7 +157,7 @@ end
 if
   not process.run_hidden(session_dir, command, { wait = false, show_window = true, cwd = release_mode and common.dirname(app_exe, BUNDLE_ROOT) or REPO_ROOT })
 then
-  reaper.ShowMessageBox('Could not open Narration Studio.', 'Narration Studio', 0)
+  reaper.ShowMessageBox('Could not open ' .. BRAND.name .. '.', BRAND.name, 0)
   return
 end
 

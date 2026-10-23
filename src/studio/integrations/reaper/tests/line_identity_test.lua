@@ -2,8 +2,8 @@
 
 local H = require('harness')
 
-local ID_KEY = 'narration_studio_line_id'
-local TEXT_KEY = 'narration_studio_line_text'
+local ID_KEY = H.brand.identity.reaperExtPrefix .. 'line_id'
+local TEXT_KEY = H.brand.identity.reaperExtPrefix .. 'line_text'
 
 local function new_session()
   local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
@@ -38,7 +38,7 @@ H.test('stamp_item_lines stamps an item found by GUID in one undo step', functio
   s:send('stamp_item_lines', 't1', payload(s, 'p.txt', { '{AAAAAAAA-0000-4000-8000-000000000001}|line-000001|First line.' }), '0')
   H.eq(s:events(), { { 'LINES_STAMPED', 't1', '1', '0', '0', '0' } })
   H.eq(item.ext, { [ID_KEY] = 'line-000001', [TEXT_KEY] = 'First line.' })
-  H.eq(s.fake:undo_labels(), { 'Narration Studio: stamp manuscript line IDs' })
+  H.eq(s.fake:undo_labels(), { H.brand.name .. ': stamp manuscript line IDs' })
   H.eq(s.fake.arrange_updates, 1)
 end)
 

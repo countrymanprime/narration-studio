@@ -42,7 +42,7 @@ H.test('track_create makes one undo point named for the app and leaves no block 
   local s = new_session()
   s:send('track_create', 'c1', 'Chapter 2')
   H.eq(#s.fake.undo, 1)
-  H.eq(s.fake.undo[1].label, 'Narration Studio: add track')
+  H.eq(s.fake.undo[1].label, H.brand.name .. ': add track')
   H.eq(s.fake.open_undo_blocks, 0)
 end)
 

@@ -125,7 +125,7 @@ local function import_pickups(session_dir, run_id, path)
     for _, row in ipairs(pending) do
       reaper.AddProjectMarker2(0, false, row.start, 0, 'PICKUP: ' .. row.body, -1, 0)
     end
-    reaper.Undo_EndBlock2(0, 'Narration Studio: import pickups', -1)
+    reaper.Undo_EndBlock2(0, core.brand.name .. ': import pickups', -1)
     reaper.UpdateArrange()
   end
   event(session_dir, 'PICKUPS_IMPORTED', run_id, #pending, existing_count, invalid)
@@ -229,7 +229,7 @@ local function resolve_pickup(session_dir, run_id, position_arg)
   rename_pickup(session_dir, run_id, position_arg, {
     from = 'PICKUP',
     to = 'PICKUP_DONE',
-    undo = 'Narration Studio: resolve pickup',
+    undo = core.brand.name .. ': resolve pickup',
     event = 'PICKUP_RESOLVED',
     no_position = 'Send a pickup position to resolve.',
     not_found = 'No open pickup was found at that position.',
@@ -241,7 +241,7 @@ local function reopen_pickup(session_dir, run_id, position_arg)
   rename_pickup(session_dir, run_id, position_arg, {
     from = 'PICKUP_DONE',
     to = 'PICKUP',
-    undo = 'Narration Studio: reopen pickup',
+    undo = core.brand.name .. ': reopen pickup',
     event = 'PICKUP_REOPENED',
     no_position = 'Send a pickup position to reopen.',
     not_found = 'No resolved pickup was found at that position.',

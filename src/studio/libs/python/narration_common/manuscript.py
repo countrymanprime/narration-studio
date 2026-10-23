@@ -1,6 +1,6 @@
 """Canonical, project-owned manuscript storage: the read side.
 
-Importing a source file into ``narration-studio/manuscript/manuscript.json``
+Importing a source file into ``<app>/manuscript/manuscript.json`` (``<app>`` is ``brand.PROJECT_FOLDER``)
 is Go-only now (see ``src/studio/desktop/internal/importer`` and
 ``src/studio/desktop/internal/manuscript``). This module keeps
 only the read side, because ``manuscript_guide.py`` and ``compare.py``
@@ -13,6 +13,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from narration_common import brand
+
 SCHEMA_VERSION = 1
 IMPORTER_VERSION = 1
 
@@ -22,7 +24,7 @@ class ManuscriptError(ValueError):
 
 
 def manuscript_dir(project_folder: str | Path) -> Path:
-    return Path(project_folder) / "narration-studio" / "manuscript"
+    return Path(project_folder) / brand.PROJECT_FOLDER / "manuscript"
 
 
 def manuscript_path(project_folder: str | Path) -> Path:

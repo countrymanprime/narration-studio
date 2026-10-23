@@ -18,6 +18,7 @@ if str(CORE) not in sys.path:
     sys.path.insert(0, str(CORE))
 
 import take_divergence_mode as mode
+from narration_common import brand
 
 SPEC = importlib.util.spec_from_file_location("transcript_compare_divergence_mode", CORE / "compare.py")
 compare = importlib.util.module_from_spec(SPEC)
@@ -36,8 +37,8 @@ def _no_custom_equivalences(monkeypatch):
 def project(tmp_path, chapter_text=CHAPTER_TEXT):
     texts = [chapter_text] if isinstance(chapter_text, str) else list(chapter_text)
     """A project folder laid out as the host lays it out: the manuscript under
-    narration-studio/manuscript, the per-project word lists under TranscriptCompare."""
-    manuscript = tmp_path / "project" / "narration-studio" / "manuscript" / "manuscript.json"
+    <app>/manuscript, the per-project word lists under TranscriptCompare."""
+    manuscript = tmp_path / "project" / brand.PROJECT_FOLDER / "manuscript" / "manuscript.json"
     manuscript.parent.mkdir(parents=True)
     manuscript.write_text(
         json.dumps(

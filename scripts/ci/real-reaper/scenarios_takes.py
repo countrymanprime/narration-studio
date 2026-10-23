@@ -7,6 +7,7 @@ Rows: docs/operations/reaper-verification-pass.md, "Real-REAPER CI run (Linux)".
 
 from __future__ import annotations
 
+from drive import BRAND, undo_label
 from scenario import Env, items_on, near, scenario
 from scenarios_session import GUID_NONE, undo_once
 
@@ -42,12 +43,12 @@ def set_active_take(env: Env) -> str:
     assert first[2:5] == [fx["item"], fx["second"], "1"], f"answered {first[2:]}"
     item = the_item(env)
     assert [t["active"] for t in item["takes"]] == [False, True], "take 2 is not the active take"
-    assert env.snapshot()["undo"] == "Narration Studio: use take"
+    assert env.snapshot()["undo"] == undo_label("use take")
     assert env.render_mix("use_take", 0.0, 3.0).pitch(0.2, 2.8) == "tone_b", "the render does not play take 2"
     again = env.ok("set_active_take", fx["item"], fx["second"], until="ACTIVE_TAKE_SET")
     assert again[4] == "0", f"second send changed {again[4]}"
     undone = undo_once(env)
-    assert undone == "Narration Studio: use take", f"undid {undone!r}"
+    assert undone == undo_label("use take"), f"undid {undone!r}"
     assert [t["active"] for t in the_item(env)["takes"]] == [True, False], "Undo did not make take 1 active again"
     env.refused("set_active_take", fx["item"], GUID_NONE, tag="ITEM_STALE")
     env.refused("set_active_take", GUID_NONE, fx["second"], tag="ITEM_STALE")
@@ -69,9 +70,9 @@ def hide_takes(env: Env) -> str:
     first, second = item["takes"]
     assert first["volume"] == 0 and second["volume"] == 1, f"volumes {first['volume']}, {second['volume']}"
     assert second["active"] and not first["active"], "the kept take is not the active take"
-    saved = env.lua("return ci.take_ext(ci.take(args[1]), 'narration_studio_take_hidden_volume')", fx["first"])
+    saved = env.lua("return ci.take_ext(ci.take(args[1]), '" + BRAND["identity"]["reaperExtPrefix"] + "take_hidden_volume')", fx["first"])
     assert saved and abs(float(saved) - 0.5) < 1e-9, f"the take's saved volume {saved!r}"
-    assert env.snapshot()["undo"] == "Narration Studio: hide other takes"
+    assert env.snapshot()["undo"] == undo_label("hide other takes")
     # A narrator who makes the hidden take the active one hears nothing: D_VOL 0 is silent.
     env.lua("reaper.SetActiveTake(ci.take(args[1])) return true", fx["first"])
     silent = env.render_mix("hidden", 0.0, 3.0)
@@ -83,14 +84,14 @@ def hide_takes(env: Env) -> str:
     env.lua("ci.save_and_reload(ci.rpp) return true")
     after = the_item(env)["takes"]
     assert after[0]["volume"] == 0, "the hidden take is audible again after save and reload"
-    kept = env.lua("return ci.take_ext(ci.take(args[1]), 'narration_studio_take_hidden_volume')", after[0]["guid"])
+    kept = env.lua("return ci.take_ext(ci.take(args[1]), '" + BRAND["identity"]["reaperExtPrefix"] + "take_hidden_volume')", after[0]["guid"])
     assert kept and abs(float(kept) - 0.5) < 1e-9, f"the saved volume after reload {kept!r}"
     giveback = env.ok("hide_takes", fx["item"], fx["first"], until="TAKES_HIDDEN")
     assert giveback[3:5] == ["1", "1"], f"hiding the other way answered {giveback[3:5]}"
     both = the_item(env)["takes"]
     assert abs(both[0]["volume"] - 0.5) < 1e-9 and both[1]["volume"] == 0 and both[0]["active"], "the first take did not get its 0.5 back"
     undone = undo_once(env)
-    assert undone == "Narration Studio: hide other takes", f"undid {undone!r}"
+    assert undone == undo_label("hide other takes"), f"undid {undone!r}"
     restored = the_item(env)["takes"]
     assert restored[0]["volume"] == 0 and restored[1]["volume"] == 1, "one Undo did not restore every volume"
     env.refused("hide_takes", fx["item"], GUID_NONE, tag="ITEM_STALE")
@@ -126,7 +127,7 @@ def split_take(env: Env) -> str:
     assert first["active"] and not second["active"], "the first read must stay active"
     assert first["guid"] == fx["take"] and second["guid"] == done[4], "take GUIDs"
     assert second["file"] == "steps.wav" and abs(second["offset"] - 5.5) < 1e-6, f"second take plays {second['file']} from {second['offset']}"
-    assert env.snapshot()["undo"] == "Narration Studio: split take"
+    assert env.snapshot()["undo"] == undo_label("split take")
     mix = env.render_mix("first_read", 10.0, 15.5)
     assert mix.pitch(0.5, 3.0) == "tone_a", f"first read plays {mix.pitch(0.5, 3.0)}"  # the render starts at project second 10
     env.lua("reaper.SetActiveTake(ci.take(args[1])) return true", second["guid"])
@@ -134,7 +135,7 @@ def split_take(env: Env) -> str:
     assert heard.pitch(0.2, 4.0) == "tone_b", f"second read plays {heard.pitch(0.2, 4.0)} (source 5.5 s on is tone_b)"
     env.refused("split_take", fx["item"], fx["take"], "13", until=None)  # an item with two takes is refused
     undone = undo_once(env)
-    assert undone == "Narration Studio: split take", f"undid {undone!r}"
+    assert undone == undo_label("split take"), f"undid {undone!r}"
     whole = the_item(env)
     near(whole["length"], 10.0, 1e-6, "length after Undo")
     assert len(whole["takes"]) == 1 and whole["takes"][0]["guid"] == fx["take"], "Undo did not put the take back whole"
@@ -213,14 +214,14 @@ def stack_takes(env: Env) -> str:
     parked = items_on(state, "Cuts")
     assert [(i["position"], i["length"]) for i in parked] == [(6.0, 4.0)], f"Cuts track holds {[(i['position'], i['length']) for i in parked]}"
     assert [round(i["position"], 3) for i in items_on(state, "Chapter 2")] == [100.0], "another track's item moved"
-    record = env.lua("return ci.take_ext(reaper.GetTake(ci.item(args[1]), 1), 'narration_studio_stacked_from')", first["guid"])
+    record = env.lua("return ci.take_ext(reaper.GetTake(ci.item(args[1]), 1), '" + BRAND["identity"]["reaperExtPrefix"] + "stacked_from')", first["guid"])
     assert record.split("|")[1] == fx["retake"]["take"] and abs(float(record.split("|")[4]) - 6.0) < 1e-6, f"the take records {record!r}"
-    assert state["undo"] == "Narration Studio: stack takes"
+    assert state["undo"] == undo_label("stack takes")
     assert len(env.snapshot()["tracks"]) == 3
     env.lua("reaper.SetActiveTake(reaper.GetTake(ci.item(args[1]), 1)) return true", first["guid"])
     assert env.render_mix("stacked", 0.0, 5.0).pitch(0.5, 4.5) == "tone_b", "the stacked take does not play the retake"
     undone = undo_once(env)
-    assert undone == "Narration Studio: stack takes", f"undid {undone!r}"
+    assert undone == undo_label("stack takes"), f"undid {undone!r}"
     back = env.snapshot()
     assert [(i["position"], i["length"], len(i["takes"])) for i in items_on(back, "Chapter 1")] == [(0.0, 5.0, 1), (6.0, 4.0, 1), (12.0, 5.0, 1)], (
         "one Undo did not restore Chapter 1"
@@ -270,10 +271,10 @@ def unstack_takes(env: Env) -> str:
     assert [(i["position"], i["length"]) for i in chapter] == original, f"Chapter 1 is {[(i['position'], i['length']) for i in chapter]}, was {original}"
     assert [len(i["takes"]) for i in chapter] == [1, 1, 1], "a stacked take is left on the first read"
     assert chapter[0]["takes"][0]["file"] == "tone_a.wav" and chapter[1]["takes"][0]["file"] == "tone_b.wav"
-    assert state["undo"] == "Narration Studio: unstack takes"
+    assert state["undo"] == undo_label("unstack takes")
     mix = env.render_mix("unstacked", 0.0, 10.0)
     assert (mix.pitch(0.5, 4.5), mix.pitch(6.5, 9.5)) == ("tone_a", "tone_b"), "the reads do not play where they were recorded"
     undone = undo_once(env)
-    assert undone == "Narration Studio: unstack takes"
+    assert undone == undo_label("unstack takes")
     assert [len(i["takes"]) for i in items_on(env.snapshot(), "Chapter 1")] == [2, 1], "one Undo did not stack the take again"
     return "first read back to 1 take, retake back at 6-10 s, next line 12 s again; Undo stacks it again"

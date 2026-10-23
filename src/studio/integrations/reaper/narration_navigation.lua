@@ -16,7 +16,7 @@
 
 local core = ...
 local event = core.event
-local UNDO_ADD_MARKER = 'Narration Studio: add approved marker'
+local UNDO_ADD_MARKER = core.brand.name .. ': add approved marker'
 
 -- Answered by ping, so the host can tell a script that knows these commands from an older one (which answers
 -- "Unsupported workspace command").

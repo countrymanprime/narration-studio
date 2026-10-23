@@ -11,8 +11,8 @@ real faster-whisper model. What Whisper heard is committed, not the audio, so th
 no model:
 
     uv run python src/studio/sidecars/manuscript-teleprompter/spikes/record_locate_tails.py \\
-        --piper-model %LOCALAPPDATA%/narration-studio/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx \\
-        --model-dir %LOCALAPPDATA%/narration-studio/assets/whisper/faster-whisper/tiny/<commit>
+        --piper-model %LOCALAPPDATA%/<data>/assets/tts/piper/en_US-ljspeech-high/1.0.0/en_US-ljspeech-high.onnx \\
+        --model-dir %LOCALAPPDATA%/<data>/assets/whisper/faster-whisper/tiny/<commit>
 
 Both assets are the app's own verified installs (the Whisper model is the teleprompter's default, tiny, the least
 accurate one it offers). The voice is synthetic, so this measures the locate against real recognition errors, not a

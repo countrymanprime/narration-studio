@@ -19,6 +19,15 @@ import urllib.parse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+# The product name and identity values the bridge reads (config/brand.json): undo labels, P_EXT keys and the project folder.
+BRAND = json.loads((ROOT / "config" / "brand.json").read_text(encoding="utf-8"))
+
+
+def undo_label(action: str) -> str:
+    """The undo-point label the bridge closes an action's block with: the product name, a colon and the action."""
+    return f"{BRAND['name']}: {action}"
+
+
 FIXTURES = ROOT / "tests" / "fixtures" / "audio" / "librivox-alice"
 CHAPTER_ID = "kara_01"  # Alice ch. I, Kara Shallenberg, LibriVox, public domain (sources.json holds URL and SHA-256)
 SUITES = [
@@ -179,7 +188,7 @@ def run(args: argparse.Namespace) -> int:
     def region_state():
         state = last(session.ask("ci_state", until={"CI_STATE"}), "CI_STATE")
         assert state[2] == "3", f"{state[2]} regions"
-        assert state[4] == "Narration Studio: create regions", f"undo label {state[4]!r}"
+        assert state[4] == undo_label("create regions"), f"undo label {state[4]!r}"
         return f"change count {state[5]}"
 
     def undo_regions():

@@ -27,6 +27,7 @@ if str(CORE) not in sys.path:
 
 import compare
 import coverage_mode as mode
+from narration_common import brand
 
 TITLE = "Chapter One"
 SUBTITLE = "The Pool"
@@ -42,7 +43,7 @@ WORD_SECONDS = 0.3
 
 def _project(tmp_path, subtitle=SUBTITLE):
     """A project folder with a canonical manuscript at the path the host uses."""
-    manuscript = tmp_path / "project" / "narration-studio" / "manuscript" / "manuscript.json"
+    manuscript = tmp_path / "project" / brand.PROJECT_FOLDER / "manuscript" / "manuscript.json"
     manuscript.parent.mkdir(parents=True)
     chapter = {"id": "c-0001", "title": TITLE, "contentKind": "narration"}
     if subtitle is not None:
@@ -546,7 +547,7 @@ def test_alignment_parameters_are_used_and_reported(tmp_path, cached_project, pr
 def test_a_subtitle_that_is_not_in_the_manuscript_is_extra_when_read(tmp_path, cached_project, progress):
     _manuscript, manifest = cached_project
     _project(tmp_path / "other", subtitle=None)
-    args = _args(tmp_path, tmp_path / "other" / "project" / "narration-studio" / "manuscript" / "manuscript.json", manifest)
+    args = _args(tmp_path, tmp_path / "other" / "project" / brand.PROJECT_FOLDER / "manuscript" / "manuscript.json", manifest)
 
     mode.run(args, compare, transcriber=_never_transcribe)
 

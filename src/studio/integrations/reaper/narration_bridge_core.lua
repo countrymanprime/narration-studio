@@ -8,6 +8,20 @@ local function join(base, child)
   return base .. SEP .. child
 end
 
+-- The product name and the identity values (narration_brand.lua, generated from config/brand.json), read from this file's
+-- own folder. Feature files reach it as core.brand.
+local function own_directory()
+  local source = debug and debug.getinfo and debug.getinfo(1, 'S').source or ''
+  local path = source:match('^@(.+)$')
+  if not path then
+    local _, action_path = reaper.get_action_context()
+    path = action_path
+  end
+  return (path or ''):match('^(.*)[\\/][^\\/]-$') or '.'
+end
+M.brand = dofile(join(own_directory(), 'narration_brand.lua'))
+local BRAND = M.brand
+
 local function encode(value)
   return tostring(value or ''):gsub('[^%w%-_%.~]', function(c)
     return string.format('%%%02X', string.byte(c))
@@ -145,7 +159,7 @@ end
 -- (dawport's action kinds). narration_range.lua writes them and narration_undo.lua undoes only a point whose label is
 -- exactly one of them: the table is fixed here, so no string the host sends can widen what may be undone.
 local UNDO_LABELS = {
-  cut_range = 'Narration Studio: delete words',
+  cut_range = BRAND.name .. ': delete words',
 }
 local function undo_label(kind)
   if type(kind) ~= 'string' then

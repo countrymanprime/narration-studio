@@ -9,6 +9,7 @@ from __future__ import annotations
 import secrets
 from pathlib import Path
 
+from drive import BRAND, undo_label
 from scenario import Env, db, items_on, near, only, scenario
 
 GUID_NONE = "{00000000-0000-4000-8000-000000000000}"
@@ -65,10 +66,10 @@ def regions_create(env: Env) -> str:
     ], regions
     assert sorted(r["number"] for r in regions) == [1, 2, 3], f"region numbers {[r['number'] for r in regions]}"
     assert all(r["color"] & 0xFFFFFF == regions[0]["color"] & 0xFFFFFF != 0 for r in regions), f"colours {[r['color'] for r in regions]}"
-    assert state["undo"] == "Narration Studio: create regions", state["undo"]
+    assert state["undo"] == undo_label("create regions"), state["undo"]
     again = env.ok("create_regions", payload, "ff8800", "0", until="REGIONS_CREATED")
     assert again[2:5] == ["0", "3", "0"], f"second send {again[2:5]}"
-    assert env.snapshot()["undo"] == "Narration Studio: create regions"
+    assert env.snapshot()["undo"] == undo_label("create regions")
     env.lua("ci.save_and_reload(ci.rpp) return true")
     reloaded = [m for m in env.snapshot()["markers"] if m["region"]]
     assert [(r["start"], r["finish"], r["name"], r["color"]) for r in reloaded] == [(r["start"], r["finish"], r["name"], r["color"]) for r in regions], (
@@ -138,14 +139,14 @@ def fx_chains(env: Env) -> str:
     state = env.snapshot()
     chapter = next(t for t in state["tracks"] if t["name"] == "Chapter 1")
     assert [f for f in chapter["fx"] if "ReaEQ" in f], f"track FX {chapter['fx']}"
-    assert state["undo"] == "Narration Studio: apply FX chain Voice/Test EQ.RfxChain to Chapter 1", state["undo"]
+    assert state["undo"] == undo_label("apply FX chain Voice/Test EQ.RfxChain to Chapter 1"), state["undo"]
     undo_once(env)
     assert next(t for t in env.snapshot()["tracks"] if t["name"] == "Chapter 1")["fx"] == [], "FX still on the track after Undo"
     on_master = env.ok("apply_fx_chain", "master", "Voice/Test EQ.RfxChain", until="FX_CHAIN_APPLIED")
     assert on_master[3] == "master"
     master_fx = env.lua("return reaper.TrackFX_GetCount(reaper.GetMasterTrack(0))")
     assert master_fx == 1, f"master FX count {master_fx}"
-    assert env.snapshot()["undo"] == "Narration Studio: apply FX chain Voice/Test EQ.RfxChain to the master track"
+    assert env.snapshot()["undo"] == undo_label("apply FX chain Voice/Test EQ.RfxChain to the master track")
     undo_once(env)
     assert env.lua("return reaper.TrackFX_GetCount(reaper.GetMasterTrack(0))") == 0
     return "3 chains listed (the .txt skipped), ReaEQ on Chapter 1 then on the master, each undone in one step"
@@ -182,7 +183,7 @@ def item_gain(env: Env) -> str:
     assert events[-1][2] == "1"
     state = env.snapshot()
     near(items_on(state, "Chapter 1")[0]["volume"], 0.501187, 1e-5, "D_VOL")
-    assert state["undo"] == "Narration Studio: apply level-match gain", state["undo"]
+    assert state["undo"] == undo_label("apply level-match gain"), state["undo"]
     quieter = env.render_mix("gain_after", 0.0, 3.0).tone(0.2, 2.8, 440.0)
     near(db(quieter / base), -6.0, 0.15, "rendered level change (dB)")
     env.ok("apply_item_gain", env.payload("up.txt", [f"{fx['first']}|6|f2"]), until="GAIN_APPLIED")
@@ -212,7 +213,7 @@ def render_with_fx(env: Env) -> str:
     assert len(rows) == 1 and rows[0][2] == "master" and "Volume Adjustment" in rows[0][4] and rows[0][5] == "1", f"chain rows {rows}"
     assert listed[-1][2:4] == ["1", "0"]
     project = Path(env.fixture["rpp"]).parent
-    folder = project / "narration-studio" / "mastering" / "run1"
+    folder = project / BRAND["identity"]["projectFolder"] / "mastering" / "run1"
     folder.mkdir(parents=True)
     approval = secrets.token_hex(16)
     done = env.send("render_with_fx", approval, str(folder), "Region A\nRegion B", until={"FX_RENDERED"}, timeout=180)
@@ -244,12 +245,12 @@ def render_with_fx_refusals(env: Env) -> str:
     assert "not one the app made" in refusals[-1], refusals[-1]
     refusals.append(env.refused("render_with_fx", "nothex", str(outside), "Region A")[2])
     assert "approval" in refusals[-1], refusals[-1]
-    full = project / "narration-studio" / "mastering" / "full"
+    full = project / BRAND["identity"]["projectFolder"] / "mastering" / "full"
     full.mkdir(parents=True, exist_ok=True)
     (full / "keep.wav").write_bytes(b"x")
     refusals.append(env.refused("render_with_fx", secrets.token_hex(16), str(full), "Region A")[2])
     assert "not empty" in refusals[-1], refusals[-1]
-    fresh = project / "narration-studio" / "mastering" / "fresh"
+    fresh = project / BRAND["identity"]["projectFolder"] / "mastering" / "fresh"
     fresh.mkdir(exist_ok=True)
     refusals.append(env.refused("render_with_fx", secrets.token_hex(16), str(fresh), "No Such Region")[2])
     assert "no region named" in refusals[-1], refusals[-1]

@@ -18,6 +18,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from narration_common import brand
+
 CORE = Path(__file__).parents[1] / "core"
 REPO = Path(__file__).parents[5]
 
@@ -62,7 +64,7 @@ def _write_manuscript(root: Path, chapters: list[tuple[str, list[str]]]) -> Path
         "documentId": "test-document",
         "importedAt": "2026-01-01T00:00:00+00:00",
         "importer": {"format": "markdown", "version": guide.canonical_manuscript.IMPORTER_VERSION},
-        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": "narration-studio/manuscript/sources/fixture.md"},
+        "source": {"fileName": "fixture.md", "sha256": "0" * 64, "storedPath": brand.PROJECT_FOLDER + "/manuscript/sources/fixture.md"},
         "chapters": chapter_rows,
         "paragraphs": paragraphs,
     }
