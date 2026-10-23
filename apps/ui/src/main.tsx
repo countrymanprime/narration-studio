@@ -89,7 +89,7 @@ const mockDawAudacity = mockParams.get('mockDaw') === 'Audacity';
 // value is what REAPER does once the app starts it (dawMock.ts). A Playwright driver plays the rest through window.__NARRATION_MOCK_DAW__.
 const mockDawScriptParam = mockParams.get('mockDaw');
 const mockDawScript = DAW_MOCK_SCRIPTS.find((script) => script === mockDawScriptParam);
-// `?mockDawChoice=found|several|linked|not-running|not-installed` seeds the project's DAW choice (dawChoiceMock.ts) and, for every
+// `?mockDawChoice=found|several|linked|not-running|not-installed|starting|bridge-problem` seeds the project's DAW choice (dawChoiceMock.ts) and, for every
 // one, a REAPER that is not answering: Settings > Recording's link and start rows and the Booth chip's states, without a host.
 const mockDawChoiceName = mockParams.get('mockDawChoice');
 const mockDawChoice = mockDawChoiceName && mockDawChoiceName in DAW_CHOICE_MOCK_SEEDS ? (mockDawChoiceName as DawChoiceMockName) : undefined;

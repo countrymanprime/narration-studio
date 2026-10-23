@@ -70,13 +70,12 @@ When the reason is one you can fix from the Booth, a box above the footer shows 
 
   ![Booth - Record disabled with the reason in the footer, and the Recording in REAPER is experimental box above it with Turn on Record and DAW settings](../../images/ui/booth-record-refused.webp)
 
-- **Connect REAPER to record** (or **REAPER is not answering**). The app records in REAPER through a small script, the
-  launcher, that runs inside REAPER. Load it once: in REAPER, choose **Actions > Show action list > New action > Load
-  ReaScript** and pick the launcher file the box shows (**Copy path** copies it). Load it again after you update the app,
-  because the file moves with each update. Then, with the chapter's project open in REAPER, run
-  **Script: NarrationStudio_Launcher.lua**. The app connects and Record turns on. **Open in REAPER and
-  connect** opens the linked project with the launcher in one go, or connects the REAPER you already have open, and from then on Launch REAPER always starts it. If no
-  REAPER project is linked yet, the first step links it.
+- **Connect REAPER to record** (or **REAPER is not answering**). The app records in REAPER through its bridge, a small
+  script that runs inside REAPER. You load nothing: the app puts the bridge in REAPER's Scripts folder by itself, and
+  REAPER starts it each time it opens. When REAPER opens with the chapter's project, the app connects and Record turns on.
+  When the project opens in the app and REAPER is not running, the app opens REAPER on the linked project by itself.
+  **Open in REAPER and connect** does the same on demand, or connects the REAPER you already have open. If no REAPER
+  project is linked yet, the first step links it. The Booth never offers the built-in recorder while REAPER is linked.
 
   ![Booth - the Connect REAPER to record box, with the two steps and Open in REAPER and connect, above the disabled Record button and its reason](../../images/ui/booth-record-setup.webp)
 

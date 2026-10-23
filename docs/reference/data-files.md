@@ -140,6 +140,18 @@ Files under `%LOCALAPPDATA%\narration-utils` (Go's `os.UserCacheDir`). Each can 
 
 `update/` falls back to the system temp folder when there is no cache folder.
 
+### In REAPER's resource folder
+
+Files the app writes under REAPER's own resource path (`%APPDATA%\REAPER` on Windows, `~/Library/Application Support/REAPER` on macOS, `~/.config/REAPER` on Linux, or the folder of a portable `reaper.exe`), so REAPER starts the bridge when it opens ([threat model row 5s](../architecture/threat-model.md)). Nothing is written while `DAW.auto_start_launcher` is off, or before REAPER has made that folder.
+
+| File | Location | Written by | Read by | Schema or golden | Retention | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| The bridge's Lua files and `narration-utils-app-path.txt` | `Scripts/NarrationStudio/` | [`reaperinstall.Install`](../../apps/desktop/internal/reaperinstall/install.go), from the auto-connect loop and `DawLaunch` while a REAPER project is open | REAPER (`NarrationStudio_Startup.lua` at start, the launcher action) | `internal/reaperinstall/install_test.go` | Replaced when a new version ships different content; a file the new version drops is removed if unchanged. Safe to delete: the next check writes them again | A file not as `install.json` records it is backed up before it is replaced |
+| [`install.json`](../../apps/desktop/internal/reaperinstall/install.go) | `Scripts/NarrationStudio/install.json` | `reaperinstall.Install` | `reaperinstall.Install` (to tell its own files from edited ones) | `internal/reaperinstall/install_test.go` (file) | Rewritten when a file changes. Safe to delete: every installed file is then treated as the narrator's and backed up once | `{version, files: {name: sha256}}`. Healed: a file that does not parse is read as empty |
+| Backups | `Scripts/NarrationStudio/backup/<UTC time>/<name>`; `Scripts/__startup.lua.narration-studio-<UTC time>.bak` | `reaperinstall.Install`, before it replaces a file it did not write, and the first time it adds its block to an existing `__startup.lua` | Not read back | `internal/reaperinstall/install_test.go` | Kept; never removed by the app. Safe to delete | The narrator's own copies |
+| The block in [`__startup.lua`](../../apps/desktop/internal/reaperinstall/install.go) | `Scripts/__startup.lua` | `reaperinstall.Install` (only the lines between its two markers) | REAPER at every start; `reaperinstall.Installed` | `internal/reaperinstall/install_test.go` | Added again by the next check if removed while the setting is on | Every line outside the markers is the narrator's and kept byte for byte |
+| Bridge session folders | `NarrationStudio/sessions/hub_<id>/` (`commands/`, `events.log`, `bridge-running.txt`) | The bridge in REAPER (`narration_ui_bridge.lua`) | The host (`dawautoconnect.go`, `internal/bridge`) | [The REAPER bridge](../architecture/reaper-bridge.md) | One per bridge start; not cleaned yet | `bridge-running.txt` is removed when the loop stops |
+
 ## Files the app writes but does not keep
 
 These are outputs or hand-offs, not read back after the job that made them:

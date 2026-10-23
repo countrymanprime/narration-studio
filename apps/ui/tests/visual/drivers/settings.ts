@@ -101,6 +101,8 @@ export const settingsDrivers: Record<string, Driver> = {
     // The host refuses the built-in recorder while the Experimental switch is off, so this state turns it on.
     await openSettings(page, undefined, '?mockDawExperimentalOn=1');
     await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
+    // REAPER is linked, so the switch asks first.
+    await page.getByRole('alertdialog', { name: 'Stop recording with REAPER?' }).getByRole('button', { name: 'Switch to the built-in recorder' }).click();
     await page
       .getByRole('radio', { name: /^Built-in recorder/ })
       .and(page.locator('[aria-checked="true"]'))
@@ -136,6 +138,18 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByText('Linked to Alice.rpp.', { exact: false }).first().waitFor();
     await page.getByRole('button', { name: 'Start REAPER' }).waitFor();
     await showConnection(page);
+  },
+  'recording-starting': async (page) => {
+    await page.clock.setFixedTime(new Date('2026-10-23T09:30:00Z'));
+    await openSettings(page, undefined, '?mockDawChoice=starting');
+    await page.getByText('Starting REAPER').waitFor();
+    await page.getByText(/Opened 4 s ago\./).waitFor();
+    await showConnection(page);
+  },
+  'recording-builtin-confirm': async (page) => {
+    await openSettings(page, undefined, '?mockDawExperimentalOn=1');
+    await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
+    await page.getByRole('alertdialog', { name: 'Stop recording with REAPER?' }).waitFor();
   },
   'recording-not-installed': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=not-installed');

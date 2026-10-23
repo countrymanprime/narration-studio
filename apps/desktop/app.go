@@ -950,8 +950,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if _, err := os.Stat(filepath.Join(target, ".complete")); err == nil {
 		// The payload may be unchanged while the app executable moves (for
 		// example after a user relocates a portable install). Refresh this
-		// tiny launcher pointer on every startup; REAPER import itself remains
-		// an explicit, user-controlled action.
+		// tiny launcher pointer on every startup.
 		_ = writeReaperLauncherPath(target, executable)
 		_ = syncStableLauncher(source, stableLauncherDir(userCache), executable)
 		return target, nil
@@ -996,11 +995,8 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 	if err := os.Rename(staging, target); err != nil {
 		return "", err
 	}
-	// The REAPER action is intentionally materialized beside the immutable
-	// sidecars.  It needs the installed Wails executable rather than a
-	// checkout-relative path; the Lua launcher reads this one-line file.
-	// REAPER is never modified automatically: Settings shows this path for a
-	// user-controlled import or re-import.
+	// The REAPER scripts are materialized beside the immutable sidecars and in the stable launcher folder, each with the app's
+	// path the launcher reads. The copy REAPER runs is the one reaperbridge.go installs into REAPER's own Scripts folder.
 	_ = writeReaperLauncherPath(target, executable)
 	_ = syncStableLauncher(source, stableLauncherDir(userCache), executable)
 	return target, nil

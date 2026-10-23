@@ -92,6 +92,8 @@ export function createDawChoiceMock(
   const linkedName = () => (deps.link ? (deps.link.linked() ? (linkedFile ?? foundFiles[0] ?? 'Alice.rpp') : null) : linkedFile);
   const foundFiles = seed.foundFiles ?? (linkedFile ? [linkedFile] : []);
   let chosen: ChoosableDaw | null = seed.chosen ?? null;
+  // A start the app made four seconds before the mock was made, so "Opened 4 s ago" reads the same under a fixed clock.
+  const startedSince = new Date(Date.now() - 4000).toISOString();
 
   const current = async (): Promise<DawChoice> => {
     const [capabilities, recorder] = await Promise.all([deps.capabilities(), deps.recording.recorderState()]);
@@ -126,7 +128,7 @@ export function createDawChoiceMock(
             ? capabilities.capabilities.record
             : idleRecord(option, experimental),
       })),
-      starting: startingNow ? { since: '2026-10-23T09:30:00Z' } : null,
+      starting: startingNow ? { since: startedSince } : null,
       bridge: daw === 'REAPER' ? { installed: true, startsWithReaper: true, problem: seed.bridgeProblem ?? null } : null,
     });
   };
