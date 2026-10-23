@@ -11,7 +11,7 @@ import type { DocItem } from '../model';
 import { RangeNotes } from './RangeOverlay';
 import { wordsCovered } from './rangeMath';
 import { rangeDoc } from './rangeFixtures';
-import { Ribbon } from './Ribbon';
+import { WaveDock } from './WaveDock';
 
 afterEach(cleanup);
 
@@ -40,7 +40,7 @@ beforeEach(() => {
   // jsdom has no canvas: the drawing is checked in Ribbon.test.tsx, this file is about what sits over it.
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
   Element.prototype.getBoundingClientRect = function (this: Element) {
-    const wide = this.hasAttribute('data-ribbon-surface') || this.hasAttribute('data-ribbon-pan');
+    const wide = this.hasAttribute('data-ribbon-surface');
     return { left: 0, top: 0, right: wide ? 1000 : 0, bottom: 56, width: wide ? 1000 : 0, height: 56, x: 0, y: 0, toJSON: () => ({}) };
   };
 });
@@ -58,7 +58,7 @@ function mount(start: 'cursor' | 'none' = 'cursor') {
     <ApiProvider api={api}>
       <EditingPageProvider doc={doc}>
         <Probe />
-        <Ribbon chapterId="chapter-1" pid="p-1" clocks={sameClock([0])} />
+        <WaveDock chapterId="chapter-1" clocks={sameClock([0])} take={null} />
       </EditingPageProvider>
     </ApiProvider>,
   );
@@ -109,7 +109,7 @@ describe('the range on the waveform', () => {
     act(() => state.dispatch({ type: 'play', t: 5.1 }));
     await ready();
     expect(screen.queryByRole('slider', { name: 'Start of range' })).toBeNull();
-    expect(screen.getByText(/Drag on the waveform to choose a range/)).toBeTruthy();
+    expect(screen.getByText(/Drag to choose a range; right-drag/)).toBeTruthy();
   });
 
   it('selecting words sets the range to their span', async () => {
@@ -139,7 +139,7 @@ describe('the range on the waveform', () => {
     expect(now(endHandle())).toBeCloseTo(6.296, 2);
   });
 
-  it('a drag that goes past either end stops at the paragraph', async () => {
+  it('a drag that goes past either side stops at the edge of what is on screen', async () => {
     mount();
     await ready();
     drag(surface(), xAt(7.0), 99999);
@@ -205,7 +205,7 @@ describe('the range on the waveform', () => {
     expect(state.state.sel).toEqual({ anchor: 'p-1:4', head: 'p-1:5' });
   });
 
-  it('moving the range to the paragraph edge stops there', async () => {
+  it('moving the range past the end of the recording stops there', async () => {
     mount();
     await ready();
     select('p-1:2', 'p-1:3');
@@ -257,12 +257,12 @@ describe('the keyboard', () => {
     expect(state.state.span?.start).toBeCloseTo(5.57, 6);
   });
 
-  it('a nudge keeps the minimum width and the paragraph bounds', async () => {
+  it('a nudge keeps the minimum width, and may reach past the line into the one before', async () => {
     mount();
     await ready();
     select('p-1:0', 'p-1:0');
     fireEvent.keyDown(startHandle(), { key: 'ArrowLeft', shiftKey: true });
-    expect(now(startHandle())).toBeCloseTo(5, 6);
+    expect(now(startHandle())).toBeCloseTo(4.7, 6);
     fireEvent.keyDown(startHandle(), { key: 'ArrowRight', shiftKey: true });
     fireEvent.keyDown(startHandle(), { key: 'ArrowRight', shiftKey: true });
     fireEvent.keyDown(startHandle(), { key: 'ArrowRight', shiftKey: true });
@@ -298,7 +298,8 @@ describe('what a screen reader hears', () => {
     expect(startHandle().getAttribute('aria-valuetext')).toMatch(/^Start 0:05\.54, range 0:05\.54 to 0:06\.30, 0\.8 seconds, 2 words$/);
     expect(endHandle().getAttribute('aria-valuetext')).toMatch(/^End 0:06\.30, range 0:05\.54 to 0:06\.30, 0\.8 seconds, 2 words$/);
     expect(startHandle().getAttribute('aria-orientation')).toBe('horizontal');
-    expect(Number(startHandle().getAttribute('aria-valuemin'))).toBe(5);
+    // A range can reach anywhere in the recording: the waveform scrolls the whole chapter.
+    expect(Number(startHandle().getAttribute('aria-valuemin'))).toBe(0);
     expect(Number(startHandle().getAttribute('aria-valuemax'))).toBeCloseTo(6.296 - 0.05, 2);
     expect(Number(endHandle().getAttribute('aria-valuemax'))).toBeCloseTo(8.1, 6);
     expect(screen.getByRole('group', { name: /^Range 0:05\.54 to 0:06\.30, 0\.8 seconds, 2 words/ })).toBeTruthy();
@@ -334,7 +335,7 @@ describe('partial words are shown as they are', () => {
     expect(note.textContent).toContain('0:05.54 to 0:06.30');
     expect(note.textContent).toContain('0:05.60 to 0:06.20');
     const partial = screen.getByTestId('range-partial');
-    expect(partial.textContent).toBe('Start: covers the last 20% of “was” (not selected). End: covers the first 32% of “sitting” (not selected).');
+    expect(partial.textContent).toBe(' Start: covers the last 20% of “was” (not selected). End: covers the first 32% of “sitting” (not selected).');
   });
 
   it('says nothing about sub-word edges when the range sits on whole words', async () => {
@@ -351,7 +352,7 @@ describe('partial words are shown as they are', () => {
     await ready();
     drag(surface(), xAt(7.5), xAt(7.55));
     await waitFor(() => expect(state.state.sel).toEqual({ anchor: 'p-1:8', head: 'p-1:8' }));
-    expect(screen.getByTestId('range-partial').textContent).toBe('Covers 14% of “sister” (selected).');
+    expect(screen.getByTestId('range-partial').textContent).toBe(' Covers 14% of “sister” (selected).');
   });
 
   it('says so when a range covers no words, which a gap between words allows', () => {
@@ -393,21 +394,24 @@ describe('zoom', () => {
     expect(startHandle().hasAttribute('data-offscreen')).toBe(false);
   });
 
-  it('control-wheel zooms about the pointer, and a plain vertical wheel is left to the page', async () => {
+  it('control-wheel zooms about the pointer, and a plain vertical wheel scrolls the waveform instead of the page', async () => {
     mount();
     await ready();
     const label = () => document.querySelector('[data-view-label]')?.textContent;
-    expect(fireEvent.wheel(surface(), { deltaY: 100, clientX: 500 })).toBe(true);
     expect(label()).toBe('0:05.00 to 0:08.10');
+    // 100 px of wheel on a 1000 px waveform moves it a tenth of what shows: 0.31 s back, toward the line before.
+    expect(fireEvent.wheel(surface(), { deltaY: -100, clientX: 500 })).toBe(false);
+    expect(label()).toBe('0:04.69 to 0:07.79');
     expect(fireEvent.wheel(surface(), { deltaY: -100, ctrlKey: true, clientX: 0 })).toBe(false);
     // the time at the left edge stays at the left edge
-    expect(label()).toBe('0:05.00 to 0:07.00');
+    expect(label()).toBe('0:04.69 to 0:06.69');
   });
 
-  it('shift-wheel and sideways wheel pan a zoomed view, and a view that fits cannot pan', async () => {
+  it('a sideways wheel or two-finger swipe scrolls, and the view stops at the end of the recording', async () => {
     mount();
     await ready();
     const label = () => document.querySelector('[data-view-label]')?.textContent;
+    // The line's window already ends where the recording does.
     fireEvent.wheel(surface(), { deltaX: 100 });
     expect(label()).toBe('0:05.00 to 0:08.10');
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
@@ -418,31 +422,44 @@ describe('zoom', () => {
     expect(label()).toBe('0:06.05 to 0:07.05');
   });
 
-  it('a view slider pans by key and by drag, and is there only when zoomed', async () => {
+  it('has no scrollbar: arrows at the ends page a whole window, off at either end of the recording', async () => {
     mount();
     await ready();
     expect(screen.queryByRole('slider', { name: 'Visible part' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
-    const pan = screen.getByRole('slider', { name: 'Visible part' });
-    expect(pan.getAttribute('aria-valuetext')).toBe('Showing 0:06.05 to 0:07.05');
-    expect(fireEvent.keyDown(pan, { key: 'ArrowRight' })).toBe(false);
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:06.15 to 0:07.15');
-    fireEvent.keyDown(pan, { key: 'ArrowLeft', shiftKey: true });
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:05.15 to 0:06.15');
-    const track = document.querySelector('[data-ribbon-pan]') as HTMLElement;
-    drag(track, 0, 1000);
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:07.10 to 0:08.10');
+    expect(document.querySelector('[data-ribbon-pan]')).toBeNull();
+    const label = () => document.querySelector('[data-view-label]')?.textContent;
+    const back = screen.getByRole('button', { name: 'Scroll the waveform back a window' });
+    const forward = screen.getByRole('button', { name: 'Scroll the waveform forward a window' });
+    expect(forward.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(back);
+    expect(label()).toBe('0:01.90 to 0:05.00');
+    fireEvent.click(back);
+    expect(label()).toBe('0:00.00 to 0:03.10');
+    expect(back.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(forward);
+    expect(label()).toBe('0:03.10 to 0:06.20');
   });
 
-  it('plus and minus on the view slider zoom', async () => {
+  it('on the focused waveform the arrows scroll (Shift a window), Home and End go to either end, and plus and minus zoom', async () => {
     mount();
     await ready();
+    const label = () => document.querySelector('[data-view-label]')?.textContent;
     fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
-    fireEvent.keyDown(screen.getByRole('slider', { name: 'Visible part' }), { key: '+' });
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:06.05 to 0:07.05');
-    fireEvent.keyDown(screen.getByRole('slider', { name: 'Visible part' }), { key: '-' });
-    expect(document.querySelector('[data-view-label]')?.textContent).toBe('0:05.55 to 0:07.55');
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    // The page's own arrows step the word cursor: these stay on the waveform.
+    expect(fireEvent.keyDown(surface(), { key: 'ArrowRight' })).toBe(false);
+    expect(label()).toBe('0:06.15 to 0:07.15');
+    fireEvent.keyDown(surface(), { key: 'ArrowLeft', shiftKey: true });
+    expect(label()).toBe('0:05.15 to 0:06.15');
+    fireEvent.keyDown(surface(), { key: 'Home' });
+    expect(label()).toBe('0:00.00 to 0:01.00');
+    fireEvent.keyDown(surface(), { key: 'End' });
+    expect(label()).toBe('0:07.10 to 0:08.10');
+    fireEvent.keyDown(surface(), { key: '-' });
+    expect(label()).toBe('0:06.10 to 0:08.10');
+    fireEvent.keyDown(surface(), { key: '+' });
+    expect(label()).toBe('0:06.60 to 0:07.60');
+    expect(fireEvent.keyDown(surface(), { key: 'Delete' })).toBe(true);
   });
 
   it('follows the playhead out of a zoomed view, until the narrator pans away while it plays', async () => {
@@ -455,7 +472,7 @@ describe('zoom', () => {
     expect(label()).toBe('0:06.05 to 0:07.05');
     act(() => state.dispatch({ type: 'play', t: 7.2 }));
     expect(label()).toBe('0:06.70 to 0:07.70');
-    fireEvent.keyDown(screen.getByRole('slider', { name: 'Visible part' }), { key: 'ArrowLeft', shiftKey: true });
+    fireEvent.keyDown(surface(), { key: 'ArrowLeft', shiftKey: true });
     expect(label()).toBe('0:05.70 to 0:06.70');
     act(() => state.dispatch({ type: 'play', t: 7.3 }));
     expect(label()).toBe('0:05.70 to 0:06.70');
@@ -492,7 +509,7 @@ describe('states', () => {
       <ApiProvider api={api}>
         <EditingPageProvider doc={doc}>
           <Probe />
-          <Ribbon chapterId="chapter-1" pid="p-1" clocks={sameClock([0])} />
+          <WaveDock chapterId="chapter-1" clocks={sameClock([0])} take={null} />
         </EditingPageProvider>
       </ApiProvider>,
     );
@@ -502,7 +519,7 @@ describe('states', () => {
     expect(screen.queryByRole('button', { name: 'Zoom in' })).toBeNull();
   });
 
-  it('the range and view go with the paragraph: another paragraph starts whole and without a range', async () => {
+  it('moving the cursor lets the range go', async () => {
     mount();
     await ready();
     drag(surface(), xAt(5.54), xAt(6.296));

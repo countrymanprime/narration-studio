@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-import { sameClock } from '../ribbon/docClock';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
@@ -56,7 +55,7 @@ function Harness({ width, onReview = () => {}, children }: { width: number; onRe
             onClose={d.close}
             flagKind={null}
             onReview={onReview as never}
-            strip={{ passage: null, playingId: null, onPlay: () => {}, chapterId: '5', clocks: sameClock([0]) }}
+            strip={{ passage: null, playingId: null, onPlay: () => {} }}
           />
         }
       >
