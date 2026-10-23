@@ -225,7 +225,10 @@ def test_auto_leaves_each_item_worker_two_threads_on_four_cpus():
 # the pipeline
 
 
-def test_the_second_items_first_pass_overlaps_the_first_items_recheck(tmp_path, progress, cpus):
+def test_the_second_items_first_pass_overlaps_the_first_items_recheck(tmp_path, progress, cpus, monkeypatch):
+    # One token a call: the fake re-check below blocks inside the gate until item 2 starts, and with each call holding every processor it
+    # would hold the tokens item 2 needs, so the test would pass or time out on which thread reached the gate first. The gate has its own tests.
+    monkeypatch.setattr(pipeline.CpuGate, "tokens_for", lambda _self, _threads: 1)
     manuscript, manifest, truth = _corpus(tmp_path)
     second_started = threading.Event()
     overlapped = []
