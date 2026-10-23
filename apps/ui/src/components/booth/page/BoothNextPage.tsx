@@ -141,6 +141,10 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
   // is the way in only when none is kept (or the chapter is gone). The place is read once, when the Booth opens.
   const [kept] = useState<LastPlace | null>(() => (projectFolder ? loadLastPlace(projectFolder) : null));
   const [returning, setReturning] = useState<LastPlace | null>(null);
+  // A reload (or a link naming the chapter with no line) keeps the chapter in the address: the place kept for that chapter is still where it opens.
+  const [reloaded, setReloaded] = useState<LastPlace | null>(() =>
+    asked && 'chapter' in asked && !asked.from && kept?.chapterId === asked.chapter ? kept : null,
+  );
   // Known once the chapters are read: the kept place, when its chapter is still in the book. Until then the Booth cannot say, and holds its save.
   const planned = asked === null && kept && chapterIds?.includes(kept.chapterId) ? kept : null;
   const undecided = asked === null && kept !== null && chapterIds === undefined;
@@ -149,7 +153,7 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
     setReturning(planned);
     setParams(new URLSearchParams(boothQuery({ chapter: planned.chapterId }, pickupIds).slice(1)), { replace: true });
   }, [planned, pickupIds, setParams]);
-  const goingBackTo = returning ?? planned ?? (undecided ? kept : null);
+  const goingBackTo = returning ?? reloaded ?? planned ?? (undecided ? kept : null);
   useFollowDawOnOpen({
     enabled: asked === null,
     chapterIds,
@@ -213,6 +217,10 @@ function BoothLoaded({ navigate, exitTo, projectFolder }: { navigate: (next: str
         moveDaw={openedByAddress.current}
         projectFolder={projectFolder}
         returnTo={goingBackTo ?? undefined}
+        onReturned={() => {
+          setReturning(null);
+          setReloaded(null);
+        }}
         adopt={setShown}
         data={data}
         choose={choose}
@@ -237,6 +245,8 @@ type SessionProps = {
   /** The project the place is kept under, and the place to go back to (the Booth opened on the chapter the narrator left). */
   projectFolder: string;
   returnTo?: LastPlace;
+  /** The place is back (or there was none): the page stops offering it, so a later visit to this chapter in the same Booth opens where it is. */
+  onReturned: () => void;
   adopt: (target: BoothTarget) => void;
   data: ReturnType<typeof useBoothData>;
   choose: (target: BoothTarget) => void;
@@ -258,6 +268,7 @@ function BoothSession({
   moveDaw,
   projectFolder,
   returnTo,
+  onReturned,
   adopt,
   data,
   choose,
@@ -368,7 +379,8 @@ function BoothSession({
     if (returnTo.chapterId !== chapter?.id || units.length === 0) return;
     if (returnTo.paragraphId) seek(returnTo.paragraphId, returnTo.word);
     setBack(true);
-  }, [back, returnTo, chapter?.id, units.length, seek]);
+    onReturned();
+  }, [back, returnTo, chapter?.id, units.length, seek, onReturned]);
   const placeParagraph = page.position?.paragraphId;
   const placeWord = page.position?.word;
   useEffect(() => {

@@ -104,11 +104,17 @@ export function useBrowseView({ box, text, cur, wcur, browse, onBrowse, viewRef 
       const rest = restingY();
       const target = content && Array.from(content.querySelectorAll<HTMLElement>('[data-paragraph]')).find((item) => item.dataset.paragraph === paragraphId);
       if (!area || !content || !target || rest === null) return;
-      const y = clampY(-(target.offsetTop - restAt(area.clientHeight, target.offsetHeight)));
-      away.current = y - rest;
       content.style.transition = '';
-      content.style.transform = `translateY(${y}px)`;
-      onBrowse(Math.abs(away.current) > 1);
+      // A paragraph far from the view is held at an estimated height until it is drawn, so the first place is only near; once the paragraphs
+      // on the way are drawn at their real heights it is worked out again (twice, as a frame after layout is not always the last one).
+      const put = (): void => {
+        const y = clampY(-(target.offsetTop - restAt(area.clientHeight, target.offsetHeight)));
+        away.current = y - rest;
+        content.style.transform = `translateY(${y}px)`;
+        onBrowse(Math.abs(away.current) > 1);
+      };
+      put();
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(put));
     },
     [box, text, restingY, clampY, onBrowse],
   );

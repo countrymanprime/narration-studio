@@ -75,6 +75,20 @@ describe('the Booth returns to where the narrator left it', () => {
     await waitFor(() => expect(loadLastPlace('/proj')).toMatchObject({ chapterId: 'c1' }));
   });
 
+  it('a-reload-keeps-the-chapter-in-the-address-and-the-place-in-it', async () => {
+    keep({ chapterId: 'c1', paragraphId: 'p3', word: 3 });
+    renderPage({ search: '?chapter=c1' });
+    await waitFor(() => expect(reading()).toBe('walked'));
+  });
+
+  it('a-link-with-a-line-in-it-is-not-moved-to-the-kept-place', async () => {
+    keep({ chapterId: 'c1', paragraphId: 'p3', word: 3 });
+    renderPage({ search: '?chapter=c1&para=p2&at=0' });
+    await waitFor(() => expect(document.body.textContent).toContain('Off with her head'));
+    await settle();
+    expect(reading()).not.toBe('walked');
+  });
+
   it('a-chapter-that-is-gone-opens-the-first-as-before', async () => {
     keep({ chapterId: 'deleted', paragraphId: 'x', word: 1 });
     renderPage();
