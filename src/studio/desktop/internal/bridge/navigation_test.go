@@ -190,9 +190,9 @@ func TestLoopPadsTheFindingIntoAContextWindowAndNeverBeforeTheSourceStart(t *tes
 		target     Target
 		start, end string
 	}{
-		{"a point", Target{ItemGUID: testItem, SourceStart: seconds(12.5)}, "10.500000", "14.500000"},
-		{"a range", Target{ItemGUID: testItem, SourceStart: seconds(12.5), SourceEnd: seconds(13)}, "10.500000", "15.000000"},
-		{"near the source start", Target{ItemGUID: testItem, SourceStart: seconds(1)}, "0.000000", "3.000000"},
+		{"a point", Target{ItemGUID: testItem, SourceStart: seconds(12.5)}, "9.500000", "15.500000"},
+		{"a range", Target{ItemGUID: testItem, SourceStart: seconds(12.5), SourceEnd: seconds(13)}, "9.500000", "16.000000"},
+		{"near the source start", Target{ItemGUID: testItem, SourceStart: seconds(1)}, "0.000000", "4.000000"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

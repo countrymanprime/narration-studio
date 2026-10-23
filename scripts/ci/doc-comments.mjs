@@ -11,17 +11,17 @@
 // python  ruff's missing-docstring rules for public names (D100-D104, D106) with the Google convention, filtered to
 //         added lines here because ruff has no "new issues only" mode. Tests, spikes and conftest are skipped.
 //         `__init__` and magic methods (D105, D107) are not required. A name that needs no docstring takes `# noqa: D1xx`.
-// go      revive's `exported` rule through golangci-lint and src/studio/desktop/.golangci-docs.yml, with its own
-//         --new-from-patch: the diff against the merge base, cut to the module folder. Test files are skipped. The stutter check is off.
+// go      revive's `exported` rule through golangci-lint and src/studio/desktop/.golangci-docs.yml, filtered to added lines
+//         here like Python: golangci-lint's own --new-from-merge-base has no rename detection, so it counts every line of a
+//         moved file as new. Test files are skipped. The stutter check is off.
 //
-// A brand-new Go file is seen locally only after `git add -N` (golangci-lint reads git diff); CI always sees it.
 // A moved file counts only the lines that changed (git -M), so a plain `git mv` adds no debt.
 //
 // Not covered: TypeScript (a doc-comment coverage check needs TypeDoc or an ESLint plugin the repo does not have) and
 // Lua (needs lua-language-server). The docs-style references say so.
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -76,6 +76,17 @@ export function parseRuffJson(json, root) {
     }
     return { file: full.slice(base.length + 1), line: item.location.row, code: item.code, message: item.message };
   });
+}
+
+/** golangci-lint's JSON issues (paths relative to the module, either separator) as repo-relative, forward-slash paths. */
+export function parseGolangciJson(json, moduleDir) {
+  const base = moduleDir.replace(/\\/g, '/').replace(/\/$/, '');
+  return (JSON.parse(json).Issues ?? []).map((issue) => ({
+    file: `${base}/${issue.Pos.Filename.replace(/\\/g, '/')}`,
+    line: issue.Pos.Line,
+    code: issue.FromLinter,
+    message: issue.Text,
+  }));
 }
 
 function git(args) {
@@ -139,46 +150,31 @@ function checkPython(dirs, mergeBase) {
   return 0;
 }
 
-/**
- * The sections of a whole-tree `git diff` for the files under `dir`, with their paths made relative to it, as golangci-lint's
- * --new-from-patch reads them. golangci-lint's own --new-from-merge-base diffs only the module folder, where git cannot see
- * where a moved file came from, so a move made every line of the module new.
- */
-export function relativePatch(diffText, dir) {
-  const prefix = `${dir.replace(/\\/g, '/').replace(/\/$/, '')}/`;
-  const sections = diffText.split(/^(?=diff --git )/m);
-  const kept = [];
-  for (const section of sections) {
-    const target = /^\+\+\+ b\/(.+?)\t?$/m.exec(section)?.[1];
-    if (!target?.startsWith(prefix)) continue;
-    const path = target.slice(prefix.length);
-    kept.push(
-      section
-        .replace(/^diff --git .*$/m, `diff --git a/${path} b/${path}`)
-        .replace(/^--- (?:a\/.*|\/dev\/null)$/m, (line) => (line === '--- /dev/null' ? line : `--- a/${path}`))
-        .replace(/^\+\+\+ b\/.*$/m, `+++ b/${path}`),
-    );
-  }
-  return kept.join('');
-}
-
 function checkGo(moduleDir, mergeBase) {
   const config = join(REPO_ROOT, moduleDir, '.golangci-docs.yml');
-  const scratch = mkdtempSync(join(tmpdir(), 'doc-comments-'));
-  const patch = join(scratch, 'new.patch');
-  writeFileSync(patch, relativePatch(git(['-c', 'core.quotepath=false', 'diff', '-U0', '-M', '-l0', mergeBase]), moduleDir));
-  const result = spawnSync('golangci-lint', ['run', '--config', config, '--new-from-patch', patch, './...'], {
+  // The report goes to a file: golangci-lint prints its issue summary on stdout too.
+  const report = join(mkdtempSync(join(tmpdir(), 'doc-comments-')), 'golangci.json');
+  const result = spawnSync('golangci-lint', ['run', '--config', config, '--output.json.path', report, './...'], {
     cwd: join(REPO_ROOT, moduleDir),
-    stdio: 'inherit',
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
     shell: process.platform === 'win32',
   });
-  rmSync(scratch, { recursive: true, force: true });
-  if (result.status === 0) {
-    console.log(`doc-comments: no undocumented exported Go names added in ${moduleDir}.`);
-    return 0;
+  // Exit 1 means it found issues; anything else, or no report, means the run itself failed.
+  const json = existsSync(report) ? readFileSync(report, 'utf8') : '';
+  rmSync(dirname(report), { recursive: true, force: true });
+  if (result.error || (result.status !== 0 && result.status !== 1) || !json.trim().startsWith('{')) {
+    console.error(`doc-comments: golangci-lint failed or is not installed.\n${result.stdout ?? ''}${result.stderr ?? result.error ?? ''}`);
+    return 2;
   }
-  console.error('doc-comments: add a doc comment that starts with the name (the docs-style skill, references/go.md).');
-  return result.status ?? 2;
+  const violations = filterToAdded(parseGolangciJson(json, moduleDir), addedLinesSince(mergeBase, [moduleDir]));
+  for (const violation of violations) console.log(`${violation.file}:${violation.line} ${violation.message}`);
+  if (violations.length > 0) {
+    console.error(`doc-comments: ${violations.length} exported Go name(s) added without a doc comment. Add one that starts with the name (the docs-style skill, references/go.md).`);
+    return 1;
+  }
+  console.log(`doc-comments: no undocumented exported Go names added in ${moduleDir}.`);
+  return 0;
 }
 
 function main() {

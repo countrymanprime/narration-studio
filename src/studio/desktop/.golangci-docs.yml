@@ -1,6 +1,6 @@
 # golangci-lint v2 config for the doc-comment check only (scripts/ci/doc-comments.mjs go src/studio/desktop). The main
-# config, .golangci.yml, is the lint gate and is untouched. This one runs revive's `exported` rule and the script
-# passes --new-from-patch (the diff against the merge base), so only an exported name this change adds without a doc comment is reported.
+# config, .golangci.yml, is the lint gate and is untouched. This one runs revive's `exported` rule and the script keeps
+# only the issues on lines this change adds (git diff -M), so only an exported name added without a doc comment is reported.
 # Existing undocumented names are not (385 on 2026-10-10).
 version: "2"
 

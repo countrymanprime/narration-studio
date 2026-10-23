@@ -164,7 +164,7 @@ const focusedName = (page: Page) =>
   });
 
 test.describe('Proof: focus stays with the control that acted', () => {
-  for (const decision of ['Waive', 'Defer']) {
+  for (const decision of ['Fine as read', 'Defer']) {
     test(`pressing ${decision} keeps focus on ${decision} for the next note`, async ({ page }) => {
       await openProof(page);
       await page
@@ -199,7 +199,7 @@ test.describe('Proof: focus stays with the control that acted', () => {
     await openProof(page);
     await page
       .locator(INSPECTOR)
-      .getByRole('button', { name: /^Waive/ })
+      .getByRole('button', { name: /^Fine as read/ })
       .click();
     await page.waitForTimeout(600);
     await page.locator('section[aria-label="Notes"] tbody tr').first().click();

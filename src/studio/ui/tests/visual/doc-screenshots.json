@@ -757,6 +757,13 @@
   },
   {
     "page": "proof",
+    "state": "hear-it",
+    "viewport": "desktop",
+    "docName": "proof-hear-it",
+    "caption": "Proof - Hear it on a note: Stop hearing it while it loops in REAPER with 3 s either side, and the note's paragraph in the script with the ones before and after"
+  },
+  {
+    "page": "proof",
     "state": "evidence-changed",
     "viewport": "desktop",
     "docName": "proof-evidence-changed",

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { PYTHON_RULES, filterToAdded, parseAddedLines, parseRuffJson, relativePatch, ruffArgs } from './doc-comments.mjs';
+import { PYTHON_RULES, filterToAdded, parseAddedLines, parseGolangciJson, parseRuffJson, ruffArgs } from './doc-comments.mjs';
 
 const DIFF = [
   'diff --git a/src/studio/libs/python/a.py b/src/studio/libs/python/a.py',
@@ -112,37 +112,23 @@ test('parseRuffJson compares the root case-insensitively and throws for a file o
   assert.throws(() => parseRuffJson(json, 'D:/other'), /not under/);
 });
 
-test('relativePatch keeps the module folder\'s files, moved ones included, with paths relative to it', () => {
-  const diff = [
-    'diff --git a/apps/desktop/x.go b/src/studio/desktop/x.go',
-    'similarity index 90%',
-    'rename from apps/desktop/x.go',
-    'rename to src/studio/desktop/x.go',
-    '--- a/apps/desktop/x.go',
-    '+++ b/src/studio/desktop/x.go',
-    '@@ -1 +1 @@',
-    '-a',
-    '+b',
-    'diff --git a/src/studio/desktop/new.go b/src/studio/desktop/new.go',
-    'new file mode 100644',
-    '--- /dev/null',
-    '+++ b/src/studio/desktop/new.go',
-    '@@ -0,0 +1 @@',
-    '+package x',
-    'diff --git a/scripts/y.mjs b/scripts/y.mjs',
-    '--- a/scripts/y.mjs',
-    '+++ b/scripts/y.mjs',
-    '@@ -1 +1 @@',
-    '-a',
-    '+b',
-    '',
-  ].join('\n');
+test('parseGolangciJson reads issues as repo-relative forward-slash paths under the module', () => {
+  const json = JSON.stringify({
+    Issues: [
+      { FromLinter: 'revive', Text: 'exported: exported type A should have comment or be unexported', Pos: { Filename: 'internal/x/a.go', Line: 7 } },
+      { FromLinter: 'revive', Text: 'exported: exported func B should have comment or be unexported', Pos: { Filename: 'internal\\y\\b.go', Line: 3 } },
+    ],
+    Report: {},
+  });
+  assert.deepEqual(parseGolangciJson(json, 'src/studio/desktop'), [
+    { file: 'src/studio/desktop/internal/x/a.go', line: 7, code: 'revive', message: 'exported: exported type A should have comment or be unexported' },
+    { file: 'src/studio/desktop/internal/y/b.go', line: 3, code: 'revive', message: 'exported: exported func B should have comment or be unexported' },
+  ]);
+  assert.deepEqual(parseGolangciJson(JSON.stringify({ Issues: null }), 'src/studio/desktop'), []);
+});
 
-  const patch = relativePatch(diff, 'src/studio/desktop');
-
-  assert.match(patch, /^diff --git a\/x\.go b\/x\.go$/m);
-  assert.match(patch, /^--- a\/x\.go\n\+\+\+ b\/x\.go$/m);
-  assert.match(patch, /^--- \/dev\/null\n\+\+\+ b\/new\.go$/m);
-  assert.doesNotMatch(patch, /y\.mjs/);
-  assert.deepEqual([...parseAddedLines(patch).keys()], ['x.go', 'new.go']);
+test('a Go file moved without edits adds no doc-comment debt', () => {
+  const moved = ['diff --git a/old/desktop/a.go b/new/place/desktop/a.go', 'similarity index 100%', 'rename from old/desktop/a.go', 'rename to new/place/desktop/a.go'].join('\n');
+  const violations = parseGolangciJson(JSON.stringify({ Issues: [{ FromLinter: 'revive', Text: 'exported', Pos: { Filename: 'a.go', Line: 1 } }] }), 'new/place/desktop');
+  assert.deepEqual(filterToAdded(violations, parseAddedLines(moved)), []);
 });
