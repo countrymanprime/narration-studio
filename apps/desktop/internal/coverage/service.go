@@ -501,7 +501,7 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 	}
 	// A stage under the first pass's model keeps what the larger model has already checked: its whole-chapter words serve as they
 	// are, and the passages it re-checked are not reported unsure again (the pipelined first pass names it with --recheck-model).
-	if larger := running.request.Recheck.Model; larger != "" && transcription.Model != larger && !(running.stage == stageFirstPass && running.request.pipelined()) {
+	if larger := running.request.Recheck.Model; larger != "" && transcription.Model != larger && (running.stage != stageFirstPass || !running.request.pipelined()) {
 		args = append(args, "--checked-by", larger)
 	}
 	if running.stage == stageFirstPass && running.request.UnsureBelow > 0 {
