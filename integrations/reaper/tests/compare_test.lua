@@ -43,7 +43,7 @@ end)
 H.test('prepare_compare needs an imported manuscript', function()
   local s = project_session({ manuscript = false })
   s:send('prepare_compare', 'r1')
-  H.eq(first_event(s), { 'ERROR', 'r1', 'Import a manuscript in Narration Utils before starting Transcript Compare.' })
+  H.eq(first_event(s), { 'ERROR', 'r1', 'Import a manuscript in Narration Studio before starting Transcript Compare.' })
 end)
 
 H.test('prepare_compare needs a selection', function()
@@ -162,7 +162,7 @@ H.test('prepare_compare refuses a passed folder without a manuscript rather than
   local track = audio_track(s)
   s.fake:add_item(track, { selected = true, position = 0, length = 10, source = 'a.wav' })
   s:send('prepare_compare', 'r1', folder)
-  H.eq(s:events(), { { 'ERROR', 'r1', 'Import a manuscript in Narration Utils before starting Transcript Compare.' } })
+  H.eq(s:events(), { { 'ERROR', 'r1', 'Import a manuscript in Narration Studio before starting Transcript Compare.' } })
 end)
 
 H.test('prepare_compare with a passed folder works for a project REAPER has not saved', function()

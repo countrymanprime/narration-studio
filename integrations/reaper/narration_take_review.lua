@@ -114,7 +114,7 @@ local function create_take(session_dir, run_id, payload_path)
   reaper.GetSetMediaItemTakeInfo_String(take, SOURCE_FILE_KEY, payload.source_file, true)
   reaper.GetSetMediaItemTakeInfo_String(take, SOURCE_RANGE_KEY, string.format('%.6f|%.6f', start, stop), true)
   local new_take_guid = take_guid(take)
-  reaper.Undo_EndBlock2(0, 'Narration Utils: add take', -1)
+  reaper.Undo_EndBlock2(0, 'Narration Studio: add take', -1)
   reaper.UpdateArrange()
 
   local resolved_item = items_by_guid()[normalized_target]

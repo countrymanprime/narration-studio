@@ -39,11 +39,11 @@ const ContextPaddingSeconds = 3.0
 
 var (
 	// ErrUnavailable: there is no bridge (the app was launched on its own, not from REAPER's action).
-	ErrUnavailable = errors.New("REAPER is not connected to this app: open the app from the Narration Utils action in REAPER")
+	ErrUnavailable = errors.New("REAPER is not connected to this app: open the app from the Narration Studio action in REAPER")
 	// ErrNoAnswer: the bridge did not answer in time (REAPER closed, the script stopped, or REAPER is busy).
-	ErrNoAnswer = errors.New("REAPER did not answer: check that REAPER is open and the Narration Utils action is running")
+	ErrNoAnswer = errors.New("REAPER did not answer: check that REAPER is open and the Narration Studio action is running")
 	// ErrScriptOutdated: the script in REAPER predates the navigation commands.
-	ErrScriptOutdated = errors.New("the Narration Utils script in REAPER is older than this app: import it again from this app's REAPER folder")
+	ErrScriptOutdated = errors.New("the Narration Studio script in REAPER is older than this app: import it again from this app's REAPER folder")
 	// ErrNoItemIdentity: the finding carries no REAPER item GUID, so there is nothing safe to go to. A project time
 	// alone is never used: it can point at a neighbouring item once anything moved (findings-contract.md).
 	ErrNoItemIdentity = errors.New("this finding has no REAPER item to go to: run the check again to record one")
@@ -299,7 +299,7 @@ func (n *Navigator) invalid(event Event, reason error) {
 	if event.RunID == "" {
 		return
 	}
-	n.settle(event.RunID, answer{err: fmt.Errorf("REAPER sent an answer this app could not read (%v): import the Narration Utils script from this app's REAPER folder again", reason)})
+	n.settle(event.RunID, answer{err: fmt.Errorf("REAPER sent an answer this app could not read (%v): import the Narration Studio script from this app's REAPER folder again", reason)})
 }
 
 func errorAnswer(event Event) error {

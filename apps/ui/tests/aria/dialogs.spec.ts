@@ -172,42 +172,9 @@ test('Editing: the drawer has its tabs and the open tab’s panel', async ({ pag
 });
 
 // The shell's menu on empty space: a menu of items, the unavailable ones carrying their reason.
-test('the menu on empty space is a menu of the shell items, ending with the jump menu and Find', async ({ page }) => {
+test('the menu on empty space is a menu of the shell items, ending with the jump menu and the page search', async ({ page }) => {
   await openApp(page, DESKTOP, ['shell', 'context-menu-open']);
   await expect(page.getByRole('menu')).toMatchAriaSnapshot({ name: 'menu-page-fallback.aria.yml' });
-});
-
-// The note on the Reference material group is an info icon inside an alert dialog: it is a button with the note as its
-// description, its popup is a tooltip that stays above the dialog, and the first Escape closes the note and only the second the dialog.
-test('the note on the reference material group of the import review is an info icon whose Escape closes it before the dialog', async ({ page }) => {
-  await openApp(page, DESKTOP, ['production', 'import-confirm']);
-  const dialog = page.getByRole('alertdialog', { name: 'Import Alice.docx' });
-  const info = dialog.getByRole('button', { name: 'About reference material' });
-  await expect(info).toHaveAttribute('aria-description', /Still readable in the manuscript/);
-  await info.hover();
-  const note = page.getByRole('tooltip');
-  await expect(note).toContainText('Excluded from audiobook totals, Proof and the chapter list. Still readable in the manuscript.');
-  await page.keyboard.press('Escape');
-  await expect(note).toHaveCount(0);
-  await expect(dialog).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-});
-
-// The same, reached by keyboard: Tab to the icon opens its note, the first Escape closes the note only, the second the dialog.
-test('the note on reference material reached by keyboard also takes the first Escape', async ({ page }) => {
-  await openApp(page, DESKTOP, ['production', 'import-confirm']);
-  const dialog = page.getByRole('alertdialog', { name: 'Import Alice.docx' });
-  const info = dialog.getByRole('button', { name: 'About reference material' });
-  // Each outline row is a few tab stops (its title, Subtitle box and kind select), so the icon is some way in.
-  for (let presses = 0; presses < 40 && !(await info.evaluate((element) => element === document.activeElement)); presses++) await page.keyboard.press('Tab');
-  await expect(info).toBeFocused();
-  await expect(page.getByRole('tooltip')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('tooltip')).toHaveCount(0);
-  await expect(dialog).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
 });
 
 // Escape on the readiness slide-over returns focus to the chip on the chapter's row that opened it.

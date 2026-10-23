@@ -130,7 +130,7 @@ export const Recorder: Story = {
   },
 };
 
-const OFF = 'REAPER is not answering. Check that REAPER is open and the Narration Utils action is running, then try again.';
+const OFF = 'REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.';
 
 /** The Add FX menu as a right click opens it. */
 function Menu({ items }: { items: ReturnType<typeof fxMenuItems> }) {

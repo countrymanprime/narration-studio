@@ -14,7 +14,7 @@
 local core = ...
 local pipe_fields, event = core.pipe_fields, core.event
 
-local UNDO_APPLY_GAIN = 'Narration Utils: apply level-match gain'
+local UNDO_APPLY_GAIN = 'Narration Studio: apply level-match gain'
 
 local function normalize_guid(guid)
   local bare = tostring(guid or ''):gsub('[{}%s]', ''):upper()

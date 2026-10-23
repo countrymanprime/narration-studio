@@ -190,13 +190,11 @@ describe('the-no-entry-card-offers-a-look-up', () => {
 });
 
 describe('links-go-where-they-say', () => {
-  it('Find in the manuscript opens Find with the name, again each time', async () => {
+  it('Find in the manuscript marks the name in the reader', async () => {
     const { user } = mount();
     await user.click(await screen.findByRole('row', { name: /^White Rabbit/ }));
-    const before = view.findNonce;
     await user.click(await screen.findByRole('button', { name: 'Find in the manuscript' }));
     expect(view.find).toMatchObject({ open: true, q: 'White Rabbit', i: 0 });
-    expect(view.findNonce).toBe(before + 1);
   });
 
   it('Open in Story Bible calls the page with the entry id', async () => {

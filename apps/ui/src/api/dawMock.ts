@@ -14,6 +14,8 @@ import type {
   DawKind,
   DawLevelsApi,
   DawPlaceApi,
+  DawPosition,
+  DawTransportSyncApi,
   DawResult,
   DawMonitorLevel,
   DawProjectState,
@@ -43,6 +45,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   track_state: 'experimental',
   track_select: 'experimental',
   follow_position: 'experimental',
+  transport_sync: 'experimental',
   record: 'experimental',
   punch: 'experimental',
   regions: 'experimental',
@@ -82,6 +85,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   track_state: 'running',
   track_select: 'running',
   follow_position: 'running',
+  transport_sync: 'running',
   record: 'running',
   punch: 'running',
   regions: 'running',
@@ -108,8 +112,8 @@ const MESSAGE_NO_INPUT_LEVEL = (who: string) => `${who} cannot set an audio inte
 
 /** The host's own wording for a REAPER that is not connected or not answering, and the resolver's generic wording for
  * every other refusal (apps/desktop/internal/dawport/resolver.go, apps/desktop/internal/dawport/reaper/reaper.go). */
-const MESSAGE_STANDALONE_REAPER = 'REAPER is not connected to this app. Open this app from the Narration Utils action in REAPER.';
-const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER is open and the Narration Utils action is running, then try again.';
+const MESSAGE_STANDALONE_REAPER = 'REAPER is not connected to this app. Open this app from the Narration Studio action in REAPER.';
+const MESSAGE_NOT_RUNNING_REAPER = 'REAPER is not answering. Check that REAPER is open and the Narration Studio action is running, then try again.';
 const MESSAGE_NO_ENGINE = 'No DAW is connected to this app. Open this app from your DAW to use it.';
 const MESSAGE_TURNED_OFF = 'Turned off in Settings.';
 const MESSAGE_EXPERIMENTAL_OFF = 'Experimental: switched off in Settings.';
@@ -428,6 +432,12 @@ export interface DawMockControl {
   setPlace(chapterId: string, cursor: number): void;
   /** The moves the app asked the DAW to make (`dawGoToChapter`), oldest first, for a driver to assert on. */
   moves(): { chapterId: string; where: 'end' | 'at'; seconds: number }[];
+  /** The transport actions the app asked of the DAW (`dawTransportSync`), oldest first, for a driver to assert on. */
+  syncCalls(): { action: string; seconds: number }[];
+  /** The narrator moved the DAW's cursor or play head, or pressed Play or Stop there: the DAW streams the new position if the page holds a watch lease. */
+  moveInDaw(change: { cursor?: number; head?: number; playing?: boolean; recording?: boolean }): void;
+  /** The next transport action is refused with this sentence, as a recording or a stale REAPER would. */
+  refuseNextSync(sentence: string): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
   /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
@@ -456,7 +466,7 @@ export interface DawMockControl {
   facts(): { reachable: boolean; projectMatches: boolean; bridge: boolean };
 }
 
-export type DawMock = DawCapabilitiesApi & DawProjectStateApi & DawLevelsApi & DawPlaceApi & { control: DawMockControl };
+export type DawMock = DawCapabilitiesApi & DawProjectStateApi & DawLevelsApi & DawPlaceApi & DawTransportSyncApi & { control: DawMockControl };
 
 /** How long after a record start or stop the DAW's next heartbeat reports it: the host pushes the transport on a tick, never inside the call. */
 const HEARTBEAT_MS = 250;
@@ -476,6 +486,36 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   // Where the narrator is in the DAW project (setPlace), and the moves the app made (dawGoToChapter).
   let place = { chapterId: '', cursor: 0 };
   const moved: { chapterId: string; where: 'end' | 'at'; seconds: number }[] = [];
+  // The DAW's transport as the page's sync sees it: the play head and edit cursor, whether a watch lease is held, and what the app asked for.
+  const sync: {
+    playing: boolean;
+    recording: boolean;
+    head: number;
+    cursor: number;
+    watching: boolean;
+    refuse: string | null;
+    calls: { action: string; seconds: number }[];
+  } = {
+    playing: false,
+    recording: false,
+    head: 0,
+    cursor: 0,
+    watching: false,
+    refuse: null,
+    calls: [],
+  };
+  const positionSubs = new Set<(position: DawPosition) => void>();
+  const streamPosition = () => {
+    if (!sync.watching || dropped) return;
+    const position: DawPosition = {
+      playing: sync.playing,
+      recording: sync.recording,
+      playPosition: sync.head,
+      editCursor: sync.cursor,
+      sameProject: open === 'linked',
+    };
+    positionSubs.forEach((fn) => fn(wireClone(position)));
+  };
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const later = (ms: number, work: () => void) => {
     const timer = setTimeout(() => {
@@ -587,6 +627,17 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     refuseNextLevel: (sentence) => {
       refuseLevel = sentence;
     },
+    syncCalls: () => sync.calls.map((call) => ({ ...call })),
+    moveInDaw: ({ cursor, head, playing, recording }) => {
+      if (recording !== undefined) sync.recording = recording;
+      if (cursor !== undefined) sync.cursor = cursor;
+      if (head !== undefined) sync.head = head;
+      if (playing !== undefined) sync.playing = playing;
+      streamPosition();
+    },
+    refuseNextSync: (sentence) => {
+      sync.refuse = sentence;
+    },
     setPlace: (chapterId, cursor) => {
       place = { chapterId, cursor };
     },
@@ -681,6 +732,36 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       moved.push({ chapterId, where, seconds: where === 'end' ? 0 : seconds });
       place = { chapterId, cursor: where === 'end' ? place.cursor : seconds };
       return { ok: true, changed: true, message: '', undoSteps: 0 };
+    },
+    // The host's answers (bindings_daw_transportsync.go): the capability's own sentence when it refuses, a DAW with another project open, else it does it
+    // and, while a watch lease is held, streams the position as the bridge would.
+    dawTransportSync: async (action, seconds) => {
+      const support = currentCapabilities(live).capabilities.transport_sync;
+      if (!support?.available) return refusedMove(support?.message ?? MESSAGE_NO_ENGINE);
+      if ((action === 'cursor' || action === 'play') && (!Number.isFinite(seconds) || seconds < 0))
+        return refusedMove('That place is not a usable number of seconds.');
+      if (sync.refuse !== null) {
+        const sentence = sync.refuse;
+        sync.refuse = null;
+        return refusedMove(sentence);
+      }
+      if (action !== 'stop' && open !== 'linked')
+        return refusedMove("REAPER does not have this book's project open, so its transport was left alone. Open the project in REAPER, then try again.");
+      sync.calls.push({ action, seconds });
+      if (action === 'cursor') sync.cursor = seconds;
+      if (action === 'play') {
+        sync.playing = true;
+        sync.cursor = seconds;
+        sync.head = seconds;
+      }
+      if (action === 'stop') sync.playing = false;
+      if (action === 'watch') sync.watching = true;
+      streamPosition();
+      return { ok: true, changed: action !== 'watch', message: '', undoSteps: 0 };
+    },
+    subscribeDawPosition: (onUpdate) => {
+      positionSubs.add(onUpdate);
+      return () => positionSubs.delete(onUpdate);
     },
     dawProjectState: async () => wireClone(snapshot().projectState),
     subscribeDawProjectState: (onUpdate) => {

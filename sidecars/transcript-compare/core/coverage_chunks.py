@@ -22,6 +22,7 @@ from __future__ import annotations
 import math
 import multiprocessing
 import os
+import threading
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
@@ -148,15 +149,20 @@ class ChunkJob:
 _MODELS: dict[tuple, object] = {}
 """One model per process: a worker loads it for its first chunk and keeps it for the rest."""
 
+_MODELS_LOCK = threading.Lock()
+"""Item workers (threads) can reach the first chunk's in-process load together; the second waits for the first's model."""
+
 
 def whisper_chunk(job: ChunkJob) -> ChunkWords:
     """Transcribe one chunk with faster-whisper. Runs in a worker process (or here, for one worker)."""
     import coverage_mode  # a sibling module; imported late because it imports this one
 
     key = (job.model_size, job.model_dir, job.device, job.cpu_threads)
-    if key not in _MODELS:  # pragma: no cover - needs a Whisper model
-        _MODELS[key] = coverage_mode.load_whisper_model(job.model_size, job.model_dir, job.device, job.cpu_threads)
-    segments, info = _MODELS[key].transcribe(job.audio, language=job.language, word_timestamps=True, vad_filter=True, hotwords=job.hotwords or None)
+    with _MODELS_LOCK:
+        if key not in _MODELS:  # pragma: no cover - needs a Whisper model
+            _MODELS[key] = coverage_mode.load_whisper_model(job.model_size, job.model_dir, job.device, job.cpu_threads)
+        model = _MODELS[key]
+    segments, info = model.transcribe(job.audio, language=job.language, word_timestamps=True, vad_filter=True, hotwords=job.hotwords or None)
     words: list[Word] = []
     scores: list[Score] = []
     for segment in segments:
@@ -177,7 +183,8 @@ def spawn_pool(processes: int):  # pragma: no cover - starts child processes
 
 class ChunkedTranscriber:
     """The coverage mode's `Transcriber` when chunking is on: decodes an item's played range once,
-    transcribes its chunks in up to `workers` processes and joins the result."""
+    transcribes its chunks in up to `workers` processes and joins the result. `cpus` bounds the processors its chunk processes may use
+    together (default: all of them); an item pool gives each of its workers a share."""
 
     def __init__(
         self,
@@ -196,6 +203,7 @@ class ChunkedTranscriber:
         chunk_fn: Callable[[ChunkJob], ChunkWords] = whisper_chunk,
         pool_factory: Callable[[int], object] = spawn_pool,
         plain: Callable[[ManifestItem, Callable[[float], None]], ItemWords] | None = None,
+        cpus: int | None = None,
     ):
         self._engine = engine
         self._model_size = model_size
@@ -211,6 +219,7 @@ class ChunkedTranscriber:
         self._chunk_fn = chunk_fn
         self._pool_factory = pool_factory
         self._plain = plain
+        self._cpus = cpus
 
     def __call__(self, item: ManifestItem, on_seconds: Callable[[float], None]) -> ItemWords:
         """Transcribe the item's played range. `on_seconds` is told how much of it is done as chunks finish. An item that is one
@@ -231,10 +240,10 @@ class ChunkedTranscriber:
         planned = plan_chunks(length, self._chunk_seconds, self._overlap_seconds)
         if not planned:
             return ItemWords((), item.start_offset, item.end, self._model_size, self._language, text_hash(self._hotwords))
-        workers = worker_count(
-            self._workers, len(planned), os.cpu_count() or 1, getattr(self._engine, "MAX_WORKERS_BY_MODEL", {}), self._model_size, self._device
-        )
-        threads = max(1, (os.cpu_count() or 1) // workers) if workers > 1 else 0
+        cpus = self._cpus or os.cpu_count() or 1
+        workers = worker_count(self._workers, len(planned), cpus, getattr(self._engine, "MAX_WORKERS_BY_MODEL", {}), self._model_size, self._device)
+        # `cpus` is set when this transcriber is one worker of an item pool: it owns that many threads, so even one chunk worker is bounded
+        threads = max(1, cpus // workers) if workers > 1 or self._cpus else 0
         total = sum(chunk.length for chunk in planned)
         cancel_path = self._progress_path + ".cancel" if self._progress_path else None
 

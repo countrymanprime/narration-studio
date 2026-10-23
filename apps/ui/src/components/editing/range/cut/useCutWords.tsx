@@ -9,6 +9,8 @@ import { registerWordMenuSection } from '../../menu/wordMenuRegistry';
 import { summarize, type SelSummary } from '../../model';
 import { useEditingPage } from '../../script/EditingPageState';
 import { cutScope, docCutsOf, snapEnd, type RangeLocator } from '../common/locate';
+import { spanForKeys } from '../common/spanRequest';
+import type { Span } from '../../ribbon/rangeMath';
 import { BUILT_IN, planRange, type RangePlan } from '../common/rangePlan';
 import { DeleteButton, MuteButton, RestoreButton } from './CutButtons';
 import { CutDialog, cutTitle } from './CutDialog';
@@ -36,6 +38,8 @@ export interface CutWords {
   /** The Delete and M key handlers for `useEditingKeys`, on the page's selection. */
   remove: () => void;
   mute: () => void;
+  /** Why Delete and Mute are off for a selection, or ''. */
+  refusalOf: (summary: SelSummary) => string;
 }
 
 const NO_ANSWER = 'Could not ask the DAW what it can do.';
@@ -48,7 +52,7 @@ const undoThere = (dawName: string): string => `Undo it in ${dawName} (Edit > Un
  * Delete and M keys. Every way in opens the same question; nothing reaches the DAW until it is answered.
  */
 export function useCutWords({ journal, chapterId, chapterName, cuts, locator, onCuts }: CutWordsOptions): CutWords {
-  const { doc, selected } = useEditingPage();
+  const { doc, selected, state } = useEditingPage();
   const daw = usePort('daw');
   const log = usePort('editCuts');
   const alignment = usePort('alignment');
@@ -75,9 +79,9 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
   const refusalOf = useCallback((sum: SelSummary) => cutRefusal(plan, sum, locator), [plan, locator]);
 
   const run = useCallback(
-    async (summary: SelSummary, options: CutOptions, mute: boolean) => {
+    async (summary: SelSummary, options: CutOptions, mute: boolean, span?: Span) => {
       if (!plan || plan.kind === 'refused') return;
-      const result = await journal.act(cutCommand({ daw, log, onCuts }, plan, { chapterId, summary, options, mute, locator }));
+      const result = await journal.act(cutCommand({ daw, log, onCuts }, plan, { chapterId, summary, options, mute, locator, ...(span ? { span } : {}) }));
       if (!result.ok) return overlay.toast(result.refusal.reason, { tone: 'error' });
       const { id, value } = result.value;
       value.ids.forEach((cut) => entries.current.set(cut, id));
@@ -99,6 +103,7 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
     (asked: readonly string[], mute: boolean) => {
       // Words only said at the edge of the selection have no token: the DAW cuts the script words, so the question is about those alone.
       const { keys, stays } = cutScope(doc, asked, locator);
+      const span = spanForKeys(state.span, asked, selected);
       const sum = summarize(doc, [...keys], docCuts, (t) => t);
       const why = refusalOf(sum);
       if (why) return overlay.toast(why, { tone: 'error' });
@@ -119,17 +124,18 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
             plan={plan}
             chapterName={chapterName}
             locator={locator}
+            span={span}
             snap={snap}
             onCancel={close}
             onConfirm={(summary, options) => {
               close();
-              void run(summary, options, mute);
+              void run(summary, options, mute, span);
             }}
           />
         ),
       });
     },
-    [doc, docCuts, refusalOf, plan, alignment, chapterId, chapterName, locator, run],
+    [doc, docCuts, refusalOf, plan, alignment, chapterId, chapterName, locator, run, state.span, selected],
   );
 
   const restore = useCallback(
@@ -219,5 +225,5 @@ export function useCutWords({ journal, chapterId, chapterName, cuts, locator, on
 
   const remove = useCallback(() => ask(selected, false), [ask, selected]);
   const mute = useCallback(() => ask(selected, true), [ask, selected]);
-  return { plan, ask, restore, remove, mute };
+  return { plan, ask, restore, remove, mute, refusalOf };
 }

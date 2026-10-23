@@ -64,6 +64,7 @@ import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
+import { useBoothPageCommands } from './useBoothPageCommands';
 
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
 const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible', pickups: '/pickups' } as const;
@@ -439,6 +440,21 @@ function BoothSession({ source, from, requested, moveDaw, adopt, data, choose, n
     const next = pickerChapters[pickerChapters.findIndex((item) => item.id === from) + direction];
     if (next) changeChapter(targetOf(next.id));
   };
+
+  useBoothPageCommands({
+    chapters: pickerChapters,
+    current: pickerValue,
+    choose: (id) => changeChapter(targetOf(id)),
+    recording: control.recording,
+    recordRefusal: control.disabled ? control.reason : '',
+    hasText: units.length > 0,
+    toggleTake: page.toggleTake,
+    punchAndRoll: page.punchAndRoll,
+    movePhrase: page.movePhrase,
+    exit: page.exit,
+    pickups: { active: pickups.active, lines: pickups.lines.length, step: pickups.step },
+    keymap,
+  });
 
   const words = paragraphs.reduce((sum, paragraph) => sum + wordCount(paragraph.text), 0);
   const wordsRead = units.slice(0, at.cur).reduce((sum, unit) => sum + unit.words, 0) + at.wcur;

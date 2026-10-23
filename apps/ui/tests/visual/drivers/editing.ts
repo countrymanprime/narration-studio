@@ -1,5 +1,5 @@
 // How to reach each `editing` state in STATE_CATALOG (see app.drivers.ts): the Editing page.
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
@@ -38,9 +38,75 @@ export const editingDrivers: Record<string, Driver> = {
   default: async (page) => {
     await openEditing(page, LINKED);
   },
+  // The menu knows the page: with nothing selected the selection actions are listed off, each with its reason.
+  'jump-menu': async (page) => {
+    await openEditing(page, LINKED);
+    await page.keyboard.press('Control+k');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('selected');
+    await page.getByRole('option', { name: /Delete the selected words and audio/ }).waitFor();
+  },
   selection: async (page) => {
     await openEditing(page, EDITS);
     await selectWords(page);
+  },
+  range: async (page) => {
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    // Draw a range on the line's waveform that ends inside words, then zoom in once.
+    const surface = page.locator('[data-ribbon-surface]');
+    await surface.waitFor();
+    const box = await surface.boundingBox();
+    if (!box) throw new Error('The line’s waveform has no box to draw on.');
+    await page.mouse.move(box.x + box.width * 0.31, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.66, box.y + box.height / 2, { steps: 6 });
+    await page.mouse.up();
+    await page.getByRole('slider', { name: 'Start of range' }).waitFor();
+    const shown = page.locator('[data-view-label]');
+    const before = await shown.textContent();
+    await page.getByRole('region', { name: 'Waveform of the chapter' }).getByRole('button', { name: 'Zoom in' }).click();
+    await expect(shown).not.toHaveText(before ?? '');
+  },
+  // The right button held and moved drags the waveform along; the script marks the line it now shows.
+  'wave-scrolled': async (page) => {
+    await openEditing(page, LINKED);
+    await page.locator('[data-k="p-1:1"]').click();
+    const surface = page.locator('[data-ribbon-surface]');
+    await surface.waitFor();
+    const box = await surface.boundingBox();
+    if (!box) throw new Error('The docked waveform has no box to drag.');
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * 0.9, y);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(box.x + box.width * 0.1, y, { steps: 8 });
+    await page.mouse.up({ button: 'right' });
+    await page.locator('[data-in-view]').first().waitFor();
+    // No menu opens after a drag.
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  },
+  // A right click without a drag opens the waveform's own menu.
+  'wave-menu': async (page) => {
+    await openEditing(page, LINKED);
+    await page.locator('[data-k="p-1:1"]').click();
+    const surface = page.locator('[data-ribbon-surface]');
+    await surface.waitFor();
+    await surface.click({ button: 'right', position: { x: 120, y: 28 } });
+    const last = page.getByRole('menuitem', { name: 'Show the whole recording' });
+    await last.waitFor();
+    await last.evaluate(async (el) => {
+      const popup = el.closest('[role="menu"]');
+      await Promise.all(popup?.getAnimations().map((a) => a.finished) ?? []);
+    });
+  },
+  'output-popover': async (page) => {
+    await openEditing(page, EDITS);
+    await bar(page).getByRole('button', { name: 'Show volume and output device' }).click();
+    await page.getByRole('dialog', { name: 'Output' }).waitFor();
+  },
+  'output-no-outputs': async (page) => {
+    await openEditing(page, `${EDITS}&mockAudioOutputs=none`);
+    await bar(page).getByRole('button', { name: 'Show volume and output device' }).click();
+    await page.getByRole('dialog', { name: 'Output' }).getByRole('button', { name: 'Check again' }).waitFor();
   },
   'delete-dialog': async (page) => {
     await openEditing(page, EDITS);

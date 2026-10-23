@@ -13,7 +13,7 @@ decisions and documentation; GitHub is where work is tracked and discussed.
 | Decisions | [`docs/adr/`](../adr/README.md) | Linked from issues and pull requests, never copied |
 | Documentation | `docs/` | Not mirrored anywhere. The **wiki is disabled** on purpose: it is an unreviewed second copy that drifts from the docs that change with the code. A curated public site is generated from `docs/` on every build and never kept as a copy ([`tools/docs-site`](ci-and-releases.md#the-public-docs-site), [The public docs site](ci-and-releases.md#the-public-docs-site)); Pages is not enabled yet (owner settings below). |
 | Planned work | [`docs/prds/`](../prds/README.md) | Issues link the PRD and phase they deliver; the PRD is deleted once the work is steady state |
-| Work in flight | Issues and pull requests | The **Narration Utils** project board |
+| Work in flight | Issues and pull requests | The **Narration Studio** project board |
 
 Never edit milestones or labels by hand in the GitHub UI: the next sync reverts a label or milestone that is
 listed in the files above. To change one, edit the file (or `roadmap.json`) in a pull request. Labels and
@@ -31,10 +31,24 @@ remove it when a maintainer has looked at the issue.
 
 ## Labels
 
-- **Type:** `bug`, `enhancement`, `documentation`, `question`, `accessibility`, plus GitHub's defaults.
-- **Area:** `area:ui`, `area:shell`, `area:python`, `area:reaper`, `area:ci-release`, `area:docs`. On pull
-  requests these are applied automatically from the changed paths; add them to issues by hand.
-- **State:** `needs-triage`, `blocked`. `security` marks a security-relevant change.
+One scheme, three kinds of label. A name never appears twice, with or without a prefix.
+
+- **Area** (`area:*`): which part of the repository a pull request touches: `area:ui`, `area:site`, `area:shell`
+  (Go, `apps/desktop`), `area:python` (sidecars, `libs/python`), `area:reaper`, `area:audacity`, `area:tests`,
+  `area:ci-release` (workflows, scripts, repo tooling, `config/`, `.claude/`), `area:docs`. On pull requests
+  [`labeler.yml`](../../.github/labeler.yml) applies them from the changed paths, for every author including
+  Dependabot; a path may carry more than one. Every tracked path falls under a glob. Add them to issues by hand.
+  There is no `go`, `python` or `ci` label: Go is `area:shell`.
+- **Origin or kind:** `dependencies` (set by [`dependabot.yml`](../../.github/dependabot.yml) on every ecosystem and
+  nothing else, so Dependabot's own `go`, `javascript`, `python:uv` and `github_actions` labels are no longer
+  added), `security` (hand-applied; no workflow sets it), `risk:high` (set by `pr-risk.yml`), `bug`, `enhancement`,
+  `documentation`, `question`, `accessibility`, plus GitHub's defaults.
+- **State:** `needs-triage`, `blocked`.
+
+To add a label, add it to `labels.json`; to label a path, add a glob to `labeler.yml` under an existing or new
+`area:*` label. Tests in `scripts/github/sync-labels.test.mjs` fail if `labeler.yml` or `dependabot.yml` names a label
+`labels.json` lacks, or if two labels differ only by an `area:` prefix. The sync never deletes a label, so retiring one
+is an owner step: `gh label delete <name> --yes` (deleting removes it from old pull requests too).
 
 ## Pull requests
 
@@ -45,7 +59,7 @@ remove it when a maintainer has looked at the issue.
 
 ## Project board
 
-One project, **Narration Utils**, owned by the maintainer and linked from the repository's Projects tab.
+One project, **Narration Studio**, owned by the maintainer and linked from the repository's Projects tab.
 
 - **Fields:** the built-in *Status* (Backlog, Ready, In progress, In review, Done), plus the built-in
   *Milestone* and *Labels*. There is deliberately no separate *Area* field; that would duplicate the `area:*`
@@ -67,7 +81,7 @@ a long-lived token is a secret this repository does not need.
 2. Create and link it:
 
    ```bash
-   gh project create --owner countrymanprime --title "Narration Utils"
+   gh project create --owner countrymanprime --title "Narration Studio"
    gh project link <number> --owner countrymanprime --repo countrymanprime/narration-studio
    ```
 
@@ -85,7 +99,7 @@ These live outside the repository, so a pull request cannot enforce them:
 | `Main Protection` and `Pull Request` rulesets (Settings > Rules) | Active on the default branch. `Main Protection` blocks deleting, force-pushing to and re-creating `main` (the admin role and the owner bypass it). `Pull Request`: squash only, one approval, code-owner review (`.github/CODEOWNERS`), stale approvals dismissed on push, last push approved, threads resolved; the admin role bypasses through a pull request and the owner is exempt. Neither requires a status check. Read with `gh api repos/countrymanprime/narration-studio/rulesets` (and `.../rulesets/<id>` for the rules). See [CI and releases](ci-and-releases.md#what-the-repository-enforces-and-what-ci-is-for) |
 | `production` environment (Settings > Environments) | Exists: required reviewer `@countrymanprime`, self-review allowed, administrator bypass on, **no branch or tag restriction**. **Promote pre-release** waits on it. Restricting it to `main` and `v*` tags is optional and off. Read with `gh api repos/countrymanprime/narration-studio/environments` |
 | Workflow token defaults (Settings > Actions > General) | Read-only default `GITHUB_TOKEN` permissions; workflows may not approve pull requests. Every workflow also declares its own `permissions` ([Workflow security](ci-and-releases.md#workflow-security)). Read with `gh api repos/countrymanprime/narration-studio/actions/permissions/workflow` |
-| GitHub Pages (Settings > Pages) | **Not enabled** (the API answers 404). **Owner step:** Settings > Pages > Build and deployment > Source = **GitHub Actions** (or `gh api -X POST repos/countrymanprime/narration-studio/pages -f build_type=workflow`). Nothing else: the workflow ([`pages.yml`](../../.github/workflows/pages.yml), [what it does](ci-and-releases.md#the-pages-workflow)) brings its own `github-pages` environment on first deploy. Until it is enabled, every push to `main` shows a red `deploy` job in the `Pages` run (the `build` job passes); after enabling, re-run the latest `Pages` run or start it from the Actions tab, and the docs site is at `https://countrymanprime.github.io/narration-utils/` with the Storybook at `.../storybook/`. Optional hardening once the environment exists: Settings > Environments > `github-pages` > Deployment branches and tags > `main` only (the workflow's own `if` already refuses other refs). No agent enables it |
+| GitHub Pages (Settings > Pages) | **Not enabled** (the API answers 404). **Owner step:** Settings > Pages > Build and deployment > Source = **GitHub Actions** (or `gh api -X POST repos/countrymanprime/narration-studio/pages -f build_type=workflow`). Nothing else: the workflow ([`pages.yml`](../../.github/workflows/pages.yml), [what it does](ci-and-releases.md#the-pages-workflow)) brings its own `github-pages` environment on first deploy. Until it is enabled, every push to `main` that touches the site shows a red `deploy` job in the `Pages` run (the `build` job passes); after enabling, re-run the latest `Pages` run or start it from the Actions tab, and the site is at `https://countrymanprime.github.io/narration-studio/` with the docs at `.../docs/`, the demo at `.../demo/` and the Storybook at `.../storybook/`. Optional hardening once the environment exists: Settings > Environments > `github-pages` > Deployment branches and tags > `main` only (the workflow's own `if` already refuses other refs). No agent enables it |
 | Code-signing certificate and secrets | **None exist, by decision:** the first stable release is unsigned (owner decision D7) and no workflow signs anything. Adding a certificate, a signing service or a secret is the owner's; the repository has no Actions secrets (0 on 2026-09-21) and the workflows use only `GITHUB_TOKEN`. See [Build provenance](ci-and-releases.md#build-provenance) and [SECURITY.md](../../SECURITY.md#what-is-in-scope) |
 | Secret scanning and push protection | On. Its two extras, non-provider patterns and validity checks, are off; turning them on is optional (`gh api -X PATCH repos/countrymanprime/narration-studio -f "security_and_analysis[secret_scanning_non_provider_patterns][status]=enabled"`, and `...[secret_scanning_validity_checks]...`) |
 | Required status checks | None, by owner decision: the docs follow the live rulesets. `zizmor`, `security.yml`, `osv-scanner.yml`, CodeQL and dependency review are advisory too, and path-filtered (a pull request that changes none of what they read shows no such check, so none may be required). If the owner ever adds one, the safe first choice is `Docs / Docs checks` (Settings > Rules > `Pull Request` > Require status checks to pass): it runs on every pull request, docs-only ones included, so it never stays pending ([the docs link check](ci-and-releases.md#the-docs-link-check)) |

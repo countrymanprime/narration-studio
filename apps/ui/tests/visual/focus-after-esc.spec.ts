@@ -3,7 +3,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 
-const WORDS = '[data-script] [data-kind="w"][data-k]';
+// The text's words, not the chapter heading paragraph's.
+const WORDS = '[data-script] [data-pid]:not([data-pid="heading"]) [data-kind="w"][data-k]';
 const CHIP = '[data-tchip]';
 
 /** `TAG#id` of the focused element, or its accessible name when it has no id: what a failure should print. */
@@ -110,6 +111,9 @@ test.describe('The jump menu returns focus on Escape', () => {
       });
       await page.keyboard.press('Control+k');
       await page.getByRole('dialog').waitFor();
+      // The control's hint (the header's project button shows one on focus) lingers for a few frames after focus moves into the menu,
+      // and a hint owns Escape while it shows (Dialog.tsx): an Escape sent before it is gone closes the hint and leaves the menu open.
+      await expect(page.locator('[data-hint-popup]')).toHaveCount(0);
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog')).toHaveCount(0);
       await expect(page.locator('[data-was-focused]')).toBeFocused();

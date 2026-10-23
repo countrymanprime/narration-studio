@@ -52,7 +52,7 @@ H.test('set_active_take makes the named take active in one undo step', function(
   s:send('set_active_take', 'u1', ITEM, second.guid)
   H.eq(s:events(), { { 'ACTIVE_TAKE_SET', 'u1', ITEM, second.guid, '1' } })
   H.eq(item.active_index, 2)
-  H.eq(s.fake:undo_labels(), { 'Narration Utils: use take' })
+  H.eq(s.fake:undo_labels(), { 'Narration Studio: use take' })
   H.truthy((s.fake.item_updates or 0) > 0, 'the item is refreshed after the change')
 end)
 
@@ -169,7 +169,7 @@ H.test('apply_fx_chain adds the chain to the named track in one undo step and to
   H.eq(#track.items, 1)
   H.eq(#(item.takes[1].fx or {}), 0)
   H.eq(calls_named(s, 'SplitMediaItem'), 0)
-  H.eq(s.fake:undo_labels(), { 'Narration Utils: apply FX chain Voice/Test EQ.RfxChain to Chapter 1' })
+  H.eq(s.fake:undo_labels(), { 'Narration Studio: apply FX chain Voice/Test EQ.RfxChain to Chapter 1' })
 end)
 
 H.test('apply_fx_chain falls back to the full path on a REAPER that refuses the listed name', function()
@@ -202,7 +202,7 @@ H.test('apply_fx_chain adds the chain to the master track by name or by its GUID
   H.eq(#s.fake.master.fx, 6)
   H.eq(
     s.fake:undo_labels(),
-    { 'Narration Utils: apply FX chain Master.RfxChain to the master track', 'Narration Utils: apply FX chain Master.RfxChain to the master track' }
+    { 'Narration Studio: apply FX chain Master.RfxChain to the master track', 'Narration Studio: apply FX chain Master.RfxChain to the master track' }
   )
 end)
 

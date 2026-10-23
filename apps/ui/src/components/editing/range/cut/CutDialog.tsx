@@ -10,6 +10,8 @@ import type { RangeLocator, SnappedEnd } from '../common/locate';
 import { snapText } from '../common/locate';
 import { cutPlanText, type RangePlan } from '../common/rangePlan';
 import { Strips } from '../common/Strips';
+import { SubWordRow } from '../common/SubWordRow';
+import type { Span } from '../../ribbon/rangeMath';
 import { DEFAULT_CUT, FADE_CHOICES, PAD_CHOICES, type CutOptions } from './cutCommand';
 
 type Acting = Exclude<RangePlan, { kind: 'refused' }>;
@@ -45,6 +47,8 @@ export interface CutDialogProps {
   plan: Acting;
   chapterName: string;
   locator: RangeLocator;
+  /** The exact range drawn on the waveform, when the words came from it: an edge inside a word is shown as a preview, since the DAW cuts whole words. */
+  span?: Span;
   /** Moves one end (seconds now) to a zero crossing through the alignment port. */
   snap: (at: number) => Promise<SnappedEnd>;
   onCancel: () => void;
@@ -56,7 +60,7 @@ export interface CutDialogProps {
  * the audio before and after, the time range with its snapped ends, where the words sit, where the later audio goes, the choices and what the
  * DAW does and how it is undone. Cancel has the focus.
  */
-export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName, locator, snap, onCancel, onConfirm }: CutDialogProps) {
+export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName, locator, span, snap, onCancel, onConfirm }: CutDialogProps) {
   const [mode, setMode] = useState<CutOptions['mode']>(mute ? 'gap' : DEFAULT_CUT.mode);
   const [fade, setFade] = useState<number>(DEFAULT_CUT.fadeMs);
   const [pad, setPad] = useState<number>(0);
@@ -98,6 +102,7 @@ export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName
         <dd className="m-0 font-mono" data-cut-range>
           {r ? `${clock(sum.start)} to ${clock(sum.end)} · ${sec(sum.len)}` : '—'}
         </dd>
+        <SubWordRow span={span} items={sum.audible} attr="data-cut-subword" />
         {ends ? (
           <>
             <dt className="pt-0.5">

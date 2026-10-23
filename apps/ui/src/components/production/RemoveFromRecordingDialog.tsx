@@ -1,17 +1,10 @@
-import { useState } from 'react';
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
-import { RadioGroup } from '../primitives/RadioGroup';
-
-const OPTIONS = [
-  { value: 'reference' as const, label: 'Not a chapter', description: 'A part title, an epigraph or a false split. Hidden from navigation too.' },
-  { value: 'opening' as const, label: 'Front matter', description: "Stays in the manuscript's navigation, not recorded as a chapter." },
-];
 
 /**
  * "Remove <chapter> from recording?" a reclassification, not
  * a delete (docs/design/design-system.md#base-ui-wrappers reserves the red confirm for destructive ones), so the confirm button stays the ordinary primary
- * colour. `kind` defaults to `reference` ("Not a chapter"), the safest default.
+ * colour. A chapter is removed as `reference` ("not a chapter", a part title, an epigraph or a false split); there is no other kind to choose.
  */
 export function RemoveFromRecordingDialog({
   chapterTitle,
@@ -24,21 +17,17 @@ export function RemoveFromRecordingDialog({
   onConfirm: (kind: ManuscriptContentKind) => void;
   onCancel: () => void;
 }) {
-  const [kind, setKind] = useState<ManuscriptContentKind>('reference');
   return (
     <ConfirmDialog
       title={`Remove ${chapterTitle} from recording?`}
       body={
-        <div className="space-y-3">
-          <p>
-            It leaves the chapter table, totals, the reader and the teleprompter. Its text stays in the manuscript, and its track link is cleared. You can
-            restore it below the table.
-          </p>
-          <RadioGroup label="What is it?" value={kind} onChange={setKind} options={OPTIONS} />
-        </div>
+        <p>
+          It leaves the chapter table, totals, the reader and the teleprompter. Its text stays in the manuscript, and its track link is cleared. You can restore
+          it below the table.
+        </p>
       }
       confirmLabel="Remove from recording"
-      confirm={() => onConfirm(kind)}
+      confirm={() => onConfirm('reference')}
       cancel={onCancel}
       pending={busy}
     />

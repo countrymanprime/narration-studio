@@ -72,7 +72,7 @@ import (
 // Keep this in lockstep with apps/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 140
+const hostAPIVersion = 141
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -272,6 +272,16 @@ type Host struct {
 	// placeFollower is the DAW port's follow_position role over the same bridge client: DawPlace and DawGoToChapter (bindings_daw_place.go)
 	// read and move the narrator's place in the project. Nil (a true nil interface) with no bridge client or no such role.
 	placeFollower dawport.PlaceFollower
+	// transportSyncer is the DAW port's transport_sync role over the same bridge client: DawTransportSync (bindings_daw_transportsync.go) drives
+	// REAPER's cursor and transport through it, and it streams the positions daw_position_changed carries. Nil with no bridge client or no such role.
+	transportSyncer dawport.TransportSyncer
+	// dawSyncProject is the .rpp the last DawTransportSync call resolved as this book's project, so each streamed position can say whether REAPER
+	// has it open without reading the disk 4 times a second.
+	dawSyncProject struct {
+		mu sync.Mutex
+		// +checklocks:mu
+		path string
+	}
 	// backupKeeper is the DAW port's backups role: on an Audacity launch with a project open, the Audacity adapter's,
 	// over the project's one scripting pipe client (h.audacity), opened on the first request and closed when the next project
 	// replaces it.
@@ -389,7 +399,9 @@ type Host struct {
 	// backgroundChecks is what the background recording check loop remembers (coverage_background.go).
 	backgroundChecks backgroundChecks
 	// powerState is a seam for tests: nil means platformPower, the operating system's own answer.
-	powerState     func() coverage.Power
+	powerState func() coverage.Power
+	// liveFollowing is a seam for tests: nil means the teleprompter's own answer, whether the Booth's live tracking is running.
+	liveFollowing  func() bool
 	transcriptRuns transcriptWatch
 	// coverageRuns turns recording check states into job ends (bindings_coverage.go).
 	coverageRuns coverageWatch
@@ -785,10 +797,14 @@ func (h *Host) configureLocked(next config) {
 		h.lastActionUndoer, _ = dawAdapter.Role(dawport.CapUndoLast).(dawport.LastActionUndoer)
 		h.monitorLeveler, _ = dawAdapter.Role(dawport.CapMonitorLevel).(dawport.MonitorLeveler)
 		h.placeFollower, _ = dawAdapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)
+		h.transportSyncer, _ = dawAdapter.Role(dawport.CapTransportSync).(dawport.TransportSyncer)
+		if h.transportSyncer != nil {
+			h.transportSyncer.OnPosition(h.emitDawPosition)
+		}
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
-		h.monitorLeveler, h.placeFollower = nil, nil
+		h.monitorLeveler, h.placeFollower, h.transportSyncer = nil, nil, nil
 		// An Audacity project's place and track-selection roles are the Audacity adapter's, over the project's one pipe client.
 		if h.audacity != nil {
 			h.placeFollower, _ = h.audacity.adapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)
@@ -1436,7 +1452,7 @@ func unresolvedLaunchReason(next config) (string, bool) {
 // startupProjectFileReason is the narrator-facing explanation emitted when a
 // REAPER launch could not be resolved to any project: an unsaved REAPER
 // project has no file to match at all, and a saved one may simply not be
-// linked to a Narration Utils project yet. Either way the picker (already
+// linked to a Narration Studio project yet. Either way the picker (already
 // shown whenever projectFolder is empty) is where the narrator resolves it.
 func startupProjectFileReason(projectFile string) string {
 	if projectFile == "" {
@@ -1455,6 +1471,13 @@ func (h *Host) canAttachLocked() bool {
 // idleLocked reports whether nothing is running that a restart or a project switch would displace: an import draft, a Story Bible
 // build, a download, a comparison, a measurement, a diagnostics check, a teleprompter session or a REAPER take this app started. The caller holds h.mu.
 func (h *Host) idleLocked() bool {
+	return h.idleLockedFor(false)
+}
+
+// idleLockedFor is idleLocked, leaving out the Booth's live tracking when background is true: a background recording check
+// may run between takes while the teleprompter follows a reading, below normal priority and on its share of the processors
+// (coverage.BackgroundCPUs). REAPER recording still holds it off (coverage.NextBackground). The caller holds h.mu.
+func (h *Host) idleLockedFor(background bool) bool {
 	if h.manuscript != nil && !h.manuscript.CanSwitchProject() {
 		return false
 	}
@@ -1496,7 +1519,7 @@ func (h *Host) idleLocked() bool {
 	if h.coverage != nil && h.coverage.Busy() {
 		return false
 	}
-	if h.teleprompter != nil && h.teleprompter.Busy() {
+	if !background && h.teleprompter != nil && h.teleprompter.Busy() {
 		return false
 	}
 	if h.recorder != nil && h.recorder.Busy() {
@@ -1697,7 +1720,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// defaulting to 0, since published room-tone guidance disagrees.
 	// debug_logging turns on the run log's debug-level decision records: global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
-	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
+	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
 	"Manuscript": {{"color_note", "Note color", "color", nil}},
 	// default_pronunciation_source is which pronunciation source a new
 	// name's pronunciation prefers, both at build time and when the narrator adds an alias: "" (Automatic) keeps the
@@ -1789,13 +1812,23 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"cascade_recheck_model", "Re-check Whisper model", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
 		// Also re-check passages whose words Whisper scored under this; 0 re-checks only what is missing.
 		{"cascade_unsure_below", "Also re-check passages Whisper is unsure of (word score under; 0 = off)", "number", nil},
+		// With a score line set, the larger model re-checks each item's doubtful passages while the first pass is still on the next
+		// items, in one process. Off runs the first pass over every item before the larger model starts.
+		{"cascade_pipeline", "Run the larger model alongside the first pass", "bool", nil},
 		// How a long item is cut up and how many Whisper processes work on the pieces. They change how fast
 		// the same words are made, not which ones count, so changing one never makes a result stale.
-		{"parallel_workers", "Parallel Whisper processes (0 = chosen from the model)", "number", nil},
+		{"parallel_workers", "Items checked at once (0 = chosen from the model and the processors)", "number", nil},
 		{"chunk_seconds", "Chunk length in seconds (0 = each item whole)", "choice", []string{"0", "60", "120", "300", "600", "900"}},
 		{"chunk_overlap_seconds", "Crossover between neighbouring chunks", "number", nil},
 		// Chapters a Check recordings run checks at once; they share the processors.
 		{"parallel_chapters", "Chapters checked at once", "number", nil},
+		// The background check's own settings (coverage_background.go): the first-time notice's answer, its model pair and
+		// its processors. Its pair is separate from the cascade above, so a heavy choice for the narrator's own check never
+		// runs unannounced in the background.
+		{"background_checks_confirmed", "The narrator answered the background checks notice", "bool", nil},
+		{"background_first_pass_model", "Model for background checks", "choice", []string{"tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
+		{"background_recheck_model", "Double-check model for background checks", "choice", []string{"none", "tiny", "small", "medium", "large-v3-turbo", "large-v3"}},
+		{"background_processors", "Processors for background checks (0 = half this computer's)", "number", nil},
 	},
 	// StageRecommendations (see docs/architecture/stage-recommendations.md) chooses which signals must be
 	// met for a stage suggestion: one choice field per signal id a provider declares (apps/desktop/bindings_stages.go's

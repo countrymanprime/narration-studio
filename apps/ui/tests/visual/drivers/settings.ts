@@ -13,18 +13,12 @@ async function openUpdates(page: Page, seed: string): Promise<void> {
 }
 
 /**
- * Settings > Recording & DAW with the built-in recorder chosen on a computer that names `outputs`, and the Voice sample output row on screen with
- * `choose` picked. The suite's browser names no outputs of its own (or its own, by machine), so the list is fixed before the page loads.
+ * Settings > Recording & DAW with the built-in recorder chosen on a computer whose outputs the mock names (`?mockAudioOutputs=`: its two usual outputs, or
+ * with `outputs` 'long' its long and right-to-left ones), and the Voice sample output row on screen with `choose` picked. The mock replaces the webview's
+ * whole output listing when the page boots, so the names come from it, not from a script of the suite's own.
  */
-async function openSampleOutput(page: Page, outputs: string[], choose: string): Promise<void> {
-  await page.addInitScript((labels) => {
-    const list = [
-      { kind: 'audiooutput', deviceId: 'default', label: 'Default - Speakers' },
-      ...labels.map((label, i) => ({ kind: 'audiooutput', deviceId: `out${i}`, label })),
-    ];
-    Object.defineProperty(navigator.mediaDevices, 'enumerateDevices', { value: async () => list, configurable: true });
-  }, outputs);
-  await openSettings(page, undefined, '?mockDawExperimentalOn=1');
+async function openSampleOutput(page: Page, outputs: 'usual' | 'long', choose: string): Promise<void> {
+  await openSettings(page, undefined, `?mockDawExperimentalOn=1${outputs === 'long' ? '&mockAudioOutputs=long' : ''}`);
   await page.getByRole('radio', { name: /^Built-in recorder/ }).click();
   await page
     .getByRole('radio', { name: /^Built-in recorder/ })
@@ -86,6 +80,14 @@ async function openFirstPagePanel(page: Page): Promise<void> {
 }
 
 export const settingsDrivers: Record<string, Driver> = {
+  // The menu lists every setting by its label under its category.
+  'jump-menu': async (page) => {
+    await openSettings(page);
+    await page.getByRole('radiogroup', { name: 'Record with' }).waitFor();
+    await page.keyboard.press('Control+k');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('microphone');
+    await page.getByRole('option').first().waitFor();
+  },
   'page-top': async (page) => {
     await openSettings(page);
     // The page has arrived once the first category's heading and its Record with radios are drawn.
@@ -112,12 +114,11 @@ export const settingsDrivers: Record<string, Driver> = {
     await row.getByText("Voice samples play on this computer's default output.", { exact: false }).waitFor();
   },
   'recording-sample-output-builtin': async (page) => {
-    await openSampleOutput(page, ['Speakers (Realtek)', 'Headphones (Focusrite USB Audio)'], 'Headphones (Focusrite USB Audio)');
+    await openSampleOutput(page, 'usual', 'Headphones (Focusrite USB Audio)');
   },
   'recording-sample-output-long-name': async (page) => {
-    // An interface that names itself at length, and one in Arabic with an emoji: the row must stay inside its card at every width.
-    const long = 'Line Out (Behringer UMC1820 18x20 USB Audio Interface, front panel monitor output 3/4, left and right)';
-    await openSampleOutput(page, [long, 'مكبرات الصوت (USB Audio Device 🎧)'], long);
+    // An interface that names itself at length, and one in Arabic with an emoji (the mock's `long` outputs): the row must stay inside its card at every width.
+    await openSampleOutput(page, 'long', 'Realtek High Definition Audio (Digital Output Optical S/PDIF) via USB Audio CODEC Hub, port 3');
   },
   'recording-found': async (page) => {
     await openSettings(page, undefined, '?mockDawChoice=found');
@@ -148,6 +149,12 @@ export const settingsDrivers: Record<string, Driver> = {
     await openAdvanced(page);
     await page.getByRole('table', { name: 'What the recording tool can do' }).waitFor();
     await page.getByLabel('REAPER program', { exact: true }).waitFor();
+  },
+  'recording-sync-activity': async (page) => {
+    await openSettings(page, 'Recording & DAW', '?mockChapterSync=activity');
+    await openAdvanced(page);
+    const row = await showSettingsRow(page, 'daw.syncActivity');
+    await row.getByRole('button', { name: /^Undo: Linked/ }).waitFor();
   },
   'recording-reaper-path-invalid': async (page) => {
     await openSettings(page, 'Recording & DAW');

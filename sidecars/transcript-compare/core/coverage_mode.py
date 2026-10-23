@@ -50,12 +50,15 @@ import json
 import math
 import os
 import re
+import threading
 from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
 from types import ModuleType
 
 import coverage_chunks
+import coverage_pipeline
 import recording_coverage as coverage_model
 
 MANIFEST_SCHEMA_VERSION = 1
@@ -307,6 +310,32 @@ def covers(words: ItemWords, item: ManifestItem, model: str | None = None) -> bo
     return in_range and (model is None or words.model == model)
 
 
+def checked_by(args) -> str | None:
+    """The larger model whose work a run keeps: the pipeline's `--recheck-model`, or `--checked-by` for a stage the host runs on its own.
+    A range that model has already transcribed is checked; a check of unchanged audio never sends it there again."""
+    return getattr(args, "recheck_model", None) or getattr(args, "checked_by", None) or None
+
+
+def checked_ranges(words: ItemWords, model: str | None) -> list[tuple[float, float]]:
+    """The ranges of a words file `model` transcribed: the whole file when it made it, else the spans a re-check gave it."""
+    if not model:
+        return []
+    return [(span.start, span.end) for span in words.spans_or_default() if span.model == model]
+
+
+def inside_ranges(start: float, end: float, ranges: Sequence[tuple[float, float]]) -> bool:
+    """Whether `[start, end]` lies within one of `ranges` (the edge tolerance of `covers`)."""
+    return any(low <= start + RANGE_TOLERANCE_SECONDS and high >= end - RANGE_TOLERANCE_SECONDS for low, high in ranges)
+
+
+def unchecked_runs(result: _ItemResult, below: float, model: str | None) -> list[dict]:
+    """`unsure_runs` without the passages `model` has already re-checked: the larger model's own doubt is the final word on them."""
+    if result.words is None:
+        return []
+    ranges = checked_ranges(result.words, model)
+    return [run for run in unsure_runs(result, below) if not inside_ranges(run["start"], run["end"], ranges)]
+
+
 def played_words(words: ItemWords, item: ManifestItem) -> list[Word]:
     """The words whose midpoint lies in the item's played range."""
     return [word for word in words.words if item.start_offset <= (word[1] + word[2]) / 2 <= item.end]
@@ -316,15 +345,20 @@ def played_words(words: ItemWords, item: ManifestItem) -> list[Word]:
 # transcription
 
 
-def load_whisper_model(model_size: str, model_dir: str | None, device: str, cpu_threads: int = 0):  # pragma: no cover - needs a Whisper model
+def load_whisper_model(
+    model_size: str, model_dir: str | None, device: str, cpu_threads: int = 0, num_workers: int = 1
+):  # pragma: no cover - needs a Whisper model
     """The faster-whisper model. `cpu_threads` 0 leaves the thread count to faster-whisper; a run with several
-    workers gives each its share of the CPUs so they do not fight over them."""
+    workers gives each its share of the CPUs so they do not fight over them. `num_workers` is how many threads may
+    call `transcribe` at once on this one instance, so the workers of an item pool share one copy of the weights."""
     from faster_whisper import WhisperModel
 
     # model_dir is the host's hash-verified asset directory; local_files_only keeps faster-whisper
     # off the network, as compare.transcribe does (threat-model row 1a).
     compute_type = "int8" if device == "cpu" else "float16"
-    return WhisperModel(model_dir or model_size, device=device, compute_type=compute_type, local_files_only=bool(model_dir), cpu_threads=cpu_threads)
+    return WhisperModel(
+        model_dir or model_size, device=device, compute_type=compute_type, local_files_only=bool(model_dir), cpu_threads=cpu_threads, num_workers=num_workers
+    )
 
 
 _load_whisper_model = load_whisper_model
@@ -333,21 +367,37 @@ _load_whisper_model = load_whisper_model
 
 class WhisperTranscriber:
     """Decodes an item's played range and transcribes it with one Whisper model, loaded on first use
-    (an all-cached run never loads it) and kept for the rest of the run."""
+    (an all-cached run never loads it) and kept for the rest of the run. Several threads may call it: the model is
+    loaded once, and with `serialize` (a GPU) they take the model one call at a time."""
 
-    def __init__(self, engine: ModuleType, *, model_size: str, language: str | None, hotwords: str | None, model_factory: Callable[[], object]):
+    def __init__(
+        self, engine: ModuleType, *, model_size: str, language: str | None, hotwords: str | None, model_factory: Callable[[], object], serialize: bool = False
+    ):
         self._engine = engine
         self._model_size = model_size
         self._language = language
         self._hotwords = hotwords
         self._factory = model_factory
         self._model = None
+        self._load_lock = threading.Lock()
+        self._turn = threading.Lock() if serialize else None
+
+    def _loaded(self):
+        with self._load_lock:
+            if self._model is None:
+                self._model = self._factory()
+            return self._model
 
     def __call__(self, item: ManifestItem, on_seconds: Callable[[float], None]) -> ItemWords:
         audio = self._engine.decode_segment(item.source_file, item.start_offset, item.length)
-        if self._model is None:
-            self._model = self._factory()
-        segments, info = self._model.transcribe(audio, language=self._language, word_timestamps=True, vad_filter=True, hotwords=self._hotwords or None)
+        model = self._loaded()
+        if self._turn is None:
+            return self._transcribe(model, item, audio, on_seconds)
+        with self._turn:
+            return self._transcribe(model, item, audio, on_seconds)
+
+    def _transcribe(self, model, item: ManifestItem, audio, on_seconds: Callable[[float], None]) -> ItemWords:
+        segments, info = model.transcribe(audio, language=self._language, word_timestamps=True, vad_filter=True, hotwords=self._hotwords or None)
         words: list[Word] = []
         scores: list[Score] = []
         for segment in segments:
@@ -364,23 +414,58 @@ class WhisperTranscriber:
 # the run
 
 
+_PROGRESS_LOCK = threading.RLock()
+"""Every writer of the progress file takes this: the file is replaced through one temporary name, which two threads must not share."""
+
+
 class _Progress:
-    """Progress that never moves backwards, and TRANSCRIBE from seconds done over seconds to do."""
+    """Progress that never moves backwards, and TRANSCRIBE from seconds done over seconds to do. Several workers report into it: each
+    item in flight has its own seconds so far (`update`), and a finished one moves into the total done (`finish`)."""
 
     def __init__(self, engine: ModuleType, path: str | None, total_seconds: float):
         self._engine = engine
         self._path = path
         self._total = total_seconds
-        self.done = 0.0
+        self._finished = 0.0
+        self._active: dict[object, float] = {}
         self._pct = 0
+        self._lock = _PROGRESS_LOCK
+
+    @property
+    def done(self) -> float:
+        with self._lock:
+            return self._finished + sum(self._active.values())
+
+    def set_total(self, seconds: float) -> None:
+        """Change what the done seconds are measured against: a pipelined run learns how much the larger model has to do as it goes."""
+        with self._lock:
+            self._total = seconds
 
     def report(self, stage: str, pct: int, message: str) -> None:
-        self._pct = max(self._pct, pct)
-        self._engine.write_progress(self._path, stage, self._pct, message)
+        with self._lock:
+            self._pct = max(self._pct, pct)
+            self._engine.write_progress(self._path, stage, self._pct, message)
 
     def transcribed(self, seconds: float, message: str) -> None:
-        share = min(1.0, seconds / self._total) if self._total > 0 else 1.0
-        self.report("TRANSCRIBE", TRANSCRIBE_START_PCT + int((TRANSCRIBE_END_PCT - TRANSCRIBE_START_PCT) * share), message)
+        with self._lock:
+            share = min(1.0, seconds / self._total) if self._total > 0 else 1.0
+            self.report("TRANSCRIBE", TRANSCRIBE_START_PCT + int((TRANSCRIBE_END_PCT - TRANSCRIBE_START_PCT) * share), message)
+
+    def update(self, key: object, seconds: float, message: str) -> None:
+        with self._lock:
+            self._active[key] = seconds
+            self.transcribed(self.done, message)
+
+    def finish(self, key: object, seconds: float, message: str) -> None:
+        with self._lock:
+            self._active.pop(key, None)
+            self._finished += seconds
+            self.transcribed(self.done, message)
+
+    def credit(self, seconds: float, message: str) -> None:
+        with self._lock:
+            self._finished += seconds
+            self.transcribed(self.done, message)
 
     @property
     def pct(self) -> int:
@@ -409,52 +494,76 @@ def _chapter(engine: ModuleType, manuscript: str, chapter_id: str) -> dict:
 
 def _words_for(item: ManifestItem, path: Path, transcriber: Transcriber, progress: _Progress, engine: ModuleType, args, label: str) -> _ItemResult:
     """Reuse the item's words file if it covers the item with this run's model, otherwise
-    transcribe and write it."""
+    transcribe and write it. The write is atomic: a words file that exists is whole."""
     cached = read_words_file(path)
-    if cached is not None and covers(cached, item, args.model):
+    if cached is not None and _covers_for(cached, item, args):
         return _ItemResult(item, "reused", cached, tuple(played_words(cached, item)))
     engine.check_cancelled(args.progress)
     progress.report("DECODE", progress.pct, f"Decoding item {label}...")
-    start = progress.done
+    key = ("item", item.index)
 
     def on_seconds(seconds: float) -> None:
         engine.check_cancelled(args.progress)
         done = min(max(seconds, 0.0), item.length)
-        progress.transcribed(start + done, f"Transcribing item {label}... {engine.format_time(done)} / {engine.format_time(item.length)}")
+        progress.update(key, done, f"Transcribing item {label}... {engine.format_time(done)} / {engine.format_time(item.length)}")
 
     words = transcriber(item, on_seconds)
     write_words_file(path, words)
-    progress.done = start + item.length
-    progress.transcribed(progress.done, f"Transcribed item {label}")
+    progress.finish(key, item.length, f"Transcribed item {label}")
     return _ItemResult(item, "transcribed", words, tuple(played_words(words, item)))
 
 
-def _collect_words(items: Sequence[ManifestItem], words_dir: Path, transcriber: Transcriber, engine: ModuleType, args) -> list[_ItemResult]:
+def _collect_words(items: Sequence[ManifestItem], words_dir: Path, transcriber: Transcriber, engine: ModuleType, args, workers: int = 1) -> list[_ItemResult]:
+    """Every playing item's words, `workers` items at a time (one is the plain loop). A cancel or a failure stops the items not yet
+    started; the ones finished keep their words files."""
     playing = [item for item in items if not item.muted]
     pending = []
     for item in playing:
-        hit = _is_covered(words_dir, item, args.model)
+        hit = _is_covered(words_dir, item, args)
         engine.log("checked the item's cached words", level="debug", event="coverage.cache", item_index=item.index, item_guid=item.item_guid, hit=hit)
         if not hit:
             pending.append(item)
     progress = _Progress(engine, args.progress, sum(item.length for item in pending))
     results = {item.index: _ItemResult(item, None, None, ()) for item in items if item.muted}
-    for position, item in enumerate(playing):
+
+    def label_of(position: int, item: ManifestItem) -> str:
+        return f"{pending.index(item) + 1}/{len(pending)}" if item in pending else f"{position + 1}"
+
+    def work(position: int, item: ManifestItem) -> _ItemResult:
         engine.check_cancelled(args.progress)
-        label = f"{pending.index(item) + 1}/{len(pending)}" if item in pending else f"{position + 1}"
-        result = _words_for(item, words_dir / item.words_file, transcriber, progress, engine, args, label)
+        return _words_for(item, words_dir / item.words_file, transcriber, progress, engine, args, label_of(position, item))
+
+    def landed(item: ManifestItem, result: _ItemResult) -> None:
         if item in pending and result.source == "reused":  # another item wrote its words file first
-            progress.done += item.length
-            progress.transcribed(progress.done, f"Reused the words of item {label}")
+            progress.credit(item.length, f"Reused the words of item {label_of(playing.index(item), item)}")
         results[item.index] = result
+
+    if workers <= 1 or len(playing) <= 1:
+        for position, item in enumerate(playing):
+            landed(item, work(position, item))
+    else:
+        pool = ThreadPoolExecutor(workers, thread_name_prefix="item")
+        queue = coverage_pipeline.Pending(engine, args.progress)
+        try:
+            for position, item in enumerate(playing):
+                queue.submit(pool, item, work, position, item)
+            queue.drain(landed)
+        finally:
+            pool.shutdown(wait=True, cancel_futures=True)
     engine.check_cancelled(args.progress)
     progress.report("ALIGN", ALIGN_PCT, "Aligning the chapter to the recording...")
     return [results[item.index] for item in items]
 
 
-def _is_covered(words_dir: Path, item: ManifestItem, model: str) -> bool:
+def _covers_for(words: ItemWords, item: ManifestItem, args) -> bool:
+    """Whether a words file serves this run: made by its own model, or by the larger model that already checked it (`checked_by`)."""
+    larger = checked_by(args)
+    return covers(words, item, args.model) or (larger is not None and covers(words, item, larger))
+
+
+def _is_covered(words_dir: Path, item: ManifestItem, args) -> bool:
     cached = read_words_file(words_dir / item.words_file)
-    return cached is not None and covers(cached, item, model)
+    return cached is not None and _covers_for(cached, item, args)
 
 
 @dataclass(frozen=True)
@@ -595,6 +704,7 @@ def _report(
     timeline: _Timeline,
     analysis: dict,
     unsure: Sequence[dict] = (),
+    rechecked: Sequence[dict] = (),
 ) -> str:
     analyzed = [result for result in results if result.source is not None]
     summary = {
@@ -635,6 +745,7 @@ def _report(
         }
         lines.append(_line("COVERAGE_REGION", payload))
     lines += [_line("COVERAGE_UNSURE", passage) for passage in unsure]
+    lines += [_line("COVERAGE_RECHECKED", summary) for summary in rechecked]
     return "".join(lines)
 
 
@@ -695,8 +806,8 @@ def _alignment_lines(aligned: coverage_model.AlignedChapter, alignment: dict, ti
     return lines
 
 
-def _require_cached(items: Sequence[ManifestItem], words_dir: Path, model: str) -> None:
-    missing = [item for item in items if not item.muted and not _is_covered(words_dir, item, model)]
+def _require_cached(items: Sequence[ManifestItem], words_dir: Path, args) -> None:
+    missing = [item for item in items if not item.muted and not _is_covered(words_dir, item, args)]
     if missing:
         raise AlignOnlyError(
             f"Align again needs every item's words, but item {missing[0].index} has none cached for the part it plays. Run the recording check to transcribe it."
@@ -707,15 +818,29 @@ def _refuse_transcription(item: ManifestItem, on_seconds: Callable[[float], None
     raise AlignOnlyError(f"Align again never transcribes, and item {item.index}'s words are not cached for the part it plays.")
 
 
-def _default_transcriber(engine: ModuleType, args) -> Transcriber:
+def shared_transcriber(
+    engine: ModuleType, args, model: str, budget: coverage_pipeline.ModelBudget | None, *, shared_instance: bool = False, model_dir: str | None = None
+) -> WhisperTranscriber:
+    """A transcriber of `model` that many item workers may call: the model is loaded once, with `budget.workers` concurrent calls
+    allowed and `budget.threads` CPU threads for each, and with `shared_instance` (a GPU) the calls take turns on it."""
     progress_path = args.progress
+    directory = args.model_dir if model_dir is None else model_dir
 
     def factory():  # pragma: no cover - needs a Whisper model
-        engine.write_progress(progress_path, "LOAD", TRANSCRIBE_START_PCT, f"Loading Whisper model '{args.model}'...")
-        return _load_whisper_model(args.model, args.model_dir, args.device)
+        with _PROGRESS_LOCK:
+            engine.write_progress(progress_path, "LOAD", TRANSCRIBE_START_PCT, f"Loading Whisper model '{model}'...")
+        if budget is None:
+            return _load_whisper_model(model, directory, args.device)
+        return _load_whisper_model(model, directory, args.device, budget.threads, budget.workers)
 
     hotwords = engine.load_vocabulary_hints(args.manuscript)
-    plain = WhisperTranscriber(engine, model_size=args.model, language=args.language, hotwords=hotwords, model_factory=factory)
+    return WhisperTranscriber(engine, model_size=model, language=args.language, hotwords=hotwords, model_factory=factory, serialize=shared_instance)
+
+
+def _default_transcriber(engine: ModuleType, args, budget: coverage_pipeline.ModelBudget | None = None, *, shared_instance: bool = False) -> Transcriber:
+    """The first pass's transcriber. With a `budget` (an item pool), the plain transcriber is the shared one and a long item's chunk
+    processes share the `budget.threads` one item worker owns, so the pool and the chunks together stay inside the processors."""
+    plain = shared_transcriber(engine, args, args.model, budget, shared_instance=shared_instance)
     chunk_seconds = getattr(args, "chunk_seconds", 0) or 0
     workers = getattr(args, "parallel_workers", 0) or 0
     if chunk_seconds > 0 or workers > 1:
@@ -725,18 +850,38 @@ def _default_transcriber(engine: ModuleType, args) -> Transcriber:
             model_dir=args.model_dir,
             device=args.device,
             language=args.language,
-            hotwords=hotwords,
+            hotwords=plain._hotwords,
             chunk_seconds=chunk_seconds or coverage_chunks.DEFAULT_CHUNK_SECONDS,
             overlap_seconds=getattr(args, "chunk_overlap_seconds", None) or coverage_chunks.DEFAULT_OVERLAP_SECONDS,
             workers=workers,
             progress_path=args.progress,
             plain=plain,
+            cpus=None if budget is None else budget.threads,
         )
     return plain
 
 
-def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> None:
-    """The coverage mode. Raises `engine.Cancelled` on cancel; any other exception is a failure."""
+def _item_workers(args, engine: ModuleType, model: str, pending: int) -> coverage_pipeline.ModelBudget:
+    """How many items of `pending` this run transcribes at once with `model`, from the processors and `--parallel-workers`."""
+    return coverage_pipeline.plan_item_workers(
+        coverage_pipeline.cpus_for(args),
+        getattr(args, "parallel_workers", 0) or 0,
+        model,
+        pending,
+        getattr(args, "device", "cpu"),
+        getattr(engine, "MAX_WORKERS_BY_MODEL", {}),
+    )
+
+
+def _pipelined(args) -> bool:
+    """Whether this run is the one-process cascade: a re-check model and a score line were named, and it is not an align-only re-run."""
+    return bool(getattr(args, "recheck_model", None)) and (getattr(args, "unsure_below", None) or 0) > 0 and not getattr(args, "align_only", False)
+
+
+def run(args, engine: ModuleType, transcriber: Transcriber | None = None, recheck_transcriber: Transcriber | None = None) -> None:
+    """The coverage mode. Raises `engine.Cancelled` on cancel; any other exception is a failure. With `--recheck-model` and a score
+    line the first pass and the re-check of its doubtful passages run together (`coverage_pipeline.collect`); `recheck_transcriber`
+    stands in for the larger model."""
     out = Path(args.out)
     out.unlink(missing_ok=True)  # a results file left from an earlier run must not pass for this one
     engine.write_progress(args.progress, "START", 0, "Starting...")
@@ -746,10 +891,37 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> Non
     equivalences = engine.register_project_equivalences(args.manuscript)
     chapter = _chapter(engine, args.manuscript, args.chapter_id)
     if getattr(args, "align_only", False):
-        _require_cached(items, Path(args.words_dir), args.model)
+        _require_cached(items, Path(args.words_dir), args)
         transcriber = _refuse_transcription
 
-    results = _collect_words(items, Path(args.words_dir), transcriber or _default_transcriber(engine, args), engine, args)
+    rechecked: list[dict] = []
+    words_dir = Path(args.words_dir)
+    pending = sum(not item.muted and not _is_covered(words_dir, item, args) for item in items)
+    if _pipelined(args):
+        budget = coverage_pipeline.plan_budget(
+            coverage_pipeline.cpus_for(args),
+            getattr(args, "parallel_workers", 0) or 0,
+            args.model,
+            args.recheck_model,
+            max(1, pending),
+            getattr(args, "device", "cpu"),
+            getattr(engine, "MAX_WORKERS_BY_MODEL", {}),
+        )
+        engine.log(
+            "pipelined the model cascade",
+            event="coverage.pipeline",
+            first=[budget.first.workers, budget.first.threads],
+            recheck=[budget.recheck.workers, budget.recheck.threads],
+            cpus=budget.cpus,
+        )
+        first = transcriber or _default_transcriber(engine, args, budget.first, shared_instance=budget.shared_instance)
+        recheck = recheck_transcriber or shared_transcriber(
+            engine, args, args.recheck_model, budget.recheck, shared_instance=budget.shared_instance, model_dir=getattr(args, "recheck_model_dir", None)
+        )
+        results, rechecked = coverage_pipeline.collect(items, words_dir, first, recheck, engine, args, budget)
+    else:
+        pool = _item_workers(args, engine, args.model, max(1, pending))
+        results = _collect_words(items, words_dir, transcriber or _default_transcriber(engine, args, pool), engine, args, pool.workers)
 
     timeline = _timeline(results)
     heading = " ".join(part for part in (chapter["title"], chapter.get("subtitle") or "") if part)
@@ -765,8 +937,10 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> Non
     engine.write_progress(args.progress, "WRITE", WRITE_PCT, "Writing results...")
     analysis = {"model": args.model, "language": args.language, "equivalencesHash": _file_hash(equivalences) if equivalences else None}
     below = getattr(args, "unsure_below", None) or 0.0
-    unsure = [passage for result in results for passage in unsure_runs(result, below)]
-    report = _report(chapter, coverage, results, alignment, timeline, analysis, unsure) + "".join(_alignment_lines(aligned, alignment, timeline, words, params))
+    unsure = [] if _pipelined(args) else [passage for result in results for passage in unchecked_runs(result, below, checked_by(args))]
+    report = _report(chapter, coverage, results, alignment, timeline, analysis, unsure, rechecked) + "".join(
+        _alignment_lines(aligned, alignment, timeline, words, params)
+    )
     _write_atomically(out, report)
     engine.log(f"Wrote the coverage of chapter {chapter['id']} to {out}")
     engine.write_progress(args.progress, "DONE", 100, "Finished")
@@ -878,31 +1052,54 @@ def run_recheck(args, engine: ModuleType, transcriber: Transcriber | None = None
     by_file: dict[str, list[Window]] = {}
     for window in windows:
         by_file.setdefault(window.words_file, []).append(window)
-    for words_file in by_file:
-        if read_words_file(words_dir / words_file) is None:
-            raise WindowsError(f"The coverage windows file names {words_file!r}, which has no words cached to splice into.")
-
-    transcribe = transcriber or _default_transcriber(engine, args)
-    progress = _Progress(engine, args.progress, sum(window.length for window in windows))
+    unchecked: dict[str, list[Window]] = {}
     for words_file, file_windows in by_file.items():
+        cached = read_words_file(words_dir / words_file)
+        if cached is None:
+            raise WindowsError(f"The coverage windows file names {words_file!r}, which has no words cached to splice into.")
+        # A window this model has already transcribed is checked: splicing it again would cost the same work for the same words.
+        done = checked_ranges(cached, args.model)
+        if remaining := [window for window in file_windows if not inside_ranges(window.start, window.end, done)]:
+            unchecked[words_file] = remaining
+    by_file = unchecked
+    windows = [window for file_windows in by_file.values() for window in file_windows]
+
+    pool = _item_workers(args, engine, args.model, len(by_file))
+    transcribe = transcriber or _default_transcriber(engine, args, pool)
+    progress = _Progress(engine, args.progress, sum(window.length for window in windows))
+
+    def recheck_file(words_file: str, file_windows: list[Window]) -> None:
+        """One words file's windows, in order, then one atomic write: a file has a single writer however many files run at once."""
         path = words_dir / words_file
         existing = read_words_file(path)
-        for window in file_windows:
+        for number, window in enumerate(file_windows):
             engine.check_cancelled(args.progress)
             label = f"item {window.item_index}"
             progress.report("DECODE", progress.pct, f"Decoding the re-check window of {label}...")
-            start = progress.done
+            key = ("window", words_file, number)
             item = ManifestItem(window.item_index, window.item_guid, window.source_file, window.start, window.length, words_file, False)
 
-            def on_seconds(seconds: float, _start=start, _length=window.length, _label=label) -> None:
+            def on_seconds(seconds: float, _key=key, _length=window.length, _label=label) -> None:
                 engine.check_cancelled(args.progress)
                 done = min(max(seconds, 0.0), _length)
-                progress.transcribed(_start + done, f"Re-checking {_label}... {engine.format_time(done)} / {engine.format_time(_length)}")
+                progress.update(_key, done, f"Re-checking {_label}... {engine.format_time(done)} / {engine.format_time(_length)}")
 
             result = transcribe(item, on_seconds)
             existing = splice_window(existing, window, result, args.model)
-            progress.done = start + window.length
-            progress.transcribed(progress.done, f"Re-checked {label}")
+            progress.finish(key, window.length, f"Re-checked {label}")
         write_words_file(path, existing)
+
+    if pool.workers <= 1 or len(by_file) <= 1:
+        for words_file, file_windows in by_file.items():
+            recheck_file(words_file, file_windows)
+    else:
+        executor = ThreadPoolExecutor(pool.workers, thread_name_prefix="re-check")
+        queue = coverage_pipeline.Pending(engine, args.progress)
+        try:
+            for words_file, file_windows in by_file.items():
+                queue.submit(executor, words_file, recheck_file, words_file, file_windows)
+            queue.drain(lambda _tag, _outcome: None)
+        finally:
+            executor.shutdown(wait=True, cancel_futures=True)
     engine.check_cancelled(args.progress)
     engine.write_progress(args.progress, "DONE", 100, "Finished")

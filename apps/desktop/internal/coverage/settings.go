@@ -39,6 +39,9 @@ const (
 	SettingChunkOverlapSeconds = "chunk_overlap_seconds"
 	SettingParallelChapters    = "parallel_chapters"
 	SettingCascadeUnsureBelow  = "cascade_unsure_below"
+	// SettingCascadePipeline runs the first pass and the re-check of its doubtful passages together. It changes how fast
+	// the same words are made, not which ones count, so it is not in a result's parameter hash.
+	SettingCascadePipeline = "cascade_pipeline"
 )
 
 // minChunkSeconds is the shortest chunk a narrator can ask for: under it the crossover would be most of the chunk.
@@ -80,6 +83,9 @@ type CascadeSettings struct {
 	// UnsureBelow is the Whisper word probability under which a passage is re-checked with RecheckModel even when
 	// the text is all there; 0 re-checks only what the first pass reports missing.
 	UnsureBelow float64
+	// Pipeline lets the larger model start on an item as soon as the smaller one has finished it, in one sidecar process
+	// (docs/design/recording-check-pipeline.md). On by default; off, the stages run one after the other.
+	Pipeline bool
 }
 
 // DefaultSettings are 0.8, 3, 8 and 3, chosen by running the synthetic
@@ -89,7 +95,7 @@ type CascadeSettings struct {
 var DefaultSettings = Settings{
 	Alignment:  DefaultAlignmentParams,
 	Thresholds: DefaultThresholds,
-	Cascade:    CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5},
+	Cascade:    CascadeSettings{Enabled: false, FirstPassModel: "tiny", RecheckModel: "large-v3-turbo", UnsureBelow: 0.5, Pipeline: true},
 	Parallel:   Parallel{Workers: 0, ChunkSeconds: 300, OverlapSeconds: 6, Chapters: 1},
 }
 
@@ -121,6 +127,7 @@ func ResolveSettings(lookup func(key string) string) Settings {
 			FirstPassModel: stringSetting(lookup(SettingCascadeFirstPassModel), defaults.Cascade.FirstPassModel),
 			RecheckModel:   stringSetting(lookup(SettingCascadeRecheckModel), defaults.Cascade.RecheckModel),
 			UnsureBelow:    shareSetting(lookup(SettingCascadeUnsureBelow), defaults.Cascade.UnsureBelow),
+			Pipeline:       boolSetting(lookup(SettingCascadePipeline), defaults.Cascade.Pipeline),
 		},
 		Parallel: Parallel{
 			Workers:        wholeSetting(lookup(SettingParallelWorkers), 0, defaults.Parallel.Workers),

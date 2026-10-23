@@ -494,6 +494,10 @@ export function useBoothPage(options: BoothPageOptions) {
     goTo,
     leave,
     toggleTake,
+    /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
+    punchAndRoll: () => void roll.punchAndRoll(),
+    /** Moves the reading one phrase on or back, as the Down and Up keys do. */
+    movePhrase: (direction: 1 | -1) => moveTo(direction === 1 ? nextPhrase(latest.current.units, latest.current.at) : backPhrase(latest.current.at)),
   };
 }
 

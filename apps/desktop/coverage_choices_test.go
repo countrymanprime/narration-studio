@@ -46,7 +46,8 @@ func TestWithNoOptionsAndTheCascadeOffACheckIsOnePassWithTheTranscriptCompareMod
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := coverageChoices{FirstPass: "medium", Parallel: coverage.DefaultSettings.Parallel}
+	// Pipeline is the cascade_pipeline setting, on by default (#2238); with the cascade off it is carried but unused.
+	want := coverageChoices{FirstPass: "medium", Pipeline: true, Parallel: coverage.DefaultSettings.Parallel}
 	if got != want {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}
@@ -183,6 +184,28 @@ func TestACheckSendsTheRunsOwnParallelChoicesAndDoubtLine(t *testing.T) {
 	}
 }
 
+func TestACheckPipelinesTheCascadeUnlessTheSettingIsOff(t *testing.T) {
+	models := whisperCatalog(t, map[string]bool{"small": true, "large-v3-turbo": true})
+	options := map[string]string{"recheck": "true", "recheckBelow": "0.55"}
+
+	launcher, launches := recordingLauncher(10)
+	on := coverageHostWithModels(t, coverageProject(t), models, launcher)
+	args, _ := startArgs(t, on, launches, options)
+	if !hasFlag(args, "--recheck-model", "large-v3-turbo") || !hasFlag(args, "--unsure-below", "0.55") {
+		t.Fatalf("args = %v, want the first pass to carry the larger model", args)
+	}
+
+	launcher, launches = recordingLauncher(10)
+	off := coverageHostWithModels(t, coverageProject(t), models, launcher)
+	if err := off.saveSettings(coverage.SettingsTool, "global", map[string]*string{coverage.SettingCascadePipeline: ptr("false")}); err != nil {
+		t.Fatal(err)
+	}
+	args, _ = startArgs(t, off, launches, options)
+	if strings.Contains(strings.Join(args, " "), "--recheck-model") {
+		t.Fatalf("args = %v: with the setting off the stages run one after the other", args)
+	}
+}
+
 func TestAnInvalidOptionStartsNothing(t *testing.T) {
 	launcher, launches := recordingLauncher(10)
 	host := coverageHostWithModels(t, coverageProject(t), whisperCatalog(t, map[string]bool{"small": true}), launcher)
@@ -233,7 +256,10 @@ func TestEnginesReportWhatACheckWithNoOptionsWouldDo(t *testing.T) {
 	}
 }
 
-func TestABackgroundCheckRunsTheWayAPressWithNoOptionsWould(t *testing.T) {
+// A background check runs its own model pair, not the narrator's cascade (#2251: a heavy pair chosen for Check recording
+// ran unannounced in the background); it keeps the narrator's chunking and doubt line, and its processors' share replaces the
+// worker count.
+func TestABackgroundCheckRunsItsOwnPairWithTheNarratorsChunkingAndDoubtLine(t *testing.T) {
 	models := whisperCatalog(t, map[string]bool{"tiny": true, "small": true, "large-v3-turbo": true})
 	host := coverageHostWithModels(t, coverageProject(t), models, fakeCoverageSidecar(10))
 	if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{
@@ -244,11 +270,25 @@ func TestABackgroundCheckRunsTheWayAPressWithNoOptionsWould(t *testing.T) {
 
 	request, ready := host.backgroundRequest(host.services(), "c-0001")
 
-	if !ready || !request.Background || request.Transcription.Model != "tiny" || request.Recheck.Model != "large-v3-turbo" {
-		t.Fatalf("request = %+v, ready = %v: the cascade's models, not model_size", request, ready)
+	if !ready || !request.Background || request.Transcription.Model != "tiny" || request.Recheck.Model != "small" {
+		t.Fatalf("request = %+v, ready = %v: the background pair, not the cascade's", request, ready)
 	}
-	if request.Parallel.Workers != 2 || request.Parallel.ChunkSeconds != 300 || request.UnsureBelow != 0.5 {
-		t.Fatalf("request = %+v: the settings' parallel run and doubt line", request)
+	if request.Parallel.Workers != 0 || request.CPUs < 1 || request.Parallel.ChunkSeconds != 300 || request.UnsureBelow != 0.5 {
+		t.Fatalf("request = %+v: the settings' chunking and doubt line, on the background's share of the processors", request)
+	}
+}
+
+func TestABackgroundCheckPipelinesTheWayAPressDoes(t *testing.T) {
+	models := whisperCatalog(t, map[string]bool{"tiny": true, "small": true, "large-v3-turbo": true})
+	host := coverageHostWithModels(t, coverageProject(t), models, fakeCoverageSidecar(10))
+	if err := host.saveSettings(coverage.SettingsTool, "global", map[string]*string{coverage.SettingCascadeEnabled: ptr("true")}); err != nil {
+		t.Fatal(err)
+	}
+
+	request, ready := host.backgroundRequest(host.services(), "c-0001")
+
+	if !ready || !request.Pipeline {
+		t.Fatalf("request = %+v, ready = %v: the setting's pipelining", request, ready)
 	}
 }
 

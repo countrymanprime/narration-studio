@@ -298,3 +298,19 @@ def test_a_spoken_subtitle_in_the_heading_is_neither_missing_nor_extra():
         "Chapter I Down the Rabbit-Hole", paragraphs, "chapter one down the rabbit hole alice was beginning to get very tired of sitting by her sister"
     )
     assert (result.present_tokens, result.body_tokens, result.extra_tokens, result.regions) == (12, 12, 0, ())
+
+
+def test_a_phrase_said_twice_is_today_an_extra_run_with_nothing_marking_it_a_second_take():
+    # Issue #2251 item 30, reproduced: the narrator says "golf hotel india" twice. The second copy is
+    # chapter text the narrator just read, yet coverage reports it only as an extra run, which the
+    # Editing page labels "Not in the script". This pins today's behaviour; the follow-up in
+    # docs/research/proof-pickups-editing-split.md (C) changes the run to a repeat of doc tokens 6 to 8
+    # and this test with it.
+    aligned = _aligned([P1, P2], f"{P1} golf hotel india golf hotel india juliet kilo lima")
+    result = cov.compute_coverage(aligned)
+    assert (result.present_tokens, result.extra_tokens, result.regions) == (12, 3, ())
+    _tokens, extras = cov.align_tokens(aligned)
+    ((start, end),) = extras
+    heard_twice = aligned.audio_tokens[start:end]
+    assert heard_twice == ("golf", "hotel", "india")
+    assert heard_twice == aligned.doc_tokens[6:9]  # the extra words are the chapter's own, said again

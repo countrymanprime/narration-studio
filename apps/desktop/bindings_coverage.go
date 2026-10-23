@@ -77,6 +77,7 @@ func (h *Host) coverageStart(chapterID string, options map[string]string) (any, 
 		Transcription: coverage.Transcription{Model: choices.FirstPass, ModelDir: modelDir},
 		Alignment:     coverageSettings(svc.settings).Alignment,
 		Parallel:      choices.Parallel,
+		Pipeline:      choices.Pipeline,
 		Concurrent:    choices.Parallel.Chapters,
 	}
 	if choices.Recheck != "" {

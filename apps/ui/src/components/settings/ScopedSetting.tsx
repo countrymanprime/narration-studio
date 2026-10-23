@@ -58,7 +58,7 @@ const TOOLTIP: Record<string, string> = {
   model: 'Which model size the live engine loads. Tiny keeps up on most computers; Small is more accurate but needs a faster one.',
   reaper_path: 'Leave blank to auto-detect reaper.exe. Set this only when auto-detect finds the wrong install or none at all.',
   auto_start_launcher:
-    'When Narration Studio starts REAPER, also pass the Narration Utils action as a startup script, so the bridge is live immediately. Off by default: REAPER is never changed automatically.',
+    'When Narration Studio starts REAPER, also pass the Narration Studio action as a startup script, so the bridge is live immediately. Off by default: REAPER is never changed automatically.',
   experimental_reaper_actions:
     'The DAW actions not yet verified in a real REAPER are refused while this is off, unless that action’s own row below is on. On, every action left on auto is allowed.',
   suggestions_enabled: 'Turns every stage suggestion on the Production board off at once, without changing which signals are required below.',
@@ -70,6 +70,8 @@ const TOOLTIP: Record<string, string> = {
   exclude_ending_fraction:
     "Drops this share of the book's final chapters from consideration, so a preview candidate never spoils the ending. 0 leaves every chapter eligible.",
   cascade_enabled: 'Runs a fast first pass, then re-checks only what it reports missing with a stronger model, instead of one model over the whole chapter.',
+  cascade_pipeline:
+    'Lets the re-check model work on an item as soon as the first-pass model has finished it, while the first pass moves on to the next. Needs a score line above 0.',
   cascade_first_pass_model: 'The model for the two-pass check’s fast first pass. Independent of the Proof model above.',
   cascade_recheck_model: 'The model that re-checks anything the first pass reports missing. Should not be smaller than the first-pass model.',
   pad_seconds: 'How much of a silence is kept on each side of a cut, so a trim never runs right up against speech.',

@@ -303,13 +303,21 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   },
   // The Script page's keys (SNB-7b; mock `pages/script/keys.ts`, `Reader.tsx` and `app/keys.ts`). `useScriptRegistry` registers the handlers while the
   // page is mounted. Each takes a key another row holds, named in `shadows`: on Script these win by scope priority, and on every other page the router
-  // falls through to the shadowed row, so Ctrl+F still opens the jump menu there. Left and Right act only while the reader itself has focus.
+  // falls through to the shadowed row. Left and Right act only while the reader itself has focus. F3 and Shift+F3 step the matches of the search the jump
+  // menu chose (Ctrl+F, `jump.page`); they do nothing while no search is showing.
   {
-    id: 'script.find',
-    label: 'Find in the manuscript',
+    id: 'script.search.next',
+    label: 'Next match in the script',
     scope: 'page',
-    defaults: [key('KeyF', ['Mod'])],
-    shadows: ['jump.open'],
+    defaults: [key('F3')],
+    group: 'Script',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'script.search.prev',
+    label: 'Previous match in the script',
+    scope: 'page',
+    defaults: [key('F3', ['Shift'])],
     group: 'Script',
     surfaces: ['help', 'settings'],
   },
@@ -417,7 +425,7 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     label: 'Find in notes',
     scope: 'page',
     defaults: [key('KeyF', ['Mod'])],
-    shadows: ['jump.open', 'script.find'],
+    shadows: ['jump.page'],
     group: 'Proof',
     surfaces: ['help', 'settings'],
   },
@@ -519,13 +527,22 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
-  // Ctrl+K opens the jump menu everywhere; Ctrl+F opens it on every page but Script and Proof, where `script.find` and `proof.find` shadow it and wins by
-  // scope priority (SNR-Q1, docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). Not in `jumpMenu`: the menu would list the command that opened it.
+  // Ctrl+K opens the jump menu everywhere. Ctrl+F opens it scoped to the page (its items and its text, no global commands) on every page but Proof, where
+  // `proof.find` shadows it and wins by scope priority (SNR-Q1, docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). Neither is in
+  // `jumpMenu`: the menu would list the command that opened it.
   {
     id: 'jump.open',
     label: 'Open the jump menu',
     scope: 'global',
-    defaults: [key('KeyK', ['Mod']), key('KeyF', ['Mod'])],
+    defaults: [key('KeyK', ['Mod'])],
+    group: 'View',
+    surfaces: ['help', 'settings'],
+  },
+  {
+    id: 'jump.page',
+    label: 'Search this page',
+    scope: 'global',
+    defaults: [key('KeyF', ['Mod'])],
     group: 'View',
     surfaces: ['help', 'settings'],
   },

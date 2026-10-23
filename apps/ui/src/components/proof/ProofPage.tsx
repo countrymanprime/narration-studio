@@ -47,6 +47,7 @@ import { TakesBadge } from './spot/TakesBadge';
 import { useSpotTakes } from './spot/useSpotTakes';
 import { useChapterTimeline } from './useChapterTimeline';
 import { useProofKeys } from './useProofKeys';
+import { useProofPageCommands } from './useProofPageCommands';
 import { useNoteContextMenu } from './useNoteContextMenu';
 import { addressPath } from '../../navigation/address';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
@@ -405,6 +406,15 @@ export function ProofPage({
   }, [all, summary, findings, pickups, scope]);
 
   useProofKeys({ order, selectedId, select, step, allChapters: all, toAllChapters: () => choose(ALL_CHAPTERS) });
+  useProofPageCommands({
+    chapters,
+    scope,
+    openIn: (id) => strip.find((tile) => tile.id === id)?.open ?? 0,
+    selectedId,
+    choose,
+    review: { available: review.available, message: review.message },
+    onCheck: (ids) => openCheckRecordings(ids),
+  });
   useNoteContextMenu({
     findings,
     selectedId: () => selectedRef.current,

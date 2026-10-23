@@ -14,7 +14,7 @@ import (
 	"github.com/countrymanprime/narration-utils/shell/internal/persist"
 )
 
-// Marker is the manifest's "this is a Narration Utils project" field: its presence and value, not just the file's
+// Marker is the manifest's "this is a Narration Studio project" field: its presence and value, not just the file's
 // existence, identify a folder as a project.
 const Marker = "narration-utils-project"
 

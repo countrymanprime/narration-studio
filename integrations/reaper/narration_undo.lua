@@ -2,7 +2,7 @@
 -- Loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --
 -- A kind is the name the host gives a kind of app action (cut_range). Its undo label is the one narration_bridge_core.lua's
--- fixed table holds for it (cut_range: "Narration Utils: delete words", the label delete_range closes its block with). A kind
+-- fixed table holds for it (cut_range: "Narration Studio: delete words", the label delete_range closes its block with). A kind
 -- not in that table, including a label sent in its place, is refused with ERROR before REAPER is read, so the host cannot name
 -- a label of its own choosing and these commands cannot undo anything but the app's own points.
 --
@@ -20,7 +20,7 @@
 -- only whether it matched.
 --
 -- Not run in REAPER (pending the QA pass, #1495): whether one Undo_DoUndo2 reverses a delete_range block in one step, the
--- Cuts-track move and the close-up included; whether Undo_CanUndo2 names "Narration Utils: delete words" right after a cut;
+-- Cuts-track move and the close-up included; whether Undo_CanUndo2 names "Narration Studio: delete words" right after a cut;
 -- what Undo_CanUndo2 answers with no undo history (the reference says NULL); and whether GetProjectStateChangeCount rises after
 -- an Undo_DoUndo2, so the app notices the project changed. S0 saw Undo_CanUndo2 name a bridge block's label right after it
 -- closed and one Undo_DoUndo2 undo it (docs/research/reaper-spike-s0-item-extension-data.md).

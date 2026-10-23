@@ -6,8 +6,8 @@ describe('removalKindLabel', () => {
     expect(removalKindLabel('reference')).toBe('not a chapter');
   });
 
-  it('names an opening chapter "front matter"', () => {
-    expect(removalKindLabel('opening')).toBe('front matter');
+  it('names a chapter an earlier import kept for the opening pages "not a chapter" too: there is no other way to remove one', () => {
+    expect(removalKindLabel('opening')).toBe('not a chapter');
   });
 });
 

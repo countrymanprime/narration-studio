@@ -48,7 +48,7 @@ export type EngineLinkState = {
 /**
  * The engine panel, opened from the header's engine
  * chip on any page. It holds what the Tracks page held that is about REAPER rather than a stage: the linked `.rpp` (link,
- * relink, or choose between several), the REAPER tools, chapter sync with its Sync activity, and the track list with each track's chapter and the Chapter links table. The Tracks page's player
+ * relink, or choose between several), the REAPER tools, chapter sync, and the track list with each track's chapter and the Chapter links table. The Tracks page's player
  * is gone: a chapter is heard in its Proof chapter view. Everything loads when the panel opens (a closed SlideOver is not
  * mounted), so the panel costs nothing on a page that never opens it.
  */

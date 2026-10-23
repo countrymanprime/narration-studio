@@ -89,7 +89,7 @@ type Provider interface {
   analysis; the narrator starts analyses. `EvidenceView` is built once per evaluation and shared: the parsed saved
   project, its modified time, the ledger and the confirmed mapping, the inputs `evidence.EvaluateChapter` takes.
 - `coverage.Service.EvidenceView` fills the view: the saved project is resolved and parsed by the recording check's
-  rules. When it cannot be used, `ProjectErr` is the check's refusal (no file chosen, not in the project folder,
+  rules. When it cannot be used, `ProjectErr` is the check's refusal (no file chosen, not an .rpp,
   unreadable), so a provider can name the action.
 - Return an error only when you cannot answer at all. `Collect` then reports every declared id as `unknown` with cause
   `provider_error` and ignores any signals you returned with the error.

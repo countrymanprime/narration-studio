@@ -8,6 +8,9 @@ import { Paragraph } from './Paragraph';
 import { playable, playingKey } from './playing';
 import { useAnnounceCursor } from './useAnnounceCursor';
 
+/** How far the pointer must travel from the press before it is a drag selection and not a click. */
+const DRAG_SLOP_PX = 4;
+
 const keyAt = (t: EventTarget | null): string | null => (t instanceof Element ? (t.closest<HTMLElement>('[data-k]')?.dataset.k ?? null) : null);
 
 export const NO_TEXT = 'This chapter has no text yet.';
@@ -32,7 +35,8 @@ export interface ScriptDocProps {
 /** The script, one row for each paragraph, with what was heard marked on its words. Reads and writes the page state through `useEditingPage`. */
 export function ScriptDoc({ reason, explained = false, onCheckRecording, onParagraphRender }: ScriptDocProps) {
   const { doc, state, dispatch, selected } = useEditingPage();
-  const drag = useRef<string | null>(null);
+  // The word a press began on and where, until the button is up. The press becomes a drag only once the pointer has moved DRAG_SLOP_PX.
+  const drag = useRef<{ key: string; x: number; y: number; moved: boolean } | null>(null);
   const words = useMemo(() => playable(doc), [doc]);
   const nowKey = playingKey(words, state.playT);
   const nowPid = nowKey ? doc.items[doc.index.get(nowKey) ?? -1]?.pid : undefined;
@@ -42,6 +46,21 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
   const touched = useMemo(() => new Set(Array.from(selSet, (k) => doc.items[doc.index.get(k) ?? -1]?.pid)), [selSet, doc]);
   const cursorPid = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1]?.pid : undefined;
   const flagPid = state.flag ? (state.flag.startsWith('dup:') ? state.flag.slice(4) : doc.items[doc.index.get(state.flag) ?? -1]?.pid) : undefined;
+  // The lines on screen in the bottom waveform while it is scrolled by hand: marked, and the first of them brought into view.
+  const view = state.view;
+  const viewed = useMemo(() => {
+    if (!view) return null;
+    const out = new Set<string>();
+    for (const dp of doc.paras) if (dp.start != null && dp.end != null && dp.end >= view.t0 && dp.start <= view.t1) out.add(dp.p.id);
+    return out;
+  }, [doc, view]);
+  const box = useRef<HTMLDivElement>(null);
+  const firstViewed = viewed ? doc.paras.find((dp) => viewed.has(dp.p.id))?.p.id : undefined;
+  useEffect(() => {
+    if (!firstViewed) return;
+    const row = box.current?.querySelector<HTMLElement>(`[data-pid="${CSS.escape(firstViewed)}"]`);
+    row?.scrollIntoView?.({ block: 'nearest' });
+  }, [firstViewed]);
   useAnnounceCursor();
 
   useEffect(() => {
@@ -68,15 +87,19 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
       drag.current = null;
     } else if (e.shiftKey) dispatch({ type: 'extend', key });
     else {
-      drag.current = key;
+      drag.current = { key, x: e.clientX, y: e.clientY, moved: false };
       dispatch({ type: 'place', key });
       if (opensCard(doc, key)) dispatch({ type: 'openFlag', key });
     }
   };
   const onOver = (e: MouseEvent<HTMLDivElement>): void => {
-    if (!drag.current || e.buttons !== 1) return;
+    const press = drag.current;
+    if (!press || e.buttons !== 1) return;
+    // A click wobbles: a slow page can deliver that wobble over the next word before the button-up, and it must stay a click.
+    if (!press.moved && Math.hypot(e.clientX - press.x, e.clientY - press.y) < DRAG_SLOP_PX) return;
+    press.moved = true;
     const key = keyAt(e.target);
-    if (key && key !== headKey) dispatch({ type: 'select', anchor: drag.current, head: key });
+    if (key && key !== headKey) dispatch({ type: 'select', anchor: press.key, head: key });
   };
 
   return (
@@ -93,7 +116,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
         </div>
       )}
       <div
-        className="relative min-h-0 flex-1 overflow-auto py-[18px] pr-7 pl-2 text-[24px] leading-[1.5] outline-none select-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
+        className="relative min-h-0 flex-1 overflow-auto py-[18px] pr-7 pl-0 text-[24px] leading-[1.5] outline-none select-none focus-visible:ring-2 focus-visible:ring-[var(--focus)]"
         tabIndex={0}
         role="textbox"
         aria-readonly="true"
@@ -101,6 +124,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
         aria-label="Script with what was heard"
         aria-activedescendant={state.cursor && doc.index.has(state.cursor) ? `w-${state.cursor}` : undefined}
         data-script
+        ref={box}
         onMouseDown={onDown}
         onMouseOver={onOver}
       >
@@ -116,6 +140,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
               nowKey={nowPid === pid ? nowKey : null}
               flag={flagPid === pid ? state.flag : null}
               active={pid === activePid}
+              inView={!!viewed?.has(pid)}
               onRender={onParagraphRender}
             />
           );

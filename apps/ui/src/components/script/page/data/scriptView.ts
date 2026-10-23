@@ -19,9 +19,8 @@ export type ScriptViewState = {
   miss: string | null;
   missSel: LineRange | null;
   drawer: 'ch' | 'rail' | null;
-  find: { open: boolean; q: string; i: number; list: boolean };
-  /** Counts up each time Find is asked for, so the box takes focus again even when it is already open. */
-  findNonce: number;
+  /** The search the jump menu chose, showing in the reader while `open`. */
+  find: { open: boolean; q: string; i: number };
   /** Reader scroll requests, consumed once by the reader. */
   pendingJump: string | null;
   pendingPid: string | null;
@@ -40,8 +39,7 @@ const INITIAL_SCRIPT_VIEW: ScriptViewState = {
   miss: null,
   missSel: null,
   drawer: null,
-  find: { open: false, q: '', i: 0, list: true },
-  findNonce: 0,
+  find: { open: false, q: '', i: 0 },
   pendingJump: null,
   pendingPid: null,
   qfilter: 'open',

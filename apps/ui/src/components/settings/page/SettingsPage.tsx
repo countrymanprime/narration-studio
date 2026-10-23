@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePageCommands } from '../../../input/pageCommands';
 import { useProjectDaw } from '../data/useProjectDaw';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
@@ -27,6 +28,7 @@ import { CategoryPane } from './CategoryPane';
 import { ModelsPane } from './ModelsPane';
 import { PagesPane } from './PagesPane';
 import { Results } from './Results';
+import { settingsPageItems } from './pageItems';
 import { useDeepLink } from './useDeepLink';
 
 export type SettingsPageProps = {
@@ -70,6 +72,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const [advanced, setAdvanced] = useState<Partial<Record<CategoryId, boolean>>>({});
   const [focusRow, setFocusRow] = useState<string | null>(target?.row ?? null);
   const [lit, setLit] = useState<string | null>(null);
+  const [headingAsks, setHeadingAsks] = useState(0);
   const heading = useRef(true);
 
   // A link from another page that arrives while Settings is open (the hash changed) asks again.
@@ -138,14 +141,40 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const clearFocus = useCallback(() => setFocusRow(null), []);
   useDeepLink(focusRow, settled && (!targetRow?.advanced || Boolean(advanced[targetRow.cat])) && cat === (targetRow?.cat ?? 'pages'), clearFocus, setLit);
 
-  // Choosing a category moves the reader to its heading (the list stays where it is for a keyboard user to continue).
+  // Choosing a category moves the reader to its heading (the list stays where it is for a keyboard user to continue); a row asked for keeps its focus.
+  const rowAsked = useRef(focusRow);
+  rowAsked.current = focusRow;
   useEffect(() => {
     if (heading.current) {
       heading.current = false;
       return;
     }
-    if (!searching) document.getElementById('settings-heading')?.focus({ preventScroll: true });
+    if (!searching && !rowAsked.current) document.getElementById('settings-heading')?.focus({ preventScroll: true });
   }, [cat, searching]);
+
+  // The jump menu's category item brings the heading into view even when the category was already showing.
+  useEffect(() => {
+    if (headingAsks === 0) return;
+    const title = document.getElementById('settings-heading');
+    title?.scrollIntoView?.({ block: 'start' });
+    title?.focus({ preventScroll: true });
+  }, [headingAsks]);
+
+  usePageCommands({ id: 'settings', label: 'Settings', supersedes: ['Settings'] }, () =>
+    settingsPageItems({
+      shown,
+      daw,
+      showCategory: (id) => {
+        showCategory(id);
+        setHeadingAsks((count) => count + 1);
+      },
+      // The same request a link from another page makes: the category, the filters cleared, the row found, lit and focused once it is drawn.
+      showRow: (id, rowId) => {
+        showCategory(id);
+        setFocusRow(rowId);
+      },
+    }),
+  );
 
   const category = CATEGORIES.find((candidate) => candidate.id === cat);
   const loading = !settled && cat !== 'models';

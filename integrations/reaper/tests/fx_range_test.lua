@@ -4,8 +4,8 @@
 
 local H = require('harness')
 
-local APPLY_LABEL = 'Narration Utils: add chain to range'
-local REMOVE_LABEL = 'Narration Utils: remove chain from range'
+local APPLY_LABEL = 'Narration Studio: add chain to range'
+local REMOVE_LABEL = 'Narration Studio: remove chain from range'
 local CHAIN_KEY = 'narration_utils_fx_range_chain'
 local FX_KEY = 'narration_utils_fx_range_fx'
 local CHAIN = 'Voice/Radio.RfxChain'
@@ -622,9 +622,9 @@ end)
 -- piece, one setting changed, and the chain bypassed or turned back on. Each finds the chain by the item and take GUIDs
 -- apply_fx_range answered (an empty take GUID: the item's take that carries the chain) and the FX GUIDs the take records.
 
-local SET_LABEL = 'Narration Utils: change effect setting'
-local BYPASS_LABEL = 'Narration Utils: bypass effect'
-local ENABLE_LABEL = 'Narration Utils: turn effect back on'
+local SET_LABEL = 'Narration Studio: change effect setting'
+local BYPASS_LABEL = 'Narration Studio: bypass effect'
+local ENABLE_LABEL = 'Narration Studio: turn effect back on'
 
 -- Applies CHAIN to 14..16 with no call or undo point left over, and answers the piece and its take.
 local function applied_clean(s, p)

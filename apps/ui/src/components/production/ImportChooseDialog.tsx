@@ -6,8 +6,8 @@ import { Dialog } from '../primitives/Dialog';
 export type DroppedManuscript = { name: string; path?: string };
 
 /**
- * Step 1 of the import (the Studio Next mock's "Choose your manuscript"): a drop zone, "Choose a file…" and the line that says the
- * manuscript is read-only. Opening the host's file chooser and starting the preview are the caller's, so this only reports a choice.
+ * Step 1 of the import (the Studio Next mock's "Choose your manuscript"): a drop zone and "Choose a file…". The way out is the
+ * header's Close button. Opening the host's file chooser and starting the preview are the caller's, so this only reports a choice.
  * The deviations from the mock are written next to the dialog's design in docs/architecture/import-review.md.
  */
 export function ImportChooseDialog({
@@ -47,11 +47,8 @@ export function ImportChooseDialog({
       onClose={cancel}
       dismissOnOutsidePress={false}
       description={<span className="sr-only">Choose the manuscript to import.</span>}
-      actions={
-        <Button variant="secondary" onClick={cancel}>
-          Cancel
-        </Button>
-      }
+      // The Close button at the top is the way out; there is no second one in the footer.
+      actions={null}
     >
       <div className="space-y-4">
         <div>
@@ -84,7 +81,6 @@ export function ImportChooseDialog({
             {problem ?? hostProblem}
           </p>
         )}
-        <p className="text-sm text-[var(--text-muted)]">The manuscript is read-only. Your marks and notes are stored separately.</p>
       </div>
     </Dialog>
   );

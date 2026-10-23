@@ -21,6 +21,7 @@ What each engine declares for each capability today. The levels are the adapters
 | `track_state` | `TrackStateReader` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
 | `track_select` | `TrackSelector` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
 | `follow_position` | `PlaceFollower` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
+| `transport_sync` | `TransportSyncer` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `record` | `Recorder` | Engine answering | Experimental | Not yet available | Not reachable | Experimental |
 | `punch` | `Puncher` | Engine answering | Experimental | Experimental | Not reachable | Not yet available |
 | `regions` | `RegionWriter` | Engine answering | Experimental | Experimental | Not reachable | Unsupported |
