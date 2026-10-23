@@ -6,6 +6,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi, type MockUpdateSeed } from '../../api/mockApi';
 import type { NarrationApi, UpdateAvailable, UpdateJob } from '../../types';
 import { UpdateDownloadDialog } from './UpdateDownloadDialog';
+import { brand } from '../../brand.gen';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -17,7 +18,7 @@ const AVAILABLE: UpdateAvailable = {
   version: '0.2.7',
   tag: 'v0.2.7-rc',
   candidate: true,
-  notesUrl: 'https://github.com/countrymanprime/narration-studio/releases/tag/v0.2.7-rc',
+  notesUrl: `${brand.repository.url}/releases/tag/v0.2.7-rc`,
   size: 419_895_808,
   publishedAt: '2026-09-20T10:00:00Z',
   replaces: true,
@@ -42,8 +43,8 @@ describe('UpdateDownloadDialog', () => {
     const { api } = renderDialog('downloading');
     const started = vi.spyOn(api, 'updateDownload');
     await advance(1000);
-    expect(screen.getByRole('dialog', { name: 'Download Narration Studio 0.2.7' })).toBeTruthy();
-    expect(screen.getAllByText(/Downloading Narration Studio 0\.2\.7…/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('dialog', { name: `Download ${brand.name} 0.2.7` })).toBeTruthy();
+    expect(screen.getAllByText(`Downloading ${brand.name} 0.2.7…`).length).toBeGreaterThan(0);
     expect(screen.getByText(/160 of 400 MB/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();

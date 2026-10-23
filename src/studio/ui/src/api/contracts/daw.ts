@@ -566,7 +566,7 @@ export interface DawProjectStateApi {
   subscribeDawProjectState(onUpdate: (state: DawProjectState) => void): () => void;
 }
 
-/** The most rows `narration-studio/backups.json` holds (`audacity.MaxBackups`). */
+/** The most rows `<app>/backups.json` holds (`audacity.MaxBackups`). */
 export const DAW_BACKUPS_MAX = 500;
 
 /** One row of the Audacity backups table (SN-D81, docs/reference/daw/audacity-3.md; src/studio/desktop/internal/dawport/audacity/backups_store.go): a window of a
@@ -585,7 +585,7 @@ export type DawBackup = {
   restored?: string;
 };
 
-/** `narration-studio/backups.json` in the app's project folder. */
+/** `<app>/backups.json` in the app's project folder. */
 export type DawBackupsFile = {
   schemaVersion: number;
   backups: DawBackup[];

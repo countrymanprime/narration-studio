@@ -16,6 +16,7 @@ import { ExtensionBanner } from '../../appExtension';
 import { EngineChip, type EngineState } from './EngineChip';
 import { HeaderChip } from '../primitives/HeaderChip';
 import type { NavCounts } from './useNavCounts';
+import { brand } from '../../brand.gen';
 
 // The rail's items. What each one needs is not here: `navAvailability` is the one table the rail, the drawer and the jump menu read.
 const PRODUCTION = { name: 'Production', path: '/', icon: faHouse };
@@ -57,7 +58,7 @@ export function shellPages(facts: NavFacts): { id: string; label: string; disabl
   }));
 }
 export const isActivePath = (pathname: string, path: string) => (path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`));
-const APP_NAME = 'Narration Studio';
+const APP_NAME = `${brand.name}`;
 const ALL_PAGES: { name: string; path: string }[] = [...NAV_GROUPS.flatMap((group) => group.items), { name: 'Settings', path: '/settings' }];
 /** The rail's name for the page `pathname` is on (`/editing/chapter-2` is Editing), or undefined for a path no rail item owns. */
 const pageNameFor = (pathname: string) => ALL_PAGES.find((page) => isActivePath(pathname, page.path))?.name;

@@ -6,6 +6,7 @@ import { Call } from '@wailsio/runtime';
 
 import { wailsClient } from './wailsClient';
 import { WireError } from './wire/WireError';
+import { brand } from '../brand.gen';
 
 /** The wire-invalid and client reports a test asserts on; `ui.*` trace lines (every host call logs one) are not what it counts. */
 function diagnosticsCalled(report: { mock: { calls: unknown[][] } }): unknown[][] {
@@ -436,7 +437,7 @@ describe('wailsClient', () => {
     const preview = {
       html: '<p>x</p>',
       json: '{}\n',
-      folder: 'narration-studio/production/reports',
+      folder: `${brand.identity.projectFolder}/production/reports`,
       stem: 'production-status-20260921-100000Z',
       contractedAmountIncluded: true,
       include: { words: true, stages: false, milestones: true, pickups: false, delivery: true, money: true },
@@ -499,10 +500,10 @@ describe('wailsClient', () => {
   });
 
   it('reads the default projects folder through ProjectDefaultLocation', async () => {
-    const projectDefaultLocation = vi.fn().mockResolvedValue(JSON.stringify({ path: 'C:/Users/Alice/NarrationStudio' }));
+    const projectDefaultLocation = vi.fn().mockResolvedValue(JSON.stringify({ path: `C:/Users/Alice/${brand.identity.defaultProjectsFolder}` }));
     standInHost({ ProjectDefaultLocation: projectDefaultLocation });
 
-    await expect(wailsClient.projectDefaultLocation()).resolves.toEqual({ path: 'C:/Users/Alice/NarrationStudio' });
+    await expect(wailsClient.projectDefaultLocation()).resolves.toEqual({ path: `C:/Users/Alice/${brand.identity.defaultProjectsFolder}` });
     expect(projectDefaultLocation).toHaveBeenCalledWith();
   });
 

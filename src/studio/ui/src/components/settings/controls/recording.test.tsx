@@ -13,6 +13,7 @@ import type { NarrationApi } from '../../../types';
 import type { Notify } from '../../primitives/Toast';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { SettingsPage } from '../page/SettingsPage';
+import { brand } from '../../../brand.gen';
 
 afterEach(() => {
   cleanup();
@@ -232,7 +233,7 @@ describe('Recording & DAW: Record with', () => {
   });
 
   it('shows no launcher steps: the app keeps the bridge in REAPER and says so', async () => {
-    const launcher = 'C:\\Apps\\Narration Studio\\launcher.lua';
+    const launcher = `C:\\Apps\\${brand.name}\\launcher.lua`;
     const base = await createMockApi().bootstrap();
     const api = createMockApi({
       bootstrap: async () => ({ ...base, runtime: { ...base.runtime, Reaper: { ...base.runtime.Reaper!, launcherPath: launcher } } }),

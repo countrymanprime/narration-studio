@@ -178,7 +178,7 @@ export function ModelsPane({ category }: { category: Category }) {
           <div className="flex flex-col items-start gap-2.5">
             <b>Nothing is downloaded yet</b>
             <p className="m-0 max-w-[50ch]">
-              Narration Studio needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.
+              The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.
             </p>
             <Button pending={recommendedBusy} onClick={downloadRecommended}>
               Download the recommended set

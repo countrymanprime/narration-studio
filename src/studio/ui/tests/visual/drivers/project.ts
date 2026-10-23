@@ -1,6 +1,7 @@
 // How to reach each `project` state in STATE_CATALOG (see app.drivers.ts).
 import { settlePage } from '../helpers/settle';
 import type { Driver } from './shared';
+import { brand } from '../../../src/brand.gen';
 
 export const projectDrivers: Record<string, Driver> = {
   'picker-empty': async (page) => {
@@ -15,7 +16,7 @@ export const projectDrivers: Record<string, Driver> = {
     await page.goto('/?mockNoProject=1');
     await settlePage(page);
     await page.getByRole('button', { name: 'New project' }).click();
-    await page.getByRole('dialog', { name: 'New Project' }).getByText('C:/Users/Mock/NarrationStudio').waitFor();
+    await page.getByRole('dialog', { name: 'New Project' }).getByText(`C:/Users/Mock/${brand.identity.defaultProjectsFolder}`).waitFor();
   },
   // A recent project removed from the list: its row is gone and the toast says its files are kept, with Undo.
   'picker-removed': async (page) => {

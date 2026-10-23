@@ -37,6 +37,7 @@ import type {
   TeleprompterState,
   TracksProject,
 } from '../types';
+import { brand } from '../brand.gen';
 
 const recording = parseWire(recordedStreamSchema, recordedStream, { boundary: 'mock.recording', payload: 'teleprompterRecording.json' });
 const recordingSeconds = recording.events.at(-1)?.t ?? 1;
@@ -459,7 +460,7 @@ function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {
         schema_version: 1,
         id,
         analyzer: 'teleprompter',
-        project: { path: 'C:/Projects/Alice', output_path: `narration-studio/findings/teleprompter/${chapterId}.json` },
+        project: { path: 'C:/Projects/Alice', output_path: `${brand.identity.projectFolder}/findings/teleprompter/${chapterId}.json` },
         source: {},
         manuscript: {
           chapter_id: chapterId,
@@ -772,7 +773,7 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
     },
     teleprompterLocate: async (chapterId, options) => {
       await deps.ready;
-      if (deps.resume === 'error') throw new Error('Narration Studio could not read Alice.rpp: the file is locked by another program.');
+      if (deps.resume === 'error') throw new Error('The app could not read Alice.rpp: the file is locked by another program.');
       const match = seedTrackMatch(deps.trackMatch(chapterId), deps.resume);
       const chapter = findChapter(chapterId);
       if (!chapter) throw new Error('that chapter is not part of the current manuscript');

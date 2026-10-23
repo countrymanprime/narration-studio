@@ -6,6 +6,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi } from '../../types';
 import { ReportExportPanel } from './ReportExportPanel';
+import { brand } from '../../brand.gen';
 
 afterEach(cleanup);
 
@@ -32,7 +33,7 @@ describe('the report export', () => {
 
   it('writes the report once files are measured', async () => {
     const deliveryExportReport = vi.fn(async () => ({
-      folder: 'C:/p/narration-studio/delivery',
+      folder: `C:/p/${brand.identity.projectFolder}/delivery`,
       htmlFile: 'report.html',
       jsonFile: 'report.json',
       files: 1,

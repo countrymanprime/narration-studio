@@ -5,6 +5,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi, type MockUpdateSeed } from '../../api/mockApi';
 import type { NarrationApi, UpdateStatus } from '../../types';
 import { UpdatesPanel } from './UpdatesPanel';
+import { brand } from '../../brand.gen';
 
 afterEach(cleanup);
 
@@ -182,7 +183,7 @@ describe('UpdatesPanel, downloading', () => {
     renderPanel('available', { updateDownload: download });
     fireEvent.click(await screen.findByRole('button', { name: 'Download update' }));
     expect(await screen.findByText(/Nothing is installed yet/)).toBeTruthy();
-    expect(screen.getByText(/downloads Narration Studio 0\.2\.7 \(400 MB\)/)).toBeTruthy();
+    expect(screen.getByText(new RegExp(`downloads ${brand.name} 0\\.2\\.7 \\(400 MB\\)`))).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(download).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -194,7 +195,7 @@ describe('UpdatesPanel, downloading', () => {
       renderPanel('available');
       fireEvent.click(await screen.findByRole('button', { name: 'Download update' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Download' }));
-      expect(await screen.findByRole('dialog', { name: 'Download Narration Studio 0.2.7' })).toBeTruthy();
+      expect(await screen.findByRole('dialog', { name: `Download ${brand.name} 0.2.7` })).toBeTruthy();
       await act(async () => void (await vi.advanceTimersByTimeAsync(4000)));
       fireEvent.click(await screen.findByRole('button', { name: 'Close' }));
       expect((await screen.findAllByText('Version 0.2.7 is downloaded and checked.')).length).toBeGreaterThan(0);
@@ -232,7 +233,7 @@ describe('UpdatesPanel, installing', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Install and restart' }));
     // The panel behind the confirm is hidden from assistive technology, so the only reachable button of this name is the dialog's.
     fireEvent.click(await screen.findByRole('button', { name: 'Install and restart' }));
-    expect(await screen.findByRole('dialog', { name: 'Installing Narration Studio 0.2.7' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: `Installing ${brand.name} 0.2.7` })).toBeTruthy();
     expect(screen.getByText(/This step cannot be cancelled/)).toBeTruthy();
     expect(install).toHaveBeenCalledWith('mock-update');
   });
@@ -254,7 +255,7 @@ describe('UpdatesPanel, installing', () => {
       updateStatus: async () => ({
         ...found,
         canInstall: false,
-        installBlockedReason: 'Narration Studio is installed where it is not allowed to replace itself.',
+        installBlockedReason: `${brand.name} is installed where it is not allowed to replace itself.`,
         downloaded: { jobId: 'mock-update', version: '0.2.7' },
       }),
     });

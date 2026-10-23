@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Heading } from './Heading';
+import { brand } from '../../brand.gen';
 
 afterEach(cleanup);
 
@@ -54,8 +55,8 @@ describe('Heading', () => {
   });
 
   it('puts an icon before the title, inside the heading', () => {
-    render(<Heading title="Opening Narration Studio…" icon={<svg data-testid="spinner" />} />);
-    const heading = screen.getByRole('heading', { level: 1, name: 'Opening Narration Studio…' });
+    render(<Heading title={`Opening ${brand.name}…`} icon={<svg data-testid="spinner" />} />);
+    const heading = screen.getByRole('heading', { level: 1, name: `Opening ${brand.name}…` });
     expect(heading.contains(screen.getByTestId('spinner'))).toBe(true);
   });
 });

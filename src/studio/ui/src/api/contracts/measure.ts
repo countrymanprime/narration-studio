@@ -124,7 +124,7 @@ export type MeasurePickResult = { paths: string[] };
 
 /**
  * What one report export wrote (DeliveryExportReport): the folder relative to the project
- * (`narration-studio/delivery`), the two file names in it, and what the report counts. `openFindings` are the findings not
+ * (`<app>/delivery`), the two file names in it, and what the report counts. `openFindings` are the findings not
  * dismissed.
  */
 export type DeliveryReportExport = {

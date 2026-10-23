@@ -41,7 +41,7 @@ function DictionaryInstall({ gate, done }: { gate: DictionaryGate; done: () => v
       }
     : {
         title: 'Download the dictionary?',
-        body: 'Definitions are read from an offline dictionary kept on your computer, so every lookup works without an internet connection. It is not bundled with Narration Studio: download it once. You can remove it any time in Settings > Local assets.',
+        body: 'Definitions are read from an offline dictionary kept on your computer, so every lookup works without an internet connection. It is not bundled with the app: download it once. You can remove it any time in Settings > Local assets.',
         confirmLabel: 'Download dictionary',
       };
   return (

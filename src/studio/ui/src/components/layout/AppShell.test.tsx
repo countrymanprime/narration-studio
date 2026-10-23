@@ -6,6 +6,7 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { DawMockSeed } from '../../api/dawMock';
+import { brand } from '../../brand.gen';
 
 afterEach(cleanup);
 
@@ -550,15 +551,15 @@ describe('AppShell page change', () => {
 
   it('names the page in the document title', () => {
     const { rerender } = render(shell('/proof'));
-    expect(document.title).toBe('Proof · Narration Studio');
+    expect(document.title).toBe(`Proof · ${brand.name}`);
     rerender(shell('/master'));
-    expect(document.title).toBe('Master & QC · Narration Studio');
+    expect(document.title).toBe(`Master & QC · ${brand.name}`);
     rerender(shell('/editing/chapter-2'));
-    expect(document.title).toBe('Editing · Narration Studio');
+    expect(document.title).toBe(`Editing · ${brand.name}`);
     rerender(shell('/settings'));
-    expect(document.title).toBe('Settings · Narration Studio');
+    expect(document.title).toBe(`Settings · ${brand.name}`);
     rerender(shell('/'));
-    expect(document.title).toBe('Production · Narration Studio');
+    expect(document.title).toBe(`Production · ${brand.name}`);
   });
 
   it('announces the new page politely and moves focus into <main>, but not on first load', async () => {

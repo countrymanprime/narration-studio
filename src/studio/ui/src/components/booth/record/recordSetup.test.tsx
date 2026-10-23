@@ -15,6 +15,7 @@ import { resetOpenOnce } from '../../connection/useOpenOnce';
 import { RecordSetup } from './RecordSetup';
 import { recordSetupFor, type RecordSetupFacts } from './recordSetupModel';
 import { stoppedInDaw, TAKE_TOPIC, useRecordControl, forgetAppTake } from './useRecordControl';
+import { brand } from '../../../brand.gen';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => {
@@ -24,7 +25,7 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-const LAUNCHER = 'C:\\Users\\n\\AppData\\Local\\narration-studio\\runtime\\abc\\reaper\\NarrationStudio_Launcher.lua';
+const LAUNCHER = `C:\\Users\\n\\AppData\\Local\\${brand.identity.dataFolder}\\runtime\\abc\\reaper\\${brand.identity.reaperLauncher}`;
 const LINKED = { dawFileLinked: true, launcherPath: LAUNCHER };
 
 /** REAPER's setup with record refused for `reason`, everything else as the connected setup. */

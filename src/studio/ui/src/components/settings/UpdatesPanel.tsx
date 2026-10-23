@@ -6,6 +6,7 @@ import { Button } from '../primitives/Button';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { WorkDialog } from '../primitives/WorkDialog';
 import { UpdateDownloadDialog } from './UpdateDownloadDialog';
+import { brand } from '../../brand.gen';
 
 const BYTES_PER_MB = 1024 * 1024;
 
@@ -110,7 +111,7 @@ export function UpdatesPanel() {
       {status.development ? (
         <p style={{ color: 'var(--text-muted)' }}>Update checks are for releases. A development build is never offered an update.</p>
       ) : !status.platform ? (
-        <p style={{ color: 'var(--text-muted)' }}>Narration Studio has no release for this kind of computer, so there is nothing to update to.</p>
+        <p style={{ color: 'var(--text-muted)' }}>The app has no release for this kind of computer, so there is nothing to update to.</p>
       ) : (
         <>
           {/* One live region for the result, so a screen reader hears what a check found; it is remembered state, not an alert. */}
@@ -162,7 +163,7 @@ export function UpdatesPanel() {
       {confirming && available && (
         <ConfirmDialog
           title={`Download version ${available.version}?`}
-          body={`This downloads Narration Studio ${available.version} (${Math.round(available.size / BYTES_PER_MB)} MB) from GitHub and checks it against the release's checksum. Nothing is installed yet, and you can cancel the download.`}
+          body={`This downloads ${brand.name} ${available.version} (${Math.round(available.size / BYTES_PER_MB)} MB) from GitHub and checks it against the release's checksum. Nothing is installed yet, and you can cancel the download.`}
           confirmLabel="Download"
           confirm={() => {
             setConfirming(false);
@@ -188,13 +189,13 @@ export function UpdatesPanel() {
       {confirmingInstall && available && status.downloaded && (
         <ConfirmDialog
           title={`Install version ${available.version} and restart?`}
-          body={`Narration Studio closes and starts again on version ${available.version} with the same project, and REAPER's launcher keeps working. It cannot install while an import, a Story Bible build, a download, a comparison or a teleprompter session is running. If the new version does not start, the previous one comes back by itself.`}
+          body={`The app closes and starts again on version ${available.version} with the same project, and REAPER's launcher keeps working. It cannot install while an import, a Story Bible build, a download, a comparison or a teleprompter session is running. If the new version does not start, the previous one comes back by itself.`}
           confirmLabel="Install and restart"
           confirm={() => void install(status.downloaded?.jobId ?? '', available.version)}
           cancel={() => setConfirmingInstall(false)}
         />
       )}
-      {installing && <WorkDialog title={`Installing Narration Studio ${available?.version ?? ''}`.trim()} job={installing} />}
+      {installing && <WorkDialog title={`Installing ${brand.name} ${available?.version ?? ''}`.trim()} job={installing} />}
     </div>
   );
 }

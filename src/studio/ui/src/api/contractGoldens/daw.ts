@@ -126,7 +126,7 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-position-playing.json': dawPositionSchema,
   'daw-position-recording.json': dawPositionSchema,
   'daw-position-stopped-other-project.json': dawPositionSchema,
-  // narration-studio/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
+  // <app>/backups.json, the file the host reads back (backups_contract_test.go): an empty table and one with two rows.
   'daw-backups-empty.json': dawBackupsFileSchema,
   'daw-backups-two.json': dawBackupsFileSchema,
   // DawBackupAround, DawRestoreBackup and DawBackups (bindings_daw_backups_test.go): a backup and a restore in Audacity, REAPER's

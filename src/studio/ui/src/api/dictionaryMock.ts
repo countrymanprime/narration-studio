@@ -1,5 +1,6 @@
 import type { AssetInstallState } from './contracts/assets';
 import type { DictionaryInfo, DictionaryLookupResult } from './contracts/dictionary';
+import { brand } from '../brand.gen';
 
 /** The approved dictionary as `config/dictionary-assets.json` names it, for the mock's answers and its row in the list of local assets. */
 export const MOCK_DICTIONARY: DictionaryInfo = {
@@ -111,7 +112,7 @@ export function mockDictionaryLookup(word: string, installState: AssetInstallSta
       installState,
       downloadSize: MOCK_DICTIONARY_DOWNLOAD_SIZE,
       diskSize: MOCK_DICTIONARY_DISK_SIZE,
-      installPath: 'C:/Users/narrator/AppData/Local/narration-studio/assets/dictionary/oewn/oewn-2025/2025',
+      installPath: `C:/Users/narrator/AppData/Local/${brand.identity.dataFolder}/assets/dictionary/oewn/oewn-2025/2025`,
     };
   }
   return { status: 'ok', query, entries: structuredClone(MOCK_ENTRIES[query] ?? []), dictionary: MOCK_DICTIONARY };
