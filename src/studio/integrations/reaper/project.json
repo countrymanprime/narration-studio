@@ -2,6 +2,7 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "name": "reaper",
   "projectType": "library",
+  "implicitDependencies": ["config"],
   "tags": ["toolchain:lua"],
   "targets": {
     "lint": {

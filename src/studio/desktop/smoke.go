@@ -70,6 +70,7 @@ var smokeSidecars = []string{"manuscript-guide", "transcript-compare", "manuscri
 var smokeReaperFiles = []string{
 	"NarrationStudio_Launcher.lua",
 	"NarrationStudio_Startup.lua",
+	"narration_brand.lua",
 	"narration_bridge_core.lua",
 	"narration_cleanup.lua",
 	"narration_compare.lua",
