@@ -110,6 +110,7 @@ export const proofStates: StateEntry[] = [
     page: 'proof',
     state: 'search-menu',
     description: 'Proof, all chapters, Ctrl+F then "rabbit": the jump menu searching the page, the matching notes listed under Notes with the word marked',
+    ...REFLOW,
   },
   {
     page: 'proof',
