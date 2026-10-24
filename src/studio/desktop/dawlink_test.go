@@ -223,7 +223,7 @@ func TestLinkDawFileRelinkingReplacesThePreviousLink(t *testing.T) {
 }
 
 func TestProjectLinkDawFileRefusesWithNoHostContext(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = t.TempDir()
 	if _, err := host.ProjectLinkDawFile(); err == nil {
 		t.Fatal("want an error when the desktop host has no window context yet")

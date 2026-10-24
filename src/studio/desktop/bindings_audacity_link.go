@@ -385,7 +385,7 @@ func (h *Host) pollAudacityLink() {
 	}
 	conn.probing, conn.lastProbe = true, time.Now()
 	conn.mu.Unlock()
-	go func() {
+	h.goBackground(func() {
 		defer func() {
 			conn.mu.Lock()
 			conn.probing = false
@@ -393,7 +393,7 @@ func (h *Host) pollAudacityLink() {
 		}()
 		link := h.audacityLinkRefreshWith(svc, true, false)
 		h.audacityAutoConnect(svc, conn, link)
-	}()
+	})
 }
 
 // audacityLinkFacts is Bootstrap's three DAW facts (dawfacts.go) for a project that records with Audacity, read from the last heartbeat

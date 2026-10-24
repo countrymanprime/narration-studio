@@ -270,7 +270,7 @@ func newStressHost(t *testing.T) *Host {
 	for _, name := range []string{"APPDATA", "LOCALAPPDATA", "USERPROFILE", "HOME", "XDG_CACHE_HOME", "XDG_CONFIG_HOME"} {
 		t.Setenv(name, home)
 	}
-	host := NewHost()
+	host := newTestHost(t)
 	host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 	host.config.manuscriptPython = "unused-python"
 	host.config.comparePython = "unused-python"

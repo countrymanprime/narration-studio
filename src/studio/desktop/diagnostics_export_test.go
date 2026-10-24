@@ -10,7 +10,7 @@ import (
 
 func TestSystemOpenLogFolderOpensTheRunLogsDirectory(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	var opened string
 	host.openFolder = func(dir string) error { opened = dir; return nil }
 
@@ -24,7 +24,7 @@ func TestSystemOpenLogFolderOpensTheRunLogsDirectory(t *testing.T) {
 
 func TestSystemCopyDiagnosticsSavesTheLastRunAndReturnsItsPath(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	run := host.runLog.Begin("guide")
 	run.End("ok")
 
@@ -58,7 +58,7 @@ func TestSystemCopyDiagnosticsSavesTheLastRunAndReturnsItsPath(t *testing.T) {
 
 func TestSystemCopyDiagnosticsRefusesLastRunWithNothingLoggedYet(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.pickDiagnosticsFolder = func() (string, error) { return t.TempDir(), nil }
 
 	if _, err := host.copyDiagnostics(CopyDiagnosticsLastRun); err == nil {
@@ -68,7 +68,7 @@ func TestSystemCopyDiagnosticsRefusesLastRunWithNothingLoggedYet(t *testing.T) {
 
 func TestSystemCopyDiagnosticsWithNoFolderChosenSavesNothing(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.runLog.Begin("guide").End("ok")
 	host.pickDiagnosticsFolder = func() (string, error) { return "", nil }
 
@@ -83,7 +83,7 @@ func TestSystemCopyDiagnosticsWithNoFolderChosenSavesNothing(t *testing.T) {
 
 func TestSystemCopyDiagnosticsLast30MinutesUsesTheWindowScope(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.runLog.Begin("guide").End("ok")
 	destFolder := t.TempDir()
 	host.pickDiagnosticsFolder = func() (string, error) { return destFolder, nil }
@@ -99,7 +99,7 @@ func TestSystemCopyDiagnosticsLast30MinutesUsesTheWindowScope(t *testing.T) {
 
 func TestAssetsOpenFolderOpensTheAssetFolder(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	base := t.TempDir()
 	host.assets = &assetRegistry{base: base}
 	var opened string
@@ -115,7 +115,7 @@ func TestAssetsOpenFolderOpensTheAssetFolder(t *testing.T) {
 
 func TestAssetsOpenFolderRefusesWithoutACatalog(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.assets = nil
 	host.openFolder = func(dir string) error { t.Fatalf("opened %q", dir); return nil }
 

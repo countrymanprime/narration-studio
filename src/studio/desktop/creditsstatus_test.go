@@ -108,7 +108,7 @@ func TestCreditsSetStatusSurvivesClearDerivedData(t *testing.T) {
 }
 
 func TestCreditsStatusRequiresAnOpenProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 
 	if _, err := host.CreditsStatuses(); err == nil {
 		t.Fatal("want an error with no project open")

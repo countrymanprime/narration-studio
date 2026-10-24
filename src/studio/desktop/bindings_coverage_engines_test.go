@@ -95,7 +95,7 @@ func TestCoverageEnginesDefaultIsAlwaysListed(t *testing.T) {
 }
 
 func TestCoverageEnginesNeedNoProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.assets = newAssetRegistry(t.TempDir(), nil, whisperCatalog(t, map[string]bool{"small": true}), nil, nil)
 
 	engines, chosen := engineList(t, host)
@@ -109,7 +109,7 @@ func TestCoverageEnginesNeedNoProject(t *testing.T) {
 }
 
 func TestCoverageEnginesNeedTheWhisperCatalog(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.assets = newAssetRegistry(t.TempDir(), nil, nil, nil, nil)
 	if _, err := host.CoverageEngines(); err == nil {
 		t.Fatal("no Whisper catalog must be an error, not an empty list")

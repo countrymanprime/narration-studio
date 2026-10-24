@@ -23,7 +23,7 @@ var defaultReportInclude = ProductionReportInclude{Words: true, Stages: true, Mi
 var withMoney = ProductionReportInclude{Words: true, Stages: true, Milestones: true, Pickups: true, Delivery: true, Money: true}
 
 func TestProductionStatusReportRequiresAnOpenProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ProductionStatusReport(defaultReportInclude); err == nil {
 		t.Fatal("want an error with no project open")
 	}

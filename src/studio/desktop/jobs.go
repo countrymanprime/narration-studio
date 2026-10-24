@@ -107,8 +107,8 @@ func (h *Host) importJobEnded(job manuscript.ImportJob) {
 		h.publishJobEnded(event)
 	}
 	if job.Phase == "success" {
-		h.chapterSyncTrigger(syncTriggerImport) // a manuscript arrived: ask, or sync (chaptersync.go)
-		go h.refreshCuesAfterImport()           // the quoted lines and who speaks them (extraction_cues.go)
+		h.chapterSyncTrigger(syncTriggerImport)  // a manuscript arrived: ask, or sync (chaptersync.go)
+		h.goBackground(h.refreshCuesAfterImport) // the quoted lines and who speaks them (extraction_cues.go)
 	}
 }
 

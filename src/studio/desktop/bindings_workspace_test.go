@@ -87,7 +87,7 @@ func TestWorkspaceAlignmentOfAnOlderReportNeedsAlignAgain(t *testing.T) {
 }
 
 func TestWorkspaceAlignmentWithNoProjectIsNever(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 
 	answer := decodeAnswer(t)(host.WorkspaceAlignment("c-0001"))
 

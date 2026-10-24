@@ -106,7 +106,7 @@ func TestWorkspacePeaksOfAnItemWithNoUsableSourceAnswersAReasonNotAnError(t *tes
 }
 
 func TestWorkspacePeaksWithNoProjectRefuses(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 
 	if _, err := host.WorkspacePeaks("c-0001"); err != errNoProject {
 		t.Fatalf("err = %v, want errNoProject", err)

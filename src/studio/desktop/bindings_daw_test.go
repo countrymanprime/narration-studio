@@ -18,7 +18,7 @@ func newTestHostForDawCapabilities(t *testing.T, daw string) *Host {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	t.Setenv("USERPROFILE", appData)
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.daw = daw
 	return host
 }

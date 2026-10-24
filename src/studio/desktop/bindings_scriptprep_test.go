@@ -97,7 +97,7 @@ func TestScriptPrepBindingsStoreAPathShapedValueAsText(t *testing.T) {
 }
 
 func TestScriptPrepBindingsWithNoProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if list := decodeScriptPrep(t)(host.ScriptPrepList()); len(list.Chapters) != 0 || len(list.Words) != 0 {
 		t.Fatalf("list with no project = %+v", list)
 	}

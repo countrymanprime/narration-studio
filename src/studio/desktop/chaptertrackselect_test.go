@@ -120,7 +120,7 @@ func TestTrackSelectInReaperAnswerIsJSON(t *testing.T) {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	t.Setenv("USERPROFILE", appData)
-	host := NewHost()
+	host := newTestHost(t)
 	raw, err := host.TrackSelectInReaper(trackSelectGUID)
 	if err != nil {
 		t.Fatal(err)

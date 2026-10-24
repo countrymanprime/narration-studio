@@ -24,7 +24,7 @@ func TestStageRecommendationsTimingOnAProjectCopy(t *testing.T) {
 		t.Skipf("set %s to a copy of a real project to time the evaluation", stagesTimingEnv)
 	}
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.assets = newAssetRegistry(t.TempDir(), nil, whisperWithSmall(t, true), nil, nil)
 	next := host.config
 	next.projectFolder = project

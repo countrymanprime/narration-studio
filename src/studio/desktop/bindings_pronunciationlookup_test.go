@@ -8,7 +8,7 @@ import (
 )
 
 func TestPronunciationLookupOpenOpensTheSourcesOwnURL(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.ctx = context.Background()
 	var opened []string
 	host.openURL = func(_ context.Context, address string) { opened = append(opened, address) }
@@ -22,7 +22,7 @@ func TestPronunciationLookupOpenOpensTheSourcesOwnURL(t *testing.T) {
 }
 
 func TestPronunciationLookupOpenRefusesAnUnknownSource(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.ctx = context.Background()
 	var opened []string
 	host.openURL = func(_ context.Context, address string) { opened = append(opened, address) }
@@ -35,7 +35,7 @@ func TestPronunciationLookupOpenRefusesAnUnknownSource(t *testing.T) {
 }
 
 func TestPronunciationLookupOpenRefusesAnEmptyWord(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.ctx = context.Background()
 	var opened []string
 	host.openURL = func(_ context.Context, address string) { opened = append(opened, address) }
@@ -51,7 +51,7 @@ func TestPronunciationLookupOpenRefusesAnEmptyWord(t *testing.T) {
 // openURL seam and no ctx (Startup has not run), the binding must refuse rather than pass a nil context to the
 // Wails runtime.
 func TestPronunciationLookupOpenRefusesBeforeTheHostIsReady(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.PronunciationLookupOpen(string(pronunciationlookup.Forvo), "croquet"); err == nil {
 		t.Fatal("want an error before Startup has set a context")
 	}

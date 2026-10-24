@@ -8,7 +8,7 @@ import (
 )
 
 func TestADroppedManuscriptBeginsAnImportAndTheEventNamesNoPath(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	path := filepath.Join(t.TempDir(), "My Book.md")
 	if err := os.WriteFile(path, []byte("# One\n\nText."), 0o600); err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestADroppedManuscriptBeginsAnImportAndTheEventNamesNoPath(t *testing.T) {
 }
 
 func TestARefusedDropBeginsNothingAndSaysWhy(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	pdf := filepath.Join(t.TempDir(), "book.pdf")
 	if err := os.WriteFile(pdf, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)

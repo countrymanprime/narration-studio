@@ -18,7 +18,7 @@ func bookmarksHost(t *testing.T) (*Host, string) {
 	t.Helper()
 	project := t.TempDir()
 	writeNested(t, filepath.Join(project, brand.ProjectFolder, "manuscript", "manuscript.json"), bookmarksManuscript)
-	host := NewHost()
+	host := newTestHost(t)
 	next := host.config
 	next.projectFolder = project
 	if attached, reason := host.attachProjectLocked(next); !attached {
@@ -115,7 +115,7 @@ func TestBookmarksBindingsStoreAPathShapedLabelAsText(t *testing.T) {
 }
 
 func TestBookmarksBindingsWithNoProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if payload, err := host.BookmarksList(); err != nil || payload != "[]" {
 		t.Fatalf("list with no project = %s, %v", payload, err)
 	}

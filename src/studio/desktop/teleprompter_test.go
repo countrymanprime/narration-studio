@@ -100,7 +100,7 @@ func newHostWithARunningTeleprompter(t *testing.T) *Host {
 	if err := os.WriteFile(manuscriptPath, []byte(`{}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	host := NewHost()
+	host := newTestHost(t)
 	host.teleprompter = teleprompter.New(teleprompter.Config{Project: project, SessionDir: t.TempDir(), Python: os.Args[0]}, host.sidecars, host.emitTeleprompterEvent, host.emitTeleprompterState)
 	t.Cleanup(func() {
 		_ = host.teleprompter.Close(context.Background())
@@ -452,7 +452,7 @@ func TestParseConfigArgsAcceptsTheTeleprompterSidecarFlags(t *testing.T) {
 }
 
 func TestAttachingAProjectBuildsTheTeleprompterService(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	next := host.config
 	next.projectFolder, next.projectName, next.daw = t.TempDir(), "My Book", "Standalone"
 

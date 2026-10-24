@@ -66,7 +66,7 @@ func editingProject(t *testing.T, unmapped bool) string {
 // editingHost attaches an editingProject to a fresh host.
 func editingHost(t *testing.T, unmapped bool) *Host {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	next := host.config
 	next.projectFolder = editingProject(t, unmapped)
 	if attached, reason := host.attachProjectLocked(next); !attached {
@@ -76,7 +76,7 @@ func editingHost(t *testing.T, unmapped bool) *Host {
 }
 
 func TestEditingBindingsBeforeAProjectIsOpenFail(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.EditingStart("doc-1", "c-0001", "Chapter One"); err == nil {
 		t.Fatal("a start with no project must fail")
 	}

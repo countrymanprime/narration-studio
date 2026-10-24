@@ -11,7 +11,7 @@ import (
 // because a tip shown once is shown once for the narrator, not once per project.
 func TestTipsSeenIsGlobalOnly(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
 	seen := "script.select-text"
 	if err := host.saveSettings("Tips", "global", map[string]*string{"seen": &seen}); err != nil {

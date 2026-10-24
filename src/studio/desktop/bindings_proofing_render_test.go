@@ -37,7 +37,7 @@ func writeRenderFile(t *testing.T, host *Host, name string) string {
 }
 
 func TestProofingRenderBindingsBeforeAProjectIsOpenFail(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ProofingRenderState("c-0001"); err == nil {
 		t.Fatal("render state with no project must fail")
 	}

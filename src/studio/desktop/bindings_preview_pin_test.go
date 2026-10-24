@@ -33,7 +33,7 @@ func TestPreviewPinWithNothingPinnedAnswersNotPresent(t *testing.T) {
 }
 
 func TestPreviewPinWithNoProjectAnswersNotPresent(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	result := decodePin(t)(host.PreviewPin())
 	if result["present"] != false {
 		t.Fatalf("present = %v, want false", result["present"])
@@ -175,7 +175,7 @@ func TestPreviewPinReportsTextChangedStaleness(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	next := NewHost()
+	next := newTestHost(t)
 	nextConfig := next.config
 	nextConfig.projectFolder = project
 	if attached, reason := next.attachProjectLocked(nextConfig); !attached {
@@ -213,7 +213,7 @@ func TestPreviewPinReportsParagraphMissingStaleness(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	next := NewHost()
+	next := newTestHost(t)
 	nextConfig := next.config
 	nextConfig.projectFolder = project
 	if attached, reason := next.attachProjectLocked(nextConfig); !attached {

@@ -64,7 +64,7 @@ func TestDawCatalogListWithNilDetectorsUsesTheDefaults(t *testing.T) {
 // TestDawCatalogListMethodEncodesTheHostsDetectors exercises the exported binding itself, through its
 // h.dawCatalogDetectors seam, and checks the JSON it hands back decodes to the same facts.
 func TestDawCatalogListMethodEncodesTheHostsDetectors(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.dawCatalogDetectors = map[string]dawcatalog.Detector{
 		dawcatalog.REAPER.ID: fakeDetector(true, `C:\Program Files\REAPER (x64)\reaper.exe`, "file_association"),
 	}
@@ -78,7 +78,7 @@ func TestDawCatalogListMethodEncodesTheHostsDetectors(t *testing.T) {
 }
 
 func TestDawCatalogOpenDownloadPageOpensOnlyTheCatalogsOwnURLForAKnownID(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.ctx = context.Background()
 	var opened []string
 	host.openURL = func(_ context.Context, address string) { opened = append(opened, address) }
@@ -91,7 +91,7 @@ func TestDawCatalogOpenDownloadPageOpensOnlyTheCatalogsOwnURLForAKnownID(t *test
 }
 
 func TestDawCatalogOpenDownloadPageRefusesAnUnknownID(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.ctx = context.Background()
 	var opened []string
 	host.openURL = func(_ context.Context, address string) { opened = append(opened, address) }
@@ -107,7 +107,7 @@ func TestDawCatalogOpenDownloadPageRefusesAnUnknownID(t *testing.T) {
 // openURL seam and no ctx (Startup has not run), the binding must refuse rather than pass a nil context to the
 // Wails runtime.
 func TestDawCatalogOpenDownloadPageRefusesBeforeTheHostIsReady(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.DawCatalogOpenDownloadPage(dawcatalog.REAPER.ID); err == nil {
 		t.Fatal("want an error before Startup has set a context")
 	}

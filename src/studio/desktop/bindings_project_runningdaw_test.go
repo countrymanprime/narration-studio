@@ -9,7 +9,7 @@ import (
 )
 
 func TestProjectRunningDawIsUnlinkedWithoutABridge(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 	raw, err := host.ProjectRunningDaw()
 	if err != nil {
@@ -25,7 +25,7 @@ func TestProjectRunningDawIsUnlinkedWithoutABridge(t *testing.T) {
 }
 
 func TestProjectSetPinnedReturnsTheUpdatedList(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 	folder := t.TempDir()
 	if err := host.recents.Touch(folder, "Pinned"); err != nil {

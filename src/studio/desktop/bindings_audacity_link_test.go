@@ -35,7 +35,7 @@ func newAudacityLinkFixture(t *testing.T) *audacityLinkFixture {
 	if err := project.New("Link", time.Now()).Save(folder); err != nil {
 		t.Fatal(err)
 	}
-	host := NewHost()
+	host := newTestHost(t)
 	host.platform = "windows"
 	f := &audacityLinkFixture{host: host, server: abt.NewServer(), config: filepath.Join(t.TempDir(), "audacity.cfg"), running: new(bool), exe: new(string), launched: new([][]string)}
 	*f.exe = `C:\Program Files\Audacity\Audacity.exe`

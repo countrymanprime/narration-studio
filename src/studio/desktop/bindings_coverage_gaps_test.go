@@ -160,7 +160,7 @@ func TestCoverageGapRefusesAStaleOrNeverResultAndAnUnknownGap(t *testing.T) {
 }
 
 func TestCoverageGapWithNoProjectOrNoCheckIsRefused(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.CoverageGapAccept("c-0001", "x"); err == nil {
 		t.Fatal("accepted with no project")
 	}

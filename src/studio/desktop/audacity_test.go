@@ -48,7 +48,7 @@ func TestAnAudacityLaunchResolvesEveryTierOfTheLayeredSettings(t *testing.T) {
 	writeNested(t, filepath.Join(appData, brand.DataFolder, "global-settings.json"), `{"TranscriptCompare": {"model_size": "medium"}}`)
 	writeNested(t, filepath.Join(project, brand.ProjectFolder, "settings.json"), `{"TranscriptCompare": {"color_misread": "112233"}}`)
 
-	host := NewHost()
+	host := newTestHost(t)
 	host.configureLocked(parseConfigArgs(host.config.repoRoot, []string{"--project-folder", project, "--project-name", "Book", "--daw", "Audacity"}))
 
 	for key, want := range map[string][2]string{
@@ -79,7 +79,7 @@ func TestAnAudacityLaunchResolvesEveryTierOfTheLayeredSettings(t *testing.T) {
 func TestAnAudacityLaunchOpensNoReaperBridgeAndItsReviewFailsClearly(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	project, session := audacityProject(t), t.TempDir()
-	host := NewHost()
+	host := newTestHost(t)
 	host.configureLocked(parseConfigArgs(host.config.repoRoot, []string{"--project-folder", project, "--session-dir", session, "--daw", "Audacity"}))
 
 	if host.bridge != nil {
@@ -144,7 +144,7 @@ func TestAPickerSwitchKeepsAnAudacityLaunchAnAudacityOne(t *testing.T) {
 		{"", "Standalone"},
 		{"Standalone", "Standalone"},
 	} {
-		host := NewHost()
+		host := newTestHost(t)
 		host.configureLocked(parseConfigArgs(host.config.repoRoot, []string{"--daw", tc.launch}))
 		project := audacityProject(t)
 		raw, err := host.ProjectSwitch(project, "Book")
@@ -160,7 +160,7 @@ func TestAPickerSwitchKeepsAnAudacityLaunchAnAudacityOne(t *testing.T) {
 // After the switch the review workflow still answers as the Audacity adapter, never through REAPER's bridge.
 func TestAnAudacityLaunchPickedInTheAppStillGatesReviewClearly(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.configureLocked(parseConfigArgs(host.config.repoRoot, []string{"--daw", "Audacity"}))
 	if _, err := host.ProjectSwitch(audacityProject(t), "Book"); err != nil {
 		t.Fatal(err)

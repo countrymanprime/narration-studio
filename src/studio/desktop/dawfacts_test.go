@@ -165,7 +165,7 @@ func TestDawLinkFactsIsReachableButNotMatchedWhenTheHeartbeatNamesADifferentFile
 }
 
 func TestBootstrapExposesTheThreeSeparateDawFacts(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	folder := t.TempDir()
 	rpp := filepath.Join(folder, "Book.rpp")
 	if err := os.WriteFile(rpp, []byte("x"), 0o600); err != nil {
@@ -195,7 +195,7 @@ func TestBootstrapExposesTheThreeSeparateDawFacts(t *testing.T) {
 }
 
 func TestBootstrapWithNoProjectHasAllDawFactsFalse(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	boot := host.Bootstrap()
 	if boot["dawFileLinked"] != false || boot["dawReachable"] != false || boot["dawProjectMatches"] != false {
 		t.Fatalf("boot daw facts = linked %#v reachable %#v matches %#v, want all false with no project", boot["dawFileLinked"], boot["dawReachable"], boot["dawProjectMatches"])

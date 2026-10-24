@@ -153,7 +153,7 @@ func TestTheProductionPlanSurvivesClearDerivedData(t *testing.T) {
 }
 
 func TestProductionPlanBindingsRequireAnOpenProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ProductionPlan(); err == nil {
 		t.Fatal("want an error with no project open")
 	}
@@ -260,7 +260,7 @@ func TestProductionStartTimerRefusesAChapterTheManuscriptDoesNotHave(t *testing.
 }
 
 func TestProductionBindingsNeedAProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ProductionOverview(); err == nil {
 		t.Fatal("overview: want an error with no project")
 	}
@@ -301,7 +301,7 @@ func TestContractProductionTimer(t *testing.T) {
 // ProductionBurndown: a time series of the book's logged hours, one point per day from the first
 // stopped session to the last, running cumulatively. Data only; no chart primitive reads it yet.
 func TestProductionBurndownRequiresAnOpenProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ProductionBurndown(); err == nil {
 		t.Fatal("want an error with no project open")
 	}
@@ -420,7 +420,7 @@ func TestProductionPlanRoundTripsThePaymentAndMilestoneFieldsAcrossARestart(t *t
 		if err != nil {
 			t.Fatal(err)
 		}
-		restarted := NewHost()
+		restarted := newTestHost(t)
 		restarted.config.projectFolder = host.config.projectFolder
 		restarted.config.projectName = host.config.projectName
 		reread, err := restarted.ProductionPlan()

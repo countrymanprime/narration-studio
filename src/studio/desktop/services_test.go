@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestServicesReturnsTheServicesTheHostIsUsing(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	project := t.TempDir()
 	next := host.config
 	next.projectFolder, next.projectName, next.daw = project, "Book", "Standalone"
@@ -31,7 +31,7 @@ func TestServicesReturnsTheServicesTheHostIsUsing(t *testing.T) {
 // taken must not change what the caller is already using, and a fresh call
 // must see the new project. That is what keeps one binding call on one project.
 func TestServicesSnapshotIsStableAcrossAProjectSwitch(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	first := host.config
 	first.projectFolder = t.TempDir()
 	if attached, reason := host.attachProjectLocked(first); !attached {
@@ -57,7 +57,7 @@ func TestServicesSnapshotIsStableAcrossAProjectSwitch(t *testing.T) {
 // The snapshot is copy-and-release. Holding h.mu across a service call could
 // deadlock behind a queued writer, because the emit callbacks re-enter h.mu.RLock.
 func TestServicesReleasesTheHostLockBeforeReturning(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	_ = host.services()
 	if !host.mu.TryLock() {
 		t.Fatal("services() returned while still holding the host lock")

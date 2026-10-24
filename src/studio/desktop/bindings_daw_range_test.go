@@ -42,7 +42,7 @@ func cutInREAPER() dawport.Result {
 func deleteRangeHost(t *testing.T, kind string, reach *daw.Reachability, role dawport.RangeCutter, toggle string) *Host {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.coverageLauncher, host.coverageAligner = fakeAlignedCoverageSidecarWithSkip(), fakeCoverageResults
 	host.assets = newAssetRegistry(t.TempDir(), nil, whisperWithSmall(t, true), nil, nil)
 	next := host.config
