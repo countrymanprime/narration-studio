@@ -810,12 +810,12 @@ export function fxChosenRemovedOf(setup: DawCapabilities): { refused: string } |
   return { result: { ok: true, changed: true, message: `The effect chosen in ${setup.daw} is off the words, and the audio is joined again.`, undoSteps: 1 } };
 }
 
-/** What the mock's REAPER reads back after a Choose: the narrator chose ReaComp and closed the window (the goldens' daw-fx-chosen-done). */
+/** What the mock's REAPER reads back after a Choose: the narrator chose ReaComp, its chain window still open (the goldens' daw-fx-chosen-done). */
 export const FX_CHOSEN: DawFxRangeChoice = {
   result: { ok: true, changed: false, message: 'REAPER has ReaComp (Cockos) on the words.', undoSteps: 0 },
   fx: [{ name: 'VST: ReaComp (Cockos)', enabled: true }],
   label: 'ReaComp (Cockos)',
-  chainOpen: false,
+  chainOpen: true,
   truncated: false,
 };
 

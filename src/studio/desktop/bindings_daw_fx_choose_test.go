@@ -42,12 +42,14 @@ func dialogOpenInREAPER() dawport.Result {
 	return dawport.OK("REAPER's FX window is open for 1 word. Choose an effect there, then come back here.", true).WithUndoSteps(1)
 }
 
-// reaCompChosen is what REAPER's fx_range role reads after the narrator chose ReaComp: the choice src/studio/ui's mocks answer.
+// reaCompChosen is what REAPER's fx_range role reads after the narrator chose ReaComp, its chain window still open: the choice
+// src/studio/ui's mocks answer.
 func reaCompChosen() dawport.FXRangeChoice {
 	return dawport.FXRangeChoice{
-		Result: dawport.OK("REAPER has ReaComp (Cockos) on the words.", false),
-		FX:     []dawport.ChosenFX{{Name: "VST: ReaComp (Cockos)", Enabled: true}},
-		Label:  "ReaComp (Cockos)",
+		Result:    dawport.OK("REAPER has ReaComp (Cockos) on the words.", false),
+		FX:        []dawport.ChosenFX{{Name: "VST: ReaComp (Cockos)", Enabled: true}},
+		Label:     "ReaComp (Cockos)",
+		ChainOpen: true,
 	}
 }
 

@@ -12,6 +12,6 @@
     }
   ],
   "label": "ReaComp (Cockos)",
-  "chainOpen": false,
+  "chainOpen": true,
   "truncated": false
 }

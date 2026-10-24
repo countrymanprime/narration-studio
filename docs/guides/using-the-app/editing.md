@@ -225,8 +225,31 @@ before it goes ahead.
 **FX in REAPER** lists the plug-ins on the project's tracks and its master track as REAPER holds them now: where each one
 sits, its name, and whether it is switched on there. It reads REAPER and changes nothing, so a plug-in you add or bypass in
 REAPER shows here when you come back to the app or press **Check again**; the list says when REAPER last answered. If REAPER
-cannot be read the section says why instead of showing an old list. To put one of these on words, save it in REAPER as an FX
-chain: saved chains are what **Add an effect** lists, because the app adds an effect to words by chain name.
+cannot be read the section says why instead of showing an old list. To put a plug-in on words, use **Choose in REAPER…**
+(below), or save it in REAPER as an FX chain, which **Add an effect** then lists.
+
+### Choose any plug-in in REAPER
+
+**Choose in REAPER…**, beside **Add effect** in the Effects tab, puts any plug-in REAPER has on the selected words, chosen
+in REAPER's own FX window. Select the words first; they must come from one take of one paragraph, as for Add FX. The app
+asks REAPER to split the item at both ends of the words, which is one undo step in REAPER, and REAPER opens its FX window on
+the middle piece. For words with no plug-in yet, that is REAPER's **Add FX** browser, with every plug-in you have installed:
+pick one there and click **Add**. If the item already had plug-ins, REAPER shows its FX chain window instead: click **Add**
+in it. You can add more than one, and set them up there as you would any plug-in in REAPER.
+
+While REAPER's window is open, the Effects tab shows what REAPER has chosen so far and checks every second or two, and when
+you come back to the app. Close REAPER's FX window when you are done, and the app adds what you chose to the words as an
+effect, named after the plug-ins. **Keep it** adds it straight away with the window still open. **Cancel** takes off
+anything you chose and joins the item back together, and the app records nothing. **Check again** asks REAPER now. If
+REAPER stops answering, the panel says it cannot tell what is chosen and when REAPER last answered, rather than showing an
+old answer.
+
+An effect chosen in REAPER works like any other in the Effects tab: Compare, bypass, its settings and **Remove this
+effect** act on the plug-ins you chose, not on any the item already had. Undo in the app takes it off and joins the words
+back. Removing it can only be undone in REAPER (Edit > Undo), because only REAPER knows the plug-in and its settings. This
+is an Experimental REAPER action: turn on Experimental DAW actions in [Settings](settings.md) to use it.
+
+![Editing - Choose in REAPER: REAPER's FX window is open for the selected words, and the panel names what is chosen there, with Keep it, Cancel and Check again](../../images/ui/editing-drawer-effects-choose.webp)
 
 ![Editing - an FX chain chosen for four words: how the item is split around the words](../../images/ui/editing-fx-dialog.webp)
 

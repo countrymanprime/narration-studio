@@ -199,6 +199,21 @@ async function boot(page: Page, viewport: Viewport, driver: Driver, problems: st
 // load and the driving included, for the first) is this capture's. Returns the failures instead of throwing, so the caller
 // can capture the remaining viewports before failing; the record and the screenshot are written either way, so the
 // picture of a failure exists.
+/**
+ * How a row's masked regions are kept out of the picture. The visual suite paints each one over (Playwright's mask, a magenta box) so a
+ * changing clock never changes a hash. A guide capture (UI_MASK=blank, scripts/dev/guide-screenshots.mjs) hides them instead, leaving
+ * the page's own background, so no magenta box reaches a committed image.
+ */
+export function maskOptions(
+  page: Pick<Page, 'locator'>,
+  selectors: readonly string[] | undefined,
+  mode: string | undefined,
+): { style: string } | { mask: ReturnType<Page['locator']>[] } | Record<string, never> {
+  if (!selectors?.length) return {};
+  if (mode === 'blank') return { style: `${selectors.join(', ')} { visibility: hidden !important; }` };
+  return { mask: selectors.map((selector) => page.locator(selector)) };
+}
+
 async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, problems: string[]): Promise<string[]> {
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
   // A long page is shown whole by growing the viewport (Playwright's fullPage would stretch fixed elements).
@@ -227,7 +242,7 @@ async function captureAt(page: Page, entry: StateEntry, viewport: Viewport, prob
     path: `${screenshotDir(entry.page, entry.state)}/${viewport.name}.png`,
     animations: 'disabled',
     caret: 'hide',
-    mask: entry.mask?.map((selector) => page.locator(selector)),
+    ...maskOptions(page, entry.mask, process.env.UI_MASK),
   });
 
   // Axe on the app's states (a story is checked by the atlas, a page never was). Reported after the screenshot is taken and

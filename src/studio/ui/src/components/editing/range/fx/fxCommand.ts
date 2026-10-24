@@ -1,4 +1,4 @@
-import type { DawResult } from '../../../../api/contracts/daw';
+import { DAW_CHOSEN_CHAIN, type DawResult } from '../../../../api/contracts/daw';
 import type { EditWordFxApi, WordFx, WordFxRequest } from '../../../../api/contracts/wordFx';
 import type { DawClient, FxChoice } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
@@ -213,6 +213,67 @@ export function applyFxCommand(deps: FxDeps, plan: Acting, ask: FxAsk): Command<
   };
 }
 
+export interface KeepChosenAsk {
+  chapterId: string;
+  /** The one range the DAW's FX window was opened for, as it was when it opened. */
+  range: Range;
+  /** The plug-ins' names as the DAW's read joined them (DawFxRangeChoice.label): what the effect is called and recorded as. */
+  label: string;
+  /** Where the effect came from, kept with it ("Chosen in REAPER"). */
+  source: string;
+  locator: RangeLocator;
+}
+
+/** Why taking a chosen effect off cannot be undone from the app: the DAW alone knows the plug-in and its settings. */
+export const CHOSEN_NOT_REAPPLIED = 'This effect was chosen in the DAW, so the app cannot put it back. Use Edit > Undo in the DAW to bring it back.';
+
+/**
+ * Records the plug-ins the narrator chose in the DAW's own FX window (#2251) as an effect on the words, as one history entry. The DAW already
+ * holds them (`chooseFxForRange` split the words off and the narrator chose there), so `run` only records, under DAW_CHOSEN_CHAIN. The inverse
+ * takes them off in the DAW, which joins the words back, then forgets the record.
+ */
+export function keepChosenCommand(
+  deps: Pick<FxDeps, 'log' | 'onEffects'> & { daw: Pick<DawClient, 'removeFxFromRange'> },
+  plan: Acting,
+  ask: KeepChosenAsk,
+): Command<FxDone> {
+  const { chapterId, range, label, locator } = ask;
+  return {
+    label: addLabel(label, range.items.length, range.start),
+    touches: [`editing/${chapterId}/wordfx`],
+    daw: true,
+    async run() {
+      const tokens = tokensOf(locator, range);
+      if (!tokens) return refusal('only_said', ONLY_SAID);
+      try {
+        const change = await deps.log.editingWordFxRecord(chapterId, {
+          ...recordOf(
+            { chapterId, range, chain: { id: DAW_CHOSEN_CHAIN, name: label }, source: ask.source, locator, confirmedOver: true, needsOver: false },
+            plan.dawName,
+          ),
+          guid: `${chapterId}/${tokens.firstToken}-${tokens.lastToken}/${DAW_CHOSEN_CHAIN}`,
+        });
+        deps.onEffects(change.effects);
+        return { ok: true, value: { id: change.changed[0] ?? '', message: `Added ${label} to the words in ${plan.dawName}.` } };
+      } catch (e) {
+        return refusal('record_failed', `${why(e)} ${label} is still on the words in ${plan.dawName}: take it off there, or press Cancel.`);
+      }
+    },
+    async undo({ id }) {
+      const tokens = tokensOf(locator, range);
+      if (!tokens) return refusal('only_said', ONLY_SAID);
+      const res = await deps.daw.removeFxFromRange({ chapterId, ...tokens, chainName: DAW_CHOSEN_CHAIN }).catch(failed);
+      if (!res.ok) return refusal(res.code ?? 'daw_refused', res.refused ?? res.message);
+      try {
+        deps.onEffects((await deps.log.editingWordFxRemove(chapterId, id)).effects);
+        return { ok: true, value: id };
+      } catch (e) {
+        return refusal('host_refused', why(e));
+      }
+    },
+  };
+}
+
 export interface RemoveFxAsk {
   chapterId: string;
   fx: WordFx;
@@ -266,6 +327,8 @@ export function removeFxCommand(deps: FxDeps, plan: Acting, ask: RemoveFxAsk): C
       }
     },
     async undo(removed) {
+      // The DAW alone knows a plug-in chosen in its own window, so taking one off is undone there, not here.
+      if (removed.chainId === DAW_CHOSEN_CHAIN) return refusal('chosen_in_daw', CHOSEN_NOT_REAPPLIED);
       if (viaDaw) {
         const tokens = tokenSpan(locator, removed.keys);
         if (!tokens) return refusal('only_said', ONLY_SAID);
