@@ -1,6 +1,10 @@
 package chaptermatch
 
-import "strings"
+import (
+	"strings"
+
+	"desktop/internal/compare"
+)
 
 // The scores FindChapterByTrackName returns, as compare.py returns them.
 const (
@@ -52,7 +56,13 @@ type TitleMatch struct {
 // Both sides go through LabelTokens, the canonicalising pre-pass, so "Ch. 6", "Chapter VI" and
 // "Sixth Chapter" meet "Chapter 6" as an exact match.
 func MatchTitle(titles []string, name string) TitleMatch {
-	match := matchLabels(titles, name)
+	return MatchTitleWith(compare.Tokenizer{}, titles, name)
+}
+
+// MatchTitleWith is MatchTitle with a project's equivalence list on both sides (compare.py's find_chapter_by_track_name
+// after register_project_equivalences).
+func MatchTitleWith(t compare.Tokenizer, titles []string, name string) TitleMatch {
+	match := matchLabels(t, titles, name)
 	if match.Marker == MarkerTake || match.Marker == MarkerPickup {
 		match.Score = min(match.Score, ScoreContainedAmbiguous)
 		match.Confident = false
@@ -60,14 +70,14 @@ func MatchTitle(titles []string, name string) TitleMatch {
 	return match
 }
 
-func matchLabels(titles []string, name string) TitleMatch {
-	target, marker := LabelTokens(name)
+func matchLabels(t compare.Tokenizer, titles []string, name string) TitleMatch {
+	target, marker := LabelTokensWith(t, name)
 	if marker == MarkerCredits {
 		return TitleMatch{Index: -1, Marker: marker}
 	}
 	chapterTokens := make([][]string, len(titles))
 	for i, title := range titles {
-		chapterTokens[i], _ = LabelTokens(title)
+		chapterTokens[i], _ = LabelTokensWith(t, title)
 	}
 
 	for i, tokens := range chapterTokens {

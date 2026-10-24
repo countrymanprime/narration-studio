@@ -11,7 +11,6 @@ import (
 	"unicode/utf8"
 
 	"desktop/internal/compare"
-	"desktop/internal/recordingcoverage"
 )
 
 // sentence makes an error whose text is a sentence for the narrator, shown as written in the run's failure message, so
@@ -26,13 +25,11 @@ type Segment struct {
 	ConcatStart float64
 }
 
-// WordsReport is what the sidecar's compare run writes: the chapter it matched and the match's score, the segments in
-// joined order, and the words heard, timed in seconds of the joined recording.
+// WordsReport is what the sidecar's compare run writes: the segments in joined order and the words heard, timed in
+// seconds of the joined recording.
 type WordsReport struct {
-	ChapterID string
-	Score     float64
-	Segments  []Segment
-	Words     []compare.Word
+	Segments []Segment
+	Words    []compare.Word
 }
 
 func parseWords(raw [][3]any) ([]compare.Word, bool) {
@@ -49,15 +46,14 @@ func parseWords(raw [][3]any) ([]compare.Word, bool) {
 	return words, true
 }
 
-// ReadWordsReport reads the sidecar's words report: one COMPARE_CHAPTER line, a COMPARE_SEGMENT line per segment and
-// one COMPARE_WORDS line. An unknown tag, a malformed line or a missing line is an error.
+// ReadWordsReport reads the sidecar's words report: a COMPARE_SEGMENT line per segment and one COMPARE_WORDS line. An unknown tag, a malformed line or a missing line is an error.
 func ReadWordsReport(path string) (WordsReport, error) {
 	raw, err := compare.ReadBounded(path)
 	if err != nil {
 		return WordsReport{}, sentence("The comparison's words report could not be read: %v", err)
 	}
 	var report WordsReport
-	chapter, words := false, false
+	words := false
 	for number, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
 		if line == "" {
 			continue
@@ -65,15 +61,6 @@ func ReadWordsReport(path string) (WordsReport, error) {
 		malformed := sentence("The comparison's words report has a malformed line %d.", number+1)
 		tag, payload, _ := strings.Cut(line, "|")
 		switch tag {
-		case "COMPARE_CHAPTER":
-			var entry struct {
-				ChapterID *string  `json:"chapterId"`
-				Score     *float64 `json:"score"`
-			}
-			if json.Unmarshal([]byte(payload), &entry) != nil || entry.ChapterID == nil || entry.Score == nil {
-				return WordsReport{}, malformed
-			}
-			report.ChapterID, report.Score, chapter = *entry.ChapterID, *entry.Score, true
 		case "COMPARE_SEGMENT":
 			var entry struct {
 				ItemIndex   *int     `json:"itemIndex"`
@@ -100,7 +87,7 @@ func ReadWordsReport(path string) (WordsReport, error) {
 			return WordsReport{}, sentence("The comparison's words report has an unknown line %q.", tag)
 		}
 	}
-	if !chapter || !words {
+	if !words {
 		return WordsReport{}, sentence("The comparison's words report is incomplete.")
 	}
 	return report, nil
@@ -144,10 +131,10 @@ func globalParagraph(c compare.Chapter, local int) string {
 
 func squash(text string) string { return strings.Join(compare.PySplit(text), " ") }
 
-// chapterName is compare.py's chapter_name, narration_common.chapter_names.chapter_display_name(title, subtitle) with
+// ChapterName is compare.py's chapter_name, narration_common.chapter_names.chapter_display_name(title, subtitle) with
 // Python's whitespace: the title's first line and the subtitle, joined with " — " after one trailing separator of the
 // title is dropped.
-func chapterName(c compare.Chapter) string {
+func ChapterName(c compare.Chapter) string {
 	first, _, _ := strings.Cut(c.Title, "\n")
 	name, sub := squash(first), squash(c.Subtitle)
 	if sub == "" {
@@ -181,9 +168,9 @@ type Output struct {
 	Markers                             int
 }
 
-// Build is the tail of compare.py's run for one matched chapter: the markers, the results file (SUMMARY, DIFF naming
+// Build is the tail of compare.py's run for one matched chapter and the match's score: the markers, the results file (SUMMARY, DIFF naming
 // diffPath, a MARKER line per marker) and the diff texts.
-func Build(t compare.Tokenizer, c compare.Chapter, report WordsReport, minWords int, diffPath string) Output {
+func Build(t compare.Tokenizer, c compare.Chapter, score float64, report WordsReport, minWords int, diffPath string) Output {
 	units := t.BuildChapterUnits(spokenHeading(c), c.Paragraphs)
 	alignment := t.Align(units, report.Words)
 	markers, covered := Markers(alignment, units, report.Words, minWords)
@@ -194,7 +181,7 @@ func Build(t compare.Tokenizer, c compare.Chapter, report WordsReport, minWords 
 	out.Diff, out.Manuscript, out.Recorded = diffTexts(t, c, units, alignment, report.Words, covered)
 
 	var results strings.Builder
-	fmt.Fprintf(&results, "SUMMARY|MATCH: '%s' (score %s) - %d discrepancy marker(s)\n", chapterName(c), strconv.FormatFloat(report.Score, 'f', 2, 64), len(markers))
+	fmt.Fprintf(&results, "SUMMARY|MATCH: '%s' (score %s) - %d discrepancy marker(s)\n", ChapterName(c), strconv.FormatFloat(score, 'f', 2, 64), len(markers))
 	fmt.Fprintf(&results, "DIFF|%s\n", diffPath)
 	for _, m := range markers {
 		item, srcpos := locate(m.Time, report.Segments)
@@ -227,7 +214,7 @@ func Build(t compare.Tokenizer, c compare.Chapter, report WordsReport, minWords 
 // manuscript and recorded sides one sentence per line, for the covered units (every unit, heard as split audio
 // sentences, when nothing aligned).
 func diffTexts(t compare.Tokenizer, c compare.Chapter, units compare.ChapterUnits, a compare.Alignment, words []compare.Word, covered *[2]int) (string, string, string) {
-	heading := chapterName(c)
+	heading := ChapterName(c)
 	sentences := units.Sentences
 	first, last := 0, len(sentences)-1
 	var info []unitAudio
@@ -275,9 +262,12 @@ func diffTexts(t compare.Tokenizer, c compare.Chapter, units compare.ChapterUnit
 // set another).
 const MinWords = 1
 
-// Request is one run's files: the manuscript, the sidecar's words report, and where the results and the diff go.
+// Request is one run: the manuscript, the chapter chosen for it and the match's score (Choose), the sidecar's words
+// report, and where the results and the diff go.
 type Request struct {
 	ManuscriptPath string
+	ChapterID      string
+	Score          float64
 	WordsReport    string
 	Out            string
 	DiffOut        string
@@ -309,23 +299,19 @@ func lineEnd() string {
 // Load reads the project's equivalences and the manuscript's narration chapter chapterID: the tokenizer and the
 // chapter a run is built with.
 func Load(manuscriptPath, chapterID string) (compare.Tokenizer, compare.Chapter, error) {
-	groups, _, err := recordingcoverage.ProjectEquivalences(manuscriptPath)
-	if err != nil {
-		return compare.Tokenizer{}, compare.Chapter{}, err
-	}
-	chapters, err := compare.LoadManuscriptChapters(manuscriptPath)
+	tokenizer, chapters, err := LoadChapters(manuscriptPath)
 	if err != nil {
 		return compare.Tokenizer{}, compare.Chapter{}, err
 	}
 	for _, chapter := range chapters {
 		if chapter.ID == chapterID {
-			return compare.NewTokenizer(groups), chapter, nil
+			return tokenizer, chapter, nil
 		}
 	}
 	return compare.Tokenizer{}, compare.Chapter{}, sentence("The manuscript has no narratable chapter with id '%s'.", chapterID)
 }
 
-// Run builds the results for the chapter the words report names, writes the diff, the manuscript and recorded pair
+// Run builds the results for the request's chapter, writes the diff, the manuscript and recorded pair
 // (<DiffOut without its extension>.manuscript.txt and .recorded.txt) and then the results file, the last atomically.
 // It answers the number of markers.
 func Run(req Request) (int, error) {
@@ -333,11 +319,11 @@ func Run(req Request) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	tokenizer, chapter, err := Load(req.ManuscriptPath, report.ChapterID)
+	tokenizer, chapter, err := Load(req.ManuscriptPath, req.ChapterID)
 	if err != nil {
 		return 0, err
 	}
-	out := Build(tokenizer, chapter, report, MinWords, req.DiffOut)
+	out := Build(tokenizer, chapter, req.Score, report, MinWords, req.DiffOut)
 	base := splitextBase(req.DiffOut)
 	for path, text := range map[string]string{req.DiffOut: out.Diff, base + ".manuscript.txt": out.Manuscript, base + ".recorded.txt": out.Recorded} {
 		if err := os.WriteFile(path, []byte(strings.ReplaceAll(text, "\n", lineEnd())), 0o600); err != nil {

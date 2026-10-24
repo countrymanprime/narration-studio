@@ -92,7 +92,11 @@ func accentFolder() transform.Transformer {
 // a front/back-matter heading are removed and reported ("Chapter 6 v2",
 // "Chapter 6 (pickups)"), and a credits name ("End Credits") is reported as
 // credits.
-func LabelTokens(text string) ([]string, Marker) {
+func LabelTokens(text string) ([]string, Marker) { return LabelTokensWith(compare.Tokenizer{}, text) }
+
+// LabelTokensWith is LabelTokens with a project's equivalence list (compare.py's label_tokens with _CUSTOM_CANON): each
+// canonical token is then the project's canon for it.
+func LabelTokensWith(t compare.Tokenizer, text string) ([]string, Marker) {
 	folded, _, err := transform.String(accentFolder(), text)
 	if err != nil {
 		folded = text
@@ -109,7 +113,7 @@ func LabelTokens(text string) ([]string, Marker) {
 	tokens = labelRules(tokens)
 	canon := make([]string, 0, len(tokens))
 	for _, token := range tokens {
-		canon = append(canon, canonicalToken(token))
+		canon = append(canon, t.Canon(canonicalToken(token)))
 	}
 	merged := MergeNumberWords(canon)
 	for i, token := range merged {

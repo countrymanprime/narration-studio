@@ -18,6 +18,16 @@ func NewTokenizer(groups [][]string) Tokenizer {
 	return Tokenizer{custom: BuildCanon(groups)}
 }
 
+// Canon is the project's own canon for one token (compare.py's
+// _CUSTOM_CANON.get(token, token)): the token itself when the project has no
+// equivalence for it.
+func (t Tokenizer) Canon(token string) string {
+	if canon, ok := t.custom[token]; ok {
+		return canon
+	}
+	return token
+}
+
 // Tokenize is compare.py's tokenize: CanonicalTokens, then the project's own
 // canon.
 func (t Tokenizer) Tokenize(text string) []string {

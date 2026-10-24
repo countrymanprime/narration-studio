@@ -156,11 +156,11 @@ func build(t *testing.T, c goldenCase) Output {
 	if !ok {
 		t.Fatalf("%s: malformed words", c.ID)
 	}
-	report := WordsReport{ChapterID: c.ChapterID, Score: c.Score, Words: words}
+	report := WordsReport{Words: words}
 	for _, s := range c.Segments {
 		report.Segments = append(report.Segments, Segment{s.ItemIndex, s.StartOffset, s.ConcatStart})
 	}
-	return Build(tokenizer, chapter, report, MinWords, "run.diff")
+	return Build(tokenizer, chapter, c.Score, report, MinWords, "run.diff")
 }
 
 func TestTheOutputForTheCommittedCasesMatchesTheGoldenFile(t *testing.T) {

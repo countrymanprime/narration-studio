@@ -247,7 +247,7 @@ func TestTheChaptersNameAndSpokenHeadingFollowPythonsRules(t *testing.T) {
 		{"Title", "   ", "Title", "Title"},
 	} {
 		ch := compare.Chapter{Title: c.title, Subtitle: c.subtitle}
-		if got := chapterName(ch); got != c.name {
+		if got := ChapterName(ch); got != c.name {
 			t.Errorf("name of %q/%q = %q, want %q", c.title, c.subtitle, got, c.name)
 		}
 		if got := spokenHeading(ch); got != c.heading {
@@ -270,14 +270,15 @@ func TestAWordsReportThatIsNotWhatTheSidecarWritesIsRefused(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "words.txt")
 	for report, want := range map[string]string{
-		"":                                  "incomplete",
-		"NEED_CHAPTER|One|Two":              "unknown line",
-		"COMPARE_CHAPTER|{}":                "malformed line 1",
-		"COMPARE_CHAPTER|[":                 "malformed line 1",
-		"COMPARE_SEGMENT|{\"itemIndex\":1}": "malformed line 1",
-		"COMPARE_WORDS|{\"words\":[[\"a\",\"0\",1]]}": "malformed line 1",
-		"COMPARE_WORDS|{}": "malformed line 1",
-		`COMPARE_CHAPTER|{"chapterId":"c","score":1}` + "\n": "incomplete",
+		"":                     "incomplete",
+		"NEED_CHAPTER|One|Two": "unknown line",
+		// the chapter is the host's choice now (Choose), so a report that names one is not the sidecar's
+		`COMPARE_CHAPTER|{"chapterId":"c","score":1}`:                            "unknown line",
+		"COMPARE_SEGMENT|[":                                                      "malformed line 1",
+		"COMPARE_SEGMENT|{\"itemIndex\":1}":                                      "malformed line 1",
+		"COMPARE_WORDS|{\"words\":[[\"a\",\"0\",1]]}":                            "malformed line 1",
+		"COMPARE_WORDS|{}":                                                       "malformed line 1",
+		`COMPARE_SEGMENT|{"itemIndex":0,"startOffset":0,"concatStart":0}` + "\n": "incomplete",
 	} {
 		if err := os.WriteFile(path, []byte(report), 0o600); err != nil {
 			t.Fatal(err)
@@ -302,11 +303,11 @@ func TestRunWritesTheDiffItsSiblingsAndTheResults(t *testing.T) {
 		t.Fatal(err)
 	}
 	words := filepath.Join(dir, "words.txt")
-	if err := os.WriteFile(words, []byte(`COMPARE_CHAPTER|{"chapterId":"c","score":1.0}`+"\n"+`COMPARE_SEGMENT|{"itemIndex":0,"startOffset":0.0,"concatStart":0.0}`+"\n"+
+	if err := os.WriteFile(words, []byte(`COMPARE_SEGMENT|{"itemIndex":0,"startOffset":0.0,"concatStart":0.0}`+"\n"+
 		`COMPARE_WORDS|{"words":[["alpha",0.0,0.3],["delta",0.4,0.7],["charlie",0.8,1.1]]}`+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	req := Request{ManuscriptPath: manuscript, WordsReport: words, Out: filepath.Join(dir, "results.txt"), DiffOut: filepath.Join(dir, "run.diff")}
+	req := Request{ManuscriptPath: manuscript, ChapterID: "c", Score: 1.0, WordsReport: words, Out: filepath.Join(dir, "results.txt"), DiffOut: filepath.Join(dir, "run.diff")}
 	markers, err := Run(req)
 	if err != nil || markers != 1 {
 		t.Fatalf("%d, %v", markers, err)
@@ -328,14 +329,23 @@ func TestRunWritesTheDiffItsSiblingsAndTheResults(t *testing.T) {
 		t.Errorf("the temporary results file is left: %v", err)
 	}
 
-	for name, broken := range map[string]Request{
-		"no words":        {ManuscriptPath: manuscript, WordsReport: filepath.Join(dir, "none.txt"), Out: req.Out, DiffOut: req.DiffOut},
-		"no manuscript":   {ManuscriptPath: filepath.Join(dir, "none.json"), WordsReport: words, Out: req.Out, DiffOut: req.DiffOut},
-		"no diff folder":  {ManuscriptPath: manuscript, WordsReport: words, Out: req.Out, DiffOut: filepath.Join(dir, "missing", "run.diff")},
-		"no results path": {ManuscriptPath: manuscript, WordsReport: words, Out: filepath.Join(dir, "missing", "results.txt"), DiffOut: req.DiffOut},
+	with := func(change func(*Request)) Request {
+		r := req
+		change(&r)
+		return r
+	}
+	for name, c := range map[string]struct {
+		req  Request
+		want string
+	}{
+		"no words":           {with(func(r *Request) { r.WordsReport = filepath.Join(dir, "none.txt") }), "words report could not be read"},
+		"no manuscript":      {with(func(r *Request) { r.ManuscriptPath = filepath.Join(dir, "none.json") }), "Import a manuscript first."},
+		"an unknown chapter": {with(func(r *Request) { r.ChapterID = "other" }), "no narratable chapter with id 'other'"},
+		"no diff folder":     {with(func(r *Request) { r.DiffOut = filepath.Join(dir, "missing", "run.diff") }), "diff could not be written"},
+		"no results path":    {with(func(r *Request) { r.Out = filepath.Join(dir, "missing", "results.txt") }), "results could not be written"},
 	} {
-		if _, err := Run(broken); err == nil {
-			t.Errorf("%s: Run succeeded", name)
+		if _, err := Run(c.req); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %v, want %q", name, err, c.want)
 		}
 	}
 }
@@ -347,14 +357,14 @@ func TestTheSidecarsWordsReportReadsAsWritten(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.ChapterID != "c-1" || report.Score != 1.0 || !reflect.DeepEqual(report.Segments, []Segment{{1, 100.25, 0}, {3, 0.5, 8.123}}) {
+	if !reflect.DeepEqual(report.Segments, []Segment{{1, 100.25, 0}, {3, 0.5, 8.123}}) {
 		t.Fatalf("report = %+v", report)
 	}
 	if len(report.Words) != 9 || report.Words[8] != w("“naïve”", 9.5, 10.0) {
 		t.Fatalf("words = %+v", report.Words)
 	}
 	c := compare.Chapter{Title: "Chapter One", Paragraphs: []string{"She had nothing to do."}, ParagraphIndices: []*string{new("0")}}
-	out := Build(compare.Tokenizer{}, c, report, MinWords, "run.diff")
+	out := Build(compare.Tokenizer{}, c, 1.0, report, MinWords, "run.diff")
 	// The second item starts 8.123 s into the joined audio, so a word heard at 9.0 s is 1.377 s into its source range
 	// (from 0.5). The tokenizer keeps ASCII letters only ("caf"), and a word of two tokens is heard twice in the
 	// context, as compare.py wrote both.
