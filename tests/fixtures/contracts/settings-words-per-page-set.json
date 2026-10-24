@@ -1,0 +1,20 @@
+{
+  "Booth": [
+    {
+      "choices": null,
+      "effectiveSource": "project",
+      "effectiveValue": "300",
+      "isSet": true,
+      "key": "words_per_page",
+      "kind": "number",
+      "label": "Words per page",
+      "number": {
+        "max": 1000,
+        "min": 50,
+        "step": 1,
+        "unit": "words"
+      },
+      "value": "300"
+    }
+  ]
+}
