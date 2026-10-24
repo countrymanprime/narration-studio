@@ -234,3 +234,84 @@ func TestTheResultsFileIsPinnedForTheHostThatReadsIt(t *testing.T) {
 
 	contractfile.Check(t, "take-divergence-results", map[string]any{"lines": lines})
 }
+
+// The manifest is refused as take_divergence_mode.read_manifest refuses it (its test_take_divergence_mode.py cases),
+// so the host and the sidecar never disagree about a manifest.
+func TestAMalformedManifestIsRefusedWithWhatIsWrong(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+	base := func() map[string]any {
+		return map[string]any{"schemaVersion": 1, "chapterId": "ch-1", "span": map[string]any{"firstUnit": 1, "lastUnit": 1}, "takes": []any{oneTake}}
+	}
+	withTake := func(key string, value any) map[string]any {
+		take := map[string]any{}
+		for k, v := range oneTake {
+			take[k] = v
+		}
+		take[key] = value
+		m := base()
+		m["takes"] = []any{take}
+		return m
+	}
+	set := func(key string, value any) map[string]any {
+		m := base()
+		m[key] = value
+		return m
+	}
+	for _, c := range []struct {
+		manifest any
+		want     string
+	}{
+		{set("schemaVersion", 2), "schema version"},
+		{set("chapterId", ""), "chapterId"},
+		{set("span", map[string]any{"firstUnit": 2, "lastUnit": 1}), "firstUnit <= lastUnit"},
+		{set("span", map[string]any{"firstUnit": true, "lastUnit": 1}), "whole sentence numbers"},
+		{set("span", map[string]any{"firstUnit": 0.5, "lastUnit": 1}), "whole sentence numbers"},
+		{set("span", map[string]any{"firstUnit": 0}), "missing ['lastUnit']"},
+		{set("span", []any{0, 1}), "span is not an object"},
+		{set("span", map[string]any{"firstParagraph": 2, "lastParagraph": 1}), "firstParagraph <= lastParagraph"},
+		{set("span", map[string]any{"firstParagraph": true, "lastParagraph": 1}), "whole paragraph numbers"},
+		{set("span", map[string]any{"firstParagraph": 0}), "missing ['lastParagraph']"},
+		{set("span", map[string]any{"firstUnit": 0, "lastUnit": 1, "firstParagraph": 0, "lastParagraph": 1}), "not both"},
+		{set("takes", []any{}), "non-empty list"},
+		{set("takes", []any{"take.wav"}), "take 0 is not an object"},
+		{withTake("extra", 1), "unknown ['extra']"},
+		{withTake("takeGuid", ""), "takeGuid must be"},
+		{withTake("itemGuid", 3), "itemGuid must be"},
+		{withTake("startOffset", -1), "startOffset must be"},
+		{withTake("length", 0), "length must be"},
+		{withTake("length", "4"), "length must be"},
+		{set("surprise", 1), "unknown ['surprise']"},
+		{[]any{}, "is not an object"},
+	} {
+		writeJSON(t, path, c.manifest)
+		if _, err := ReadManifest(path); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%v: %v, want %q", c.manifest, err, c.want)
+		}
+	}
+	for _, content := range []string{"not json", ""} {
+		_ = os.WriteFile(path, []byte(content), 0o600)
+		if _, err := ReadManifest(path); err == nil || !strings.Contains(err.Error(), "could not be read") {
+			t.Errorf("%q: %v", content, err)
+		}
+	}
+	if _, err := ReadManifest(filepath.Join(dir, "missing.json")); err == nil || !strings.Contains(err.Error(), "could not be read") {
+		t.Errorf("missing: %v", err)
+	}
+	if err := Run(filepath.Join(dir, "missing.json"), "m.json", "r.txt", filepath.Join(dir, "out.txt")); err == nil {
+		t.Error("Run with no manifest must fail")
+	}
+}
+
+func TestAValidManifestKeepsItsTakesInOrder(t *testing.T) {
+	dir := t.TempDir()
+	second := map[string]any{"itemGuid": "{ITEM-2}", "takeGuid": "{TAKE-2}", "sourceFile": "b.wav", "startOffset": 0, "length": 1.5}
+	manifest, err := ReadManifest(manifest(t, dir, map[string]int{"firstParagraph": 0, "lastParagraph": 2}, oneTake, second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.ChapterID != "ch-1" || *manifest.FirstParagraph != 0 || *manifest.LastParagraph != 2 || manifest.FirstUnit != nil ||
+		len(manifest.Takes) != 2 || manifest.Takes[1] != (Take{"{ITEM-2}", "{TAKE-2}", "b.wav", 0, 1.5}) {
+		t.Fatalf("manifest = %+v", manifest)
+	}
+}

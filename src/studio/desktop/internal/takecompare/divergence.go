@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// The sidecar's per-take divergence output (compare.py --take-divergence): a SUMMARY line, one
+// The take comparison's results (internal/takedivergence, from the words compare.py --take-divergence transcribes): a SUMMARY line, one
 // DIVERGENCE_SPAN line naming the span every take was aligned to, and one TAKE_DIVERGENCE line per take, in manifest
 // order. Every time is in the take's source seconds. ParseResults reads it; nothing here re-aligns or re-judges.
 
@@ -100,7 +100,7 @@ type Results struct {
 	Takes   []TakeDivergence
 }
 
-// ParseResults reads a --take-divergence results file. It refuses a file without exactly one DIVERGENCE_SPAN line of
+// ParseResults reads a take comparison's results file (takedivergence.Results). It refuses a file without exactly one DIVERGENCE_SPAN line of
 // the known schema, a take line that is not valid JSON, and a take whose words do not number the span's words in
 // order, so a later step never lines up a take against the wrong words. Unknown tags are ignored (additive lines).
 func ParseResults(text string) (Results, error) {
