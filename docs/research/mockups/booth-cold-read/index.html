@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booth cold read draft mock</title>
+<style>
+/* Tokens copied from docs/research/mockups/studio-next/src/styles/app.css so the draft reads like the spec mock. System fonts only: nothing loads from the network. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --faint:#766F60;
+  --copper:#B04F17; --copper-ink:#FFFFFF; --copper-soft:#F1DDC9; --copper-text:#8F3F0F;
+  --ok:#2F6B3E; --ok-soft:#D9EAD9; --warn:#8A5A00; --warn-soft:#F5E6BF; --bad:#A3302A; --bad-soft:#F4D6D2; --info:#2A5C86; --info-soft:#D8E5F2;
+  --spk:#6B4C9A; --spk-soft:#E6DDF3; --focus:#1F5FBF; --shadow:0 1px 2px rgba(36,33,28,.08),0 10px 28px rgba(36,33,28,.14);
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42;
+  --spk:#B79DE0; --spk-soft:#2C2338; --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2{font-family:var(--f-display);font-weight:600;margin:0 0 6px}
+.sub{color:var(--muted);font-size:13px;max-width:70ch}
+.frame{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0 28px;background:var(--bg)}
+.btop,.bfoot{display:flex;align-items:center;gap:10px;background:var(--surface);padding:10px 16px;flex-wrap:wrap}
+.btop{border-bottom:1px solid var(--line)} .bfoot{border-top:1px solid var(--line)}
+.mono{font-family:var(--f-mono)} .spacer{flex:1}
+.badge{font:600 11.5px var(--f-display);letter-spacing:.06em;text-transform:uppercase;border:1px solid transparent;border-radius:999px;padding:2px 9px}
+.rec{background:var(--bad-soft);color:var(--bad);border-color:var(--bad)}
+.cold{background:var(--bad-soft);color:var(--bad);border-color:var(--bad);border-style:dashed}
+.btn{font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--btn-line);border-radius:6px;padding:7px 12px;background:var(--surface)}
+.btn.primary{background:var(--copper);color:var(--copper-ink);border-color:transparent}
+.btn[aria-pressed="true"]{background:var(--copper-soft);border-color:var(--copper);color:var(--copper-text)}
+.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+.text{font-size:30px;line-height:1.5;padding:30px 28px;max-width:26em;margin:0 auto;height:230px;overflow:hidden}
+.done{color:var(--muted)}
+.now{background:var(--copper);color:var(--copper-ink);border-radius:.12em;position:relative;box-shadow:0 0 0 .08em var(--copper)}
+.now::before{content:"";position:absolute;top:-.3em;left:50%;transform:translateX(-50%);border:.18em solid transparent;border-top:.2em solid var(--copper);border-bottom:0}
+/* The ghost: a second channel, shape plus tone. A dashed outline and a muted wash, never the real cursor's fill; its caret is hollow. */
+.ghost{outline:.06em dashed var(--muted);outline-offset:.04em;background:color-mix(in srgb,var(--muted) 14%,transparent);border-radius:.12em;position:relative}
+.ghost::before{content:"";position:absolute;top:-.34em;left:50%;transform:translateX(-50%);width:.28em;height:.2em;border:.05em dashed var(--muted);border-top:0;clip-path:polygon(0 0,100% 0,50% 100%)}
+.why{color:var(--muted);font-size:13px}
+.note{font-size:13px;color:var(--muted);margin:4px 0 0}
+</style>
+</head>
+<body>
+<h1>Booth: cold read (draft)</h1>
+<p class="sub">Draft for <a href="https://github.com/countrymanprime/narration-studio/issues/2251">#2251</a> item 13, following the owner's answers there and <a href="../../2026-10-23-booth-page-breaks-and-cold-read.md">the design note</a>. Three frames: off, on (the ghost follows the voice; the real cursor stays where the next take starts), and Record pressed (the ghost goes, the view returns to the real cursor).</p>
+
+<h2>1. Off (the default)</h2>
+<div class="frame">
+  <div class="btop"><b>Chapter 3 · The Lighthouse</b><span class="mono sub">¶ 4 of 31 · 12% · about 41 min left</span><span class="spacer"></span></div>
+  <div class="text"><span class="done">The keeper climbed the stair at dusk.</span> He <span class="now">counted</span> the steps as he always had, one hundred and twelve, and at the top he found the lamp already lit.</div>
+  <div class="bfoot"><button class="btn primary">● Record</button><span class="mono">00:00</span><button class="btn">Levels</button><button class="btn" aria-pressed="false">Cold read</button><span class="why">Room −58.6 dB</span></div>
+</div>
+
+<h2>2. Cold read on</h2>
+<div class="frame">
+  <div class="btop"><b>Chapter 3 · The Lighthouse</b><span class="mono sub">¶ 4 of 31 · 12% · about 41 min left</span><span class="spacer"></span><span class="badge cold">Mic on · cold read</span></div>
+  <div class="text"><span class="done">The keeper climbed the stair at dusk.</span> He <span class="now">counted</span> the steps as he always had, one hundred and twelve, and at the top he <span class="ghost">found</span> the lamp already lit.</div>
+  <div class="bfoot"><button class="btn primary">● Record</button><span class="mono">00:00</span><button class="btn">Levels</button><button class="btn" aria-pressed="true">Cold read</button><span class="why">Room −58.6 dB</span></div>
+</div>
+<p class="note">The view follows the ghost (dashed outline, muted wash, hollow caret); the real cursor (filled, solid caret) and the progress line stay put. The progress and the resume line are the real cursor's. The badge is the REC badge's tone, dashed: the microphone is on and nothing is recorded. Jump to (Ctrl+K) lists <b>Start cold read</b> / <b>Stop cold read</b>.</p>
+
+<h2>3. Record pressed</h2>
+<div class="frame">
+  <div class="btop"><b>Chapter 3 · The Lighthouse</b><span class="mono sub">¶ 4 of 31 · 12% · about 41 min left</span><span class="spacer"></span><span class="badge rec">REC</span></div>
+  <div class="text"><span class="done">The keeper climbed the stair at dusk.</span> He <span class="now">counted</span> the steps as he always had, one hundred and twelve, and at the top he found the lamp already lit.</div>
+  <div class="bfoot"><button class="btn primary">■ Stop</button><span class="mono">00:01</span><button class="btn">Levels</button><button class="btn" aria-disabled="true" title="Not while recording. Stop the take first.">Cold read</button><span class="why">Room −58.6 dB</span></div>
+</div>
+<p class="note">The ghost is gone before the take's first word, the view eases back to the real cursor, and the take starts there. Cold read is off and unavailable until the take stops.</p>
+</body>
+</html>
