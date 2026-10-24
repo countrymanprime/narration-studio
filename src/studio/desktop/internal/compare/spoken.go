@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // numberWords is spoken_forms.NUMBER_WORDS.
@@ -95,15 +96,15 @@ func BuildCanon(groups [][]string) map[string]string {
 // quoteFold is spoken_forms.QUOTE_NORMALIZE_TABLE: typographic single quotes
 // become the ASCII apostrophe (so "Sentinel’s" stays one token) and
 // typographic double quotes ASCII ones (which the token pattern drops).
-var quoteFold = map[rune]byte{
+var quoteFold = map[rune]rune{
 	'‘': '\'', '’': '\'', '‛': '\'', 'ʼ': '\'', '`': '\'', '´': '\'',
 	'“': '"', '”': '"', '„': '"', '‟': '"',
 }
 
-// isTokenByte is spoken_forms.TOKEN_RE's class, [A-Za-z0-9']: ASCII only, so
+// isTokenRune is spoken_forms.TOKEN_RE's class, [A-Za-z0-9']: ASCII only, so
 // after the quote fold every other rune separates tokens.
-func isTokenByte(c byte) bool {
-	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '\''
+func isTokenRune(r rune) bool {
+	return r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '\''
 }
 
 // RawTokens is spoken_forms.TOKEN_RE.findall over the text with quotes
@@ -113,10 +114,10 @@ func RawTokens(text string) []string {
 	var token []byte
 	for _, r := range text {
 		if folded, ok := quoteFold[r]; ok {
-			r = rune(folded)
+			r = folded
 		}
-		if r < 0x80 && isTokenByte(byte(r)) {
-			token = append(token, byte(r))
+		if isTokenRune(r) {
+			token = utf8.AppendRune(token, r)
 			continue
 		}
 		if len(token) > 0 {

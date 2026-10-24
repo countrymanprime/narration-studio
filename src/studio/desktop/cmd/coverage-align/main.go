@@ -10,6 +10,7 @@
 //	{"op": "results", ...}  a run's results file, as the host writes it (Request's fields)
 //	{"op": "align", ...}    a chapter aligned to transcript words: the AlignedChapter and its maps
 //	{"op": "coverage", ...} coverage, token statuses, extra runs and repeats of an AlignedChapter
+//	{"op": "measure", ...}  a manuscript chapter measured against items' words, as a run measures it
 //
 // A reply is {"error": "..."} when the request fails.
 package main
@@ -49,6 +50,18 @@ type request struct {
 	Words        [][3]any        `json:"words"`
 	Equivalences [][]string      `json:"equivalences"`
 	Aligned      *alignedChapter `json:"aligned"`
+
+	// measure
+	Items []measureItem `json:"items"`
+}
+
+type measureItem struct {
+	Index       int      `json:"index"`
+	ItemGUID    string   `json:"itemGuid"`
+	StartOffset float64  `json:"startOffset"`
+	Length      float64  `json:"length"`
+	Muted       bool     `json:"muted"`
+	Words       [][3]any `json:"words"`
 }
 
 type alignedChapter struct {
@@ -58,7 +71,6 @@ type alignedChapter struct {
 	ParagraphIDs   []string `json:"paragraphIds"`
 	AudioTokens    []string `json:"audioTokens"`
 	Opcodes        [][5]any `json:"opcodes"`
-	parsed         []recordingcoverage.Opcode
 }
 
 func (r request) params() recordingcoverage.AlignmentParams {
@@ -120,6 +132,8 @@ func handle(req request) (any, error) {
 		return align(req)
 	case "coverage":
 		return coverage(req)
+	case "measure":
+		return measure(req)
 	default:
 		return nil, fmt.Errorf("unknown op %q", req.Op)
 	}
@@ -129,15 +143,9 @@ func align(req request) (any, error) {
 	if len(req.Paragraphs) != len(req.ParagraphIDs) {
 		return nil, errors.New("paragraphs and paragraphIds must be the same length")
 	}
-	words := make([]compare.Word, len(req.Words))
-	for k, raw := range req.Words {
-		text, ok1 := raw[0].(string)
-		start, ok2 := raw[1].(float64)
-		end, ok3 := raw[2].(float64)
-		if !ok1 || !ok2 || !ok3 {
-			return nil, fmt.Errorf("word %d is not [text, start, end]", k)
-		}
-		words[k] = compare.Word{Text: text, Start: start, End: end}
+	words, err := parseWords(req.Words)
+	if err != nil {
+		return nil, err
 	}
 	tokenizer := compare.NewTokenizer(req.Equivalences)
 	units := tokenizer.BuildChapterUnits(req.Heading, req.Paragraphs)
@@ -154,6 +162,60 @@ func align(req request) (any, error) {
 		},
 		"indexMap": alignment.IndexMap, "chapterIndexMap": alignment.ChapterIndexMap, "unitIdx": alignment.UnitIdx,
 	}, nil
+}
+
+func parseWords(raw [][3]any) ([]compare.Word, error) {
+	words := make([]compare.Word, len(raw))
+	for k, word := range raw {
+		text, ok1 := word[0].(string)
+		start, ok2 := word[1].(float64)
+		end, ok3 := word[2].(float64)
+		if !ok1 || !ok2 || !ok3 {
+			return nil, fmt.Errorf("word %d is not [text, start, end]", k)
+		}
+		words[k] = compare.Word{Text: text, Start: start, End: end}
+	}
+	return words, nil
+}
+
+func measure(req request) (any, error) {
+	groups, _, err := recordingcoverage.ProjectEquivalences(req.Manuscript)
+	if err != nil {
+		return nil, err
+	}
+	chapter, err := recordingcoverage.LoadChapter(req.Manuscript, req.ChapterID)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]recordingcoverage.ItemResult, len(req.Items))
+	for k, raw := range req.Items {
+		item := recordingcoverage.ManifestItem{Index: raw.Index, ItemGUID: raw.ItemGUID, StartOffset: raw.StartOffset, Length: raw.Length, Muted: raw.Muted}
+		items[k].Item = item
+		if raw.Muted {
+			continue
+		}
+		words, err := parseWords(raw.Words)
+		if err != nil {
+			return nil, fmt.Errorf("item %d: %w", raw.Index, err)
+		}
+		items[k].Source = recordingcoverage.SourceReused
+		items[k].Words = &recordingcoverage.ItemWords{Words: words, SourceStart: item.StartOffset, SourceEnd: item.End()}
+	}
+	m, err := recordingcoverage.Measure(recordingcoverage.Input{Chapter: chapter, Items: items, Params: req.params(), Tokenizer: compare.NewTokenizer(groups)})
+	if err != nil {
+		return nil, err
+	}
+	reply := coverageReply(m.Coverage, &m.Aligned, req.params())
+	regions := reply["coverage"].(map[string]any)["regions"].([]map[string]any)
+	for k, region := range m.Coverage.Regions {
+		regions[k]["position"] = m.RegionPosition(region)
+	}
+	opcodes := make([][5]any, len(m.Alignment.Opcodes))
+	for k, op := range m.Alignment.Opcodes {
+		opcodes[k] = [5]any{op.Tag, op.I1, op.I2, op.J1, op.J2}
+	}
+	reply["opcodes"], reply["indexMap"] = opcodes, m.Alignment.IndexMap
+	return reply, nil
 }
 
 func (a *alignedChapter) chapter() (*recordingcoverage.AlignedChapter, error) {
@@ -193,7 +255,10 @@ func coverage(req request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := chapter.ComputeCoverage(params)
+	return coverageReply(chapter.ComputeCoverage(params), chapter, params), nil
+}
+
+func coverageReply(result recordingcoverage.ChapterCoverage, chapter *recordingcoverage.AlignedChapter, params recordingcoverage.AlignmentParams) map[string]any {
 	paragraphs := make([]map[string]any, len(result.Paragraphs))
 	for k, p := range result.Paragraphs {
 		paragraphs[k] = map[string]any{"id": p.ID, "tokens": p.Tokens, "present": p.Present, "longestMissingRun": p.LongestMissingRun}
@@ -216,5 +281,5 @@ func coverage(req request) (any, error) {
 			"extraTokens": result.ExtraTokens, "longestMissingRun": result.LongestMissingRun, "paragraphs": paragraphs, "regions": regions,
 		},
 		"tokens": statuses, "extras": extras, "repeats": chapter.Repeats(tokens, extras),
-	}, nil
+	}
 }

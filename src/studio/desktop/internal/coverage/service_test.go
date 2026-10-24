@@ -154,8 +154,17 @@ func TestTheSidecarIsGivenOnlyPathsBuiltFromTheSavedProject(t *testing.T) {
 	if args["--manuscript"] != filepath.Join(p.dir, brand.ProjectFolder, "manuscript", "manuscript.json") || args["--chapter-id"] != testChapter {
 		t.Fatalf("args = %v", args)
 	}
-	if args["--model"] != "medium" || args["--model-dir"] != `C:\models\medium` || args["--language"] != "en" || args["--max-misread-run"] != "5" || args["--min-anchor-run"] != "2" {
+	if args["--model"] != "medium" || args["--model-dir"] != `C:\models\medium` || args["--language"] != "en" {
 		t.Fatalf("args = %v", args)
+	}
+	// The host aligns, so the alignment parameters go to its aligner, never to the sidecar.
+	if _, given := args["--max-misread-run"]; given {
+		t.Fatalf("the sidecar must not be given the alignment parameters: %v", args)
+	}
+	aligns := sidecar.alignments()
+	if len(aligns) != 1 || aligns[0].Params.MaxMisreadRun != 5 || aligns[0].Params.MinAnchorRun != 2 || aligns[0].Model != "medium" ||
+		aligns[0].Language == nil || *aligns[0].Language != "en" || aligns[0].WordsReport != args["--out"] || aligns[0].ChapterID != testChapter {
+		t.Fatalf("the alignment = %+v", aligns)
 	}
 }
 

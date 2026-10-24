@@ -4,6 +4,7 @@ import (
 	"context"
 	"desktop/internal/brand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 
 	"desktop/internal/evidence"
 	"desktop/internal/process"
+	"desktop/internal/recordingcoverage"
 )
 
 // --- a project on disk ---
@@ -203,6 +205,7 @@ func (p *testProject) service(sidecar *fakeSidecar) *Service {
 		ProjectFile:    func() (string, error) { return p.rpp, nil },
 		LoadManuscript: p.loadManuscript,
 		LoadCredits:    p.loadCredits,
+		Align:          sidecar.align,
 	}, sidecar.launcher(), nil)
 	service.pollInterval = time.Millisecond
 	return service
@@ -226,8 +229,9 @@ func run(t *testing.T, service *Service, request Request) State {
 
 // fakeSidecar stands in for `compare.py --coverage`: it reads the manifest,
 // reuses a words file that covers an item's range and "transcribes" (writes
-// one) otherwise, honours the .cancel file between items, and writes a results
-// file. It counts what it transcribed, which is what the cache tests assert.
+// one) otherwise, honours the .cancel file between items, and writes a words
+// report. It counts what it transcribed, which is what the cache tests assert.
+// Its align method stands in for the host's aligner (Config.Align).
 type fakeSidecar struct {
 	mu          sync.Mutex
 	launches    [][]string
@@ -251,10 +255,10 @@ type fakeSidecar struct {
 	rechecked           []string // words file names named by every --recheck windows file seen
 	recheckExitCode     int      // non-zero: --recheck fails with this code after writing an ERROR line
 	recheckErrorMessage string
-	afterRecheckPresent int // present tokens (of 10) --align-only reports once a --recheck has run; 0 keeps f.present
+	afterRecheckPresent int // present tokens (of 10) the host's align-only pass reports once a --recheck has run; 0 keeps f.present
 	wholeChapterPresent int // present tokens (of 10) a pass under a model other than the first launch's reports; 0 keeps f.present
 
-	realignExitCode     int // non-zero: an --align-only stage fails with this code after writing an ERROR line
+	realignExitCode     int // non-zero: the host's align-only pass fails with realignErrorMessage
 	realignErrorMessage string
 
 	// The pipelined cascade (--recheck-model): the passages the one process re-checked itself, reported as a COVERAGE_RECHECKED line
@@ -263,6 +267,8 @@ type fakeSidecar struct {
 	pipelineSeconds float64
 
 	lowPriority []bool // per launch: whether it asked for a below-normal process
+
+	aligns []recordingcoverage.Request // every alignment the host asked for, in order
 }
 
 type fakeChild struct {
@@ -305,6 +311,12 @@ func (f *fakeSidecar) transcriptions() []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]string(nil), f.transcribed...)
+}
+
+func (f *fakeSidecar) alignments() []recordingcoverage.Request {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]recordingcoverage.Request(nil), f.aligns...)
 }
 
 func (f *fakeSidecar) rechecks() []string {
@@ -354,12 +366,11 @@ func (f *fakeSidecar) run(args []string) int {
 	if err := json.Unmarshal(raw, &manifest); err != nil {
 		return 1
 	}
-	var items []string
+	var report []string
 	var last *ManifestItem // the last analyzed item
 	done := 0
 	for _, item := range manifest.Items {
 		if item.Muted {
-			items = append(items, fmt.Sprintf(`COVERAGE_ITEM|{"index":%d,"itemGuid":%q,"status":"muted","words":null,"playedSeconds":%g,"wordCount":0,"model":null,"language":null}`, item.Index, item.ItemGUID, item.Length))
 			continue
 		}
 		if _, err := os.Stat(progress + ".cancel"); err == nil {
@@ -387,7 +398,7 @@ func (f *fakeSidecar) run(args []string) int {
 			}
 		}
 		last = &item
-		items = append(items, fmt.Sprintf(`COVERAGE_ITEM|{"index":%d,"itemGuid":%q,"status":"analyzed","words":%q,"playedSeconds":%g,"wordCount":1,"model":%q,"language":"en"}`, item.Index, item.ItemGUID, source, item.Length, values["--model"]))
+		report = append(report, fmt.Sprintf(`COVERAGE_WORDS|{"index":%d,"itemGuid":%q,"words":%q}`, item.Index, item.ItemGUID, source))
 	}
 	if f.during != nil {
 		f.during()
@@ -396,9 +407,75 @@ func (f *fakeSidecar) run(args []string) int {
 		progressLine(progress, "ERROR", 0, f.errorMessage)
 		return f.exitCode
 	}
-	if values["--align-only"] == "true" && f.realignExitCode != 0 {
-		progressLine(progress, "ERROR", 0, f.realignErrorMessage)
-		return f.realignExitCode
+	if _, asked := values["--unsure-below"]; asked && f.unsure && last != nil && len(f.results) == 0 {
+		report = append(report, fmt.Sprintf(`COVERAGE_UNSURE|{"itemIndex":%d,"itemGuid":%q,"start":%g,"end":%g,"words":1,"minScore":0.1}`,
+			last.Index, last.ItemGUID, last.StartOffset, last.StartOffset+0.3))
+	}
+	if _, pipelined := values["--recheck-model"]; pipelined && f.pipelineWindows > 0 && last != nil && len(f.results) == 0 {
+		report = append(report, fmt.Sprintf(`COVERAGE_RECHECKED|{"itemIndex":%d,"itemGuid":%q,"windows":%d,"seconds":%g,"whole":false}`,
+			last.Index, last.ItemGUID, f.pipelineWindows, f.pipelineSeconds))
+	}
+	text := strings.Join(report, "\n")
+	if text != "" {
+		text += "\n"
+	}
+	if err := writeAtomically(values["--out"], []byte(text)); err != nil {
+		return 1
+	}
+	progressLine(progress, "DONE", 100, "Finished")
+	return 0
+}
+
+// align stands in for the host's aligner (recordingcoverage.Run): it writes the results file the old fake sidecar wrote, ten
+// body tokens of which present are read, with an item line per manifest item from the words report (every item reused for an
+// align-only pass), and the report's unsure and re-checked lines carried through.
+func (f *fakeSidecar) align(request recordingcoverage.Request) error {
+	f.mu.Lock()
+	f.aligns = append(f.aligns, request)
+	firstModel := flags(f.launches[0])["--model"]
+	f.mu.Unlock()
+	alignOnly := request.WordsReport == ""
+	if alignOnly && f.realignExitCode != 0 {
+		return errors.New(f.realignErrorMessage)
+	}
+	raw, err := os.ReadFile(request.ManifestPath)
+	if err != nil {
+		return err
+	}
+	var manifest Manifest
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		return err
+	}
+	sources := map[int]string{}
+	var carried []string
+	if !alignOnly {
+		report, err := recordingcoverage.ReadWordsReport(request.WordsReport)
+		if err != nil {
+			return err
+		}
+		sources = report.Sources
+		for _, unsure := range report.Unsure {
+			carried = append(carried, "COVERAGE_UNSURE|"+string(unsure))
+		}
+		for _, rechecked := range report.Rechecked {
+			carried = append(carried, "COVERAGE_RECHECKED|"+string(rechecked))
+		}
+	}
+	var items []string
+	var last *ManifestItem // the last analyzed item
+	for _, item := range manifest.Items {
+		if item.Muted {
+			items = append(items, fmt.Sprintf(`COVERAGE_ITEM|{"index":%d,"itemGuid":%q,"status":"muted","words":null,"playedSeconds":%g,"wordCount":0,"model":null,"language":null}`, item.Index, item.ItemGUID, item.Length))
+			continue
+		}
+		source := "reused"
+		if !alignOnly {
+			if source = sources[item.Index]; source == "" {
+				return fmt.Errorf("The recording check has no words for item %d.", item.Index)
+			}
+		}
+		last = &item
+		items = append(items, fmt.Sprintf(`COVERAGE_ITEM|{"index":%d,"itemGuid":%q,"status":"analyzed","words":%q,"playedSeconds":%g,"wordCount":1,"model":%q,"language":"en"}`, item.Index, item.ItemGUID, source, item.Length, request.Model))
 	}
 	results := "COVERAGE|not json\n"
 	if len(f.results) > 0 {
@@ -408,17 +485,14 @@ func (f *fakeSidecar) run(args []string) int {
 		if present == 0 {
 			present = 10
 		}
-		f.mu.Lock()
-		firstModel := flags(f.launches[0])["--model"]
-		f.mu.Unlock()
 		switch {
-		case values["--align-only"] == "true" && f.afterRecheckPresent != 0:
+		case alignOnly && f.afterRecheckPresent != 0:
 			present = f.afterRecheckPresent
-		case values["--model"] != firstModel && f.wholeChapterPresent != 0:
+		case request.Model != firstModel && f.wholeChapterPresent != 0:
 			present = f.wholeChapterPresent
 		}
-		results = fmt.Sprintf(`COVERAGE|{"schemaVersion":1,"chapterId":%q,"bodyTokens":10,"presentTokens":%d,"missingTokens":%d,"extraTokens":0,"longestMissingRun":%d,"alignment":{"maxMisreadRun":%s,"minAnchorRun":%s},"items":{"analyzed":0,"muted":0,"playedSeconds":0,"transcribed":0,"reused":0},"analysis":{"model":%q,"language":null,"equivalencesHash":null}}`+"\n",
-			values["--chapter-id"], present, 10-present, 10-present, values["--max-misread-run"], values["--min-anchor-run"], values["--model"])
+		results = fmt.Sprintf(`COVERAGE|{"schemaVersion":1,"chapterId":%q,"bodyTokens":10,"presentTokens":%d,"missingTokens":%d,"extraTokens":0,"longestMissingRun":%d,"alignment":{"maxMisreadRun":%d,"minAnchorRun":%d},"items":{"analyzed":0,"muted":0,"playedSeconds":0,"transcribed":0,"reused":0},"analysis":{"model":%q,"language":null,"equivalencesHash":null}}`+"\n",
+			request.ChapterID, present, 10-present, 10-present, request.Params.MaxMisreadRun, request.Params.MinAnchorRun, request.Model)
 		results += strings.Join(items, "\n") + "\n"
 		results += fmt.Sprintf(`COVERAGE_PARAGRAPH|{"id":"p-000001","tokens":10,"present":%d,"longestMissingRun":%d}`+"\n", present, 10-present)
 		if present < 10 {
@@ -430,20 +504,11 @@ func (f *fakeSidecar) run(args []string) int {
 			results += fmt.Sprintf(`COVERAGE_REGION|{"kind":"tail","paragraphIds":["p-000001"],"tokenCount":%d,"firstWord":"very","lastWord":"tired.","position":%s,"before":%s,"after":null}`+"\n",
 				10-present, end, end)
 		}
+		if len(carried) > 0 {
+			results += strings.Join(carried, "\n") + "\n"
+		}
 	}
-	if _, asked := values["--unsure-below"]; asked && f.unsure && last != nil && len(f.results) == 0 {
-		results += fmt.Sprintf(`COVERAGE_UNSURE|{"itemIndex":%d,"itemGuid":%q,"start":%g,"end":%g,"words":1,"minScore":0.1}`+"\n",
-			last.Index, last.ItemGUID, last.StartOffset, last.StartOffset+0.3)
-	}
-	if _, pipelined := values["--recheck-model"]; pipelined && f.pipelineWindows > 0 && last != nil && len(f.results) == 0 {
-		results += fmt.Sprintf(`COVERAGE_RECHECKED|{"itemIndex":%d,"itemGuid":%q,"windows":%d,"seconds":%g,"whole":false}`+"\n",
-			last.Index, last.ItemGUID, f.pipelineWindows, f.pipelineSeconds)
-	}
-	if err := writeAtomically(values["--out"], []byte(results)); err != nil {
-		return 1
-	}
-	progressLine(progress, "DONE", 100, "Finished")
-	return 0
+	return writeAtomically(request.Out, []byte(results))
 }
 
 // runRecheck stands in for `compare.py --coverage --recheck <windows.json>`: it never touches a

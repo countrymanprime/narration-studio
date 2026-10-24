@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -29,6 +30,35 @@ const (
 // rangeTolerance is RANGE_TOLERANCE_SECONDS: the slack at either edge of a
 // played range a words file must cover.
 const rangeTolerance = 0.001
+
+// sentence makes an error whose text is a sentence for the narrator, shown as
+// written in the check's failure message (the sidecar's own wording), so it
+// starts with a capital and ends with a full stop: ST1005's rule is for errors
+// wrapped into other messages.
+func sentence(format string, args ...any) error {
+	return fmt.Errorf(format, args...)
+}
+
+// maxInputBytes bounds every file the check reads: a words file for an
+// hour-long item is well under a megabyte.
+const maxInputBytes = 64 << 20
+
+// readBounded reads a whole file of at most maxInputBytes.
+func readBounded(path string) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = file.Close() }()
+	raw, err := io.ReadAll(io.LimitReader(file, maxInputBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) > maxInputBytes {
+		return nil, fmt.Errorf("%s is larger than %d bytes", filepath.Base(path), maxInputBytes)
+	}
+	return raw, nil
+}
 
 // wordsFileName is WORDS_FILE_NAME: a plain file name, never a path.
 var wordsFileName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$`)
@@ -59,12 +89,12 @@ func (c Chapter) Heading() string {
 // narration_common.manuscript.load_file validates it and returns its
 // narration chapter chapterID. The errors are the sidecar's own sentences.
 func LoadChapter(path, chapterID string) (Chapter, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := readBounded(path)
 	if err != nil {
 		if info, statErr := os.Stat(path); statErr != nil || !info.Mode().IsRegular() {
-			return Chapter{}, errors.New("Import a manuscript first.")
+			return Chapter{}, sentence("Import a manuscript first.")
 		}
-		return Chapter{}, errors.New("The canonical manuscript data could not be read.")
+		return Chapter{}, sentence("The canonical manuscript data could not be read.")
 	}
 	var data struct {
 		SchemaVersion json.RawMessage   `json:"schemaVersion"`
@@ -73,13 +103,13 @@ func LoadChapter(path, chapterID string) (Chapter, error) {
 		Paragraphs    []json.RawMessage `json:"paragraphs"`
 	}
 	if !utf8.Valid(raw) || json.Unmarshal(raw, &data) != nil {
-		return Chapter{}, errors.New("The canonical manuscript data could not be read.")
+		return Chapter{}, sentence("The canonical manuscript data could not be read.")
 	}
 	if !isVersionOne(data.SchemaVersion) {
-		return Chapter{}, errors.New("This manuscript data uses an unsupported schema version.")
+		return Chapter{}, sentence("This manuscript data uses an unsupported schema version.")
 	}
 	if _, ok := jsonString(data.DocumentID); !ok || data.Chapters == nil || data.Paragraphs == nil {
-		return Chapter{}, errors.New("The canonical manuscript data is invalid.")
+		return Chapter{}, sentence("The canonical manuscript data is invalid.")
 	}
 	type chapterRecord struct {
 		ID          *string         `json:"id"`
@@ -115,7 +145,7 @@ func LoadChapter(path, chapterID string) (Chapter, error) {
 			invalid = seen[paragraphs[k].ID] || !chapterIDs[paragraphs[k].ChapterID]
 		}
 		if invalid {
-			return Chapter{}, errors.New("The canonical manuscript has invalid paragraph records.")
+			return Chapter{}, sentence("The canonical manuscript has invalid paragraph records.")
 		}
 		seen[paragraphs[k].ID] = true
 	}
@@ -124,14 +154,14 @@ func LoadChapter(path, chapterID string) (Chapter, error) {
 	order := []string{}
 	for _, record := range records {
 		if record.ID == nil {
-			return Chapter{}, errors.New("The canonical manuscript data is invalid.")
+			return Chapter{}, sentence("The canonical manuscript data is invalid.")
 		}
 		if kind := record.ContentKind; kind != nil && string(kind) != `"narration"` {
 			continue
 		}
 		title, ok := jsonString(record.Title)
 		if !ok {
-			return Chapter{}, fmt.Errorf("The chapter %q has no title.", *record.ID)
+			return Chapter{}, sentence("The chapter %q has no title.", *record.ID)
 		}
 		subtitle, _ := jsonString(record.Subtitle)
 		if _, again := narration[*record.ID]; !again {
@@ -152,12 +182,12 @@ func LoadChapter(path, chapterID string) (Chapter, error) {
 		}
 	}
 	if !any {
-		return Chapter{}, errors.New("The canonical manuscript has no narratable chapters.")
+		return Chapter{}, sentence("The canonical manuscript has no narratable chapters.")
 	}
 	if chapter := narration[chapterID]; chapter != nil && len(chapter.Paragraphs) > 0 {
 		return *chapter, nil
 	}
-	return Chapter{}, fmt.Errorf("Chapter '%s' is not a narration chapter of the manuscript.", chapterID)
+	return Chapter{}, sentence("Chapter '%s' is not a narration chapter of the manuscript.", chapterID)
 }
 
 // EquivalencesPath is compare.py's project_data_path(manuscript,
@@ -184,12 +214,12 @@ func ProjectEquivalences(manuscriptPath string) (groups [][]string, hash *string
 	if err != nil {
 		return nil, nil, nil
 	}
-	raw, readErr := os.ReadFile(path)
+	raw, readErr := readBounded(path)
 	if readErr != nil {
 		return nil, nil, nil
 	}
 	if !utf8.Valid(raw) {
-		return nil, nil, fmt.Errorf("The project's equivalences file %s is not UTF-8 text.", path)
+		return nil, nil, sentence("The project's equivalences file %s is not UTF-8 text.", path)
 	}
 	groups = compare.LoadEquivalenceGroups(string(raw))
 	if len(groups) == 0 {
@@ -220,7 +250,7 @@ func (m ManifestItem) End() float64 { return m.StartOffset + m.Length }
 // exponent).
 func jsonNumber(raw json.RawMessage) (value float64, integer, ok bool) {
 	text := strings.TrimSpace(string(raw))
-	if text == "" || !(text[0] == '-' || text[0] >= '0' && text[0] <= '9') {
+	if text == "" || text[0] != '-' && (text[0] < '0' || text[0] > '9') {
 		return 0, false, false
 	}
 	if err := json.Unmarshal(raw, &value); err != nil || math.IsInf(value, 0) {
@@ -249,7 +279,7 @@ func isVersionOne(raw json.RawMessage) bool {
 }
 
 func readJSONFile(path string) (map[string]json.RawMessage, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := readBounded(path)
 	if err != nil {
 		return nil, err
 	}
@@ -289,18 +319,18 @@ func manifestItem(raw json.RawMessage, position int) (ManifestItem, error) {
 	if len(missing) > 0 || len(unknown) > 0 {
 		sort.Strings(missing)
 		sort.Strings(unknown)
-		return ManifestItem{}, fmt.Errorf("%s: missing [%s], unknown [%s]", where, strings.Join(missing, ", "), strings.Join(unknown, ", "))
+		return ManifestItem{}, sentence("%s: missing [%s], unknown [%s]", where, strings.Join(missing, ", "), strings.Join(unknown, ", "))
 	}
 	item := ManifestItem{}
 	index, integer, ok := jsonNumber(fields["index"])
 	if !ok || !integer || index < 0 || index > math.MaxInt32 {
-		return item, fmt.Errorf("%s: index must be a whole number, 0 or more", where)
+		return item, sentence("%s: index must be a whole number, 0 or more", where)
 	}
 	item.Index = int(index)
 	for _, key := range []string{"itemGuid", "sourceFile"} {
 		value, ok := jsonString(fields[key])
 		if !ok || value == "" {
-			return item, fmt.Errorf("%s: %s must be a non-empty string", where, key)
+			return item, sentence("%s: %s must be a non-empty string", where, key)
 		}
 		if key == "itemGuid" {
 			item.ItemGUID = value
@@ -309,20 +339,20 @@ func manifestItem(raw json.RawMessage, position int) (ManifestItem, error) {
 		}
 	}
 	if value, _, ok := jsonNumber(fields["startOffset"]); !ok || value < 0 {
-		return item, fmt.Errorf("%s: startOffset must be a finite number of seconds, 0 or more", where)
+		return item, sentence("%s: startOffset must be a finite number of seconds, 0 or more", where)
 	} else {
 		item.StartOffset = value
 	}
 	if value, _, ok := jsonNumber(fields["length"]); !ok || value <= 0 {
-		return item, fmt.Errorf("%s: length must be a finite number of seconds above 0", where)
+		return item, sentence("%s: length must be a finite number of seconds above 0", where)
 	} else {
 		item.Length = value
 	}
 	if item.WordsFile, _ = jsonString(fields["wordsFile"]); !wordsFileName.MatchString(item.WordsFile) {
-		return item, fmt.Errorf("%s: wordsFile must be a plain file name (letters, digits, '.', '_', '-')", where)
+		return item, sentence("%s: wordsFile must be a plain file name (letters, digits, '.', '_', '-')", where)
 	}
 	if text := string(fields["muted"]); text != "true" && text != "false" {
-		return item, fmt.Errorf("%s: muted must be true or false", where)
+		return item, sentence("%s: muted must be true or false", where)
 	}
 	item.Muted = string(fields["muted"]) == "true"
 	return item, nil
@@ -343,17 +373,17 @@ func contains(list []string, value string) bool {
 func ReadManifest(path string) ([]ManifestItem, error) {
 	fields, err := readJSONFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("The coverage manifest could not be read: %v", err)
+		return nil, sentence("The coverage manifest could not be read: %v", err)
 	}
 	if !isVersionOne(fields["schemaVersion"]) {
-		return nil, fmt.Errorf("The coverage manifest is not schema version %d", ManifestSchemaVersion)
+		return nil, sentence("The coverage manifest is not schema version %d", ManifestSchemaVersion)
 	}
 	var rawItems []json.RawMessage
 	if json.Unmarshal(fields["items"], &rawItems) != nil || rawItems == nil {
-		return nil, errors.New("The coverage manifest's items must be a list")
+		return nil, sentence("The coverage manifest's items must be a list")
 	}
 	if len(rawItems) == 0 {
-		return nil, errors.New("The coverage manifest has no items")
+		return nil, sentence("The coverage manifest has no items")
 	}
 	items := make([]ManifestItem, len(rawItems))
 	for position, raw := range rawItems {
@@ -364,7 +394,7 @@ func ReadManifest(path string) ([]ManifestItem, error) {
 	seen := map[int]bool{}
 	for _, item := range items {
 		if seen[item.Index] {
-			return nil, fmt.Errorf("The coverage manifest lists item index %d twice", item.Index)
+			return nil, sentence("The coverage manifest lists item index %d twice", item.Index)
 		}
 		seen[item.Index] = true
 	}
@@ -492,9 +522,9 @@ type WordsReport struct {
 // "The sidecar's words report"). An unknown tag or a malformed line is an error: the
 // host never guesses at what the sidecar meant.
 func ReadWordsReport(path string) (WordsReport, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := readBounded(path)
 	if err != nil {
-		return WordsReport{}, fmt.Errorf("The recording check's words report could not be read: %w", err)
+		return WordsReport{}, sentence("The recording check's words report could not be read: %w", err)
 	}
 	report := WordsReport{Sources: map[int]string{}}
 	for number, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
@@ -503,7 +533,7 @@ func ReadWordsReport(path string) (WordsReport, error) {
 		}
 		tag, payload, found := strings.Cut(line, "|")
 		if !found || !json.Valid([]byte(payload)) {
-			return WordsReport{}, fmt.Errorf("The recording check's words report has a malformed line %d.", number+1)
+			return WordsReport{}, sentence("The recording check's words report has a malformed line %d.", number+1)
 		}
 		switch tag {
 		case "COVERAGE_WORDS":
@@ -513,7 +543,7 @@ func ReadWordsReport(path string) (WordsReport, error) {
 			}
 			if json.Unmarshal([]byte(payload), &entry) != nil || entry.Index == nil || entry.Words == nil ||
 				(*entry.Words != SourceReused && *entry.Words != SourceTranscribed) {
-				return WordsReport{}, fmt.Errorf("The recording check's words report has a malformed line %d.", number+1)
+				return WordsReport{}, sentence("The recording check's words report has a malformed line %d.", number+1)
 			}
 			report.Sources[*entry.Index] = *entry.Words
 		case "COVERAGE_UNSURE":
@@ -521,7 +551,7 @@ func ReadWordsReport(path string) (WordsReport, error) {
 		case "COVERAGE_RECHECKED":
 			report.Rechecked = append(report.Rechecked, compare.RawJSON(payload))
 		default:
-			return WordsReport{}, fmt.Errorf("The recording check's words report has an unknown line %q.", tag)
+			return WordsReport{}, sentence("The recording check's words report has an unknown line %q.", tag)
 		}
 	}
 	return report, nil

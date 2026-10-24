@@ -97,7 +97,9 @@ flowchart LR
   home["Production: Check recording"] -->|CoverageStart| svc["src/studio/desktop/internal/coverage"]
   svc -->|reads| rpp["saved .rpp, confirmed track map"]
   svc -->|manifest, words files| side["compare.py --coverage"]
-  side -->|COVERAGE lines| svc
+  side -->|words files, words report| svc
+  svc -->|aligns| align["src/studio/desktop/internal/recordingcoverage"]
+  align -->|COVERAGE lines| svc
   svc --> ledger["ledger record, stored report"]
   ledger -->|thresholds on read| out["Production result, recordedFraction, recording signal"]
 ```
@@ -112,12 +114,17 @@ flowchart LR
   run's `--words-dir` and the evidence cache (`<app>/analysis/cache/`). The cache is keyed by source identity,
   model, language and hints, so a trim that narrows a range reuses the words and only a changed item is transcribed
   again.
-- **The alignment is the take markers' own.** `core/recording_coverage.py` reads the `SequenceMatcher` opcodes that
-  `diff_and_build_markers` computes, so coverage and the markers cannot disagree. The marker output is unchanged,
-  pinned by a golden file. The alignment spike kept `SequenceMatcher` over a word-level DP
-  (
-  [the spike](../research/recording-coverage-alignment-spike.md)).
-- **The sidecar measures, the host judges.** `compare.py --coverage` writes counts only: `COVERAGE`, `COVERAGE_ITEM`,
+- **The sidecar transcribes, the host aligns.** `compare.py --coverage` writes the words files and a words report
+  (`words-report.txt` in the run folder): one `COVERAGE_WORDS` line per playing item saying whether its words were
+  `reused` or `transcribed`, then any `COVERAGE_UNSURE` and `COVERAGE_RECHECKED` lines. The host then aligns the chapter
+  to the words and writes the results (`src/studio/desktop/internal/recordingcoverage`, a port of what the sidecar's
+  `recording_coverage.py` and `coverage_mode.py` did, held byte for byte to the lines they wrote; see
+  [Go versus Python for the sidecars](../research/sidecar-go-vs-python.md), step 1).
+- **The alignment is the take markers' own.** The host aligns with Transcript Compare's tokenizing and `SequenceMatcher`
+  opcodes (`src/studio/desktop/internal/compare`, a port of `compare.py`'s), so coverage and the markers cannot disagree;
+  `tests/fixtures/compare-parity/cases.json` holds the port to Python's answers. The alignment spike kept
+  `SequenceMatcher` over a word-level DP ([the spike](../research/recording-coverage-alignment-spike.md)).
+- **The host measures, then judges on read.** The results are counts only: `COVERAGE`, `COVERAGE_ITEM`,
   `COVERAGE_PARAGRAPH` and `COVERAGE_REGION` lines, each with a JSON payload. A region names its kind, paragraphs,
   word count and first and last words, and three points in the audio, each `{itemIndex, itemGuid, sourceTime}` in
   source seconds: `position`, where the missing text would sit; `before`, the end of the last matched word before it;
@@ -131,14 +138,14 @@ flowchart LR
     which is `read`, `misread`, `heading` or the region kind the check counted it as; plus the item and source seconds
     where it was heard;
   - one `COVERAGE_EXTRA` per run of heard words the chapter does not account for. Its `repeatOf` is set when the run says
-    the chapter text beside it again, a second take (issue #2251 item 30, `recording_coverage.repeat_of`): the run ends
+    the chapter text beside it again, a second take (issue #2251 item 30, `RepeatOf`): the run ends
     with the words up to the last token heard before it (a retake, an aside such as "once more" may come first) or begins
     with the words from the first token heard after it (a restart, an aside may follow), at least 3 words or a whole
     paragraph. It names those chapter tokens (`start`, `end`), the run's own words that say them (`first`, `last`) and the
     chapter text. The host files an extra gap with `repeatOf` as a `duplicate_read` (an edit), not a pickup, and Editing
     shows it as **Read twice**. `null` for an aside and absent from a result stored before it.
 
-  `--align-only` re-aligns from the cached words files and never transcribes. The host reads them through the `WorkspaceAlignment` binding
+  A realign is the host's alone: it re-aligns from the cached words files, starts no sidecar and never transcribes. The host reads the lines through the `WorkspaceAlignment` binding
   (`src/studio/desktop/bindings_coverage.go`, `coverage.AlignmentView`). A chapter with no stored result answers state `never` with the
   chapter's paragraphs and no tokens, extras or items, so the Editing page can show the script before any check has run.
   Every run writes one ledger record
@@ -252,7 +259,7 @@ flowchart LR
   plan -->|nothing missing| done1["stored, no Recheck"]
   plan -->|windows| recheck["--recheck: cascade_recheck_model"]
   plan -->|over 60% of the chapter| whole["whole-chapter pass: cascade_recheck_model"]
-  recheck --> realign["--align-only: cascade_first_pass_model"]
+  recheck --> realign["host realign: cascade_first_pass_model"]
   realign --> done2["stored, Recheck{model, windows, seconds}"]
   whole --> done2
 ```
@@ -266,8 +273,8 @@ flowchart LR
   past 60%, chosen because Whisper's cost is per roughly-30-second block, so a shorter
   window costs about the same as a 25-second one).
 - **The re-check** runs `cascade_recheck_model` (default `large-v3-turbo`) either as `compare.py --recheck` over
-  the planned windows only, splicing the result into the same words files with per-span model provenance (`src/studio/sidecars/transcript-compare/core/coverage_mode.py`), or as one more whole-chapter pass. A windowed re-check is followed by `--align-only`, re-reading the
-  now-spliced words with no further transcription; either way the chapter is judged by the same rules and
+  the planned windows only, splicing the result into the same words files with per-span model provenance (`src/studio/sidecars/transcript-compare/core/coverage_mode.py`), or as one more whole-chapter pass. A windowed re-check is followed by the host's realign, re-reading the
+  now-spliced words with no sidecar and no further transcription; either way the chapter is judged by the same rules and
   thresholds as a plain check, over merged words.
 - **The stored result names both models.** `StoredResult.Model`/`ReportView.model` keep naming the first pass only,
   for compatibility (`docs/utilities/recording-coverage.md#the-model-cascade`'s "stays the first-pass model for compatibility", Q13); a `recheck` field
@@ -279,7 +286,7 @@ flowchart LR
   (`asset_required`, shared with Transcript Compare and the teleprompter): not installed, the check cannot run.
   A missing re-check model instead answers `recheck_asset_required`, and the dialog offers "Check with tiny only"
   beside the download - a one-run choice (`CoverageStart`'s `options.skipRecheck`), never a settings change.
-- **Pipelined first stage.** With `cascade_pipeline` on and a score line above 0, the first stage is one process that also re-checks each item's doubtful passages as soon as the item is done; only the passages left missing still go to `--recheck` and `--align-only` ([design](../design/recording-check-pipeline.md)). The process reports its re-checks in `COVERAGE_RECHECKED` lines, which the host adds to the stored `recheck` label.
+- **Pipelined first stage.** With `cascade_pipeline` on and a score line above 0, the first stage is one process that also re-checks each item's doubtful passages as soon as the item is done; only the passages left missing still go to `--recheck` and the host's realign ([design](../design/recording-check-pipeline.md)). The process reports its re-checks in `COVERAGE_RECHECKED` lines, which the host adds to the stored `recheck` label.
 - **Live progress** (`coverage:state`'s `pass`, `firstPassModel`, `recheckModel`, `recheckWindows`) names which of
   the up to four stages is running, ahead of the sidecar's own message: "First pass (tiny)", "First pass (tiny), re-checking as it goes (large-v3-turbo)" (`pipeline`), "Re-checking 3
   passages (large-v3-turbo)", "Re-checking the whole chapter (large-v3-turbo)" or "Combining the two passes".
@@ -377,15 +384,21 @@ This table is the key to the labels that code comments, tests and the text above
 
 ## Tests and tooling
 
-- `src/studio/sidecars/transcript-compare/tests/`: `test_coverage.py` (the definitions), `test_coverage_mode.py` (the sidecar
-  mode with a fake transcriber), `test_marker_golden.py` (markers unchanged), `coverage_harness.py` and
-  [the fixture set](../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md), `coverage_spike.py` and
-  `coverage_calibration.py`, each pinned by its own test file.
+- `src/studio/desktop/internal/recordingcoverage`: `coverage_test.go` (the definitions), `inputs_test.go` (the manifest,
+  words files, words report and manuscript, and the run), and `golden_test.go`, which holds the results for every fixture
+  case to `fixtures/coverage/results.golden.json` from the words in `fixtures/coverage-words.golden.json`.
+  `src/studio/desktop/internal/compare`'s `compare_test.go` holds the tokenizer, `SequenceMatcher` and Python's string and
+  float rules to `tests/fixtures/compare-parity/cases.json`.
+- `src/studio/sidecars/transcript-compare/tests/`: `test_coverage_mode.py` (the sidecar mode with a fake transcriber, each
+  run's words aligned by the host's code), `test_coverage_alignment.py`, `test_marker_golden.py` (markers unchanged),
+  `coverage_harness.py` and [the fixture set](../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md),
+  `coverage_spike.py` and `coverage_calibration.py`, each pinned by its own test file. They reach the host's aligner through
+  `go_coverage.py`, which builds and runs `src/studio/desktop/cmd/coverage-align` (so they need Go).
 - `src/studio/desktop/internal/coverage`: service tests with a fake sidecar (fresh, all-cached, one-item edit, cancel, every
   refusal and staleness cause), the signal table, settings and a provider test through `stages.Collect`. A test runs
   the real sidecar over cached words when the checkout has a Python environment. `corpus_test.go` stores the
-  sidecar's pinned output for every fixture case (`fixtures/coverage/results.golden.json`, written by
-  `test_coverage_results_golden.py`) as a complete check and runs `stages.Service` over it: `editing` is suggested
+  pinned results for every fixture case (`fixtures/coverage/results.golden.json`, written by
+  `internal/recordingcoverage`'s `golden_test.go`) as a complete check and runs `stages.Service` over it: `editing` is suggested
   for exactly the cases labelled complete. `plan_test.go` (the window planner: bounds, merging, the whole-chapter
   fallback, muted items) and `recheck_test.go` (the cascade end to end with a fake sidecar: no second pass when
   nothing is missing, a windowed re-check and realign, the whole-chapter fallback, cancel and failure in each

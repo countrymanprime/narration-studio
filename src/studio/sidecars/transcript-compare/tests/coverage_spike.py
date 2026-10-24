@@ -4,8 +4,8 @@ docs/utilities/recording-coverage.md, docs/utilities/recording-coverage.md and Q
 `SequenceMatcher` opcodes `compare.py` already computes unless the spike's fixtures fail, then move
 to a DP alignment). This module is test tooling, not product code:
 
-- `coverage_analyzer(aligner)` turns `core/recording_coverage.py` into a harness analyzer, aligning through
-  `compare.py`'s own tokenizing (homophones, number words, hyphen fusing) with either aligner;
+- `coverage_analyzer(aligner)` turns the host's recording coverage (`go_coverage.py`) into a harness analyzer,
+  aligning through the host's own tokenizing (homophones, number words, hyphen fusing) with either aligner;
 - `lcs_opcodes` is the DP prototype: a longest-common-subsequence alignment over the same tokens
   (vectorized by row with numpy), converted to `difflib` opcodes so coverage reads it unchanged;
 - `stress_cases()` generates text-only cases from the committed public-domain manuscript by
@@ -18,6 +18,7 @@ Run it: `uv run python src/studio/sidecars/transcript-compare/tests/coverage_spi
 
 from __future__ import annotations
 
+import dataclasses
 import difflib
 import importlib.util
 import sys
@@ -32,6 +33,7 @@ if __package__ in (None, ""):  # run as a script: make the harness and narration
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import coverage_harness as harness
+import go_coverage as cov
 
 CORE = Path(__file__).resolve().parents[1] / "core"
 
@@ -49,7 +51,6 @@ def _load(name: str, filename: str):
 
 
 compare = _load("transcript_compare_core", "compare.py")
-cov = _load("transcript_coverage_core", "recording_coverage.py")
 
 Aligner = Callable[[Sequence[str], Sequence[str]], list[tuple[str, int, int, int, int]]]
 # The DP keeps its whole score matrix: uint16 cells, so both sides stay under 65,535 tokens.
@@ -124,17 +125,17 @@ ALIGNERS: dict[str, Aligner] = {"SequenceMatcher": sequence_matcher_opcodes, "DP
 # coverage as a harness analyzer
 
 
-def align_case(chapter: harness.Chapter, items: Sequence[harness.Item], aligner: Aligner = sequence_matcher_opcodes):
-    """One chapter aligned to the items' words through compare.py's tokenizing, with the title
+def align_case(chapter: harness.Chapter, items: Sequence[harness.Item], aligner: Aligner = sequence_matcher_opcodes) -> cov.AlignedChapter:
+    """One chapter aligned to the items' words through the host's tokenizing, with the title
     and subtitle as the optional heading (Q11)."""
     heading = " ".join(part for part in (chapter.title, chapter.subtitle) if part)
-    units, tokens, unit_idx, raw_words = compare.build_chapter_units({"title": heading, "paragraphs": [p.text for p in chapter.paragraphs]})
     words = [(word.text, word.start, word.end) for item in items for word in item.words]
-    _markers, _covered, alignment = compare.diff_and_build_markers(tokens, unit_idx, raw_words, words, 1)
+    aligned = cov.align(heading, [p.text for p in chapter.paragraphs], [p.id for p in chapter.paragraphs], words).aligned
     if aligner is not sequence_matcher_opcodes:
-        raw = aligner(alignment["doc_tokens"], alignment["audio_tokens"])
-        alignment = {**alignment, "opcodes": compare._fuse_hyphen_split_opcodes(raw, alignment["doc_tokens"], alignment["audio_tokens"])}
-    return cov.aligned_chapter_from_markers(alignment, units, [p.id for p in chapter.paragraphs])
+        raw = aligner(aligned.doc_tokens, aligned.audio_tokens)
+        opcodes = compare._fuse_hyphen_split_opcodes(raw, list(aligned.doc_tokens), list(aligned.audio_tokens))
+        aligned = dataclasses.replace(aligned, opcodes=tuple(tuple(op) for op in opcodes))
+    return aligned
 
 
 def label(paragraph, thresholds) -> str:
@@ -157,7 +158,7 @@ def coverage_analyzer(aligner: Aligner = sequence_matcher_opcodes, params=None, 
     def analyze(chapter: harness.Chapter, items: tuple[harness.Item, ...]) -> harness.Report:
         if any(item.words is None for item in items):
             raise harness.NeedsAudio("coverage reads transcript words; audio needs the sidecar's coverage mode")
-        result = cov.compute_coverage(align_case(chapter, items, aligner), params)
+        result = cov.coverage(align_case(chapter, items, aligner), params)
         labels = MappingProxyType({paragraph.id: label(paragraph, thresholds) for paragraph in result.paragraphs})
         regions = tuple(harness.Region(region.kind, region.paragraph_ids) for region in result.regions)
         return harness.Report(result.text_complete(thresholds), labels, regions)

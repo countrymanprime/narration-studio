@@ -1,7 +1,6 @@
 package recordingcoverage
 
 import (
-	"fmt"
 	"strings"
 
 	"desktop/internal/compare"
@@ -95,11 +94,56 @@ func line(tag string, payload any) string {
 	return tag + "|" + compare.DumpPy(payload, true) + "\n"
 }
 
-func intOrNil(v *int) any {
-	if v == nil {
-		return nil
+// Measured is one chapter aligned to a run's words: the alignment, its
+// coverage, and the joined words the positions are read from.
+type Measured struct {
+	Aligned   AlignedChapter
+	Alignment compare.Alignment
+	Coverage  ChapterCoverage
+	timeline  timeline
+	words     []tokenWord
+	heading   string
+}
+
+// Measure aligns the chapter to the analyzed items' played words, joined in
+// play order, and computes its coverage: coverage_mode.run up to its report.
+func Measure(in Input) (Measured, error) {
+	if err := in.Params.Validate(); err != nil {
+		return Measured{}, err
 	}
-	return *v
+	for k := range in.Items {
+		if in.Items[k].Source != "" {
+			in.Items[k].played = in.Items[k].Words.Played(in.Items[k].Item)
+		}
+	}
+	m := Measured{timeline: newTimeline(in.Items), heading: in.Chapter.Heading()}
+	units := in.Tokenizer.BuildChapterUnits(m.heading, in.Chapter.Paragraphs)
+	m.Alignment = in.Tokenizer.Align(units, m.timeline.words)
+	m.Aligned = AlignedFromAlignment(m.Alignment, units.Sentences, in.Chapter.ParagraphIDs)
+	if err := m.Aligned.Validate(); err != nil {
+		return Measured{}, err
+	}
+	m.Coverage = m.Aligned.ComputeCoverage(in.Params)
+	m.words = tokenWords(in.Tokenizer, m.heading, in.Chapter.Paragraphs)
+	if err := matchWords(m.words, units.RawWords); err != nil {
+		return Measured{}, err
+	}
+	return m, nil
+}
+
+// matchWords refuses a chapter whose whitespace words do not line up with its
+// tokens, rather than placing a token on the wrong word.
+func matchWords(words []tokenWord, raw []string) error {
+	if len(words) != len(raw) {
+		return sentence("The chapter's words could not be matched to its tokens (%d against %d).", len(words), len(raw))
+	}
+	return nil
+}
+
+// RegionPosition is where a region's missing text would sit in the audio: an
+// object with itemIndex, itemGuid and sourceTime, or nil with no audio.
+func (m Measured) RegionPosition(region Region) any {
+	return regionPosition(region, m.Alignment, m.timeline)
 }
 
 // Results computes the chapter's coverage and returns the results file
@@ -107,30 +151,13 @@ func intOrNil(v *int) any {
 // COVERAGE_REGION, COVERAGE_UNSURE and COVERAGE_RECHECKED lines, then the word
 // alignment (COVERAGE_TOKEN, COVERAGE_EXTRA).
 func Results(in Input) (string, error) {
-	if err := in.Params.Validate(); err != nil {
+	m, err := Measure(in)
+	if err != nil {
 		return "", err
 	}
-	for k := range in.Items {
-		if in.Items[k].Source != "" {
-			in.Items[k].played = in.Items[k].Words.Played(in.Items[k].Item)
-		}
-	}
-	tl := newTimeline(in.Items)
-	heading := in.Chapter.Heading()
-	units := in.Tokenizer.BuildChapterUnits(heading, in.Chapter.Paragraphs)
-	alignment := in.Tokenizer.Align(units, tl.words)
-	aligned := AlignedFromAlignment(alignment, units.Sentences, in.Chapter.ParagraphIDs)
-	if err := aligned.Validate(); err != nil {
-		return "", err
-	}
-	coverage := aligned.ComputeCoverage(in.Params)
-	words := tokenWords(in.Tokenizer, heading, in.Chapter.Paragraphs)
-	if len(words) != len(units.RawWords) {
-		return "", fmt.Errorf("The chapter's words could not be matched to its tokens (%d against %d).", len(words), len(units.RawWords))
-	}
-	var out strings.Builder
-	out.WriteString(report(in, coverage, alignment, tl))
-	out.WriteString(alignmentLines(&aligned, alignment, tl, words, in.Params))
+	var out strings.Builder // Measure filled in.Items' played words: the slice is shared
+	out.WriteString(report(in, m.Coverage, m.Alignment, m.timeline))
+	out.WriteString(alignmentLines(&m.Aligned, m.Alignment, m.timeline, m.words, in.Params))
 	return out.String(), nil
 }
 

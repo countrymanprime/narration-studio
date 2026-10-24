@@ -467,23 +467,17 @@ def test_an_alignment_with_no_words_has_no_bounds(tmp_path):
 
 
 def _coverage(paragraphs, regions, longest):
-    return cal.coverage_model.ChapterCoverage(
-        cal.coverage_model.AlignmentParams(),
-        sum(p.tokens for p in paragraphs),
-        sum(p.present for p in paragraphs),
-        0,
-        longest,
-        tuple(paragraphs),
-        tuple(regions),
-    )
+    present = sum(p.present for p in paragraphs)
+    body = sum(p.tokens for p in paragraphs)
+    return cal.cov.Coverage(body, present, body - present, 0, longest, tuple(paragraphs), tuple(regions), (), (), ())
 
 
 def test_only_regions_that_fail_the_chapter_are_rechecked():
-    passing = cal.coverage_model.ParagraphCoverage("p-1", 100, 98, 2)
-    failing = cal.coverage_model.ParagraphCoverage("p-2", 20, 17, 3)
-    short = cal.coverage_model.Region("skip", ("p-1",), 2, "a", "b", 0, 2, 0)
-    in_failing = cal.coverage_model.Region("skip", ("p-2",), 3, "a", "b", 110, 113, 50)
-    long_run = cal.coverage_model.Region("skip", ("p-1",), 4, "a", "b", 10, 14, 5)
+    passing = cal.cov.Paragraph("p-1", 100, 98, 2)
+    failing = cal.cov.Paragraph("p-2", 20, 17, 3)
+    short = cal.cov.Region("skip", ("p-1",), 2, "a", "b", 0, 2, 0, None, None)
+    in_failing = cal.cov.Region("skip", ("p-2",), 3, "a", "b", 110, 113, 50, None, None)
+    long_run = cal.cov.Region("skip", ("p-1",), 4, "a", "b", 10, 14, 5, None, None)
 
     assert cal.failing_regions(_coverage([passing, failing], [short, in_failing], 3), cal.PROPOSED) == (in_failing,)
     assert cal.failing_regions(_coverage([passing], [short, long_run], 4), cal.SHIPPED) == (long_run,)

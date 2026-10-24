@@ -91,6 +91,58 @@ func dumpPy(sb *strings.Builder, v any, item, key string) {
 	}
 }
 
+// DumpPyIndent is json.dumps(v, indent=indent, sort_keys=True,
+// ensure_ascii=False): each element on its own line, nested indent spaces
+// deeper, with Python's "," and ": " separators.
+func DumpPyIndent(v any, indent int) string {
+	var sb strings.Builder
+	dumpPyIndent(&sb, v, strings.Repeat(" ", indent), "\n")
+	return sb.String()
+}
+
+func dumpPyIndent(sb *strings.Builder, v any, step, newline string) {
+	inner := newline + step
+	switch x := v.(type) {
+	case []any:
+		if len(x) == 0 {
+			sb.WriteString("[]")
+			return
+		}
+		sb.WriteByte('[')
+		for k, element := range x {
+			if k > 0 {
+				sb.WriteByte(',')
+			}
+			sb.WriteString(inner)
+			dumpPyIndent(sb, element, step, inner)
+		}
+		sb.WriteString(newline + "]")
+	case PyObject:
+		if len(x) == 0 {
+			sb.WriteString("{}")
+			return
+		}
+		keys := make([]string, 0, len(x))
+		for k := range x {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		sb.WriteByte('{')
+		for k, name := range keys {
+			if k > 0 {
+				sb.WriteByte(',')
+			}
+			sb.WriteString(inner)
+			writePyString(sb, name)
+			sb.WriteString(": ")
+			dumpPyIndent(sb, x[name], step, inner)
+		}
+		sb.WriteString(newline + "}")
+	default:
+		dumpPy(sb, v, ", ", ": ")
+	}
+}
+
 // writePyString is json's string encoder with ensure_ascii=False: only the
 // quote, the backslash and control characters are escaped.
 func writePyString(sb *strings.Builder, s string) {

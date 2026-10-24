@@ -1,7 +1,6 @@
 package recordingcoverage
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -90,15 +89,15 @@ func (r Request) itemResults(items []ManifestItem) ([]ItemResult, error) {
 		}
 		words := ReadWordsFile(filepath.Join(r.WordsDir, item.WordsFile))
 		if sources == nil {
-			if words == nil || !(words.Covers(item, r.Model) || r.CheckedBy != "" && words.Covers(item, r.CheckedBy)) {
-				return nil, fmt.Errorf("Align again needs every item's words, but item %d has none cached for the part it plays. Run the recording check to transcribe it.", item.Index)
+			if words == nil || !words.Covers(item, r.Model) && (r.CheckedBy == "" || !words.Covers(item, r.CheckedBy)) {
+				return nil, sentence("Align again needs every item's words, but item %d has none cached for the part it plays. Run the recording check to transcribe it.", item.Index)
 			}
 			results[k].Source, results[k].Words = SourceReused, words
 			continue
 		}
 		source, ok := sources[item.Index]
 		if !ok || words == nil {
-			return nil, fmt.Errorf("The recording check has no words for item %d.", item.Index)
+			return nil, sentence("The recording check has no words for item %d.", item.Index)
 		}
 		results[k].Source, results[k].Words = source, words
 	}

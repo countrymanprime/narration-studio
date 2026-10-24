@@ -233,7 +233,10 @@ a Python server or a browser transport.
 
 Sidecars are Python because the models the app uses (speech recognition, extraction, pronunciation, voice synthesis, audio analysis)
 already run there; it is a convenience, not a requirement. Anything that can run a model and speak the same command-line and
-JSON/NDJSON contract could replace one, and the host would not change. Whichever way is most efficient wins.
+JSON/NDJSON contract could replace one, and the host would not change. Whichever way is most efficient wins. Pure logic over
+text and numbers moves into the host, so a sidecar is a thin model or device runner
+([Go versus Python for the sidecars](../research/sidecar-go-vs-python.md#recommendation)): the recording check's alignment is
+`internal/recordingcoverage` over `internal/compare`, and `compare.py --coverage` only transcribes.
 
 A sidecar reaches an engine (Whisper, Moonshine, Piper, CMU, eSpeak, dshow and WASAPI capture) only through an adapter module in its
 `core/` (`asr_adapters.py`, `capture_dshow.py`, `capture_wasapi.py`, `asr_batch.py`, `providers.py`) registered in the `narration_common.ports`

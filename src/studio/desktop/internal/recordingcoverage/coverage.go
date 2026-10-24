@@ -559,10 +559,10 @@ func (a *AlignedChapter) AlignTokens(params AlignmentParams) ([]AlignedToken, []
 			h := heard[i]
 			audio = &h
 		}
-		switch {
-		case value == "":
+		switch value {
+		case "":
 			tokens[i] = AlignedToken{StatusHeading, audio}
-		case value == statusPresent:
+		case statusPresent:
 			if !inAnchor[i] && audio != nil && a.AudioTokens[*audio] != a.DocTokens[i] {
 				tokens[i] = AlignedToken{StatusMisread, audio}
 			} else {
