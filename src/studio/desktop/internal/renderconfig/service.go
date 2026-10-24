@@ -1,6 +1,6 @@
 // Package renderconfig is the host's end of the per-chapter render configuration command over the REAPER file
 // bridge (configure_chapter_render; see docs/architecture/reaper-bridge.md and
-// docs/research/reaper-spike-s5-render-details.md). It mirrors pickups.Service and
+// docs/reference/daw/reaper.md). It mirrors pickups.Service and
 // lineidentity.Service.
 //
 // The scope is configure only. This package never sends a command that renders anything - it only asks Lua to set RENDER_FILE, RENDER_PATTERN and

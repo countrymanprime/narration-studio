@@ -80,7 +80,7 @@ test('the Start Menu entry is always made and the desktop shortcut is its own ch
   assert.match(desktop, /CreateShortCut "\$DESKTOP\\/i);
 });
 
-// Audacity cannot start a program itself (docs/research/audacity-launcher-feasibility.md), so the Audacity launcher is a Start Menu
+// Audacity cannot start a program itself (docs/architecture/daw-integration.md#audacity-boundary), so the Audacity launcher is a Start Menu
 // entry beside the app's own. It passes exactly `--daw Audacity`: no project path and nothing
 // else, since the narrator picks the project in the app.
 test('the Start Menu always gets a "for Audacity" entry that starts the program with --daw Audacity and nothing else', () => {
