@@ -83,7 +83,7 @@ flow, per the required record below.
 Each row below is the record the [required dependency record](../architecture/model-provenance.md#required-dependency-record) asks
 for, taken from the catalogs the release carries (`config/tts-assets.json`,
 `config/whisper-assets.json`, `config/spacy-assets.json`, `config/moonshine-assets.json`, `config/dictionary-assets.json`, `config/encoder-assets.json`) and, for spaCy, from the
-[provisioning spike](spacy-model-provisioning-spike.md). Every asset is installed by the one
+[provisioning](../utilities/manuscript-guide.md#inputs-and-outputs). Every asset is installed by the one
 lifecycle in `src/studio/desktop/internal/assets` (stage, check size and SHA-256, rename into place,
 manifest), under the per-user cache `<user cache>/narration-studio/assets/<kind>/<provider>/<id>/<version>/`
 (`%LocalAppData%` on Windows), and is removable from Settings > Local assets. **Update policy for
