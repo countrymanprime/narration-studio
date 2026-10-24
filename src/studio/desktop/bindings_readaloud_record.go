@@ -39,6 +39,9 @@ type ReadAloudRecording struct {
 	Position  *float64 `json:"position,omitempty"`
 	Restored  *int     `json:"restored,omitempty"`
 	Kept      *int     `json:"kept,omitempty"`
+	// UndoPoints is, for a stop, how many points the engine's undo history gained for the take: what the app's Undo takes back
+	// with DawUndoLast("record_take", n). 0 when the engine made none it can tell (an older script, the built-in recorder).
+	UndoPoints *int `json:"undoPoints,omitempty"`
 }
 
 func readAloudRefused(reason, message string) ReadAloudRecording {
@@ -317,8 +320,8 @@ func readAloudRecordStopIn(ctx context.Context, name string, recorder dawport.Re
 	if err != nil {
 		return readAloudRecordRefusal(name, err), nil
 	}
-	restored, kept := stopped.Restored, stopped.Kept
-	return ReadAloudRecording{Outcome: "stopped", Restored: &restored, Kept: &kept}, nil
+	restored, kept, points := stopped.Restored, stopped.Kept, stopped.UndoPoints
+	return ReadAloudRecording{Outcome: "stopped", Restored: &restored, Kept: &kept, UndoPoints: &points}, nil
 }
 
 func (h *Host) ReadAloudRecordStop() (string, error) {

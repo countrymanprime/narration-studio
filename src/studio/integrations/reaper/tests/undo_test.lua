@@ -211,7 +211,7 @@ end)
 H.test('undo_last: a kind or a label not in the table is refused before anything is read', function()
   local s, p = project()
   cut(s, p, 14, 16)
-  for _, kind in ipairs({ '', 'fx_range', CUT, 'cut range', '__index' }) do
+  for _, kind in ipairs({ '', 'fx_range', CUT, 'cut range', '__index', 'Recorded media', 'record take' }) do
     s:send('undo_last', 'u1', kind, '1')
     H.eq(s:events(), { { 'ERROR', 'u1', BAD_KIND } }, kind)
   end
@@ -240,4 +240,190 @@ H.test('undo_last: twelve steps is the most', function()
   s:send('undo_last', 'u1', 'cut_range', '12')
   H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'cut_range', '12', '12' } })
   H.eq(s.fake:undo_labels(), { CUT })
+end)
+
+-- record_take: the undo points the last recording the app started left -----------------------------------------------
+-- Their label is REAPER's own ("Recorded media" in REAPER 7.82), so it is not in the bridge's table: the transport keeps the
+-- change count and the top label right after the stop, and the take is REAPER's last action while both are unchanged.
+
+-- Records a take on p.chapter the way the Booth does (arm_only, record_start, record_stop) and returns RECORD_STOPPED.
+local function take(s, p)
+  s:send('arm_only', 'a', p.chapter.guid)
+  s:send('record_start', 'r', p.chapter.guid)
+  s:events()
+  s:send('record_stop', 's')
+  local events = s:events()
+  H.eq(events[1][1], 'RECORD_STOPPED', 'the take is recorded')
+  return events[1]
+end
+
+-- A recording the narrator makes in REAPER: REAPER's own "Recorded media" point, which the bridge did not start.
+local function narrator_take(s, p)
+  p.chapter.armed = true
+  s.fake:begin_recording()
+  s.fake:stop_recording()
+  p.chapter.armed = false
+end
+
+H.test('record_take: right after the app take stops it is REAPER last action, and one step takes the take away', function()
+  local s, p = project()
+  take(s, p)
+  H.eq(#p.chapter.items, 2, 'the take is an item')
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'this' } })
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '1' } }, "REAPER's label is never written back")
+  H.eq(#p.chapter.items, 1, 'the take is gone and the earlier item stays')
+  H.eq(s.fake:undo_labels(), {})
+end)
+
+H.test('record_take: with no take recorded by the app it is other and nothing is undone', function()
+  local s, p = project()
+  narrator_take(s, p)
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'other' } })
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '0' } })
+  H.eq(s.fake:undo_labels(), { 'Recorded media' }, "the narrator's own recording stays")
+  H.eq(undos(s), 0)
+end)
+
+H.test('record_take: an edit after the take is on top, so it is other and nothing is undone', function()
+  local s, p = project()
+  take(s, p)
+  narrator_edit(s, FOREIGN)
+  s.fake.change_count = s.fake.change_count + 1
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'other' } })
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '0' } })
+  H.eq(s.fake:undo_labels(), { 'Recorded media', FOREIGN })
+  H.eq(undos(s), 0)
+end)
+
+H.test('record_take: a recording the narrator makes after the take has the same label but is not the app take', function()
+  local s, p = project()
+  take(s, p)
+  narrator_take(s, p)
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'other' } })
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '0' } })
+  H.eq(s.fake:undo_labels(), { 'Recorded media', 'Recorded media' })
+end)
+
+H.test('record_take: undone once, a second undo never reaches an older recording under it', function()
+  local s, p = project()
+  narrator_take(s, p)
+  take(s, p)
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '1' } })
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'other' } })
+  s:send('undo_last', 'u2', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u2', 'record_take', '1', '0' } })
+  H.eq(s.fake:undo_labels(), { 'Recorded media' }, "the narrator's older recording stays")
+end)
+
+H.test('record_take: more steps than the take left undo only the take', function()
+  local s, p = project()
+  narrator_take(s, p)
+  local stopped = take(s, p)
+  H.eq(stopped[5], '1')
+  s:send('undo_last', 'u1', 'record_take', '12')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '12', '1' } })
+  H.eq(s.fake:undo_labels(), { 'Recorded media' })
+end)
+
+H.test('record_take: a take with a roll left two points, and two steps undo both', function()
+  local s, p = project()
+  s.fake.config.autoxfade = '0' -- "Splits existing items and creates new takes", the one setting roll records in
+  s:send('arm_only', 'a', p.chapter.guid)
+  s:send('record_start', 'r', p.chapter.guid)
+  s.fake.play_position, s.fake.play_position2 = 8, 8
+  s:send('roll', 'o', p.chapter.guid, '2')
+  H.eq(s:events()[3][1], 'ROLLED')
+  s:send('record_stop', 's')
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's', '1', '0', '2' } })
+  s:send('undo_last', 'u1', 'record_take', '2')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '2', '2' } })
+  H.eq(#p.chapter.items, 1, 'both passes are gone')
+end)
+
+H.test('record_take: a take the narrator stops in REAPER is the app take too', function()
+  local s, p = project()
+  s:send('arm_only', 'a', p.chapter.guid)
+  s:send('record_start', 'r', p.chapter.guid)
+  s:events()
+  s.fake:stop_recording()
+  s:tick()
+  H.eq(s:events(), { { 'RECORD_ENDED', 'r', '1', '0', '1' } })
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'this' } })
+end)
+
+H.test('record_take: a newer take is the one undone, and the older stays', function()
+  local s, p = project()
+  take(s, p)
+  s.fake.cursor = 40
+  take(s, p)
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '1' } })
+  H.eq(#p.chapter.items, 2, 'the first take stays')
+  s:send('undo_last', 'u2', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u2', 'record_take', '1', '0' } }, 'the older take is not the last one any more')
+end)
+
+H.test('record_take: while REAPER records it is refused and nothing is undone', function()
+  local s, p = project()
+  take(s, p)
+  s.fake.play_state = 5
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'ERROR', 'u1', RECORDING } })
+  H.eq(undos(s), 0)
+end)
+
+H.test('record_take: steps outside 1 to 12 are refused', function()
+  local s, p = project()
+  take(s, p)
+  s:send('undo_last', 'u1', 'record_take', '0')
+  H.eq(s:events(), { { 'ERROR', 'u1', BAD_STEPS } })
+  H.eq(undos(s), 0)
+end)
+
+H.test('record_take: once undone it is forgotten, even if the change count were to come back to the take', function()
+  local s, p = project()
+  narrator_take(s, p)
+  take(s, p)
+  local count = s.fake.change_count
+  s:send('undo_last', 'u1', 'record_take', '1')
+  s:events()
+  -- REAPER 7.82 raised the count on the Undo, which already tells the take is gone; this models a REAPER that did not.
+  s.fake.change_count = count
+  s:send('undo_last', 'u2', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u2', 'record_take', '1', '0' } })
+  H.eq(s.fake:undo_labels(), { 'Recorded media' }, "the narrator's older recording stays")
+end)
+
+H.test('record_take: a take stopped before REAPER recorded left nothing, so the recording under it is not this', function()
+  local s, p = project()
+  narrator_take(s, p)
+  s.fake.record_delay_ticks = 3
+  s:send('arm_only', 'a', p.chapter.guid)
+  s:send('record_start', 'r', p.chapter.guid)
+  s:send('record_stop', 's')
+  H.eq(s:events()[3], { 'RECORD_STOPPED', 's', '1', '0', '0' })
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'other' } })
+end)
+
+H.test('record_take: a different label on top is other even when the change count is still the take', function()
+  local s, p = project()
+  take(s, p)
+  narrator_edit(s, FOREIGN) -- a point the fake adds without moving the count: only the label tells it apart
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'other' } })
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '0' } })
+  H.eq(undos(s), 0)
 end)

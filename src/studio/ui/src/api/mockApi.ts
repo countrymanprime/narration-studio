@@ -883,6 +883,7 @@ function recordingUndo(
   | 'dawSplitTake'
   | 'dawReduceRangeGain'
   | 'dawRepairClick'
+  | 'readAloudRecordStop'
 > {
   const labels = MOCK_DAW_UNDO_LABELS;
   const record =
@@ -902,6 +903,12 @@ function recordingUndo(
     dawSplitTake: record(labels.split, api.dawSplitTake),
     dawReduceRangeGain: record(labels.reduceGain, api.dawReduceRangeGain),
     dawRepairClick: record(labels.repairClicks, api.dawRepairClick),
+    // A stopped take leaves REAPER's own points (one per stop), which record_take undoes.
+    readAloudRecordStop: async () => {
+      const result = await api.readAloudRecordStop();
+      if (result.outcome === 'stopped') history.push(labels.recordedMedia, result.undoPoints ?? 0);
+      return result;
+    },
   };
 }
 

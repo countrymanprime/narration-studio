@@ -19,7 +19,7 @@ vi.mock('../takeTone', async (original) => {
 });
 
 import type { Bookmark } from '../../../api/contracts/bookmarks';
-import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
+import type { DawActionKind, DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import type { ManuscriptChapter } from '../../../api/contracts/manuscript';
 import type { Mark, Marks } from '../../../api/contracts/marks';
 import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
@@ -37,6 +37,7 @@ import { BoothNextPage } from './BoothNextPage';
 import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
+import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 
 // A take one test leaves running is not the next test's.
 beforeEach(() => forgetAppTake());
@@ -55,6 +56,8 @@ type Options = {
   api?: Partial<NarrationApi>;
   hasManuscript?: boolean;
   measurements?: MeasurementsPort;
+  /** The shell's journal; by default one whose DAW cannot tell its last action. */
+  journal?: (daw: DawClient) => Journal;
 };
 
 /** A DAW that records but whose roll replaces audio: it asks first (the mock's Audacity without backups). */
@@ -74,15 +77,16 @@ function spied(daw: DawClient) {
     recordStart: vi.fn(daw.recordStart),
     recordStop: vi.fn(daw.recordStop),
     roll: vi.fn(daw.roll),
+    undoLast: vi.fn(daw.undoLast),
   };
 }
 
-function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasManuscript = true, measurements }: Options = {}) {
+function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasManuscript = true, measurements, journal: journalFor }: Options = {}) {
   const passageMapRecordRun = vi.fn(async () => {});
   const teleprompterStop = vi.fn(async () => {});
   const api = pageApi({ passageMapRecordRun, teleprompterStop, ...over } as Partial<NarrationApi>);
   const daw = spied(given ?? dawFor(setup));
-  const journal = newJournal();
+  const journal = journalFor?.(daw) ?? newJournal();
   const overlay = createOverlayService();
   const navigate = vi.fn();
   const view = render(
@@ -1469,5 +1473,72 @@ describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
     await spaceOn(within(dialog).getAllByRole('button')[0]);
     await settle();
     expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+});
+
+describe('a-take-is-undone-in-the-daw', () => {
+  /** The shell's journal over the page's DAW, as StudioProvider wires it. */
+  const dawJournal = (daw: DawClient): Journal =>
+    createJournal({ dawName: () => 'REAPER', dawLastAction: async (action) => (action ? daw.lastAction(action.kind as DawActionKind) : 'unknown') });
+  const toastNamed = (page: ReturnType<typeof renderPage>, text: string) => page.overlay.getSnapshot().toasts.find((toast) => toast.text === text);
+
+  it('a take stopped in the DAW is one history entry, and Undo takes it back in the DAW', async () => {
+    const page = renderPage({ journal: dawJournal });
+    await record(page);
+    await space();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(async () =>
+      expect((await page.journal.entries()).map((row) => [row.label, row.refusal])).toEqual([['Recorded a take of Chapter One', null]]),
+    );
+    expect(await page.journal.undoLast()).toMatchObject({ ok: true });
+    expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1);
+    expect(await page.journal.entries()).toEqual([]);
+    expect(await page.daw.lastAction('record_take')).toBe('other');
+  });
+
+  it('says the take is saved with an Undo that takes it back in the DAW', async () => {
+    const page = renderPage({ journal: dawJournal });
+    await record(page);
+    await space();
+    await waitFor(() => expect(toastNamed(page, 'Take saved')).toBeTruthy());
+    await act(async () => {
+      await toastNamed(page, 'Take saved')?.action?.onAction();
+    });
+    expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1);
+    expect(await page.journal.entries()).toEqual([]);
+  });
+
+  it('an Undo after something else came on top of the take in the DAW is refused in the DAW words, and the take stays', async () => {
+    const page = renderPage({ journal: () => createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'other' }) });
+    await record(page);
+    await space();
+    await waitFor(async () => expect(await page.journal.entries()).toHaveLength(1));
+    expect(await page.journal.undoLast()).toEqual({
+      ok: false,
+      refusal: { code: 'daw-last-action', reason: "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER." },
+    });
+    expect(page.daw.undoLast).not.toHaveBeenCalled();
+    expect(await page.journal.entries()).toHaveLength(1);
+  });
+
+  it('Stop and leave journals the take too, so it can be undone from the next page', async () => {
+    const page = renderPage({ journal: dawJournal });
+    await record(page);
+    await press('Escape');
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()?.answer(true));
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(async () => expect((await page.journal.entries()).map((row) => row.label)).toEqual(['Recorded a take of Chapter One']));
+    expect(toastNamed(page, 'Take saved')).toBeUndefined();
+  });
+
+  it('a take with the built-in recorder is not a DAW entry', async () => {
+    const page = renderPage({ setup: 'builtin', journal: dawJournal });
+    await record(page);
+    await space();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(await page.journal.entries()).toEqual([]);
+    expect(toastNamed(page, 'Take saved')).toBeUndefined();
   });
 });

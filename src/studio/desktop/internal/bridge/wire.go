@@ -141,11 +141,12 @@ var eventSpecs = map[string]eventSpec{
 	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
 	// arm_only, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
-	// record_start whose recording the narrator stopped in REAPER.
+	// record_start whose recording the narrator stopped in REAPER. undoPoints, the points REAPER's undo history gained during
+	// the recording (undo_last's record_take), was appended to both stop answers later: optional, so an older script's still reads.
 	"ARMED":           {required: []fieldSpec{text("run"), text("guid"), count("disarmed"), count("changed")}},
 	"RECORD_STARTED":  {required: []fieldSpec{text("run"), text("guid"), number("position")}},
-	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}},
-	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}},
+	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
+	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_NOT_OURS": {required: []fieldSpec{text("run")}},
 	// set_active_take, list_fx_chains, apply_fx_chain (narration_workspace.lua). changed is 0 or 1; reason
 	// is item, take or range; a chain's name is its path relative to FXChains with forward slashes; added is the

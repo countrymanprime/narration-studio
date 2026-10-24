@@ -195,6 +195,53 @@ def record_cycle(env: Env) -> str:
 
 
 @scenario(
+    "undo_last",
+    "record_stop, last_action, undo_last",
+    "undo last: the take the app recorded is REAPER's last action, one undo takes it away (and rejoins an item it split), and a later edit is never undone",
+    needs_audio=True,
+)
+def undo_record_take(env: Env) -> str:
+    fx = book(env)
+    assert env.ok("last_action", "record_take", until="LAST_ACTION")[3] == "other", "no take yet, yet last_action answered this"
+    env.lua("reaper.SetEditCurPos(2, false, false) return true")  # inside the earlier read, so the take splits it
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 3.2, timeout=8, what="the recording to run for over a second")
+    stopped = env.ok("record_stop", until="RECORD_STOPPED")
+    assert stopped[4:5] == ["1"], f"record_stop reported undo points {stopped[4:]} (REAPER's one Recorded media point)"
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    assert len(recorded_items(env, 3)) == 3, "the take did not split the earlier read"
+    assert env.ok("last_action", "record_take", until="LAST_ACTION")[3] == "this", "right after the take last_action did not answer this"
+    undone = env.ok("undo_last", "record_take", "12", until="UNDONE_LAST")
+    assert undone[3:5] == ["12", "1"], f"undo_last answered {undone[3:]}"
+    items = items_on(env.snapshot(), "Chapter 1")
+    assert [(round(i["position"], 3), round(i["length"], 3), len(i["takes"])) for i in items] == [(0.0, 5.0, 1)], f"after the undo {items}"
+    again = env.ok("undo_last", "record_take", "1", until="UNDONE_LAST")
+    assert again[4] == "0", "a second undo_last undid something"
+    env.lua("reaper.SetEditCurPos(8, false, false) return true")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 9.2, timeout=8, what="the second recording to run")
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    recorded_items(env, 2)
+    env.lua(
+        """
+        reaper.Undo_BeginBlock2(0)
+        reaper.SetMediaItemInfo_Value(reaper.GetTrackMediaItem(ci.track_by_name('Chapter 1'), 0), 'D_VOL', 0.5)
+        reaper.Undo_EndBlock2(0, 'Narrator edit', -1)
+        return true
+        """
+    )
+    assert env.ok("last_action", "record_take", until="LAST_ACTION")[3] == "other", "a narrator's later edit is reported as the take"
+    kept = env.ok("undo_last", "record_take", "1", until="UNDONE_LAST")
+    assert kept[4] == "0" and len(items_on(env.snapshot(), "Chapter 1")) == 2, "undo_last undid past the narrator's edit"
+    return (
+        "the take left 1 point, one undo_last removed it and rejoined the split read (1 item, 1 take), a second undid nothing, a later narrator edit blocked it"
+    )
+
+
+@scenario(
     "record",
     "record_start, record_stop",
     "record: with time-selection auto-punch REAPER records only inside the selection (row B2's second half)",
@@ -346,6 +393,33 @@ def roll(env: Env) -> str:
     assert arms(env)["Chapter 1"] is False, "the arm was not restored"
     env.refused("roll", fx["ch1"], "1", tag="RECORD_NOT_OURS")
     return f"{takes} takes across {len(chapter)} item(s) after the roll; the earlier pass is a take of the item it overlaps"
+
+
+@scenario(
+    "undo_last",
+    "roll, record_stop, undo_last",
+    "undo last: a take with a roll leaves a point per stop, and one undo_last of them takes both passes away",
+    needs_audio=True,
+)
+def undo_rolled_take(env: Env) -> str:
+    fx = book(env)
+    env.lua("reaper.SetEditCurPos(10, false, false) return true")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 12.0, timeout=8, what="two seconds of recording")
+    env.ok("roll", fx["ch1"], "11", until="ROLLED", timeout=20)
+    env.wait_for(lambda: play_state(env) & 4 == 4, what="REAPER to record again")
+    time.sleep(1.0)
+    stopped = env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    points = int(stopped[4])
+    assert points == 2, f"record_stop reported {points} undo points (one per stop: the roll's and this one)"
+    assert env.ok("last_action", "record_take", until="LAST_ACTION")[3] == "this", "the rolled take is not REAPER's last action"
+    undone = env.ok("undo_last", "record_take", str(points), until="UNDONE_LAST")
+    assert undone[4] == "2", f"undo_last answered {undone[3:]}"
+    left = [(round(i["position"], 3), round(i["length"], 3), len(i["takes"])) for i in items_on(env.snapshot(), "Chapter 1")]
+    assert left == [(0.0, 5.0, 1)], f"after the undo {left}"
+    return "a take with one roll left 2 points; one undo_last of 2 removed both passes and left the earlier read as it was"
 
 
 @scenario("punch", "roll", "roll: refused when the app is not recording, on a stale track, for a bad time or past the end of the recording", needs_audio=True)

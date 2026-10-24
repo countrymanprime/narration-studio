@@ -309,6 +309,13 @@
   },
   {
     "page": "booth",
+    "state": "take-saved",
+    "viewport": "desktop",
+    "docName": "booth-take-saved",
+    "caption": "Booth - a take just stopped in the DAW: Record is back and the Take saved message offers Undo"
+  },
+  {
+    "page": "booth",
     "state": "recording",
     "viewport": "desktop",
     "docName": "booth-listening",

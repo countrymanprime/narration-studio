@@ -308,7 +308,7 @@ func (a *Actions) handle(event Event) {
 	if event.Tag == "RECORD_ENDED" && event.RunID == a.recordingRun {
 		a.recordingRun = ""
 		if a.onRecordEnded != nil {
-			ended := RecordEnded{Restored: int(numberAt(event.Fields, 2)), Kept: int(numberAt(event.Fields, 3))}
+			ended := RecordEnded{Restored: int(numberAt(event.Fields, 2)), Kept: int(numberAt(event.Fields, 3)), UndoPoints: int(numberAt(event.Fields, 4))}
 			// Handle runs inside Dispatch: the callback must be quick and must not make a request.
 			go a.onRecordEnded(ended)
 		}

@@ -269,7 +269,7 @@ H.test('record_stop stops the recording the app started and puts back the arms t
   s:send('record_start', 'r1', chapter.guid)
   s:events()
   s:send('record_stop', 's1')
-  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '3', '0' } })
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '3', '0', '1' } })
   H.eq(s.fake.play_state, 0)
   H.eq(calls_named(s, 'OnStopButton'), 1)
   H.eq(arms(s), { 0, 1, 1 })
@@ -293,7 +293,7 @@ H.test('record_stop without arm_only stops the recording and has no arms to put 
   s:send('record_start', 'r1', chapter.guid)
   s:events()
   s:send('record_stop', 's1')
-  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '0', '0' } })
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '0', '0', '1' } })
   H.eq(arms(s), { 1, 0, 0 })
 end)
 
@@ -307,7 +307,7 @@ H.test('a recording the narrator stops in REAPER ends the app one, puts the arms
   H.eq(s:events(), {}, 'still recording: nothing to report')
   s.fake.play_state = 0 -- the narrator pressed Stop in REAPER
   s:tick()
-  H.eq(s:events(), { { 'RECORD_ENDED', 'r1', '2', '0' } })
+  H.eq(s:events(), { { 'RECORD_ENDED', 'r1', '2', '0', '0' } })
   H.eq(arms(s), { 0, 1, 0 })
   s.fake.play_state = 5 -- and then started a recording of their own
   s:send('record_stop', 's1')
@@ -323,7 +323,7 @@ H.test('an arm the narrator changes during the take is theirs: it is kept, the r
   pickups.armed = true -- armed by hand during the take; it was not armed before
   s:events()
   s:send('record_stop', 's1')
-  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '2', '1' } })
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '2', '1', '1' } })
   H.eq(arms(s), { 0, 1, 1 })
 end)
 
@@ -360,7 +360,7 @@ H.test('a track deleted during the take is skipped when the arms are put back', 
   table.remove(s.fake.tracks, 2)
   s:events()
   s:send('record_stop', 's1')
-  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '2', '0' } })
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '2', '0', '1' } })
   H.eq(arms(s), { 0, 1 })
 end)
 
@@ -370,7 +370,7 @@ H.test('record_stop while REAPER is still starting the app recording stops it an
   s.fake.record_delay_ticks = 5
   s:send('record_start', 'r1', chapter.guid)
   s:send('record_stop', 's1')
-  H.eq(s:events(), { { 'ERROR', 'r1', 'Recording was stopped before REAPER started it.' }, { 'RECORD_STOPPED', 's1', '0', '0' } })
+  H.eq(s:events(), { { 'ERROR', 'r1', 'Recording was stopped before REAPER started it.' }, { 'RECORD_STOPPED', 's1', '0', '0', '0' } })
   for _ = 1, 10 do
     s:tick()
   end
@@ -384,6 +384,50 @@ H.test('the transport commands make no undo point and never call Main_OnCommand'
   s:send('arm_only', 'a1', chapter.guid)
   s:send('record_start', 'r1', chapter.guid)
   s:send('record_stop', 's1')
-  H.eq(#s.fake.undo, 0)
+  H.eq(s.fake:undo_labels(), { 'Recorded media' }, "the one point is REAPER's own, for the recorded media")
   H.eq(calls_named(s, 'Main_OnCommand'), 0)
+end)
+
+-- The undo points a recording leaves ------------------------------------------------------------------------------
+
+H.test('record_stop reports the undo points the recording left in REAPER', function()
+  local s, chapter = new_session()
+  s:send('arm_only', 'a1', chapter.guid)
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '1', '0', '1' } })
+end)
+
+H.test('a recording the narrator stops in REAPER reports its undo points too', function()
+  local s, chapter = new_session()
+  s:send('arm_only', 'a1', chapter.guid)
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  s.fake:stop_recording() -- the narrator pressed Stop in REAPER
+  s:tick()
+  H.eq(s:events(), { { 'RECORD_ENDED', 'r1', '1', '0', '1' } })
+end)
+
+H.test('a recording stopped before REAPER started it left no undo point', function()
+  local s, chapter = new_session()
+  s.fake.record_delay_ticks = 3
+  s:send('arm_only', 'a1', chapter.guid)
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  H.eq(s:events(), {
+    { 'ARMED', 'a1', chapter.guid, '0', '1' },
+    { 'ERROR', 'r1', 'Recording was stopped before REAPER started it.' },
+    { 'RECORD_STOPPED', 's1', '1', '0', '0' },
+  })
+end)
+
+H.test('the undo points count only what changed since the start: an earlier edit is not the recording', function()
+  local s, chapter = new_session()
+  s.fake.change_count = 40 -- edits the narrator made before
+  s:send('arm_only', 'a1', chapter.guid)
+  s:send('record_start', 'r1', chapter.guid)
+  s:events()
+  s:send('record_stop', 's1')
+  H.eq(s:events()[1][5], '1')
 end)

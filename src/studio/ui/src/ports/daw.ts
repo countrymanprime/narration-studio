@@ -424,7 +424,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     },
     async recordStop() {
       const result = await api.readAloudRecordStop();
-      return result.outcome === 'refused' ? refused(result.message, 'recordStop') : done(true, 0, result.message);
+      // The points the take left in the DAW's undo history, which the Booth's Undo takes back; an older host or script reports none.
+      return result.outcome === 'refused' ? refused(result.message, 'recordStop') : done(true, result.undoPoints ?? 0, result.message);
     },
     async useTake(chapterId, firstToken, lastToken, candidateId) {
       const result = await api.workspaceUseTake(chapterId, firstToken, lastToken, candidateId);
@@ -554,7 +555,8 @@ function mockDawCalls(setup: DawCapabilities, project: DawProject, projectState:
     },
     async recordStop() {
       const sentence = unavailable(setup, 'record', 'recordStop');
-      return sentence ? refused(sentence, 'recordStop') : done(true, 0);
+      // A stop leaves one undo point in the DAW's history (REAPER's "Recorded media"); the Booth journals it only when a DAW records.
+      return sentence ? refused(sentence, 'recordStop') : done(true, 1);
     },
     async useTake(chapterId, _firstToken, _lastToken, candidateId) {
       const sentence = unavailable(setup, 'takes', 'useTake');
@@ -690,6 +692,7 @@ function recordingUndo(
   history: MockUndoHistory,
 ): Pick<
   DawClient,
+  | 'recordStop'
   | 'useTake'
   | 'hideTakes'
   | 'deleteRange'
@@ -713,6 +716,7 @@ function recordingUndo(
     async (...args: A) =>
       history.record(typeof label === 'string' ? label : label(...args), await call(...args));
   return {
+    recordStop: record(labels.recordedMedia, client.recordStop),
     useTake: record(labels.useTake, client.useTake),
     hideTakes: record(labels.hideTakes, client.hideTakes),
     deleteRange: record(labels.cut, client.deleteRange),

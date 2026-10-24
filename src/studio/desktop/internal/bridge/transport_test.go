@@ -136,12 +136,12 @@ func TestRecordStopReadsTheRestoredArmsAndNeverClaimsARecordingItDidNotStart(t *
 		mu.Lock()
 		defer mu.Unlock()
 		if ours {
-			return [][]string{{"RECORD_STOPPED", run(command), "3", "1"}}
+			return [][]string{{"RECORD_STOPPED", run(command), "3", "1", "2"}}
 		}
 		return [][]string{{"RECORD_NOT_OURS", run(command)}}
 	})
 	got, err := actions.RecordStop(context.Background())
-	if err != nil || got != (RecordStopped{Restored: 3, Kept: 1}) {
+	if err != nil || got != (RecordStopped{Restored: 3, Kept: 1, UndoPoints: 2}) {
 		t.Fatalf("got %+v, %v", got, err)
 	}
 	mu.Lock()
@@ -168,11 +168,11 @@ func TestARecordingTheNarratorStopsInREAPERIsReportedToTheHandler(t *testing.T) 
 		t.Fatal(err)
 	}
 	mu.Lock()
-	appendEvents(t, dir, []string{"RECORD_ENDED", startRun, "2", "0"})
+	appendEvents(t, dir, []string{"RECORD_ENDED", startRun, "2", "0", "1"})
 	mu.Unlock()
 	select {
 	case got := <-ended:
-		if got != (RecordEnded{Restored: 2, Kept: 0}) {
+		if got != (RecordEnded{Restored: 2, Kept: 0, UndoPoints: 1}) {
 			t.Fatalf("got %+v", got)
 		}
 	case <-time.After(2 * time.Second):
@@ -206,5 +206,16 @@ func TestRecordStartReportsATrackThatIsGone(t *testing.T) {
 	var stale *TrackStaleError
 	if !errors.As(err, &stale) || stale.GUID != testTrack || !errors.Is(err, ErrStale) {
 		t.Fatalf("err = %v, want a TrackStaleError for %s", err, testTrack)
+	}
+}
+
+func TestAnOlderScriptsRecordStopHasNoUndoPoints(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"RECORD_STOPPED", run(command), "1", "0"}}
+	})
+	got, err := actions.RecordStop(context.Background())
+	if err != nil || got != (RecordStopped{Restored: 1}) {
+		t.Fatalf("got %+v, %v", got, err)
 	}
 }
