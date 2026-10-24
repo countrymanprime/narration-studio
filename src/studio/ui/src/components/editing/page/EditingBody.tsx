@@ -82,6 +82,7 @@ import { useRecordingCheck } from './useRecordingCheck';
 import { ScriptNotesProvider } from '../script/paragraphNotes';
 import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
 import { useLines } from './useLines';
+import type { DawRead } from '../follow/playRoute';
 
 /** The page state a chapter change keeps: the strip and the drawer stay as the narrator left them. */
 export interface PanelsState {
@@ -125,6 +126,8 @@ export interface EditingBodyProps {
   /** Opens a character's Story Bible entry from a voice-sample dot. Absent: the dot's popover has no link. */
   onOpenStoryBible?: (entityId: string) => void;
   caps: DawCapabilities | null;
+  /** Whether the page's last read of the DAW failed, and the read again: Play says so and asks again rather than wait for ever. */
+  dawRead?: DawRead;
   keymap: Keymap;
   /** The window is 1360 px or wider: the strip fits and the timeline is not a drawer tab. */
   stripFits: boolean;
@@ -164,7 +167,7 @@ const lineOfKey = (doc: ChapterDoc, byId: ReadonlyMap<string, LinePassage>, key:
  * keys). It adds no behaviour of its own: it hands each slice what the page read and the page state through `useEditingPage`.
  */
 export function EditingBody(props: EditingBodyProps) {
-  const { chapterId, chapterName, read, reason, locator, playlist, total, caps, keymap, stripFits, compact, panels, chapterStep, link } = props;
+  const { chapterId, chapterName, read, reason, locator, playlist, total, caps, dawRead, keymap, stripFits, compact, panels, chapterStep, link } = props;
   const { doc, state, dispatch, selected } = useEditingPage();
   const tracks = usePort('tracks');
   const findings = usePort('findings');
@@ -193,7 +196,7 @@ export function EditingBody(props: EditingBodyProps) {
   const playback = useScriptPlayback({
     playlist,
     mediaUrl: tracks.mediaUrl,
-    sync: { items: read.workspace.items, cuts: closedCuts, caps },
+    sync: { items: read.workspace.items, cuts: closedCuts, caps, ...(dawRead ? { read: dawRead } : {}) },
     output,
     onOutputDevice: setDeviceProblem,
   });
