@@ -14,7 +14,7 @@ func TestEachRequestGetsOneReplyLine(t *testing.T) {
 	dir := t.TempDir()
 	manuscript := filepath.Join(dir, "m.json")
 	_ = os.WriteFile(manuscript, []byte(`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "One"}],
-		"paragraphs": [{"id": "p-1", "chapterId": "c", "text": "alpha bravo charlie delta"}]}`), 0o600)
+		"paragraphs": [{"id": "p-1", "chapterId": "c", "text": "alpha bravo charlie delta", "index": 0}]}`), 0o600)
 	words := `[["one",0,0.3],["alpha",0.4,0.7],["bravo",0.8,1.1],["charlie",1.2,1.5]]`
 	aligned := `{"docTokens":["a","b"],"docWords":["A","B"],"tokenParagraph":[0,0],"paragraphIds":["p"],"audioTokens":["a","b","z"],` +
 		`"opcodes":[["equal",0,2,0,2],["insert",2,2,2,3]]}`
