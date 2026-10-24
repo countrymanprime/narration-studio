@@ -64,6 +64,12 @@ var eventSpecs = map[string]eventSpec{
 	// piece moved to the Cuts track, and the undo points the command added (1). A pad or room tone (SN-E97) leaves the answer
 	// as it is: the room-tone pieces are not named.
 	"RANGE_CUT": {required: []fieldSpec{text("run"), text("left"), text("cut"), count("undoPoints")}},
+	// replace_range and restore_replacement (narration_replace.lua, docs/reference/daw/capabilities.md#replace_range): the new item
+	// playing their stretch, the narrator's piece moved to the Cuts track, the left piece (empty when the words began at the item's
+	// start), the seconds the later audio moved, and the undo points the command added (1); for a put-back, the narrator's piece back on
+	// its track, the seconds the later audio moved and the undo points (1).
+	"RANGE_REPLACED":       {required: []fieldSpec{text("run"), text("item"), text("cut"), text("left"), number("shift"), count("undoPoints")}},
+	"REPLACEMENT_RESTORED": {required: []fieldSpec{text("run"), text("item"), number("shift"), count("undoPoints")}},
 	// apply_fx_range and remove_fx_range (narration_range.lua, docs/reference/daw/capabilities.md): the piece the chain went on and its take,
 	// or the item the piece is part of after the join; the chain; and the undo points the command added (1, or 0 for a
 	// removal that found nothing to take off).

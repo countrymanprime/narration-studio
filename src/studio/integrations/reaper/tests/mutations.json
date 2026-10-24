@@ -2672,5 +2672,59 @@
     "file": "narration_range.lua",
     "find": "    selected[#selected + 1] = item\n    reaper.SetMediaItemSelected(item, false)\n  end\n  reaper.SetMediaItemSelected(piece, true)",
     "replace": "    selected[#selected + 1] = item\n  end\n  reaper.SelectAllMediaItems(0, false)\n  reaper.SetMediaItemSelected(piece, true)"
+  },
+  {
+    "name": "replace: a stale narrator item resolves to another item",
+    "file": "narration_replace.lua",
+    "find": "  local item = find_item(guid_text)\n  if not item then",
+    "replace": "  local item = find_item(guid_text) or reaper.GetMediaItem(0, 0)\n  if not item then"
+  },
+  {
+    "name": "replace: a stale source item resolves to another item",
+    "file": "narration_replace.lua",
+    "find": "  local source = find_item(source_text)\n  if not source then",
+    "replace": "  local source = find_item(source_text) or reaper.GetMediaItem(0, 0)\n  if not source then"
+  },
+  {
+    "name": "replace: words already replaced are replaced again",
+    "file": "narration_replace.lua",
+    "find": "  if item_ext(item, REPLACEMENT_KEY) ~= '' then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "replace: their audio on the narrator's own track is used",
+    "file": "narration_replace.lua",
+    "find": "  if their_track == track then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "replace: a neighbour over the words is overwritten",
+    "file": "narration_replace.lua",
+    "find": "  if overlapping(track, item, first_cut, last_cut) then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "replace: an older REAPER without the calls replaces anyway",
+    "file": "narration_replace.lua",
+    "find": "    return\n  end\n  if not supported() then\n    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot replace audio.')",
+    "replace": "    return\n  end\n  if false then\n    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot replace audio.')"
+  },
+  {
+    "name": "replace: a put-back of another replacement's item",
+    "file": "narration_replace.lua",
+    "find": "  if item_ext(new, REPLACEMENT_KEY) ~= id then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "replace: a put-back of a piece no longer on the Cuts track",
+    "file": "narration_replace.lua",
+    "find": "  if not cut or not cuts or reaper.GetMediaItem_Track(cut) ~= cuts then",
+    "replace": "  if not cut then"
+  },
+  {
+    "name": "replace: the later audio does not follow the replacement's length",
+    "file": "narration_replace.lua",
+    "find": "  shift_items(later, shift)\n\n  local new",
+    "replace": "  local new"
   }
 ]

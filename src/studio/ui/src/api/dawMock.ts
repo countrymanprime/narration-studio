@@ -72,6 +72,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   input_level: 'unsupported',
   punch_preroll: 'supported',
   daw_meters: 'supported',
+  replace_range: 'experimental',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
@@ -114,6 +115,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   input_level: 'running',
   punch_preroll: 'running',
   daw_meters: 'running',
+  replace_range: 'running',
 };
 
 const MESSAGE_NO_INPUT_LEVEL = (who: string) => `${who} cannot set an audio interface's input gain. Set it in your interface's own control panel.`;
@@ -363,6 +365,7 @@ const REAPER_DEPTH: Partial<Record<DawCapabilityKey, { destructive?: boolean; mo
   stack_takes: { mode: 'native' },
   range_gain: { mode: 'native' },
   click_repair: { mode: 'native' },
+  replace_range: { mode: 'native' },
 };
 
 /** Like the host's payload, `destructive` only when true and `mode` only when set. */

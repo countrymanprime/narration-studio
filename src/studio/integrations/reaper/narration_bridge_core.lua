@@ -160,6 +160,8 @@ end
 -- exactly one of them: the table is fixed here, so no string the host sends can widen what may be undone.
 local UNDO_LABELS = {
   cut_range = BRAND.name .. ': delete words',
+  replace_range = BRAND.name .. ': replace audio',
+  restore_replacement = BRAND.name .. ': put audio back',
 }
 local function undo_label(kind)
   if type(kind) ~= 'string' then
