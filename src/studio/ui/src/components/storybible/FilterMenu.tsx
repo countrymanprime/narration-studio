@@ -104,12 +104,10 @@ export function FilterMenu({
   return (
     <Menu render={<IconButton action="filterList" label={on > 0 ? `Filter, ${on} on` : 'Filter'} className="relative" />} sections={sections}>
       <Icon name="filterList" />
+      {/* The count is said by the button's name ("Filter, 2 on"); the badge is what a sighted narrator sees. */}
       {on > 0 && (
-        <span
-          aria-hidden
-          className="absolute -top-1.5 -right-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--accent)] px-1 text-[0.65rem] leading-none font-semibold text-[var(--accent-contrast)]"
-        >
-          {on}
+        <span aria-hidden className="absolute -top-2 -right-2">
+          <Badge label={on} colors={toneColors('accent')} />
         </span>
       )}
     </Menu>
