@@ -4,11 +4,8 @@ import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import type { OutputPrefs } from '../../engine/outputPrefs';
 import { useRangePlayer } from '../../engine/useRangePlayer';
-import { CHECKING, READ_FAILED, playRoute, type DawRead } from '../follow/playRoute';
+import { APP, CHECKING, dawReadiness, playThrough, quietWhileRecording, type DawRead, type PlaybackProvider } from '../../../playback/providers';
 import type { LinePassage, LineTake } from './types';
-
-/** Said after every reason the DAW did not play a take: with a DAW linked, the app never plays a take itself (#2251 item 32). */
-export const TAKE_DAW_ONLY = 'Nothing played: while a DAW is linked, takes play only through it.';
 
 /** The longest stretch the DAW's preview plays (bridge.MaxPreviewSeconds); a longer take plays its first minute. */
 const MAX_PREVIEW_SECONDS = 60;
@@ -35,9 +32,9 @@ export interface TakeAudition {
 }
 
 /**
- * Hearing one take under a line. With a linked DAW that can play the chapter (`playRoute`), the take plays through the DAW's own preview
- * (`DawClient.previewTake`, the host reading its file and range), and when the DAW cannot play it nothing does and a toast says why. Without
- * one, the app's range player plays the take's own file.
+ * Hearing one take under a line, through the first provider that is ready (playback/providers.ts): the linked DAW's own preview when its
+ * `file_preview` is usable (`DawClient.previewTake`, the host reading its file and range), else the app's range player on the take's own
+ * file. A DAW that cannot preview now, or refuses, hands the take to the app with a notice saying why.
  */
 export function useTakeAudition({
   caps,
@@ -82,51 +79,64 @@ export function useTakeAudition({
     (take: LineTake) => {
       if (playing === take.id && (inDaw || player.isPlaying)) return stop();
       const { caps: now, read: dawRead, notify: say, passageOf: lineOf, stopChapter: quiet } = live.current;
-      const route = playRoute(now);
-      if (route.kind === 'unknown') {
-        if (dawRead?.failed) {
-          say(READ_FAILED);
-          void dawRead.retry();
-        } else say(CHECKING);
-        return;
-      }
-      quiet();
-      stop();
-      if (route.kind === 'app') {
-        player.play({ sourceFile: take.sourceFile, rangeStart: take.sourceStart, rangeEnd: take.sourceStart + take.sourceLength });
-        setPlaying(take.id);
-        return;
-      }
-      const line = lineOf(take);
-      if (!line) return say(`This take's line is not on the page any more. ${TAKE_DAW_ONLY}`);
-      const mine = asked.current;
-      setPlaying(take.id);
-      setInDaw(true);
-      daw.previewTake(line.chapterId, line.firstToken, line.lastToken, take.id).then(
-        (result) => {
-          if (asked.current !== mine) return;
-          if (!result.ok) {
+      if (now === null && dawRead?.failed) void dawRead.retry();
+      const name = now?.daw ?? 'The DAW';
+      const preview: PlaybackProvider<LineTake> = {
+        name,
+        readiness: (t) => {
+          const declared = dawReadiness(now, 'file_preview', !!dawRead?.failed);
+          if (!declared.ready) return declared;
+          return lineOf(t) ? { ready: true } : { ready: false, why: "This take's line is not on the page any more." };
+        },
+        play: async (t) => {
+          const line = lineOf(t)!;
+          const mine = asked.current;
+          setPlaying(t.id);
+          setInDaw(true);
+          let why: string;
+          try {
+            const result = await daw.previewTake(line.chapterId, line.firstToken, line.lastToken, t.id);
+            if (result.ok) {
+              // The DAW says nothing when a preview ends, so the take is shown playing for as long as it plays.
+              timer.current = window.setTimeout(
+                () => {
+                  if (asked.current !== mine) return;
+                  setPlaying(null);
+                  setInDaw(false);
+                },
+                Math.min(t.sourceLength, MAX_PREVIEW_SECONDS) * 1000,
+              );
+              return { played: true };
+            }
+            why = result.message;
+          } catch (error) {
+            why = `${name} was not asked: ${error instanceof Error ? error.message : String(error)}`;
+          }
+          if (asked.current === mine) {
             setPlaying(null);
             setInDaw(false);
-            return say(`${result.message} ${TAKE_DAW_ONLY}`);
           }
-          // The DAW says nothing when a preview ends, so the take is shown playing for as long as it plays.
-          timer.current = window.setTimeout(
-            () => {
-              if (asked.current !== mine) return;
-              setPlaying(null);
-              setInDaw(false);
-            },
-            Math.min(take.sourceLength, MAX_PREVIEW_SECONDS) * 1000,
-          );
+          return { played: false, why };
         },
-        (error: unknown) => {
-          if (asked.current !== mine) return;
-          setPlaying(null);
-          setInDaw(false);
-          say(`${route.name} was not asked: ${error instanceof Error ? error.message : String(error)} ${TAKE_DAW_ONLY}`);
+      };
+      const app: PlaybackProvider<LineTake> = {
+        name: APP,
+        readiness: () => ({ ready: true }),
+        play: (t) => {
+          player.play({ sourceFile: t.sourceFile, rangeStart: t.sourceStart, rangeEnd: t.sourceStart + t.sourceLength });
+          setPlaying(t.id);
+          return { played: true };
         },
-      );
+      };
+      // A DAW still answering plays nothing, and the chapter keeps playing.
+      if (now === null && !dawRead?.failed) return say(CHECKING);
+      quiet();
+      stop();
+      const mine = asked.current;
+      const keepQuiet = now ? quietWhileRecording(() => daw.projectState(), name) : undefined;
+      void playThrough([preview, app], take, { stillWanted: () => asked.current === mine, ...(keepQuiet ? { keepQuiet } : {}) }).then(({ notice }) => {
+        if (notice && asked.current === mine) say(notice);
+      });
     },
     [daw, player, playing, inDaw, stop],
   );

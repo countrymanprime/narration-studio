@@ -1735,6 +1735,29 @@ def merge_dialogue_cues(fresh: list[dict[str, Any]], previous_cues: list[dict[st
     return merged
 
 
+def refresh_cues(args: argparse.Namespace) -> None:
+    """Writes the dialogue cues without a Story Bible build, against the entries already filed under a speaking type: the host runs it
+    after a manuscript import and after a scan. With ``--chapter-id``, only those chapters' cues are recomputed and the rest are kept.
+    A narrator's correction survives as it does a rebuild (``merge_dialogue_cues``). With no guide file yet, an empty one is started,
+    which status() reports as stale until a real build fills ``source``. Prints ``CUES|<cues>|<with a speaker>``."""
+    guide = load_json(args.guide) or empty_guide()
+    paragraphs = load_manuscript(args.manuscript)
+    chapters = set(args.chapter_id or [])
+    previous = guide.get("dialogue_cues", [])
+    index = character_name_index(guide.get("entities", []), speaking_types(guide))
+    scope = [paragraph for paragraph in paragraphs if not chapters or paragraph["chapterId"] in chapters]
+    cues = merge_dialogue_cues(extract_dialogue_cues(scope, index), previous)
+    if chapters:
+        order: dict[str, int] = {}
+        for paragraph in paragraphs:
+            order.setdefault(paragraph["chapterId"], len(order))
+        kept = [cue for cue in previous if cue.get("chapterId") not in chapters]
+        cues = sorted([*kept, *cues], key=lambda cue: order.get(cue.get("chapterId", ""), len(order)))
+    guide["dialogue_cues"] = cues
+    write_json(args.guide, guide)
+    print(f"CUES|{len(cues)}|{sum(1 for cue in cues if cue.get('speaker_entity_id'))}")
+
+
 def correct_cue(args: argparse.Namespace) -> None:
     """Records the narrator's own attribution for one cue (or clears it back to `unknown`), so the next
     rebuild's `merge_dialogue_cues` keeps it instead of overwriting it with fresh, possibly-`unknown`,
@@ -2280,6 +2303,10 @@ def main() -> None:
     split_parser.add_argument("--guide", required=True)
     split_parser.add_argument("--entity-id", required=True)
     split_parser.add_argument("--alias-text", required=True)
+    cues_parser = command.add_parser("cues", help="write the dialogue cues against the entries already filed, without a build")
+    cues_parser.add_argument("--guide", required=True)
+    cues_parser.add_argument("--manuscript", required=True)
+    cues_parser.add_argument("--chapter-id", action="append", default=[], help="recompute only this chapter's cues; repeat for several")
     correct_cue_parser = command.add_parser("correct-cue", help="record the narrator's own attribution for a dialogue cue; a rebuild never overwrites it")
     correct_cue_parser.add_argument("--guide", required=True)
     correct_cue_parser.add_argument("--cue-id", required=True)
@@ -2377,6 +2404,7 @@ def main() -> None:
             "merge": merge,
             "unmerge": unmerge,
             "split": split,
+            "cues": refresh_cues,
             "correct-cue": correct_cue,
             "mark-reviewed": mark_reviewed,
             "review-flag": review_flag,

@@ -714,6 +714,20 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       number: { min: 1, max: 100, step: 1, unit: '%' },
     },
   ],
+  // Booth.words_per_page unset, so it reads as the default, 250 (tests/fixtures/contracts/settings-words-per-page.json); the Booth's page size.
+  Booth: [
+    {
+      key: 'words_per_page',
+      label: 'Words per page',
+      kind: 'number',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '250',
+      effectiveSource: 'repo_default',
+      number: { min: 50, max: 1000, step: 1, unit: 'words' },
+    },
+  ],
   // VoiceSamples.storage unset, so it reads as the default, project: the host accepts only project until the DAW label is built.
   VoiceSamples: [
     {
