@@ -25,6 +25,7 @@ import {
   type EntrySort,
 } from './entryTable';
 import { evidenceLinks } from './evidenceLinks';
+import { usePreviewAudio } from './usePreviewAudio';
 import { ActionsMenu } from './ActionsMenu';
 import { EntryTable, type EntryTableHandle } from './EntryTable';
 import { ScanStatus } from './suggested/panel/ScanStatus';
@@ -246,6 +247,27 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     setLooseId(null);
     setSelectedId(id);
   };
+  // The list's Hear: the host's preview of an entry's name, as the entry's own play button plays it. One plays at a time; a voice that
+  // is not installed opens the entry, whose own play asks again and shows the install prompt.
+  const hearTarget = useRef<string>(undefined);
+  const [heardId, setHeardId] = useState<string>();
+  const listPreview = usePreviewAudio({
+    resetKey: undefined,
+    requestPreview: () => api.guidePreview(hearTarget.current!),
+    onAssetRequired: () => {
+      const id = hearTarget.current!;
+      selectRow(id);
+      setCommand({ id, kind: 'hear', nonce: Math.random() });
+    },
+    notify,
+  });
+  const hear = (id: string) => {
+    if (hearTarget.current !== id) listPreview.stopPreview();
+    hearTarget.current = id;
+    setHeardId(id);
+    void listPreview.playPreview();
+  };
+
   // The right-click menu of an entry row (the mock's registerContext for the Bible page): Open, Find in the manuscript, Mark reviewed and
   // Delete entry. The last two go to the open entry, which does what its own buttons do (its pending and its Undo included).
   const [command, setCommand] = useState<EntryCommand>();
@@ -425,6 +447,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 empty={empty}
                 words={searchWords(query)}
                 handle={tableRef}
+                onHear={hear}
+                playingId={listPreview.playingPreview ? heardId : undefined}
+                loadingId={listPreview.loadingPreview ? heardId : undefined}
               />
             ) : (
               <div className="min-h-0 flex-1 overflow-hidden p-2">

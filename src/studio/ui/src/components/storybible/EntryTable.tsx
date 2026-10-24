@@ -16,6 +16,7 @@ import { categoryLabel } from '../../state';
 import type { GuideEntity, GuideType } from '../../types';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../primitives/changeHighlight';
 import { Highlight } from '../primitives/Highlight';
+import { IconButton } from '../primitives/IconButton';
 import { Swatch } from '../primitives/Swatch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../primitives/Table';
 import { kindSwatch, typeUnknown } from './entryList';
@@ -53,11 +54,20 @@ export type EntryTableProps = {
   words?: readonly string[];
   /** Lets the search box move focus into the table (Down in the box). */
   handle?: Ref<EntryTableHandle>;
+  /** Plays (or stops) an entry's pronunciation: its row's Hear button and Space on its row. Without it no row draws Hear. */
+  onHear?: (id: string) => void;
+  /** The entry whose pronunciation is playing, and the one the host is still rendering. */
+  playingId?: string;
+  loadingId?: string;
 };
+
+/** Whether an entry has a pronunciation to play: the Hear button shows only then, as on the Script page's rail. */
+export const canHear = (entry: GuideEntity): boolean => entry.pronunciation.ipa.trim() !== '';
 
 export type EntryTableHandle = { focusFirst: () => void };
 
-const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[8rem]' };
+// Below about 320 px of pane width the Kind column narrows to its header and each row's colour dot (the word stays for a screen reader), so the name keeps its room.
+const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[8rem] @max-[20rem]:w-[3.25rem]' };
 
 /**
  * The Story Bible's entries as a data table: a header that sorts, one row per entry, one tab stop moved by the arrow keys, and only the rows in view
@@ -77,6 +87,9 @@ export function EntryTable({
   empty,
   words = [],
   handle,
+  onHear,
+  playingId,
+  loadingId,
 }: EntryTableProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const [focusedId, setFocusedId] = useState<string>();
@@ -171,6 +184,18 @@ export function EntryTable({
     if (edge) focusEntry(edge.id);
   };
 
+  // Space on a row with a pronunciation plays it instead of opening the row (the row's own key handler, which runs after a capture).
+  const onKeyDownCapture = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!onHear || event.key !== ' ' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const target = event.target as HTMLElement;
+    if (target.tagName !== 'TR') return;
+    const row = rows.find((entry) => entry.id === target.dataset.entryId);
+    if (!row || !canHear(row)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onHear(row.id);
+  };
+
   const onFocus = (event: FocusEvent<HTMLTableSectionElement>) => {
     const id = (event.target as HTMLElement).closest<HTMLElement>('[data-entry-id]')?.dataset.entryId;
     if (id) setFocusedId(id);
@@ -180,16 +205,23 @@ export function EntryTable({
   const looseStop = loose.find((suggestion) => suggestion.id === looseId)?.id ?? null;
   const stopId = looseStop ? undefined : (rows.find((row) => row.id === focusedId)?.id ?? rows.find((row) => row.id === openId)?.id ?? rows[0]?.id);
   const firstLooseStop = looseStop ?? (stopId ? null : (loose[0]?.id ?? null));
-  const columns = COLUMNS.length;
+  const columns = COLUMNS.length + 1;
   const nothing = rows.length === 0 && loose.length === 0;
 
   return (
-    <div ref={scroller} data-entry-scroll="" onScroll={windowed ? measure : undefined} className="@container min-h-0 flex-1 overflow-auto">
+    <div
+      ref={scroller}
+      data-entry-scroll=""
+      onScroll={windowed ? measure : undefined}
+      onKeyDownCapture={onKeyDownCapture}
+      className="@container min-h-0 flex-1 overflow-auto"
+    >
       <Table label="Story Bible entries" rowCount={windowed ? rows.length + loose.length + 1 : undefined} className="table-fixed">
         <colgroup>
           {COLUMNS.map((column) => (
             <col key={column.key} className={COL_WIDTH[column.key] ?? ''} />
           ))}
+          <col className="w-[2.75rem]" />
         </colgroup>
         <TableHead sticky>
           <TableRow>
@@ -198,6 +230,7 @@ export function EntryTable({
                 {column.label}
               </TableHeader>
             ))}
+            <TableHeader hiddenLabel="Pronunciation" />
           </TableRow>
         </TableHead>
         <TableBody navigable onKeyDown={onKeyDown} onFocus={onFocus}>
@@ -214,6 +247,7 @@ export function EntryTable({
               tabStop={row.id === stopId}
               words={words}
               onOpen={() => onOpen(row.id)}
+              hear={onHear && canHear(row) ? { playing: playingId === row.id, loading: loadingId === row.id, onPress: () => onHear(row.id) } : undefined}
             />
           ))}
           {end < rows.length && <TableSpacer height={(rows.length - end) * ROW_PX} columns={columns} />}
@@ -239,6 +273,7 @@ function EntryRow({
   tabStop,
   words,
   onOpen,
+  hear,
 }: {
   entry: GuideEntity;
   types: readonly GuideType[];
@@ -248,6 +283,7 @@ function EntryRow({
   tabStop: boolean;
   words: readonly string[];
   onOpen: () => void;
+  hear?: { playing: boolean; loading: boolean; onPress: () => void };
 }) {
   const alias = matchedAlias(entry, words);
   const kind = entry.category === 'Draft' ? categoryLabel(entry.category) : typeUnknown(entry) ? 'Type not set' : entry.category;
@@ -279,8 +315,23 @@ function EntryRow({
       <TableCell className="whitespace-nowrap">
         <span className="flex items-center gap-1.5">
           <Swatch colour={kindSwatch(types, entry.category)} />
-          <span className="truncate">{kind}</span>
+          <span className="truncate @max-[20rem]:sr-only">{kind}</span>
         </span>
+      </TableCell>
+      <TableCell className="px-1 py-0 text-center">
+        {hear && (
+          <IconButton
+            action={hear.playing ? 'stop' : 'hear'}
+            label={`${hear.playing ? 'Stop' : 'Hear'} ${entry.canonical_name}`}
+            size="sm"
+            tabIndex={-1}
+            aria-pressed={hear.playing}
+            // 26 px, as the mock's small icon button: a row stays one --row-height, which the windowing counts on.
+            style={{ width: '1.625rem', height: '1.625rem' }}
+            pending={hear.loading}
+            onClick={hear.onPress}
+          />
+        )}
       </TableCell>
     </TableRow>
   );
