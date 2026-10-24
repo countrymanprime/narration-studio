@@ -3496,14 +3496,15 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawPunchPrerollSchema.safeParse({ ok: true, onRecord: false, measures: 2, measureSeconds: 0, message: '' }).success).toBe(false);
     expect(dawPunchPrerollSchema.safeParse({ ok: true, onRecord: false, measures: -1, measureSeconds: 2, message: '' }).success).toBe(false);
 
-    const api = createMockApi({}, { daw: { toggles: { punch_preroll: 'on' } } });
+    // Supported (the owner's decision on #2251): read with the narrator's settings untouched.
+    const api = createMockApi();
     const held = await api.dawPunchPreroll();
     expectMatches(dawPunchPrerollSchema, held, 'mock punch pre-roll');
     expect(held).toEqual({ ok: true, onRecord: false, measures: 2, measureSeconds: 2, message: '' });
 
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { toggles: { punch_preroll: 'off' } } });
     const refused = await off.dawPunchPreroll();
-    expectMatches(dawPunchPrerollSchema, refused, 'mock punch pre-roll, experimental off');
+    expectMatches(dawPunchPrerollSchema, refused, 'mock punch pre-roll, turned off');
     expect(refused.message).toBe((await off.dawCapabilities()).capabilities.punch_preroll.message);
   });
 
@@ -3542,18 +3543,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawMetersSchema.safeParse({ ok: false, output: 0, input: null, inputTrack: '', message: '', reason: '' }).success).toBe(false);
     expect(dawMetersSchema.safeParse({ ok: false, output: 0, input: -6, inputTrack: '', message: 'x', reason: '' }).success).toBe(false);
 
-    const armed = await createMockApi({}, { daw: { toggles: { daw_meters: 'on' } } }).dawMeters();
+    // Supported (the owner's decision on #2251): read with the narrator's settings untouched.
+    const armed = await createMockApi().dawMeters();
     expectMatches(dawMetersSchema, armed, 'mock meters, armed');
     expect(armed).toMatchObject({ ok: true, input: -48, output: -100 });
-    const unarmed = await createMockApi({}, { daw: { toggles: { daw_meters: 'on' }, meters: 'unarmed' } }).dawMeters();
+    const unarmed = await createMockApi({}, { daw: { meters: 'unarmed' } }).dawMeters();
     expectMatches(dawMetersSchema, unarmed, 'mock meters, no armed track');
     expect(unarmed).toMatchObject({ ok: true, input: null, inputTrack: '' });
 
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { toggles: { daw_meters: 'off' } } });
     const refused = await off.dawMeters();
-    expectMatches(dawMetersSchema, refused, 'mock meters, experimental off');
+    expectMatches(dawMetersSchema, refused, 'mock meters, turned off');
     const support = (await off.dawCapabilities()).capabilities.daw_meters;
-    expect(refused).toEqual({ ok: false, output: 0, input: null, inputTrack: '', message: support.message, reason: 'experimental_off' });
+    expect(refused).toEqual({ ok: false, output: 0, input: null, inputTrack: '', message: support.message, reason: 'turned_off' });
   });
 
   it('dawPlace and dawGoToChapter answer where the narrator is and a move: the host goldens parse, and the mock answers as the host does', async () => {

@@ -70,7 +70,6 @@ func TestDawPunchPrerollRefusesWithTheResolversSentenceAndAsksNothing(t *testing
 	}{
 		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
 		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
 		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -96,6 +95,20 @@ func TestDawPunchPrerollRefusesWithTheResolversSentenceAndAsksNothing(t *testing
 				t.Fatalf("the role was asked %d times", role.reads)
 			}
 		})
+	}
+}
+
+// With the narrator's settings untouched and REAPER answering, REAPER's pre-roll reads: punch_preroll is Supported (the owner's
+// decision on #2251), so no Experimental switch stands in front of it.
+func TestDawPunchPrerollReadsByDefault(t *testing.T) {
+	role := &fakePrerollReader{held: dawport.PunchPreroll{OnRecord: true, Measures: 2, MeasureSeconds: 2}}
+	host := deleteRangeHost(t, "REAPER", liveReachability(), nil, "")
+	host.mu.Lock()
+	host.prerollReader = role
+	host.mu.Unlock()
+	got := bindingAnswer[PunchPrerollResult](t)(host.DawPunchPreroll())
+	if !got.OK || !got.OnRecord || got.Measures != 2 || got.MeasureSeconds != 2 || role.reads != 1 {
+		t.Fatalf("DawPunchPreroll on default settings = %+v after %d reads; want the pre-roll, read once", got, role.reads)
 	}
 }
 
