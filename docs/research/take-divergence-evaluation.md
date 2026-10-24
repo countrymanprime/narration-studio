@@ -39,7 +39,7 @@ Finer timing than that could not shade a smaller sub-span, so forced alignment w
 
 ## Method
 
-The analyzer is the shipped code: `compare.py --take-divergence`'s alignment (`core/take_divergence.py`), which runs the take markers' own diff. [`tests/divergence_harness.py`](../../src/studio/sidecars/transcript-compare/tests/divergence_harness.py) scores it three ways:
+The analyzer is the shipped code: the take comparison's alignment, `core/take_divergence.py` when this was measured and `src/studio/desktop/internal/takedivergence` since 2026-10-24 (the harness reaches it through `tests/go_divergence.py` and gives the same report), which runs the take markers' own diff. [`tests/divergence_harness.py`](../../src/studio/sidecars/transcript-compare/tests/divergence_harness.py) scores it three ways:
 
 - **exact:** words at 150 a minute (0.32 s spoken, 0.08 s gap), a 0.3 s pause after a sentence and 0.35 s after a false start;
 - **jitter:** the same with every word boundary moved at random by up to 0.15 s (seeded per case), standing in for ASR timestamp error;
@@ -103,7 +103,7 @@ Forced alignment would fix none of these. They are errors in *what* Whisper wrot
 
 ## One fix this evaluation led to
 
-The first real-ASR runs with `base` and `tiny` missed the mid-sentence restart. The transcript differed slightly, so the diff matched the abandoned first copy of "very much out of the" and called the second copy extra, 1.3 s late. The text diff cannot tell which copy was abandoned. The alignment now moves a repeated run to its earlier copy: a narrator abandons the earlier read and continues with the later one. After that change every model localized the restart. `tests/test_take_divergence.py` pins it.
+The first real-ASR runs with `base` and `tiny` missed the mid-sentence restart. The transcript differed slightly, so the diff matched the abandoned first copy of "very much out of the" and called the second copy extra, 1.3 s late. The text diff cannot tell which copy was abandoned. The alignment now moves a repeated run to its earlier copy: a narrator abandons the earlier read and continues with the later one. After that change every model localized the restart. `internal/takedivergence/divergence_test.go` pins it.
 
 ## Other limits
 

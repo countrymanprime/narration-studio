@@ -401,20 +401,20 @@ func TestTheManuscriptIsReadAsTheSidecarValidatesIt(t *testing.T) {
 	}
 	for content, message := range map[string]string{
 		"not json": "could not be read",
-		`{"schemaVersion": 2, "documentId": "d", "chapters": [], "paragraphs": []}`:                                                                                                                "unsupported schema version",
-		`{"schemaVersion": 1, "documentId": 3, "chapters": [], "paragraphs": []}`:                                                                                                                  "is invalid",
-		`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c"}], "paragraphs": [{"id": "p", "chapterId": "x", "text": "t"}]}`:                                                           "invalid paragraph records",
-		`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c"}], "paragraphs": [{"id": "p", "chapterId": "c", "text": null}]}`:                                                          "invalid paragraph records",
-		`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "T"}], "paragraphs": [{"id": "p", "chapterId": "c", "text": "a"}, {"id": "p", "chapterId": "c", "text": "b"}]}`: "invalid paragraph records",
-		`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "T", "contentKind": "opening"}], "paragraphs": [{"id": "p", "chapterId": "c", "text": "a"}]}`:                   "no narratable chapters",
-		`{"schemaVersion": true, "documentId": "d", "chapters": [{"id": "c", "title": "T"}], "paragraphs": [{"id": "p", "chapterId": "c", "text": "a"}]}`:                                          "Chapter 'c-0001' is not",
+		`{"schemaVersion": 2, "documentId": "d", "chapters": [], "paragraphs": []}`:                                                                                                                                        "unsupported schema version",
+		`{"schemaVersion": 1, "documentId": 3, "chapters": [], "paragraphs": []}`:                                                                                                                                          "is invalid",
+		`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c"}], "paragraphs": [{"id": "p", "chapterId": "x", "text": "t"}]}`:                                                                                   "invalid paragraph records",
+		`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c"}], "paragraphs": [{"id": "p", "chapterId": "c", "text": null}]}`:                                                                                  "invalid paragraph records",
+		`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "T"}], "paragraphs": [{"id": "p", "chapterId": "c", "text": "a", "index": 0}, {"id": "p", "chapterId": "c", "text": "b", "index": 1}]}`: "invalid paragraph records",
+		`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "T", "contentKind": "opening"}], "paragraphs": [{"id": "p", "chapterId": "c", "text": "a", "index": 0}]}`:                               "no narratable chapters",
+		`{"schemaVersion": true, "documentId": "d", "chapters": [{"id": "c", "title": "T"}], "paragraphs": [{"id": "p", "chapterId": "c", "text": "a", "index": 0}]}`:                                                      "Chapter 'c-0001' is not",
 	} {
 		_ = os.WriteFile(path, []byte(content), 0o600)
 		if _, err := LoadChapter(path, "c-0001"); err == nil || !strings.Contains(err.Error(), message) {
 			t.Errorf("%s: want %q, got %v", content, message, err)
 		}
 	}
-	_ = os.WriteFile(path, []byte(`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "T", "subtitle": 5}], "paragraphs": [{"id": "p", "chapterId": "c", "text": "a"}]}`), 0o600)
+	_ = os.WriteFile(path, []byte(`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "T", "subtitle": 5}], "paragraphs": [{"id": "p", "chapterId": "c", "text": "a", "index": 0}]}`), 0o600)
 	chapter, err := LoadChapter(path, "c")
 	if err != nil || chapter.Heading() != "T" || chapter.Subtitle != "" {
 		t.Fatalf("a subtitle that is not text is no subtitle: %+v, %v", chapter, err)
@@ -450,7 +450,7 @@ func TestAFileLargerThanTheBoundIsRefused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := file.Truncate(maxInputBytes + 1); err != nil {
+	if err := file.Truncate(compare.MaxInputBytes + 1); err != nil {
 		t.Fatal(err)
 	}
 	_ = file.Close()

@@ -147,3 +147,24 @@ func (t Tokenizer) BuildChapterUnits(heading string, paragraphs []string) Chapte
 	}
 	return units
 }
+
+// CleanMarkerField is compare.py's clean_marker_field: the first 200 code
+// points, with the pipe that separates result fields made a slash.
+func CleanMarkerField(value string) string {
+	return strings.ReplaceAll(PyPrefix(value, 200), "|", "/")
+}
+
+// DisplayTitle is compare.py's display_title: a heading's lines, stripped and
+// joined with ": " ("CHAPTER ONE\nBad Ideas" reads "CHAPTER ONE: Bad Ideas").
+func DisplayTitle(title string) string {
+	if title == "" {
+		return title
+	}
+	parts := []string{}
+	for _, line := range PySplitLines(title) {
+		if line = PyStrip(line); line != "" {
+			parts = append(parts, line)
+		}
+	}
+	return strings.Join(parts, ": ")
+}

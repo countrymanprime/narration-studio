@@ -36,15 +36,14 @@ script text against what was said. The workflow is documented in
 - `core/compare.py` — the backend. Runs locally via faster-whisper (no cloud, no API key) +
   a word-level diff against the project's canonical manuscript. Runs under the repo-root shared venv (`.venv/`) so it doesn't
   depend on REAPER's or the system's Python.
-- `core/take_divergence_mode.py` and `core/take_divergence.py` — `compare.py --take-divergence`, an
-  additive mode for Take Intelligence: it aligns every take in a JSON manifest to one fixed manuscript
-  span with the same diff the markers use and writes, per take, each span word's status and time and
-  every divergence as span words plus source seconds (`TAKE_DIVERGENCE|{json}` lines). The manifest,
-  output and exit codes are in the module docstring;
-  [take_divergence_mode.py](core/take_divergence_mode.py)
-  and [the evaluation](../../../../docs/research/take-divergence-evaluation.md) explain why ASR word
-  timestamps are precise enough. `tests/divergence_harness.py` scores it against the constructed takes
-  in `tests/fixtures/divergence/`.
+- `core/take_divergence_mode.py` — `compare.py --take-divergence`, an additive mode for Take
+  Intelligence: it transcribes every take in a JSON manifest and writes their words
+  (`TAKE_TRANSCRIPTION` and `TAKE_WORDS` lines). The host aligns them to the span with the same diff
+  the markers use and writes each span word's status and time and every divergence as span words plus
+  source seconds (`src/studio/desktop/internal/takedivergence`). The manifest, output and exit codes
+  are in the module docstring; [the evaluation](../../../../docs/research/take-divergence-evaluation.md)
+  explains why ASR word timestamps are precise enough. `tests/divergence_harness.py` scores the host's
+  alignment (through `tests/go_divergence.py`) against the constructed takes in `tests/fixtures/divergence/`.
 - `src/studio/libs/python/narration_common/spoken_forms.py` — the built-in homophone list (your/you're,
   its/it's, etc.), the number words and the filler words, shared with the teleprompter's live
   flags so both forgive the same spellings (`src/studio/ui/tests/visual/lib/capture.ts`). It is Python data rather than a file next

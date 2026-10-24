@@ -17,6 +17,16 @@ type PyObject map[string]any
 // RawJSON is JSON text written as it is, for a payload passed through.
 type RawJSON string
 
+// PyOrdered is a JSON object written in its own key order, as Python writes a
+// dict without sort_keys.
+type PyOrdered []PyField
+
+// PyField is one key of a PyOrdered.
+type PyField struct {
+	Key   string
+	Value any
+}
+
 // DumpPy is json.dumps(v, sort_keys=True, ensure_ascii=False); compact uses
 // separators=(",", ":"), otherwise Python's default ", " and ": ".
 func DumpPy(v any, compact bool) string {
@@ -70,6 +80,17 @@ func dumpPy(sb *strings.Builder, v any, item, key string) {
 			dumpPy(sb, element, item, key)
 		}
 		sb.WriteByte(']')
+	case PyOrdered:
+		sb.WriteByte('{')
+		for k, field := range x {
+			if k > 0 {
+				sb.WriteString(item)
+			}
+			writePyString(sb, field.Key)
+			sb.WriteString(key)
+			dumpPy(sb, field.Value, item, key)
+		}
+		sb.WriteByte('}')
 	case PyObject:
 		keys := make([]string, 0, len(x))
 		for k := range x {

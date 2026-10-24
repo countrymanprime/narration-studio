@@ -50,14 +50,14 @@ The narrator's flow before SN-Q9 is in the [recording and comping workflow](../w
 | Add as take: `create_take` in REAPER, re-resolving GUIDs, active take and item length untouched, one undo step | `src/studio/integrations/reaper/narration_take_review.lua`, `src/studio/desktop/internal/takereview/createtake.go` | [narration_take_review.lua](../../src/studio/integrations/reaper/narration_take_review.lua) |
 | Audition: two raw-source ranges with pre and post roll, one playing at a time | `src/studio/ui/src/components/proof/AuditionDialog.tsx`, `src/studio/ui/src/components/engine/useRangePlayer.ts` | |
 | Take metrics: clipping, noise, level against neighbours, duration, pause profile, each measured or unavailable with a reason | `src/studio/desktop/internal/measure` (`MeasureTake`, `TakeSourceRange`) | [takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go) |
-| Per-take divergence: every span word's status and time, every divergence as words plus seconds | `compare.py --take-divergence` (`core/take_divergence.py`, `core/take_divergence_mode.py`) | [take_divergence_mode.py](../../src/studio/sidecars/transcript-compare/core/take_divergence_mode.py) |
+| Per-take divergence: every span word's status and time, every divergence as words plus seconds | `src/studio/desktop/internal/takedivergence` aligns the words that `compare.py --take-divergence` (`core/take_divergence_mode.py`) transcribes | [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go) |
 | Take comparison: same-span checks, manifest from the saved project, one `take_comparison` finding, the view | `src/studio/desktop/internal/takecompare`, `src/studio/desktop/takecompare_job.go` (the view of a comparison went with the chapter workspace's Takes panel, SN-E9; the Editing page's takes show their own evidence) | [Codebase map](../architecture/codebase-map.md) |
 
 The wire contracts (`TakeReviewScanStart/State/Cancel`, `TakeReviewCreateTake`, `TakeComparisonStart/State/Cancel`, the
 evidence of both finding kinds) are in `src/studio/ui/src/api/schemas/takeReview.ts`, pinned by the goldens under
 `tests/fixtures/contracts/` (`takereview-*`, `takecomparison-*`, `findings-list-take-review.json`,
-`findings-list-take-comparison.json`, and `take-divergence-results.json`, the sidecar's own results file that the Go parser
-reads). The trust boundaries are rows 4a and 4f of the [threat model](../architecture/threat-model.md).
+`findings-list-take-comparison.json`, and `take-divergence-results.json`, the results file `internal/takedivergence` writes
+from the sidecar's words report and the parser in `internal/takecompare` reads). The trust boundaries are rows 4a and 4f of the [threat model](../architecture/threat-model.md).
 
 ### Settings
 
@@ -79,8 +79,8 @@ falls back to the default rather than failing a scan):
 - Add as take, with provenance in take `P_EXT`: [narration_take_review.lua](../../src/studio/integrations/reaper/narration_take_review.lua).
 - Go to and Loop per read: [Going to and looping a finding in REAPER](../architecture/reaper-navigation.md).
 - Take metrics are evidence per category, with no composite score: [takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go).
-- Divergence is localized by the markers' diff and Whisper word timestamps: [take_divergence_mode.py](../../src/studio/sidecars/transcript-compare/core/take_divergence_mode.py), [evaluation](../research/take-divergence-evaluation.md).
-- Words said before a span that starts the chapter are its heading, not an extra; before a later span they are an extra before it: [take_divergence.py](../../src/studio/sidecars/transcript-compare/core/take_divergence.py).
+- Divergence is localized by the markers' diff and Whisper word timestamps: [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go), [evaluation](../research/take-divergence-evaluation.md).
+- Words said before a span that starts the chapter are its heading, not an extra; before a later span they are an extra before it: [divergence.go](../../src/studio/desktop/internal/takedivergence/divergence.go).
 - A take comparison is one finding per group and is never ranked: [Codebase map](../architecture/codebase-map.md).
 - Take review never makes a take active; the workspace Takes panel does: [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel).
 - Thresholds: [Settings](#settings).

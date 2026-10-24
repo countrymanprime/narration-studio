@@ -43,7 +43,7 @@ CORE = Path(__file__).resolve().parents[1] / "core"
 if str(CORE) not in sys.path:
     sys.path.insert(0, str(CORE))
 
-import take_divergence as td
+import go_divergence as td
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "divergence" / "cases.json"
 SCHEMA_VERSION = 1
