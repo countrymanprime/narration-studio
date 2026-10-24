@@ -124,7 +124,10 @@ Wikimedia Commons.
 you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
 asks whether to use the basic scan now, download better analysis, or import from a file instead; nothing downloads
 until you agree. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
-before it adds anything. Nothing builds the Story Bible on its own, not even a manuscript import.
+before it adds anything. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
+found on their own, though: after a manuscript import and at the end of every scan, each quoted line is matched to a
+speaker where a speech tag names an entry whose type speaks ("Ada said"), and the rest are left without one. The
+scan's log says how many it found.
 
 ![Story Bible - the Import entries dialog (CSV or JSON)](../../images/ui/storybible-import.webp)
 
@@ -151,7 +154,7 @@ reference shows a **Changed since approval** badge - re-approve it once you're h
 region, or revoke it. A reference clip has no play button; open the region by name in REAPER to hear it. To
 hear how you voiced a character in the app, mark a [voice sample](#voice-samples) instead.
 
-**Dialogue cues** lists the quoted lines the Story Bible scan attributed to this character, plus
+**Dialogue cues** lists the quoted lines the scan attributed to this character, plus
 any line left unattributed (three or more speakers active in a scene, or no speaker tag at all, are
 left `unknown` rather than guessed). Pick a different speaker, or **Unknown**, from the dropdown
 beside a cue to correct it. A correction survives the next scan - it is never
