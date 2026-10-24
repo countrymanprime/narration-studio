@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replace audio mock</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: the Editing card with a selection, the Replace audio dialog stepping through its states, then frames for errors and entry points.
+   Tokens copied from docs/research/mockups/studio-next/src/styles/app.css, as the story-bible-entry-list mock does. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --faint:#766F60;
+  --copper:#B04F17; --copper-ink:#FFFFFF; --copper-soft:#F1DDC9; --copper-text:#8F3F0F;
+  --ok:#2F6B3E; --ok-soft:#D9EAD9; --warn:#8A5A00; --warn-soft:#F5E6BF; --bad:#A3302A; --bad-soft:#F4D6D2; --info:#2A5C86; --info-soft:#D8E5F2; --violet:#6B4C9A; --violet-soft:#E6DDF3;
+  --wave:#9A9384; --wave-mine:#B04F17; --wave-theirs:#6B4C9A; --sel:rgba(176,79,23,.14); --sel-theirs:rgba(107,76,154,.14);
+  --focus:#1F5FBF; --shadow:0 1px 2px rgba(36,33,28,.08),0 10px 28px rgba(36,33,28,.14);
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --wave:#6E6656; --wave-mine:#D9803F; --wave-theirs:#B79DE0; --sel:rgba(217,128,63,.18); --sel-theirs:rgba(183,157,224,.18);
+  --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --wave:#6E6656; --wave-mine:#D9803F; --wave-theirs:#B79DE0; --sel:rgba(217,128,63,.18); --sel-theirs:rgba(183,157,224,.18);
+  --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.5}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;margin:0;letter-spacing:.01em;text-wrap:balance}
+h2{font-size:22px;margin:36px 0 6px}
+p{margin:0}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.sub{color:var(--muted);font-size:13px;max-width:72ch}
+.label{font:600 12px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{height:32px;padding:0 14px;border-radius:6px;border:1px solid var(--btn-line);background:var(--surface);font:600 13px var(--f-display);letter-spacing:.09em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--raised)}
+.btn.primary{background:var(--copper);border-color:var(--copper);color:var(--copper-ink)}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.btn.link{border:0;background:none;height:auto;padding:0;color:var(--copper-text);text-transform:none;letter-spacing:0;font:500 13px var(--f-body);text-decoration:underline}
+.btn svg,.ibtn svg{width:14px;height:14px;fill:currentColor;flex:none}
+.ibtn{width:32px;height:32px;border-radius:6px;border:1px solid var(--btn-line);background:var(--surface);display:inline-grid;place-items:center;flex:none;padding:0}
+.ibtn.round{border-radius:50%}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.info{background:var(--info-soft);color:var(--info)} .pill.violet{background:var(--violet-soft);color:var(--violet)} .pill.neutral{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+.tag{display:inline-block;font:600 11px var(--f-display);letter-spacing:.12em;text-transform:uppercase;border-radius:4px;padding:1px 6px;vertical-align:middle;background:var(--copper-soft);color:var(--copper-text)}
+.tag.kept{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+.draft{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:none;padding:4px 12px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--copper-soft);color:var(--copper-text)}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top h1{font-size:30px}
+
+/* The Editing card */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.ed-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ed-head h3{font-size:26px}
+.chap{height:34px;border:1px solid var(--btn-line);border-radius:6px;padding:0 12px;display:inline-flex;align-items:center;font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase}
+.script{padding:18px 20px 8px 20px;display:grid;grid-template-columns:48px minmax(0,1fr);gap:4px 12px;font-size:19px;line-height:1.65}
+.script .t{font:500 12px var(--f-mono);color:var(--faint);padding-top:6px}
+.script .sel{background:var(--copper-soft);box-shadow:inset 0 -2px 0 var(--copper);border-radius:2px}
+.script .rep{box-shadow:inset 0 -2px 0 var(--violet);background:var(--violet-soft);border-radius:2px}
+.repmark{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--violet);color:var(--surface);font:700 11px var(--f-display);vertical-align:2px;margin-left:3px;border:0;padding:0}
+.toolbar{display:inline-flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;box-shadow:var(--shadow);margin:2px 0 10px 60px;flex-wrap:wrap}
+.toolbar button{border:0;background:none;height:30px;padding:0 9px;border-radius:5px;font:600 12px var(--f-display);letter-spacing:.09em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
+.toolbar button svg{width:14px;height:14px;fill:currentColor;flex:none}
+.toolbar button:hover{background:var(--raised)}
+.toolbar button.new{background:var(--copper-soft);color:var(--copper-text)}
+.bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+
+/* The dialog */
+.stage{position:relative;background:color-mix(in srgb,var(--ink) 22%,var(--bg));border-radius:10px;padding:24px 16px;display:flex;justify-content:center}
+.dlg{background:var(--surface);border-radius:10px;box-shadow:var(--shadow);width:100%;max-width:900px;min-width:0;display:flex;flex-direction:column}
+.dlg-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg-head h3{font:600 17px var(--f-body);letter-spacing:0}
+.steps{display:flex;gap:4px;padding:10px 18px 0;flex-wrap:wrap}
+.steps button{border:0;background:none;padding:6px 10px;border-radius:99px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);display:inline-flex;gap:6px;align-items:center}
+.steps button i{font-style:normal;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;border:1px solid currentColor;font-size:11px}
+.steps button[aria-current="step"]{background:var(--copper-soft);color:var(--copper-text)}
+.steps button.done{color:var(--ok)}
+.dlg-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.dlg-foot{display:flex;gap:8px;align-items:center;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;align-items:baseline}
+.kv dt{font:600 12px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.drop{border:1.5px dashed var(--line-strong);border-radius:8px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;background:var(--raised)}
+.file{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--raised);flex-wrap:wrap}
+.file .ic{width:34px;height:34px;border-radius:6px;background:var(--violet-soft);color:var(--violet);display:grid;place-items:center;flex:none}
+.file .ic svg{width:16px;height:16px;fill:currentColor}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field input,.field select{height:34px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);padding:0 10px;min-width:0}
+.note{border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.5}
+.note.info{background:var(--info-soft);color:var(--ink)}
+.note.warn{background:var(--warn-soft);color:var(--ink)}
+.note.bad{background:var(--bad-soft);color:var(--ink)}
+.note.ok{background:var(--ok-soft);color:var(--ink)}
+.note b{font-weight:600}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.wv{border:1px solid var(--line);border-radius:8px;background:var(--raised);padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.wv .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.wv .who{font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase}
+.wv .who.mine{color:var(--copper-text)} .wv .who.theirs{color:var(--violet)}
+.wv canvas{width:100%;height:76px;display:block}
+.wv .words{font-size:13px;color:var(--muted)}
+.check{display:flex;gap:8px;align-items:flex-start}
+.check input{margin-top:3px;accent-color:var(--copper)}
+.radio{display:flex;flex-direction:column;gap:6px}
+.match{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:10px}
+.mcell{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.mcell .nums{display:flex;gap:14px;font:500 13px var(--f-mono);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.mcell .nums span b{display:block;font:600 11px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.places{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.places label{display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.places label:last-child{border-bottom:0}
+.toast{display:flex;gap:12px;align-items:center;background:var(--ink);color:var(--surface);border-radius:8px;padding:10px 14px;box-shadow:var(--shadow);flex-wrap:wrap;max-width:560px}
+.toast .btn.link{color:var(--copper-soft)}
+
+/* Frames */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,350px),1fr));gap:16px;align-items:start}
+.frame{display:flex;flex-direction:column;gap:8px;min-width:0}
+.frame .cap b{font:700 15px var(--f-display);letter-spacing:.08em;text-transform:uppercase;margin-right:6px}
+.frame .mini{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow);min-width:0}
+.frame .mini h4{margin:0;font:600 15px var(--f-body)}
+.menu{background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;box-shadow:var(--shadow);padding:4px;display:flex;flex-direction:column;min-width:0}
+.menu div{padding:7px 10px;border-radius:5px;display:flex;gap:8px;align-items:center;font-size:13.5px}
+.menu div.on{background:var(--copper-soft);color:var(--copper-text)}
+.menu div kbd,.kbd{margin-left:auto;font:500 11px var(--f-mono);color:var(--muted);border:1px solid var(--line-strong);border-radius:4px;padding:1px 5px}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+.t th,.t td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.t th{font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.scrollx{overflow-x:auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <h1>Replace audio</h1>
+  <span class="pill warn">Draft mock</span>
+  <span class="spacer"></span>
+  <div class="seg" role="group" aria-label="Theme">
+    <button type="button" data-theme-set="system" aria-pressed="true">System</button>
+    <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+    <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+<p class="draft">Draft, 2026-10-24, pending the owner's review. Nothing is built. It goes with <span class="mono">docs/research/replace-audio.md</span>. The word times are real: Kara Shallenberg's and Eric Leach's LibriVox readings of Chapter 1, from the repository's alignment. The loudness, noise and track-format numbers are invented for the drawing. <span class="tag">New</span> marks what this tool adds; <span class="tag kept">Kept</span> marks what Editing has today.</p>
+
+<h2>1. Click through</h2>
+<p class="sub">Words selected in Editing, then <b>Replace audio…</b> on the toolbar. Use the steps or Next and Back to go through the dialog.</p>
+
+<div class="card" data-shot="editing">
+  <div class="ed-head">
+    <h3>Editing</h3>
+    <span class="chap">Chapter 1 — Down the Rabbit-Hole</span>
+    <span class="spacer"></span>
+    <span class="pill ok">REAPER</span>
+  </div>
+  <div class="script">
+    <span class="t">0:41</span>
+    <p>So she was considering in her own mind (as well as she could, for the hot day made her feel very sleepy and stupid), whether the pleasure of making a daisy-chain would be worth the trouble of getting up and picking the daisies, <span class="sel">when suddenly a White Rabbit with pink eyes ran close by her.</span></p>
+  </div>
+  <div class="toolbar" role="toolbar" aria-label="Selection">
+    <button type="button"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>Play</button>
+    <button type="button">Add FX</button>
+    <button type="button">Voice sample</button>
+    <button type="button">Mute</button>
+    <button type="button" class="new" id="open-replace"><svg viewBox="0 0 16 16"><path d="M2 4h9l-2-2 1-1 4 4-4 4-1-1 2-2H2zM14 12H5l2 2-1 1-4-4 4-4 1 1-2 2h9z"/></svg>Replace audio…</button>
+    <button type="button">Delete</button>
+  </div>
+  <div class="bar">
+    <span class="mono">0:54 / 13:16</span>
+    <b>13 words</b><span class="mono">0:54.30 to 0:58.58 · 4.28 s</span>
+    <span class="tag">New</span><span class="sub">Replace audio on the toolbar and in the word menu</span>
+  </div>
+</div>
+
+<div class="stage" data-shot="dialog">
+  <div class="dlg" role="dialog" aria-labelledby="dlg-title">
+    <div class="dlg-head">
+      <h3 id="dlg-title">Replace 13 words with audio from a file</h3>
+      <span class="spacer"></span>
+      <button class="ibtn" type="button" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M3.5 2.4L8 6.9l4.5-4.5 1.1 1.1L9.1 8l4.5 4.5-1.1 1.1L8 9.1l-4.5 4.5-1.1-1.1L6.9 8 2.4 3.5z"/></svg></button>
+    </div>
+    <nav class="steps" aria-label="Steps" id="steps"></nav>
+    <div class="dlg-body" id="body"></div>
+    <div class="dlg-foot" id="foot"></div>
+  </div>
+</div>
+
+<h2>2. When it cannot go ahead</h2>
+<p class="sub">Each says what is wrong and what to do, in one place, and changes nothing.</p>
+<div class="grid" id="errors"></div>
+
+<h2>3. Other ways in, and after</h2>
+<div class="grid" id="entries"></div>
+
+<h2>4. What each DAW does</h2>
+<div class="card scrollx" style="padding:4px 8px">
+<table class="t">
+  <thead><tr><th>DAW</th><th>The edit</th><th>Undo</th><th>Hear the result</th></tr></thead>
+  <tbody>
+    <tr><td>REAPER</td><td>New command: split at both ends, your piece to the muted Cuts track, a new item playing their stretch, fades at the seams, later items moved by the difference</td><td>One step in REAPER; <b>Put my audio back</b> after a reload</td><td>The app renders a short preview file</td></tr>
+    <tr><td>Audacity 3</td><td>Backup first, then import, copy, delete, paste and remove the imported track, in steps</td><td>The backup</td><td>The same preview file</td></tr>
+    <tr><td>Audacity 4</td><td>Cannot be edited by the app; <b>Export the spliced passage</b></td><td>Nothing changed in Audacity</td><td>The same preview file</td></tr>
+    <tr><td>Built-in recorder</td><td>A new entry in the take's edit list</td><td>Remove the entry</td><td>The app plays it</td></tr>
+  </tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+(function(){
+  // Theme switch
+  var root = document.documentElement;
+  var q = new URLSearchParams(location.search).get('theme');
+  function setTheme(t){
+    if (t === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+    document.querySelectorAll('[data-theme-set]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)); });
+    drawAll();
+  }
+  document.querySelectorAll('[data-theme-set]').forEach(function(b){ b.addEventListener('click', function(){ setTheme(b.dataset.themeSet); }); });
+
+  // Real word timings (seconds in each file) from tests/fixtures/audio/librivox-alice/alignment.
+  var MINE = [['picking',53.06,53.34],['the',53.34,53.56],['daisies,',53.56,54.04],['when',54.3,54.9],['suddenly',54.9,55.36],['a',55.36,55.58],['White',55.58,55.88],['Rabbit',55.88,56.24],['with',56.24,56.54],['pink',56.54,56.84],['eyes',56.84,57.34],['ran',57.34,57.72],['close',57.72,58.08],['by',58.08,58.32],['her.',58.32,58.58],['There',59.82,60.1],['was',60.1,60.3]];
+  var THEIRS = [['picking',163.04,163.28],['the',163.28,163.48],['daisies,',163.48,163.96],['when',164.2,164.42],['suddenly',164.42,164.78],['a',164.78,165.04],['White',165.04,165.24],['Rabbit',165.24,165.54],['with',165.54,165.76],['pink',165.76,166.0],['eyes',166.0,166.26],['ran',166.26,166.48],['close',166.48,166.78],['by',166.78,167.0],['her.',167.0,167.2],['There',167.96,168.2],['was',168.2,168.4]];
+  var M = {a:54.30, b:58.58}, T = {a:164.20, b:167.20};
+
+  function fmt(s){ var m = Math.floor(s/60), r = s - m*60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(2); }
+  function css(n){ return getComputedStyle(root).getPropertyValue(n).trim(); }
+  function rnd(seed){ var x = Math.sin(seed*12.9898)*43758.5453; return x - Math.floor(x); }
+
+  // A bar per 40 ms: words are loud, pauses a hairline at the file's own noise floor.
+  function level(words, t, floor){
+    for (var i = 0; i < words.length; i++){
+      var w = words[i];
+      if (t >= w[1] && t <= w[2]){ var p = (t - w[1])/(w[2]-w[1]); return 0.3 + 0.65*Math.sin(Math.PI*p)*(0.55+0.45*rnd(t*91)); }
+    }
+    return floor*(0.6+0.8*rnd(t*37));
+  }
+  function wave(cv, segs, sel, colorSel, selFill){
+    var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (!w) return;
+    cv.width = w*dpr; cv.height = h*dpr;
+    var g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+    var total = segs.reduce(function(s,x){ return s + (x.to - x.from); }, 0);
+    var x0 = 0, step = 0.04, mid = h/2;
+    segs.forEach(function(sg, si){
+      var segW = w*(sg.to - sg.from)/total;
+      if (sel && sg.sel){ g.fillStyle = selFill; g.fillRect(x0 + segW*(sel.a - sg.from)/(sg.to - sg.from), 0, segW*(sel.b - sel.a)/(sg.to - sg.from), h); }
+      for (var t = sg.from; t < sg.to; t += step){
+        var x = x0 + segW*(t - sg.from)/(sg.to - sg.from);
+        var inSel = sel && sg.sel && t >= sel.a && t <= sel.b;
+        var v = level(sg.words, t, sg.floor);
+        g.fillStyle = sg.color ? sg.color : (inSel ? colorSel : css('--wave'));
+        var bh = Math.max(1, v*(h-8));
+        g.fillRect(x, mid - bh/2, Math.max(1, segW*step/(sg.to - sg.from) - 1), bh);
+      }
+      x0 += segW;
+      if (si < segs.length - 1){ g.fillStyle = css('--ink'); g.fillRect(x0 - 1, 2, 2, h - 4); }
+    });
+  }
+
+  var canvases = [];
+  function addWave(cv, fn){ canvases.push([cv, fn]); }
+  function drawAll(){ canvases.forEach(function(c){ if (document.body.contains(c[0])) c[1](c[0]); }); }
+  window.addEventListener('resize', drawAll);
+
+  function mineWave(cv){ wave(cv, [{from:52.3,to:60.58,words:MINE,floor:0.03,sel:true}], M, css('--wave-mine'), css('--sel')); }
+  function theirWave(cv){ wave(cv, [{from:162.2,to:169.2,words:THEIRS,floor:0.08,sel:true}], T, css('--wave-theirs'), css('--sel-theirs')); }
+  function resultWave(cv){ wave(cv, [
+    {from:52.3,to:54.3,words:MINE,floor:0.03,color:css('--wave')},
+    {from:164.2,to:167.2,words:THEIRS,floor:0.08,color:css('--wave-theirs')},
+    {from:58.58,to:60.58,words:MINE,floor:0.03,color:css('--wave')}], null); }
+
+  var ICON_PLAY = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>';
+  var ICON_FILE = '<svg viewBox="0 0 16 16"><path d="M3 1h6l4 4v10H3zM9 1v4h4M6 8v5M8 7v6M10 9v3"/></svg>';
+
+  // The dialog's steps
+  var STEPS = [
+    {id:'file', name:'Their file'},
+    {id:'find', name:'Find the words'},
+    {id:'listen', name:'Listen and match'},
+    {id:'confirm', name:'Confirm'},
+    {id:'done', name:'Done'}
+  ];
+  var cur = 0, picked = true;
+
+  var BODY = {
+    file: function(){
+      return (picked ? '' : '<div class="drop"><b>Drop the file here</b><span class="sub">WAV, FLAC or MP3, up to 500 MB</span><button class="btn" type="button">Choose file…</button></div>') +
+      '<div class="file"><span class="ic">' + ICON_FILE + '</span><div style="min-width:0;flex:1"><b>alices_adventures_01_carroll_64kb.mp3</b><div class="sub mono">12:08 · MP3 · 22.05 kHz · mono · 5.8 MB</div></div><button class="btn sm" type="button">Choose another</button> <span class="tag">New</span></div>' +
+      '<div class="two"><div class="field"><label class="label" for="who">Whose audio is this?</label><input id="who" value="Eric Leach"><span class="sub">Kept with the edit and shown on the words. Use someone\'s audio in your book only with their permission.</span></div>' +
+      '<dl class="kv"><dt>Your track</dt><dd class="mono">48 kHz · 24-bit · mono</dd><dt>Their file</dt><dd class="mono">22.05 kHz · mono, MP3</dd><dt>Format</dt><dd>REAPER plays it at the project\'s rate. A compressed file loses nothing more, but it is already lower quality than your recording.</dd></dl></div>' +
+      '<div class="note info">The app copies the file into this project\'s folder (<span class="mono">imported-audio/</span>, 5.8 MB) so the project keeps working if the original moves. The original is not changed. Nothing leaves your computer.</div>';
+    },
+    find: function(){
+      return '<div class="note ok"><b>Found all 13 words in their file</b> at 2:44.20, by reading it against the script. Their file starts with 2:18 that is not in the script (the LibriVox preamble and a poem); that is left out.</div>' +
+      '<div class="two">' +
+        '<div class="wv"><div class="h"><span class="who mine">Yours · Chapter 1 track</span><span class="spacer"></span><span class="mono">' + fmt(M.a) + ' to ' + fmt(M.b) + ' · 4.28 s</span></div><canvas id="cv-mine" aria-label="Your audio, the range selected"></canvas><div class="words">“when suddenly a White Rabbit with pink eyes ran close by her.”</div></div>' +
+        '<div class="wv"><div class="h"><span class="who theirs">Theirs · Eric Leach</span><span class="spacer"></span><span class="mono">' + fmt(T.a) + ' to ' + fmt(T.b) + ' · 3.00 s</span></div><canvas id="cv-theirs" aria-label="Their audio, the range found"></canvas><div class="words">“when suddenly a White Rabbit with pink eyes ran close by her.”</div></div>' +
+      '</div>' +
+      '<p class="sub">Drag either range or its handles to change it; Alt snaps to a word boundary. Both edges sit in pauses, moved to the nearest zero crossing. <span class="tag kept">Kept</span> the range and handles are Editing\'s own.</p>' +
+      '<div class="row"><button class="btn sm" type="button">' + ICON_PLAY + 'Hear yours</button><button class="btn sm" type="button">' + ICON_PLAY + 'Hear theirs</button><span class="spacer"></span><button class="btn link" type="button">Find it myself</button></div>';
+    },
+    listen: function(){
+      return '<div class="wv"><div class="h"><span class="who">The result</span><span class="sub">2 s of yours, their 3.00 s, 2 s of yours</span><span class="spacer"></span><button class="btn sm primary" type="button">' + ICON_PLAY + 'Hear the result</button><button class="btn sm" type="button">' + ICON_PLAY + 'Yours</button><button class="btn sm" type="button">' + ICON_PLAY + 'Theirs</button></div><canvas id="cv-result" aria-label="The result: your audio, theirs, your audio"></canvas></div>' +
+      '<div class="match">' +
+        '<div class="mcell"><span class="label">Loudness</span><div class="nums"><span><b>Yours</b>−19.2 LUFS</span><span><b>Theirs</b>−16.4 LUFS</span></div><label class="check"><input type="checkbox" checked id="gain"><span>Turn theirs down 2.8 dB to match the 5 s around it</span></label><span class="sub">Set as the item\'s volume; you can change it later in REAPER.</span></div>' +
+        '<div class="mcell"><span class="label">Room tone</span><div class="nums"><span><b>Yours</b>−62 dBFS</span><span><b>Theirs</b>−55 dBFS</span></div><p><span class="pill warn">7 dB apart</span> Their room is noisier. The change will be heard in the pauses at both joins. The app does not remove noise; your own noise reduction on their part may help.</p></div>' +
+        '<div class="mcell"><span class="label">Pace</span><div class="nums"><span><b>Yours</b>4.28 s</span><span><b>Theirs</b>3.00 s</span></div><p class="sub">Their read is 1.28 s shorter.</p></div>' +
+      '</div>' +
+      '<div class="two"><div class="radio" role="radiogroup" aria-label="Timing"><span class="label">Timing</span><label class="check"><input type="radio" name="tm" checked><span>Close up: later audio on this track moves 1.28 s earlier</span></label><label class="check"><input type="radio" name="tm"><span>Keep timing: fill the 1.28 s with your room tone</span></label></div>' +
+      '<div class="row" style="align-items:flex-end"><div class="field"><label class="label" for="xf">Crossfade</label><select id="xf"><option>5 ms</option><option selected>10 ms</option><option>20 ms</option><option>50 ms</option></select></div><div class="field"><label class="label" for="pr">Before and after</label><select id="pr"><option>1 s</option><option selected>2 s</option><option>4 s</option></select></div></div></div>';
+    },
+    confirm: function(){
+      return '<dl class="kv"><dt>Your words</dt><dd>“when suddenly a White Rabbit with pink eyes ran close by her.”</dd><dt>Out</dt><dd class="mono">0:54.30 to 0:58.58 · 4.28 s, Chapter 1 track</dd><dt>In</dt><dd class="mono">2:44.20 to 2:47.20 · 3.00 s of Eric Leach\'s file, −2.8 dB</dd><dt>Joins</dt><dd>10 ms fades, both in pauses</dd><dt>Later audio</dt><dd>moves 1.28 s earlier (0:59.82 becomes 0:58.54)</dd></dl>' +
+      '<div class="note info">REAPER splits your item at both ends and moves your piece to the muted track named Cuts. A new item plays their stretch from the copy in this project. Your recording file and their file are not touched. It is one undo step in REAPER, and <b>Put my audio back</b> works later too.</div>';
+    },
+    done: function(){
+      return '<div class="toast" role="status"><span>Replaced 13 words with Eric Leach\'s audio in REAPER.</span><span class="spacer"></span><button class="btn link" type="button">Undo</button></div>' +
+      '<div class="card"><div class="script"><span class="t">0:41</span><p>…and picking the daisies, <span class="rep">when suddenly a White Rabbit with pink eyes ran close by her.</span><button class="repmark" type="button" aria-label="Replaced with Eric Leach\'s audio">R</button></p></div>' +
+      '<p class="sub" style="padding:0 20px 14px">The words keep a mark: their audio is Eric Leach\'s. The mark opens who, which file, when, <b>Play</b> and <b>Put my audio back</b>. <span class="tag">New</span></p></div>';
+    }
+  };
+  var FOOT = {
+    file: '<span class="sub">Step 1 of 4</span><span class="spacer"></span><button class="btn" data-go="close">Cancel</button><button class="btn primary" data-go="next">Find the words</button>',
+    find: '<span class="sub">Step 2 of 4</span><span class="spacer"></span><button class="btn" data-go="back">Back</button><button class="btn primary" data-go="next">Listen</button>',
+    listen: '<span class="sub">Step 3 of 4</span><span class="spacer"></span><button class="btn" data-go="back">Back</button><button class="btn primary" data-go="next">Review</button>',
+    confirm: '<span class="sub">Step 4 of 4</span><span class="spacer"></span><button class="btn" data-go="back">Back</button><button class="btn primary" data-go="next">Replace 13 words</button>',
+    done: '<span class="spacer"></span><button class="btn" data-go="restart">Start again</button>'
+  };
+
+  function render(){
+    var s = STEPS[cur];
+    document.getElementById('steps').innerHTML = STEPS.map(function(x, i){
+      return '<button type="button" data-step="' + i + '"' + (i === cur ? ' aria-current="step"' : '') + (i < cur ? ' class="done"' : '') + '><i>' + (i < cur ? '✓' : (i + 1)) + '</i>' + x.name + '</button>';
+    }).join('');
+    document.getElementById('body').innerHTML = BODY[s.id]();
+    document.getElementById('foot').innerHTML = FOOT[s.id];
+    canvases = canvases.filter(function(c){ return document.body.contains(c[0]); });
+    var a = document.getElementById('cv-mine'); if (a) addWave(a, mineWave);
+    var b = document.getElementById('cv-theirs'); if (b) addWave(b, theirWave);
+    var c = document.getElementById('cv-result'); if (c) addWave(c, resultWave);
+    drawAll();
+  }
+  document.getElementById('steps').addEventListener('click', function(e){ var b = e.target.closest('[data-step]'); if (b){ cur = +b.dataset.step; render(); } });
+  document.getElementById('foot').addEventListener('click', function(e){
+    var b = e.target.closest('[data-go]'); if (!b) return;
+    var g = b.dataset.go;
+    if (g === 'next') cur = Math.min(cur + 1, STEPS.length - 1);
+    else if (g === 'back') cur = Math.max(cur - 1, 0);
+    else cur = 0;
+    render();
+  });
+  document.getElementById('open-replace').addEventListener('click', function(){ cur = 0; render(); document.querySelector('[data-shot="dialog"]').scrollIntoView({behavior:'smooth', block:'start'}); });
+
+  // Error frames
+  var ERR = [
+    ['Not audio', 'Their file', '<div class="note bad"><b>This file is not audio the app can read</b> (chapter-notes.docx). Choose a WAV, FLAC or MP3 file.</div><div class="row"><button class="btn sm">Choose another file</button></div>'],
+    ['MP3 without the encoder', 'Their file', '<div class="note warn"><b>Reading MP3 files needs the audio encoder.</b> Install it in Settings &gt; Models &amp; downloads, or choose a WAV file.</div><div class="row"><button class="btn sm">Open Settings</button><button class="btn sm">Choose another file</button></div>'],
+    ['Too big', 'Their file', '<div class="note bad"><b>This file is 1.4 GB.</b> Files up to 500 MB can be brought into the project. Ask for the passage on its own, or trim it first.</div>'],
+    ['File changed', 'Confirm', '<div class="note bad"><b>The file changed since you chose it.</b> Choose it again so the app reads what will go in.</div><div class="row"><button class="btn sm">Choose it again</button></div>'],
+    ['Found in several places', 'Find the words', '<p>Their file reads these words twice. Pick the read to use.</p><div class="places"><label><input type="radio" name="pl" checked> <span class="mono">2:44.20</span> 13 of 13 words <span class="spacer"></span><button class="btn sm">' + ICON_PLAY + 'Hear</button></label><label><input type="radio" name="pl"> <span class="mono">2:51.06</span> 13 of 13 words, after “sorry” <span class="spacer"></span><button class="btn sm">' + ICON_PLAY + 'Hear</button></label></div>'],
+    ['Found in part', 'Find the words', '<div class="note warn"><b>Found 9 of 13 words.</b> Their read differs at “pink eyes” (heard “pinky eyes”). The range covers what was found; check both ends by ear.</div>'],
+    ['Not found', 'Find the words', '<div class="note warn"><b>These words are not in their file as read.</b> Their file may be another edition, or another chapter.</div><div class="row"><button class="btn sm">Find it myself</button><button class="btn sm">Choose another file</button></div>'],
+    ['Across two takes', 'Your words', '<div class="note bad"><b>Choose words inside one take.</b> These words run from one REAPER item into the next.</div>'],
+    ['Keep timing, longer read', 'Listen and match', '<div class="note warn"><b>Their read is 1.30 s longer than yours.</b> Close up instead, or shorten their stretch.</div>'],
+    ['Already edited', 'Your words', '<div class="note bad"><b>Three of these words are cut.</b> Restore the cut words, or choose words without them.</div>'],
+    ['REAPER not connected', 'Confirm', '<div class="note bad"><b>REAPER is not running.</b> You can still find the words and listen. Replacing waits until REAPER is back.</div><div class="row"><button class="btn sm">Start REAPER</button><button class="btn sm">Check again</button></div>'],
+    ['Changed in REAPER', 'Confirm', '<div class="note bad"><b>The chapter changed in REAPER since this was planned.</b> Nothing was replaced. Read the chapter again, then try once more.</div><div class="row"><button class="btn sm">Read again</button></div>'],
+    ['No SWS for Hear theirs', 'Find the words', '<div class="note warn">Playing part of a file needs the SWS extension in REAPER. <b>The app plays it instead</b>, without REAPER\'s effects.</div>'],
+    ['Audacity 4', 'Confirm', '<div class="note warn"><b>Audacity 4 cannot be edited by the app yet.</b> Export the spliced passage as a WAV and bring it in by hand.</div><div class="row"><button class="btn sm primary">Export the spliced passage</button></div>'],
+    ['Undo after another edit', 'Done', '<div class="note warn"><b>REAPER\'s last action is not this one, so it was left alone.</b> Use <b>Put my audio back</b> on the words, or Edit &gt; Undo in REAPER.</div>']
+  ];
+  document.getElementById('errors').innerHTML = ERR.map(function(e){
+    return '<div class="frame"><div class="cap"><b>' + e[0] + '</b><span class="sub">' + e[1] + '</span></div><div class="mini">' + e[2] + '</div></div>';
+  }).join('');
+
+  // Entry points and after
+  var ENT = [
+    ['Word menu', 'Right-click the selection', '<div class="menu"><div>Play selection <kbd>Space</kbd></div><div>Copy</div><hr><div>Delete words and audio <kbd>Del</kbd></div><div>Mute</div><div>Add FX ›</div><div class="on">Replace audio… <span class="tag">New</span></div><div>Mark as voice sample… <kbd>V</kbd></div><hr><div>Mark for pickup</div><div>Add note…</div></div>'],
+    ['Jump menu', 'Ctrl+K anywhere in Editing', '<div class="menu"><div style="border-bottom:1px solid var(--line);border-radius:0">replace</div><div class="on">Replace audio from a file… <span class="tag">New</span></div><div>Replacements in this chapter <span class="tag">New</span></div></div><p class="sub">Opens the dialog on the cursor\'s line when nothing is selected.</p>'],
+    ['The word mark', 'Click the mark after replaced words', '<h4>Eric Leach\'s audio</h4><dl class="kv"><dt>File</dt><dd class="mono">alices_adventures_01_carroll_64kb.mp3</dd><dt>Their stretch</dt><dd class="mono">2:44.20 to 2:47.20</dd><dt>Replaced</dt><dd>24 Oct 2026, 14:12</dd><dt>Volume</dt><dd class="mono">−2.8 dB</dd></dl><div class="row"><button class="btn sm">' + ICON_PLAY + 'Play</button><button class="btn sm">Put my audio back</button></div>'],
+    ['Drawer: Replacements', 'A tab beside Clean up and Effects', '<table class="t"><thead><tr><th>Words</th><th>From</th><th></th></tr></thead><tbody><tr><td>when suddenly a White… by her.</td><td>Eric Leach</td><td><button class="btn sm">Put back</button></td></tr><tr><td>‘Curiouser and curiouser!’</td><td>Eric Leach</td><td><button class="btn sm">Put back</button></td></tr></tbody></table><p class="sub">Each one plays, shows in REAPER, or goes back to your audio, even after the project was saved and reopened.</p>'],
+    ['Takes strip, later', 'Option B in the research note', '<div class="file"><span class="ic">' + ICON_FILE + '</span><div style="flex:1;min-width:0"><b>Take 2 · Eric Leach</b><div class="sub mono">2:44.20 · 3.00 s · from a file</div></div><button class="btn sm">Keep take</button></div><p class="sub">Their read as a take of your line, to switch between. Needs the item\'s length to follow the take, which nothing does yet.</p>']
+  ];
+  document.getElementById('entries').innerHTML = ENT.map(function(e){
+    return '<div class="frame"><div class="cap"><b>' + e[0] + '</b><span class="sub">' + e[1] + '</span></div><div class="mini">' + e[2] + '</div></div>';
+  }).join('');
+
+  var stepParam = new URLSearchParams(location.search).get('step');
+  if (stepParam){ var i = STEPS.findIndex(function(s){ return s.id === stepParam; }); if (i >= 0) cur = i; }
+  render();
+  if (q === 'light' || q === 'dark') setTheme(q);
+})();
+</script>
+</body>
+</html>

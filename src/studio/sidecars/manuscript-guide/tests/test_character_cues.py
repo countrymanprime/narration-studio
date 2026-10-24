@@ -17,9 +17,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from narration_common import contract_files
+
 MODULE_PATH = Path(__file__).parents[1] / "core" / "manuscript_guide.py"
 SPEC = importlib.util.spec_from_file_location("manuscript_guide", MODULE_PATH)
 guide = importlib.util.module_from_spec(SPEC)
+TESTDATA = Path(__file__).parents[5] / "src" / "studio" / "desktop" / "internal" / "guide" / "testdata"
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
 
@@ -474,6 +477,89 @@ class CorrectionSurvivesRebuildTests(unittest.TestCase):
         ]
         merged = guide.merge_dialogue_cues(fresh, previous_cues)
         self.assertEqual(fresh[0]["speaker_entity_id"], merged[0]["speaker_entity_id"])  # unaffected by the unrelated stale correction
+
+
+ADA = {"id": "entity-ada", "canonical_name": "Ada", "category": "Character", "aliases": []}
+
+
+class RefreshCuesTests(unittest.TestCase):
+    """``cues`` writes the dialogue cues without a Story Bible build: after an import and after a scan."""
+
+    def _refresh(self, temporary: str, document: dict | None, paragraphs: list[dict[str, str]], chapters: list[str] | None = None) -> dict:
+        guide_file = Path(temporary) / "guide.json"
+        if document is not None:
+            guide.write_json(str(guide_file), document)
+        args = argparse.Namespace(guide=str(guide_file), manuscript="unused", chapter_id=chapters or [])
+        with patch.object(guide, "load_manuscript", return_value=paragraphs), patch("builtins.print") as printed:
+            guide.refresh_cues(args)
+        self.printed = printed.call_args.args[0]
+        return json.loads(guide_file.read_text(encoding="utf-8"))
+
+    def test_it_starts_a_guide_when_none_exists_and_leaves_every_speaker_unknown(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            data = self._refresh(temporary, None, _paragraphs(("c1", "p1", '"Hello," Ada said.')))
+        (cue,) = data["dialogue_cues"]
+        self.assertIsNone(cue["speaker_entity_id"])
+        self.assertEqual([], data["entities"])
+        self.assertEqual({}, data["source"], "an empty guide stays stale until a real build fills source")
+        self.assertEqual("CUES|1|0", self.printed)
+
+    def test_it_attributes_against_the_entries_already_filed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            data = self._refresh(temporary, {"entities": [ADA]}, _paragraphs(("c1", "p1", '"Hello," Ada said.')))
+        self.assertEqual("entity-ada", data["dialogue_cues"][0]["speaker_entity_id"])
+        self.assertEqual("tag", data["dialogue_cues"][0]["speaker_source"])
+        self.assertEqual("CUES|1|1", self.printed)
+
+    def test_it_keeps_every_other_key_of_the_guide(self):
+        document = {
+            "entities": [ADA],
+            "types": [{"name": "Character", "colour": guide.TYPE_COLOURS[0], "speaks": True}],
+            "absorbed_names": {"x": "y"},
+            "extra": 1,
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            data = self._refresh(temporary, document, _paragraphs(("c1", "p1", "No dialogue here.")))
+        self.assertEqual([], data["dialogue_cues"])
+        for key in ("entities", "types", "absorbed_names", "extra"):
+            self.assertEqual(document[key], data[key])
+
+    def test_a_correction_survives(self):
+        paragraphs = _paragraphs(("c1", "p1", '"Wait," Someone said.'))
+        (fresh,) = guide.extract_dialogue_cues(paragraphs, {})
+        corrected = {**fresh, "speaker_entity_id": "entity-ada", "speaker_source": "correction", "corrected": True}
+        with tempfile.TemporaryDirectory() as temporary:
+            data = self._refresh(temporary, {"entities": [ADA], "dialogue_cues": [corrected]}, paragraphs)
+        self.assertEqual("entity-ada", data["dialogue_cues"][0]["speaker_entity_id"])
+        self.assertTrue(data["dialogue_cues"][0]["corrected"])
+
+    def test_it_uses_the_guide_s_speaking_types(self):
+        crow = {"id": "entity-crow", "canonical_name": "Crow", "category": "Creature", "aliases": []}
+        types = [{"name": "Character", "colour": guide.TYPE_COLOURS[0], "speaks": True}, {"name": "Creature", "colour": guide.TYPE_COLOURS[1], "speaks": True}]
+        with tempfile.TemporaryDirectory() as temporary:
+            data = self._refresh(temporary, {"entities": [crow], "types": types}, _paragraphs(("c1", "p1", '"Caw," Crow said.')))
+        self.assertEqual("entity-crow", data["dialogue_cues"][0]["speaker_entity_id"])
+
+    def test_a_chapter_refresh_leaves_other_chapters_cues_alone(self):
+        paragraphs = _paragraphs(("c1", "p1", '"One," Ada said.'), ("c2", "p2", '"Two," Ada said.'))
+        stale_c2 = {"id": "cue-stale", "chapterId": "c2", "paragraphId": "p2", "speaker_entity_id": None, "corrected": False}
+        with tempfile.TemporaryDirectory() as temporary:
+            data = self._refresh(temporary, {"entities": [ADA], "dialogue_cues": [stale_c2]}, paragraphs, ["c1"])
+        by_chapter = {cue["chapterId"]: cue for cue in data["dialogue_cues"]}
+        self.assertEqual("entity-ada", by_chapter["c1"]["speaker_entity_id"])
+        self.assertEqual("cue-stale", by_chapter["c2"]["id"])
+        self.assertEqual(["c1", "c2"], [cue["chapterId"] for cue in data["dialogue_cues"]], "cues stay in manuscript order")
+
+    def test_the_cues_golden(self):
+        """``cues-golden.json``: what ``cues`` printed and wrote, read back by the host's parser and its DialogueCues
+        (``TestCuesMatchTheGolden``). Run with ``UPDATE_CONTRACTS=1`` to rewrite it."""
+        paragraphs = _paragraphs(("c1", "p1", '"Hello," Ada said. "Who are you?"'), ("c1", "p2", "No dialogue."))
+        cases = []
+        for document in ({"entities": []}, {"entities": [ADA]}):
+            with tempfile.TemporaryDirectory() as temporary:
+                data = self._refresh(temporary, document, paragraphs)
+            cases.append({"line": self.printed, "dialogue_cues": data["dialogue_cues"]})
+        contract_files.check("cues-golden", {"cases": cases}, TESTDATA)
 
 
 if __name__ == "__main__":

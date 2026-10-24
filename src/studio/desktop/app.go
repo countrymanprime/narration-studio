@@ -340,6 +340,8 @@ type Host struct {
 	extractionSources    *port.Registry[extractionport.Source]
 	extractionParagraphs func() ([]extraction.Paragraph, error)
 	extractionInstalled  func() []string
+	// refreshCues is a seam for tests (extraction_cues.go): nil means the open project's guide.Service.RefreshCues.
+	refreshCues func(ctx context.Context, chapterIDs ...string) (guide.CueCounts, error)
 	// extractionChapters is a seam for tests (bindings_extraction_import.go): nil means the open manuscript's chapters.
 	extractionChapters func() ([]importer.Chapter, error)
 	// pickRenderFile is a seam for tests (bindings_proofing_render.go): nil means the operating system's single-file
