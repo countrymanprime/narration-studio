@@ -30,7 +30,7 @@ const ARMED: DawMeters = { ok: true, output: -18, input: -24, inputTrack: 'Chapt
 
 function menu(
   answers: () => DawMeters | Promise<DawMeters>,
-  { meters = ON, monitor = ON }: { meters?: DawCapabilitySupport; monitor?: DawCapabilitySupport } = {},
+  { meters = ON, monitor = ON, reachable = true }: { meters?: DawCapabilitySupport; monitor?: DawCapabilitySupport; reachable?: boolean } = {},
   setup: keyof typeof DAW_SETUPS = 'reaper',
 ) {
   const reads: number[] = [];
@@ -49,7 +49,7 @@ function menu(
         mic={{
           engine: 'daw',
           dawName: 'REAPER',
-          reachable: true,
+          reachable,
           device: 'USB Mic',
           onDevice: vi.fn(),
           levels: { monitor, input: caps.input_level, meters, onOpenSettings },
@@ -152,6 +152,12 @@ describe("the DAW's meters in the Levels menu", () => {
     expect(buttons).toHaveLength(1);
     await userEvent.click(buttons[0]);
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no way to turn Experimental on while the DAW is not answering: turning it on would not help', async () => {
+    const { open } = menu(() => ARMED, { meters: EXPERIMENTAL_OFF, monitor: EXPERIMENTAL_OFF, reachable: false });
+    await open();
+    expect(within(popup()).queryByRole('button', { name: 'Turn on in Settings' })).toBeNull();
   });
 
   it('offers no way to turn on what Experimental does not keep off', async () => {

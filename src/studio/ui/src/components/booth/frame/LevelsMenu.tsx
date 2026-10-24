@@ -220,8 +220,10 @@ function MonitorLevelRow() {
  * The mock's two sliders under the microphone: Input level and Monitor level (output), each off with the reason when the DAW cannot set it,
  * and under each the DAW's own meter for that side (`daw_meters`) when the DAW can read them: the armed track's input and the output.
  */
-function LevelSliders({ levels, dawName }: { levels: NonNullable<LevelsMenuProps['levels']>; dawName: string }) {
-  const { monitor, input, meters, onOpenSettings } = levels;
+function LevelSliders({ levels, dawName, reachable }: { levels: NonNullable<LevelsMenuProps['levels']>; dawName: string; reachable: boolean }) {
+  const { monitor, input, meters } = levels;
+  // Turning Experimental on helps only while the DAW answers: with it not answering, that is the reason to show, not a switch.
+  const onOpenSettings = reachable ? levels.onOpenSettings : undefined;
   const state = useDawMeters(meters?.available === true);
   const reading = meters?.available === true;
   const inputMeter = reading ? meterFor(state, 'input', dawName) : null;
@@ -278,6 +280,8 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
     <Popover
       label="Levels"
       side="top"
+      // A control in the menu can leave the Booth (Turn on in Settings): a footswitch Enter right after opening must not press it.
+      focusPopup
       open={open}
       onOpenChange={onOpenChange}
       trigger={<IconButton action="levels" label="Levels" id="blevels" aria-haspopup="dialog" />}
@@ -307,7 +311,7 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
             </span>
           ) : null}
         </div>
-        {levels ? <LevelSliders levels={levels} dawName={dawName} /> : null}
+        {levels ? <LevelSliders levels={levels} dawName={dawName} reachable={reachable} /> : null}
         {engine === 'daw' ? <PunchPrerollRow /> : null}
       </div>
     </Popover>

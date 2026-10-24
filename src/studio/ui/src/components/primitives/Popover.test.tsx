@@ -26,6 +26,25 @@ describe('Popover', () => {
     await waitFor(() => expect(popup.contains(document.activeElement)).toBe(true));
   });
 
+  it('with focusPopup, opens with focus on the popup itself, so Enter presses nothing inside; Tab still reaches its controls', async () => {
+    const user = userEvent.setup();
+    let pressed = 0;
+    render(
+      <Popover trigger={<Button>Levels</Button>} label="Levels" focusPopup>
+        <button type="button" onClick={() => (pressed += 1)}>
+          Turn on in Settings
+        </button>
+      </Popover>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Levels' }));
+    const popup = await screen.findByRole('dialog', { name: 'Levels' });
+    await waitFor(() => expect(document.activeElement).toBe(popup));
+    await user.keyboard('{Enter}');
+    expect(pressed).toBe(0);
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Turn on in Settings' }));
+  });
+
   it('marks its popup so a dialog can tell Escape is meant for it', async () => {
     const user = userEvent.setup();
     renderPopover();
