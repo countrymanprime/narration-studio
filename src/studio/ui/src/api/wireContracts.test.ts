@@ -115,6 +115,7 @@ import {
   workspacePeaksResultSchema,
   workspaceTakesResultSchema,
   workspaceUseTakeResultSchema,
+  workspaceProjectFxResultSchema,
 } from './schemas/workspace';
 import { USE_TAKE_MESSAGES } from './workspaceTakesMock';
 import { pinnedPreviewSchema, previewResultSchema } from './schemas/preview';
@@ -2949,6 +2950,15 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(createMockApi({}, { reaper: 'standalone' }).workspaceListFXChains()).rejects.toThrow();
   });
 
+  it('workspaceProjectFx lists the FX on the DAW tracks and the master, and rejects when REAPER is not connected', async () => {
+    const chain = await createMockApi().workspaceProjectFx();
+    expectMatches(workspaceProjectFxResultSchema, chain, 'mock workspace project FX');
+    expect(chain.tracks.length).toBeGreaterThan(0);
+    expect(chain.total).toBe(chain.tracks.reduce((n, track) => n + track.fx.length, 0) + chain.master.length);
+
+    await expect(createMockApi({}, { reaper: 'standalone' }).workspaceProjectFx()).rejects.toThrow();
+  });
+
   it('the Takes panel bindings answer: the passage takes, their comparison and every outcome of using one', async () => {
     const chapters = await createMockApi().manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
@@ -4294,6 +4304,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceTakesCompareStart',
       'workspaceUseTake',
       'workspacePreviewTake',
+      'workspaceProjectFx',
       'workspaceHideTakes',
       'dawRoll',
       'dawDeleteRange',

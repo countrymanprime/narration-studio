@@ -7,6 +7,8 @@ import { docCutsOf } from '../range/common/locate';
 import { BUILT_IN } from '../range/common/rangePlan';
 import type { FxWords } from '../range/fx/useFxWords';
 import { AddEffect } from './AddEffect';
+import { ProjectFx } from './ProjectFx';
+import { useProjectFx } from './useProjectFx';
 import { CoverageStrip } from './CoverageStrip';
 import { EffectInspector } from './EffectInspector';
 import { EffectsList } from './EffectsList';
@@ -34,13 +36,14 @@ export interface EffectsTabProps {
 export const effectsCount = (effects: readonly WordFx[]): number => effects.length;
 
 /**
- * The Effects tab: the effects put on words, the coverage strip with its cap, the list, Add effect, and the one picked in the inspector. The
- * cap is the project's Editing.fx_cap_pct; the strip's state and Add effect's warning follow it.
+ * The Effects tab: the effects put on words, the coverage strip with its cap, the list, the FX in the linked DAW now (#2251 item 36), Add
+ * effect, and the one picked in the inspector. The cap is the project's Editing.fx_cap_pct; the strip's state and Add effect's warning follow it.
  */
 export function EffectsTab({ doc, effects, cuts, total, selected, fx, onSelectWords }: EffectsTabProps) {
   const kind = useDawKind();
   const dawName = kind === undefined ? 'the DAW' : kind === 'none' || kind === 'Built-in' ? BUILT_IN : kind;
   const fxCap = useFxCap();
+  const projectFx = useProjectFx();
   const [pick, setPick] = useState<string | null>(null);
   const current = effects.find((f) => f.id === pick) ?? effects[0] ?? null;
   const at = current ? effects.indexOf(current) : -1;
@@ -76,6 +79,7 @@ export function EffectsTab({ doc, effects, cuts, total, selected, fx, onSelectWo
           step={{ at, of: effects.length, to: stepTo }}
         />
       ) : null}
+      <ProjectFx state={projectFx} dawName={dawName} />
       <AddEffect
         hasSelection={selected.length > 0}
         reason={summary ? fx.refusalOf(summary) : ''}

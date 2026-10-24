@@ -3225,6 +3225,15 @@ export function WorkspacePreviewTake(chapterID: string, firstToken: number, last
 }
 
 /**
+ * WorkspaceProjectFx lists the FX on the linked DAW's tracks and its master track, in the DAW's own order, each with whether it
+ * is switched on (master_chain_read). It changes nothing and is refused (bridge.ErrUnavailable) offline or before the DAW port's
+ * master chain capability is on, exactly as master_chain_read itself already is.
+ */
+export function WorkspaceProjectFx(): $CancellablePromise<string> {
+    return $Call.ByID(738290682);
+}
+
+/**
  * WorkspaceSnap moves sourceTime, a cut point in seconds of itemGUID's source, to the nearest zero crossing of that
  * source's audio within 2 ms. It refuses, reading nothing, a chapter with no checked track, an item GUID the chapter's
  * alignment or the saved project no longer has, and an item whose source file is missing; and refuses, leaving the

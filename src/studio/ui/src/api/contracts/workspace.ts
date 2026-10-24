@@ -115,6 +115,12 @@ export type WorkspaceAlignmentResult = {
  * narrator's favourites are a Settings field (DAW.fx_favourites), not part of this read. */
 export type WorkspaceFXChainsResult = { names: string[]; truncated: boolean };
 
+/** One plug-in in a DAW chain, as the DAW names it, and whether it is switched on. */
+export type ProjectFxSlot = { name: string; enabled: boolean };
+
+/** The FX on the linked DAW's tracks and master track now (WorkspaceProjectFx; master_chain_read), in the DAW's own order. */
+export type WorkspaceProjectFxResult = { tracks: { trackGuid: string; name: string; fx: ProjectFxSlot[] }[]; master: ProjectFxSlot[]; total: number };
+
 /** Where a take offered for a passage comes from: another take
  * of the item the passage was heard on, another retake of its line on a fixed-lane track, or a read a take-review
  * group set beside it. */
@@ -209,6 +215,9 @@ export interface WorkspaceApi {
   /** Lists the narrator's FX chains (list_fx_chains). Refused offline or before the DAW port's FX chains
    * capability is on (dawport.CapFXChains, experimental). */
   workspaceListFXChains(): Promise<WorkspaceFXChainsResult>;
+  /** Lists the FX on the linked DAW's tracks and master track now (master_chain_read). Reads only; refused offline or before
+   * the DAW port's master chain capability is on. */
+  workspaceProjectFx(): Promise<WorkspaceProjectFxResult>;
   /** Lists the takes that can be set beside a passage (the tokens firstToken to lastToken, snapped out to whole
    * paragraphs). Reads only, and works with REAPER closed. */
   workspaceTakes(chapterId: string, firstToken: number, lastToken: number): Promise<WorkspaceTakesResult>;

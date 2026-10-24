@@ -228,6 +228,17 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('tab', { name: /^Effects/ }).click();
     await page.getByRole('region', { name: 'Effects' }).waitFor();
   },
+  'drawer-effects-daw-unread': async (page) => {
+    // A DAW that is not connected: the FX in the DAW section says so in place of the list (#2251 item 36).
+    await openEditing(page, `${EDITS}&mockReaper=standalone`);
+    await page.getByRole('button', { name: 'Clean up and effects' }).click();
+    await page.locator('#drawer').waitFor();
+    await page.getByRole('tab', { name: /^Effects/ }).click();
+    await page
+      .getByRole('region', { name: /^FX in / })
+      .getByRole('alert')
+      .waitFor();
+  },
   'drawer-effects-chains': async (page) => {
     // With a DAW that lists its chains (the mock host's EDITS setup), the Effects tab lists them with a Favourite button on each.
     await openEditing(page, EDITS);
