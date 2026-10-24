@@ -1281,6 +1281,13 @@
     "caption": "Proof - find in notes on \"rabbit\", with the two matching notes"
   },
   {
+    "page": "proof",
+    "state": "search-menu",
+    "viewport": "desktop",
+    "docName": "proof-search",
+    "caption": "Proof - Ctrl+F then \"rabbit\": the jump menu lists the matching notes under Notes, the matched word marked"
+  },
+  {
     "page": "schedule",
     "state": "overdue",
     "viewport": "desktop",

@@ -631,11 +631,9 @@ function AppRoutes() {
     undo: () => void undoLast(),
   });
   // The menu on empty space in <main> (the mock's page menu, `app/context.ts`): Go to with the current page checked, the jump menu, Search this page, and View.
-  // Ctrl+F searches the page except on Proof, which keeps it for its notes' find, so the hint is left off there.
-  const findHint = isActivePath(location.pathname, '/proof') ? undefined : ['Ctrl', 'F'];
   const contextTail = [
     { key: 'jump', label: 'Jump menu…', shortcut: ['Ctrl', 'K'], onSelect: () => openJump() },
-    { key: 'search', label: 'Search this page', shortcut: findHint, onSelect: () => openJump(undefined, undefined, 'page') },
+    { key: 'search', label: 'Search this page', shortcut: ['Ctrl', 'F'], onSelect: () => openJump(undefined, undefined, 'page') },
   ] satisfies ContextMenuItem[];
   const contextMenu = {
     fallback: (): ContextMenuItem[] => [

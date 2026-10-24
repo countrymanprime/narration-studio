@@ -29,7 +29,7 @@ All paths are under `src/studio/ui/src/`.
 - **Surface** is `jumpMenu`, `help` or `settings`. All 69 rows list on `help` and `settings`; 10 list on `jumpMenu`: `nav.back`, `nav.forward`, `nav.settings`, `zoom.in, `zoom.out`, `zoom.reset`, `companion.open`, `help.shortcuts`, `history.open`, `undo.last`. A page key is not a jump menu row because the menu could not run it from another page.
 - **Groups** (the jump menu heading and the help and Settings grouping): Go to, Zoom, Editing, Bookmarks, Script, Story Bible, Proof, Booth, View, Edit.
 - **Id format** is `area.thing` or `area.thing.direction` (`editing.word.extend.prev`, `proof.decide.waive`). An id is the key the narrator's saved bindings use, so a renamed id loses the binding.
-- **Shell rows** `jump.open` (Ctrl/Cmd+K), `jump.page` (Ctrl/Cmd+F, the menu scoped to the page), `history.open` (Ctrl+Shift+H) and `undo.last` (Ctrl+Z, `fieldsKeep`) are global. `proof.find` takes Ctrl+F on Proof and names `jump.page` in `shadows`, so Ctrl+F searches the page on every other page.
+- **Shell rows** `jump.open` (Ctrl/Cmd+K), `jump.page` (Ctrl/Cmd+F, the menu scoped to the page), `history.open` (Ctrl+Shift+H) and `undo.last` (Ctrl+Z, `fieldsKeep`) are global. No page row takes Mod+F, so Ctrl+F searches the page on every page (#2251 item 23; `commands.catalog.test.ts` `ctrl-f-everywhere`); Proof offers its notes as a search source.
 - **Behaviour** is attached with `useCommand(id, handler, enabled)` (`input/useCommand.ts`). A feature never listens for a key.
 
 | Rule | Enforced by |

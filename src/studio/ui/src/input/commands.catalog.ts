@@ -421,15 +421,6 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'proof.decide.waive', label: 'Fine as read', scope: 'page', defaults: [key('KeyW')], group: 'Proof', surfaces: ['help', 'settings'] },
   { id: 'proof.decide.defer', label: 'Defer', scope: 'page', defaults: [key('KeyD')], group: 'Proof', surfaces: ['help', 'settings'] },
   {
-    id: 'proof.find',
-    label: 'Find in notes',
-    scope: 'page',
-    defaults: [key('KeyF', ['Mod'])],
-    shadows: ['jump.page'],
-    group: 'Proof',
-    surfaces: ['help', 'settings'],
-  },
-  {
     id: 'proof.escape',
     label: 'Back to all chapters',
     scope: 'page',
@@ -527,9 +518,9 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
-  // Ctrl+K opens the jump menu everywhere. Ctrl+F opens it scoped to the page (its items and its text, no global commands) on every page but Proof, where
-  // `proof.find` shadows it and wins by scope priority (SNR-Q1, docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). Neither is in
-  // `jumpMenu`: the menu would list the command that opened it.
+  // Ctrl+K opens the jump menu everywhere. Ctrl+F opens it scoped to the page (its items and its text, no global commands) on every page, Proof
+  // included (#2251 item 23: no page row takes Mod+F; Proof's notes are a search source in it). Neither is in `jumpMenu`: the menu would list the
+  // command that opened it.
   {
     id: 'jump.open',
     label: 'Open the jump menu',

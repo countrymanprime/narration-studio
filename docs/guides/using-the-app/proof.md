@@ -89,7 +89,7 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
 - **Check recordings…**, the same check the card runs, starting with the chapter in view;
-- **Find in notes** (Ctrl+F), which keeps only the notes whose text matches what you type; Esc closes it;
+- **Find in notes**, which keeps only the notes whose text matches what you type; Esc closes it;
 - **Import proofer sheet** and **Export for proofer**: the proofer's CSV sheet. Import adds each row as a pickup marker in
   the DAW and, when the DAW has answered, says how many pickups it added, how many were there already and how many rows
   it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote; a pickup on the Pickups page with no
@@ -106,6 +106,12 @@ tinted row with the chapter's open count.
 ![Proof - the To review chip: "Notes · 3 of 4", the note marked fine as read left out](../../images/ui/proof-notes-filtered.webp)
 
 ![Proof - find in notes on "rabbit", with the two matching notes](../../images/ui/proof-find.webp)
+
+`Ctrl+F` opens the [jump menu](navigation.md#jump-to-or-run) searching this page, as on every page. Type two or more letters and
+the notes whose script or heard text holds them are listed under **Notes**, with the chapter and time of each and the matched
+part marked. Choosing one opens **Find in notes** on what you typed, clears the chips so the note shows, and selects it.
+
+![Proof - Ctrl+F then "rabbit": the jump menu lists the matching notes under Notes, the matched word marked](../../images/ui/proof-search.webp)
 
 ## A note and your decision
 
@@ -204,7 +210,7 @@ why.
 | Space | Hear the selected note, 3 s either side; again to stop |
 | P, E, W, D | Needs pickup, Fix in edit, Fine as read, Defer on the selected note |
 | Esc | Back to All chapters |
-| Ctrl+F | Find in notes |
+| Ctrl+F | Search this page in the jump menu, the notes included |
 | Ctrl+Z | Undo the last change, a decision included |
 
 The footer lists them, Ctrl+Z as Undo, and you can change them in [Settings](settings.md).
