@@ -6,6 +6,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { HINT_POPUP_SELECTOR } from './hintLayer';
 import { IconButton } from './IconButton';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
+import { useToastsClearOfModal } from './Toast';
 
 // Portals attach in the order the layers opened, so a modal later in the document is above this one.
 function hasModalAbove(popup: HTMLElement): boolean {
@@ -100,6 +101,8 @@ export function Dialog({
   // What had focus when the dialog mounted: the button that opened it.
   const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null));
   const dismiss = escapeCloses ? (onClose ?? onEscape) : undefined;
+  // A full-size dialog leaves no room above it; the others have the window's top margin free for a toast.
+  useToastsClearOfModal(size !== 'full');
 
   const initialFocus = () => {
     const focused = document.activeElement;

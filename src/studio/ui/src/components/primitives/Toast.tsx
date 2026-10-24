@@ -76,6 +76,22 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
   );
 }
 
+// While a modal dialog is open the toasts move to the top of the window, clear of the dialog's action row, which they covered at the bottom
+// (alignment audit cause P). A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
+const MODAL_OPEN_ATTRIBUTE = 'data-modal-open';
+let openModals = 0;
+export function useToastsClearOfModal(active: boolean): void {
+  useEffect(() => {
+    if (!active) return;
+    openModals += 1;
+    document.documentElement.setAttribute(MODAL_OPEN_ATTRIBUTE, '');
+    return () => {
+      openModals -= 1;
+      if (openModals === 0) document.documentElement.removeAttribute(MODAL_OPEN_ATTRIBUTE);
+    };
+  }, [active]);
+}
+
 // The messages the app shows, newest last. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
@@ -85,7 +101,7 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
   return createPortal(
     <div
       data-toast-region
-      className="fixed right-[calc(1.25rem+var(--toast-clear-right,0px))] bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem-var(--toast-clear-right,0px)))] flex-col items-end gap-2"
+      className="fixed right-[calc(1.25rem+var(--toast-clear-right,0px))] bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:top-4 [:root[data-modal-open]_&]:bottom-auto"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
         {messages

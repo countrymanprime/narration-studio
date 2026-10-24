@@ -117,10 +117,12 @@ export function createOverlayService(): OverlayService {
     if (!text) return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs, undo };
-    // A message that says what one on screen already says is that message again, and one on the same topic is its newer word: either
-    // replaces the old one (its timer starts again), so a repeated press or a lost-and-found DAW never stacks the same sentence.
+    // A message that says what one on screen already says, with the same action or none, is that message again, and one on the same topic
+    // is its newer word: either replaces the old one (its timer starts again), so a repeated press, three adds in a row ("Milestone added."
+    // with its Undo) or a lost-and-found DAW never stacks the same sentence (alignment audit cause P). An Undo that replaces another takes
+    // back the newest change; History still holds the earlier ones.
     const again = (old: ToastMessage) =>
-      (options.topic !== undefined && old.topic === options.topic) || (!options.action && !old.action && old.text === text && old.tone === tone);
+      (options.topic !== undefined && old.topic === options.topic) || (old.action?.label === options.action?.label && old.text === text && old.tone === tone);
     const queue = [...snapshot.toasts.filter((old) => !again(old)), message];
     while (queue.length > OVERLAY_TOAST_LIMIT) {
       const info = queue.slice(0, -1).findIndex((m) => m.tone === 'info');
