@@ -234,45 +234,51 @@ const flagKindSchema = z.enum(['misread', 'extra', 'skipped', 'restart']);
  * A kept flag as `TeleprompterSaveFlags` answers it (`src/studio/desktop/internal/liveflags`): a findings record
  * (docs/architecture/findings-contract.md) in the contract's snake_case. It is always suspected, so its confidence is null.
  */
-const teleprompterFlagFindingSchema = z.object({
-  schema_version: z.number(),
-  id: z.string(),
-  analyzer: z.string(),
-  project: z.object({ path: z.string().optional(), output_path: z.string().optional() }),
-  source: z.object({
-    file: z.string().optional(),
-    track_guid: z.string().optional(),
-    item_guid: z.string().optional(),
-    take_guid: z.string().optional(),
-  }),
-  manuscript: z.object({
-    chapter_id: z.string().optional(),
-    chapter_title: z.string().optional(),
-    expected: z.string().optional(),
-    recorded: z.string().optional(),
-    span: z
-      .object({ paragraph_id: z.string().optional(), start: z.number().optional(), end: z.number().optional(), ordinal: z.number().optional() })
-      .optional(),
-  }),
-  category: z.enum(['transcript_discrepancy', 'pickup']),
-  severity: z.enum(['info', 'warning', 'error']),
-  confidence: z.null(),
-  evidence_version: z.string().optional(),
-  confidence_reason: z.string(),
-  evidence: z.object({
-    kind: flagKindSchema,
-    heard: z.string(),
-    suspected: z.literal(true),
-    script_words: z.tuple([z.number(), z.number()]),
-    before: z.string().optional(),
-  }),
-  review: z.object({
-    status: z.enum(['unreviewed', 'accepted', 'dismissed', 'deferred']),
-    note: z.string().optional(),
-    timestamp: z.string().optional(),
-  }),
-  not_in_latest_run: z.boolean().optional(),
-}) satisfies z.ZodType<TeleprompterFlagFinding>;
+const teleprompterFlagFindingSchema = z
+  .object({
+    schema_version: z.number(),
+    id: z.string(),
+    analyzer: z.string(),
+    project: z.object({ path: z.string().optional(), output_path: z.string().optional() }),
+    source: z.object({
+      file: z.string().optional(),
+      track_guid: z.string().optional(),
+      item_guid: z.string().optional(),
+      take_guid: z.string().optional(),
+    }),
+    manuscript: z.object({
+      chapter_id: z.string().optional(),
+      chapter_title: z.string().optional(),
+      expected: z.string().optional(),
+      recorded: z.string().optional(),
+      span: z
+        .object({ paragraph_id: z.string().optional(), start: z.number().optional(), end: z.number().optional(), ordinal: z.number().optional() })
+        .optional(),
+    }),
+    category: z.enum(['transcript_discrepancy', 'pickup']),
+    severity: z.enum(['info', 'warning', 'error']),
+    confidence: z.number().min(0).max(1).nullable(),
+    evidence_version: z.string().optional(),
+    confidence_reason: z.string(),
+    evidence: z.object({
+      kind: flagKindSchema,
+      heard: z.string(),
+      suspected: z.literal(true),
+      script_words: z.tuple([z.number(), z.number()]),
+      before: z.string().optional(),
+    }),
+    review: z.object({
+      status: z.enum(['unreviewed', 'accepted', 'dismissed', 'deferred']),
+      note: z.string().optional(),
+      timestamp: z.string().optional(),
+    }),
+    not_in_latest_run: z.boolean().optional(),
+  })
+  // Only a misread is scored (by sound, #2251 item 27): nothing measures a skip, an extra or a restart.
+  .refine((finding) => finding.confidence === null || finding.evidence.kind === 'misread', {
+    message: 'only a misread has a confidence',
+    path: ['confidence'],
+  }) satisfies z.ZodType<TeleprompterFlagFinding>;
 
 /** `TeleprompterSaveFlags`: one finding per flag sent, in order. */
 export const teleprompterFlagFindingsSchema = z.array(teleprompterFlagFindingSchema);

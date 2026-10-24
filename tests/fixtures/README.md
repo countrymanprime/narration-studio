@@ -26,6 +26,15 @@ cd tests/fixtures
 python -c "import importlib.util; from pathlib import Path; spec = importlib.util.spec_from_file_location('gen', 'generate_alice.py'); mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod); mod.write_epub(mod.parse_chapters(Path('alice_raw.txt')), Path('alice.epub'))"
 ```
 
+## sound-alike/
+
+`cases.json` holds misread pairs, each a script text and what was heard, with the band its misread confidence must fall in.
+`TestMisreadConfidenceFallsInEachCalibrationCasesBand` (`src/studio/desktop/internal/soundalike/soundalike_test.go`) holds
+the scorer to every pair. The pairs come from two places: the owner's examples in #2251 item 27, and what Whisper
+large-v3-turbo heard against the script in the committed LibriVox word timings (`audio/librivox-alice/alignment`), which
+Transcript Compare's markers found. `PRINT_CALIBRATION=1 go test -v -run Print ./internal/soundalike` prints every score.
+Hand-written; add a pair when a real misread is scored wrongly.
+
 ## heading-misreads/
 
 Small constructed manuscripts (DOCX, EPUB, Markdown and plain text, one chapter heading each) that exercise the

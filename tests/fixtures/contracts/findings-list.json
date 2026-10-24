@@ -151,13 +151,14 @@
     {
       "analyzer": "transcript-compare",
       "category": "transcript_discrepancy",
-      "confidence": 0.9,
-      "confidence_reason": "compare.py measured a clear pause at this discrepancy's audio boundary (timing_gap_seconds at or above its pause threshold) — stronger secondary evidence, not proof of a genuine misread, skip, or insertion.",
+      "confidence": 0.68,
+      "confidence_reason": "compare.py measured a clear pause at this discrepancy's audio boundary (timing_gap_seconds at or above its pause threshold) — stronger secondary evidence, not proof of a genuine misread, skip, or insertion. Scored by how alike “the quick brown fox” and “the quick brown socks” are in letters and sound: a near match (M for N, a vowel for a vowel) is more likely the recogniser mishearing a correct read than a misread. An ordering to sort and judge by, not a probability.",
       "evidence": {
         "audio_context": "The quick brown socks jumped over the lazy dog.",
         "kind": "MISREAD",
         "marker_state": "pending",
         "script_context": "The quick brown fox jumped over the lazy dog.",
+        "sound_alike": 0.25,
         "timing_gap_seconds": 0.42
       },
       "evidence_version": "sha256:9086fad03c9fe71479e582e194688a6106b2f722dff8befc7c470247033e1203",

@@ -194,7 +194,9 @@ flowchart LR
 
   An extra run between the first and last read word is an `extra` gap. Every gap has `confidence: null` and
   `confReason: "no_word_scores"`: the words file keeps Whisper's word probabilities, but they only choose passages to re-check
-, and no calibrated mapping scores a gap from them.
+, and no calibrated mapping scores a gap from them. On the Editing page's wire (`WorkspaceAlignment`) every token is
+  unscored the same way except a misread, whose `conf` is how likely it is a real misread by how alike the script's and
+  the heard word sound (`internal/soundalike`, #2251 item 27).
 - **A chapter is complete** when every paragraph has at least `min_paragraph_present` of its words present, and no run
   of missing words, counted across paragraph boundaries and including the head and tail, is longer than
   `max_missing_run`.
