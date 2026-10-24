@@ -60,7 +60,7 @@ function Section({ section, first }: { section: MenuSection; first: boolean }) {
       {section.label}
     </BaseMenu.GroupLabel>
   );
-  const separator = first ? null : <BaseMenu.Separator className="mx-[0.35rem] my-[0.3rem] border-t border-[var(--border)]" />;
+  const separator = first ? null : <BaseMenu.Separator className="mx-[0.35rem] my-[0.3rem] border-t border-[var(--line-strong)]" />;
   if (section.select === 'one')
     return (
       <>
