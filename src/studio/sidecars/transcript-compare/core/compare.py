@@ -1196,6 +1196,9 @@ def diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, 
 
     sm = difflib.SequenceMatcher(None, chapter_norm, filtered_tokens, autojunk=False)
     opcodes = _fuse_hyphen_split_opcodes(sm.get_opcodes(), chapter_norm, filtered_tokens)
+    # The heading opens the chapter (unit -1, build_chapter_units). Reading it is optional and in the narrator's own words
+    # ("Chapter Twelve" for "Chapter 12:"), so no marker lies in it or between it and the chapter's first word (#2251 item 7).
+    heading_end = next((k for k, unit in enumerate(norm_unit_idx) if unit != -1), len(norm_unit_idx))
 
     # Content before the first aligned block or after the last one was
     # simply never part of this recording (e.g. only a partial chapter was
@@ -1241,6 +1244,8 @@ def diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, 
 
         length = max(i2 - i1, j2 - j1)
         if length < min_words:
+            continue
+        if heading_end and ((i1 <= heading_end) if tag == "insert" else (i2 <= heading_end)):
             continue
 
         t = time_for(j1)
@@ -1560,7 +1565,7 @@ def write_unified_diff(chapter, transcript_words, diff_path, covered_range, sent
         # no manuscript unit to line audio up against; fall back to
         # punctuation/pause-based splitting over everything after the
         # spoken title and just show it as one big addition.
-        title_boundary = find_transcript_title_boundary(chapter["title"], transcript_words)
+        title_boundary = find_transcript_title_boundary(spoken_heading(chapter), transcript_words)
         fallback_lines = split_audio_sentences(transcript_words[title_boundary:])
         unit_info = [(False, line) for line in fallback_lines]
 
@@ -1598,6 +1603,13 @@ def write_unified_diff(chapter, transcript_words, diff_path, covered_range, sent
     return diff_path
 
 
+def spoken_heading(chapter):
+    """The heading a narrator reads before the chapter's first line: the title, then the subtitle when the chapter has
+    one. Reading it is optional, so diff_and_build_markers makes no marker in it."""
+    subtitle = chapter.get("subtitle") if isinstance(chapter.get("subtitle"), str) else ""
+    return " ".join(part for part in (chapter["title"], subtitle) if part and part.strip())
+
+
 def build_chapter_units(chapter):
     """Flatten a chapter's title and paragraphs into the token/unit
     structures diff_and_build_markers() needs, shared by the ordinary
@@ -1611,12 +1623,13 @@ def build_chapter_units(chapter):
     spoken title aligns against real doc content instead. chapter_unit_idx
     tracks which sentence unit (or -1 for the title) each token belongs
     to, so the diff's own aligned span can drive the excerpt boundary
-    instead of a separate bag-of-words heuristic.
+    instead of a separate bag-of-words heuristic. The subtitle is read with
+    the title, so it is part of the heading too (spoken_heading).
 
     Returns (sentence_units, chapter_tokens, chapter_unit_idx, chapter_raw_words).
     """
     sentence_units = build_sentence_units(chapter["paragraphs"])
-    chapter_tokens, chapter_raw_words = tokenize_with_raw(chapter["title"])
+    chapter_tokens, chapter_raw_words = tokenize_with_raw(spoken_heading(chapter))
     chapter_unit_idx = [-1] * len(chapter_tokens)
     for u_i, (sent, _p_i) in enumerate(sentence_units):
         sent_tokens, sent_raw_words = tokenize_with_raw(sent)

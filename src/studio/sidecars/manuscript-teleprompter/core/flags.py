@@ -29,6 +29,9 @@ favour precision over recall (a doubtful discrepancy is dropped, not flagged):
 - hesitations are not extras, a single dropped article is not a skip, a single
   repeated word is not a restart (engines drop and duplicate those on their
   own), and a long run of unplaceable words is not called a misread.
+The chapter heading (the title and subtitle the script opens with) is read
+optionally and in the narrator's own words ("Chapter Twelve" for "Chapter 12:"),
+so no flag lies in it or between it and the chapter's first word.
 A jump the tracker makes on confirmed words (a restart behind, a skip ahead)
 is flagged as it stands: the tracker already demands strong evidence for one.
 A seek (`reset_to`) is the narrator moving on purpose and is never flagged.
@@ -206,8 +209,10 @@ class FlaggingTracker:
     """A ScriptTracker that also reports the `flag` events each closed segment
     raises. Same interface: feed engine events, tick the clock, seek."""
 
-    def __init__(self, tokens: list[str]) -> None:
+    def __init__(self, tokens: list[str], heading: int = 0) -> None:
+        """`heading` is how many of `tokens` open the script as the chapter heading (0 for the credits)."""
         self._tracker = ScriptTracker(tokens)
+        self._heading = heading
         self._script = self._tracker.words
         self._written = tuple(tokens[self._tracker.original_index(position)] for position in range(len(self._script)))
         self._next_id = 1
@@ -217,7 +222,21 @@ class FlaggingTracker:
         reading = self._tracker.take_closed_segment()
         if reading is None:
             return events
-        return events + [self._event(flag) for flag in segment_flags(reading, self._script, self._written)]
+        found = (self._event(flag) for flag in segment_flags(reading, self._script, self._written))
+        kept = [flag for flag in found if not self._in_heading(flag)]
+        for flag in kept:
+            flag["id"] = self._next_id
+            self._next_id += 1
+        return events + kept
+
+    def _in_heading(self, event: dict) -> bool:
+        """A flag in the heading, an extra heard before the chapter's first word (the heading said another way), or a
+        restart that starts in the heading (the heading said again)."""
+        if event["kind"] == "extra":
+            return event["start"] <= self._heading
+        if event["kind"] == "restart":
+            return event["start"] < self._heading
+        return event["end"] <= self._heading
 
     def tick(self, now: float) -> list[dict]:
         return self._tracker.tick(now)
@@ -228,6 +247,4 @@ class FlaggingTracker:
     def _event(self, flag: Flag) -> dict:
         start = self._tracker.original_index(flag.start)
         end = start if flag.start == flag.end else self._tracker.original_index(flag.end - 1) + 1
-        event = {"type": "flag", "id": self._next_id, "kind": flag.kind, "start": start, "end": end, "heard": " ".join(flag.heard)}
-        self._next_id += 1
-        return event
+        return {"type": "flag", "id": 0, "kind": flag.kind, "start": start, "end": end, "heard": " ".join(flag.heard)}

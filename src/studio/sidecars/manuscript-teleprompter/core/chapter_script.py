@@ -5,9 +5,10 @@ reads through narration_common.manuscript), as the flat token list the script
 tracker follows plus the spans that map token indices back onto the chapter's
 title and paragraphs.
 
-Tokens are the whitespace-split words of the chapter title (narrators read it
-aloud, as Transcript Compare also assumes) followed by each paragraph's text in
-manuscript order. The frontend must tokenize each paragraph the same way
+Tokens are the whitespace-split words of the chapter heading, the title and then
+the subtitle (narrators read it aloud, as Transcript Compare also assumes),
+followed by each paragraph's text in manuscript order. Reading the heading is
+optional: `heading` counts its tokens so the flags never judge them. The frontend must tokenize each paragraph the same way
 (`text.split()`) to place the tracker's `read` index; the `script` event
 carries the spans so it can check its own tokenization against ours.
 
@@ -53,6 +54,8 @@ class ChapterScript:
     tokens: list[str]
     spans: list[Span]
     text: str
+    # How many tokens open the script as its heading (the title span's count); 0 for a script with no title span.
+    heading: int = 0
 
 
 def _collapse(text: str) -> str:
@@ -92,10 +95,12 @@ def load_chapter_script(manuscript_path: str | Path, chapter: str) -> ChapterScr
         raise ChapterError(str(error)) from error
     selected = _select(_narratable_chapters(data), chapter)
 
-    title_tokens = selected["title"].split()
+    subtitle = selected.get("subtitle") if isinstance(selected.get("subtitle"), str) else ""
+    heading = " ".join(part for part in (selected["title"], subtitle) if part.strip())
+    title_tokens = heading.split()
     tokens = list(title_tokens)
     spans = [Span("title", selected["id"], None, 0, len(title_tokens))]
-    texts = [selected["title"]]
+    texts = [heading]
     for paragraph in data["paragraphs"]:
         if paragraph["chapterId"] != selected["id"]:
             continue
@@ -103,7 +108,7 @@ def load_chapter_script(manuscript_path: str | Path, chapter: str) -> ChapterScr
         spans.append(Span("paragraph", paragraph["id"], paragraph.get("index"), len(tokens), len(words)))
         tokens.extend(words)
         texts.append(paragraph["text"])
-    return ChapterScript(selected["id"], selected["title"], tokens, spans, "\n".join(texts))
+    return ChapterScript(selected["id"], selected["title"], tokens, spans, "\n".join(texts), len(title_tokens))
 
 
 _LINE_BREAK = re.compile(r"\r\n|\r|\n")
