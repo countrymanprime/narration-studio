@@ -20,7 +20,7 @@ import { IconButton } from '../primitives/IconButton';
 import { Swatch } from '../primitives/Swatch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../primitives/Table';
 import { kindSwatch, typeUnknown } from './entryList';
-import { COLUMNS, markedParts, matchedAlias, sortAria, type ColumnKey, type EntrySort } from './entryTable';
+import { COLUMNS, hasPronunciation, markedParts, matchedAlias, sortAria, type ColumnKey, type EntrySort } from './entryTable';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
 
 // The body rows are one height (`--row-height`, 39 px, and a cell never wraps), so the rows in view follow from the scroll position and a long book
@@ -60,9 +60,6 @@ export type EntryTableProps = {
   playingId?: string;
   loadingId?: string;
 };
-
-/** Whether an entry has a pronunciation to play: the Hear button shows only then, as on the Script page's rail. */
-const canHear = (entry: GuideEntity): boolean => entry.pronunciation.ipa.trim() !== '';
 
 export type EntryTableHandle = { focusFirst: () => void };
 
@@ -190,7 +187,7 @@ export function EntryTable({
     const target = event.target as HTMLElement;
     if (target.tagName !== 'TR') return;
     const row = rows.find((entry) => entry.id === target.dataset.entryId);
-    if (!row || !canHear(row)) return;
+    if (!row || !hasPronunciation(row)) return;
     event.preventDefault();
     event.stopPropagation();
     onHear(row.id);
@@ -247,7 +244,9 @@ export function EntryTable({
               tabStop={row.id === stopId}
               words={words}
               onOpen={() => onOpen(row.id)}
-              hear={onHear && canHear(row) ? { playing: playingId === row.id, loading: loadingId === row.id, onPress: () => onHear(row.id) } : undefined}
+              hear={
+                onHear && hasPronunciation(row) ? { playing: playingId === row.id, loading: loadingId === row.id, onPress: () => onHear(row.id) } : undefined
+              }
             />
           ))}
           {end < rows.length && <TableSpacer height={(rows.length - end) * ROW_PX} columns={columns} />}

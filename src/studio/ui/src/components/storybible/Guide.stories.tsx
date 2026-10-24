@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter } from 'react-router-dom';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { CommandRouter } from '../../input/router';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { Guide } from './Guide';
+import { screen } from '../primitives/portalScreen';
 
 // The Story Bible page as the Studio Next mock draws it (docs/research/mockups/studio-next/src/pages/Bible.tsx): kind chips with counts over a
 // table of entries, the search box over names and aliases, and the ask for a manuscript when there is none. The `/story-bible` route mounts it.
@@ -40,23 +41,26 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Kind chips over the entry table, a row for each entry with its type colour, and the open entry beside it. */
+/** The search and the Filter button over the entry table, a row for each entry with its type colour, and the open entry beside it. */
 export const List: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
-    await expect(await view.findByRole('combobox', { name: 'Kind' })).toBeTruthy();
+    await expect(await view.findByRole('button', { name: 'Filter' })).toBeTruthy();
     await expect(within(await view.findByRole('table', { name: 'Story Bible entries' })).getAllByRole('row').length).toBeGreaterThan(4);
   },
 };
 
-/** A kind chosen: only the entries of that kind are listed. */
+/** A kind chosen in the Filter menu: only the entries of that kind are listed, its chip shows, and the button counts it. */
 export const KindChosen: Story = {
   play: async ({ canvasElement }) => {
     const view = within(canvasElement);
+    await userEvent.click(await view.findByRole('button', { name: 'Filter' }));
     // The kinds are read after the page opens, so wait for the one to choose.
-    await view.findByRole('option', { name: /^Place/ });
-    await userEvent.selectOptions(view.getByRole('combobox', { name: 'Kind' }), 'Place');
-    await expect(view.getByRole('combobox', { name: 'Kind' })).toHaveValue('Place');
+    await userEvent.click(await screen.findByRole('menuitemcheckbox', { name: /^Place/ }));
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    await expect(view.getByRole('button', { name: 'Filter, 1 on' })).toBeTruthy();
+    await expect(view.getByRole('button', { name: /Remove filter Place/ })).toBeTruthy();
   },
 };
 

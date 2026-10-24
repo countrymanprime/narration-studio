@@ -13,7 +13,7 @@ import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
 import { overlay } from '../../overlay/overlayService';
 import { ENTRY_SORT_STORAGE_KEY } from './entryTable';
-import { cellsOf, chooseKind, chooseShow, entryRows, entryTable, rowName, rowNames } from './entryTableTestKit';
+import { cellsOf, chooseKind, chooseShow, entryRows, entryTable, kindChoices, rowName, rowNames, showChoice, waitForShowChoice } from './entryTableTestKit';
 import { Guide } from './Guide';
 import { GuideDetail } from './GuideDetail';
 
@@ -275,7 +275,6 @@ describe('each-row-shows-its-name-and-its-kind', () => {
 // SNB-3b: the "Needs review" choice of the Show menu over the table. The mock host flags nothing to start with; its
 // suggestions put 2 to verify on White Rabbit and none on the other entries.
 describe('needs-review-show-menu', () => {
-  const choice = () => screen.queryByRole('option', { name: /^Needs review · \d+$/ });
   async function renderBible(prepare: (api: ReturnType<typeof createMockApi>) => Promise<void> | void = () => undefined) {
     window.localStorage.clear();
     const api = createMockApi();
@@ -300,32 +299,32 @@ describe('needs-review-show-menu', () => {
 
   it('show-menu-with-the-count-filters: counts the flagged and the to-verify entries once and filters to them', async () => {
     await renderBible(flagHatter);
-    await screen.findByRole('option', { name: 'Needs review · 2' });
+    await waitForShowChoice('Needs review', 2);
     expect(rowNames().length).toBeGreaterThan(3);
-    chooseShow('review');
+    await chooseShow('review');
     expect([...rowNames()].sort()).toEqual(['Hatter', 'White Rabbit']);
-    chooseShow('all');
+    await chooseShow('all');
     expect(rowNames().length).toBeGreaterThan(3);
   });
 
   it('the choice is absent at 0 unless the filter is on', async () => {
     await renderBible(noSuggestions);
-    expect(choice()).toBeNull();
+    expect(await showChoice('Needs review')).toBeNull();
     cleanup();
     await renderBible(async (api) => {
       noSuggestions(api);
       await flagHatter(api);
     });
-    await screen.findByRole('option', { name: 'Needs review · 1' });
-    chooseShow('review');
+    await waitForShowChoice('Needs review', 1);
+    await chooseShow('review');
     expect(rowNames()).toEqual(['Hatter']);
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    await screen.findByRole('option', { name: 'Needs review · 0' });
-    expect((screen.getByRole('combobox', { name: 'Show' }) as HTMLSelectElement).value).toBe('review');
+    await waitForShowChoice('Needs review', 0);
+    expect((await showChoice('Needs review'))?.on).toBe(true);
     expect(screen.getByText('No entries match.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    await waitFor(() => expect(choice()).toBeNull());
+    await waitFor(async () => expect(await showChoice('Needs review')).toBeNull());
   });
 
   it('mark-reviewed-clears-the-entry-and-its-names: the count follows', async () => {
@@ -334,10 +333,10 @@ describe('needs-review-show-menu', () => {
       await flagHatter(host);
       await host.guideFlagReview('caterpillar');
     });
-    await screen.findByRole('option', { name: 'Needs review · 2' });
+    await waitForShowChoice('Needs review', 2);
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    await screen.findByRole('option', { name: 'Needs review · 1' });
+    await waitForShowChoice('Needs review', 1);
     expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review).toEqual({ entry: false, aliases: [] });
   });
 
@@ -358,13 +357,13 @@ describe('needs-review-show-menu', () => {
       noSuggestions(host);
       await flagHatter(host);
     });
-    await screen.findByRole('option', { name: 'Needs review · 1' });
-    chooseShow('review');
+    await waitForShowChoice('Needs review', 1);
+    await chooseShow('review');
     fireEvent.click(rowFor('Hatter'));
     fireEvent.click(await screen.findByRole('button', { name: 'Mark reviewed' }));
-    await screen.findByRole('option', { name: 'Needs review · 0' });
+    await waitForShowChoice('Needs review', 0);
     await toast.mock.calls[0][1]();
-    await screen.findByRole('option', { name: 'Needs review · 1' });
+    await waitForShowChoice('Needs review', 1);
     expect((await api.guideEntities()).find((row) => row.id === 'mad-hatter')?.review?.entry).toBe(true);
     toast.mockRestore();
   });
@@ -394,20 +393,20 @@ describe('needs-review-show-menu', () => {
       flag = vi.spyOn(api, 'guideFlagReview');
       mark = vi.spyOn(api, 'guideMarkReviewed');
     });
-    await screen.findByRole('option', { name: 'Needs review · 1' });
-    chooseShow('review');
+    await waitForShowChoice('Needs review', 1);
+    await chooseShow('review');
     expect(rowNames()).toEqual(['Alice']);
     expect([flag, mark].map((spy) => spy.mock.calls.length)).toEqual([0, 0]);
   });
 
   // The title is cited by docs/research/studio-next-parity-script-and-bible.md (scripts/ci/studio-next-parity.mjs checks it); the category tabs
-  // are now kind chips, so the test checks that an entry in the Needs Review category lists under All and under no kind chip.
+  // are now the Filter menu's kinds, so the test checks that an entry in the Needs Review category lists with no kind ticked and under no kind.
   it('needs-review-category-tab-still-works: the category tab filters by category, not by the flags', async () => {
     await renderBible(flagHatter);
-    expect(screen.queryByRole('option', { name: /^Needs Review/ })).toBeNull();
+    expect(await kindChoices()).not.toContain('Needs Review');
     expect(rowNames()).toContain('March Hare');
-    chooseKind('Character');
+    await chooseKind('Character');
     expect(rowNames()).not.toContain('March Hare');
-    expect(choice()).toBeTruthy();
+    expect(await showChoice('Needs review')).not.toBeNull();
   });
 });

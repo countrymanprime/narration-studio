@@ -61,7 +61,7 @@ describe('the-search-box-narrows-the-list', () => {
 
   it('searches within the kind chip that is on', async () => {
     await renderGuide();
-    chooseKind('Place');
+    await chooseKind('Place');
     await userEvent.type(screen.getByRole('textbox', { name: 'Search entries' }), 'alice');
     expect(names()).toEqual([]);
   });

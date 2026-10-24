@@ -30,10 +30,27 @@ export const storybibleStates: StateEntry[] = [
     description:
       "Story Bible, the Show menu on Needs review: the entries the host flagged or that have a suggestion to verify, and the selected entry with its own and its name's flags and Mark reviewed off until its two suggestions are decided",
   },
-  { page: 'storybible', state: 'category-all', description: 'Story Bible, the kind chip All on: every entry as a table row with its type colour' },
-  { page: 'storybible', state: 'category-character', description: 'Story Bible, the Character kind chip on' },
-  { page: 'storybible', state: 'category-place', description: 'Story Bible, the Place kind chip on' },
-  { page: 'storybible', state: 'category-organization', description: 'Story Bible, the Organization kind chip on' },
+  {
+    page: 'storybible',
+    state: 'category-all',
+    description: 'Story Bible, no filter on: every entry as a table row with its type colour, the Filter button over it',
+  },
+  {
+    page: 'storybible',
+    state: 'category-character',
+    description: 'Story Bible, the Character kind on in the Filter menu: its chip under the search, and the button counting one',
+  },
+  {
+    page: 'storybible',
+    state: 'category-place',
+    description: 'Story Bible, the Place kind on in the Filter menu: its chip under the search, and the button counting one',
+  },
+  {
+    page: 'storybible',
+    state: 'category-organization',
+    description: 'Story Bible, the Organization kind on in the Filter menu: its chip under the search, and the button counting one',
+  },
+
   {
     page: 'storybible',
     state: 'search-narrowed',

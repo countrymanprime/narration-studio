@@ -4,6 +4,20 @@ import { WIRE_ENTITIES } from '../../../src/api/mockFixtures';
 import { settlePage } from '../helpers/settle';
 import { type Driver, askForThePreviewVoice, clickNav, clickVisible, confirmDialog, goToPage, saveMerriamWebsterKey } from './shared';
 
+/** Ticks the Filter menu's choices named (a kind, "None yet", "Needs review"...) and closes the menu, so the list and the chips show. */
+async function filterBy(page: Page, ...choices: string[]) {
+  await page.getByRole('button', { name: /^Filter/ }).click();
+  const menu = page.getByRole('menu');
+  for (const choice of choices)
+    await menu.getByRole(/^Needs|^None|^Has|^Any|^All entries/.test(choice) ? 'menuitemradio' : 'menuitemcheckbox', { name: new RegExp(`^${choice}`) }).click();
+  await page.keyboard.press('Escape');
+  await menu.waitFor({ state: 'hidden' });
+  // Escape gives focus back to the Filter button, whose hint would then show in the capture: take the focus and the pointer off it.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.mouse.move(0, 0);
+  await page.getByRole('tooltip').waitFor({ state: 'hidden' });
+}
+
 export const storybibleDrivers: Record<string, Driver> = {
   // The entries never answer, so `goToPage` (which waits for the first entry) is not used.
   loading: async (page) => {
@@ -26,7 +40,7 @@ export const storybibleDrivers: Record<string, Driver> = {
     await page.goto('/');
     await settlePage(page);
     await goToPage(page, 'Story Bible');
-    await page.getByRole('combobox', { name: 'Show' }).selectOption('review');
+    await filterBy(page, 'Needs review');
     await entryRows(page).filter({ hasText: 'White Rabbit' }).click();
     await page.getByRole('button', { name: 'Mark Rabbit reviewed' }).waitFor();
   },
@@ -64,19 +78,19 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'category-all': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('combobox', { name: 'Kind' }).waitFor();
+    await page.getByRole('button', { name: 'Filter' }).waitFor();
   },
   'category-character': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('combobox', { name: 'Kind' }).selectOption('Character');
+    await filterBy(page, 'Character');
   },
   'category-place': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('combobox', { name: 'Kind' }).selectOption('Place');
+    await filterBy(page, 'Place');
   },
   'category-organization': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('combobox', { name: 'Kind' }).selectOption('Organization');
+    await filterBy(page, 'Organization');
   },
   'search-narrowed': async (page) => {
     await goToPage(page, 'Story Bible');
@@ -148,12 +162,12 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'verification-filter': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('combobox', { name: 'Show' }).selectOption('verify');
+    await filterBy(page, 'Needs verification');
     await page.locator('[data-loose]').first().waitFor();
   },
   'loose-suggestion': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('combobox', { name: 'Show' }).selectOption('verify');
+    await filterBy(page, 'Needs verification');
     await page.locator('[data-loose]').first().click();
     await page.locator('[data-suggested]').waitFor();
   },

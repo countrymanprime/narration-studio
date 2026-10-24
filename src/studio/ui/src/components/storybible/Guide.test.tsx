@@ -57,18 +57,19 @@ describe('asks-for-a-manuscript-when-there-is-none', () => {
   });
 });
 
-describe('the-list-is-a-kind-menu-over-a-table-of-entries', () => {
-  it('lists entries as table rows under a Kind menu that counts its entries, and there are no tabs', async () => {
+describe('the-list-is-a-filter-menu-over-a-table-of-entries', () => {
+  it('lists entries as table rows under a Filter menu that counts each kind, and there are no tabs', async () => {
     const { api } = await renderGuide();
     await screen.findAllByText('Alice');
     const types = await api.guideTypes();
     const entries = await api.guideEntities();
-    const menu = screen.getByRole('combobox', { name: 'Kind' }) as HTMLSelectElement;
-    expect([...menu.options].map((option) => option.textContent)).toEqual([
-      `All kinds · ${entries.length}`,
-      ...types.map((type) => `${type.name} · ${entries.filter((e) => e.category === type.name).length}`),
-    ]);
-    expect(menu.value).toBe('All');
+    // The Filter menu (SNB-D3) lists every kind with its count, none ticked: every kind is shown.
+    await userEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    const boxes = await screen.findAllByRole('menuitemcheckbox');
+    expect(boxes.map((box) => box.textContent)).toEqual(types.map((type) => `${type.name}, ${entries.filter((e) => e.category === type.name).length}`));
+    expect(boxes.every((box) => box.getAttribute('aria-checked') === 'false')).toBe(true);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     // The app is for one book: no Series tab, and no tabs at all on this page.
     expect(screen.queryByRole('tab')).toBeNull();
     expect(screen.queryByText('Series')).toBeNull();
@@ -77,18 +78,18 @@ describe('the-list-is-a-kind-menu-over-a-table-of-entries', () => {
     // The third cell is the Hear button, which has a name but no text.
     expect(cellsOf(alice).map((cell) => cell.textContent)).toEqual(['Alice', 'Character', '']);
 
-    chooseKind('Place');
+    await chooseKind('Place');
     const shown = rows();
     expect(shown.length).toBeGreaterThan(0);
     shown.forEach((row) => expect(cellsOf(row)[1]!.textContent).toBe('Place'));
-    chooseKind('All');
+    await chooseKind('All');
     expect(rows().length).toBeGreaterThan(shown.length);
   });
 
   it('says so when no entry matches the kind', async () => {
     await renderGuide();
     await screen.findAllByText('Alice');
-    chooseKind('Event');
+    await chooseKind('Event');
     expect(screen.getByText('No entries match.')).toBeTruthy();
   });
 
