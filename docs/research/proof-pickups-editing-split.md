@@ -81,7 +81,7 @@ A1 and A6 change the PRD's lines; per the [mock rule](../prds/studio-next-rebuil
 | Host reads and corrections | Merged | `GuideDialogueCues`, `GuideCorrectCue` (`src/studio/desktop/bindings_character.go:84,95`) |
 | Applying a speaker suggestion | Merged; refuses when no cue exists ("The quoted line is not in the text.") | `src/studio/desktop/internal/extraction/apply/apply.go:381-411` |
 | Chips and picker | Wired on Script, Story Bible entry, Booth | `ui/script/page/ScriptPage.tsx`, `ui/storybible/GuideDetail.tsx:912`, `ui/booth/page/useBoothData.ts:90-111` |
-| Editing chips | Missing (gap audit ED-1) | [gap audit](studio-next-gap-audit.md) |
+| Editing chips | Wired, read-only as in the mock, from the Script reader's layers (the gap audit's ED-1 row predates it) | `ui/editing/script/SpeakerChip.tsx`, `ui/editing/script/paragraphNotes.tsx` |
 | Mock host | Seeds cues from fixtures, so dev:mock and the visual suite show chips | `src/studio/ui/src/api/mockHost/state.ts:312` |
 
 ### Why the narrator never sees it

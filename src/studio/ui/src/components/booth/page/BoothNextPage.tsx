@@ -71,6 +71,8 @@ import type { StoppedTake } from '../pickups/usePickupSession';
 import { loadLastPlace, saveLastPlace, type LastPlace } from './lastPlace';
 import { useBoothFind } from './useBoothFind';
 import { useBoothPageCommands } from './useBoothPageCommands';
+import { canSpeak } from '../../../storyBibleTypes';
+import { cueSpeakerEntries } from '../../manuscript/dialogueCues.selectors';
 
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
 const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible', pickups: '/pickups' } as const;
@@ -293,8 +295,11 @@ function BoothSession({
   const title = chapter ? headingName(chapter) : CREDITS_LABEL[source.kind === 'credits' ? source.credits : 'opening'];
   const { entities, types, cues } = data;
   const paragraphs = useMemo(
-    () => (source.kind === 'credits' ? creditsParagraphs(source.credits, source.preview.text) : readingParagraphsOf(session.paragraphs ?? [], cues, entities)),
-    [source, session.paragraphs, cues, entities],
+    () =>
+      source.kind === 'credits'
+        ? creditsParagraphs(source.credits, source.preview.text)
+        : readingParagraphsOf(session.paragraphs ?? [], cues, cueSpeakerEntries(entities, types)),
+    [source, session.paragraphs, cues, entities, types],
   );
   const recordId = source.kind === 'credits' ? `credits-${source.credits}` : source.chapter.id;
   // The pickup session and the bookmarks need the page's reading position, and the page tells them of takes and right-clicks.
@@ -471,7 +476,7 @@ function BoothSession({
   };
 
   const inThisChapter = useMemo(() => voicesInChapter(paragraphs, units, entities, types), [paragraphs, units, entities, types]);
-  const characters = useMemo(() => entities.filter((entity) => entity.category.toLowerCase() === 'character'), [entities]);
+  const characters = useMemo(() => entities.filter((entity) => canSpeak(types, entity.category)), [entities, types]);
   // The speakers who speak in this chapter, for the picker's first group.
   const inChapter = useMemo(
     () => new Set(units.filter((unit) => unit.quoted && unit.speaker !== '' && unit.speaker !== UNKNOWN_SPEAKER).map((unit) => unit.speaker)),
