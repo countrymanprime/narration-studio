@@ -72,6 +72,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'prepare_compare',
     'preview_file_range',
     'project_state',
+    'punch_preroll',
     'punch_to',
     'read_line_ids',
     'read_place',

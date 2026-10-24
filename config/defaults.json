@@ -78,6 +78,7 @@
     "capability.follow_position": "auto",
     "capability.transport_sync": "auto",
     "capability.input_level": "auto",
+    "capability.punch_preroll": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"
   },

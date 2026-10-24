@@ -18,6 +18,7 @@ import type {
   DawTransportSyncApi,
   DawResult,
   DawMonitorLevel,
+  DawPunchPreroll,
   DawProjectState,
   DawProjectStateApi,
   DawTransport,
@@ -68,6 +69,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   monitor_level: 'experimental',
   // No DAW the app talks to can set an audio interface's input gain.
   input_level: 'unsupported',
+  punch_preroll: 'experimental',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
@@ -108,6 +110,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   undo_last: 'running',
   monitor_level: 'running',
   input_level: 'running',
+  punch_preroll: 'running',
 };
 
 const MESSAGE_NO_INPUT_LEVEL = (who: string) => `${who} cannot set an audio interface's input gain. Set it in your interface's own control panel.`;
@@ -532,6 +535,12 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   const transportSubs = new Set<(state: DawTransport) => void>();
   const stateSubs = new Set<(state: DawProjectState) => void>();
 
+  const preroll = { onRecord: false, measures: 2 };
+  const prerollAnswer = (): DawPunchPreroll => {
+    const support = currentCapabilities(live).capabilities.punch_preroll;
+    if (!support?.available) return { ok: false, onRecord: false, measures: 0, measureSeconds: 0, message: support?.message ?? MESSAGE_NO_ENGINE };
+    return { ok: true, ...preroll, measureSeconds: 2, message: '' };
+  };
   const levelAnswer = (): DawMonitorLevel => {
     const support = currentCapabilities(live).capabilities.monitor_level;
     if (!support?.available) return { ok: false, level: 0, message: support?.message ?? MESSAGE_NO_ENGINE };
@@ -722,6 +731,9 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       monitorLevel = level;
       return levelAnswer();
     },
+    // The host's answer (bindings_daw_preroll.go): the capability's own sentence when it refuses, else REAPER's 7.82 default pre-roll (two
+    // measures, off on record, 4/4 at 120 BPM).
+    dawPunchPreroll: async () => prerollAnswer(),
     // The host's answers (bindings_daw_place.go): the capability's own sentence when it refuses, else where the narrator is.
     dawPlace: async () => {
       const refusal = followRefusal();

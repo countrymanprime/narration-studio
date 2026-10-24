@@ -396,6 +396,41 @@ def roll(env: Env) -> str:
 
 
 @scenario(
+    "punch_preroll",
+    "punch_preroll, record_start, record_stop",
+    "punch pre-roll: reads REAPER's pre-roll and never changes it; with pre-roll on record REAPER plays in from the bar line before and records from the cursor",
+    needs_audio=True,
+)
+def punch_preroll(env: Env) -> str:
+    fx = book(env)
+    get = "local _, a = reaper.get_config_var_string('preroll') local _, b = reaper.get_config_var_string('prerollmeas') return {a, b}"
+    before = env.lua(get)
+    try:
+        read = env.ok("punch_preroll", until="PUNCH_PREROLL")
+        assert read[2:5] == ["0", "2.000000", "2.000000"], f"a fresh REAPER read {read[2:]}"
+        env.ok("punch_preroll", "1", "1", until="PUNCH_PREROLL")  # anything after the run is ignored: the command sets nothing
+        assert env.lua(get) == before, "punch_preroll changed a REAPER preference"
+        # The narrator turns pre-roll on record on and sets 1.5 measures in REAPER (here through the scratch configuration).
+        env.lua("reaper.set_config_var_string('preroll', '2', 0) reaper.set_config_var_string('prerollmeas', '1.5', 0) return true")
+        assert env.lua("return reaper.GetToggleCommandState(41819)") == 1, "action 41819 does not show pre-roll on record"
+        on = env.ok("punch_preroll", until="PUNCH_PREROLL")
+        assert on[2:5] == ["1", "1.500000", "2.000000"], f"after the change in REAPER {on[2:]}"
+        env.lua("reaper.SetEditCurPos(10, false, false) return true")
+        env.ok("arm_only", fx["ch1"], until="ARMED")
+        env.ok("record_start", fx["ch1"], until="RECORD_STARTED", timeout=10)
+        heard = env.lua("return reaper.GetPlayPosition()")
+        near(heard, 6.0, 0.1, "where REAPER plays in from: the bar line at or before 10 s minus 1.5 measures (7 s) is 6 s")
+        env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 11.0, timeout=10, what="the recording to pass the cursor")
+        env.ok("record_stop", until="RECORD_STOPPED")
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        starts = sorted(round(i["position"], 2) for i in items_on(env.snapshot(), "Chapter 1"))
+        assert starts == [0.0, 10.0], f"the take did not start at the cursor: items start at {starts}"
+        return f"read 0/2 measures and changed nothing; after REAPER was set to 1.5 measures on record it read 1/1.5; the take played in from {heard:.2f} s (the bar line) and was recorded from 10.00 s"
+    finally:
+        env.lua("reaper.set_config_var_string('preroll', args[1], 0) reaper.set_config_var_string('prerollmeas', args[2], 0) return true", *before)
+
+
+@scenario(
     "undo_last",
     "roll, record_stop, undo_last",
     "undo last: a take with a roll leaves a point per stop, and one undo_last of them takes both passes away",

@@ -22,6 +22,7 @@ import type {
   DawKind,
   DawLastAction,
   DawMonitorLevel,
+  DawPunchPreroll,
   DawPlace,
   DawPosition,
   DawPlayState,
@@ -161,6 +162,19 @@ export const dawResultSchema = z.object({
 export const dawMonitorLevelSchema = z
   .object({ ok: z.boolean(), level: z.number().int().min(0).max(DAW_LEVEL_MAX), message: z.string() })
   .refine((answer) => answer.ok === (answer.message === ''), 'a refusal carries its sentence, an answer has none') satisfies z.ZodType<DawMonitorLevel>;
+
+/** DawPunchPreroll's answer (bindings_daw_preroll.go): a length of no measures or more and a measure of some length on an answer, and a sentence exactly
+ * when the call was refused. */
+export const dawPunchPrerollSchema = z
+  .object({
+    ok: z.boolean(),
+    onRecord: z.boolean(),
+    measures: z.number().min(0),
+    measureSeconds: z.number().min(0),
+    message: z.string(),
+  })
+  .refine((answer) => answer.ok === (answer.message === ''), 'a refusal carries its sentence, an answer has none')
+  .refine((answer) => !answer.ok || answer.measureSeconds > 0, 'an answer has a measure of some length') satisfies z.ZodType<DawPunchPreroll>;
 
 /** DawPlace's answer (bindings_daw_place.go): a sentence exactly when the call was refused, and a chapter only on an answer. */
 export const dawPlaceSchema = z

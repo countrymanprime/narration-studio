@@ -50,6 +50,7 @@ var swappableHostFields = map[string]bool{
 	"clickRepairer":    true,
 	"lastActionUndoer": true,
 	"monitorLeveler":   true,
+	"prerollReader":    true,
 	"placeFollower":    true,
 	"transportSyncer":  true,
 	"backupKeeper":     true,

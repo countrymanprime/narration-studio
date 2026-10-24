@@ -2570,5 +2570,23 @@
     "file": "narration_undo.lua",
     "find": "      return { label = last.label, limit = last.points, take = true }\n",
     "replace": "      return { label = reaper.Undo_CanUndo2(0), limit = last.points, take = true }\n"
+  },
+  {
+    "name": "punch_preroll reads the play bit as the record bit",
+    "file": "narration_preroll.lua",
+    "find": "  local on = math.floor(bits / RECORD_BIT) % 2 == 1\n",
+    "replace": "  local on = bits % 2 == 1\n"
+  },
+  {
+    "name": "punch_preroll ignores the time signature",
+    "file": "narration_preroll.lua",
+    "find": "  return numerator * (60 / tempo) * (4 / denominator)\n",
+    "replace": "  return 4 * (60 / tempo)\n"
+  },
+  {
+    "name": "punch_preroll answers a length REAPER did not report",
+    "file": "narration_preroll.lua",
+    "find": "  if not bits or not length then\n",
+    "replace": "  length = length or 2\n  if not bits then\n"
   }
 ]

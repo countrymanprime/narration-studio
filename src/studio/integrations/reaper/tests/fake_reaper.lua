@@ -523,6 +523,12 @@ function Fake:add_project_api(api)
     end
     return true, value
   end
+  -- TimeMap_GetTimeSigAtTime(proj, time): the time signature's numerator and denominator and the tempo in quarter notes a minute;
+  -- one tempo for the whole project here (fake.timesig, 4/4 at 120 unless a test sets it), REAPER 7.82's default.
+  function api.TimeMap_GetTimeSigAtTime(_, _)
+    local sig = fake.timesig or { 4, 4, 120 }
+    return sig[1], sig[2], sig[3]
+  end
   -- GetProjectLength(proj): the end of the last item, from the items the fake holds. A recording in progress is not
   -- an item yet, as in REAPER (docs/reference/daw/reaper.md, "Media sources and recording").
   function api.GetProjectLength(_)

@@ -214,6 +214,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'levels-menu-preroll',
+    description:
+      "Booth, the Levels menu open with Experimental DAW actions on: the Punch part is REAPER's own pre-roll, read only: off on record, 2 measures, one measure in seconds at the cursor, and where it is set in REAPER",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'room-tone-kept',
     description:
       'Booth ready to record with a room tone the host kept for the microphone (an earlier take or Levels meter measured it): the footer chip reads "Room −58.6 dB" with the menu closed (TeleprompterRoomTone)',

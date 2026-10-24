@@ -91,7 +91,8 @@ export type DawCapabilityKey =
   | 'click_repair'
   | 'undo_last'
   | 'monitor_level'
-  | 'input_level';
+  | 'input_level'
+  | 'punch_preroll';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -142,6 +143,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'undo_last', label: "Undo the app's last action" },
   { key: 'monitor_level', label: 'Set the monitor level' },
   { key: 'input_level', label: 'Set the input level' },
+  { key: 'punch_preroll', label: 'Punch pre-roll' },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, docs/architecture/reaper-bridge.md;
@@ -484,7 +486,15 @@ export interface DawLevelsApi {
   dawMonitorLevel(): Promise<DawMonitorLevel>;
   /** Sets it (0 to DAW_LEVEL_MAX) and answers the level the DAW now holds, which may differ by rounding. A level outside the range rejects. */
   dawSetMonitorLevel(level: number): Promise<DawMonitorLevel>;
+  /** The DAW's own pre-roll before a punched take (`punch_preroll`), which the Booth punches with; read only, as the narrator sets it in the DAW. A
+   * capability refusal, a DAW not answering and no live DAW are `ok` false with the sentence. */
+  dawPunchPreroll(): Promise<DawPunchPreroll>;
 }
+
+/** What `dawPunchPreroll` answers (src/studio/desktop/bindings_daw_preroll.go): whether the DAW plays its pre-roll before it records,
+ * the length in measures (REAPER starts from the bar line at or before the cursor minus that many), and one measure in seconds at the edit cursor.
+ * `ok` false is a refusal with its sentence in `message`, and the numbers mean nothing; `ok` true has an empty `message`. */
+export type DawPunchPreroll = { ok: boolean; onRecord: boolean; measures: number; measureSeconds: number; message: string };
 
 /** What `dawPlace` answers (src/studio/desktop/bindings_daw_place.go): where the narrator is in the DAW project, so the Booth can open there. `ok` false is
  * a refusal with its sentence in `message` (the `follow_position` capability's own, a DAW not answering, no live DAW) and nothing else means anything;
