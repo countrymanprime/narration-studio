@@ -44,7 +44,7 @@ function stacked(tops: readonly number[], heights: readonly number[], floor: num
 }
 
 /**
- * A page break's label: the page number in small mono capitals, written down the margin. It carries the break's spot for the page's
+ * A page break's label, "Page N" in small mono, written down the margin. It carries the break's spot for the page's
  * right-click menu ("Read to here").
  */
 function PageLabel({ pageBreak, top }: { pageBreak: PageBreak; top: number }) {
@@ -53,7 +53,7 @@ function PageLabel({ pageBreak, top }: { pageBreak: PageBreak; top: number }) {
       data-page-break={pageBreak.page}
       data-paragraph-id={pageBreak.paragraphId}
       data-offset={pageBreak.offset}
-      className="absolute left-0 flex w-4 justify-center font-mono text-[0.5625rem] leading-none tracking-wide whitespace-nowrap text-[var(--text-muted)] uppercase [writing-mode:vertical-rl]"
+      className="absolute left-0 flex w-4 justify-center font-mono text-[0.5625rem] leading-none tracking-wide whitespace-nowrap text-[var(--text-muted)] [writing-mode:vertical-rl]"
       style={{ top }}
     >
       Page {pageBreak.page.toLocaleString()}
