@@ -8,6 +8,7 @@ import json
 import subprocess
 import sys
 
+import go_coverage
 import pytest
 import test_coverage_mode as base
 from test_coverage_mode import (
@@ -16,8 +17,8 @@ from test_coverage_mode import (
     SUBTITLE,
     TITLE,
     _args,
-    _lines,
     _never_transcribe,
+    _results,
     _timed,
     _words_file,
     compare,
@@ -326,11 +327,12 @@ def test_an_all_cached_re_run_after_a_splice_loads_no_model(tmp_path, cached_pro
 
     mode.run_recheck(recheck_args, compare, transcriber=transcriber)
 
-    align_args = _args(tmp_path, manuscript, manifest, align_only=True, model="small")
-    mode.run(align_args, compare)  # the real transcriber: loading a model here would fail, there is none
+    again = _args(tmp_path, manuscript, manifest, model="small")
+    mode.run(again, compare)  # the real transcriber: loading a model here would fail, there is none
 
     assert not any(stage == "LOAD" for stage, _pct, _msg in progress.lines)
-    assert _lines(align_args.out)["COVERAGE"][0]["items"]["reused"] == 2
+    assert _results(again)["COVERAGE"][0]["items"]["reused"] == 2
+    assert _results(again, words_report=False)["COVERAGE"][0]["items"]["reused"] == 2  # the host's align-only re-run
 
 
 # ---------------------------------------------------------------------------
@@ -357,7 +359,8 @@ def test_the_cli_recheck_requires_words_dir(tmp_path):
     assert "--words-dir" in result.stderr
 
 
-def test_the_cli_refuses_recheck_with_align_only(tmp_path):
+def test_the_cli_refuses_align_only_with_recheck(tmp_path):
+    # --align-only is no longer a sidecar option at all (the host aligns): argparse refuses it as unknown.
     windows = _write_windows(tmp_path / "windows.json", [_window()])
     command = [
         sys.executable,
@@ -481,15 +484,15 @@ def test_a_plain_check_does_not_reuse_words_a_different_model_made(tmp_path, cac
     mode.run(args, compare, transcriber=transcriber)
 
     assert calls == [0, 2]  # both cached items were made with "small", so both are re-transcribed
-    assert _lines(args.out)["COVERAGE"][0]["items"] == {"analyzed": 2, "muted": 1, "playedSeconds": 16.0, "transcribed": 2, "reused": 0}
+    assert _results(args)["COVERAGE"][0]["items"] == {"analyzed": 2, "muted": 1, "playedSeconds": 16.0, "transcribed": 2, "reused": 0}
 
 
 def test_align_only_refuses_when_the_cache_was_made_with_a_different_model(tmp_path, cached_project, progress):
     manuscript, manifest = cached_project
-    args = _args(tmp_path, manuscript, manifest, align_only=True, model="large-v3-turbo")
+    args = _args(tmp_path, manuscript, manifest, model="large-v3-turbo")
 
-    with pytest.raises(mode.AlignOnlyError, match="item 0"):
-        mode.run(args, compare, transcriber=_never_transcribe)
+    with pytest.raises(go_coverage.AlignError, match="item 0"):
+        _results(args, words_report=False)
 
 
 def test_run_recheck_skips_a_window_the_same_model_already_checked(tmp_path, cached_project, progress):

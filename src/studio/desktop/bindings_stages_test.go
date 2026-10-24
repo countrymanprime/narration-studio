@@ -328,7 +328,7 @@ func TestAFreshShortReadAfterConfirmRaisesTheNotice(t *testing.T) {
 	}
 
 	// The chapter is checked again and half of it is missing now: the notice, and nothing changed on its own.
-	host.coverageLauncher = fakeCoverageSidecar(5)
+	host.coverageLauncher, host.coverageAligner = fakeCoverageSidecar(5), fakeCoverageResults
 	next := host.config
 	if attached, reason := host.attachProjectLocked(next); !attached {
 		t.Fatalf("re-attach failed: %s", reason)

@@ -47,7 +47,7 @@ def test_the_only_generated_label_misses_are_pickups_longer_than_what_follows(st
 
 def test_unrelated_speech_of_a_paragraphs_length_credits_none_of_it(stress):
     for case in (case for case in stress if "-unrelated-" in case.id):
-        result = spike.cov.compute_coverage(spike.align_case(case.chapter, case.items), spike.SPIKE_PARAMS)
+        result = spike.cov.coverage(spike.align_case(case.chapter, case.items), spike.SPIKE_PARAMS)
         (missing,) = [pid for pid, value in case.expected.paragraphs.items() if value == "missing"]
         assert result.by_id[missing].present == 0, case.id
 
@@ -89,7 +89,8 @@ def test_the_dp_prototype_tiles_both_sequences_and_matches_as_many_words_as_lcs(
 
     opcodes = spike.lcs_opcodes(doc, audio)
 
-    spike.cov.AlignedChapter(tuple(doc), tuple(doc), (0,) * len(doc), ("p-000001",), tuple(audio), tuple(opcodes))  # validates the tiling
+    # The host validates the tiling (AlignedChapter.Validate) before it computes anything.
+    spike.cov.coverage(spike.cov.AlignedChapter(tuple(doc), tuple(doc), (0,) * len(doc), ("p-000001",), tuple(audio), tuple(map(tuple, opcodes))))
     matched = sum(i2 - i1 for tag, i1, i2, _j1, _j2 in opcodes if tag == "equal")
     matcher = difflib.SequenceMatcher(None, doc, audio, autojunk=False)
     assert matched >= sum(block.size for block in matcher.get_matching_blocks())

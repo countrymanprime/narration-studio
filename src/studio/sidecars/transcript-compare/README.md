@@ -14,20 +14,20 @@ script text against what was said. The workflow is documented in
 - `core/` — the DAW-agnostic Python backend (`compare.py`), plus
   `common_words.txt`. No DAW APIs are used here; it's a plain CLI invoked by whichever DAW
   driver below is running it. Its dependencies are declared in the repo-root `pyproject.toml` and pinned in `uv.lock`.
-- `core/recording_coverage.py` — the recording-coverage model: how much of a chapter's body text the
-  recording contains, in order, computed from the same alignment as the take markers; see
-  `docs/research/recording-coverage-alignment-spike.md`.
+- `core/recording_coverage.py` — the rule that an extra run says the chapter text beside it again, which the take
+  markers use (`repeat_of`). The recording-coverage model itself is the host's
+  (`src/studio/desktop/internal/recordingcoverage`).
 - `core/coverage_mode.py` — `compare.py --coverage`: reads a JSON manifest of a chapter's items,
-  reuses or writes one words file per item, and writes `COVERAGE` lines with JSON payloads
-  (measurements only; the host applies the thresholds), then the word alignment
-  (`COVERAGE_TOKEN`, `COVERAGE_EXTRA`). `--align-only` re-aligns from cached words and
-  never transcribes. Its module docstring and `docs/utilities/recording-coverage.md` give
-  the manifest, words-file and output formats and the exit codes. The Go service that starts it
+  reuses or writes one words file per item, and writes a words report (`COVERAGE_WORDS`,
+  `COVERAGE_UNSURE`, `COVERAGE_RECHECKED`). The host aligns the chapter to the words and writes the
+  `COVERAGE` lines. Its module docstring and `docs/utilities/recording-coverage.md` give
+  the manifest, words-file and report formats and the exit codes. The Go service that starts it
   is `src/studio/desktop/internal/coverage` (docs/utilities/recording-coverage.md).
 - `tests/` — the pytest suite for the backend, plus the recording-coverage ground-truth harness
-  (`coverage_harness.py`) and its synthetic labeled fixtures (`fixtures/coverage/`), and the
-  alignment spike that scores `core/recording_coverage.py` on them (`coverage_spike.py`); see
-  `tests/fixtures/coverage/README.md`.
+  (`coverage_harness.py`) and its synthetic labeled fixtures (`fixtures/coverage/`), the alignment
+  spike (`coverage_spike.py`) and the calibration (`coverage_calibration.py`); see
+  `tests/fixtures/coverage/README.md`. These measure the host's aligner through `go_coverage.py`, which
+  builds `src/studio/desktop/cmd/proof-align`, so the suite needs Go.
 - REAPER integration is in `src/studio/integrations/reaper/`; a future Audacity driver has placeholder notes under
   `src/studio/integrations/audacity/transcript-compare/`.
 

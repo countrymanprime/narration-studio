@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"desktop/internal/coverage"
+	"desktop/internal/recordingcoverage"
 )
 
 // nonNumberRecordingCoverageFields are the RecordingCoverage fields coverage.ResolveSettings reads that are not one
@@ -117,7 +118,14 @@ func TestAChecksStartAndItsReadBothUseTheAlignmentSettings(t *testing.T) {
 		mu.Unlock()
 		return fake(ctx, program, args...)
 	}
-	host := coverageHost(t, coverageProject(t), true, recording)
+	var aligned []recordingcoverage.Request
+	aligner := func(request recordingcoverage.Request) error {
+		mu.Lock()
+		aligned = append(aligned, request)
+		mu.Unlock()
+		return fakeCoverageResults(request)
+	}
+	host := coverageHostWithAligner(t, coverageProject(t), whisperWithSmall(t, true), recording, aligner)
 	if err := host.saveSettings(coverage.SettingsTool, "project", map[string]*string{coverage.SettingMinAnchorRun: ptr("5"), coverage.SettingMaxMisreadRun: ptr("6")}); err != nil {
 		t.Fatal(err)
 	}
@@ -128,10 +136,11 @@ func TestAChecksStartAndItsReadBothUseTheAlignmentSettings(t *testing.T) {
 	host.services().coverage.Wait()
 
 	mu.Lock()
-	args := launches[0]
+	args, alignments := launches[0], aligned
 	mu.Unlock()
-	if !hasFlag(args, "--min-anchor-run", "5") || !hasFlag(args, "--max-misread-run", "6") {
-		t.Fatalf("the check was not started with the settings' alignment: %v", args)
+	// The host aligns, so the settings' alignment goes to its aligner; the sidecar only transcribes.
+	if len(alignments) != 1 || alignments[0].Params.MinAnchorRun != 5 || alignments[0].Params.MaxMisreadRun != 6 || hasFlag(args, "--min-anchor-run", "5") {
+		t.Fatalf("the check was not aligned with the settings' alignment: %+v, %v", alignments, args)
 	}
 	if result := decodeAnswer(t)(host.CoverageResult("c-0001")); result["state"] != "current" || result["recordedFraction"] != 1.0 {
 		t.Fatalf("the read must use the same alignment as the start: %v", result)

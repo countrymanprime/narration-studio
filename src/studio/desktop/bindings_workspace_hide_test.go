@@ -86,7 +86,7 @@ func hideTakesHost(t *testing.T, kind string, reach *daw.Reachability, role dawp
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	host := NewHost()
-	host.coverageLauncher = fakeAlignedCoverageSidecarWithSkip()
+	host.coverageLauncher, host.coverageAligner = fakeAlignedCoverageSidecarWithSkip(), fakeCoverageResults
 	host.assets = newAssetRegistry(t.TempDir(), nil, whisperWithSmall(t, true), nil, nil)
 	next := host.config
 	next.projectFolder = twoTakeCoverageProject(t)
