@@ -5,6 +5,14 @@ export const DAW_ONLY = 'Nothing played: while a DAW is linked, the chapter play
 
 export const CHECKING = 'Checking which DAW plays this chapter. Try again in a moment.';
 
+export const READ_FAILED = 'The app could not ask the DAW what it can do, so nothing played. It is asking again now; press Play again in a moment.';
+
+/** The page's read of the DAW's capabilities: whether the last one failed, and a read again. */
+export interface DawRead {
+  failed: boolean;
+  retry: () => Promise<void>;
+}
+
 /**
  * Who plays the Editing page's chapter. `daw`: a linked DAW whose engine has a transport this build can drive (`transport_sync` is
  * experimental or supported), so the sound comes through its output, FX and level and never through the app's own audio, even when

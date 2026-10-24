@@ -15,7 +15,7 @@ import { marksDoc } from '../script/scriptFixtures';
 import { useDawPlayPosition } from './useDawPlayPosition';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { LEASE_RENEW_MS, SILENT_MS } from './useDawTransportSync';
-import { DAW_ONLY } from './playRoute';
+import { DAW_ONLY, READ_FAILED, type DawRead } from './playRoute';
 
 const doc = marksDoc();
 
@@ -41,9 +41,14 @@ let playback: ScriptPlayback;
 let page: ReturnType<typeof useEditingPage>;
 const notices: string[] = [];
 
-function Harness({ caps, items = ITEMS }: { caps: DawCapabilities | null; items?: WorkspaceItem[] }) {
+function Harness({ caps, items = ITEMS, read }: { caps: DawCapabilities | null; items?: WorkspaceItem[]; read?: DawRead }) {
   page = useEditingPage();
-  playback = useScriptPlayback({ playlist: PLAYLIST, mediaUrl: (f) => f, notify: (text) => notices.push(text), sync: { items, cuts: [], caps } });
+  playback = useScriptPlayback({
+    playlist: PLAYLIST,
+    mediaUrl: (f) => f,
+    notify: (text) => notices.push(text),
+    sync: { items, cuts: [], caps, ...(read ? { read } : {}) },
+  });
   useDawPlayPosition({ items, playlist: PLAYLIST, caps: playback.syncActive ? null : caps, playback });
   return (
     <div>
@@ -366,6 +371,23 @@ describe('a-linked-daw-is-the-only-player', () => {
     expect(audio.play).not.toHaveBeenCalled();
     expect(daw.syncCalls()).toHaveLength(0);
     expect(notices.join(' ')).toMatch(/Checking which DAW plays this chapter/);
+  });
+  it('says a failed read of the DAW, asks again, and plays nothing, rather than checking for ever', async () => {
+    const retry = vi.fn().mockResolvedValue(undefined);
+    const api = createMockApi({}, { daw: { toggles: { transport_sync: 'on' } } });
+    render(
+      <ApiProvider api={api}>
+        <EditingPageProvider doc={doc}>
+          <Harness caps={null} read={{ failed: true, retry }} />
+        </EditingPageProvider>
+      </ApiProvider>,
+    );
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(notices).toContain(READ_FAILED);
   });
   it('Space plays nothing through the app with a DAW that is not running', async () => {
     await ready(DAW_SETUPS['reaper-off']);

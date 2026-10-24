@@ -7,7 +7,7 @@ import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import { firstFrom, runwayEnd, summarize, type ChapterDoc } from '../model';
 import type { ClosedCut } from '../follow/clockMap';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
-import { CHECKING, DAW_ONLY, dawCannotPlay, playRoute } from '../follow/playRoute';
+import { CHECKING, DAW_ONLY, READ_FAILED, dawCannotPlay, playRoute, type DawRead } from '../follow/playRoute';
 import { useEditingPage } from '../script/EditingPageState';
 import { useAppliedOutput, type OutputPrefs } from '../../engine/outputPrefs';
 import { playable, playingKey } from '../script/playing';
@@ -43,7 +43,7 @@ export interface ScriptPlaybackOptions {
   notify?: (text: string) => void;
   /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
    * do. Null `caps` (not answered yet) plays nothing; absent `sync` plays in the app. */
-  sync?: { items: readonly WorkspaceItem[]; cuts: readonly ClosedCut[]; caps: DawCapabilities | null };
+  sync?: { items: readonly WorkspaceItem[]; cuts: readonly ClosedCut[]; caps: DawCapabilities | null; read?: DawRead };
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
   output?: OutputPrefs;
   /** Hears why the chosen output could not be used, or null when it took, each time the choice changes. */
@@ -72,9 +72,10 @@ export function useScriptPlayback({
   const stopAt = useRef<number | null>(null);
   // Undefined: no DAW was given, so the app plays. Null: the DAW has not answered yet.
   const caps = sync ? sync.caps : undefined;
-  const live = useRef({ doc, state, playlist, mediaUrl, notify, dispatch, caps });
+  const read = sync?.read;
+  const live = useRef({ doc, state, playlist, mediaUrl, notify, dispatch, caps, read });
   useEffect(() => {
-    live.current = { doc, state, playlist, mediaUrl, notify, dispatch, caps };
+    live.current = { doc, state, playlist, mediaUrl, notify, dispatch, caps, read };
   });
 
   const audio = useCallback((): HTMLAudioElement => (audioRef.current ??= new Audio()), []);
@@ -135,7 +136,12 @@ export function useScriptPlayback({
       const { caps: now, notify: say } = live.current;
       const route = now === undefined ? ({ kind: 'app' } as const) : playRoute(now);
       if (route.kind === 'unknown') {
-        say(CHECKING);
+        // A read that failed is said and asked again, so Play is never a wait with no end.
+        const { read: dawRead } = live.current;
+        if (dawRead?.failed) {
+          say(READ_FAILED);
+          void dawRead.retry();
+        } else say(CHECKING);
         return true;
       }
       if (route.kind === 'daw' && now) {
