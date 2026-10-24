@@ -1184,6 +1184,13 @@
   },
   {
     "page": "booth",
+    "state": "room-tone-kept",
+    "viewport": "desktop",
+    "docName": "booth-room-tone",
+    "caption": "Booth - the footer with the room tone kept for the microphone, measured by an earlier take or the Levels meter"
+  },
+  {
+    "page": "booth",
     "state": "text-popover",
     "viewport": "desktop",
     "docName": "booth-text-settings",

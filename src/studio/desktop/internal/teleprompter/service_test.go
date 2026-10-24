@@ -68,6 +68,9 @@ func runFakeSidecar(mode string) {
 		os.Exit(5)
 	}
 	fmt.Println(`{"type":"script","chapter":{"id":"c1","title":"One"},"tokens":4,"spans":[]}`)
+	if mode == "room" {
+		printRoomLevels()
+	}
 	fmt.Println(`{"type":"partial","segment":0,"words":[{"word":"hello","start":0,"end":0.4}]}`)
 	fmt.Println(`{"type":"position","read":1,"committed":0,"status":"listening","jump":null,"skipped":null}`)
 	if mode == "done" {

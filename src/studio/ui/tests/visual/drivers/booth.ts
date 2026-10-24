@@ -322,6 +322,10 @@ export const boothDrivers: Record<string, Driver> = {
     // The microphone the DAW records from is named (the mock's first listed microphone), not left blank.
     await menu.getByText('Microphone Array (Realtek(R) Audio)').waitFor();
   },
+  'room-tone-kept': async (page) => {
+    await readyToRecord(page, `${RECORD_ON}&mockRoomTone=-58.6`);
+    await page.getByText('Room −58.6 dB').waitFor();
+  },
   'text-popover': async (page) => {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Text settings' }).click();

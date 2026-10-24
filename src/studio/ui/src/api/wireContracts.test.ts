@@ -187,6 +187,7 @@ import {
   readAloudRecordingSchema,
   teleprompterReaperInputSchema,
   teleprompterDevicesResultSchema,
+  teleprompterRoomToneSchema,
   teleprompterEventSchema,
   teleprompterFlagFindingsSchema,
   teleprompterReadingSchema,
@@ -692,6 +693,13 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     expectMatches(teleprompterDevicesResultSchema, await api.teleprompterDevices(), 'mock teleprompter devices');
     const empty = createMockApi({}, { teleprompterDevices: [] });
     expectMatches(teleprompterDevicesResultSchema, await empty.teleprompterDevices(), 'mock teleprompter devices, none found');
+  });
+
+  it('the kept room tone', async () => {
+    expectMatches(teleprompterRoomToneSchema, await createMockApi().teleprompterRoomTone('USB Mic'), 'mock room tone, none kept');
+    const kept = await createMockApi({}, { teleprompterRoomTone: -58.6 }).teleprompterRoomTone('USB Mic');
+    expectMatches(teleprompterRoomToneSchema, kept, 'mock room tone, kept');
+    expect(kept.db).toBe(-58.6);
   });
 
   it('teleprompterSeek moves a running session to the requested word, reported as a restart jump', async () => {
@@ -4428,6 +4436,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'teleprompterStart',
       'teleprompterState',
       'teleprompterDevices',
+      'teleprompterRoomTone',
       'teleprompterLocate',
       'teleprompterResumeFollow',
       'teleprompterResumeUnfollow',

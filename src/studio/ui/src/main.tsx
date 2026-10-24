@@ -123,6 +123,9 @@ const mockTeleprompter = (['listening', 'waiting', 'done', 'ended', 'flagged'] a
 // holds still for a capture.
 const mockLevelParam = Number(mockParams.get('mockLevel') ?? Number.NaN);
 const mockLevel = Number.isFinite(mockLevelParam) && mockLevelParam >= -100 && mockLevelParam <= 0 ? mockLevelParam : undefined;
+// `?mockRoomTone=-58.6` has the host answer that room tone (dBFS, -100 to 0) as kept for every microphone.
+const mockRoomToneParam = Number(mockParams.get('mockRoomTone') ?? Number.NaN);
+const mockRoomTone = Number.isFinite(mockRoomToneParam) && mockRoomToneParam >= -100 && mockRoomToneParam <= 0 ? mockRoomToneParam : undefined;
 // `?mockZoom=125` boots the app already zoomed to that percentage (the header's zoom chip shows), so the visual
 // suite can capture a non-100% level without driving Ctrl+wheel or a button click first.
 const mockZoomParam = Number(mockParams.get('mockZoom') ?? Number.NaN);
@@ -533,6 +536,7 @@ const mockInitial = {
       }
     : {}),
   ...(mockLevel === undefined ? {} : { teleprompterLevel: mockLevel }),
+  ...(mockRoomTone === undefined ? {} : { teleprompterRoomTone: mockRoomTone }),
   ...(mockZoom === undefined ? {} : { zoom: mockZoom }),
   ...(mockReaperState ? { reaperState: mockReaperState } : {}),
   ...(mockReaperInput ? { reaperInput: mockReaperInput } : {}),

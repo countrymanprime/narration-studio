@@ -247,13 +247,23 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
 }
 
 /** The meter and the room tone chip at the right of the footer (the mock's `.lvl-inline`, `margin-left: auto`). */
-export function LevelsInline({ level, roomTone, roomToneOk }: { level: InputLevel | null; roomTone: string; roomToneOk: boolean }) {
+export function LevelsInline({
+  level,
+  roomTone,
+  roomToneOk,
+  roomToneHint,
+}: {
+  level: InputLevel | null;
+  roomTone: string;
+  roomToneOk: boolean;
+  roomToneHint?: string;
+}) {
   return (
     <div role="group" aria-label="Input" className="ml-auto flex min-w-0 items-center gap-3">
       <div className="w-28">
         <LevelMeter label="Input level" peak={level?.peak ?? null} rms={level?.rms ?? null} size="compact" />
       </div>
-      <span className="whitespace-nowrap">
+      <span className="whitespace-nowrap" title={roomToneHint}>
         <Badge
           label={roomTone}
           look="outline"

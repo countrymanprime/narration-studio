@@ -53,6 +53,7 @@ import (
 	"desktop/internal/recording"
 	"desktop/internal/renderconfig"
 	"desktop/internal/retakelanes"
+	"desktop/internal/roomtone"
 	"desktop/internal/runlog"
 	"desktop/internal/series"
 	"desktop/internal/settings"
@@ -916,6 +917,8 @@ func (h *Host) configureLocked(next config) {
 	// a developer/evaluation-only opt-in, same pattern as NARRATION_DEBUG (runlog), never a Settings toggle.
 	h.teleprompter = teleprompter.New(teleprompter.Config{Project: h.config.projectFolder, SessionDir: teleprompterDir, Python: h.config.teleprompterPython, Backend: h.config.teleprompterBackend, Platform: h.platform, EvalTiming: os.Getenv("NARRATION_TELEPROMPTER_EVAL") == "1", EvalExtraArgs: evalExtraArgs}, h.sidecars, h.emitTeleprompterEvent, h.emitTeleprompterState)
 	h.teleprompter.SetLog(func(kind, message string) { _ = h.log.Report(kind, message) })
+	// Every capture of a microphone measures its room tone, kept per microphone for the Booth to show (#2251 item 10).
+	h.teleprompter.SetRoomTone(roomtone.NewMeter(roomtone.Open(roomTonePath(), h.persist)))
 	h.teleprompter.SetTrace(func(event string, attrs ...any) {
 		h.runLog.App().Event(slog.LevelInfo, event, "what the microphone delivered", attrs...)
 	})

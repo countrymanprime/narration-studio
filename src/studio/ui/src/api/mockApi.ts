@@ -196,6 +196,7 @@ export function createMockApi(
     seed: initial.teleprompter,
     devices: initial.teleprompterDevices ?? WIRE_TELEPROMPTER_DEVICES,
     ...(initial.teleprompterLevel === undefined ? {} : { level: initial.teleprompterLevel }),
+    ...(initial.teleprompterRoomTone === undefined ? {} : { roomTone: initial.teleprompterRoomTone }),
     ...(initial.reaperState ? { reaper: initial.reaperState } : {}),
     ...(initial.reaperInput ? { reaperInput: initial.reaperInput } : {}),
     resume: initial.resume,
