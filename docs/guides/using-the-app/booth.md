@@ -74,12 +74,14 @@ they last heard it instead of showing an old level. The meters only read, so the
 The monitor slider changes REAPER, so it is an Experimental DAW action: while those are off, the slider is off and **Turn on in
 Settings** opens the switch.
 
-**Punch** shows the lead-in you hear before a punch. With REAPER it is REAPER's own pre-roll, the one the punch really uses. The menu
-reads it from REAPER: whether REAPER plays it before recording, and its length in measures, with how long one measure is at the edit
-cursor. With pre-roll on, REAPER plays from the bar line at or before that many measures before the word, then records from the
-word. With it off, a punch records from the word with no lead-in. Change it in REAPER: "Pre-roll: Toggle pre-roll on record" turns
-it on or off, and it applies to every project. The menu reads it again when you come back to the window. It needs no switch: the
-app only reads it.
+**Punch** shows the lead-in you hear before a punch. With REAPER it is REAPER's own pre-roll, the one the punch really uses, in
+one line: whether it is on and its length, for example **Pre-roll off · 2 measures (4.0 s)**. The seconds are the measures at the
+tempo at the edit cursor. Press the **i** beside it (or Tab to it and press Enter) to read what it does under the line: with pre-roll on, REAPER plays from the
+bar line at or before that many measures before the word, then records from the word; with it off, a punch records from the word
+with no lead-in. Change it in REAPER: "Pre-roll: Toggle pre-roll on record" turns it on or off, and it applies to every project.
+The menu reads it again when you come back to the window. It needs no switch: the app only reads it.
+
+![Booth - the pre-roll's info note: what REAPER's pre-roll does and where to change it](../../images/ui/booth-levels-menu-preroll-about.webp)
 
 With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets how long before the word **R** starts the DAW (0 to
 10, in half seconds), for every project on this computer. It is the same setting as **Punch pre-roll** under **Set on a page** in
@@ -87,7 +89,7 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 
 ![Booth - the Levels menu: the input level, the microphone the text listens to, and REAPER's own meters and pre-roll](../../images/ui/booth-levels-menu.webp)
 
-![Booth - the Levels menu: REAPER's own pre-roll, read from REAPER, and where to change it](../../images/ui/booth-levels-menu-preroll.webp)
+![Booth - the Levels menu: REAPER's own pre-roll in one line, read from REAPER](../../images/ui/booth-levels-menu-preroll.webp)
 
 ![Booth - the Levels menu showing REAPER's own input level (the armed track) and output level under the two sliders](../../images/ui/booth-levels-menu-daw-meters.webp)
 
