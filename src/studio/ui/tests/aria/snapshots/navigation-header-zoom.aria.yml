@@ -1,4 +1,5 @@
-# The header with the zoom chip, at ?mockZoom=125: the chip sits between the jump button and the engine chip and names the level.
-- button /Jump to or run/
+# The header with the zoom chip, at ?mockZoom=125: the chip sits left of the jump button (#2251 item 25), so it coming or going moves
+# neither the jump button nor the engine chip, and it names the level.
 - button /Zoom \d+%.+jump menu/
+- button /Jump to or run/
 - button /REAPER.+/

@@ -29,7 +29,7 @@ test('the header names its project button and its jump button, with no history, 
   await expect(page.locator('main > header')).toMatchAriaSnapshot({ name: 'navigation-header.aria.yml' });
 });
 
-// The zoom chip is drawn only off 100%: with ?mockZoom=125 it is a button between the jump button and the engine chip.
+// The zoom chip is drawn only off 100%: with ?mockZoom=125 it is a button just left of the jump button (#2251 item 25).
 test('the header draws the zoom chip as a button only while zoom is not 100%', async ({ page }) => {
   await openApp(page, DESKTOP);
   await page.goto('/?mockZoom=125');
