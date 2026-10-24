@@ -87,7 +87,7 @@ export const FlashingAfterAJump: Story = { args: { bookmarks: THREE, flashId: 'b
 
 /** A stopping place ("Read to here") wears a chequered flag; a page break's "Page N" label shares the margin and is never covered by a ribbon. */
 export const StoppingPlaceAndPages: Story = {
-  args: { bookmarks: [THREE[0], STOP], pages: pageBreaks(sampleParagraphs, units, 20) },
+  args: { bookmarks: [THREE[0], STOP], pages: pageBreaks(sampleParagraphs, units, 8) },
   play: ({ canvasElement }) => {
     expect(within(canvasElement).getByRole('button', { name: /^Read to here/ })).toBeTruthy();
     expect(canvasElement.querySelector('[data-bm-kind="stop"]')).not.toBeNull();
