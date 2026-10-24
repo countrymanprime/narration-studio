@@ -109,9 +109,9 @@ describe('the speaker chip rule every page shares', () => {
     expect(cueIsConfirmed({ corrected: false, speaker_source: 'unknown' })).toBe(false);
   });
 
-  it('a chip names an entry whose type speaks or a Needs Review name, never a place or a draft', () => {
+  it('a chip names only an entry whose type speaks: never a Needs Review name, a place or a draft', () => {
     const entries = ['Character', 'Needs Review', 'Place', 'Draft', 'No such type'].map(of);
-    expect(cueSpeakerEntries(entries, types).map((entry) => entry.category)).toEqual(['Character', 'Needs Review']);
+    expect(cueSpeakerEntries(entries, types).map((entry) => entry.category)).toEqual(['Character']);
     expect(cueSpeakerEntries([], types)).toEqual([]);
   });
 
