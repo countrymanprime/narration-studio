@@ -544,14 +544,16 @@ def test_alignment_parameters_are_used_and_reported(tmp_path, cached_project, pr
     assert _lines(args.out)["COVERAGE"][0]["alignment"] == {"maxMisreadRun": 2, "minAnchorRun": 4}
 
 
-def test_a_subtitle_that_is_not_in_the_manuscript_is_extra_when_read(tmp_path, cached_project, progress):
+def test_a_subtitle_that_is_not_in_the_manuscript_is_not_extra_when_read_before_the_first_line(tmp_path, cached_project, progress):
+    # Changed by #2251 item 7: this was extra. Whatever is said before the chapter's first word is its heading, read in
+    # the narrator's own words, so a subtitle the manuscript lacks is not words that are not in the script.
     _manuscript, manifest = cached_project
     _project(tmp_path / "other", subtitle=None)
     args = _args(tmp_path, tmp_path / "other" / "project" / brand.PROJECT_FOLDER / "manuscript" / "manuscript.json", manifest)
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    assert _lines(args.out)["COVERAGE"][0]["extraTokens"] == len(SUBTITLE.split())
+    assert _lines(args.out)["COVERAGE"][0]["extraTokens"] == 0
 
 
 def test_project_equivalences_are_used_and_their_hash_reported(tmp_path, progress):

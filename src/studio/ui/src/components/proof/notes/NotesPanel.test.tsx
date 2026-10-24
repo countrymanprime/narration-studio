@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { searchAll } from '../../../registries/search';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { NotesPanel } from './NotesPanel';
 import type { NoteSort, NoteWindow } from './noteRows';
@@ -125,10 +126,10 @@ describe('in-view-chip-only-when-the-window-is-narrower', () => {
 });
 
 describe('find-in-notes-filters-script-and-heard', () => {
-  it('opens on Ctrl+F, filters, and closes and clears on Escape', async () => {
+  it('opens from its button, filters, and closes and clears on Escape', async () => {
     render(<Harness />);
     expect(screen.queryByRole('textbox', { name: 'Find in notes' })).toBeNull();
-    fireEvent.keyDown(document, { key: 'f', ctrlKey: true });
+    await userEvent.click(screen.getByRole('button', { name: 'Find in notes' }));
     const field = await screen.findByRole('textbox', { name: 'Find in notes' });
     await userEvent.type(field, 'ROWAN');
     expect(dataRows()).toHaveLength(1);
@@ -167,7 +168,7 @@ describe('selection-and-keys', () => {
   it('leaves the keys to the find field while typing', async () => {
     render(<Harness />);
     await userEvent.click(dataRows()[0]);
-    fireEvent.keyDown(document, { key: 'f', ctrlKey: true });
+    await userEvent.click(screen.getByRole('button', { name: 'Find in notes' }));
     await userEvent.type(await screen.findByRole('textbox', { name: 'Find in notes' }), 'jk');
     expect(dataRows()).toHaveLength(0);
     expect(screen.getByRole('heading', { name: 'No notes match' })).toBeTruthy();
@@ -251,5 +252,33 @@ describe('the page actions slot', () => {
       .getAllByRole('button')
       .map((button) => button.getAttribute('aria-label') ?? button.textContent);
     expect(names.indexOf('Check recordings…')).toBe(names.indexOf('Find in notes') + 1);
+  });
+});
+
+// #2251 item 23: Ctrl+F is the shell's jump menu on Proof too; the notes are one of the page's search sources in it.
+describe('ctrl-f-is-the-jump-menus-on-proof', () => {
+  it('leaves Ctrl+F alone: the panel opens no find of its own', () => {
+    render(<Harness />);
+    fireEvent.keyDown(document, { key: 'f', ctrlKey: true });
+    expect(screen.queryByRole('textbox', { name: 'Find in notes' })).toBeNull();
+  });
+
+  it('offers the notes that match to the jump menu; choosing one finds it in the list and selects it', async () => {
+    render(<Harness />);
+    const hits = searchAll('rowan');
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ group: 'Notes' });
+    expect(hits[0]?.snippet?.hit.toLowerCase()).toBe('rowan');
+    act(() => hits[0]!.run());
+    const field = await screen.findByRole('textbox', { name: 'Find in notes' });
+    expect((field as HTMLInputElement).value).toBe('rowan');
+    expect(dataRows()).toHaveLength(1);
+    expect(dataRows()[0]?.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('offers nothing once the panel is gone', () => {
+    const { unmount } = render(<Harness />);
+    unmount();
+    expect(searchAll('rowan')).toEqual([]);
   });
 });
