@@ -41,7 +41,7 @@ const ENGINE_KEY = 'engine';
 export const ACTIVE_PHASES: TeleprompterPhase[] = ['starting', 'running', 'stopping'];
 const IDLE_STATE: TeleprompterState = { phase: 'idle', message: '', engine: null, chapter: null, script: null, position: null };
 /** How long a stop that waits gives the host: its grace before it kills the sidecar (service.go `defaultGrace`, 8 s) and a second more. */
-export const STOP_WAIT_MS = 9_000;
+const STOP_WAIT_MS = 9_000;
 
 function sessionReducer(session: Session, action: SessionAction): Session {
   switch (action.kind) {
