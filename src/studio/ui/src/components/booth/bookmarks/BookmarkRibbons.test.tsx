@@ -6,6 +6,7 @@ import { TooltipProvider } from '../../primitives/Tooltip';
 import { BoothText } from '../reading/BoothText';
 import { boothUnits } from '../reading/boothUnits';
 import { sampleParagraphs } from '../reading/fixture';
+import type { PageBreak } from '../pages/pageBreaks';
 import { BookmarkRibbons } from './BookmarkRibbons';
 
 afterEach(() => {
@@ -19,6 +20,7 @@ const make = (over: Partial<Bookmark> = {}): Bookmark => ({
   paragraphId: 'p1',
   paragraph: 0,
   offset: 22,
+  kind: 'spot',
   label: '',
   note: '',
   createdAt: '2026-10-11T10:00:00Z',
@@ -29,7 +31,7 @@ const make = (over: Partial<Bookmark> = {}): Bookmark => ({
 const units = boothUnits(sampleParagraphs);
 
 /** A text column with the sentences' words in it, and the margin the ribbons are drawn in. The words are given their line by `tops`. */
-function setup(bookmarks: Bookmark[], tops: Record<string, number> = {}) {
+function setup(bookmarks: Bookmark[], tops: Record<string, number> = {}, pages: PageBreak[] = []) {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
     const word = this.closest('[data-word]') ? this : null;
     const at = word ? (tops[`${word.closest('[data-unit]')?.getAttribute('data-unit')}:${word.dataset.word}`] ?? 0) : 0;
@@ -52,7 +54,15 @@ function setup(bookmarks: Bookmark[], tops: Record<string, number> = {}) {
               ))}
           </span>
         ))}
-        <BookmarkRibbons chapterId="c1" bookmarks={bookmarks} paragraphs={sampleParagraphs} units={units} onUpdate={onUpdate} onRemove={onRemove} />
+        <BookmarkRibbons
+          chapterId="c1"
+          bookmarks={bookmarks}
+          paragraphs={sampleParagraphs}
+          units={units}
+          pages={pages}
+          onUpdate={onUpdate}
+          onRemove={onRemove}
+        />
       </div>
     </TooltipProvider>,
   );
@@ -122,5 +132,23 @@ describe('BookmarkRibbons', () => {
       </TooltipProvider>,
     );
     expect((document.querySelector('[data-bm]')!.closest('[style]') as HTMLElement).style.top).toBe('123px');
+  });
+});
+
+describe('page labels share the margin with the ribbons', () => {
+  const pageAt = (cur: number, wcur: number): PageBreak => ({ page: 2, cur, wcur, paragraphId: 'p1', word: wcur, offset: 0 });
+
+  it('draws a Page N label with its spot even when the chapter has no bookmarks', () => {
+    setup([], { '0:1': 40 }, [pageAt(0, 1)]);
+    const label = screen.getByText('Page 2');
+    expect(label.dataset).toMatchObject({ pageBreak: '2', paragraphId: 'p1', offset: '0' });
+    expect(label.style.top).toBe('40px');
+  });
+
+  it('pushes a label below a ribbon on the same line, so neither covers the other', () => {
+    setup([make({ offset: 0 })], { '0:0': 40, '0:1': 40 }, [pageAt(0, 1)]);
+    const ribbon = document.querySelector<HTMLElement>('[data-bm]')!.closest<HTMLElement>('[style]')!;
+    expect(ribbon.style.top).toBe('40px');
+    expect(screen.getByText('Page 2').style.top).toBe('66px');
   });
 });

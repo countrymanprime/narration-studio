@@ -101,6 +101,12 @@ func contractGuideServiceWithDialogueCues(t *testing.T) *guide.Service {
 				"evidence":  map[string]any{"chapterId": "chapter-6", "paragraphId": "p-24", "excerpt": "Have some wine.", "tag": ""},
 				"corrected": false,
 			},
+			map[string]any{
+				"id": "cue-3", "chapterId": "chapter-6", "paragraphId": "p-25", "quote_start": 0, "quote_end": 9,
+				"quote_text": "No room!", "speaker_entity_id": "alice", "speaker_source": "proximity",
+				"evidence":  map[string]any{"chapterId": "chapter-6", "paragraphId": "p-25", "excerpt": "No room! Alice frowned.", "tag": ""},
+				"corrected": false,
+			},
 		},
 	}
 	bytes, err := json.Marshal(document)

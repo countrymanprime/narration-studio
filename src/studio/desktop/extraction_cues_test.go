@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"slices"
 	"sync/atomic"
 	"testing"
@@ -97,4 +99,118 @@ func TestASuccessfulImportWritesTheDialogueCues(t *testing.T) {
 		t.Fatal("a failed import wrote cues")
 	case <-time.After(50 * time.Millisecond):
 	}
+}
+
+// speakerHost is a host whose Story Bible has Ada (a Character, in c1 and c2) and the Spire (a Place, in c3), and whose cue refreshes
+// are sent, as their chapter ids, on the channel it returns.
+func speakerHost(t *testing.T) (*Host, chan []string) {
+	t.Helper()
+	project := t.TempDir()
+	svc := guide.New(project, "", "", nil, nil)
+	path := filepath.Join(project, "ManuscriptGuide", "manuscript_guide.json")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	document := `{"entities":[
+		{"id":"ada","canonical_name":"Ada","category":"Character","occurrences":[{"chapterId":"c1"}],"aliases":[{"text":"Lady Ada","occurrences":[{"chapterId":"c2"}]}]},
+		{"id":"spire","canonical_name":"Spire","category":"Place","occurrences":[{"chapterId":"c3"}],"aliases":[]}]}`
+	if err := os.WriteFile(path, []byte(document), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	refreshed := make(chan []string, 4)
+	host := &Host{guide: svc}
+	host.refreshCues = func(_ context.Context, chapterIDs ...string) (guide.CueCounts, error) {
+		refreshed <- chapterIDs
+		return guide.CueCounts{}, nil
+	}
+	return host, refreshed
+}
+
+func nextRefresh(t *testing.T, refreshed chan []string) []string {
+	t.Helper()
+	select {
+	case chapters := <-refreshed:
+		return chapters
+	case <-time.After(10 * time.Second):
+		t.Fatal("no cue refresh")
+		return nil
+	}
+}
+
+func noRefresh(t *testing.T, refreshed chan []string) {
+	t.Helper()
+	select {
+	case chapters := <-refreshed:
+		t.Fatalf("an unexpected cue refresh of %v", chapters)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestFilingAnEntryUnderOrOutOfASpeakingTypeRefreshesItsChapters(t *testing.T) {
+	host, refreshed := speakerHost(t)
+	if _, err := host.GuideEdit("spire", map[string]string{"category": "Character"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := nextRefresh(t, refreshed); !slices.Equal(got, []string{"c3"}) {
+		t.Fatalf("filed under Character: refreshed %v", got)
+	}
+	if _, err := host.GuideEdit("ada", map[string]string{"category": "Place"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := nextRefresh(t, refreshed); !slices.Equal(got, []string{"c1", "c2"}) {
+		t.Fatalf("filed out of Character: refreshed %v", got)
+	}
+	noRefresh(t, refreshed)
+}
+
+func TestAnEditThatFilesNoSpeakerRefreshesNothing(t *testing.T) {
+	host, refreshed := speakerHost(t)
+	if _, err := host.GuideEdit("ada", map[string]string{"context": "A navigator."}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.GuideEdit("spire", map[string]string{"category": "Lore"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.GuideEdit("spire", map[string]string{"category": "No such type"}); err == nil {
+		t.Fatal("an unknown type was accepted")
+	}
+	noRefresh(t, refreshed)
+}
+
+func TestDeletingASpeakerRefreshesItsChapters(t *testing.T) {
+	host, refreshed := speakerHost(t)
+	if _, err := host.GuideDelete("spire"); err != nil {
+		t.Fatal(err)
+	}
+	noRefresh(t, refreshed)
+	if _, err := host.GuideDelete("ada"); err != nil {
+		t.Fatal(err)
+	}
+	if got := nextRefresh(t, refreshed); !slices.Equal(got, []string{"c1", "c2"}) {
+		t.Fatalf("refreshed %v", got)
+	}
+}
+
+func TestANewSpeakerRefreshesItsChapters(t *testing.T) {
+	host, refreshed := speakerHost(t)
+	host.refreshSpeakerCues(speakerSnapshot{}, "ada") // what GuideCreate does once the entry is written
+	if got := nextRefresh(t, refreshed); !slices.Equal(got, []string{"c1", "c2"}) {
+		t.Fatalf("refreshed %v", got)
+	}
+	host.refreshSpeakerCues(speakerSnapshot{}, "spire")
+	noRefresh(t, refreshed)
+}
+
+func TestATypeThatStartsSpeakingRefreshesEveryChapter(t *testing.T) {
+	host, refreshed := speakerHost(t)
+	if _, err := host.GuideTypeSetSpeaks("Place", true); err != nil {
+		t.Fatal(err)
+	}
+	if got := nextRefresh(t, refreshed); len(got) != 0 {
+		t.Fatalf("refreshed %v, want every chapter", got)
+	}
+	if _, err := host.GuideTypeSetSpeaks("Nope", true); err == nil {
+		t.Fatal("an unknown type was accepted")
+	}
+	noRefresh(t, refreshed)
 }

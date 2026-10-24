@@ -59,13 +59,18 @@ export function InspectorActions({
   const daw = usePort('daw');
   const action = usePendingAction();
   const [capabilities, setCapabilities] = useState<DawCapabilities>();
+  const [capsFailed, setCapsFailed] = useState(false);
   const [result, setResult] = useState<{ message: string; failed: boolean }>();
 
   useEffect(() => {
     let current = true;
     daw.capabilities().then(
       (found) => current && setCapabilities(found),
-      (error) => current && setResult({ message: `The DAW was not asked: ${apiErrorMessage(error)}`, failed: true }),
+      (error) => {
+        if (!current) return;
+        setCapsFailed(true);
+        setResult({ message: `The DAW was not asked: ${apiErrorMessage(error)}`, failed: true });
+      },
     );
     return () => {
       current = false;
@@ -110,7 +115,7 @@ export function InspectorActions({
   return (
     <div className="flex flex-col gap-2">
       <div role="group" aria-label="Actions" className="flex flex-wrap items-center gap-1">
-        <HearIt finding={finding} api={api} dawName={dawName} inert={inert} onResult={setResult} />
+        <HearIt finding={finding} api={api} dawName={dawName} capabilities={capabilities} capabilitiesFailed={capsFailed} inert={inert} onResult={setResult} />
         <IconButton
           action="showInReaper"
           label={`Show in ${dawName}`}

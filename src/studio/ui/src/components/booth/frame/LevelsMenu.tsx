@@ -11,6 +11,7 @@ import { Select } from '../../primitives/Select';
 import { NumberInput } from '../../primitives/NumberInput';
 import { Slider } from '../../primitives/Slider';
 import { Badge } from '../../primitives/StatusBadge';
+import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from '../../primitives/Collapsible';
 import type { InputLevel } from './useLevels';
 import { useDawMeters, type DawMetersState } from './useDawMeters';
 import { useMonitorLevel } from './useMonitorLevel';
@@ -278,10 +279,12 @@ const measuresText = (measures: number): string => (measures === 1 ? '1 measure'
 
 /**
  * The DAW's own pre-roll (#2251 item 11): the one the Booth punches with, so the app shows it rather than a number of its own that could disagree. It
- * is read, never set: the narrator changes it in the DAW, and the menu says where.
+ * is read, never set: one short line with its state and length, and an "i" that opens, inside the menu, what it does and where to change it in the
+ * DAW. The note is a disclosure, not a popup: a popup portalled out of the menu would sit outside its dialog.
  */
 function DawPrerollRow({ dawName }: { dawName: string }) {
   const state = useDawPreroll();
+  const [about, setAbout] = useState(false);
   if (state.kind === 'loading') return <span className="text-xs text-[var(--text-muted)]">Reading the pre-roll from {dawName}…</span>;
   if (state.kind !== 'ready')
     return (
@@ -290,19 +293,23 @@ function DawPrerollRow({ dawName }: { dawName: string }) {
       </span>
     );
   const { preroll } = state;
-  const lead = `${measuresText(preroll.measures)} (one measure is ${oneDecimal(preroll.measureSeconds)} s here)`;
+  const length = measuresText(preroll.measures);
   return (
-    <>
-      <span className="text-sm text-[var(--text)]">
-        {preroll.onRecord ? `${dawName} pre-roll: ${lead}` : `${dawName} pre-roll is off: a punch records from the word with no lead-in.`}
+    <Collapsible open={about} onOpenChange={setAbout} className="flex flex-col gap-1">
+      <span className="flex items-center gap-2 text-sm text-[var(--text)]">
+        {`Pre-roll ${preroll.onRecord ? 'on' : 'off'} · ${length} (${oneDecimal(preroll.measures * preroll.measureSeconds)} s)`}
+        <CollapsibleTrigger label={`About ${dawName}’s pre-roll`}>
+          <span aria-hidden="true" className="font-serif text-sm leading-none font-bold italic">
+            i
+          </span>
+        </CollapsibleTrigger>
       </span>
-      <span className="text-xs text-[var(--text-muted)]">
-        {preroll.onRecord
-          ? `${dawName} plays from the bar line ${measuresText(preroll.measures)} or more before the word, then records from the word. `
-          : `Its length is ${lead}. `}
-        {`Set in ${dawName}, for every project: “Pre-roll: Toggle pre-roll on record” turns it on or off.`}
-      </span>
-    </>
+      <CollapsiblePanel className="text-xs text-[var(--text-muted)]">
+        {`${dawName}’s own pre-roll, the lead-in a punch uses. One measure is ${oneDecimal(preroll.measureSeconds)} s at the edit cursor. `}
+        {`On, ${dawName} plays from the bar line ${length} or more before the word, then records from the word. Off, a punch records from the word with no lead-in. `}
+        {`Change it in ${dawName}, for every project: “Pre-roll: Toggle pre-roll on record” turns it on or off.`}
+      </CollapsiblePanel>
+    </Collapsible>
   );
 }
 

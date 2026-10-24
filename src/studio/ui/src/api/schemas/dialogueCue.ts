@@ -15,7 +15,7 @@ export const dialogueCueSchema = z.object({
   quote_end: z.number(),
   quote_text: z.string(),
   speaker_entity_id: z.string().nullable(),
-  speaker_source: z.enum(['tag', 'continuation', 'unknown', 'correction']),
+  speaker_source: z.enum(['tag', 'continuation', 'proximity', 'unknown', 'correction']),
   evidence: z.object({ chapterId: z.string(), paragraphId: z.string(), excerpt: z.string(), tag: z.string() }),
   corrected: z.boolean(),
 }) satisfies z.ZodType<DialogueCue>;

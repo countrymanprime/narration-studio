@@ -18,6 +18,7 @@ const make = (id: string, chapterId: string, paragraph: number | null, offset: n
   paragraphId: `p${paragraph}`,
   paragraph,
   offset,
+  kind: 'spot',
   label: '',
   note: '',
   createdAt: '2026-10-11T00:00:00Z',

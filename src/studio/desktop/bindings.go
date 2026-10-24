@@ -138,8 +138,12 @@ func (h *Host) GuideEdit(id string, values map[string]string) (string, error) {
 	}
 	// All of it or none of it: a refused field leaves the file as it was. The host applies it, or one sidecar process when it changes the
 	// aliases (guide.Service.EditFields).
+	before := h.speakerSnapshotOf(id)
 	if err := service.EditFields(id, values); err != nil {
 		return "", err
+	}
+	if filesTheEntry(values) {
+		h.refreshSpeakerCues(before, id)
 	}
 	return encodeBinding(nil, nil)
 }
@@ -185,6 +189,9 @@ func (h *Host) GuideCreate(name, category string, aliases []string) (string, err
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
 	id, err := service.Create(name, category, aliases)
+	if err == nil {
+		h.refreshSpeakerCues(speakerSnapshot{}, id)
+	}
 	return encodeBinding(map[string]any{"id": id}, err)
 }
 func (h *Host) GuideMerge(sourceID, targetID string) (string, error) {
@@ -192,9 +199,11 @@ func (h *Host) GuideMerge(sourceID, targetID string) (string, error) {
 	if service == nil {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
+	before := h.speakerSnapshotOf(sourceID, targetID)
 	result, err := service.Merge(sourceID, targetID)
 	if err == nil {
 		h.followMerge(result.UndoID, sourceID, targetID)
+		h.refreshSpeakerCues(before, targetID)
 	}
 	return encodeBinding(result, err)
 }
@@ -216,7 +225,12 @@ func (h *Host) GuideDelete(id string) (string, error) {
 	if service == nil {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
-	return encodeBinding(nil, service.Delete(id))
+	before := h.speakerSnapshotOf(id)
+	err := service.Delete(id)
+	if err == nil {
+		h.refreshSpeakerCues(before)
+	}
+	return encodeBinding(nil, err)
 }
 func (h *Host) GuideRelate(id, otherID, label string) (string, error) {
 	service := h.services().guide
