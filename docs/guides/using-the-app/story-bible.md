@@ -127,7 +127,9 @@ until you agree. **Import entries** opens a dialog headed Story Bible, Import en
 before it adds anything. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
 found on their own, though: after a manuscript import and at the end of every scan, each quoted line is matched to a
 speaker where a speech tag names an entry whose type speaks ("Ada said"), and the rest are left without one. The
-scan's log says how many it found.
+scan's log says how many it found. Filing an entry under a type that speaks (or out of one), renaming it, changing its
+aliases, merging or deleting it finds the quoted lines again in the chapters its names appear in; turning **Speaks** on
+or off for a type finds them again everywhere. Your own corrections stay.
 
 ![Story Bible - the Import entries dialog (CSV or JSON)](../../images/ui/storybible-import.webp)
 
