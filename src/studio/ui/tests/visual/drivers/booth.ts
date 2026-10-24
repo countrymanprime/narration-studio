@@ -265,6 +265,19 @@ export const boothDrivers: Record<string, Driver> = {
     if (await page.locator('#blisten-why').count()) throw new Error('the footer says the text cannot follow during a take that follows');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
+  // A cold read follows the replayed reading with the ghost while the real cursor and the progress line stay on ¶ 1; nothing records.
+  'cold-read': async (page) => {
+    await readyToRecord(page);
+    await page.clock.install({ time: REC_START });
+    await page.clock.pauseAt(REC_START + 1_000);
+    await page.getByRole('button', { name: 'Cold read' }).click();
+    await page.getByText('Mic on · cold read', { exact: true }).waitFor();
+    await page.clock.runFor(30_000);
+    await page.locator('[data-paragraph]:not(:first-child) [data-ghost]').waitFor();
+    await page.getByText(/^¶ 1 of 24/).waitFor();
+    if (await page.getByText('REC', { exact: true }).count()) throw new Error('a cold read shows REC: it records nothing');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
   'voice-samples-picker': async (page) => {
     await readyToRecord(page, SAMPLES);
     await page.locator('[data-speaker-chip]').first().click();

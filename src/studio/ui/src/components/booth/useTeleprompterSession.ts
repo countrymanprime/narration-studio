@@ -153,7 +153,11 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
   });
 
   const active = ACTIVE_PHASES.includes(host.phase);
-  const cursor = usePacedCursor(session.cursor);
+  // Each session starts over: its cursor is the word it was started at until it reports one (`startedAt`, set by this hook's own
+  // Start, else the top), and the paced cursor lands there instead of walking from where the last session was (`epoch`).
+  const startedAt = useRef(0);
+  const [epoch, setEpoch] = useState({ count: 0, at: 0 });
+  const cursor = usePacedCursor(session.position ? session.cursor : epoch.at, epoch.count);
   // A cold read (#2251 item 13): the running session, or the last one, follows the narrator with no take.
   const coldRead = Boolean(host.coldRead);
   // Its flags are never a take's: no reader (the suspected lines, the Companion's findings) is given them.
@@ -167,7 +171,10 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     const stopEvents = api.subscribeTeleprompterEvent((event) => dispatch({ kind: 'event', event }));
     const stopState = api.subscribeTeleprompterState((next) => {
       setHost(next);
-      if (next.phase === 'starting') dispatch({ kind: 'reset' });
+      if (next.phase === 'starting') {
+        dispatch({ kind: 'reset' });
+        setEpoch((last) => ({ count: last.count + 1, at: startedAt.current }));
+      }
       if (!ACTIVE_PHASES.includes(next.phase)) {
         stopWaiters.current.forEach((done) => done());
         stopWaiters.current.clear();
@@ -274,6 +281,7 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
     setError('');
     setModelMissing(false);
     const from = options.startWord === undefined ? startWord : options.startWord;
+    startedAt.current = from ?? 0;
     try {
       const source = creditsKind ? { credits: creditsKind } : { chapter: chapterId };
       const result = await api.teleprompterStart({
@@ -295,6 +303,9 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
       const text = errorText(reason);
       setError(text);
       return { ok: false, reason: text };
+    } finally {
+      // The host has said `starting` by now if it started: a session someone else starts begins at the top as before.
+      startedAt.current = 0;
     }
   };
   const stop = () => void api.teleprompterStop().catch((reason) => setError(errorText(reason)));

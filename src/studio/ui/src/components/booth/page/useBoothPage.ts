@@ -39,6 +39,8 @@ const TAKE_SAVED = 'Take saved';
 const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 /** How long after the shell's question closed a page still mounted means the narrator stayed. */
 const STAYED_MS = 500;
+/** Why Cold read is off during a take (the toggle and its jump-menu entry). */
+export const COLD_READ_WHILE_RECORDING = 'Not while recording. Stop the take first.';
 const STOP_READING = {
   title: 'Stop reading?',
   body: 'Reading is still listening. Leaving the Booth stops it; nothing recorded is affected.',
@@ -111,13 +113,24 @@ export function useBoothPage(options: BoothPageOptions) {
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
   const listening = session.active && !!script;
+  // A cold read (#2251 item 13) listens with no take: what it hears is the ghost, never the reading position.
+  const coldRead = session.active && session.coldRead;
+  const following = listening && !coldRead;
   const spans = useMemo(() => (script ? script.spans : estimatedSpans(title, paragraphs)), [script, title, paragraphs]);
 
-  // Where the narrator is: the voice while a session listens, the keys and clicks otherwise.
+  // Where the narrator is (the real cursor): the voice while a session for a take listens, the keys and clicks otherwise.
   const [local, setLocal] = useState<UnitPosition>(START);
-  const heard = listening ? positionInScript(spans, paragraphs, session.cursor) : null;
+  const heard = following ? positionInScript(spans, paragraphs, session.cursor) : null;
   const at: UnitPosition = (heard && unitAtPosition(paragraphs, units, heard)) ?? clampAt(local, units.length);
   const position: ReadingPosition | undefined = positionOf(paragraphs, units, at) ?? undefined;
+  // The ghost: where a cold read hears the narrator. It writes nothing; it goes the moment the cold read is told to end.
+  const [endingColdRead, setEndingColdRead] = useState(false);
+  useEffect(() => {
+    if (!coldRead) setEndingColdRead(false);
+  }, [coldRead]);
+  const ghostHeard = listening && coldRead && !endingColdRead ? positionInScript(spans, paragraphs, session.cursor) : null;
+  const ghostAt = ghostHeard && unitAtPosition(paragraphs, units, ghostHeard);
+  const ghost: ReadingPosition | undefined = (ghostAt && positionOf(paragraphs, units, ghostAt)) ?? undefined;
   const [browse, setBrowse] = useState(false);
   const [punchAt, setPunchAt] = useState<number | null>(null);
   const text = useTextChoices();
@@ -170,17 +183,31 @@ export function useBoothPage(options: BoothPageOptions) {
   // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
   const endOfChapter = useRef(false);
 
-  const latest = useRef({ at, position, units, paragraphs, spans, listening, session, recording, elapsed: takeClock.read });
-  latest.current = { at, position, units, paragraphs, spans, listening, session, recording, elapsed: takeClock.read };
+  const latest = useRef({ at, position, units, paragraphs, spans, listening, following, coldRead, session, recording, elapsed: takeClock.read });
+  latest.current = { at, position, units, paragraphs, spans, listening, following, coldRead, session, recording, elapsed: takeClock.read };
 
-  /** Puts the reading position on a sentence and word; a listening session is moved there too. */
+  /** Puts the reading position on a sentence and word; a listening session for a take is moved there too (a cold read's ghost is not). */
   const moveTo = useCallback((next: UnitPosition) => {
     const now = latest.current;
     setLocal(next);
     setBrowse(false);
     const target = positionOf(now.paragraphs, now.units, next);
-    const word = target && now.listening ? scriptWordAt(now.spans, now.paragraphs, target) : null;
+    const word = target && now.following ? scriptWordAt(now.spans, now.paragraphs, target) : null;
     if (word !== null) now.session.seek(word);
+  }, []);
+
+  /** The script word the real cursor is on, where a take's (or a cold read's) session starts; null is the top. */
+  const realWord = useCallback((): number | null => {
+    const now = latest.current;
+    return now.position ? scriptWordAt(now.spans, now.paragraphs, now.position) : null;
+  }, []);
+  /** Ends a cold read and answers once its session has gone, so the take's own session can start; the ghost goes at once. */
+  const endColdRead = useCallback(async (): Promise<boolean> => {
+    const now = latest.current;
+    if (!now.coldRead) return false;
+    setEndingColdRead(true);
+    await now.session.stopAndWait();
+    return true;
   }, []);
 
   // Record from here: the place the Script named is where the reading starts and the next take begins.
@@ -269,11 +296,15 @@ export function useBoothPage(options: BoothPageOptions) {
         // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
         // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
         if (!(await latest.current.session.ensureModel())) return;
+        // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
+        // starts from the real cursor, never from the ghost.
+        const from = realWord();
+        const endedColdRead = await endColdRead();
         // Listening comes first, and a take never begins without it: a text that cannot follow the voice is a failed start, not a
         // recording that runs while the narrator is told why it cannot be followed. The DAW is asked to start at the punch itself,
         // so it is already at that spot when the take begins.
-        if (!latest.current.session.active) {
-          const listening = await latest.current.session.start();
+        if (endedColdRead || !latest.current.session.active) {
+          const listening = await latest.current.session.start(endedColdRead ? { startWord: from } : undefined);
           if (!listening.ok) {
             // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
             overlay.toast(`Recording did not start: the text cannot follow your voice (${listening.reason || 'listening failed'}). Nothing was recorded.`, {
@@ -319,7 +350,11 @@ export function useBoothPage(options: BoothPageOptions) {
       setBrowse(false);
       takeBegan.current = now.at.cur;
       if (place) writer.begin(place, takeAt.current);
-      if (!now.session.active && now.session.canStart) void now.session.start();
+      // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.
+      if (now.coldRead) {
+        const from = realWord();
+        void endColdRead().then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined));
+      } else if (!now.session.active && now.session.canStart) void now.session.start();
       return;
     }
     setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
@@ -335,7 +370,7 @@ export function useBoothPage(options: BoothPageOptions) {
     });
     setRecorded((total) => total + now.elapsed());
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead]);
 
   // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself, and
   // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops
@@ -437,6 +472,12 @@ export function useBoothPage(options: BoothPageOptions) {
   // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
   // leaving by the nav keeps it running, Exit and Escape stop it).
   const exit = useCallback(() => {
+    // A cold read records nothing and keeps nothing: leaving ends it without a question.
+    if (!latest.current.recording && latest.current.coldRead) {
+      latest.current.session.stop();
+      navigate(exitTo);
+      return;
+    }
     if (latest.current.recording || !latest.current.session.active) {
       void leave(exitTo, navigate);
       return;
@@ -448,6 +489,38 @@ export function useBoothPage(options: BoothPageOptions) {
     });
   }, [leave, exitTo, navigate, overlay]);
   const goTo = useCallback((next: string) => leave(next, navigate), [leave, navigate]);
+
+  // Cold read (#2251 item 13): listen and follow with the ghost, record nothing. Off by default, unavailable during a take; only this
+  // toggle, a take or leaving the Booth ends it (it never stops itself).
+  const coldReadReason = recording ? COLD_READ_WHILE_RECORDING : undefined;
+  const coldReadStarting = useRef(false);
+  const toggleColdRead = useCallback(async () => {
+    const now = latest.current;
+    if (now.recording) return notify(COLD_READ_WHILE_RECORDING);
+    if (now.coldRead) {
+      setEndingColdRead(true);
+      now.session.stop();
+      return;
+    }
+    if (coldReadStarting.current) return;
+    if (now.session.active) return notify('The Booth is already listening. Stop reading first.');
+    coldReadStarting.current = true;
+    try {
+      if (!(await now.session.ensureModel())) return;
+      // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
+      const started = await latest.current.session.start({ coldRead: true, startWord: realWord() });
+      if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
+    } finally {
+      coldReadStarting.current = false;
+    }
+  }, [notify, overlay, realWord]);
+  // Another chapter is another text: the cold read of this one ends. Leaving the Booth ends it too, however the Booth is left.
+  useEffect(
+    () => () => {
+      if (latest.current.coldRead) latest.current.session.stop();
+    },
+    [recordId],
+  );
 
   // F11: the window's fullscreen; a window the Booth made fullscreen goes back when the Booth is left.
   useFullscreenKey();
@@ -529,6 +602,9 @@ export function useBoothPage(options: BoothPageOptions) {
     units,
     at,
     position,
+    /** Where a cold read hears the narrator; absent when none runs. */
+    ghost,
+    coldRead: { on: coldRead, toggle: toggleColdRead, disabledReason: coldReadReason },
     browse,
     setBrowse,
     punchAt,
