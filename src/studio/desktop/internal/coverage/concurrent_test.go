@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // twoChapters is a project with c-0001 and c-0003 and a service whose sidecars all hold at a gate until it is closed, so two
@@ -23,6 +24,29 @@ func twoChapters(t *testing.T) (*Service, *fakeSidecar, func()) {
 		service.Wait()
 	})
 	return service, sidecar, release
+}
+
+// awaitHeld returns a wait for n more of the sidecar's runs to be held at its gate. The fake honours a .cancel file between
+// items, before it reaches the gate, so a test that cancels and then waits to see "Cancelling..." cancels only after this:
+// a cancel sent earlier can end the run between items on a loaded runner, and the wait times out.
+func awaitHeld(t *testing.T, sidecar *fakeSidecar) func(n int) {
+	t.Helper()
+	gate := sidecar.during
+	reached := make(chan struct{}, 2)
+	sidecar.during = func() {
+		reached <- struct{}{}
+		gate()
+	}
+	return func(n int) {
+		t.Helper()
+		for range n {
+			select {
+			case <-reached:
+			case <-time.After(5 * time.Second):
+				t.Fatal("a run never reached its sidecar's gate")
+			}
+		}
+	}
 }
 
 func request(chapterID string, concurrent int) Request {
@@ -121,7 +145,8 @@ func TestCancelStopsEveryRunAndReportsEach(t *testing.T) {
 }
 
 func TestCancelBackgroundLeavesTheNarratorsRunGoing(t *testing.T) {
-	service, _, release := twoChapters(t)
+	service, sidecar, release := twoChapters(t)
+	held := awaitHeld(t, sidecar)
 	if _, err := service.Start(request(testSecondChapter, 2)); err != nil {
 		t.Fatal(err)
 	}
@@ -130,6 +155,7 @@ func TestCancelBackgroundLeavesTheNarratorsRunGoing(t *testing.T) {
 	if _, err := service.Start(background); err != nil {
 		t.Fatal(err)
 	}
+	held(2)
 	ended := make(chan struct{})
 	go func() {
 		service.CancelBackground()
@@ -152,12 +178,14 @@ func TestCancelBackgroundLeavesTheNarratorsRunGoing(t *testing.T) {
 }
 
 func TestABackgroundRunHoldsTheOneSlotUntilItIsCancelled(t *testing.T) {
-	service, _, release := twoChapters(t)
+	service, sidecar, release := twoChapters(t)
+	held := awaitHeld(t, sidecar)
 	background := request(testChapter, 1)
 	background.Background = true
 	if _, err := service.Start(background); err != nil {
 		t.Fatal(err)
 	}
+	held(1)
 	if _, err := service.Start(request(testSecondChapter, 1)); err == nil {
 		t.Fatal("a one-at-a-time start must be refused while the background run holds the slot")
 	}
