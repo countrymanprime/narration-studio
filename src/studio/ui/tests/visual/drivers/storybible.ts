@@ -83,6 +83,15 @@ export const storybibleDrivers: Record<string, Driver> = {
     await page.getByRole('textbox', { name: 'Search entries' }).fill('hatter');
     await entryRows(page).first().waitFor();
   },
+  // Ctrl+F searches the page: its entries come back under "Entries", found by any of their names.
+  'jump-entries': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await page.keyboard.press('Control+f');
+    const box = page.getByRole('combobox', { name: 'Jump menu' });
+    await box.waitFor();
+    await box.fill('mad');
+    await page.getByRole('option', { name: /^Hatter/ }).waitFor();
+  },
   'no-manuscript': async (page) => {
     await page.goto('/story-bible?mockNoManuscript=1');
     await settlePage(page);

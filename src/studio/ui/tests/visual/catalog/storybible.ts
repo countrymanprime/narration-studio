@@ -35,6 +35,11 @@ export const storybibleStates: StateEntry[] = [
   { page: 'storybible', state: 'category-place', description: 'Story Bible, the Place kind chip on' },
   { page: 'storybible', state: 'category-organization', description: 'Story Bible, the Organization kind chip on' },
   { page: 'storybible', state: 'search-narrowed', description: 'Story Bible, a search for "hatter" narrowing the table by name and by alias' },
+  {
+    page: 'storybible',
+    state: 'jump-entries',
+    description: 'Story Bible, Ctrl+F then "mad": the menu searching only the page, the Hatter under "Entries" found by its other name "Mad Hatter"',
+  },
   { page: 'storybible', state: 'no-manuscript', description: 'Story Bible, a project with no manuscript: the page asks for one (?mockNoManuscript=1)' },
   {
     page: 'storybible',

@@ -1100,6 +1100,13 @@
   },
   {
     "page": "storybible",
+    "state": "jump-entries",
+    "viewport": "desktop",
+    "docName": "storybible-jump-entries",
+    "caption": "Story Bible - Ctrl+F then \"mad\": the Hatter under Entries, found by its other name"
+  },
+  {
+    "page": "storybible",
     "state": "entry-pronunciation-online",
     "viewport": "desktop",
     "docName": "storybible-pronunciation-online",
