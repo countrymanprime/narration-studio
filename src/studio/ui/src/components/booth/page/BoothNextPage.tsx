@@ -4,7 +4,7 @@ import type { PickupItem } from '../../../api/contracts/pickups';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { GuideType } from '../../../types';
 import { useSearchParams } from 'react-router-dom';
-import { chapterHeading } from '../../../chapterHeading';
+import { headingName } from '../../../chapterHeading';
 import { chapterName } from '../../../chapterName';
 import { useUserKeymap } from '../../../input/useUserKeymap';
 import { CommandScope } from '../../../input/router';
@@ -79,12 +79,6 @@ const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/st
  * (`.md .booth .chapbar .chapsel`), its name cut with an ellipsis, so the top bar fits a narrow window. Wider, it keeps the longest name's width.
  */
 const MEDIUM_PICKER = "[&_[aria-label^='Chapter:']]:!w-[190px] [&_[aria-label^='Chapter:']]:!min-w-0";
-
-/** A chapter named as the manuscript heads it, label then title ("CHAPTER VIII. The Queen's Croquet-Ground"), as the mock's `chName`. */
-const headingName = (chapter: Parameters<typeof chapterHeading>[0]): string => {
-  const { label, title } = chapterHeading(chapter);
-  return label ? `${label} ${title}` : title;
-};
 
 // In a pickup session the lines are the side panel's first section.
 registerPickupSession();

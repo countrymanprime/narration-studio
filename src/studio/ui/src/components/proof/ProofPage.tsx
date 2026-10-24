@@ -1,10 +1,10 @@
+import { headingName } from '../../chapterHeading';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { shownFindingNoteType, type Finding, type FindingNoteType, type FindingsSummary } from '../../api/contracts/findings';
 import type { PickupItem } from '../../api/contracts/pickups';
 import { describeApiError } from '../../api/errorMessage';
-import { chapterName } from '../../chapterName';
 import { footerHints } from '../../input/hints';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
@@ -383,7 +383,7 @@ export function ProofPage({
     };
     return [
       ...(creditsTiles.opening ? [tile(creditsTiles.opening.id, creditsTiles.opening.name, null)] : []),
-      ...chapters.map((c, i) => tile(c.id, chapterName(c), i + 1)),
+      ...chapters.map((c, i) => tile(c.id, headingName(c), i + 1)),
       ...(creditsTiles.closing ? [tile(creditsTiles.closing.id, creditsTiles.closing.name, null)] : []),
     ];
   }, [chapters, findings, creditsTiles]);
@@ -429,7 +429,7 @@ export function ProofPage({
 
   const stepper = (
     <ChapterStepper
-      chapters={chapters.map((c) => ({ id: c.id, name: chapterName(c) }))}
+      chapters={chapters.map((c) => ({ id: c.id, name: headingName(c) }))}
       value={chapter ? chapter.id : ALL_CHAPTERS}
       allowAll
       stepKeys={['←', '→']}
@@ -466,7 +466,7 @@ export function ProofPage({
             ) : (
               <>
                 {/* The check card and the waveform sit under the page's h1 and before the notes' h2: a heading of their own keeps the outline in order. */}
-                <h2 className="sr-only">{`Recording of ${chapterName(chapter)}`}</h2>
+                <h2 className="sr-only">{`Recording of ${headingName(chapter)}`}</h2>
                 <CheckCard chapter={chapter} onCheck={(id) => openCheckRecordings([id])} />
                 {timeline && total > 0 ? (
                   <>

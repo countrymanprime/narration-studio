@@ -1,7 +1,7 @@
+import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
-import { chapterName } from '../../chapterName';
 import type { ManuscriptChapter, RetailSampleAnswer } from '../../types';
 import { formatMinutesSeconds } from '../../state';
 import { Button } from '../primitives/Button';
@@ -65,9 +65,9 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
   const paragraphId = (at: End) => byId.get(at.chapterId)?.paragraphIds?.[Number(at.line) - 1]?.id ?? '';
   const titleOf = (chapterId: string) => {
     const chapter = byId.get(chapterId);
-    return chapter ? chapterName(chapter) : chapterId;
+    return chapter ? headingName(chapter) : chapterId;
   };
-  const chapterOptions = chapters.map((chapter) => ({ value: chapter.id, label: chapterName(chapter) }));
+  const chapterOptions = chapters.map((chapter) => ({ value: chapter.id, label: headingName(chapter) }));
 
   const save = async (startId: string, endId: string, done: string) => {
     setBusy(true);

@@ -1,7 +1,9 @@
-// One rule for a chapter's name everywhere it is shown: title and subtitle
-// join with " — " (space, em dash, space) in source casing, never CSS capitals, never italic or monospace. This is the
-// only place that formats one into plain text; primitives/TitleSubtitle.tsx is the only place that renders it as markup.
-// Read chapterNameFormatting.test.ts before adding another site that reads `.subtitle` directly.
+// The plain-text forms a chapter's name is built from: title and subtitle join with " — " (space, em dash, space) in
+// source casing, never CSS capitals, never italic or monospace, plus the short, plain (ASCII hyphen) and context-prefixed
+// forms. This is the only place that formats one into plain text. The one way a chapter's name is shown to read — the
+// display standard the import dialog sets, a numbered heading keeping its own separator — is `headingName` in
+// chapterHeading.ts (#2251 item 24), which reads these forms; primitives/TitleSubtitle.tsx renders a raw title and
+// subtitle as markup. Read chapterNameFormatting.test.ts before adding another site that reads `.subtitle` directly.
 
 export interface ChapterNameInput {
   title: string;

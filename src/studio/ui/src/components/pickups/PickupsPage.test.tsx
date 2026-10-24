@@ -263,7 +263,8 @@ describe('names-a-chapter-as-the-manuscript-heads-it', () => {
       status: 'recording',
     }));
     renderPage(createMockApi({ pickupsList: () => Promise.resolve(LIST) }), chapters);
-    expect(await screen.findByText('CHAPTER 1 Title 1')).toBeTruthy();
+    // #2251 item 24: the shared display standard joins a non-numbered heading with the em dash, as every other page does.
+    expect(await screen.findByText('CHAPTER 1 — Title 1')).toBeTruthy();
   });
 });
 

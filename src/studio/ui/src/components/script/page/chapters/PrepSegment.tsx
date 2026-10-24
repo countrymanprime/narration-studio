@@ -1,6 +1,6 @@
+import { headingName } from '../../../../chapterHeading';
 import { PREP_STATES, type PrepState } from '../../../../api/contracts/scriptPrep';
 import type { ChapterNameInput } from '../../../../chapterName';
-import { chapterName } from '../../../../chapterName';
 import { ToggleGroup } from '../../../primitives/ToggleGroup';
 import { PREP_LABELS } from '../data/scriptCommands';
 import { useScriptCommands, useScriptPrep } from '../data/useScriptData';
@@ -12,7 +12,7 @@ export function PrepSegment({ chapter }: { chapter: ChapterNameInput & { id: str
   const { setPrep } = useScriptCommands();
   return (
     <ToggleGroup
-      label={`Prep state for ${chapterName(chapter)}`}
+      label={`Prep state for ${headingName(chapter)}`}
       look="segmented"
       value={prep.prepOf(chapter.id)}
       options={PREP_STATES.map((state) => ({ value: state, label: PREP_LABELS[state] }))}

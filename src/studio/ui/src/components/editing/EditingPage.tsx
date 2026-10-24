@@ -1,6 +1,6 @@
 import { usePrefetchPeaks } from './ribbon/useRibbonPeaks';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { chapterHeading } from '../../chapterHeading';
+import { headingName } from '../../chapterHeading';
 import { CommandScope } from '../../input/router';
 import { useUserKeymap } from '../../input/useUserKeymap';
 import { usePort } from '../../ports/usePort';
@@ -27,12 +27,6 @@ import { useEditingChapterCommands } from './page/useEditingPageCommands';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
-
-/** A chapter named as the manuscript heads it, label then title ("CHAPTER VIII. The Queen's Croquet-Ground"), as the mock's `chName`. */
-function headingName(chapter: Parameters<typeof chapterHeading>[0]): string {
-  const { label, title } = chapterHeading(chapter);
-  return label ? `${label} ${title}` : title;
-}
 
 export interface EditingPageProps {
   /** False until a manuscript is imported: the page asks for one and draws nothing else. */
