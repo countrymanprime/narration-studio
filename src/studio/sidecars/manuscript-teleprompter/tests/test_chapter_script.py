@@ -20,12 +20,14 @@ def _manuscript(tmp_path):
             {"id": "c2", "title": "Chapter Two", "contentKind": "narration"},
             {"id": "ref", "title": "Characters", "contentKind": "reference"},
             {"id": "empty", "title": "Empty Chapter", "contentKind": "narration"},
+            {"id": "c3", "title": "Chapter 3", "subtitle": "Down the Rabbit-Hole", "contentKind": "narration"},
         ],
         "paragraphs": [
             {"id": "p1", "chapterId": "c1", "index": 0, "text": "Ada  enters the room."},
             {"id": "p2", "chapterId": "c1", "index": 1, "text": "She stops."},
             {"id": "p3", "chapterId": "c2", "index": 2, "text": "Morning came."},
             {"id": "p4", "chapterId": "ref", "index": 3, "text": "Ada Finch is the narrator."},
+            {"id": "p5", "chapterId": "c3", "index": 4, "text": "Alice fell."},
         ],
     }
     path = tmp_path / "manuscript.json"
@@ -49,6 +51,21 @@ def test_spans_map_token_ranges_back_to_the_title_and_paragraphs(tmp_path):
     ]
 
 
+def test_a_subtitle_is_read_with_the_title_so_its_words_are_in_the_title_span(tmp_path):
+    # Issue #2251 item 7: the heading the narrator reads is the title and the subtitle; a subtitle left out of the
+    # script was heard as words not in the script, and the Booth made them a pickup.
+    script = chapter_script.load_chapter_script(_manuscript(tmp_path), "c3")
+
+    assert script.tokens == ["Chapter", "3", "Down", "the", "Rabbit-Hole", "Alice", "fell."]
+    assert [(s.kind, s.start, s.count) for s in script.spans] == [("title", 0, 5), ("paragraph", 5, 2)]
+    assert script.heading == 5
+    assert script.text == "Chapter 3 Down the Rabbit-Hole\nAlice fell."
+
+
+def test_a_text_script_has_no_heading_because_the_credits_name_is_not_read():
+    assert chapter_script.text_script("Opening credits.\nRead by Ada.", "credits-opening", "Opening credits").heading == 0
+
+
 def test_a_chapter_can_be_selected_by_id_or_by_title_ignoring_case_and_line_breaks(tmp_path):
     path = _manuscript(tmp_path)
 
@@ -66,7 +83,7 @@ def test_an_unknown_chapter_lists_the_narration_chapters_that_can_be_chosen(tmp_
         chapter_script.load_chapter_script(_manuscript(tmp_path), "Chapter Nine")
 
     # Named by the app's rule, and each can be passed back to select its chapter.
-    assert error.value.candidates == ["CHAPTER ONE — Bad Ideas Look Great", "Chapter Two"]
+    assert error.value.candidates == ["CHAPTER ONE — Bad Ideas Look Great", "Chapter Two", "Chapter 3 — Down the Rabbit-Hole"]
     for name in error.value.candidates:
         assert chapter_script.load_chapter_script(_manuscript(tmp_path), name).title
 

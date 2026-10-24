@@ -302,6 +302,37 @@ def test_a_spoken_subtitle_in_the_heading_is_neither_missing_nor_extra():
     assert (result.present_tokens, result.body_tokens, result.extra_tokens, result.regions) == (12, 12, 0, ())
 
 
+@pytest.mark.parametrize(
+    "said",
+    [
+        f"chapter twelve part one {P1} {P2}",  # other words in the heading
+        f"take two chapter twelve {P1} {P2}",  # words before the heading
+        f"chapter twelve sorry {P1} {P2}",  # a word between the heading and the first line
+        f"the harbour {P1} {P2}",  # the heading said some other way
+    ],
+)
+def test_words_said_before_the_first_line_of_a_chapter_with_a_heading_are_not_extra(said):
+    # Issue #2251 item 7: the heading is the first line spoken, read optionally and in the narrator's own words, so what
+    # is said before the chapter's first word is the heading, not words that are not in the script.
+    aligned = _aligned([P1, P2], said, heading="chapter twelve")
+    result = cov.compute_coverage(aligned)
+    _tokens, extras = cov.align_tokens(aligned)
+    assert (result.present_tokens, result.extra_tokens, result.regions, extras) == (12, 0, (), ())
+
+
+def test_words_said_before_the_first_line_of_a_script_with_no_heading_are_extra():
+    # The credits have no heading: their first line is judged as any.
+    aligned = _aligned([P1, P2], f"take two {P1} {P2}")
+    _tokens, extras = cov.align_tokens(aligned)
+    assert (cov.compute_coverage(aligned).extra_tokens, extras) == (2, ((0, 2),))
+
+
+def test_words_said_after_the_first_line_of_a_chapter_with_a_heading_are_still_extra():
+    aligned = _aligned([P1, P2], f"chapter twelve {P1} take two {P2}", heading="chapter twelve")
+    _tokens, extras = cov.align_tokens(aligned)
+    assert (cov.compute_coverage(aligned).extra_tokens, [aligned.audio_tokens[a:b] for a, b in extras]) == (2, [("take", "two")])
+
+
 def test_a_phrase_said_twice_is_a_repeat_of_the_chapter_text_it_says_again():
     # Issue #2251 item 30: the narrator says "golf hotel india" twice. The second copy is chapter text
     # the narrator just read, so the extra run is a repeat of doc tokens 6 to 8 (a second take), not

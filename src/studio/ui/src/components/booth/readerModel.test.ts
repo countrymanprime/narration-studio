@@ -19,8 +19,8 @@ import {
 } from './readerModel';
 import type { GuideEntity, ManuscriptNote, ManuscriptParagraph, TeleprompterPosition, TeleprompterScript, TeleprompterState } from '../../types';
 
-// The sidecar's title span counts the title's own words only - "CHAPTER
-// ONE" is 2 tokens; the subtitle is never part of what the span tracks.
+// The sidecar's title span here counts the title's own words only - "CHAPTER
+// ONE" is 2 tokens, as for a script from before the subtitle joined the span (#2251 item 7).
 const script: TeleprompterScript = {
   type: 'script',
   chapter: { id: 'c1', title: 'CHAPTER ONE' },
@@ -127,6 +127,28 @@ describe('buildRows', () => {
     const rows = buildRows(script, { title: 'CHAPTER ONE', subtitle: 'Down the Rabbit-Hole' }, [paragraphs[1]]);
 
     expect(rows.map((row) => row.key)).toEqual(['c1', 'p2']);
+  });
+
+  it('tracks the title when the span counts the title and the subtitle, and keeps the subtitle as its own line', () => {
+    // chapter_script.py puts the subtitle in the title span: the heading is read as one line, and reading it is optional.
+    const headed: TeleprompterScript = {
+      ...script,
+      spans: [{ ...script.spans[0], count: 5 }, ...script.spans.slice(1).map((s) => ({ ...s, start: s.start + 3 }))],
+    };
+    const rows = buildRows(headed, { title: 'CHAPTER ONE', subtitle: 'Down the Rabbit-Hole' }, paragraphs);
+
+    expect(rows.map((row) => [row.kind, row.start, row.words?.length])).toEqual([
+      ['title', 0, 2],
+      ['paragraph', 5, 4],
+      ['paragraph', 9, 2],
+    ]);
+    expect(rows[0].subtitle).toBe('Down the Rabbit-Hole');
+  });
+
+  it('shows the title as plain text when the span counts neither the title nor the title and subtitle', () => {
+    const odd: TeleprompterScript = { ...script, spans: [{ ...script.spans[0], count: 4 }, ...script.spans.slice(1)] };
+
+    expect(buildRows(odd, { title: 'CHAPTER ONE', subtitle: 'Down the Rabbit-Hole' }, paragraphs)[0].words).toBeNull();
   });
 
   it('tracks a title whose own word count matches the span, subtitle or none', () => {

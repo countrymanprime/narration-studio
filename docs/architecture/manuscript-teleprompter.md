@@ -224,7 +224,10 @@ Compare forgives, plus the tracker's own 0.8 spelling tolerance on the run, and
 a word the engine split across a matched neighbour); no hesitation as an
 extra, no single dropped article as a skip, no re-read under three words as a
 restart, and no gap whose words start inside the audio of the word before
-them (the engine confirmed the same audio twice). A seek is never flagged.
+them (the engine confirmed the same audio twice); and nothing in the chapter
+heading (the title and subtitle the script opens with) or between it and the
+chapter's first word, because reading the heading is optional and narrators say
+it their own way ("Chapter Twelve" for "Chapter 12:"). A seek is never flagged.
 
 The Go host relays flags like any other event and keeps none in its snapshot:
 `internal/liveflags` persists each flag as a suspected finding (`transcript_discrepancy`,
@@ -577,7 +580,8 @@ the exact commit ported from. The LocalAgreement policy added later comes from
 - Script tracker placement and source: decided. The sidecar hosts it and reads
   the script from a chapter of the project's canonical `manuscript.json`
   (`--manuscript FILE --chapter ID_OR_TITLE`, narration chapters only): the
-  chapter title, then each paragraph, split on whitespace. A one-off `script`
+  chapter heading (the title, then the subtitle, as one `title` span), then each
+  paragraph, split on whitespace. A one-off `script`
   event first carries the token count and each paragraph's span, and with
   Moonshine the chapter text is also used as biasing context. `--script FILE`
   remains for plain text; named with `--script-id ID --script-title TITLE` it
