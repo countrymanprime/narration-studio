@@ -533,7 +533,7 @@ export function EditingBody(props: EditingBodyProps) {
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
       {chapterLink.dialog}
       <div className="min-h-0 flex-1 px-4 pb-3 [&>div]:h-full">
-        <DrawerLayout open={drawerOpen} drawer={drawer}>
+        <DrawerLayout open={drawerOpen} onClose={closeDrawer} drawer={drawer}>
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
             <NoAudioBanner
               audio={read.audio}
