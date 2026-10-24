@@ -1,7 +1,8 @@
 // Package liveflags turns the read-aloud session's suspected flags (the teleprompter sidecar's `flag` events)
 // into shared findings (docs/architecture/findings-contract.md) once a session ends. A flag is only ever
-// suspected: live recognition is not proof, so a finding carries no confidence score and says why, and Transcript
-// Compare over the recorded take stays authoritative. The UI names each flag's words by paragraph and word; the
+// suspected: live recognition is not proof, so a finding carries no recogniser score and says why, and Transcript
+// Compare over the recorded take stays authoritative. A misread alone is scored, by how alike the script's words and the
+// heard words are in letters and sound (internal/soundalike, issue #2251 item 27). The UI names each flag's words by paragraph and word; the
 // manuscript text is read here, so the expected text, the character span and the id come from the manuscript, never
 // from the caller.
 package liveflags
@@ -17,6 +18,7 @@ import (
 	"unicode/utf16"
 
 	"desktop/internal/findings"
+	"desktop/internal/soundalike"
 )
 
 // AnalyzerName is the findings analyzer (and sidecar folder) live flags are stored under.
@@ -31,6 +33,10 @@ const (
 
 const confidenceReason = "Suspected from live speech recognition while reading aloud: the engine can mishear a correct read, so " +
 	"this has no score and is not proof. Transcript Compare over the recorded take is authoritative."
+
+// misreadReason is a live misread's: suspected like any flag, and scored by sound alone (soundalike.Reason follows it).
+const misreadReason = "Suspected from live speech recognition while reading aloud: the engine can mishear a correct read, so " +
+	"this is not proof. Transcript Compare over the recorded take is authoritative."
 
 // Flag is one flag as the read-aloud dialog sends it. WordStart and WordEnd are the flag's words within the paragraph,
 // [WordStart, WordEnd), counted the way the reader splits the text (runs of non-whitespace). An extra covers exactly the one
@@ -156,6 +162,12 @@ func toFinding(chapter Chapter, paragraphs map[string]Paragraph, project finding
 		End:         utf16Length(paragraph.Text[:endByte]),
 		Ordinal:     ordinal,
 	}
+	var confidence *float64
+	reason := confidenceReason
+	if flag.Kind == "misread" && strings.TrimSpace(flag.Heard) != "" {
+		score := soundalike.MisreadConfidence(flagged, flag.Heard)
+		confidence, reason = &score, misreadReason+" "+soundalike.Reason(flagged, flag.Heard)
+	}
 	return findings.Finding{
 		SchemaVersion: findings.SchemaVersion,
 		ID:            findings.StableID(AnalyzerName, chapter.ID, paragraph.ID, flag.Kind, flagged, strconv.Itoa(ordinal)),
@@ -167,7 +179,8 @@ func toFinding(chapter Chapter, paragraphs map[string]Paragraph, project finding
 		},
 		Category:         rule.category,
 		Severity:         rule.severity,
-		ConfidenceReason: confidenceReason,
+		Confidence:       confidence,
+		ConfidenceReason: reason,
 		EvidenceVersion:  EvidenceVersion(flag.Heard),
 		Evidence:         evidence,
 		Review:           findings.ReviewState{Status: findings.StatusUnreviewed},

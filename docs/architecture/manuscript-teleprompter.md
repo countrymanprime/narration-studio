@@ -228,7 +228,8 @@ them (the engine confirmed the same audio twice). A seek is never flagged.
 
 The Go host relays flags like any other event and keeps none in its snapshot:
 `internal/liveflags` persists each flag as a suspected finding (`transcript_discrepancy`,
-or `pickup` for a restart) when the session ends ([`docs/architecture/findings-contract.md`](findings-contract.md)), and that store, not the snapshot, is what a view
+or `pickup` for a restart) when the session ends. Only a misread has a confidence: how
+alike the script's and the heard words sound (`internal/soundalike`, as for Transcript Compare) ([`docs/architecture/findings-contract.md`](findings-contract.md)), and that store, not the snapshot, is what a view
 opened mid-session reads. `replay.py` replays a Moonshine probe recording or a
 printed `live_asr.py` session (`--stream`) and reports flags per 100 heard
 words by kind, which on a clean read is the false-flag rate. Nothing confirms a

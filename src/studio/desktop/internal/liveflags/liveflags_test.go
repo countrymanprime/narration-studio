@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"desktop/internal/findings"
+	"desktop/internal/soundalike"
 )
 
 // "Alice 😀 was beginning to get very tired": the emoji is two UTF-16 code units, so an offset after it is where the
@@ -44,11 +45,13 @@ func TestAMisreadIsASuspectedTranscriptDiscrepancyOnTheManuscriptWords(t *testin
 	if f.Analyzer != AnalyzerName || f.Category != findings.CategoryTranscriptDiscrepancy || f.Review.Status != findings.StatusUnreviewed {
 		t.Fatalf("analyzer/category/status = %s/%s/%s", f.Analyzer, f.Category, f.Review.Status)
 	}
-	if f.Confidence != nil {
-		t.Fatal("a live flag has no score to give; confidence must be null, not fabricated")
+	// Changed by #2251 item 27: this was null. The recogniser gives no score, but how alike the script word and the heard
+	// word are is measured, so a live misread is scored by that alone and still says it is only suspected.
+	if want := soundalike.MisreadConfidence("beginning", "begging"); f.Confidence == nil || *f.Confidence != want {
+		t.Fatalf("a live misread is scored by sound: confidence = %v, want %v", f.Confidence, want)
 	}
-	if !strings.Contains(f.ConfidenceReason, "uspected") || !strings.Contains(f.ConfidenceReason, "Transcript Compare") {
-		t.Fatalf("confidence_reason %q must say it is suspected and that Transcript Compare is authoritative", f.ConfidenceReason)
+	if !strings.Contains(f.ConfidenceReason, "uspected") || !strings.Contains(f.ConfidenceReason, "Transcript Compare") || !strings.Contains(f.ConfidenceReason, "letters and sound") {
+		t.Fatalf("confidence_reason %q must say it is suspected, scored by sound, and that Transcript Compare is authoritative", f.ConfidenceReason)
 	}
 	m := f.Manuscript
 	if m.ChapterID != "ch-1" || m.ChapterTitle != "Down the Rabbit-Hole" || m.Expected != "beginning" || m.Recorded != "begging" {
@@ -154,5 +157,26 @@ func TestAChapterIdThatIsNotAFileNameStillGetsASafeScope(t *testing.T) {
 	}
 	if unsafe != Scope("../Chapter One") {
 		t.Fatal("the fallback scope must be deterministic")
+	}
+}
+
+func TestOnlyALiveMisreadHasAScore(t *testing.T) {
+	for _, flag := range []Flag{
+		{Kind: "skipped", ParagraphID: "p-1", WordStart: 3, WordEnd: 4},
+		{Kind: "extra", ParagraphID: "p-1", WordStart: 3, WordEnd: 4, Heard: "um well"},
+		{Kind: "restart", ParagraphID: "p-1", WordStart: 3, WordEnd: 5, Heard: "beginning to"},
+	} {
+		if f := only(t, flag); f.Confidence != nil {
+			t.Errorf("%s: confidence = %v, want null (nothing measures it)", flag.Kind, *f.Confidence)
+		}
+	}
+}
+
+func TestALiveMisreadOfANearMatchIsLowConfidence(t *testing.T) {
+	// #2251 item 27: one letter of the word, and the two sound alike.
+	near := only(t, Flag{Kind: "misread", ParagraphID: "p-2", WordStart: 8, WordEnd: 9, Heard: "boot"})
+	far := only(t, Flag{Kind: "misread", ParagraphID: "p-2", WordStart: 8, WordEnd: 9, Heard: "ledger"})
+	if *near.Confidence >= 0.35 || *far.Confidence < 0.5 {
+		t.Fatalf("book heard as boot = %v, as ledger = %v", *near.Confidence, *far.Confidence)
 	}
 }

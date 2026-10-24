@@ -71,7 +71,8 @@ export type TeleprompterFlagFinding = {
   };
   category: 'transcript_discrepancy' | 'pickup';
   severity: 'info' | 'warning' | 'error';
-  confidence: null;
+  /** Null but for a misread, which the host scores 0 to 1 by how alike the script's and the heard words sound (internal/soundalike). */
+  confidence: number | null;
   evidence_version?: string;
   confidence_reason: string;
   evidence: { kind: TeleprompterFlagKind; heard: string; suspected: true; script_words: [number, number]; before?: string };

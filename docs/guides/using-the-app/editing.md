@@ -26,7 +26,9 @@ without the colour:
 
 - **Not in the script** (Extra): words heard that the script does not have, in italics on a red tint with a red bar at their left;
 - **In the script, not read** (Not read): words of the script nothing was heard for, in muted text inside a dashed red box;
-- **Misread**: a word heard differently, with a wavy red underline and what was heard on hover;
+- **Misread**: a word heard differently, with a wavy red underline and what was heard on hover. Its card's **Confidence** is how likely
+  it is a real misread: a word heard as one that sounds like it ("MBA" as "NBA") scores low, because the recogniser may have
+  misheard a correct read, and a word heard as something unlike it scores high;
 - **Low confidence**: a word the recogniser was unsure of, with a thin amber underline.
 
 Red means the words are wrong, amber means the recording or the recogniser is in doubt. The same colours mark the matching

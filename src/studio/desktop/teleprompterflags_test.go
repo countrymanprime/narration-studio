@@ -58,9 +58,12 @@ func TestTeleprompterSaveFlagsWritesSuspectedUnreviewedFindings(t *testing.T) {
 	if saved[0].Category != findings.CategoryTranscriptDiscrepancy || saved[2].Category != findings.CategoryPickup {
 		t.Fatalf("categories = %s, %s", saved[0].Category, saved[2].Category)
 	}
-	for _, f := range saved {
-		if f.Review.Status != findings.StatusUnreviewed || f.Confidence != nil {
-			t.Fatalf("%s: status %s confidence %v; a live flag is unreviewed and unscored", f.ID, f.Review.Status, f.Confidence)
+	// Changed by #2251 item 27: a live misread is scored by how alike the script word and the heard word sound; the
+	// other kinds stay unscored.
+	for i, f := range saved {
+		scored := sessionFlags[i].Kind == "misread"
+		if f.Review.Status != findings.StatusUnreviewed || (f.Confidence != nil) != scored {
+			t.Fatalf("%s: status %s confidence %v; a live flag is unreviewed, and only a misread is scored", f.ID, f.Review.Status, f.Confidence)
 		}
 	}
 	file := filepath.Join(project, brand.ProjectFolder, "findings", "teleprompter", "ch-1.json")
