@@ -27,6 +27,7 @@ if str(CORE) not in sys.path:
 
 import compare
 import coverage_mode as mode
+import go_coverage
 from narration_common import brand
 
 TITLE = "Chapter One"
@@ -120,6 +121,23 @@ def _lines(out_path):
         tag, payload = line.split("|", 1)
         tagged.setdefault(tag, []).append(json.loads(payload))
     return tagged
+
+
+def _results(args, words_report=True):
+    """What the host does once the sidecar exits: align the chapter to the words (from the sidecar's report at `args.out`, or
+    align-only with `words_report=False`) and write the results file. Returns its tagged lines."""
+    out = _results_path(args)
+    params = go_coverage.AlignmentParams(8 if args.max_misread_run is None else args.max_misread_run, 3 if args.min_anchor_run is None else args.min_anchor_run)
+    report = Path(args.out) if words_report else None
+    checked_by = getattr(args, "checked_by", None)
+    go_coverage.results(
+        Path(args.manifest), Path(args.words_dir), Path(args.manuscript), args.chapter_id, out, args.model, params, args.language, report, checked_by
+    )
+    return _lines(out)
+
+
+def _results_path(args):
+    return Path(args.out).with_name(Path(args.out).stem + ".results.txt")
 
 
 class _Recorder:
@@ -298,7 +316,7 @@ def test_cached_words_give_the_report_with_no_transcription(tmp_path, cached_pro
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    lines = _lines(args.out)
+    lines = _results(args)
     (summary,) = lines["COVERAGE"]
     p3_tokens = len(P3.split())
     body = len(P1.split()) + len(P2.split()) + p3_tokens
@@ -336,8 +354,10 @@ def test_cached_words_give_the_report_with_no_transcription(tmp_path, cached_pro
         "after": None,
     }
     assert progress.lines[0][0] == "START"
-    assert [stage for stage, _pct, _msg in progress.lines[-3:]] == ["ALIGN", "WRITE", "DONE"]
+    assert [stage for stage, _pct, _msg in progress.lines[-2:]] == ["WRITE", "DONE"]  # the host aligns: the sidecar has no ALIGN stage
     assert progress.lines[-1][1] == 100
+    report = _lines(args.out)  # the sidecar's own words report: every playing item, nothing doubted
+    assert report == {"COVERAGE_WORDS": [{"index": 0, "itemGuid": "{A}", "words": "reused"}, {"index": 2, "itemGuid": "{B}", "words": "reused"}]}
 
 
 def test_a_skip_names_the_item_and_source_time_where_the_text_is_missing(tmp_path, progress):
@@ -350,7 +370,7 @@ def test_a_skip_names_the_item_and_source_time_where_the_text_is_missing(tmp_pat
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    (region,) = _lines(args.out)["COVERAGE_REGION"]
+    (region,) = _results(args)["COVERAGE_REGION"]
     assert (region["kind"], region["paragraphIds"], region["firstWord"], region["lastWord"]) == ("skip", ["p-000002"], "Once", "reading.")
     # The skipped text sits where the next read word ("So", the first word of item 1) starts.
     assert region["position"] == {"itemIndex": 1, "itemGuid": "{B}", "sourceTime": 2.0}
@@ -368,7 +388,7 @@ def test_a_skip_inside_one_item_is_bounded_by_the_words_read_on_either_side(tmp_
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    (region,) = _lines(args.out)["COVERAGE_REGION"]
+    (region,) = _results(args)["COVERAGE_REGION"]
     p1 = len(P1.split())
     assert (region["kind"], region["paragraphIds"]) == ("skip", ["p-000002"])
     # "before" is where "bank." ends, "after" where "So" starts: source seconds of item 0.
@@ -384,7 +404,7 @@ def test_a_head_has_no_bound_before_it_even_after_the_title_was_read(tmp_path, p
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    (region,) = _lines(args.out)["COVERAGE_REGION"]
+    (region,) = _results(args)["COVERAGE_REGION"]
     heading = len(f"{TITLE} {SUBTITLE}".split())
     assert (region["kind"], region["before"]) == ("head", None)
     assert region["after"] == {"itemIndex": 0, "itemGuid": "{A}", "sourceTime": round(heading * WORD_SECONDS, 3)}
@@ -397,7 +417,7 @@ def test_a_head_with_no_audio_at_all_has_no_position(tmp_path, progress):
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    lines = _lines(args.out)
+    lines = _results(args)
     assert lines["COVERAGE"][0]["presentTokens"] == 0
     assert lines["COVERAGE"][0]["items"]["analyzed"] == 0
     regions = [(region["kind"], region["position"], region["before"], region["after"]) for region in lines["COVERAGE_REGION"]]
@@ -420,9 +440,9 @@ def test_a_missing_words_file_is_transcribed_once_and_written(tmp_path, cached_p
 
     assert calls == [2]
     assert mode.read_words_file(tmp_path / "words" / "item-2.json").words == _timed(P2, 0.0)
-    summary = _lines(args.out)["COVERAGE"][0]
+    summary = _results(args)["COVERAGE"][0]
     assert (summary["items"]["transcribed"], summary["items"]["reused"]) == (1, 1)
-    items = {line["index"]: line["words"] for line in _lines(args.out)["COVERAGE_ITEM"]}
+    items = {line["index"]: line["words"] for line in _results(args)["COVERAGE_ITEM"]}
     assert items == {0: "reused", 1: None, 2: "transcribed"}
     transcribe_pcts = [pct for stage, pct, _msg in progress.lines if stage == "TRANSCRIBE"]
     assert transcribe_pcts == sorted(transcribe_pcts)
@@ -468,7 +488,7 @@ def test_words_covering_a_wider_range_are_sliced_and_a_narrower_range_is_transcr
     mode.run(args, compare, transcriber=transcriber)
 
     assert calls == [1]
-    lines = _lines(args.out)
+    lines = _results(args)
     assert [line["wordCount"] for line in lines["COVERAGE_ITEM"]] == [len(P1.split()), len(P3.split())]
     assert [region["kind"] for region in lines["COVERAGE_REGION"]] == ["skip"]
 
@@ -489,7 +509,7 @@ def test_two_items_sharing_a_words_file_are_transcribed_once(tmp_path, progress)
     mode.run(args, compare, transcriber=transcriber)
 
     assert calls == [0]
-    assert [line["words"] for line in _lines(args.out)["COVERAGE_ITEM"]] == ["transcribed", "reused"]
+    assert [line["words"] for line in _results(args)["COVERAGE_ITEM"]] == ["transcribed", "reused"]
 
 
 def test_cancel_mid_run_keeps_the_finished_words_files_and_writes_no_results(tmp_path, progress):
@@ -514,7 +534,7 @@ def test_cancel_mid_run_keeps_the_finished_words_files_and_writes_no_results(tmp
     assert not Path(args.out).exists()
 
 
-def test_a_stale_results_file_is_removed_before_the_run(tmp_path, progress):
+def test_a_stale_words_report_is_removed_before_the_run_and_an_unknown_chapter_is_refused(tmp_path, progress):
     manuscript = _project(tmp_path)
     manifest = _write_manifest(tmp_path / "m.json", [_item(0, "{A}")])
     args = _args(tmp_path, manuscript, manifest, chapter_id="c-9999")
@@ -527,12 +547,13 @@ def test_a_stale_results_file_is_removed_before_the_run(tmp_path, progress):
     assert not Path(args.out).exists()
 
 
-def test_invalid_alignment_parameters_are_refused(tmp_path, progress):
-    manuscript = _project(tmp_path)
-    manifest = _write_manifest(tmp_path / "m.json", [_item(0, "{A}")])
+def test_invalid_alignment_parameters_are_refused(tmp_path, cached_project, progress):
+    manuscript, manifest = cached_project
+    args = _args(tmp_path, manuscript, manifest, min_anchor_run=0)
+    mode.run(args, compare, transcriber=_never_transcribe)
 
-    with pytest.raises(ValueError, match="min_anchor_run"):
-        mode.run(_args(tmp_path, manuscript, manifest, min_anchor_run=0), compare, transcriber=_never_transcribe)
+    with pytest.raises(go_coverage.AlignError, match="min_anchor_run"):
+        _results(args)
 
 
 def test_alignment_parameters_are_used_and_reported(tmp_path, cached_project, progress):
@@ -541,7 +562,7 @@ def test_alignment_parameters_are_used_and_reported(tmp_path, cached_project, pr
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    assert _lines(args.out)["COVERAGE"][0]["alignment"] == {"maxMisreadRun": 2, "minAnchorRun": 4}
+    assert _results(args)["COVERAGE"][0]["alignment"] == {"maxMisreadRun": 2, "minAnchorRun": 4}
 
 
 def test_a_subtitle_that_is_not_in_the_manuscript_is_not_extra_when_read_before_the_first_line(tmp_path, cached_project, progress):
@@ -553,7 +574,7 @@ def test_a_subtitle_that_is_not_in_the_manuscript_is_not_extra_when_read_before_
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    assert _lines(args.out)["COVERAGE"][0]["extraTokens"] == 0
+    assert _results(args)["COVERAGE"][0]["extraTokens"] == 0
 
 
 def test_project_equivalences_are_used_and_their_hash_reported(tmp_path, progress):
@@ -568,7 +589,7 @@ def test_project_equivalences_are_used_and_their_hash_reported(tmp_path, progres
 
     mode.run(args, compare, transcriber=_never_transcribe)
 
-    summary = _lines(args.out)["COVERAGE"][0]
+    summary = _results(args)["COVERAGE"][0]
     assert summary["missingTokens"] == 0
     assert summary["extraTokens"] == 0
     assert summary["analysis"]["equivalencesHash"].startswith("sha256:")
@@ -583,7 +604,7 @@ def test_a_run_with_every_item_cached_never_loads_a_model(tmp_path, cached_proje
 
     mode.run(args, compare)  # the real transcriber: loading a model here would fail, there is none
 
-    assert _lines(args.out)["COVERAGE"][0]["items"]["reused"] == 2
+    assert _results(args)["COVERAGE"][0]["items"]["reused"] == 2
     assert not any(stage == "LOAD" for stage, _pct, _msg in progress.lines)
 
 
@@ -596,6 +617,9 @@ def test_the_same_inputs_give_the_same_bytes(tmp_path, cached_project, progress)
     mode.run(second, compare, transcriber=_never_transcribe)
 
     assert Path(first.out).read_bytes() == Path(second.out).read_bytes()
+    _results(first)
+    _results(second)
+    assert _results_path(first).read_bytes() == _results_path(second).read_bytes()
 
 
 # ---------------------------------------------------------------------------
@@ -696,10 +720,11 @@ def _cli(tmp_path, manuscript, manifest, *extra):
 def test_the_cli_writes_the_report_and_exits_0(tmp_path, cached_project):
     manuscript, manifest = cached_project
 
-    completed, args = _cli(tmp_path, manuscript, manifest, "--min-anchor-run", "3")
+    completed, args = _cli(tmp_path, manuscript, manifest)
 
     assert completed.returncode == 0, completed.stderr
-    assert set(_lines(args.out)) == {"COVERAGE", "COVERAGE_ITEM", "COVERAGE_PARAGRAPH", "COVERAGE_REGION", "COVERAGE_TOKEN"}
+    assert set(_lines(args.out)) == {"COVERAGE_WORDS"}
+    assert set(_results(args)) == {"COVERAGE", "COVERAGE_ITEM", "COVERAGE_PARAGRAPH", "COVERAGE_REGION", "COVERAGE_TOKEN"}
     assert Path(args.progress).read_text(encoding="utf-8").startswith("DONE|100|")
 
 

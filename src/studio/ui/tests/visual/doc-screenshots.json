@@ -1187,7 +1187,14 @@
     "state": "levels-menu-preroll",
     "viewport": "desktop",
     "docName": "booth-levels-menu-preroll",
-    "caption": "Booth - the Levels menu: REAPER's own pre-roll, read from REAPER, and where to change it"
+    "caption": "Booth - the Levels menu: REAPER's own pre-roll in one line, read from REAPER"
+  },
+  {
+    "page": "booth",
+    "state": "levels-menu-preroll-about",
+    "viewport": "desktop",
+    "docName": "booth-levels-menu-preroll-about",
+    "caption": "Booth - the pre-roll's info note: what REAPER's pre-roll does and where to change it"
   },
   {
     "page": "booth",

@@ -3,6 +3,7 @@ passages Whisper was not sure of (`COVERAGE_UNSURE`), the splice of a re-check's
 choice between the plain and the chunked transcriber. No Whisper model is needed."""
 
 import json
+import os
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -16,7 +17,7 @@ if str(CORE) not in sys.path:
 import compare
 import coverage_chunks
 import coverage_mode as mode
-from test_coverage_mode import P1, SUBTITLE, TITLE, _args, _item, _lines, _project, _words_file, _write_manifest
+from test_coverage_mode import P1, P2, SUBTITLE, TITLE, _args, _item, _lines, _project, _timed, _words_file, _write_manifest
 
 
 def _words(texts, scores, start=0.0):
@@ -164,3 +165,32 @@ class TestTranscriberChoice:
     def test_workers_without_a_chunk_length_get_the_default_chunks_to_share(self, engine):
         transcriber = mode._default_transcriber(engine, self._args(parallel_workers=3))
         assert transcriber._chunk_seconds == coverage_chunks.DEFAULT_CHUNK_SECONDS
+
+
+WORDS_REPORT_GOLDEN = Path(__file__).resolve().parent / "fixtures" / "coverage-words-report.golden.txt"
+
+
+def test_the_words_report_matches_the_golden_file_the_host_reads(tmp_path, monkeypatch):
+    # The sidecar-to-host contract of a check (src/studio/desktop/internal/recordingcoverage's ReadWordsReport reads this file in
+    # inputs_test.go): one COVERAGE_WORDS line per playing item, reused or transcribed, then the doubted passages. Regenerate with
+    # UPDATE_CONTRACTS=1 only for an intended change to the report, and update the Go reader with it.
+    manuscript = _project(tmp_path)
+    words_dir = tmp_path / "words"
+    words_dir.mkdir()
+    plain = _words_file(words_dir / "item-0.json", f"{TITLE} {SUBTITLE} {P1}", 10.0, 20.0)
+    scores = tuple(0.2 if n in (3, 4) else 0.95 for n in range(len(plain.words)))
+    mode.write_words_file(words_dir / "item-0.json", mode.ItemWords(plain.words, 10.0, 20.0, "small", "en", None, scores=scores))
+    manifest = _write_manifest(tmp_path / "manifest.json", [_item(0, "{A}", "a.wav", 10.0, 10.0), _item(1, "{M}", muted=True), _item(2, "{B}", length=6.0)])
+    monkeypatch.setattr(compare, "write_progress", lambda *a, **k: None)
+
+    def transcriber(item, on_seconds):
+        return mode.ItemWords(_timed(P2, item.start_offset), item.start_offset, item.end, "small", "en", None)
+
+    args = _args(tmp_path, manuscript, manifest, unsure_below=0.6)
+    mode.run(args, compare, transcriber=transcriber)
+    report = Path(args.out).read_text(encoding="utf-8")
+
+    if os.environ.get("UPDATE_CONTRACTS"):
+        WORDS_REPORT_GOLDEN.write_text(report, encoding="utf-8", newline="\n")
+    assert report == WORDS_REPORT_GOLDEN.read_text(encoding="utf-8")
+    assert [line.split("|", 1)[0] for line in report.splitlines()] == ["COVERAGE_WORDS", "COVERAGE_WORDS", "COVERAGE_UNSURE"]

@@ -1,10 +1,10 @@
-"""The coverage mode's word alignment.
+"""The recording check's word alignment, through the sidecar and the host.
 
-Beside its measurements, `compare.py --coverage` writes one `COVERAGE_TOKEN` line per chapter token
-(the manuscript word it came from, its status as the check judged it, and where it was heard in its
-item's source) and one `COVERAGE_EXTRA` line per run of heard words the chapter does not account
-for. The flags must equal the check: a token's status is the status the check counted. Align-only
-(`--align-only`) re-aligns from cached words and never transcribes."""
+Beside its measurements, the host's results (`src/studio/desktop/internal/recordingcoverage`) carry one `COVERAGE_TOKEN` line per
+chapter token (the manuscript word it came from, its status as the check judged it, and where it was heard in its item's source) and
+one `COVERAGE_EXTRA` line per run of heard words the chapter does not account for. The flags must equal the check: a token's status
+is the status the check counted. Each test runs the sidecar's coverage mode, which writes the words report, then the host's aligner
+over it (`go_coverage.py`); an align-only re-run is the host's alone and never transcribes."""
 
 import json
 import subprocess
@@ -12,6 +12,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+import go_coverage
 import pytest
 import test_coverage_mode as base
 from test_coverage_mode import (
@@ -23,9 +24,10 @@ from test_coverage_mode import (
     WORD_SECONDS,
     _args,
     _item,
-    _lines,
     _never_transcribe,
     _project,
+    _results,
+    _results_path,
     _words_file,
     _write_manifest,
     compare,
@@ -35,13 +37,12 @@ from test_coverage_mode import (
 # The coverage mode tests' fixtures, shared rather than copied.
 cached_project = base.cached_project
 progress = base.progress
-coverage_model = mode.coverage_model  # core/recording_coverage.py, on the path test_coverage_mode sets
 
 
 def _run(tmp_path, manuscript, manifest, **overrides):
     args = _args(tmp_path, manuscript, manifest, **overrides)
     mode.run(args, compare, _never_transcribe)
-    return _lines(args.out)
+    return _results(args)
 
 
 def _paragraph_words(manuscript):
@@ -178,13 +179,13 @@ def test_the_measurement_lines_are_unchanged_by_the_alignment_lines(tmp_path, ca
     # Additive (docs/utilities/recording-coverage.md's tagged lines): the lines the host already reads come first, at the same
     # schema version, and the new tags come after them.
     manuscript, manifest = cached_project
-    out = Path(_args(tmp_path, manuscript, manifest).out)
-    _run(tmp_path, manuscript, manifest)
+    lines = _run(tmp_path, manuscript, manifest)
+    out = _results_path(_args(tmp_path, manuscript, manifest))
     tags = [line.split("|", 1)[0] for line in out.read_text(encoding="utf-8").splitlines()]
     first_new = tags.index("COVERAGE_TOKEN")
     assert set(tags[:first_new]) == {"COVERAGE", "COVERAGE_ITEM", "COVERAGE_PARAGRAPH", "COVERAGE_REGION"}
     assert set(tags[first_new:]) <= {"COVERAGE_TOKEN", "COVERAGE_EXTRA"}
-    assert _lines(out)["COVERAGE"][0]["schemaVersion"] == mode.RESULT_SCHEMA_VERSION == 1
+    assert lines["COVERAGE"][0]["schemaVersion"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +193,7 @@ def test_the_measurement_lines_are_unchanged_by_the_alignment_lines(tmp_path, ca
 
 
 def test_token_statuses_are_the_checks_statuses():
-    aligned = coverage_model.AlignedChapter(
+    aligned = go_coverage.AlignedChapter(
         doc_tokens=("a", "b", "c", "d", "e", "f", "g", "h"),
         doc_words=("A", "B", "C", "D", "E", "F", "G", "H"),
         token_paragraph=(0,) * 8,
@@ -200,84 +201,43 @@ def test_token_statuses_are_the_checks_statuses():
         audio_tokens=("a", "b", "c", "x", "e", "f", "g", "h", "z"),
         opcodes=(("equal", 0, 3, 0, 3), ("replace", 3, 4, 3, 4), ("equal", 4, 8, 4, 8), ("insert", 8, 8, 8, 9)),
     )
-    params = coverage_model.AlignmentParams()
-    tokens, extras = coverage_model.align_tokens(aligned, params)
-    assert [token.status for token in tokens] == ["read", "read", "read", "misread", "read", "read", "read", "read"]
-    assert [token.audio for token in tokens] == list(range(8))
-    assert extras == ((8, 9),)
-    coverage = coverage_model.compute_coverage(aligned, params)
+    coverage = go_coverage.coverage(aligned)
+    assert [status for status, _audio in coverage.tokens] == ["read", "read", "read", "misread", "read", "read", "read", "read"]
+    assert [audio for _status, audio in coverage.tokens] == list(range(8))
+    assert coverage.extras == ((8, 9),)
     assert coverage.present_tokens == 8
-    assert sum(end - start for start, end in extras) == coverage.extra_tokens
+    assert sum(end - start for start, end in coverage.extras) == coverage.extra_tokens
 
 
 # ---------------------------------------------------------------------------
-# align-only
+# align-only: the host's alone
 
 
 def test_align_only_with_every_item_cached_gives_the_same_report(tmp_path, cached_project, progress):
     manuscript, manifest = cached_project
-    first = _args(tmp_path, manuscript, manifest, out=str(tmp_path / "a.txt"))
-    again = _args(tmp_path, manuscript, manifest, out=str(tmp_path / "b.txt"), align_only=True)
-    mode.run(first, compare, _never_transcribe)
-    mode.run(again, compare)
-    assert Path(first.out).read_bytes() == Path(again.out).read_bytes()
-
-
-def test_align_only_refuses_before_anything_is_decoded_when_an_item_is_not_cached(tmp_path, cached_project, progress):
-    manuscript, manifest = cached_project
-    (tmp_path / "words" / "item-2.json").unlink()
-    args = _args(tmp_path, manuscript, manifest, align_only=True)
-    with pytest.raises(mode.AlignOnlyError, match="item 2"):
-        mode.run(args, compare, _never_transcribe)
-    assert not Path(args.out).exists()
-    assert not any(stage in ("DECODE", "TRANSCRIBE", "LOAD") for stage, _pct, _message in progress.lines)
-
-
-def test_align_only_never_transcribes_even_when_the_cache_changes_mid_run():
-    item = mode.ManifestItem(3, "{C}", "c.wav", 0.0, 1.0, "item-3.json", False)
-    with pytest.raises(mode.AlignOnlyError, match="item 3"):
-        mode._refuse_transcription(item, lambda _seconds: None)
-
-
-def test_a_chapter_whose_words_do_not_match_its_tokens_fails_rather_than_misplacing_them(tmp_path, cached_project, progress, monkeypatch):
-    manuscript, manifest = cached_project
-    monkeypatch.setattr(mode, "_token_words", lambda *_args: [])
     args = _args(tmp_path, manuscript, manifest)
-    with pytest.raises(ValueError, match="could not be matched"):
-        mode.run(args, compare, _never_transcribe)
-    assert not Path(args.out).exists()
+    mode.run(args, compare, _never_transcribe)
+    _results(args)
+    first = _results_path(args).read_bytes()
+    _results(args, words_report=False)
+    assert _results_path(args).read_bytes() == first
 
 
-def test_the_cli_takes_align_only_with_coverage_and_exits_1_when_words_are_missing(tmp_path, cached_project):
+def test_align_only_refuses_when_an_item_is_not_cached(tmp_path, cached_project, progress):
     manuscript, manifest = cached_project
     (tmp_path / "words" / "item-2.json").unlink()
-    out = tmp_path / "out.txt"
-    command = [
-        sys.executable,
-        str(Path(compare.__file__)),
-        "--coverage",
-        "--align-only",
-        "--manuscript",
-        str(manuscript),
-        "--manifest",
-        str(manifest),
-        "--chapter-id",
-        "c-0001",
-        "--words-dir",
-        str(tmp_path / "words"),
-        "--out",
-        str(out),
-        "--progress",
-        str(tmp_path / "progress.txt"),
-    ]
-    result = subprocess.run(command, capture_output=True, text=True, timeout=120, check=False)
-    assert result.returncode == 1, result.stderr
-    assert not out.exists()
-    assert (tmp_path / "progress.txt").read_text(encoding="utf-8").startswith("ERROR|")
+    args = _args(tmp_path, manuscript, manifest)
+    with pytest.raises(go_coverage.AlignError, match="item 2"):
+        _results(args, words_report=False)
+    assert not _results_path(args).exists()
 
 
-def test_the_cli_refuses_align_only_without_coverage(tmp_path):
-    command = [sys.executable, str(Path(compare.__file__)), "--align-only", "--manifest", "m", "--track-name", "t", "--out", "o", "--diff-out", "d"]
+@pytest.mark.parametrize("option", [["--align-only"], ["--max-misread-run", "8"], ["--min-anchor-run", "3"]])
+def test_the_cli_no_longer_takes_the_alignment_options_the_host_owns(tmp_path, cached_project, option):
+    # Changed when the alignment moved to the host: the sidecar only transcribes, so it has no align-only re-run or alignment parameters.
+    manuscript, manifest = cached_project
+    command = [sys.executable, str(Path(compare.__file__)), "--coverage", *option, "--manuscript", str(manuscript), "--manifest", str(manifest)]
+    command += ["--chapter-id", "c-0001", "--words-dir", str(tmp_path / "words"), "--out", str(tmp_path / "out.txt")]
     result = subprocess.run(command, capture_output=True, text=True, timeout=120, check=False)
     assert result.returncode == 2
-    assert "--align-only" in result.stderr
+    assert "unrecognized arguments" in result.stderr and option[0] in result.stderr

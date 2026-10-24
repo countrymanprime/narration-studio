@@ -13,6 +13,7 @@ import argparse
 import importlib.util
 import json
 import tempfile
+import typing
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -560,6 +561,58 @@ class RefreshCuesTests(unittest.TestCase):
                 data = self._refresh(temporary, document, paragraphs)
             cases.append({"line": self.printed, "dialogue_cues": data["dialogue_cues"]})
         contract_files.check("cues-golden", {"cases": cases}, TESTDATA)
+
+
+class SuggestedSpeakerTests(unittest.TestCase):
+    """B3: a speech tag naming a Needs Review name, and a name near the quote (the mock's rule), suggest a speaker. Every automatic
+    speaker is a suggestion until the narrator confirms it; these are only further, lower-confidence ones."""
+
+    ENTITIES: typing.ClassVar[list[dict]] = [
+        {"id": "ada", "canonical_name": "Ada", "category": "Character", "aliases": []},
+        {"id": "wren", "canonical_name": "Wren", "category": "Needs Review", "aliases": [{"text": "Wren Hale"}]},
+        {"id": "spire", "canonical_name": "Dawnspire", "category": "Place", "aliases": []},
+    ]
+
+    def _cues(self, *texts: str) -> list[dict]:
+        paragraphs = _paragraphs(*(("c1", f"p{i}", text) for i, text in enumerate(texts)))
+        return guide.guide_dialogue_cues(paragraphs, self.ENTITIES, guide.SPEAKING_CATEGORIES)
+
+    def _speakers(self, *texts: str) -> list[tuple[str | None, str]]:
+        return [(cue["speaker_entity_id"], cue["speaker_source"]) for cue in self._cues(*texts)]
+
+    def test_a_tag_naming_a_needs_review_name_suggests_it(self):
+        self.assertEqual([("wren", "tag")], self._speakers('"Hello," Wren said.'))
+        self.assertEqual([("wren", "tag")], self._speakers('Wren Hale asked, "Who?"'))
+
+    def test_a_tag_naming_an_entry_that_cannot_speak_still_says_nothing(self):
+        self.assertEqual([(None, "unknown")], self._speakers('"Burn," Dawnspire said.'))
+
+    def test_a_speaking_name_within_seventy_characters_after_the_quote_is_suggested(self):
+        self.assertEqual([("ada", "proximity")], self._speakers('"Over here." Ada waved from the door.'))
+
+    def test_before_the_quote_counts_when_nothing_follows(self):
+        self.assertEqual([("wren", "proximity")], self._speakers('Wren turned to the window. "It is late."'))
+
+    def test_after_wins_over_before(self):
+        self.assertEqual([("ada", "proximity")], self._speakers('Wren looked up. "Late." Ada shrugged.'))
+
+    def test_a_name_beyond_seventy_characters_or_past_the_next_quote_is_not_near(self):
+        far = '"Late." ' + "x" * 70 + " Ada"
+        self.assertEqual([(None, "unknown")], self._speakers(far))
+        self.assertEqual([(None, "unknown"), ("ada", "tag")], self._speakers('"One." "Two," Ada said.'))
+
+    def test_a_name_that_cannot_speak_is_never_near(self):
+        self.assertEqual([(None, "unknown")], self._speakers('"Look." Dawnspire burned on the hill.'))
+
+    def test_a_tag_and_continuation_win_over_proximity(self):
+        speakers = self._speakers('"Go," Ada said.', '"No," Wren said.', '"Yes." Wren frowned.')
+        self.assertEqual([("ada", "tag"), ("wren", "tag"), ("ada", "continuation")], speakers)
+
+    def test_a_proximity_speaker_does_not_start_a_continuation(self):
+        self.assertEqual([("ada", "proximity"), (None, "unknown")], self._speakers('"Hi." Ada nodded.', '"Hello."'))
+
+    def test_without_names_nothing_changes(self):
+        self.assertEqual([(None, "unknown")], self._speakers('"Perhaps," came the reply from across the room.'))
 
 
 if __name__ == "__main__":

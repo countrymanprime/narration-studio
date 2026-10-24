@@ -1,47 +1,39 @@
 """The sidecar's recording-coverage mode: `compare.py --coverage`.
 
-docs/utilities/recording-coverage.md and docs/utilities/recording-coverage.md. For one chapter and the items
-the host lists in a JSON manifest (active takes only, in play order; muted items are listed and
-skipped, Q5 and Q10), this mode:
+docs/utilities/recording-coverage.md. For one chapter and the items the host lists in a JSON
+manifest (active takes only, in play order; muted items are listed and skipped, Q5 and Q10), this
+mode transcribes, and the host does the rest:
 
-1. reuses each item's words file when it covers the item's played range, and otherwise decodes
+1. it reuses each item's words file when it covers the item's played range, and otherwise decodes
    and transcribes that range and writes the words file atomically (temporary file, then rename),
    so a cancelled run keeps every item it finished;
-2. joins the items' words in play order and aligns the chapter to them with the take markers' own
-   alignment (`compare.diff_and_build_markers`), the title and subtitle as optional
-   heading tokens (Q11);
-3. writes the measurements, never a verdict (the narrator's thresholds are applied later, on
-   read, by the host), as tagged lines with one JSON object each: `COVERAGE|` (the chapter),
-   `COVERAGE_ITEM|` (one per manifest item), `COVERAGE_PARAGRAPH|`, `COVERAGE_REGION|` and, with `--unsure-below`, `COVERAGE_UNSURE|` (a passage
-   Whisper was not sure of, which the host may re-check with a larger model); then
-   the word alignment the edit and proof workspace reads: one
-   `COVERAGE_TOKEN|` per chapter token and one `COVERAGE_EXTRA|` per run of words heard that the
-   chapter does not account for, with `repeatOf` set when the run says the chapter text beside it
-   again (a second take, `recording_coverage.repeat_of`). The results file is written atomically, so it exists only when
-   the run finished.
+2. it writes a words report to `--out`, tagged lines with one JSON object each:
+   `COVERAGE_WORDS|` per playing item (`index`, `itemGuid`, and `words`: `reused` or
+   `transcribed`), then, with `--unsure-below`, `COVERAGE_UNSURE|` per passage Whisper was not sure
+   of (which the host may re-check with a larger model) and, for the pipelined cascade,
+   `COVERAGE_RECHECKED|` per item the large model re-checked. The report is written atomically, so
+   it exists only when the run finished.
 
-With `--align-only` the mode never transcribes: it re-aligns from the words files alone and fails
-before decoding anything when an item's words do not cover its played range. A plain check,
-`--align-only` included, refuses to reuse a words file another model made (`covers`), so a model
-change is a re-transcription, never a silent stale reuse.
+The host then aligns the chapter to the words and writes the measurements
+(`src/studio/desktop/internal/recordingcoverage`). A plain check refuses to reuse a words file
+another model made (`covers`), so a model change is a re-transcription, never a silent stale reuse.
 
 `--recheck <windows.json>` is a separate, windows-only mode (`run_recheck`):
 instead of the manifest and chapter above, it takes a checked list of windows, each bounded audio
 in one item's source and the words file to update, transcribes each with `--model` (one model load
 for the run) and splices the result into that words file (`splice_window`), reattributing the
 range's model provenance in a new, additive `spans` list. It touches no manifest, chapter or
-timeline, and writes no results file.
+timeline, and writes no report.
 
-Progress is `stage|pct|message` in the usual file (START, DECODE, LOAD, TRANSCRIBE, ALIGN, WRITE,
-DONE; `--recheck` never reaches ALIGN or WRITE), and TRANSCRIBE moves with the seconds transcribed
-over the seconds that need transcribing. Exit codes, set by `compare.main`: 0 the results
-file is complete (or, for `--recheck`, every window spliced); 1 failed (an `ERROR|0|<message>`
-progress line, no results file); 2 cancelled through `<progress>.cancel` (a `CANCELLED` progress
-line, no results file, finished words files kept). Python's `argparse` also exits with 2 on a usage
-error, with no progress line.
+Progress is `stage|pct|message` in the usual file (START, DECODE, LOAD, TRANSCRIBE, WRITE, DONE;
+`--recheck` never reaches WRITE), and TRANSCRIBE moves with the seconds transcribed over the
+seconds that need transcribing. Exit codes, set by `compare.main`: 0 the words report is complete
+(or, for `--recheck`, every window spliced); 1 failed (an `ERROR|0|<message>` progress line, no
+report); 2 cancelled through `<progress>.cancel` (a `CANCELLED` progress line, no report, finished
+words files kept). Python's `argparse` also exits with 2 on a usage error, with no progress line.
 
 This module does not import `compare.py`: `run` is handed the loaded module as `engine`, so the
-mode uses exactly the tokenizing, decoding and alignment of the process it runs in.
+mode uses exactly the decoding and transcription of the process it runs in.
 """
 
 from __future__ import annotations
@@ -60,16 +52,13 @@ from types import ModuleType
 
 import coverage_chunks
 import coverage_pipeline
-import recording_coverage as coverage_model
 
 MANIFEST_SCHEMA_VERSION = 1
 WORDS_SCHEMA_VERSION = 1
 WINDOWS_SCHEMA_VERSION = 1
-RESULT_SCHEMA_VERSION = 1
 
 TRANSCRIBE_START_PCT = 2
 TRANSCRIBE_END_PCT = 94
-ALIGN_PCT = 95
 WRITE_PCT = 98
 
 RANGE_TOLERANCE_SECONDS = 0.001
@@ -87,10 +76,6 @@ Score = float | None
 
 class ManifestError(ValueError):
     """The manifest is not the shape this mode reads; nothing has been read or written yet."""
-
-
-class AlignOnlyError(ValueError):
-    """Align-only was asked for, but an item's words are not cached for its played range."""
 
 
 class WindowsError(ValueError):
@@ -223,10 +208,6 @@ def read_manifest(path: str | os.PathLike) -> tuple[ManifestItem, ...]:
 
 def text_hash(text: str | None) -> str | None:
     return None if text is None else "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def _file_hash(path: str) -> str:
-    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def _parse_words(data: object) -> ItemWords | None:
@@ -481,11 +462,6 @@ class _ItemResult:
     played: tuple[Word, ...]
 
 
-def _alignment_params(args) -> coverage_model.AlignmentParams:
-    overrides = {name: getattr(args, name) for name in ("max_misread_run", "min_anchor_run") if getattr(args, name, None) is not None}
-    return coverage_model.AlignmentParams(**overrides)
-
-
 def _chapter(engine: ModuleType, manuscript: str, chapter_id: str) -> dict:
     for chapter in engine.load_manuscript_chapters(manuscript):
         if chapter["id"] == chapter_id:
@@ -552,7 +528,6 @@ def _collect_words(items: Sequence[ManifestItem], words_dir: Path, transcriber: 
         finally:
             pool.shutdown(wait=True, cancel_futures=True)
     engine.check_cancelled(args.progress)
-    progress.report("ALIGN", ALIGN_PCT, "Aligning the chapter to the recording...")
     return [results[item.index] for item in items]
 
 
@@ -565,65 +540,6 @@ def _covers_for(words: ItemWords, item: ManifestItem, args) -> bool:
 def _is_covered(words_dir: Path, item: ManifestItem, args) -> bool:
     cached = read_words_file(words_dir / item.words_file)
     return cached is not None and _covers_for(cached, item, args)
-
-
-@dataclass(frozen=True)
-class _Timeline:
-    """The analyzed items' words joined in play order, each item starting where the last one ended."""
-
-    words: list[Word]
-    starts: list[tuple[float, ManifestItem]]  # (joined time the item starts at, item)
-    word_items: list[tuple[float, ManifestItem]]  # per word: (joined time its item starts at, its item)
-
-    def position(self, joined_time: float) -> dict:
-        start, item = self.starts[0]
-        for candidate_start, candidate in self.starts:
-            if candidate_start <= joined_time:
-                start, item = candidate_start, candidate
-        return {"itemIndex": item.index, "itemGuid": item.item_guid, "sourceTime": round(item.start_offset + joined_time - start, 3)}
-
-    def word_edge(self, word_index: int, edge: int) -> dict:
-        """A word's start (`edge` 1) or end (2) in its own item's source: unlike `position`, a word
-        ending exactly where the next item starts stays in its own item."""
-        start, item = self.word_items[word_index]
-        return {"itemIndex": item.index, "itemGuid": item.item_guid, "sourceTime": round(item.start_offset + self.words[word_index][edge] - start, 3)}
-
-
-def _timeline(results: Sequence[_ItemResult]) -> _Timeline:
-    words: list[Word] = []
-    starts: list[tuple[float, ManifestItem]] = []
-    word_items: list[tuple[float, ManifestItem]] = []
-    offset = 0.0
-    for result in results:
-        if result.source is None:
-            continue
-        starts.append((offset, result.item))
-        shift = offset - result.item.start_offset
-        words.extend((text, start + shift, end + shift) for text, start, end in result.played)
-        word_items.extend([(offset, result.item)] * len(result.played))
-        offset += result.item.length
-    return _Timeline(words, starts, word_items)
-
-
-def _region_position(region: coverage_model.Region, alignment: dict, timeline: _Timeline) -> dict | None:
-    """Where the missing text would sit in the audio: the start of the transcript word at the
-    region's audio index, or the end of the last word for a region after everything said."""
-    index_map = alignment["index_map"]
-    if not timeline.words:
-        return None
-    if region.audio_index < len(index_map):
-        return timeline.position(timeline.words[index_map[region.audio_index]][1])
-    return timeline.position(timeline.words[-1][2])
-
-
-def _region_bounds(region: coverage_model.Region, alignment: dict, timeline: _Timeline) -> tuple[dict | None, dict | None]:
-    """Where the missing text is bounded in the audio: the end of the last matched word before the
-    region and the start of the first matched word after it, each in its own item's source seconds,
-    or None where the region has no matched word on that side (a head, a tail, nothing said)."""
-    index_map = alignment["index_map"]
-    before = timeline.word_edge(index_map[region.audio_before], 2) if region.audio_before is not None else None
-    after = timeline.word_edge(index_map[region.audio_after], 1) if region.audio_after is not None else None
-    return before, after
 
 
 def _line(tag: str, payload: dict) -> str:
@@ -683,150 +599,15 @@ def unsure_runs(result: _ItemResult, below: float) -> list[dict]:
     return out
 
 
-def _item_line(result: _ItemResult) -> dict:
-    words = result.words
-    return {
-        "index": result.item.index,
-        "itemGuid": result.item.item_guid,
-        "status": "muted" if result.item.muted else "analyzed",
-        "words": result.source,
-        "playedSeconds": result.item.length,
-        "wordCount": len(result.played),
-        "model": words.model if words else None,
-        "language": words.language if words else None,
-    }
-
-
-def _report(
-    chapter: dict,
-    coverage: coverage_model.ChapterCoverage,
-    results: Sequence[_ItemResult],
-    alignment: dict,
-    timeline: _Timeline,
-    analysis: dict,
-    unsure: Sequence[dict] = (),
-    rechecked: Sequence[dict] = (),
-) -> str:
-    analyzed = [result for result in results if result.source is not None]
-    summary = {
-        "schemaVersion": RESULT_SCHEMA_VERSION,
-        "chapterId": chapter["id"],
-        "bodyTokens": coverage.body_tokens,
-        "presentTokens": coverage.present_tokens,
-        "missingTokens": coverage.missing_tokens,
-        "extraTokens": coverage.extra_tokens,
-        "longestMissingRun": coverage.longest_missing_run,
-        "alignment": {"maxMisreadRun": coverage.params.max_misread_run, "minAnchorRun": coverage.params.min_anchor_run},
-        "items": {
-            "analyzed": len(analyzed),
-            "muted": len(results) - len(analyzed),
-            "playedSeconds": round(sum(result.item.length for result in analyzed), 3),
-            "transcribed": sum(result.source == "transcribed" for result in analyzed),
-            "reused": sum(result.source == "reused" for result in analyzed),
-        },
-        "analysis": analysis,
-    }
-    lines = [_line("COVERAGE", summary)]
-    lines += [_line("COVERAGE_ITEM", _item_line(result)) for result in results]
-    lines += [
-        _line("COVERAGE_PARAGRAPH", {"id": p.id, "tokens": p.tokens, "present": p.present, "longestMissingRun": p.longest_missing_run})
-        for p in coverage.paragraphs
+def _words_report(results: Sequence[_ItemResult], unsure: Sequence[dict], rechecked: Sequence[dict]) -> str:
+    """The words report the host aligns from: per playing item whether its words were reused or transcribed, then the passages
+    Whisper doubted and the ones the pipeline re-checked."""
+    lines = [
+        _line("COVERAGE_WORDS", {"index": result.item.index, "itemGuid": result.item.item_guid, "words": result.source}) for result in results if result.source
     ]
-    for region in coverage.regions:
-        before, after = _region_bounds(region, alignment, timeline)
-        payload = {
-            "kind": region.kind,
-            "paragraphIds": list(region.paragraph_ids),
-            "tokenCount": region.token_count,
-            "firstWord": region.first_word,
-            "lastWord": region.last_word,
-            "position": _region_position(region, alignment, timeline),
-            "before": before,
-            "after": after,
-        }
-        lines.append(_line("COVERAGE_REGION", payload))
     lines += [_line("COVERAGE_UNSURE", passage) for passage in unsure]
     lines += [_line("COVERAGE_RECHECKED", summary) for summary in rechecked]
     return "".join(lines)
-
-
-def _token_words(engine: ModuleType, heading: str, paragraphs: Sequence[str]) -> list[tuple[int, int]]:
-    """Per chapter token, in `build_chapter_units`' order: its paragraph index (HEADING for the
-    title and subtitle) and the ordinal of the whitespace word it came from in that paragraph's
-    text (or the heading's), so a screen finds the word with `text.split()[w]`, never re-tokenizing.
-    A word with no token (a lone dash) still counts; a word with several tokens repeats."""
-    out = [(coverage_model.HEADING, n) for n, raw in enumerate(heading.split()) for _ in engine.tokenize(raw)]
-    counters: dict[int, int] = {}
-    for sentence, paragraph in engine.build_sentence_units(paragraphs):
-        for raw in sentence.split():
-            ordinal = counters.get(paragraph, 0)
-            counters[paragraph] = ordinal + 1
-            out.extend((paragraph, ordinal) for _ in engine.tokenize(raw))
-    return out
-
-
-def _alignment_lines(aligned: coverage_model.AlignedChapter, alignment: dict, timeline: _Timeline, words: Sequence[tuple[int, int]], params) -> list[str]:
-    """The COVERAGE_TOKEN and COVERAGE_EXTRA lines: each token's word, status and where it was heard
-    (item index and source seconds), and each run of extra words with the token it follows."""
-    tokens, extras = coverage_model.align_tokens(aligned, params)
-    index_map = alignment["index_map"]
-    original = alignment["chapter_index_map"]
-    lines = []
-    for i, token in enumerate(tokens):
-        paragraph, ordinal = words[original[i]]
-        payload = {
-            "i": i,
-            "p": None if paragraph == coverage_model.HEADING else aligned.paragraph_ids[paragraph],
-            "w": ordinal,
-            "text": aligned.doc_words[i],
-            "status": token.status,
-            "heard": None,
-            "item": None,
-            "start": None,
-            "end": None,
-        }
-        if token.audio is not None:
-            word = index_map[token.audio]
-            start, end = timeline.word_edge(word, 1), timeline.word_edge(word, 2)
-            payload.update(item=start["itemIndex"], start=start["sourceTime"], end=end["sourceTime"])
-            if token.status == coverage_model.MISREAD:
-                payload["heard"] = timeline.words[word][0]
-        lines.append(_line("COVERAGE_TOKEN", payload))
-    heard_at = [(token.audio, i) for i, token in enumerate(tokens) if token.audio is not None]
-    repeats = coverage_model.repeats(aligned, tokens, extras)
-    for (start, end), repeat in zip(extras, repeats, strict=True):
-        first, last = index_map[start], index_map[end - 1]
-        before = [i for audio, i in heard_at if audio < start]
-        payload = {
-            "text": " ".join(timeline.words[k][0] for k in range(first, last + 1)),
-            "tokens": end - start,
-            "start": timeline.word_edge(first, 1),
-            "end": timeline.word_edge(last, 2),
-            "afterToken": before[-1] if before else None,
-            "repeatOf": None
-            if repeat is None
-            else {
-                "start": repeat.start,
-                "end": repeat.end,
-                "first": repeat.first,
-                "last": repeat.last,
-                "text": " ".join(aligned.doc_words[repeat.start : repeat.end]),
-            },
-        }
-        lines.append(_line("COVERAGE_EXTRA", payload))
-    return lines
-
-
-def _require_cached(items: Sequence[ManifestItem], words_dir: Path, args) -> None:
-    missing = [item for item in items if not item.muted and not _is_covered(words_dir, item, args)]
-    if missing:
-        raise AlignOnlyError(
-            f"Align again needs every item's words, but item {missing[0].index} has none cached for the part it plays. Run the recording check to transcribe it."
-        )
-
-
-def _refuse_transcription(item: ManifestItem, on_seconds: Callable[[float], None]) -> ItemWords:
-    raise AlignOnlyError(f"Align again never transcribes, and item {item.index}'s words are not cached for the part it plays.")
 
 
 def shared_transcriber(
@@ -885,8 +666,8 @@ def _item_workers(args, engine: ModuleType, model: str, pending: int) -> coverag
 
 
 def _pipelined(args) -> bool:
-    """Whether this run is the one-process cascade: a re-check model and a score line were named, and it is not an align-only re-run."""
-    return bool(getattr(args, "recheck_model", None)) and (getattr(args, "unsure_below", None) or 0) > 0 and not getattr(args, "align_only", False)
+    """Whether this run is the one-process cascade: a re-check model and a score line were named."""
+    return bool(getattr(args, "recheck_model", None)) and (getattr(args, "unsure_below", None) or 0) > 0
 
 
 def run(args, engine: ModuleType, transcriber: Transcriber | None = None, recheck_transcriber: Transcriber | None = None) -> None:
@@ -894,16 +675,11 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None, rechec
     line the first pass and the re-check of its doubtful passages run together (`coverage_pipeline.collect`); `recheck_transcriber`
     stands in for the larger model."""
     out = Path(args.out)
-    out.unlink(missing_ok=True)  # a results file left from an earlier run must not pass for this one
+    out.unlink(missing_ok=True)  # a words report left from an earlier run must not pass for this one
     engine.write_progress(args.progress, "START", 0, "Starting...")
     engine.check_cancelled(args.progress)
-    params = _alignment_params(args)
     items = read_manifest(args.manifest)
-    equivalences = engine.register_project_equivalences(args.manuscript)
-    chapter = _chapter(engine, args.manuscript, args.chapter_id)
-    if getattr(args, "align_only", False):
-        _require_cached(items, Path(args.words_dir), args)
-        transcriber = _refuse_transcription
+    _chapter(engine, args.manuscript, args.chapter_id)  # refuse an unknown chapter before transcribing anything
 
     rechecked: list[dict] = []
     words_dir = Path(args.words_dir)
@@ -934,26 +710,12 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None, rechec
         pool = _item_workers(args, engine, args.model, max(1, pending))
         results = _collect_words(items, words_dir, transcriber or _default_transcriber(engine, args, pool), engine, args, pool.workers)
 
-    timeline = _timeline(results)
-    heading = " ".join(part for part in (chapter["title"], chapter.get("subtitle") or "") if part)
-    sentence_units, tokens, unit_idx, raw_words = engine.build_chapter_units({"title": heading, "paragraphs": chapter["paragraphs"]})
-    _markers, _covered, alignment = engine.diff_and_build_markers(tokens, unit_idx, raw_words, timeline.words, 1)
-    aligned = coverage_model.aligned_chapter_from_markers(alignment, sentence_units, chapter["paragraph_ids"])
-    coverage = coverage_model.compute_coverage(aligned, params)
-    words = _token_words(engine, heading, chapter["paragraphs"])
-    if len(words) != len(raw_words):
-        raise ValueError(f"The chapter's words could not be matched to its tokens ({len(words)} against {len(raw_words)}).")
-
     engine.check_cancelled(args.progress)
-    engine.write_progress(args.progress, "WRITE", WRITE_PCT, "Writing results...")
-    analysis = {"model": args.model, "language": args.language, "equivalencesHash": _file_hash(equivalences) if equivalences else None}
+    engine.write_progress(args.progress, "WRITE", WRITE_PCT, "Writing the words report...")
     below = getattr(args, "unsure_below", None) or 0.0
     unsure = [] if _pipelined(args) else [passage for result in results for passage in unchecked_runs(result, below, checked_by(args))]
-    report = _report(chapter, coverage, results, alignment, timeline, analysis, unsure, rechecked) + "".join(
-        _alignment_lines(aligned, alignment, timeline, words, params)
-    )
-    _write_atomically(out, report)
-    engine.log(f"Wrote the coverage of chapter {chapter['id']} to {out}")
+    _write_atomically(out, _words_report(results, unsure, rechecked))
+    engine.log(f"Wrote the words report of chapter {args.chapter_id} to {out}")
     engine.write_progress(args.progress, "DONE", 100, "Finished")
 
 

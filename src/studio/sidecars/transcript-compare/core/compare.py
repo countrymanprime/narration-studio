@@ -37,8 +37,9 @@ inside timing_gap_seconds' field, so it is appended, never reordered.
 
 Two additive modes write their own tagged lines instead: --find-repeats
 (SPAN_GROUP/SPAN_MEMBER) and --coverage (recording coverage: a JSON manifest
-in, COVERAGE/COVERAGE_ITEM/COVERAGE_PARAGRAPH/COVERAGE_REGION lines with JSON
-payloads out; see core/coverage_mode.py for its manifest, words files, output
+in, one words file per item and a words report of COVERAGE_WORDS,
+COVERAGE_UNSURE and COVERAGE_RECHECKED lines with JSON payloads out, which the
+host aligns; see core/coverage_mode.py for its manifest, words files, output
 and exit codes).
 
 --capabilities prints one JSON object instead of any of the above: every row
@@ -2062,18 +2063,11 @@ def main():
     ap.add_argument(
         "--coverage",
         action="store_true",
-        help="Additive mode (recording coverage): measure how much of --chapter-id the items in --manifest (a JSON manifest) "
-        "read, in order, reusing or writing one words file per item in --words-dir, and write COVERAGE lines to --out",
+        help="Additive mode (recording coverage): transcribe the items in --manifest (a JSON manifest) of --chapter-id, "
+        "reusing or writing one words file per item in --words-dir, and write the words report the host aligns from to --out",
     )
-    ap.add_argument("--chapter-id", default=None, help="With --coverage: the canonical manuscript chapter id to measure (no name matching)")
+    ap.add_argument("--chapter-id", default=None, help="With --coverage: the canonical manuscript chapter id the items read (no name matching)")
     ap.add_argument("--words-dir", default=None, help="With --coverage: the directory holding the per-item words files the manifest names")
-    ap.add_argument("--max-misread-run", type=int, default=None, help="With --coverage: the largest gap of body words that counts as a misread (default 8)")
-    ap.add_argument("--min-anchor-run", type=int, default=None, help="With --coverage: the shortest run of matching words that counts as read (default 3)")
-    ap.add_argument(
-        "--align-only",
-        action="store_true",
-        help="With --coverage: re-align from the cached words files only; never transcribe, and fail when an item's words are not cached",
-    )
     ap.add_argument(
         "--recheck",
         default=None,
@@ -2120,8 +2114,6 @@ def main():
     if args.coverage:
         _main_coverage(ap, args)
         return
-    if args.align_only:
-        ap.error("--align-only can only be used with --coverage")
     if args.recheck:
         ap.error("--recheck can only be used with --coverage")
 
@@ -2138,7 +2130,7 @@ def main():
 def _main_coverage(ap, args):
     """--coverage: check its own arguments, then run core/coverage_mode.py. --recheck (the cascade's
     second pass) is a separate, windows-only mode: it takes only --words-dir and --model,
-    never a manifest, chapter or --out, and is mutually exclusive with --align-only."""
+    never a manifest, chapter or --out."""
     if args.find_repeats:
         ap.error("--find-repeats cannot be used with --coverage")
     if args.unsure_below is not None and not 0 <= args.unsure_below <= 1:
@@ -2148,15 +2140,13 @@ def _main_coverage(ap, args):
     if args.chunk_seconds < 0 or args.parallel_workers < 0 or args.cpus < 0:
         ap.error("--chunk-seconds, --parallel-workers and --cpus cannot be negative")
     if args.checked_by and (args.recheck or args.recheck_model):
-        ap.error("--checked-by is for a first pass or an align-only re-run, not with --recheck or --recheck-model")
+        ap.error("--checked-by is for a pass under the first model, not with --recheck or --recheck-model")
 
     if args.recheck_model and not args.unsure_below:
         ap.error("--recheck-model needs --unsure-below above 0: the pipeline re-checks the passages the first pass doubts")
-    if args.recheck_model and (args.recheck or args.align_only):
-        ap.error("--recheck-model cannot be used with --recheck or --align-only")
+    if args.recheck_model and args.recheck:
+        ap.error("--recheck-model cannot be used with --recheck")
     if args.recheck:
-        if args.align_only:
-            ap.error("--align-only cannot be used with --recheck")
         if not args.words_dir:
             ap.error("--words-dir required with --coverage --recheck")
 

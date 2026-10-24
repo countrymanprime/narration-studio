@@ -4,7 +4,7 @@ import type { GuideEntity, ManuscriptParagraph } from '../../types';
 // (src/studio/sidecars/manuscript-guide/core/manuscript_guide.py, `extract_dialogue_cues`/`merge_dialogue_cues`): one entry per
 // quoted span, served by the host's `GuideDialogueCues` binding. `recordedDemoDialogueCues` builds the same shape from a
 // recorded fixture, so the reader below can run without a second extractor.
-type DialogueCueSpeakerSource = 'tag' | 'continuation' | 'unknown' | 'correction';
+type DialogueCueSpeakerSource = 'tag' | 'continuation' | 'proximity' | 'unknown' | 'correction';
 
 export type DialogueCue = {
   id: string;
