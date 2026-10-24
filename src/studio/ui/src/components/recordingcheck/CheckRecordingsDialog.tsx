@@ -1,8 +1,8 @@
+import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { CoverageEngines, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { describeApiError } from '../../api/errorMessage';
-import { chapterName } from '../../chapterName';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useCapability } from '../../useCapability';
@@ -189,7 +189,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
                   return (
                     <li key={chapter.id}>
                       <Checkbox checked={ticked.has(chapter.id)} onChange={(on) => toggle(chapter.id, on)}>
-                        <span className="block">{chapterName(chapter)}</span>
+                        <span className="block">{headingName(chapter)}</span>
                         <span className="block text-[var(--text-muted)]">{checkStateLabel(result)}</span>
                         {last ? <span className="block text-[var(--text-muted)]">{last}</span> : null}
                       </Checkbox>

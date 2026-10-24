@@ -1,5 +1,5 @@
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { removalKindLabel, removedWhenLabel } from './chapterRemovalText';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
@@ -29,7 +29,7 @@ export function RemovedFromRecordingList({
         {removed.map((chapter) => (
           <InsetCard as="li" key={chapter.id} fill className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
-              <span className="font-medium">{chapterName(chapter)}</span>
+              <span className="font-medium">{headingName(chapter)}</span>
               <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
                 {' '}
                 · {chapter.wordCount.toLocaleString()} words · removed {chapter.kindChangedAt ? removedWhenLabel(chapter.kindChangedAt, now) : ''} as{' '}

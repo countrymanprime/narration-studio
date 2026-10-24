@@ -1,3 +1,4 @@
+import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { chapterName } from '../../chapterName';
@@ -101,7 +102,7 @@ export function ChapterLinksTable({ tracks, refreshKey, notify }: { tracks: Trac
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.chapter.id}>
-              <TableCell className="font-medium">{chapterName(row.chapter)}</TableCell>
+              <TableCell className="font-medium">{headingName(row.chapter)}</TableCell>
               <TableCell style={{ color: STATE_COLOR[row.state] }}>{STATE_LABEL[row.state]}</TableCell>
               <TableCell>
                 {/* Editing is where a linked chapter is heard and edited; Proof's chapter view keeps its compare run and stage panels. */}
