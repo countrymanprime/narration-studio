@@ -26,7 +26,7 @@
 --
 -- RECORD_STOPPED and RECORD_ENDED end with undoPoints: how many points REAPER's undo history gained while the recording ran,
 -- read as the rise of GetProjectStateChangeCount from the start to the stop (REAPER 7.82 added one, "Recorded media", per
--- stop, docs/research/reaper-recording-undo-2026-10-23.md; a roll's stop is one more). The bridge also keeps, for
+-- stop, and two for a take with one roll, docs/research/reaper-recording-undo-2026-10-23.md). The bridge also keeps, for
 -- narration_undo.lua's record_take, the change count and the top label right after the stop: the take is REAPER's last
 -- action while both are unchanged. The label is REAPER's own text and is never written to events.log (threat model row 5f).
 

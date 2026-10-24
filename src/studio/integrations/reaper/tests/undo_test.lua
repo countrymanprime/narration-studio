@@ -416,3 +416,14 @@ H.test('record_take: a take stopped before REAPER recorded left nothing, so the 
   s:send('last_action', 'l1', 'record_take')
   H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'other' } })
 end)
+
+H.test('record_take: a different label on top is other even when the change count is still the take', function()
+  local s, p = project()
+  take(s, p)
+  narrator_edit(s, FOREIGN) -- a point the fake adds without moving the count: only the label tells it apart
+  s:send('last_action', 'l1', 'record_take')
+  H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'other' } })
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '0' } })
+  H.eq(undos(s), 0)
+end)

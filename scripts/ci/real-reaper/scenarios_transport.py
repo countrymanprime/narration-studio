@@ -395,6 +395,33 @@ def roll(env: Env) -> str:
     return f"{takes} takes across {len(chapter)} item(s) after the roll; the earlier pass is a take of the item it overlaps"
 
 
+@scenario(
+    "undo_last",
+    "roll, record_stop, undo_last",
+    "undo last: a take with a roll leaves a point per stop, and one undo_last of them takes both passes away",
+    needs_audio=True,
+)
+def undo_rolled_take(env: Env) -> str:
+    fx = book(env)
+    env.lua("reaper.SetEditCurPos(10, false, false) return true")
+    env.ok("arm_only", fx["ch1"], until="ARMED")
+    env.ok("record_start", fx["ch1"], until="RECORD_STARTED")
+    env.wait_for(lambda: env.lua("return reaper.GetPlayPosition()") > 12.0, timeout=8, what="two seconds of recording")
+    env.ok("roll", fx["ch1"], "11", until="ROLLED", timeout=20)
+    env.wait_for(lambda: play_state(env) & 4 == 4, what="REAPER to record again")
+    time.sleep(1.0)
+    stopped = env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    points = int(stopped[4])
+    assert points == 2, f"record_stop reported {points} undo points (one per stop: the roll's and this one)"
+    assert env.ok("last_action", "record_take", until="LAST_ACTION")[3] == "this", "the rolled take is not REAPER's last action"
+    undone = env.ok("undo_last", "record_take", str(points), until="UNDONE_LAST")
+    assert undone[4] == "2", f"undo_last answered {undone[3:]}"
+    left = [(round(i["position"], 3), round(i["length"], 3), len(i["takes"])) for i in items_on(env.snapshot(), "Chapter 1")]
+    assert left == [(0.0, 5.0, 1)], f"after the undo {left}"
+    return "a take with one roll left 2 points; one undo_last of 2 removed both passes and left the earlier read as it was"
+
+
 @scenario("punch", "roll", "roll: refused when the app is not recording, on a stale track, for a bad time or past the end of the recording", needs_audio=True)
 def roll_refusals(env: Env) -> str:
     fx = book(env)

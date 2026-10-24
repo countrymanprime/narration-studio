@@ -20,8 +20,9 @@
 -- are REAPER's own ("Recorded media" in REAPER 7.82), so no label is fixed for it: narration_transport.lua keeps the change
 -- count, the top label and how many points the take left, read right after the stop. It is this while GetProjectStateChangeCount
 -- and the top label are both still those; undo_last undoes at most the take's points and then forgets the take, so a second
--- undo never reaches an older recording the narrator made. Seen in REAPER 7.82 on Linux, 2026-10-23: one Undo_DoUndo2 took a
--- stopped recording away, and put an item it had split back whole (docs/research/reaper-recording-undo-2026-10-23.md).
+-- undo never reaches an older recording the narrator made. Seen in REAPER 7.82 on Linux, 2026-10-23 and 2026-10-24: one
+-- Undo_DoUndo2 took a stopped recording away and put an item it had split back whole, and a take with one roll left two
+-- points that two steps took away (docs/research/reaper-recording-undo-2026-10-23.md).
 --
 -- Neither answer carries a label read from the project: it is the narrator's text (threat model row 5f), and the host needs
 -- only whether it matched.

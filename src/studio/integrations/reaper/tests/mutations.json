@@ -2564,5 +2564,11 @@
     "file": "narration_undo.lua",
     "find": "    return { label = false, limit = 0, take = true }\n",
     "replace": "    return { label = 'Recorded media', limit = 1, take = true }\n"
+  },
+  {
+    "name": "record_take is on top whatever label is there",
+    "file": "narration_undo.lua",
+    "find": "      return { label = last.label, limit = last.points, take = true }\n",
+    "replace": "      return { label = reaper.Undo_CanUndo2(0), limit = last.points, take = true }\n"
   }
 ]
