@@ -1,0 +1,25 @@
+{
+  "tracks": [
+    {
+      "trackGuid": "{T1}",
+      "name": "Chapter One",
+      "fx": [
+        {
+          "name": "ReaEQ (Cockos)",
+          "enabled": true
+        },
+        {
+          "name": "ReaComp (Cockos)",
+          "enabled": false
+        }
+      ]
+    }
+  ],
+  "master": [
+    {
+      "name": "ReaLimit (Cockos)",
+      "enabled": true
+    }
+  ],
+  "total": 3
+}

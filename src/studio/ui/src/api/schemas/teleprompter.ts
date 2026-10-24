@@ -350,6 +350,7 @@ export const readAloudRecordingSchema = z.object({
   position: z.number().optional(),
   restored: z.number().int().nonnegative().optional(),
   kept: z.number().int().nonnegative().optional(),
+  undoPoints: z.number().int().nonnegative().optional(),
 }) satisfies z.ZodType<ReadAloudRecording>;
 
 /** `TeleprompterReaperInput` (`src/studio/desktop/teleprompterinput.go`): a device to preselect only when `matched`. */

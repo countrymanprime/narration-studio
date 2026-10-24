@@ -128,6 +128,14 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'take-saved',
+    description:
+      'Booth right after a take stopped in the DAW (Stop pressed): Record is back, and the message "Take saved" offers Undo, which takes the take back in the DAW; the take is in the undo history as "Recorded a take of <chapter>"',
+    ...FREEZES_THE_CLOCK,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'following',
     description:
       'Booth, six seconds into a take (the page clock run on, then held): the text follows the voice - the mock teleprompter replays a recorded reading, so the reading position has left ¶ 1 and the progress line counts it; Levels names the microphone the DAW records from, so the footer says nothing about the listening',

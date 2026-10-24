@@ -1914,3 +1914,18 @@ describe('App page change signal', () => {
     await waitFor(() => expect(document.title).toBe(`Script · ${brand.name}`));
   });
 });
+
+// #2251 item 35: every page's key reminders are the shell's page footer, full width under the scrolling content, never inside a page card.
+// Editing's is pinned in EditingPage.test.tsx. The Booth fills the window with no shell, and its footer is already the window's full-width
+// bottom row (`BoothFooter`).
+describe('the page footer holds the key reminders', () => {
+  it.each(['/script', '/proof'])('on %s', async (path) => {
+    window.history.pushState({}, '', path);
+    renderApp();
+    const hints = await screen.findByRole('note', { name: 'Keyboard shortcuts' }, { timeout: 8000 });
+    const footer = hints.closest('[data-page-footer]');
+    expect(footer).not.toBeNull();
+    expect(footer!.parentElement).toBe(screen.getByRole('main'));
+    expect(screen.getAllByRole('note', { name: 'Keyboard shortcuts' })).toHaveLength(1);
+  });
+});

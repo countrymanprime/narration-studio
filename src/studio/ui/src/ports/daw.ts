@@ -30,6 +30,7 @@ import {
   stackOf,
   fxRangeRemovedOf,
   fileRevealOf,
+  filePreviewAnswer,
   plainChainName,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
@@ -159,6 +160,11 @@ export interface DawClient {
   useTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<DawResult>;
   /** Mute the other takes of the passage between the two tokens, keeping `keepCandidateId`, in one undo step. Nothing is deleted. */
   hideTakes(chapterId: string, firstToken: number, lastToken: number, keepCandidateId: string): Promise<DawResult>;
+  /** Play `candidateId`, a take of the passage between the two tokens, through the DAW's own preview, outside the project (no undo
+   * step): the host reads the take's file and range. A take it no longer offers is refused with code `stale`. */
+  previewTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<DawResult>;
+  /** Stop a preview this app started (`previewTake`, `playQuietest`); with none playing it changes nothing. */
+  stopPreview(): Promise<DawResult>;
   /** Roll again while recording: stop the recording this app started on the chapter's track and record again from `at` (project
    * seconds), keeping the earlier audio as a take. Where `punch` is destructive it is refused until `confirmed`. */
   roll(chapterId: string, at: number, opts?: { confirmed?: boolean }): Promise<DawResult>;
@@ -241,6 +247,8 @@ export type DawHostApi = Pick<
   | 'readAloudRecordStop'
   | 'workspaceUseTake'
   | 'workspaceHideTakes'
+  | 'workspacePreviewTake'
+  | 'dawStopFilePreview'
   | 'dawRoll'
   | 'dawDeleteRange'
   | 'dawTrimRange'
@@ -416,7 +424,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     },
     async recordStop() {
       const result = await api.readAloudRecordStop();
-      return result.outcome === 'refused' ? refused(result.message, 'recordStop') : done(true, 0, result.message);
+      // The points the take left in the DAW's undo history, which the Booth's Undo takes back; an older host or script reports none.
+      return result.outcome === 'refused' ? refused(result.message, 'recordStop') : done(true, result.undoPoints ?? 0, result.message);
     },
     async useTake(chapterId, firstToken, lastToken, candidateId) {
       const result = await api.workspaceUseTake(chapterId, firstToken, lastToken, candidateId);
@@ -425,6 +434,9 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     },
     /** The binding answers a DawResult already, with code `stale` for a kept take it no longer offers (the #1164 mapping). */
     hideTakes: (chapterId, firstToken, lastToken, keepCandidateId) => api.workspaceHideTakes(chapterId, firstToken, lastToken, keepCandidateId),
+    /** The bindings answer a DawResult already: the host resolves the take, and code `stale` marks one it no longer offers. */
+    previewTake: (chapterId, firstToken, lastToken, candidateId) => api.workspacePreviewTake(chapterId, firstToken, lastToken, candidateId),
+    stopPreview: () => api.dawStopFilePreview(),
     /** The binding answers a DawResult already: it looks up the track, checks `at` and holds the confirmation rule itself. */
     roll: (chapterId, at, opts) => api.dawRoll(chapterId, at, opts?.confirmed ?? false),
     /** The binding answers a DawResult already: it resolves the range to an item and its times on the host. */
@@ -543,7 +555,8 @@ function mockDawCalls(setup: DawCapabilities, project: DawProject, projectState:
     },
     async recordStop() {
       const sentence = unavailable(setup, 'record', 'recordStop');
-      return sentence ? refused(sentence, 'recordStop') : done(true, 0);
+      // A stop leaves one undo point in the DAW's history (REAPER's "Recorded media"); the Booth journals it only when a DAW records.
+      return sentence ? refused(sentence, 'recordStop') : done(true, 1);
     },
     async useTake(chapterId, _firstToken, _lastToken, candidateId) {
       const sentence = unavailable(setup, 'takes', 'useTake');
@@ -679,6 +692,7 @@ function recordingUndo(
   history: MockUndoHistory,
 ): Pick<
   DawClient,
+  | 'recordStop'
   | 'useTake'
   | 'hideTakes'
   | 'deleteRange'
@@ -702,6 +716,7 @@ function recordingUndo(
     async (...args: A) =>
       history.record(typeof label === 'string' ? label : label(...args), await call(...args));
   return {
+    recordStop: record(labels.recordedMedia, client.recordStop),
     useTake: record(labels.useTake, client.useTake),
     hideTakes: record(labels.hideTakes, client.hideTakes),
     deleteRange: record(labels.cut, client.deleteRange),
@@ -761,8 +776,19 @@ function mockBackups(setup: DawCapabilities, project: DawProject): Pick<DawClien
 
 /** Play the quietest 5 s and Open in the DAW over `project`'s last measurement as bindings_master_files.go answers them: the capability's
  * sentence first, then a file not in that run (code stale), then a file with no quietest window. */
-function mockMasterFiles(setup: DawCapabilities, project: DawProject): Pick<DawClient, 'playQuietest' | 'openFile'> {
+function mockMasterFiles(setup: DawCapabilities, project: DawProject): Pick<DawClient, 'playQuietest' | 'openFile' | 'previewTake' | 'stopPreview'> {
   return {
+    async previewTake(chapterId, _firstToken, _lastToken, candidateId) {
+      if (!project.chapterIds.includes(chapterId) || !project.candidateIds.includes(candidateId)) {
+        return refused(DAW_ANSWERS.takePreviewNotOffered, 'previewTake', true);
+      }
+      const sentence = unavailable(setup, 'file_preview', 'previewTake');
+      return sentence ? refused(sentence, 'previewTake') : done(false, 0, filePreviewAnswer(`${candidateId}.wav`, 0, 4));
+    },
+    async stopPreview() {
+      const sentence = unavailable(setup, 'file_preview', 'stopPreview');
+      return sentence ? refused(sentence, 'stopPreview') : done(false, 0, DAW_ANSWERS.fileStopped);
+    },
     async playQuietest(fileId) {
       const sentence = unavailable(setup, 'file_preview', 'playQuietest');
       if (sentence) return refused(sentence, 'playQuietest');

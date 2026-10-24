@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "changed": false,
+  "message": "That take isn't one of this passage's takes any more, so nothing played. Open the takes again to hear the ones there now.",
+  "undoSteps": 0,
+  "refused": "That take isn't one of this passage's takes any more, so nothing played. Open the takes again to hear the ones there now.",
+  "code": "stale"
+}

@@ -7,6 +7,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { DawMockSeed } from '../../api/dawMock';
 import { brand } from '../../brand.gen';
+import { KeyHints } from '../primitives/KeyHints';
 
 afterEach(cleanup);
 
@@ -30,7 +31,7 @@ function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}, daw: D
           onSwitchProject={() => {}}
           {...props}
         >
-          <div>page content</div>
+          {props.children ?? <div>page content</div>}
         </AppShell>
       </TooltipProvider>
     </ApiProvider>,
@@ -362,14 +363,15 @@ describe('AppShell header', () => {
     expect(screen.getByRole('banner').querySelector('[data-icon="folder"]')).toBeNull();
   });
 
-  it('orders the header: crumb, project, jump button, zoom chip, engine chip', () => {
+  // #2251 item 25: the zoom chip sits left of the jump button, on the stretchy side of the bar, so it appearing or going shifts nothing else.
+  it('orders the header: crumb, project, zoom chip, jump button, engine chip', () => {
     renderShell({ daw: 'REAPER', zoom: { percent: 125, announcement: '' } });
     const header = screen.getByRole('banner');
     const order = [
       within(header).getByText('Project'),
       within(header).getByRole('button', { name: /, switch project$/ }),
-      within(header).getByRole('button', { name: /Jump to or run/ }),
       within(header).getByRole('button', { name: /^Zoom 125%/ }),
+      within(header).getByRole('button', { name: /Jump to or run/ }),
       within(header).getByRole('button', { name: /^REAPER: / }),
     ];
     for (let i = 1; i < order.length; i += 1) {
@@ -583,5 +585,48 @@ describe('AppShell page change', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(screen.getByRole('status', { name: 'Page' }).textContent).toBe('');
     expect(document.activeElement).toBe(field);
+  });
+});
+
+// #2251 item 25: the chip comes and goes on the stretchy side of the bar, so the jump button and the engine chip keep their place.
+describe('AppShell zoom chip placement', () => {
+  it('sits between the spacer and the jump button', () => {
+    renderShell({ zoom: { percent: 125, announcement: '' } });
+    const jump = within(screen.getByRole('banner')).getByRole('button', { name: /Jump to or run/ });
+    const chip = within(screen.getByRole('banner')).getByRole('button', { name: /^Zoom 125%/ });
+    // The chip's tooltip wrapper is the jump button's wrapper's previous sibling: nothing sits between them.
+    const top = (el: Element): Element => (el.parentElement?.tagName === 'HEADER' ? el : top(el.parentElement!));
+    expect(top(jump).previousElementSibling).toBe(top(chip));
+  });
+});
+
+// #2251 item 35: the page's key reminders are a real page footer, full width along the bottom of the main column like the header, outside
+// the page's scrolling content and its cards.
+describe('AppShell page footer', () => {
+  it('draws the page key hints in the shell footer under the scrolling content', () => {
+    renderShell({
+      children: (
+        <div data-testid="card">
+          <KeyHints hints={[{ keys: ['Space'], label: 'Play' }]} />
+        </div>
+      ),
+    });
+    const hints = screen.getByRole('note', { name: 'Keyboard shortcuts' });
+    const footer = document.querySelector('[data-page-footer]')!;
+    expect(footer.contains(hints)).toBe(true);
+    expect(screen.getByTestId('card').contains(hints)).toBe(false);
+    // A sibling of the header and the scroller inside <main>: the same width as the header, and last.
+    const main = screen.getByRole('main');
+    expect(footer.parentElement).toBe(main);
+    expect(main.lastElementChild).toBe(footer);
+    expect(screen.getByRole('banner').parentElement).toBe(main);
+    expect(footer.className).toContain('flex-none');
+  });
+
+  it('is empty, with no line or height, on a page with no key reminders', () => {
+    renderShell();
+    const footer = document.querySelector('[data-page-footer]')!;
+    expect(footer.childElementCount).toBe(0);
+    expect(footer.className).not.toMatch(/border|p[xy]?-/);
   });
 });

@@ -301,6 +301,9 @@ const fileName = (path: string): string => path.split(/[\\/]/).pop() ?? path;
 export const DAW_ANSWERS = {
   /** src/studio/desktop/bindings_daw_files.go (SN-B98): a file played or shown, and the host's refusals of a path or a stretch. */
   fileStopped: 'Stopped playing the file.',
+  /** src/studio/desktop/bindings_workspace_take_preview.go: a take the passage no longer offers (code stale). */
+  takePreviewNotOffered: "That take isn't one of this passage's takes any more, so nothing played. Open the takes again to hear the ones there now.",
+  takePreviewEmpty: 'That take has no audio to play.',
   fileNothingPlaying: 'Nothing was playing.',
   fileNotPicked: 'Pick the file to measure again: only a file picked in this session can be played or shown.',
   fileBadStretch: 'The stretch to play is not a usable number of seconds (up to 60).',

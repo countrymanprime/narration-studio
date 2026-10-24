@@ -180,3 +180,26 @@ H.test('7.82/Linux: the pre-roll is two configuration variables, an integer bit 
   H.eq({ reaper_api.get_config_var_string('prerollmeas') }, { true, '2.00000000000000' })
   H.eq({ reaper_api.TimeMap_GetTimeSigAtTime(0, 8) }, { 4, 4, 120 }, 'a new project is 4/4 at 120')
 end)
+
+-- Observed in REAPER 7.82 on Linux with the JACK dummy device, 2026-10-23 (docs/research/reaper-recording-undo-2026-10-23.md).
+
+H.test('7.82/Linux: a stopped recording is an item and one "Recorded media" point; one Undo_DoUndo2 takes it away', function()
+  local reaper_api, fake = api()
+  local track = fake:add_track('T')
+  local earlier = fake:add_item(track, { position = 0, length = 5, source = 'a.wav' })
+  track.armed = true
+  fake.cursor = 6
+  local before = reaper_api.GetProjectStateChangeCount(0)
+  reaper_api.CSurf_OnRecord()
+  H.eq(#fake.items, 1, 'a recording is not an item until it stops')
+  H.eq(reaper_api.GetProjectStateChangeCount(0), before, 'recording adds no point while it runs')
+  reaper_api.OnStopButton()
+  H.eq(#fake.items, 2, 'the recording is an item once it stops')
+  H.eq(reaper_api.Undo_CanUndo2(0), 'Recorded media')
+  H.eq(reaper_api.GetProjectStateChangeCount(0), before + 1, 'one point, so the change count rises by one')
+  H.eq(reaper_api.Undo_DoUndo2(0), 1)
+  H.eq(#fake.items, 1, 'one Undo takes the recorded item away')
+  H.eq(rawequal(fake.items[1], earlier), true, 'the earlier item is the one left')
+  H.eq(reaper_api.Undo_CanUndo2(0), nil)
+  H.eq(reaper_api.GetProjectStateChangeCount(0), before + 2, 'the Undo raised the change count too')
+end)

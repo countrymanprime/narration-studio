@@ -70,8 +70,8 @@ var realEvents = map[string][]string{
 	// src/studio/integrations/reaper/tests/transport_test.lua (arm_only, record_start, record_stop).
 	"ARMED":           {"ARMED", "a1", "{00000001-0000-4000-8000-000000000001}", "2", "1"},
 	"RECORD_STARTED":  {"RECORD_STARTED", "r1", "{00000001-0000-4000-8000-000000000001}", "42.500000"},
-	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0"},
-	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "2", "0"},
+	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0", "1"},
+	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "1", "0", "1"},
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
 	// src/studio/integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
 	"ACTIVE_TAKE_SET":  {"ACTIVE_TAKE_SET", "u1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "1"},
@@ -308,5 +308,16 @@ func TestATransportEventNeedsAPlayStateAndTwoNumbers(t *testing.T) {
 		if err := CheckEvent(fields); err == nil {
 			t.Errorf("%s must be refused", name)
 		}
+	}
+}
+
+func TestAnOlderScriptsRecordAnswersWithoutTheUndoPointsAreAccepted(t *testing.T) {
+	for _, line := range [][]string{{"RECORD_STOPPED", "s1", "3", "0"}, {"RECORD_ENDED", "r1", "2", "0"}} {
+		if err := CheckEvent(line); err != nil {
+			t.Errorf("%v: %v", line, err)
+		}
+	}
+	if err := CheckEvent([]string{"RECORD_STOPPED", "s1", "3", "0", "x"}); err == nil {
+		t.Error("undo points that are not a number must be an error")
 	}
 }

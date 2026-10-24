@@ -115,6 +115,7 @@ import {
   workspacePeaksResultSchema,
   workspaceTakesResultSchema,
   workspaceUseTakeResultSchema,
+  workspaceProjectFxResultSchema,
 } from './schemas/workspace';
 import { USE_TAKE_MESSAGES } from './workspaceTakesMock';
 import { pinnedPreviewSchema, previewResultSchema } from './schemas/preview';
@@ -2959,6 +2960,15 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(createMockApi({}, { reaper: 'standalone' }).workspaceListFXChains()).rejects.toThrow();
   });
 
+  it('workspaceProjectFx lists the FX on the DAW tracks and the master, and rejects when REAPER is not connected', async () => {
+    const chain = await createMockApi().workspaceProjectFx();
+    expectMatches(workspaceProjectFxResultSchema, chain, 'mock workspace project FX');
+    expect(chain.tracks.length).toBeGreaterThan(0);
+    expect(chain.total).toBe(chain.tracks.reduce((n, track) => n + track.fx.length, 0) + chain.master.length);
+
+    await expect(createMockApi({}, { reaper: 'standalone' }).workspaceProjectFx()).rejects.toThrow();
+  });
+
   it('the Takes panel bindings answer: the passage takes, their comparison and every outcome of using one', async () => {
     const chapters = await createMockApi().manuscriptChapters();
     const measured = chapters.find((chapter) => chapter.recordedFraction !== undefined);
@@ -3018,6 +3028,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.workspaceUseTake(measured.id, 0, 1, lane.id)).toMatchObject({ outcome: 'started' });
     expect(await api.workspaceUseTake(measured.id, 0, 1, read.id)).toMatchObject({ outcome: 'done', changed: true });
     expect(await api.workspaceUseTake(measured.id, 0, 1, first.id)).toMatchObject({ outcome: 'done', changed: true });
+    // Hearing a take through the DAW's preview: an offered take answers a DawResult (the preview's sentence while file_preview is off),
+    // and one the passage no longer offers is refused stale.
+    expectMatches(dawResultSchema, await api.workspacePreviewTake(measured.id, 0, 1, first.id), 'mock preview take');
+    const previewGone = await api.workspacePreviewTake(measured.id, 0, 1, 'take:{NOT-OFFERED}:{TAKE}');
+    expectMatches(dawResultSchema, previewGone, 'mock preview take, not offered');
+    expect(previewGone).toMatchObject({ ok: false, code: 'stale' });
     const notOffered = await api.workspaceUseTake(measured.id, 0, 1, 'take:{NOT-OFFERED}:{TAKE}');
     expectMatches(workspaceUseTakeResultSchema, notOffered, 'mock use take, not offered');
     expect(notOffered).toMatchObject({ outcome: 'refused', reason: 'not_offered', changed: false });
@@ -3564,6 +3580,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(dawResultSchema, refused, 'mock transport sync, experimental off');
     expect(refused.ok).toBe(false);
     expect(refused.refused).toBe((await off.dawCapabilities()).capabilities.transport_sync.message);
+  });
+
+  it('a stopped take is record_take: its undo point is reported, it is the last action, and the mock undoes it as the host answers', async () => {
+    expectMatches(dawResultSchema, readGolden('daw-undo-last-take-done.json'), 'daw-undo-last-take-done.json');
+    expect(readGolden('daw-undo-last-take-done.json')).toMatchObject({
+      ok: true,
+      changed: true,
+      message: undoneAnswer('REAPER', 'record_take', 1, 1),
+      undoSteps: 0,
+    });
+    expect(undoneAnswer('REAPER', 'record_take', 2, 2)).toBe('Undid the take in REAPER.');
+    const api = createMockApi({}, { daw: { toggles: { undo_last: 'on' } } });
+    expect(await api.dawLastAction('record_take')).toBe('other');
+    const stopped = await api.readAloudRecordStop();
+    expectMatches(readAloudRecordingSchema, stopped, 'mock record stop');
+    expect(stopped).toMatchObject({ outcome: 'stopped', undoPoints: 1 });
+    expect(await api.dawLastAction('record_take')).toBe('this');
+    expect(await api.dawUndoLast('record_take', 1)).toEqual(readGolden('daw-undo-last-take-done.json'));
+    expect(await api.dawLastAction('record_take')).toBe('other');
   });
 
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
@@ -4318,6 +4353,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceTakeEvidence',
       'workspaceTakesCompareStart',
       'workspaceUseTake',
+      'workspacePreviewTake',
+      'workspaceProjectFx',
       'workspaceHideTakes',
       'dawRoll',
       'dawDeleteRange',

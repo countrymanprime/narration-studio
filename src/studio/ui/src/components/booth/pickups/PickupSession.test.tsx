@@ -188,6 +188,39 @@ describe('a pickup session in the Booth', () => {
     expect(await screen.findByText('Pickups · 3 open')).toBeTruthy();
   });
 
+  it('a-take-that-ran-over-a-line: with a DAW take whose undo is refused, the toast Undo leaves the lines recorded', async () => {
+    const h = host(LIST());
+    mount(h, { ids: ['a', 'b', 'c'] });
+    await screen.findByText('Pickups · 3 open');
+    const refusedTake = vi.fn(async () => ({ ok: false as const, refusal: { code: 'daw-last-action', reason: "REAPER's last action is not this one." } }));
+    await act(async () => {
+      await stop({ began: 0, stopped: 2, undoTake: refusedTake, entry: 7 });
+    });
+    const toast = overlay.getSnapshot().toasts.find((item) => item.text.startsWith('Take saved'));
+    await act(async () => {
+      toast?.action?.onAction();
+    });
+    await waitFor(() => expect(refusedTake).toHaveBeenCalledTimes(1));
+    expect(h.items().filter((item) => item.done)).toHaveLength(2);
+  });
+
+  it('a-take-that-ran-over-a-line: with a DAW take, the toast Undo takes the take back before it opens the lines again', async () => {
+    const h = host(LIST());
+    mount(h, { ids: ['a', 'b', 'c'] });
+    await screen.findByText('Pickups · 3 open');
+    const undoTake = vi.fn(async () => ({ ok: true as const, value: null }));
+    await act(async () => {
+      await stop({ began: 0, stopped: 2, undoTake, entry: 8 });
+    });
+    const toast = overlay.getSnapshot().toasts.find((item) => item.text.startsWith('Take saved'));
+    await act(async () => {
+      toast?.action?.onAction();
+    });
+    await waitFor(() => expect(h.items().filter((item) => item.done)).toEqual([]));
+    const unmarked = h.api.pickupsSetDone.mock.calls.findIndex(([, done]) => !done);
+    expect(undoTake.mock.invocationCallOrder[0]).toBeLessThan(h.api.pickupsSetDone.mock.invocationCallOrder[unmarked]);
+  });
+
   it('a-take-that-ran-over-a-line: one line reads as singular, and a take that stopped before the line leaves it open', async () => {
     const h = host(LIST());
     mount(h, { ids: ['a', 'c'] });

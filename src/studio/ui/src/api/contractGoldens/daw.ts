@@ -112,6 +112,8 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-undo-last-partial.json': dawResultSchema,
   'daw-undo-last-refused-not-last.json': dawResultSchema,
   'daw-undo-last-refused-capability.json': dawResultSchema,
+  // A take undone in REAPER (record_take): one take however many points it left.
+  'daw-undo-last-take-done.json': dawResultSchema,
   // DawPunchPreroll (bindings_daw_preroll_test.go): REAPER's pre-roll on record at 1.5 measures, and the punch_preroll capability's refusal.
   'daw-punch-preroll-held.json': dawPunchPrerollSchema,
   'daw-punch-preroll-refused.json': dawPunchPrerollSchema,

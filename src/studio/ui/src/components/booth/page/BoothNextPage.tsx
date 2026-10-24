@@ -67,6 +67,7 @@ import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
 import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
+import type { StoppedTake } from '../pickups/usePickupSession';
 import { loadLastPlace, saveLastPlace, type LastPlace } from './lastPlace';
 import { useBoothFind } from './useBoothFind';
 import { useBoothPageCommands } from './useBoothPageCommands';
@@ -304,7 +305,7 @@ function BoothSession({
   const recordId = source.kind === 'credits' ? `credits-${source.credits}` : source.chapter.id;
   // The pickup session and the bookmarks need the page's reading position, and the page tells them of takes and right-clicks.
   const parts = useRef<{
-    takeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => Promise<number>;
+    takeStopped?: (take: StoppedTake) => Promise<number>;
     menuItems?: (target: Element) => ContextMenuItem[];
     escapeStoppedSample?: () => boolean;
     recordBlocked?: (block: RecordBlock) => void;
@@ -317,6 +318,7 @@ function BoothSession({
     session,
     daw,
     guard: journal,
+    journal,
     overlay,
     from,
     navigate,
@@ -349,7 +351,13 @@ function BoothSession({
   parts.current.takeStopped = async (take) => {
     const marked = await pickups.takeStopped(take);
     const read = units.slice(Math.min(take.began, take.stopped), Math.max(take.began, take.stopped) + 1);
-    const added = await suspected.takeStopped({ paragraphIds: new Set(read.map((unit) => unit.paragraphId)), quiet: take.quiet, saidSaved: marked > 0 });
+    // The take's Undo rides on the first toast that says it is saved: the pickup session's when it marked any, else this one.
+    const added = await suspected.takeStopped({
+      paragraphIds: new Set(read.map((unit) => unit.paragraphId)),
+      quiet: take.quiet,
+      saidSaved: marked > 0,
+      ...(marked > 0 ? {} : { undoTake: take.undoTake, entry: take.entry }),
+    });
     return marked + added;
   };
   // The reading starts on the session's line when it is in this chapter: opened from Pickups, or after a jump to another chapter.

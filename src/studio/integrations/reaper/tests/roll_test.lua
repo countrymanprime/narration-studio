@@ -79,6 +79,28 @@ local function items_of(track)
   return out
 end
 
+-- The undo points the app made: a label of its own. The "Recorded media" points a stop leaves are REAPER's.
+local function app_points(s)
+  local count = 0
+  for _, entry in ipairs(s.fake.undo) do
+    if entry.label:sub(1, #H.brand.name + 1) == H.brand.name .. ':' then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+-- The items before are on the track as they were; anything else on it is a pass REAPER recorded.
+local function earlier_kept(track, before)
+  local now = items_of(track)
+  for index, item in ipairs(before) do
+    H.eq(now[index], item, 'an earlier item is kept as it was')
+  end
+  for index = #before + 1, #track.items do
+    H.eq(track.items[index].takes[1].source.file, 'recorded.wav', 'the only new item is a recorded pass')
+  end
+end
+
 -- 1. roll-keeps-the-earlier-audio-as-a-take ----------------------------------------------------------------------
 
 H.test('roll stops the recording, records again from at and answers ROLLED with no undo point of its own', function()
@@ -92,9 +114,9 @@ H.test('roll stops the recording, records again from at and answers ROLLED with 
   H.eq(s.fake.cursor_moveview, true)
   H.eq(s.fake.cursor_seekplay, false)
   H.eq(s.fake.play_state, 5, 'REAPER records again')
-  H.eq(#s.fake.undo, 0, 'the roll opens no undo block; the points for recorded media are REAPER own')
+  H.eq(app_points(s), 0, 'the roll opens no undo block; the points for recorded media are REAPER own')
   H.eq(s.fake.open_undo_blocks, 0)
-  H.eq(items_of(chapter), before, 'nothing on the track is removed or moved')
+  earlier_kept(chapter, before)
   H.eq(calls_named(s, 'DeleteTrackMediaItem'), 0)
   H.eq(changing_calls(s), {})
 end)
@@ -123,7 +145,7 @@ H.test('after a roll the recording is still the one the app started: record_stop
   s:tick()
   H.eq(s:events(), {}, 'the transport watch does not take the restart for the narrator stopping')
   s:send('record_stop', 's1')
-  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '0', '0' } })
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '0', '0', '2' } }, 'the roll stopped once and record_stop once')
   H.eq(other.armed, false)
 end)
 
@@ -156,7 +178,7 @@ H.test('when REAPER reports the new recording a few cycles later, roll waits for
   end
   H.eq(s:events(), {}, 'nothing more: no RECORD_ENDED, no second answer')
   s:send('record_stop', 's1')
-  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '0', '0' } }, 'the restarted recording is still ours')
+  H.eq(s:events(), { { 'RECORD_STOPPED', 's1', '0', '0', '2' } }, 'the restarted recording is still ours')
 end)
 
 H.test('when REAPER does not record again, roll says so and the earlier audio stays', function()
@@ -172,7 +194,7 @@ H.test('when REAPER does not record again, roll says so and the earlier audio st
     'ERROR|r1|REAPER did not start recording.',
   })
   H.eq(calls_named(s, 'CSurf_OnRecord'), 1, 'the toggle is pressed once and never again to "fix" it')
-  H.eq(items_of(chapter), before)
+  earlier_kept(chapter, before)
   s:send('record_stop', 's1')
   H.eq(s:events(), { { 'RECORD_NOT_OURS', 's1' } }, 'the recording has ended, as after a record_start that never began')
 end)
@@ -188,7 +210,7 @@ H.test('a record_stop while the roll waits ends the roll with its own answer, ne
   H.eq(sorted(s:events()), {
     'ERROR|o1|The recording was stopped before REAPER recorded again after the roll. The earlier audio is kept.',
     'ERROR|r1|Recording was stopped before REAPER started it.',
-    'RECORD_STOPPED|s1|0|0',
+    'RECORD_STOPPED|s1|0|0|1',
   })
   H.eq(s.fake.play_state, 0, 'a start that comes late is stopped, as after record_stop on a pending record_start')
 end)
@@ -440,11 +462,11 @@ H.test('a second roll is a second roll, and neither adds an undo point', functio
   local s, chapter = recording_session()
   s:send('roll', 'o1', chapter.guid, '50')
   H.eq(s:events(), { { 'ROLLED', 'o1', chapter.guid, '50.000000', '0' } })
-  H.eq(#s.fake.undo, 0)
+  H.eq(app_points(s), 0)
   s.fake.play_position = 58
   s:send('roll', 'o2', chapter.guid, '52')
   H.eq(s:events(), { { 'ROLLED', 'o2', chapter.guid, '52.000000', '0' } })
-  H.eq(#s.fake.undo, 0)
+  H.eq(app_points(s), 0)
   H.eq(s.fake.open_undo_blocks, 0)
   H.eq(calls_named(s, 'OnStopButton'), 2)
   H.eq(calls_named(s, 'CSurf_OnRecord'), 2)

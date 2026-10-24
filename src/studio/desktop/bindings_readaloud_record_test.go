@@ -507,7 +507,7 @@ func TestReadAloudRecordStartWithNoRecorderIsExperimentalOff(t *testing.T) {
 }
 
 func TestReadAloudRecordStopStopsAndRestoresArms(t *testing.T) {
-	fake := &fakeRecorder{stopped: bridge.RecordStopped{Restored: 2, Kept: 1}}
+	fake := &fakeRecorder{stopped: bridge.RecordStopped{Restored: 2, Kept: 1, UndoPoints: 2}}
 	result, err := readAloudRecordStopIn(context.Background(), "REAPER", fake)
 	if err != nil {
 		t.Fatal(err)
@@ -517,6 +517,17 @@ func TestReadAloudRecordStopStopsAndRestoresArms(t *testing.T) {
 	}
 	if result.Outcome != "stopped" || result.Restored == nil || *result.Restored != 2 || result.Kept == nil || *result.Kept != 1 {
 		t.Fatalf("result = %+v", result)
+	}
+	if result.UndoPoints == nil || *result.UndoPoints != 2 {
+		t.Fatalf("undo points = %v, want 2: the points the take left, which the app's Undo takes back", result.UndoPoints)
+	}
+}
+
+// An older script sends no undo points: the stop says 0, and the app's Undo then cannot take the take back.
+func TestReadAloudRecordStopFromAnOlderScriptHasNoUndoPoints(t *testing.T) {
+	result, err := readAloudRecordStopIn(context.Background(), "REAPER", &fakeRecorder{stopped: bridge.RecordStopped{Restored: 1}})
+	if err != nil || result.UndoPoints == nil || *result.UndoPoints != 0 {
+		t.Fatalf("result = %+v, %v", result, err)
 	}
 }
 
@@ -658,7 +669,8 @@ func TestContractReadAloudRecordings(t *testing.T) {
 		}
 		answers[name+".stop"] = stopped
 	}
-	record("ready", &fakeRecorder{started: bridge.RecordStarted{Position: 0}}, ids[0])
+	// A stop leaves one undo point, as REAPER 7.82 left "Recorded media" (docs/research/reaper-recording-undo-2026-10-23.md).
+	record("ready", &fakeRecorder{started: bridge.RecordStarted{Position: 0}, stopped: bridge.RecordStopped{UndoPoints: 1}}, ids[0])
 	record("not_armed", &fakeRecorder{startErr: bridge.ErrNoTrackArmed}, ids[0]) // a start the DAW still refuses for this reason
 	record("other_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}}, ids[0])
 	record("several_armed", &fakeRecorder{armed: bridge.Armed{Disarmed: 3, Changed: true}}, ids[0])

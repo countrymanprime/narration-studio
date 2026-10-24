@@ -2,10 +2,21 @@ import { useCallback, useRef } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
+import type { Result } from '../../../studio/journal/createJournal';
 import { suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 
-/** A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast. `saidSaved`: another toast already said the take is saved. */
-export type SuspectedTake = { paragraphIds: ReadonlySet<string>; quiet?: boolean; saidSaved?: boolean };
+/**
+ * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast. `saidSaved`: another toast already said the take is
+ * saved. `undoTake` and `entry`: the take's history entry when a DAW stopped it and this toast is the one that says so; its Undo takes the take
+ * back in the DAW before the lines.
+ */
+export type SuspectedTake = {
+  paragraphIds: ReadonlySet<string>;
+  quiet?: boolean;
+  saidSaved?: boolean;
+  undoTake?: () => Promise<Result<unknown>>;
+  entry?: number;
+};
 
 const lines = (n: number) => `${n} suspected ${n === 1 ? 'line' : 'lines'} added to Pickups`;
 
@@ -24,7 +35,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
   latest.current = { chapterId, flags };
 
   const takeStopped = useCallback(
-    async ({ paragraphIds, quiet = false, saidSaved = false }: SuspectedTake): Promise<number> => {
+    async ({ paragraphIds, quiet = false, saidSaved = false, undoTake, entry }: SuspectedTake): Promise<number> => {
       const { chapterId: chapter, flags: all } = latest.current;
       const read = suspectedLines(all, paragraphIds);
       if (read.length === 0) return 0;
@@ -45,14 +56,21 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
       }
       if (refused) overlay.toast(refused, { tone: 'error' });
       if (added.length === 0 || quiet) return added.length;
-      overlay.toastUndo(saidSaved ? lines(added.length) : `Take saved · ${lines(added.length)}`, async () => {
+      const withTake = !saidSaved && undoTake;
+      const text = saidSaved ? lines(added.length) : `Take saved · ${lines(added.length)}`;
+      const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
+        // The take goes first when this toast is the one that said it is saved.
+        const take = withTake ? await undoTake() : null;
+        if (take && !take.ok) return take;
         try {
           for (const item of added) await findings.findingsReview({ ...item, status: 'unreviewed', note: '' });
           return { ok: true };
         } catch (reason) {
           return { ok: false, refusal: { reason: apiErrorMessage(reason) } };
         }
-      });
+      };
+      if (withTake && entry !== undefined) overlay.toastUndo(text, undo, { entry });
+      else overlay.toastUndo(text, undo);
       return added.length;
     },
     [teleprompter, findings, overlay],

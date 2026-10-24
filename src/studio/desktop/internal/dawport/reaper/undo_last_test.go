@@ -118,6 +118,31 @@ func TestUndoLastAnswersADawResult(t *testing.T) {
 	}
 }
 
+// A take is one take however many points it left (a roll leaves one more): undoing all of them is "the take", and part of
+// them names the recorded passes.
+func TestUndoLastWordsATakeAsOneTake(t *testing.T) {
+	for _, tc := range []struct {
+		steps, undone int
+		want          dawport.Result
+	}{
+		{1, 1, dawport.OK("Undid the take in REAPER.", true).WithUndoSteps(0)},
+		{2, 2, dawport.OK("Undid the take in REAPER.", true).WithUndoSteps(0)},
+		{3, 1, dawport.OK("Undid 1 of the 3 recorded passes of the take in REAPER. The rest are no longer REAPER's last actions, so they were left alone. Use Edit > Undo in REAPER for them.", true).WithUndoSteps(0)},
+		{1, 0, dawport.Refused("REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.")},
+	} {
+		undoer := undoerAnswering(t, func(command []string) [][]string {
+			if command[0] != "undo_last" || len(command) != 4 || command[2] != "record_take" {
+				t.Errorf("command = %v", command)
+			}
+			return [][]string{{"UNDONE_LAST", command[1], "record_take", command[3], strconv.Itoa(tc.undone)}}
+		})
+		got, err := undoer.UndoLast(t.Context(), dawport.ActionRecordTake, tc.steps)
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%d of %d: UndoLast = %+v, %v; want %+v", tc.undone, tc.steps, got, err, tc.want)
+		}
+	}
+}
+
 // A refused capability is its own sentence, steps outside 1 to 12 are refused and an unknown kind is an error; nothing is sent.
 func TestUndoLastRefusesBeforeAnythingIsSent(t *testing.T) {
 	refusedSentence := "Experimental DAW actions are off. Turn them on in Settings to undo the app's last action."
@@ -144,5 +169,14 @@ func TestUndoLastRefusesBeforeAnythingIsSent(t *testing.T) {
 	}
 	if n := len(sentCommands(t, dir)) + len(sentCommands(t, allowedDir)); n != 0 {
 		t.Errorf("a refused request wrote %d commands", n)
+	}
+}
+
+// Every kind the port knows is one the bridge sends, so a kind added on one side cannot be refused by the other.
+func TestEveryActionKindIsOneTheBridgeSends(t *testing.T) {
+	for _, kind := range []dawport.ActionKind{dawport.ActionCutRange, dawport.ActionRecordTake} {
+		if !kind.Valid() || !bridge.UndoKinds[string(kind)] {
+			t.Errorf("%s: valid %v, sent by the bridge %v", kind, kind.Valid(), bridge.UndoKinds[string(kind)])
+		}
 	}
 }

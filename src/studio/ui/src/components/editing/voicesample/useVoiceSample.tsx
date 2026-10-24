@@ -24,6 +24,8 @@ export interface VoiceSampleOptions {
   mediaUrl: (sourceFile: string) => string;
   /** Stops the page's own playback: the dialog plays a range of its own. */
   stopPlayback: () => void;
+  /** The page's playback when a linked DAW plays the chapter (#2251 item 32): the dialog's Play plays the words through it, never the app's audio. */
+  throughDaw?: { playFrom: (from: number, to?: number) => void; stop: () => void } | null;
 }
 
 export interface VoiceSample {
@@ -42,10 +44,14 @@ const UNDO_MS = 10_000;
  * from the stored alignment and never a path, and the host checks the range against the saved project, the cuts and the limits when the
  * narrator saves. Saved, it says so with Undo, which removes the sample again.
  */
-export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlayback }: VoiceSampleOptions): VoiceSample {
+export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlayback, throughDaw }: VoiceSampleOptions): VoiceSample {
   const { doc, selected } = useEditingPage();
   const storyBible = usePort('storyBible');
   const samples = usePort('voiceSamples');
+
+  // Read from the latest render inside open(), so a DAW that comes and goes does not rebuild the registered actions.
+  const live = useRef(throughDaw);
+  live.current = throughDaw;
 
   const open = useCallback(
     (keys?: readonly string[]) => {
@@ -71,8 +77,13 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
         for (const sample of list?.samples ?? []) counts[sample.characterId] = (counts[sample.characterId] ?? 0) + 1;
         const speaker = result.ok ? speakerOfWord(cues, workspace.paragraphs, chapterId, result.range.startKey, entities) : undefined;
         const file = result.ok ? items.find((item) => item.guid === result.range.itemGuid)?.sourceFile : undefined;
+        const words = summarize(doc, [...picked], [], (t) => t);
+        const dawPlayback = live.current;
+        const through = dawPlayback && words.audible.length ? { play: () => dawPlayback.playFrom(words.start, words.end), stop: dawPlayback.stop } : undefined;
         const audition: Audition | undefined =
-          result.ok && file ? { sourceFile: file, start: result.range.sourceStart, end: result.range.sourceEnd, mediaUrl } : undefined;
+          result.ok && file
+            ? { sourceFile: file, start: result.range.sourceStart, end: result.range.sourceEnd, mediaUrl, ...(through ? { through } : {}) }
+            : undefined;
         overlay.open({
           kind: 'dialog',
           title: 'Voice sample',
