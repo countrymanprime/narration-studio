@@ -828,6 +828,7 @@ const held = (over: Partial<Bookmark>): Bookmark => ({
   paragraphId: 'p3',
   paragraph: 2,
   offset: 28,
+  kind: 'spot',
   label: '',
   note: '',
   createdAt: '2026-10-11T10:00:00Z',
@@ -1078,7 +1079,17 @@ describe('the right-click menu', () => {
       within(menu)
         .getAllByRole('menuitem')
         .map((item) => item.textContent),
-    ).toEqual(['Start from here', 'Bookmark here', 'Next phrase', 'Back one phrase', 'Punch and roll', 'Larger text', 'Smaller text', 'Exit Booth']);
+    ).toEqual([
+      'Start from here',
+      'Bookmark here',
+      'Read to here',
+      'Next phrase',
+      'Back one phrase',
+      'Punch and roll',
+      'Larger text',
+      'Smaller text',
+      'Exit Booth',
+    ]);
     const text = () => document.querySelector<HTMLElement>('[data-booth-text] > div')!.style.fontSize;
     await userEvent.click(within(menu).getByRole('menuitem', { name: 'Larger text' }));
     expect(text()).toBe('44px');

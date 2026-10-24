@@ -16,7 +16,7 @@ import (
 func TestGuideTypesRoundTripWithoutTheSidecar(t *testing.T) {
 	service, calls, project := countingGuideIn(t)
 	writeStoryBible(t, project)
-	host := &Host{guide: service}
+	host := hostWithoutCueRefresh(service)
 	for _, step := range []func() (string, error){
 		func() (string, error) { return host.GuideTypeAdd(" Creature ") },
 		func() (string, error) { return host.GuideTypeSetSpeaks("Creature", true) },

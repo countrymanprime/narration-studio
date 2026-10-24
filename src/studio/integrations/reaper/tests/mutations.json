@@ -1310,7 +1310,7 @@
   {
     "name": "remove_fx_range: a piece without the chain opens a block",
     "file": "narration_range.lua",
-    "find": "  if #doomed == 0 then",
+    "find": "  if #doomed == 0 and not (take and name == CHOSEN_CHAIN) then",
     "replace": "  if take == nil then"
   },
   {
@@ -1320,10 +1320,10 @@
     "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local needed = { 'TakeFX_Delete'"
   },
   {
-    "name": "apply_fx_range: the chain goes on while REAPER records",
+    "name": "apply_fx_range and choose_range_fx: the range is split while REAPER records",
     "file": "narration_range.lua",
-    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local needed = { 'SplitMediaItem', 'TakeFX_AddByName'",
-    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local needed = { 'SplitMediaItem', 'TakeFX_AddByName'"
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return nil\n  end\n  return first_fx, last_fx, fade",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return nil\n  end\n  return first_fx, last_fx, fade"
   },
   {
     "name": "remove_fx_range: a neighbour with another gain is joined",
@@ -2612,5 +2612,65 @@
     "file": "narration_meters.lua",
     "find": "if not reaper.APIExists('Track_GetPeakInfo') then",
     "replace": "if false then"
+  },
+  {
+    "name": "choose_range_fx opens the dialog before its answer is written",
+    "file": "narration_range.lua",
+    "find": "  event(session_dir, 'RANGE_FX_CHOOSING', run_id, piece_guid, piece_take, 1)\n  reaper.defer(function()\n    open_fx_dialog(piece_guid, piece_take)\n  end)",
+    "replace": "  open_fx_dialog(piece_guid, piece_take)\n  event(session_dir, 'RANGE_FX_CHOOSING', run_id, piece_guid, piece_take, 1)"
+  },
+  {
+    "name": "choose_range_fx runs action 40638 whatever its text",
+    "file": "narration_range.lua",
+    "find": "  if reaper.kbd_getTextFromCmd(SHOW_FX_CHAIN, reaper.SectionFromUniqueID(0)) ~= SHOW_FX_CHAIN_TEXT then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "choose_range_fx leaves the narrator's selection on the piece",
+    "file": "narration_range.lua",
+    "find": "  reaper.SetMediaItemSelected(piece, false)\n  for _, item in ipairs(selected) do",
+    "replace": "  for _, item in ipairs(selected) do"
+  },
+  {
+    "name": "choose_range_fx does not record the FX the piece already had",
+    "file": "narration_range.lua",
+    "find": "    reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_BEFORE_KEY, table.concat(before, ' '), true)",
+    "replace": "    reaper.GetSetMediaItemTakeInfo_String(take, CHAIN_BEFORE_KEY, '', true)"
+  },
+  {
+    "name": "choose_range_fx opens the dialog on the left piece",
+    "file": "narration_range.lua",
+    "find": "  local take = not failure and reaper.GetActiveTake(middle) or nil",
+    "replace": "  local take = not failure and reaper.GetActiveTake(item) or nil"
+  },
+  {
+    "name": "choose_range_fx splits on a REAPER without the calls",
+    "file": "narration_range.lua",
+    "find": "  if not first_fx or not choose_supported(session_dir, run_id) then",
+    "replace": "  if not first_fx then"
+  },
+  {
+    "name": "range_fx_chosen reads a piece that was not opened for a choice",
+    "file": "narration_range.lua",
+    "find": "  if not take or take_ext(take, CHAIN_KEY) ~= CHOSEN_CHAIN then",
+    "replace": "  if not take then"
+  },
+  {
+    "name": "a removal under the chosen name takes off the FX the item already had",
+    "file": "narration_range.lua",
+    "find": "    if guid ~= '' and not before[guid] then",
+    "replace": "    if guid ~= '' then"
+  },
+  {
+    "name": "a cancelled choice is never joined back",
+    "file": "narration_range.lua",
+    "find": "  if #doomed == 0 and not (take and name == CHOSEN_CHAIN) then",
+    "replace": "  if #doomed == 0 then"
+  },
+  {
+    "name": "choose_range_fx unselects with SelectAllMediaItems, which adds REAPER's own undo point",
+    "file": "narration_range.lua",
+    "find": "    selected[#selected + 1] = item\n    reaper.SetMediaItemSelected(item, false)\n  end\n  reaper.SetMediaItemSelected(piece, true)",
+    "replace": "    selected[#selected + 1] = item\n  end\n  reaper.SelectAllMediaItems(0, false)\n  reaper.SetMediaItemSelected(piece, true)"
   }
 ]

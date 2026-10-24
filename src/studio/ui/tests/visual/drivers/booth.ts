@@ -330,8 +330,20 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page, `${RECORD_ON}&mockDawMeters=unarmed`);
     await page.getByRole('button', { name: 'Levels' }).click();
     const menu = page.getByRole('dialog', { name: 'Levels' });
-    await menu.getByText('REAPER pre-roll is off: a punch records from the word with no lead-in.').waitFor();
+    await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
     await menu.getByText('No track is armed in REAPER: its input level shows once one is.').waitFor();
+  },
+  // The pre-roll's "i" opened from the keyboard: the note, inside the menu, says what the pre-roll does and where to change it in REAPER.
+  'levels-menu-preroll-about': async (page) => {
+    await readyToRecord(page, `${RECORD_ON}&mockDawMeters=unarmed`);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
+    const info = menu.getByRole('button', { name: 'About REAPER’s pre-roll' });
+    // Reached with the keyboard and opened with Enter, as a narrator without a mouse would.
+    for (let i = 0; i < 40 && !(await info.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
+    await page.keyboard.press('Enter');
+    await menu.getByText(/Pre-roll: Toggle pre-roll on record/).waitFor();
   },
   // Experimental DAW actions on, so the monitor slider is usable and this state differs from levels-menu.
   'levels-menu-daw-meters': async (page) => {
@@ -375,6 +387,24 @@ export const boothDrivers: Record<string, Driver> = {
     await page.keyboard.press('b');
     await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
     await page.getByText('Bookmark added.').waitFor();
+  },
+  // The first page break: Down steps the reading a phrase at a time until the "Page 2" marker is well inside the view, then its right-click
+  // menu's Read to here marks the stopping place there (a chequered-flag ribbon beside the line).
+  'page-break-stop': async (page) => {
+    await readyToRecord(page);
+    const label = page.locator('[data-bmk-margin] [data-page-break="2"]');
+    const height = page.viewportSize()?.height ?? 800;
+    for (let step = 0; step < 80; step++) {
+      const box = await label.boundingBox();
+      if (box && box.y > height * 0.25 && box.y < height * 0.6) break;
+      await page.keyboard.press('ArrowDown');
+    }
+    await label.click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Read to here' }).click();
+    await page.locator('[data-bmk-margin] [data-bm-kind="stop"]').waitFor();
+    await page.getByText('Stopping place marked.').waitFor();
+    // The closed menu hands focus to the top bar's first button, whose hint would cover the text; the shot is of the margin.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
   // Ctrl+F opens the jump menu; a match under "In this chapter" moves the reading to it and tints every match in the text.
   'search-shown': async (page) => {

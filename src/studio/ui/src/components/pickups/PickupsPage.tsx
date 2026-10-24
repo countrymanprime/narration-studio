@@ -59,7 +59,10 @@ export function PickupsPage({
   const measurements = usePort('measurements');
   const daw = usePort('daw');
   const overlay = useOverlay();
-  const original = usePlayOriginal((sentence) => overlay.toast(sentence, { tone: 'error' }));
+  const original = usePlayOriginal(
+    (sentence) => overlay.toast(sentence, { tone: 'error' }),
+    (sentence) => overlay.toast(sentence),
+  );
   const review = useCapability('review');
   const markers = useCapability('markers');
   const dawKind = useDawKind();

@@ -1187,7 +1187,14 @@
     "state": "levels-menu-preroll",
     "viewport": "desktop",
     "docName": "booth-levels-menu-preroll",
-    "caption": "Booth - the Levels menu: REAPER's own pre-roll, read from REAPER, and where to change it"
+    "caption": "Booth - the Levels menu: REAPER's own pre-roll in one line, read from REAPER"
+  },
+  {
+    "page": "booth",
+    "state": "levels-menu-preroll-about",
+    "viewport": "desktop",
+    "docName": "booth-levels-menu-preroll-about",
+    "caption": "Booth - the pre-roll's info note: what REAPER's pre-roll does and where to change it"
   },
   {
     "page": "booth",
@@ -1216,6 +1223,13 @@
     "viewport": "desktop",
     "docName": "booth-bookmark",
     "caption": "Booth - B pressed: the word being read is bookmarked, with a ribbon in the margin"
+  },
+  {
+    "page": "booth",
+    "state": "page-break-stop",
+    "viewport": "desktop",
+    "docName": "booth-page-break",
+    "caption": "Booth - a page break: the dashed line and Page 2 in the margin, with the stopping place set there by Read to here"
   },
   {
     "page": "booth",

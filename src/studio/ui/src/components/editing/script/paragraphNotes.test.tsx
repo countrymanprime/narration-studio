@@ -19,7 +19,7 @@ const TYPES: GuideType[] = [
   { name: 'Character', colour: 'green', speaks: true },
   { name: 'Place', colour: 'blue', speaks: false },
 ];
-const ENTRIES = [entry('e1', 'Alice', 'Character'), entry('e2', 'garden', 'Place')];
+const ENTRIES = [entry('e1', 'Alice', 'Character'), entry('e2', 'garden', 'Place'), entry('e3', 'Wren', 'Needs Review')];
 const cue = (source: GuideDialogueCue['speaker_source'], speaker: string | null): GuideDialogueCue => ({
   id: 'c1',
   chapterId: '5',
@@ -119,6 +119,19 @@ describe('the script carries the Story Bible and the narrator’s marks', () => 
     show([cue('unknown', null)]);
     expect(document.querySelector('[data-spk="c1"]')?.getAttribute('data-state')).toBe('unknown');
     expect(document.querySelector('[data-spk="c1"]')?.textContent).toBe('?');
+  });
+  it('follows the chip rule Script and the Booth draw by: dashed until confirmed, nobody for a place', () => {
+    const state = (source: GuideDialogueCue['speaker_source'], speaker: string) => {
+      show([cue(source, speaker)]);
+      const chip = document.querySelector('[data-spk="c1"]');
+      const found = [chip?.getAttribute('data-state'), chip?.textContent];
+      cleanup();
+      return found;
+    };
+    expect(state('proximity', 'e1')).toEqual(['suggested', 'Alice']);
+    expect(state('tag', 'e3')).toEqual(['suggested', 'Wren']);
+    expect(state('correction', 'e3')).toEqual(['confirmed', 'Wren']);
+    expect(state('tag', 'e2')).toEqual(['unknown', '?']);
   });
   it('marks the words of a Story Bible name with the entry’s colour and not the words around them', () => {
     show([cue('correction', 'e1')]);

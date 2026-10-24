@@ -8,6 +8,7 @@ export const bookmarkSchema = z
     paragraphId: z.string().min(1),
     paragraph: z.number().int().nullable(),
     offset: z.number().int().nonnegative(),
+    kind: z.enum(['spot', 'stop']),
     label: z.string().max(BOOKMARK_LABEL_MAX),
     note: z.string().max(BOOKMARK_NOTE_MAX),
     createdAt: z.string(),

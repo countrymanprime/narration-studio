@@ -97,6 +97,10 @@ var realEvents = map[string][]string{
 	"RANGE_FX_BYPASSED":        {"RANGE_FX_BYPASSED", "b1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "1", "1"},
 	"RANGE_FX_COMPARE":         {"RANGE_FX_COMPARE", "c1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "Voice/Radio.RfxChain", "14", "16", "0"},
 	"RANGE_FX_COMPARE_STOPPED": {"RANGE_FX_COMPARE_STOPPED", "s1", "1"},
+	// src/studio/integrations/reaper/tests/fx_choose_test.lua (choose_range_fx, range_fx_chosen).
+	"RANGE_FX_CHOOSING":  {"RANGE_FX_CHOOSING", "c1", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "1"},
+	"RANGE_FX_CHOSEN_FX": {"RANGE_FX_CHOSEN_FX", "r2", "1", "JS: Pipe|Name", "0"},
+	"RANGE_FX_CHOSEN":    {"RANGE_FX_CHOSEN", "r2", "{0000000F-0000-4000-8000-00000000000F}", "{00000010-0000-4000-8000-000000000010}", "2", "1", "0"},
 	// src/studio/integrations/reaper/tests/undo_test.lua (last_action, undo_last).
 	"LAST_ACTION": {"LAST_ACTION", "l1", "cut_range", "this"},
 	"UNDONE_LAST": {"UNDONE_LAST", "u1", "cut_range", "4", "2"},

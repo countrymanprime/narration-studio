@@ -7,6 +7,7 @@ import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../api/c
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord, WordStatus } from '../../../../api/contracts/scriptPrep';
+import { cueSpeakerState, type CueSpeakerState } from '../../../manuscript/dialogueCues.selectors';
 
 /** A flagged word's key as the host stores it: the text trimmed and lower-cased. */
 export const wordKey = (text: string): string => text.trim().toLowerCase();
@@ -147,21 +148,17 @@ export function speakerCandidates(entries: readonly GuideEntity[], types: readon
   return entries.filter((entry) => speaking.has(entry.category));
 }
 
-/** A speaker the narrator confirmed (a correction), one the Story Bible suggests, or none. */
-type PhraseState = 'confirmed' | 'suggested' | 'unknown';
-
-/** A quoted phrase of a paragraph, from the Story Bible's dialogue cues. */
-export type Phrase = { cueId: string; start: number; end: number; text: string; speaker: GuideEntity | null; state: PhraseState };
+/** A quoted phrase of a paragraph, from the Story Bible's dialogue cues; `state` is the chip's (`cueSpeakerState`). */
+export type Phrase = { cueId: string; start: number; end: number; text: string; speaker: GuideEntity | null; state: CueSpeakerState };
 
 const phraseOf = (speakers: readonly GuideEntity[], cue: GuideDialogueCue): Phrase => {
   const speaker = entryById(speakers, cue.speaker_entity_id) ?? null;
-  const state: PhraseState = !speaker ? 'unknown' : cue.speaker_source === 'correction' ? 'confirmed' : 'suggested';
-  return { cueId: cue.id, start: cue.quote_start, end: cue.quote_end, text: cue.quote_text, speaker, state };
+  return { cueId: cue.id, start: cue.quote_start, end: cue.quote_end, text: cue.quote_text, speaker, state: cueSpeakerState(cue, speaker) };
 };
 
 /**
  * The quoted phrases of a paragraph in reading order, each with its speaker entry. `speakers` are the entries a phrase can be
- * attributed to; the page passes `speakerCandidates`, so a line given to an entry whose type cannot speak counts as unknown.
+ * attributed to; the page passes `cueSpeakerEntries`, so a line given to an entry whose type cannot speak counts as unknown.
  */
 export function phrasesOf(
   cues: readonly GuideDialogueCue[],

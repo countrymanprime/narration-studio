@@ -133,3 +133,33 @@ describe('paragraphLayers', () => {
     expect(paragraphLayers(idx, para).find((l) => l.kind === 'phrase')).toMatchObject({ state: 'suggested' });
   });
 });
+
+describe('who a phrase chip can name', () => {
+  const para = paragraph('p1', 'c1', text);
+  const entries: GuideEntity[] = [entry('e1', 'Mina', 'Character', 4), entry('e2', 'Harbour', 'Place'), entry('e3', 'Wren', 'Needs Review')];
+  const chip = (speakerId: string, source: GuideDialogueCue['speaker_source']) =>
+    paragraphLayers(
+      buildLayerIndex({
+        marks: [],
+        markTypes: [],
+        words: [],
+        entries,
+        types: GUIDE_TYPES,
+        cues: [cue('q', 'p1', 'c1', range('"Come along,"'), speakerId, source)],
+      }),
+      para,
+    ).find((l) => l.kind === 'phrase');
+
+  it('a Needs Review name the rules suggest is a dashed suggestion, and solid once confirmed', () => {
+    expect(chip('e3', 'tag')).toMatchObject({ state: 'suggested', label: 'Wren' });
+    expect(chip('e3', 'correction')).toMatchObject({ state: 'confirmed', label: 'Wren' });
+  });
+
+  it('a speaker found near the line is a suggestion', () => {
+    expect(chip('e1', 'proximity')).toMatchObject({ state: 'suggested', label: 'Mina' });
+  });
+
+  it('an entry whose type cannot speak is nobody', () => {
+    expect(chip('e2', 'tag')).toMatchObject({ state: 'unknown', label: '?' });
+  });
+});

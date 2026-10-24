@@ -31,7 +31,7 @@ func TestContractGuideTypeEditsReturnNothing(t *testing.T) {
 		"GuideTypeRemove":    func(h *Host) (string, error) { return h.GuideTypeRemove("Event") },
 	} {
 		service, _ := countingGuide(t)
-		if got, err := call(&Host{guide: service}); err != nil || got != "null" {
+		if got, err := call(hostWithoutCueRefresh(service)); err != nil || got != "null" {
 			t.Fatalf("%s = %q, %v", name, got, err)
 		}
 	}
