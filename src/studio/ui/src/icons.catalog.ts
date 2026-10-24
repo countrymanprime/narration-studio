@@ -39,6 +39,7 @@ import {
   faFileImport,
   faFileLines,
   faFlag,
+  faFlagCheckered,
   faFolderOpen,
   faFont,
   faForwardStep,
@@ -248,6 +249,8 @@ export const CATALOG = {
   // is the action, so a row that wears an icon another action already wears shares that action's meaning (an alias).
   bookmark: action(faBookmark, 'bookmark', 'Add a bookmark here', 'B'),
   bookmarks: action(faBookmark, 'bookmark', 'Show the bookmarks'),
+  // The narrator's stopping place in a chapter ("Read to here"), a bookmark of kind stop: it only marks the place.
+  stoppingPlace: action(faFlagCheckered, 'stopping place', 'Mark where you will read to'),
   textSettings: action(faFont, 'text settings', 'Edit the text settings'),
   openMenu: action(faCaretDown, 'open a menu', 'Open the menu'),
   incomingRelationship: action(faArrowLeft, 'incoming relationship', 'Show an incoming relationship'),

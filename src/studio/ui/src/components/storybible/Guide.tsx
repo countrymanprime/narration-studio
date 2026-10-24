@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { GuideEntity, GuideType } from '../../types';
 import { CommandScope } from '../../input/router';
+import { usePageCommands } from '../../input/pageCommands';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
@@ -333,6 +334,25 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     };
   }, []);
   useContextProvider(entryMenu);
+
+  // Ctrl+F (the page-scoped jump menu) lists the entries, found by any of their names. Choosing one opens it, and clears a search or filter
+  // that would hide its row, so the list shows what is open.
+  usePageCommands({ id: 'story-bible', label: 'Story Bible' }, () =>
+    visible
+      .filter((row) => row.category !== 'Draft')
+      .map((row) => ({
+        id: `entry.${row.id}`,
+        label: row.canonical_name,
+        group: 'Entries',
+        hint: row.category,
+        keywords: row.aliases.map((alias) => alias.text),
+        icon: 'locate' as const,
+        run: () => {
+          if (!filtered.some((shown) => shown.id === row.id)) clearFilters();
+          selectRow(row.id);
+        },
+      })),
+  );
 
   if (loadError) return <LoadError title="Story Bible" message={loadError} retry={() => void load(entityId)} />;
 

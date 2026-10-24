@@ -110,14 +110,14 @@ func TestPipelinedRunStillRechecksWhatIsMissingAfterwards(t *testing.T) {
 	if state.Phase != PhaseComplete {
 		t.Fatalf("state = %+v", state)
 	}
-	if len(sidecar.launches) != 3 {
-		t.Fatalf("want the pipelined process, a re-check of the missing tail and a realign, got %d launches", len(sidecar.launches))
+	if len(sidecar.launches) != 2 || len(sidecar.alignments()) != 2 {
+		t.Fatalf("want the pipelined process, a re-check of the missing tail and the host's realign, got %d launches", len(sidecar.launches))
 	}
 	if again := flags(sidecar.launches[1]); again["--recheck"] == "" || again["--recheck-model"] != "" || again["--model"] != "large-v3-turbo" {
 		t.Fatalf("the missing-tail re-check's args = %v", again)
 	}
-	if realign := flags(sidecar.launches[2]); realign["--align-only"] != "true" || realign["--recheck-model"] != "" || realign["--model"] != "small" {
-		t.Fatalf("the realign's args = %v", realign)
+	if realign := sidecar.alignments()[1]; realign.WordsReport != "" || realign.Model != "small" || realign.CheckedBy != "large-v3-turbo" {
+		t.Fatalf("the realign = %+v", realign)
 	}
 	recheck := currentResult(t, service, DefaultAlignmentParams).Result.Recheck
 	if recheck == nil || recheck.Windows != 3 || recheck.Seconds <= 50 {

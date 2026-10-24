@@ -42,16 +42,20 @@ func TestModelCascadeWindowedRecheckSplicesAndRealigns(t *testing.T) {
 	if state.Phase != PhaseComplete || state.Percent != 100 {
 		t.Fatalf("state = %+v", state)
 	}
-	if len(sidecar.launches) != 3 {
-		t.Fatalf("want a first pass, a windowed re-check and a realign, got %d launches", len(sidecar.launches))
+	// Two processes, a first pass and a windowed re-check; the realign is the host's own, aligning without the sidecar.
+	if len(sidecar.launches) != 2 {
+		t.Fatalf("want a first pass and a windowed re-check, got %d launches", len(sidecar.launches))
 	}
 	recheckArgs := flags(sidecar.launches[1])
 	if recheckArgs["--recheck"] == "" || recheckArgs["--model"] != "large-v3-turbo" {
 		t.Fatalf("the re-check stage's args = %v", recheckArgs)
 	}
-	realignArgs := flags(sidecar.launches[2])
-	if realignArgs["--align-only"] != "true" || realignArgs["--model"] != "small" {
-		t.Fatalf("the realign stage's args = %v (must use the first pass's own model)", realignArgs)
+	aligns := sidecar.alignments()
+	if len(aligns) != 2 || aligns[0].WordsReport == "" {
+		t.Fatalf("want the first pass aligned from its words report, then a realign: %+v", aligns)
+	}
+	if realign := aligns[1]; realign.WordsReport != "" || realign.Model != "small" || realign.CheckedBy != "large-v3-turbo" {
+		t.Fatalf("the realign = %+v (must be align-only under the first pass's own model, keeping the larger model's words)", realign)
 	}
 	if len(sidecar.rechecks()) != 1 {
 		t.Fatalf("want exactly one words file re-checked, got %v", sidecar.rechecks())
@@ -232,8 +236,8 @@ func TestModelCascadeFailureDuringTheRealignStage(t *testing.T) {
 	if state.Phase != PhaseFailed || state.Message != "the realign pass could not read the spliced words" {
 		t.Fatalf("state = %+v", state)
 	}
-	if len(sidecar.launches) != 3 {
-		t.Fatalf("a realign failure must still have gone through all three stages: %d launches", len(sidecar.launches))
+	if len(sidecar.launches) != 2 || len(sidecar.alignments()) != 2 {
+		t.Fatalf("a realign failure must still have gone through all three stages: %d launches, %d alignments", len(sidecar.launches), len(sidecar.alignments()))
 	}
 }
 
@@ -265,11 +269,11 @@ func TestModelCascadeReChecksAPassageTheFirstPassWasUnsureOfEvenWhenNothingIsMis
 	if first := flags(sidecar.launches[0]); first["--unsure-below"] != "0.5" {
 		t.Fatalf("the first pass must be asked for its doubts: %v", first)
 	}
-	if len(sidecar.launches) != 3 || len(sidecar.rechecks()) != 1 {
+	if len(sidecar.launches) != 2 || len(sidecar.rechecks()) != 1 || len(sidecar.alignments()) != 2 {
 		t.Fatalf("want a first pass, a windowed re-check of the doubted passage and a realign: %d launches, %v re-checked", len(sidecar.launches), sidecar.rechecks())
 	}
-	if again := flags(sidecar.launches[2]); again["--unsure-below"] != "" {
-		t.Fatalf("only the first pass reports doubts: %v", again)
+	if again := sidecar.alignments()[1]; again.WordsReport != "" {
+		t.Fatalf("only the first pass reports doubts; the realign aligns words alone: %+v", again)
 	}
 	result := currentResult(t, service, DefaultAlignmentParams)
 	if result.Result.Recheck == nil || result.Result.Recheck.Windows != 1 {

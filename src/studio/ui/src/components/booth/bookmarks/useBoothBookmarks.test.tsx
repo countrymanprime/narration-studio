@@ -161,7 +161,7 @@ describe('right-click-offers-bookmark-here-on-the-clicked-word', () => {
   it('offers Bookmark here on a word, and it bookmarks that word', async () => {
     const { result } = await setup();
     const items = result.current.menuItems(wordIn(0, 1));
-    expect(items.map((item) => item.label)).toEqual(['Bookmark here']);
+    expect(items.map((item) => item.label)).toEqual(['Bookmark here', 'Read to here']);
     await act(async () => items[0].onSelect());
     await waitFor(() => expect(result.current.bookmarks).toHaveLength(1));
     expect(result.current.bookmarks![0]).toMatchObject({ paragraphId: paragraphs[0].id, offset: wordStart(paragraphs[0].text, 1) });
@@ -185,6 +185,58 @@ describe('right-click-offers-bookmark-here-on-the-clicked-word', () => {
   it('offers nothing off a word', async () => {
     const { result } = await setup();
     expect(result.current.menuItems(document.createElement('div'))).toEqual([]);
+  });
+});
+
+describe('read-to-here-marks-one-stopping-place-per-chapter', () => {
+  const wordIn = (unit: number, word: number) => {
+    const host = document.createElement('div');
+    host.innerHTML = `<span data-unit="${unit}"><span data-word="${word}">w</span></span>`;
+    return host.querySelector('[data-word]')!;
+  };
+  const pageLabel = (paragraphId: string, offset: number) => {
+    const label = document.createElement('span');
+    Object.assign(label.dataset, { pageBreak: '2', paragraphId, offset: String(offset) });
+    return label;
+  };
+  const stops = (list: Bookmark[] | undefined) => (list ?? []).filter((bookmark) => bookmark.kind === 'stop');
+
+  it('Read to here on a word marks it with an Undo, and only marks: nothing is seeked or stopped', async () => {
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    const { result } = await setup();
+    const read = result.current.menuItems(wordIn(0, 1)).find((item) => item.label === 'Read to here')!;
+    await act(async () => read.onSelect());
+    await waitFor(() => expect(stops(result.current.bookmarks)).toHaveLength(1));
+    expect(stops(result.current.bookmarks)[0]).toMatchObject({ paragraphId: paragraphs[0].id, offset: wordStart(paragraphs[0].text, 1) });
+    expect(toastUndo).toHaveBeenCalledWith('Stopping place marked.', expect.any(Function), expect.anything());
+    expect(seek).not.toHaveBeenCalled();
+  });
+
+  it("a page marker offers only Read to here, at the page's first word, and a second one replaces the first", async () => {
+    const toastUndo = vi.spyOn(overlay, 'toastUndo');
+    const { result } = await setup();
+    const first = result.current.menuItems(pageLabel(paragraphs[0].id, 0));
+    expect(first.map((item) => item.label)).toEqual(['Read to here']);
+    await act(async () => first[0].onSelect());
+    await waitFor(() => expect(stops(result.current.bookmarks)).toHaveLength(1));
+    const offset = wordStart(paragraphs[1].text, 0);
+    await act(async () => result.current.menuItems(pageLabel(paragraphs[1].id, offset))[0].onSelect());
+    await waitFor(() => expect(stops(result.current.bookmarks)[0]).toMatchObject({ paragraphId: paragraphs[1].id, offset }));
+    expect(stops(result.current.bookmarks)).toHaveLength(1);
+    expect(toastUndo).toHaveBeenLastCalledWith('Stopping place moved.', expect.any(Function), expect.anything());
+  });
+
+  it("a stopping place's ribbon offers Edit and Remove stopping place", async () => {
+    const { result } = await setup();
+    await act(async () => result.current.menuItems(pageLabel(paragraphs[0].id, 0))[0].onSelect());
+    await waitFor(() => expect(stops(result.current.bookmarks)).toHaveLength(1));
+    const ribbon = document.createElement('button');
+    ribbon.dataset.bm = stops(result.current.bookmarks)[0].id;
+    ribbon.dataset.bmKind = 'stop';
+    const items = result.current.menuItems(ribbon);
+    expect(items.map((item) => item.label)).toEqual(['Edit stopping place', 'Remove stopping place']);
+    await act(async () => items[1].onSelect());
+    await waitFor(() => expect(result.current.bookmarks).toEqual([]));
   });
 });
 

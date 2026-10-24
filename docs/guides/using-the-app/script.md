@@ -16,7 +16,9 @@ three parts side by side:
   type's colour, the same as in the Booth, and a name still marked Needs Review or Draft is amber. A word flagged for
   pronunciation has a blue dotted underline. A speaker's lines carry a chip with their name in the speaker's own
   colour: a dashed border means the speaker is only suggested, and a grey dashed chip with a question mark means nobody
-  is set. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has the **text settings** (font, size, line spacing, 1.7 at first, and column width). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
+  is set. Every speaker the app finds is a suggestion: a speech tag ("Ada said"), the other of two people taking turns, or
+  a name within a few words of the line, which may be a name still in Needs Review. It turns solid once you confirm it or
+  pick someone in the chip's menu. A line given to an entry whose type cannot speak (a place, say) shows the question mark. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has the **text settings** (font, size, line spacing, 1.7 at first, and column width). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
 - **The rail** on the right, with three tabs: **Words**, **Story Bible** and **Notes**. Bookmarks are not a tab: go to one from the [jump menu](navigation.md#jump-to-or-run) (`Ctrl+F`, then type *bookmark*), and add, edit or delete one from the right-click menu (see [Bookmarks](#bookmarks)).
 
 While the manuscript is being read, the page shows the same three columns as grey blocks; if it cannot be read, the page says so with **Retry**.
@@ -122,6 +124,8 @@ A Story Bible name met in the chapter is listed on **Words** too, marked with th
 ## Bookmarks
 
 Press **B** to bookmark the line you are on (or use **Bookmark here** on the selection toolbar or the right-click menu). A ribbon in the reader's margin marks it; press the ribbon to edit its label and note, or right-click it for **Edit bookmark** and **Delete bookmark**. **Alt+[** and **Alt+]** go to the previous and next bookmark. The [jump menu](navigation.md#jump-to-or-run) lists every bookmark under **Bookmarks**, with **Bookmark here**, **Next bookmark** and **Previous bookmark**, so a bookmark is one search away.
+
+A stopping place you set in the [Booth](booth.md#pages-and-your-stopping-place) with **Read to here** shows here too, as a chequered-flag ribbon, and in the jump menu as **Read to here: …**. Press it to give it a label and note, like any bookmark.
 
 ![Script - B pressed in the reader: the bookmark's ribbon in the margin and the Bookmark added toast with Undo](../../images/ui/script-bookmark.webp)
 

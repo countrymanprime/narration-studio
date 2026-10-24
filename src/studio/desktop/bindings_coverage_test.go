@@ -19,6 +19,7 @@ import (
 	"desktop/internal/contractfile"
 	"desktop/internal/coverage"
 	"desktop/internal/evidence"
+	"desktop/internal/recordingcoverage"
 	"desktop/internal/whisper"
 )
 
@@ -71,8 +72,8 @@ func (c *coverageChild) ExitCode() (int, bool) {
 	return *c.code, true
 }
 
-// fakeCoverageSidecar stands in for `compare.py --coverage`: it writes a results file with present of the chapter's 10
-// words and exits 0.
+// fakeCoverageSidecar stands in for `compare.py --coverage`: it writes results lines with present of the chapter's 10
+// words where the words report goes, for fakeCoverageResults to take as the results, and exits 0.
 func fakeCoverageSidecar(present int) coverage.Launcher {
 	return func(_ context.Context, _ string, args ...string) (coverage.Child, error) {
 		values := map[string]string{}
@@ -99,6 +100,22 @@ func fakeCoverageSidecar(present int) coverage.Launcher {
 	}
 }
 
+// fakeCoverageResults stands in for the host's aligner (recordingcoverage.Run) beside a fake sidecar of this package, which
+// writes its results lines where the sidecar's words report goes (--out): it takes those lines as the run's results. An
+// align-only pass (no words report) takes the run's first report again. The alignment itself is internal/recordingcoverage's,
+// tested there; these tests are about the host around it.
+func fakeCoverageResults(request recordingcoverage.Request) error {
+	report := request.WordsReport
+	if report == "" {
+		report = filepath.Join(filepath.Dir(request.Out), "words-report.txt")
+	}
+	raw, err := os.ReadFile(report)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(request.Out, raw, 0o600)
+}
+
 // coverageHost attaches a coverage project (coverage_test.go) with a Whisper catalog and a fake sidecar.
 func coverageHost(t *testing.T, project string, installed bool, launcher coverage.Launcher) *Host {
 	t.Helper()
@@ -109,9 +126,15 @@ func coverageHost(t *testing.T, project string, installed bool, launcher coverag
 // which need more than the one model coverageHost's whisperWithSmall installs.
 func coverageHostWithModels(t *testing.T, project string, models *whisper.Manager, launcher coverage.Launcher) *Host {
 	t.Helper()
+	return coverageHostWithAligner(t, project, models, launcher, fakeCoverageResults)
+}
+
+// coverageHostWithAligner is coverageHostWithModels with the test's own stand-in for the host's aligner.
+func coverageHostWithAligner(t *testing.T, project string, models *whisper.Manager, launcher coverage.Launcher, aligner func(recordingcoverage.Request) error) *Host {
+	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	host := NewHost()
-	host.coverageLauncher = launcher
+	host.coverageLauncher, host.coverageAligner = launcher, aligner
 	host.assets = newAssetRegistry(t.TempDir(), nil, models, nil, nil)
 	next := host.config
 	next.projectFolder = project

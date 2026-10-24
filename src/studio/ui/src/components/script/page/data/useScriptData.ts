@@ -21,6 +21,7 @@ import type { LineRange, ScriptCommandEnv } from './scriptCommands';
 import { createScriptData, type Loadable, type ScriptData, type ScriptDataState } from './scriptData';
 import { createScriptView, type ScriptView, type ScriptViewState } from './scriptView';
 import * as select from './script.selectors';
+import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
 
 /** What a read looks like to a component: its value (the last one while a reload runs), the host's sentence when it failed, and Retry. */
 export type ReadView<T> = {
@@ -210,11 +211,12 @@ export function useSpeakers(): SpeakersView {
   return useMemo(() => {
     const list = cues?.value ?? NO_CUES;
     const candidates = select.speakerCandidates(entries.entries, entries.types);
+    const named = cueSpeakerEntries(entries.entries, entries.types);
     return {
       ...view(cues, retry),
       cues: list,
-      phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.phrasesOf(list, candidates, paragraph),
-      unattributed: (chapterId: string) => select.unattributed(list, candidates, chapterId),
+      phrasesOf: (paragraph: Pick<ManuscriptParagraph, 'id' | 'chapterId'>) => select.phrasesOf(list, named, paragraph),
+      unattributed: (chapterId: string) => select.unattributed(list, named, chapterId),
       candidates,
     };
   }, [cues, retry, entries.entries, entries.types]);

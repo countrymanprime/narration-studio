@@ -345,7 +345,8 @@ jobs:
     #     project guards read every tracked file.
     #   - docs-site (tools/docs-site): unit tests only - Pages publishes src/web, so the strict MkDocs build
     #     is not run in CI, and the built site's link check (check_site.py) runs from pages.yml. `always`: docs/ belongs to no Nx project.
-    #   - python: ruff and pytest for src/studio/libs/python, the sidecars, scripts/ and tests/fixtures.
+    #   - python: ruff and pytest for src/studio/libs/python, the sidecars, scripts/ and tests/fixtures. Go is installed for the
+    #     transcript-compare tests, whose coverage harness and calibration measure the host's aligner through cmd/proof-align.
     #   - reaper: stylua, then the bridge harness (src/studio/integrations/reaper/tests: Lua 5.4 from lupa, a fake `reaper` driven
     #     through the file protocol, the mutation checks). quick-windows runs it on Windows too.
     timeout-minutes: 20
@@ -355,7 +356,7 @@ jobs:
         with: { fetch-depth: 0, persist-credentials: false }
       - uses: ./.github/actions/setup-toolchain
         with:
-          need-go: 'false'
+          need-go: 'true'
           need-wails-tools: 'false'
           need-linux-native-deps: 'false'
           python-sync-args: --group docs

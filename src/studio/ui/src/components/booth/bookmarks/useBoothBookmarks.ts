@@ -3,7 +3,7 @@ import type { Bookmark } from '../../../api/contracts/bookmarks';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
 import { useJournal, useStoreHandle } from '../../../studio/StudioProvider';
-import { addBookmark, type BookmarkSpot } from '../../../studio/commands/bookmarks';
+import { addBookmark, setStop, type BookmarkSpot } from '../../../studio/commands/bookmarks';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { useBookmarkCommands } from '../../script/bookmarks/model/useBookmarkCommands';
 import { useBookmarks } from '../../script/bookmarks/model/useBookmarks';
@@ -41,9 +41,14 @@ export type BoothBookmarks = {
   /** The bookmark just gone to, for its ribbon to pulse. */
   flashId: string | null;
   add: (spot: BookmarkSpot) => Promise<Bookmark | null>;
+  /** Makes a spot the chapter's stopping place ("Read to here"), replacing the old one, with an Undo. It only marks the place. */
+  readToHere: (spot: BookmarkSpot) => Promise<Bookmark | null>;
   update: (id: string, label: string, note: string) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
-  /** Items for the page's right-click menu: Bookmark here on a word, Edit and Delete on a ribbon, nothing elsewhere. */
+  /**
+   * Items for the page's right-click menu: Bookmark here and Read to here on a word, Read to here on a page marker (at the page's first
+   * word), Edit and Delete on a ribbon, nothing elsewhere.
+   */
   menuItems: (target: Element) => ContextMenuItem[];
 };
 
@@ -74,6 +79,22 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
       if (created && entryId !== null) overlay.toastUndo('Bookmark added.', () => journal.undo(entryId), { entry: entryId });
       else overlay.toast('That word is already bookmarked.');
       return bookmark;
+    },
+    [env, journal, overlay],
+  );
+
+  // Marks the chapter's stopping place: never a seek, a pause or a stop of the take.
+  const readToHere = useCallback(
+    async (spot: BookmarkSpot): Promise<Bookmark | null> => {
+      const set = await setStop(env, spot);
+      if (!set.ok) {
+        overlay.toast(set.refusal.reason, { tone: 'error' });
+        return null;
+      }
+      const { stop, replaced, entryId } = set.value;
+      if (entryId !== null) overlay.toastUndo(replaced ? 'Stopping place moved.' : 'Stopping place marked.', () => journal.undo(entryId), { entry: entryId });
+      else overlay.toast('Your stopping place is already there.');
+      return stop;
     },
     [env, journal, overlay],
   );
@@ -126,16 +147,27 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
       const ribbon = target.closest<HTMLElement>('[data-bm]');
       if (ribbon?.dataset.bm !== undefined) {
         const id = ribbon.dataset.bm;
+        const stop = ribbon.dataset.bmKind === 'stop';
         return [
-          { key: 'bookmark-edit', label: 'Edit bookmark', onSelect: () => ribbon.click() },
-          { key: 'bookmark-delete', label: 'Delete bookmark', onSelect: () => void remove(id) },
+          { key: 'bookmark-edit', label: stop ? 'Edit stopping place' : 'Edit bookmark', onSelect: () => ribbon.click() },
+          { key: 'bookmark-delete', label: stop ? 'Remove stopping place' : 'Delete bookmark', onSelect: () => void remove(id) },
         ];
       }
+      const page = target.closest<HTMLElement>('[data-page-break]');
+      if (page?.dataset.paragraphId !== undefined) {
+        const spot = { chapterId, paragraphId: page.dataset.paragraphId, offset: Number(page.dataset.offset) };
+        return [{ key: 'read-to-here', label: 'Read to here', onSelect: () => void readToHere(spot) }];
+      }
       const spot = spotOfWord(chapterId, paragraphs, units, target);
-      return spot ? [{ key: 'bookmark-here', label: 'Bookmark here', onSelect: () => void mark(spot) }] : [];
+      return spot
+        ? [
+            { key: 'bookmark-here', label: 'Bookmark here', onSelect: () => void mark(spot) },
+            { key: 'read-to-here', label: 'Read to here', onSelect: () => void readToHere(spot) },
+          ]
+        : [];
     },
-    [chapterId, paragraphs, units, mark, remove],
+    [chapterId, paragraphs, units, mark, readToHere, remove],
   );
 
-  return { bookmarks, flashId, add: mark, update, remove, menuItems };
+  return { bookmarks, flashId, add: mark, readToHere, update, remove, menuItems };
 }

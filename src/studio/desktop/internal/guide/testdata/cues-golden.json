@@ -72,11 +72,11 @@
           "quote_end": 33,
           "quote_start": 19,
           "quote_text": "Who are you?",
-          "speaker_entity_id": null,
-          "speaker_source": "unknown"
+          "speaker_entity_id": "entity-ada",
+          "speaker_source": "proximity"
         }
       ],
-      "line": "CUES|2|1"
+      "line": "CUES|2|2"
     }
   ]
 }

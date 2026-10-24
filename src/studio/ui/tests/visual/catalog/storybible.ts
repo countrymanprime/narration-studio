@@ -61,6 +61,11 @@ export const storybibleStates: StateEntry[] = [
     state: 'search-narrowed',
     description: 'Story Bible, a search for "mad hat" narrowing the table, the alias that matched shown and the letters marked',
   },
+  {
+    page: 'storybible',
+    state: 'jump-entries',
+    description: 'Story Bible, Ctrl+F then "mad": the menu searching only the page, the Hatter under "Entries" found by its other name "Mad Hatter"',
+  },
   { page: 'storybible', state: 'no-manuscript', description: 'Story Bible, a project with no manuscript: the page asks for one (?mockNoManuscript=1)' },
   {
     page: 'storybible',

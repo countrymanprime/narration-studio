@@ -17,7 +17,7 @@ export type BookmarkRibbonProps = {
 };
 
 /**
- * A bookmark's ribbon in a margin: a button with the bookmark icon, a tooltip of its label and note, a dot when it has a note. A click
+ * A bookmark's ribbon in a margin: a button with the bookmark icon (a chequered flag for a stopping place, kind `stop`), a tooltip of its label and note, a dot when it has a note. A click
  * opens its editor. A stale bookmark has no line to sit beside, so it draws nothing. The caller positions the margin; this knows no reader.
  */
 export function BookmarkRibbon({ bookmark, lineText, top, flash = false, onUpdate, onRemove }: BookmarkRibbonProps) {
@@ -36,12 +36,13 @@ export function BookmarkRibbon({ bookmark, lineText, top, flash = false, onUpdat
           <button
             type="button"
             data-bm={bookmark.id}
-            aria-label={`Bookmark: ${tip}`}
+            data-bm-kind={bookmark.kind}
+            aria-label={bookmark.kind === 'stop' ? tip : `Bookmark: ${tip}`}
             aria-haspopup="dialog"
             className="relative flex h-[26px] w-4 cursor-pointer items-start justify-center rounded-sm border-0 bg-transparent p-0 text-[var(--accent)] hover:text-[var(--accent-strong)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
           >
             <span data-just-changed={flash ? '' : undefined} className={flash ? `rounded-sm ${CHANGE_HIGHLIGHT_CLASSES}` : undefined}>
-              <Icon name="bookmark" />
+              <Icon name={bookmark.kind === 'stop' ? 'stoppingPlace' : 'bookmark'} />
             </span>
             {hasNote && <span data-note-dot="" aria-hidden="true" className="absolute right-0 bottom-1 size-1.5 rounded-full bg-[var(--accent)]" />}
           </button>

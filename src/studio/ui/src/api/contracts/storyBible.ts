@@ -75,7 +75,7 @@ export type GuideMergeResult = { undoId: string };
 /** One entry of the Story Bible's dialogue_cues: a quoted span with
  * its resolved (or unknown) speaker. A document-level list, a sibling of the entity list, not per-entity data. */
 export type GuideDialogueCueEvidence = { chapterId: string; paragraphId: string; excerpt: string; tag: string };
-export type GuideDialogueCueSpeakerSource = 'tag' | 'continuation' | 'unknown' | 'correction';
+export type GuideDialogueCueSpeakerSource = 'tag' | 'continuation' | 'proximity' | 'unknown' | 'correction';
 export type GuideDialogueCue = {
   id: string;
   chapterId: string;

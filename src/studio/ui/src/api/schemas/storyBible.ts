@@ -150,7 +150,7 @@ const guideDialogueCueSchema = z.object({
   quote_end: z.number(),
   quote_text: z.string(),
   speaker_entity_id: z.string().nullable(),
-  speaker_source: z.enum(['tag', 'continuation', 'unknown', 'correction']),
+  speaker_source: z.enum(['tag', 'continuation', 'proximity', 'unknown', 'correction']),
   evidence: guideDialogueCueEvidenceSchema,
   corrected: z.boolean(),
 }) satisfies z.ZodType<GuideDialogueCue>;

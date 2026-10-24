@@ -5,10 +5,12 @@ defaults it chose. This module is test tooling, not product code. It runs each c
 host runs a check:
 
 1. the sidecar's coverage mode (`core/coverage_mode.py`, `compare.py --coverage`) reads a JSON
-   manifest and one words file per item, aligns the chapter and writes the tagged result lines;
-   scripted items get their words file written first, so nothing is transcribed, and audio items
-   (a permissioned corpus, or the Piper renders below) are transcribed by the real Whisper path;
-2. the thresholds are applied on read to the result lines, by `text_complete`, which mirrors
+   manifest and one words file per item and writes its words report; scripted items get their words
+   file written first, so nothing is transcribed, and audio items (a permissioned corpus, or the Piper
+   renders below) are transcribed by the real Whisper path;
+2. the host's aligner (`src/studio/desktop/internal/recordingcoverage`, through `go_coverage.py`)
+   aligns the chapter to those words and writes the tagged result lines;
+3. the thresholds are applied on read to the result lines, by `text_complete`, which mirrors
    `coverage.Report.TextComplete` in `src/studio/desktop/internal/coverage/report.go`.
 
 It adds four things `coverage_harness.py` and `coverage_spike.py` do not have:
@@ -30,7 +32,7 @@ For the model cascade (the note's "Model cascade" section) it adds two more:
 - `cascade` simulates the two-pass check: a fast model over the whole chapter, windows planned from
   the regions that fail it (`plan_windows`, MC3's constants), a stronger model over those
   windows only (one load a run), its words spliced into the first pass's (`splice`), and the chapter
-  aligned again by the same pure alignment and coverage code the sidecar runs (`align_words`). It
+  aligned again by the host's own alignment and coverage (`align_words`). It
   reports it per case against single-model runs, or, over an unlabelled chapter (a host manifest),
   against a reference model;
 - `windows` benchmarks what a window of each length costs to transcribe.
@@ -69,6 +71,7 @@ if __package__ in (None, ""):  # run as a script: make the harness importable
 
 import coverage_harness as harness
 import coverage_spike as spike
+import go_coverage as cov
 
 CORE = spike.CORE
 # One statement, so it is covered whichever test module put CORE on the path first.
@@ -76,7 +79,6 @@ sys.path[:0] = [] if str(CORE) in sys.path else [str(CORE)]
 
 import compare as engine  # needs CORE on sys.path, as coverage_mode itself does
 import coverage_mode
-import recording_coverage as coverage_model
 
 SIDECAR = CORE / "compare.py"
 REPOSITORY = Path(__file__).resolve().parents[5]
@@ -215,18 +217,22 @@ def _args(case: harness.Case, manuscript: Path, words_dir: Path, out: Path, sett
     return _sidecar_args(case.chapter.id, manuscript, words_dir, out, settings, whisper)
 
 
+def words_report_path(out: Path) -> Path:
+    """Where the sidecar writes the words report a results file `out` is aligned from."""
+    return out.with_suffix(".words.txt")
+
+
 def _sidecar_args(chapter_id: str, manuscript: Path, words_dir: Path, out: Path, settings: Settings, whisper: Whisper | None) -> list[str]:
+    """The sidecar's arguments for a check whose results go to `out`. `settings` are the host's: the sidecar only transcribes."""
     args = [
         "--coverage",
         "--manifest", str(words_dir / "manifest.json"),
         "--manuscript", str(manuscript),
         "--chapter-id", chapter_id,
         "--words-dir", str(words_dir),
-        "--out", str(out),
+        "--out", str(words_report_path(out)),
         "--progress", str(out.with_suffix(".progress")),
         "--model", whisper.model if whisper else SCRIPTED_MODEL,
-        "--max-misread-run", str(settings.max_misread_run),
-        "--min-anchor-run", str(settings.min_anchor_run),
     ]  # fmt: skip
     if whisper and whisper.model_dir:
         args += ["--model-dir", str(whisper.model_dir)]
@@ -239,8 +245,24 @@ def _no_transcription(item, _on_seconds):
     raise AssertionError(f"item {item.item_guid} has no words file: a scripted case must never be transcribed")
 
 
+def align_results(args: Sequence[str], out: Path, settings: Settings) -> None:
+    """What the host does once the sidecar exits: align the chapter to the words in its report and write the results to `out`."""
+    flags = {args[k]: args[k + 1] for k in range(1, len(args) - 1) if args[k].startswith("--") and not args[k + 1].startswith("--")}
+    cov.results(
+        Path(flags["--manifest"]),
+        Path(flags["--words-dir"]),
+        Path(flags["--manuscript"]),
+        flags["--chapter-id"],
+        out,
+        flags["--model"],
+        cov.AlignmentParams(settings.max_misread_run, settings.min_anchor_run),
+        language=flags.get("--language"),
+        words_report=Path(flags["--out"]),
+    )
+
+
 def run_in_process(case: harness.Case, manuscript: Path, work: Path, settings: Settings) -> SidecarResult:
-    """`coverage_mode.run` over the case's words files, with the same arguments the CLI parses.
+    """`coverage_mode.run` over the case's words files, with the same arguments the CLI parses, then the host's alignment.
     Only for scripted cases: it refuses to transcribe."""
     words_dir = work / "words"
     write_inputs(case, words_dir)
@@ -252,10 +274,10 @@ def run_in_process(case: harness.Case, manuscript: Path, work: Path, settings: S
         language=None,
         device="cpu",
     )
-    namespace.max_misread_run, namespace.min_anchor_run = settings.max_misread_run, settings.min_anchor_run
     started = time.perf_counter()
     with contextlib.redirect_stdout(None), contextlib.redirect_stderr(None):  # the sidecar's log lines
         coverage_mode.run(namespace, engine, transcriber=_no_transcription)
+    align_results(args, out, settings)
     return read_results(out, time.perf_counter() - started)
 
 
@@ -263,16 +285,16 @@ def run_cli(case: harness.Case, manuscript: Path, words_dir: Path, out: Path, se
     """`compare.py --coverage` as a subprocess, as the host launches it. Words files already in
     `words_dir` are reused, so a second run with other alignment settings transcribes nothing."""
     write_inputs(case, words_dir)
-    return _run_sidecar(case.id, _args(case, manuscript, words_dir, out, settings, whisper), out)
+    return _run_sidecar(case.id, _args(case, manuscript, words_dir, out, settings, whisper), out, settings)
 
 
-def _run_sidecar(label: str, args: list[str], out: Path) -> SidecarResult:
+def _run_sidecar(label: str, args: list[str], out: Path, settings: Settings) -> SidecarResult:
     started = time.perf_counter()
     done = subprocess.run([sys.executable, str(SIDECAR), *args], capture_output=True, text=True, check=False)
-    seconds = time.perf_counter() - started
     if done.returncode != 0:
         raise RuntimeError(f"{label}: the sidecar exited with {done.returncode}: {done.stderr[-2000:]}")
-    return read_results(out, seconds)
+    align_results(args, out, settings)
+    return read_results(out, time.perf_counter() - started)
 
 
 STORED_SECONDS = "seconds.json"
@@ -770,7 +792,9 @@ def run_target(target: Target, words_dir: Path, settings: Settings, whisper: Whi
     """`compare.py --coverage` over the target, reusing and timing its words cache."""
     write_manifest(target, words_dir)
     out = words_dir / "results.txt"
-    return with_stored_seconds(_run_sidecar(target.id, _sidecar_args(target.chapter_id, target.manuscript, words_dir, out, settings, whisper), out), words_dir)
+    return with_stored_seconds(
+        _run_sidecar(target.id, _sidecar_args(target.chapter_id, target.manuscript, words_dir, out, settings, whisper), out, settings), words_dir
+    )
 
 
 def read_item_words(target: Target, words_dir: Path) -> dict[int, coverage_mode.ItemWords]:
@@ -788,46 +812,38 @@ def read_item_words(target: Target, words_dir: Path) -> dict[int, coverage_mode.
 
 @dataclass(frozen=True)
 class Aligned:
-    """The chapter aligned to a set of words, as `coverage_mode.run` aligns it, with the item and
+    """The chapter aligned to a set of words by the host, as a run aligns it, with the item and
     source seconds of every joined transcript word."""
 
-    coverage: coverage_model.ChapterCoverage
-    alignment: dict
-    timeline: coverage_mode._Timeline
+    coverage: cov.Coverage
+    opcodes: tuple[tuple[str, int, int, int, int], ...]
+    index_map: tuple[int, ...]
     sources: tuple[tuple[int, float, float], ...]
 
 
 def align_words(target: Target, words: Mapping[int, coverage_mode.ItemWords], settings: Settings) -> Aligned:
-    """`coverage_mode.run`'s alignment over words already in hand (its alignment lines are
-    repeated here rather than factored out of the sidecar; a test pins them to the sidecar)."""
-    manuscript = str(target.manuscript)
-    engine.register_project_equivalences(manuscript)
-    chapter = coverage_mode._chapter(engine, manuscript, target.chapter_id)
-    results = [
-        coverage_mode._ItemResult(item, None, None, ())
-        if item.muted
-        else coverage_mode._ItemResult(item, "reused", words[item.index], tuple(coverage_mode.played_words(words[item.index], item)))
-        for item in target.items
-    ]
-    timeline = coverage_mode._timeline(results)
-    sources = tuple((result.item.index, start, end) for result in results if result.source for _text, start, end in result.played)
-    heading = " ".join(part for part in (chapter["title"], chapter.get("subtitle") or "") if part)
-    sentence_units, tokens, unit_idx, raw_words = engine.build_chapter_units({"title": heading, "paragraphs": chapter["paragraphs"]})
-    _markers, _covered, alignment = engine.diff_and_build_markers(tokens, unit_idx, raw_words, timeline.words, 1)
-    params = coverage_model.AlignmentParams(settings.max_misread_run, settings.min_anchor_run)
-    coverage = coverage_model.compute_coverage(coverage_model.aligned_chapter_from_markers(alignment, sentence_units, chapter["paragraph_ids"]), params)
-    return Aligned(coverage, alignment, timeline, sources)
+    """The host's alignment and coverage (`go_coverage.measure`) over words already in hand: every unmuted item reused."""
+    items = []
+    sources = []
+    for item in target.items:
+        played = () if item.muted else tuple(coverage_mode.played_words(words[item.index], item))
+        items.append(
+            {"index": item.index, "itemGuid": item.item_guid, "startOffset": item.start_offset, "length": item.length, "muted": item.muted, "words": played}
+        )
+        sources += [(item.index, start, end) for _text, start, end in played]
+    measured = cov.measure(target.manuscript, target.chapter_id, items, cov.AlignmentParams(settings.max_misread_run, settings.min_anchor_run))
+    return Aligned(measured.coverage, measured.opcodes, measured.index_map, tuple(sources))
 
 
-def _thresholds(settings: Settings) -> coverage_model.Thresholds:
-    return coverage_model.Thresholds(settings.min_paragraph_present, settings.max_missing_run)
+def _thresholds(settings: Settings) -> cov.Thresholds:
+    return cov.Thresholds(settings.min_paragraph_present, settings.max_missing_run)
 
 
-def is_complete(coverage: coverage_model.ChapterCoverage, settings: Settings) -> bool:
+def is_complete(coverage: cov.Coverage, settings: Settings) -> bool:
     return coverage.text_complete(_thresholds(settings))
 
 
-def failing_regions(coverage: coverage_model.ChapterCoverage, settings: Settings) -> tuple[coverage_model.Region, ...]:
+def failing_regions(coverage: cov.Coverage, settings: Settings) -> tuple[cov.Region, ...]:
     """The regions that make the chapter "not met": a run over `max_missing_run`, or a region in a
     paragraph that fails. None when the chapter is met: a "met" stands: the cascade never re-checks a complete chapter."""
     if is_complete(coverage, settings):
@@ -853,12 +869,12 @@ class Gap:
     after: Bound | None
 
 
-def region_gap(region: coverage_model.Region, aligned: Aligned) -> Gap:
+def region_gap(region: cov.Region, aligned: Aligned) -> Gap:
     """A region's bounds from the alignment's `equal` opcodes on either side of its manuscript
     tokens, mapped through `index_map` to the joined transcript word and its item. The sidecar's
     regions carry the same bounds as `audio_before` and `audio_after`."""
     before = after = None
-    for tag, i1, i2, j1, j2 in aligned.alignment["opcodes"]:
+    for tag, i1, i2, j1, j2 in aligned.opcodes:
         if tag != "equal":
             continue
         if i2 <= region.doc_start:
@@ -870,7 +886,7 @@ def region_gap(region: coverage_model.Region, aligned: Aligned) -> Gap:
     def bound(audio_index: int | None, edge: int) -> Bound | None:
         if audio_index is None:
             return None
-        item, *times = aligned.sources[aligned.alignment["index_map"][audio_index]]
+        item, *times = aligned.sources[aligned.index_map[audio_index]]
         return Bound(item, times[edge])
 
     return Gap(bound(before, 1), bound(after, 0))
@@ -1167,10 +1183,10 @@ class FoundRegion:
     time: float | None
 
 
-def found_regions(aligned: Aligned, regions: Sequence[coverage_model.Region] | None = None) -> tuple[FoundRegion, ...]:
+def found_regions(aligned: Aligned, regions: Sequence[cov.Region] | None = None) -> tuple[FoundRegion, ...]:
     found = []
     for region in aligned.coverage.regions if regions is None else regions:
-        position = coverage_mode._region_position(region, aligned.alignment, aligned.timeline)
+        position = region.position
         item, at = (position["itemIndex"], position["sourceTime"]) if position else (None, None)
         found.append(FoundRegion(region.kind, region.token_count, region.doc_start, region.doc_end, item, at))
     return tuple(found)
