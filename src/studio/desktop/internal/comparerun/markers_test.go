@@ -10,7 +10,7 @@ import (
 	"desktop/internal/compare"
 )
 
-// The markers' own rules, ported from the sidecar's tests/test_compare.py and libs/python/tests/test_transcript_compare.py
+// The markers' own rules, ported from the sidecar's tests/test_compare.py and the shared Python library's test_transcript_compare.py
 // when compare.py's run tail moved here.
 
 func said(text string) []compare.Word {
