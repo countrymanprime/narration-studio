@@ -74,8 +74,10 @@ func DefinitionSources() []string {
 
 // wholeNumbers are the settings whose stored value must be a whole number in an inclusive range: one outside it, or not a
 // whole number, is skipped like an unknown choice, so the setting reads as the layer below. Editing.fx_cap_pct is the share of a
-// chapter, in percent, effects may cover before the Effects tab warns (effectsMath.ts's FX_CAP_PCT is its default).
+// chapter, in percent, effects may cover before the Effects tab warns (effectsMath.ts's FX_CAP_PCT is its default). Booth.words_per_page
+// is how many words the Booth counts to a page.
 var wholeNumbers = map[string]map[string][2]int{
+	"Booth":   {"words_per_page": {50, 1000}},
 	"Editing": {"fx_cap_pct": {1, 100}},
 }
 
@@ -214,6 +216,8 @@ var builtinDefaults = map[string]Values{
 	// Editing.fx_cap_pct defaults to 10: effects may cover a tenth of a chapter before the Effects tab warns. The tool's other three
 	// values stay unset by default (app.go's fieldSchemas says why).
 	"Editing": {"fx_cap_pct": "10"},
+	// Booth.words_per_page defaults to 250, the manuscript page most narrators and publishers quote.
+	"Booth": {"words_per_page": "250"},
 }
 
 // Defaults returns the repo file's values for tool, with any key the file does

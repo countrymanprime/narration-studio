@@ -28,9 +28,9 @@
     },
     "daw_meters": {
       "available": false,
-      "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "level": "supported",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "file_preview": {
       "available": false,
@@ -142,9 +142,9 @@
     },
     "punch_preroll": {
       "available": false,
-      "level": "experimental",
-      "message": "Experimental: switched off in Settings.",
-      "reason": "experimental_off"
+      "level": "supported",
+      "message": "REAPER is not connected to this app. Open REAPER; the app connects to it by itself.",
+      "reason": "standalone"
     },
     "range_gain": {
       "available": false,

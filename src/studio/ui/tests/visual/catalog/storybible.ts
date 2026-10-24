@@ -34,7 +34,11 @@ export const storybibleStates: StateEntry[] = [
   { page: 'storybible', state: 'category-character', description: 'Story Bible, the Character kind chip on' },
   { page: 'storybible', state: 'category-place', description: 'Story Bible, the Place kind chip on' },
   { page: 'storybible', state: 'category-organization', description: 'Story Bible, the Organization kind chip on' },
-  { page: 'storybible', state: 'search-narrowed', description: 'Story Bible, a search for "hatter" narrowing the table by name and by alias' },
+  {
+    page: 'storybible',
+    state: 'search-narrowed',
+    description: 'Story Bible, a search for "mad hat" narrowing the table, the alias that matched shown and the letters marked',
+  },
   {
     page: 'storybible',
     state: 'jump-entries',

@@ -80,7 +80,7 @@ export const storybibleDrivers: Record<string, Driver> = {
   },
   'search-narrowed': async (page) => {
     await goToPage(page, 'Story Bible');
-    await page.getByRole('textbox', { name: 'Search entries' }).fill('hatter');
+    await page.getByRole('textbox', { name: 'Search entries' }).fill('mad hat');
     await entryRows(page).first().waitFor();
   },
   // Ctrl+F searches the page: its entries come back under "Entries", found by any of their names.

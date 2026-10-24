@@ -28,11 +28,14 @@ function standInHost(golden: (name: string) => unknown): BookmarksApi {
       if (chapterId !== LINE.chapterId) throw new Error('that chapter is not in the manuscript');
       if (paragraphId !== LINE.paragraphId) throw new Error('that line is not in this chapter');
       if (!Number.isInteger(offset) || offset < 0 || offset > LINE.length) throw new Error('that place is not in the line');
-      const existing = stored.find((b) => b.paragraphId === paragraphId && b.offset === offset);
+      const existing = stored.find((b) => b.kind === 'spot' && b.paragraphId === paragraphId && b.offset === offset);
       if (existing) return structuredClone(existing);
       const added = { ...template, id: `id-${next++}`, offset, label: '', note: '' };
       stored = [...stored, added];
       return structuredClone(added);
+    },
+    bookmarksSetStop: async () => {
+      throw new Error('the bookmark commands never set a stopping place');
     },
     bookmarksUpdate: async (id, label, note) => {
       const current = stored.find((b) => b.id === id);

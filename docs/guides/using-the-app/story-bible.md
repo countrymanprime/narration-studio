@@ -3,14 +3,14 @@
 # Story Bible
 
 Story Bible tracks every character, place, and organization extracted from the manuscript,
-with pronunciation, aliases, and narration notes. The page is a small table of entries on the left, about 30% of the width, and the open entry beside it as the main area (the entry under the table on a window narrower than 1024 px). The table has two columns: **Name** and **Kind** (in the kind's colour, which you set for the type in Settings; an entry whose kind the host could not tell says "Type not set"). Press a header to sort by it and again to reverse it; the arrow shows the direction, and the column you sorted by before breaks ties. The sort is kept for next time. Over the table, the search box finds an entry by its name or any of its other names, every word you type having to match, the **Kind** menu keeps one kind and counts each, and the **Show** menu keeps the entries that need review or have suggestions to verify (it offers those only while there are some). Press a row to open its entry. Up and Down move between rows, Home and End go to the first and last, and Enter opens the row; Tab leaves the table. A book of hundreds of entries draws only the rows in view. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. **Add entry** at the top right is the page's one main action. The button beside it, **More actions**, holds **Scan the manuscript**, **Import entries** and **Voice data**. While a scan runs, its progress and **Cancel scan** show under the filters, so nothing else moves, and the menu has no scan item. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Retry**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
+with pronunciation, aliases, and narration notes. The page is a small table of entries on the left, about 30% of the width, and the open entry beside it as the main area (the entry under the table on a window narrower than 1024 px). The table has two columns: **Name** and **Kind** (in the kind's colour, which you set for the type in Settings; an entry whose kind the host could not tell says "Type not set"). Press a header to sort by it and again to reverse it; the arrow shows the direction, and the column you sorted by before breaks ties. The sort is kept for next time. Over the table, the search box (its placeholder says how many entries it searches) finds an entry by its name or any of its other names, every word you type having to match. The letters it matched are marked, and a row found by another name shows it after the name (also “Mad Hatter”). Down in the box moves to the first row; Esc clears the box, and a second Esc leaves it. The **Kind** menu keeps one kind and counts each, and the **Show** menu keeps the entries that need review or have suggestions to verify (it offers those only while there are some). Press a row to open its entry. Up and Down move between rows, Home and End go to the first and last, and Enter opens the row; Tab leaves the table. A book of hundreds of entries draws only the rows in view. Right-click a row (or press the Menu key on it) for **Open**, **Find in the manuscript**, **Mark reviewed** (when the entry needs it) and **Delete entry**; Delete asks first, and a locked entry says it has to be unlocked. **Add entry** at the top right is the page's one main action. The button beside it, **More actions**, holds **Scan the manuscript**, **Import entries** and **Voice data**. While a scan runs, its progress and **Cancel scan** show under the filters, so nothing else moves, and the menu has no scan item. With no manuscript imported the page asks for one, and its **Import manuscript** opens the import on this page. If the list of kinds or the chapters cannot be read, a line under the filters says so with **Retry**, and an entry that cannot tell whether its type speaks says the same; the rest of the page keeps working.
 While the entries are being read, the table and the detail pane show grey blocks. A book with no entries says "No entries yet" and where to start; a search or filter that finds nothing says "No entries match." with **Clear filters**; an unreadable Story Bible says so with **Retry**. This app produces one book at a time, so the page has no series view.
 
 `Ctrl+F` opens the jump menu searching this page: it lists the entries under **Entries**, each with its kind, found by its name or any of its other names. Choose one to open it; a search or filter that hides its row is cleared, so the table shows it.
 
 ![Story Bible - Ctrl+F then "mad": the Hatter under Entries, found by its other name](../../images/ui/storybible-jump-entries.webp)
 
-![Story Bible - a search for "hatter" narrowing the table by name and alias](../../images/ui/storybible-search.webp)
+![Story Bible - a search for "mad hat": the Hatter, found by its other name, with the matched letters marked](../../images/ui/storybible-search.webp)
 
 ![Story Bible filtered to the Character kind](../../images/ui/storybible-characters.webp)
 
@@ -128,7 +128,12 @@ Wikimedia Commons.
 you have: what a character says, does and knows, and details. The first time, when no analysis tool is installed, it
 asks whether to use the basic scan now, download better analysis, or import from a file instead; nothing downloads
 until you agree. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
-before it adds anything. Nothing builds the Story Bible on its own, not even a manuscript import.
+before it adds anything. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
+found on their own, though: after a manuscript import and at the end of every scan, each quoted line is matched to a
+speaker where a speech tag names an entry whose type speaks ("Ada said"), and the rest are left without one. The
+scan's log says how many it found. Filing an entry under a type that speaks (or out of one), renaming it, changing its
+aliases, merging or deleting it finds the quoted lines again in the chapters its names appear in; turning **Speaks** on
+or off for a type finds them again everywhere. Your own corrections stay.
 
 ![Story Bible - the Import entries dialog (CSV or JSON)](../../images/ui/storybible-import.webp)
 
@@ -155,7 +160,7 @@ reference shows a **Changed since approval** badge - re-approve it once you're h
 region, or revoke it. A reference clip has no play button; open the region by name in REAPER to hear it. To
 hear how you voiced a character in the app, mark a [voice sample](#voice-samples) instead.
 
-**Dialogue cues** lists the quoted lines the Story Bible scan attributed to this character, plus
+**Dialogue cues** lists the quoted lines the scan attributed to this character, plus
 any line left unattributed (three or more speakers active in a scene, or no speaker tag at all, are
 left `unknown` rather than guessed). Pick a different speaker, or **Unknown**, from the dropdown
 beside a cue to correct it. A correction survives the next scan - it is never

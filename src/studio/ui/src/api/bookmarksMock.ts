@@ -1,6 +1,7 @@
 // The browser mock's bookmarks. It keeps them in memory and checks each one against the mock manuscript's current text the
 // way src/studio/desktop/internal/bookmarks does: a spot the manuscript lacks is refused, the same spot twice is one bookmark, the
-// list is in reading order, and a bookmark whose line is gone or whose offset no longer fits comes back stale, never moved.
+// list is in reading order, a chapter has at most one stopping place (a stop replaces the old one), and a bookmark whose line is
+// gone or whose offset no longer fits comes back stale, never moved.
 import { BOOKMARK_LABEL_MAX, BOOKMARK_NOTE_MAX } from './contracts/bookmarks';
 import type { Bookmark, BookmarksApi, ManuscriptChapter, ManuscriptParagraph } from '../types';
 import { wireClone } from './mockFixtures';
@@ -48,6 +49,13 @@ export function createBookmarksMock(ready: Promise<unknown>, chapters: () => Man
     );
   };
 
+  const checkSpot = (chapterId: string, paragraphId: string, offset: number) => {
+    if (!chapters().some((chapter) => chapter.id === chapterId)) throw new Error('that chapter is not in the manuscript');
+    const line = lineOf({ chapterId, paragraphId });
+    if (!line) throw new Error('that line is not in this chapter');
+    if (!fits(line.text, offset)) throw new Error('that place is not in the line');
+  };
+
   return {
     bookmarksList: async () => {
       await ready;
@@ -55,15 +63,41 @@ export function createBookmarksMock(ready: Promise<unknown>, chapters: () => Man
     },
     bookmarksAdd: async (chapterId, paragraphId, offset) => {
       await ready;
-      if (!chapters().some((chapter) => chapter.id === chapterId)) throw new Error('that chapter is not in the manuscript');
-      const line = lineOf({ chapterId, paragraphId });
-      if (!line) throw new Error('that line is not in this chapter');
-      if (!fits(line.text, offset)) throw new Error('that place is not in the line');
-      const existing = stored.find((bookmark) => bookmark.chapterId === chapterId && bookmark.paragraphId === paragraphId && bookmark.offset === offset);
+      checkSpot(chapterId, paragraphId, offset);
+      const existing = stored.find(
+        (bookmark) => bookmark.kind === 'spot' && bookmark.chapterId === chapterId && bookmark.paragraphId === paragraphId && bookmark.offset === offset,
+      );
       if (existing) return wireClone(resolve(existing));
-      const bookmark: Stored = { id: `bookmark-${nextId++}`, chapterId, paragraphId, offset, label: '', note: '', createdAt: new Date().toISOString() };
+      const bookmark: Stored = {
+        id: `bookmark-${nextId++}`,
+        chapterId,
+        paragraphId,
+        offset,
+        kind: 'spot',
+        label: '',
+        note: '',
+        createdAt: new Date().toISOString(),
+      };
       stored = [...stored, bookmark];
       return wireClone(resolve(bookmark));
+    },
+    bookmarksSetStop: async (chapterId, paragraphId, offset) => {
+      await ready;
+      checkSpot(chapterId, paragraphId, offset);
+      const old = stored.find((bookmark) => bookmark.kind === 'stop' && bookmark.chapterId === chapterId);
+      if (old && old.paragraphId === paragraphId && old.offset === offset) return list();
+      const stop: Stored = {
+        id: `bookmark-${nextId++}`,
+        chapterId,
+        paragraphId,
+        offset,
+        kind: 'stop',
+        label: '',
+        note: '',
+        createdAt: new Date().toISOString(),
+      };
+      stored = [...stored.filter((bookmark) => bookmark !== old), stop];
+      return list();
     },
     bookmarksUpdate: async (id, label, note) => {
       await ready;
