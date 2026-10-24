@@ -256,6 +256,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'page-break-stop',
+    description:
+      'Booth (as setup) with the reading stepped down to the first page break (250 words): a dashed hairline across the text and a vertical "Page 2" in the right margin; right-clicking it and choosing Read to here puts the chapter\'s stopping place there, a chequered-flag ribbon, and the toast says "Stopping place marked." with Undo',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'search-shown',
     description:
       'Booth (as setup) after Ctrl+F, "the" and choosing a match under "In this chapter": every match in the text tinted, the chosen one ringed and the reading position on it',

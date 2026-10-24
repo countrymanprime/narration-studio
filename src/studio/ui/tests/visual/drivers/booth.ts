@@ -373,6 +373,24 @@ export const boothDrivers: Record<string, Driver> = {
     await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
     await page.getByText('Bookmark added.').waitFor();
   },
+  // The first page break: Down steps the reading a phrase at a time until the "Page 2" marker is well inside the view, then its right-click
+  // menu's Read to here marks the stopping place there (a chequered-flag ribbon beside the line).
+  'page-break-stop': async (page) => {
+    await readyToRecord(page);
+    const label = page.locator('[data-bmk-margin] [data-page-break="2"]');
+    const height = page.viewportSize()?.height ?? 800;
+    for (let step = 0; step < 80; step++) {
+      const box = await label.boundingBox();
+      if (box && box.y > height * 0.25 && box.y < height * 0.6) break;
+      await page.keyboard.press('ArrowDown');
+    }
+    await label.click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Read to here' }).click();
+    await page.locator('[data-bmk-margin] [data-bm-kind="stop"]').waitFor();
+    await page.getByText('Stopping place marked.').waitFor();
+    // The closed menu hands focus to the top bar's first button, whose hint would cover the text; the shot is of the margin.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
   // Ctrl+F opens the jump menu; a match under "In this chapter" moves the reading to it and tints every match in the text.
   'search-shown': async (page) => {
     await readyToRecord(page);
