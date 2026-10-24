@@ -58,7 +58,12 @@ describe('headingName is the one chapter-name display standard', () => {
 
   it("matches the import dialog's headingName for the same heading", async () => {
     const { headingName: importHeadingName } = await import('./components/production/importReviewModel');
-    for (const over of [{ title: 'CHAPTER VIII.', subtitle: 'Croquet' }, { title: '8.', subtitle: 'Croquet' }, { title: 'Chapter 8', subtitle: 'Croquet' }, { title: 'Prologue' }])
+    for (const over of [
+      { title: 'CHAPTER VIII.', subtitle: 'Croquet' },
+      { title: '8.', subtitle: 'Croquet' },
+      { title: 'Chapter 8', subtitle: 'Croquet' },
+      { title: 'Prologue' },
+    ])
       expect(headingName(chapter(over))).toBe(importHeadingName({ title: over.title, subtitle: over.subtitle }));
   });
 
