@@ -4,7 +4,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
-import { DAW_SETUPS, fxChainsSource } from '../../../fixtures/daw';
+import { DAW_SETUPS, FX_CHOSEN, fxChainsSource } from '../../../fixtures/daw';
 import { marksDoc } from '../script/scriptFixtures';
 import { AddEffect } from './AddEffect';
 import { CoverageStrip } from './CoverageStrip';
@@ -151,6 +151,27 @@ export const AddWithFavourites: Story = {
       favourites: { names: ['Warm.RfxChain', 'Air.RfxChain'], toggle: fn(), error: '' },
     }),
 };
+/** Add an effect with REAPER's Choose in REAPER… (#2251), idle and while REAPER's FX window is open. */
+const choose = (state: NonNullable<Parameters<typeof AddEffect>[0]['choose']>['state']) => ({
+  dawName: 'REAPER',
+  reason: '',
+  state,
+  onChoose: fn(),
+  onKeep: fn(),
+  onCancel: fn(),
+  onCheck: fn(),
+});
+const choosing = (choice: typeof FX_CHOSEN | null) =>
+  choose({ phase: 'choosing', text: 'Alice was beginning to get very tired', choice, heardAt: Date.now(), problem: '', busy: false });
+export const AddChooseInReaper: Story = {
+  render: () => add({ choose: choose({ phase: 'idle' }) }),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Choose in REAPER…' })).toBeEnabled();
+  },
+};
+export const AddChoosingNothingYet: Story = { render: () => add({ choose: choosing({ ...FX_CHOSEN, fx: [], label: '', chainOpen: true }) }) };
+export const AddChoosingChosen: Story = { render: () => add({ choose: choosing({ ...FX_CHOSEN, chainOpen: true }) }) };
+export const AddChoosingNarrow: Story = { render: () => add({ choose: choosing({ ...FX_CHOSEN, chainOpen: true }) }, 300) };
 export const AddFavouritesRefused: Story = {
   render: () => add({ list: MANY_CHAINS, favourites: { names: [], toggle: fn(), error: 'The settings file is read-only.' } }),
 };

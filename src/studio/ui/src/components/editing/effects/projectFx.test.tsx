@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { WorkspaceProjectFxResult } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
-import { HOW_TO_ADD, NO_PROJECT_FX, ProjectFx, projectFxRows, READING_PROJECT_FX } from './ProjectFx';
+import { howToAdd, NO_PROJECT_FX, ProjectFx, projectFxRows, READING_PROJECT_FX } from './ProjectFx';
 import { useProjectFx } from './useProjectFx';
 
 // #2251 item 36: the Effects tab lists the FX on the linked DAW's tracks and master track, so a narrator whose REAPER is full of
@@ -66,7 +66,7 @@ describe('the FX in the DAW now', () => {
     expect(within(rows[1]).getByText('Chapter One')).toBeTruthy();
     expect(within(rows[2]).getByText('Off')).toBeTruthy();
     expect(within(rows[3]).getByText('Master')).toBeTruthy();
-    expect(within(section()).getByText(HOW_TO_ADD)).toBeTruthy();
+    expect(within(section()).getByText(howToAdd('REAPER'))).toBeTruthy();
     expect(within(section()).getByText(/Read from REAPER at/)).toBeTruthy();
   });
   it('says the project has none when the DAW answers an empty chain', async () => {

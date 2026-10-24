@@ -567,6 +567,38 @@ type RangeFXComparer interface {
 	StopFXCompare(ctx context.Context) (Result, error)
 }
 
+// ChosenChain is the chain name an effect chosen in the engine's own FX dialog is kept under (RangeFXChooser): the host and the
+// page send it where they send a listed chain's name to take the effect off, read it or bypass it. It is no file name.
+const ChosenChain = bridge.ChosenInREAPER
+
+// ChosenFX is one effect the narrator chose in the engine's own FX dialog: its name as the engine shows it, and whether it is on.
+type ChosenFX struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
+// FXRangeChoice is what ChosenFXForRange read. Result is the call's answer: a refusal has no effects. Label is the effects' names
+// joined for the page to show and keep (no path, colon or backslash); ChainOpen says the engine's FX window for the words is still
+// open; Truncated says the engine listed only the first effects.
+type FXRangeChoice struct {
+	Result    Result     `json:"result"`
+	FX        []ChosenFX `json:"fx"`
+	Label     string     `json:"label"`
+	ChainOpen bool       `json:"chainOpen"`
+	Truncated bool       `json:"truncated"`
+}
+
+// RangeFXChooser lets the narrator put any effect the engine has on a range, chosen in the engine's own FX dialog (#2251): the
+// fx_range capability's third role, where the engine has such a dialog. ChooseFXForRange splits the range off as ApplyFXToRange does
+// (the request's ChainID and ChainName are not used) and opens the dialog on it, one undo point; ChosenFXForRange reads what the
+// narrator chose there and changes nothing; RemoveChosenFX takes the choice off and joins the piece back, one undo point, even when
+// nothing was chosen. A target whose piece is gone is RefusedStale.
+type RangeFXChooser interface {
+	ChooseFXForRange(ctx context.Context, request FXRangeRequest) (Result, error)
+	ChosenFXForRange(ctx context.Context, target FXRangeTarget) (FXRangeChoice, error)
+	RemoveChosenFX(ctx context.Context, target FXRangeTarget) (Result, error)
+}
+
 // TakeStacker puts the later reads of a passage on the first read's spot as takes, and moves them back. Refused when an item changed
 // since the app read it, and where the engine cannot stack.
 type TakeStacker interface {

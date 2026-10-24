@@ -1,0 +1,12 @@
+{
+  "result": {
+    "ok": true,
+    "changed": false,
+    "message": "Nothing is chosen in REAPER for these words yet.",
+    "undoSteps": 0
+  },
+  "fx": [],
+  "label": "",
+  "chainOpen": true,
+  "truncated": false
+}

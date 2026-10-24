@@ -4,6 +4,7 @@ import type {
   DawCapabilities,
   DawClick,
   DawCutMode,
+  DawFxRangeChoice,
   DawFxRangeCompare,
   DawFxRangeSettings,
   DawGainStretch,
@@ -12,6 +13,7 @@ import type {
   DawResult,
   DawTransport,
 } from '../api/contracts/daw';
+import { DAW_CHOSEN_CHAIN } from '../api/contracts/daw';
 import type { PickupMarker, PickupMarkerState, PickupsState } from '../api/contracts/pickups';
 import {
   backupLabelOk,
@@ -32,6 +34,9 @@ import {
   fileRevealOf,
   filePreviewAnswer,
   plainChainName,
+  fxChooseAnswerOf,
+  fxChosenAnswerOf,
+  fxChosenRemovedOf,
   pickupMarkersReadAnswer,
   pickupsImportedAnswer,
   projectStateOf,
@@ -104,6 +109,12 @@ export type FxRangeRemoval = { chapterId: string; firstToken: number; lastToken:
 
 /** The chain on the words between two tokens whose settings to read, or to bypass (SN-E104): the same words and chain an apply was sent. */
 export type FxRangeTarget = FxRangeRemoval;
+
+/** The words to open the DAW's own FX window for (#2251): the same words an apply is sent, and the fade at each new seam. */
+export type FxChooseRequest = { chapterId: string; firstToken: number; lastToken: number; fadeMs: number };
+
+/** The words whose choice in the DAW's own FX window to read. */
+export type FxChosenTarget = { chapterId: string; firstToken: number; lastToken: number };
 
 /** One setting of the chain on the words to set: `fx` and `index` as `fxRangeParams` numbered it, and the value, in its range. */
 export type FxRangeSettingChange = FxRangeTarget & { fx: number; index: number; value: number };
@@ -192,6 +203,12 @@ export interface DawClient {
   compareFxRange(target: FxRangeTarget): Promise<DawFxRangeCompare>;
   /** End the Compare the DAW is playing and put the chain back as it was; with none playing, `changed: false`. */
   stopFxCompare(): Promise<DawResult>;
+  /** Split the words off and open the DAW's own FX window on them, so the narrator chooses any plug-in it has there (#2251); one undo step
+   * of the DAW's own, nothing recorded. A DAW with no such window refuses with a sentence. */
+  chooseFxForRange(request: FxChooseRequest): Promise<DawResult>;
+  /** What the narrator chose in that window, read and nothing changed; a refusal has no plug-ins. `removeFxFromRange` with DAW_CHOSEN_CHAIN
+   * takes it off and joins the words back, also when nothing was chosen. */
+  chosenFxForRange(target: FxChosenTarget): Promise<DawFxRangeChoice>;
   /** The DAW's own saved chains, for Add FX. Rejects when the DAW cannot list them now. */
   fxChains(): Promise<FxList>;
   /** Put the later reads of the request's passages on the first read's spot as takes, and move the audio after them up. */
@@ -259,6 +276,8 @@ export type DawHostApi = Pick<
   | 'dawBypassFxRange'
   | 'dawCompareFxRange'
   | 'dawStopFxCompare'
+  | 'dawChooseFxForRange'
+  | 'dawChosenFxForRange'
   | 'workspaceListFXChains'
   | 'dawStackTakes'
   | 'dawUnstackTakes'
@@ -366,7 +385,7 @@ function fxTargetRefusal(setup: DawCapabilities, project: DawProject, target: Fx
   if (sentence) return refused(sentence, call);
   if (!project.chapterIds.includes(target.chapterId) || target.firstToken < 0 || target.lastToken < target.firstToken)
     return refused(DAW_ANSWERS.rangeStale, call, true);
-  if (!plainChainName(target.chainName)) return refused(DAW_ANSWERS.fxBadChain, call);
+  if (!plainChainName(target.chainName) && target.chainName !== DAW_CHOSEN_CHAIN) return refused(DAW_ANSWERS.fxBadChain, call);
   return null;
 }
 
@@ -454,6 +473,9 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     bypassFxRange: ({ chapterId, firstToken, lastToken, chainName }, bypass) => api.dawBypassFxRange(chapterId, firstToken, lastToken, chainName, bypass),
     compareFxRange: ({ chapterId, firstToken, lastToken, chainName }) => api.dawCompareFxRange(chapterId, firstToken, lastToken, chainName),
     stopFxCompare: () => api.dawStopFxCompare(),
+    /** The bindings answer already and take the words and the fade only: the host resolves the item, and the DAW the piece it split off. */
+    chooseFxForRange: ({ chapterId, firstToken, lastToken, fadeMs }) => api.dawChooseFxForRange(chapterId, firstToken, lastToken, fadeMs),
+    chosenFxForRange: ({ chapterId, firstToken, lastToken }) => api.dawChosenFxForRange(chapterId, firstToken, lastToken),
     /** The bindings answer a DawResult already and take passage ids only: the host rebuilds the plan from what the DAW reports now. */
     stackTakes: ({ chapterId, groups }) =>
       api.dawStackTakes(
@@ -611,6 +633,10 @@ function mockDawCalls(setup: DawCapabilities, project: DawProject, projectState:
       if (sentence) return refused(sentence, 'removeFxFromRange');
       if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken)
         return refused(DAW_ANSWERS.rangeStale, 'removeFxFromRange', true);
+      if (chainName === DAW_CHOSEN_CHAIN) {
+        const off = fxChosenRemovedOf(setup);
+        return 'refused' in off ? refused(off.refused, 'removeFxFromRange') : off.result;
+      }
       if (!plainChainName(chainName)) return refused(DAW_ANSWERS.fxBadChain, 'removeFxFromRange');
       const fx = fxRangeRemovedOf(setup, chainName);
       return { ...done(true, fx.undoSteps, fx.message), ...(fx.steps ? { steps: fx.steps } : {}) };
@@ -643,6 +669,21 @@ function mockDawCalls(setup: DawCapabilities, project: DawProject, projectState:
     async stopFxCompare() {
       const sentence = unavailable(setup, 'fx_range', 'stopFxCompare');
       return sentence ? refused(sentence, 'stopFxCompare') : fxCompareStopAnswerOf(setup);
+    },
+    async chooseFxForRange({ chapterId, firstToken, lastToken, fadeMs }) {
+      const sentence = unavailable(setup, 'fx_range', 'chooseFxForRange');
+      if (sentence) return refused(sentence, 'chooseFxForRange');
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > MAX_CUT_FADE_MS) return refused(DAW_ANSWERS.cutBadFade, 'chooseFxForRange');
+      if (!project.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return refused(DAW_ANSWERS.rangeStale, 'chooseFxForRange', true);
+      const opened = fxChooseAnswerOf(setup, lastToken - firstToken + 1);
+      return 'refused' in opened ? refused(opened.refused, 'chooseFxForRange') : opened.result;
+    },
+    async chosenFxForRange(target) {
+      const none = (result: DawResult): DawFxRangeChoice => ({ result, fx: [], label: '', chainOpen: false, truncated: false });
+      const refusal = fxTargetRefusal(setup, project, { ...target, chainName: DAW_CHOSEN_CHAIN }, 'chosenFxForRange');
+      if (refusal) return none(refusal);
+      const answer = fxChosenAnswerOf(setup);
+      return 'refused' in answer ? none(refused(answer.refused, 'chosenFxForRange')) : answer.choice;
     },
     stackTakes: (request) => Promise.resolve(restack(setup, project, request, false)),
     unstackTakes: (request) => Promise.resolve(restack(setup, project, request, true)),

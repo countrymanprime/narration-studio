@@ -1100,6 +1100,13 @@
   },
   {
     "page": "storybible",
+    "state": "jump-entries",
+    "viewport": "desktop",
+    "docName": "storybible-jump-entries",
+    "caption": "Story Bible - Ctrl+F then \"mad\": the Hatter under Entries, found by its other name"
+  },
+  {
+    "page": "storybible",
     "state": "entry-pronunciation-online",
     "viewport": "desktop",
     "docName": "storybible-pronunciation-online",
@@ -1293,6 +1300,13 @@
     "viewport": "desktop",
     "docName": "editing-drawer-effects-chains",
     "caption": "Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-effects-choose",
+    "viewport": "desktop",
+    "docName": "editing-drawer-effects-choose",
+    "caption": "Editing - Choose in REAPER: REAPER's FX window is open for the selected words, and the panel names what is chosen there, with Keep it, Cancel and Check again"
   },
   {
     "page": "editing",

@@ -26,6 +26,7 @@ import { addFxItem, fxMenuItems } from './fxMenu';
 import { fxTitle } from './fxText';
 import { createHostFxChains } from '../../../../ports/fxchains';
 import { returnToScript } from '../../script/returnToScript';
+import { useChooseInDaw, type FxChooser } from './useChooseInDaw';
 
 export interface FxWordsOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -63,6 +64,8 @@ export interface FxWords {
   menu: ReactNode;
   /** Why the Add FX control is off for a selection, or ''. */
   refusalOf: (summary: SelSummary) => string;
+  /** Choose in the DAW (#2251): any plug-in the DAW has, chosen in the DAW's own FX window for the words. */
+  chooser: FxChooser;
 }
 
 const NO_ANSWER = 'Could not ask the DAW what it can do.';
@@ -128,6 +131,8 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
   const planOf = useCallback((summary: SelSummary): FxPlan => fxPlanFor({ plan, summary, locator, effects, cap }), [plan, locator, effects, cap]);
   /** Why Add FX is off: the plan's refusal, else the list's own sentence when the DAW cannot list. */
   const refusalOf = useCallback((summary: SelSummary): string => planOf(summary).refusal || (list ? '' : listWhy), [planOf, list, listWhy]);
+  const planRefusal = useCallback((summary: SelSummary): string => planOf(summary).refusal, [planOf]);
+  const chooser = useChooseInDaw({ journal, daw, log, chapterId, locator, plan, planRefusal, onEffects });
 
   const run = useCallback(
     async (range: Range, chain: { id: string; name: string }, source: string, needsOver: boolean, confirmedOver: boolean, span?: Span) => {
@@ -300,5 +305,5 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
   );
   useContextProvider(provider);
   const menu = <span ref={anchor} aria-hidden="true" data-fx-anchor className="contents" />;
-  return { plan, list, favourites, openMenu, ask, remove, fx, menu, refusalOf };
+  return { plan, list, favourites, openMenu, ask, remove, fx, menu, refusalOf, chooser };
 }
