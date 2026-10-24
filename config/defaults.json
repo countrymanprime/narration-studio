@@ -147,6 +147,9 @@
   "Editing": {
     "fx_cap_pct": "10"
   },
+  "Booth": {
+    "words_per_page": "250"
+  },
   "VoiceSamples": {
     "storage": "project"
   }

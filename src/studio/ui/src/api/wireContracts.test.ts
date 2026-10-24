@@ -617,6 +617,26 @@ describe('Editing.fx_cap_pct in the settings answer (SN-E106)', () => {
   });
 });
 
+describe('Booth.words_per_page in the settings answer', () => {
+  const pageField = (settings: Record<string, ScopedSettingField[]>) => settings.Booth?.find((item) => item.key === 'words_per_page');
+
+  it('the golden settings offer a whole number of words from 50 to 1000 that reads as 250 unset and as the stored figure once saved', () => {
+    const unset = pageField(parseWire(settingsForScopeSchema, readGolden('settings-words-per-page.json'), ctx('settings words per page')));
+    expect(unset).toMatchObject({ kind: 'number', isSet: false, effectiveValue: '250', number: { min: 50, max: 1000, step: 1, unit: 'words' } });
+    const set = pageField(parseWire(settingsForScopeSchema, readGolden('settings-words-per-page-set.json'), ctx('settings words per page set')));
+    expect(set).toMatchObject({ isSet: true, value: '300', effectiveValue: '300', effectiveSource: 'project' });
+    expect(pageField(parseWire(settingsForScopeSchema, readGolden('settings-project.json'), ctx('settings project')))?.effectiveValue).toBe('250');
+  });
+
+  it('the mock answers the field through the same schema, and a project save shows in the next read', async () => {
+    const api = createMockApi();
+    const before = parseWire(settingsForScopeSchema, await api.settingsForScope('project'), ctx('mock settings'));
+    expect(pageField(before)).toMatchObject({ effectiveValue: '250', number: { min: 50, max: 1000, step: 1 } });
+    await api.saveSettings('Booth', 'project', { words_per_page: '300' });
+    expect(pageField(parseWire(settingsForScopeSchema, await api.settingsForScope('project'), ctx('mock settings')))?.effectiveValue).toBe('300');
+  });
+});
+
 describe('answers of the mock client (it must pass the schemas the real host answers are held to)', () => {
   afterEach(() => {
     vi.useRealTimers();

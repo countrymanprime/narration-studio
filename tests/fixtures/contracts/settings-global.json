@@ -1,4 +1,22 @@
 {
+  "Booth": [
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "250",
+      "isSet": false,
+      "key": "words_per_page",
+      "kind": "number",
+      "label": "Words per page",
+      "number": {
+        "max": 1000,
+        "min": 50,
+        "step": 1,
+        "unit": "words"
+      },
+      "value": ""
+    }
+  ],
   "Cleanup": [
     {
       "choices": null,
