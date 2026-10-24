@@ -99,8 +99,9 @@ happens before audio is decoded.
   instead of showing as a false "EXTRA IN AUDIO". The visual diff's audio side shows its own
   heading too (separate from the body, matching the doc side's structure), always using the
   manuscript's own title text — so "Chapter One" reads the same on both sides even if Whisper
-  would have rendered the spoken number as a digit. A genuinely misread title still gets
-  flagged as a normal MISREAD marker.
+  would have rendered the spoken number as a digit. The heading is the title and then the
+  subtitle, and reading it is optional: nothing said in it, or between it and the chapter's
+  first word, is a marker, so a misheard or reworded title is never a pickup.
 - Numbers are normalized before diffing, so "one" in the doc won't falsely flag against Whisper
   transcribing the spoken word as "1" (handles cardinal numbers up to billions, including forms
   like "one hundred and one"). Genuine number misreads (doc says 23, you said 24) still get

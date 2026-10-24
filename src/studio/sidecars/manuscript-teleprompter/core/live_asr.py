@@ -732,7 +732,7 @@ def _load_script(ap: argparse.ArgumentParser, args):
         except ChapterError as error:
             choices = f" Choose one of: {'; '.join(error.candidates)}" if error.candidates else ""
             ap.error(f"{error}{choices}")
-        return FlaggingTracker(chapter.tokens), script_event(chapter), chapter.text
+        return FlaggingTracker(chapter.tokens, heading=chapter.heading), script_event(chapter), chapter.text
     if args.script:
         return FlaggingTracker(script_words(Path(args.script).read_text(encoding="utf-8"))), None, None
     return None, None, None

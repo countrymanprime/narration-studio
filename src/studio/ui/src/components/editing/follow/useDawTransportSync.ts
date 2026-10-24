@@ -9,6 +9,7 @@ import type { ChapterDoc } from '../model';
 import { docAt, projectAt, type ClosedCut } from './clockMap';
 import { EchoGuard } from './echoGuard';
 import { useVisible } from './useDawPlayPosition';
+import { DAW_ONLY } from './playRoute';
 
 /** How often the watch lease is renewed. The host asks for a lease of 6 s (transportsync.Lease), so one renewal can be lost and the stream goes on. */
 export const LEASE_RENEW_MS = 3000;
@@ -18,15 +19,16 @@ export const SILENT_MS = 3000;
 const WRITE_DEBOUNCE_MS = 80;
 
 const LOST = 'The DAW stopped answering, so playback stopped.';
-const DAW_PLAY_FAILED = (why: string): string => `The DAW could not play it (${why.replace(/\.$/, '')}), so the app plays it itself.`;
+const DAW_PLAY_FAILED = (why: string): string => `The DAW could not play it (${why.replace(/\.$/, '')}). ${DAW_ONLY}`;
 
 /**
- * What `useScriptPlayback` asks of the DAW's transport. `canStart` is a plain read (the DAW is synced, and the second has a project time), `start`
- * resolves true when the DAW took the play and false when the app must play it itself (nothing was left running), and `stop` stops a DAW play the
- * app started or the DAW's own that the page is showing.
+ * What `useScriptPlayback` asks of the DAW's transport. `refusal` is a plain read: null when the DAW can be asked to play the second, `not_ready`
+ * while the watch lease is unanswered or refused (another project open, a recording), `not_placed` when the second has no project time. `start`
+ * resolves true when the DAW took the play and false when it did not (nothing was left running, and the toast is said), and `stop` stops a DAW
+ * play the app started or the DAW's own that the page is showing.
  */
 export interface RemotePlayer {
-  canStart(docT: number): boolean;
+  refusal(docT: number): 'not_ready' | 'not_placed' | null;
   start(docT: number): Promise<boolean>;
   stop(): void;
 }
@@ -230,9 +232,10 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   }, [ready]);
 
   const remote: RemotePlayer = useRef<RemotePlayer>({
-    canStart: (docT) => {
+    refusal: (docT) => {
       const l = live.current;
-      return l.ready && projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT) !== null;
+      if (!l.ready) return 'not_ready';
+      return projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT) === null ? 'not_placed' : null;
     },
     start: async (docT) => {
       const l = live.current;

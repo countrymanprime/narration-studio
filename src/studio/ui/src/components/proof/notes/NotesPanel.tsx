@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Finding } from '../../../api/contracts/findings';
+import { useSearchSource } from '../../../registries/search';
 import { IconButton } from '../../primitives/IconButton';
 import { Pill } from '../../primitives/Pill';
 import { SearchField } from '../../primitives/SearchField';
@@ -14,6 +15,7 @@ import {
   matchesChip,
   matchesFind,
   noteRow,
+  notesSource,
   sourcesText,
   windowIsNarrow,
   type NoteChip,
@@ -103,9 +105,7 @@ export function NotesPanel({
   const findOpener = useRef<HTMLElement | null>(null);
   const openFind = useCallback(() => {
     const active = document.activeElement;
-    // Ctrl+F inside the field keeps the opener it already has.
-    if (!(active instanceof HTMLElement && active.matches('input')))
-      findOpener.current = active instanceof HTMLElement && active !== document.body ? active : null;
+    findOpener.current = active instanceof HTMLElement && active !== document.body ? active : null;
     setFindOpen(true);
   }, []);
   const closeFind = () => {
@@ -123,17 +123,18 @@ export function NotesPanel({
     closeFind();
   };
 
-  // Ctrl+F opens find in notes (the browser's own find would search the whole window).
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
-        event.preventDefault();
-        openFind();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [openFind]);
+  // Ctrl+F is the shell's jump menu here as on every page (#2251 item 23); the notes are one of its search sources. Choosing a note finds its
+  // term in the list, with the chips and "In view" cleared so the note shows, and selects it.
+  const latest = useRef({ base, onSelect });
+  latest.current = { base, onSelect };
+  const findFromMenu = useCallback((term: string, id?: string) => {
+    setChip('all');
+    setInView(false);
+    setQuery(term);
+    setFindOpen(true);
+    if (id) latest.current.onSelect(id);
+  }, []);
+  useSearchSource(useMemo(() => notesSource(() => latest.current.base, findFromMenu), [findFromMenu]));
 
   const move = (step: 1 | -1) => {
     if (rows.length === 0) return;

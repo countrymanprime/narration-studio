@@ -54,6 +54,13 @@ describe('the jump menu row', () => {
     expect(row?.defaults.map((gesture) => `${gesture.modifiers.join('+')}+${gesture.code}`)).toEqual(['Mod+KeyF']);
     expect(row?.surfaces).toEqual(['help', 'settings']);
   });
+
+  // #2251 item 23: Ctrl+F opens the jump menu on every page, so no page row may take Mod+F from it (Proof's find in notes did).
+  it('ctrl-f-everywhere: jump.page is the only row bound to Mod+F, and no row shadows it', () => {
+    const takers = COMMAND_CATALOG.filter((row) => row.defaults.some((gesture) => gesture.code === 'KeyF' && gesture.modifiers.join('+') === 'Mod'));
+    expect(takers.map((row) => row.id)).toEqual(['jump.page']);
+    expect(COMMAND_CATALOG.filter((row) => row.shadows?.includes('jump.page')).map((row) => row.id)).toEqual([]);
+  });
 });
 
 describe('the history row', () => {

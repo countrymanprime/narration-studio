@@ -185,23 +185,7 @@
    0,
    6
   ],
-  "markers": [
-   [
-    0.4,
-    "MISREAD",
-    "MISREAD: 'i' as '1'",
-    "i",
-    "1",
-    -1,
-    1,
-    2,
-    1,
-    2,
-    "high",
-    1.0,
-    ""
-   ]
-  ],
+  "markers": [],
   "opcodes": [
    [
     "equal",
@@ -546,23 +530,7 @@
    0,
    7
   ],
-  "markers": [
-   [
-    0.4,
-    "MISREAD",
-    "MISREAD: 'ii' as '2 the pool of tears'",
-    "ii",
-    "2 the pool of tears",
-    -1,
-    1,
-    2,
-    1,
-    6,
-    "high",
-    1.5,
-    ""
-   ]
-  ],
+  "markers": [],
   "opcodes": [
    [
     "equal",

@@ -89,13 +89,13 @@ The menu knows the page you are on. What the page offers right now is listed fir
 
 ![Settings - the jump menu typed "microphone": the setting under its category in On this page](../../images/ui/nav-jump-menu-settings.webp)
 
-`Ctrl+F` opens the same menu searching only the page: its items and its text, no pages or commands. `Backspace` on an empty field widens it to everything. On a page that offers nothing, `Ctrl+F` opens the whole menu. [Proof](proof.md) keeps `Ctrl+F` for its notes. Items that need the DAW or the host are added a moment after the menu opens, and the menu never waits for them.
+`Ctrl+F` opens the same menu searching only the page: its items and its text, no pages or commands. `Backspace` on an empty field widens it to everything. On a page that offers nothing, `Ctrl+F` opens the whole menu. It does the same on every page; on [Proof](proof.md) the page's search includes the notes. Items that need the DAW or the host are added a moment after the menu opens, and the menu never waits for them.
 
 Undo takes back the last change you made in the app, and says why when it cannot. The undo history lists the changes you can undo, each with the time it was made, in a panel that slides in from the right; it keeps the newest 40 and says so when it is full, and `Ctrl+Z` works with the panel open too, and the list follows.
 The **Undo** on a message beside a change goes away once it would no longer be true: when you undo that change another way (`Ctrl+Z`, the jump menu or the history), open another page or chapter, or switch project.
 A running [production stage timer](production.md#the-stage-timer) is not in the header: its clock and chapter ("0:42:07 · timer on Chapter 6") sit beside **Stop timer** at the top of the Production page, and only there.
 
-Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Search this page** (`Ctrl+F`; Proof keeps `Ctrl+F` for its notes, so it shows no key there) and a **View** submenu of the zoom steps and the theme.
+Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Search this page** (`Ctrl+F`) and a **View** submenu of the zoom steps and the theme.
 
 The engine chip at the right of the header names the audio engine the project records with (REAPER, Audacity or Built-in), with a
 dot for how it is doing. Hover it for the detail, and click it to open the [audio engine panel](#the-audio-engine-panel), where the
