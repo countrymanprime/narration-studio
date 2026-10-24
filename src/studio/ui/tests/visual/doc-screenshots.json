@@ -1184,6 +1184,13 @@
   },
   {
     "page": "booth",
+    "state": "levels-menu-preroll",
+    "viewport": "desktop",
+    "docName": "booth-levels-menu-preroll",
+    "caption": "Booth - the Levels menu with Experimental DAW actions on: REAPER's own pre-roll, read from REAPER, and where to change it"
+  },
+  {
+    "page": "booth",
     "state": "levels-menu-daw-meters",
     "viewport": "desktop",
     "docName": "booth-levels-menu-daw-meters",

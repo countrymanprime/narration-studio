@@ -86,6 +86,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapFollowPosition:  placeRole{r(dawport.CapFollowPosition)},
 		dawport.CapTransportSync:   transportSyncRole{r(dawport.CapTransportSync)},
 		dawport.CapInputLevel:      inputLevelRole{r(dawport.CapInputLevel)},
+		dawport.CapPunchPreroll:    prerollRole{r(dawport.CapPunchPreroll)},
 		dawport.CapDawMeters:       meterRole{r(dawport.CapDawMeters)},
 	}
 	return f
@@ -490,6 +491,16 @@ func (r inputLevelRole) SetInputLevel(_ context.Context, level int) (int, error)
 }
 
 var errLevel = errors.New("the level is 0 to 100")
+
+type prerollRole struct{ role }
+
+// PunchPreroll answers REAPER 7.82's own default: two measures, pre-roll on record off, at 4/4 and 120 BPM.
+func (r prerollRole) PunchPreroll(context.Context) (dawport.PunchPreroll, error) {
+	if err := r.do("PunchPreroll"); err != nil {
+		return dawport.PunchPreroll{}, err
+	}
+	return dawport.PunchPreroll{Measures: 2, MeasureSeconds: 2}, nil
+}
 
 type meterRole struct{ role }
 

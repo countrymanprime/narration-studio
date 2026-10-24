@@ -204,6 +204,8 @@ var eventSpecs = map[string]eventSpec{
 	"UNDONE_LAST": {required: []fieldSpec{text("run"), text("kind"), count("steps"), count("undone")}},
 	// monitor_level (narration_levels.lua): the monitor level now held, a whole number from 0 to 100, read back after a set.
 	"MONITOR_LEVEL": {required: []fieldSpec{text("run"), count("level")}},
+	// punch_preroll (narration_preroll.lua): REAPER's pre-roll on record (0 or 1), its length in measures and one measure in seconds.
+	"PUNCH_PREROLL": {required: []fieldSpec{text("run"), count("onRecord"), number("measures"), number("measureSeconds")}},
 	// daw_meters (narration_meters.lua): the master's level in dBFS, then the first armed track's level and name, both empty when no
 	// track is armed.
 	"METERS": {required: []fieldSpec{text("run"), number("output")}, optional: []fieldSpec{number("input"), text("inputTrack")}},

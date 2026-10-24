@@ -141,7 +141,7 @@ var builtinDefaults = map[string]Values{
 		"capability.stack_takes": "auto", "capability.backups": "auto",
 		"capability.file_preview": "auto", "capability.file_reveal": "auto", "capability.range_gain": "auto",
 		"capability.click_repair": "auto", "capability.undo_last": "auto",
-		"capability.monitor_level": "auto", "capability.input_level": "auto", "capability.daw_meters": "auto", "capability.follow_position": "auto", "capability.transport_sync": "auto",
+		"capability.monitor_level": "auto", "capability.input_level": "auto", "capability.punch_preroll": "auto", "capability.daw_meters": "auto", "capability.follow_position": "auto", "capability.transport_sync": "auto",
 		"capability.track_create": "auto"},
 	// RecordingCoverage mirrors coverage.DefaultSettings: the recording check's shipped values, chosen on synthetic fixtures
 	// and still Proposed and uncalibrated on real narration (docs/utilities/recording-coverage.md).

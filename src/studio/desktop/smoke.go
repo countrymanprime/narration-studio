@@ -83,6 +83,7 @@ var smokeReaperFiles = []string{
 	"narration_media_file.lua",
 	"narration_navigation.lua",
 	"narration_pickups.lua",
+	"narration_preroll.lua",
 	"narration_project_state.lua",
 	"narration_punch.lua",
 	"narration_range.lua",

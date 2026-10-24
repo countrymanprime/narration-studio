@@ -681,6 +681,20 @@
       "effectiveSource": "repo_default",
       "effectiveValue": "auto",
       "isSet": false,
+      "key": "capability.punch_preroll",
+      "kind": "choice",
+      "label": "Punch pre-roll",
+      "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
       "key": "capability.daw_meters",
       "kind": "choice",
       "label": "Show the input and output levels",

@@ -823,6 +823,15 @@ export function DawProjectState(): $CancellablePromise<string> {
 }
 
 /**
+ * DawPunchPreroll reads the DAW's own pre-roll before a punched take, which the Booth punches with (its Levels menu shows it): the
+ * punch_preroll capability's sentence when the resolver refuses it, checked first; no live adapter, the DAW not answering and no answer
+ * in time are refused in a sentence. It changes nothing: the pre-roll is the narrator's to set in the DAW.
+ */
+export function DawPunchPreroll(): $CancellablePromise<string> {
+    return $Call.ByID(3261543260);
+}
+
+/**
  * DawReduceRangeGain lowers stretches of takeID, a take of chapterID, by reduceDb (1 to 24) in one undo step of the DAW's own
  * (SN-E100: Clean up's Breaths, Plosives and Noise, "Reduce by N dB"). Each stretch is in the take's own seconds, the time in its
  * audio file. takeID is the take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host

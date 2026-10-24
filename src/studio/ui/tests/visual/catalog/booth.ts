@@ -214,6 +214,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'levels-menu-preroll',
+    description:
+      "Booth, the Levels menu open with Experimental DAW actions on: the Punch part is REAPER's own pre-roll, read only: off on record, 2 measures, one measure in seconds at the cursor, and where it is set in REAPER",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'levels-menu-daw-meters',
     description:
       "Booth, the Levels menu with Experimental DAW actions on: REAPER's own meters under the two sliders, the armed track's input (named) and the output, with the monitor slider usable (DawMeters)",

@@ -12,8 +12,8 @@ import (
 // Punch and roll: "Punch from here" on a flag resolves the flagged word's project time from the punch anchors the poll
 // loop has recorded (teleprompterpunchpoll.go), else from the recording itself (the offline alignment,
 // teleprompterpunchalign.go), else from the anchors' pace, then moves REAPER's edit cursor there minus the pre-roll
-// setting, through dawport.Puncher (CapPunch), never bridge.Actions directly. Reading REAPER's own pre-roll preference first waits
-// for the owner's go-ahead; the setting is the only source until then.
+// setting, through dawport.Puncher (CapPunch), never bridge.Actions directly. No page calls it today: the Booth punches with REAPER's own
+// pre-roll, which its Levels menu reads (punch_preroll, bindings_daw_preroll.go), and the setting stays for an engine with none.
 
 // defaultPunchPreRoll is what a settings value that will not parse falls back to (the same 3 s the setting's own
 // repo default and range describe, src/studio/desktop/settings_number.go).

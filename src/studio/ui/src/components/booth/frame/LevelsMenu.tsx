@@ -15,6 +15,7 @@ import type { InputLevel } from './useLevels';
 import { useDawMeters, type DawMetersState } from './useDawMeters';
 import { useMonitorLevel } from './useMonitorLevel';
 import { usePunchPreroll } from './usePunchPreroll';
+import { useDawPreroll } from './useDawPreroll';
 
 export type LevelsMenuProps = {
   /** Which engine records: with a DAW the microphone is chosen in the DAW, with the built-in recorder here. */
@@ -39,6 +40,7 @@ export type LevelsMenuProps = {
   levels?: {
     monitor: DawCapabilitySupport | undefined;
     input: DawCapabilitySupport | undefined;
+    preroll?: DawCapabilitySupport | undefined;
     meters?: DawCapabilitySupport | undefined;
     onOpenSettings?: () => void;
   };
@@ -255,12 +257,11 @@ function LevelSliders({ levels, dawName, reachable }: { levels: NonNullable<Leve
   );
 }
 
-/** How far before a word "Punch from here" starts: a computer-wide number, set here because only punching reads it. Offered with a DAW, the only recorder that punches. */
-function PunchPrerollRow() {
+/** How far before a word "Punch from here" starts: a computer-wide number, set here because only punching reads it. Offered with a DAW that has no pre-roll of its own. */
+function AppPrerollRow() {
   const { preroll, error, set } = usePunchPreroll();
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Punch</span>
+    <>
       {preroll ? (
         <NumberInput label="Punch pre-roll (seconds)" value={preroll.value} min={preroll.min} max={preroll.max} step={preroll.step} onValueChange={set} />
       ) : null}
@@ -270,6 +271,53 @@ function PunchPrerollRow() {
           {error}
         </span>
       ) : null}
+    </>
+  );
+}
+
+const oneDecimal = (seconds: number): string => seconds.toFixed(1);
+const measuresText = (measures: number): string => (measures === 1 ? '1 measure' : `${measures} measures`);
+
+/**
+ * The DAW's own pre-roll (#2251 item 11): the one the Booth punches with, so the app shows it rather than a number of its own that could disagree. It
+ * is read, never set: the narrator changes it in the DAW, and the menu says where.
+ */
+function DawPrerollRow({ dawName }: { dawName: string }) {
+  const state = useDawPreroll();
+  if (state.kind === 'loading') return <span className="text-xs text-[var(--text-muted)]">Reading the pre-roll from {dawName}…</span>;
+  if (state.kind !== 'ready')
+    return (
+      <span role="alert" className="text-xs [overflow-wrap:anywhere] text-[var(--danger-text)]">
+        {state.message}
+      </span>
+    );
+  const { preroll } = state;
+  const lead = `${measuresText(preroll.measures)} (one measure is ${oneDecimal(preroll.measureSeconds)} s here)`;
+  return (
+    <>
+      <span className="text-sm text-[var(--text)]">
+        {preroll.onRecord ? `${dawName} pre-roll: ${lead}` : `${dawName} pre-roll is off: a punch records from the word with no lead-in.`}
+      </span>
+      <span className="text-xs text-[var(--text-muted)]">
+        {preroll.onRecord
+          ? `${dawName} plays from the bar line ${measuresText(preroll.measures)} or more before the word, then records from the word. `
+          : `Its length is ${lead}. `}
+        {`Set in ${dawName}, for every project: “Pre-roll: Toggle pre-roll on record” turns it on or off.`}
+      </span>
+    </>
+  );
+}
+
+/** The punch pre-roll, offered with a DAW, the only recorder that punches: the DAW's own when it has one (read only), else the app's. */
+function PunchPrerollRow({ dawName, support }: { dawName: string; support: DawCapabilitySupport | undefined }) {
+  // A DAW that declares a pre-roll of its own punches with it, so the app's seconds would only disagree with it: its refusal is shown instead.
+  const own = support && support.level !== 'unsupported' && support.level !== 'not_yet_available';
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Punch</span>
+      {own && support.available ? <DawPrerollRow dawName={dawName} /> : null}
+      {own && !support.available ? <span className="text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{support.message}</span> : null}
+      {own ? null : <AppPrerollRow />}
     </div>
   );
 }
@@ -312,7 +360,7 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
           ) : null}
         </div>
         {levels ? <LevelSliders levels={levels} dawName={dawName} reachable={reachable} /> : null}
-        {engine === 'daw' ? <PunchPrerollRow /> : null}
+        {engine === 'daw' ? <PunchPrerollRow dawName={dawName} support={levels?.preroll} /> : null}
       </div>
     </Popover>
   );

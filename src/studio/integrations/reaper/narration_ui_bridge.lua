@@ -45,6 +45,7 @@ M.FEATURE_FILES = {
   'narration_levels.lua',
   'narration_meters.lua',
   'narration_undo.lua',
+  'narration_preroll.lua',
 }
 
 local function own_directory()

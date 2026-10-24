@@ -31,6 +31,7 @@ import type {
   DawLastAction,
   DawMeters,
   DawMonitorLevel,
+  DawPunchPreroll,
   DawPlace,
   DawPosition,
   DawPlayState,
@@ -171,6 +172,18 @@ export const dawMonitorLevelSchema = z
   .object({ ok: z.boolean(), level: z.number().int().min(0).max(DAW_LEVEL_MAX), message: z.string() })
   .refine((answer) => answer.ok === (answer.message === ''), 'a refusal carries its sentence, an answer has none') satisfies z.ZodType<DawMonitorLevel>;
 
+/** DawPunchPreroll's answer (bindings_daw_preroll.go): a length of no measures or more and a measure of some length on an answer, and a sentence exactly
+ * when the call was refused. */
+export const dawPunchPrerollSchema = z
+  .object({
+    ok: z.boolean(),
+    onRecord: z.boolean(),
+    measures: z.number().min(0),
+    measureSeconds: z.number().min(0),
+    message: z.string(),
+  })
+  .refine((answer) => answer.ok === (answer.message === ''), 'a refusal carries its sentence, an answer has none')
+  .refine((answer) => !answer.ok || answer.measureSeconds > 0, 'an answer has a measure of some length') satisfies z.ZodType<DawPunchPreroll>;
 const meterLevel = z.number().min(DAW_METER_FLOOR_DB).max(60);
 
 /** DawMeters' answer (bindings_daw_meters.go): levels in dBFS on an answer; nothing but the sentence and the reason on a refusal. */

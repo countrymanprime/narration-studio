@@ -72,10 +72,21 @@ the app never arms a track just to measure it. Under **Monitor level (output)** 
 records with monitoring on, or monitors the armed track. If REAPER stops answering for two seconds, the meters say how long ago
 they last heard it instead of showing an old level. Both, and the monitor slider, are Experimental DAW actions: while those are
 off, the menu says so and **Turn on in Settings** opens the switch.
-With a DAW, **Punch pre-roll (seconds)** sets how long before the word **R** starts the DAW (0 to 10, in half seconds). It applies to every project on
-this computer. It is a shortcut to the same setting as **Punch pre-roll** under **Set on a page** in [Settings](settings.md#set-on-a-page), which keeps it too. The built-in recorder does not punch, so the menu has no such box.
+
+**Punch** shows the lead-in you hear before a punch. With REAPER it is REAPER's own pre-roll, the one the punch really uses. The menu
+reads it from REAPER: whether REAPER plays it before recording, and its length in measures, with how long one measure is at the edit
+cursor. With pre-roll on, REAPER plays from the bar line at or before that many measures before the word, then records from the
+word. With it off, a punch records from the word with no lead-in. Change it in REAPER: "Pre-roll: Toggle pre-roll on record" turns
+it on or off, and it applies to every project. The menu reads it again when you come back to the window. Until Experimental DAW
+actions are on, the menu says so in place of the reading.
+
+With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets how long before the word **R** starts the DAW (0 to
+10, in half seconds), for every project on this computer. It is the same setting as **Punch pre-roll** under **Set on a page** in
+[Settings](settings.md#set-on-a-page). The built-in recorder does not punch, so the menu has no Punch part.
 
 ![Booth - the Levels menu: the input level and the microphone the text listens to](../../images/ui/booth-levels-menu.webp)
+
+![Booth - the Levels menu with Experimental DAW actions on: REAPER's own pre-roll, read from REAPER, and where to change it](../../images/ui/booth-levels-menu-preroll.webp)
 
 ![Booth - the Levels menu showing REAPER's own input level (the armed track) and output level under the two sliders](../../images/ui/booth-levels-menu-daw-meters.webp)
 
