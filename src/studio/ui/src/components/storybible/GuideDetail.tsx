@@ -174,8 +174,8 @@ function FindInManuscript({ name }: { name: string }) {
   );
 }
 
-/** What the entry list's right-click menu asks the open entry to do. `nonce` makes the same command twice two commands. */
-export type EntryCommand = { id: string; kind: 'review' | 'delete'; nonce: number };
+/** What the entry list asks the open entry to do (its right-click menu, or a Hear whose voice must be installed first). `nonce` makes the same command twice two commands. */
+export type EntryCommand = { id: string; kind: 'review' | 'delete' | 'hear'; nonce: number };
 
 const NO_CHAPTERS: readonly ChapterRef[] = [];
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
@@ -595,6 +595,8 @@ export function GuideDetail({
   commandRun.current = (kind) => {
     if (kind === 'delete' && !locked) setConfirmation('delete');
     if (kind === 'review' && entryFlagged(entity) && toVerify === 0) void markReviewed();
+    // The list's Hear found the voice missing: the entry's own play asks again, and shows the install prompt.
+    if (kind === 'hear') void playPreview();
   };
 
   return (

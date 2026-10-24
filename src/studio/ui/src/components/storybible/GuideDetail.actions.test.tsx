@@ -257,7 +257,7 @@ describe('a-header-sorts-the-table-and-the-choice-is-kept', () => {
     expect(
       within(entryTable())
         .getAllByRole('columnheader')
-        .filter((cell) => cell.getAttribute('aria-sort') !== 'none'),
+        .filter((cell) => ['ascending', 'descending'].includes(cell.getAttribute('aria-sort') ?? '')),
     ).toHaveLength(1);
   });
 });
@@ -267,7 +267,8 @@ describe('each-row-shows-its-name-and-its-kind', () => {
     renderGuide();
     await screen.findAllByText('Alice');
     const alice = cellsOf(entryRows().find((row) => rowName(row) === 'Alice')!).map((cell) => cell.textContent);
-    expect(alice).toEqual(['Alice', 'Character']);
+    // The third cell holds only the Hear button (a name, no text).
+    expect(alice).toEqual(['Alice', 'Character', '']);
   });
 });
 

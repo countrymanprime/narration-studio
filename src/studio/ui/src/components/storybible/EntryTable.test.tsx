@@ -57,11 +57,12 @@ function setup(rows: GuideEntity[], over: Partial<EntryTableProps> = {}) {
 const bodyRows = () => screen.getAllByRole('row').slice(1);
 
 describe('the-headers-sort-and-announce-the-sort', () => {
-  it('names two columns and marks the sorted one, the others none', () => {
+  // The Hear column is the redesign's third column (SNB-D3): named for a screen reader only, and never sorted.
+  it('names the columns and marks the sorted one, the others none', () => {
     setup([entry('a', 'Alice')]);
     const headers = screen.getAllByRole('columnheader');
-    expect(headers.map((header) => header.textContent?.replace(/\s*[↑↓]$/, '').trim())).toEqual(['Name', 'Kind']);
-    expect(headers.map((header) => header.getAttribute('aria-sort'))).toEqual(['ascending', 'none']);
+    expect(headers.map((header) => header.textContent?.replace(/\s*[↑↓]$/, '').trim())).toEqual(['Name', 'Kind', 'Pronunciation']);
+    expect(headers.map((header) => header.getAttribute('aria-sort'))).toEqual(['ascending', 'none', null]);
   });
   it('announces descending and moves with the sort it is given', () => {
     setup([entry('a', 'Alice')], {
@@ -91,7 +92,7 @@ describe('a-row-per-entry', () => {
       }),
     ]);
     const cells = within(bodyRows()[0]!).getAllByRole('cell');
-    expect(cells.map((cell) => cell.textContent)).toEqual(['Hatter', 'Character']);
+    expect(cells.map((cell) => cell.textContent)).toEqual(['Hatter', 'Character', '']);
   });
   it('draws the type colour beside the kind, amber for an entry whose kind is not set, and says so', () => {
     setup([entry('a', 'Alice'), entry('n', 'Nobody', { category: 'Needs Review' })]);
@@ -225,5 +226,44 @@ describe('a-book-of-hundreds', () => {
   it('draws a small book whole', () => {
     setup(many.slice(0, 100));
     expect(bodyRows()).toHaveLength(100);
+  });
+});
+
+describe('a-row-plays-its-pronunciation', () => {
+  const said = { ipa: 'ˈælɪs', source: 'manual', confidence: '' };
+  const rows = () => [entry('a', 'Alice', { pronunciation: said }), entry('b', 'Bill')];
+
+  it('shows Hear only on an entry with a pronunciation, out of the tab order', () => {
+    setup(rows(), { onHear: vi.fn() });
+    const hear = screen.getAllByRole('button', { name: /^Hear/ });
+    expect(hear.map((button) => button.getAttribute('aria-label'))).toEqual(['Hear Alice']);
+    expect(hear[0]!.tabIndex).toBe(-1);
+  });
+  it('plays on a press without opening the entry', async () => {
+    const { props } = setup(rows(), { onHear: vi.fn() });
+    await userEvent.click(screen.getByRole('button', { name: 'Hear Alice' }));
+    expect(props.onHear).toHaveBeenCalledWith('a');
+    expect(props.onOpen).not.toHaveBeenCalled();
+  });
+  it('plays on Space on a row that has one, and opens on Space on a row that has none', async () => {
+    const { props } = setup(rows(), { onHear: vi.fn() });
+    const [alice, bill] = bodyRows();
+    alice!.focus();
+    await userEvent.keyboard(' ');
+    expect(props.onHear).toHaveBeenCalledWith('a');
+    expect(props.onOpen).not.toHaveBeenCalled();
+    bill!.focus();
+    await userEvent.keyboard(' ');
+    expect(props.onOpen).toHaveBeenCalledWith('b');
+    expect(props.onHear).toHaveBeenCalledTimes(1);
+  });
+  it('says which one is playing and which one is loading', () => {
+    setup([entry('a', 'Alice', { pronunciation: said }), entry('c', 'Cat', { pronunciation: said })], { onHear: vi.fn(), playingId: 'a', loadingId: 'c' });
+    expect(screen.getByRole('button', { name: 'Stop Alice' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Hear Cat' }).getAttribute('aria-busy')).toBe('true');
+  });
+  it('draws no Hear at all without a player', () => {
+    setup(rows());
+    expect(screen.queryByRole('button', { name: /^Hear/ })).toBeNull();
   });
 });
