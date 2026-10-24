@@ -9,7 +9,6 @@ import { createMockApi } from '../../../api/mockApi';
 import type { Finding } from '../../../types';
 import { HearIt, HEAR_AROUND_SECONDS, type HearItApi } from './HearIt';
 import { inspectorFinding } from './testFinding';
-import { DAW_SETUPS } from '../../../fixtures/daw';
 
 afterEach(cleanup);
 
@@ -55,7 +54,7 @@ function setup(finding: Finding, loop: FindingNavigation | (() => Promise<Findin
   const mediaUrl = vi.spyOn(mediaApi, 'mediaUrl');
   const view = render(
     <ApiProvider api={mediaApi}>
-      <Harness finding={finding} api={api} dawName="REAPER" capabilities={DAW_SETUPS.reaper} {...props} />
+      <Harness finding={finding} api={api} dawName="REAPER" {...props} />
     </ApiProvider>,
   );
   return { api, mediaUrl, view };
@@ -102,8 +101,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
       await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
       expect(t.mediaUrl).toHaveBeenCalledWith('C:/Book/ch1 take.wav');
       expect(currentTimes.at(-1)).toBe(7);
-      // The DAW's reason comes first, so the narrator knows why the app plays it (playback/providers.ts).
-      expect(status()).toBe(`refused: ${reason} Playing in the app, 3 s either side. Press again to stop.`);
+      expect(status()).toBe('Playing in the app, 3 s either side. Press again to stop.');
     },
   );
 
@@ -111,46 +109,6 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
     setup(placed(), () => Promise.reject(new Error('bridge gone')));
     await userEvent.click(hear());
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
-    expect(status()).toMatch(/^The DAW was not asked: .*bridge gone.* Playing in the app/);
-  });
-
-  it('asks the DAW nothing while it is not running, and plays in the app with its sentence', async () => {
-    const api: HearItApi = {
-      findingsLoop: vi.fn(async () => looping),
-      findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
-    };
-    render(
-      <ApiProvider api={createMockApi()}>
-        <Harness finding={placed()} api={api} dawName="REAPER" capabilities={DAW_SETUPS['reaper-off']} />
-      </ApiProvider>,
-    );
-    await userEvent.click(hear());
-    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
-    expect(api.findingsLoop).not.toHaveBeenCalled();
-    expect(status()).toMatch(/Playing in the app/);
-  });
-
-  it('waits for the DAW to be read, and plays in the app when the read failed', async () => {
-    const api: HearItApi = {
-      findingsLoop: vi.fn(async () => looping),
-      findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 0, kept: 0 })),
-    };
-    const view = render(
-      <ApiProvider api={createMockApi()}>
-        <Harness finding={placed()} api={api} dawName="the DAW" />
-      </ApiProvider>,
-    );
-    await userEvent.click(hear());
-    expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Checking whether the DAW can play this. Try again in a moment.');
-    expect(play).not.toHaveBeenCalled();
-    view.rerender(
-      <ApiProvider api={createMockApi()}>
-        <Harness finding={placed()} api={api} dawName="the DAW" capabilitiesFailed />
-      </ApiProvider>,
-    );
-    await userEvent.click(hear());
-    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
-    expect(api.findingsLoop).not.toHaveBeenCalled();
   });
 
   it('never plays in the app while the DAW records: shows the DAW’s sentence', async () => {
@@ -192,7 +150,7 @@ describe('hear-it-plays-the-note-with-3-s-either-side', () => {
   it('the app clip ending puts the button back and clears its Playing line', async () => {
     setup(placed(), refusedAs('standalone'));
     await userEvent.click(hear());
-    await waitFor(() => expect(status()).toMatch(/Playing in the app/));
+    await waitFor(() => expect(status()).toMatch(/^Playing in the app/));
     const audio = play.mock.contexts.at(-1) as HTMLMediaElement;
     Object.defineProperty(audio, 'currentTime', { configurable: true, get: () => 99 });
     audio.dispatchEvent(new Event('timeupdate'));

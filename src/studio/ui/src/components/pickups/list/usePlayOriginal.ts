@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { TrackItem } from '../../../api/contracts/tracks';
 import { usePort } from '../../../ports/usePort';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { buildPlaylist, segmentAtElapsed } from '../../proof/playlist';
-import { APP, dawReadiness, playThrough, quietWhileRecording, type PlaybackProvider } from '../../../playback/providers';
 
 /** Seconds of the recording heard before and after the line's place. */
 const ORIGINAL_AROUND = 3;
@@ -28,143 +26,47 @@ export function sourceSpot(items: readonly TrackItem[], pickup: Pick<PickupItem,
 }
 
 /**
- * Plays a pickup's place in the recording with `ORIGINAL_AROUND` seconds either side, through the playback providers (playback/providers.ts):
- * the linked DAW's transport (`transport_sync`) from the pickup's project second, stopped after the stretch, then the range player the Proof
- * takes use on the source file (no project change either way). A DAW that cannot play now or refuses hands the line to the app with a notice;
- * a DAW that is recording keeps the room quiet. One line plays at a time; pressing the playing line again stops it. A refusal comes back as
- * a sentence through `onRefused`, a fallback's notice through `onNotice`.
+ * Plays a pickup's place in the source recording with `ORIGINAL_AROUND` seconds either side, through the range player the Proof takes use (no DAW
+ * call, no project change). One line plays at a time; pressing the playing line again stops it. A refusal comes back as a sentence.
  */
-export function usePlayOriginal(onRefused: (sentence: string) => void, onNotice: (sentence: string) => void = onRefused) {
+export function usePlayOriginal(onRefused: (sentence: string) => void) {
   const trackMap = usePort('chapterTrackMap');
   const tracks = usePort('tracks');
-  const daw = usePort('daw');
-  const sync = usePort('dawTransportSync');
   const player = useRangePlayer(tracks.mediaUrl, { pre: ORIGINAL_AROUND, post: ORIGINAL_AROUND });
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [inDaw, setInDaw] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
-  const asked = useRef(0);
-  const live = useRef({ onRefused, onNotice, playingId, inDaw });
-  live.current = { onRefused, onNotice, playingId, inDaw };
+  const live = useRef({ onRefused, playingId });
+  live.current = { onRefused, playingId };
 
   const unavailable = useCallback((pickup: PickupItem): string | undefined => (pickup.at === null && pickup.time === null ? NO_PLACE : undefined), []);
 
-  const clearTimer = (): void => {
-    if (timer.current !== undefined) window.clearTimeout(timer.current);
-    timer.current = undefined;
-  };
-  const stopDaw = useCallback((): void => {
-    clearTimer();
-    // A failed stop leaves the DAW playing; say so, as the Editing page does.
-    sync.dawTransportSync('stop', 0).then(
-      (result) => !result.ok && live.current.onRefused(result.message),
-      () => live.current.onRefused('The DAW could not be stopped. Stop it there.'),
-    );
-  }, [sync]);
-
-  const stop = useCallback((): void => {
-    asked.current += 1;
-    if (live.current.inDaw) stopDaw();
-    player.stop();
-    setInDaw(false);
-    setPlayingId(null);
-  }, [player, stopDaw]);
-
   const play = useCallback(
     async (pickup: PickupItem): Promise<void> => {
-      if (live.current.playingId === pickup.id) return stop();
-      stop();
-      const mine = asked.current;
-      let caps: DawCapabilities | null = null;
-      let capsFailed = false;
-      try {
-        caps = await daw.capabilities();
-      } catch {
-        capsFailed = true;
+      if (live.current.playingId === pickup.id) {
+        player.stop();
+        setPlayingId(null);
+        return;
       }
-      const name = caps?.daw ?? 'The DAW';
-      const transport: PlaybackProvider<PickupItem> = {
-        name,
-        readiness: (p) => {
-          const declared = dawReadiness(caps, 'transport_sync', capsFailed);
-          if (!declared.ready) return declared.wait ? { ready: false, why: null } : declared;
-          return p.at === null ? { ready: false, why: `This line has no place in ${name}'s project.` } : { ready: true };
-        },
-        play: async (p) => {
-          const from = Math.max(0, p.at! - ORIGINAL_AROUND);
-          let why: string;
-          try {
-            const result = await sync.dawTransportSync('play', from);
-            if (result.ok) {
-              if (asked.current !== mine) {
-                stopDaw();
-                return { played: true };
-              }
-              setPlayingId(p.id);
-              setInDaw(true);
-              timer.current = window.setTimeout(
-                () => {
-                  if (asked.current !== mine) return;
-                  stopDaw();
-                  setInDaw(false);
-                  setPlayingId(null);
-                },
-                (p.at! - from + ORIGINAL_AROUND) * 1000,
-              );
-              return { played: true };
-            }
-            why = result.message;
-          } catch (error) {
-            why = `${name} was not asked: ${error instanceof Error ? error.message : String(error)}`;
-          }
-          return { played: false, why };
-        },
-      };
-      let spot: ReturnType<typeof sourceSpot>;
-      let lookup: string | undefined;
-      const app: PlaybackProvider<PickupItem> = {
-        name: APP,
-        readiness: () => (spot ? { ready: true } : { ready: false, why: lookup ?? NO_AUDIO }),
-        play: (p) => {
-          setPlayingId(p.id);
-          player.play({ sourceFile: spot!.sourceFile, rangeStart: spot!.seconds, rangeEnd: spot!.seconds });
-          return { played: true };
-        },
-      };
       try {
         const [mapping, project] = await Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList()]);
         const guid = mapping.mappings.find((entry) => entry.chapterId === pickup.chapterId)?.trackGuid;
-        spot = sourceSpot(project.tracks.find((track) => track.guid === guid)?.items ?? [], pickup);
+        const spot = sourceSpot(project.tracks.find((track) => track.guid === guid)?.items ?? [], pickup);
+        if (!spot) return live.current.onRefused(NO_AUDIO);
+        setPlayingId(pickup.id);
+        player.play({ sourceFile: spot.sourceFile, rangeStart: spot.seconds, rangeEnd: spot.seconds });
       } catch (error) {
-        lookup = error instanceof Error && error.message ? error.message : NO_AUDIO;
+        setPlayingId(null);
+        live.current.onRefused(error instanceof Error && error.message ? error.message : NO_AUDIO);
       }
-      const wanted = (): boolean => asked.current === mine;
-      const { by, notice } = await playThrough([transport, app], pickup, {
-        stillWanted: wanted,
-        keepQuiet: quietWhileRecording(() => daw.projectState(), name),
-      });
-      if (!wanted() || !notice) return;
-      if (by === null) live.current.onRefused(notice);
-      else live.current.onNotice(notice);
     },
-    [daw, player, stop, stopDaw, sync, trackMap, tracks],
+    [player, trackMap, tracks],
   );
 
-  /* The app's range ends by itself or the file fails: the button goes back to Play, and a failed file says so. */
+  /* The range ends by itself or the file fails: the button goes back to Play, and a failed file says so. */
   const { isPlaying, loadError } = player;
   useEffect(() => {
-    if (isPlaying || live.current.inDaw) return;
+    if (isPlaying) return;
     setPlayingId(null);
     if (loadError) live.current.onRefused(NO_AUDIO);
   }, [isPlaying, loadError]);
-
-  // Leaving the page stops a DAW play this list started.
-  useEffect(
-    () => () => {
-      if (live.current.inDaw) stopDaw();
-      clearTimer();
-    },
-    [stopDaw],
-  );
-  return { playingId: isPlaying || inDaw ? playingId : null, play, unavailable };
+  return { playingId: isPlaying ? playingId : null, play, unavailable };
 }

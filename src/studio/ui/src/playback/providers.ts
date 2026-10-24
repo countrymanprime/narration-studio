@@ -27,8 +27,8 @@ export interface PlayRule {
   keepQuiet?: () => Promise<string | null>;
 }
 
-/** Who played (null: nothing did), what to tell the narrator, if anything, and the reasons of the providers passed over before it. */
-export type PlayOutcome = { by: string | null; notice: string | null; passed: readonly string[] };
+/** Who played (null: nothing did) and what to tell the narrator, if anything. */
+export type PlayOutcome = { by: string | null; notice: string | null };
 
 export const APP = 'the app';
 
@@ -55,23 +55,23 @@ export async function playThrough<R>(providers: readonly PlaybackProvider<R>[], 
   for (const [index, provider] of tried.entries()) {
     const ready = provider.readiness(request);
     if (!ready.ready) {
-      if (ready.wait && index === 0) return { by: null, notice: ready.why, passed: whys };
+      if (ready.wait && index === 0) return { by: null, notice: ready.why };
       if (ready.why) whys.push(ready.why);
       continue;
     }
     if (index > 0 && rule.keepQuiet) {
       const quiet = await rule.keepQuiet();
-      if (quiet) return { by: null, notice: quiet, passed: whys };
+      if (quiet) return { by: null, notice: quiet };
     }
-    if (rule.stillWanted && !rule.stillWanted()) return { by: null, notice: null, passed: whys };
+    if (rule.stillWanted && !rule.stillWanted()) return { by: null, notice: null };
     const attempt = await provider.play(request);
-    if (attempt.played) return { by: provider.name, notice: whys.length ? `${join(whys)} Played in ${provider.name} instead.` : null, passed: whys };
-    if (attempt.final) return { by: null, notice: attempt.why, passed: whys };
+    if (attempt.played) return { by: provider.name, notice: whys.length ? `${join(whys)} Played in ${provider.name} instead.` : null };
+    if (attempt.final) return { by: null, notice: attempt.why };
     whys.push(attempt.why);
-    if (rule.stillWanted && !rule.stillWanted()) return { by: null, notice: null, passed: whys };
+    if (rule.stillWanted && !rule.stillWanted()) return { by: null, notice: null };
   }
-  const said = rule.dawSpecific && providers[0] ? [...whys, `Nothing played: this can only be done in ${providers[0].name}.`] : whys;
-  return { by: null, notice: said.length ? join(said) : null, passed: whys };
+  if (rule.dawSpecific && providers[0]) whys.push(`Nothing played: this can only be done in ${providers[0].name}.`);
+  return { by: null, notice: whys.length ? join(whys) : null };
 }
 
 /**

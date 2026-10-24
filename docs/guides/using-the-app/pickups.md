@@ -34,9 +34,7 @@ manuscript heads them. The lines are grouped by chapter, each group with how man
   a repeat and a long silence are red; a breath, click, noise or plosive is amber; a pronunciation is blue. **Open** is amber, a thing
   still to do, and **Recorded** is green;
 - **Hear the original in context**, which plays the recording at this line with 3 seconds either side (press it again to
-  stop; it is off, with the reason, for a line that has no place in the recording yet). With REAPER linked it plays through
-  REAPER; when REAPER cannot play now, the app plays the line's recording and a message says why. While REAPER is recording
-  nothing plays;
+  stop; it is off, with the reason, for a line that has no place in the recording yet);
 - **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and **Remove from
   pickups**.
 

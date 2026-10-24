@@ -178,8 +178,8 @@ off, with the reason, when the DAW cannot cut a range or the gap is already 1.2 
 **Hear it** plays the note with 3 s of the recording before and after it, so you can judge by ear whether it needs a pickup
 or is fine as read. With a DAW that can loop a note (REAPER, Audacity), it loops there, through your DAW's own output, until
 you press the button again (it reads **Stop hearing it** while it plays) or select another note. When the DAW is not
-connected, cannot place the note or refuses, the app plays the note's recording itself, once. The message under the row says
-where it is playing and, when the app plays it in the DAW's place, why. While the DAW is recording nothing plays, and the message says so; a note with no time in its
+connected or cannot place the note, the app plays the note's recording itself, once. The message under the row says
+where it is playing. While the DAW is recording nothing plays, and the message says so; a note with no time in its
 recording cannot be heard, and the button says why.
 
 ![Proof - Hear it on a note: Stop hearing it while it loops in REAPER with 3 s either side, and the note's paragraph in the script with the ones before and after](../../images/ui/proof-hear-it.webp)

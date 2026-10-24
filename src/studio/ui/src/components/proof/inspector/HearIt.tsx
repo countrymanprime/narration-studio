@@ -6,8 +6,6 @@ import type { FindingNavigation } from '../../../api/contracts/findings';
 import type { Finding, NarrationApi } from '../../../types';
 import { useRangePlayer } from '../../engine/useRangePlayer';
 import { IconButton } from '../../primitives/IconButton';
-import type { DawCapabilities } from '../../../api/contracts/daw';
-import { APP, dawReadiness, playThrough, type PlaybackProvider } from '../../../playback/providers';
 
 /** The audio heard either side of a note. The host's loop pads by the same amount (`bridge.ContextPaddingSeconds`). */
 export const HEAR_AROUND_SECONDS = 3;
@@ -36,10 +34,9 @@ const appRange = (finding: Finding) =>
     : undefined;
 
 /**
- * Proof's Hear it (mock Inspector "Play ±3 s (Space)", superseding PRD line 50): plays the note with `HEAR_AROUND_SECONDS` either side,
- * through the playback providers (playback/providers.ts): the DAW's loop (`FindingsLoop`, the `navigate` capability) first, then the app's
- * range player on the note's source file. A DAW that cannot loop now, refuses for any reason but recording, or fails hands the note to the
- * app, and the status line says why. A second press stops whichever is playing, and leaving
+ * Proof's Hear it (mock Inspector "Play ±3 s (Space)", superseding PRD line 50): plays the note with `HEAR_AROUND_SECONDS` either side.
+ * It loops the note in the DAW through `FindingsLoop` when the DAW can; when the DAW refuses for any reason but recording, or the call
+ * fails, it plays the note's source file through the app's range player instead. A second press stops whichever is playing, and leaving
  * the note stops a DAW loop this button started. The DAW's sentence is shown when neither can play. The Pickups page's Hear through the
  * DAW (research note A7) is a separate stream; this file is the shape it can share.
  */
@@ -47,17 +44,12 @@ export function HearIt({
   finding,
   api,
   dawName,
-  capabilities,
-  capabilitiesFailed = false,
   inert = false,
   onResult,
 }: {
   finding: Finding;
   api: HearItApi;
   dawName: string;
-  /** What the DAW can do, once read (undefined until then), and whether the read failed. */
-  capabilities?: DawCapabilities;
-  capabilitiesFailed?: boolean;
   /** The evidence changed: Hear it is off until the narrator takes the new evidence. */
   inert?: boolean;
   /** What happened, for the row's status line; `undefined` clears it. */
@@ -109,43 +101,27 @@ export function HearIt({
   const start = () =>
     action.run('hear', async () => {
       setResult(undefined);
-      const loop: PlaybackProvider<Finding> = {
-        name: dawName,
-        readiness: () => dawReadiness(capabilities ?? null, 'navigate', capabilitiesFailed),
-        play: async (note) => {
-          let answer: FindingNavigation;
-          try {
-            answer = await api.findingsLoop(note.id);
-          } catch (error) {
-            return { played: false, why: `The DAW was not asked: ${apiErrorMessage(error)}` };
-          }
-          if (answer.outcome === 'looping') {
-            looped.current = true;
-            setPlaying('daw');
-            return { played: true };
-          }
-          // A DAW that is recording keeps the room quiet: the app does not play over it.
-          if (answer.outcome === 'refused' && answer.reason === 'recording')
-            return { played: false, why: `${dawName} is recording, so nothing plays. Stop recording first.`, final: true };
-          return { played: false, why: answer.outcome === 'refused' ? answer.message : `${dawName} did not loop the note.` };
-        },
-      };
-      const app: PlaybackProvider<Finding> = {
-        name: APP,
-        readiness: (note) => (appRange(note) ? { ready: true } : { ready: false, why: NO_FILE }),
-        play: (note) => {
-          player.play(appRange(note)!);
-          setPlaying('app');
-          return { played: true };
-        },
-      };
-      const { by, notice, passed } = await playThrough([loop, app], finding);
-      if (by === dawName) return setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
-      if (by === APP) {
-        const why = passed.length ? `${passed.join(' ')} ` : '';
-        return setResult({ message: `${why}Playing in the app, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
+      let answer: FindingNavigation | undefined;
+      let failure = '';
+      try {
+        answer = await api.findingsLoop(finding.id);
+      } catch (error) {
+        failure = `The DAW was not asked: ${apiErrorMessage(error)}`;
       }
-      if (notice) setResult({ message: notice, failed: true });
+      if (answer?.outcome === 'looping') {
+        looped.current = true;
+        setPlaying('daw');
+        setResult({ message: `Playing in ${dawName}, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
+        return;
+      }
+      const refusal = answer?.outcome === 'refused' ? answer : undefined;
+      // A DAW that is recording keeps the room quiet: the app does not play over it.
+      if (refusal?.reason === 'recording') return setResult({ message: `${dawName} is recording, so nothing plays. Stop recording first.`, failed: true });
+      const range = appRange(finding);
+      if (!range) return setResult({ message: `${refusal?.message ?? failure} ${NO_FILE}`.trim(), failed: true });
+      player.play(range);
+      setPlaying('app');
+      setResult({ message: `Playing in the app, ${HEAR_AROUND_SECONDS} s either side. Press again to stop.`, failed: false });
     });
 
   const on = playing !== null;

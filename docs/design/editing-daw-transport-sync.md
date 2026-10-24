@@ -55,9 +55,6 @@ Every play goes through the playback providers in [`playback/providers.ts`](../.
 | --- | --- | --- |
 | Play a chapter from a word (Play, Space, the word menu, skip, a selection, the Voice sample dialog's **Play range**) | the transport, `transport_sync`: the lease answered and the word has a project time | the app's `Audio` over the playlist |
 | Audition a take | the DAW's file preview, `file_preview` (`previewTake`) | the app's range player on the take's file |
-| Proof's **Hear it** | the DAW's loop of the note, `navigate` (`FindingsLoop`) | the app's range player on the note's source file |
-| Pickups' **Hear the original in context** | the transport, `transport_sync`, from the pickup's project second less 3 s, stopped after the stretch | the app's range player on the source file |
-| A voice sample's play control (the dots after a marked range, the Story Bible) | none: the clip is a file the app wrote, and the DAW's file preview plays only a file the narrator picked (`DawPreviewFileRange`) | the app's sample player, as before |
 
 The rule, which replaces "a linked DAW is the only player" of #2251 item 32 by the owner's decision on that issue ("we should play something … if a specific capability is not working we should have a fallback if it is not a DAW specific action"):
 
