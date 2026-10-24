@@ -74,7 +74,8 @@ Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 
 One track is one chapter: the host matches the track name (exact, then closest fuzzy match) against the
 manuscript's chapter headings before it starts the run (`internal/comparerun`'s `Choose`), and asks for a
-pick when no heading matches confidently. `--find-repeats` still matches its chapter here.
+pick when no heading matches confidently. The pickup and duplicate scan chooses its chapter the same way, and
+`--find-repeats` only transcribes each read; the host groups them ([Take review](../../../../docs/utilities/take-review.md)).
 
 ## Notes / limitations
 

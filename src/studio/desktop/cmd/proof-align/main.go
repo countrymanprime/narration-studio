@@ -18,6 +18,7 @@
 //	{"op": "alignTake", ...} one take's words aligned to that span: each word's status, the divergences
 //	{"op": "compareRun", ...} a Transcript Compare run's results and diff files, as the host writes them
 //	{"op": "matchChapter", ...} the chapter title a track name matches, with the project's equivalences
+//	{"op": "findRepeats", ...} a pickup and duplicate scan's tagged output for a manifest and each read's words
 //
 // A reply is {"error": "..."} when the request fails.
 package main
@@ -75,6 +76,12 @@ type request struct {
 	// matchChapter (and equivalences)
 	Titles []string `json:"titles"`
 	Track  string   `json:"track"`
+
+	// findRepeats (and manuscript, manifest, track)
+	ChapterTitle   string     `json:"chapterTitle"`
+	Heard          [][][3]any `json:"heard"`
+	MinWords       int        `json:"minWords"`
+	MinSpanOverlap float64    `json:"minSpanOverlap"`
 }
 
 type measureItem struct {
@@ -173,6 +180,8 @@ func handle(req request) (any, error) {
 			return nil, err
 		}
 		return map[string]int{"markers": markers}, nil
+	case "findRepeats":
+		return findRepeats(req)
 	default:
 		return nil, fmt.Errorf("unknown op %q", req.Op)
 	}
@@ -357,4 +366,35 @@ func alignTake(req request) (any, error) {
 		}
 	}
 	return map[string]any{"words": results, "divergences": divergences, "extraWords": alignment.ExtraWords}, nil
+}
+
+// findRepeats scans as the host's take review does once the sidecar has heard each read: the chapter chosen from the
+// track name or title (a NEED_CHAPTER line when none is), then the reads grouped.
+func findRepeats(req request) (any, error) {
+	tokenizer, chapters, err := comparerun.LoadChapters(req.Manuscript)
+	if err != nil {
+		return nil, err
+	}
+	chapter, _, err := comparerun.Choose(tokenizer, chapters, req.Track, req.ChapterTitle)
+	var need comparerun.NeedChapter
+	if errors.As(err, &need) {
+		return map[string]string{"output": comparerun.NeedChapterLine(need)}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	reads, err := comparerun.ReadRepeatManifest(req.Manifest)
+	if err != nil {
+		return nil, err
+	}
+	if len(req.Heard) != len(reads) {
+		return nil, fmt.Errorf("%d reads heard of %d", len(req.Heard), len(reads))
+	}
+	heard := make([][]compare.Word, len(reads))
+	for k, words := range req.Heard {
+		if heard[k], err = parseWords(words); err != nil {
+			return nil, err
+		}
+	}
+	return map[string]string{"output": comparerun.FindRepeats(tokenizer, chapter, reads, heard, req.MinWords, req.MinSpanOverlap)}, nil
 }
