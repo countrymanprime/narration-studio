@@ -1,3 +1,4 @@
+import { headingName } from '../../chapterHeading';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
@@ -154,11 +155,11 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     content = (
       <div className="mx-auto max-w-7xl space-y-4">
         <nav aria-label="Breadcrumb" className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          <Link to="/proof">Proof</Link> <span aria-hidden="true">&rsaquo;</span> {chapterName(chapter)}
+          <Link to="/proof">Proof</Link> <span aria-hidden="true">&rsaquo;</span> {headingName(chapter)}
         </nav>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-            <Heading title={`Proof · ${chapterName(chapter)}`} />
+            <Heading title={`Proof · ${headingName(chapter)}`} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
             {alignment && <SectionLabel>{CHECK_STATE_LABEL[alignment.state]}</SectionLabel>}

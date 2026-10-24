@@ -1,9 +1,9 @@
+import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../../api/contracts/production';
-import { chapterName } from '../../chapterName';
 import { useOpenPickups } from '../pickups/useOpenPickups';
 import { usePort } from '../../ports/usePort';
 import type { Bootstrap } from '../../types';
@@ -207,7 +207,7 @@ export function ProductionPage({
   const nameOf = useCallback(
     (chapterId: string) => {
       const chapter = narrated.find((c) => c.id === chapterId);
-      return chapter ? chapterName(chapter) : chapterId;
+      return chapter ? headingName(chapter) : chapterId;
     },
     [narrated],
   );
@@ -463,7 +463,7 @@ export function ProductionPage({
                       ? {
                           chapterId: recordingChapter.id,
                           stage: recordingChapter.status as ChapterStatus,
-                          name: chapterName(recordingChapter),
+                          name: headingName(recordingChapter),
                           words: recordingChapter.wordCount,
                           share:
                             recordingChapter.recordedSeconds !== null && recordingChapter.wordCount > 0

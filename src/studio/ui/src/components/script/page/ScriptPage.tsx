@@ -44,7 +44,7 @@ import { CreditsSetupBanner } from '../../credits/CreditsSetupBanner';
 import { CreditsSection } from './chapters/CreditsSection';
 import { CREDITS_LABEL } from '../../booth/readerModel';
 import type { BoothTarget } from '../../booth/page/boothQuery';
-import { endedName } from '../../../chapterHeading';
+import { endedName, headingName } from '../../../chapterHeading';
 import { SpeakerLayer } from './layout/SpeakerLayer';
 import { useDeepLink } from './layout/useDeepLink';
 import { scriptKeyHints } from './layout/scriptKeyHints';
@@ -172,7 +172,7 @@ function ScriptWorkspace({
   );
   const lineText = useCallback<LineText>((b) => paragraphs.paragraphsOf(b.chapterId)?.find((row) => row.id === b.paragraphId)?.text, [paragraphs]);
   const lines = useCallback(() => paragraphs.all.map((row) => ({ chapterId: row.chapterId, id: row.id, index: row.index, text: row.text })), [paragraphs.all]);
-  const named = useMemo(() => chapters.map((chapter) => ({ id: chapter.id, name: chapterName(chapter) })), [chapters]);
+  const named = useMemo(() => chapters.map((chapter) => ({ id: chapter.id, name: headingName(chapter) })), [chapters]);
 
   /* ---------- Showing things ---------- */
 

@@ -1,5 +1,5 @@
 import type { GuideEntity } from '../../types';
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { IconButton } from '../primitives/IconButton';
 import { chaptersOf, type ChapterRef } from './appearsInModel';
 
@@ -32,8 +32,8 @@ export function AppearsIn({
         <ul>
           {chapters.map((chapter) => (
             <li key={chapter.id} className="flex items-center justify-between gap-3 border-b py-2 last:border-0" style={{ borderColor: 'var(--border)' }}>
-              <span className="min-w-0 flex-1 text-sm break-words">{chapterName(chapter)}</span>
-              <IconButton action="goToChapter" label={`Go to ${chapterName(chapter)}`} className="flex-none" onClick={() => onGo(chapter.id)} />
+              <span className="min-w-0 flex-1 text-sm break-words">{headingName(chapter)}</span>
+              <IconButton action="goToChapter" label={`Go to ${headingName(chapter)}`} className="flex-none" onClick={() => onGo(chapter.id)} />
             </li>
           ))}
         </ul>

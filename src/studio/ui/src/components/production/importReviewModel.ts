@@ -1,5 +1,5 @@
-import { chapterName, type ChapterNameInput } from '../../chapterName';
-import { chapterHeading } from '../../chapterHeading';
+import { type ChapterNameInput } from '../../chapterName';
+import { chapterHeading, headingName as sharedHeadingName, HEADING_LABEL_END } from '../../chapterHeading';
 import type { ManuscriptContentKind, ManuscriptImportPreview, ManuscriptImportSection, ManuscriptImportSelection } from '../../types';
 
 // The pure half of the import review: what the narrator's choices come to. The summary line, the groups and the rows are all read from
@@ -66,18 +66,17 @@ export function reviewedHeading(
   return { title: `${section.title} ${section.subtitle}`.replace(/\s+/g, ' ').trim() };
 }
 
-/** A heading's label as the manuscript's heading styles write it: "CHAPTER VIII.", "8." or "Chapter 8:". */
-const LABEL_END = /[.:]$/;
-
 /**
- * A heading's name in the style the manuscript settled, read from the heading itself through `chapterName`: a label heading is written
- * as the manuscript writes it ("CHAPTER VIII. Croquet", "8. Croquet", "Chapter 8: Croquet"), and any other keeps `chapterName`'s
- * "Title — Subtitle". `label` is the part to set apart, empty for the second kind.
+ * A heading's name in the style the manuscript settled, split for the review's own two-line drawing: the shared `headingName`
+ * (chapterHeading.ts, #2251 item 24) is the whole name, and `label`/`rest` are the manuscript's numbering and the rest, set apart only for a
+ * label heading ("CHAPTER VIII. Croquet", "8. Croquet", "Chapter 8: Croquet"). Every row is read as a narration heading here, since the review
+ * lists them as candidate chapters. `label` is empty for a plain "Title — Subtitle" heading, which the review draws stacked instead.
  */
 export function headingParts(heading: ChapterNameInput): { name: string; label: string; rest: string } {
-  const { label, title } = chapterHeading({ ...heading, contentKind: 'narration' });
-  if (!LABEL_END.test(label)) return { name: chapterName(heading), label: '', rest: '' };
-  return { name: `${label} ${title}`, label, rest: title };
+  const narration = { ...heading, contentKind: 'narration' as const };
+  const { label, title } = chapterHeading(narration);
+  if (!HEADING_LABEL_END.test(label)) return { name: sharedHeadingName(narration), label: '', rest: '' };
+  return { name: sharedHeadingName(narration), label, rest: title };
 }
 
 export const headingName = (heading: ChapterNameInput): string => headingParts(heading).name;

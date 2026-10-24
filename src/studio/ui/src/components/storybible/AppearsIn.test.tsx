@@ -2,8 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { chapterHeading } from '../../chapterHeading';
-import { chapterName } from '../../chapterName';
+import { chapterHeading, headingName } from '../../chapterHeading';
 import { HEADING_LABELS, styledChapters, type HeadingStyle } from '../script/page/chapters/chapterFixtures';
 import { AppearsIn } from './AppearsIn';
 
@@ -44,8 +43,9 @@ describe("chapter names follow the manuscript's heading style", () => {
           const chapter = book[n - 1]!;
           // The manuscript's own label and title, joined as every chapter name is, never a number counted here.
           expect(chapterHeading(chapter).label).toBe(HEADING_LABELS[style](n));
-          expect(rows[n - 1]!.textContent).toContain(chapterName(chapter));
-          expect(screen.getByRole('button', { name: `Go to ${chapterName(chapter)}` })).toBeTruthy();
+          // #2251 item 24: the one display standard — a numbered heading keeps its separator, a plain one the em dash.
+          expect(rows[n - 1]!.textContent).toContain(headingName(chapter));
+          expect(screen.getByRole('button', { name: `Go to ${headingName(chapter)}` })).toBeTruthy();
         }
       }
     }

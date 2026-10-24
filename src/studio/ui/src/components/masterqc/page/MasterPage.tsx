@@ -1,7 +1,7 @@
+import { headingName } from '../../../chapterHeading';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
-import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
 import { creditsEntries, ownsOpeningCredits } from '../../credits/creditsEntries';
 import { useCreditsRows } from '../../credits/useCreditsRows';
@@ -186,7 +186,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     },
     [run.files, chapters, remember],
   );
-  const bar = useMemo(() => chapters.filter(isNarration).map((chapter) => ({ id: chapter.id, name: chapterName(chapter) })), [chapters]);
+  const bar = useMemo(() => chapters.filter(isNarration).map((chapter) => ({ id: chapter.id, name: headingName(chapter) })), [chapters]);
   const goToChapter = (id: string) => {
     const chapter = chapters.find((candidate) => candidate.id === id);
     if (!chapter) return;
@@ -287,7 +287,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
           {profile && chaptersRead && (
             <>
               {staleLink === undefined && (current || run.files.length > 0) && (
-                <FileChecks row={current} chapterLabel={chapterOfSelection && chapterName(chapterOfSelection)} actions={actions} />
+                <FileChecks row={current} chapterLabel={chapterOfSelection && headingName(chapterOfSelection)} actions={actions} />
               )}
               {currentFile && rulesClosed !== currentFile.path && (
                 <FileRulesPanel file={currentFile} profile={profile} onClose={() => setRulesClosed(currentFile.path)} />
