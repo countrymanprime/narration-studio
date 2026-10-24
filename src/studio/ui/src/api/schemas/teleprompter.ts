@@ -6,6 +6,7 @@ import type {
   TeleprompterReaperInput,
   TeleprompterDevice,
   TeleprompterDevicesResult,
+  TeleprompterRoomTone,
   TeleprompterEngine,
   TeleprompterEvent,
   TeleprompterFlag,
@@ -135,6 +136,12 @@ export const teleprompterDevicesResultSchema = z.object({
   devices: z.array(teleprompterDeviceSchema),
   error: z.string().nullable(),
 }) satisfies z.ZodType<TeleprompterDevicesResult>;
+
+/** `TeleprompterRoomTone` (`src/studio/desktop/bindings_roomtone.go`): a kept reading, or every field null. */
+export const teleprompterRoomToneSchema = z.union([
+  z.object({ db: z.number().max(0), measuredAt: z.iso.datetime({ offset: true }), seconds: z.number().nonnegative() }),
+  z.object({ db: z.null(), measuredAt: z.null(), seconds: z.null() }),
+]) satisfies z.ZodType<TeleprompterRoomTone>;
 
 /** The stream recorded from the real ScriptTracker and its flags (`teleprompterRecording.json`) that the browser mock replays; checked when the mock loads. */
 export const recordedStreamSchema = z.object({

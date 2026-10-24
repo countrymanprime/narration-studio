@@ -27,6 +27,7 @@ const (
 )
 
 type meterRun struct {
+	device   string
 	child    *process.StreamChild
 	stopFile string
 	stopping bool
@@ -67,12 +68,12 @@ func (s *Service) MeterStart(device string) error {
 	_ = os.MkdirAll(sessionDir, 0o755)
 	_ = os.Remove(stopFile)
 	ctx, cancel := context.WithCancel(context.Background())
-	child, err := sidecars.StartStream(ctx, s.onMeterLine, python, args...)
+	child, err := sidecars.StartStream(ctx, func(line string) { s.onMeterLine(device, line) }, python, args...)
 	if err != nil {
 		cancel()
 		return err
 	}
-	run := &meterRun{child: child, stopFile: stopFile, finished: make(chan struct{})}
+	run := &meterRun{device: device, child: child, stopFile: stopFile, finished: make(chan struct{})}
 	s.mu.Lock()
 	phase, _ = s.state["phase"].(string)
 	if active(phase) || s.meter != nil { // a session or another meter started while this one was launching
@@ -142,6 +143,7 @@ func (s *Service) watchMeter(run *meterRun, cancel context.CancelFunc) {
 	stopping := run.stopping
 	s.mu.Unlock()
 	_ = os.Remove(run.stopFile)
+	s.endRoomTone(run.device)
 	var failure any
 	if !stopping && code != 0 {
 		failure = failureMessage(code, run.child.StderrTail(), "The microphone level stopped unexpectedly")
@@ -155,13 +157,16 @@ func (s *Service) watchMeter(run *meterRun, cancel context.CancelFunc) {
 }
 
 // onMeterLine relays the meter's `level` events and nothing else: the meter has no session, so any other event is not
-// the UI's to see.
-func (s *Service) onMeterLine(line string) {
+// the UI's to see. Each level also measures device's room tone.
+func (s *Service) onMeterLine(device, line string) {
 	raw := json.RawMessage(line)
 	if !json.Valid(raw) {
 		return
 	}
-	if kind, ok := isEvent(raw); ok && kind == meterEventType && s.emit != nil {
-		s.emit(raw)
+	if kind, ok := isEvent(raw); ok && kind == meterEventType {
+		s.observeLevel(device, raw)
+		if s.emit != nil {
+			s.emit(raw)
+		}
 	}
 }

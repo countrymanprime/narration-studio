@@ -13,6 +13,7 @@ import {
   teleprompterReaperInputSchema,
   teleprompterResumeFollowEventSchema,
   teleprompterResumeFollowSchema,
+  teleprompterRoomToneSchema,
   teleprompterStartResultSchema,
   teleprompterStateSchema,
 } from '../schemas/teleprompter';
@@ -23,6 +24,8 @@ export const teleprompterGoldens: Record<string, z.ZodType> = {
   'teleprompter-events.json': teleprompterEventSchema.array(),
   'teleprompter-credits-script.json': teleprompterEventSchema,
   'teleprompter-devices.json': teleprompterDevicesResultSchema,
+  'teleprompter-room-tone-measured.json': teleprompterRoomToneSchema,
+  'teleprompter-room-tone-none.json': teleprompterRoomToneSchema,
   'teleprompter-start-asset-required-whisper.json': teleprompterStartResultSchema,
   'teleprompter-start-asset-required-moonshine.json': teleprompterStartResultSchema,
   // The sidecar's own `locate` line (locate.py), which the host checks and carries as `located`.

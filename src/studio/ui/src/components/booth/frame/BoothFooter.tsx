@@ -8,33 +8,49 @@ import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
 import { timerText } from './progressLine';
 import { useLevels } from './useLevels';
 
-/** "Room −58.6 dB" (a real minus sign, one decimal), or "Room not measured yet": the mock's room tone label. */
-function roomToneLabel(tone: Measured<number>): string {
-  return tone.ok ? `Room ${tone.value.toFixed(1).replace('-', '−')} dB` : 'Room not measured yet';
+/**
+ * "Room −58.6 dB" (a real minus sign, one decimal), or "Room not measured yet": the mock's room tone label. A read that failed says
+ * so ("Room tone unavailable"), so a broken host never passes for a room nothing has measured.
+ */
+function roomToneLabel(tone: Measured<number>, failed: boolean): string {
+  if (tone.ok) return `Room ${tone.value.toFixed(1).replace('-', '−')} dB`;
+  return failed ? 'Room tone unavailable' : 'Room not measured yet';
 }
 
+/** How often the footer reads the room tone again: a capture (a take, the Levels menu) keeps it about every five seconds. */
+export const ROOM_TONE_READ_MS = 5_000;
+
 /**
- * The room tone the microphone reports, from the measurements port (`roomTone(mic)`), as the footer shows it; "not measured yet"
- * until a reading comes, or when there is none.
+ * The room tone the host keeps for the microphone, from the measurements port (`roomTone(mic)`), as the footer shows it; "not
+ * measured yet" until one is kept, or when there is none. Any capture of the microphone measures it, so it is read again every
+ * ROOM_TONE_READ_MS and when the window regains focus, and the last answer stays on screen while the next one comes.
  */
 export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<number>> }, mic: string): { label: string; ok: boolean } {
-  const [tone, setTone] = useState<{ mic: string; answer: Measured<number> } | null>(null);
+  const [tone, setTone] = useState<{ mic: string; answer: Measured<number>; failed: boolean } | null>(null);
+  const [again, setAgain] = useState(0);
+  useEffect(() => {
+    const look = () => setAgain((n) => n + 1);
+    window.addEventListener('focus', look);
+    const timer = window.setInterval(look, ROOM_TONE_READ_MS);
+    return () => {
+      window.removeEventListener('focus', look);
+      window.clearInterval(timer);
+    };
+  }, []);
   useEffect(() => {
     let live = true;
-    // A port that fails has no reading to show: its reason stands in for one.
-    port
-      .roomTone(mic)
-      .then(
-        (answer) => answer,
-        (reason: unknown): Measured<number> => ({ ok: false, reason: reason instanceof Error ? reason.message : String(reason) }),
-      )
-      .then((answer) => live && setTone({ mic, answer }));
+    // A port that fails has no reading to show: its reason stands in for one, and the label says the read failed.
+    port.roomTone(mic).then(
+      (answer) => live && setTone({ mic, answer, failed: false }),
+      (reason: unknown) => live && setTone({ mic, answer: { ok: false, reason: reason instanceof Error ? reason.message : String(reason) }, failed: true }),
+    );
     return () => {
       live = false;
     };
-  }, [port, mic]);
-  const answer: Measured<number> = tone?.mic === mic ? tone.answer : { ok: false, reason: 'Not read yet.' };
-  return { label: roomToneLabel(answer), ok: answer.ok };
+  }, [port, mic, again]);
+  const current = tone?.mic === mic ? tone : null;
+  const answer: Measured<number> = current?.answer ?? { ok: false, reason: 'Not read yet.' };
+  return { label: roomToneLabel(answer, current?.failed ?? false), ok: answer.ok };
 }
 
 type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels'>;

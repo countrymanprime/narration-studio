@@ -61,7 +61,7 @@ func TestContractMeterRelaysTheSidecarsLevelsAndEndsWithMeterStopped(t *testing.
 	var relayed []json.RawMessage
 	service := New(Config{}, nil, func(raw json.RawMessage) { relayed = append(relayed, raw) }, nil)
 	for _, level := range levels {
-		service.onMeterLine(string(level))
+		service.onMeterLine("", string(level))
 	}
 	if len(relayed) != len(levels) {
 		t.Fatalf("the meter relayed %d of %d levels", len(relayed), len(levels))
