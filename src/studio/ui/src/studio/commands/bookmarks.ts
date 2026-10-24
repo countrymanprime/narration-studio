@@ -1,4 +1,4 @@
-// The journalled bookmark commands: add, edit and remove, each with the host command that takes it back.
+// The journalled bookmark commands: add, set the stopping place, edit and remove, each with the host command that takes it back.
 // They take the port and the store as arguments, so a page calls them with `usePort('bookmarks')`, `useJournal()` and
 // `useStoreHandle()` and writes no journalling of its own. They send ids, offsets and plain text only. A host refusal comes back
 // as the host's own sentence and journals nothing. After each command and each undo the `bookmarks` slot is loaded once.
@@ -25,6 +25,10 @@ const refuse = (code: string, reason: string): Result<never> => ({ ok: false, re
 const refused = (error: unknown): Result<never> => refuse('host-refused', error instanceof Error ? error.message : 'The host refused that change.');
 
 const sameSpot = (a: BookmarkSpot, b: BookmarkSpot): boolean => a.chapterId === b.chapterId && a.paragraphId === b.paragraphId && a.offset === b.offset;
+
+/** The chapter's stopping place in a list, if it has one. */
+const stopOf = (list: readonly Bookmark[], chapterId: string): Bookmark | undefined =>
+  list.find((bookmark) => bookmark.kind === 'stop' && bookmark.chapterId === chapterId);
 
 /** Loads the slot once; a failed load is recorded by the store, and the change that was made stands. */
 const reload = (env: BookmarkEnv): Promise<void> => env.store.load('bookmarks').catch(() => undefined);
@@ -60,7 +64,7 @@ async function journalled<R>(env: BookmarkEnv, command: Command<R>): Promise<Res
 export async function addBookmark(env: BookmarkEnv, spot: BookmarkSpot): Promise<Result<AddedBookmark & { entryId: number | null }>> {
   const listed = await attempt(() => env.port.bookmarksList());
   if (!listed.ok) return listed;
-  const existing = listed.value.find((bookmark) => sameSpot(bookmark, spot));
+  const existing = listed.value.find((bookmark) => bookmark.kind === 'spot' && sameSpot(bookmark, spot));
   if (existing) return { ok: true, value: { bookmark: existing, created: false, entryId: null } };
   // The id is known once the add returns; until then the command claims the whole domain.
   const touches = ['bookmarks'];
@@ -79,6 +83,56 @@ export async function addBookmark(env: BookmarkEnv, spot: BookmarkSpot): Promise
     },
   });
   return result.ok ? { ok: true, value: { bookmark: result.value.value, created: true, entryId: result.value.id } } : result;
+}
+
+export type SetStop = { stop: Bookmark; replaced: Bookmark | null; entryId: number | null };
+
+/** Runs BookmarksSetStop and answers the chapter's stop in the list it returns. */
+async function placeStop(env: BookmarkEnv, spot: BookmarkSpot): Promise<Result<Bookmark>> {
+  const placed = await attempt(() => env.port.bookmarksSetStop(spot.chapterId, spot.paragraphId, spot.offset));
+  if (!placed.ok) return placed;
+  const stop = stopOf(placed.value, spot.chapterId);
+  return stop ? { ok: true, value: stop } : refuse('stop-missing', 'The stopping place was not kept.');
+}
+
+/** Puts a stop back at its spot with its label and note. */
+async function restoreStop(env: BookmarkEnv, old: Bookmark): Promise<Result<Bookmark>> {
+  const placed = await placeStop(env, old);
+  if (!placed.ok || (old.label === '' && old.note === '')) return placed;
+  return attempt(() => env.port.bookmarksUpdate(placed.value.id, old.label, old.note));
+}
+
+/**
+ * Makes a spot the chapter's stopping place ("Read to here"), replacing the stop the chapter had. It only marks the place. The spot the stop
+ * already holds journals nothing. Undo puts the old stop back (with its label and note) or removes the new one, and is refused once the
+ * chapter's stop has changed since, so it never undoes a stop the narrator set later.
+ */
+export async function setStop(env: BookmarkEnv, spot: BookmarkSpot): Promise<Result<SetStop>> {
+  const listed = await attempt(() => env.port.bookmarksList());
+  if (!listed.ok) return listed;
+  const before = stopOf(listed.value, spot.chapterId) ?? null;
+  if (before && sameSpot(before, spot)) return { ok: true, value: { stop: before, replaced: null, entryId: null } };
+  const touches = before ? [`bookmarks/${before.id}`] : ['bookmarks'];
+  const result = await journalled<Bookmark>(env, {
+    label: 'Set the stopping place',
+    touches,
+    async run() {
+      const placed = await placeStop(env, spot);
+      if (placed.ok) touches.splice(0, touches.length, `bookmarks/${placed.value.id}`, ...(before ? [`bookmarks/${before.id}`] : []));
+      return placed;
+    },
+    async undo(stop: Bookmark) {
+      const now = await attempt(() => env.port.bookmarksList());
+      if (!now.ok) return now;
+      if (stopOf(now.value, spot.chapterId)?.id !== stop.id) {
+        return refuse('stop-changed', 'The stopping place has changed since, so it was left where it is.');
+      }
+      const undone = before ? await restoreStop(env, before) : await attempt(() => env.port.bookmarksRemove(stop.id));
+      await reload(env);
+      return undone;
+    },
+  });
+  return result.ok ? { ok: true, value: { stop: result.value.value, replaced: before, entryId: result.value.id } } : result;
 }
 
 /** Replaces a bookmark's label and note. The inverse puts back the text the slot held. */
@@ -125,7 +179,13 @@ export async function removeBookmark(env: BookmarkEnv, id: string): Promise<Resu
 async function recreate(env: BookmarkEnv, old: Bookmark): Promise<Result<Bookmark>> {
   const listed = await attempt(() => env.port.bookmarksList());
   if (!listed.ok) return listed;
-  if (listed.value.some((bookmark) => sameSpot(bookmark, old))) return refuse('spot-taken', 'That spot has a bookmark again, so the removed one was left off.');
+  if (old.kind === 'stop') {
+    if (stopOf(listed.value, old.chapterId)) return refuse('stop-taken', 'This chapter has a stopping place again, so the removed one was left off.');
+    return restoreStop(env, old);
+  }
+  if (listed.value.some((bookmark) => bookmark.kind === 'spot' && sameSpot(bookmark, old))) {
+    return refuse('spot-taken', 'That spot has a bookmark again, so the removed one was left off.');
+  }
   const added = await attempt(() => env.port.bookmarksAdd(old.chapterId, old.paragraphId, old.offset));
   if (!added.ok) return added;
   return attempt(() => env.port.bookmarksUpdate(added.value.id, old.label, old.note));
