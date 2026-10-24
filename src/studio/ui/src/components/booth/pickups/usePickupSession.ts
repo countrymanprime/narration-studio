@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { useCommand } from '../../../input/useCommand';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { usePort } from '../../../ports/usePort';
+import type { Result } from '../../../studio/journal/createJournal';
 import type { BoothUnit } from '../reading/boothUnits';
 import { nextLine, openCount, pickupBars, ranOver, sessionLines } from './pickupBars';
 
@@ -20,8 +21,11 @@ export type PickupSessionOptions = {
   initialAt?: string | null;
 };
 
-/** Where a take began and stopped, as indices into the chapter's sentences. `quiet`: leaving the Booth, no toast and no Undo. */
-export type StoppedTake = { began: number; stopped: number; quiet?: boolean };
+/**
+ * Where a take began and stopped, as indices into the chapter's sentences. `quiet`: leaving the Booth, no toast and no Undo. `undoTake` and
+ * `entry`: the take's history entry, when a DAW stopped it; the toast's Undo takes the take back in the DAW before the marks.
+ */
+export type StoppedTake = { began: number; stopped: number; quiet?: boolean; undoTake?: () => Promise<Result<unknown>>; entry?: number };
 
 export type PickupSessionModel = {
   active: boolean;
@@ -108,7 +112,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   );
 
   const takeStopped = useCallback(
-    async ({ began, stopped, quiet = false }: StoppedTake): Promise<number> => {
+    async ({ began, stopped, quiet = false, undoTake, entry }: StoppedTake): Promise<number> => {
       const now = latest.current;
       const targets = ranOver(now.lines, now.chapterId, now.units, began, stopped);
       if (targets.length === 0) return 0;
@@ -118,10 +122,16 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
         return 0;
       }
       if (!quiet) {
-        overlay.toastUndo(`Take saved · ${targets.length} ${targets.length === 1 ? 'pickup' : 'pickups'} marked recorded`, async () => {
+        const text = `Take saved · ${targets.length} ${targets.length === 1 ? 'pickup' : 'pickups'} marked recorded`;
+        const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
+          // The take goes first: while the DAW keeps it, its pickups stay recorded.
+          const take = undoTake ? await undoTake() : null;
+          if (take && !take.ok) return take;
           const failed = await setDone(targets, false);
           return failed ? { ok: false, refusal: { reason: failed } } : { ok: true };
-        });
+        };
+        if (entry === undefined) overlay.toastUndo(text, undo);
+        else overlay.toastUndo(text, undo, { entry });
       }
       return targets.length;
     },

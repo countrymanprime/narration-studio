@@ -566,9 +566,7 @@ export function ProofPage({
             )}
           </div>
         </div>
-        <div className="sticky -bottom-4 z-[5] -mx-4 mt-4 -mb-4 md:-bottom-6 md:-mx-6 md:-mb-6">
-          <KeyHints hints={hints} />
-        </div>
+        <KeyHints hints={hints} />
       </div>
     </CommandScope>
   );

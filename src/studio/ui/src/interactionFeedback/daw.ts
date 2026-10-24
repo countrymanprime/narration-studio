@@ -106,6 +106,10 @@ export const dawFeedback = {
   'src/ports/daw.ts::readAloudRecordStop#1': adapter('Forwards Stop recording.'),
   'src/ports/daw.ts::workspaceUseTake#1': adapter('Forwards Use this take.'),
   'src/ports/daw.ts::workspaceHideTakes#1': adapter('Forwards Hide other takes; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::workspacePreviewTake#1': adapter(
+    'Forwards Play on a take under a line, which the DAW plays outside the project; the binding already answers a DawResult, and the page toasts a refusal (#2251 item 32).',
+  ),
+  'src/ports/daw.ts::dawStopFilePreview#1': adapter('Forwards the stop of a take preview this app started; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawRoll#1': adapter('Forwards Roll; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawDeleteRange#1': adapter('Forwards Delete words and audio; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawTrimRange#1': adapter(

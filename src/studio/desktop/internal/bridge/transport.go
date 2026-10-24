@@ -59,14 +59,17 @@ type RecordStarted struct {
 }
 
 // RecordStopped says how many track arms were put back to what the narrator had before arm_only, and how many were
-// kept because the narrator changed them during the take.
+// kept because the narrator changed them during the take. UndoPoints is how many points REAPER's undo history gained
+// while the recording ran (one per stop, a roll's included): what undo_last's record_take may take back. An older script
+// does not send it, and it reads 0.
 type RecordStopped struct {
-	Restored, Kept int
+	Restored, Kept, UndoPoints int
 }
 
-// RecordEnded is a recording the app started that stopped without record_stop (the narrator pressed Stop in REAPER).
+// RecordEnded is a recording the app started that stopped without record_stop (the narrator pressed Stop in REAPER),
+// with the same counts as RecordStopped.
 type RecordEnded struct {
-	Restored, Kept int
+	Restored, Kept, UndoPoints int
 }
 
 // ArmOnly arms the track trackGUID names and disarms every other one, after REAPER remembers the arms the narrator had;
@@ -126,7 +129,7 @@ func (a *Actions) RecordStop(ctx context.Context) (RecordStopped, error) {
 	if event.Tag == "RECORD_NOT_OURS" {
 		return RecordStopped{}, ErrNotOurRecording
 	}
-	return RecordStopped{Restored: int(numberAt(event.Fields, 2)), Kept: int(numberAt(event.Fields, 3))}, nil
+	return RecordStopped{Restored: int(numberAt(event.Fields, 2)), Kept: int(numberAt(event.Fields, 3)), UndoPoints: int(numberAt(event.Fields, 4))}, nil
 }
 
 // OnRecordEnded sets the function told when a recording the app started stops without RecordStop. It runs on its own

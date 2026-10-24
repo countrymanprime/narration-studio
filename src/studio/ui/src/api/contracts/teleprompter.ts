@@ -343,6 +343,8 @@ export type ReadAloudRecording = {
   position?: number;
   restored?: number;
   kept?: number;
+  /** A stop's points in the DAW's undo history for the take, which the app's Undo takes back (`record_take`); 0 when it can tell none. */
+  undoPoints?: number;
 };
 
 /**

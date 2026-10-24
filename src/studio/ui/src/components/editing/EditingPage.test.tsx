@@ -16,6 +16,7 @@ import { useSelectionActions } from './bar/selectionActions';
 import { drawSections } from './drawer/drawerSections';
 import { useFlagActions } from './flags/flagActions';
 import { EditingPage, type EditingPageProps } from './EditingPage';
+import { PageFooterProvider } from '../primitives/KeyHints';
 import { useTakeControls } from './takes/takeControls';
 import { dawFor, EditingHost, FINDING, newJournal, noAudioApi, pageApi } from './page/testPage';
 import { buildDoc } from './model';
@@ -73,11 +74,13 @@ type Options = Partial<EditingPageProps> & { setup?: DawSetupId; daw?: DawClient
 /** The DAW dialog waits this long after the app opens before it opens by itself; the page tests that are not about it never see it. */
 const NEVER = 1_000_000_000;
 
-function mount({ setup = 'reaper', daw, api = {}, ...props }: Options = {}) {
+function mount({ setup = 'reaper', daw, api = {}, footer = null, ...props }: Options & { footer?: HTMLElement | null } = {}) {
   const view = render(
-    <EditingHost api={pageApi(api)} daw={daw ?? dawFor(setup)} journal={newJournal()}>
-      <EditingPage hasManuscript dawConnectGraceMs={NEVER} {...props} />
-    </EditingHost>,
+    <PageFooterProvider value={footer}>
+      <EditingHost api={pageApi(api)} daw={daw ?? dawFor(setup)} journal={newJournal()}>
+        <EditingPage hasManuscript dawConnectGraceMs={NEVER} {...props} />
+      </EditingHost>
+    </PageFooterProvider>,
   );
   return view;
 }
@@ -109,13 +112,14 @@ describe('EditingPage', () => {
     expect(document.querySelector('#timeline')).toBeNull();
   });
 
-  it('the key hints sit at the bottom of the scrolling page', async () => {
-    mount();
+  // #2251 item 35: the key hints are the shell's page footer, full width under the page, not a row inside the page's card.
+  it('the key hints are drawn in the shell page footer', async () => {
+    const footer = document.body.appendChild(document.createElement('div'));
+    mount({ footer });
     await script();
-    const wrap = screen.getByRole('note', { name: 'Keyboard shortcuts' }).parentElement!;
-    expect(wrap.className).toContain('sticky');
-    expect(wrap.className).toContain('bottom-0');
-    expect(wrap.parentElement!.lastElementChild).toBe(wrap);
+    const hints = screen.getByRole('note', { name: 'Keyboard shortcuts' });
+    expect(hints.parentElement).toBe(footer);
+    footer.remove();
   });
 
   it('no-manuscript-and-no-text-states', async () => {

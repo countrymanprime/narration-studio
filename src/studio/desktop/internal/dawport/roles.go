@@ -662,8 +662,12 @@ type ActionKind string
 // ActionCutRange is a cut of words and their audio (RangeCutter's DeleteRange).
 const ActionCutRange ActionKind = "cut_range"
 
+// ActionRecordTake is the take the app recorded last (Recorder's RecordStart, then RecordStop or the narrator's stop in the
+// engine): the undo points the engine made for it, RecordStopped's UndoPoints.
+const ActionRecordTake ActionKind = "record_take"
+
 // Valid is whether k is a kind this build knows.
-func (k ActionKind) Valid() bool { return k == ActionCutRange }
+func (k ActionKind) Valid() bool { return k == ActionCutRange || k == ActionRecordTake }
 
 // ErrActionKind is an ActionKind this build does not know: nothing is read or undone.
 var ErrActionKind = errors.New("that is not a kind of action the app can read or undo in the DAW")

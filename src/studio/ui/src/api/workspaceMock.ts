@@ -19,6 +19,7 @@ import type {
   WorkspaceExtra,
   WorkspaceExtraWord,
   WorkspaceFXChainsResult,
+  WorkspaceProjectFxResult,
   WorkspaceItem,
   WorkspacePeaks,
   WorkspacePeaksEntry,
@@ -39,9 +40,28 @@ type Deps = {
   reaper?: MockReaper;
   /** The narrator's FX chains for workspaceListFXChains: a small realistic sample when not given. */
   fxChains?: string[];
+  /** The FX on the DAW's tracks for workspaceProjectFx: a small realistic chain when not given, [] for a project with none. */
+  projectFx?: WorkspaceProjectFxResult;
 };
 
 const DEFAULT_MOCK_FX_CHAINS = ['Podcast Voice.RfxChain', 'Vocal Warmth.RfxChain'];
+
+/** What a narrator's REAPER usually holds: a chapter track with a chain on it and a limiter on the master. */
+const DEFAULT_MOCK_PROJECT_FX: WorkspaceProjectFxResult = {
+  tracks: [
+    {
+      trackGuid: '{TRACK-0001}',
+      name: 'Chapter One',
+      fx: [
+        { name: 'ReaEQ (Cockos)', enabled: true },
+        { name: 'ReaComp (Cockos)', enabled: true },
+      ],
+    },
+    { trackGuid: '{TRACK-0002}', name: 'Room tone', fx: [{ name: 'ReaFir (Cockos)', enabled: false }] },
+  ],
+  master: [{ name: 'ReaLimit (Cockos)', enabled: true }],
+  total: 4,
+};
 
 const refused = (reason: FindingNavigationRefusal, message: string): FindingNavigation => ({ outcome: 'refused', reason, message });
 
@@ -248,7 +268,9 @@ function mockPeaksFor(item: WorkspaceItem): WorkspacePeaks {
   return { startSeconds: 0, bucketsPerSecond: MOCK_BUCKETS_PER_SECOND, buckets, minMax: btoa(binary), sampleRate: 48000, channels: 1 };
 }
 
-export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTakes' | 'workspaceTakesCompareStart' | 'workspaceUseTake'> {
+export function createWorkspaceMock(
+  deps: Deps,
+): Omit<WorkspaceApi, 'workspaceTakes' | 'workspaceTakesCompareStart' | 'workspaceUseTake' | 'workspacePreviewTake'> {
   const mode = deps.reaper ?? 'connected';
   const target = (chapterId: string, tokenIndex: number): WorkspaceToken | undefined => tokensFor(deps, chapterId).tokens[tokenIndex];
 
@@ -302,6 +324,10 @@ export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTa
     workspaceListFXChains: async (): Promise<WorkspaceFXChainsResult> => {
       if (mode !== 'connected') throw new Error('REAPER is not connected to this app: open REAPER; the app connects to it by itself');
       return { names: deps.fxChains ?? DEFAULT_MOCK_FX_CHAINS, truncated: false };
+    },
+    workspaceProjectFx: async (): Promise<WorkspaceProjectFxResult> => {
+      if (mode !== 'connected') throw new Error('REAPER is not connected to this app: open REAPER; the app connects to it by itself');
+      return deps.projectFx ?? DEFAULT_MOCK_PROJECT_FX;
     },
     workspacePeaks: async (chapterId) => {
       const liveItem = mockLiveItem(deps, chapterId);

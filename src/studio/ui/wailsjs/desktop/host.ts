@@ -3214,6 +3214,26 @@ export function WorkspacePeaks(chapterID: string): $CancellablePromise<string> {
 }
 
 /**
+ * WorkspacePreviewTake plays one take WorkspaceTakes offers for the passage (the tokens firstToken to lastToken of chapterID)
+ * through the DAW's preview (file_preview), so with a DAW linked the take is heard through the DAW's output and never the app's
+ * (#2251 item 32). As for WorkspaceUseTake, the page names an offered candidate, never a file or a time: the take's own file and
+ * range are read here from the saved project, and the path is checked again (bridge.CheckMediaFile) and by the DAW's script. A take
+ * longer than bridge.MaxPreviewSeconds plays its first minute. The answer is a DawResult with no undo step; DawStopFilePreview stops it.
+ */
+export function WorkspacePreviewTake(chapterID: string, firstToken: number, lastToken: number, candidateID: string): $CancellablePromise<string> {
+    return $Call.ByID(3326044002, chapterID, firstToken, lastToken, candidateID);
+}
+
+/**
+ * WorkspaceProjectFx lists the FX on the linked DAW's tracks and its master track, in the DAW's own order, each with whether it
+ * is switched on (master_chain_read). It changes nothing and is refused (bridge.ErrUnavailable) offline or before the DAW port's
+ * master chain capability is on, exactly as master_chain_read itself already is.
+ */
+export function WorkspaceProjectFx(): $CancellablePromise<string> {
+    return $Call.ByID(738290682);
+}
+
+/**
  * WorkspaceSnap moves sourceTime, a cut point in seconds of itemGUID's source, to the nearest zero crossing of that
  * source's audio within 2 ms. It refuses, reading nothing, a chapter with no checked track, an item GUID the chapter's
  * alignment or the saved project no longer has, and an item whose source file is missing; and refuses, leaving the

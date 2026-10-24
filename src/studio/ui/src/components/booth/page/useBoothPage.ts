@@ -7,6 +7,8 @@ import type { DawClient } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
 import { useContextProvider } from '../../../registries/context';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
+import type { Journal } from '../../../studio/journal/createJournal';
+import type { StoppedTake } from '../pickups/usePickupSession';
 import type { LeaveGuardStore } from '../../../studio/journal/leaveGuard';
 import { recordsInApp } from '../../../studio/dawNames';
 import { dawShortName } from '../../../studio/StudioProvider';
@@ -20,6 +22,7 @@ import { TEXT_SIZE } from '../reading/BoothText';
 import { backPhrase, nextPhrase, positionOf, stepWord, unitAtPosition, type ReadingPosition, type UnitPosition } from '../reading/readingPosition';
 import type { BrowseView } from '../reading/useBrowseView';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
+import { recordedTakeCommand } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
 import { resumeOfferFor, type KeptResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
@@ -56,7 +59,9 @@ export type BoothPageOptions = {
   session: TeleprompterSession;
   daw: DawClient;
   guard: Pick<LeaveGuardStore, 'setLeaveGuard'>;
-  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'dismissUndo' | 'getSnapshot' | 'subscribe'>;
+  /** The shell's history: a take a DAW stopped is one entry there, which Undo takes back in the DAW (`recordedTakeCommand`). */
+  journal?: Pick<Journal, 'act' | 'undo'>;
+  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'toastUndo' | 'dismissUndo' | 'getSnapshot' | 'subscribe'>;
   /** Where Record from here opened the Booth. */
   from?: BoothStart;
   /** Goes to `next`; called only once the leave guard let the narrator go. */
@@ -66,8 +71,10 @@ export type BoothPageOptions = {
   /**
    * A take stopped: the sentences it began and stopped on. `quiet` when it stopped because the narrator left. Answers how many
    * pickups it marked recorded and suspected lines it added to Pickups, when it says so itself (its toast then says the take is saved).
+   * `undoTake` and `entry`, when a DAW stopped it: the toast that says the take is saved offers its Undo, which takes the take back in the
+   * DAW first, and goes when the history entry does.
    */
-  onTakeStopped?: (take: { began: number; stopped: number; quiet?: boolean }) => void | Promise<number>;
+  onTakeStopped?: (take: StoppedTake) => void | Promise<number>;
   /**
    * More right-click items for this target, put after Start from here (the bookmark items). When the target is a bookmark ribbon
    * (`[data-bm]`), they are the whole menu.
@@ -118,7 +125,22 @@ export function useBoothPage(options: BoothPageOptions) {
   const view = useRef<BrowseView>(null);
 
   const blocked = useCallback((block: RecordBlock) => (extras.current.onRecordBlocked ?? ((b: RecordBlock) => notify(b.reason)))(block), [notify]);
-  const control = useRecordControl({ chapterId: recordId, notify, onBlocked: blocked });
+  // A take a DAW stopped is one history entry, so the shell's Undo and the take's toast take it back in the DAW; null once the take is told.
+  const takeEntry = useRef<number | null>(null);
+  const latestJournal = useRef(options.journal);
+  latestJournal.current = options.journal;
+  const titleRef = useRef(title);
+  titleRef.current = title;
+  const keepTake = useCallback(
+    async (result: DawResult) => {
+      const journal = latestJournal.current;
+      if (!journal) return;
+      const done = await journal.act(recordedTakeCommand({ daw, result, title: titleRef.current }));
+      takeEntry.current = done.ok ? done.value.id : null;
+    },
+    [daw],
+  );
+  const control = useRecordControl({ chapterId: recordId, notify, onBlocked: blocked, onStopped: keepTake });
   // The press of Record, for a message's Retry that is said before the press itself is defined.
   const retryTake = useRef<() => Promise<void>>(async () => {});
   const { recording, toggle: recordToggle } = control;
@@ -134,11 +156,16 @@ export function useBoothPage(options: BoothPageOptions) {
   const takeAt = useRef(0);
   // The sentence the running take began on; null once its stop has been told (`onTakeStopped`), so a take is told once.
   const takeBegan = useRef<number | null>(null);
-  const tellStopped = useCallback(async (quiet: boolean): Promise<number> => {
+  const tellStopped = useCallback(async (quiet: boolean): Promise<{ marked: number; take: Omit<StoppedTake, 'began' | 'stopped'> }> => {
     const began = takeBegan.current;
-    if (began === null) return 0;
+    const entry = takeEntry.current;
+    takeEntry.current = null;
+    const journal = latestJournal.current;
+    const undo = entry !== null && journal ? { entry, undoTake: () => journal.undo(entry) } : {};
+    if (began === null) return { marked: 0, take: undo };
     takeBegan.current = null;
-    return (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, quiet })) ?? 0;
+    const take = { quiet, ...undo };
+    return { marked: (await extras.current.onTakeStopped?.({ began, stopped: latest.current.at.cur, ...take })) ?? 0, take };
   }, []);
   // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
   const endOfChapter = useRef(false);
@@ -300,13 +327,15 @@ export function useBoothPage(options: BoothPageOptions) {
     if (now.session.active) now.session.stop();
     const said = endOfChapter.current;
     endOfChapter.current = false;
-    void tellStopped(false).then((marked) => {
-      // A take that marked or added pickups says it was saved in that toast.
-      if (said && marked === 0) notify(TAKE_SAVED);
+    void tellStopped(false).then(({ marked, take }) => {
+      // A take that marked or added pickups says it was saved in that toast, with its Undo; else the take says so here.
+      if (marked > 0) return;
+      if (take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
+      else if (said) notify(TAKE_SAVED);
     });
     setRecorded((total) => total + now.elapsed());
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify]);
+  }, [recording, writer, tellStopped, notify, overlay]);
 
   // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself, and
   // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops
@@ -328,15 +357,19 @@ export function useBoothPage(options: BoothPageOptions) {
 
   // Leaving. The question holds the take while it is open; Yes stops the recording the app started and the listening with it.
   const markStopped = control.stopped;
+  const latestDaw = useRef(control.capabilities?.daw);
+  latestDaw.current = control.capabilities?.daw;
   const stopRecording = useCallback(async (): Promise<DawResult> => {
     const result = await daw.recordStop();
+    // Undoable from the next page: a DAW's take is in the history before the page goes.
+    if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
     // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
     if (result.ok) markStopped();
     if (result.ok && latest.current.session.active) latest.current.session.stop();
     // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
     if (result.ok) void tellStopped(true);
     return result;
-  }, [daw, tellStopped, markStopped]);
+  }, [daw, tellStopped, markStopped, keepTake]);
   const askedByShell = useRef(false);
   const shellGuard = useMemo<Pick<LeaveGuardStore, 'setLeaveGuard'>>(
     () => ({

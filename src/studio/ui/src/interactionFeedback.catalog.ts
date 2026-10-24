@@ -67,6 +67,8 @@ for (const rows of AREAS) {
  * The list may only shrink: a new one needs a reason a reviewer accepts, and a narrator's action never belongs here.
  */
 export const SILENT_CATCHES: Record<string, string> = {
+  'src/components/editing/takes/useTakeAudition.ts#1':
+    "Stopping the DAW's preview of a take failed, as the narrator pressed Stop or left the page: at most the rest of one take plays on in the DAW, which ends by itself, and Play on any take stops it again.",
   'src/components/proof/inspector/HearIt.tsx#1':
     'Leaving a note stops the DAW loop its Hear it started, after the Inspector has moved on: there is no row left to say it on, and the loop the DAW is still playing is in plain sight there, where Stop works as always.',
   'src/components/voicesamples/audioOutputs.ts#1':

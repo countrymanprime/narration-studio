@@ -30,13 +30,18 @@ export const MOCK_DAW_UNDO_LABELS = {
   importPickups: `${brand.name}: import pickups`,
   resolvePickup: `${brand.name}: resolve pickup`,
   reopenPickup: `${brand.name}: reopen pickup`,
+  /** REAPER's own point for a stopped recording (REAPER 7.82, docs/research/reaper-recording-undo-2026-10-23.md), which record_take undoes. */
+  recordedMedia: 'Recorded media',
 } as const;
 
-/** The one label each action kind may undo (narration_bridge_core.lua's table). */
-const KIND_LABELS: Readonly<Record<DawActionKind, string>> = { cut_range: MOCK_DAW_UNDO_LABELS.cut };
+/** The one label each action kind may undo (narration_bridge_core.lua's table; for record_take, the label REAPER gives a stopped recording). */
+const KIND_LABELS: Readonly<Record<DawActionKind, string>> = { cut_range: MOCK_DAW_UNDO_LABELS.cut, record_take: MOCK_DAW_UNDO_LABELS.recordedMedia };
 
 /** Each kind worded for the answers, one and several (dawport/reaper's actionNouns). */
-const KIND_NOUNS: Readonly<Record<DawActionKind, readonly [string, string]>> = { cut_range: ['cut', 'cuts'] };
+const KIND_NOUNS: Readonly<Record<DawActionKind, readonly [string, string]>> = {
+  cut_range: ['cut', 'cuts'],
+  record_take: ['take', 'recorded passes of the take'],
+};
 
 /** dawport/reaper's answer when the DAW's next undo point is not the kind's: nothing was undone. */
 export const notLastAnswer = (daw: string): string => `${daw}'s last action is not this one, so it was left alone. Use Edit > Undo in ${daw}.`;
@@ -49,6 +54,8 @@ export function undoneAnswer(daw: string, kind: DawActionKind, undone: number, s
   const [one, several] = KIND_NOUNS[kind];
   if (undone < steps)
     return `Undid ${undone} of the ${steps} ${several} in ${daw}. The rest are no longer ${daw}'s last actions, so they were left alone. Use Edit > Undo in ${daw} for them.`;
+  // A take is one take however many points it left (dawport/reaper's messageUndoneTake).
+  if (kind === 'record_take') return `Undid the take in ${daw}.`;
   return undone === 1 ? `Undid the ${one} in ${daw}.` : `Undid the last ${undone} ${several} in ${daw}.`;
 }
 
@@ -63,8 +70,13 @@ export class MockUndoHistory {
 
   /** Puts `label` on the history when `result` is an edit that added an undo point, and passes `result` on. */
   record(label: string, result: DawResult): DawResult {
-    if (result.ok && result.undoSteps >= 1) this.labels.push(label);
+    if (result.ok && result.undoSteps >= 1) this.push(label, 1);
     return result;
+  }
+
+  /** Puts `count` points labelled `label` on the history: a stopped take leaves one per stop. */
+  push(label: string, count: number): void {
+    for (let i = 0; i < count; i += 1) this.labels.push(label);
   }
 
   /** narration_undo.lua's last_action: `this` when the top label is exactly the kind's, else `other`. */

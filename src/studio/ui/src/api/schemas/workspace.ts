@@ -5,6 +5,7 @@ import type {
   WorkspaceExtraWord,
   WorkspaceRepeat,
   WorkspaceFXChainsResult,
+  WorkspaceProjectFxResult,
   WorkspaceItem,
   WorkspaceParagraph,
   WorkspacePeaks,
@@ -107,6 +108,15 @@ export const workspaceFXChainsResultSchema = z.object({
   names: listFromNull(z.string()),
   truncated: z.boolean(),
 }) satisfies z.ZodType<WorkspaceFXChainsResult>;
+
+// The FX in the linked DAW now: src/studio/desktop/bindings_workspace_project_fx.go.
+const projectFxSlotSchema = z.object({ name: z.string(), enabled: z.boolean() });
+
+export const workspaceProjectFxResultSchema = z.object({
+  tracks: listFromNull(z.object({ trackGuid: z.string(), name: z.string(), fx: listFromNull(projectFxSlotSchema) })),
+  master: listFromNull(projectFxSlotSchema),
+  total: z.number(),
+}) satisfies z.ZodType<WorkspaceProjectFxResult>;
 
 // The waveform strip's peaks: src/studio/desktop/bindings_workspace_peaks.go.
 const peaksSchema = z.object({

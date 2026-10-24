@@ -25,10 +25,15 @@ const (
 	messageUndoScriptOutdated  = "The app's script in REAPER is older than this app and cannot undo the app's actions, so nothing was undone. Import the script again from this app's REAPER folder."
 	messageUndoRecordingInDAW  = "REAPER is recording. Stop recording first."
 	messageUndoPartialTemplate = "Undid %d of the %d %s in REAPER. The rest are no longer REAPER's last actions, so they were left alone. Use Edit > Undo in REAPER for them."
+	messageUndoneTake          = "Undid the take in REAPER."
 )
 
-// actionNouns words each kind for the sentences: one, and several.
-var actionNouns = map[dawport.ActionKind][2]string{dawport.ActionCutRange: {"cut", "cuts"}}
+// actionNouns words each kind for the sentences: one, and several. A take is one take however many points it left (a roll
+// adds one), so all of them undone is messageUndoneTake, and the plural names its passes.
+var actionNouns = map[dawport.ActionKind][2]string{
+	dawport.ActionCutRange:   {"cut", "cuts"},
+	dawport.ActionRecordTake: {"take", "recorded passes of the take"},
+}
 
 // LastAction reads whether REAPER's next undo point is kind's. Anything that keeps it from telling (the capability refused, REAPER
 // not answering, an older script, a refusal) is LastActionUnknown, not an error; a kind this build does not know is ErrActionKind.
@@ -95,6 +100,8 @@ func undoneMessage(kind dawport.ActionKind, undone, steps int) string {
 	switch {
 	case undone < steps:
 		return fmt.Sprintf(messageUndoPartialTemplate, undone, steps, noun[1])
+	case kind == dawport.ActionRecordTake:
+		return messageUndoneTake
 	case undone == 1:
 		return "Undid the " + noun[0] + " in REAPER."
 	default:

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DawCapabilities, DawKind, DawProjectState } from '../../../api/contracts/daw';
+import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../../../api/contracts/daw';
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
 import { recorderName, recorderNameCapital, recordsInApp } from '../../../studio/dawNames';
@@ -118,11 +118,14 @@ export function useRecordControl({
   chapterId,
   notify,
   onBlocked,
+  onStopped,
 }: {
   chapterId: string;
   notify: (sentence: string, topic?: string) => void;
   /** A press that did not start a take, and why; absent, the sentence is said as a message. */
   onBlocked?: (block: RecordBlock) => void;
+  /** A DAW (not the app's own recorder) stopped the take on a press: its answer, with the undo points it left. Awaited before the take reads as stopped. */
+  onStopped?: (result: DawResult) => void | Promise<void>;
 }): RecordControlState {
   const daw = usePort('daw');
   const system = usePort('system');
@@ -403,6 +406,8 @@ export function useRecordControl({
   capabilitiesRef.current = capabilities;
   const recordingRef = useRef(recording);
   recordingRef.current = recording;
+  const stoppedRef = useRef(onStopped);
+  stoppedRef.current = onStopped;
 
   const toggle = useCallback(
     async (at?: number, how?: { automatic?: boolean }): Promise<boolean> => {
@@ -433,6 +438,7 @@ export function useRecordControl({
         if (starting) await playTakeTone();
         const result = await (starting ? daw.recordStart(chapterId, at) : daw.recordStop());
         if (result.ok) {
+          if (!starting && !recordsInApp(capabilitiesRef.current?.daw)) await stoppedRef.current?.(result);
           setRefused(null);
           if (starting) lastStartAt = Date.now();
           setRecording(starting);
