@@ -74,7 +74,8 @@ describe('the-list-is-a-kind-menu-over-a-table-of-entries', () => {
     expect(screen.queryByText('Series')).toBeNull();
 
     const alice = rows().find((row) => rowName(row) === 'Alice')!;
-    expect(cellsOf(alice).map((cell) => cell.textContent)).toEqual(['Alice', 'Character']);
+    // The third cell is the Hear button, which has a name but no text.
+    expect(cellsOf(alice).map((cell) => cell.textContent)).toEqual(['Alice', 'Character', '']);
 
     chooseKind('Place');
     const shown = rows();
