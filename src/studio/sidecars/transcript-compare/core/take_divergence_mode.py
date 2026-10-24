@@ -1,12 +1,9 @@
 """The sidecar's per-take divergence mode: `compare.py --take-divergence`.
 
-Take review (`docs/utilities/take-review.md`) and src/studio/sidecars/transcript-compare/core/take_divergence_mode.py. For one
-fixed manuscript span (a chapter, found by id, and a run of its sentence units, numbered as
-`--find-repeats` numbers a repeated span) and the takes the host lists in a JSON manifest, this
-mode transcribes each take's range with Whisper word timestamps, aligns it to the span with the
-take markers' own diff (`core/take_divergence.py`) and writes, per take, every span word's status
-and time and every divergence as manuscript words plus source seconds. The comparison view reads it
-to shade where each take goes wrong. It writes evidence only: no ranking and no verdict.
+Take review (`docs/utilities/take-review.md`). For one fixed manuscript span and the takes the host lists in a JSON manifest,
+this mode transcribes each take's range with Whisper word timestamps and writes the words; the host aligns them to the span and
+writes where each take diverges (`src/studio/desktop/internal/takedivergence`, which also checks the chapter and the span before
+this mode is started).
 
 Manifest (JSON, written by the host, a trust boundary: `docs/architecture/threat-model.md` row 4f):
 
@@ -15,17 +12,14 @@ Manifest (JSON, written by the host, a trust boundary: `docs/architecture/threat
      "takes": [{"itemGuid": "...", "takeGuid": "...", "sourceFile": "<path>",
                 "startOffset": <source seconds>, "length": <seconds>}, ...]}
 
-Results (`--out`, written atomically, so the file exists only when the run finished), tagged lines:
+Words report (`--out`, written atomically, so the file exists only when the run finished), tagged lines:
 
-    SUMMARY|<text>
-    DIVERGENCE_SPAN|{"schemaVersion": 1, "chapterId", "chapterTitle", "span": {...words}, "model", "language"}
-    TAKE_DIVERGENCE|{"index", "itemGuid", "takeGuid", "sourceFile", "startOffset", "length",
-                     "fidelity", "counts", "words": [...], "divergences": [...]}   (one per take, manifest order)
+    TAKE_TRANSCRIPTION|{"language", "model"}
+    TAKE_WORDS|{"index", "takeGuid", "words": [[text, start, end], ...]}   (one per take, manifest order)
 
-Every time is in the take's source seconds. Progress is `stage|pct|message` (START, MATCH,
-TRANSCRIBE, ALIGN, WRITE, DONE). Exit codes: 0 done; 1 failed (an `ERROR|0|<message>` progress
-line, no results file); 2 cancelled through `<progress>.cancel`, honoured between takes (a
-`CANCELLED` progress line, no results file). `argparse` also exits 2 on a usage error, with no progress line.
+Word times are seconds from the start of the take's range. Progress is `stage|pct|message` (START, TRANSCRIBE, WRITE, DONE).
+Exit codes: 0 done; 1 failed (an `ERROR|0|<message>` progress line, no report); 2 cancelled through `<progress>.cancel`,
+honoured between takes (a `CANCELLED` progress line, no report). `argparse` also exits 2 on a usage error, with no progress line.
 
 This module does not import `compare.py`: `run` is handed the loaded module as `engine`.
 """
@@ -42,12 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 
-import take_divergence
-
 MANIFEST_SCHEMA_VERSION = 1
-RESULT_SCHEMA_VERSION = 1
-
-MATCH_PCT = 1
 TRANSCRIBE_START_PCT = 2
 TRANSCRIBE_END_PCT = 94
 WRITE_PCT = 98
@@ -90,7 +79,10 @@ class Manifest:
     last_paragraph: int | None = None
 
 
-Transcriber = Callable[[Take], Sequence[take_divergence.Word]]
+Word = tuple[str, float, float]
+"""A transcript word: text, start and end in seconds from the start of the take's range."""
+
+Transcriber = Callable[[Take], Sequence[Word]]
 """Transcribes one take's range: words timed in seconds from the start of that range."""
 
 
@@ -162,13 +154,6 @@ def read_manifest(path: str | os.PathLike) -> Manifest:
 # running
 
 
-def _find_chapter(engine: ModuleType, manuscript: str, chapter_id: str) -> dict:
-    for chapter in engine.load_manuscript_chapters(manuscript):
-        if chapter["id"] == chapter_id:
-            return chapter
-    raise ValueError(f"The manuscript has no narratable chapter with id '{chapter_id}'")
-
-
 def _project_hints(engine: ModuleType, manuscript: str) -> str | None:
     """The project's vocabulary hints (Whisper hotwords), read as the compare run reads them."""
     path = engine.project_data_path(manuscript, "vocabulary_hints.txt")
@@ -179,35 +164,25 @@ def _project_hints(engine: ModuleType, manuscript: str) -> str | None:
         return None
 
 
-def _register_equivalences(engine: ModuleType, manuscript: str) -> None:
-    """The project's equivalences.csv, registered before anything tokenizes (as every mode does)."""
-    groups = engine.load_equivalence_groups(engine.project_data_path(manuscript, "equivalences.csv"))
-    if groups:
-        engine._CUSTOM_CANON.update(engine._build_canon(groups))
-        engine.log(f"Loaded {len(groups)} custom word equivalence group(s)")
-
-
 def whisper_transcriber(engine: ModuleType, args, hotwords: str | None) -> Transcriber:
     """Decode a take's range and transcribe it with word timestamps (docs/utilities/transcript-compare.md#alignment-and-confidence's words)."""
 
-    def transcribe(take: Take) -> Sequence[take_divergence.Word]:
+    def transcribe(take: Take) -> Sequence[Word]:
         audio = engine.decode_segment(take.source_file, take.start_offset, take.length)
         return engine.transcribe(audio, args.model, args.language, args.device, hotwords=hotwords, model_dir=args.model_dir)
 
     return transcribe
 
 
-def _take_line(index: int, take: Take, alignment: take_divergence.TakeAlignment) -> str:
-    payload = {
-        "index": index,
-        "itemGuid": take.item_guid,
-        "takeGuid": take.take_guid,
-        "sourceFile": take.source_file,
-        "startOffset": take.start_offset,
-        "length": take.length,
-        **take_divergence.to_json(alignment, take.start_offset),
-    }
-    return "TAKE_DIVERGENCE|" + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n"
+def _transcription_line(args) -> str:
+    return (
+        "TAKE_TRANSCRIPTION|" + json.dumps({"language": args.language, "model": args.model}, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+
+
+def _words_line(index: int, take: Take, words: Sequence[Word]) -> str:
+    payload = {"index": index, "takeGuid": take.take_guid, "words": [[text, float(start), float(end)] for text, start, end in words]}
+    return "TAKE_WORDS|" + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n"
 
 
 def _write_atomically(path: str, text: str) -> None:
@@ -218,22 +193,13 @@ def _write_atomically(path: str, text: str) -> None:
 
 
 def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> None:
-    """Align every take in the manifest to its span and write the results file."""
+    """Transcribe every take in the manifest and write the words report."""
     progress = args.progress
     engine.write_progress(progress, "START", 0, "Starting...")
     manifest = read_manifest(args.manifest)
-    _register_equivalences(engine, args.manuscript)
-
-    engine.check_cancelled(progress)
-    engine.write_progress(progress, "MATCH", MATCH_PCT, "Finding the span in the manuscript...")
-    chapter = _find_chapter(engine, args.manuscript, manifest.chapter_id)
-    if manifest.first_paragraph is not None:
-        span = take_divergence.build_paragraph_span(engine, chapter["paragraphs"], manifest.first_paragraph, manifest.last_paragraph)
-    else:
-        span = take_divergence.build_span(engine, chapter["paragraphs"], manifest.first_unit, manifest.last_unit)
     transcriber = transcriber or whisper_transcriber(engine, args, _project_hints(engine, args.manuscript))
 
-    lines = []
+    lines = [_transcription_line(args)]
     count = len(manifest.takes)
     for index, take in enumerate(manifest.takes):
         engine.check_cancelled(progress)
@@ -242,21 +208,11 @@ def run(args, engine: ModuleType, transcriber: Transcriber | None = None) -> Non
         engine.log(f"Take {index}: {take.take_guid} ({take.source_file} [{take.start_offset:.2f}s, {take.length:.2f}s])")
         words = transcriber(take)
         engine.check_cancelled(progress)
-        lines.append(_take_line(index, take, take_divergence.align_take(engine, span, words)))
+        lines.append(_words_line(index, take, words))
 
-    engine.write_progress(progress, "WRITE", WRITE_PCT, "Writing results...")
-    header = {
-        "schemaVersion": RESULT_SCHEMA_VERSION,
-        "chapterId": chapter["id"],
-        "chapterTitle": chapter["title"],
-        "span": take_divergence.span_json(span),
-        "model": args.model,
-        "language": args.language,
-    }
-    title = engine.display_title(chapter["title"])
-    summary = f"SUMMARY|Aligned {count} take(s) to sentences {span.first_unit}-{span.last_unit} of '{engine.clean_marker_field(title)}'\n"
-    _write_atomically(args.out, summary + "DIVERGENCE_SPAN|" + json.dumps(header, ensure_ascii=False, separators=(",", ":")) + "\n" + "".join(lines))
-    engine.log(f"Wrote {count} take divergence row(s) to {args.out}")
+    engine.write_progress(progress, "WRITE", WRITE_PCT, "Writing the words...")
+    _write_atomically(args.out, "".join(lines))
+    engine.log(f"Wrote the words of {count} take(s) to {args.out}")
     engine.write_progress(progress, "DONE", 100, "Finished")
 
 

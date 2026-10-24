@@ -2044,8 +2044,8 @@ def main():
     ap.add_argument(
         "--take-divergence",
         action="store_true",
-        help="Additive mode: align every take in --manifest (a JSON manifest) to one fixed manuscript span "
-        "and write where each diverges, as TAKE_DIVERGENCE lines to --out (see core/take_divergence_mode.py)",
+        help="Additive mode: transcribe every take in --manifest (a JSON manifest) of one fixed manuscript span and write "
+        "its words to --out, which the host aligns to the span (see core/take_divergence_mode.py)",
     )
     ap.add_argument(
         "--find-repeats",

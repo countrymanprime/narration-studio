@@ -1,6 +1,7 @@
 """Tests for `compare.py --take-divergence` (core/take_divergence_mode.py):
-the manifest, the results file, progress and exit codes. Transcription is replaced by a fake that
-returns hand-timed words, so no model is loaded."""
+the manifest, the words report, progress and exit codes. Transcription is replaced by a fake that
+returns hand-timed words, so no model is loaded. The span, the chapter, the project's equivalences
+and the results file are the host's (`src/studio/desktop/internal/takedivergence`, `run_test.go`)."""
 
 import argparse
 import importlib.util
@@ -11,7 +12,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from narration_common import contract_files
 
 CORE = Path(__file__).resolve().parents[1] / "core"
 if str(CORE) not in sys.path:
@@ -94,9 +94,8 @@ def fake_transcriber(by_take):
     return lambda take: timed(by_take[take.take_guid])
 
 
-def results(path):
-    lines = Path(path).read_text(encoding="utf-8").splitlines()
-    return lines[0], [(line.split("|", 1)[0], json.loads(line.split("|", 1)[1])) for line in lines[1:]]
+def report(path):
+    return [(line.split("|", 1)[0], json.loads(line.split("|", 1)[1])) for line in Path(path).read_text(encoding="utf-8").splitlines()]
 
 
 def progress_stage(path):
@@ -180,7 +179,7 @@ def test_an_unreadable_or_non_object_manifest_is_refused(tmp_path):
 # a run
 
 
-def test_each_take_gets_its_words_and_divergences_in_source_seconds(tmp_path):
+def test_each_take_gets_its_words_in_manifest_order_timed_from_the_start_of_its_range(tmp_path):
     second = {**TAKE, "takeGuid": "{TAKE-2}", "sourceFile": "take2.wav", "startOffset": 3.0}
     manuscript = project(tmp_path)
     args = args_for(tmp_path, manuscript, manifest_file(tmp_path, takes=[TAKE, second]))
@@ -188,31 +187,22 @@ def test_each_take_gets_its_words_and_divergences_in_source_seconds(tmp_path):
 
     assert mode.main(Parser(), args, compare, transcriber) == mode.EXIT_DONE
 
-    summary, rows = results(args.out)
-    assert summary == "SUMMARY|Aligned 2 take(s) to sentences 1-1 of 'Chapter One'"
-    (span_tag, span), (tag_1, take_1), (tag_2, take_2) = rows
-    assert (span_tag, tag_1, tag_2) == ("DIVERGENCE_SPAN", "TAKE_DIVERGENCE", "TAKE_DIVERGENCE")
-    assert span["schemaVersion"] == 1 and span["chapterId"] == "ch-1" and span["model"] == "small"
-    assert [word["text"] for word in span["span"]["words"]] == ["She", "had", "nothing", "to", "do."]
-    assert (take_1["index"], take_1["takeGuid"], take_1["fidelity"], take_1["divergences"]) == (0, "{TAKE-1}", 1.0, [])
-    assert take_1["words"][2] == {"index": 2, "status": "matched", "start": 13.5, "end": 13.9}
-    assert take_2["divergences"] == [
-        {"kind": "misread", "position": "within", "firstWord": 3, "lastWord": 3, "manuscriptText": "to", "audioText": "two", "start": 4.5, "end": 4.9}
+    assert report(args.out) == [
+        ("TAKE_TRANSCRIPTION", {"language": "en", "model": "small"}),
+        ("TAKE_WORDS", {"index": 0, "takeGuid": "{TAKE-1}", "words": [list(word) for word in timed("She had nothing to do")]}),
+        ("TAKE_WORDS", {"index": 1, "takeGuid": "{TAKE-2}", "words": [list(word) for word in timed("She had nothing two do")]}),
     ]
+    assert Path(args.out).read_text(encoding="utf-8").startswith('TAKE_TRANSCRIPTION|{"language":"en","model":"small"}\nTAKE_WORDS|{"index":0,')
     assert progress_stage(args.progress) == "DONE"
+    assert not Path(args.out + ".tmp").exists()
 
 
-def test_the_project_equivalences_apply_to_the_span(tmp_path):
-    manuscript = project(tmp_path, "Arelian walked home.")
-    word_lists = tmp_path / "project" / "TranscriptCompare"
-    word_lists.mkdir()
-    (word_lists / "equivalences.csv").write_text("arelian, arelion\n", encoding="utf-8")
-    args = args_for(tmp_path, manuscript, manifest_file(tmp_path, span={"firstUnit": 0, "lastUnit": 0}))
+def test_a_take_with_no_words_and_no_language_are_written_as_such(tmp_path):
+    args = args_for(tmp_path, project(tmp_path), manifest_file(tmp_path), language=None)
 
-    assert mode.main(Parser(), args, compare, fake_transcriber({"{TAKE-1}": "Arelion walked home"})) == mode.EXIT_DONE
+    assert mode.main(Parser(), args, compare, lambda _take: []) == mode.EXIT_DONE
 
-    _summary, rows = results(args.out)
-    assert rows[1][1]["fidelity"] == 1.0
+    assert report(args.out) == [("TAKE_TRANSCRIPTION", {"language": None, "model": "small"}), ("TAKE_WORDS", {"index": 0, "takeGuid": "{TAKE-1}", "words": []})]
 
 
 def test_the_whisper_transcriber_decodes_the_take_range_with_the_project_hints(tmp_path):
@@ -241,50 +231,16 @@ def test_no_hints_file_means_no_hotwords(tmp_path):
     assert mode._project_hints(compare, str(project(tmp_path))) is None
 
 
-def test_an_unknown_chapter_fails_with_an_error_line_and_no_results(tmp_path):
-    args = args_for(tmp_path, project(tmp_path), manifest_file(tmp_path, chapterId="front"))
+def test_a_failed_transcription_is_an_error_line_and_no_report(tmp_path):
+    args = args_for(tmp_path, project(tmp_path), manifest_file(tmp_path))
 
-    assert mode.main(Parser(), args, compare, fake_transcriber({})) == mode.EXIT_FAILED
+    def fails(_take):
+        raise RuntimeError("The take's source file could not be decoded")
 
-    assert Path(args.progress).read_text(encoding="utf-8").startswith("ERROR|0|The manuscript has no narratable chapter with id 'front'")
+    assert mode.main(Parser(), args, compare, fails) == mode.EXIT_FAILED
+
+    assert Path(args.progress).read_text(encoding="utf-8").startswith("ERROR|0|The take's source file could not be decoded")
     assert not Path(args.out).exists()
-
-
-def test_a_span_past_the_chapter_fails_before_anything_is_transcribed(tmp_path):
-    args = args_for(tmp_path, project(tmp_path), manifest_file(tmp_path, span={"firstUnit": 0, "lastUnit": 9}))
-
-    def must_not_transcribe(_take):
-        raise AssertionError("transcribed")
-
-    assert mode.main(Parser(), args, compare, must_not_transcribe) == mode.EXIT_FAILED
-    assert "not within the chapter" in Path(args.progress).read_text(encoding="utf-8")
-
-
-MULTI_PARAGRAPH = ["Alice was beginning to get very tired. She had nothing to do.", "Once or twice she had peeped into the book.", "Her sister was reading."]
-
-
-def test_a_paragraph_span_aligns_every_sentence_of_those_paragraphs_and_says_which_it_was(tmp_path):
-    manuscript = project(tmp_path, chapter_text=MULTI_PARAGRAPH)
-    args = args_for(tmp_path, manuscript, manifest_file(tmp_path, span={"firstParagraph": 1, "lastParagraph": 2}))
-
-    assert (
-        mode.main(Parser(), args, compare, fake_transcriber({"{TAKE-1}": "Once or twice she had peeped into the book Her sister was reading"}))
-        == mode.EXIT_DONE
-    )
-
-    span = results(args.out)[1][0][1]["span"]
-    assert (span["firstParagraph"], span["lastParagraph"]) == (1, 2)
-    assert (span["firstUnit"], span["lastUnit"]) == (2, 3)
-
-
-def test_a_paragraph_span_past_the_chapter_fails_before_anything_is_transcribed(tmp_path):
-    args = args_for(tmp_path, project(tmp_path), manifest_file(tmp_path, span={"firstParagraph": 0, "lastParagraph": 5}))
-
-    def must_not_transcribe(_take):
-        raise AssertionError("transcribed")
-
-    assert mode.main(Parser(), args, compare, must_not_transcribe) == mode.EXIT_FAILED
-    assert "not within the chapter" in Path(args.progress).read_text(encoding="utf-8")
 
 
 def test_a_cancel_between_takes_stops_with_no_results_and_clears_the_request(tmp_path):
@@ -349,30 +305,3 @@ def test_compare_py_exits_2_on_a_usage_error(tmp_path):
 
     assert result.returncode == 2
     assert "--out required with --take-divergence" in result.stderr
-
-
-# ---------------------------------------------------------------------------
-# the results the host reads
-
-
-def test_the_results_file_is_pinned_for_the_host_that_reads_it(tmp_path):
-    """Three takes of one span, read cleanly, with a misread and with a skipped word: the file the host's
-    internal/takecompare parser and its comparison tests read (`take-divergence-results.json`)."""
-    takes = [
-        {"itemGuid": "{ITEM-A}", "takeGuid": "{TAKE-A}", "sourceFile": "read-a.wav", "startOffset": 0.0, "length": 8.0},
-        {"itemGuid": "{ITEM-B}", "takeGuid": "{TAKE-B}", "sourceFile": "read-b.wav", "startOffset": 1.5, "length": 8.0},
-        {"itemGuid": "{ITEM-C}", "takeGuid": "{TAKE-C}", "sourceFile": "read-c.wav", "startOffset": 0.0, "length": 8.0},
-    ]
-    manuscript = project(tmp_path)
-    args = args_for(tmp_path, manuscript, manifest_file(tmp_path, span={"firstUnit": 0, "lastUnit": 1}, takes=takes))
-    transcriber = fake_transcriber(
-        {
-            "{TAKE-A}": "Alice was beginning to get very tired She had nothing to do",
-            "{TAKE-B}": "Alice was beginning to get very tried She had nothing to do",
-            "{TAKE-C}": "Alice was beginning to get tired She had nothing to do",
-        }
-    )
-
-    assert mode.main(Parser(), args, compare, transcriber) == mode.EXIT_DONE
-
-    contract_files.check("take-divergence-results", {"lines": Path(args.out).read_text(encoding="utf-8").splitlines()})

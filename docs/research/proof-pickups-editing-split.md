@@ -113,7 +113,7 @@ B1 changes what crosses a binding or the sidecar's output: `wire-contract-change
 | - | - | - |
 | Markers (Proof findings) | `tc/core/compare.py` `diff_and_build_markers` (1165): any difflib `insert` becomes `EXTRA` (1249-1253) | `EXTRA` → `CategoryTranscriptDiscrepancy`, severity info (`src/studio/desktop/internal/transcript/findings_adapter.go:100, 223-228`) → "heard, not in the script" (`ui/proof/findingFormat.ts:89`) |
 | Coverage (Editing) | `tc/core/recording_coverage.py` `align_tokens` (397-437); `_is_reread` (240) only picks `skip` over `different_text` inside a gap with missing words, never for extras | A `COVERAGE_EXTRA` run (`tc/core/coverage_mode.py:735-774`) with no repeat field → "Not in the script" (`ui/editing/flags/flagText.ts:9`) |
-| Take divergence | `tc/core/take_divergence.py` `_prefer_earlier_copy` (194-216) moves the EXTRA onto the abandoned copy | Still `EXTRA`. Runs only in take-divergence mode |
+| Take divergence | `tc/core/take_divergence.py` `_prefer_earlier_copy` (194-216; since 2026-10-24 `preferEarlierCopy` in `internal/takedivergence/divergence.go`) moves the EXTRA onto the abandoned copy | Still `EXTRA`. Runs only in take-divergence mode |
 | Find repeats | `compare.py --find-repeats`, `find_repeated_spans` (1729) | Groups repeats **across segments** (items or takes) → `pickup` or `duplicate_read` findings (`src/studio/desktop/internal/repeats/adapter.go:160-181`). Never inside one recording |
 | Live teleprompter | `src/studio/sidecars/manuscript-teleprompter/core/flags.py` `_extra_or_restart` (161, 3+ words) | `restart` → pickup (`src/studio/desktop/liveflags.go:75`). Live only |
 | Editing "Read twice" | `ui/editing/model/duplicates.ts` `duplicateRead` (44): the line's first 4 words heard again after a 0.3 s pause | Only for a paragraph that has a `take`; `ui/editing/script/docFromHeard.ts:63-68` sets no `dup`, so on the live page the words stay "Not in the script". A repeat mid-paragraph is never found |
@@ -123,7 +123,7 @@ B1 changes what crosses a binding or the sidecar's output: `wire-contract-change
 | Test | Covers |
 | - | - |
 | `tc/tests/fixtures/coverage/cases/c1-retakes-false-starts.json`, `markers.golden.json` | Paragraph 4 read twice around "Once more." The golden pins two `EXTRA` markers: it pins the owner's complaint |
-| `tc/tests/test_take_divergence.py:128-152`, `fixtures/divergence/cases.json` | Restarts and stutters, scored as `EXTRA` on the earlier copy |
+| `tc/tests/test_take_divergence.py:128-152` (since 2026-10-24 `internal/takedivergence/divergence_test.go`), `fixtures/divergence/cases.json` | Restarts and stutters, scored as `EXTRA` on the earlier copy |
 | `tc/tests/test_repeated_spans.py` | Repeats across four segments, grouped, exact copy flagged |
 | `ui/editing/model/duplicates.test.ts` | The 4-word head rule |
 | **Added:** `tc/tests/test_coverage.py::test_a_phrase_said_twice_is_today_an_extra_run_with_nothing_marking_it_a_second_take` | Reproduces item 30: P1, then "golf hotel india" twice. Coverage has 3 extra tokens, one extra run, and its words equal the chapter's tokens 6 to 8. Nothing marks the run as a repeat. It passes and pins today's behaviour; C1 flips it |
