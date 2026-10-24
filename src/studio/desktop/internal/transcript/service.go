@@ -53,7 +53,13 @@ type Service struct {
 	words string
 	// +checklocks:mu
 	manuscript string
-	files      atomic.Pointer[persist.Reporter]
+	// chapterID and score are the chapter the run was matched to before it started and the match's score
+	// (comparerun.Choose).
+	// +checklocks:mu
+	chapterID string
+	// +checklocks:mu
+	score float64
+	files atomic.Pointer[persist.Reporter]
 	// findingsStore and manuscriptLookup are nil until app.go opts in with
 	// SetFindings;
 	// every existing caller, including every test in this package, leaves
@@ -624,15 +630,38 @@ func (s *Service) handlePrepared(fields []string) {
 	words := filepath.Join(s.config.SessionDir, "words_"+runID+".txt")
 	progress := filepath.Join(s.config.SessionDir, "progress_"+runID+".txt")
 	logPath := filepath.Join(s.config.SessionDir, "log_"+runID+".txt")
-	args := []string{"--manifest", fields[2], "--manuscript", fields[3], "--track-name", fields[4], "--out", words, "--model", option(options, "model", "small"), "--progress", progress, "--log", logPath}
+	// The chapter is chosen here, before any audio is decoded, as the sidecar chose it before it transcribed: a name that
+	// matches no chapter asks for one without starting a process.
+	tokenizer, chapters, err := comparerun.LoadChapters(fields[3])
+	if err != nil {
+		s.fail(err.Error())
+		return
+	}
+	chapter, score, err := comparerun.Choose(tokenizer, chapters, fields[4], option(options, "chapterTitle", ""))
+	var need comparerun.NeedChapter
+	if errors.As(err, &need) {
+		appendRunLog(logPath, "No confident chapter match - asking for an explicit selection.")
+		s.mu.Lock()
+		s.state["phase"], s.state["chapters"], s.state["message"] = "need_chapter", need.Candidates, need.Error()
+		s.mu.Unlock()
+		s.notify()
+		return
+	}
+	if err != nil {
+		s.fail(err.Error())
+		return
+	}
+	if option(options, "chapterTitle", "") != "" {
+		appendRunLog(logPath, fmt.Sprintf("Using explicitly-selected chapter '%s'", comparerun.ChapterName(chapter)))
+	} else {
+		appendRunLog(logPath, fmt.Sprintf("Matched track '%s' to chapter '%s' (score=%s)", fields[4], comparerun.ChapterName(chapter), strconv.FormatFloat(score, 'f', 3, 64)))
+	}
+	args := []string{"--manifest", fields[2], "--manuscript", fields[3], "--out", words, "--model", option(options, "model", "small"), "--progress", progress, "--log", logPath}
 	if s.config.Backend != "" {
 		args = append([]string{s.config.Backend}, args...)
 	}
 	if modelDir := option(options, "modelDir", ""); modelDir != "" {
 		args = append(args, "--model-dir", modelDir)
-	}
-	if chapter := option(options, "chapterTitle", ""); chapter != "" {
-		args = append(args, "--chapter-title", chapter)
 	}
 	if chunk := option(options, "chunk", ""); validNumber(chunk) {
 		workers := option(options, "workers", "0")
@@ -652,6 +681,7 @@ func (s *Service) handlePrepared(fields []string) {
 	}
 	s.mu.Lock()
 	s.child, s.progress, s.logPath, s.logAt, s.words, s.manuscript = child, progress, logPath, 0, words, fields[3]
+	s.chapterID, s.score = chapter.ID, score
 	s.state["phase"], s.state["message"], s.state["output"] = "running", "Launching transcript backend…", output
 	s.mu.Unlock()
 	s.notify()
@@ -717,19 +747,10 @@ func (s *Service) Poll() {
 func (s *Service) finishBackend(child *process.Child) {
 	s.mu.RLock()
 	output, diffPath := textValue(s.state, "output"), textValue(s.state, "diffPath")
-	words, manuscript, logPath := s.words, s.manuscript, s.logPath
+	words, manuscript, logPath, chapterID, score := s.words, s.manuscript, s.logPath, s.chapterID, s.score
 	s.mu.RUnlock()
 	// A sidecar that exited without writing --out (a crash, or a failure it reported only in its progress) is judged by
 	// its exit code below, so the run never stays "running".
-	bytes, _ := os.ReadFile(words)
-	content := string(bytes)
-	if rest, ok := strings.CutPrefix(content, "NEED_CHAPTER|"); ok {
-		s.mu.Lock()
-		s.state["phase"], s.state["chapters"], s.state["message"] = "need_chapter", splitNonEmpty(strings.TrimSpace(rest), "|"), "Choose the manuscript chapter."
-		s.mu.Unlock()
-		s.notify()
-		return
-	}
 	code, exited := child.ExitCode()
 	if !exited {
 		return
@@ -745,7 +766,7 @@ func (s *Service) finishBackend(child *process.Child) {
 		s.fail("Transcript backend failed.")
 		return
 	}
-	markers, err := comparerun.Run(comparerun.Request{ManuscriptPath: manuscript, WordsReport: words, Out: output, DiffOut: diffPath})
+	markers, err := comparerun.Run(comparerun.Request{ManuscriptPath: manuscript, ChapterID: chapterID, Score: score, WordsReport: words, Out: output, DiffOut: diffPath})
 	if err != nil {
 		s.fail(err.Error())
 		return
@@ -849,13 +870,4 @@ func exportPhase(state map[string]any) string {
 	value, _ := state["markerExport"].(map[string]any)
 	phase, _ := value["phase"].(string)
 	return phase
-}
-func splitNonEmpty(value, separator string) []string {
-	result := []string{}
-	for _, item := range strings.Split(value, separator) {
-		if item != "" {
-			result = append(result, item)
-		}
-	}
-	return result
 }

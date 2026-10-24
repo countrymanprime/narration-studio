@@ -72,9 +72,9 @@ Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 - `diffs/<track name>_<run number>.diff` — the unified diff of manuscript against transcript, with a plain
   `.manuscript.txt` / `.recorded.txt` pair beside it for two-pane viewers. The host writes them.
 
-One track is one chapter: the track name is matched (exact, then closest fuzzy match) against the
-manuscript's chapter headings, and the run asks for a pick when no heading matches confidently. This
-happens before audio is decoded.
+One track is one chapter: the host matches the track name (exact, then closest fuzzy match) against the
+manuscript's chapter headings before it starts the run (`internal/comparerun`'s `Choose`), and asks for a
+pick when no heading matches confidently. `--find-repeats` still matches its chapter here.
 
 ## Notes / limitations
 

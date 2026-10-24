@@ -238,7 +238,7 @@ text and numbers moves into the host, so a sidecar is a thin model or device run
 ([Go versus Python for the sidecars](../research/sidecar-go-vs-python.md#recommendation)): the recording check's alignment is
 `internal/recordingcoverage` over `internal/compare`, and `compare.py --coverage` only transcribes; the take comparison's
 alignment is `internal/takedivergence`, and `compare.py --take-divergence` only transcribes; Transcript Compare's
-markers and diff are `internal/comparerun`, and `compare.py`'s main run matches the chapter and transcribes.
+chapter choice, markers and diff are `internal/comparerun`, and `compare.py`'s main run only transcribes.
 
 A sidecar reaches an engine (Whisper, Moonshine, Piper, CMU, eSpeak, dshow and WASAPI capture) only through an adapter module in its
 `core/` (`asr_adapters.py`, `capture_dshow.py`, `capture_wasapi.py`, `asr_batch.py`, `providers.py`) registered in the `narration_common.ports`

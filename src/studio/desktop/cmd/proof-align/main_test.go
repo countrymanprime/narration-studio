@@ -109,9 +109,9 @@ func TestTheCompareRunWritesTheResultsAndTheDiff(t *testing.T) {
 	_ = os.WriteFile(manuscript, []byte(`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "One"}],
 		"paragraphs": [{"id": "p-1", "chapterId": "c", "text": "alpha bravo", "index": 0}]}`), 0o600)
 	words := filepath.Join(dir, "words.txt")
-	_ = os.WriteFile(words, []byte(`COMPARE_CHAPTER|{"chapterId":"c","score":1}`+"\n"+`COMPARE_WORDS|{"words":[["alpha",0,0.3],["delta",0.4,0.7]]}`+"\n"), 0o600)
+	_ = os.WriteFile(words, []byte(`COMPARE_WORDS|{"words":[["alpha",0,0.3],["delta",0.4,0.7]]}`+"\n"), 0o600)
 	request := func(wordsReport string) string {
-		return `{"op":"compareRun","manuscript":` + quote(manuscript) + `,"wordsReport":` + quote(wordsReport) + `,"out":` + quote(filepath.Join(dir, "r.txt")) + `,"diffOut":` + quote(filepath.Join(dir, "d.diff")) + `}`
+		return `{"op":"compareRun","manuscript":` + quote(manuscript) + `,"chapterId":"c","score":1,"wordsReport":` + quote(wordsReport) + `,"out":` + quote(filepath.Join(dir, "r.txt")) + `,"diffOut":` + quote(filepath.Join(dir, "d.diff")) + `}`
 	}
 	var out strings.Builder
 	if err := serve(strings.NewReader(request(words)+"\n"+request(filepath.Join(dir, "none.txt"))+"\n"), &out); err != nil {

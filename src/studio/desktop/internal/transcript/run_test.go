@@ -40,14 +40,13 @@ func TestMain(m *testing.M) {
 const runManuscript = `{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c-1", "title": "Chapter One"}],
 	"paragraphs": [{"id": "p-1", "chapterId": "c-1", "index": 4, "text": "She had nothing to do. Once or twice she peeped."}]}`
 
-const runWords = `COMPARE_CHAPTER|{"chapterId":"c-1","score":0.95}
-COMPARE_SEGMENT|{"itemIndex":2,"startOffset":10.0,"concatStart":0.0}
+const runWords = `COMPARE_SEGMENT|{"itemIndex":2,"startOffset":10.0,"concatStart":0.0}
 COMPARE_WORDS|{"words":[["She",0.0,0.3],["had",0.4,0.7],["nothing",0.8,1.1],["two",1.2,1.5],["do",1.6,1.9],["Once",2.6,2.9],["or",3.0,3.2],["twice",3.3,3.6],["she",3.7,3.9],["peeped",4.0,4.4]]}
 `
 
 // runService is a service whose sidecar is this test binary answering sidecar, with a project manuscript, at the
-// point REAPER has prepared the run (COMPARE_PREPARED).
-func runService(t *testing.T, sidecar string) (*Service, string) {
+// point REAPER has prepared the run (COMPARE_PREPARED) for track, with the run's options.
+func runService(t *testing.T, sidecar, track string, options map[string]string) (*Service, string) {
 	t.Helper()
 	t.Setenv(fakeSidecarEnv, sidecar)
 	project, session := t.TempDir(), t.TempDir()
@@ -66,8 +65,8 @@ func runService(t *testing.T, sidecar string) (*Service, string) {
 	t.Cleanup(func() { _ = supervisor.Close() })
 	service := NewWithReview(Config{Project: project, SessionDir: session, Python: os.Args[0]}, reaper.ReviewFor(client), settings.New(t.TempDir(), project), supervisor, nil)
 	service.state = empty()
-	service.state["runId"], service.state["phase"] = "run-1", "preparing"
-	service.Handle([]string{"COMPARE_PREPARED", "run-1", filepath.Join(session, "m.txt"), manuscript, "Chapter One", filepath.Join(session, "chapter.diff"), "1"})
+	service.state["runId"], service.state["phase"], service.state["options"] = "run-1", "preparing", options
+	service.Handle([]string{"COMPARE_PREPARED", "run-1", filepath.Join(session, "m.txt"), manuscript, track, filepath.Join(session, "chapter.diff"), "1"})
 	return service, session
 }
 
@@ -87,7 +86,7 @@ func wait(t *testing.T, service *Service) map[string]any {
 }
 
 func TestTheHostBuildsTheMarkersAndTheDiffFromTheSidecarsWords(t *testing.T) {
-	service, session := runService(t, runWords)
+	service, session := runService(t, runWords, "Ch. 1", nil)
 	state := wait(t, service)
 
 	if state["phase"] != "inspecting" {
@@ -97,7 +96,7 @@ func TestTheHostBuildsTheMarkersAndTheDiffFromTheSidecarsWords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "SUMMARY|MATCH: 'Chapter One' (score 0.95) - 1 discrepancy marker(s)\n" +
+	want := "SUMMARY|MATCH: 'Chapter One' (score 1.00) - 1 discrepancy marker(s)\n" +
 		"DIFF|" + filepath.Join(session, "chapter.diff") + "\n" +
 		"MARKER|2|11.200|MISREAD|MISREAD: 'to' as '2'|to|2|Chapter One|4|She had nothing to do.|She had nothing two do.|medium|0.100|\n"
 	if string(results) != want {
@@ -121,11 +120,29 @@ func TestTheHostBuildsTheMarkersAndTheDiffFromTheSidecarsWords(t *testing.T) {
 	}
 }
 
-func TestATrackNameThatMatchesNoChapterAsksForOne(t *testing.T) {
-	service, _ := runService(t, "NEED_CHAPTER|Chapter One|Chapter Two\n")
-	state := wait(t, service)
+func TestATrackNameThatMatchesNoChapterAsksForOneWithoutStartingTheSidecar(t *testing.T) {
+	service, session := runService(t, "exit 7", "Appendix", nil)
 
-	if state["phase"] != "need_chapter" || fmt.Sprint(state["chapters"]) != "[Chapter One Chapter Two]" {
+	state := service.Snapshot()
+	if state["phase"] != "need_chapter" || fmt.Sprint(state["chapters"]) != "[Chapter One]" || state["message"] != "Choose the manuscript chapter." {
+		t.Fatalf("state = %#v", state)
+	}
+	if _, err := os.Stat(filepath.Join(session, "progress_run-1.txt")); !os.IsNotExist(err) {
+		t.Fatalf("a sidecar ran: %v", err)
+	}
+}
+
+func TestAChapterPickedByTitleIsUsedAndAnUnknownOneFailsBeforeTheSidecar(t *testing.T) {
+	service, session := runService(t, runWords, "Appendix", map[string]string{"chapterTitle": "Chapter One"})
+	if state := wait(t, service); state["phase"] != "inspecting" {
+		t.Fatalf("state = %#v", state)
+	}
+	if log, _ := os.ReadFile(filepath.Join(session, "log_run-1.txt")); !strings.Contains(string(log), "Using explicitly-selected chapter 'Chapter One'") {
+		t.Fatalf("log = %q", log)
+	}
+
+	service, _ = runService(t, "exit 7", "Chapter One", map[string]string{"chapterTitle": "Chapter Nine"})
+	if state := service.Snapshot(); state["phase"] != "error" || state["message"] != "Chapter title override 'Chapter Nine' not found in the document." {
 		t.Fatalf("state = %#v", state)
 	}
 }
@@ -136,9 +153,9 @@ func TestASidecarFailureOrAWordsReportTheHostCannotUseFailsTheRun(t *testing.T) 
 		"exit 0":           "The comparison's words report could not be read:",
 		"exit 2":           "Cancelled — no markers were added.",
 		"COMPARE_WORDS|{}": "The comparison's words report has a malformed line 1.",
-		strings.Replace(runWords, `"c-1"`, `"c-9"`, 1): "The manuscript has no narratable chapter with id 'c-9'.",
+		`COMPARE_CHAPTER|{"chapterId":"c-1","score":1}` + "\n" + runWords: "The comparison's words report has an unknown line \"COMPARE_CHAPTER\".",
 	} {
-		service, _ := runService(t, sidecar)
+		service, _ := runService(t, sidecar, "Chapter One", nil)
 		if state := wait(t, service); !strings.HasPrefix(fmt.Sprint(state["message"]), want) {
 			t.Errorf("%q: state = %v, want %q", sidecar, state["message"], want)
 		}

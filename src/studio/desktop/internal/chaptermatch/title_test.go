@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"desktop/internal/compare"
 	"desktop/internal/layout"
 )
 
@@ -109,5 +110,21 @@ func TestSequenceRatioMatchesDifflib(t *testing.T) {
 		if got := sequenceRatio(c.a, c.b); math.Abs(got-c.want) > 1e-12 {
 			t.Errorf("sequenceRatio(%q, %q) = %.17g, want %.17g", c.a, c.b, got, c.want)
 		}
+	}
+}
+
+// A project's equivalence list applies to both sides, as compare.py's label_tokens applied _CUSTOM_CANON: a title and a
+// track name spelled two ways meet exactly, and the plain matcher has no list.
+func TestAProjectsEquivalencesApplyToTheTitleAndTheTrackName(t *testing.T) {
+	titles := []string{"Chapter 1: Arelian", "Chapter 2: Home"}
+	with := compare.NewTokenizer([][]string{{"arelian", "arelion"}})
+	if match := MatchTitleWith(with, titles, "Chapter 1 Arelion"); match.Index != 0 || match.Score != ScoreExact || !match.Confident {
+		t.Fatalf("with the list: %+v", match)
+	}
+	if match := MatchTitle(titles, "Chapter 1 Arelion"); match.Score == ScoreExact {
+		t.Fatalf("without it: %+v", match)
+	}
+	if tokens, marker := LabelTokensWith(with, "Arelion"); marker != MarkerNone || len(tokens) != 1 || tokens[0] != "arelian" {
+		t.Fatalf("tokens %v %q", tokens, marker)
 	}
 }

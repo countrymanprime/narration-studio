@@ -1,28 +1,24 @@
 """
-Transcribe one or more audio segments (items on a REAPER track), match them
-against the correspondingly-named chapter in a canonical manuscript by track name,
-and write the words heard. The host diffs them against that chapter's text and
-writes the take markers and the diff (src/studio/desktop/internal/comparerun,
+Transcribe one or more audio segments (items on a REAPER track) and write the
+words heard. The host matches the track to a chapter of the canonical manuscript
+before it starts this run, diffs the words against that chapter's text and writes
+the take markers and the diff (src/studio/desktop/internal/comparerun,
 docs/utilities/transcript-compare.md).
 
 Usage:
     python compare.py --manifest segments.txt --manuscript "manuscript.json" \
-        --track-name "Chapter 1" --out words.txt [--model base]
+        --out words.txt [--model base]
 
 Manifest input format (pipe-delimited, no header):
     item_index|source_file|start_offset_seconds|length_seconds
 
-Output (--out, written atomically) is either a NEED_CHAPTER line alone, or the
-words report, tagged lines with compact JSON payloads:
-    NEED_CHAPTER|<title1>|<title2>|...
-    COMPARE_CHAPTER|{"chapterId", "score"}
+Output (--out, written atomically) is the words report, tagged lines with
+compact JSON payloads:
     COMPARE_SEGMENT|{"itemIndex", "startOffset", "concatStart"}   (one per item, in item order)
     COMPARE_WORDS|{"words": [[text, start, end], ...]}           (seconds of the joined audio)
 
-NEED_CHAPTER means the track name didn't confidently match any heading - the
-caller should re-invoke with --chapter-title set to one of the listed titles.
-The host's results file (SUMMARY, DIFF and MARKER lines) is described in
-internal/comparerun.
+--manuscript is read only for the project's vocabulary hints. The host's results
+file (SUMMARY, DIFF and MARKER lines) is described in internal/comparerun.
 
 Two additive modes write their own tagged lines instead: --find-repeats
 (SPAN_GROUP/SPAN_MEMBER) and --coverage (recording coverage: a JSON manifest
@@ -1505,43 +1501,15 @@ def find_repeated_spans(args):
 
 
 def run(args):
+    """The compare run: decode and join the manifest's items, transcribe them and write the words report. The host has
+    already matched the chapter (src/studio/desktop/internal/comparerun) and builds the markers from the report."""
     progress_path = args.progress
 
     write_progress(progress_path, "START", 0, "Starting...")
 
-    # Per-manuscript custom word equivalences (invented names/words
-    # Whisper spells inconsistently, since it has no dictionary entry to
-    # guess from) - pulled automatically from a dedicated subfolder next
-    # to the manuscript rather than a separate argument, so there's
-    # nothing extra for the caller to plumb through. Registered before
-    # anything below calls tokenize() (chapter matching included).
-    register_project_equivalences(args.manuscript)
-
     segments = read_segments(args.manifest)
     if not segments:
         raise ValueError("Manifest contained no segments.")
-
-    # Chapter matching only needs canonical manuscript data and the track name (or an
-    # explicit --chapter-title override) - resolve it before the expensive
-    # decode+transcribe steps below, so a NEED_CHAPTER prompt (or a bad
-    # --manuscript path) doesn't cost the user a multi-minute wait first.
-    check_cancelled(progress_path)
-    write_progress(progress_path, "MATCH", 1, "Matching chapter to track name...")
-    log("Loading canonical manuscript and splitting into chapters...")
-    chapters = load_manuscript_chapters(args.manuscript)
-    log(f"Found {len(chapters)} chapter(s)/section(s) in the document.")
-
-    if args.chapter_title:
-        chapter = find_chapter_by_exact_title(chapters, args.chapter_title)
-        if chapter is None:
-            raise ValueError(f"Chapter title override '{args.chapter_title}' not found in the document.")
-        score = 1.0
-        log(f"Using explicitly-selected chapter '{chapter_name(chapter)}'")
-    else:
-        chapter, score, candidates = find_chapter_by_track_name(chapters, args.track_name)
-        if chapter is None:
-            raise NeedsChapterSelection(candidates)
-        log(f"Matched track '{args.track_name}' to chapter '{chapter_name(chapter)}' (score={score:.3f})")
 
     check_cancelled(progress_path)
     full_audio, segments = build_concatenated_audio(segments, progress_path)
@@ -1567,19 +1535,19 @@ def run(args):
 
     check_cancelled(progress_path)
     write_progress(progress_path, "WRITE", 99, "Writing the words...")
-    _write_atomically(args.out, _words_report(chapter, score, segments, transcript_words))
+    _write_atomically(args.out, _words_report(segments, transcript_words))
     log(f"Wrote the words of {len(segments)} item(s) to {args.out}")
     write_progress(progress_path, "DONE", 100, "Finished")
 
 
-def _words_report(chapter, score, segments, transcript_words):
-    """The words report the host builds the markers from (src/studio/desktop/internal/comparerun): the chapter matched and
-    the match's score, each segment's item, source offset and start in the joined audio, and the words heard."""
+def _words_report(segments, transcript_words):
+    """The words report the host builds the markers from (src/studio/desktop/internal/comparerun): each segment's item,
+    source offset and start in the joined audio, and the words heard."""
 
     def line(tag, payload):
         return tag + "|" + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n"
 
-    lines = [line("COMPARE_CHAPTER", {"chapterId": chapter["id"], "score": float(score)})]
+    lines = []
     for seg in segments:
         lines.append(line("COMPARE_SEGMENT", {"itemIndex": seg["item_index"], "startOffset": seg["start_offset"], "concatStart": seg["concat_start"]}))
     lines.append(line("COMPARE_WORDS", {"words": [[text, float(start), float(end)] for text, start, end in transcript_words]}))
@@ -1616,8 +1584,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--manifest", required=False, help="Path to the pipe-delimited segment manifest")
     ap.add_argument("--manuscript", required=True, help="Path to canonical manuscript.json")
-    ap.add_argument("--track-name", required=False, help="REAPER track name (matched against a doc heading)")
-    ap.add_argument("--chapter-title", default=None, help="Bypass track-name matching and use this exact chapter title (from a prior NEED_CHAPTER prompt)")
+    ap.add_argument("--track-name", required=False, help="With --find-repeats: the REAPER track name, matched against a doc heading")
+    ap.add_argument(
+        "--chapter-title",
+        default=None,
+        help="With --find-repeats: bypass track-name matching and use this exact chapter title (from a prior NEED_CHAPTER prompt)",
+    )
     ap.add_argument("--out", required=False, help="Path to write the tagged results file")
     ap.add_argument(
         "--model", default=get_default("TranscriptCompare", "model_size", "small"), help="Whisper model size (tiny/base/small/medium/large-v3-turbo/large-v3)"
@@ -1762,7 +1734,9 @@ def main():
     if args.recheck:
         ap.error("--recheck can only be used with --coverage")
 
-    required = [("--manifest", args.manifest), ("--track-name", args.track_name), ("--out", args.out)]
+    required = [("--manifest", args.manifest), ("--out", args.out)]
+    if args.find_repeats:
+        required.append(("--track-name", args.track_name))
     missing = [name for name, val in required if not val]
     if missing:
         ap.error(", ".join(missing) + " required unless --extract-hints is given")
