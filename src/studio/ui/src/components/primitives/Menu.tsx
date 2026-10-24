@@ -15,8 +15,9 @@ export type MenuItem = {
 };
 
 // A heading over its items. `many` makes the items checkboxes (menuitemcheckbox), `one` radios (menuitemradio); choosing one calls its
-// `onSelect` and keeps the menu open, so several choices can be made in one visit. Without `select` the items are plain and close the menu.
-export type MenuSection = { key: string; label?: string; select?: 'many' | 'one'; items: MenuItem[] };
+// `onSelect` and keeps the menu open, so several choices can be made in one visit, unless `closeOnSelect` (a sort order: one choice and done).
+// Without `select` the items are plain and close the menu.
+export type MenuSection = { key: string; label?: string; select?: 'many' | 'one'; items: MenuItem[]; closeOnSelect?: boolean };
 
 const ITEM_CLASS =
   'flex w-full cursor-pointer items-center gap-2 rounded-[0.3rem] px-[0.55rem] py-[0.45rem] text-left text-[0.82rem] outline-none data-[highlighted]:bg-[var(--surface-2)]';
@@ -71,7 +72,7 @@ function Section({ section, first }: { section: MenuSection; first: boolean }) {
         >
           {heading}
           {section.items.map((item) => (
-            <BaseMenu.RadioItem key={item.key} value={item.key} closeOnClick={false} className={ITEM_CLASS}>
+            <BaseMenu.RadioItem key={item.key} value={item.key} closeOnClick={section.closeOnSelect === true} className={ITEM_CLASS}>
               <ItemBody item={item} mark="round" />
             </BaseMenu.RadioItem>
           ))}
@@ -85,7 +86,13 @@ function Section({ section, first }: { section: MenuSection; first: boolean }) {
         {heading}
         {section.items.map((item) =>
           section.select === 'many' ? (
-            <BaseMenu.CheckboxItem key={item.key} checked={item.checked === true} onCheckedChange={item.onSelect} closeOnClick={false} className={ITEM_CLASS}>
+            <BaseMenu.CheckboxItem
+              key={item.key}
+              checked={item.checked === true}
+              onCheckedChange={item.onSelect}
+              closeOnClick={section.closeOnSelect === true}
+              className={ITEM_CLASS}
+            >
               <ItemBody item={item} mark="box" />
             </BaseMenu.CheckboxItem>
           ) : (

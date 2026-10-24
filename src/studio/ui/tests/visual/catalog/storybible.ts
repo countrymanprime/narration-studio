@@ -53,6 +53,11 @@ export const storybibleStates: StateEntry[] = [
 
   {
     page: 'storybible',
+    state: 'sort-book-order',
+    description: 'Story Bible, the Sort menu on Book order: the entries by the chapter each first appears in, the most mentioned first within a chapter',
+  },
+  {
+    page: 'storybible',
     state: 'search-narrowed',
     description: 'Story Bible, a search for "mad hat" narrowing the table, the alias that matched shown and the letters marked',
   },

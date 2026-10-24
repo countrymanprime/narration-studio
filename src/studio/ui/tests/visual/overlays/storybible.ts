@@ -34,6 +34,15 @@ export const storyBibleCases: OverlayCase[] = [
     },
   },
   {
+    // The Sort menu beside the Filter button: one order, chosen and closed.
+    name: 'sort menu',
+    kind: 'menu',
+    open: async (page) => {
+      await page.getByRole('button', { name: /^Sort:/ }).click();
+      await page.getByRole('menuitemradio', { name: 'Most mentioned' }).waitFor();
+    },
+  },
+  {
     // A right click on an entry row (the mock's registerContext for the Bible page).
     name: 'entry row menu',
     kind: 'context-menu',

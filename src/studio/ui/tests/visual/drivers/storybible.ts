@@ -92,6 +92,16 @@ export const storybibleDrivers: Record<string, Driver> = {
     await goToPage(page, 'Story Bible');
     await filterBy(page, 'Organization');
   },
+  // The Sort menu's Book order: the entries by the chapter each first appears in (the menu closes on the choice).
+  'sort-book-order': async (page) => {
+    await goToPage(page, 'Story Bible');
+    await page.getByRole('button', { name: /^Sort:/ }).click();
+    await page.getByRole('menuitemradio', { name: 'Book order' }).click();
+    await page.getByRole('menu').waitFor({ state: 'hidden' });
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.mouse.move(0, 0);
+    await page.getByRole('button', { name: 'Sort: Book order' }).waitFor();
+  },
   'search-narrowed': async (page) => {
     await goToPage(page, 'Story Bible');
     await page.getByRole('textbox', { name: 'Search entries' }).fill('mad hat');

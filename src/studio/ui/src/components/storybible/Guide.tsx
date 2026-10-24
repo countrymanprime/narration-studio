@@ -20,6 +20,7 @@ import {
   hasPronunciation,
   kindCounts,
   loadEntrySort,
+  pickSort,
   saveEntrySort,
   searchWords,
   sortRows,
@@ -30,6 +31,7 @@ import { evidenceLinks } from './evidenceLinks';
 import { usePreviewAudio } from './usePreviewAudio';
 import { ActionsMenu } from './ActionsMenu';
 import { EntryTable, type EntryTableHandle } from './EntryTable';
+import { SortMenu } from './SortMenu';
 import { FilterChips, FilterMenu, NO_FILTER, type FilterChoice, type FilterCounts } from './FilterMenu';
 import { ScanStatus } from './suggested/panel/ScanStatus';
 import { useSuggestions } from './suggested/panel/useSuggestions';
@@ -197,6 +199,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   );
   const scanStart = useStartScan({ scan: found.scan.start, onImported: () => void load() });
   const links = useMemo(() => evidenceLinks(chapters, goToManuscript), [chapters, goToManuscript]);
+  // Each chapter's place in the book, for the Sort menu's Book order.
+  const chapterOrder = useMemo(() => new Map(chapters.map((chapter, place) => [chapter.id, place])), [chapters]);
   // A build that ends while the narrator is elsewhere on this page still refreshes the entries.
   useEffect(() => api.subscribeJobEnded((event) => event.kind === 'story_bible' && void load()), [api, load]);
 
@@ -212,7 +216,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const tableKinds = kinds.length > 0 ? kinds : DEFAULT_KINDS;
   const filters = { ...chosen, query, suggestions };
   const filtered = filterEntries(visible, filters);
-  const sorted = sortRows(filtered, sort, { kinds: tableKinds, suggestions });
+  const sorted = sortRows(filtered, sort, { kinds: tableKinds, suggestions, chapterOrder });
   const counts = kindCounts(visible);
   const selected = rows.find((row) => row.id === selectedId);
   const toVerifyAll = verifyCount(suggestions);
@@ -230,11 +234,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
     toReview,
     toVerify: toVerifyAll,
   };
-  const chooseColumn = (column: ColumnKey) => {
-    const next = chooseSort(sort, column);
+  const keepSort = (next: EntrySort) => {
     setSort(next);
     saveEntrySort(next);
   };
+  const chooseColumn = (column: ColumnKey) => keepSort(chooseSort(sort, column));
 
   // No backend record is created here - see GuideDetail's isNewDraft prop.
   // Navigating away or picking a different row just discards this, matching
@@ -383,6 +387,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                   }}
                 />
                 <FilterMenu types={types} counts={filterCounts} value={chosen} onChange={setFilter} />
+                <SortMenu sort={sort} onPick={(column) => keepSort(pickSort(sort, column))} />
               </div>
               <FilterChips value={chosen} onChange={setFilter} />
               {/* Under the filters, so a scan starting or ending moves the table, never the buttons and chips the pointer is on. */}
