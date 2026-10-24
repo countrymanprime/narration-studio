@@ -27,7 +27,8 @@
   "no_link.stop": {
     "outcome": "stopped",
     "restored": 0,
-    "kept": 0
+    "kept": 0,
+    "undoPoints": 0
   },
   "not_armed.arm": {
     "outcome": "armed",
@@ -43,7 +44,8 @@
   "not_armed.stop": {
     "outcome": "stopped",
     "restored": 0,
-    "kept": 0
+    "kept": 0,
+    "undoPoints": 0
   },
   "other_armed.arm": {
     "outcome": "armed",
@@ -59,7 +61,8 @@
   "other_armed.stop": {
     "outcome": "stopped",
     "restored": 0,
-    "kept": 0
+    "kept": 0,
+    "undoPoints": 0
   },
   "ready.arm": {
     "outcome": "armed",
@@ -75,7 +78,8 @@
   "ready.stop": {
     "outcome": "stopped",
     "restored": 0,
-    "kept": 0
+    "kept": 0,
+    "undoPoints": 1
   },
   "recording_elsewhere.arm": {
     "outcome": "refused",
@@ -90,7 +94,8 @@
   "recording_elsewhere.stop": {
     "outcome": "stopped",
     "restored": 0,
-    "kept": 0
+    "kept": 0,
+    "undoPoints": 0
   },
   "several_armed.arm": {
     "outcome": "armed",
@@ -106,7 +111,8 @@
   "several_armed.stop": {
     "outcome": "stopped",
     "restored": 0,
-    "kept": 0
+    "kept": 0,
+    "undoPoints": 0
   },
   "track_missing.arm": {
     "outcome": "refused",
@@ -121,6 +127,7 @@
   "track_missing.stop": {
     "outcome": "stopped",
     "restored": 0,
-    "kept": 0
+    "kept": 0,
+    "undoPoints": 0
   }
 }

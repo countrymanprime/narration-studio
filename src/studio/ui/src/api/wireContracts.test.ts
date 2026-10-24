@@ -3535,6 +3535,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(refused.refused).toBe((await off.dawCapabilities()).capabilities.transport_sync.message);
   });
 
+  it('a stopped take is record_take: its undo point is reported, it is the last action, and the mock undoes it as the host answers', async () => {
+    expectMatches(dawResultSchema, readGolden('daw-undo-last-take-done.json'), 'daw-undo-last-take-done.json');
+    expect(readGolden('daw-undo-last-take-done.json')).toMatchObject({
+      ok: true,
+      changed: true,
+      message: undoneAnswer('REAPER', 'record_take', 1, 1),
+      undoSteps: 0,
+    });
+    expect(undoneAnswer('REAPER', 'record_take', 2, 2)).toBe('Undid the take in REAPER.');
+    const api = createMockApi({}, { daw: { toggles: { undo_last: 'on' } } });
+    expect(await api.dawLastAction('record_take')).toBe('other');
+    const stopped = await api.readAloudRecordStop();
+    expectMatches(readAloudRecordingSchema, stopped, 'mock record stop');
+    expect(stopped).toMatchObject({ outcome: 'stopped', undoPoints: 1 });
+    expect(await api.dawLastAction('record_take')).toBe('this');
+    expect(await api.dawUndoLast('record_take', 1)).toEqual(readGolden('daw-undo-last-take-done.json'));
+    expect(await api.dawLastAction('record_take')).toBe('other');
+  });
+
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-this.json'))).toBe('this');
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-unknown.json'))).toBe('unknown');

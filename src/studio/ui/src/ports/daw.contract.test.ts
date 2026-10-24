@@ -98,6 +98,7 @@ const GOLDEN_FILES = [
   'daw-roll-refused-confirm.json',
   'daw-roll-refused-stale.json',
   'daw-delete-range-done.json',
+  'daw-undo-last-take-done.json',
   'daw-delete-range-gap.json',
   'daw-delete-range-refused-stale.json',
   'daw-delete-range-refused-capability.json',
@@ -236,6 +237,7 @@ function hostApi(): DawHostApi {
   const known = DAW_PROJECT;
   // DawLastAction and DawUndoLast read REAPER's undo history, which the cuts this host answered fill: how many are on top.
   let cutsOnTop = 0;
+  let takesOnTop = 0;
   return {
     ...pickupsHost(read('daw-capabilities-reaper.json', dawCapabilitiesSchema)).api,
     dawCapabilities: () => Promise.resolve(read('daw-capabilities-reaper.json', dawCapabilitiesSchema)),
@@ -254,7 +256,10 @@ function hostApi(): DawHostApi {
       if (at !== 30) return Promise.reject(new Error(`no golden for a record start at ${at} s`));
       return Promise.resolve(answer('started'));
     },
-    readAloudRecordStop: () => Promise.resolve(recording('ready.stop')),
+    readAloudRecordStop: () => {
+      takesOnTop += 1;
+      return Promise.resolve(recording('ready.stop'));
+    },
     workspaceUseTake: (chapterId, _first, _last, candidateId) =>
       Promise.resolve(
         read(
@@ -296,11 +301,18 @@ function hostApi(): DawHostApi {
     },
     // DawLastAction and DawUndoLast on REAPER (#1711): a cut on top is the this golden; with none, an undo is the not-last golden; one
     // cut undone is the done golden and two of three the partial one. Anything else has no golden.
+    // A stopped take (record_take) is on top until it is undone: the this golden, then the take golden for one undo of it.
     dawLastAction: (kind) => {
+      if (kind === 'record_take') return Promise.resolve(takesOnTop > 0 ? read('daw-last-action-this.json', dawLastActionSchema) : 'other');
       if (kind !== 'cut_range' || cutsOnTop === 0) return Promise.reject(new Error(`no golden for the last action of ${kind} with ${cutsOnTop} cuts`));
       return Promise.resolve(read('daw-last-action-this.json', dawLastActionSchema));
     },
     dawUndoLast: (kind, steps) => {
+      if (kind === 'record_take') {
+        if (takesOnTop === 0 || steps !== 1) return Promise.reject(new Error(`no golden for undoing ${steps} points of ${takesOnTop} takes`));
+        takesOnTop = 0;
+        return Promise.resolve(read('daw-undo-last-take-done.json', dawResultSchema));
+      }
       if (kind !== 'cut_range') return Promise.reject(new Error(`${kind} is not a kind of action the app can read or undo in the DAW`));
       if (!Number.isInteger(steps) || steps < 1 || steps > 12) return Promise.resolve(refusal(UNDO_STEPS_ANSWER));
       if (cutsOnTop === 0) return Promise.resolve(read('daw-undo-last-refused-not-last.json', dawResultSchema));
@@ -819,6 +831,14 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     observe: (daw) => daw.playQuietest('C:/Renders/Silent/Chapter 01.wav'),
   },
   { name: 'stop-is-answered-alike', observe: (daw) => daw.recordStop() },
+  {
+    name: 'record-take: a stopped take reports its undo point, is the DAW last action, and one undo takes it back, alike',
+    observe: async (daw) => {
+      await daw.recordStart('chapter-1');
+      const stopped = await daw.recordStop();
+      return [stopped, await daw.lastAction('record_take'), await daw.undoLast('record_take', stopped.undoSteps), await daw.lastAction('record_take')];
+    },
+  },
   { name: 'unknown-finding-is-rejected-alike', observe: (daw) => daw.addMarker('no-such-finding') },
   { name: 'known-finding-is-accepted-alike', observe: (daw) => daw.addMarker('finding-1') },
   {

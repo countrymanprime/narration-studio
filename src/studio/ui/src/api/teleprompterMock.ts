@@ -243,7 +243,8 @@ function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 's
       changed: seed !== 'ready',
     };
   }
-  if (kind === 'stop') return { outcome: 'stopped', restored: 0, kept: 0 };
+  // REAPER leaves one "Recorded media" point per stop (docs/research/reaper-recording-undo-2026-10-23.md).
+  if (kind === 'stop') return { outcome: 'stopped', restored: 0, kept: 0, undoPoints: 1 };
   switch (seed) {
     case 'ready':
       return { outcome: 'started', trackGuid: MOCK_REAPER_TRACK, position: 0 };

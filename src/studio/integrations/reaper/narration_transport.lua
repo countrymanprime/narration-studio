@@ -23,6 +23,12 @@
 -- with CSurf_OnRecord, pressed once after REAPER was seen stopped, since it is a toggle; RECORD_STARTED follows once
 -- GetPlayState reports recording, which may be a few defer cycles later. An optional third argument `end` first moves
 -- the edit cursor to the end of the last item on the named track (0 when empty), once every check has passed.
+--
+-- RECORD_STOPPED and RECORD_ENDED end with undoPoints: how many points REAPER's undo history gained while the recording ran,
+-- read as the rise of GetProjectStateChangeCount from the start to the stop (REAPER 7.82 added one, "Recorded media", per
+-- stop, docs/research/reaper-recording-undo-2026-10-23.md; a roll's stop is one more). The bridge also keeps, for
+-- narration_undo.lua's record_take, the change count and the top label right after the stop: the take is REAPER's last
+-- action while both are unchanged. The label is REAPER's own text and is never written to events.log (threat model row 5f).
 
 local core = ...
 local event = core.event
@@ -95,10 +101,21 @@ local function restore_arms(state)
   return restored, kept
 end
 
--- Ends the recording this bridge started: forgets it and puts the arms back.
+-- Ends the recording this bridge started: forgets it, puts the arms back and remembers the undo points it left
+-- (state.last_take, nil when it left none). Answers the arms restored and kept, and the undo points.
 local function finish(state)
+  local record = state.recording
   state.recording = nil
-  return restore_arms(state)
+  local restored, kept = restore_arms(state)
+  local count = reaper.GetProjectStateChangeCount(0)
+  local points = record and record.changes_before and math.max(0, count - record.changes_before) or 0
+  local label = reaper.Undo_CanUndo2(0)
+  if points > 0 and type(label) == 'string' and label ~= '' then
+    state.last_take = { count = count, label = label, points = points }
+  else
+    state.last_take = nil
+  end
+  return restored, kept, points
 end
 
 -- A time in seconds written as plain decimal digits (no sign, exponent, hex or comma), at most MAX_SECONDS, or nil. The host
@@ -291,8 +308,8 @@ local function watch(session_dir, state, record)
       reaper.defer(tick)
       return
     end
-    local restored, kept = finish(state)
-    event(session_dir, 'RECORD_ENDED', record.run_id, restored, kept)
+    local restored, kept, points = finish(state)
+    event(session_dir, 'RECORD_ENDED', record.run_id, restored, kept, points)
   end
   reaper.defer(tick)
 end
@@ -349,7 +366,13 @@ local function record_start(session_dir, state, run_id, guid_text, start_rule)
     -- Only now that every check passed. Like punch_to: scroll the view, do not seek playback, open no undo block.
     reaper.SetEditCurPos(track_end(target), true, false)
   end
-  local record = { run_id = run_id, track = track_guid(target), position = reaper.GetCursorPosition(), waited = 0 }
+  local record = {
+    run_id = run_id,
+    track = track_guid(target),
+    position = reaper.GetCursorPosition(),
+    waited = 0,
+    changes_before = reaper.GetProjectStateChangeCount(0),
+  }
   reaper.CSurf_OnRecord()
   state.recording = record
   if recording() then
@@ -371,8 +394,8 @@ local function record_stop(session_dir, state, run_id)
   if recording() then
     reaper.OnStopButton()
   end
-  local restored, kept = finish(state)
-  event(session_dir, 'RECORD_STOPPED', run_id, restored, kept)
+  local restored, kept, points = finish(state)
+  event(session_dir, 'RECORD_STOPPED', run_id, restored, kept, points)
 end
 
 return function(registry)
@@ -405,5 +428,13 @@ return function(registry)
   -- The recording this bridge started, or nil: narration_roll.lua restarts only that one (docs/reference/daw/capabilities.md).
   registry.transport_recording = function()
     return state.recording
+  end
+  -- The undo points the last recording this bridge started left, or nil: what narration_undo.lua's record_take may undo.
+  -- forget is called once they are undone, so a second undo never reaches an older recording of the narrator's.
+  registry.transport_last_take = function()
+    return state.last_take
+  end
+  registry.transport_forget_take = function()
+    state.last_take = nil
   end
 end

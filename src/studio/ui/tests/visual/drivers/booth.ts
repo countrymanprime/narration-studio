@@ -230,6 +230,16 @@ export const boothDrivers: Record<string, Driver> = {
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   recording: (page) => startTake(page),
+  // Stopped through Stop once the start guard has passed: the take is in the history, and the message offers its Undo.
+  'take-saved': async (page) => {
+    await startTake(page);
+    await page.clock.runFor(1_500);
+    await page.getByRole('button', { name: /^Stop$/ }).click();
+    await record(page).waitFor();
+    await page.getByText('Take saved', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Undo' }).waitFor();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
   'leave-dialog': async (page) => {
     await startTake(page);
     await page.keyboard.press('Escape');

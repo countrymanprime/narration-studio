@@ -290,6 +290,39 @@ function Fake:render()
   end
 end
 
+-- Recording ------------------------------------------------------------------------------------------------------
+
+-- REAPER starts recording on the armed tracks from the edit cursor. What the project held then is kept, so the stop's
+-- undo point can put it back. A recording is not an item until it stops (docs/reference/daw/reaper.md).
+function Fake:begin_recording()
+  local armed = {}
+  for _, track in ipairs(self.tracks) do
+    if track.armed then
+      armed[#armed + 1] = track
+    end
+  end
+  self.play_state = 5
+  self.recording_from = { snapshot = self:snapshot(), position = self.cursor, tracks = armed }
+end
+
+-- A stop, from the Stop button, a second CSurf_OnRecord or (stop_recording called by a test) the narrator in REAPER.
+-- REAPER 7.82 made each armed track's recording an item (fake.record_seconds long, 1 s unless a test sets it), added one
+-- undo point labelled "Recorded media" and raised the change count by one; one Undo took the items away
+-- (docs/research/reaper-recording-undo-2026-10-23.md). A recording that leaves nothing, with no track armed, adds no point.
+function Fake:stop_recording()
+  local from = self.recording_from
+  self.recording_from = nil
+  self.play_state = 0
+  if not from or #from.tracks == 0 then
+    return
+  end
+  for _, track in ipairs(from.tracks) do
+    self:add_item(track, { position = from.position, length = self.record_seconds or 1, source = 'recorded.wav' })
+  end
+  self.undo[#self.undo + 1] = { label = 'Recorded media', snapshot = from.snapshot }
+  self.change_count = self.change_count + 1
+end
+
 -- Deferred queue --------------------------------------------------------------------------------------------------
 
 -- Runs every function queued at the time of the call once (one REAPER "frame"). Functions queued while running
@@ -299,7 +332,7 @@ function Fake:pump()
     self.record_pending = self.record_pending - 1
     if self.record_pending <= 0 then
       self.record_pending = nil
-      self.play_state = 5
+      self:begin_recording()
     end
   end
   local queue = self.deferred
@@ -641,6 +674,8 @@ function Fake:add_project_api(api)
     if not entry then
       return 0
     end
+    -- REAPER 7.82 raised the change count on an Undo (docs/research/reaper-recording-undo-2026-10-23.md).
+    fake.change_count = fake.change_count + 1
     if entry.snapshot then
       fake:restore(entry.snapshot)
     end
@@ -776,16 +811,16 @@ function Fake:add_transport_api(api)
   function api.CSurf_OnRecord()
     fake.calls[#fake.calls + 1] = { name = 'CSurf_OnRecord' }
     if math.floor(fake.play_state / 4) % 2 == 1 then
-      fake.play_state = 0
+      fake:stop_recording()
     elseif fake.record_delay_ticks then
       fake.record_pending = fake.record_delay_ticks
     elseif not fake.record_fails then
-      fake.play_state = 5
+      fake:begin_recording()
     end
   end
   function api.OnStopButton()
     fake.calls[#fake.calls + 1] = { name = 'OnStopButton' }
-    fake.play_state = 0
+    fake:stop_recording()
   end
   function api.GetTrackGUID(track)
     return track.guid

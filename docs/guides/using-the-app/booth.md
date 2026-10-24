@@ -183,6 +183,17 @@ reading ("Stop recording?", a menu) does not stop the DAW: the pill then says **
 chapter cannot be changed until you stop, and the chapter arrows and the chapter list say so when you hover or focus them. A screen reader hears nothing when a take starts, so the Booth never speaks into an open microphone (turn on **Start tone** in [Settings](settings.md) for a beep before each take); once the take stops it says "Stopped. Recorded 00:42." When listening reaches the last word of the chapter and stops, the take stops with it and a message says
 **Take saved**. Reading on past the end keeps the take running.
 
+### Undoing a take
+
+When you stop a take in a DAW, a message says **Take saved** with **Undo**, and the take is in the [undo history](navigation.md) as
+"Recorded a take of <chapter>", so `Ctrl+Z` or Undo in the jump menu reaches it from any page. Undo takes the take back in the DAW, as
+its own Edit > Undo would: the recorded audio is gone, and an earlier read the take split is whole again. It works only while the
+take is still the DAW's last action. Once you change something in the DAW after it, Undo leaves the take alone and says to use
+Edit > Undo in the DAW. A take you start and stop in the DAW itself is not in the app's History, and neither is a built-in
+recorder's take; its file stays in `Recordings`.
+
+![Booth - a take just stopped in the DAW: Record is back and the Take saved message offers Undo](../../images/ui/booth-take-saved.webp)
+
 **R** punches and rolls from the word you are on: the DAW plays in from a little before it and records from there, keeping the
 earlier audio as a take. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
 again from ¶ n?") and holds the take while it asks.
@@ -295,7 +306,7 @@ chapter when needed (not during a take). A line the recording check found is tag
 ![Booth opened from Pickups: the pickup session in the top bar, at the line to record](../../images/ui/booth-pickup-session.webp)
 
 When a take stops, the lines it read over are marked recorded, and the message says how many ("Take saved · 2 pickups marked
-recorded") with **Undo**.
+recorded") with **Undo**. With a DAW, that **Undo** takes the take back in the DAW first, then opens the lines again.
 
 ## Suspected lines
 

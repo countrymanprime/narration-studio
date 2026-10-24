@@ -141,6 +141,33 @@ describe('suspected lines feed Pickups', () => {
     expect(accepted.size).toBe(0);
   });
 
+  it('with a DAW take, the toast that says the take is saved undoes the take first; a refusal leaves the lines', async () => {
+    const { review, wrapper, accepted } = host();
+    const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [skipped, again] }), { wrapper });
+    const refusedTake = vi.fn(async () => ({ ok: false as const, refusal: { code: 'daw-last-action', reason: 'not the last action' } }));
+    await act(async () => {
+      await result.current.takeStopped({ ...read('p9'), undoTake: refusedTake, entry: 3 });
+    });
+    expect(toastUndo).toHaveBeenCalledWith('Take saved · 1 suspected line added to Pickups', expect.any(Function), { entry: 3 });
+    expect(await toastUndo.mock.calls[0][1]()).toEqual({ ok: false, refusal: { code: 'daw-last-action', reason: 'not the last action' } });
+    expect([...accepted]).toEqual(['c8:p9:skipped:2-5']);
+    expect(review).toHaveBeenCalledTimes(1);
+  });
+
+  it('with a DAW take but another toast already saying it is saved, this Undo leaves the take alone', async () => {
+    const { wrapper } = host();
+    const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [skipped, again] }), { wrapper });
+    const undoTake = vi.fn(async () => ({ ok: true as const, value: null }));
+    await act(async () => {
+      await result.current.takeStopped({ ...read('p9'), saidSaved: true, undoTake, entry: 3 });
+    });
+    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function));
+    expect((await toastUndo.mock.calls[0][1]()).ok).toBe(true);
+    expect(undoTake).not.toHaveBeenCalled();
+  });
+
   it('a take that does not reach a flagged place adds nothing, and the same place read again is added once', async () => {
     const { review, wrapper } = host();
     const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);

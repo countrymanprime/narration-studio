@@ -16,6 +16,13 @@
 -- Undo_DoUndo2(0); one that answers 0 stops the run. It answers UNDONE_LAST|run|kind|steps|undone, undone being how many points
 -- it undid (0 when the top was not the kind's: nothing changed). It opens no undo block, and refuses while REAPER records.
 --
+-- record_take is the take the app recorded last (record_start, then record_stop or the narrator's Stop in REAPER). Its points
+-- are REAPER's own ("Recorded media" in REAPER 7.82), so no label is fixed for it: narration_transport.lua keeps the change
+-- count, the top label and how many points the take left, read right after the stop. It is this while GetProjectStateChangeCount
+-- and the top label are both still those; undo_last undoes at most the take's points and then forgets the take, so a second
+-- undo never reaches an older recording the narrator made. Seen in REAPER 7.82 on Linux, 2026-10-23: one Undo_DoUndo2 took a
+-- stopped recording away, and put an item it had split back whole (docs/research/reaper-recording-undo-2026-10-23.md).
+--
 -- Neither answer carries a label read from the project: it is the narrator's text (threat model row 5f), and the host needs
 -- only whether it matched.
 --
@@ -56,18 +63,35 @@ local function on_top(label)
   return reaper.Undo_CanUndo2(0) == label
 end
 
-local function last_action(session_dir, run_id, kind)
+local RECORD_TAKE = 'record_take'
+
+-- What a kind may undo: { label, limit, take }, limit being the most points (nil: MAX_STEPS) and take whether it is the app's
+-- last recording, which is forgotten once undone. nil for a kind this bridge does not know. A record_take with no take to undo,
+-- or whose take is no longer REAPER's last action, has no label, so it is never on top.
+local function mark(registry, kind)
+  if kind == RECORD_TAKE then
+    local last = registry.transport_last_take and registry.transport_last_take()
+    if last and reaper.GetProjectStateChangeCount(0) == last.count then
+      return { label = last.label, limit = last.points, take = true }
+    end
+    return { label = false, limit = 0, take = true }
+  end
   local label = core.undo_label(kind)
-  if not label then
+  return label and { label = label } or nil
+end
+
+local function last_action(session_dir, registry, run_id, kind)
+  local found = mark(registry, kind)
+  if not found then
     event(session_dir, 'ERROR', run_id, BAD_KIND)
     return
   end
-  event(session_dir, 'LAST_ACTION', run_id, kind, on_top(label) and 'this' or 'other')
+  event(session_dir, 'LAST_ACTION', run_id, kind, found.label and on_top(found.label) and 'this' or 'other')
 end
 
-local function undo_last(session_dir, run_id, kind, steps_text)
-  local label = core.undo_label(kind)
-  if not label then
+local function undo_last(session_dir, registry, run_id, kind, steps_text)
+  local found = mark(registry, kind)
+  if not found then
     event(session_dir, 'ERROR', run_id, BAD_KIND)
     return
   end
@@ -80,8 +104,10 @@ local function undo_last(session_dir, run_id, kind, steps_text)
     event(session_dir, 'ERROR', run_id, RECORDING)
     return
   end
+  local label = found.label
+  local most = math.min(steps, found.limit or steps)
   local undone = 0
-  while undone < steps and on_top(label) do
+  while label and undone < most and on_top(label) do
     local done = reaper.Undo_DoUndo2(0)
     if not done or done == 0 then
       break
@@ -90,15 +116,18 @@ local function undo_last(session_dir, run_id, kind, steps_text)
   end
   if undone > 0 then
     reaper.UpdateArrange()
+    if found.take then
+      registry.transport_forget_take()
+    end
   end
   event(session_dir, 'UNDONE_LAST', run_id, kind, steps, undone)
 end
 
 return function(registry)
   registry.register('last_action', function(ctx, args)
-    last_action(ctx.session_dir, args[1] or '', args[2])
+    last_action(ctx.session_dir, registry, args[1] or '', args[2])
   end)
   registry.register('undo_last', function(ctx, args)
-    undo_last(ctx.session_dir, args[1] or '', args[2], args[3])
+    undo_last(ctx.session_dir, registry, args[1] or '', args[2], args[3])
   end)
 end

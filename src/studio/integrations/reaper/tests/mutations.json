@@ -500,8 +500,8 @@
   {
     "name": "a recording the narrator stops keeps the arms_only arms",
     "file": "narration_transport.lua",
-    "find": "    local restored, kept = finish(state)\n    event(session_dir, 'RECORD_ENDED'",
-    "replace": "    local restored, kept = 0, 0\n    event(session_dir, 'RECORD_ENDED'"
+    "find": "    local restored, kept, points = finish(state)\n    event(session_dir, 'RECORD_ENDED'",
+    "replace": "    local restored, kept, points = 0, 0, 0\n    event(session_dir, 'RECORD_ENDED'"
   },
   {
     "name": "a stale track is armed in place of another",
@@ -2280,14 +2280,14 @@
   {
     "name": "undo_last undoes whatever is on top, not only the kind's label",
     "file": "narration_undo.lua",
-    "find": "  while undone < steps and on_top(label) do\n",
-    "replace": "  while undone < steps do\n"
+    "find": "  while label and undone < most and on_top(label) do\n",
+    "replace": "  while label and undone < most do\n"
   },
   {
     "name": "undo_last reads the top label only before the first step",
     "file": "narration_undo.lua",
-    "find": "  while undone < steps and on_top(label) do\n",
-    "replace": "  local first = on_top(label)\n  while undone < steps and first do\n"
+    "find": "  while label and undone < most and on_top(label) do\n",
+    "replace": "  local first = label and on_top(label)\n  while undone < most and first do\n"
   },
   {
     "name": "undo_last matches any label of the app",
@@ -2298,8 +2298,8 @@
   {
     "name": "undo_last takes a label the host sent in place of a kind",
     "file": "narration_undo.lua",
-    "find": "local function undo_last(session_dir, run_id, kind, steps_text)\n  local label = core.undo_label(kind)\n",
-    "replace": "local function undo_last(session_dir, run_id, kind, steps_text)\n  local label = core.undo_label(kind) or kind\n"
+    "find": "  local label = core.undo_label(kind)\n  return label and { label = label } or nil\n",
+    "replace": "  local label = core.undo_label(kind) or kind\n  return label and { label = label } or nil\n"
   },
   {
     "name": "undo_last undoes while REAPER records",
@@ -2322,7 +2322,7 @@
   {
     "name": "last_action answers this whatever is on top",
     "file": "narration_undo.lua",
-    "find": "on_top(label) and 'this' or 'other'",
+    "find": "found.label and on_top(found.label) and 'this' or 'other'",
     "replace": "'this'"
   },
   {
@@ -2528,5 +2528,41 @@
     "file": "narration_ui_bridge.lua",
     "find": "if session_dir == '' or not core.file_exists(core.join(session_dir, M.RUNNING_FILE)) then",
     "replace": "if session_dir == '' then"
+  },
+  {
+    "name": "record_take is REAPER's last action even after the change count moved",
+    "file": "narration_undo.lua",
+    "find": "    if last and reaper.GetProjectStateChangeCount(0) == last.count then\n",
+    "replace": "    if last then\n"
+  },
+  {
+    "name": "record_take undoes more points than the take left",
+    "file": "narration_undo.lua",
+    "find": "  local most = math.min(steps, found.limit or steps)\n",
+    "replace": "  local most = steps\n"
+  },
+  {
+    "name": "record_take is not forgotten once undone",
+    "file": "narration_undo.lua",
+    "find": "    if found.take then\n      registry.transport_forget_take()\n    end\n",
+    "replace": ""
+  },
+  {
+    "name": "a take with no undo point is still kept for record_take",
+    "file": "narration_transport.lua",
+    "find": "  if points > 0 and type(label) == 'string' and label ~= '' then\n",
+    "replace": "  if type(label) == 'string' and label ~= '' then\n"
+  },
+  {
+    "name": "the take's undo points count edits made before it started",
+    "file": "narration_transport.lua",
+    "find": "  local points = record and record.changes_before and math.max(0, count - record.changes_before) or 0\n",
+    "replace": "  local points = count\n"
+  },
+  {
+    "name": "record_take with no take of the app's is this",
+    "file": "narration_undo.lua",
+    "find": "    return { label = false, limit = 0, take = true }\n",
+    "replace": "    return { label = 'Recorded media', limit = 1, take = true }\n"
   }
 ]

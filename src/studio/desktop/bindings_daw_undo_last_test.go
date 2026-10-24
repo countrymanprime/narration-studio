@@ -97,7 +97,7 @@ func TestDawUndoLastPassesOnTheRolesAnswers(t *testing.T) {
 		t.Errorf("no role = %+v, %v", got, err)
 	}
 	role := &fakeUndoer{answer: undoneInREAPER()}
-	for _, kind := range []string{"", "fx_range", brand.Name + ": delete words"} {
+	for _, kind := range []string{"", "fx_range", brand.Name + ": delete words", "Recorded media"} {
 		if _, err := dawUndoLastIn(t.Context(), "REAPER", available(), role, kind, 1); !errors.Is(err, dawport.ErrActionKind) || len(role.kinds) != 0 {
 			t.Errorf("kind %q: err = %v (asked %v); want ErrActionKind", kind, err, role.kinds)
 		}
@@ -146,7 +146,7 @@ func TestDawUndoLastRefusesWithTheResolversSentenceAndAsksNothing(t *testing.T) 
 }
 
 // TestDawUndoLastContractGoldenIsCurrent pins the bindings' answers: a cut undone in REAPER, two of three, REAPER's refusal when its
-// last action is not the cut, the undo_last capability's refusal, and DawLastAction's this and unknown. UPDATE_CONTRACTS=1 rewrites
+// last action is not the cut, the undo_last capability's refusal, a take undone in REAPER, and DawLastAction's this and unknown. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/daw-undo-last-*.json and daw-last-action-*.json.
 func TestDawUndoLastContractGoldenIsCurrent(t *testing.T) {
 	refusedCapability := dawport.Support{Message: "Experimental DAW actions are off. Turn them on in Settings to undo the app's last action."}
@@ -169,6 +169,13 @@ func TestDawUndoLastContractGoldenIsCurrent(t *testing.T) {
 			contractfile.Check(t, name, got)
 		})
 	}
+	t.Run("daw-undo-last-take-done", func(t *testing.T) {
+		got, err := dawUndoLastIn(t.Context(), "REAPER", available(), &fakeUndoer{answer: dawport.OK("Undid the take in REAPER.", true).WithUndoSteps(0)}, "record_take", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		contractfile.Check(t, "daw-undo-last-take-done", got)
+	})
 	for name, support := range map[string]dawport.Support{"daw-last-action-this": available(), "daw-last-action-unknown": refusedCapability} {
 		t.Run(name, func(t *testing.T) {
 			got, err := dawLastActionIn(t.Context(), support, &fakeUndoer{last: dawport.LastActionThis}, "cut_range")
