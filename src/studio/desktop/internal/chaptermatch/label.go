@@ -9,6 +9,8 @@ import (
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
+
+	"desktop/internal/compare"
 )
 
 // This file is the canonicalising pre-pass of the DAW chapter-track auto-sync
@@ -96,7 +98,7 @@ func LabelTokens(text string) ([]string, Marker) {
 		folded = text
 	}
 	folded = letterThenDigits.ReplaceAllString(folded, "$1 $2")
-	raw := tokenPattern.FindAllString(quoteNormalizer.Replace(folded), -1)
+	raw := compare.RawTokens(folded)
 	tokens := make([]string, 0, len(raw))
 	for _, token := range raw {
 		tokens = append(tokens, strings.ToLower(token))
@@ -188,10 +190,7 @@ func ordinalAhead(tokens []string, i int) bool {
 	return false
 }
 
-func isNumberWord(token string) bool {
-	_, ok := numberWords[token]
-	return ok
-}
+func isNumberWord(token string) bool { return compare.IsNumberWord(token) }
 
 func isDigits(token string) bool {
 	if token == "" {
@@ -267,15 +266,7 @@ func toRoman(value int) string {
 
 // canonicalToken is tokenize's per-token folding: the homophone canon and the
 // possessive.
-func canonicalToken(token string) string {
-	if canon, ok := homophoneCanon[token]; ok {
-		token = canon
-	}
-	if strings.HasSuffix(token, "'s") && len(token) > 2 {
-		token = token[:len(token)-2] + "s"
-	}
-	return token
-}
+func canonicalToken(token string) string { return compare.FoldToken(token) }
 
 func trimLeadingZeros(token string) string {
 	if !isDigits(token) {

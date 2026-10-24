@@ -50,6 +50,11 @@ func rangeChainName(chain string) bool {
 	return plainChainName(chain) && !strings.ContainsFunc(chain, unicode.IsControl)
 }
 
+// onRangeChain is a chain name RemoveFXRange and the edits take: one rangeChainName allows, or ChosenInREAPER.
+func onRangeChain(chain string) bool {
+	return chain == ChosenInREAPER || rangeChainName(chain)
+}
+
 // ApplyFXRange puts the chain, named as ListFXChains names it, on project seconds start..end of itemGUID: the item is
 // split at both ends and the chain goes on the middle piece's active take, in one undo block, with a fade of fadeMs at
 // each new seam. The Lua resolves the name inside FXChains itself; this refuses a name that could not be one
@@ -89,7 +94,7 @@ func (a *Actions) RemoveFXRange(ctx context.Context, itemGUID, chain string) (Ra
 	if normalizeGUID(itemGUID) == "" {
 		return RangeFXRemoved{}, fmt.Errorf("%w: no item", ErrBadFXRange)
 	}
-	if !rangeChainName(chain) {
+	if !onRangeChain(chain) {
 		return RangeFXRemoved{}, ErrBadChainName
 	}
 	events, err := a.request(ctx, "remove_fx_range", []string{"RANGE_FX_REMOVED", "ITEM_STALE"}, itemGUID, chain)
@@ -181,7 +186,7 @@ func checkFXRangeTarget(itemGUID, chain string) error {
 	if normalizeGUID(itemGUID) == "" {
 		return fmt.Errorf("%w: no item", ErrBadFXRange)
 	}
-	if !rangeChainName(chain) {
+	if !onRangeChain(chain) {
 		return ErrBadChainName
 	}
 	return nil

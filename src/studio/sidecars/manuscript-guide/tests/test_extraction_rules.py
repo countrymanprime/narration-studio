@@ -104,10 +104,13 @@ def _entity(name: str, category: str = "Character", aliases: tuple[str, ...] = (
     }
 
 
-def _write_bible(root: Path, entities: list[dict], cues: list[dict] | None = None) -> Path:
+def _write_bible(root: Path, entities: list[dict], cues: list[dict] | None = None, types: list[dict] | None = None) -> Path:
     path = root / "ManuscriptGuide" / "manuscript_guide.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"schema_version": guide.SCHEMA_VERSION, "entities": entities, "dialogue_cues": cues or []}), encoding="utf-8")
+    document = {"schema_version": guide.SCHEMA_VERSION, "entities": entities, "dialogue_cues": cues or []}
+    if types is not None:
+        document["types"] = types
+    path.write_text(json.dumps(document), encoding="utf-8")
     return path
 
 
@@ -223,6 +226,23 @@ class EntriesAliasesAndSpeakersTests(unittest.TestCase):
             self.assertEqual(["“We ride at dawn,” Ada said", "Arelian said, “Then we ride together.”"], [s["quotes"][0]["text"] for s in speakers])
             self.assertEqual(["p-000003", "p-000004"], [s["quotes"][0]["paragraphId"] for s in speakers])
 
+    def test_a_speech_tag_naming_an_entry_of_any_speaking_type_is_a_speaker_suggestion(self):
+        types = [{"name": "Character", "colour": "green", "speaks": True}, {"name": "Crew", "colour": "blue", "speaks": True}]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manuscript = _write_manuscript(root, DAWNSPIRE)
+            bible = _write_bible(root, [_entity("Ada", "Crew"), _entity("Captain Arelian", "Character", ("Arelian",))], types=types)
+            speakers = [s["payload"]["speaker"] for s in _suggest(manuscript, bible) if s["payload"]["kind"] == "speaker"]
+            self.assertEqual(["Ada", "Captain Arelian"], speakers)
+
+    def test_a_needs_review_name_is_never_a_speaker_suggestion(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manuscript = _write_manuscript(root, DAWNSPIRE)
+            bible = _write_bible(root, [_entity("Ada", "Needs Review"), _entity("Captain Arelian", aliases=("Arelian",))])
+            speakers = [s["payload"]["speaker"] for s in _suggest(manuscript, bible) if s["payload"]["kind"] == "speaker"]
+            self.assertEqual(["Captain Arelian"], speakers)
+
     def test_a_cue_the_story_bible_already_attributes_is_not_offered_again(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -323,9 +343,9 @@ class NothingInALockedEntryTests(unittest.TestCase):
 
 # The SHA-256 of the Story Bible `build` writes for the Alice fixture (rules only, pronunciation stubbed, the
 # timestamp and the absolute manuscript path left out), taken on main before this slice and again when the product name in the
-# fixture manuscript changed (it moves `source.sha256` only). A change to it means `suggest`
-# changed the build.
-ALICE_BUILD_SHA256 = "fba60a5280f72ef610011a311c0cd8ad6513a14d1181b7d8f209acd5bd44296a"
+# fixture manuscript changed (it moves `source.sha256` only), and again when the build's cues began suggesting Needs Review and
+# nearby speakers (it moves `dialogue_cues` only). A change to it means `suggest` changed the build.
+ALICE_BUILD_SHA256 = "a121f7c6ef3ec3bef4d453e9aa69a2dcadc4d452e02e803408043c28aa83e283"
 
 
 class BuildIsUnchangedTests(unittest.TestCase):

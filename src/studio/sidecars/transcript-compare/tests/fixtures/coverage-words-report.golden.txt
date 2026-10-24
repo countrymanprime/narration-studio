@@ -1,0 +1,3 @@
+COVERAGE_WORDS|{"index":0,"itemGuid":"{A}","words":"reused"}
+COVERAGE_WORDS|{"index":2,"itemGuid":"{B}","words":"transcribed"}
+COVERAGE_UNSURE|{"end":11.45,"itemGuid":"{A}","itemIndex":0,"minScore":0.2,"start":10.9,"words":2}

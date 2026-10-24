@@ -216,7 +216,14 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'levels-menu-preroll',
     description:
-      "Booth, the Levels menu open (no Experimental switch needed): the Punch part is REAPER's own pre-roll, read only: off on record, 2 measures, one measure in seconds at the cursor, and where it is set in REAPER; with no track armed in REAPER, so the input meter says so instead of a level",
+      'Booth, the Levels menu open (no Experimental switch needed): the Punch part is REAPER\'s own pre-roll, read only, in one line ("Pre-roll off · 2 measures (4.0 s)") with an info button for the explanation; with no track armed in REAPER, so the input meter says so instead of a level',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-preroll-about',
+    description:
+      'Booth, the Levels menu\'s Punch line ("Pre-roll off · 2 measures (4.0 s)") with its info button opened from the keyboard: the note under it, inside the menu, says what REAPER\'s pre-roll does, how long one measure is at the cursor, and where to change it in REAPER',
     ...REFLOW,
   },
   {
@@ -252,6 +259,13 @@ export const boothStates: StateEntry[] = [
     state: 'bookmarks-ribbon',
     description:
       'Booth (as setup) after B: the word being read is bookmarked, a ribbon shows in the margin to the right of the text level with its line, and the toast says "Bookmark added." with Undo',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'page-break-stop',
+    description:
+      'Booth (as setup) with the reading stepped down to the first page break (250 words): a dashed hairline across the text and a vertical "Page 2" in the right margin; right-clicking it and choosing Read to here puts the chapter\'s stopping place there, a chequered-flag ribbon, and the toast says "Stopping place marked." with Undo',
     ...REFLOW,
   },
   {

@@ -41,7 +41,7 @@ def test_find_chapter_by_track_name_matches_the_shared_cases(case):
 def test_the_go_port_carries_the_same_homophone_list():
     # The Go port embeds the built-in homophone groups as a CSV (a Go embed
     # cannot reach Python data); this is the guard that the two stay the same.
-    go_copy = Path(__file__).resolve().parents[5] / "src" / "studio" / "desktop" / "internal" / "chaptermatch" / "homophones.csv"
+    go_copy = Path(__file__).resolve().parents[5] / "src" / "studio" / "desktop" / "internal" / "compare" / "homophones.csv"
     rows = csv.reader(line for line in go_copy.read_text(encoding="utf-8").splitlines() if line.strip() and not line.lstrip().startswith("#"))
     go_groups = tuple(tuple(word.strip() for word in row if word.strip()) for row in rows)
     assert go_groups == HOMOPHONE_GROUPS

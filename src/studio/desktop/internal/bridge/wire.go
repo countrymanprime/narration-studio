@@ -198,6 +198,12 @@ var eventSpecs = map[string]eventSpec{
 	// piece's project seconds and bypassed 1 when the chain was bypassed before; stopped 1 when a Compare was running.
 	"RANGE_FX_COMPARE":         {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("chain"), number("start"), number("end"), count("bypassed")}},
 	"RANGE_FX_COMPARE_STOPPED": {required: []fieldSpec{text("run"), count("stopped")}},
+	// choose_range_fx and range_fx_chosen (narration_range.lua, #2251): the piece split off for the range, its take and the undo
+	// points; one RANGE_FX_CHOSEN_FX per plug-in the narrator chose in REAPER's dialog (its place, its name, enabled 1 or 0),
+	// then the piece, its take, the count, chainOpen 1 while the take's chain window is open, and truncated 1 past 64.
+	"RANGE_FX_CHOOSING":  {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("undoPoints")}},
+	"RANGE_FX_CHOSEN_FX": {required: []fieldSpec{text("run"), count("index"), text("name"), count("enabled")}},
+	"RANGE_FX_CHOSEN":    {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), count("count"), count("chainOpen"), count("truncated")}},
 	// last_action and undo_last (narration_undo.lua): the kind asked about and whether REAPER's next undo point is its ("this" or
 	// "other"); the kind, the steps asked for and the points undone. Neither carries a label read from the project.
 	"LAST_ACTION": {required: []fieldSpec{text("run"), text("kind"), text("answer")}},

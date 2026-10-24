@@ -353,5 +353,4 @@ def collect(items, words_dir: Path, first, recheck, engine: ModuleType, args, bu
     engine.check_cancelled(args.progress)
     progress.set_total(first_seconds + asked["seconds"])
     progress.transcribed(progress.done, "Checked the passages the first model doubted")
-    progress.report("ALIGN", mode.ALIGN_PCT, "Aligning the chapter to the recording...")
     return [current[item.index] for item in items], [summaries[index] for index in sorted(summaries)]

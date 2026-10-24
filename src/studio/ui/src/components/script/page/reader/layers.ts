@@ -10,6 +10,7 @@ import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
 import { entryColour, speakerColour, type EntityColour } from '../../../../kinds/entityColour';
 import type { GuideType } from '../../../../types';
+import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
 import { mentionsIn, phrasesOf, type Phrase } from '../data/script.selectors';
 
 type Span = { start: number; end: number };
@@ -162,6 +163,6 @@ export function paragraphLayers(index: LayerIndex, paragraph: Pick<ManuscriptPar
       start: m.start,
       end: m.end,
     })),
-    ...phrasesOf(cues, entries, paragraph).map((phrase) => phraseLayer(types, phrase)),
+    ...phrasesOf(cues, cueSpeakerEntries(entries, types), paragraph).map((phrase) => phraseLayer(types, phrase)),
   ];
 }

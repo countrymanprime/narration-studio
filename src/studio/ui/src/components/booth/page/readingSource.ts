@@ -1,3 +1,4 @@
+import { cueIsConfirmed } from '../../manuscript/dialogueCues.selectors';
 import type { GuideDialogueCue, GuideEntity, ManuscriptParagraph, TeleprompterFlag, TeleprompterSpan } from '../../../types';
 import { WPH } from '../../schedule/estimates';
 import type { CreditsKind } from '../readerModel';
@@ -10,7 +11,8 @@ import type { SuspectedFlag } from '../suspected/suspectedLinesModel';
 
 type Phrase = NonNullable<ReadingParagraph['phrases']>[number];
 
-/** The chapter's paragraphs as the Booth reads them: each dialogue cue is a quoted phrase with its speaker's name, the rest narration. */
+/** The chapter's paragraphs as the Booth reads them: each dialogue cue is a quoted phrase with its speaker's name, the rest narration.
+ * `entities` are the entries a line can be given to (`cueSpeakerEntries`); a line given to any other is unknown. */
 export function readingParagraphsOf(
   paragraphs: readonly Pick<ManuscriptParagraph, 'id' | 'text'>[],
   cues: readonly GuideDialogueCue[],
@@ -36,7 +38,7 @@ export function readingParagraphsOf(
         end: cue.quote_end,
         quoted: true,
         speaker: (cue.speaker_entity_id && names.get(cue.speaker_entity_id)) || UNKNOWN_SPEAKER,
-        confirmed: cue.corrected || cue.speaker_source === 'correction',
+        confirmed: cueIsConfirmed(cue),
       });
       at = cue.quote_end;
     }
