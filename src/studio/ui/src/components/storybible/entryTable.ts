@@ -110,9 +110,56 @@ export type EntryFilter = { kind: string; query: string; reviewOnly: boolean; ve
 /** The text the filter box matches against: the name and the other names, never a word the row does not draw (its kind or its status). */
 const rowText = (entry: GuideEntity): string => foldText([entry.canonical_name, aliasText(entry)].join('\n'));
 
+/** The words of a search, folded: every one has to be found in the name or an alias. */
+export const searchWords = (query: string): string[] => foldText(query).split(/\s+/).filter(Boolean);
+
+/** The alias that put a row in a search: the first holding a word the name does not. The row draws it, so it shows why it is there. */
+export function matchedAlias(entry: GuideEntity, words: readonly string[]): string | undefined {
+  if (words.length === 0) return undefined;
+  const name = foldText(entry.canonical_name);
+  const missing = words.filter((word) => !name.includes(word));
+  if (missing.length === 0) return undefined;
+  return entry.aliases.find((alias) => {
+    const text = foldText(alias.text);
+    return missing.some((word) => text.includes(word));
+  })?.text;
+}
+
+/** A piece of drawn text and whether a search word was found in it. */
+export type MarkedPart = { text: string; marked: boolean };
+
+/**
+ * The text in pieces, the letters a search word matched marked. Each character is folded on its own, so a match found in the folded text
+ * ("eo" in "éowyn") marks the original characters ("Éo"); an emoji or a right-to-left letter stays whole. The pieces join back to the text.
+ */
+export function markedParts(text: string, words: readonly string[]): MarkedPart[] {
+  const chars = Array.from(text);
+  let folded = '';
+  // owner[i]: the character the i-th unit of the folded text came from.
+  const owner: number[] = [];
+  chars.forEach((char, index) => {
+    const part = foldText(char);
+    folded += part;
+    for (let unit = 0; unit < part.length; unit += 1) owner.push(index);
+  });
+  const hit = new Array<boolean>(chars.length).fill(false);
+  for (const word of words) {
+    for (let at = folded.indexOf(word); at >= 0; at = folded.indexOf(word, at + 1)) {
+      for (let unit = at; unit < at + word.length; unit += 1) hit[owner[unit]!] = true;
+    }
+  }
+  const parts: MarkedPart[] = [];
+  chars.forEach((char, index) => {
+    const last = parts[parts.length - 1];
+    if (last && last.marked === hit[index]) last.text += char;
+    else parts.push({ text: char, marked: hit[index]! });
+  });
+  return parts;
+}
+
 /** The rows that pass the kind chip, the review chips and the text: every word typed must be found in the name or an alias. */
 export function filterEntries(entries: readonly GuideEntity[], filter: EntryFilter): GuideEntity[] {
-  const words = foldText(filter.query).split(/\s+/).filter(Boolean);
+  const words = searchWords(filter.query);
   return entries.filter((entry) => {
     if (filter.kind !== 'All' && entry.category !== filter.kind) return false;
     if (filter.reviewOnly && !entryNeedsReview(entry, filter.suggestions)) return false;

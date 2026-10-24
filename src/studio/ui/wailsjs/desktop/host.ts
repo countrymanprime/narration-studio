@@ -148,6 +148,14 @@ export function BookmarksRemove(id: string): $CancellablePromise<string> {
 }
 
 /**
+ * BookmarksSetStop makes a spot the chapter's stopping place (a bookmark of kind stop), replacing the one the chapter had,
+ * and returns every bookmark in reading order. It only marks the place: nothing stops a take there.
+ */
+export function BookmarksSetStop(chapterID: string, paragraphID: string, offset: number): $CancellablePromise<string> {
+    return $Call.ByID(1567979853, chapterID, paragraphID, offset);
+}
+
+/**
  * BookmarksUpdate replaces a bookmark's label and note, both plain text within the limits docs/reference/data-files.md states.
  */
 export function BookmarksUpdate(id: string, label: string, note: string): $CancellablePromise<string> {

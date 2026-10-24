@@ -91,7 +91,7 @@ describe('the Levels menu punch pre-roll', () => {
 });
 
 describe("the Levels menu punch pre-roll is REAPER's own when REAPER has one", () => {
-  const on: DawCapabilitySupport = { level: 'experimental', available: true };
+  const on: DawCapabilitySupport = { level: 'supported', available: true };
 
   it("shows REAPER's pre-roll, off, with its length, where to set it, and never the app's seconds", async () => {
     const { save, open } = menu('daw', {}, on);
@@ -122,11 +122,11 @@ describe("the Levels menu punch pre-roll is REAPER's own when REAPER has one", (
     expect(await screen.findByText('REAPER pre-roll: 2 measures (one measure is 2.0 s here)')).toBeTruthy();
   });
 
-  it("says REAPER's own sentence when REAPER has a pre-roll the app may not read yet", async () => {
-    const off: DawCapabilitySupport = { level: 'experimental', available: false, reason: 'experimental_off', message: 'Experimental DAW actions are off.' };
+  it("says the capability's own sentence when REAPER has a pre-roll the app may not read now", async () => {
+    const off: DawCapabilitySupport = { level: 'supported', available: false, reason: 'turned_off', message: 'Turned off in Settings.' };
     const { open } = menu('daw', {}, off);
     await open();
-    expect(await screen.findByText('Experimental DAW actions are off.')).toBeTruthy();
+    expect(await screen.findByText('Turned off in Settings.')).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Punch pre-roll (seconds)' })).toBeNull();
   });
 

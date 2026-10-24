@@ -7,7 +7,7 @@ export const entryRows = () =>
     .queryAllByRole('row')
     .filter((row) => row.hasAttribute('data-entry-id'));
 export const cellsOf = (row: HTMLElement) => within(row).getAllByRole('cell');
-export const rowName = (row: HTMLElement) => cellsOf(row)[0]!.textContent;
+export const rowName = (row: HTMLElement) => (row.querySelector('[data-entry-name]') ?? cellsOf(row)[0]!).textContent;
 export const rowNames = () => entryRows().map(rowName);
 
 /** Chooses a kind in the Kind menu over the table ('All' for every kind). */

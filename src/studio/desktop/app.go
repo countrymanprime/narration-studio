@@ -74,7 +74,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 141
+const hostAPIVersion = 142
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1909,6 +1909,9 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"tail_max_seconds", "Maximum trailing silence (tail)", "number", nil},
 		{"fx_cap_pct", "Most of a chapter effects may cover (%)", "number", nil},
 	},
+	// Booth.words_per_page is where the Booth draws a page break: every this many words from a chapter's first word. A whole number from
+	// 50 to 1000, 250 (a manuscript page) by default; a stored value outside the range reads as the layer below (settings.wholeNumbers).
+	"Booth": {{"words_per_page", "Words per page", "number", nil}},
 	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,
 	// preset and optional ending exclusion, read by previewSettings (bindings_preview.go) on every PreviewCandidates
 	// call. Defaults (5:00, 10%, "sample", ending exclusion off) mirror preview.DefaultSettings.

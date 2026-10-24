@@ -1096,7 +1096,7 @@
     "state": "search-narrowed",
     "viewport": "desktop",
     "docName": "storybible-search",
-    "caption": "Story Bible - a search for \"hatter\" narrowing the list by name and alias"
+    "caption": "Story Bible - a search for \"mad hat\": the Hatter, found by its other name, with the matched letters marked"
   },
   {
     "page": "storybible",
@@ -1180,14 +1180,14 @@
     "state": "levels-menu",
     "viewport": "desktop",
     "docName": "booth-levels-menu",
-    "caption": "Booth - the Levels menu: the input level and the microphone the text listens to"
+    "caption": "Booth - the Levels menu: the input level, the microphone the text listens to, and REAPER's own meters and pre-roll"
   },
   {
     "page": "booth",
     "state": "levels-menu-preroll",
     "viewport": "desktop",
     "docName": "booth-levels-menu-preroll",
-    "caption": "Booth - the Levels menu with Experimental DAW actions on: REAPER's own pre-roll, read from REAPER, and where to change it"
+    "caption": "Booth - the Levels menu: REAPER's own pre-roll, read from REAPER, and where to change it"
   },
   {
     "page": "booth",

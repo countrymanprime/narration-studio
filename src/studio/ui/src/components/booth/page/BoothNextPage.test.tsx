@@ -828,6 +828,7 @@ const held = (over: Partial<Bookmark>): Bookmark => ({
   paragraphId: 'p3',
   paragraph: 2,
   offset: 28,
+  kind: 'spot',
   label: '',
   note: '',
   createdAt: '2026-10-11T10:00:00Z',
@@ -1139,7 +1140,7 @@ describe('the Levels menu', () => {
     const off = { level: 'experimental' as const, available: false, reason: 'experimental_off' as const, message: 'Experimental: switched off in Settings.' };
     const setup = DAW_SETUPS.reaper;
     const daw = createMockDawClient(
-      { ...setup, capabilities: { ...setup.capabilities, monitor_level: off, daw_meters: off } },
+      { ...setup, capabilities: { ...setup.capabilities, monitor_level: off } },
       { chapterIds: ['c1', 'c2', 'credits-opening'], candidateIds: [], findingIds: [] },
     );
     const page = renderPage({ daw });

@@ -117,10 +117,12 @@ describe('play from the cursor', () => {
     expect(playback.follow).toBe(true);
   });
 
-  it('says so when nothing was recorded from here and plays nothing', () => {
+  it('says so when nothing was recorded from here and plays nothing', async () => {
     mount(null, base, []);
     dispatch({ type: 'place', key: 'p-1:1' });
     act(() => playback.toggle());
+    // The providers answer on a microtask (playback/providers.ts).
+    await act(async () => {});
     expect(notify).toHaveBeenCalledWith('Nothing was recorded from here.');
     expect(state().playT).toBeNull();
     expect(audio().play).not.toHaveBeenCalled();

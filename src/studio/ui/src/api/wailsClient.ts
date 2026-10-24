@@ -434,6 +434,7 @@ export const wailsClient: NarrationApi = {
   noteList: (chapter) => decode(notesSchema, 'ManuscriptNotes', host.ManuscriptNotes(chapter ?? '')),
   bookmarksList: () => decode(bookmarksSchema, 'BookmarksList', host.BookmarksList()),
   bookmarksAdd: (chapterId, paragraphId, offset) => decode(spotBookmarkSchema, 'BookmarksAdd', host.BookmarksAdd(chapterId, paragraphId, offset)),
+  bookmarksSetStop: (chapterId, paragraphId, offset) => decode(bookmarksSchema, 'BookmarksSetStop', host.BookmarksSetStop(chapterId, paragraphId, offset)),
   bookmarksUpdate: (id, label, note) => decode(spotBookmarkSchema, 'BookmarksUpdate', host.BookmarksUpdate(id, label, note)),
   bookmarksRemove: (id) => decode(bookmarksSchema, 'BookmarksRemove', host.BookmarksRemove(id)),
   voiceSamplesList: () => decode(voiceSamplesSchema, 'VoiceSamplesList', host.VoiceSamplesList()),
