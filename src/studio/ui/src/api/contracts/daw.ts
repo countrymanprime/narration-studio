@@ -353,7 +353,33 @@ export interface DawFxRangeApi {
   dawCompareFxRange(chapterId: string, firstToken: number, lastToken: number, chainName: string): Promise<DawFxRangeCompare>;
   /** DawStopFxCompare (SN-E113): end the Compare the DAW is playing and put the chain back as it was; with none playing, `changed: false`. */
   dawStopFxCompare(): Promise<DawResult>;
+  /** DawChooseFxForRange (#2251, the Effects tab's Choose in REAPER): the DAW splits the words off, with `fadeMs` at each new seam, in one
+   * undo step of its own, and opens its own FX window on them for the narrator to choose any plug-in it has. Nothing is recorded. The same
+   * refusals as an apply without the chain, then an engine with no such window, with a sentence. */
+  dawChooseFxForRange(chapterId: string, firstToken: number, lastToken: number, fadeMs: number): Promise<DawResult>;
+  /** DawChosenFxForRange (#2251): what the narrator chose in that window for the words, read and nothing changed. The same refusals as
+   * `dawFxRangeParams`; a refusal has no plug-ins. Take the choice off with `dawRemoveFxFromRange` and DAW_CHOSEN_CHAIN, which also joins
+   * the words back when nothing was chosen. */
+  dawChosenFxForRange(chapterId: string, firstToken: number, lastToken: number): Promise<DawFxRangeChoice>;
 }
+
+/** The chain name a choice made in the DAW's own FX window is kept under (dawport.ChosenChain): sent as the chain to take it off, read
+ * its settings, bypass or compare it, and recorded as the effect's `chainId`. It is no chain file and `dawApplyFxToRange` refuses it. */
+export const DAW_CHOSEN_CHAIN = 'chosen in REAPER';
+
+/** One plug-in the narrator chose in the DAW's own FX window (dawport.ChosenFX): its name as the DAW shows it, and whether it is on. */
+export type DawChosenFx = { name: string; enabled: boolean };
+
+/** What `dawChosenFxForRange` answers (dawport.FXRangeChoice): the call's DawResult with no undo step, the plug-ins in chain order (none on
+ * a refusal), their names joined as the page shows and records them (`label`, no colon, slash or backslash), whether the DAW's FX window
+ * for the words is still open, and whether the list stopped at the DAW's limit. */
+export type DawFxRangeChoice = {
+  result: DawResult;
+  fx: DawChosenFx[];
+  label: string;
+  chainOpen: boolean;
+  truncated: boolean;
+};
 
 /** The most settings `dawFxRangeParams` lists over a chain's effects (bridge.MaxFXRangeParams); `truncated` says it stopped there. */
 export const DAW_FX_RANGE_MAX_SETTINGS = 512;

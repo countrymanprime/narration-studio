@@ -1,0 +1,17 @@
+{
+  "result": {
+    "ok": true,
+    "changed": false,
+    "message": "REAPER has ReaComp (Cockos) on the words.",
+    "undoSteps": 0
+  },
+  "fx": [
+    {
+      "name": "VST: ReaComp (Cockos)",
+      "enabled": true
+    }
+  ],
+  "label": "ReaComp (Cockos)",
+  "chainOpen": false,
+  "truncated": false
+}

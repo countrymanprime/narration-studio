@@ -5,6 +5,7 @@ import type {
   DawCapabilitySupport,
   DawClick,
   DawFxRangeCompare,
+  DawFxRangeChoice,
   DawFxRangeSettings,
   DawFxSetting,
   DawGainStretch,
@@ -780,6 +781,47 @@ export function fxCompareStopAnswerOf(setup: DawCapabilities): DawResult {
   if (setup.capabilities.fx_range?.mode === 'steps')
     return { ok: false, changed: false, message: DAW_ANSWERS.fxBakedIn, undoSteps: 0, refused: DAW_ANSWERS.fxBakedIn };
   return { ok: true, changed: false, message: `${setup.daw} was not comparing an effect, so nothing changed.`, undoSteps: 0 };
+}
+
+/** The engines whose fx_range role opens their own FX window for words (dawport.RangeFXChooser): REAPER only. */
+export const DAW_FX_CHOOSERS: readonly string[] = ['REAPER'];
+
+/** dawport/reaper's ChooseFXForRange: the words split off in one undo step and REAPER's FX window opened on them. */
+export function fxChooseAnswer(words: number, daw: string): string {
+  const what = words === 1 ? '1 word' : `${words} words`;
+  return `${daw}'s FX window is open for ${what}. Choose an effect there, then come back here.`;
+}
+
+/** bindings_daw_fx_choose.go's refusal for an engine with no FX window of its own. */
+export function fxNoChooserAnswer(daw: string): string {
+  return `${daw} has no FX window of its own the app can open for words.`;
+}
+
+/** DawChooseFxForRange's answer after the capability, the fade and the range: an engine with no FX window of its own refuses; REAPER opens
+ * it in one undo step. */
+export function fxChooseAnswerOf(setup: DawCapabilities, words: number): { refused: string } | { result: DawResult } {
+  if (!DAW_FX_CHOOSERS.includes(setup.daw)) return { refused: fxNoChooserAnswer(setup.daw) };
+  return { result: { ok: true, changed: true, message: fxChooseAnswer(words, setup.daw), undoSteps: 1 } };
+}
+
+/** DawRemoveFxFromRange's answer for DAW_CHOSEN_CHAIN after the capability and the range: the choice off and the words joined. */
+export function fxChosenRemovedOf(setup: DawCapabilities): { refused: string } | { result: DawResult } {
+  if (!DAW_FX_CHOOSERS.includes(setup.daw)) return { refused: fxNoChooserAnswer(setup.daw) };
+  return { result: { ok: true, changed: true, message: `The effect chosen in ${setup.daw} is off the words, and the audio is joined again.`, undoSteps: 1 } };
+}
+
+/** What the mock's REAPER reads back after a Choose: the narrator chose ReaComp and closed the window (the goldens' daw-fx-chosen-done). */
+export const FX_CHOSEN: DawFxRangeChoice = {
+  result: { ok: true, changed: false, message: 'REAPER has ReaComp (Cockos) on the words.', undoSteps: 0 },
+  fx: [{ name: 'VST: ReaComp (Cockos)', enabled: true }],
+  label: 'ReaComp (Cockos)',
+  chainOpen: false,
+  truncated: false,
+};
+
+/** DawChosenFxForRange's answer after the capability and the range: an engine with no FX window refuses, REAPER answers FX_CHOSEN. */
+export function fxChosenAnswerOf(setup: DawCapabilities): { refused: string } | { choice: DawFxRangeChoice } {
+  return DAW_FX_CHOOSERS.includes(setup.daw) ? { choice: FX_CHOSEN } : { refused: fxNoChooserAnswer(setup.daw) };
 }
 
 /** dawport/builtin's HideTakes: the built-in recorder already plays only the kept take, so it mutes nothing. */
