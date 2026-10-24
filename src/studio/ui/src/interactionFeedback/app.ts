@@ -24,6 +24,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/studio/StudioProvider.tsx::subscribeProjectAttach#1': subscription('A project attach resets the store and clears the journal, so no slot shows the previous project\'s data.'),
   // ports/measurements.ts: no screen reads the port yet; the screen that does owns the failure path of its own read.
   'src/ports/measurements.ts::productionOverview#1': row('effect', 'file-io', 'na', 'na', 'ui', 'unhandled', 'na', 'owned', 'The chapter-length reading of the measurements port; a rejection reaches the caller, and the first screen to read the port shows it.', '#1119'),
+  'src/ports/measurements.ts::teleprompterRoomTone#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The room tone the host kept for the microphone; the Booth footer reads it on open, on focus and every five seconds, and a rejected read shows "Room tone unavailable" in the footer chip until a read succeeds.'),
   'src/ports/measurements.ts::recorderState#1': row('effect', 'file-io', 'na', 'na', 'ui', 'unhandled', 'na', 'owned', 'The take-log reading of the measurements port; a rejection reaches the caller, and the first screen to read the port shows it.', '#1119'),
   'src/ports/takes.ts::workspaceTakeEvidence#1': row('effect', 'file-io', 'na', 'na', 'ui', 'unhandled', 'na', 'owned', 'The take evidence reading of the takes port; a rejection reaches the caller, and the first screen to read the port shows it.', '#1119'),
   // components/layout/useNavCounts.ts

@@ -21,6 +21,7 @@ import (
 
 	"desktop/internal/asrport"
 	"desktop/internal/process"
+	"desktop/internal/roomtone"
 )
 
 // defaultGrace is how long a stopping sidecar gets to flush and exit on its
@@ -83,8 +84,14 @@ type Service struct {
 	trace func(event string, attrs ...any)
 	// +checklocks:mu
 	input inputTrace
-	// traceNow is the clock the input summary reads; nil means time.Now (a test seam).
+	// traceNow is the clock the input summary and the room tone read; nil means time.Now (a test seam).
 	traceNow func() time.Time
+	// roomTone measures each microphone's room tone from the levels of every capture (roomtone.go); nil measures nothing.
+	// +checklocks:mu
+	roomTone *roomtone.Meter
+	// device is the microphone the running session opened, or "" (a session reading a WAV, or none).
+	// +checklocks:mu
+	device string
 
 	state    map[string]any
 	script   json.RawMessage
@@ -239,6 +246,8 @@ type Script struct{ ID, Title, Text string }
 type launch struct {
 	args                                   []string
 	engine, chapter, stopFile, controlFile string
+	// device is the microphone the session opens, or "" when it reads a WAV.
+	device string
 	// scriptFile and scriptText are set only for a Script session: the file Start writes scriptText to.
 	scriptFile, scriptText string
 }
@@ -323,6 +332,7 @@ func (s *Service) planSession(options map[string]string, src source) (launch, er
 		args = append(args, "--wav", wav)
 	} else {
 		args = append(args, "--mic", device)
+		planned.device = device
 	}
 	if s.config.EvalTiming {
 		args = append(args, "--timing", "--log", filepath.Join(s.config.SessionDir, fmt.Sprintf("teleprompter_%d.log", stamp)))
@@ -409,6 +419,7 @@ func (s *Service) begin(plan launch) error {
 	}
 	s.state = map[string]any{"phase": "starting", "message": "Starting the teleprompter…", "engine": plan.engine, "chapter": plan.chapter, "paused": false}
 	s.script, s.position, s.stopping, s.stopFile, s.controlFile, s.scriptFile = nil, nil, false, plan.stopFile, plan.controlFile, plan.scriptFile
+	s.device = plan.device
 	s.cancelAutoStopLocked()
 	s.autoStopped = false
 	s.ready, s.readyDone = make(chan struct{}), false
@@ -518,6 +529,11 @@ func (s *Service) onLine(line string) {
 		s.markReady()
 	}
 	switch kind {
+	case meterEventType:
+		s.mu.RLock()
+		device := s.device
+		s.mu.RUnlock()
+		s.observeLevel(device, raw)
 	case "script":
 		s.mu.Lock()
 		s.script = raw
@@ -595,6 +611,11 @@ func (s *Service) watch(child *process.StreamChild, cancel context.CancelFunc, f
 	cancel()
 	code, _ := child.ExitCode()
 	s.recordReading()
+	s.mu.Lock()
+	device := s.device
+	s.device = ""
+	s.mu.Unlock()
+	s.endRoomTone(device)
 	s.mu.Lock()
 	stopFile, controlFile, scriptFile := s.stopFile, s.controlFile, s.scriptFile
 	s.cancelAutoStopLocked()

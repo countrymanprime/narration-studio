@@ -5,20 +5,32 @@ import { describe, expect, it } from 'vitest';
 import { measuredSchema } from '../api/schemas/base';
 import { productionOverviewSchema } from '../api/schemas/production';
 import { recorderStateSchema } from '../api/schemas/recording';
+import { teleprompterRoomToneSchema } from '../api/schemas/teleprompter';
 import { parseWire } from '../api/wire/parseWire';
 import { createHostMeasurements, createMockMeasurements, type MeasurementsHostApi, type MeasurementsPort } from './measurements';
 import { describeProviderContract, type Goldens } from './providerContract';
 
 const GOLDEN_DIR = fileURLToPath(new URL('../../../../../tests/fixtures/contracts/', import.meta.url));
-const GOLDEN_FILES = ['production-overview.json', 'production-overview-empty.json', 'recorder-state-takes.json', 'recorder-state-no-project.json'] as const;
+const GOLDEN_FILES = [
+  'production-overview.json',
+  'production-overview-empty.json',
+  'recorder-state-takes.json',
+  'recorder-state-no-project.json',
+  'teleprompter-room-tone-measured.json',
+  'teleprompter-room-tone-none.json',
+] as const;
 const goldens: Goldens = Object.fromEntries(GOLDEN_FILES.map((file) => [file, JSON.parse(readFileSync(`${GOLDEN_DIR}${file}`, 'utf8'))]));
 
 const overview = (file: string) => parseWire(productionOverviewSchema, goldens[file], { boundary: 'measurements contract', payload: file });
 const recorder = (file: string) => parseWire(recorderStateSchema, goldens[file], { boundary: 'measurements contract', payload: file });
+const roomTone = (file: string) => parseWire(teleprompterRoomToneSchema, goldens[file], { boundary: 'measurements contract', payload: file });
 
 const hostApi = (over: Partial<Record<'overview' | 'recorder', string>> = {}): MeasurementsHostApi => ({
   productionOverview: () => Promise.resolve(overview(over.overview ?? 'production-overview.json')),
   recorderState: () => Promise.resolve(recorder(over.recorder ?? 'recorder-state-takes.json')),
+  // The host has kept a room tone for the sample microphone only.
+  teleprompterRoomTone: (mic) =>
+    Promise.resolve(roomTone(mic === 'USB microphone' ? 'teleprompter-room-tone-measured.json' : 'teleprompter-room-tone-none.json')),
 });
 
 // Zod stays under src/api/, so the numeric value schema is borrowed from the recorder state (a plain number) and the other two
@@ -146,9 +158,25 @@ describe('the host adapter', () => {
     expect(builtinEmpty.ok).toBe(false);
   });
 
-  it('host-says-no-source-for-room-tone-and-booth-time: both answer a reason that names what is missing', async () => {
+  it('host-room-tone-is-the-one-the-host-kept: a kept reading is its level, none is a reason that says what measures it', async () => {
     const host = createHostMeasurements(hostApi());
-    expect(await host.roomTone('USB microphone')).toEqual({ ok: false, reason: 'The recorder does not report a room-tone reading for USB microphone yet.' });
+    expect(await host.roomTone('USB microphone')).toEqual({ ok: true, value: -58.6 });
+    expect(await host.roomTone('Desk Mic')).toEqual({ ok: false, reason: 'Nothing has measured the room through Desk Mic yet: open Levels or record a take.' });
+    expect(await host.roomTone('  ')).toEqual({ ok: false, reason: 'Choose a microphone to measure its room tone.' });
+  });
+
+  it('host-room-tone-asks-for-the-microphone-it-was-given: the name goes through as it is', async () => {
+    const asked: string[] = [];
+    const host = createHostMeasurements({
+      ...hostApi(),
+      teleprompterRoomTone: (mic) => (asked.push(mic), Promise.resolve(roomTone('teleprompter-room-tone-none.json'))),
+    });
+    await host.roomTone('Микрофон «студия» 🎙');
+    expect(asked).toEqual(['Микрофон «студия» 🎙']);
+  });
+
+  it('host-says-no-source-for-booth-time: it answers a reason that names what is missing', async () => {
+    const host = createHostMeasurements(hostApi());
     expect(await host.pickupSessionSeconds(['c3a'])).toEqual({ ok: false, reason: 'No pickup has been redone in the Booth yet.' });
   });
 });

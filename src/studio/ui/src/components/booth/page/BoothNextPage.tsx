@@ -758,6 +758,7 @@ function BoothSession({
             }}
             roomTone={roomTone.label}
             roomToneOk={roomTone.ok}
+            roomToneHint={roomTone.hint}
             keymap={keymap}
             pickupSession={pickups.active}
           />

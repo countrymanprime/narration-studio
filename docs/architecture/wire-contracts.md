@@ -58,7 +58,7 @@ The visual suite has states for each: `startup / invalid-payload`, `home / live-
 
 | Class | Files | What happens |
 | --- | --- | --- |
-| **Disposable** | Recent projects, the last comparison, the repository's defaults | Logged (`persisted_corrupt`); the reader starts empty and the next save replaces the file. The narrator is not told. |
+| **Disposable** | Recent projects, the last comparison, the repository's defaults, the room tone of each microphone | Logged (`persisted_corrupt`); the reader starts empty and the next save replaces the file. The narrator is not told. |
 | **Narrator data** | Notes, reader state and chapter statuses, settings (global and project), the Story Bible file | Kept as `<name>.corrupt-<timestamp>` beside the original, a fresh one is started, the log records it, and the narrator gets a `system:notice` toast naming where the old file is. |
 | **Canonical** | `manuscript.json` | Refused with an error (it is version-checked by Go and Python). |
 

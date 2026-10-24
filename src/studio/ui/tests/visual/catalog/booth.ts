@@ -221,6 +221,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'room-tone-kept',
+    description:
+      'Booth ready to record with a room tone the host kept for the microphone (an earlier take or Levels meter measured it): the footer chip reads "Room −58.6 dB" with the menu closed (TeleprompterRoomTone)',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'text-popover',
     description:
       "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share) and the Booth size, 40 px, on a slider from 24 to 72 in steps of 4",

@@ -290,6 +290,13 @@ export type TeleprompterDevice = { name: string };
 export type TeleprompterDevicesResult = { devices: TeleprompterDevice[]; error: string | null };
 
 /**
+ * `TeleprompterRoomTone` (`src/studio/desktop/bindings_roomtone.go`): the room tone kept for a microphone, measured by any capture
+ * of it (a reading session or the level meter): its level in dBFS, when it was last heard (RFC 3339) and how many seconds it was
+ * taken from. Every field is null when that microphone has none yet.
+ */
+export type TeleprompterRoomTone = { db: number; measuredAt: string; seconds: number } | { db: null; measuredAt: null; seconds: null };
+
+/**
  * Whether REAPER is ready to record a chapter with reading (`ReadAloudReaperState`):
  * `ready` only when the chapter's linked track is the one track armed and REAPER is not recording. `reason` qualifies `no_link`
  * (`unlinked`, `several_links`, `track_missing`) and `unavailable` (`standalone`, `not_running`, `experimental_off`, `failed`).
@@ -404,6 +411,8 @@ export interface TeleprompterApi {
   teleprompterSaveFlags(chapterId: string, flags: TeleprompterFlagSave[]): Promise<TeleprompterFlagFinding[]>;
   teleprompterState(): Promise<TeleprompterState>;
   teleprompterDevices(): Promise<TeleprompterDevicesResult>;
+  /** The room tone kept for `device`; reads only, nothing is measured by asking. */
+  teleprompterRoomTone(device: string): Promise<TeleprompterRoomTone>;
   /**
    * Show `device`'s level before reading starts: `level` events, then one `meter_stopped`, on `subscribeTeleprompterEvent`. It
    * replaces a meter already running and is refused while a session runs. Stop it when the microphone popover closes.

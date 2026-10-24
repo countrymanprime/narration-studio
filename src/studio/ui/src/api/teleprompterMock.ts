@@ -150,6 +150,8 @@ type Deps = {
   devices: TeleprompterDevice[];
   /** Which resume card state `teleprompterLocate` answers (see `MockResumeSeed`); unset, the mock project's tracks decide. */
   resume?: MockResumeSeed;
+  /** `?mockRoomTone=`: the room tone in dBFS kept for every microphone; unset, none has been measured. */
+  roomTone?: number;
   /** `?mockLevel=`: every level the mock sends is this RMS in dBFS (a still meter for a capture); unset, it moves like speech. */
   level?: number;
   /** `?mockReaperState=`: what `readAloudReaperState` answers; unset, the chapter's track is ready. */
@@ -718,6 +720,10 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       return clone();
     },
     teleprompterDevices: async () => ({ devices: deps.devices.map((device) => ({ ...device })), error: null }),
+    teleprompterRoomTone: async () =>
+      deps.roomTone === undefined
+        ? { db: null, measuredAt: null, seconds: null }
+        : { db: deps.roomTone, measuredAt: new Date(Date.now() - 60_000).toISOString(), seconds: 20 },
     // The host's meter (meter.go): refused while a session runs, one level straight away (no timer, so a capture is still),
     // then `meter_stopped` when it is stopped or replaced.
     teleprompterMeterStart: async (device) => {

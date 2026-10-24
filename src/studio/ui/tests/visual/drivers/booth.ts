@@ -329,6 +329,10 @@ export const boothDrivers: Record<string, Driver> = {
     const menu = page.getByRole('dialog', { name: 'Levels' });
     await menu.getByText('REAPER pre-roll is off: a punch records from the word with no lead-in.').waitFor();
   },
+  'room-tone-kept': async (page) => {
+    await readyToRecord(page, `${RECORD_ON}&mockRoomTone=-58.6`);
+    await page.getByText('Room −58.6 dB').waitFor();
+  },
   'text-popover': async (page) => {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Text settings' }).click();

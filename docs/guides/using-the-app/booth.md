@@ -50,9 +50,20 @@ lines of this take, **Last punch**, **In this chapter** (the characters the chap
 [voice samples](#voice-samples)), **Coming up** (the next names with a pronunciation) and **This session** (how long you have recorded and
 how many punches). In a [pickup session](#a-pickup-session) the pickup lines come first.
 
-The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), a level bar and the room tone
-the recorder reports for that microphone (**Room not measured yet** until it reports one), and the keys the Booth answers, drawn
-from your keymap. In **Levels**, **Monitor level (output)** sets how loud the DAW plays back to you (0 to 100, 70 is its normal
+The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), a level bar, the room tone of
+that microphone, and the keys the Booth answers, drawn from your keymap.
+
+The room tone is the level of the room when nobody speaks. The app measures it whenever it listens to the microphone: during a
+take, and while the **Levels** menu is open. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,
+which is the pauses between your phrases while you read and the room itself while you are silent. It keeps the last value for each
+microphone, so the chip still shows it after you close **Levels**, record nothing for a while, or restart the app. It reads
+**Room not measured yet** until something has measured that microphone; open **Levels** and stay quiet for five seconds to measure
+it. Point at the chip to see why it has no value. A muted or unplugged input (digital silence) is not counted as a room. If the app cannot read the value, the chip says
+**Room tone unavailable**.
+
+![The Booth footer with the room tone kept for the microphone](../../images/ui/booth-room-tone.webp)
+
+In **Levels**, **Monitor level (output)** sets how loud the DAW plays back to you (0 to 100, 70 is its normal
 level; REAPER's first hardware output, so the files you render are not changed). **Input level** is shown but off, with the reason:
 no DAW can set an audio interface's input gain, so set it in your interface's own control panel.
 
