@@ -66,7 +66,7 @@ The rule, which replaces "a linked DAW is the only player" of #2251 item 32 by t
 - A play the narrator stopped, or replaced, while the DAW was being asked is not handed on.
 - An action that needs the DAW's own FX, routing or project state (`dawSpecific`) never falls back; nothing plays and the notice says it can only be done in the DAW. No play on this page is one; the rule is there for one that is.
 
-## Loop safety and drift## Loop safety and drift
+## Loop safety and drift
 
 `follow/echoGuard.ts`. Each cursor write gets a generation and is remembered for 2.5 s with its project second. A cursor REAPER reports is **unchanged** (within a millisecond of the last one: a reading from before the write cannot undo it), an **echo** (within 20 ms of a remembered write: nothing happens, and older writes are forgotten) or **moved**. A move forgets every pending write: a move the narrator made in REAPER while the page's write was on its way is not lost, and a write that lands afterwards is then reported as the move it has become, so the page ends where REAPER is. A failed write is forgotten. The page does not write a cursor REAPER put there (`fromDaw`).
 
@@ -77,7 +77,7 @@ Drift. While REAPER plays for the page, the app's audio is silent, so there is o
 | State | What happens | Tested |
 | --- | --- | --- |
 | REAPER never answers | `capabilities` says not reachable, so the page never takes a lease; Play plays in the app and says the capability's sentence; the banner is unchanged | `transportSync.test.tsx` (a DAW that is not running) |
-| Answers late | The play is asked; the app stays silent until it answers; a refusal or failure then stops the page and says why. A stop before the answer stops REAPER again on the answer | `transportSync.test.tsx` (stopped before the DAW answered) |
+| Answers late | The play is asked; the app stays silent until it answers; a refusal or failure then plays the app from the same word and says why. A stop before the answer stops REAPER again on the answer, and nothing is handed to the app | `transportSync.test.tsx` (stopped before the DAW answered; refuses the play; a stop while the DAW is asked) |
 | Wrong project open | The watch is refused (`sameProject` false), nothing is moved in REAPER, the page follows nothing, and Play plays in the app and says why; events carry `sameProject` | `transportsync_test.go`, `transportSync.test.tsx` |
 | Restarted mid-session | The next renewal (within 3 s) takes a new lease from the restarted script, and its opening event adopts REAPER's cursor. A play the app started stops after 3 s without readings | `transportSync.test.tsx` (goes quiet); the reconnect is not tested |
 | Playing while the page opens | The lease's first event carries the play state, and the word lights | `transportSync.test.tsx` |
