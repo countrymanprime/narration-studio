@@ -392,8 +392,6 @@ def test_the_cli_refuses_recheck_without_coverage(tmp_path):
         str(windows),
         "--manifest",
         "m",
-        "--track-name",
-        "t",
         "--out",
         "o",
         "--manuscript",
