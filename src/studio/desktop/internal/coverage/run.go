@@ -28,8 +28,8 @@ const (
 	// stageRecheckWhole replaces the windows with one whole-chapter pass under the re-check model,
 	// when the windows would have covered too much of the chapter (MC3) to be worth splicing.
 	stageRecheckWhole
-	// stageRealign re-aligns from the now-spliced words with the first pass's own model
-	// (--align-only never transcribes) once stageRecheckWindows has finished.
+	// stageRealign re-aligns from the now-spliced words with the first pass's own model once
+	// stageRecheckWindows has finished. The host aligns it: no sidecar runs and nothing is transcribed.
 	stageRealign
 )
 
@@ -71,7 +71,10 @@ type job struct {
 func (j *job) manifestPath() string { return filepath.Join(j.dir, "manifest.json") }
 func (j *job) wordsDir() string     { return filepath.Join(j.dir, "words") }
 func (j *job) resultsPath() string  { return filepath.Join(j.dir, "coverage.txt") }
-func (j *job) windowsPath() string  { return filepath.Join(j.dir, "windows.json") }
+
+// wordsReportPath is where the sidecar says, per item, whether it reused or transcribed the words, and which passages it doubted.
+func (j *job) wordsReportPath() string { return filepath.Join(j.dir, "words-report.txt") }
+func (j *job) windowsPath() string     { return filepath.Join(j.dir, "windows.json") }
 
 // label is the wire name of the stage (State.Pass): what the dialog shows without
 // having to re-derive it from Stage's raw sidecar progress text.
@@ -130,10 +133,17 @@ func (s *Service) watch(running *job) {
 
 // advance is called once the current stage's sidecar process has exited. Only a clean exit (code
 // 0) can move the job into a next stage; a cancel or a failure ends it on this stage's own
-// outcome, exactly as finish already reads it. It returns whether a next stage was started.
+// outcome, exactly as finish already reads it. A stage that transcribed is aligned here first. It
+// returns whether a next stage was started.
 func (s *Service) advance(running *job) bool {
 	if code, _ := running.child.ExitCode(); code != 0 {
 		return false
+	}
+	if transcription, transcribed := running.stageTranscription(); transcribed {
+		if err := s.align(running, transcription, running.wordsReportPath()); err != nil {
+			running.stageErr = err
+			return false
+		}
 	}
 	switch running.stage {
 	case stageFirstPass:
@@ -156,9 +166,26 @@ func (s *Service) advance(running *job) bool {
 		}
 		return s.launchStage(running, stageRecheckWindows)
 	case stageRecheckWindows:
-		return s.launchStage(running, stageRealign)
-	default: // stageRecheckWhole, stageRealign: this stage's own exit and results are final
+		s.enterStage(running, stageRealign)
+		if err := s.align(running, running.request.Transcription, ""); err != nil {
+			running.stageErr = err
+		}
 		return false
+	default: // stageRecheckWhole: this stage's own exit and results are final
+		return false
+	}
+}
+
+// stageTranscription is the transcription the current stage's sidecar ran, and whether it wrote a words report the host
+// aligns: the first pass and the whole-chapter re-check do; the windowed re-check only splices words files.
+func (j *job) stageTranscription() (Transcription, bool) {
+	switch j.stage {
+	case stageFirstPass:
+		return j.request.Transcription, true
+	case stageRecheckWhole:
+		return j.request.Recheck, true
+	default:
+		return Transcription{}, false
 	}
 }
 
@@ -171,7 +198,14 @@ func (s *Service) launchStage(running *job, next stage) bool {
 		running.stageErr = fmt.Errorf("could not start the recording check's re-check pass: %w", err)
 		return false
 	}
-	running.stage, running.child = next, child
+	running.child = child
+	s.enterStage(running, next)
+	return true
+}
+
+// enterStage moves the job into its next stage and resets the reported state's own stage and percent.
+func (s *Service) enterStage(running *job, next stage) {
+	running.stage = next
 	s.mu.Lock()
 	running.state.Stage, running.state.Percent = "", 0
 	running.state.Pass = next.label()
@@ -182,7 +216,6 @@ func (s *Service) launchStage(running *job, next stage) bool {
 	state := s.state
 	s.mu.Unlock()
 	s.notify(state)
-	return true
 }
 
 // readProgress applies the progress file's last line. Percent never moves
