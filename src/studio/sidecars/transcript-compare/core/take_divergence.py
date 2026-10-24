@@ -277,6 +277,10 @@ def align_take(engine: ModuleType, span: Span, transcript: Sequence[Word]) -> Ta
                 token_status[i] = status
             start, end = _gap(index_map, transcript, j1) if status == SKIPPED else (None, None)
             divergences.append(Divergence(status, position, words[0], words[-1], manuscript_text, "", start, end))
+        elif position == BEFORE and span.first_unit == 0:
+            # Said before a span that starts the chapter: the heading, the first line spoken, read in the narrator's own
+            # words (#2251 item 7). Before any later span it is chatter, an extra.
+            continue
         else:  # insert: said, but not in the span at this point
             extra_words += len({index_map[j] for j in range(j1, j2)})
             anchor = owners[i1][0] if i1 < len(owners) else None

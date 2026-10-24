@@ -80,6 +80,7 @@ falls back to the default rather than failing a scan):
 - Go to and Loop per read: [Going to and looping a finding in REAPER](../architecture/reaper-navigation.md).
 - Take metrics are evidence per category, with no composite score: [takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go).
 - Divergence is localized by the markers' diff and Whisper word timestamps: [take_divergence_mode.py](../../src/studio/sidecars/transcript-compare/core/take_divergence_mode.py), [evaluation](../research/take-divergence-evaluation.md).
+- Words said before a span that starts the chapter are its heading, not an extra; before a later span they are an extra before it: [take_divergence.py](../../src/studio/sidecars/transcript-compare/core/take_divergence.py).
 - A take comparison is one finding per group and is never ranked: [Codebase map](../architecture/codebase-map.md).
 - Take review never makes a take active; the workspace Takes panel does: [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel).
 - Thresholds: [Settings](#settings).

@@ -192,6 +192,17 @@ def test_chatter_before_the_span_is_an_extra_before_it_and_a_take_after_it_too()
     ]
 
 
+def test_a_heading_said_before_a_span_that_starts_the_chapter_is_not_an_extra():
+    # Issue #2251 item 7: the chapter's heading is the first line spoken; a take of the chapter's first sentences opens
+    # with it, in the narrator's own words, and that is not words that are not in the script.
+    words = timed("chapter one down the rabbit hole Alice was beginning to get very tired of sitting by her sister on the bank cut")
+
+    result = td.align_take(compare, span(0, 0), words)
+
+    assert [(d.kind, d.position, d.audio_text) for d in result.divergences] == [(td.EXTRA, td.AFTER, "cut")]
+    assert result.extra_words == 1
+
+
 def test_a_take_of_something_else_is_one_misread_of_the_whole_span():
     s = span(1, 1)
 
