@@ -9,4 +9,6 @@ export const settingsGoldens: Record<string, z.ZodType> = {
   'settings-definition-source-local.json': settingsForScopeSchema,
   'settings-fx-cap.json': settingsForScopeSchema,
   'settings-fx-cap-set.json': settingsForScopeSchema,
+  'settings-words-per-page.json': settingsForScopeSchema,
+  'settings-words-per-page-set.json': settingsForScopeSchema,
 };
