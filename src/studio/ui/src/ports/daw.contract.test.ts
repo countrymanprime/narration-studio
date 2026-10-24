@@ -8,6 +8,7 @@ import {
   dawBackupsFileSchema,
   dawCapabilitiesSchema,
   dawFxRangeCompareSchema,
+  dawFxRangeChoiceSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawProjectStateSchema,
@@ -118,6 +119,8 @@ const GOLDEN_FILES = [
   'daw-fx-range-compare-done.json',
   'daw-fx-range-compare-refused-stale.json',
   'daw-fx-range-compare-stopped.json',
+  'daw-fx-choose-opened.json',
+  'daw-fx-chosen-done.json',
   'daw-stack-done.json',
   'daw-stack-steps.json',
   'daw-unstack-done.json',
@@ -391,6 +394,19 @@ function hostApi(): DawHostApi {
       return Promise.resolve(read('daw-fx-range-compare-done.json', dawFxRangeCompareSchema));
     },
     dawStopFxCompare: () => Promise.resolve(read('daw-fx-range-compare-stopped.json', dawResultSchema)),
+    // DawChooseFxForRange and DawChosenFxForRange on REAPER (#2251): the fade and range are checked as an apply's; one word opens the
+    // window (the opened golden) and the read answers the ReaComp the narrator chose (the chosen-done golden).
+    dawChooseFxForRange: (chapterId, firstToken, lastToken, fadeMs) => {
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return Promise.resolve(refusal(DAW_ANSWERS.cutBadFade));
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return Promise.resolve(staleRefusal(DAW_ANSWERS.rangeStale));
+      if (lastToken !== firstToken) return Promise.reject(new Error(`no golden for choosing over ${lastToken - firstToken + 1} words`));
+      return Promise.resolve(read('daw-fx-choose-opened.json', dawResultSchema));
+    },
+    dawChosenFxForRange: (chapterId, firstToken, lastToken) => {
+      const none = (result: DawResult) => Promise.resolve({ result, fx: [], label: '', chainOpen: false, truncated: false });
+      if (!known.chapterIds.includes(chapterId) || firstToken < 0 || lastToken < firstToken) return none(staleRefusal(DAW_ANSWERS.rangeStale));
+      return Promise.resolve(read('daw-fx-chosen-done.json', dawFxRangeChoiceSchema));
+    },
     workspaceListFXChains: () => Promise.resolve(read('workspace-fx-chains.json', workspaceFXChainsResultSchema)),
     // MasterPlayQuietest and MasterOpenInDaw (SN-M97): a file the fixture's last run does not list is the stale golden; the run's first
     // file (its quietest window at 12 s) plays and opens, and its second (no window) has no stretch to play.
@@ -695,6 +711,21 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
   },
   { name: 'fx-range-params-and-bypass: a bypass is answered alike', observe: (daw) => daw.bypassFxRange(FX_TARGET, true) },
   { name: 'fx-compare: a Compare is answered alike', observe: (daw) => daw.compareFxRange(FX_TARGET) },
+  {
+    name: "fx-choose: opening the DAW's FX window for a word and reading the choice are answered alike",
+    observe: async (daw) => [
+      await daw.chooseFxForRange({ chapterId: FX_TARGET.chapterId, firstToken: 3, lastToken: 3, fadeMs: 10 }),
+      await daw.chosenFxForRange({ chapterId: FX_TARGET.chapterId, firstToken: 3, lastToken: 3 }),
+    ],
+  },
+  {
+    name: 'fx-choose: a fade over 500 ms and an unknown chapter are refused alike',
+    observe: async (daw) => [
+      await daw.chooseFxForRange({ chapterId: FX_TARGET.chapterId, firstToken: 3, lastToken: 3, fadeMs: 501 }),
+      await daw.chooseFxForRange({ chapterId: 'chapter-9', firstToken: 3, lastToken: 3, fadeMs: 10 }),
+      await daw.chosenFxForRange({ chapterId: 'chapter-9', firstToken: 3, lastToken: 3 }),
+    ],
+  },
   {
     name: 'fx-compare: an unknown chapter and a path for a chain are refused alike',
     observe: async (daw) => [

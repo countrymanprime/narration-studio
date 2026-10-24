@@ -78,7 +78,14 @@ export function captureSource(ui, entry) {
 
 /** Runs the targeted real-app capture for the given state-catalog pages; true when it passed. */
 function runCapture(catalogPages) {
-  return spawnSync('pnpm', ['--dir', UI, 'visual:page', ...catalogPages, '--themes', 'light', '--out', CAPTURES], { cwd: ROOT, stdio: 'inherit' }).status === 0;
+  // UI_MASK=blank: a row's masked regions are hidden rather than painted magenta (tests/visual/lib/capture.ts maskOptions).
+  return (
+    spawnSync('pnpm', ['--dir', UI, 'visual:page', ...catalogPages, '--themes', 'light', '--out', CAPTURES], {
+      cwd: ROOT,
+      stdio: 'inherit',
+      env: { ...process.env, UI_MASK: 'blank' },
+    }).status === 0
+  );
 }
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(0)}KB`;

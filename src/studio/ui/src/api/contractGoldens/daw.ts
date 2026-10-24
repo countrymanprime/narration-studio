@@ -8,6 +8,7 @@ import {
   dawCapabilitiesSchema,
   dawChoiceSchema,
   dawFxRangeCompareSchema,
+  dawFxRangeChoiceSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawMetersSchema,
@@ -85,6 +86,12 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-fx-range-compare-done.json': dawFxRangeCompareSchema,
   'daw-fx-range-compare-refused-stale.json': dawFxRangeCompareSchema,
   'daw-fx-range-compare-stopped.json': dawResultSchema,
+  // DawChooseFxForRange and DawChosenFxForRange (bindings_daw_fx_choose_test.go, #2251): REAPER's FX window opened for one word (one undo
+  // step), the narrator's choice read, nothing chosen yet, and the capability's refusal of a read.
+  'daw-fx-choose-opened.json': dawResultSchema,
+  'daw-fx-chosen-done.json': dawFxRangeChoiceSchema,
+  'daw-fx-chosen-none.json': dawFxRangeChoiceSchema,
+  'daw-fx-chosen-refused.json': dawFxRangeChoiceSchema,
   // DawStackTakes and DawUnstackTakes (bindings_daw_stack_test.go): a stack and an un-stack in REAPER (one undo step each), a stack in a
   // DAW that makes it in steps, and REAPER's stale refusal.
   'daw-stack-done.json': dawResultSchema,

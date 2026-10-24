@@ -83,6 +83,7 @@ The menu knows the page you are on. What the page offers right now is listed fir
 | --- | --- |
 | Production | **Chapters** (scrolls to its row), **Checks** (check recordings, read the stage suggestions again), **Actions** (export the status report, start a session, stop the timer, off while none runs) |
 | Script | **Chapters**; **Story Bible** entries (found by any of their names); **Mark types** (mark the selected text; off until some is selected); **Search**, while a search is showing ([Searching the script](script.md#searching-the-script)) |
+| Story Bible | **Entries**, found by any of their names; choosing one opens it, and clears a search or filter that hides its row |
 | Booth | **Chapters** (off during a take), **Transport** (record or stop, punch and roll, next and back one phrase), the pickup steps when a pickup session is open |
 | Editing | **Chapters**; **Selection** (delete, mute and add FX, off with the reason until words are selected or when the DAW cannot); **Checks** (check the recording); **Drawer** tabs the DAW offers |
 | Proof | **Chapters** with their open-note counts; **Selected note** (needs pickup, fix in edit, fine as read, defer; off until a note is selected); **Checks** |
