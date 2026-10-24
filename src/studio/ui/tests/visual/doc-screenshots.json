@@ -1191,6 +1191,13 @@
   },
   {
     "page": "booth",
+    "state": "levels-menu-daw-meters",
+    "viewport": "desktop",
+    "docName": "booth-levels-menu-daw-meters",
+    "caption": "Booth - the Levels menu showing REAPER's own input level (the armed track) and output level under the two sliders"
+  },
+  {
+    "page": "booth",
     "state": "room-tone-kept",
     "viewport": "desktop",
     "docName": "booth-room-tone",

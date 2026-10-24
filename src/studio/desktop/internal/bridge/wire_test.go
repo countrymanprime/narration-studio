@@ -104,6 +104,8 @@ var realEvents = map[string][]string{
 	"MONITOR_LEVEL": {"MONITOR_LEVEL", "m1", "70"},
 	// src/studio/integrations/reaper/tests/preroll_test.lua (punch_preroll).
 	"PUNCH_PREROLL": {"PUNCH_PREROLL", "p1", "0", "2.000000", "2.000000"},
+	// src/studio/integrations/reaper/tests/meters_test.lua (daw_meters).
+	"METERS": {"METERS", "m1", "-20.0", "-6.0", "Chapter 1"},
 	// src/studio/integrations/reaper/tests/track_select_test.lua (read_place, go_to).
 	"PLACE":     {"PLACE", "p1", "{00000001-0000-4000-8000-000000000001}", "1", "12.5"},
 	"PLACE_SET": {"PLACE_SET", "g1", "{00000001-0000-4000-8000-000000000001}", "60"},

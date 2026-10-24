@@ -44,3 +44,4 @@ What each engine declares for each capability today. The levels are the adapters
 | `monitor_level` | `MonitorLeveler` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `input_level` | `InputLeveler` | Engine answering | Unsupported | Unsupported | Not reachable | Unsupported |
 | `punch_preroll` | `PrerollReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
+| `daw_meters` | `MeterReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |

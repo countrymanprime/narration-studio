@@ -206,6 +206,9 @@ var eventSpecs = map[string]eventSpec{
 	"MONITOR_LEVEL": {required: []fieldSpec{text("run"), count("level")}},
 	// punch_preroll (narration_preroll.lua): REAPER's pre-roll on record (0 or 1), its length in measures and one measure in seconds.
 	"PUNCH_PREROLL": {required: []fieldSpec{text("run"), count("onRecord"), number("measures"), number("measureSeconds")}},
+	// daw_meters (narration_meters.lua): the master's level in dBFS, then the first armed track's level and name, both empty when no
+	// track is armed.
+	"METERS": {required: []fieldSpec{text("run"), number("output")}, optional: []fieldSpec{number("input"), text("inputTrack")}},
 	// set_cursor, play_from, stop_play and watch_transport (narration_transport.lua, the Editing page's transport sync): the edit cursor now held,
 	// the time the transport plays from, the edit cursor after a stop, and the lease granted in whole seconds. TRANSPORT is the stream a lease
 	// buys: a broadcast with an empty run, like PROJECT_STATUS, sent when the play state changes or the cursor moves and about four times a second

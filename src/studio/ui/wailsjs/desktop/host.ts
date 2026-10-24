@@ -779,6 +779,15 @@ export function DawLinkFound(): $CancellablePromise<string> {
 }
 
 /**
+ * DawMeters reads what the DAW's own meters show: the level it plays out at and the level the record-armed track hears. It
+ * changes nothing and arms nothing. The daw_meters capability's own sentence comes first when the resolver refuses it; no live
+ * adapter, the DAW not answering and no answer in time are refused in a sentence.
+ */
+export function DawMeters(): $CancellablePromise<string> {
+    return $Call.ByID(958046068);
+}
+
+/**
  * DawMonitorLevel reads the level the narrator monitors the project at, a whole number from 0 to 100 (the Booth's output slider).
  * The answer is a MonitorLevelResult: the monitor_level capability's own sentence when the resolver refuses it, checked first; no live
  * adapter, the DAW not answering and no answer in time are refused in a sentence. It changes nothing.

@@ -95,6 +95,8 @@ type hostServices struct {
 	monitorLeveler dawport.MonitorLeveler
 	// prerollReader is the DAW port's punch_preroll role over the same bridge client; nil (a true nil interface) with no bridge client.
 	prerollReader dawport.PrerollReader
+	// meterReader is the DAW port's daw_meters role over the same bridge client; nil (a true nil interface) with no bridge client.
+	meterReader dawport.MeterReader
 	// placeFollower is the DAW port's follow_position role; nil with no live adapter.
 	placeFollower dawport.PlaceFollower
 	// transportSyncer is the DAW port's transport_sync role; nil with no live adapter.
@@ -180,6 +182,7 @@ func (h *Host) services() hostServices {
 		lastActionUndoer: h.lastActionUndoer,
 		monitorLeveler:   h.monitorLeveler,
 		prerollReader:    h.prerollReader,
+		meterReader:      h.meterReader,
 		placeFollower:    h.placeFollower,
 		transportSyncer:  h.transportSyncer,
 		backupKeeper:     h.backupKeeper,

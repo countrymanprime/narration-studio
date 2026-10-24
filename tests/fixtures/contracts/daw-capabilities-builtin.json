@@ -25,6 +25,12 @@
       "mode": "app",
       "reason": "experimental_off"
     },
+    "daw_meters": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "file_preview": {
       "available": false,
       "level": "unsupported",

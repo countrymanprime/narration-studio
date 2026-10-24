@@ -66,6 +66,12 @@ it. Point at the chip to see why it has no value. A muted or unplugged input (di
 In **Levels**, **Monitor level (output)** sets how loud the DAW plays back to you (0 to 100, 70 is its normal
 level; REAPER's first hardware output, so the files you render are not changed). **Input level** is shown but off, with the reason:
 no DAW can set an audio interface's input gain, so set it in your interface's own control panel.
+With REAPER, each slider has REAPER's own meter under it, read four times a second while the menu is open. Under **Input level** is
+the level of the first track armed for recording in REAPER, with that track's name; with no track armed the menu says so, because
+the app never arms a track just to measure it. Under **Monitor level (output)** is what REAPER plays out, which moves while it plays,
+records with monitoring on, or monitors the armed track. If REAPER stops answering for two seconds, the meters say how long ago
+they last heard it instead of showing an old level. Both, and the monitor slider, are Experimental DAW actions: while those are
+off, the menu says so and **Turn on in Settings** opens the switch.
 
 **Punch** shows the lead-in you hear before a punch. With REAPER it is REAPER's own pre-roll, the one the punch really uses. The menu
 reads it from REAPER: whether REAPER plays it before recording, and its length in measures, with how long one measure is at the edit
@@ -81,6 +87,8 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 ![Booth - the Levels menu: the input level and the microphone the text listens to](../../images/ui/booth-levels-menu.webp)
 
 ![Booth - the Levels menu with Experimental DAW actions on: REAPER's own pre-roll, read from REAPER, and where to change it](../../images/ui/booth-levels-menu-preroll.webp)
+
+![Booth - the Levels menu showing REAPER's own input level (the armed track) and output level under the two sliders](../../images/ui/booth-levels-menu-daw-meters.webp)
 
 ## Recording
 

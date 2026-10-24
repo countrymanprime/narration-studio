@@ -38,6 +38,7 @@ type (
 	RecordEnded   = bridge.RecordEnded
 	PlayPosition  = bridge.PlayPosition
 	PunchPreroll  = bridge.PunchPreroll
+	DawMeters     = bridge.DawMeters
 
 	Region         = bridge.Region
 	RegionsCreated = bridge.RegionsCreated
@@ -733,4 +734,14 @@ type BackupKeeper interface {
 // measures, and one measure in seconds at the edit cursor. It never changes it: the pre-roll is the narrator's engine preference.
 type PrerollReader interface {
 	PunchPreroll(ctx context.Context) (PunchPreroll, error)
+}
+
+// MeterFloorDB is the level a MeterReader answers for silence, in dBFS.
+const MeterFloorDB = bridge.MeterFloorDB
+
+// MeterReader reads the engine's own meters: the level the engine plays out at and, while a track is record-armed, the first armed
+// track's level and name. Levels are dBFS, MeterFloorDB for silence, and can be over 0 when the engine's mix is. It changes nothing,
+// so it arms nothing: with no armed track there is no input to read.
+type MeterReader interface {
+	DawMeters(ctx context.Context) (DawMeters, error)
 }

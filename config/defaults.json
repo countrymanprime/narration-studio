@@ -79,6 +79,7 @@
     "capability.transport_sync": "auto",
     "capability.input_level": "auto",
     "capability.punch_preroll": "auto",
+    "capability.daw_meters": "auto",
     "backups.window_seconds": "120",
     "backups.retention_days": "7"
   },

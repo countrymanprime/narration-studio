@@ -2588,5 +2588,29 @@
     "file": "narration_preroll.lua",
     "find": "  if not bits or not length then\n",
     "replace": "  length = length or 2\n  if not bits then\n"
+  },
+  {
+    "name": "daw_meters meters an unarmed track as the input",
+    "file": "narration_meters.lua",
+    "find": "if reaper.GetMediaTrackInfo_Value(track, 'I_RECARM') ~= 0 then",
+    "replace": "if true then"
+  },
+  {
+    "name": "daw_meters reads one channel of two",
+    "file": "narration_meters.lua",
+    "find": "for channel = 0, 1 do",
+    "replace": "for channel = 0, 0 do"
+  },
+  {
+    "name": "daw_meters answers a level under the -100 dBFS floor",
+    "file": "narration_meters.lua",
+    "find": "db = math.max(FLOOR_DB, 20 * math.log(peak, 10))",
+    "replace": "db = 20 * math.log(peak, 10)"
+  },
+  {
+    "name": "daw_meters runs on a REAPER that cannot read its meters",
+    "file": "narration_meters.lua",
+    "find": "if not reaper.APIExists('Track_GetPeakInfo') then",
+    "replace": "if false then"
   }
 ]

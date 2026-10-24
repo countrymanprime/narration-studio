@@ -274,6 +274,9 @@ type Host struct {
 	// prerollReader is the DAW port's punch_preroll role over the same adapter: DawPunchPreroll (bindings_daw_preroll.go)
 	// asks it to read the DAW's own pre-roll. Nil with no bridge client or no such role.
 	prerollReader dawport.PrerollReader
+	// meterReader is the DAW port's daw_meters role over the same adapter: DawMeters (bindings_daw_meters.go) asks it to read the
+	// DAW's own meters. Nil with no bridge client or no such role.
+	meterReader dawport.MeterReader
 	// placeFollower is the DAW port's follow_position role over the same bridge client: DawPlace and DawGoToChapter (bindings_daw_place.go)
 	// read and move the narrator's place in the project. Nil (a true nil interface) with no bridge client or no such role.
 	placeFollower dawport.PlaceFollower
@@ -814,6 +817,7 @@ func (h *Host) configureLocked(next config) {
 		h.lastActionUndoer, _ = dawAdapter.Role(dawport.CapUndoLast).(dawport.LastActionUndoer)
 		h.monitorLeveler, _ = dawAdapter.Role(dawport.CapMonitorLevel).(dawport.MonitorLeveler)
 		h.prerollReader, _ = dawAdapter.Role(dawport.CapPunchPreroll).(dawport.PrerollReader)
+		h.meterReader, _ = dawAdapter.Role(dawport.CapDawMeters).(dawport.MeterReader)
 		h.placeFollower, _ = dawAdapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)
 		h.transportSyncer, _ = dawAdapter.Role(dawport.CapTransportSync).(dawport.TransportSyncer)
 		if h.transportSyncer != nil {
@@ -822,7 +826,7 @@ func (h *Host) configureLocked(next config) {
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
-		h.monitorLeveler, h.placeFollower, h.transportSyncer, h.prerollReader = nil, nil, nil, nil
+		h.monitorLeveler, h.placeFollower, h.transportSyncer, h.prerollReader, h.meterReader = nil, nil, nil, nil, nil
 		// An Audacity project's place and track-selection roles are the Audacity adapter's, over the project's one pipe client.
 		if h.audacity != nil {
 			h.placeFollower, _ = h.audacity.adapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)

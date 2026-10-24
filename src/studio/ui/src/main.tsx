@@ -308,6 +308,8 @@ const mockRegionsCreateError = mockParams.has('mockRegionsCreateError');
 // gate, DAW.experimental_reaper_actions), so "Create chapter regions…"'s enabled Create button can be captured
 // without also exercising the Settings toggle.
 const mockRegionsCapabilityOn = mockParams.has('mockRegionsCapabilityOn');
+// `?mockDawMeters=unarmed`: the DAW's meters answer with no track armed, so the Levels menu says so instead of an input level.
+const mockDawMetersUnarmed = mockParams.get('mockDawMeters') === 'unarmed';
 // `?mockPunchCapabilityOn=1` turns the 'punch' DAW capability on directly (the same bypass as mockRegionsCapabilityOn),
 // so "Punch from here"'s enabled state - the confirm dialog in the read-aloud rail, the pickup list's own button - can
 // be captured without also exercising the Settings toggle.
@@ -652,6 +654,7 @@ const mockInitial = {
     mockDawScript ? { connected: false } : undefined,
     mockAudacityLink ? { connected: true, reachable: mockAudacityLink === 'answering' || mockAudacityLink === 'linked' } : undefined,
     mockRegionsCapabilityOn ? { toggles: { regions: 'on' } } : undefined,
+    mockDawMetersUnarmed ? { meters: 'unarmed' as const } : undefined,
     mockPunchCapabilityOn ? { toggles: { punch: 'on' } } : undefined,
     mockRecordCapabilityOn ? { toggles: { record: 'on' } } : undefined,
     mockDawDisconnected ? { connected: false } : undefined,

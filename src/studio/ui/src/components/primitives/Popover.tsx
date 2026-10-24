@@ -1,5 +1,5 @@
 import { Popover as BasePopover } from '@base-ui/react/popover';
-import type { ReactElement, ReactNode } from 'react';
+import { useRef, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 // A layer above a dialog carries this attribute on its popup, so Dialog.tsx's Escape handler can tell that a key is
@@ -24,6 +24,7 @@ export function Popover({
   defaultOpen,
   onOpenChange,
   fitToWindow = false,
+  focusPopup = false,
   children,
 }: {
   // The trigger's own element (a `Button`, an `IconButton`), the same `render` pattern as `Menu` and `TooltipTarget`.
@@ -39,8 +40,12 @@ export function Popover({
   // Keep the popup inside the window, in the window's own bounds and even when its trigger has scrolled out of view or the window shrank under it:
   // a trigger in a scrolling panel (a dot in the Editing script) would otherwise leave the popup past the window's edge.
   fitToWindow?: boolean;
+  // Open with focus on the popup itself rather than its first control, so a key pressed just after opening (Enter from a footswitch) presses
+  // nothing inside: for a popup whose first control can take the narrator elsewhere. Tab still moves into the controls.
+  focusPopup?: boolean;
   children: ReactNode;
 }) {
+  const popup = useRef<HTMLDivElement>(null);
   return (
     // Focus stays inside while it is open (Tab cycles, it never walks out to a page that would keep the popover up); the page behind stays clickable.
     <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal="trap-focus">
@@ -57,6 +62,8 @@ export function Popover({
           className="z-[var(--z-dialog-popover)]"
         >
           <BasePopover.Popup
+            ref={popup}
+            initialFocus={focusPopup ? popup : undefined}
             aria-label={label}
             {...{ [POPOVER_POPUP_ATTRIBUTE]: '' }}
             className={`max-h-[var(--available-height)] w-max max-w-[calc(100vw-1rem)] min-w-[min(21rem,calc(100vw-1rem))] overflow-y-auto rounded-[var(--radius-card)] border border-[var(--line-strong)] bg-[var(--surface)] p-4 shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}

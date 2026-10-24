@@ -753,6 +753,8 @@ function BoothSession({
                     monitor: capabilities.capabilities.monitor_level,
                     input: capabilities.capabilities.input_level,
                     preroll: capabilities.capabilities.punch_preroll,
+                    meters: capabilities.capabilities.daw_meters,
+                    onOpenSettings: () => navigate(`${BOOTH_LINKS.settings}#experimental`),
                   }
                 : undefined,
             }}

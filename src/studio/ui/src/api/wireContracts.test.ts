@@ -209,6 +209,7 @@ import {
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
+  dawMetersSchema,
   dawMonitorLevelSchema,
   dawPunchPrerollSchema,
   dawPlaceSchema,
@@ -3534,6 +3535,27 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await off.dawSetMonitorLevel(40)).toEqual(refused);
   });
 
+  it("dawMeters answers the DAW's own meters: the host goldens parse, and the mock answers as the host does", async () => {
+    for (const file of ['daw-meters-armed.json', 'daw-meters-unarmed.json', 'daw-meters-refused.json']) expectMatches(dawMetersSchema, readGolden(file), file);
+    expect(dawMetersSchema.safeParse({ ok: true, output: -101, input: null, inputTrack: '', message: '', reason: '' }).success).toBe(false);
+    expect(dawMetersSchema.safeParse({ ok: true, output: -20, input: null, inputTrack: '', message: 'x', reason: '' }).success).toBe(false);
+    expect(dawMetersSchema.safeParse({ ok: false, output: 0, input: null, inputTrack: '', message: '', reason: '' }).success).toBe(false);
+    expect(dawMetersSchema.safeParse({ ok: false, output: 0, input: -6, inputTrack: '', message: 'x', reason: '' }).success).toBe(false);
+
+    const armed = await createMockApi({}, { daw: { toggles: { daw_meters: 'on' } } }).dawMeters();
+    expectMatches(dawMetersSchema, armed, 'mock meters, armed');
+    expect(armed).toMatchObject({ ok: true, input: -48, output: -100 });
+    const unarmed = await createMockApi({}, { daw: { toggles: { daw_meters: 'on' }, meters: 'unarmed' } }).dawMeters();
+    expectMatches(dawMetersSchema, unarmed, 'mock meters, no armed track');
+    expect(unarmed).toMatchObject({ ok: true, input: null, inputTrack: '' });
+
+    const off = createMockApi();
+    const refused = await off.dawMeters();
+    expectMatches(dawMetersSchema, refused, 'mock meters, experimental off');
+    const support = (await off.dawCapabilities()).capabilities.daw_meters;
+    expect(refused).toEqual({ ok: false, output: 0, input: null, inputTrack: '', message: support.message, reason: 'experimental_off' });
+  });
+
   it('dawPlace and dawGoToChapter answer where the narrator is and a move: the host goldens parse, and the mock answers as the host does', async () => {
     expectMatches(dawPlaceSchema, readGolden('daw-place-ok.json'), 'daw-place-ok.json');
     expectMatches(dawPlaceSchema, readGolden('daw-place-refused.json'), 'daw-place-refused.json');
@@ -4382,6 +4404,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawLastAction',
       'dawUndoLast',
       'dawMonitorLevel',
+      'dawMeters',
       'dawSetMonitorLevel',
       'dawPunchPreroll',
       'dawPlace',

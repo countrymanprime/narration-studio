@@ -17,13 +17,14 @@ import type {
   DawPosition,
   DawTransportSyncApi,
   DawResult,
+  DawMeters,
   DawMonitorLevel,
   DawPunchPreroll,
   DawProjectState,
   DawProjectStateApi,
   DawTransport,
 } from './contracts/daw';
-import { DAW_CAPABILITIES, DAW_LEVEL_MAX } from './contracts/daw';
+import { DAW_CAPABILITIES, DAW_LEVEL_MAX, DAW_METER_FLOOR_DB } from './contracts/daw';
 import { wireClone } from './mockFixtures';
 
 /** Mirrors dawport.Needs (capability.go): what a capability needs from the running engine before it can be used. */
@@ -70,6 +71,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   // No DAW the app talks to can set an audio interface's input gain.
   input_level: 'unsupported',
   punch_preroll: 'experimental',
+  daw_meters: 'experimental',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
@@ -111,6 +113,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   monitor_level: 'running',
   input_level: 'running',
   punch_preroll: 'running',
+  daw_meters: 'running',
 };
 
 const MESSAGE_NO_INPUT_LEVEL = (who: string) => `${who} cannot set an audio interface's input gain. Set it in your interface's own control panel.`;
@@ -200,6 +203,8 @@ export type DawMockSeed = {
   /** What the adapter declares about how a capability acts (dawport.Describer), by key; reported on every answer for the
    * key, available or not. A key left out takes the engine's own declaration (REAPER_DEPTH), as the host goldens do. */
   depth?: Partial<Record<DawCapabilityKey, { destructive?: boolean; mode?: DawCapabilityMode }>>;
+  /** What the DAW's meters show (`dawMeters`): a record-armed track hearing the room, the default, or no track armed. */
+  meters?: 'armed' | 'unarmed';
   /** The transport daw_transport_changed reports; defaults to stopped. Only a connected, reachable
    * REAPER reports one: every other seed is stopped whatever this says, as the host's is with no heartbeat to read. */
   transport?: DawTransport;
@@ -541,6 +546,16 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     if (!support?.available) return { ok: false, onRecord: false, measures: 0, measureSeconds: 0, message: support?.message ?? MESSAGE_NO_ENGINE };
     return { ok: true, ...preroll, measureSeconds: 2, message: '' };
   };
+  // What REAPER's meters show: the armed track hears a quiet room (-48 dBFS) and the master plays out only while the transport runs.
+  const metersAnswer = (): DawMeters => {
+    const support = currentCapabilities(live).capabilities.daw_meters;
+    if (!support?.available)
+      return { ok: false, output: 0, input: null, inputTrack: '', message: support?.message ?? MESSAGE_NO_ENGINE, reason: support?.reason ?? '' };
+    const output = sync.playing || sync.recording ? -18 : DAW_METER_FLOOR_DB;
+    if (live.meters === 'unarmed') return { ok: true, output, input: null, inputTrack: '', message: '', reason: '' };
+    return { ok: true, output, input: -48, inputTrack: 'Chapter 1 Narration', message: '', reason: '' };
+  };
+
   const levelAnswer = (): DawMonitorLevel => {
     const support = currentCapabilities(live).capabilities.monitor_level;
     if (!support?.available) return { ok: false, level: 0, message: support?.message ?? MESSAGE_NO_ENGINE };
@@ -724,6 +739,8 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     },
     // The host's answers (bindings_daw_levels.go): the capability's own sentence when it refuses, else the level the DAW holds.
     dawMonitorLevel: async () => levelAnswer(),
+    // The host's answer (bindings_daw_meters.go): the capability's own sentence and reason when it refuses, else the meters.
+    dawMeters: async () => metersAnswer(),
     dawSetMonitorLevel: async (level) => {
       if (!Number.isInteger(level) || level < 0 || level > DAW_LEVEL_MAX) throw new Error(`the monitor level is 0 to ${DAW_LEVEL_MAX}, not ${level}`);
       const answer = levelAnswer();

@@ -87,6 +87,7 @@ func NewFake(kind dawport.Kind, levels map[dawport.Capability]dawport.Level) *Fa
 		dawport.CapTransportSync:   transportSyncRole{r(dawport.CapTransportSync)},
 		dawport.CapInputLevel:      inputLevelRole{r(dawport.CapInputLevel)},
 		dawport.CapPunchPreroll:    prerollRole{r(dawport.CapPunchPreroll)},
+		dawport.CapDawMeters:       meterRole{r(dawport.CapDawMeters)},
 	}
 	return f
 }
@@ -499,6 +500,16 @@ func (r prerollRole) PunchPreroll(context.Context) (dawport.PunchPreroll, error)
 		return dawport.PunchPreroll{}, err
 	}
 	return dawport.PunchPreroll{Measures: 2, MeasureSeconds: 2}, nil
+}
+
+type meterRole struct{ role }
+
+// DawMeters answers a quiet room through an armed track and nothing playing out.
+func (r meterRole) DawMeters(context.Context) (dawport.DawMeters, error) {
+	if err := r.do("DawMeters"); err != nil {
+		return dawport.DawMeters{}, err
+	}
+	return dawport.DawMeters{OutputDB: dawport.MeterFloorDB, Armed: true, InputDB: -58, InputTrack: "Chapter 1"}, nil
 }
 
 type cutRangeRole struct{ role }

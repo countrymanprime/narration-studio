@@ -203,3 +203,14 @@ H.test('7.82/Linux: a stopped recording is an item and one "Recorded media" poin
   H.eq(reaper_api.Undo_CanUndo2(0), nil)
   H.eq(reaper_api.GetProjectStateChangeCount(0), before + 2, 'the Undo raised the change count too')
 end)
+
+H.test('a silent track and the master meter 0 on both channels, and a metered level reads back as a linear peak', function()
+  -- REAPER 7.82, 2026-10-24 (docs/research/reaper-meters-2026-10-24.md): a new, unarmed track and the master answered 0 on
+  -- channels 0 and 1 with nothing playing; an armed track fed a 0.5 click answered about 0.5 on both.
+  local reaper_api, fake = api()
+  local track = fake:add_track('T')
+  H.eq({ reaper_api.Track_GetPeakInfo(track, 0), reaper_api.Track_GetPeakInfo(track, 1) }, { 0, 0 })
+  H.eq({ reaper_api.Track_GetPeakInfo(reaper_api.GetMasterTrack(0), 0), reaper_api.Track_GetPeakInfo(reaper_api.GetMasterTrack(0), 1) }, { 0, 0 })
+  track.peaks = { 0.5, 0.5 }
+  H.eq({ reaper_api.Track_GetPeakInfo(track, 0), reaper_api.Track_GetPeakInfo(track, 1) }, { 0.5, 0.5 })
+end)

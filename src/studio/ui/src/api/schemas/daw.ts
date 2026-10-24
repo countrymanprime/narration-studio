@@ -1,5 +1,13 @@
 import { z } from 'zod';
-import { DAW_BACKUPS_MAX, DAW_LEVEL_MAX, DAW_FX_RANGE_MAX_SETTINGS, DAW_LAST_ACTIONS, DAW_REFUSAL_CODES, DAW_RESULT_MAX_UNDO_STEPS } from '../contracts/daw';
+import {
+  DAW_BACKUPS_MAX,
+  DAW_LEVEL_MAX,
+  DAW_METER_FLOOR_DB,
+  DAW_FX_RANGE_MAX_SETTINGS,
+  DAW_LAST_ACTIONS,
+  DAW_REFUSAL_CODES,
+  DAW_RESULT_MAX_UNDO_STEPS,
+} from '../contracts/daw';
 import type {
   AudacityLink,
   AudacityLinkAction,
@@ -21,6 +29,7 @@ import type {
   DawFxSetting,
   DawKind,
   DawLastAction,
+  DawMeters,
   DawMonitorLevel,
   DawPunchPreroll,
   DawPlace,
@@ -175,6 +184,20 @@ export const dawPunchPrerollSchema = z
   })
   .refine((answer) => answer.ok === (answer.message === ''), 'a refusal carries its sentence, an answer has none')
   .refine((answer) => !answer.ok || answer.measureSeconds > 0, 'an answer has a measure of some length') satisfies z.ZodType<DawPunchPreroll>;
+const meterLevel = z.number().min(DAW_METER_FLOOR_DB).max(60);
+
+/** DawMeters' answer (bindings_daw_meters.go): levels in dBFS on an answer; nothing but the sentence and the reason on a refusal. */
+export const dawMetersSchema = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), output: meterLevel, input: meterLevel.nullable(), inputTrack: z.string(), message: z.literal(''), reason: z.literal('') }),
+  z.object({
+    ok: z.literal(false),
+    output: z.literal(0),
+    input: z.null(),
+    inputTrack: z.literal(''),
+    message: z.string().min(1),
+    reason: z.union([z.enum(DAW_CAPABILITY_REASONS), z.literal('')]),
+  }),
+]) satisfies z.ZodType<DawMeters>;
 
 /** DawPlace's answer (bindings_daw_place.go): a sentence exactly when the call was refused, and a chapter only on an answer. */
 export const dawPlaceSchema = z

@@ -26,6 +26,12 @@
       "mode": "steps",
       "reason": "experimental_off"
     },
+    "daw_meters": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Show the input and output levels is not available with Audacity yet.",
+      "reason": "not_yet"
+    },
     "file_preview": {
       "available": false,
       "level": "not_yet_available",

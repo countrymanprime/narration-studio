@@ -73,6 +73,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   monitor_level: 'experimental',
   input_level: 'unsupported',
   punch_preroll: 'experimental',
+  daw_meters: 'experimental',
 };
 
 type Rows = Partial<Record<DawCapabilityKey, DawCapabilitySupport>>;

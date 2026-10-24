@@ -1134,6 +1134,23 @@ describe('the footer room tone', () => {
   });
 });
 
+describe('the Levels menu', () => {
+  it('Turn on in Settings goes to the Experimental DAW actions switch', async () => {
+    const off = { level: 'experimental' as const, available: false, reason: 'experimental_off' as const, message: 'Experimental: switched off in Settings.' };
+    const setup = DAW_SETUPS.reaper;
+    const daw = createMockDawClient(
+      { ...setup, capabilities: { ...setup.capabilities, monitor_level: off, daw_meters: off } },
+      { chapterIds: ['c1', 'c2', 'credits-opening'], candidateIds: [], findingIds: [] },
+    );
+    const page = renderPage({ daw });
+    await ready();
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    const levels = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(within(levels).getByRole('button', { name: 'Turn on in Settings' }));
+    expect(page.navigate).toHaveBeenCalledWith('/settings#experimental');
+  });
+});
+
 describe('Page Down and Page Up', () => {
   it('Page Down and Page Up scroll the view without moving the reading position', async () => {
     const sized = [

@@ -323,11 +323,20 @@ export const boothDrivers: Record<string, Driver> = {
     await menu.getByText('Microphone Array (Realtek(R) Audio)').waitFor();
   },
   // Experimental DAW actions on: the Punch part is REAPER's own pre-roll, read from REAPER and shown in measures (#2251 item 11).
+  // With no track armed in REAPER, so the meters say so (#2251 item 11) and this state differs from levels-menu-daw-meters.
   'levels-menu-preroll': async (page) => {
-    await readyToRecord(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
+    await readyToRecord(page, `${RECORD_ON}&mockDawExperimentalOn=1&mockDawMeters=unarmed`);
     await page.getByRole('button', { name: 'Levels' }).click();
     const menu = page.getByRole('dialog', { name: 'Levels' });
     await menu.getByText('REAPER pre-roll is off: a punch records from the word with no lead-in.').waitFor();
+    await menu.getByText('No track is armed in REAPER: its input level shows once one is.').waitFor();
+  },
+  'levels-menu-daw-meters': async (page) => {
+    await readyToRecord(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByText('Heard on “Chapter 1 Narration” in REAPER.').waitFor();
+    await menu.getByRole('meter', { name: 'REAPER output level' }).waitFor();
   },
   'room-tone-kept': async (page) => {
     await readyToRecord(page, `${RECORD_ON}&mockRoomTone=-58.6`);

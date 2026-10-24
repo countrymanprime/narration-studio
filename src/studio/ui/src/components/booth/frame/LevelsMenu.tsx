@@ -3,6 +3,7 @@ import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import type { RecordingEngine, RecorderDevice } from '../../../api/contracts/recording';
 import type { TeleprompterDevice } from '../../../api/contracts/teleprompter';
 import { usePort } from '../../../ports/usePort';
+import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
@@ -11,6 +12,7 @@ import { NumberInput } from '../../primitives/NumberInput';
 import { Slider } from '../../primitives/Slider';
 import { Badge } from '../../primitives/StatusBadge';
 import type { InputLevel } from './useLevels';
+import { useDawMeters, type DawMetersState } from './useDawMeters';
 import { useMonitorLevel } from './useMonitorLevel';
 import { usePunchPreroll } from './usePunchPreroll';
 import { useDawPreroll } from './useDawPreroll';
@@ -31,10 +33,17 @@ export type LevelsMenuProps = {
    */
   listen?: { devices: readonly TeleprompterDevice[]; fromDaw: boolean; note: string | null };
   /**
-   * What the DAW says about setting the levels (its `monitor_level` and `input_level` capabilities): the two sliders the mock's menu has. Absent until
-   * the capabilities are read, and then there are no sliders to show.
+   * What the DAW says about setting the levels (its `monitor_level` and `input_level` capabilities): the two sliders the mock's menu has, and
+   * about reading its own meters (`daw_meters`), shown under them. Absent until the capabilities are read, and then there are no sliders to
+   * show. `onOpenSettings` leads to the Experimental switch when that is all that keeps one off.
    */
-  levels?: { monitor: DawCapabilitySupport | undefined; input: DawCapabilitySupport | undefined; preroll?: DawCapabilitySupport | undefined };
+  levels?: {
+    monitor: DawCapabilitySupport | undefined;
+    input: DawCapabilitySupport | undefined;
+    preroll?: DawCapabilitySupport | undefined;
+    meters?: DawCapabilitySupport | undefined;
+    onOpenSettings?: () => void;
+  };
   level: InputLevel | null;
   error: string | null;
   open: boolean;
@@ -151,6 +160,44 @@ function LevelRow({
   );
 }
 
+/** The DAW's own meter for one side, under its slider: the level in dBFS on the shared meter, or why there is none. */
+function DawMeter({ caption, label, db, why }: { caption: string; label: string; db: number | null; why?: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true" className="shrink-0 text-xs text-[var(--text-muted)]">
+          {caption}
+        </span>
+        <div className="min-w-0 flex-1">
+          <LevelMeter label={label} peak={db} rms={db} size="compact" />
+        </div>
+      </div>
+      {why ? <span className="text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{why}</span> : null}
+    </div>
+  );
+}
+
+/** What the DAW's meters say about one side: its level, or the sentence for a meter that is loading, off or quiet. */
+function meterFor(state: DawMetersState, side: 'input' | 'output', dawName: string): { db: number | null; why?: string } {
+  if (state.kind === 'loading') return { db: null, why: `Reading the levels from ${dawName}…` };
+  if (state.kind === 'off' || state.kind === 'quiet') return { db: null, why: side === 'input' ? state.message : undefined };
+  if (side === 'output') return { db: state.meters.output };
+  if (state.meters.input === null) return { db: null, why: `No track is armed in ${dawName}: its input level shows once one is.` };
+  return { db: state.meters.input, why: `Heard on “${state.meters.inputTrack}” in ${dawName}.` };
+}
+
+/** "Turn on in Settings" beside a capability that is off only because Experimental DAW actions are. */
+function TurnOn({ support, onOpenSettings }: { support: DawCapabilitySupport | undefined; onOpenSettings?: () => void }) {
+  if (!onOpenSettings || support?.reason !== 'experimental_off') return null;
+  return (
+    <span>
+      <Button variant="secondary" size="sm" onClick={onOpenSettings}>
+        Turn on in Settings
+      </Button>
+    </span>
+  );
+}
+
 /** The monitor level while the DAW can set it: read when the menu opens, sent when the drag rests, refused in the DAW's own sentence. */
 function MonitorLevelRow() {
   const { state, set } = useMonitorLevel();
@@ -171,17 +218,41 @@ function MonitorLevelRow() {
   );
 }
 
-/** The mock's two sliders under the microphone: Input level and Monitor level (output), each off with the reason when the DAW cannot set it. */
-function LevelSliders({ levels }: { levels: NonNullable<LevelsMenuProps['levels']> }) {
-  const { monitor, input } = levels;
+/**
+ * The mock's two sliders under the microphone: Input level and Monitor level (output), each off with the reason when the DAW cannot set it,
+ * and under each the DAW's own meter for that side (`daw_meters`) when the DAW can read them: the armed track's input and the output.
+ */
+function LevelSliders({ levels, dawName, reachable }: { levels: NonNullable<LevelsMenuProps['levels']>; dawName: string; reachable: boolean }) {
+  const { monitor, input, meters } = levels;
+  // Turning Experimental on helps only while the DAW answers: with it not answering, that is the reason to show, not a switch.
+  const onOpenSettings = reachable ? levels.onOpenSettings : undefined;
+  const state = useDawMeters(meters?.available === true);
+  const reading = meters?.available === true;
+  const inputMeter = reading ? meterFor(state, 'input', dawName) : null;
+  const outputMeter = reading ? meterFor(state, 'output', dawName) : null;
   return (
     <div className="flex flex-col gap-3">
-      <LevelRow label="Input level" value={0} shown="—" disabled note={input?.message ?? 'The input level cannot be set from here.'} />
-      {monitor?.available ? (
-        <MonitorLevelRow />
-      ) : (
-        <LevelRow label="Monitor level (output)" value={0} shown="—" disabled note={monitor?.message ?? 'The monitor level cannot be set from here.'} />
-      )}
+      <div className="flex flex-col gap-1">
+        <LevelRow label="Input level" value={0} shown="—" disabled note={input?.message ?? 'The input level cannot be set from here.'} />
+        {inputMeter ? <DawMeter caption={`${dawName} input`} label={`${dawName} input level`} db={inputMeter.db} why={inputMeter.why} /> : null}
+      </div>
+      <div className="flex flex-col gap-1">
+        {monitor?.available ? (
+          <MonitorLevelRow />
+        ) : (
+          <LevelRow label="Monitor level (output)" value={0} shown="—" disabled note={monitor?.message ?? 'The monitor level cannot be set from here.'} />
+        )}
+        <TurnOn support={monitor} onOpenSettings={onOpenSettings} />
+        {outputMeter ? <DawMeter caption={`${dawName} output`} label={`${dawName} output level`} db={outputMeter.db} why={outputMeter.why} /> : null}
+      </div>
+      {meters && !meters.available ? (
+        <div className="flex flex-col gap-1">
+          <span className="text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">
+            {dawName}&rsquo;s own input and output levels: {meters.message}
+          </span>
+          {monitor?.reason === 'experimental_off' ? null : <TurnOn support={meters} onOpenSettings={onOpenSettings} />}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -257,6 +328,8 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
     <Popover
       label="Levels"
       side="top"
+      // A control in the menu can leave the Booth (Turn on in Settings): a footswitch Enter right after opening must not press it.
+      focusPopup
       open={open}
       onOpenChange={onOpenChange}
       trigger={<IconButton action="levels" label="Levels" id="blevels" aria-haspopup="dialog" />}
@@ -286,7 +359,7 @@ export function LevelsMenu({ engine, dawName, reachable, offReason, device, onDe
             </span>
           ) : null}
         </div>
-        {levels ? <LevelSliders levels={levels} /> : null}
+        {levels ? <LevelSliders levels={levels} dawName={dawName} reachable={reachable} /> : null}
         {engine === 'daw' ? <PunchPrerollRow dawName={dawName} support={levels?.preroll} /> : null}
       </div>
     </Popover>
