@@ -11,6 +11,8 @@ export interface HeardWord {
   off1: number;
   /** 0 to 1: how sure the recogniser was. */
   conf: number;
+  /** The recogniser gave no score: `conf` is a stand-in that counts the word as sure, never a figure to show. */
+  unscored?: true;
   /** Said, but not in the text the stretch was read from. */
   added?: boolean;
   /** An added word of a run the check found says the script again (a second take): which side of the run it repeats. */

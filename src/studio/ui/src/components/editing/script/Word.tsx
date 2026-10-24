@@ -29,6 +29,8 @@ function describeNote(note: WordNote): string {
 }
 
 const pct = (it: DocItem): string => `${Math.round(it.conf * 100)}%`;
+/** ", 17%" after a word's description, or nothing when nothing scored it (a stand-in score of 1 read as "100%", #2251 item 27). */
+const score = (it: DocItem): string => (it.unscored ? '' : `, ${pct(it)}`);
 
 /** The words that name a mark, for a screen reader and for the pointer's tooltip. */
 function describe(it: DocItem, mark: Mark): string {
@@ -36,13 +38,13 @@ function describe(it: DocItem, mark: Mark): string {
     case 'cut':
       return 'Cut from the audio';
     case 'dup':
-      return `Read twice: said again, ${clockText(it.t0 ?? 0)}, ${pct(it)}`;
+      return `Read twice: said again, ${clockText(it.t0 ?? 0)}${score(it)}`;
     case 'extra':
-      return `Not in the script, ${clockText(it.t0 ?? 0)}, ${pct(it)}`;
+      return `Not in the script, ${clockText(it.t0 ?? 0)}${score(it)}`;
     case 'miss':
       return 'In the script, not read';
     case 'mis':
-      return `Heard “${(it.heard ?? '').replace(/[,.;”]+$/, '')}”, ${pct(it)}`;
+      return `Heard “${(it.heard ?? '').replace(/[,.;”]+$/, '')}”${score(it)}`;
     case 'low':
       return `Low confidence ${pct(it)}`;
   }
