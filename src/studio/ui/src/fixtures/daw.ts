@@ -784,7 +784,7 @@ export function fxCompareStopAnswerOf(setup: DawCapabilities): DawResult {
 }
 
 /** The engines whose fx_range role opens their own FX window for words (dawport.RangeFXChooser): REAPER only. */
-export const DAW_FX_CHOOSERS: readonly string[] = ['REAPER'];
+const DAW_FX_CHOOSERS: readonly string[] = ['REAPER'];
 
 /** dawport/reaper's ChooseFXForRange: the words split off in one undo step and REAPER's FX window opened on them. */
 export function fxChooseAnswer(words: number, daw: string): string {
@@ -793,7 +793,7 @@ export function fxChooseAnswer(words: number, daw: string): string {
 }
 
 /** bindings_daw_fx_choose.go's refusal for an engine with no FX window of its own. */
-export function fxNoChooserAnswer(daw: string): string {
+function fxNoChooserAnswer(daw: string): string {
   return `${daw} has no FX window of its own the app can open for words.`;
 }
 

@@ -10,7 +10,7 @@ import type { RangePlan } from '../common/rangePlan';
 import { FX_FADE_MS, keepChosenCommand } from './fxCommand';
 
 /** How often the DAW is asked what the narrator has chosen while its FX window is open, in milliseconds. */
-export const CHOOSE_POLL_MS = 1500;
+const CHOOSE_POLL_MS = 1500;
 
 /** Where Choose in the DAW is: nothing asked, the window being opened, or open with what the DAW last said is chosen. */
 export type ChooseState =
