@@ -31,14 +31,33 @@ export function bookmarkSnippet(bookmark: Bookmark, lineText: LineText, max = 56
   return cut.slice(0, Math.max(cut.lastIndexOf(' '), Math.floor(max / 2))).trimEnd() + '…';
 }
 
-/** What the mark is called: its label, else the words it sits on, else "Line changed" for a stale one. */
+/** What a stopping place ("Read to here", kind `stop`) is called before the words it sits on. */
+const STOP_TITLE = 'Read to here';
+
+/**
+ * What the mark is called: its label, else the words it sits on, else "Line changed" for a stale one. A stopping place with no label is
+ * "Read to here" and the words it sits on.
+ */
 export function bookmarkTitle(bookmark: Bookmark, lineText: LineText): string {
-  return bookmark.label.trim() || (bookmark.stale ? STALE_TITLE : bookmarkSnippet(bookmark, lineText));
+  const label = bookmark.label.trim();
+  if (bookmark.kind === 'stop' && !label) {
+    const words = bookmark.stale ? STALE_TITLE : bookmarkSnippet(bookmark, lineText);
+    return words ? `${STOP_TITLE}: ${words}` : STOP_TITLE;
+  }
+  return label || (bookmark.stale ? STALE_TITLE : bookmarkSnippet(bookmark, lineText));
+}
+
+/** The jump menu's line for a bookmark: "Bookmark: …", or "Read to here: …" for a stopping place. */
+export function bookmarkMenuLabel(bookmark: Bookmark, lineText: LineText): string {
+  const title = bookmarkTitle(bookmark, lineText);
+  if (bookmark.kind !== 'stop') return `Bookmark: ${title}`;
+  return title.startsWith(STOP_TITLE) ? title : `${STOP_TITLE}: ${title}`;
 }
 
 /** What its tooltip says: the label and the note, or the title when it has neither. */
 export function bookmarkTip(bookmark: Bookmark, lineText: LineText): string {
-  return [bookmark.label.trim(), bookmark.note.trim()].filter(Boolean).join(': ') || bookmarkTitle(bookmark, lineText);
+  const tip = [bookmark.label.trim(), bookmark.note.trim()].filter(Boolean).join(': ') || bookmarkTitle(bookmark, lineText);
+  return bookmark.kind === 'stop' && !tip.startsWith(STOP_TITLE) ? `${STOP_TITLE}: ${tip}` : tip;
 }
 
 const spotOf = (b: Bookmark): Spot => ({ chapterId: b.chapterId, paragraph: b.paragraph, offset: b.offset });

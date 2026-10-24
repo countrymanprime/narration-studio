@@ -17,6 +17,7 @@ import (
 	"desktop/internal/evidence"
 	"desktop/internal/persist"
 	"desktop/internal/process"
+	"desktop/internal/recordingcoverage"
 	"desktop/internal/tracks"
 )
 
@@ -46,6 +47,9 @@ type Config struct {
 	// ProjectReader reads the saved .rpp ProjectFile resolves; nil falls back to tracks.Parse
 	// directly, so a Config literal built before this field existed keeps reading exactly as it did before.
 	ProjectReader dawport.ProjectReader
+	// Align aligns the chapter to a run's words and writes its results file; nil is
+	// recordingcoverage.Run. The sidecar only transcribes (docs/utilities/recording-coverage.md).
+	Align func(recordingcoverage.Request) error
 }
 
 // Child is a started sidecar: *process.Child satisfies it.
@@ -190,6 +194,9 @@ func New(config Config, launch Launcher, changed func(State)) *Service {
 	cache.Reporter = config.Reporter
 	mapping := evidence.NewMappingStore(config.Project)
 	mapping.Reporter = config.Reporter
+	if config.Align == nil {
+		config.Align = recordingcoverage.Run
+	}
 	return &Service{
 		config: config, launch: launch, changed: changed, now: time.Now, pollInterval: defaultPollInterval,
 		ledger: ledger, cache: cache, mapping: mapping,
@@ -484,11 +491,9 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 		"--manuscript", running.manuscriptPath,
 		"--chapter-id", running.basis.ChapterID,
 		"--words-dir", running.wordsDir(),
-		"--out", running.resultsPath(),
+		"--out", running.wordsReportPath(),
 		"--progress", running.progressPath,
 		"--model", transcription.Model,
-		"--max-misread-run", strconv.Itoa(running.request.Alignment.MaxMisreadRun),
-		"--min-anchor-run", strconv.Itoa(running.request.Alignment.MinAnchorRun),
 	}
 	if transcription.ModelDir != "" {
 		args = append(args, "--model-dir", transcription.ModelDir)
@@ -502,7 +507,7 @@ func (s *Service) sidecarArgs(running *job, transcription Transcription) []strin
 	}
 	// A stage under the first pass's model keeps what the larger model has already checked: its whole-chapter words serve as they
 	// are, and the passages it re-checked are not reported unsure again (the pipelined first pass names it with --recheck-model).
-	if larger := running.request.Recheck.Model; larger != "" && transcription.Model != larger && (running.stage != stageFirstPass || !running.request.pipelined()) {
+	if larger := running.checkedBy(transcription); larger != "" {
 		args = append(args, "--checked-by", larger)
 	}
 	if running.stage == stageFirstPass && running.request.UnsureBelow > 0 {
@@ -548,16 +553,37 @@ func (s *Service) recheckArgs(running *job) []string {
 	return args
 }
 
-// stageArgs builds the sidecar arguments for the stage advance is moving the job into.
-func (s *Service) stageArgs(running *job, next stage) []string {
-	switch next {
-	case stageRecheckWhole:
-		return s.sidecarArgs(running, running.request.Recheck)
-	case stageRealign:
-		return append(s.sidecarArgs(running, running.request.Transcription), "--align-only")
-	default: // stageRecheckWindows
-		return s.recheckArgs(running)
+// checkedBy is the larger model whose words a stage under transcription's model keeps, or "": the re-check model, unless this
+// stage runs it, and not for the pipelined first pass, which runs both models itself.
+func (j *job) checkedBy(transcription Transcription) string {
+	larger := j.request.Recheck.Model
+	if larger == "" || transcription.Model == larger || (j.stage == stageFirstPass && j.request.pipelined()) {
+		return ""
 	}
+	return larger
+}
+
+// stageArgs builds the sidecar arguments for a stage advance is moving the job into: stageRealign has none, the host aligns it.
+func (s *Service) stageArgs(running *job, next stage) []string {
+	if next == stageRecheckWhole {
+		return s.sidecarArgs(running, running.request.Recheck)
+	}
+	return s.recheckArgs(running) // stageRecheckWindows
+}
+
+// align writes the run's results file from its words: after a stage that transcribed (wordsReport is the sidecar's words
+// report), or, with wordsReport empty, as an align-only pass over words every playing item already has.
+func (s *Service) align(running *job, transcription Transcription, wordsReport string) error {
+	var language *string
+	if transcription.Language != "" {
+		language = &transcription.Language
+	}
+	return s.config.Align(recordingcoverage.Request{
+		ManifestPath: running.manifestPath(), WordsDir: running.wordsDir(), ManuscriptPath: running.manuscriptPath,
+		ChapterID: running.basis.ChapterID, Out: running.resultsPath(), WordsReport: wordsReport,
+		Model: transcription.Model, CheckedBy: running.checkedBy(transcription), Language: language,
+		Params: recordingcoverage.AlignmentParams{MaxMisreadRun: running.request.Alignment.MaxMisreadRun, MinAnchorRun: running.request.Alignment.MinAnchorRun},
+	})
 }
 
 // writeInputs creates the run's folder, writes the manifest and seeds the

@@ -4,7 +4,7 @@
 
 ## What changed
 
-Before, each cascade stage was its own sidecar process: the first pass finished every item (`coverage_mode._collect_words`, one item at a time), then the host planned windows (`internal/coverage/plan.go`) and started `--recheck`, which also ran its windows one at a time, then `--align-only`. Parallelism existed only inside one item longer than a chunk (`coverage_chunks.ChunkedTranscriber`).
+Before, each cascade stage was its own sidecar process: the first pass finished every item (`coverage_mode._collect_words`, one item at a time), then the host planned windows (`internal/coverage/plan.go`) and started `--recheck`, which also ran its windows one at a time, then an align-only sidecar run (now the host's own realign). Parallelism existed only inside one item longer than a chunk (`coverage_chunks.ChunkedTranscriber`).
 
 Now, with `cascade_pipeline` on (default), a score line above 0 and a re-check model, the first stage is one process (`compare.py --coverage --recheck-model M --unsure-below U`, `core/coverage_pipeline.py`):
 
@@ -14,12 +14,12 @@ flowchart LR
   first -->|"words file final (atomic write)"| doubt["unsure_runs, padded and merged"]
   doubt --> queue["re-check queue"]
   queue --> large["large-model workers: splice, write"]
-  first --> align["one alignment, when both are done"]
+  first --> align["the host aligns once, when both are done"]
   large --> align
 ```
 
 - An item enters the queue only after its first-pass words file is written; the re-check then splices into that item's in-memory words and rewrites the file atomically with `spans`. One job per item holds a lock, so a file has one writer.
-- The passages the first pass left **missing** are known only after the whole chapter is aligned, so they cannot be pipelined. The host plans them from the pipelined report and runs `--recheck` and `--align-only` as before, now with a window pool. The pipelined process reports what it re-checked in `COVERAGE_RECHECKED` lines, which the host adds to the stored `Recheck` label.
+- The passages the first pass left **missing** are known only after the whole chapter is aligned, so they cannot be pipelined. The host plans them from the pipelined report and runs `--recheck`, now with a window pool, then realigns the chapter itself (no sidecar; `internal/recordingcoverage` since the alignment moved to the host). The pipelined process reports what it re-checked in `COVERAGE_RECHECKED` lines, which the host adds to the stored `Recheck` label.
 - Windows are padded and merged by the same rules as the host (`pad_window`, `merge_windows`; `tests/fixtures/recheck_windows.json` is read by both test suites). Past 60% of the played seconds, every item is re-checked whole.
 - A passage, or a whole item, the large model already transcribed is never queued again: `checked_ranges` reads the words file's `spans` ([Incremental checks](../utilities/recording-coverage.md#incremental-checks)).
 - Cancel keeps every finished item: each words file is written atomically. `cascade_pipeline` off, or no score line, runs the old stages, which are also the oracle for `tests/test_coverage_pipeline.py::test_the_pipelined_result_equals_the_sequential_one`.

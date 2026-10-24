@@ -499,7 +499,8 @@ export function useBoothPage(options: BoothPageOptions) {
         const larger = () => setSize((s) => Math.min(TEXT_SIZE.max, s + TEXT_SIZE.step));
         const smaller = () => setSize((s) => Math.max(TEXT_SIZE.min, s - TEXT_SIZE.step));
         const more = (extras.current.menuItems?.(target) ?? []).map((item) => ({ ...item, onSelect: run(item.onSelect) }));
-        if (target.closest('[data-bm]')) return more;
+        // A ribbon and a page marker offer only their own items.
+        if (target.closest('[data-bm], [data-page-break]')) return more;
         return [
           ...(phrase === null ? [] : [{ key: 'start', label: 'Start from here', onSelect: run(() => void roll.startFromHere(phrase)) }]),
           ...more,

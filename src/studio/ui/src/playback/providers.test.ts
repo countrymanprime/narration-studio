@@ -70,7 +70,7 @@ describe('the-selection-rule-over-every-readiness-combination', () => {
     const keepQuiet = quietWhileRecording(() => Promise.resolve({ playState: recording ? 'recording' : 'stopped' }), 'REAPER');
     const outcome = await playThrough([first.p, second.p], 0, { dawSpecific, keepQuiet });
     const want = expected(daw, dawPlay, app, dawSpecific, recording);
-    expect(outcome).toEqual({ by: want.by, notice: want.notice });
+    expect({ by: outcome.by, notice: outcome.notice }).toEqual({ by: want.by, notice: want.notice });
     expect(first.play.mock.calls.length > 0).toBe(want.dawAsked);
     expect(second.play.mock.calls.length > 0).toBe(want.appAsked);
   });
@@ -85,16 +85,16 @@ describe('the-narrator-stops-while-a-provider-is-asked', () => {
       return Promise.resolve({ played: false, why: 'No.' });
     });
     const second = provider(APP, { ready: true }, { played: true });
-    expect(await playThrough([first.p, second.p], 0, { stillWanted: () => wanted })).toEqual({ by: null, notice: null });
+    expect(await playThrough([first.p, second.p], 0, { stillWanted: () => wanted })).toEqual({ by: null, notice: null, passed: ['No.'] });
     expect(second.play).not.toHaveBeenCalled();
   });
   it('a waiting provider that is not the first is passed over as not ready', async () => {
     const first = provider(APP, { ready: false, why: 'No file.' }, { played: true });
     const second = provider('REAPER', { ready: false, why: CHECKING, wait: true }, { played: true });
-    expect(await playThrough([first.p, second.p], 0)).toEqual({ by: null, notice: `No file. ${CHECKING}` });
+    expect(await playThrough([first.p, second.p], 0)).toEqual({ by: null, notice: `No file. ${CHECKING}`, passed: ['No file.', CHECKING] });
   });
   it('no providers plays nothing and says nothing', async () => {
-    expect(await playThrough([], 0)).toEqual({ by: null, notice: null });
+    expect(await playThrough([], 0)).toEqual({ by: null, notice: null, passed: [] });
   });
 });
 

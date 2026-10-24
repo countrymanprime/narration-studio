@@ -23,6 +23,7 @@ from test_coverage_mode import (
     _item,
     _lines,
     _project,
+    _results,
     _timed,
     _write_manifest,
     compare,
@@ -270,8 +271,8 @@ def test_item_twos_first_pass_overlaps_item_ones_recheck_for_a_chapter_of_many_s
 
 
 def test_the_pipelined_result_equals_the_sequential_one(tmp_path, progress, cpus):
-    """The oracle: the sidecar's own two-stage path (first pass with the score line, `--recheck` over the padded doubtful
-    windows, `--align-only`) that the host still runs when pipelining is off."""
+    """The oracle: the two-stage path the host still runs when pipelining is off (first pass with the score line, `--recheck`
+    over the padded doubtful windows, then the host's align-only re-run), against the pipelined run and the host's results."""
     manuscript, manifest, truth = _corpus(tmp_path)
     first = _first_pass(truth)
 
@@ -307,19 +308,20 @@ def test_the_pipelined_result_equals_the_sequential_one(tmp_path, progress, cpus
     )
     recheck_args = _args(sequential, manuscript, manifest, model="large-v3-turbo", recheck=str(windows_path))
     mode.run_recheck(recheck_args, compare, transcriber=_recheck(truth))
-    align_args = _args(sequential, manuscript, manifest, model="tiny", align_only=True)
-    mode.run(align_args, compare)
+    align_args = _args(sequential, manuscript, manifest, model="tiny")
+    sequential_lines = _results(align_args, words_report=False)
 
     piped = tmp_path / "piped"
     piped.mkdir()
     piped_args = _cascade_args(piped, manuscript, manifest)
     mode.run(piped_args, compare, transcriber=first, recheck_transcriber=_recheck(truth))
 
-    def stable(out):
-        lines = _lines(out)
+    def stable(lines):
         return {tag: payloads for tag, payloads in lines.items() if tag in ("COVERAGE_PARAGRAPH", "COVERAGE_REGION", "COVERAGE_TOKEN", "COVERAGE_EXTRA")}
 
-    assert stable(piped_args.out) == stable(align_args.out)
+    piped_lines = _results(piped_args)
+    assert stable(piped_lines)["COVERAGE_TOKEN"], "the results must hold the alignment or this compares nothing"
+    assert stable(piped_lines) == stable(sequential_lines)
     assert _words_files(piped) == _words_files(sequential)
 
 
@@ -547,7 +549,7 @@ def test_items_are_transcribed_in_parallel_up_to_the_workers_asked_for(tmp_path,
     mode.run(args, compare, transcriber=transcriber)
 
     assert 2 <= peak[0] <= 2
-    assert [item["index"] for item in _lines(args.out)["COVERAGE_ITEM"]] == [0, 1, 2]
+    assert [item["index"] for item in _results(args)["COVERAGE_ITEM"]] == [0, 1, 2]
 
 
 def test_the_pool_gives_the_same_chapter_as_one_item_at_a_time(tmp_path, progress, cpus):
@@ -564,9 +566,9 @@ def test_the_pool_gives_the_same_chapter_as_one_item_at_a_time(tmp_path, progres
         folder.mkdir()
         args = _args(folder, manuscript, manifest, parallel_workers=workers)
         mode.run(args, compare, transcriber=transcriber)
-        outputs.append({tag: payloads for tag, payloads in _lines(args.out).items() if tag != "COVERAGE_ITEM"})
+        outputs.append({tag: payloads for tag, payloads in _results(args).items() if tag != "COVERAGE_ITEM"})
 
-    assert outputs[0] == outputs[1]
+    assert outputs[0]["COVERAGE_TOKEN"] and outputs[0] == outputs[1]
 
 
 def test_a_cancel_while_the_pool_is_busy_keeps_finished_items_and_stops_the_rest(tmp_path, progress, cpus):

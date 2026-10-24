@@ -51,6 +51,7 @@ import (
 	"desktop/internal/proofing"
 	"desktop/internal/recents"
 	"desktop/internal/recording"
+	"desktop/internal/recordingcoverage"
 	"desktop/internal/renderconfig"
 	"desktop/internal/retakelanes"
 	"desktop/internal/roomtone"
@@ -417,6 +418,8 @@ type Host struct {
 	coverageRuns coverageWatch
 	// coverageLauncher is a seam for tests: nil means the recording check's sidecar starts under h.sidecars.
 	coverageLauncher coverage.Launcher
+	// coverageAligner is a seam for tests beside coverageLauncher: nil means the host's own aligner (recordingcoverage.Run).
+	coverageAligner func(recordingcoverage.Request) error
 	// installUpdate, quitApp, executable and pendingPath are seams for tests: nil or empty means the real thing.
 	installUpdate func(context.Context, update.InstallOptions) error
 	quitApp       func()
@@ -749,6 +752,7 @@ func (h *Host) configureLocked(next config) {
 		Reporter: h.persist,
 		// Reads the saved .rpp through the DAW port's offline role instead of tracks.Parse directly.
 		ProjectReader: projectFileReader{},
+		Align:         h.coverageAligner,
 	}, h.coverageLauncherLocked(), h.emitCoverage)
 	// A chapter's recordedFraction is the measured share of its words from a current, complete check, and absent otherwise;
 	// reading it never starts a check.
