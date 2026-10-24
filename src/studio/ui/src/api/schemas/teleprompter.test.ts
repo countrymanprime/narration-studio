@@ -80,13 +80,21 @@ describe('teleprompterStateSchema', () => {
       engine: null,
       chapter: null,
       paused: false,
+      coldRead: false,
       script: null,
       position: null,
     });
   });
 
+  it('reads a cold read from the snapshot, as a host before it (no key) reads as a session for a take', () => {
+    const context = { boundary: 'host.event', payload: 'teleprompter:state' } as const;
+    expect(parseWire(teleprompterStateSchema, { phase: 'running', coldRead: true }, context).coldRead).toBe(true);
+    expect(parseWire(teleprompterStateSchema, { phase: 'running' }, context).coldRead).toBe(false);
+    expect(() => parseWire(teleprompterStateSchema, { phase: 'running', coldRead: 'yes' }, context)).toThrow(WireError);
+  });
+
   it('accepts the snapshot the host builds mid-session, with the script and position events inside', () => {
-    const snapshot = { phase: 'running', message: 'Listening…', engine: 'whisper', chapter: 'c1', paused: true, script, position };
+    const snapshot = { phase: 'running', message: 'Listening…', engine: 'whisper', chapter: 'c1', paused: true, coldRead: false, script, position };
     expect(parseWire(teleprompterStateSchema, snapshot, { boundary: 'host.event', payload: 'teleprompter:state' })).toEqual(snapshot);
   });
 
