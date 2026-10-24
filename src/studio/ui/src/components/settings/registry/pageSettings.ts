@@ -67,7 +67,7 @@ export const PAGE_SETTINGS: readonly PageSetting[] = [
     page: 'booth',
     where: 'Levels menu',
     panel: 'punch',
-    why: 'It changes how a punch feels while recording. The Booth’s Levels menu is a shortcut to this same setting.',
+    why: 'The lead-in before a punch with a DAW that has no pre-roll of its own. With REAPER, the Booth’s Levels menu shows REAPER’s own pre-roll, the one its punch uses.',
     syn: 'preroll seconds roll',
   },
   {
