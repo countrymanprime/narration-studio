@@ -1,4 +1,5 @@
 import type { CoverageReason } from './coverage';
+import type { DawResult } from './daw';
 import type { FindingNavigation } from './findings';
 import type { TakeComparisonJob } from './takeReview';
 
@@ -216,6 +217,10 @@ export interface WorkspaceApi {
   workspaceTakesCompareStart(chapterId: string, firstToken: number, lastToken: number): Promise<TakeComparisonJob>;
   /** Makes a take the passage's playing one, by an id workspaceTakes offered. */
   workspaceUseTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<WorkspaceUseTakeResult>;
+  /** Plays a take workspaceTakes offered through the DAW's preview (file_preview), outside the project: the host reads the take's own
+   * file and range from the saved project, and plays the first 60 s of a longer one. A take it no longer offers is refused with code
+   * `stale`; dawStopFilePreview stops it. */
+  workspacePreviewTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<DawResult>;
   /** Reads the waveform strip's peaks for every analyzed item of a chapter's stored alignment: host-computed from each item's active take's source file, cached by source identity. */
   workspacePeaks(chapterId: string): Promise<WorkspacePeaksResult>;
 }

@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { VOICE_SAMPLE_LABEL_MAX, VOICE_SAMPLE_NOTE_MAX } from '../../../api/contracts/voiceSamples';
 import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
@@ -12,7 +12,14 @@ import { stopSample } from '../../voicesamples/samplePlayerStore';
 import type { CharacterChoice } from './voiceSampleCharacters';
 
 /** The part of the words the narrator can hear before saving: a stretch of one item's source file. */
-export type Audition = { sourceFile: string; start: number; end: number; mediaUrl: (sourceFile: string) => string };
+export type Audition = {
+  sourceFile: string;
+  start: number;
+  end: number;
+  mediaUrl: (sourceFile: string) => string;
+  /** Set while a linked DAW plays the chapter: Play plays the words through the page's playback (the DAW), never the app's audio. */
+  through?: { play: () => void; stop: () => void };
+};
 
 type VoiceSampleValues = { characterId: string; label: string; note: string; makePrimary: boolean };
 
@@ -67,6 +74,11 @@ export function VoiceSampleDialog({
   const [failure, setFailure] = useState('');
   const busy = useRef(false);
   const player = useRangePlayer(audition?.mediaUrl ?? ((file) => file), { pre: 0, post: 0 });
+  // Through the DAW the dialog hears no end, so it shows the words playing for their length; the page's toast says when the DAW cannot.
+  const [inDaw, setInDaw] = useState(false);
+  const dawTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(dawTimer.current), []);
+  const playing = player.isPlaying || inDaw;
 
   const character = choices.find((c) => c.id === characterId);
   const name = character?.name ?? 'this character';
@@ -78,6 +90,19 @@ export function VoiceSampleDialog({
 
   const play = (): void => {
     if (!audition) return;
+    const through = audition.through;
+    if (through) {
+      window.clearTimeout(dawTimer.current);
+      if (inDaw) {
+        through.stop();
+        return setInDaw(false);
+      }
+      stopSample();
+      through.play();
+      setInDaw(true);
+      dawTimer.current = window.setTimeout(() => setInDaw(false), Math.max(0, audition.end - audition.start) * 1000);
+      return;
+    }
     if (player.isPlaying) return player.stop();
     // One sound at a time: a voice sample that is playing stops, as the range player stops when a sample starts.
     stopSample();
@@ -90,6 +115,10 @@ export function VoiceSampleDialog({
     setSaving(true);
     setFailure('');
     player.stop();
+    if (inDaw) {
+      audition?.through?.stop();
+      setInDaw(false);
+    }
     try {
       const answer = await onSave({ characterId, label: label.trim(), note: note.trim(), makePrimary });
       if (!answer.ok) setFailure(answer.message);
@@ -150,13 +179,8 @@ export function VoiceSampleDialog({
         </>
       )}
       <div className="flex items-center gap-3 rounded-lg bg-[var(--info-soft)] px-3 py-2">
-        <IconButton
-          label={player.isPlaying ? 'Stop' : 'Play range'}
-          aria-pressed={player.isPlaying}
-          disabledReason={audition ? undefined : 'Nothing to play'}
-          onClick={play}
-        >
-          <Icon name={player.isPlaying ? 'stop' : 'play'} />
+        <IconButton label={playing ? 'Stop' : 'Play range'} aria-pressed={playing} disabledReason={audition ? undefined : 'Nothing to play'} onClick={play}>
+          <Icon name={playing ? 'stop' : 'play'} />
         </IconButton>
         <q className="min-w-0 flex-1 font-serif text-lg" dir="auto" data-voice-sample-words>
           {words}

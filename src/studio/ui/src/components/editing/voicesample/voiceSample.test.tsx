@@ -125,6 +125,9 @@ let played: string[];
 
 const keymap = defaultKeymap(COMMAND_CATALOG, false);
 
+/** Set by a test that mounts with a DAW playing the chapter: the dialog's Play goes through it (#2251 item 32). */
+let throughDaw: { playFrom: ReturnType<typeof vi.fn<(from: number, to?: number) => void>>; stop: ReturnType<typeof vi.fn<() => void>> } | null = null;
+
 function Inner() {
   page = useEditingPage();
   doc = page.doc;
@@ -137,6 +140,7 @@ function Inner() {
     ] as never,
     mediaUrl: (file) => `/media?path=${file}`,
     stopPlayback: idle.stop,
+    throughDaw,
   });
   useEditingKeys({ handlers: { voiceSample: () => voice.open() }, keymap });
   return <SelectionBar playback={idle} end={60} />;
@@ -197,6 +201,7 @@ class FakeAudio extends EventTarget {
 }
 
 beforeEach(() => {
+  throughDaw = null;
   current = workspace();
   existing = list([]);
   entities = () => Promise.resolve(ENTITIES);
@@ -481,6 +486,20 @@ describe('marking a voice sample', () => {
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Stop' }));
     expect(within(dialog()).getByRole('button', { name: 'Play range' })).toBeDefined();
     await waitFor(() => expect(idle.stop).toHaveBeenCalled());
+  });
+
+  it('Play range plays the words through the DAW, and nothing through the app, while a DAW plays the chapter', async () => {
+    throughDaw = { playFrom: vi.fn(), stop: vi.fn() };
+    mount();
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Play range' }));
+    await flush();
+    expect(throughDaw.playFrom).toHaveBeenCalledTimes(1);
+    expect(played).toEqual([]);
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Stop' }));
+    expect(throughDaw.stop).toHaveBeenCalled();
+    expect(within(dialog()).getByRole('button', { name: 'Play range' })).toBeDefined();
   });
 
   it('Play range stops a voice sample that is playing', async () => {

@@ -271,7 +271,7 @@ Click a line's takes chip or its badge (T steps to the next take) to open its ta
 why it is suggested and the steps that would make the comparison surer: **Trim white space**, **Trim breaths** and
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. A take's second line says where it begins, how long it lasts and what the DAW calls it
-(a REAPER take, an Audacity clip or a recorder take). A take reads **Kept**, **Active**, **Muted** or, once you hide the others and look at them again, **Hidden**; the first read of a stacked line wears **First read**. Play a take to hear it; **Keep take**
+(a REAPER take, an Audacity clip or a recorder take). A take reads **Kept**, **Active**, **Muted** or, once you hide the others and look at them again, **Hidden**; the first read of a stacked line wears **First read**. Play a take to hear it: with REAPER linked it plays through REAPER, outside the project and without changing it, so you hear its output and level, and nothing plays if REAPER cannot (a message says why); with the built-in recorder or Audacity the app plays it. A take longer than a minute plays its first minute. **Keep take**
 (Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
 moves the DAW to the line, on a DAW that can move to a place in the project.
 
@@ -326,7 +326,7 @@ With **Play and follow the project's transport** on (Settings > DAW; it is an ex
 - Pressing Play or Stop in REAPER lights the word it is on, or stops the page, the same way.
 - A word with no place in the project (the audio before a trim, a stretch after a cut, a gap between paragraphs) moves nothing, and REAPER's cursor on such a place moves nothing on the page.
 
-While REAPER is linked, the page plays the chapter only through REAPER, never through the computer's output, so what you hear has REAPER's FX and level. If REAPER cannot play (it is recording, it is not connected, it has another project open, the switch is off, or the word is not in its project), nothing plays and a message says why. If REAPER stops answering while it plays for the page, playback stops and says so. With the built-in recorder, or Audacity, the app plays the audio itself.
+While REAPER is linked, the page plays the chapter only through REAPER, never through the computer's output, so what you hear has REAPER's FX and level. The same holds for a take under a line and for the Voice sample dialog's **Play range**. If REAPER cannot play (it is recording, it is not connected, it has another project open, the switch is off, or the word is not in its project), nothing plays and a message says why. If REAPER stops answering while it plays for the page, playback stops and says so. With the built-in recorder, or Audacity, the app plays the audio itself.
 
 ## When the DAW is not connected
 

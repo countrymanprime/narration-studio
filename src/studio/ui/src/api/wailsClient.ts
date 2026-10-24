@@ -536,6 +536,8 @@ export const wailsClient: NarrationApi = {
     decode(takeComparisonJobSchema, 'WorkspaceTakesCompareStart', host.WorkspaceTakesCompareStart(chapterId, firstToken, lastToken)),
   workspaceUseTake: (chapterId, firstToken, lastToken, candidateId) =>
     decode(workspaceUseTakeResultSchema, 'WorkspaceUseTake', host.WorkspaceUseTake(chapterId, firstToken, lastToken, candidateId)),
+  workspacePreviewTake: (chapterId, firstToken, lastToken, candidateId) =>
+    decode(dawResultSchema, 'WorkspacePreviewTake', host.WorkspacePreviewTake(chapterId, firstToken, lastToken, candidateId)),
   workspacePeaks: (chapterId) => decode(workspacePeaksResultSchema, 'WorkspacePeaks', host.WorkspacePeaks(chapterId)),
   workspaceSnap: (chapterId, itemGuid, sourceTime) => decode(workspaceSnapResultSchema, 'WorkspaceSnap', host.WorkspaceSnap(chapterId, itemGuid, sourceTime)),
   previewCandidates: () => decode(previewResultSchema, 'PreviewCandidates', host.PreviewCandidates()),
