@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dialogueCueSchema } from '../../api/schemas/dialogueCue';
 import type { GuideEntity, ManuscriptParagraph } from '../../types';
 import { recordedDemoDialogueCues, speakerLabelForParagraph, type DialogueCue } from './dialogueCues';
+import { cueIsConfirmed, cueSpeakerEntries, cueSpeakerState } from './dialogueCues.selectors';
 
 const entity = (id: string, canonical_name: string): GuideEntity => ({ id, canonical_name, aliases: [], category: 'Character' }) as unknown as GuideEntity;
 const entitiesById = new Map([
@@ -88,5 +89,34 @@ describe('recordedDemoDialogueCues', () => {
 
   it('finds nothing in a manuscript that never contains the recorded quotes', () => {
     expect(recordedDemoDialogueCues([{ id: 'p-1', chapterId: 'chapter-1', text: 'An entirely different book.' }])).toEqual([]);
+  });
+});
+
+describe('the speaker chip rule every page shares', () => {
+  const types = [
+    { name: 'Character', colour: 'green', speaks: true },
+    { name: 'Place', colour: 'blue', speaks: false },
+  ] as const;
+  const of = (category: string) => ({ id: category, category });
+
+  it('a correction is confirmed (solid); every automatic source is suggested (dashed); nobody is unknown', () => {
+    for (const speaker_source of ['tag', 'continuation', 'proximity'] as const) {
+      expect(cueSpeakerState({ ...realShapedCue, speaker_source }, of('Character'))).toBe('suggested');
+    }
+    expect(cueSpeakerState({ ...realShapedCue, speaker_source: 'correction' }, of('Character'))).toBe('confirmed');
+    expect(cueSpeakerState({ ...realShapedCue, speaker_source: 'tag', corrected: true }, of('Character'))).toBe('confirmed');
+    expect(cueSpeakerState({ ...realShapedCue, speaker_source: 'correction' }, null)).toBe('unknown');
+    expect(cueIsConfirmed({ corrected: false, speaker_source: 'unknown' })).toBe(false);
+  });
+
+  it('a chip names an entry whose type speaks or a Needs Review name, never a place or a draft', () => {
+    const entries = ['Character', 'Needs Review', 'Place', 'Draft', 'No such type'].map(of);
+    expect(cueSpeakerEntries(entries, types).map((entry) => entry.category)).toEqual(['Character', 'Needs Review']);
+    expect(cueSpeakerEntries([], types)).toEqual([]);
+  });
+
+  it('the schema takes a proximity speaker', () => {
+    expect(() => dialogueCueSchema.parse({ ...realShapedCue, speaker_source: 'proximity' })).not.toThrow();
+    expect(() => dialogueCueSchema.parse({ ...realShapedCue, speaker_source: 'guess' })).toThrow();
   });
 });

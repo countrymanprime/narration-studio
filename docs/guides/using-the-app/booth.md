@@ -31,8 +31,9 @@ its own once connected. Click it to fix that in [Settings](settings.md#link-your
 The text fills the middle, fading into the page at the top and bottom edges, with speaker chips beside the lines a character speaks, Story Bible names tinted and the words you
 marked on [Script](script.md) drawn in their mark's colour and the line style you chose for it (a tint, a box, or a solid, double,
 dotted or wavy underline), as they are on Script; a mark's note shows under its paragraph with a bar in the mark's colour. A
-speaker chip takes its character's colour; a suggested speaker's chip is dashed, and a quote nobody is matched to has a grey dashed
-**?** chip. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **In this
+speaker chip takes its character's colour; a suggested speaker's chip is dashed until you confirm it, and a quote nobody is
+matched to has a grey dashed **?** chip, by the same rule as on [Script](script.md). The chip's menu lists the entries whose
+type speaks. A Story Bible name is tinted in its type's colour here, in the side panel's Reference chip and in the **In this
 chapter** chips alike. Paragraphs sit one line apart, as the lines inside them do, and each starts with an indent, so a page of short paragraphs or
 back-and-forth dialogue shows many more lines at the same text size. The word you
 are on is marked with a caret; the text scrolls to keep it in view as you read. The mouse wheel and Page Up and Page Down move

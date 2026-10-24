@@ -32,5 +32,22 @@
     "quote_text": "Have some wine.",
     "speaker_entity_id": null,
     "speaker_source": "unknown"
+  },
+  {
+    "chapterId": "chapter-6",
+    "corrected": false,
+    "evidence": {
+      "chapterId": "chapter-6",
+      "excerpt": "No room! Alice frowned.",
+      "paragraphId": "p-25",
+      "tag": ""
+    },
+    "id": "cue-3",
+    "paragraphId": "p-25",
+    "quote_end": 9,
+    "quote_start": 0,
+    "quote_text": "No room!",
+    "speaker_entity_id": "alice",
+    "speaker_source": "proximity"
   }
 ]
