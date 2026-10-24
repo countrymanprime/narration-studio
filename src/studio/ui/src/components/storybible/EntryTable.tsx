@@ -62,7 +62,7 @@ export type EntryTableProps = {
 };
 
 /** Whether an entry has a pronunciation to play: the Hear button shows only then, as on the Script page's rail. */
-export const canHear = (entry: GuideEntity): boolean => entry.pronunciation.ipa.trim() !== '';
+const canHear = (entry: GuideEntity): boolean => entry.pronunciation.ipa.trim() !== '';
 
 export type EntryTableHandle = { focusFirst: () => void };
 
