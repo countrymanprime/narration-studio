@@ -1,6 +1,6 @@
 # Threat model
 
-**Status: reviewed 2026-10-23.**
+**Status: reviewed 2026-10-24.**
 **Keeping it true.** A change that touches a trust boundary below updates this file in the same pull request: the `feature-cleanup` skill and the pull request template both ask "does this add or change a trust boundary, a privilege or what the app sends off the machine?". A file the app writes and reads back for the same user is listed in [data files](../reference/data-files.md), not here, unless it names a path the host opens, a command it runs or a URL it fetches. Bump the date above when a row is re-read against the code. Do not log changes here; the history is `git log -p docs/architecture/threat-model.md`. A finding that is not fixed here is a GitHub issue ([Tracking work on GitHub](../operations/github-workflow.md)), named in its row.
 
 `<app name>`, `<app>`, `<data>`, `<executable>`, `<launcher folder>` and `<label track>` stand for values in `config/brand.json` ([Product and technical names](codebase-map.md#product-and-technical-names)).
