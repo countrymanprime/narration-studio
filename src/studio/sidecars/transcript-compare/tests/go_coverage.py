@@ -2,7 +2,7 @@
 
 The sidecar only transcribes: the host aligns the chapter to the words and writes the results
 (`src/studio/desktop/internal/recordingcoverage`). The coverage harness, the calibration and the
-alignment spike measure that Go code through `src/studio/desktop/cmd/coverage-align`, built once per
+alignment spike measure that Go code through `src/studio/desktop/cmd/proof-align`, built once per
 process with the repository's Go toolchain and kept running as a line-per-request server. Nothing
 here ships.
 """
@@ -58,12 +58,12 @@ class _Server:
         self._process: subprocess.Popen | None = None
 
     def _start(self) -> subprocess.Popen:
-        folder = Path(tempfile.mkdtemp(prefix="coverage-align-"))
-        binary = folder / ("coverage-align.exe" if os.name == "nt" else "coverage-align")
+        folder = Path(tempfile.mkdtemp(prefix="proof-align-"))
+        binary = folder / ("proof-align.exe" if os.name == "nt" else "proof-align")
         env = dict(os.environ, CGO_ENABLED="0")
-        built = subprocess.run(["go", "build", "-o", str(binary), "./cmd/coverage-align"], cwd=DESKTOP, env=env, capture_output=True, text=True, check=False)
+        built = subprocess.run(["go", "build", "-o", str(binary), "./cmd/proof-align"], cwd=DESKTOP, env=env, capture_output=True, text=True, check=False)
         if built.returncode != 0:
-            raise AlignError(f"could not build cmd/coverage-align with the Go toolchain: {built.stderr.strip()}")
+            raise AlignError(f"could not build cmd/proof-align with the Go toolchain: {built.stderr.strip()}")
         process = subprocess.Popen([str(binary)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8", bufsize=1)
         atexit.register(process.kill)
         return process

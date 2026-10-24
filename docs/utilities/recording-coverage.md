@@ -393,7 +393,7 @@ This table is the key to the labels that code comments, tests and the text above
   run's words aligned by the host's code), `test_coverage_alignment.py`, `test_marker_golden.py` (markers unchanged),
   `coverage_harness.py` and [the fixture set](../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md),
   `coverage_spike.py` and `coverage_calibration.py`, each pinned by its own test file. They reach the host's aligner through
-  `go_coverage.py`, which builds and runs `src/studio/desktop/cmd/coverage-align` (so they need Go).
+  `go_coverage.py`, which builds and runs `src/studio/desktop/cmd/proof-align` (so they need Go).
 - `src/studio/desktop/internal/coverage`: service tests with a fake sidecar (fresh, all-cached, one-item edit, cancel, every
   refusal and staleness cause), the signal table, settings and a provider test through `stages.Collect`. A test runs
   the real sidecar over cached words when the checkout has a Python environment. `corpus_test.go` stores the

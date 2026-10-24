@@ -1,4 +1,4 @@
-// Command coverage-align serves the host's recording-coverage alignment
+// Command proof-align serves the host's Proof analyses (the recording check's alignment, internal/recordingcoverage)
 // (internal/recordingcoverage) to the Python test tooling of the
 // transcript-compare sidecar: its coverage harness, calibration and alignment
 // spike (src/studio/sidecars/transcript-compare/tests/go_coverage.py), so they

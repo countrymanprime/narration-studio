@@ -27,7 +27,7 @@ script text against what was said. The workflow is documented in
   (`coverage_harness.py`) and its synthetic labeled fixtures (`fixtures/coverage/`), the alignment
   spike (`coverage_spike.py`) and the calibration (`coverage_calibration.py`); see
   `tests/fixtures/coverage/README.md`. These measure the host's aligner through `go_coverage.py`, which
-  builds `src/studio/desktop/cmd/coverage-align`, so the suite needs Go.
+  builds `src/studio/desktop/cmd/proof-align`, so the suite needs Go.
 - REAPER integration is in `src/studio/integrations/reaper/`; a future Audacity driver has placeholder notes under
   `src/studio/integrations/audacity/transcript-compare/`.
 
