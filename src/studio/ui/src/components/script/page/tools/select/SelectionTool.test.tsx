@@ -76,7 +76,7 @@ describe('the-toolbar-is-a-dark-pill', () => {
     m.rerender(inside(0, 5));
     expect(tool().className).toContain('bg-[var(--text)]');
     expect(tool().className).toContain('text-[var(--surface)]');
-    for (const name of ['Mark', 'Story Bible', 'Look up', 'Bookmark here'])
+    for (const name of ['Mark', 'Story Bible', 'Look up in the dictionary or the Story Bible', 'Bookmark here'])
       expect(within(tool()).getByRole('button', { name }).className).toMatch(/bg-transparent/);
   });
 });
@@ -86,7 +86,8 @@ describe('offers-mark-story-bible-and-look-up', () => {
     const m = mount();
     m.rerender(inside(0, 5));
     const bar = within(tool());
-    for (const name of ['Mark', 'Story Bible', 'Look up', 'Bookmark here']) expect(bar.getByRole('button', { name })).toBeTruthy();
+    for (const name of ['Mark', 'Story Bible', 'Look up in the dictionary or the Story Bible', 'Bookmark here'])
+      expect(bar.getByRole('button', { name })).toBeTruthy();
   });
 
   it('shows a tooltip on the Mark group', async () => {
@@ -194,7 +195,7 @@ describe('look-up-opens-the-words-tab', () => {
   it('shows the word card for a single word', async () => {
     const m = mount();
     m.rerender(inside(10, 19));
-    await userEvent.click(within(tool()).getByRole('button', { name: 'Look up' }));
+    await userEvent.click(within(tool()).getByRole('button', { name: 'Look up in the dictionary or the Story Bible' }));
     expect(view.tab).toBe('pron');
     expect(view.word).toBe('beginning'.toLowerCase());
     expect(m.onDismiss).toHaveBeenCalled();
@@ -205,7 +206,7 @@ describe('look-up-opens-the-words-tab', () => {
     const text = rows[0]!.text;
     const end = text.indexOf(' ', text.indexOf(' ') + 1);
     m.rerender(inside(0, end));
-    await userEvent.click(within(tool()).getByRole('button', { name: 'Look up' }));
+    await userEvent.click(within(tool()).getByRole('button', { name: 'Look up in the dictionary or the Story Bible' }));
     expect(view.tab).toBe('bible');
     expect(view.miss).toBe(text.slice(0, end));
     expect(view.missSel).toMatchObject({ paragraphId: rows[0]!.id, start: 0, end });

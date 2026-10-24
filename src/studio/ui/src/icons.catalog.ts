@@ -17,6 +17,7 @@ import {
   faBookmark,
   faCommentDots,
   faBookOpen,
+  faBookOpenReader,
   faCalendarDays,
   faCaretDown,
   faCaretLeft,
@@ -301,7 +302,9 @@ export const CATALOG = {
   // No unambiguous icon: text (audit rule 6).
   cancel: text('cancel', 'Cancel'),
   save: text('save', 'Save'),
-  lookUp: text('look up', 'Look up'),
+  // Look up the selected words (#2251 item 19: an icon button in the selection toolbar, not text). The dictionary's open book,
+  // distinct from `find`'s magnifying glass and the Story Bible page's `faBook`, as `locate` took its own icon from the magnifying glass too.
+  lookUp: action(faBookOpenReader, 'look up', 'Look up in the dictionary or the Story Bible'),
   compare: text('compare', 'Compare without and with the effect'),
   clearFilters: text('clear filters', 'Clear filters'),
   reopen: text('reopen', 'Reopen'),

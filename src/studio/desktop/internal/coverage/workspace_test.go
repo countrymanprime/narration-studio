@@ -279,6 +279,30 @@ func TestViewCarriesTheEngine(t *testing.T) {
 	}
 }
 
+func TestAMisreadIsScoredByHowAlikeItSoundsAndNoOtherTokenIs(t *testing.T) {
+	// Issue #2251 item 27: "MBA" heard as "NBA" was shown at 100%.
+	nba, notebook := "NBA", "notebook"
+	view := AlignmentView{Tokens: []TokenLine{
+		{Index: 0, Text: "MBA", Status: "misread", Heard: &nba},
+		{Index: 1, Text: "ledger", Status: "misread", Heard: &notebook},
+		{Index: 2, Text: "door", Status: "read"},
+		{Index: 3, Text: "misread", Status: "misread"}, // no heard text: nothing to compare
+	}}
+	tokens := view.WireTokens()
+	if tokens[0].Conf == nil || *tokens[0].Conf >= 0.35 || tokens[0].ConfReason != "" {
+		t.Errorf("MBA heard as NBA: conf %v, reason %q", tokens[0].Conf, tokens[0].ConfReason)
+	}
+	if tokens[1].Conf == nil || *tokens[1].Conf < 0.5 {
+		t.Errorf("ledger heard as notebook: conf %v", tokens[1].Conf)
+	}
+	for _, token := range tokens[2:] {
+		if token.Conf != nil || token.ConfReason != ConfNoWordScores {
+			t.Errorf("token %d: conf %v, reason %q", token.Index, token.Conf, token.ConfReason)
+		}
+	}
+}
+
+// TestEveryWordScoreIsNullWithAReason: but a misread's, scored by sound (above).
 func TestEveryWordScoreIsNullWithAReason(t *testing.T) {
 	p := newTestProject(t)
 	service := p.service(&fakeSidecar{results: addedWordsResults})
@@ -286,6 +310,9 @@ func TestEveryWordScoreIsNullWithAReason(t *testing.T) {
 	view := alignmentOf(t, service)
 
 	for _, token := range view.WireTokens() {
+		if token.Status == "misread" {
+			continue
+		}
 		if token.Conf != nil || token.ConfReason != ConfNoWordScores {
 			t.Errorf("token %d: conf %v, reason %q", token.Index, token.Conf, token.ConfReason)
 		}

@@ -811,6 +811,10 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     const saved = await api.teleprompterSaveFlags(chapter?.id ?? '', flags);
     expectMatches(teleprompterFlagFindingsSchema, saved, 'mock teleprompter saved flags');
     expect(saved.map((finding) => finding.review.status)).toEqual(['dismissed', 'unreviewed', 'unreviewed', 'unreviewed']);
+    // Only a misread is scored, by sound (#2251 item 27); the schema refuses a score on any other kind.
+    expect(saved.map((finding) => finding.confidence !== null)).toEqual([true, false, false, false]);
+    expect(teleprompterFlagFindingsSchema.safeParse([{ ...saved[1], confidence: 0.5 }]).success).toBe(false);
+    expect(teleprompterFlagFindingsSchema.safeParse([{ ...saved[0], confidence: 1.5 }]).success).toBe(false);
     const again = await api.teleprompterSaveFlags(
       chapter?.id ?? '',
       flags.map((flag) => ({ ...flag, dismissed: false })),
@@ -2835,11 +2839,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(workspaceAlignmentResultSchema.safeParse(bad({ start: 5, end: 7, first: 2, last: 2, text: 'x' })).success).toBe(false);
   });
 
-  it('the heard words: a score is null with a reason, only an extra run is added, and the mock carries both', async () => {
+  it('the heard words: a score is null with a reason except a misread, only an extra run is added, and the mock carries both', async () => {
     const golden = JSON.parse(readFileSync(`${GOLDEN_DIR}workspace-alignment-added-words.json`, 'utf8'));
     const parsed = workspaceAlignmentResultSchema.parse(golden);
     expect(parsed.engine).toEqual({ id: 'whisper:small', name: 'Whisper small' });
-    expect(parsed.tokens.every((token) => token.conf === null && token.confReason === 'no_word_scores')).toBe(true);
+    // A misread is scored by how alike the script's and the heard word sound (#2251 item 27); nothing else has a score.
+    const unscored = (token: (typeof parsed.tokens)[number]): boolean => token.conf === null && token.confReason === 'no_word_scores';
+    expect(parsed.tokens.every((token) => (token.status === 'misread' ? token.conf !== null && token.confReason === undefined : unscored(token)))).toBe(true);
+    expect(parsed.tokens.some((token) => token.status === 'misread')).toBe(true);
     expect(parsed.extras.flatMap((extra) => extra.words ?? []).map((word) => word.timing)).toEqual(['spread', 'spread', 'unplaced', 'unplaced', 'spread']);
 
     const withToken = (patch: Record<string, unknown>) => ({ ...golden, tokens: [{ ...golden.tokens[0], ...patch }] });
@@ -2864,7 +2871,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const mock = await createMockApi({}, { chapterTrackMappings: [link] }).workspaceAlignment(measured.id);
     expectMatches(workspaceAlignmentResultSchema, mock, 'mock workspace alignment, heard words');
     expect(mock.engine).toBeDefined();
-    expect(mock.tokens.every((token) => token.conf === null && token.confReason === 'no_word_scores')).toBe(true);
+    expect(
+      mock.tokens.every((token) => (token.status === 'misread' ? token.conf !== null : token.conf === null && token.confReason === 'no_word_scores')),
+    ).toBe(true);
     expect(mock.tokens.some((token) => token.status === 'misread')).toBe(true);
     expect(mock.extras.flatMap((extra) => extra.words ?? []).every((word) => word.added && word.timing === 'spread')).toBe(true);
     expect(mock.extras.flatMap((extra) => extra.words ?? []).length).toBeGreaterThan(0);

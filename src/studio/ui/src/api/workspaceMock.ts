@@ -80,6 +80,8 @@ const SECONDS_PER_WORD = 60 / WORDS_PER_MINUTE;
 const MOCK_ENGINE = { id: 'whisper:small', name: 'Whisper small' };
 /** Why every word score is null: the words file carries no Whisper word probabilities. */
 const NO_WORD_SCORES = 'no_word_scores';
+/** A misread's score: the host's is how alike the script's and the heard word sound (coverage.WireTokens); the mock's is fixed. */
+const MOCK_MISREAD_CONF = 0.5;
 
 /** An extra run's words spread evenly between its ends, as the host's coverage.extraWords does for a run on one item. */
 function mockExtraWords(extra: WorkspaceExtra): WorkspaceExtraWord[] {
@@ -306,7 +308,9 @@ export function createWorkspaceMock(
         ...base,
         ...heading,
         paragraphs: chapterParagraphs.map(({ id, text }) => ({ id, text })),
-        tokens: tokens.map((token) => ({ ...token, conf: null, confReason: NO_WORD_SCORES })),
+        tokens: tokens.map((token) =>
+          token.status === 'misread' && token.heard ? { ...token, conf: MOCK_MISREAD_CONF } : { ...token, conf: null, confReason: NO_WORD_SCORES },
+        ),
         extras: resolvedExtras,
         items: liveItem ? [liveItem] : [],
         ...(tokens.length ? { engine: MOCK_ENGINE } : {}),

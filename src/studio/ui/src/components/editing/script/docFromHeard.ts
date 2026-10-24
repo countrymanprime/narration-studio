@@ -101,6 +101,7 @@ function alignerFor(heard: NonNullable<Extract<HeardAnswer, { heard: unknown }>[
         off0: Math.max(0, w.off0 - origin),
         off1: Math.max(0, w.off1 - origin),
         conf: w.conf ?? 1,
+        ...(w.conf === null ? { unscored: true as const } : {}),
         ...(w.added ? { added: true } : {}),
         ...(w.repeats ? { repeats: w.repeats } : {}),
       }));
