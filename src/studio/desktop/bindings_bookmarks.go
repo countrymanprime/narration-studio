@@ -20,6 +20,12 @@ func (h *Host) BookmarksAdd(chapterID, paragraphID string, offset int) (string, 
 	return encodeBinding(h.bookmarks().Add(chapterID, paragraphID, offset))
 }
 
+// BookmarksSetStop makes a spot the chapter's stopping place (a bookmark of kind stop), replacing the one the chapter had,
+// and returns every bookmark in reading order. It only marks the place: nothing stops a take there.
+func (h *Host) BookmarksSetStop(chapterID, paragraphID string, offset int) (string, error) {
+	return encodeBinding(h.bookmarks().SetStop(chapterID, paragraphID, offset))
+}
+
 // BookmarksUpdate replaces a bookmark's label and note, both plain text within the limits docs/reference/data-files.md states.
 func (h *Host) BookmarksUpdate(id, label, note string) (string, error) {
 	return encodeBinding(h.bookmarks().Update(id, label, note))

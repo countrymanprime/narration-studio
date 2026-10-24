@@ -35,7 +35,8 @@ export type LevelsMenuProps = {
   /**
    * What the DAW says about setting the levels (its `monitor_level` and `input_level` capabilities): the two sliders the mock's menu has, and
    * about reading its own meters (`daw_meters`), shown under them. Absent until the capabilities are read, and then there are no sliders to
-   * show. `onOpenSettings` leads to the Experimental switch when that is all that keeps one off.
+   * show. `onOpenSettings` leads to the Experimental switch when that is all that keeps the monitor slider off; the meters and the pre-roll
+   * only read, so they need no switch.
    */
   levels?: {
     monitor: DawCapabilitySupport | undefined;
@@ -246,12 +247,9 @@ function LevelSliders({ levels, dawName, reachable }: { levels: NonNullable<Leve
         {outputMeter ? <DawMeter caption={`${dawName} output`} label={`${dawName} output level`} db={outputMeter.db} why={outputMeter.why} /> : null}
       </div>
       {meters && !meters.available ? (
-        <div className="flex flex-col gap-1">
-          <span className="text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">
-            {dawName}&rsquo;s own input and output levels: {meters.message}
-          </span>
-          {monitor?.reason === 'experimental_off' ? null : <TurnOn support={meters} onOpenSettings={onOpenSettings} />}
-        </div>
+        <span className="text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">
+          {dawName}&rsquo;s own input and output levels: {meters.message}
+        </span>
       ) : null}
     </div>
   );

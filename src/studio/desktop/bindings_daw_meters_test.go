@@ -73,7 +73,6 @@ func TestDawMetersRefusesWithTheResolversSentenceAndAsksNothing(t *testing.T) {
 	}{
 		"standalone":        {"", liveReachability(), "on", dawport.ReasonStandalone},
 		"not answering":     {"REAPER", daw.NewReachability(nil), "on", dawport.ReasonNotRunning},
-		"experimental off":  {"REAPER", liveReachability(), "", dawport.ReasonExperimentalOff},
 		"toggle turned off": {"REAPER", liveReachability(), "off", dawport.ReasonTurnedOff},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -100,6 +99,20 @@ func TestDawMetersRefusesWithTheResolversSentenceAndAsksNothing(t *testing.T) {
 				t.Fatalf("the role was asked %d times", role.reads)
 			}
 		})
+	}
+}
+
+// With the narrator's settings untouched and REAPER answering, the meters read: daw_meters is Supported (the owner's decision on
+// #2251), so no Experimental switch stands in front of it.
+func TestDawMetersReadsByDefault(t *testing.T) {
+	role := &fakeMeterReader{meters: dawport.DawMeters{OutputDB: -20, Armed: true, InputDB: -6, InputTrack: "Chapter 1"}}
+	host := deleteRangeHost(t, "REAPER", liveReachability(), nil, "")
+	host.mu.Lock()
+	host.meterReader = role
+	host.mu.Unlock()
+	got := bindingAnswer[DawMetersResult](t)(host.DawMeters())
+	if !got.OK || got.Output != -20 || got.Input == nil || *got.Input != -6 || role.reads != 1 {
+		t.Fatalf("DawMeters on default settings = %+v after %d reads; want the meters, read once", got, role.reads)
 	}
 }
 

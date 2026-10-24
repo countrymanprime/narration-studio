@@ -1,4 +1,4 @@
-"""Real-REAPER scenarios, group 4: the transport, recording, roll, punch and the monitor level, on the JACK dummy audio device.
+"""Real-REAPER scenarios, group 4: the transport, recording, roll, punch, the monitor level and the meters, on the JACK dummy audio device.
 
 REAPER plays and records for real here (the device is a sound server with no hardware, so what is recorded is silence): a scenario arms a
 track, sends the product's own command and asserts on REAPER's play state, the items a recording leaves and the arms, not on a sound.
@@ -8,6 +8,8 @@ docs/operations/reaper-verification-pass.md, "Real-REAPER CI run (Linux)".
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 import time
 
 from scenario import Env, items_on, near, scenario
@@ -518,3 +520,60 @@ def monitor_level(env: Env) -> str:
         env.refused("monitor_level", bad)
     assert int(env.ok("monitor_level", "", until="MONITOR_LEVEL")[2]) == 85, "a refused level changed the send"
     return f"a fresh master has {outputs} hardware output reading 70 (unity); 100 = +6 dB, 35 = -30 dB, 0 = silence, 85 = +3 dB; the fader and mute untouched; no undo point (change count {note}); no output and 4 bad levels refused"
+
+
+def meters_when(env: Env, holds, *, timeout: float, what: str) -> list[str]:
+    """Reads daw_meters until its METERS fields satisfy `holds`; answers them."""
+
+    def read():
+        meters = env.ok("daw_meters", until="METERS")
+        return meters if holds(meters) else None
+
+    return env.wait_for(read, timeout=timeout, what=what)
+
+
+def jack_patch(connect: bool) -> None:
+    """Patches REAPER's first JACK output into its first input (or takes the patch away): the dummy device's only way to give an armed track a signal."""
+    tool = shutil.which("jack_connect" if connect else "jack_disconnect")
+    assert tool, "jack_connect is not installed (jackd2 brings it)"
+    subprocess.run([tool, "REAPER:out1", "REAPER:in1"], check=connect, capture_output=True, timeout=10)
+
+
+@scenario(
+    "daw_meters",
+    "daw_meters",
+    "meters: the master's level while REAPER plays and the first armed track's input with its name; silence as -100; arms, sets and undoes nothing",
+    needs_audio=True,
+)
+def daw_meters(env: Env) -> str:
+    book(env)
+    # Chapter 2 is the track the narrator would record on: input 1, record monitoring off, so its input never reaches the master.
+    env.lua(
+        "local t = ci.track_by_name('Chapter 2') reaper.SetMediaTrackInfo_Value(t, 'I_RECINPUT', 0) reaper.SetMediaTrackInfo_Value(t, 'I_RECMON', 0) return true"
+    )
+    still = env.ok("daw_meters", until="METERS")
+    assert still[2:5] == ["-100.0", "", ""], f"stopped with nothing armed REAPER read {still[2:]}"
+    arm_by_hand(env, "Chapter 2")
+    before = env.snapshot()
+    quiet = meters_when(env, lambda m: m[4] == "Chapter 2", timeout=5, what="the armed track to be named")
+    assert float(quiet[3]) < -60, f"an armed track with no signal read {quiet[3]} dB"
+    # Chapter 1's earlier read (tone_a, amplitude 0.3: -10.5 dBFS) plays; REAPER's output is patched into its input, so the armed track hears it too.
+    jack_patch(True)
+    try:
+        env.lua("reaper.SetEditCurPos(0, false, false) reaper.OnPlayButton() return true")
+        env.wait_for(lambda: play_state(env) & 1 == 1, what="REAPER to play")
+        heard = meters_when(env, lambda m: float(m[2]) > -30 and m[3] != "" and float(m[3]) > -30, timeout=4, what="both meters to read the tone")
+        stop_by_hand(env)
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    finally:
+        jack_patch(False)
+    assert heard[4] == "Chapter 2", f"the input was named {heard[4]!r}"
+    near(float(heard[2]), -10.5, 6.0, "the master's level while the -10.5 dBFS tone plays (pan law aside)")
+    fallen = meters_when(env, lambda m: float(m[2]) < -60, timeout=3, what="the output meter to fall after the stop")
+    after = env.snapshot()
+    assert arms(env) == {"Chapter 1": False, "Chapter 2": True, "Pickups": False}, f"the arms changed: {arms(env)}"
+    assert after["undo"] == before["undo"], f"daw_meters opened an undo point: {after['undo']!r}"
+    return (
+        f"stopped and unarmed: -100.0 and no input; armed with no signal: {quiet[3]} dB on Chapter 2; playing: output {heard[2]} dB, "
+        f"input {heard[3]} dB on Chapter 2; {fallen[2]} dB after the stop; arms and undo unchanged"
+    )

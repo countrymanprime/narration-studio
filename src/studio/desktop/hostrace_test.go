@@ -68,6 +68,7 @@ var stressReaders = []stressReader{
 	{"ManuscriptSearch", func(h *Host) { _, _ = h.ManuscriptSearch("word") }},
 	{"BookmarksList", func(h *Host) { _, _ = h.BookmarksList() }},
 	{"BookmarksAdd (unknown chapter)", func(h *Host) { _, _ = h.BookmarksAdd("missing", "missing", 0) }},
+	{"BookmarksSetStop (unknown chapter)", func(h *Host) { _, _ = h.BookmarksSetStop("missing", "missing", 0) }},
 	{"BookmarksUpdate (unknown bookmark)", func(h *Host) { _, _ = h.BookmarksUpdate("missing", "", "") }},
 	{"BookmarksRemove (unknown bookmark)", func(h *Host) { _, _ = h.BookmarksRemove("missing") }},
 	{"MarksList", func(h *Host) { _, _ = h.MarksList() }},

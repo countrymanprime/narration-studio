@@ -45,8 +45,8 @@ func TestResourceKeyChangesWithEmbeddedContent(t *testing.T) {
 }
 
 func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {
-	if hostAPIVersion != 141 {
-		t.Fatalf("host API version = %d, want 141; update it with src/studio/ui/src/hostApi.ts", hostAPIVersion)
+	if hostAPIVersion != 142 {
+		t.Fatalf("host API version = %d, want 142; update it with src/studio/ui/src/hostApi.ts", hostAPIVersion)
 	}
 }
 
@@ -862,6 +862,56 @@ func TestSettingsFxCapDefaultsToTenAndRefusesAValueOutOfRange(t *testing.T) {
 		t.Fatalf("after the refused saves the cap is %v, want 25", got)
 	}
 	contractfile.Check(t, "settings-fx-cap-set", map[string]any{"Editing": editing()})
+}
+
+// Booth.words_per_page is where the Booth draws its page breaks: a whole number of words from 50 to 1000 that reads as 250 (a manuscript
+// page) on a fresh install. A save outside the range, or not a whole number, is refused and leaves the stored figure as it was. The tool's
+// fields are pinned as the Booth reads them: unset (settings-words-per-page.json) and with 300 saved for the project
+// (settings-words-per-page-set.json).
+func TestSettingsWordsPerPageDefaultsTo250AndRefusesAValueOutOfRange(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := NewHost()
+	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
+	booth := func() []map[string]any {
+		t.Helper()
+		fields, err := host.settingsForScope("project")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return fields["Booth"].([]map[string]any)
+	}
+	field := func() map[string]any {
+		t.Helper()
+		for _, field := range booth() {
+			if field["key"] == "words_per_page" {
+				return field
+			}
+		}
+		t.Fatal("Booth has no words_per_page field")
+		return nil
+	}
+	first := field()
+	if first["kind"] != "number" || first["effectiveValue"] != "250" || first["isSet"] != false {
+		t.Fatalf("fresh field = %v, want a number reading 250, unset", first)
+	}
+	if got := fmt.Sprint(first["number"]); !strings.Contains(got, "min:50") || !strings.Contains(got, "max:1000") || !strings.Contains(got, "step:1") {
+		t.Fatalf("range = %s, want 50 to 1000 in steps of 1", got)
+	}
+	contractfile.Check(t, "settings-words-per-page", map[string]any{"Booth": booth()})
+	figure := "300"
+	if err := host.saveSettings("Booth", "project", map[string]*string{"words_per_page": &figure}); err != nil {
+		t.Fatal(err)
+	}
+	for _, refused := range []string{"49", "1001", "250.5", "many"} {
+		value := refused
+		if err := host.saveSettings("Booth", "project", map[string]*string{"words_per_page": &value}); err == nil {
+			t.Fatalf("saving %q words per page must fail", refused)
+		}
+	}
+	if got := field()["effectiveValue"]; got != "300" {
+		t.Fatalf("after the refused saves the figure is %v, want 300", got)
+	}
+	contractfile.Check(t, "settings-words-per-page-set", map[string]any{"Booth": booth()})
 }
 
 // TestResolveProjectFileFindsAProjectOutsideTheProjectsDirectoryThroughKnownFolders pins the owner's find: a project created outside

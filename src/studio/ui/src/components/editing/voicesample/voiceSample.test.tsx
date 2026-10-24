@@ -140,7 +140,7 @@ function Inner() {
     ] as never,
     mediaUrl: (file) => `/media?path=${file}`,
     stopPlayback: idle.stop,
-    throughDaw,
+    playback: throughDaw,
   });
   useEditingKeys({ handlers: { voiceSample: () => voice.open() }, keymap });
   return <SelectionBar playback={idle} end={60} />;

@@ -12,10 +12,21 @@ import { Panel } from '../primitives/Panel';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
 import { chapterCount, entryFlagged, reviewCount } from './entryList';
-import { DEFAULT_KINDS, chooseSort, filterEntries, kindCounts, loadEntrySort, saveEntrySort, sortRows, type ColumnKey, type EntrySort } from './entryTable';
+import {
+  DEFAULT_KINDS,
+  chooseSort,
+  filterEntries,
+  kindCounts,
+  loadEntrySort,
+  saveEntrySort,
+  searchWords,
+  sortRows,
+  type ColumnKey,
+  type EntrySort,
+} from './entryTable';
 import { evidenceLinks } from './evidenceLinks';
 import { ActionsMenu } from './ActionsMenu';
-import { EntryTable } from './EntryTable';
+import { EntryTable, type EntryTableHandle } from './EntryTable';
 import { ScanStatus } from './suggested/panel/ScanStatus';
 import { useSuggestions } from './suggested/panel/useSuggestions';
 import { openImportDialog } from './suggested/import/openImportDialog';
@@ -94,6 +105,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // The host's list of types: the chips, and the colour each chip and row is drawn in (SN-B95). Until it is read there is only "All".
   const [types, setTypes] = useState<GuideType[]>([]);
   const detailRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<EntryTableHandle>(null);
   const [voiceDataOpen, setVoiceDataOpen] = useState(false);
   // The page's one voice-sample player: every entry's Voice samples section and the Voice data panel share it, so only one sample plays.
   const samplePlayer = useSamplePlayer();
@@ -322,7 +334,25 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         <div className="grid min-h-0 flex-1 gap-4 max-lg:h-auto lg:grid-cols-[minmax(16rem,30%)_minmax(0,1fr)] [&>*]:max-lg:min-h-96">
           <section aria-label="Entries" className={`${PANEL_FRAME_CLASS} @container flex min-h-0 flex-col overflow-hidden max-lg:max-h-[20rem]`}>
             <div className="flex flex-col gap-2 border-b border-[var(--border)] p-4">
-              <SearchField label="Search entries" value={query} onChange={setQuery} placeholder="Find in any column" />
+              <SearchField
+                label="Search entries"
+                value={query}
+                onChange={setQuery}
+                placeholder={`Search ${visible.length} entries`}
+                onKeyDown={(event) => {
+                  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    tableRef.current?.focusFirst();
+                  } else if (event.key === 'Escape') {
+                    // The first Esc clears the box, the next leaves it; neither reaches the page's own Esc.
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (query) setQuery('');
+                    else event.currentTarget.blur();
+                  }
+                }}
+              />
               <div className="grid grid-cols-1 gap-2 @xs:grid-cols-2">
                 <Select
                   label="Kind"
@@ -393,6 +423,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 }}
                 onOpenLoose={setLooseId}
                 empty={empty}
+                words={searchWords(query)}
+                handle={tableRef}
               />
             ) : (
               <div className="min-h-0 flex-1 overflow-hidden p-2">

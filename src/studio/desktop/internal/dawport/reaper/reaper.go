@@ -97,10 +97,11 @@ var declares = map[dawport.Capability]dawport.Level{
 	// sets an audio interface's input gain, so no later version of this app can add one.
 	dawport.CapMonitorLevel: dawport.Experimental,
 	dawport.CapInputLevel:   dawport.Unsupported,
-	// punch_preroll is punch_preroll's (narration_preroll.lua): it reads REAPER's own pre-roll preference. Experimental until the owner's pass.
-	dawport.CapPunchPreroll: dawport.Experimental,
-	// daw_meters is daw_meters' (narration_meters.lua): it reads REAPER's own meters. Experimental until the owner's pass.
-	dawport.CapDawMeters: dawport.Experimental,
+	// punch_preroll (narration_preroll.lua) and daw_meters (narration_meters.lua) only read: REAPER's own pre-roll preference and its
+	// meters. Supported by the owner's decision on #2251 (2026-10-24): what the levels and settings are should show whenever REAPER is
+	// linked, with no switch. The real-REAPER scenarios punch_preroll and daw_meters keep the evidence.
+	dawport.CapPunchPreroll: dawport.Supported,
+	dawport.CapDawMeters:    dawport.Supported,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and
