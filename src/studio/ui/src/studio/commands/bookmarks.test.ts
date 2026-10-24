@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { Bookmark } from '../../api/contracts/bookmarks';
 import { createMockApi } from '../../api/mockApi';
 import { createJournal } from '../journal/createJournal';
 import { createSlots } from '../slots';
@@ -167,7 +168,7 @@ describe('no-path-reaches-the-host', () => {
   });
 });
 
-const stopsOf = (list: readonly { kind: string; chapterId: string }[] | undefined) => (list ?? []).filter((bookmark) => bookmark.kind === 'stop');
+const stopsOf = (list: readonly Bookmark[] | undefined) => (list ?? []).filter((bookmark) => bookmark.kind === 'stop');
 
 describe('a-stopping-place-is-one-per-chapter-with-undo', () => {
   it('sets the first stop as "Set the stopping place", and Undo removes it', async () => {

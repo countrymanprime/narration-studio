@@ -64,7 +64,8 @@ function StaleMark({
             type="button"
             data-bm={bookmark.id}
             data-stale=""
-            aria-label={`Bookmark: ${tip}`}
+            data-bm-kind={bookmark.kind}
+            aria-label={bookmark.kind === 'stop' ? tip : `Bookmark: ${tip}`}
             aria-haspopup="dialog"
             className="flex h-[26px] w-4 cursor-pointer items-start justify-center rounded-sm border-0 bg-transparent p-0 pt-0.5 focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
           >
