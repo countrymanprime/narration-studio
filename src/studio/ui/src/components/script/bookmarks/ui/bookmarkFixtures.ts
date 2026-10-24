@@ -13,6 +13,7 @@ export const bookmark = (over: Partial<Bookmark> = {}): Bookmark => ({
   paragraphId: 'p1',
   paragraph: 0,
   offset: 4,
+  kind: 'spot',
   label: '',
   note: '',
   createdAt: '2026-10-11T10:00:00Z',

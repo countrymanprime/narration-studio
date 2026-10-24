@@ -7,5 +7,6 @@ export const bookmarksGoldens: Record<string, z.ZodType> = {
   'bookmarks-list.json': bookmarksSchema,
   'bookmarks-add.json': bookmarkSchema,
   'bookmarks-update.json': bookmarkSchema,
+  'bookmarks-set-stop.json': bookmarksSchema,
   'bookmarks-remove.json': bookmarksSchema,
 };

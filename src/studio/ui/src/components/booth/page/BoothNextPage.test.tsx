@@ -828,6 +828,7 @@ const held = (over: Partial<Bookmark>): Bookmark => ({
   paragraphId: 'p3',
   paragraph: 2,
   offset: 28,
+  kind: 'spot',
   label: '',
   note: '',
   createdAt: '2026-10-11T10:00:00Z',
