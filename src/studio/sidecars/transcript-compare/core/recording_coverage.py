@@ -20,7 +20,8 @@ The rules, as that page states them:
   misread: it is text skipped (when what was said there is chapter text read again, a retake or
   the tail of a false start) or different text (when it is not).
 - **Heading.** The title and subtitle are optional (Q11): their tokens carry paragraph `-1`, are
-  never in the denominator and never missing, and reading them is not extra.
+  never in the denominator and never missing, and reading them is not extra. Nor is anything else
+  said before the chapter's first word heard, the heading in the narrator's own words (#2251 item 7).
 - **Head and tail.** Missing text before the first present body token is `head`, after the last
   is `tail`, unlike the take markers, which ignore both.
 - **Extra** transcript tokens (retakes, false starts, asides) are counted and reported, and never
@@ -416,6 +417,13 @@ def align_tokens(aligned: AlignedChapter, params: AlignmentParams | None = None)
             heard.update(pairs)
             for j in pairs.values():
                 used[j] = True
+    if HEADING in aligned.token_paragraph:
+        # The heading is the first line spoken, read optionally and in the narrator's own words: everything said before
+        # the chapter's first word heard is the heading, not extra (#2251 item 7). A script with no heading (the credits)
+        # has no such words.
+        first_body = next((heard[i] for i, value in enumerate(status) if value == _PRESENT and i in heard), None)
+        if first_body is not None:
+            used[:first_body] = [True] * first_body
     tokens = []
     for i, value in enumerate(status):
         audio = heard.get(i)
@@ -504,7 +512,7 @@ def repeats(aligned: AlignedChapter, tokens: Sequence[AlignedToken], extras: Seq
 def compute_coverage(aligned: AlignedChapter, params: AlignmentParams | None = None) -> ChapterCoverage:
     """Present, missing and extra tokens, per-paragraph figures and regions for one alignment."""
     params = params or AlignmentParams()
-    status, audio_at, matched_audio = _statuses(aligned, params)
+    status, audio_at, _matched_audio = _statuses(aligned, params)
     runs = _missing_runs(status)
     paragraphs = _paragraphs(aligned, status, runs)
     anchors = _body_anchors(aligned, params)
@@ -512,7 +520,7 @@ def compute_coverage(aligned: AlignedChapter, params: AlignmentParams | None = N
         params=params,
         body_tokens=sum(paragraph.tokens for paragraph in paragraphs),
         present_tokens=sum(paragraph.present for paragraph in paragraphs),
-        extra_tokens=len(aligned.audio_tokens) - matched_audio,
+        extra_tokens=sum(end - start for start, end in align_tokens(aligned, params)[1]),
         longest_missing_run=max((_run_length(status, start, end) for start, end in runs), default=0),
         paragraphs=paragraphs,
         regions=tuple(_region(aligned, status, audio_at, anchors, start, end) for start, end in runs),

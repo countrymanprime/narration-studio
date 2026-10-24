@@ -26,7 +26,7 @@ A chapter shows its **Recording check** card above its recording.
 
 ## Decide on each note
 
-1. Narrow the notes with the chips (**All**, **To review**, **Open**, **Pickups**, **Decided**), or press Ctrl+F to find text in them.
+1. Narrow the notes with the chips (**All**, **To review**, **Open**, **Pickups**, **Decided**), or press **Find in notes** to find text in them. Ctrl+F opens the jump menu, which lists the notes that match what you type.
 2. Select a note in the table, or its pin. The Inspector shows what the script says and what was heard, with the difference marked.
 3. Choose a decision from the table below. It is saved at once and the next note is selected. A message offers **Undo**, and Ctrl+Z also takes it back.
 4. Press **Reopen** to put a decided note back to review.

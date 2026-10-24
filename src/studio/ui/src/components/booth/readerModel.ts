@@ -38,8 +38,8 @@ export type ReaderRow = {
   gaps: string[] | null;
   text: string;
   /** The title row's subtitle, kept off a paragraph row: shown under the
-   * title, in source casing, but never joined into `text` - only the title's own words are in the sidecar's span, so
-   * the subtitle stays on screen without being tracked. */
+   * title, in source casing, but never joined into `text`. The sidecar's title span counts its words after the title's,
+   * but the row tracks the title's words only, so the subtitle stays on screen without a highlight. */
   subtitle?: string;
 };
 
@@ -57,10 +57,11 @@ export function buildRows(
   const rows: ReaderRow[] = [];
   for (const span of script.spans) {
     if (span.kind === 'title') {
-      // The sidecar's title span counts the title's own words only (chapter_script.py) - the subtitle is never glued
-      // into the tracked text, so it renders as its own line without being part of what the tracker follows.
+      // The sidecar's title span counts the heading read aloud, the title and then the subtitle (chapter_script.py), or the
+      // title's own words in a script from before that. The subtitle renders as its own line either way, untracked.
       const text = chapter.title || script.chapter.title;
-      const fit = tokenize(text).length === span.count;
+      const own = tokenize(text).length;
+      const fit = own === span.count || own + tokenize(chapter.subtitle ?? '').length === span.count;
       const split = fit ? splitWords(text) : null;
       rows.push({ key: span.id, kind: 'title', start: span.start, words: split?.words ?? null, gaps: split?.gaps ?? null, text, subtitle: chapter.subtitle });
       continue;
