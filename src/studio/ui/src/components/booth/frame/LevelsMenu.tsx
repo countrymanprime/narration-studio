@@ -159,10 +159,17 @@ function LevelRow({
 }
 
 /** The DAW's own meter for one side, under its slider: the level in dBFS on the shared meter, or why there is none. */
-function DawMeter({ label, db, why }: { label: string; db: number | null; why?: string }) {
+function DawMeter({ caption, label, db, why }: { caption: string; label: string; db: number | null; why?: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <LevelMeter label={label} peak={db} rms={db} size="compact" />
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true" className="shrink-0 text-xs text-[var(--text-muted)]">
+          {caption}
+        </span>
+        <div className="min-w-0 flex-1">
+          <LevelMeter label={label} peak={db} rms={db} size="compact" />
+        </div>
+      </div>
       {why ? <span className="text-xs [overflow-wrap:anywhere] text-[var(--text-muted)]">{why}</span> : null}
     </div>
   );
@@ -223,7 +230,7 @@ function LevelSliders({ levels, dawName }: { levels: NonNullable<LevelsMenuProps
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <LevelRow label="Input level" value={0} shown="—" disabled note={input?.message ?? 'The input level cannot be set from here.'} />
-        {inputMeter ? <DawMeter label={`${dawName} input level`} db={inputMeter.db} why={inputMeter.why} /> : null}
+        {inputMeter ? <DawMeter caption={`${dawName} input`} label={`${dawName} input level`} db={inputMeter.db} why={inputMeter.why} /> : null}
       </div>
       <div className="flex flex-col gap-1">
         {monitor?.available ? (
@@ -232,7 +239,7 @@ function LevelSliders({ levels, dawName }: { levels: NonNullable<LevelsMenuProps
           <LevelRow label="Monitor level (output)" value={0} shown="—" disabled note={monitor?.message ?? 'The monitor level cannot be set from here.'} />
         )}
         <TurnOn support={monitor} onOpenSettings={onOpenSettings} />
-        {outputMeter ? <DawMeter label={`${dawName} output level`} db={outputMeter.db} why={outputMeter.why} /> : null}
+        {outputMeter ? <DawMeter caption={`${dawName} output`} label={`${dawName} output level`} db={outputMeter.db} why={outputMeter.why} /> : null}
       </div>
       {meters && !meters.available ? (
         <div className="flex flex-col gap-1">
