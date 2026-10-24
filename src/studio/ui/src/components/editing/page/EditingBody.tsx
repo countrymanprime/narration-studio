@@ -582,9 +582,7 @@ export function EditingBody(props: EditingBodyProps) {
               narrow={compact}
               output={<EditingOutput prefs={output} onChange={changeOutput} deviceProblem={deviceProblem} caps={caps} />}
             />
-            <div className="sticky bottom-0 z-[5]">
-              <KeyHints hints={hints} id="keyhints" />
-            </div>
+            <KeyHints hints={hints} id="keyhints" />
           </div>
         </DrawerLayout>
       </div>

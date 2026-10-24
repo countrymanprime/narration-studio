@@ -43,12 +43,16 @@ The first `Tab` on any page lands on **Skip to content**, a link that is hidden 
 
 When you move to another page (a sidebar item, **Jump to or run…**, `Alt+Left` or `Alt+Right`, `Ctrl+,` for [Settings](settings.md), or the drawer), the window title becomes the page's name, for example "Proof · <!-- brand:name -->Narration Studio<!-- /brand -->", and a screen reader announces the name. Focus moves into the page, so the next `Tab` goes to the page's own controls rather than the item of the page you left. Opening a different chapter on the same page changes neither the title nor focus. From the drawer, focus goes back to the hamburger button as before, and the title and the announcement tell you where you are.
 
-## The header
+## The header and the footer
 
-The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, **Jump to or run…** (`Ctrl+K`),
-a zoom chip when you are zoomed, and the engine chip. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
+The header is short, and the same on every page. Left to right: the **Project** label (hidden on a narrow window), the project's name, a zoom chip when you are zoomed,
+**Jump to or run…** (`Ctrl+K`), and the engine chip. The zoom chip appears on the left of the jump button, in the header's empty middle, so the jump button and the engine chip do not move when it comes or goes. Below 860 px a hamburger button at the far left opens the sidebar as a drawer.
 The project's name is a button (**Switch project**): it opens the project picker over the project you have open, with **Back** to return to it, and opening a
 recent project there switches to it.
+
+On a page with keys of its own (Script, Proof, Editing), the keys are listed in a footer along the bottom of the window, the full width of the page like the header, under the page's own content. It stays put while the page scrolls. The Booth fills the window, and its keys are the bottom row of the Booth.
+
+![Proof: the key reminders in the footer, the full width of the page under the notes and the Inspector](../../images/ui/nav-page-footer.webp)
 
 There are no Back and Forward, Undo or History buttons, folder icon or always-visible zoom controls in the header, and no timer chip. Reach them from **Jump to or run…** or by key: Back and Forward are `Alt+Left` and `Alt+Right`, Undo is `Ctrl+Z`, the undo history is `Ctrl+Shift+H`, and zoom is `Ctrl+=`, `Ctrl+-` and `Ctrl+0` ([the table below](#jump-to-or-run) lists each command and when it is off).
 
@@ -134,10 +138,10 @@ The jump menu has three zoom commands that make the whole app bigger or smaller:
 **Reset zoom to 100%** (`Ctrl+0`). They step through 100%, 110%, 125%, 150%, 175% and 200%; zoom out is off at 100%, zoom in at 200%, and reset at 100%, since there is
 nothing to reset. The numpad's `+`, `-` and `0` keys do the same as their main-row equivalents.
 
-While the zoom is anything but 100%, a **zoom chip** with the level ("125%") appears in the header, between **Jump to or run…** and the engine chip. Press it and the
+While the zoom is anything but 100%, a **zoom chip** with the level ("125%") appears in the header, just left of **Jump to or run…**. Press it and the
 jump menu opens already on the Zoom commands. At 100% the chip is not there.
 
-![The header at 125% zoom: the chip between the jump button and the engine chip](../../images/ui/nav-zoom-chip.webp)
+![The header at 125% zoom: the chip just left of the jump button](../../images/ui/nav-zoom-chip.webp)
 
 This is the app's real zoom — the same one a Ctrl+scroll or a touchpad pinch already does — not a text-size
 setting, so it reflows the whole layout through the sidebar, icon rail and drawer breakpoints exactly as a
