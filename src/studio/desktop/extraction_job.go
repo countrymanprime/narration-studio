@@ -18,6 +18,7 @@ import (
 	"desktop/internal/extractionport/booknlp"
 	"desktop/internal/extractionport/gliner"
 	"desktop/internal/extractionport/rules"
+	"desktop/internal/guide"
 	"desktop/internal/port"
 	"desktop/internal/runlog"
 )
@@ -148,6 +149,8 @@ type extractionScanRun struct {
 	input     extractionport.Input
 	suggest   *store.Service
 	bible     apply.Bible
+	// cues writes the dialogue cues once the sources are done (extraction_cues.go); nil when the project has no Story Bible service.
+	cues func(ctx context.Context, chapterIDs ...string) (guide.CueCounts, error)
 }
 
 // startExtractionScan checks the ids, then joins the running scan or starts one. An id that is not a source the scan
@@ -242,6 +245,7 @@ func (h *Host) extractionScanInput(registry *port.Registry[extractionport.Source
 		input:     extractionport.Input{Paragraphs: paragraphs},
 		suggest:   store.New(store.Config{Project: svc.config.projectFolder, Reporter: h.persist}),
 		bible:     bible,
+		cues:      h.cueRefresher(),
 	}, nil
 }
 
@@ -287,6 +291,9 @@ func (h *Host) runExtractionScan(ctx context.Context, job *extractionScanJob, ru
 		}
 		job.say(fmt.Sprintf("%s offered %s.", label, suggestionsCount(added)))
 		job.sourceDone(i+1, added, skipped)
+	}
+	if failed == nil && ctx.Err() == nil && run.cues != nil {
+		job.say(cuesSentence(run.cues(ctx)))
 	}
 	job.finish(failed, failed == nil && ctx.Err() != nil)
 	job.mu.RLock()

@@ -12,6 +12,7 @@ exclude_docs: |
   research/mockups/studio-next/
   research/mockups/voice-samples/
   research/mockups/story-bible-entry-list/
+  research/mockups/replace-audio/
 site_dir: build/site
 strict: true
 
