@@ -1226,6 +1226,13 @@
   },
   {
     "page": "booth",
+    "state": "page-break-stop",
+    "viewport": "desktop",
+    "docName": "booth-page-break",
+    "caption": "Booth - a page break: the dashed line and Page 2 in the margin, with the stopping place set there by Read to here"
+  },
+  {
+    "page": "booth",
     "state": "search-shown",
     "viewport": "desktop",
     "docName": "booth-search",

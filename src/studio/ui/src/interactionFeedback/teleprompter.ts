@@ -21,6 +21,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   'src/components/booth/useTeleprompterSession.ts::teleprompterState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates a session that was already running; the state event follows anyway.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterDevices#1': row('effect', 'python', 'na', 'disabled', 'ui', 'inline', 'na', 'ok', 'Loads the device list on mount and again on a manual Refresh click in the picker (disabled while a listing is already in flight); a listing failure shows inline instead of blocking Start with a previously-chosen device (the host never fails this call outright).'),
   'src/components/booth/useRecordInReaper.ts::settingsForScope#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Loads the Record-in-REAPER toggle\'s saved per-project state on mount; if it fails the toggle just starts off and unconfirmed, exactly as a project that has never turned it on.'),
+  'src/components/booth/pages/useWordsPerPage.ts::settingsForScope#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads the project\'s words per page for the page breaks when the Booth opens; if it fails the pages break at the default 250, and Settings reports the real error.'),
   'src/components/booth/useRecordInReaper.ts::saveSettings#1': row(
     'click',
     'file-io',

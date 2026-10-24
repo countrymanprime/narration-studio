@@ -4,7 +4,7 @@ import { EDITABLE } from '../../../../input/targets';
 import { useCommand } from '../../../../input/useCommand';
 import { useCommandProvider, type ProvidedCommand } from '../../../../input/commandProviders';
 import { useSearchSource, type SearchHit, type SearchSource } from '../../../../registries/search';
-import { bookmarkSnippet, bookmarkTitle, stepBookmarksWrapped, type LineText, type Spot } from './selectors';
+import { bookmarkMenuLabel, bookmarkSnippet, bookmarkTitle, stepBookmarksWrapped, type LineText, type Spot } from './selectors';
 
 const BOOKMARKS_GROUP = 'Bookmarks';
 
@@ -56,7 +56,7 @@ export function useBookmarkCommands(options: BookmarkCommandsOptions): void {
       const out: ProvidedCommand[] = bookmarks.map((b) => ({
         id: `bookmark.go.${b.id}`,
         group: BOOKMARKS_GROUP,
-        label: `Bookmark: ${bookmarkTitle(b, lineText)}`,
+        label: bookmarkMenuLabel(b, lineText),
         hint: `${b.note} ${chapterName(b.chapterId)}`.trim().toLowerCase(),
         run: () => onGoTo(b),
       }));

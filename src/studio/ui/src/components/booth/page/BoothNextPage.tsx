@@ -27,6 +27,9 @@ import { NeedManuscript } from '../../layout/NeedManuscript';
 import { entryColour, speakerColour } from '../../../kinds/entityColour';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
 import { useBoothBookmarks } from '../bookmarks/useBoothBookmarks';
+import { PageBreaks } from '../pages/PageBreaks';
+import { pageBreaks } from '../pages/pageBreaks';
+import { useWordsPerPage } from '../pages/useWordsPerPage';
 import { BoothFooter, useRoomTone } from '../frame/BoothFooter';
 import { BoothTop } from '../frame/BoothTop';
 import { progressLine } from '../frame/progressLine';
@@ -381,6 +384,9 @@ function BoothSession({
     goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
+  // A page break every Booth.words_per_page words of the chapter; the credits are not a chapter and have none.
+  const wordsPerPage = useWordsPerPage();
+  const breaks = useMemo(() => (chapter ? pageBreaks(paragraphs, units, wordsPerPage) : []), [chapter, paragraphs, units, wordsPerPage]);
 
   // Ctrl+F opens the jump menu; its search finds the text in this chapter and brings the match into view (during a take, without moving the reading).
   const find = useBoothFind({ chapterId: recordId, paragraphs, recording: control.recording, seek, view: page.view });
@@ -677,16 +683,22 @@ function BoothSession({
                   font={page.text.fontFamily}
                   viewRef={page.view}
                   margin={
-                    chapter && bookmarks.bookmarks ? (
-                      <BookmarkRibbons
-                        chapterId={chapter.id}
-                        bookmarks={bookmarks.bookmarks}
-                        paragraphs={paragraphs}
-                        units={units}
-                        flashId={bookmarks.flashId}
-                        onUpdate={bookmarks.update}
-                        onRemove={bookmarks.remove}
-                      />
+                    chapter ? (
+                      <>
+                        <PageBreaks breaks={breaks} />
+                        {bookmarks.bookmarks ? (
+                          <BookmarkRibbons
+                            chapterId={chapter.id}
+                            bookmarks={bookmarks.bookmarks}
+                            paragraphs={paragraphs}
+                            units={units}
+                            pages={breaks}
+                            flashId={bookmarks.flashId}
+                            onUpdate={bookmarks.update}
+                            onRemove={bookmarks.remove}
+                          />
+                        ) : null}
+                      </>
                     ) : undefined
                   }
                 />

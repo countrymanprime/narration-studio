@@ -329,6 +329,14 @@ into another chapter when needed; during a take they move only within the chapte
 
 ![Booth - B pressed: the word being read is bookmarked, with a ribbon in the margin](../../images/ui/booth-bookmark.webp)
 
+## Pages and your stopping place
+
+The Booth marks where a page breaks: a faint dashed line across the text above the line that holds the page's first word, and **Page 2**, **Page 3** and so on written down the right margin beside the ribbons. A page is 250 words, counted from the start of the chapter; change the figure for this project with **Words per page** in [Settings › Project](settings.md#project). The marks take no room and do not move as you read, record or change the text size, and a chapter of one page has none.
+
+To mark where you mean to stop, right-click a word, or a page's label, and choose **Read to here**. The place gets a chequered-flag ribbon, also shown in the Script and in the jump menu (**Read to here: …**), with **Undo** on the message. A chapter has one stopping place: setting another moves it, and **Undo** puts it back where it was. It only marks the place: nothing stops, pauses or ends a take when you reach it. Right-click the flag for **Edit stopping place** and **Remove stopping place**.
+
+![Booth - a page break: the dashed line and Page 2 in the margin, with the stopping place set there by Read to here](../../images/ui/booth-page-break.webp)
+
 ## A pickup session
 
 **Open N in Booth** on [Pickups](pickups.md#pickup-session) opens the Booth on the chosen lines, at the first line's chapter. A

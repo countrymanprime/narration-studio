@@ -125,6 +125,8 @@ A Story Bible name met in the chapter is listed on **Words** too, marked with th
 
 Press **B** to bookmark the line you are on (or use **Bookmark here** on the selection toolbar or the right-click menu). A ribbon in the reader's margin marks it; press the ribbon to edit its label and note, or right-click it for **Edit bookmark** and **Delete bookmark**. **Alt+[** and **Alt+]** go to the previous and next bookmark. The [jump menu](navigation.md#jump-to-or-run) lists every bookmark under **Bookmarks**, with **Bookmark here**, **Next bookmark** and **Previous bookmark**, so a bookmark is one search away.
 
+A stopping place you set in the [Booth](booth.md#pages-and-your-stopping-place) with **Read to here** shows here too, as a chequered-flag ribbon, and in the jump menu as **Read to here: …**. Press it to give it a label and note, like any bookmark.
+
 ![Script - B pressed in the reader: the bookmark's ribbon in the margin and the Bookmark added toast with Undo](../../images/ui/script-bookmark.webp)
 
 ## First-use tips
