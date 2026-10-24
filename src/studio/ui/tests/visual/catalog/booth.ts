@@ -209,21 +209,21 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'levels-menu',
     description:
-      'Booth, the footer\'s Levels menu open: the input level and the microphone the DAW records from, named, with "Chosen in REAPER" (TeleprompterReaperInput)',
+      "Booth, the footer's Levels menu open with the narrator's settings untouched: the input level and the microphone the DAW records from, named, with \"Chosen in REAPER\" (TeleprompterReaperInput); REAPER's own meters and pre-roll show with no switch (they only read), and the monitor slider, which writes, is off with Turn on in Settings",
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'levels-menu-preroll',
     description:
-      "Booth, the Levels menu open with Experimental DAW actions on: the Punch part is REAPER's own pre-roll, read only: off on record, 2 measures, one measure in seconds at the cursor, and where it is set in REAPER; with no track armed in REAPER, so the input meter says so instead of a level",
+      "Booth, the Levels menu open (no Experimental switch needed): the Punch part is REAPER's own pre-roll, read only: off on record, 2 measures, one measure in seconds at the cursor, and where it is set in REAPER; with no track armed in REAPER, so the input meter says so instead of a level",
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'levels-menu-daw-meters',
     description:
-      "Booth, the Levels menu with Experimental DAW actions on: REAPER's own meters under the two sliders, the armed track's input (named) and the output, with the monitor slider usable (DawMeters)",
+      "Booth, the Levels menu with Experimental DAW actions on, so the monitor slider is usable too: REAPER's own meters under the two sliders, the armed track's input (named) and the output (DawMeters)",
     ...REFLOW,
   },
   {

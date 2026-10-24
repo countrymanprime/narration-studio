@@ -50,7 +50,11 @@ func (h *Host) GuideTypeSetSpeaks(name string, speaks bool) (string, error) {
 	if service == nil {
 		return "", fmt.Errorf("the Story Bible is unavailable")
 	}
-	return encodeBinding(nil, service.SetTypeSpeaks(name, speaks))
+	err := service.SetTypeSpeaks(name, speaks)
+	if err == nil {
+		go h.refreshCuesInBackground("a type's speaking changed") // every entry of the type, so every chapter (extraction_cues.go)
+	}
+	return encodeBinding(nil, err)
 }
 
 // GuideTypeRemove removes a type no entry uses; the last type is kept.

@@ -100,6 +100,7 @@ const held = (id: string, chapterId: string, paragraphId: string, paragraph: num
   paragraphId,
   paragraph,
   offset,
+  kind: 'spot',
   label: '',
   note: '',
   createdAt: '2026-10-11T10:00:00Z',

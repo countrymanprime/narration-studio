@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"desktop/internal/brand"
 	"encoding/json"
 	"os"
@@ -36,6 +37,14 @@ func runFakeGuideCount(path string) int {
 		}
 	}
 	return 0
+}
+
+// hostWithoutCueRefresh is a host over service whose cue refreshes do nothing: a test that counts what an edit asks the sidecar leaves
+// out the background refresh that follows a speaker's edit (extraction_cues_test.go tests that).
+func hostWithoutCueRefresh(service *guide.Service) *Host {
+	host := &Host{guide: service}
+	host.refreshCues = func(context.Context, ...string) (guide.CueCounts, error) { return guide.CueCounts{}, nil }
+	return host
 }
 
 // countingGuide returns a Story Bible service whose sidecar is the recording fake, and a function that reads back every call it received.
@@ -165,7 +174,7 @@ func TestAnAliasEditAsksTheSidecarOnlyForTheNewNames(t *testing.T) {
 	service, calls, project := countingGuideIn(t)
 	writeStoryBible(t, project)
 	writeManuscript(t, project)
-	host := &Host{guide: service}
+	host := hostWithoutCueRefresh(service)
 	for i := 0; i < 3; i++ {
 		if _, err := host.GuideEdit("entity-1", map[string]string{"context": "C", "aliases": "Ally;Alfie;Juno;Zeph", "description": "D"}); err != nil {
 			t.Fatal(err)
@@ -200,7 +209,7 @@ func TestAValueThatLooksLikeAnOptionIsSentAsAValue(t *testing.T) {
 	service, calls, project := countingGuideIn(t)
 	writeStoryBible(t, project)
 	writeManuscript(t, project)
-	host := &Host{guide: service}
+	host := hostWithoutCueRefresh(service)
 	if _, err := host.GuideEdit("entity-1", map[string]string{"aliases": "-brave", "personality": "-brave", "description": "--not-a-flag"}); err != nil {
 		t.Fatal(err)
 	}

@@ -25,6 +25,10 @@ Every entry carries `review: {"entry", "aliases"}`: whether the entry itself sti
 - **`speaker-color --entity-id --index N`** stores 1 to 7, and 0 removes it. Only an entry whose type speaks takes one (see Story Bible types).
 - All three refuse a locked entry (`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`). `merge` keeps the target flagged if either was, with both entries' name flags that the target now has, and keeps the target's colour, else the source's; `split` gives a flagged name's flag to the new entry; removing an alias drops its flag; a rebuild keeps both fields.
 
+## Dialogue cues without a build
+
+- **`cues --guide --manuscript [--chapter-id ...]`** writes `dialogue_cues` (one per double-quoted span, as a build does) against the entries already filed under a speaking type, keeps every other key of the file and every narrator correction, and prints `CUES|<cues>|<with a speaker>`. With `--chapter-id`, only those chapters' cues are recomputed and the rest are kept, in manuscript order. With no file yet it starts an empty Story Bible, which `status` reports as stale until a build. The host runs it at the end of every scan and after every manuscript import; for the chapters an entry's names appear in (`guide.Service.SpeakerChapters`) after an edit of its type, name or aliases, a new entry, a merge or a delete, when the entry spoke before or speaks after; and for every chapter when a type starts or stops speaking (`src/studio/desktop/extraction_cues.go`, `guide.Service.RefreshCues`, holding the host's edit lock while it runs). All but the scan's run in the background and are logged to the run log. `test_character_cues.py` writes `cues-golden.json`, which `TestCuesMatchTheGolden` reads with the host's parser.
+
 ## Story Bible types
 
 The file may carry `types`, the narrator's ordered list of `{name, colour, speaks}` ([Settings](../guides/using-the-app/settings.md)). Without it the types are the defaults: Character (speaks), Place, Organization, Lore, Item and Event, in the hues they have always had. An entry's `category` is a type's name, or `Needs Review` or `Draft`.
