@@ -167,6 +167,14 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'drawer-effects-choose',
+    // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
+    mask: ['[data-projectfx-read]'],
+    description:
+      "Editing, the drawer on Effects after Choose in REAPER… (#2251) - REAPER's FX window is open for the selected words, and the panel says what REAPER has chosen there, with Keep it, Cancel and Check again",
+  },
+  {
+    page: 'editing',
     state: 'drawer-timeline',
     description:
       'Editing, the drawer on Timeline (the strip does not fit beside the text at these widths) - the takes of the line the cursor is on, one lane each, with the waveform docked above the bar',

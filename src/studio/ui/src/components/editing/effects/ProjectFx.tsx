@@ -7,7 +7,9 @@ import type { ProjectFxState } from './useProjectFx';
 export const NO_PROJECT_FX = 'has no FX on its tracks or its master track.';
 export const READING_PROJECT_FX = 'Reading the FX in the DAW…';
 /** Why a chain here cannot be put on words: the DAW adds a saved chain by name, not a plug-in sitting on a track. */
-export const HOW_TO_ADD = 'To put one of these on words, save it in the DAW as an FX chain; saved chains are listed under Add an effect.';
+/** How one of the DAW's plug-ins goes on words: Choose in the DAW (#2251), or a saved chain. */
+export const howToAdd = (dawName: string): string =>
+  `To put a plug-in on words, select them and use Choose in ${dawName}… under Add an effect, or save it in ${dawName} as an FX chain; saved chains are listed there too.`;
 
 type Row = { key: string; where: string; slot: ProjectFxSlot };
 
@@ -65,7 +67,7 @@ export function ProjectFx({ state, dawName }: { state: ProjectFxState; dawName: 
               ))}
             </TableBody>
           </Table>
-          <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{HOW_TO_ADD}</p>
+          <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{howToAdd(dawName)}</p>
         </>
       ) : (
         <p className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">

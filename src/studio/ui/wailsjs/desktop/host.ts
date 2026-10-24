@@ -700,6 +700,27 @@ export function DawChoose(engine: string): $CancellablePromise<string> {
 }
 
 /**
+ * DawChooseFxForRange has the DAW open its own FX window for the words firstToken..lastToken of chapterID's stored alignment, so the
+ * narrator can put any plug-in the DAW has on them (#2251, the Effects tab's Choose in REAPER): the DAW splits the item at both ends
+ * of the range, with fadeMs at each new seam, in one undo step, and opens the window on the middle piece. The page sends a chapter id,
+ * two token indices and the fade, never a GUID, a time, a path or a plug-in's name. The answer is a DawResult with the same refusals as
+ * DawApplyFxToRange (the capability, the fade, the range), then an engine with no such window. Nothing is recorded: the page reads the
+ * choice back with DawChosenFxForRange and records it once the narrator has chosen.
+ */
+export function DawChooseFxForRange(chapterID: string, firstToken: number, lastToken: number, fadeMs: number): $CancellablePromise<string> {
+    return $Call.ByID(801729601, chapterID, firstToken, lastToken, fadeMs);
+}
+
+/**
+ * DawChosenFxForRange reads the plug-ins the narrator chose in the DAW's own FX window for the words (DawChooseFxForRange), with
+ * their names joined as the page shows and keeps them and whether the window is still open. It changes nothing. The same refusals
+ * as DawFxRangeParams; a refusal has no plug-ins.
+ */
+export function DawChosenFxForRange(chapterID: string, firstToken: number, lastToken: number): $CancellablePromise<string> {
+    return $Call.ByID(754302154, chapterID, firstToken, lastToken);
+}
+
+/**
  * DawCompareFxRange plays the words firstToken..lastToken of chapterID's stored alignment in the DAW with the chain chainName on
  * and then bypassed, and puts the chain back as it was: the effect inspector's Compare (SN-E113). The words and chain resolve as
  * DawFxRangeParams resolves them, and the page sends no GUID or path. The answer is the DawFxRangeCompare payload: a DawResult

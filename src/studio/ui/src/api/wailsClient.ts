@@ -43,6 +43,7 @@ import {
   audacityLinkSchema,
   dawChoiceSchema,
   dawFxRangeCompareSchema,
+  dawFxRangeChoiceSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawMetersSchema,
@@ -698,6 +699,10 @@ export const wailsClient: NarrationApi = {
   dawCompareFxRange: (chapterId, firstToken, lastToken, chainName) =>
     decode(dawFxRangeCompareSchema, 'DawCompareFxRange', host.DawCompareFxRange(chapterId, firstToken, lastToken, chainName)),
   dawStopFxCompare: () => decode(dawResultSchema, 'DawStopFxCompare', host.DawStopFxCompare()),
+  dawChooseFxForRange: (chapterId, firstToken, lastToken, fadeMs) =>
+    decode(dawResultSchema, 'DawChooseFxForRange', host.DawChooseFxForRange(chapterId, firstToken, lastToken, fadeMs)),
+  dawChosenFxForRange: (chapterId, firstToken, lastToken) =>
+    decode(dawFxRangeChoiceSchema, 'DawChosenFxForRange', host.DawChosenFxForRange(chapterId, firstToken, lastToken)),
   dawStackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawStackTakes', host.DawStackTakes(chapterId, passageIds)),
   dawUnstackTakes: (chapterId, passageIds) => decode(dawResultSchema, 'DawUnstackTakes', host.DawUnstackTakes(chapterId, passageIds)),
   dawSplitTake: (chapterId, takeId, at) => decode(dawResultSchema, 'DawSplitTake', host.DawSplitTake(chapterId, takeId, at)),

@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
+import { DAW_CHOSEN_CHAIN } from './contracts/daw';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -16,6 +17,8 @@ import {
   fxChainAddedAnswer,
   fxBypassAnswer,
   fxCompareAnswer,
+  fxChooseAnswer,
+  FX_CHOSEN,
   FX_COMPARE_PASS,
   fxSettingSetAnswer,
   fxSettingsReadAnswer,
@@ -207,6 +210,7 @@ import {
   dawCapabilitiesSchema,
   dawChoiceSchema,
   dawFxRangeCompareSchema,
+  dawFxRangeChoiceSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawMetersSchema,
@@ -3343,6 +3347,42 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await off.dawStopFxCompare()).refused).toBe(sentence);
   });
 
+  it('dawChooseFxForRange and dawChosenFxForRange answer their schemas: the host goldens parse, and the mock answers as the host does', async () => {
+    expectMatches(dawResultSchema, readGolden('daw-fx-choose-opened.json'), 'daw-fx-choose-opened.json');
+    for (const file of ['daw-fx-chosen-done.json', 'daw-fx-chosen-none.json', 'daw-fx-chosen-refused.json']) {
+      expectMatches(dawFxRangeChoiceSchema, readGolden(file), file);
+    }
+    expect(readGolden('daw-fx-choose-opened.json')).toEqual({ ok: true, changed: true, undoSteps: 1, message: fxChooseAnswer(1, 'REAPER') });
+    expect(readGolden('daw-fx-chosen-done.json')).toEqual(FX_CHOSEN);
+    expect(readGolden('daw-fx-chosen-none.json')).toMatchObject({ result: { ok: true, undoSteps: 0 }, fx: [], label: '', chainOpen: true });
+
+    // A read that adds an undo step, a refusal that lists plug-ins, a label that could be a path or names nothing are not payloads the host sends.
+    expect(dawFxRangeChoiceSchema.safeParse({ ...FX_CHOSEN, result: { ...FX_CHOSEN.result, undoSteps: 1 } }).success).toBe(false);
+    expect(dawFxRangeChoiceSchema.safeParse({ ...FX_CHOSEN, result: { ok: false, changed: false, message: 'x', undoSteps: 0, refused: 'x' } }).success).toBe(
+      false,
+    );
+    expect(dawFxRangeChoiceSchema.safeParse({ ...FX_CHOSEN, label: 'C:\\x' }).success).toBe(false);
+    expect(dawFxRangeChoiceSchema.safeParse({ ...FX_CHOSEN, label: '' }).success).toBe(false);
+
+    const [chapter] = await createMockApi().manuscriptChapters();
+    const api = createMockApi({}, { daw: { toggles: { fx_range: 'on' } } });
+    const opened = await api.dawChooseFxForRange(chapter.id, 0, 0, 10);
+    expectMatches(dawResultSchema, opened, 'mock Choose');
+    expect(opened).toEqual(readGolden('daw-fx-choose-opened.json'));
+    expect((await api.dawChooseFxForRange(chapter.id, 0, 0, 501)).refused).toBe(DAW_ANSWERS.cutBadFade);
+    const chosen = await api.dawChosenFxForRange(chapter.id, 0, 0);
+    expectMatches(dawFxRangeChoiceSchema, chosen, 'mock choice');
+    expect(chosen).toEqual(readGolden('daw-fx-chosen-done.json'));
+    const removed = await api.dawRemoveFxFromRange(chapter.id, 0, 0, DAW_CHOSEN_CHAIN);
+    expect(removed).toMatchObject({ ok: true, changed: true, undoSteps: 1 });
+    const unknown = await api.dawChosenFxForRange('{11111111-1111-4111-8111-111111111111}', 0, 0);
+    expect(unknown).toMatchObject({ result: { ok: false, code: 'stale' }, fx: [] });
+    const off = createMockApi();
+    const sentence = (await off.dawCapabilities()).capabilities.fx_range.message;
+    expect((await off.dawChooseFxForRange(chapter.id, 0, 0, 10)).refused).toBe(sentence);
+    expect(await off.dawChosenFxForRange(chapter.id, 0, 0)).toEqual(readGolden('daw-fx-chosen-refused.json'));
+  });
+
   it('dawStackTakes and dawUnstackTakes answer a dawResult: the host goldens parse, and the mock refuses as the host does', async () => {
     for (const file of ['daw-stack-done.json', 'daw-stack-steps.json', 'daw-unstack-done.json', 'daw-stack-refused-stale.json']) {
       expectMatches(dawResultSchema, readGolden(file), file);
@@ -4418,6 +4458,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawBypassFxRange',
       'dawCompareFxRange',
       'dawStopFxCompare',
+      'dawChooseFxForRange',
+      'dawChosenFxForRange',
       'dawStackTakes',
       'dawUnstackTakes',
       'dawSplitTake',
