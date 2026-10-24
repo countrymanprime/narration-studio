@@ -16,7 +16,9 @@ import { chapterCount, entryFlagged, reviewCount } from './entryList';
 import {
   DEFAULT_KINDS,
   chooseSort,
+  filterCount,
   filterEntries,
+  hasPronunciation,
   kindCounts,
   loadEntrySort,
   saveEntrySort,
@@ -29,6 +31,7 @@ import { evidenceLinks } from './evidenceLinks';
 import { usePreviewAudio } from './usePreviewAudio';
 import { ActionsMenu } from './ActionsMenu';
 import { EntryTable, type EntryTableHandle } from './EntryTable';
+import { FilterChips, FilterMenu, NO_FILTER, type FilterChoice, type FilterCounts } from './FilterMenu';
 import { ScanStatus } from './suggested/panel/ScanStatus';
 import { useSuggestions } from './suggested/panel/useSuggestions';
 import { openImportDialog } from './suggested/import/openImportDialog';
@@ -45,7 +48,6 @@ import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { Icon } from '../primitives/Icon';
 import { SearchField } from '../primitives/SearchField';
-import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
 import { useJustChanged } from '../primitives/changeHighlight';
 import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
@@ -103,8 +105,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const [entriesRead, setEntriesRead] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const [query, setQuery] = useState('');
-  const [kind, setKind] = useState('All');
-  // The host's list of types: the chips, and the colour each chip and row is drawn in (SN-B95). Until it is read there is only "All".
+  // What the Filter menu keeps (SNB-D3): kinds (several at once), Pronunciation and Show. The search text is `query`.
+  const [filter, setFilter] = useState<FilterChoice>(NO_FILTER);
+  // The host's list of types: the Filter menu's kinds, and the colour each row is drawn in (SN-B95). Until it is read the menu has no kinds.
   const [types, setTypes] = useState<GuideType[]>([]);
   const detailRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<EntryTableHandle>(null);
@@ -115,10 +118,6 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // The suggestions the host lists (SN-X42): an entry with one still to verify needs review, and cannot be marked reviewed (SNB-3b).
   const found = useSuggestions();
   const { suggestions } = found;
-  // Which entries the Show menu keeps: every one, those that need review, or those with a suggestion to verify.
-  const [show, setShow] = useState<'all' | 'review' | 'verify'>('all');
-  const reviewOnly = show === 'review';
-  const verifyOnly = show === 'verify';
   // A suggestion with no entry yet, chosen from the loose rows above the entries: the detail shows its row instead of an entry.
   const [looseId, setLooseId] = useState<string | null>(null);
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
@@ -208,10 +207,11 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const visible = rows.filter((row) => row.category !== 'Draft' || row.id === selectedId);
   const toReview = reviewCount(visible, suggestions);
   const kinds = useMemo(() => types.map((type) => type.name), [types]);
-  // A kind the narrator renamed or removed in Settings leaves its chip with it, so the list falls back to every entry.
-  const activeKind = kinds.includes(kind) ? kind : 'All';
+  // A kind the narrator renamed or removed in Settings leaves the filter with it, so the list never keeps a kind nobody can untick.
+  const chosen: FilterChoice = { ...filter, kinds: filter.kinds.filter((name) => kinds.includes(name)) };
+  const verifyOnly = chosen.show === 'verify';
   const tableKinds = kinds.length > 0 ? kinds : DEFAULT_KINDS;
-  const filters = { kind: activeKind, query, reviewOnly, verifyOnly, suggestions };
+  const filters = { ...chosen, query, suggestions };
   const filtered = filterEntries(visible, filters);
   const sorted = sortRows(filtered, sort, { kinds: tableKinds, suggestions });
   const counts = kindCounts(visible);
@@ -219,11 +219,17 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const toVerifyAll = verifyCount(suggestions);
   const loose = verifyOnly ? unattached(suggestions) : [];
   const looseChosen = loose.find((suggestion) => suggestion.id === looseId);
-  const filtering = query.trim() !== '' || activeKind !== 'All' || reviewOnly || verifyOnly;
+  const filtering = query.trim() !== '' || filterCount(filters) > 0;
   const clearFilters = () => {
     setQuery('');
-    setKind('All');
-    setShow('all');
+    setFilter(NO_FILTER);
+  };
+  const filterCounts: FilterCounts = {
+    kinds: counts,
+    all: visible.length,
+    withPron: visible.filter(hasPronunciation).length,
+    toReview,
+    toVerify: toVerifyAll,
   };
   const chooseColumn = (column: ColumnKey) => {
     const next = chooseSort(sort, column);
@@ -376,48 +382,29 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         <div className="grid min-h-0 flex-1 gap-4 max-lg:h-auto lg:grid-cols-[minmax(16rem,30%)_minmax(0,1fr)] [&>*]:max-lg:min-h-96">
           <section aria-label="Entries" className={`${PANEL_FRAME_CLASS} @container flex min-h-0 flex-col overflow-hidden max-lg:max-h-[20rem]`}>
             <div className="flex flex-col gap-2 border-b border-[var(--border)] p-4">
-              <SearchField
-                label="Search entries"
-                value={query}
-                onChange={setQuery}
-                placeholder={`Search ${visible.length} entries`}
-                onKeyDown={(event) => {
-                  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-                  if (event.key === 'ArrowDown') {
-                    event.preventDefault();
-                    tableRef.current?.focusFirst();
-                  } else if (event.key === 'Escape') {
-                    // The first Esc clears the box, the next leaves it; neither reaches the page's own Esc.
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (query) setQuery('');
-                    else event.currentTarget.blur();
-                  }
-                }}
-              />
-              <div className="grid grid-cols-1 gap-2 @xs:grid-cols-2">
-                <Select
-                  label="Kind"
-                  fullWidth
-                  value={activeKind}
-                  onChange={setKind}
-                  options={[
-                    { value: 'All', label: `All kinds · ${counts.get('All') ?? 0}` },
-                    ...types.map((type) => ({ value: type.name, label: `${type.name} · ${counts.get(type.name) ?? 0}` })),
-                  ]}
+              <div className="flex items-center gap-2">
+                <SearchField
+                  label="Search entries"
+                  value={query}
+                  onChange={setQuery}
+                  placeholder={`Search ${visible.length} entries`}
+                  onKeyDown={(event) => {
+                    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+                    if (event.key === 'ArrowDown') {
+                      event.preventDefault();
+                      tableRef.current?.focusFirst();
+                    } else if (event.key === 'Escape') {
+                      // The first Esc clears the box, the next leaves it; neither reaches the page's own Esc.
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (query) setQuery('');
+                      else event.currentTarget.blur();
+                    }
+                  }}
                 />
-                <Select
-                  label="Show"
-                  fullWidth
-                  value={show}
-                  onChange={(value) => setShow(value === 'review' || value === 'verify' ? value : 'all')}
-                  options={[
-                    { value: 'all', label: 'All entries' },
-                    ...(toReview > 0 || reviewOnly ? [{ value: 'review', label: `Needs review · ${toReview}` }] : []),
-                    ...(toVerifyAll > 0 || verifyOnly ? [{ value: 'verify', label: `Needs verification · ${toVerifyAll}` }] : []),
-                  ]}
-                />
+                <FilterMenu types={types} counts={filterCounts} value={chosen} onChange={setFilter} />
               </div>
+              <FilterChips value={chosen} onChange={setFilter} />
               {/* Under the filters, so a scan starting or ending moves the table, never the buttons and chips the pointer is on. */}
               <ScanStatus scan={scanWithStart} />
             </div>
@@ -435,7 +422,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 {typesFailed && (
                   <ReadNotice
                     what="the entry types"
-                    effect="The Kind menu is hidden and every entry is drawn in one colour."
+                    effect="The Filter menu has no kinds to choose and every entry is drawn in one colour."
                     checkAgain={() => setReadNonce((n) => n + 1)}
                   />
                 )}

@@ -105,7 +105,23 @@ export const sortAria = (sort: EntrySort, column: ColumnKey): 'ascending' | 'des
   return first?.column === column ? (first.dir === 'asc' ? 'ascending' : 'descending') : undefined;
 };
 
-export type EntryFilter = { kind: string; query: string; reviewOnly: boolean; verifyOnly: boolean; suggestions: readonly ExtractionSuggestion[] };
+/**
+ * What the list keeps: the kinds chosen (none chosen keeps every kind), whether the entry has a pronunciation, which entries the Show choice
+ * keeps, and the search text. The Filter menu sets all but the text.
+ */
+export type EntryFilter = {
+  kinds: readonly string[];
+  pron: 'any' | 'none' | 'set';
+  show: 'all' | 'review' | 'verify';
+  query: string;
+  suggestions: readonly ExtractionSuggestion[];
+};
+
+/** Whether an entry has a pronunciation to play: its Hear button shows, and Pronunciation: Has one keeps it. */
+export const hasPronunciation = (entry: GuideEntity): boolean => entry.pronunciation.ipa.trim() !== '';
+
+/** How many filters the Filter menu has on (each kind counts), for its badge; the search text is not one. */
+export const filterCount = (filter: EntryFilter): number => filter.kinds.length + (filter.pron === 'any' ? 0 : 1) + (filter.show === 'all' ? 0 : 1);
 
 /** The text the filter box matches against: the name and the other names, never a word the row does not draw (its kind or its status). */
 const rowText = (entry: GuideEntity): string => foldText([entry.canonical_name, aliasText(entry)].join('\n'));
@@ -157,20 +173,21 @@ export function markedParts(text: string, words: readonly string[]): MarkedPart[
   return parts;
 }
 
-/** The rows that pass the kind chip, the review chips and the text: every word typed must be found in the name or an alias. */
+/** The rows that pass the Filter menu's choices and the text: every word typed must be found in the name or an alias. */
 export function filterEntries(entries: readonly GuideEntity[], filter: EntryFilter): GuideEntity[] {
   const words = searchWords(filter.query);
   return entries.filter((entry) => {
-    if (filter.kind !== 'All' && entry.category !== filter.kind) return false;
-    if (filter.reviewOnly && !entryNeedsReview(entry, filter.suggestions)) return false;
-    if (filter.verifyOnly && verifyOf(filter.suggestions, entry.id) === 0) return false;
+    if (filter.kinds.length > 0 && !filter.kinds.includes(entry.category)) return false;
+    if (filter.pron !== 'any' && hasPronunciation(entry) !== (filter.pron === 'set')) return false;
+    if (filter.show === 'review' && !entryNeedsReview(entry, filter.suggestions)) return false;
+    if (filter.show === 'verify' && verifyOf(filter.suggestions, entry.id) === 0) return false;
     if (words.length === 0) return true;
     const text = rowText(entry);
     return words.every((word) => text.includes(word));
   });
 }
 
-/** How many entries each kind chip stands for, with the total under "All". */
+/** How many entries each kind in the Filter menu stands for, with the total under "All". */
 export function kindCounts(entries: readonly GuideEntity[]): Map<string, number> {
   const counts = new Map<string, number>([['All', entries.length]]);
   for (const entry of entries) counts.set(entry.category, (counts.get(entry.category) ?? 0) + 1);

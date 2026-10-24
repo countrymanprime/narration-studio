@@ -76,3 +76,66 @@ describe('Menu', () => {
     expect(screen.getByRole('button', { name: 'Choose a source' })).toBeTruthy();
   });
 });
+
+// Sections: a heading over its items, and a choice per section, several at once (checkboxes) or one of them (radios). Choosing keeps the
+// menu open, so a narrator can set several filters in one visit.
+describe('Menu sections', () => {
+  function renderSections() {
+    const kinds = { Character: vi.fn(), Place: vi.fn() };
+    const shows = { all: vi.fn(), review: vi.fn() };
+    render(
+      <Menu
+        label="Filter entries"
+        sections={[
+          {
+            key: 'kind',
+            label: 'Kind',
+            select: 'many',
+            items: [
+              { key: 'Character', label: 'Character', checked: true, trailing: 5, onSelect: kinds.Character },
+              { key: 'Place', label: 'Place', checked: false, trailing: 2, onSelect: kinds.Place },
+            ],
+          },
+          {
+            key: 'show',
+            label: 'Show',
+            select: 'one',
+            items: [
+              { key: 'all', label: 'All entries', checked: false, onSelect: shows.all },
+              { key: 'review', label: 'Needs review', checked: true, onSelect: shows.review },
+            ],
+          },
+        ]}
+      >
+        Filter
+      </Menu>,
+    );
+    return { kinds, shows };
+  }
+
+  it('draws each section under its heading, checkboxes for many and radios for one, with their state', async () => {
+    const user = userEvent.setup();
+    renderSections();
+    await user.click(screen.getByRole('button', { name: 'Filter entries' }));
+    const boxes = await screen.findAllByRole('menuitemcheckbox');
+    expect(boxes.map((box) => [box.textContent, box.getAttribute('aria-checked')])).toEqual([
+      ['Character, 5', 'true'],
+      ['Place, 2', 'false'],
+    ]);
+    const radios = screen.getAllByRole('menuitemradio');
+    expect(radios.map((radio) => radio.getAttribute('aria-checked'))).toEqual(['false', 'true']);
+    expect(screen.getByRole('group', { name: 'Kind' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Show' })).toBeTruthy();
+  });
+
+  it('calls the item chosen and stays open', async () => {
+    const user = userEvent.setup();
+    const { kinds, shows } = renderSections();
+    await user.click(screen.getByRole('button', { name: 'Filter entries' }));
+    await user.click(await screen.findByRole('menuitemcheckbox', { name: /Place/ }));
+    expect(kinds.Place).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('menuitemradio', { name: 'All entries' }));
+    expect(shows.all).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+});

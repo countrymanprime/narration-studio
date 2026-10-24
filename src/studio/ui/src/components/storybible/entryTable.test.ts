@@ -7,6 +7,7 @@ import {
   ENTRY_SORT_STORAGE_KEY,
   DEFAULT_SORT,
   chooseSort,
+  filterCount,
   filterEntries,
   foldText,
   kindCounts,
@@ -19,6 +20,7 @@ import {
   sortRows,
   statusOf,
   type ColumnKey,
+  type EntryFilter,
   type EntrySort,
 } from './entryTable';
 
@@ -212,8 +214,8 @@ describe('the-filter-narrows-the-rows', () => {
     entry('r', 'أليس', { category: 'Lore' }),
     entry('z', '🐇 Rabbit', { category: 'Lore' }),
   ];
-  const base = { kind: 'All', query: '', reviewOnly: false, verifyOnly: false, suggestions: none };
-  const found = (over: Partial<typeof base>) => ids(filterEntries(rows, { ...base, ...over }));
+  const base: EntryFilter = { kinds: [], pron: 'any', show: 'all', query: '', suggestions: none };
+  const found = (over: Partial<EntryFilter>) => ids(filterEntries(rows, { ...base, ...over }));
 
   it('keeps every row with no filter', () => expect(found({})).toEqual(['h', 'w', 'e', 'r', 'z']));
   it('matches the name or an alias, ignoring case and accents', () => {
@@ -238,13 +240,29 @@ describe('the-filter-narrows-the-rows', () => {
     expect(found({ query: 'zzz' })).toEqual([]);
     expect(found({ query: '   ' })).toHaveLength(5);
   });
-  it('filters by kind, and a kind that is gone shows every row', () => {
-    expect(found({ kind: 'Place' })).toEqual(['w']);
-    expect(found({ kind: 'Place', query: 'hatter' })).toEqual([]);
+  // The Filter menu keeps several kinds at once (SNB-D3); none chosen keeps every kind.
+  it('filters by one kind or several, and none chosen keeps every kind', () => {
+    expect(found({ kinds: ['Place'] })).toEqual(['w']);
+    expect(found({ kinds: ['Place', 'Lore'] })).toEqual(['w', 'r', 'z']);
+    expect(found({ kinds: ['Place'], query: 'hatter' })).toEqual([]);
+    expect(found({ kinds: [] })).toHaveLength(5);
+  });
+  it('filters by whether the entry has a pronunciation', () => {
+    const said = { ipa: 'ˈhætə', source: 'manual', confidence: '' };
+    const two = [entry('s', 'Said', { pronunciation: said }), entry('n', 'Not said'), entry('b', 'Blank', { pronunciation: { ...said, ipa: '  ' } })];
+    expect(ids(filterEntries(two, { ...base, pron: 'set' }))).toEqual(['s']);
+    expect(ids(filterEntries(two, { ...base, pron: 'none' }))).toEqual(['n', 'b']);
+    expect(ids(filterEntries(two, { ...base, pron: 'any' }))).toEqual(['s', 'n', 'b']);
   });
   it('filters to the entries that need review or have something to verify', () => {
     const flagged = [entry('f', 'F', { review: { entry: true, aliases: [] } }), entry('g', 'G')];
-    expect(ids(filterEntries(flagged, { ...base, reviewOnly: true }))).toEqual(['f']);
+    expect(ids(filterEntries(flagged, { ...base, show: 'review' }))).toEqual(['f']);
+    expect(ids(filterEntries(flagged, { ...base, show: 'verify' }))).toEqual([]);
+  });
+  it('counts the filters on, the text aside', () => {
+    expect(filterCount(base)).toBe(0);
+    expect(filterCount({ ...base, query: 'x' })).toBe(0);
+    expect(filterCount({ ...base, kinds: ['Place', 'Lore'], pron: 'none', show: 'review' })).toBe(4);
   });
 });
 

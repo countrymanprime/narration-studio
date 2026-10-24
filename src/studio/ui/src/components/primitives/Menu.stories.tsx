@@ -78,8 +78,49 @@ export const KeyboardChoosesAnItem: Story = {
     await screen.findAllByRole('menuitem');
     await waitFor(() => expect(screen.getByRole('menuitem', { name: 'Character' })).toHaveFocus());
     await userEvent.keyboard('{Enter}');
-    await expect(args.items[0].onSelect).toHaveBeenCalledOnce();
+    await expect(args.items![0]!.onSelect).toHaveBeenCalledOnce();
     await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
     await waitFor(() => expect(trigger).toHaveFocus());
+  },
+};
+
+// Headed sections that choose: several kinds at once (checkboxes) and one of a set (radios), each with a count. Choosing keeps the menu
+// open (the Story Bible's Filter menu).
+export const SectionsThatChoose: Story = {
+  args: {
+    label: 'Filter entries',
+    children: 'Filter',
+    items: [],
+    sections: [
+      {
+        key: 'kind',
+        label: 'Kind',
+        select: 'many',
+        items: [
+          { key: 'character', label: 'Character', leading: dot('var(--character)'), checked: true, trailing: 214, onSelect: fn() },
+          { key: 'place', label: 'Place', leading: dot('var(--place)'), checked: false, trailing: 96, onSelect: fn() },
+        ],
+      },
+      {
+        key: 'pron',
+        label: 'Pronunciation',
+        select: 'one',
+        items: [
+          { key: 'any', label: 'Any', checked: false, trailing: 527, onSelect: fn() },
+          { key: 'none', label: 'None yet', checked: true, trailing: 310, onSelect: fn() },
+        ],
+      },
+    ],
+  },
+  play: async ({ args, canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Filter entries' }));
+    await expect(await screen.findAllByRole('menuitemcheckbox')).toHaveLength(2);
+    await expect(screen.getAllByRole('menuitemradio')).toHaveLength(2);
+    await userEvent.click(screen.getByRole('menuitemcheckbox', { name: /Place/ }));
+    await expect(args.sections![0]!.items[1]!.onSelect).toHaveBeenCalledOnce();
+    await expect(screen.getByRole('menu')).toBeInTheDocument();
+    // Close it so the story ends with nothing open (axe runs after play).
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
   },
 };
