@@ -222,6 +222,12 @@ The Effects tab shows how much of the chapter effects cover against a cap, 10% u
 field (a whole percent from 1 to 100, kept for the project). Over the cap the tab warns, and Add effect asks again
 before it goes ahead.
 
+**FX in REAPER** lists the plug-ins on the project's tracks and its master track as REAPER holds them now: where each one
+sits, its name, and whether it is switched on there. It reads REAPER and changes nothing, so a plug-in you add or bypass in
+REAPER shows here when you come back to the app or press **Check again**; the list says when REAPER last answered. If REAPER
+cannot be read the section says why instead of showing an old list. To put one of these on words, save it in REAPER as an FX
+chain: saved chains are what **Add an effect** lists, because the app adds an effect to words by chain name.
+
 ![Editing - an FX chain chosen for four words: how the item is split around the words](../../images/ui/editing-fx-dialog.webp)
 
 ## Marking a voice sample
@@ -310,6 +316,8 @@ on one time axis (the line's audio is the waveform above the bar). On a window 1
 timeline button (S) shows and hides; on a narrower window it is a tab of the drawer.
 
 ![Editing - the Clean up and effects panel on Effects: no effects yet, and Add effect waiting for a selection](../../images/ui/editing-drawer-effects.webp)
+
+![Editing - the Effects tab with REAPER not connected: FX in REAPER says why it could not be read, with Check again](../../images/ui/editing-drawer-effects-daw-unread.webp)
 
 ![Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first](../../images/ui/editing-drawer-effects-chains.webp)
 

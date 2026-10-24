@@ -80,6 +80,8 @@ export const editingStates: StateEntry[] = [
   {
     page: 'editing',
     state: 'drawer-effects-inspector',
+    // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
+    mask: ['[data-projectfx-read]'],
     description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in the DAW',
   },
   {
@@ -145,11 +147,22 @@ export const editingStates: StateEntry[] = [
   {
     page: 'editing',
     state: 'drawer-effects',
-    description: 'Editing, the drawer on Effects - the effects on words and adding one',
+    // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
+    mask: ['[data-projectfx-read]'],
+    description:
+      "Editing, the drawer on Effects - the effects on words, the FX in the linked DAW now (every track's and the master's, with Check again) and adding one",
+  },
+  {
+    page: 'editing',
+    state: 'drawer-effects-daw-unread',
+    description:
+      'Editing, the drawer on Effects with a DAW that is not connected (?mockReaper=standalone) - the FX in the DAW section says why it could not be read, with no list and its Check again',
   },
   {
     page: 'editing',
     state: 'drawer-effects-chains',
+    // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
+    mask: ['[data-projectfx-read]'],
     description: 'Editing, the drawer on Effects with a DAW that lists its chains - each chain with a Favourite button, the favourites first',
   },
   {

@@ -16,6 +16,8 @@ import { effectHost, MANY, ONE, TOTAL } from './effectsFixtures';
 import { withFxRange } from '../range/fx/fxFixtures';
 import { FX_CAP_PCT } from './effectsMath';
 import { OnWords } from './OnWords';
+import { ProjectFx } from './ProjectFx';
+import type { ProjectFxState } from './useProjectFx';
 
 const LIST = { source: fxChainsSource('REAPER'), choices: [{ id: 'Podcast Voice.RfxChain', name: 'Podcast Voice.RfxChain' }] };
 
@@ -151,6 +153,39 @@ export const AddWithFavourites: Story = {
 };
 export const AddFavouritesRefused: Story = {
   render: () => add({ list: MANY_CHAINS, favourites: { names: [], toggle: fn(), error: 'The settings file is read-only.' } }),
+};
+
+const projectFxState = (over: Partial<ProjectFxState> = {}): ProjectFxState => ({
+  chain: {
+    tracks: [
+      {
+        trackGuid: '{T1}',
+        name: 'Chapter One',
+        fx: [
+          { name: 'ReaEQ (Cockos)', enabled: true },
+          { name: 'ReaComp (Cockos)', enabled: false },
+        ],
+      },
+    ],
+    master: [{ name: 'ReaLimit (Cockos)', enabled: true }],
+    total: 3,
+  },
+  reading: false,
+  error: '',
+  readAt: Date.parse('2026-10-24T09:41:00Z'),
+  checkAgain: fn(),
+  ...over,
+});
+
+export const ProjectFxList: Story = { render: () => shell(<ProjectFx state={projectFxState()} dawName="REAPER" />) };
+export const ProjectFxNone: Story = {
+  render: () => shell(<ProjectFx state={projectFxState({ chain: { tracks: [], master: [], total: 0 } })} dawName="REAPER" />),
+};
+export const ProjectFxUnread: Story = {
+  render: () => shell(<ProjectFx state={projectFxState({ chain: null, error: 'REAPER is not connected to this app.', readAt: null })} dawName="REAPER" />),
+};
+export const ProjectFxReading: Story = {
+  render: () => shell(<ProjectFx state={projectFxState({ chain: null, reading: true, readAt: null })} dawName="REAPER" />),
 };
 
 export const Tab: Story = {

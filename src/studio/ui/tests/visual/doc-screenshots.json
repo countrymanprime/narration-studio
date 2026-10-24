@@ -1233,6 +1233,13 @@
   },
   {
     "page": "editing",
+    "state": "drawer-effects-daw-unread",
+    "viewport": "desktop",
+    "docName": "editing-drawer-effects-daw-unread",
+    "caption": "Editing - the Effects tab with REAPER not connected: FX in REAPER says why it could not be read, with Check again"
+  },
+  {
+    "page": "editing",
     "state": "drawer-effects-chains",
     "viewport": "desktop",
     "docName": "editing-drawer-effects-chains",
