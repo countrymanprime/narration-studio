@@ -7,7 +7,6 @@ import { resetOpenOnce } from '../connection/useOpenOnce';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
-import { DAW_ONLY } from './follow/playRoute';
 import { createJournal } from '../../studio/journal/createJournal';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
 import type { NarrationApi } from '../../types';
@@ -333,8 +332,8 @@ describe('EditingPage', () => {
     const dawDialog = () => screen.findByRole('dialog');
     const markOf = () => waitFor(() => document.querySelector<HTMLElement>('#dawoff')!);
 
-    // Changed for #2251 item 32: with REAPER linked and not answering, Play no longer plays the files through the app; it says why.
-    it('shows the capability’s sentence with Start and Check again in a dialog, disables the edits, and plays nothing through the app', async () => {
+    // Changed again by the owner's decision on #2251 item 32: with REAPER linked and not answering, Play plays the files in the app and says why.
+    it('shows the capability’s sentence with Start and Check again in a dialog, disables the edits, and plays in the app with a notice', async () => {
       const toast = vi.spyOn(overlay, 'toast');
       mount({ setup: 'reaper-off', dawConnectGraceMs: 0 });
       await script();
@@ -351,8 +350,8 @@ describe('EditingPage', () => {
       const del = await within(bar).findByRole('button', { name: /Delete/ });
       await waitFor(() => expect(del.getAttribute('aria-disabled') === 'true' || (del as HTMLButtonElement).disabled).toBe(true));
       fireEvent.click(within(bar).getByRole('button', { name: 'Play the selection' }));
-      await waitFor(() => expect(toast.mock.calls.some(([text]) => String(text).includes(DAW_ONLY))).toBe(true));
-      expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(false);
+      await waitFor(() => expect(toast.mock.calls.some(([text]) => String(text).includes('Played in the app instead.'))).toBe(true));
+      expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true);
     });
 
     it('draws no red banner: a quiet mark stands where it stood and reopens the dialog', async () => {

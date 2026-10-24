@@ -9,7 +9,6 @@ import { overlay } from '../../../overlay/overlayService';
 import { useJournal } from '../../../studio/StudioProvider';
 import { useOutputPrefs } from '../../engine/outputPrefs';
 import { useTakeAudition } from '../takes/useTakeAudition';
-import { playRoute } from '../follow/playRoute';
 import { KeyHints } from '../../primitives/KeyHints';
 import { keepsBackups, registerBackupsSection } from '../backups/registerBackupsSection';
 import { SelectionBar } from '../bar/SelectionBar';
@@ -83,7 +82,7 @@ import { useRecordingCheck } from './useRecordingCheck';
 import { ScriptNotesProvider } from '../script/paragraphNotes';
 import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
 import { useLines } from './useLines';
-import type { DawRead } from '../follow/playRoute';
+import type { DawRead } from '../../../playback/providers';
 
 /** The page state a chapter change keeps: the strip and the drawer stay as the narrator left them. */
 export interface PanelsState {
@@ -312,8 +311,8 @@ export function EditingBody(props: EditingBodyProps) {
     items: read.items,
     mediaUrl: tracks.mediaUrl,
     stopPlayback: playback.stop,
-    // With a DAW that plays the chapter, the dialog's Play goes through the page's playback, so the DAW's output is the only one (#2251 item 32).
-    throughDaw: playRoute(caps).kind === 'daw' ? { playFrom: playback.playFrom, stop: playback.stop } : null,
+    // The dialog's Play goes through the page's playback, so the same providers choose who plays it as Play does (playback/providers.ts).
+    playback: { playFrom: playback.playFrom, stop: playback.stop },
   });
   // The dots after the last word of each marked range, with a play control for each sample: a sample plays in the app's own audio, so the page's own playback stops when one starts.
   const hasWord = useCallback((key: string) => doc.index.has(key), [doc]);
