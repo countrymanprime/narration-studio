@@ -17,7 +17,7 @@ export type Audition = {
   start: number;
   end: number;
   mediaUrl: (sourceFile: string) => string;
-  /** Set while a linked DAW plays the chapter: Play plays the words through the page's playback (the DAW), never the app's audio. */
+  /** Play plays the words through the page's playback, which chooses who plays them (playback/providers.ts); absent, the dialog plays the file itself. */
   through?: { play: () => void; stop: () => void };
 };
 
