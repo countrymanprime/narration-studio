@@ -1,0 +1,82 @@
+{
+  "cases": [
+    {
+      "dialogue_cues": [
+        {
+          "chapterId": "c1",
+          "corrected": false,
+          "evidence": {
+            "chapterId": "c1",
+            "excerpt": "\"Hello,\" Ada said. \"Who are you?\"",
+            "paragraphId": "p1",
+            "tag": ""
+          },
+          "id": "cue-bea0bab1ac6f",
+          "paragraphId": "p1",
+          "quote_end": 8,
+          "quote_start": 0,
+          "quote_text": "Hello,",
+          "speaker_entity_id": null,
+          "speaker_source": "unknown"
+        },
+        {
+          "chapterId": "c1",
+          "corrected": false,
+          "evidence": {
+            "chapterId": "c1",
+            "excerpt": "\"Hello,\" Ada said. \"Who are you?\"",
+            "paragraphId": "p1",
+            "tag": ""
+          },
+          "id": "cue-b48bad7ab8e6",
+          "paragraphId": "p1",
+          "quote_end": 33,
+          "quote_start": 19,
+          "quote_text": "Who are you?",
+          "speaker_entity_id": null,
+          "speaker_source": "unknown"
+        }
+      ],
+      "line": "CUES|2|0"
+    },
+    {
+      "dialogue_cues": [
+        {
+          "chapterId": "c1",
+          "corrected": false,
+          "evidence": {
+            "chapterId": "c1",
+            "excerpt": "\"Hello,\" Ada said. \"Who are you?\"",
+            "paragraphId": "p1",
+            "tag": "\"Hello,\"  Ada said"
+          },
+          "id": "cue-bea0bab1ac6f",
+          "paragraphId": "p1",
+          "quote_end": 8,
+          "quote_start": 0,
+          "quote_text": "Hello,",
+          "speaker_entity_id": "entity-ada",
+          "speaker_source": "tag"
+        },
+        {
+          "chapterId": "c1",
+          "corrected": false,
+          "evidence": {
+            "chapterId": "c1",
+            "excerpt": "\"Hello,\" Ada said. \"Who are you?\"",
+            "paragraphId": "p1",
+            "tag": ""
+          },
+          "id": "cue-b48bad7ab8e6",
+          "paragraphId": "p1",
+          "quote_end": 33,
+          "quote_start": 19,
+          "quote_text": "Who are you?",
+          "speaker_entity_id": null,
+          "speaker_source": "unknown"
+        }
+      ],
+      "line": "CUES|2|1"
+    }
+  ]
+}

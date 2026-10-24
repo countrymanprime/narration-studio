@@ -10,6 +10,9 @@ import {
   filterEntries,
   foldText,
   kindCounts,
+  markedParts,
+  matchedAlias,
+  searchWords,
   loadEntrySort,
   saveEntrySort,
   sortAria,
@@ -263,4 +266,45 @@ describe('kind-counts-for-the-chips', () => {
     expect(counts.get('Place')).toBe(1);
     expect(counts.get('Event') ?? 0).toBe(0);
   });
+});
+
+describe('a-search-says-why-a-row-is-there', () => {
+  const hatter = entry('h', 'The Hatter', { aliases: [alias('Mad Hatter'), alias('Tarrant Hightopp')] });
+  const marks = (text: string, query: string) =>
+    markedParts(text, searchWords(query))
+      .map((part) => (part.marked ? `[${part.text}]` : part.text))
+      .join('');
+
+  it('splits the query into folded words', () => expect(searchWords('  Tarr  ÉO ')).toEqual(['tarr', 'eo']));
+  it('names the alias that matched when the name alone does not hold every word', () => {
+    expect(matchedAlias(hatter, searchWords('tarr'))).toBe('Tarrant Hightopp');
+    expect(matchedAlias(hatter, searchWords('hatter tarr'))).toBe('Tarrant Hightopp');
+  });
+  it('names no alias when the name holds every word, or nothing is typed', () => {
+    expect(matchedAlias(hatter, searchWords('hatt'))).toBeUndefined();
+    expect(matchedAlias(hatter, [])).toBeUndefined();
+  });
+  it('marks every place a word is found, ignoring case and accents', () => {
+    expect(marks('The Hatter', 'hat')).toBe('The [Hat]ter');
+    expect(marks('Éowyn of Éomer', 'eo')).toBe('[Éo]wyn of [Éo]mer');
+    expect(marks('Tarrant', 'ta an')).toBe('[Ta]rr[an]t');
+  });
+  it('joins overlapping matches and marks nothing for no words', () => {
+    expect(marks('aaaa', 'aa')).toBe('[aaaa]');
+    expect(marks('Alice', '')).toBe('Alice');
+  });
+  it('keeps right-to-left and emoji text whole', () => {
+    expect(marks('🐇 Rabbit', '🐇')).toBe('[🐇] Rabbit');
+    expect(marks('أليس', 'لي')).toBe('أ[لي]س');
+  });
+  it('gives back the text it was given, marked or not', () =>
+    fc.assert(
+      fc.property(fc.string(), fc.string(), (text, query) => {
+        expect(
+          markedParts(text, searchWords(query))
+            .map((part) => part.text)
+            .join(''),
+        ).toBe(text);
+      }),
+    ));
 });

@@ -243,10 +243,6 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 	want[dawport.CapBackups] = dawport.NotYetAvailable
 	// input_level: ReaScript cannot set an audio interface's input gain.
 	want[dawport.CapInputLevel] = dawport.Unsupported
-	// punch_preroll is punch_preroll's (narration_preroll.lua), Experimental until the owner's pass.
-	want[dawport.CapPunchPreroll] = dawport.Experimental
-	// daw_meters is daw_meters' (narration_meters.lua), Experimental until the owner's pass.
-	want[dawport.CapDawMeters] = dawport.Experimental
 	if !maps.Equal(declared, want) {
 		t.Errorf("Declares() = %v, want %v", declared, want)
 	}
