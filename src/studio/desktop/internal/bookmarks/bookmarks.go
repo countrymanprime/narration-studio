@@ -2,6 +2,9 @@
 // its text, with an optional short label and note, kept in the project's own file and checked against the current text on
 // every read. A bookmark whose line is gone or whose offset no longer fits is reported stale, never moved to a guess.
 //
+// A bookmark is a plain spot or a chapter's stopping place (the Booth's "Read to here"); a chapter has at most one stop,
+// and setting a new one replaces the old.
+//
 // The file is narrator data, read through persist: a corrupt one is kept aside and an empty list starts, one written by a
 // newer app is refused and never overwritten. Replacing the manuscript or Clear project data removes it (the manuscript
 // service's resetDerived); a re-import without a reset keeps it.
@@ -39,6 +42,14 @@ const (
 	MaxNoteUnits  = 500
 )
 
+// What a bookmark is. A file written before kinds existed has none, which reads as KindSpot.
+const (
+	// KindSpot is a plain bookmark.
+	KindSpot = "spot"
+	// KindStop is the narrator's stopping place in a chapter, at most one per chapter. It only marks the place.
+	KindStop = "stop"
+)
+
 // Why a bookmark is stale.
 const (
 	// StaleParagraphMissing means the line the bookmark was placed on is no longer in its chapter.
@@ -59,6 +70,7 @@ type Bookmark struct {
 	ChapterID   string    `json:"chapterId"`
 	ParagraphID string    `json:"paragraphId"`
 	Offset      int       `json:"offset"`
+	Kind        string    `json:"kind"`
 	Label       string    `json:"label"`
 	Note        string    `json:"note"`
 	CreatedAt   time.Time `json:"createdAt"`
@@ -164,16 +176,56 @@ func (s *Service) Add(chapterID, paragraphID string, offset int) (Resolved, erro
 		return Resolved{}, err
 	}
 	for _, existing := range file.Bookmarks {
-		if existing.ChapterID == chapterID && existing.ParagraphID == paragraphID && existing.Offset == offset {
+		if existing.Kind == KindSpot && existing.ChapterID == chapterID && existing.ParagraphID == paragraphID && existing.Offset == offset {
 			return resolve(existing, book), nil
 		}
 	}
-	bookmark := Bookmark{ID: newID(), ChapterID: chapterID, ParagraphID: paragraphID, Offset: offset, CreatedAt: s.now().UTC()}
+	bookmark := Bookmark{ID: newID(), ChapterID: chapterID, ParagraphID: paragraphID, Offset: offset, Kind: KindSpot, CreatedAt: s.now().UTC()}
 	file.Bookmarks = append(file.Bookmarks, bookmark)
 	if err := s.write(file); err != nil {
 		return Resolved{}, err
 	}
 	return resolve(bookmark, book), nil
+}
+
+// SetStop makes a spot the chapter's stopping place, replacing the stop the chapter had, and returns every bookmark in
+// reading order. The spot is checked as Add checks one; the same spot again keeps the stop it has.
+func (s *Service) SetStop(chapterID, paragraphID string, offset int) ([]Resolved, error) {
+	if s.config.Project == "" {
+		return []Resolved{}, errors.New("save the project first")
+	}
+	book := s.manuscript()
+	if !hasChapter(book, chapterID) {
+		return []Resolved{}, errors.New("that chapter is not in the manuscript")
+	}
+	line, ok := findLine(book, chapterID, paragraphID)
+	if !ok {
+		return []Resolved{}, errors.New("that line is not in this chapter")
+	}
+	if !fits(line.Text, offset) {
+		return []Resolved{}, errors.New("that place is not in the line")
+	}
+	unlock := lockFile(File(s.config.Project))
+	defer unlock()
+	file, err := s.read()
+	if err != nil {
+		return []Resolved{}, err
+	}
+	kept := make([]Bookmark, 0, len(file.Bookmarks)+1)
+	for _, existing := range file.Bookmarks {
+		if existing.Kind != KindStop || existing.ChapterID != chapterID {
+			kept = append(kept, existing)
+			continue
+		}
+		if existing.ParagraphID == paragraphID && existing.Offset == offset {
+			return resolveAll(file.Bookmarks, book), nil
+		}
+	}
+	file.Bookmarks = append(kept, Bookmark{ID: newID(), ChapterID: chapterID, ParagraphID: paragraphID, Offset: offset, Kind: KindStop, CreatedAt: s.now().UTC()})
+	if err := s.write(file); err != nil {
+		return []Resolved{}, err
+	}
+	return resolveAll(file.Bookmarks, book), nil
 }
 
 // Update replaces a bookmark's label and note. Both are trimmed plain text; a label is one line, a note may hold line breaks
@@ -298,6 +350,9 @@ func valid(bookmark Bookmark) bool {
 	if bookmark.ID == "" || bookmark.ChapterID == "" || bookmark.ParagraphID == "" || bookmark.Offset < 0 {
 		return false
 	}
+	if bookmark.Kind != KindSpot && bookmark.Kind != KindStop {
+		return false
+	}
 	return checkText(bookmark.Label, "label", MaxLabelUnits, false) == nil && checkText(bookmark.Note, "note", MaxNoteUnits, true) == nil
 }
 
@@ -400,7 +455,11 @@ func (s *Service) read() (bookmarksFile, error) {
 			return nil
 		}
 		seen := make(map[string]bool, len(candidate.Bookmarks))
-		for _, bookmark := range candidate.Bookmarks {
+		for index := range candidate.Bookmarks {
+			if candidate.Bookmarks[index].Kind == "" {
+				candidate.Bookmarks[index].Kind = KindSpot
+			}
+			bookmark := candidate.Bookmarks[index]
 			if !valid(bookmark) || seen[bookmark.ID] {
 				return errors.New("a bookmark breaks the file's rules")
 			}

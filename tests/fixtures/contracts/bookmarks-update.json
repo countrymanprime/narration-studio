@@ -2,6 +2,7 @@
   "chapterId": "c-0001",
   "createdAt": "2026-09-21T10:00:00Z",
   "id": "id-1",
+  "kind": "spot",
   "label": "The Queen",
   "note": "Shout, but do not clip the end.",
   "offset": 21,

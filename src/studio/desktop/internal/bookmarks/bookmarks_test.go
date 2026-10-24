@@ -338,3 +338,71 @@ func writeFile(t *testing.T, path, content string) {
 		t.Fatal(err)
 	}
 }
+
+func mustSetStop(t *testing.T, service *Service, chapterID, paragraphID string, offset int) []Resolved {
+	t.Helper()
+	list, err := service.SetStop(chapterID, paragraphID, offset)
+	if err != nil {
+		t.Fatalf("SetStop(%s, %s, %d): %v", chapterID, paragraphID, offset, err)
+	}
+	return list
+}
+
+func stops(list []Resolved) []Resolved {
+	var found []Resolved
+	for _, bookmark := range list {
+		if bookmark.Kind == KindStop {
+			found = append(found, bookmark)
+		}
+	}
+	return found
+}
+
+func TestAStopIsOnePerChapterAndReplacesTheOldOne(t *testing.T) {
+	service, _ := newTestService(t, sampleBook())
+	plain := mustAdd(t, service, "c1", "p2", 4)
+	if plain.Kind != KindSpot {
+		t.Fatalf("a bookmark added with Add is kind %q, want spot", plain.Kind)
+	}
+	first := stops(mustSetStop(t, service, "c1", "p1", 0))
+	if len(first) != 1 || first[0].ParagraphID != "p1" || first[0].Offset != 0 || first[0].Stale {
+		t.Fatalf("first stop = %+v", first)
+	}
+	// Another chapter keeps its own stop.
+	mustSetStop(t, service, "c2", "p9", 3)
+	// Setting the chapter's stop again replaces it; the plain bookmark and the other chapter's stop stay.
+	list := mustSetStop(t, service, "c1", "p2", 4)
+	if len(list) != 3 {
+		t.Fatalf("list = %+v", list)
+	}
+	got := stops(list)
+	if len(got) != 2 || got[0].ChapterID != "c1" || got[0].ParagraphID != "p2" || got[0].ID == first[0].ID || got[1].ChapterID != "c2" {
+		t.Fatalf("stops = %+v", got)
+	}
+	// A stop and a plain bookmark at one spot are two bookmarks, and Add at the stop's spot returns the plain one.
+	if again := mustAdd(t, service, "c1", "p2", 4); again.ID != plain.ID {
+		t.Fatalf("Add at a spot holding a stop = %+v, want the plain bookmark", again)
+	}
+	// The same spot again keeps the stop it has.
+	if same := stops(mustSetStop(t, service, "c1", "p2", 4)); same[0].ID != got[0].ID {
+		t.Fatalf("same spot again = %+v", same)
+	}
+	if _, err := service.SetStop("c1", "p9", 0); err == nil {
+		t.Fatal("a stop on another chapter's line was accepted")
+	}
+	if _, err := service.SetStop("c1", "p1", 11); err == nil {
+		t.Fatal("a stop between the halves of a surrogate pair was accepted")
+	}
+}
+
+func TestAFileWithoutKindsReadsAsPlainBookmarks(t *testing.T) {
+	service, project := newTestService(t, sampleBook())
+	writeFile(t, File(project), `{"schemaVersion":1,"bookmarks":[{"id":"a","chapterId":"c1","paragraphId":"p1","offset":0,"label":"","note":"","createdAt":"2026-10-11T10:00:00Z"}]}`)
+	if list := mustList(t, service); len(list) != 1 || list[0].Kind != KindSpot {
+		t.Fatalf("list = %+v", list)
+	}
+	writeFile(t, File(project), `{"schemaVersion":1,"bookmarks":[{"id":"a","chapterId":"c1","paragraphId":"p1","offset":0,"kind":"later","label":"","note":"","createdAt":"2026-10-11T10:00:00Z"}]}`)
+	if list := mustList(t, service); len(list) != 0 {
+		t.Fatalf("a file with an unknown kind was read: %+v", list)
+	}
+}

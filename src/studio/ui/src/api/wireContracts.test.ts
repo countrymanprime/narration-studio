@@ -4209,6 +4209,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'noteList',
       'bookmarksList',
       'bookmarksAdd',
+      'bookmarksSetStop',
       'bookmarksUpdate',
       'bookmarksRemove',
       'voiceSamplesList',
@@ -4899,6 +4900,31 @@ describe('the bookmarks bindings', () => {
     const remaining = await api.bookmarksRemove(added.id);
     expectMatches(bookmarksSchema, remaining, 'mock bookmarks remove');
     expect(remaining.map((bookmark) => bookmark.id)).toEqual([later.id]);
+  });
+
+  it('the mock keeps one stopping place per chapter, beside the plain bookmarks, as BookmarksSetStop does', async () => {
+    const api = createMockApi();
+    const [first, second] = await api.manuscriptChapters();
+    const [line, nextLine] = await api.manuscriptParagraphs(first?.id ?? '');
+    const otherLine = (await api.manuscriptParagraphs(second?.id ?? ''))[0];
+    const plain = await api.bookmarksAdd(first?.id ?? '', line?.id ?? '', 0);
+    expect(plain.kind).toBe('spot');
+    const once = await api.bookmarksSetStop(first?.id ?? '', line?.id ?? '', 0);
+    expectMatches(bookmarksSchema, once, 'mock bookmarks set stop');
+    const firstStop = once.find((bookmark) => bookmark.kind === 'stop');
+    expect(once).toHaveLength(2);
+    await api.bookmarksSetStop(second?.id ?? '', otherLine?.id ?? '', 0);
+    const moved = await api.bookmarksSetStop(first?.id ?? '', nextLine?.id ?? '', 0);
+    const stops = moved.filter((bookmark) => bookmark.kind === 'stop');
+    expect(stops.map((stop) => [stop.chapterId, stop.paragraphId])).toEqual([
+      [first?.id, nextLine?.id],
+      [second?.id, otherLine?.id],
+    ]);
+    expect(stops[0]?.id).not.toBe(firstStop?.id);
+    expect((await api.bookmarksAdd(first?.id ?? '', nextLine?.id ?? '', 0)).kind).toBe('spot');
+    const again = await api.bookmarksSetStop(first?.id ?? '', nextLine?.id ?? '', 0);
+    expect(again.find((bookmark) => bookmark.kind === 'stop' && bookmark.chapterId === first?.id)?.id).toBe(stops[0]?.id);
+    await expect(api.bookmarksSetStop(first?.id ?? '', 'no-such-line', 0)).rejects.toThrow('not in this chapter');
   });
 
   it('the mock refuses what the host refuses', async () => {

@@ -1020,6 +1020,7 @@ describe('the bookmarks bindings', () => {
     paragraphId: 'p-000001',
     paragraph: 0,
     offset: 21,
+    kind: 'spot',
     label: '',
     note: '',
     createdAt: '2026-10-11T10:00:00Z',
