@@ -86,6 +86,8 @@ function Fake.new(host)
     { id = 40209, name = 'Item: Apply track/take FX to items' },
     { id = 42230, name = 'File: Render project, using the most recent render settings, auto-close render dialog' },
   }
+  -- What kbd_getTextFromCmd answers per command ID, as REAPER 7.82 named them (docs/research/reaper-item-fx-dialog-2026-10-24.md).
+  self.action_texts = { [40638] = 'Item: Show FX chain for item take' }
   self.reaper = self:build_api()
   return self
 end
@@ -478,6 +480,34 @@ function Fake:ordered_items()
   return out
 end
 
+-- The undo label REAPER gives a change to an item's take FX: "Item on track <n> <track name>" (REAPER 7.82).
+function Fake:fx_item_label(take)
+  local track = take.item.track
+  for index, candidate in ipairs(self.tracks) do
+    if candidate == track then
+      return 'Item on track ' .. index .. ' ' .. tostring(track.name)
+    end
+  end
+  return 'Item'
+end
+
+-- The narrator picks a plug-in in REAPER's open "Add FX to Item" browser and clicks Add (REAPER 7.82,
+-- docs/research/reaper-item-fx-dialog-2026-10-24.md): the plug-in is appended to the take the browser opened for, the chain
+-- window opens on it, and REAPER adds its own undo point. `name` is the FX name as TakeFX_GetFXName reads it.
+function Fake:choose_fx(name)
+  local take = assert(self.fx_browser, 'no Add FX browser is open').take
+  self.fx_browser = nil
+  take.fx = take.fx or {}
+  take.fx[#take.fx + 1] = { name = name, guid = self:new_guid(), enabled = true, params = self:fx_params() }
+  take.chain_visible = #take.fx - 1
+  self.undo[#self.undo + 1] = { label = 'Add FX: ' .. self:fx_item_label(take) .. ': ' .. name:gsub('^%w+: ', ''):gsub(' %(.*%)$', '') }
+end
+
+-- The narrator clicks Cancel in the Add FX browser: nothing changes and no undo point is added.
+function Fake:cancel_fx_browser()
+  self.fx_browser = nil
+end
+
 function Fake:selected_items()
   local out = {}
   for _, item in ipairs(self:ordered_items()) do
@@ -699,6 +729,18 @@ function Fake:add_project_api(api)
     fake.calls[#fake.calls + 1] = { name = 'Main_OnCommand', command_id = command_id, flag = flag }
     if command_id == 42230 then
       fake:render()
+    elseif command_id == 40638 then
+      -- "Item: Show FX chain for item take" on the selected items (REAPER 7.82): a take with no FX gets the Add FX browser
+      -- (fake.fx_browser, answered by Fake:choose_fx or Fake:cancel_fx_browser) and its chain stays hidden; a take with FX
+      -- shows its chain. A second press leaves it open.
+      for _, item in ipairs(fake:selected_items()) do
+        local take = item.takes[item.active_index or 1]
+        if take and #(take.fx or {}) == 0 then
+          fake.fx_browser = { take = take }
+        elseif take then
+          take.chain_visible = take.chain_visible or 0
+        end
+      end
     elseif command_id == 40693 then
       -- "Take: Toggle take volume envelope" on each selected item's active take: makes the envelope when the take has
       -- none, and otherwise shows or hides it (reduce_range_gain, from the reference; pending the QA pass, #1495).
@@ -725,6 +767,14 @@ function Fake:add_project_api(api)
       return main_section
     end
     return nil
+  end
+  -- kbd_getTextFromCmd(id, section): the action-list text of a command ID, '' for one the fake does not know. The texts are
+  -- the ones REAPER 7.82 answered (fake.action_texts; a test changes it to model a renumbered action).
+  function api.kbd_getTextFromCmd(command_id, section)
+    if section ~= main_section then
+      return ''
+    end
+    return fake.action_texts[command_id] or ''
   end
   function api.kbd_enumerateActions(section, index)
     fake.calls[#fake.calls + 1] = { name = 'kbd_enumerateActions', index = index }
@@ -975,9 +1025,16 @@ function Fake:add_item_api(api)
     end
     error('fake reaper: unmodelled item value ' .. tostring(key))
   end
+  -- REAPER 7.82 adds its own "Unselect all items" undo point when SelectAllMediaItems(0, false) unselects anything outside an
+  -- undo block; SetMediaItemSelected adds none (docs/research/reaper-item-fx-dialog-2026-10-24.md).
   function api.SelectAllMediaItems(_, selected)
+    local changed = false
     for _, item in ipairs(fake.items) do
+      changed = changed or (item.selected and not selected)
       item.selected = selected
+    end
+    if changed and fake.open_undo_blocks == 0 then
+      fake.undo[#fake.undo + 1] = { label = 'Unselect all items' }
     end
   end
   function api.SetMediaItemSelected(item, selected)
@@ -1181,6 +1238,21 @@ function Fake:add_take_api(api)
   function api.TakeFX_GetCount(take)
     return #(take.fx or {})
   end
+  -- TakeFX_Show(take, index, flag) and TakeFX_GetChainVisible(take) as REAPER 7.82 answered them: flag 1 shows the chain
+  -- (visible reads the FX index, or -2 when the chain is empty) with no undo point, flag 0 hides it and adds REAPER's
+  -- "Close FX chain: ..." point; hidden reads -1. Every TakeFX_Show is recorded in fake.calls.
+  function api.TakeFX_Show(take, index, flag)
+    fake.calls[#fake.calls + 1] = { name = 'TakeFX_Show', index = index, flag = flag }
+    if flag == 1 then
+      take.chain_visible = #(take.fx or {}) == 0 and -2 or index
+    elseif flag == 0 and take.chain_visible then
+      take.chain_visible = nil
+      fake.undo[#fake.undo + 1] = { label = 'Close FX chain: ' .. fake:fx_item_label(take) }
+    end
+  end
+  function api.TakeFX_GetChainVisible(take)
+    return take.chain_visible or -1
+  end
   -- TakeFX_GetFXGUID(take, fx): the FX's GUID, or nil for an index the take does not have (the ReaScript reference; not
   -- run).
   function api.TakeFX_GetFXGUID(take, index)
@@ -1296,7 +1368,8 @@ function Fake:add_take_api(api)
       copy.startoffs = take.startoffs + (at - item.position) * take.playrate
       copy.fx = {}
       for _, fx in ipairs(take.fx or {}) do
-        copy.fx[#copy.fx + 1] = { name = fx.name, guid = fake:new_guid() }
+        -- REAPER 7.82 gives each piece a copy under the same FX GUID (docs/research/reaper-item-fx-dialog-2026-10-24.md).
+        copy.fx[#copy.fx + 1] = { name = fx.name, guid = fx.guid, enabled = fx.enabled, params = fx.params }
       end
       right.takes[index] = copy
     end

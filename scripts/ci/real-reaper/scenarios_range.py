@@ -375,3 +375,68 @@ def click_repair(env: Env) -> str:
 
 def render_peak(env: Env) -> float:
     return env.render_mix("click_undone", 0.0, 12.0).peak(5.0005, 5.0015)
+
+
+# -- FX chosen in REAPER's own dialog ----------------------------------------------------------------------------------------
+
+CHOSEN = "chosen in REAPER"  # bridge.ChosenInREAPER, narration_range.lua's CHOSEN_CHAIN
+
+
+@scenario(
+    "fx_range",
+    "choose_range_fx, range_fx_chosen",
+    "fx choose: splits the range, opens REAPER's FX chain on the piece with the selection put back, reads back the plug-in added there, "
+    "bypasses it, and removing it joins the item keeping the FX the item already had",
+)
+def fx_choose(env: Env) -> str:
+    fx = chapter(env, "tone_a")
+    # The item already carries ReaEQ, so the dialog is the take's chain window (an empty take gets REAPER's Add FX browser,
+    # which no ReaScript call can close: docs/research/reaper-item-fx-dialog-2026-10-24.md). The narrator has Chapter 2 selected.
+    env.lua(
+        """
+        local item = reaper.GetTrackMediaItem(ci.track_by_name('Chapter 1'), 0)
+        assert(reaper.TakeFX_AddByName(reaper.GetTake(item, 0), 'ReaEQ', -1) == 0, 'ReaEQ did not load')
+        reaper.SelectAllMediaItems(0, false)
+        reaper.SetMediaItemSelected(reaper.GetTrackMediaItem(ci.track_by_name('Chapter 2'), 0), true)
+        return true
+        """
+    )
+    done = env.ok("choose_range_fx", fx["item"], "4", "6", "10", until="RANGE_FX_CHOOSING")
+    piece, take = done[2], done[3]
+    assert done[4] == "1", f"undo points {done[4]}"
+    assert positions(env, "Chapter 1")[:3] == [(0.0, 4.0), (4.0, 2.0), (6.0, 6.0)], f"pieces {positions(env, 'Chapter 1')}"
+    undo = env.snapshot()["undo"]
+    assert undo == undo_label("choose FX in REAPER"), f"undo point {undo!r}"
+    read = """
+        local item = ci.item(args[1])
+        local take = item and reaper.GetActiveTake(item)
+        local selected = {}
+        for i = 0, reaper.CountSelectedMediaItems(0) - 1 do selected[#selected + 1] = ci.item_guid(reaper.GetSelectedMediaItem(0, i)) end
+        return { visible = take and reaper.TakeFX_GetChainVisible(take) or -9, selected = selected,
+          other = ci.item_guid(reaper.GetTrackMediaItem(ci.track_by_name('Chapter 2'), 0)) }
+        """
+
+    def chain_open():
+        got = env.lua(read, piece)
+        return got if got["visible"] >= 0 else None
+
+    opened = env.wait_for(chain_open, what="the piece's FX chain window")
+    assert opened["selected"] == [opened["other"]], f"the narrator's selection was not put back: {opened['selected']}"
+    undo = env.snapshot()["undo"]
+    assert undo == undo_label("choose FX in REAPER"), f"opening the dialog left the undo point {undo!r}"
+    nothing = env.send("range_fx_chosen", piece, take, until="RANGE_FX_CHOSEN")
+    assert nothing[-1][4:] == ["0", "1", "0"], f"before a choice {nothing}"
+    # The narrator's Add in the chain window, played by the API it ends in (xvfb has no mouse here).
+    env.lua("assert(reaper.TakeFX_AddByName(reaper.GetActiveTake(ci.item(args[1])), 'ReaComp', -1) == 1) return true", piece)
+    chosen = env.send("range_fx_chosen", piece, "", until="RANGE_FX_CHOSEN")
+    assert [e[2:] for e in chosen[:-1]] == [["0", "VST: ReaComp (Cockos)", "1"]], f"chosen {chosen}"
+    assert chosen[-1][2:] == [piece, take, "1", "1", "0"], f"closing line {chosen[-1]}"
+    env.ok("fx_range_bypass", piece, take, CHOSEN, "1", until="RANGE_FX_BYPASSED")
+    names = [(f["name"], f["enabled"]) for f in items_on(env.snapshot(), "Chapter 1")[1]["takes"][0]["fx"]]
+    assert names == [("VST: ReaEQ (Cockos)", True), ("VST: ReaComp (Cockos)", False)], f"after bypass {names}"
+    removed = env.ok("remove_fx_range", piece, CHOSEN, until="RANGE_FX_REMOVED")
+    assert removed[4] == "1", f"undo points {removed[4]}"
+    joined = items_on(env.snapshot(), "Chapter 1")
+    assert positions(env, "Chapter 1")[0] == (0.0, 12.0), f"not joined {positions(env, 'Chapter 1')}"
+    assert [f["name"] for f in joined[0]["takes"][0]["fx"]] == ["VST: ReaEQ (Cockos)"], "the item's own ReaEQ did not stay alone"
+    return "split 4-6, chain window open on the piece only, ReaComp read back and bypassed, removal joined the item with ReaEQ kept"

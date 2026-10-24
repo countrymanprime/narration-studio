@@ -66,7 +66,7 @@ especially welcome:
   one pickup marker nearest the position it was sent; a `list_pickup_markers` list the app reads from a path other than the one it
   named; a `delete_range` that deletes audio rather than moving it to the muted
   Cuts track, or that cuts an item it was not named; an `apply_fx_range` that loads a chain from a path rather than a name REAPER's
-  `FXChains` listing holds, or a `remove_fx_range` that joins pieces that do not play the same audio; a `stack_takes` or
+  `FXChains` listing holds, or a `remove_fx_range` that joins pieces that do not play the same audio; a `choose_range_fx` that runs any action but 40638 under its checked text, loads or adds a plug-in itself, opens the dialog on a take other than the piece it split, or leaves the narrator's selection changed; a `range_fx_chosen` that changes anything or sends a plug-in's file path; a `stack_takes` or
   `unstack_takes` that opens a file other than the payload the app wrote in the session folder, reads past its size and count
   bounds, deletes a read rather than moving it to the Cuts track, or removes a take it did not stack; a `reduce_range_gain` or `repair_click` that runs any action but the one fixed take-volume-envelope action or changes a source file, an item or another take; an `undo_last` that undoes a point whose label is not the app's own cut), changing a REAPER preference, or stopping or restarting a recording the
   app did not start (`roll`); a `preview_file_range` or `reveal_file` that plays or shows a file the narrator did not pick, opens a

@@ -144,6 +144,8 @@ var commandCapability = map[string]dawport.Capability{
 	"fx_range_bypass":     dawport.CapFXRange,
 	"fx_range_compare":    dawport.CapFXRange,
 	"stop_fx_compare":     dawport.CapFXRange,
+	"choose_range_fx":     dawport.CapFXRange,
+	"range_fx_chosen":     dawport.CapFXRange,
 	"last_action":         dawport.CapUndoLast,
 	"undo_last":           dawport.CapUndoLast,
 	"monitor_level":       dawport.CapMonitorLevel,

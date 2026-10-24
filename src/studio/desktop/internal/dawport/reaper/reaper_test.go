@@ -146,6 +146,8 @@ var experimentalCapability = map[string]dawport.Capability{
 	"fx_range_bypass":     dawport.CapFXRange,
 	"fx_range_compare":    dawport.CapFXRange,
 	"stop_fx_compare":     dawport.CapFXRange,
+	"choose_range_fx":     dawport.CapFXRange,
+	"range_fx_chosen":     dawport.CapFXRange,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.
