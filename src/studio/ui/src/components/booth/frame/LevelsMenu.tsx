@@ -11,6 +11,7 @@ import { Select } from '../../primitives/Select';
 import { NumberInput } from '../../primitives/NumberInput';
 import { Slider } from '../../primitives/Slider';
 import { Badge } from '../../primitives/StatusBadge';
+import { Tooltip } from '../../primitives/Tooltip';
 import type { InputLevel } from './useLevels';
 import { useDawMeters, type DawMetersState } from './useDawMeters';
 import { useMonitorLevel } from './useMonitorLevel';
@@ -278,7 +279,7 @@ const measuresText = (measures: number): string => (measures === 1 ? '1 measure'
 
 /**
  * The DAW's own pre-roll (#2251 item 11): the one the Booth punches with, so the app shows it rather than a number of its own that could disagree. It
- * is read, never set: the narrator changes it in the DAW, and the menu says where.
+ * is read, never set: one short line with its state and length, and the "i" beside it says what it does and where to change it in the DAW.
  */
 function DawPrerollRow({ dawName }: { dawName: string }) {
   const state = useDawPreroll();
@@ -290,19 +291,17 @@ function DawPrerollRow({ dawName }: { dawName: string }) {
       </span>
     );
   const { preroll } = state;
-  const lead = `${measuresText(preroll.measures)} (one measure is ${oneDecimal(preroll.measureSeconds)} s here)`;
+  const length = measuresText(preroll.measures);
+  const about = [
+    `${dawName}’s own pre-roll, the lead-in a punch uses. One measure is ${oneDecimal(preroll.measureSeconds)} s at the edit cursor.`,
+    `On, ${dawName} plays from the bar line ${length} or more before the word, then records from the word. Off, a punch records from the word with no lead-in.`,
+    `Change it in ${dawName}, for every project: “Pre-roll: Toggle pre-roll on record” turns it on or off.`,
+  ].join(' ');
   return (
-    <>
-      <span className="text-sm text-[var(--text)]">
-        {preroll.onRecord ? `${dawName} pre-roll: ${lead}` : `${dawName} pre-roll is off: a punch records from the word with no lead-in.`}
-      </span>
-      <span className="text-xs text-[var(--text-muted)]">
-        {preroll.onRecord
-          ? `${dawName} plays from the bar line ${measuresText(preroll.measures)} or more before the word, then records from the word. `
-          : `Its length is ${lead}. `}
-        {`Set in ${dawName}, for every project: “Pre-roll: Toggle pre-roll on record” turns it on or off.`}
-      </span>
-    </>
+    <span className="flex items-center text-sm text-[var(--text)]">
+      {`Pre-roll ${preroll.onRecord ? 'on' : 'off'} · ${length} (${oneDecimal(preroll.measures * preroll.measureSeconds)} s)`}
+      <Tooltip label={`About ${dawName}’s pre-roll`} text={about} />
+    </span>
   );
 }
 

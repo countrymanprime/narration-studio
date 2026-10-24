@@ -330,8 +330,22 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page, `${RECORD_ON}&mockDawMeters=unarmed`);
     await page.getByRole('button', { name: 'Levels' }).click();
     const menu = page.getByRole('dialog', { name: 'Levels' });
-    await menu.getByText('REAPER pre-roll is off: a punch records from the word with no lead-in.').waitFor();
+    await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
     await menu.getByText('No track is armed in REAPER: its input level shows once one is.').waitFor();
+  },
+  // The pre-roll's "i" reached with the keyboard: the note says what the pre-roll does and where to change it in REAPER.
+  'levels-menu-preroll-about': async (page) => {
+    await readyToRecord(page, `${RECORD_ON}&mockDawMeters=unarmed`);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
+    const info = menu.getByRole('button', { name: 'About REAPER’s pre-roll' });
+    // Tab from the control before it so the focus is a keyboard arrival, which opens the note at once.
+    for (let i = 0; i < 40 && !(await info.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
+    await page
+      .getByRole('tooltip')
+      .getByText(/Pre-roll: Toggle pre-roll on record/)
+      .waitFor();
   },
   // Experimental DAW actions on, so the monitor slider is usable and this state differs from levels-menu.
   'levels-menu-daw-meters': async (page) => {

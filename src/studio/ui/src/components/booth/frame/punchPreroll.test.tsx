@@ -93,22 +93,35 @@ describe('the Levels menu punch pre-roll', () => {
 describe("the Levels menu punch pre-roll is REAPER's own when REAPER has one", () => {
   const on: DawCapabilitySupport = { level: 'supported', available: true };
 
-  it("shows REAPER's pre-roll, off, with its length, where to set it, and never the app's seconds", async () => {
+  it("shows REAPER's pre-roll in one short line, off, with its length, and never the app's seconds", async () => {
     const { save, open } = menu('daw', {}, on);
     await open();
-    expect(await screen.findByText('REAPER pre-roll is off: a punch records from the word with no lead-in.')).toBeTruthy();
-    expect(screen.getByText(/Its length is 2 measures \(one measure is 2\.0 s here\)/)).toBeTruthy();
-    expect(screen.getByText(/“Pre-roll: Toggle pre-roll on record” turns it on or off/)).toBeTruthy();
+    expect(await screen.findByText('Pre-roll off · 2 measures (4.0 s)')).toBeTruthy();
+    expect(screen.queryByText(/a punch records from the word/)).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('shows a pre-roll REAPER plays before recording, from the bar line', async () => {
+  it('puts the explanation behind an info button a keyboard reaches and a screen reader hears', async () => {
+    const { open } = menu('daw', {}, on);
+    await open();
+    const info = await screen.findByRole('button', { name: 'About REAPER’s pre-roll' });
+    const about = info.getAttribute('aria-description') ?? '';
+    expect(about).toContain('One measure is 2.0 s at the edit cursor.');
+    expect(about).toContain('Off, a punch records from the word with no lead-in.');
+    expect(about).toContain('“Pre-roll: Toggle pre-roll on record”');
+    await userEvent.tab();
+    while (document.activeElement !== info && document.activeElement !== document.body) await userEvent.tab();
+    expect(document.activeElement).toBe(info);
+  });
+
+  it('shows a pre-roll REAPER plays before recording, with its length in seconds', async () => {
     const read = vi.fn(async () => ({ ok: true, onRecord: true, measures: 1, measureSeconds: 1.8, message: '' }));
     const { open } = menu('daw', { dawPunchPreroll: read } as Partial<NarrationApi>, on);
     await open();
-    expect(await screen.findByText('REAPER pre-roll: 1 measure (one measure is 1.8 s here)')).toBeTruthy();
-    expect(screen.getByText(/plays from the bar line 1 measure or more before the word, then records from the word/)).toBeTruthy();
+    expect(await screen.findByText('Pre-roll on · 1 measure (1.8 s)')).toBeTruthy();
+    const about = screen.getByRole('button', { name: 'About REAPER’s pre-roll' }).getAttribute('aria-description') ?? '';
+    expect(about).toContain('plays from the bar line 1 measure or more before the word, then records from the word');
   });
 
   it('reads it again when the window is looked at, since it is changed in REAPER', async () => {
@@ -116,10 +129,17 @@ describe("the Levels menu punch pre-roll is REAPER's own when REAPER has one", (
     const read = vi.fn(async () => ({ ok: true, onRecord, measures: 2, measureSeconds: 2, message: '' }));
     const { open } = menu('daw', { dawPunchPreroll: read } as Partial<NarrationApi>, on);
     await open();
-    await screen.findByText(/pre-roll is off/);
+    await screen.findByText(/^Pre-roll off/);
     onRecord = true;
     fireEvent.focus(window);
-    expect(await screen.findByText('REAPER pre-roll: 2 measures (one measure is 2.0 s here)')).toBeTruthy();
+    expect(await screen.findByText('Pre-roll on · 2 measures (4.0 s)')).toBeTruthy();
+  });
+
+  it('shows a fractional length and a long measure as they are', async () => {
+    const read = vi.fn(async () => ({ ok: true, onRecord: false, measures: 1.5, measureSeconds: 40, message: '' }));
+    const { open } = menu('daw', { dawPunchPreroll: read } as Partial<NarrationApi>, on);
+    await open();
+    expect(await screen.findByText('Pre-roll off · 1.5 measures (60.0 s)')).toBeTruthy();
   });
 
   it("says the capability's own sentence when REAPER has a pre-roll the app may not read now", async () => {
