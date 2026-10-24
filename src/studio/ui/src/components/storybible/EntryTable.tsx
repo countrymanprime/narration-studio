@@ -15,6 +15,7 @@ import { useCommand } from '../../input/useCommand';
 import { categoryLabel } from '../../state';
 import type { GuideEntity, GuideType } from '../../types';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../primitives/changeHighlight';
+import { Highlight } from '../primitives/Highlight';
 import { Swatch } from '../primitives/Swatch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../primitives/Table';
 import { kindSwatch, typeUnknown } from './entryList';
@@ -285,14 +286,14 @@ function EntryRow({
   );
 }
 
-/** The text with the letters a search matched in a `<mark>`. */
+/** The text with the letters a search matched marked as a search hit, as the jump menu marks them. */
 function Marked({ text, words }: { text: string; words: readonly string[] }) {
   if (words.length === 0) return text;
   return markedParts(text, words).map((part, index) =>
     part.marked ? (
-      <mark key={index} className="rounded-sm bg-[var(--warn-soft)] px-px text-inherit">
+      <Highlight key={index} kind="Search">
         {part.text}
-      </mark>
+      </Highlight>
     ) : (
       part.text
     ),
