@@ -7,6 +7,7 @@ import type { WorkspaceItem } from '../../../api/contracts/workspace';
 import { firstFrom, runwayEnd, summarize, type ChapterDoc } from '../model';
 import type { ClosedCut } from '../follow/clockMap';
 import { useDawTransportSync, type RemotePlayer } from '../follow/useDawTransportSync';
+import { CHECKING, DAW_ONLY, dawCannotPlay, playRoute } from '../follow/playRoute';
 import { useEditingPage } from '../script/EditingPageState';
 import { useAppliedOutput, type OutputPrefs } from '../../engine/outputPrefs';
 import { playable, playingKey } from '../script/playing';
@@ -40,7 +41,8 @@ export interface ScriptPlaybackOptions {
   playlist: PlaylistSegment[];
   mediaUrl: (sourceFile: string) => string;
   notify?: (text: string) => void;
-  /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can do. */
+  /** The DAW to play through and follow, when there is one: the chapter's items as the alignment holds them, its closing cuts, and what the DAW can
+   * do. Null `caps` (not answered yet) plays nothing; absent `sync` plays in the app. */
   sync?: { items: readonly WorkspaceItem[]; cuts: readonly ClosedCut[]; caps: DawCapabilities | null };
   /** The narrator's volume, mute, speed and output, kept on the element; absent leaves the element as the webview makes it. */
   output?: OutputPrefs;
@@ -51,7 +53,8 @@ export interface ScriptPlaybackOptions {
 /**
  * Plays the chapter's recorded files over the document's word times: one `Audio`, the segment under the playhead, a stop at a segment's end
  * on `timeupdate` (the technique of the old chapter hook, which this does not import). The playhead is the page's `playT`; the lit word and
- * the time in the bar follow it. Nothing here throws into the page: a file that will not load stops playback and says why.
+ * the time in the bar follow it. Nothing here throws into the page: a file that will not load stops playback and says why. With a linked DAW
+ * that can play the chapter (`playRoute`), every play goes to the DAW and the app's audio stays silent, also when the DAW cannot play.
  */
 export function useScriptPlayback({
   playlist,
@@ -67,9 +70,11 @@ export function useScriptPlayback({
   const loaded = useRef<string | undefined>(undefined);
   const segment = useRef(0);
   const stopAt = useRef<number | null>(null);
-  const live = useRef({ doc, state, playlist, mediaUrl, notify, dispatch });
+  // Undefined: no DAW was given, so the app plays. Null: the DAW has not answered yet.
+  const caps = sync ? sync.caps : undefined;
+  const live = useRef({ doc, state, playlist, mediaUrl, notify, dispatch, caps });
   useEffect(() => {
-    live.current = { doc, state, playlist, mediaUrl, notify, dispatch };
+    live.current = { doc, state, playlist, mediaUrl, notify, dispatch, caps };
   });
 
   const audio = useCallback((): HTMLAudioElement => (audioRef.current ??= new Audio()), []);
@@ -124,17 +129,31 @@ export function useScriptPlayback({
     [audio],
   );
 
+  /** Plays from `t`, or says why nothing plays; false only when no recorded file covers `t` and the app would have played it. */
   const go = useCallback(
     (t: number): boolean => {
-      const remote = remoteRef.current;
-      if (remote?.canStart(t)) {
-        // The DAW plays it: its output and level, the app's audio stays silent. If it cannot, the app plays from the same second.
+      const { caps: now, notify: say } = live.current;
+      const route = now === undefined ? ({ kind: 'app' } as const) : playRoute(now);
+      if (route.kind === 'unknown') {
+        say(CHECKING);
+        return true;
+      }
+      if (route.kind === 'daw' && now) {
+        // A linked DAW is the only player: its output, FX and level. When it cannot play, nothing does, and the page says why.
+        const remote = remoteRef.current;
+        const refusal = remote ? remote.refusal(t) : 'not_ready';
+        if (refusal === 'not_placed') {
+          say(`That part is not in ${route.name}'s project, so ${route.name} cannot play it. ${DAW_ONLY}`);
+          return true;
+        }
+        if (refusal === 'not_ready' || !remote) {
+          say(`${dawCannotPlay(now, route.name)} ${DAW_ONLY}`);
+          return true;
+        }
         audioRef.current?.pause();
         live.current.dispatch({ type: 'play', t });
         void remote.start(t).then((took) => {
-          if (took || live.current.state.playT !== t) return;
-          if (cue(t)) start();
-          else halt();
+          if (!took && live.current.state.playT === t) halt();
         });
         return true;
       }

@@ -15,6 +15,7 @@ import { marksDoc } from '../script/scriptFixtures';
 import { useDawPlayPosition } from './useDawPlayPosition';
 import { ECHO_WINDOW_MS } from './echoGuard';
 import { LEASE_RENEW_MS, SILENT_MS } from './useDawTransportSync';
+import { DAW_ONLY } from './playRoute';
 
 const doc = marksDoc();
 
@@ -281,22 +282,25 @@ describe('play-from-the-app-plays-through-the-daw', () => {
     expect(calls('stop')).toHaveLength(1);
     expect(state().playing).toBe(false);
   });
-  it('plays in the app itself, and says why, when the DAW refuses', async () => {
+  it('plays nothing, and says why, when the DAW refuses', async () => {
     await ready();
     daw.refuseNextSync('REAPER is recording. Stop recording first.');
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
-    expect(audio.play).toHaveBeenCalled();
-    expect(state().playing).toBe(true);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(state().playing).toBe(false);
     expect(notices.join(' ')).toContain('Stop recording first');
+    expect(notices.join(' ')).toContain(DAW_ONLY);
   });
-  it('plays in the app itself, asking the DAW for nothing, when the word has no project time', async () => {
+  it('plays nothing, asking the DAW for nothing, when the word has no project time', async () => {
     mount(DAW_SETUPS.reaper, undefined, [{ ...ITEMS[0], live: false }]);
     await wait(10);
     act(() => playback.playFrom(t0('p-2:1')));
     await wait(10);
     expect(calls('play')).toHaveLength(0);
-    expect(audio.play).toHaveBeenCalled();
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(state().playing).toBe(false);
+    expect(notices.join(' ')).toMatch(/not in REAPER's project/);
   });
   it('stops playing and says so when the DAW goes quiet mid-play', async () => {
     await ready();
@@ -319,11 +323,65 @@ describe('play-from-the-app-plays-through-the-daw', () => {
   });
 });
 
-describe('without-the-daw-the-page-is-as-it-was', () => {
+describe('a-linked-daw-is-the-only-player', () => {
+  // Owner finding #2251 item 32: with a DAW linked, the page never plays the raw files through the computer's output.
   it.each([
-    ['a DAW that is off', DAW_SETUPS['reaper-off']],
+    ['a DAW that is not running', DAW_SETUPS['reaper-off'], /REAPER is not answering/],
+    [
+      'a DAW whose transport switch is off',
+      {
+        ...DAW_SETUPS.reaper,
+        capabilities: {
+          ...DAW_SETUPS.reaper.capabilities,
+          transport_sync: { level: 'experimental', available: false, reason: 'experimental_off', message: 'Off in Settings > DAW.' },
+        },
+      } satisfies DawCapabilities,
+      /Off in Settings > DAW/,
+    ],
+  ])('plays nothing with %s, asks it for nothing, and says why', async (_, caps, why) => {
+    await ready(caps);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(calls('play')).toHaveLength(0);
+    expect(state().playing).toBe(false);
+    expect(notices.join(' ')).toMatch(why);
+    expect(notices.join(' ')).toContain(DAW_ONLY);
+  });
+  it('plays nothing when the DAW has another project open, and says so', async () => {
+    mount();
+    daw.openProject('other');
+    await wait(10);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(state().playing).toBe(false);
+    expect(notices.join(' ')).toMatch(/does not have this book's project open/);
+    expect(notices.join(' ')).toContain(DAW_ONLY);
+  });
+  it('plays nothing before it knows which DAW plays the chapter', async () => {
+    await ready(null);
+    act(() => playback.playFrom(t0('p-2:1')));
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(daw.syncCalls()).toHaveLength(0);
+    expect(notices.join(' ')).toMatch(/Checking which DAW plays this chapter/);
+  });
+  it('Space plays nothing through the app with a DAW that is not running', async () => {
+    await ready(DAW_SETUPS['reaper-off']);
+    act(() => page.dispatch({ type: 'place', key: 'p-2:1' }));
+    act(() => playback.toggle());
+    await wait(10);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(state().playing).toBe(false);
+  });
+});
+
+describe('without-a-daw-that-can-play-the-app-plays', () => {
+  it.each([
     ['the built-in recorder', DAW_SETUPS.builtin],
-    ['a DAW not yet answered', null],
+    ['no recording tool', { ...DAW_SETUPS.builtin, daw: 'none' } satisfies DawCapabilities],
+    ['a DAW whose engine has no transport the app can drive yet', DAW_SETUPS.audacity],
   ])('asks %s for nothing and plays in the app', async (_, caps) => {
     await ready(caps);
     expect(daw.syncCalls()).toHaveLength(0);
@@ -331,28 +389,5 @@ describe('without-the-daw-the-page-is-as-it-was', () => {
     await wait(10);
     expect(audio.play).toHaveBeenCalled();
     expect(daw.syncCalls()).toHaveLength(0);
-  });
-  it('asks for nothing while the capability is switched off, and plays in the app', async () => {
-    const off: DawCapabilities = {
-      ...DAW_SETUPS.reaper,
-      capabilities: {
-        ...DAW_SETUPS.reaper.capabilities,
-        transport_sync: { level: 'experimental', available: false, reason: 'experimental_off', message: 'Off.' },
-      },
-    };
-    await ready(off);
-    act(() => playback.playFrom(t0('p-2:1')));
-    await wait(10);
-    expect(audio.play).toHaveBeenCalled();
-    expect(daw.syncCalls()).toHaveLength(0);
-  });
-  it('plays in the app when the DAW has another project open', async () => {
-    mount();
-    daw.openProject('other');
-    await wait(10);
-    act(() => playback.playFrom(t0('p-2:1')));
-    await wait(10);
-    expect(audio.play).toHaveBeenCalled();
-    expect(calls('play')).toHaveLength(0);
   });
 });
