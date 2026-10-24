@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -113,6 +114,30 @@ func TestCuesMatchTheGolden(t *testing.T) {
 		}
 		if counts != (CueCounts{Cues: len(cues), Attributed: attributed}) {
 			t.Fatalf("%q says %+v; the file holds %d cues, %d with a speaker", c.Line, counts, len(cues), attributed)
+		}
+	}
+}
+
+func TestSpeakerChaptersAreWhereTheEntrysNamesAppear(t *testing.T) {
+	root := t.TempDir()
+	s := New(root, "", "", nil, nil)
+	if err := os.MkdirAll(filepath.Dir(s.guidePath()), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	document := `{"types":[{"name":"Character","colour":"green","speaks":true},{"name":"Place","colour":"blue","speaks":false}],"entities":[
+		{"id":"ada","canonical_name":"Ada","category":"Character","occurrences":[{"chapterId":"c2"},{"chapterId":"c1"},{"chapterId":"c2"}],
+		 "aliases":[{"text":"Lady Ada","occurrences":[{"chapterId":"c3"},{"chapterId":""}]}]},
+		{"id":"spire","canonical_name":"Spire","category":"Place","occurrences":[{"chapterId":"c1"}]}]}`
+	if err := os.WriteFile(s.guidePath(), []byte(document), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for id, want := range map[string]struct {
+		chapters []string
+		speaks   bool
+	}{"ada": {[]string{"c2", "c1", "c3"}, true}, "spire": {[]string{"c1"}, false}, "gone": {nil, false}} {
+		chapters, speaks, err := s.SpeakerChapters(id)
+		if err != nil || !slices.Equal(chapters, want.chapters) || speaks != want.speaks {
+			t.Fatalf("%s: %v %v %v", id, chapters, speaks, err)
 		}
 	}
 }

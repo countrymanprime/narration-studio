@@ -52,3 +52,46 @@ func parseCueCounts(out string) (CueCounts, error) {
 	}
 	return CueCounts{}, fmt.Errorf("the Story Bible sidecar did not say how many quoted lines it found")
 }
+
+// SpeakerChapters is the chapters an entry's names appear in, by chapter id in first-seen order, and whether its type speaks: the
+// chapters whose cues change when the entry is filed under, or out of, a speaking type. An entry that is not there has none.
+func (s *Service) SpeakerChapters(id string) (chapters []string, speaks bool, err error) {
+	types, err := s.Types()
+	if err != nil {
+		return nil, false, err
+	}
+	entities, err := s.Entities()
+	if err != nil {
+		return nil, false, err
+	}
+	for _, entity := range entities {
+		if text(entity, "id") != id {
+			continue
+		}
+		for _, row := range types {
+			if row.Name == text(entity, "category") {
+				speaks = row.Speaks
+			}
+		}
+		seen := map[string]bool{}
+		add := func(occurrences any) {
+			list, _ := occurrences.([]any)
+			for _, raw := range list {
+				occurrence, _ := raw.(map[string]any)
+				if chapter := text(occurrence, "chapterId"); chapter != "" && !seen[chapter] {
+					seen[chapter] = true
+					chapters = append(chapters, chapter)
+				}
+			}
+		}
+		add(entity["occurrences"])
+		aliases, _ := entity["aliases"].([]any)
+		for _, raw := range aliases {
+			if alias, ok := raw.(map[string]any); ok {
+				add(alias["occurrences"])
+			}
+		}
+		return chapters, speaks, nil
+	}
+	return nil, false, nil
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"desktop/internal/brand"
 	"encoding/json"
 	"os"
@@ -166,6 +167,7 @@ func TestAnAliasEditAsksTheSidecarOnlyForTheNewNames(t *testing.T) {
 	writeStoryBible(t, project)
 	writeManuscript(t, project)
 	host := &Host{guide: service}
+	host.refreshCues = func(context.Context, ...string) (guide.CueCounts, error) { return guide.CueCounts{}, nil } // the edit's cue refresh is extraction_cues_test.go's
 	for i := 0; i < 3; i++ {
 		if _, err := host.GuideEdit("entity-1", map[string]string{"context": "C", "aliases": "Ally;Alfie;Juno;Zeph", "description": "D"}); err != nil {
 			t.Fatal(err)
