@@ -164,4 +164,8 @@ describe('IconButton', () => {
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+  it('holds its size in a flex row instead of shrinking to its icon', () => {
+    render(<IconButton label="Close">x</IconButton>);
+    expect(screen.getByRole('button', { name: 'Close' }).className).toContain('[:where(&)]:flex-none');
+  });
 });

@@ -113,3 +113,21 @@ export const DisabledWithReason: Story = {
     await expect(args.onClick).not.toHaveBeenCalled();
   },
 };
+
+// In a row too narrow for its text, the button keeps its 36 px square and the text gives way (alignment audit cause H: the
+// slide-over's Close and the top bar's menu button were squeezed to their icon's width).
+export const HoldsItsSizeInATightRow: Story = {
+  render: () => (
+    <div className="flex w-40 items-center gap-2">
+      <span className="min-w-0 text-sm">A slide-over title long enough to need more room than the row has</span>
+      <IconButton label="Close" onClick={fn()}>
+        <FontAwesomeIcon icon={faXmark} />
+      </IconButton>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const close = within(canvasElement).getByRole('button', { name: 'Close' });
+    if (close.getBoundingClientRect().width === 0) return;
+    await expect(Math.round(close.getBoundingClientRect().width)).toBe(36);
+  },
+};
