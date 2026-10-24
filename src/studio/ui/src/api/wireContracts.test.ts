@@ -3008,6 +3008,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.workspaceUseTake(measured.id, 0, 1, lane.id)).toMatchObject({ outcome: 'started' });
     expect(await api.workspaceUseTake(measured.id, 0, 1, read.id)).toMatchObject({ outcome: 'done', changed: true });
     expect(await api.workspaceUseTake(measured.id, 0, 1, first.id)).toMatchObject({ outcome: 'done', changed: true });
+    // Hearing a take through the DAW's preview: an offered take answers a DawResult (the preview's sentence while file_preview is off),
+    // and one the passage no longer offers is refused stale.
+    expectMatches(dawResultSchema, await api.workspacePreviewTake(measured.id, 0, 1, first.id), 'mock preview take');
+    const previewGone = await api.workspacePreviewTake(measured.id, 0, 1, 'take:{NOT-OFFERED}:{TAKE}');
+    expectMatches(dawResultSchema, previewGone, 'mock preview take, not offered');
+    expect(previewGone).toMatchObject({ ok: false, code: 'stale' });
     const notOffered = await api.workspaceUseTake(measured.id, 0, 1, 'take:{NOT-OFFERED}:{TAKE}');
     expectMatches(workspaceUseTakeResultSchema, notOffered, 'mock use take, not offered');
     expect(notOffered).toMatchObject({ outcome: 'refused', reason: 'not_offered', changed: false });
@@ -4287,6 +4293,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceTakeEvidence',
       'workspaceTakesCompareStart',
       'workspaceUseTake',
+      'workspacePreviewTake',
       'workspaceHideTakes',
       'dawRoll',
       'dawDeleteRange',

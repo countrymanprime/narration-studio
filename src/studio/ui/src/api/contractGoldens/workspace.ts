@@ -9,6 +9,7 @@ import {
   workspaceUseTakeResultSchema,
 } from '../schemas/workspace';
 import { findingNavigationSchema } from '../schemas/findings';
+import { dawResultSchema } from '../schemas/daw';
 
 export const workspaceGoldens: Record<string, z.ZodType> = {
   'workspace-alignment-current.json': workspaceAlignmentResultSchema,
@@ -30,6 +31,8 @@ export const workspaceGoldens: Record<string, z.ZodType> = {
   'workspace-use-take-done.json': workspaceUseTakeResultSchema,
   'workspace-use-take-started.json': workspaceUseTakeResultSchema,
   'workspace-use-take-refused.json': workspaceUseTakeResultSchema,
+  'workspace-preview-take-playing.json': dawResultSchema,
+  'workspace-preview-take-refused-not-offered.json': dawResultSchema,
   // WorkspacePeaks: one item's real peaks, and one item with no usable source (a Reason).
   'workspace-peaks.json': workspacePeaksResultSchema,
   'workspace-peaks-no-source.json': workspacePeaksResultSchema,

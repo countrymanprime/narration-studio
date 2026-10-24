@@ -492,6 +492,7 @@ export function createMockApi(
     ...createRepairClickMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createUndoLastMock(daw, undoHistory),
     ...createFilesMock(daw, measurePicked),
+    workspacePreviewTake: previewTakeMock(daw, workspaceTakes.workspaceTakes),
     ...createMasterFilesMock(daw, lastRunFiles),
     ...createBackupsMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...providers,
@@ -654,6 +655,21 @@ function createFilesMock(daw: DawCapabilitiesApi, picked: ReadonlySet<string>): 
       if (!picked.has(path)) return refusedResult(DAW_ANSWERS.fileNotPicked);
       return ok(fileRevealAnswer(path, setup.daw));
     },
+  };
+}
+
+/** WorkspacePreviewTake as bindings_workspace_take_preview.go answers it: a take the passage no longer offers is refused stale, an
+ * unusable or empty one with its sentence, then the file_preview capability's sentence; else the take's own first minute plays. */
+function previewTakeMock(daw: DawCapabilitiesApi, takes: WorkspaceApi['workspaceTakes']): WorkspaceApi['workspacePreviewTake'] {
+  return async (chapterId, firstToken, lastToken, candidateId) => {
+    const take = (await takes(chapterId, firstToken, lastToken)).candidates.find((candidate) => candidate.id === candidateId);
+    if (!take) return { ...refusedResult(DAW_ANSWERS.takePreviewNotOffered), code: 'stale' };
+    if (!take.usable) return refusedResult(take.reason ?? '');
+    if (take.sourceLength <= 0 || !take.sourceFile) return refusedResult(DAW_ANSWERS.takePreviewEmpty);
+    const preview = (await daw.dawCapabilities()).capabilities.file_preview;
+    if (!preview?.available) return refusedResult(preview?.message ?? '');
+    const message = filePreviewAnswer(take.sourceFile, take.sourceStart, Math.min(take.sourceLength, MAX_PREVIEW_SECONDS));
+    return { ok: true, changed: false, message, undoSteps: 0 };
   };
 }
 

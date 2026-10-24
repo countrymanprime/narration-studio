@@ -8,7 +8,8 @@ import { useCommand } from '../../../input/useCommand';
 import { overlay } from '../../../overlay/overlayService';
 import { useJournal } from '../../../studio/StudioProvider';
 import { useOutputPrefs } from '../../engine/outputPrefs';
-import { useRangePlayer } from '../../engine/useRangePlayer';
+import { useTakeAudition } from '../takes/useTakeAudition';
+import { playRoute } from '../follow/playRoute';
 import { KeyHints } from '../../primitives/KeyHints';
 import { keepsBackups, registerBackupsSection } from '../backups/registerBackupsSection';
 import { SelectionBar } from '../bar/SelectionBar';
@@ -205,27 +206,26 @@ export function EditingBody(props: EditingBodyProps) {
   // play head itself (useDawTransportSync), so the heartbeat read stands down.
   useDawPlayPosition({ items: read.workspace.items, playlist, caps: playback.syncActive ? null : caps, playback });
   useFollowScroll(root, playback);
-  const takePlayer = useRangePlayer(tracks.mediaUrl, { pre: 0, post: 0 }, output);
-  const [playingTake, setPlayingTake] = useState<string | null>(null);
-  const playTake = useCallback(
-    (take: LineTake) => {
-      if (playingTake === take.id && takePlayer.isPlaying) {
-        takePlayer.stop();
-        setPlayingTake(null);
-        return;
-      }
-      playback.stop();
-      takePlayer.play({ sourceFile: take.sourceFile, rangeStart: take.sourceStart, rangeEnd: take.sourceStart + take.sourceLength });
-      setPlayingTake(take.id);
-    },
-    [playingTake, takePlayer, playback],
+  // A take under a line: through the DAW's preview while a DAW plays the chapter, else the app's range player (useTakeAudition).
+  const passageOfTake = useCallback(
+    (take: LineTake): LinePassage | null => [...lines.byId.values()].find((line) => line.takes.some((t) => t.id === take.id)) ?? null,
+    [lines.byId],
   );
-  const stopRef = useRef({ playback, takePlayer });
-  stopRef.current = { playback, takePlayer };
+  const audition = useTakeAudition({
+    caps,
+    ...(dawRead ? { read: dawRead } : {}),
+    mediaUrl: tracks.mediaUrl,
+    output,
+    passageOf: passageOfTake,
+    stopChapter: playback.stop,
+  });
+  const playTake = audition.play;
+  const stopRef = useRef({ playback, audition });
+  stopRef.current = { playback, audition };
   useEffect(
     () => () => {
       stopRef.current.playback.stop();
-      stopRef.current.takePlayer.stop();
+      stopRef.current.audition.stop();
     },
     [],
   );
@@ -306,7 +306,15 @@ export function EditingBody(props: EditingBodyProps) {
   const fx = useFxWords({ journal, chapterId, chapterName, effects: read.effects, cuts: read.cuts, locator, onEffects: props.onEffects });
   const accept = useAcceptWords({ journal, chapterId, doc, onChange: props.onAccepted });
   // Mark the selected words as how a character sounds: the dialog plays a range of its own, so the page's playback stops as it opens.
-  const voice = useVoiceSample({ chapterId, workspace: read.workspace, items: read.items, mediaUrl: tracks.mediaUrl, stopPlayback: playback.stop });
+  const voice = useVoiceSample({
+    chapterId,
+    workspace: read.workspace,
+    items: read.items,
+    mediaUrl: tracks.mediaUrl,
+    stopPlayback: playback.stop,
+    // With a DAW that plays the chapter, the dialog's Play goes through the page's playback, so the DAW's output is the only one (#2251 item 32).
+    throughDaw: playRoute(caps).kind === 'daw' ? { playFrom: playback.playFrom, stop: playback.stop } : null,
+  });
   // The dots after the last word of each marked range, with a play control for each sample: a sample plays in the app's own audio, so the page's own playback stops when one starts.
   const hasWord = useCallback((key: string) => doc.index.has(key), [doc]);
   const { marks: sampleMarks, player: samplePlayer } = useSampleMarks({ chapterId, hasWord, onOpenStoryBible: props.onOpenStoryBible });
@@ -468,7 +476,7 @@ export function EditingBody(props: EditingBodyProps) {
   const stripProps: TimelineStripProps = {
     passage: currentLine ? view(currentLine) : null,
     hidden: new Set(currentLine ? hide.hiddenIds(currentLine.id) : []),
-    playingId: takePlayer.isPlaying ? playingTake : null,
+    playingId: audition.playingId,
     onPlay: playTake,
   };
   const cursorItem = state.cursor ? doc.items[doc.index.get(state.cursor) ?? -1] : undefined;
@@ -653,7 +661,7 @@ export function EditingBody(props: EditingBodyProps) {
                 passage={shown}
                 onTake={pid === current ? lineTakes.onTake : null}
                 keptId={keep.kept[pid] ?? null}
-                playingId={takePlayer.isPlaying ? playingTake : null}
+                playingId={audition.playingId}
                 hiddenIds={hide.hiddenIds(pid)}
                 firstReadId={stackBase(pid)}
                 sourceLabel={sourceLabel}

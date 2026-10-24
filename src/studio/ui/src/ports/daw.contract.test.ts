@@ -92,6 +92,9 @@ const GOLDEN_FILES = [
   'daw-result-refused-stale.json',
   'daw-result-multi-step.json',
   'daw-hide-takes-done.json',
+  'workspace-preview-take-playing.json',
+  'workspace-preview-take-refused-not-offered.json',
+  'daw-file-preview-stopped.json',
   'daw-hide-takes-nothing.json',
   'daw-hide-takes-refused.json',
   'daw-roll-done.json',
@@ -264,6 +267,17 @@ function hostApi(): DawHostApi {
       ),
     findingsAddMarker: (id) =>
       known.findingIds.includes(id) ? Promise.resolve(read('findings-add-marker.json', findingMarkerSchema)) : Promise.reject(new Error(`no finding ${id}`)),
+    // WorkspacePreviewTake: a take the host offers plays through the DAW's preview; any other id is the stale refusal.
+    workspacePreviewTake: (chapterId, _first, _last, candidateId) =>
+      Promise.resolve(
+        read(
+          known.chapterIds.includes(chapterId) && known.candidateIds.includes(candidateId)
+            ? 'workspace-preview-take-playing.json'
+            : 'workspace-preview-take-refused-not-offered.json',
+          dawResultSchema,
+        ),
+      ),
+    dawStopFilePreview: () => Promise.resolve(read('daw-file-preview-stopped.json', dawResultSchema)),
     // WorkspaceHideTakes: a kept take the host offers mutes its item's others (or finds none), and any other id is the stale refusal.
     workspaceHideTakes: (chapterId, _first, _last, keepCandidateId) => {
       if (!known.chapterIds.includes(chapterId) || !known.candidateIds.includes(keepCandidateId)) return Promise.resolve(staleRefusal(DAW_ANSWERS.staleHide));
@@ -1060,6 +1074,35 @@ describe('the mock setups', () => {
   it('mock-refuses-stale-the-same-way: the stale take answer is DAW_ANSWERS.staleTake with code stale', async () => {
     expect(await createMockDawClient(DAW_SETUPS.reaper).useTake('chapter-1', 0, 4, 'stale-take')).toEqual(staleRefusal(DAW_ANSWERS.staleTake));
     expect(await createMockDawClient(DAW_SETUPS.reaper).recordStart('no-such-chapter')).toEqual(staleRefusal(DAW_ANSWERS.noTrack));
+  });
+
+  it("dawclient-preview-take: the host adapter answers the binding's DawResult as it is, and a take no longer offered is stale", async () => {
+    const daw = createHostDawClient(hostApi());
+    expect(await daw.previewTake('chapter-1', 0, 4, 'take-1')).toEqual(read('workspace-preview-take-playing.json', dawResultSchema));
+    const stale = await daw.previewTake('chapter-1', 0, 4, 'stale-take');
+    expect(stale).toEqual(read('workspace-preview-take-refused-not-offered.json', dawResultSchema));
+    expect(stale).toEqual(staleRefusal(DAW_ANSWERS.takePreviewNotOffered));
+    expect(await daw.stopPreview()).toEqual(read('daw-file-preview-stopped.json', dawResultSchema));
+  });
+
+  it("dawclient-preview-take: the mock refuses with the setup's file_preview sentence, refuses a stale take, and plays outside the project", async () => {
+    for (const id of ['reaper-off', 'audacity', 'builtin'] as const) {
+      const sentence = DAW_SETUPS[id].capabilities.file_preview.message;
+      expect(sentence, id).toBeTruthy();
+      expect(await createMockDawClient(DAW_SETUPS[id]).previewTake('chapter-1', 0, 4, 'take-1'), id).toEqual({
+        ok: false,
+        changed: false,
+        message: sentence,
+        undoSteps: 0,
+        refused: sentence,
+      });
+    }
+    const reaper = createMockDawClient(DAW_SETUPS.reaper);
+    expect(await reaper.previewTake('chapter-1', 0, 4, 'stale-take')).toEqual(staleRefusal(DAW_ANSWERS.takePreviewNotOffered));
+    const playing = await reaper.previewTake('chapter-1', 0, 4, 'take-1');
+    expectWellFormed(playing);
+    expect(playing).toMatchObject({ ok: true, changed: false, undoSteps: 0 });
+    expect(await reaper.stopPreview()).toEqual({ ok: true, changed: false, message: DAW_ANSWERS.fileStopped, undoSteps: 0 });
   });
 
   it("dawclient-hide-takes: the mock refuses with the setup's takes sentence, finds nothing to hide, or mutes in one undo step naming the DAW", async () => {
