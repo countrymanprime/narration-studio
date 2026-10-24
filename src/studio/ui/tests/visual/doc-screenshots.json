@@ -249,7 +249,7 @@
     "state": "category-character",
     "viewport": "desktop",
     "docName": "storybible-characters",
-    "caption": "Story Bible - filtered to the Character kind"
+    "caption": "Story Bible - the Filter menu keeping the Character kind: its chip under the search, the button counting one"
   },
   {
     "page": "storybible",
@@ -1097,6 +1097,13 @@
     "viewport": "desktop",
     "docName": "storybible-search",
     "caption": "Story Bible - a search for \"mad hat\": the Hatter, found by its other name, with the matched letters marked"
+  },
+  {
+    "page": "storybible",
+    "state": "sort-book-order",
+    "viewport": "desktop",
+    "docName": "storybible-book-order",
+    "caption": "Story Bible - the Sort menu on Book order: the entries in the order they first appear in the book"
   },
   {
     "page": "storybible",

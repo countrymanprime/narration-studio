@@ -1,19 +1,20 @@
-// Pure selectors for the Story Bible entry table: the columns, the sort a header click chooses (stable, with a tie-break), the filter over
-// every column's text, and the sort kept in browser storage. The sort is a per-viewer convenience like readerPreferences.ts; storage can be
+// Pure selectors for the Story Bible entry table: the columns, the sort a header click or the Sort menu chooses (stable, with a tie-break), the
+// filter, and the sort kept in browser storage. The sort is a per-viewer convenience like readerPreferences.ts; storage can be
 // missing or blocked, so every access is guarded and the table sorts by name when it fails.
 
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
-import { chapterCount, entryFlagged, entryNeedsReview, nameCount, typeUnknown } from './entryList';
+import { entryNeedsReview } from './entryList';
 import { verifyOf } from './suggested/row/selectors';
 
-export type ColumnKey = 'name' | 'kind' | 'aliases' | 'mentions' | 'chapters' | 'status';
+/** What the list can be sorted by: the two columns, and the Sort menu's Book order and Most mentioned (SNB-D3). */
+export type ColumnKey = 'name' | 'kind' | 'book' | 'mentions';
 type SortDirection = 'asc' | 'desc';
 type SortKey = { column: ColumnKey; dir: SortDirection };
 /** The header clicks in force, newest first: the first key sorts, the second breaks its ties. The name and then the id break the rest. */
 export type EntrySort = readonly SortKey[];
 
-/** The columns the table draws. The sort also knows the counts and the status, for a choice an earlier version saved. */
+/** The columns the table draws; their headers sort. Book order and Most mentioned are the Sort menu's only. */
 export const COLUMNS: readonly { key: ColumnKey; label: string; numeric: boolean }[] = [
   { key: 'name', label: 'Name', numeric: false },
   { key: 'kind', label: 'Kind', numeric: false },
@@ -26,7 +27,7 @@ export const DEFAULT_SORT: EntrySort = [{ column: 'name', dir: 'asc' }];
 export const ENTRY_SORT_STORAGE_KEY = 'narration.storyBible.sort';
 const MAX_KEYS = 2;
 
-const SORTABLE: readonly ColumnKey[] = ['name', 'kind', 'aliases', 'mentions', 'chapters', 'status'];
+const SORTABLE: readonly ColumnKey[] = ['name', 'kind', 'book', 'mentions'];
 const isColumn = (value: unknown): value is ColumnKey => SORTABLE.includes(value as ColumnKey);
 
 /** Lower case with the Latin accents removed, so "Éowyn" and "eowyn" are one name. Emoji and right-to-left letters pass through whole (recomposed after the accents go). */
@@ -39,17 +40,18 @@ export const foldText = (text: string): string =>
 
 const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
-/** How the status column ranks an entry (verify, review, locked, clear) and the words it shows; an empty label draws nothing. */
-export function statusOf(entry: GuideEntity, suggestions: readonly ExtractionSuggestion[]): { rank: number; label: string } {
-  const verify = verifyOf(suggestions, entry.id);
-  if (verify > 0) return { rank: 3, label: `Verify · ${verify}` };
-  if (entryFlagged(entry) || typeUnknown(entry)) return { rank: 2, label: 'Review' };
-  if (entry.locked) return { rank: 1, label: 'Locked' };
-  return { rank: 0, label: '' };
-}
+/** What a sort reads: the host's kinds in their order, the suggestions, and each chapter's place in the book (by chapter id) for Book order. */
+export type TableContext = { kinds: readonly string[]; suggestions: readonly ExtractionSuggestion[]; chapterOrder?: ReadonlyMap<string, number> };
 
-/** What a sort or filter reads: the host's kinds in their order and the suggestions that decide the status. */
-export type TableContext = { kinds: readonly string[]; suggestions: readonly ExtractionSuggestion[] };
+/** The place in the book of the first chapter the entry appears in: from `appearances`, or its evidence on an older file; past the end when none is known. */
+function firstChapter(entry: GuideEntity, order: ReadonlyMap<string, number>): number {
+  const chapters = entry.appearances
+    ? entry.appearances.map((appearance) => appearance.chapterId)
+    : entry.occurrences.map((occurrence) => occurrence.chapterId ?? occurrence.chapter);
+  let first = Number.POSITIVE_INFINITY;
+  for (const id of chapters) first = Math.min(first, order.get(id) ?? Number.POSITIVE_INFINITY);
+  return first;
+}
 
 const aliasText = (entry: GuideEntity): string => entry.aliases.map((alias) => alias.text).join(', ');
 const byName = (a: GuideEntity, b: GuideEntity): number => collator.compare(a.canonical_name, b.canonical_name) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -64,14 +66,16 @@ function compareBy(column: ColumnKey, context: TableContext): (a: GuideEntity, b
       return (a, b) => collator.compare(a.canonical_name, b.canonical_name);
     case 'kind':
       return (a, b) => kindIndex(a) - kindIndex(b);
-    case 'aliases':
-      return (a, b) => nameCount(a) - nameCount(b) || collator.compare(aliasText(a), aliasText(b));
     case 'mentions':
       return (a, b) => a.occurrence_count - b.occurrence_count;
-    case 'chapters':
-      return (a, b) => chapterCount(a) - chapterCount(b);
-    case 'status':
-      return (a, b) => statusOf(a, context.suggestions).rank - statusOf(b, context.suggestions).rank;
+    case 'book': {
+      // An entry in no known chapter compares equal to another such entry (Infinity - Infinity is NaN), and the name then decides.
+      const order = context.chapterOrder ?? new Map<string, number>();
+      return (a, b) => {
+        const [fa, fb] = [firstChapter(a, order), firstChapter(b, order)];
+        return (fa === fb ? 0 : fa < fb ? -1 : 1) || b.occurrence_count - a.occurrence_count;
+      };
+    }
   }
 }
 
@@ -94,10 +98,13 @@ export function sortRows(entries: readonly GuideEntity[], sort: EntrySort, conte
 export function chooseSort(sort: EntrySort, column: ColumnKey): EntrySort {
   const first = sort[0];
   if (first?.column === column) return [{ column, dir: first.dir === 'asc' ? 'desc' : 'asc' }, ...sort.slice(1)];
-  const numeric = column === 'mentions' || column === 'chapters';
+  const numeric = column === 'mentions';
   const added: SortKey = { column, dir: numeric ? 'desc' : 'asc' };
   return [added, ...sort.filter((key) => key.column !== column)].slice(0, MAX_KEYS);
 }
+
+/** The sort after a choice in the Sort menu: as a header click, except that the order already first stays as it is instead of flipping. */
+export const pickSort = (sort: EntrySort, column: ColumnKey): EntrySort => (sort[0]?.column === column ? sort : chooseSort(sort, column));
 
 /** The `aria-sort` of a header: only the first key sorts the table, so every other column reads as unsorted. */
 export const sortAria = (sort: EntrySort, column: ColumnKey): 'ascending' | 'descending' | undefined => {
@@ -105,7 +112,23 @@ export const sortAria = (sort: EntrySort, column: ColumnKey): 'ascending' | 'des
   return first?.column === column ? (first.dir === 'asc' ? 'ascending' : 'descending') : undefined;
 };
 
-export type EntryFilter = { kind: string; query: string; reviewOnly: boolean; verifyOnly: boolean; suggestions: readonly ExtractionSuggestion[] };
+/**
+ * What the list keeps: the kinds chosen (none chosen keeps every kind), whether the entry has a pronunciation, which entries the Show choice
+ * keeps, and the search text. The Filter menu sets all but the text.
+ */
+export type EntryFilter = {
+  kinds: readonly string[];
+  pron: 'any' | 'none' | 'set';
+  show: 'all' | 'review' | 'verify';
+  query: string;
+  suggestions: readonly ExtractionSuggestion[];
+};
+
+/** Whether an entry has a pronunciation to play: its Hear button shows, and Pronunciation: Has one keeps it. */
+export const hasPronunciation = (entry: GuideEntity): boolean => entry.pronunciation.ipa.trim() !== '';
+
+/** How many filters the Filter menu has on (each kind counts), for its badge; the search text is not one. */
+export const filterCount = (filter: EntryFilter): number => filter.kinds.length + (filter.pron === 'any' ? 0 : 1) + (filter.show === 'all' ? 0 : 1);
 
 /** The text the filter box matches against: the name and the other names, never a word the row does not draw (its kind or its status). */
 const rowText = (entry: GuideEntity): string => foldText([entry.canonical_name, aliasText(entry)].join('\n'));
@@ -157,20 +180,21 @@ export function markedParts(text: string, words: readonly string[]): MarkedPart[
   return parts;
 }
 
-/** The rows that pass the kind chip, the review chips and the text: every word typed must be found in the name or an alias. */
+/** The rows that pass the Filter menu's choices and the text: every word typed must be found in the name or an alias. */
 export function filterEntries(entries: readonly GuideEntity[], filter: EntryFilter): GuideEntity[] {
   const words = searchWords(filter.query);
   return entries.filter((entry) => {
-    if (filter.kind !== 'All' && entry.category !== filter.kind) return false;
-    if (filter.reviewOnly && !entryNeedsReview(entry, filter.suggestions)) return false;
-    if (filter.verifyOnly && verifyOf(filter.suggestions, entry.id) === 0) return false;
+    if (filter.kinds.length > 0 && !filter.kinds.includes(entry.category)) return false;
+    if (filter.pron !== 'any' && hasPronunciation(entry) !== (filter.pron === 'set')) return false;
+    if (filter.show === 'review' && !entryNeedsReview(entry, filter.suggestions)) return false;
+    if (filter.show === 'verify' && verifyOf(filter.suggestions, entry.id) === 0) return false;
     if (words.length === 0) return true;
     const text = rowText(entry);
     return words.every((word) => text.includes(word));
   });
 }
 
-/** How many entries each kind chip stands for, with the total under "All". */
+/** How many entries each kind in the Filter menu stands for, with the total under "All". */
 export function kindCounts(entries: readonly GuideEntity[]): Map<string, number> {
   const counts = new Map<string, number>([['All', entries.length]]);
   for (const entry of entries) counts.set(entry.category, (counts.get(entry.category) ?? 0) + 1);
@@ -180,7 +204,7 @@ export function kindCounts(entries: readonly GuideEntity[]): Map<string, number>
 const LEGACY_SORTS: Record<string, EntrySort> = {
   name: DEFAULT_SORT,
   type: [{ column: 'kind', dir: 'asc' }],
-  chapters: [{ column: 'chapters', dir: 'desc' }],
+  chapters: [{ column: 'book', dir: 'asc' }],
 };
 
 function parseSort(raw: string | null): EntrySort {

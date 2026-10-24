@@ -7,6 +7,7 @@ import {
   ENTRY_SORT_STORAGE_KEY,
   DEFAULT_SORT,
   chooseSort,
+  filterCount,
   filterEntries,
   foldText,
   kindCounts,
@@ -14,11 +15,12 @@ import {
   matchedAlias,
   searchWords,
   loadEntrySort,
+  pickSort,
   saveEntrySort,
   sortAria,
   sortRows,
-  statusOf,
   type ColumnKey,
+  type EntryFilter,
   type EntrySort,
 } from './entryTable';
 
@@ -41,10 +43,15 @@ const entry = (id: string, name: string, over: Partial<GuideEntity> = {}): Guide
 const alias = (text: string) => ({ text, pronunciation: { ipa: '', source: '', confidence: '' }, occurrences: [] });
 const inChapters = (...ids: string[]) => ids.map((chapterId, sceneIndex) => ({ chapterId, chapter: chapterId, sceneIndex }));
 const ids = (list: readonly GuideEntity[]) => list.map((row) => row.id);
+const CHAPTER_ORDER = new Map([
+  ['1', 0],
+  ['2', 1],
+  ['3', 2],
+]);
 const KINDS = ['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event'];
 const none: readonly ExtractionSuggestion[] = [];
 const asc = (column: ColumnKey): EntrySort => [{ column, dir: 'asc' }];
-const sorted = (rows: GuideEntity[], sort: EntrySort, suggestions = none) => sortRows(rows, sort, { kinds: KINDS, suggestions });
+const sorted = (rows: GuideEntity[], sort: EntrySort, suggestions = none) => sortRows(rows, sort, { kinds: KINDS, suggestions, chapterOrder: CHAPTER_ORDER });
 
 describe('folding-text-for-sort-and-filter', () => {
   it('ignores case and accents', () => {
@@ -77,26 +84,19 @@ describe('sorting-by-a-clicked-header', () => {
     const many = [entry('x', 'X', { occurrence_count: 10 }), entry('y', 'Y', { occurrence_count: 9 })];
     expect(ids(sorted(many, asc('mentions')))).toEqual(['y', 'x']);
   });
-  it('sorts chapters and breaks a tie by name', () => expect(ids(sorted(rows, [{ column: 'chapters', dir: 'desc' }]))).toEqual(['a', 'c', 'b', 'd']));
-  it('sorts the aliases column by how many names then by the text', () => {
-    const named = [
-      entry('p', 'P', { aliases: [alias('b')] }),
-      entry('q', 'Q', { aliases: [alias('a'), alias('c')] }),
-      entry('r', 'R', { aliases: [alias('a')] }),
+  // The chapter-count, aliases and status sorts are gone with SNB-D3: no control reached them, only a sort an earlier version saved.
+  it('sorts in book order: by the chapter each entry first appears in, the most mentioned first within a chapter, an entry in no chapter last', () => {
+    const book = [
+      entry('late', 'Late', { appearances: inChapters('3'), occurrence_count: 50 }),
+      entry('few', 'Few', { appearances: inChapters('2', '1'), occurrence_count: 2 }),
+      entry('many', 'Many', { appearances: inChapters('1'), occurrence_count: 9 }),
+      entry('none', 'None'),
+      entry('old', 'Old', { occurrences: [{ chapterId: '2', chapter: 'Two', paragraph: 0 }] as unknown as GuideEntity['occurrences'] }),
     ];
-    expect(ids(sorted(named, asc('aliases')))).toEqual(['r', 'p', 'q']);
+    expect(ids(sortRows(book, asc('book'), { kinds: KINDS, suggestions: none, chapterOrder: CHAPTER_ORDER }))).toEqual(['many', 'few', 'old', 'late', 'none']);
   });
-  it('sorts status: verify first, then review, then locked, then clear', () => {
-    const flagged = [
-      entry('ok', 'Ok'),
-      entry('lock', 'Lock', { locked: true }),
-      entry('rev', 'Rev', { review_state: 'needs review', review: { entry: true, aliases: [] } }),
-      entry('ver', 'Ver'),
-    ];
-    const pending = [
-      { id: 's', entryId: 'ver', status: 'needs-verification', payload: { kind: 'property', entry: 'ver', key: 'k', value: 'v' }, confidence: 0.5 },
-    ] as unknown as ExtractionSuggestion[];
-    expect(ids(sorted(flagged, [{ column: 'status', dir: 'desc' }], pending))).toEqual(['ver', 'rev', 'lock', 'ok']);
+  it('sorts by most mentioned, then by name', () => {
+    expect(ids(sorted(rows, [{ column: 'mentions', dir: 'desc' }]))).toEqual(['b', 'c', 'a', 'd']);
   });
   it('orders the text of two entries that differ only by id', () =>
     expect(ids(sorted([entry('2', 'Same'), entry('1', 'Same')], asc('name')))).toEqual(['1', '2']));
@@ -108,7 +108,7 @@ describe('sorting-by-a-clicked-header', () => {
     chapters: fc.array(fc.constantFrom('1', '2', '3', '4'), { maxLength: 4 }),
     mentions: fc.nat(30),
   });
-  const colArb = fc.constantFrom<ColumnKey>('name', 'kind', 'aliases', 'mentions', 'chapters', 'status');
+  const colArb = fc.constantFrom<ColumnKey>('name', 'kind', 'book', 'mentions');
   const dirArb = fc.constantFrom<'asc' | 'desc'>('asc', 'desc');
   it('is stable, total, and does not mutate its input', () => {
     fc.assert(
@@ -135,9 +135,9 @@ describe('a-header-click-chooses-the-sort', () => {
     expect(chooseSort([{ column: 'name', dir: 'desc' }], 'name')[0]).toEqual({ column: 'name', dir: 'asc' });
   });
   it('keeps the previous first column as the tie-break, and no more than two keys', () => {
-    const next = chooseSort(chooseSort(asc('name'), 'kind'), 'chapters');
+    const next = chooseSort(chooseSort(asc('name'), 'kind'), 'mentions');
     expect(next).toEqual([
-      { column: 'chapters', dir: 'desc' },
+      { column: 'mentions', dir: 'desc' },
       { column: 'kind', dir: 'asc' },
     ]);
   });
@@ -162,7 +162,7 @@ describe('a-header-click-chooses-the-sort', () => {
     ];
     expect(sortAria(sort, 'kind')).toBe('descending');
     expect(sortAria(sort, 'name')).toBeUndefined();
-    expect(sortAria(sort, 'chapters')).toBeUndefined();
+    expect(sortAria(sort, 'book')).toBeUndefined();
   });
 });
 
@@ -171,7 +171,7 @@ describe('the-sort-choice-is-kept', () => {
   it('defaults to name', () => expect(loadEntrySort()).toEqual(DEFAULT_SORT));
   it('restores a saved choice', () => {
     const sort: EntrySort = [
-      { column: 'chapters', dir: 'desc' },
+      { column: 'book', dir: 'asc' },
       { column: 'name', dir: 'asc' },
     ];
     saveEntrySort(sort);
@@ -179,12 +179,19 @@ describe('the-sort-choice-is-kept', () => {
   });
   it('reads the three words the old sort menu stored', () => {
     window.localStorage.setItem(ENTRY_SORT_STORAGE_KEY, 'chapters');
-    expect(loadEntrySort()).toEqual([{ column: 'chapters', dir: 'desc' }]);
+    expect(loadEntrySort()).toEqual([{ column: 'book', dir: 'asc' }]);
     window.localStorage.setItem(ENTRY_SORT_STORAGE_KEY, 'type');
     expect(loadEntrySort()).toEqual([{ column: 'kind', dir: 'asc' }]);
   });
   it('ignores a stored value that is not a sort', () => {
-    for (const bad of ['occurrences', '[{"column":"nope","dir":"asc"}]', '{', '[]', '[{"column":"name","dir":"sideways"}]']) {
+    for (const bad of [
+      'occurrences',
+      '[{"column":"nope","dir":"asc"}]',
+      '[{"column":"status","dir":"asc"}]',
+      '{',
+      '[]',
+      '[{"column":"name","dir":"sideways"}]',
+    ]) {
       window.localStorage.setItem(ENTRY_SORT_STORAGE_KEY, bad);
       expect(loadEntrySort()).toEqual(DEFAULT_SORT);
     }
@@ -212,8 +219,8 @@ describe('the-filter-narrows-the-rows', () => {
     entry('r', 'أليس', { category: 'Lore' }),
     entry('z', '🐇 Rabbit', { category: 'Lore' }),
   ];
-  const base = { kind: 'All', query: '', reviewOnly: false, verifyOnly: false, suggestions: none };
-  const found = (over: Partial<typeof base>) => ids(filterEntries(rows, { ...base, ...over }));
+  const base: EntryFilter = { kinds: [], pron: 'any', show: 'all', query: '', suggestions: none };
+  const found = (over: Partial<EntryFilter>) => ids(filterEntries(rows, { ...base, ...over }));
 
   it('keeps every row with no filter', () => expect(found({})).toEqual(['h', 'w', 'e', 'r', 'z']));
   it('matches the name or an alias, ignoring case and accents', () => {
@@ -238,22 +245,29 @@ describe('the-filter-narrows-the-rows', () => {
     expect(found({ query: 'zzz' })).toEqual([]);
     expect(found({ query: '   ' })).toHaveLength(5);
   });
-  it('filters by kind, and a kind that is gone shows every row', () => {
-    expect(found({ kind: 'Place' })).toEqual(['w']);
-    expect(found({ kind: 'Place', query: 'hatter' })).toEqual([]);
+  // The Filter menu keeps several kinds at once (SNB-D3); none chosen keeps every kind.
+  it('filters by one kind or several, and none chosen keeps every kind', () => {
+    expect(found({ kinds: ['Place'] })).toEqual(['w']);
+    expect(found({ kinds: ['Place', 'Lore'] })).toEqual(['w', 'r', 'z']);
+    expect(found({ kinds: ['Place'], query: 'hatter' })).toEqual([]);
+    expect(found({ kinds: [] })).toHaveLength(5);
+  });
+  it('filters by whether the entry has a pronunciation', () => {
+    const said = { ipa: 'ˈhætə', source: 'manual', confidence: '' };
+    const two = [entry('s', 'Said', { pronunciation: said }), entry('n', 'Not said'), entry('b', 'Blank', { pronunciation: { ...said, ipa: '  ' } })];
+    expect(ids(filterEntries(two, { ...base, pron: 'set' }))).toEqual(['s']);
+    expect(ids(filterEntries(two, { ...base, pron: 'none' }))).toEqual(['n', 'b']);
+    expect(ids(filterEntries(two, { ...base, pron: 'any' }))).toEqual(['s', 'n', 'b']);
   });
   it('filters to the entries that need review or have something to verify', () => {
     const flagged = [entry('f', 'F', { review: { entry: true, aliases: [] } }), entry('g', 'G')];
-    expect(ids(filterEntries(flagged, { ...base, reviewOnly: true }))).toEqual(['f']);
+    expect(ids(filterEntries(flagged, { ...base, show: 'review' }))).toEqual(['f']);
+    expect(ids(filterEntries(flagged, { ...base, show: 'verify' }))).toEqual([]);
   });
-});
-
-describe('the-status-column', () => {
-  it('names verify, review, locked and nothing', () => {
-    expect(statusOf(entry('a', 'A'), none)).toEqual({ rank: 0, label: '' });
-    expect(statusOf(entry('a', 'A', { locked: true }), none).label).toBe('Locked');
-    expect(statusOf(entry('a', 'A', { review: { entry: true, aliases: [] } }), none).label).toBe('Review');
-    expect(statusOf(entry('a', 'A', { category: 'Needs Review' }), none).label).toBe('Review');
+  it('counts the filters on, the text aside', () => {
+    expect(filterCount(base)).toBe(0);
+    expect(filterCount({ ...base, query: 'x' })).toBe(0);
+    expect(filterCount({ ...base, kinds: ['Place', 'Lore'], pron: 'none', show: 'review' })).toBe(4);
   });
 });
 
@@ -307,4 +321,16 @@ describe('a-search-says-why-a-row-is-there', () => {
         ).toBe(text);
       }),
     ));
+});
+
+describe('a-choice-in-the-sort-menu', () => {
+  it('puts the chosen order first in its own direction, the old first breaking ties, and keeps a choice already first as it is', () => {
+    expect(pickSort(DEFAULT_SORT, 'mentions')).toEqual([
+      { column: 'mentions', dir: 'desc' },
+      { column: 'name', dir: 'asc' },
+    ]);
+    expect(pickSort(DEFAULT_SORT, 'book')[0]).toEqual({ column: 'book', dir: 'asc' });
+    const down: EntrySort = [{ column: 'name', dir: 'desc' }];
+    expect(pickSort(down, 'name')).toBe(down);
+  });
 });
