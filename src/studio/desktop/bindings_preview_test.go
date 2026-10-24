@@ -34,7 +34,7 @@ func previewSuggestProject(t *testing.T, manuscriptJSON string) string {
 // previewSuggestHost attaches a previewSuggestProject to a fresh host.
 func previewSuggestHost(t *testing.T, manuscriptJSON string) *Host {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	next := host.config
 	next.projectFolder = previewSuggestProject(t, manuscriptJSON)
 	if attached, reason := host.attachProjectLocked(next); !attached {
@@ -83,7 +83,7 @@ func decodePreviewCandidates(t *testing.T) func(string, error) map[string]any {
 }
 
 func TestPreviewCandidatesWithNoProjectAnswersNoManuscript(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	result := decodePreviewCandidates(t)(host.PreviewCandidates())
 	if result["outcome"] != "no_manuscript" {
 		t.Fatalf("no project = %v", result)

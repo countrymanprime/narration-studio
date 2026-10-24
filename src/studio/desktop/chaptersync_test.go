@@ -283,7 +283,7 @@ func stabilizeSyncTimes(value any) {
 func TestAnImportInAnAttachedProjectEndsAsAJobAndAsksToSync(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	folder := t.TempDir()
-	host := NewHost()
+	host := newTestHost(t)
 	next := host.config
 	next.projectFolder = folder
 	host.mu.Lock()

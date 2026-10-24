@@ -24,7 +24,7 @@ func onlineHost(t *testing.T) (*Host, *pronunciationonlinetest.Fake, string) {
 	t.Helper()
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
-	host := NewHost()
+	host := newTestHost(t)
 	fake := pronunciationonlinetest.New()
 	dir := filepath.Dir(recentProjectsPath())
 	host.pronunciationOnline = pronunciationonline.NewService(fake, filepath.Join(dir, "credentials.json"), filepath.Join(dir, "pronunciation", "merriam-webster-cache.json"))
@@ -46,7 +46,7 @@ func decodeOnline[T any](t *testing.T, raw string, err error) T {
 // The first-use prompt opens exactly Merriam-Webster's sign-up page, a constant of the adapter's: nothing the UI sends
 // reaches the address.
 func TestPronunciationOnlineSignUpOpenOpensTheFixedSignUpPage(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.ctx = context.Background()
 	var opened []string
 	host.openURL = func(_ context.Context, address string) { opened = append(opened, address) }

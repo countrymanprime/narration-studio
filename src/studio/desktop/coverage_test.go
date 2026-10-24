@@ -53,7 +53,7 @@ func coverageProject(t *testing.T) string {
 }
 
 func TestAttachingAProjectBuildsTheCoverageServiceOverItsSavedProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	next := host.config
 	next.projectFolder = coverageProject(t)
 	if attached, reason := host.attachProjectLocked(next); !attached {
@@ -79,7 +79,7 @@ func (neverExits) HasExited() bool       { return false }
 func (neverExits) ExitCode() (int, bool) { return 0, false }
 
 func TestCanAttachRejectsARunningRecordingCheck(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	project := coverageProject(t)
 	var once sync.Once
 	launched := make(chan struct{})

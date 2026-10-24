@@ -133,7 +133,7 @@ func coverageHostWithModels(t *testing.T, project string, models *whisper.Manage
 func coverageHostWithAligner(t *testing.T, project string, models *whisper.Manager, launcher coverage.Launcher, aligner func(recordingcoverage.Request) error) *Host {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.coverageLauncher, host.coverageAligner = launcher, aligner
 	host.assets = newAssetRegistry(t.TempDir(), nil, models, nil, nil)
 	next := host.config
@@ -399,7 +399,7 @@ func fixCoverageRun(value map[string]any) {
 }
 
 func TestCoverageBindingsWithNoProjectAreIdleAndNever(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 
 	state := decodeAnswer(t)(host.CoverageState())
 	result := decodeAnswer(t)(host.CoverageResult("c-0001"))

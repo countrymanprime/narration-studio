@@ -131,7 +131,7 @@ func TestPassageMapStampIsTheLinkedTracksLastItem(t *testing.T) {
 }
 
 func TestPassageMapWithNoProjectSavesNothing(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.PassageMapRecordRun("c-0001", passageMapRun()); err == nil {
 		t.Fatal("a run with no project was saved")
 	}

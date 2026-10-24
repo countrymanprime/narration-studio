@@ -52,7 +52,7 @@ func (h *Host) GuideTypeSetSpeaks(name string, speaks bool) (string, error) {
 	}
 	err := service.SetTypeSpeaks(name, speaks)
 	if err == nil {
-		go h.refreshCuesInBackground("a type's speaking changed") // every entry of the type, so every chapter (extraction_cues.go)
+		h.goBackground(func() { h.refreshCuesInBackground("a type's speaking changed") }) // every entry of the type, so every chapter (extraction_cues.go)
 	}
 	return encodeBinding(nil, err)
 }

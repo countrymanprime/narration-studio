@@ -58,7 +58,7 @@ func (h *Host) linkPickedDawFile(path string) (map[string]any, error) {
 		if err := h.chooseProjectDaw(dawport.KindREAPER); err != nil {
 			_ = h.log.Report("daw", "linked the REAPER project file but could not choose REAPER: "+err.Error())
 		}
-		go h.chapterSyncTrigger(syncTriggerDawLink) // the DAW is hooked up: ask, or sync (chaptersync.go)
+		h.goBackground(func() { h.chapterSyncTrigger(syncTriggerDawLink) }) // the DAW is hooked up: ask, or sync (chaptersync.go)
 	}
 	return result, nil
 }

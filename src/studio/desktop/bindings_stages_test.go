@@ -82,7 +82,7 @@ func fixStageHashes(value any) {
 }
 
 func TestStageBindingsBeforeAProjectIsOpenFail(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 
 	if _, err := host.StageRecommendations(); err == nil {
 		t.Fatal("recommendations with no project must fail")

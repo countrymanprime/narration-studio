@@ -15,7 +15,7 @@ import (
 // token range the alignment does not have, and a read of a chapter whose item has only one take.
 
 func TestWorkspaceTakesBindingsWithNoProjectAreAnError(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.WorkspaceTakes("c-0001", 0, 0); err == nil {
 		t.Error("WorkspaceTakes: no error")
 	}
@@ -76,7 +76,7 @@ func TestWorkspaceUseTakeRefusesATakeItDidNotOffer(t *testing.T) {
 func useTakeHost(t *testing.T, role dawport.TakeSelector, toggle string) *Host {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.coverageLauncher, host.coverageAligner = fakeAlignedCoverageSidecarWithSkip(), fakeCoverageResults
 	host.assets = newAssetRegistry(t.TempDir(), nil, whisperWithSmall(t, true), nil, nil)
 	next := host.config

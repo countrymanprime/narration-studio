@@ -84,7 +84,7 @@ func stableRecorder(t *testing.T, raw string, folder string) any {
 // and a take recording. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/recorder-state-*.json.
 func TestRecorderStateGoldensAreCurrent(t *testing.T) {
 	t.Run("no project", func(t *testing.T) {
-		host := NewHost()
+		host := newTestHost(t)
 		host.platform = "windows"
 		contractfile.Check(t, "recorder-state-no-project", stableRecorder(t, mustRaw(t)(host.RecorderState()), "unused"))
 	})

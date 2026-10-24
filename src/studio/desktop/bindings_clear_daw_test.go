@@ -30,7 +30,7 @@ func clearHost(t *testing.T, inFolder []string, link string) (*Host, string) {
 			t.Fatal(err)
 		}
 	}
-	host := NewHost()
+	host := newTestHost(t)
 	next := host.config
 	next.projectFolder = folder
 	if attached, reason := host.attachProjectLocked(next); !attached {

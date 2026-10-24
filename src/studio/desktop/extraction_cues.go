@@ -88,7 +88,7 @@ func (h *Host) refreshSpeakerCues(before speakerSnapshot, ids ...string) {
 	if len(chapters) == 0 {
 		return
 	}
-	go h.refreshCuesInBackground("an entry was filed", chapters...)
+	h.goBackground(func() { h.refreshCuesInBackground("an entry was filed", chapters...) })
 }
 
 // refreshCuesInBackground runs one cue refresh with its own deadline and logs the outcome; chapterIDs empty means every chapter.

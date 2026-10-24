@@ -102,7 +102,7 @@ func TestMarksBindingsStoreAPathShapedNoteAsText(t *testing.T) {
 }
 
 func TestMarksBindingsWithNoProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if list := decodeMarks(t)(host.MarksList()); len(list.Marks) != 0 || len(list.Types) != 6 {
 		t.Fatalf("list with no project = %+v", list)
 	}

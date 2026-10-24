@@ -168,7 +168,7 @@ func productionWiktextractCatalogFixture(t *testing.T) string {
 
 func TestPronunciationCommonsAudioOpenRefusesBeforeTheHostIsReady(t *testing.T) {
 	manager := testWiktextractManager(t, map[string]wiktextract.WordEntry{"happy": {IPA: "/ˈhæpi/", Audio: "En-us-happy.ogg"}})
-	host := NewHost()
+	host := newTestHost(t)
 	host.wiktextractManager = func() (*wiktextract.Manager, error) { return manager, nil }
 	if _, err := host.PronunciationCommonsAudioOpen("happy"); err == nil {
 		t.Fatal("want an error before Startup has set a context")

@@ -28,7 +28,7 @@ func newHostForPunchTest(t *testing.T) (*Host, string) {
 	if err := os.WriteFile(manuscriptPath, []byte(`{}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = project
 	host.teleprompter = teleprompter.New(teleprompter.Config{Project: project, SessionDir: t.TempDir(), Python: os.Args[0]}, host.sidecars, host.emitTeleprompterEvent, host.emitTeleprompterState)
 	t.Cleanup(func() {

@@ -64,7 +64,7 @@ func updateHost(t *testing.T, fake *fakeReleaseServer, current string) *Host {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	t.Setenv("USERPROFILE", appData)
-	host := NewHost()
+	host := newTestHost(t)
 	host.version = current
 	installDir := t.TempDir()
 	host.executable = func() (string, error) { return filepath.Join(installDir, brand.Executable+".exe"), nil }

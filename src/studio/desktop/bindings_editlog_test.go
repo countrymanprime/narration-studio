@@ -106,7 +106,7 @@ func TestEditLogBindingsRefuseAPathShapedKey(t *testing.T) {
 }
 
 func TestEditLogBindingsWithNoProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if payload, err := host.EditingAcceptedList("c-0001"); err != nil || payload != `{"chapterId":"c-0001","words":[]}` {
 		t.Fatalf("list with no project = %s, %v", payload, err)
 	}
@@ -134,7 +134,7 @@ func TestClearProjectDataRemovesAcceptedWords(t *testing.T) {
 // hostOverProject attaches a second host to the same project folder: what reopening the app reads.
 func hostOverProject(t *testing.T, project string) *Host {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	next := host.config
 	next.projectFolder = project
 	if attached, reason := host.attachProjectLocked(next); !attached {

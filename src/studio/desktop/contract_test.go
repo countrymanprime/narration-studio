@@ -34,7 +34,7 @@ import (
 // Machine-specific values (the temp project folder, the diagnostic id) are fixed so the files are stable.
 func contractHost(t *testing.T, project string) *Host {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	host.diagnostic = "go-1789000000000000000"
 	host.config.projectFolder = project
 	host.config.projectName = "Alice"
@@ -136,7 +136,7 @@ func TestContractDictionaryLookup(t *testing.T) {
 // TestContractCopyDiagnostics pins SystemCopyDiagnostics's answer shape.
 func TestContractCopyDiagnostics(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.diagnosticsNow = func() time.Time { return time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC) }
 	host.runLog.Begin("guide").End("ok")
 	folder := t.TempDir()
@@ -257,7 +257,7 @@ func TestContractTheTeleprompterFirstUseGateForEachEngine(t *testing.T) {
 func TestContractSettingsForEachScope(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	project := t.TempDir()
-	host := NewHost()
+	host := newTestHost(t)
 	host.settings = settings.New(layout.FindRoot("."), project)
 	// The live engine choices follow the platform (Moonshine ships only on Windows); pin it so the golden is
 	// the same on every runner.
@@ -275,7 +275,7 @@ func TestContractSettingsForEachScope(t *testing.T) {
 // dictionary chosen.
 func TestContractSettingsDefinitionSource(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
 	pin := func(name string) {
 		fields, err := host.settingsForScope("global")
@@ -326,7 +326,7 @@ func TestContractTracksDiscovery(t *testing.T) {
 func TestContractChapterTrackMap(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	project := t.TempDir()
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = project
 	host.manuscript = manuscript.New(project)
 	job := host.manuscript.Begin(layout.RepoFile(layout.FixturesDir + "/alice.md"))
@@ -630,7 +630,7 @@ func TestContractDawLaunch(t *testing.T) {
 // CreditsTemplates' shipped defaults.
 func TestContractCreditsTemplates(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	templates, err := host.creditTemplates.List()
 	if err != nil {
 		t.Fatal(err)
@@ -643,7 +643,7 @@ func TestContractCreditsTemplates(t *testing.T) {
 func TestContractCreditsProjectValuesAndPreview(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	folder := t.TempDir()
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = folder
 	host.config.projectName = "Alice"
 	host.settings = settings.New(layout.FindRoot("."), folder)

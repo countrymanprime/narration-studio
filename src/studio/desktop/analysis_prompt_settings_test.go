@@ -9,7 +9,7 @@ import (
 // ("Don't ask again"). Any other value is refused and not saved.
 func TestAnalysisPromptAcceptsOnlyAskOrBasic(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	for _, ok := range []string{"basic", "ask"} {
 		value := ok
 		if err := host.saveSettings("ManuscriptGuide", "global", map[string]*string{"analysis_prompt": &value}); err != nil {
@@ -29,7 +29,7 @@ func TestAnalysisPromptAcceptsOnlyAskOrBasic(t *testing.T) {
 // It is a narrator preference, so a project cannot carry it.
 func TestAnalysisPromptIsGlobalOnly(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	value := "basic"
 	err := host.saveSettings("ManuscriptGuide", "project", map[string]*string{"analysis_prompt": &value})
 	if err == nil || !strings.Contains(err.Error(), "global") {
@@ -39,7 +39,7 @@ func TestAnalysisPromptIsGlobalOnly(t *testing.T) {
 
 func TestAnalysisPromptDefaultsToAskInTheFieldList(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	fields, err := host.settingsForScope("global")
 	if err != nil {
 		t.Fatal(err)

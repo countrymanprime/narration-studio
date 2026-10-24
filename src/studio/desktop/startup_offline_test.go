@@ -82,7 +82,7 @@ type launch struct{ updatesOff, keepDefaultDelay bool }
 
 func launchHost(t *testing.T, guard *networkGuard, how launch) *Host {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	host.stager.Client = &http.Client{Transport: guard}
 	// The host acts as the Windows build, the only one with a release, so a Linux development host checks too.
 	windows, _ := update.PlatformFor("windows", "amd64")

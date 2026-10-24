@@ -75,7 +75,7 @@ func countingEncoder(t *testing.T) (encodeFileFunc, *atomic.Int64) {
 // re-encode test can assert it reads from there rather than from Path.
 func multiPackageHost(t *testing.T, format string, chapterPaths ...string) *Host {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = t.TempDir()
 	job := &exportJob{id: "export-1", phase: "success", format: format}
 	for _, path := range chapterPaths {
@@ -104,7 +104,7 @@ func waitMultiPackage(t *testing.T, host *Host) MultiPackageJob {
 }
 
 func TestMultiPackageRefusesAnEmptySelection(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	_, err := host.startMultiPackage(MultiPackageRequest{Items: []PackageItem{{Kind: string(packager.KindChapter), Path: "C:/x.mp3"}}})
 	if err == nil || !strings.Contains(err.Error(), "choose at least one platform") {
 		t.Fatalf("expected an empty-selection refusal, got %v", err)
@@ -127,7 +127,7 @@ func TestMultiPackageRefusesAnUnknownProfile(t *testing.T) {
 }
 
 func TestMultiPackageRefusesWithoutAPriorExport(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	_, err := host.startMultiPackage(MultiPackageRequest{
 		Selections: []ProfileSelection{{ProfileID: deliveryprofile.ACXID, ProfileVersion: deliveryprofile.ACXVersion}},
 		Items:      []PackageItem{{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: "C:/x.mp3"}},

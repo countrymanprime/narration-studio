@@ -405,6 +405,10 @@ type Host struct {
 	chapterSyncRuns chapterSyncRuns
 	// chapterSyncEmits counts the chaptersync:state reads emitCoverage starts, so a test can wait for them to finish with the project folder.
 	chapterSyncEmits sync.WaitGroup
+	// background counts the fire-and-forget goroutines the host starts through goBackground (cue refreshes, chapter-sync triggers, the
+	// backups prune, the Audacity probe), so a test can wait for them before it removes the project folder they write into. Nothing in
+	// the app waits on it: a quit or a user action never blocks on this work.
+	background sync.WaitGroup
 	// chapterSyncWatch is what the saved-.rpp watcher saw last (chaptersync_watch.go).
 	chapterSyncWatch chapterSyncWatcher
 	// backgroundChecks is what the background recording check loop remembers (coverage_background.go).
@@ -515,6 +519,19 @@ type config struct {
 	// reaperStartupHooked is whether REAPER runs the bridge itself when it opens (reaperbridge.go), so a start needs no launcher argument.
 	reaperStartupHooked bool
 }
+
+// goBackground runs work in its own goroutine and counts it in h.background (waitForBackground). It changes nothing about the work.
+func (h *Host) goBackground(work func()) {
+	h.background.Add(1)
+	go func() {
+		defer h.background.Done()
+		work()
+	}()
+}
+
+// waitForBackground returns once every goBackground goroutine started so far has finished. Tests call it before the project folder goes;
+// the app never does.
+func (h *Host) waitForBackground() { h.background.Wait() }
 
 func NewHost() *Host {
 	workingDirectory, _ := os.Getwd()
@@ -843,7 +860,7 @@ func (h *Host) configureLocked(next config) {
 	if h.audacity != nil {
 		// The prune runs after the lock is released, over a snapshot taken here: services() cannot be called under h.mu.
 		snapshot := hostServices{config: h.config, settings: h.settings, bridge: h.bridge, reachability: h.reachability, backupKeeper: h.backupKeeper, audacity: h.audacity}
-		go h.pruneBackupsOnOpen(snapshot, h.backupKeeper)
+		h.goBackground(func() { h.pruneBackupsOnOpen(snapshot, h.backupKeeper) })
 	}
 	// The Review page's Go to, Loop and Stop (bindings_navigation.go), the read-aloud and
 	// teleprompter track-state reads and the chapter-regions create step (readaloudreaper.go, teleprompterinput.go,
@@ -1372,7 +1389,7 @@ func (h *Host) onSecondInstance(instance application.SecondInstanceData) {
 	if ctx != nil {
 		bringWindowForward()
 		if attached {
-			go h.chapterSyncTrigger(syncTriggerAttach) // chapter sync's attach path (chaptersync.go)
+			h.goBackground(func() { h.chapterSyncTrigger(syncTriggerAttach) }) // chapter sync's attach path (chaptersync.go)
 			emitEvent("system:attached", map[string]any{"attached": true})
 		} else if reason != "" {
 			emitEvent("system:attached", map[string]any{"attached": false, "reason": reason})

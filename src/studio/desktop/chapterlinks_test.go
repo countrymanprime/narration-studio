@@ -223,7 +223,7 @@ func TestChapterTrackLinksListsNarrationChaptersOnly(t *testing.T) {
 }
 
 func TestChapterTrackLinksRefusesWithoutAManuscript(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = t.TempDir()
 	if _, err := host.ChapterTrackLinks(); err == nil {
 		t.Fatal("ChapterTrackLinks without a manuscript succeeded")

@@ -18,7 +18,7 @@ func hostWithCredits(t *testing.T) *Host {
 	t.Helper()
 	t.Setenv("APPDATA", t.TempDir())
 	folder := t.TempDir()
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = folder
 	host.config.projectName = "Alice"
 	host.settings = settings.New(layout.FindRoot("."), folder)

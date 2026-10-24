@@ -315,7 +315,7 @@ func TestPathGuardOnSecondInstanceFindsAProjectOutsideTheStartingFolder(t *testi
 		t.Setenv("HOME", home)
 		t.Setenv("APPDATA", pgSettledTempDir(t))
 		pgLinkedManifest(t, p.Dir, p.RPP)
-		host := NewHost()
+		host := newTestHost(t)
 		host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 		if err := host.recents.Touch(p.Dir, "Guarded"); err != nil {
 			t.Fatal(err)
@@ -332,7 +332,7 @@ func TestPathGuardOnSecondInstanceFindsAProjectOutsideTheStartingFolder(t *testi
 func TestPathGuardProjectSwitch(t *testing.T) {
 	pathfixtures.Run(t, func(t *testing.T, p pathfixtures.Place) {
 		t.Setenv("APPDATA", pgSettledTempDir(t))
-		host := NewHost()
+		host := newTestHost(t)
 		host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 		before := host.config.projectFolder
 		raw, err := host.ProjectSwitch(p.Dir, "Café 朗読 📚")
@@ -368,7 +368,7 @@ func TestPathGuardProjectCreateInNames(t *testing.T) {
 				return // a 255-character name makes a path over the 260-character limit of an ordinary Windows path; the long-path place fixtures cover long paths
 			}
 			t.Setenv("APPDATA", pgSettledTempDir(t))
-			host := NewHost()
+			host := newTestHost(t)
 			host.recents = recents.New(filepath.Join(pgSettledTempDir(t), "recent-projects.json"))
 			parent := pgSettledTempDir(t)
 			raw, err := host.ProjectCreateIn(parent, fixture.Value)
@@ -398,7 +398,7 @@ func TestPathGuardProjectCreateInParents(t *testing.T) {
 		t.Setenv("USERPROFILE", home)
 		t.Setenv("HOME", home)
 		t.Setenv("APPDATA", pgSettledTempDir(t))
-		host := NewHost()
+		host := newTestHost(t)
 		host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 		raw, err := host.ProjectCreateIn(p.Dir, "New Book")
 		switch {

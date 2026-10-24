@@ -19,7 +19,7 @@ import (
 // renderExportHost is a host whose export picker answers paths, with a project folder, recording every job end.
 func renderExportHost(t *testing.T, paths ...string) (*Host, func() []jobEnded) {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = t.TempDir()
 	host.pickAudioFiles = func() ([]string, error) { return paths, nil }
 	var mu sync.Mutex

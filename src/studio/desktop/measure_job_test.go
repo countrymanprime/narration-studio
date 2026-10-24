@@ -19,7 +19,7 @@ import (
 // measureHost is a host whose file picker answers paths, recording every job end.
 func measureHost(t *testing.T, paths ...string) (*Host, func() []jobEnded) {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	host.pickAudioFiles = func() ([]string, error) { return paths, nil }
 	var mu sync.Mutex
 	ended := []jobEnded{}
@@ -83,7 +83,7 @@ func TestMeasurePickFilesAnswersThePickedPathsAndNothingWhenCancelled(t *testing
 }
 
 func TestMeasurePickFilesNeedsAWindowWithoutTheSeam(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.MeasurePickFiles(); err == nil || !strings.Contains(err.Error(), "not ready") {
 		t.Fatalf("err = %v, want the host not ready", err)
 	}

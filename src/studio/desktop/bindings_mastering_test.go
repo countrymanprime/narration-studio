@@ -148,7 +148,7 @@ func (notYetRow) Master(context.Context, masteringport.Request) (masteringport.R
 }
 
 func TestChoosingAMasteringRowNeedsAProject(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.MasteringChooseProvider(masteringport.Builtin); err == nil {
 		t.Fatal("choosing without a project succeeded")
 	}

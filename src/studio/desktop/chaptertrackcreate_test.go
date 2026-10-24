@@ -297,7 +297,7 @@ func TestChapterTrackCreateAnswerIsJSON(t *testing.T) {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	t.Setenv("USERPROFILE", appData)
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ChapterTrackCreate("c-0001"); err == nil {
 		t.Fatal("a host with no project must answer an error, not a refusal")
 	}

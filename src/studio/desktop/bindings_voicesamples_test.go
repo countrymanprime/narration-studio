@@ -308,7 +308,7 @@ func TestVoiceSampleMarkIsRefusedWhenTheCheckIsStale(t *testing.T) {
 }
 
 func TestVoiceSamplesWithNoProjectAreEmptyAndRefuseAMark(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	list := voiceListOf(t)(host.VoiceSamplesList())
 	if len(list.Samples) != 0 {
 		t.Fatalf("list = %+v", list)

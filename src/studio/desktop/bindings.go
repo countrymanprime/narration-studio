@@ -307,7 +307,7 @@ func (h *Host) ProjectSwitch(path, name string) (string, error) {
 		_ = h.recents.Touch(path, name)
 	}
 	if attached {
-		go h.chapterSyncTrigger(syncTriggerAttach) // chapter sync's attach path (chaptersync.go)
+		h.goBackground(func() { h.chapterSyncTrigger(syncTriggerAttach) }) // chapter sync's attach path (chaptersync.go)
 	}
 	return reportAttach(ctx, attached, reason)
 }

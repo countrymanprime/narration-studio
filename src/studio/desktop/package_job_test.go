@@ -17,7 +17,7 @@ import (
 // packageHost is a host with an export job already holding encoded files, ready to package.
 func packageHost(t *testing.T, encodedPaths ...string) *Host {
 	t.Helper()
-	host := NewHost()
+	host := newTestHost(t)
 	job := &exportJob{id: "export-1", phase: "success"}
 	for _, path := range encodedPaths {
 		job.files = append(job.files, ExportFileResult{Kind: string(packager.KindChapter), Title: filepath.Base(path), Path: path, EncodedPath: path, Status: exportFileDone})
@@ -27,7 +27,7 @@ func packageHost(t *testing.T, encodedPaths ...string) *Host {
 }
 
 func TestPackageRefusesWithoutAPriorExport(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	_, err := host.startPackage(PackageRequest{ProfileID: "acx", Items: []PackageItem{{Kind: string(packager.KindChapter), Path: "C:/x.mp3"}}})
 	if err == nil || !strings.Contains(err.Error(), "export the files") {
 		t.Fatalf("expected an export-first refusal, got %v", err)
@@ -215,7 +215,7 @@ func waitPackage(t *testing.T, host *Host) PackageJob {
 }
 
 func TestDeliveryOpenPackageFolderOpensTheLastBuiltFolderAndRefusesWithoutOne(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	var opened []string
 	host.openFolder = func(dir string) error { opened = append(opened, dir); return nil }
 

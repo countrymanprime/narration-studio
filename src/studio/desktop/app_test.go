@@ -53,7 +53,7 @@ func TestHostAPIVersionMatchesTheCurrentDesktopContract(t *testing.T) {
 // The application's own version is stamped at build time (scripts/release/wails-build.mjs, -X main.version); a build without the
 // stamp is a development build, and Bootstrap carries whichever it is so Settings can show it.
 func TestBootstrapReportsTheApplicationVersion(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if got := host.Bootstrap()["version"]; got != version {
 		t.Fatalf("bootstrap version = %#v, want the stamped variable %q", got, version)
 	}
@@ -82,7 +82,7 @@ func TestBootstrapReportsCanonicalNarratableTotals(t *testing.T) {
 	if err := os.WriteFile(path, []byte(data), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = project
 	boot := host.Bootstrap()
 	manuscript, ok := boot["manuscript"].(map[string]any)
@@ -96,7 +96,7 @@ func TestBootstrapOffersAManuscriptFileFoundInTheProjectFolder(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(project, "Manuscript.docx"), []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.projectFolder = project
 	boot := host.Bootstrap()
 	candidate, ok := boot["manuscriptCandidate"].(map[string]any)
@@ -286,7 +286,7 @@ func TestOnSecondInstanceMapsTheRppToItsLinkedProjectInsteadOfTheRppsOwnFolder(t
 		t.Fatal(err)
 	}
 
-	host := NewHost()
+	host := newTestHost(t)
 	host.onSecondInstance(application.SecondInstanceData{Args: []string{
 		"--project-folder", rppFolder,
 		"--project-name", "Book",
@@ -299,7 +299,7 @@ func TestOnSecondInstanceMapsTheRppToItsLinkedProjectInsteadOfTheRppsOwnFolder(t
 }
 
 func TestCanAttachRejectsPreparedImportAndActiveTranscript(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.manuscript.Begin("draft.md")
 	if host.canAttachLocked() {
 		t.Fatal("prepared manuscript import must prevent a project switch")
@@ -327,7 +327,7 @@ func TestCanAttachRejectsPreparedImportAndActiveTranscript(t *testing.T) {
 }
 
 func TestAttachProjectLockedAppliesFolderNameAndDaw(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	project := t.TempDir()
 	next := host.config
 	next.projectFolder, next.projectName, next.daw = project, "My Book", "Standalone"
@@ -344,7 +344,7 @@ func TestAttachProjectLockedAppliesFolderNameAndDaw(t *testing.T) {
 }
 
 func TestAttachProjectLockedRejectsEmptyFolder(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	before := host.config
 	next := host.config
 	next.projectName, next.daw = "Name", "Standalone"
@@ -361,7 +361,7 @@ func TestAttachProjectLockedRejectsEmptyFolder(t *testing.T) {
 }
 
 func TestAttachProjectLockedRefusesWhenBusy(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.manuscript.Begin("draft.md")
 	before := host.config
 	next := host.config
@@ -380,7 +380,7 @@ func TestAttachProjectLockedRefusesWhenBusy(t *testing.T) {
 
 func TestConfigureLockedToleratesAbsentSessionDirAndProjectFolder(t *testing.T) {
 	root := t.TempDir()
-	host := NewHost()
+	host := newTestHost(t)
 	host.configureLocked(parseConfigArgs(root, []string{}))
 
 	boot := host.Bootstrap()
@@ -396,7 +396,7 @@ func TestConfigureLockedToleratesAbsentSessionDirAndProjectFolder(t *testing.T) 
 }
 
 func TestProjectCreateInMakesDirectoryAndManifestAndAttaches(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	parent := t.TempDir()
 	raw, err := host.ProjectCreateIn(parent, "New Book")
 	if err != nil {
@@ -428,7 +428,7 @@ func TestProjectCreateInDefaultsAnEmptyParentToTheProjectsDirectory(t *testing.T
 	home := t.TempDir()
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("HOME", home)
-	host := NewHost()
+	host := newTestHost(t)
 	raw, err := host.ProjectCreateIn("", "Default Location Book")
 	if err != nil {
 		t.Fatal(err)
@@ -464,21 +464,21 @@ func TestProjectDefaultLocationNamesTheFolderAnEmptyParentCreatesIn(t *testing.T
 }
 
 func TestProjectCreateInRequiresANonEmptyName(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ProjectCreateIn(t.TempDir(), ""); err == nil {
 		t.Fatal("ProjectCreateIn() error = nil, want an error for an empty name")
 	}
 }
 
 func TestProjectCreateInRejectsAnInvalidName(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ProjectCreateIn(t.TempDir(), "CON"); err == nil {
 		t.Fatal("ProjectCreateIn() error = nil, want an error for a reserved name")
 	}
 }
 
 func TestProjectCreateInRefusesACollisionWithoutTouchingTheExistingFolder(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	parent := t.TempDir()
 	existing := filepath.Join(parent, "Taken")
 	if err := os.MkdirAll(existing, 0o755); err != nil {
@@ -500,7 +500,7 @@ func TestProjectCreateInRefusesACollisionWithoutTouchingTheExistingFolder(t *tes
 }
 
 func TestProjectCreateInRefusesWithoutCreatingTheFolderWhenBusy(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.manuscript.Begin("draft.md")
 	before := host.config
 	parent := t.TempDir()
@@ -527,7 +527,7 @@ func TestProjectCreateInRefusesWithoutCreatingTheFolderWhenBusy(t *testing.T) {
 }
 
 func TestProjectCreateInRequiresAnAbsoluteParent(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	relative := "relative-parent-that-must-not-exist"
 	t.Cleanup(func() { _ = os.RemoveAll(relative) })
 	_, err := host.ProjectCreateIn(relative, "Book")
@@ -540,7 +540,7 @@ func TestProjectCreateInRequiresAnAbsoluteParent(t *testing.T) {
 }
 
 func TestProjectSwitchRefusesWhenBusy(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.manuscript.Begin("draft.md")
 	raw, err := host.ProjectSwitch(t.TempDir(), "Busy Book")
 	if err != nil {
@@ -559,7 +559,7 @@ func TestProjectSwitchRefusesWhenBusy(t *testing.T) {
 }
 
 func TestProjectSwitchTouchesRecents(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 	project := t.TempDir()
 	if _, err := host.ProjectSwitch(project, "My Project"); err != nil {
@@ -575,7 +575,7 @@ func TestProjectSwitchTouchesRecents(t *testing.T) {
 }
 
 func TestProjectRecentsEncodesTheStoredList(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 	project := t.TempDir()
 	if err := host.recents.Touch(project, "My Project"); err != nil {
@@ -606,7 +606,7 @@ func TestProjectRecentsReturnsEmptyArrayWithNoStore(t *testing.T) {
 }
 
 func TestProjectRemoveRecentDropsTheEntry(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.recents = recents.New(filepath.Join(t.TempDir(), "recent-projects.json"))
 	first := t.TempDir()
 	second := t.TempDir()
@@ -641,14 +641,14 @@ func TestProjectRemoveRecentReturnsEmptyArrayWithNoStore(t *testing.T) {
 }
 
 func TestProjectSelectFolderRejectsWhenHostNotReady(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if _, err := host.ProjectSelectFolder(); err == nil || !strings.Contains(err.Error(), "not ready") {
 		t.Fatalf("err = %v, want a not-ready error", err)
 	}
 }
 
 func TestOnSecondInstanceRefreshesSessionDirFromNewArgs(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.config.sessionDir = `C:\old\session`
 	host.onSecondInstance(application.SecondInstanceData{Args: []string{
 		"--project-folder", t.TempDir(),
@@ -710,7 +710,7 @@ func TestTheProjectSettingsStoreReportsACorruptFileToTheNarrator(t *testing.T) {
 	appData := t.TempDir()
 	t.Setenv("APPDATA", appData)
 	t.Setenv("USERPROFILE", appData)
-	host := NewHost()
+	host := newTestHost(t)
 	var notices []string
 	host.persist.Notify = func(text string) { notices = append(notices, text) }
 	path := filepath.Join(appData, brand.DataFolder, "global-settings.json")
@@ -732,7 +732,7 @@ func TestTheProjectSettingsStoreReportsACorruptFileToTheNarrator(t *testing.T) {
 }
 
 func TestAReaperTakeTheAppStartedBlocksAProjectSwitch(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	if !host.idle() || !host.canAttach() {
 		t.Fatal("a host with no take and every job idle must allow a project switch")
 	}
@@ -757,7 +757,7 @@ func TestAReaperTakeTheAppStartedBlocksAProjectSwitch(t *testing.T) {
 }
 
 func TestATakeTheAppDidNotStartDoesNotBlockAProjectSwitch(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	// REAPER recording on its own leaves readAloudRecordingChapter empty: the app holds no handle to stop it.
 	if !host.canAttach() {
 		t.Fatal("a take the app did not start must not block a project switch")
@@ -765,7 +765,7 @@ func TestATakeTheAppDidNotStartDoesNotBlockAProjectSwitch(t *testing.T) {
 }
 
 func TestTheProjectSwitchBlockLiftsWhenTheTakeEnds(t *testing.T) {
-	host := NewHost()
+	host := newTestHost(t)
 	host.readAloudRecordingChapter = "ch-1"
 	if host.canAttach() {
 		t.Fatal("the take must block the switch")
@@ -780,7 +780,7 @@ func TestTheProjectSwitchBlockLiftsWhenTheTakeEnds(t *testing.T) {
 // leaves the stored choice as it was.
 func TestSettingsDefinitionSourceDefaultsToWebAndRefusesAnUnknownValue(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
 	field := func() map[string]any {
 		t.Helper()
@@ -820,7 +820,7 @@ func TestSettingsDefinitionSourceDefaultsToWebAndRefusesAnUnknownValue(t *testin
 // unset (tests/fixtures/contracts/settings-fx-cap.json) and with 25 saved for the project (settings-fx-cap-set.json).
 func TestSettingsFxCapDefaultsToTenAndRefusesAValueOutOfRange(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
 	editing := func() []map[string]any {
 		t.Helper()
@@ -870,7 +870,7 @@ func TestSettingsFxCapDefaultsToTenAndRefusesAValueOutOfRange(t *testing.T) {
 // (settings-words-per-page-set.json).
 func TestSettingsWordsPerPageDefaultsTo250AndRefusesAValueOutOfRange(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
-	host := NewHost()
+	host := newTestHost(t)
 	host.settings = settings.New(layout.FindRoot("."), t.TempDir())
 	booth := func() []map[string]any {
 		t.Helper()
