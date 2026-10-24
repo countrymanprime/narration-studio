@@ -48,12 +48,10 @@ type Group struct {
 
 // ParseOutput reads the tagged lines --find-repeats writes (SUMMARY plus
 // SPAN_GROUP/SPAN_MEMBER) and returns the parsed groups, in the order
-// SPAN_GROUP lines appeared. Unrecognized tags - including an ordinary
-// run's SUMMARY/DIFF/MARKER/NEED_CHAPTER lines - are ignored, so this
-// stays safe to call against any --out file the sidecar can produce: the
-// additive-lines guarantee this repo relies on elsewhere (the Go
-// transcript service only checks the NEED_CHAPTER prefix, and the Lua
-// bridge only reads SUMMARY and MARKER).
+// SPAN_GROUP lines appeared. Unrecognized tags - including NEED_CHAPTER
+// and an ordinary run's COMPARE_SEGMENT/COMPARE_WORDS lines - are ignored,
+// so this stays safe to call against any --out file the sidecar can
+// produce.
 func ParseOutput(text string) ([]Group, error) {
 	byID := map[int]*Group{}
 	var order []int
