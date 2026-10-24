@@ -74,7 +74,7 @@ type Span struct {
 // paragraphs first..last.
 func BuildParagraphSpan(t compare.Tokenizer, paragraphs []string, first, last int) (Span, error) {
 	units := t.BuildSentenceUnits(paragraphs)
-	if !(0 <= first && first <= last && last < len(paragraphs)) {
+	if first < 0 || first > last || last >= len(paragraphs) {
 		return Span{}, spanError("The paragraphs %d..%d are not within the chapter's %d paragraph(s)", first, last, len(paragraphs))
 	}
 	inside := []int{}
@@ -95,7 +95,7 @@ func BuildSpan(t compare.Tokenizer, paragraphs []string, first, last int) (Span,
 	if len(units) == 0 {
 		return Span{}, spanError("The chapter has no sentences")
 	}
-	if !(0 <= first && first <= last && last < len(units)) {
+	if first < 0 || first > last || last >= len(units) {
 		return Span{}, spanError("The span %d..%d is not within the chapter's %d sentence(s)", first, last, len(units))
 	}
 	span := Span{FirstUnit: first, LastUnit: last, FirstParagraph: units[first].Paragraph, LastParagraph: units[last].Paragraph}

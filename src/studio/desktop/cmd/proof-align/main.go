@@ -1,8 +1,10 @@
-// Command proof-align serves the host's Proof analyses (the recording check's alignment, internal/recordingcoverage)
-// (internal/recordingcoverage) to the Python test tooling of the
-// transcript-compare sidecar: its coverage harness, calibration and alignment
-// spike (src/studio/sidecars/transcript-compare/tests/go_coverage.py), so they
-// measure what the app ships. It is a development tool and is not packaged.
+// Command proof-align serves the host's Proof analyses (the recording check's
+// alignment, internal/recordingcoverage, and the take comparison's,
+// internal/takedivergence) to the Python test tooling of the transcript-compare
+// sidecar: its coverage harness, calibration, alignment spike and divergence
+// harness (src/studio/sidecars/transcript-compare/tests/go_coverage.py and
+// go_divergence.py), so they measure what the app ships. It is a development
+// tool and is not packaged.
 //
 // It reads one JSON request per line on standard input and writes one JSON
 // reply per line on standard output:
@@ -11,6 +13,8 @@
 //	{"op": "align", ...}    a chapter aligned to transcript words: the AlignedChapter and its maps
 //	{"op": "coverage", ...} coverage, token statuses, extra runs and repeats of an AlignedChapter
 //	{"op": "measure", ...}  a manuscript chapter measured against items' words, as a run measures it
+//	{"op": "span", ...}     the spoken words of sentence units firstUnit..lastUnit of paragraphs
+//	{"op": "alignTake", ...} one take's words aligned to that span: each word's status, the divergences
 //
 // A reply is {"error": "..."} when the request fails.
 package main
@@ -25,6 +29,7 @@ import (
 
 	"desktop/internal/compare"
 	"desktop/internal/recordingcoverage"
+	"desktop/internal/takedivergence"
 )
 
 type request struct {
@@ -53,6 +58,10 @@ type request struct {
 
 	// measure
 	Items []measureItem `json:"items"`
+
+	// span, alignTake
+	FirstUnit int `json:"firstUnit"`
+	LastUnit  int `json:"lastUnit"`
 }
 
 type measureItem struct {
@@ -134,6 +143,14 @@ func handle(req request) (any, error) {
 		return coverage(req)
 	case "measure":
 		return measure(req)
+	case "span":
+		span, err := takedivergence.BuildSpan(compare.NewTokenizer(req.Equivalences), req.Paragraphs, req.FirstUnit, req.LastUnit)
+		if err != nil {
+			return nil, err
+		}
+		return spanJSON(span), nil
+	case "alignTake":
+		return alignTake(req)
 	default:
 		return nil, fmt.Errorf("unknown op %q", req.Op)
 	}
@@ -282,4 +299,40 @@ func coverageReply(result recordingcoverage.ChapterCoverage, chapter *recordingc
 		},
 		"tokens": statuses, "extras": extras, "repeats": chapter.Repeats(tokens, extras),
 	}
+}
+
+func spanJSON(span takedivergence.Span) map[string]any {
+	words := make([]map[string]any, len(span.Words))
+	for k, w := range span.Words {
+		words[k] = map[string]any{"index": w.Index, "text": w.Text, "unit": w.Unit, "paragraph": w.Paragraph, "tokens": w.Tokens}
+	}
+	return map[string]any{
+		"firstUnit": span.FirstUnit, "lastUnit": span.LastUnit,
+		"firstParagraph": span.FirstParagraph, "lastParagraph": span.LastParagraph, "words": words,
+	}
+}
+
+func alignTake(req request) (any, error) {
+	tokenizer := compare.NewTokenizer(req.Equivalences)
+	span, err := takedivergence.BuildSpan(tokenizer, req.Paragraphs, req.FirstUnit, req.LastUnit)
+	if err != nil {
+		return nil, err
+	}
+	words, err := parseWords(req.Words)
+	if err != nil {
+		return nil, err
+	}
+	alignment := takedivergence.AlignTake(tokenizer, span, words)
+	results := make([]map[string]any, len(alignment.Words))
+	for k, w := range alignment.Words {
+		results[k] = map[string]any{"index": w.Index, "status": w.Status, "start": w.Start, "end": w.End}
+	}
+	divergences := make([]map[string]any, len(alignment.Divergences))
+	for k, d := range alignment.Divergences {
+		divergences[k] = map[string]any{
+			"kind": d.Kind, "position": d.Position, "firstWord": d.FirstWord, "lastWord": d.LastWord,
+			"manuscriptText": d.ManuscriptText, "audioText": d.AudioText, "start": d.Start, "end": d.End,
+		}
+	}
+	return map[string]any{"words": results, "divergences": divergences, "extraWords": alignment.ExtraWords}, nil
 }

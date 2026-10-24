@@ -49,10 +49,6 @@ var homophonesCSV string
 
 var homophoneCanon = BuildCanon(LoadEquivalenceGroups(homophonesCSV))
 
-// HomophoneCanon is the built-in canon: every word of a homophone group
-// mapped to the group's first member. Callers must not modify it.
-func HomophoneCanon() map[string]string { return homophoneCanon }
-
 // LoadEquivalenceGroups is compare.py's load_equivalence_groups over text
 // already read: one comma-separated group per line, '#' starts a comment,
 // words are stripped and lowercased as Python does, and a group of fewer than

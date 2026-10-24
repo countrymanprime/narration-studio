@@ -226,6 +226,8 @@ type WordsReport struct {
 	Model    string
 	Language *string
 	Takes    map[int][]compare.Word
+	// TakeGUIDs is the take each TAKE_WORDS line names, checked against the manifest.
+	TakeGUIDs map[int]string
 }
 
 // ReadWordsReport reads the sidecar's words report: a TAKE_TRANSCRIPTION line,
@@ -236,7 +238,7 @@ func ReadWordsReport(path string) (WordsReport, error) {
 	if err != nil {
 		return WordsReport{}, sentence("The take aligner's words report could not be read: %v", err)
 	}
-	report := WordsReport{Takes: map[int][]compare.Word{}}
+	report := WordsReport{Takes: map[int][]compare.Word{}, TakeGUIDs: map[int]string{}}
 	transcription := false
 	for number, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
 		if line == "" {
@@ -260,8 +262,9 @@ func ReadWordsReport(path string) (WordsReport, error) {
 			}
 		case "TAKE_WORDS":
 			var entry struct {
-				Index *int     `json:"index"`
-				Words [][3]any `json:"words"`
+				Index    *int     `json:"index"`
+				TakeGUID string   `json:"takeGuid"`
+				Words    [][3]any `json:"words"`
 			}
 			if json.Unmarshal([]byte(payload), &entry) != nil || entry.Index == nil || entry.Words == nil {
 				return WordsReport{}, malformed
@@ -277,6 +280,9 @@ func ReadWordsReport(path string) (WordsReport, error) {
 				words[k] = compare.Word{Text: text, Start: start, End: end}
 			}
 			report.Takes[*entry.Index] = words
+			if entry.TakeGUID != "" {
+				report.TakeGUIDs[*entry.Index] = entry.TakeGUID
+			}
 		default:
 			return WordsReport{}, sentence("The take aligner's words report has an unknown line %q.", tag)
 		}
@@ -336,6 +342,9 @@ func Results(p Prepared, report WordsReport) (string, error) {
 		words, ok := report.Takes[index]
 		if !ok {
 			return "", sentence("The take aligner has no words for take %d.", index)
+		}
+		if guid, named := report.TakeGUIDs[index]; named && guid != t.TakeGUID {
+			return "", sentence("The take aligner's words for take %d are of take %s, not %s.", index, guid, t.TakeGUID)
 		}
 		payload := compare.PyOrdered{
 			{Key: "index", Value: index}, {Key: "itemGuid", Value: t.ItemGUID}, {Key: "takeGuid", Value: t.TakeGUID},

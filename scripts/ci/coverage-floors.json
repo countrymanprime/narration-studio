@@ -23,6 +23,7 @@
     {"tool":"go","project":"src/studio/desktop","path":"internal/roomtone","floor":93},
     {"tool":"go","project":"src/studio/desktop","path":"internal/manuscript","floor":85,"reason":"Baseline of 2026-09-20 (73.2%). The service and reader carry file and progress plumbing that is exercised end to end, not unit by unit; the ratchet stops it falling and each change here should raise it."},
     {"tool":"go","project":"src/studio/desktop","path":"internal/measure","floor":97,"reason":"Take metrics engine (take-review p8) added range analysis, clipping and per-take evidence; 97.9% measured"},
+    {"tool":"go","project":"src/studio/desktop","path":"internal/takedivergence","floor":90},
     {"tool":"go","project":"src/studio/desktop","path":"internal/takecompare","floor":87,"reason":"Take comparison (take-review p10); 87.2% measured. The uncovered statements are ProcessRunner.TakeDivergence starting the real sidecar (process glue, like takereview's ProcessRunner) and a neighbour WAV that cannot be read"},
     {"tool":"go","project":"src/studio/desktop","path":"internal/recents","floor":85},
     {"tool":"go","project":"src/studio/desktop","path":"internal/retakelanes","floor":91},
@@ -56,7 +57,6 @@
     {"tool":"pytest","project":"src/studio/sidecars/transcript-compare","path":"src/studio/sidecars/transcript-compare/core/recording_coverage.py","floor":100},
     {"tool":"pytest","project":"src/studio/sidecars/transcript-compare","path":"src/studio/sidecars/transcript-compare/tests/coverage_harness.py","floor":99,"reason":"The recording-coverage ground-truth harness (docs/utilities/recording-coverage.md). It lives under tests/ because it is test tooling, but the shipped thresholds are calibrated with it, so it is gated like logic. 99.7% measured; the one uncovered line is the script entry point."},
     {"tool":"pytest","project":"src/studio/sidecars/transcript-compare","path":"src/studio/sidecars/transcript-compare/tests/coverage_calibration.py","floor":100,"reason":"The recording-check calibration (docs/research/recording-coverage-calibration.md): test tooling that chose the shipped defaults, so it is gated like logic. The Piper and Whisper runs and the command line are marked no cover: they need a voice or a model the gate does not have."},
-    {"tool":"pytest","project":"src/studio/sidecars/transcript-compare","path":"src/studio/sidecars/transcript-compare/core/take_divergence.py","floor":100},
     {"tool":"pytest","project":"src/studio/sidecars/transcript-compare","path":"src/studio/sidecars/transcript-compare/core/take_divergence_mode.py","floor":100},
     {"tool":"pytest","project":"src/studio/sidecars/transcript-compare","path":"src/studio/sidecars/transcript-compare/tests/divergence_harness.py","floor":99}
   ]

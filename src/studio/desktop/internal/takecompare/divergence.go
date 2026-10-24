@@ -14,7 +14,7 @@ import (
 // ResultSchemaVersion is the only DIVERGENCE_SPAN schema this package reads.
 const ResultSchemaVersion = 1
 
-// The word statuses a take's span words can have (take_divergence.WORD_STATUSES).
+// The word statuses a take's span words can have (takedivergence.WordStatuses).
 const (
 	WordMatched = "matched"
 	WordMisread = "misread"

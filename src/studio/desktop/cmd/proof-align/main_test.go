@@ -66,3 +66,38 @@ func quote(s string) string {
 	encoded, _ := json.Marshal(s)
 	return string(encoded)
 }
+
+// The take comparison's ops (tests/go_divergence.py): the span's words with their tokens, and one take aligned to it.
+func TestTheSpanAndATakeAlignedToIt(t *testing.T) {
+	paragraphs := `["Alpha bravo. Charlie delta echo."]`
+	requests := strings.Join([]string{
+		`{"op":"span","paragraphs":` + paragraphs + `,"firstUnit":1,"lastUnit":1}`,
+		`{"op":"alignTake","paragraphs":` + paragraphs + `,"firstUnit":1,"lastUnit":1,"words":[["Charlie",0,0.3],["data",0.4,0.7],["echo",0.8,1.1]]}`,
+		`{"op":"span","paragraphs":` + paragraphs + `,"firstUnit":0,"lastUnit":4}`,
+		`{"op":"alignTake","paragraphs":` + paragraphs + `,"firstUnit":3,"lastUnit":3}`,
+		`{"op":"alignTake","paragraphs":` + paragraphs + `,"firstUnit":0,"lastUnit":0,"words":[["a"]]}`,
+	}, "\n") + "\n"
+	var out strings.Builder
+	if err := serve(strings.NewReader(requests), &out); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
+	want := []string{
+		`{"firstParagraph":0,"firstUnit":1,"lastParagraph":0,"lastUnit":1,"words":[{"index":0,"paragraph":0,"text":"Charlie","tokens":["charlie"],"unit":1},` +
+			`{"index":1,"paragraph":0,"text":"delta","tokens":["delta"],"unit":1},{"index":2,"paragraph":0,"text":"echo.","tokens":["echo"],"unit":1}]}`,
+		`{"divergences":[{"audioText":"data","end":0.7,"firstWord":1,"kind":"misread","lastWord":1,"manuscriptText":"delta","position":"within","start":0.4}],` +
+			`"extraWords":0,"words":[{"end":0.3,"index":0,"start":0,"status":"matched"},{"end":0.7,"index":1,"start":0.4,"status":"misread"},` +
+			`{"end":1.1,"index":2,"start":0.8,"status":"matched"}]}`,
+		`{"error":"The span 0..4 is not within the chapter's 2 sentence(s)"}`,
+		`{"error":"The span 3..3 is not within the chapter's 2 sentence(s)"}`,
+		`{"error":"word 0 is not [text, start, end]"}`,
+	}
+	if len(lines) != len(want) {
+		t.Fatalf("want %d replies, got %s", len(want), out.String())
+	}
+	for k := range want {
+		if lines[k] != want[k] {
+			t.Errorf("reply %d:\n got %s\nwant %s", k, lines[k], want[k])
+		}
+	}
+}
