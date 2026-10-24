@@ -118,7 +118,7 @@ flowchart LR
   (`words-report.txt` in the run folder): one `COVERAGE_WORDS` line per playing item saying whether its words were
   `reused` or `transcribed`, then any `COVERAGE_UNSURE` and `COVERAGE_RECHECKED` lines. The host then aligns the chapter
   to the words and writes the results (`src/studio/desktop/internal/recordingcoverage`, a port of what the sidecar's
-  `recording_coverage.py` and `coverage_mode.py` did, held byte for byte to the lines they wrote; see
+  `recording_coverage.py` and `coverage_mode.py` did before they were deleted, held byte for byte to the lines they wrote; see
   [Go versus Python for the sidecars](../research/sidecar-go-vs-python.md), step 1).
 - **The alignment is the take markers' own.** The host aligns with Transcript Compare's tokenizing and `SequenceMatcher`
   opcodes (`src/studio/desktop/internal/compare`, a port of `compare.py`'s), so coverage and the markers cannot disagree;
@@ -388,9 +388,10 @@ This table is the key to the labels that code comments, tests and the text above
   words files, words report and manuscript, and the run), and `golden_test.go`, which holds the results for every fixture
   case to `fixtures/coverage/results.golden.json` from the words in `fixtures/coverage-words.golden.json`.
   `src/studio/desktop/internal/compare`'s `compare_test.go` holds the tokenizer, `SequenceMatcher` and Python's string and
-  float rules to `tests/fixtures/compare-parity/cases.json`.
+  float rules to `tests/fixtures/compare-parity/cases.json`, and `internal/comparerun`'s `markers_golden_test.go` holds the
+  take markers for every fixture case to `fixtures/coverage/markers.golden.json` (markers unchanged by coverage).
 - `src/studio/sidecars/transcript-compare/tests/`: `test_coverage_mode.py` (the sidecar mode with a fake transcriber, each
-  run's words aligned by the host's code), `test_coverage_alignment.py`, `test_marker_golden.py` (markers unchanged),
+  run's words aligned by the host's code), `test_coverage_alignment.py`,
   `coverage_harness.py` and [the fixture set](../../src/studio/sidecars/transcript-compare/tests/fixtures/coverage/README.md),
   `coverage_spike.py` and `coverage_calibration.py`, each pinned by its own test file. They reach the host's aligner through
   `go_coverage.py`, which builds and runs `src/studio/desktop/cmd/proof-align` (so they need Go).

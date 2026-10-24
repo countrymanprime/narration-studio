@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import dataclasses
 import difflib
-import importlib.util
 import sys
 import time
 from collections.abc import Callable, Sequence
@@ -37,20 +36,6 @@ import go_coverage as cov
 
 CORE = Path(__file__).resolve().parents[1] / "core"
 
-
-def _load(name: str, filename: str):
-    """Load a `core/` module by path under a name that cannot shadow the `coverage` package."""
-    if name in sys.modules:
-        return sys.modules[name]
-    spec = importlib.util.spec_from_file_location(name, CORE / filename)
-    module = importlib.util.module_from_spec(spec)
-    assert spec and spec.loader
-    sys.modules[name] = module  # dataclasses look their module up while the class is built
-    spec.loader.exec_module(module)
-    return module
-
-
-compare = _load("transcript_compare_core", "compare.py")
 
 Aligner = Callable[[Sequence[str], Sequence[str]], list[tuple[str, int, int, int, int]]]
 # The DP keeps its whole score matrix: uint16 cells, so both sides stay under 65,535 tokens.
@@ -133,7 +118,7 @@ def align_case(chapter: harness.Chapter, items: Sequence[harness.Item], aligner:
     aligned = cov.align(heading, [p.text for p in chapter.paragraphs], [p.id for p in chapter.paragraphs], words).aligned
     if aligner is not sequence_matcher_opcodes:
         raw = aligner(aligned.doc_tokens, aligned.audio_tokens)
-        opcodes = compare._fuse_hyphen_split_opcodes(raw, list(aligned.doc_tokens), list(aligned.audio_tokens))
+        opcodes = cov.fuse_hyphen_splits(raw, aligned.doc_tokens, aligned.audio_tokens)
         aligned = dataclasses.replace(aligned, opcodes=tuple(tuple(op) for op in opcodes))
     return aligned
 
@@ -276,12 +261,12 @@ def chapter_size_input(target_tokens: int = 6000) -> tuple[list[str], list[str]]
     paragraphs = [p.text for chapter in {case.chapter.id: case.chapter for case in corpus.cases}.values() for p in chapter.paragraphs]
     doc, audio, k = [], [], 0
     while len(doc) < target_tokens:
-        tokens = compare.tokenize(paragraphs[k % len(paragraphs)])
+        tokens = cov.tokenize(paragraphs[k % len(paragraphs)])
         doc += tokens
         if k % 7 == 3:
             pass  # skipped
         elif k % 5 == 1:
-            audio += tokens[:6] + compare.tokenize(ASIDE) + tokens
+            audio += tokens[:6] + cov.tokenize(ASIDE) + tokens
         else:
             audio += tokens
         k += 1

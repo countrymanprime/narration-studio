@@ -47,7 +47,7 @@ type ExtraLine struct {
 }
 
 // ExtraRepeat is the chapter text an extra run says again (issue #2251 item
-// 30, the sidecar's recording_coverage.repeat_of): the run's words
+// 30, internal/recordingcoverage's RepeatOf): the run's words
 // [First, Last) are the doc tokens [Start, End), the ones heard just before
 // or just after it, and Text is those tokens as the manuscript writes them.
 // The rest of the run is an aside ("sorry", "once more").
