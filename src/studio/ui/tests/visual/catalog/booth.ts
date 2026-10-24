@@ -214,6 +214,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'levels-menu-daw-meters',
+    description:
+      "Booth, the Levels menu with Experimental DAW actions on: REAPER's own meters under the two sliders, the armed track's input (named) and the output, with the monitor slider usable (DawMeters)",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'text-popover',
     description:
       "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share) and the Booth size, 40 px, on a slider from 24 to 72 in steps of 4",

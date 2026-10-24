@@ -322,6 +322,13 @@ export const boothDrivers: Record<string, Driver> = {
     // The microphone the DAW records from is named (the mock's first listed microphone), not left blank.
     await menu.getByText('Microphone Array (Realtek(R) Audio)').waitFor();
   },
+  'levels-menu-daw-meters': async (page) => {
+    await readyToRecord(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByText('Heard on “Chapter 1 Narration” in REAPER.').waitFor();
+    await menu.getByRole('meter', { name: 'REAPER output level' }).waitFor();
+  },
   'text-popover': async (page) => {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Text settings' }).click();

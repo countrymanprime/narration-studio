@@ -10,6 +10,7 @@ import {
   dawFxRangeCompareSchema,
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
+  dawMetersSchema,
   dawMonitorLevelSchema,
   dawPlaceSchema,
   dawPositionSchema,
@@ -116,6 +117,10 @@ export const dawGoldens: Record<string, z.ZodType> = {
   // DawMonitorLevel and DawSetMonitorLevel (bindings_daw_levels_test.go): the level the DAW holds, and the monitor_level capability's refusal.
   'daw-monitor-level-ok.json': dawMonitorLevelSchema,
   'daw-monitor-level-refused.json': dawMonitorLevelSchema,
+  // DawMeters (bindings_daw_meters_test.go): an armed track and the output, no armed track, and the daw_meters capability's refusal.
+  'daw-meters-armed.json': dawMetersSchema,
+  'daw-meters-unarmed.json': dawMetersSchema,
+  'daw-meters-refused.json': dawMetersSchema,
   // DawPlace and DawGoToChapter (bindings_daw_place_test.go): where the narrator is, the follow_position capability's refusal, and a move to a chapter.
   'daw-place-ok.json': dawPlaceSchema,
   'daw-place-refused.json': dawPlaceSchema,

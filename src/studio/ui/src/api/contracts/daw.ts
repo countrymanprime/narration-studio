@@ -91,7 +91,8 @@ export type DawCapabilityKey =
   | 'click_repair'
   | 'undo_last'
   | 'monitor_level'
-  | 'input_level';
+  | 'input_level'
+  | 'daw_meters';
 
 export type DawCapabilities = {
   daw: DawKind;
@@ -142,6 +143,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'undo_last', label: "Undo the app's last action" },
   { key: 'monitor_level', label: 'Set the monitor level' },
   { key: 'input_level', label: 'Set the input level' },
+  { key: 'daw_meters', label: 'Show the input and output levels' },
 ];
 
 /** The DAW's transport as of its last heartbeat (daw_transport_changed, docs/architecture/reaper-bridge.md;
@@ -479,11 +481,23 @@ export const DAW_LEVEL_MAX = 100;
 /** DawMonitorLevel and DawSetMonitorLevel (Booth pass 3; src/studio/desktop/bindings_daw_levels.go): read and set the DAW's monitor (output)
  * level, the Levels menu's second slider. The first (the input level) has no call: no DAW the app talks to can set an audio interface's
  * input gain, and the `input_level` capability says so in its own sentence. */
+/** What `dawMeters` answers (src/studio/desktop/bindings_daw_meters.go): what the DAW's own meters show, in dBFS (-100 is silence, over 0 is
+ * possible). `output` is the level it plays out at; `input` the first record-armed track's, with its name, or null when no track is armed (the
+ * read arms nothing). `ok` false is a refusal with its sentence in `message`, and `reason` is the capability's own when the resolver refused it. */
+export type DawMeters =
+  | { ok: true; output: number; input: number | null; inputTrack: string; message: ''; reason: '' }
+  | { ok: false; output: 0; input: null; inputTrack: ''; message: string; reason: DawCapabilityReason | '' };
+
+/** The level a meter answers for silence, in dBFS. */
+export const DAW_METER_FLOOR_DB = -100;
+
 export interface DawLevelsApi {
   /** The monitor level the DAW holds. A capability refusal, a DAW not answering and no live DAW are `ok` false with the sentence. */
   dawMonitorLevel(): Promise<DawMonitorLevel>;
   /** Sets it (0 to DAW_LEVEL_MAX) and answers the level the DAW now holds, which may differ by rounding. A level outside the range rejects. */
   dawSetMonitorLevel(level: number): Promise<DawMonitorLevel>;
+  /** What the DAW's meters show now (`daw_meters`); reads only. A refusal is `ok` false with the sentence. */
+  dawMeters(): Promise<DawMeters>;
 }
 
 /** What `dawPlace` answers (src/studio/desktop/bindings_daw_place.go): where the narrator is in the DAW project, so the Booth can open there. `ok` false is
