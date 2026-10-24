@@ -71,6 +71,9 @@ const (
 	// CapInputLevel would set the level an audio interface records at. No engine can: it is declared so every engine says so in its
 	// own sentence, and the narrator is sent to the interface's control panel.
 	CapInputLevel Capability = "input_level"
+	// CapDawMeters reads the engine's own meters: the level it plays out at and, while a track is armed, the level that track hears,
+	// so the Booth's Levels menu shows the engine's input and output (#2251 item 11).
+	CapDawMeters Capability = "daw_meters"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -137,6 +140,7 @@ var specs = []Spec{
 	{CapUndoLast, "Undo the app's last action", NeedsRunning, reflect.TypeFor[LastActionUndoer](), nil},
 	{CapMonitorLevel, "Set the monitor level", NeedsRunning, reflect.TypeFor[MonitorLeveler](), nil},
 	{CapInputLevel, "Set the input level", NeedsRunning, reflect.TypeFor[InputLeveler](), nil},
+	{CapDawMeters, "Show the input and output levels", NeedsRunning, reflect.TypeFor[MeterReader](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.

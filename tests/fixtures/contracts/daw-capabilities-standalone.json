@@ -24,6 +24,12 @@
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
     },
+    "daw_meters": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
     "file_preview": {
       "available": false,
       "level": "unsupported",

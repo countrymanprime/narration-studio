@@ -102,6 +102,8 @@ var realEvents = map[string][]string{
 	"UNDONE_LAST": {"UNDONE_LAST", "u1", "cut_range", "4", "2"},
 	// src/studio/integrations/reaper/tests/levels_test.lua (monitor_level).
 	"MONITOR_LEVEL": {"MONITOR_LEVEL", "m1", "70"},
+	// src/studio/integrations/reaper/tests/meters_test.lua (daw_meters).
+	"METERS": {"METERS", "m1", "-20.0", "-6.0", "Chapter 1"},
 	// src/studio/integrations/reaper/tests/track_select_test.lua (read_place, go_to).
 	"PLACE":     {"PLACE", "p1", "{00000001-0000-4000-8000-000000000001}", "1", "12.5"},
 	"PLACE_SET": {"PLACE_SET", "g1", "{00000001-0000-4000-8000-000000000001}", "60"},

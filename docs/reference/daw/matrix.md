@@ -43,3 +43,4 @@ What each engine declares for each capability today. The levels are the adapters
 | `undo_last` | `LastActionUndoer` | Engine answering | Experimental | Not yet available | Not reachable | Not yet available |
 | `monitor_level` | `MonitorLeveler` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |
 | `input_level` | `InputLeveler` | Engine answering | Unsupported | Unsupported | Not reachable | Unsupported |
+| `daw_meters` | `MeterReader` | Engine answering | Experimental | Not yet available | Not reachable | Unsupported |

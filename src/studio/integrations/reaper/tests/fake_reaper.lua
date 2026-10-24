@@ -873,6 +873,13 @@ function Fake:add_item_api(api)
   function api.GetMasterTrack(_)
     return fake.master
   end
+  -- Track_GetPeakInfo: the linear peak a track's meter shows on a channel, track.peaks = { left, right }, 0 when unset. REAPER 7.82
+  -- (2026-10-24, docs/research/reaper-meters-2026-10-24.md) answered the meter's decaying value, metered an armed track's input with
+  -- its monitoring off or on, answered 0 for an unarmed, silent track, and carried the input to the master only with monitoring on.
+  -- The fake answers what a test sets, armed or not.
+  function api.Track_GetPeakInfo(track, channel)
+    return (track.peaks or {})[channel + 1] or 0
+  end
   -- Hardware output sends (narration_levels.lua): category 1 of GetTrackNumSends / GetTrackSendInfo_Value /
   -- SetTrackSendInfo_Value, kept as track.hw_outs = { { vol = gain }, ... } (Fake:add_hw_output). Modelled on the ReaScript
   -- reference text (category < 0 receives, 0 sends, 1 hardware outputs; D_VOL a linear gain, 1.0 = 0 dB), not on a run in

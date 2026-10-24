@@ -204,6 +204,9 @@ var eventSpecs = map[string]eventSpec{
 	"UNDONE_LAST": {required: []fieldSpec{text("run"), text("kind"), count("steps"), count("undone")}},
 	// monitor_level (narration_levels.lua): the monitor level now held, a whole number from 0 to 100, read back after a set.
 	"MONITOR_LEVEL": {required: []fieldSpec{text("run"), count("level")}},
+	// daw_meters (narration_meters.lua): the master's level in dBFS, then the first armed track's level and name, both empty when no
+	// track is armed.
+	"METERS": {required: []fieldSpec{text("run"), number("output")}, optional: []fieldSpec{number("input"), text("inputTrack")}},
 	// set_cursor, play_from, stop_play and watch_transport (narration_transport.lua, the Editing page's transport sync): the edit cursor now held,
 	// the time the transport plays from, the edit cursor after a stop, and the lease granted in whole seconds. TRANSPORT is the stream a lease
 	// buys: a broadcast with an empty run, like PROJECT_STATUS, sent when the play state changes or the cursor moves and about four times a second

@@ -26,6 +26,12 @@
       "mode": "native",
       "reason": "experimental_off"
     },
+    "daw_meters": {
+      "available": false,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "reason": "experimental_off"
+    },
     "file_preview": {
       "available": false,
       "level": "experimental",

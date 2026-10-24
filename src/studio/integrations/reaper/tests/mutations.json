@@ -2570,5 +2570,29 @@
     "file": "narration_undo.lua",
     "find": "      return { label = last.label, limit = last.points, take = true }\n",
     "replace": "      return { label = reaper.Undo_CanUndo2(0), limit = last.points, take = true }\n"
+  },
+  {
+    "name": "daw_meters meters an unarmed track as the input",
+    "file": "narration_meters.lua",
+    "find": "if reaper.GetMediaTrackInfo_Value(track, 'I_RECARM') ~= 0 then",
+    "replace": "if true then"
+  },
+  {
+    "name": "daw_meters reads one channel of two",
+    "file": "narration_meters.lua",
+    "find": "for channel = 0, 1 do",
+    "replace": "for channel = 0, 0 do"
+  },
+  {
+    "name": "daw_meters answers a level under the -100 dBFS floor",
+    "file": "narration_meters.lua",
+    "find": "db = math.max(FLOOR_DB, 20 * math.log(peak, 10))",
+    "replace": "db = 20 * math.log(peak, 10)"
+  },
+  {
+    "name": "daw_meters runs on a REAPER that cannot read its meters",
+    "file": "narration_meters.lua",
+    "find": "if not reaper.APIExists('Track_GetPeakInfo') then",
+    "replace": "if false then"
   }
 ]

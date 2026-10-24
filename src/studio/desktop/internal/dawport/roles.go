@@ -37,6 +37,7 @@ type (
 	RecordStopped = bridge.RecordStopped
 	RecordEnded   = bridge.RecordEnded
 	PlayPosition  = bridge.PlayPosition
+	DawMeters     = bridge.DawMeters
 
 	Region         = bridge.Region
 	RegionsCreated = bridge.RegionsCreated
@@ -726,4 +727,14 @@ type InputLeveler interface {
 type BackupKeeper interface {
 	BackupAround(ctx context.Context, request BackupRequest) (Result, error)
 	RestoreBackup(ctx context.Context, backupGUID string) (Result, error)
+}
+
+// MeterFloorDB is the level a MeterReader answers for silence, in dBFS.
+const MeterFloorDB = bridge.MeterFloorDB
+
+// MeterReader reads the engine's own meters: the level the engine plays out at and, while a track is record-armed, the first armed
+// track's level and name. Levels are dBFS, MeterFloorDB for silence, and can be over 0 when the engine's mix is. It changes nothing,
+// so it arms nothing: with no armed track there is no input to read.
+type MeterReader interface {
+	DawMeters(ctx context.Context) (DawMeters, error)
 }
