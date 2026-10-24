@@ -40,7 +40,7 @@ const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 /** How long after the shell's question closed a page still mounted means the narrator stayed. */
 const STAYED_MS = 500;
 /** Why Cold read is off during a take (the toggle and its jump-menu entry). */
-export const COLD_READ_WHILE_RECORDING = 'Not while recording. Stop the take first.';
+const COLD_READ_WHILE_RECORDING = 'Not while recording. Stop the take first.';
 const STOP_READING = {
   title: 'Stop reading?',
   body: 'Reading is still listening. Leaving the Booth stops it; nothing recorded is affected.',
