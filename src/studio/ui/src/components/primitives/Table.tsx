@@ -1,5 +1,5 @@
 import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react';
-import { TABLE_CELL_CLASS, TABLE_HEADER_CLASS, TABLE_TEXT_CLASS } from './tableStyles';
+import { TABLE_CELL_CLASS, TABLE_EDGES, TABLE_FLUSH_EDGES, TABLE_HEADER_CLASS, TABLE_TEXT_CLASS } from './tableStyles';
 import { Tooltip } from './Tooltip';
 
 // A presentational data table. It replaces the `table.dtable` rules in components.css: the look lives here, in
@@ -13,16 +13,24 @@ import { Tooltip } from './Tooltip';
 // Panel body's padding (`--panel-pad`), which is nothing in a `Panel flush`.
 // `rowCount` is the number of rows when the caller draws only some of them (a windowed list); each drawn row then says its place with
 // `TableRow rowIndex`, counted from 1 with the header row as row 1.
+// `columns` fixes the column widths, one CSS width per column in order (`'12rem'`, `'30%'`, `'auto'` for a column that takes what
+// is left): the table lays out from them (`table-fixed`), not from its content, so columns stay put between states and a long
+// cell wraps inside its own column instead of pushing the others.
+// A table that runs to its card's edges (`flush`, or any table in a `Panel flush`) starts its first column and ends its last
+// 16 px in, where the card title starts, and drops the last row's rule, which the card's own border replaces
+// (alignment audit cause D).
 export function Table({
   label,
   flush = false,
   rowCount,
+  columns,
   className = '',
   children,
 }: {
   label: string;
   flush?: boolean;
   rowCount?: number;
+  columns?: readonly string[];
   className?: string;
   children: ReactNode;
 }) {
@@ -30,8 +38,15 @@ export function Table({
     <table
       aria-label={label}
       aria-rowcount={rowCount}
-      className={`border-collapse ${TABLE_TEXT_CLASS} ${flush ? '-mx-[var(--panel-pad,1rem)] w-[calc(100%+2*var(--panel-pad,1rem))]' : 'w-full'} ${className}`}
+      className={`border-collapse ${TABLE_TEXT_CLASS} ${flush ? `-mx-[var(--panel-pad,1rem)] w-[calc(100%+2*var(--panel-pad,1rem))] ${TABLE_FLUSH_EDGES}` : `w-full ${TABLE_EDGES}`} ${columns ? 'table-fixed' : ''} ${className}`}
     >
+      {columns && (
+        <colgroup>
+          {columns.map((width, index) => (
+            <col key={index} style={width === 'auto' ? undefined : { width }} />
+          ))}
+        </colgroup>
+      )}
       {children}
     </table>
   );
