@@ -314,6 +314,11 @@ While you read, the Booth marks places where listening suspects something went d
 words or a restart. They are listed in the side panel as cards, a chip naming what was suspected above the line, where **Dismiss** removes one from the list. Every
 one is only suspected: Transcript Compare over the recording is the authority.
 
+The chapter heading, its title and subtitle, is the first line you read, and reading it is optional. Nothing you say in it, or
+before the chapter's first word, is a suspected line, so "Chapter Twelve, the Storm Breaks" for "Chapter 12: The Storm Breaks"
+or leaving the heading out adds no pickup. The checks of the recording on Proof and Editing treat the heading the same way.
+The credits have no heading: their first line is checked like any other.
+
 ## The credits
 
 The chapter menu also offers **Opening credits** first and **Closing credits** last, when your credit template library

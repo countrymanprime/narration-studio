@@ -116,7 +116,7 @@
    "analyzerTextComplete": false,
    "chapterId": "c-0002",
    "lines": [
-    "COVERAGE|{\"alignment\":{\"maxMisreadRun\":8,\"minAnchorRun\":3},\"analysis\":{\"equivalencesHash\":null,\"language\":null,\"model\":\"scripted\"},\"bodyTokens\":146,\"chapterId\":\"c-0002\",\"extraTokens\":1,\"items\":{\"analyzed\":1,\"muted\":0,\"playedSeconds\":46.2,\"reused\":1,\"transcribed\":0},\"longestMissingRun\":36,\"missingTokens\":36,\"presentTokens\":110,\"schemaVersion\":1}",
+    "COVERAGE|{\"alignment\":{\"maxMisreadRun\":8,\"minAnchorRun\":3},\"analysis\":{\"equivalencesHash\":null,\"language\":null,\"model\":\"scripted\"},\"bodyTokens\":146,\"chapterId\":\"c-0002\",\"extraTokens\":0,\"items\":{\"analyzed\":1,\"muted\":0,\"playedSeconds\":46.2,\"reused\":1,\"transcribed\":0},\"longestMissingRun\":36,\"missingTokens\":36,\"presentTokens\":110,\"schemaVersion\":1}",
     "COVERAGE_ITEM|{\"index\":0,\"itemGuid\":\"item-1\",\"language\":\"en\",\"model\":\"scripted\",\"playedSeconds\":46.199999999999996,\"status\":\"analyzed\",\"wordCount\":112,\"words\":\"reused\"}",
     "COVERAGE_PARAGRAPH|{\"id\":\"p-000006\",\"longestMissingRun\":36,\"present\":0,\"tokens\":36}",
     "COVERAGE_PARAGRAPH|{\"id\":\"p-000007\",\"longestMissingRun\":0,\"present\":37,\"tokens\":37}",

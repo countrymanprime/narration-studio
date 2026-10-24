@@ -7,6 +7,7 @@ import { resetOpenOnce } from '../connection/useOpenOnce';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
 import { overlay } from '../../overlay/overlayService';
+import { DAW_ONLY } from './follow/playRoute';
 import { createJournal } from '../../studio/journal/createJournal';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
 import type { NarrationApi } from '../../types';
@@ -328,7 +329,9 @@ describe('EditingPage', () => {
     const dawDialog = () => screen.findByRole('dialog');
     const markOf = () => waitFor(() => document.querySelector<HTMLElement>('#dawoff')!);
 
-    it('shows the capability’s sentence with Start and Check again in a dialog, disables the edits, and still plays', async () => {
+    // Changed for #2251 item 32: with REAPER linked and not answering, Play no longer plays the files through the app; it says why.
+    it('shows the capability’s sentence with Start and Check again in a dialog, disables the edits, and plays nothing through the app', async () => {
+      const toast = vi.spyOn(overlay, 'toast');
       mount({ setup: 'reaper-off', dawConnectGraceMs: 0 });
       await script();
       const open = await dawDialog();
@@ -344,7 +347,8 @@ describe('EditingPage', () => {
       const del = await within(bar).findByRole('button', { name: /Delete/ });
       await waitFor(() => expect(del.getAttribute('aria-disabled') === 'true' || (del as HTMLButtonElement).disabled).toBe(true));
       fireEvent.click(within(bar).getByRole('button', { name: 'Play the selection' }));
-      await waitFor(() => expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(true));
+      await waitFor(() => expect(toast.mock.calls.some(([text]) => String(text).includes(DAW_ONLY))).toBe(true));
+      expect(audios.some((a) => a.play.mock.calls.length > 0)).toBe(false);
     });
 
     it('draws no red banner: a quiet mark stands where it stood and reopens the dialog', async () => {
@@ -814,7 +818,8 @@ describe('EditingPage', () => {
   });
 
   it('unmount-stops-everything', async () => {
-    const host = { api: pageApi(), daw: dawFor('reaper'), journal: newJournal() };
+    // Audacity has no transport the app drives, so the app's own audio plays and must stop on unmount.
+    const host = { api: pageApi(), daw: dawFor('audacity'), journal: newJournal() };
     const view = render(
       <EditingHost {...host}>
         <EditingPage hasManuscript passageId="ps-1" />
@@ -910,7 +915,7 @@ describe('EditingPage', () => {
 
   describe('the controls reach the host', () => {
     it("the word menu's Play selection plays the words", async () => {
-      mount();
+      mount({ setup: 'builtin' });
       await script();
       fireEvent.mouseDown(word('p1:0'), { button: 0 });
       fireEvent.contextMenu(word('p1:0'));
@@ -921,7 +926,11 @@ describe('EditingPage', () => {
 
     it("Clean up's Preview plays through the page's playback", async () => {
       const breath = finding({ id: 'b1', start: 2, end: 2.4, cls: 'breath', db: -22 });
-      mount({ drawer: 'cleanup', api: { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] } });
+      mount({
+        setup: 'builtin',
+        drawer: 'cleanup',
+        api: { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] },
+      });
       await script();
       const drawer = document.querySelector<HTMLElement>('#drawer')!;
       fireEvent.click(await within(drawer).findByRole('button', { name: /^Breaths/ }));

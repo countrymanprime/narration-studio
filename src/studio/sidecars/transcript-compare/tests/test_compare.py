@@ -190,6 +190,42 @@ def test_a_spoken_title_is_not_extra_and_an_omitted_one_is_not_skipped():
     assert spoken == [] and omitted == []
 
 
+BODY_SAID = "ada opened the ledger at the first page she read the column twice then she closed the book"
+
+
+@pytest.mark.parametrize(
+    ("chapter", "said"),
+    [
+        ({"title": "Chapter 1", "subtitle": "Down the Rabbit-Hole"}, "chapter one down the rabbit hole " + BODY_SAID),
+        ({"title": "Chapter 1", "subtitle": "Down the Rabbit-Hole"}, "chapter one " + BODY_SAID),
+        ({"title": "Chapter 1"}, "chapter won " + BODY_SAID),
+        ({"title": "Chapter 12: The Storm Breaks"}, "chapter twelve " + BODY_SAID),
+        ({"title": "Chapter 12"}, "chapter twelve the storm breaks " + BODY_SAID),
+        ({"title": "Chapter 12"}, "chapter twelve part one " + BODY_SAID),
+    ],
+)
+def test_nothing_said_in_the_heading_is_a_marker(chapter, said):
+    # Issue #2251 item 7: the heading (title and subtitle) is the first line spoken and reading it is optional, so how it
+    # was read (in full, in part, misheard, in other words) never makes a marker, and so never a pickup.
+    _units, tokens, unit_idx, raw_words = compare.build_chapter_units({**chapter, "paragraphs": PARAGRAPHS})
+    words = [(word, index * 0.4, index * 0.4 + 0.3) for index, word in enumerate(said.split())]
+    markers, _covered, _alignment = compare.diff_and_build_markers(tokens, unit_idx, raw_words, words, 1)
+
+    assert [(marker[1], marker[3], marker[4]) for marker in markers] == []
+
+
+def test_a_misread_of_the_first_line_after_the_heading_is_still_a_marker():
+    markers, _ = _markers("Chapter 1", PARAGRAPHS, "chapter one ida opened the ledger at the first page she read the column twice then she closed the book")
+
+    assert markers == [("MISREAD", "ada", "ida")]
+
+
+def test_the_subtitle_is_part_of_the_heading_units():
+    _units, tokens, unit_idx, _raw = compare.build_chapter_units({"title": "Chapter 1", "subtitle": "Down Below", "paragraphs": ["Ada left."]})
+
+    assert tokens[:4] == ["chapter", "1", "down", "below"] and unit_idx[:4] == [-1, -1, -1, -1]
+
+
 def test_homophones_spoken_numbers_and_split_compounds_are_not_misreads():
     paragraphs = ["They're carrying 214 barrels and a notebook.", "It sailed in 1847, a well-known year."]
     markers, _ = _markers("Chapter 1", paragraphs, "their carrying two hundred fourteen barrels and a note book it sailed in 1847 a well known year")

@@ -11,6 +11,7 @@ import {
 } from '../../../api/contracts/findings';
 import { statusTone } from '../../../kinds/statusTone';
 import type { KindId } from '../../../kinds/kindMap';
+import type { SearchHit, SearchSource } from '../../../registries/search';
 import type { StatusTone } from '../../primitives/StatusBadge';
 import { analyzerLabel, findingSummary, noteTime } from '../findingFormat';
 import { noteIsOpen } from '../proof.selectors';
@@ -143,6 +144,35 @@ export const inWindow = (row: NoteRow, window: NoteWindow): boolean =>
 export function matchesFind(row: NoteRow, query: string): boolean {
   const q = query.trim().toLowerCase();
   return !q || `${row.script} ${row.heard}`.toLowerCase().includes(q);
+}
+
+const NOTES_GROUP = 'Notes';
+const NOTES_SHOWN = 8;
+
+/**
+ * The notes as a jump-menu search source (#2251 item 23: Ctrl+F is the jump menu on Proof as on every page): each note whose script or heard
+ * text holds the term, by the same match as find in notes, with the matched part marked. `onFind` gets the term and the note chosen, or no
+ * note for the row that shows the rest.
+ */
+export function notesSource(rows: () => readonly NoteRow[], onFind: (term: string, id?: string) => void): SearchSource {
+  return (term) => {
+    const needle = term.toLowerCase();
+    const found = rows().filter((row) => matchesFind(row, term));
+    const hits: SearchHit[] = found.slice(0, NOTES_SHOWN).map((row) => {
+      const text = row.script.toLowerCase().includes(needle) ? row.script : row.heard;
+      const at = text.toLowerCase().indexOf(needle);
+      return {
+        group: NOTES_GROUP,
+        title: text,
+        sub: [row.chapterTitle, row.seconds === null ? '' : row.time].filter(Boolean).join(' · ') || undefined,
+        snippet: { pre: text.slice(0, at), hit: text.slice(at, at + term.length), post: text.slice(at + term.length) },
+        run: () => onFind(term, row.id),
+      };
+    });
+    if (found.length > NOTES_SHOWN)
+      hits.push({ group: NOTES_GROUP, title: `${found.length - NOTES_SHOWN} more notes. Show them in the list.`, run: () => onFind(term) });
+    return hits;
+  };
 }
 
 export type NoteSort = 'time' | 'confidence' | 'severity';

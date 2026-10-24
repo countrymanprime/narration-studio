@@ -275,3 +275,46 @@ def test_each_flag_kind_maps_onto_a_findings_category_the_findings_contract_acce
         "skipped": "transcript_discrepancy",
         "restart": "pickup",
     }
+
+
+# --- the chapter heading (issue #2251 item 7) -------------------------------------------------------------------------
+# The title and subtitle open the script, and reading them is optional: nothing the narrator says in the heading, or
+# before the chapter's first word, is a flag. The credits have no heading, so their first words are judged as any.
+
+HEADING = "Chapter 12 The Storm Breaks"
+
+
+def _headed(heading=HEADING):
+    words = heading.split()
+    return flags.FlaggingTracker(words + SCRIPT.split(), heading=len(words))
+
+
+BODY_READ = "the old lighthouse keeper climbed the spiral stairs each evening he lit the great lamp"
+
+
+@pytest.mark.parametrize(
+    "said",
+    [
+        "chapter twelve the storm breaks " + BODY_READ,  # read in full
+        "chapter twelve " + BODY_READ,  # the subtitle left out
+        BODY_READ,  # the heading left out
+        "chapter twelve the stork brakes " + BODY_READ,  # the subtitle misheard
+        "chapter twelve part one the storm breaks " + BODY_READ,  # other words in the heading
+        "chapter twelve the storm breaks sorry " + BODY_READ,  # a word between the heading and the first line
+        "chapter twelve the storm chapter twelve the storm breaks " + BODY_READ,  # the heading said again
+    ],
+)
+def test_nothing_said_in_the_heading_is_flagged(said):
+    assert _flags(_read_segment(_headed(), 0, said)) == []
+
+
+def test_a_misread_after_the_heading_is_still_flagged_at_its_script_word():
+    events = _read_segment(_headed(), 0, "chapter twelve the storm breaks the old lighthouse keeper climbed the spiral chairs each evening")
+
+    assert _flags(events) == [("misread", 12, 13, "chairs")]
+
+
+def test_a_script_with_no_heading_judges_its_first_words_as_any():
+    events = _read_segment(_tracker(), 0, "the old lighthouse keeper slowly climbed the spiral stairs")
+
+    assert _flags(events) == [("extra", 4, 4, "slowly")]

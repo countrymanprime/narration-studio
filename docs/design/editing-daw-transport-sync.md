@@ -47,26 +47,28 @@ What the map returns null for, and the page then does nothing visible: a gap bet
 
 **App to DAW.** The page's cursor landing on a word is written to REAPER after 80 ms of quiet (`set_cursor`). Play (`playFrom`, Space, the word menu, skip while playing) calls `play_from` at the word's project second, silences the app's `Audio`, and takes `state.playT` from REAPER's head. Stop calls `stop_play` when REAPER plays, whether the app or the narrator started it. The play-a-selection end and the chapter's end are checked against REAPER's head, and stop REAPER.
 
-If a word has no project time, the capability is not usable, or REAPER refuses or does not answer the play, the app plays itself from the same second, and a refusal or a failed ask is a message in REAPER's words.
+While a DAW is linked whose engine has a transport the app can drive (`transport_sync` is Experimental or Supported; `follow/playRoute.ts`), the app never plays the chapter itself (owner finding [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 32). If a word has no project time, the capability is not usable now, the lease is not answered, or REAPER refuses or does not answer the play, nothing plays and a message says why, in REAPER's words where it gave them. Before the DAW's first answer nothing plays either. The built-in recorder, no recording tool, and an engine with no such transport yet (Audacity) play in the app.
 
 ## Loop safety and drift
 
 `follow/echoGuard.ts`. Each cursor write gets a generation and is remembered for 2.5 s with its project second. A cursor REAPER reports is **unchanged** (within a millisecond of the last one: a reading from before the write cannot undo it), an **echo** (within 20 ms of a remembered write: nothing happens, and older writes are forgotten) or **moved**. A move forgets every pending write: a move the narrator made in REAPER while the page's write was on its way is not lost, and a write that lands afterwards is then reported as the move it has become, so the page ends where REAPER is. A failed write is forgotten. The page does not write a cursor REAPER put there (`fromDaw`).
 
-Drift. While REAPER plays for the page, the app's audio is silent, so there is one sound clock. The page's playhead is REAPER's last reading, at most 0.25 s old plus the host's 150 ms loop, and is not extrapolated: the lit word can trail the sound by up to one word. When readings stop for 3 s during a play the app started, the page stops, says REAPER stopped answering, and does not guess. When the app plays itself there is no second clock to drift against.
+Drift. While REAPER plays for the page, the app's audio is silent, so there is one sound clock. The page's playhead is REAPER's last reading, at most 0.25 s old plus the host's 150 ms loop, and is not extrapolated: the lit word can trail the sound by up to one word. When readings stop for 3 s during a play the app started, the page stops, says REAPER stopped answering, and does not guess. When the app plays itself (no DAW that can play) there is no second clock to drift against.
 
 ## State matrix
 
 | State | What happens | Tested |
 | --- | --- | --- |
-| REAPER never answers | `capabilities` says not reachable, so the page never takes a lease and plays itself; the banner and its sentence are unchanged | `transportSync.test.tsx` (a DAW that is off) |
-| Answers late | The play is asked; the app stays silent until it answers; a refusal or failure then plays the app from the same second. A stop before the answer stops REAPER again on the answer | `transportSync.test.tsx` (stopped before the DAW answered) |
-| Wrong project open | The watch is refused (`sameProject` false), nothing is moved or played, the page follows nothing; events carry `sameProject` | `transportsync_test.go`, `transportSync.test.tsx` |
+| REAPER never answers | `capabilities` says not reachable, so the page never takes a lease and plays nothing; Play says the capability's sentence; the banner is unchanged | `transportSync.test.tsx` (a DAW that is not running) |
+| Answers late | The play is asked; the app stays silent until it answers; a refusal or failure then stops the page and says why. A stop before the answer stops REAPER again on the answer | `transportSync.test.tsx` (stopped before the DAW answered) |
+| Wrong project open | The watch is refused (`sameProject` false), nothing is moved or played, the page follows nothing and Play says why; events carry `sameProject` | `transportsync_test.go`, `transportSync.test.tsx` |
 | Restarted mid-session | The next renewal (within 3 s) takes a new lease from the restarted script, and its opening event adopts REAPER's cursor. A play the app started stops after 3 s without readings | `transportSync.test.tsx` (goes quiet); the reconnect is not tested |
 | Playing while the page opens | The lease's first event carries the play state, and the word lights | `transportSync.test.tsx` |
-| Chapter not linked, or no audio | No segment or no live item: every second maps to null; Play plays the app; nothing is written | `clockMap.test.ts`, `transportSync.test.tsx` (item not live) |
+| Chapter not linked, or no audio | No segment or no live item: every second maps to null; Play plays nothing and says the part is not in REAPER's project; nothing is written | `clockMap.test.ts`, `transportSync.test.tsx` (item not live) |
 | Recording | Reads are ignored, writes are refused with REAPER's sentence | Lua and `transportsync_test.go`; the page's toast on a refusal is `transportSync.test.tsx` |
-| Capability off (Experimental switch, per-capability Off) | As before this change | `transportSync.test.tsx` |
+| Capability off (Experimental switch, per-capability Off) | No lease; Play plays nothing and says the capability's sentence | `transportSync.test.tsx` |
+| DAW not answered yet | Play plays nothing and says the page is checking | `transportSync.test.tsx` |
+| Built-in recorder, no tool, Audacity | The app plays the files itself, as before | `transportSync.test.tsx`, `playRoute.test.ts` |
 | Rapid double-fire, leave mid-play | Cursor writes debounce; unmounting stops the lease and the DAW if the page played it | the first is tested; the second is not |
 | Lost, repeated or out-of-order events | A repeated cursor is `unchanged`; a late echo is a move; a lost event delays by one tick | `echoGuard.test.ts` |
 | Huge, negative, NaN times | Refused before anything is sent, in Go, in Lua and in the map | all three |

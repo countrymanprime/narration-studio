@@ -222,16 +222,14 @@ test.describe('Proof: focus stays with the control that acted', () => {
     await expect(page.locator(NOTES_FIND)).toBeFocused();
   });
 
-  test('Ctrl+F then Escape returns to the control that had focus', async ({ page }) => {
+  // #2251 item 23: Ctrl+F is the jump menu on Proof as on every page.
+  test('Ctrl+F opens the jump menu, and Escape returns to the control that had focus', async ({ page }) => {
     await openProof(page);
     const row = page.locator('section[aria-label="Notes"] tbody tr').first();
     await row.focus();
     await page.keyboard.press('Control+f');
-    await page
-      .getByRole('textbox', { name: 'Find in notes' })
-      .or(page.getByRole('searchbox', { name: 'Find in notes' }))
-      .first()
-      .waitFor();
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor();
+    await expect(page.getByRole('textbox', { name: 'Find in notes' })).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(row).toBeFocused();
   });

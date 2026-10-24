@@ -60,7 +60,7 @@ Owner rulings of 2026-10-11; none is open.
 | SN0-Q3 | The store is a read-model cache plus a command journal; the Go host stays the source of truth | The History panel reads the journal in the Domain PRD |
 | DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | Their rail items arrive with their swaps (SNP-8, SNM-5) |
 | SN0-Q7 | The mock's breakpoints apply at the mock's widths | The rail collapses below 1360 |
-| SNR-Q1 | Ctrl+F is Find in Script and the jump menu elsewhere, as `studio-next/src/app/keys.ts`; add `find.open` | SNR-4 |
+| SNR-Q1 | Ctrl+F is Find in Script and the jump menu elsewhere, as `studio-next/src/app/keys.ts`; add `find.open`. Superseded by #2251 item 23 (owner, 2026-10-23): Ctrl+F opens the jump menu scoped to the page on every page, Script and Proof included; a page's own find is a search source in it | SNR-4 |
 | SNR-Q2 | The jump menu does not replace navigation | The collapsed rail opens over the page on hover, as the mock does |
 | SNR-Q3 | Chapters come from providers; the catalogue test covers static rows only (default taken, standing instruction) | SNR-2 |
 | SNR-Q4 | A toast's Undo may undo a DAW change only when it is the last entry, as `undoEntry` in `studio-next/src/state/store.ts` | SNR-3, SNS-3 |
