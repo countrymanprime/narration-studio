@@ -1,13 +1,25 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  type Ref,
+} from 'react';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import { useCommand } from '../../input/useCommand';
 import { categoryLabel } from '../../state';
 import type { GuideEntity, GuideType } from '../../types';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../primitives/changeHighlight';
+import { Highlight } from '../primitives/Highlight';
 import { Swatch } from '../primitives/Swatch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../primitives/Table';
 import { kindSwatch, typeUnknown } from './entryList';
-import { COLUMNS, sortAria, type ColumnKey, type EntrySort } from './entryTable';
+import { COLUMNS, markedParts, matchedAlias, sortAria, type ColumnKey, type EntrySort } from './entryTable';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
 
 // The body rows are one height (`--row-height`, 39 px, and a cell never wraps), so the rows in view follow from the scroll position and a long book
@@ -37,7 +49,13 @@ export type EntryTableProps = {
   onOpenLoose: (id: string) => void;
   /** What the table says when it has no row to draw. */
   empty: ReactNode;
+  /** The search words in force (folded): a row marks the letters they matched and names the alias that put it in the list. */
+  words?: readonly string[];
+  /** Lets the search box move focus into the table (Down in the box). */
+  handle?: Ref<EntryTableHandle>;
 };
+
+export type EntryTableHandle = { focusFirst: () => void };
 
 const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[8rem]' };
 
@@ -45,7 +63,21 @@ const COL_WIDTH: Partial<Record<ColumnKey, string>> = { kind: 'w-[8rem]' };
  * The Story Bible's entries as a data table: a header that sorts, one row per entry, one tab stop moved by the arrow keys, and only the rows in view
  * drawn once the book is long. It reports what the narrator did (a sort, an entry opened) and owns nothing else.
  */
-export function EntryTable({ rows, loose = [], types, sort, onSort, openId, looseId = null, changedId = null, onOpen, onOpenLoose, empty }: EntryTableProps) {
+export function EntryTable({
+  rows,
+  loose = [],
+  types,
+  sort,
+  onSort,
+  openId,
+  looseId = null,
+  changedId = null,
+  onOpen,
+  onOpenLoose,
+  empty,
+  words = [],
+  handle,
+}: EntryTableProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const [focusedId, setFocusedId] = useState<string>();
   // The row to focus once it has been drawn: a jump to an end of a windowed list lands on a row that was not in the DOM.
@@ -105,6 +137,19 @@ export function EntryTable({ rows, loose = [], types, sort, onSort, openId, loos
     element.focus();
     setPendingId(undefined);
   }, [pendingId, start, end, rowElement]);
+
+  // The first row: a loose suggestion when there are some (they are drawn first), else the first entry.
+  useImperativeHandle(
+    handle,
+    () => ({
+      focusFirst: () => {
+        const first = scroller.current?.querySelector<HTMLElement>('tbody [data-loose]');
+        if (first) return first.focus();
+        if (rows[0]) focusEntry(rows[0].id);
+      },
+    }),
+    [rows, focusEntry],
+  );
 
   // Up and Down step from the entry open when focus is elsewhere (the catalogue's page-scope rows, rebindable and on the key sheet). With a row
   // of the table focused the table's own keys step, so the command leaves the key to them instead of stepping twice.
@@ -167,6 +212,7 @@ export function EntryTable({ rows, loose = [], types, sort, onSort, openId, loos
               open={openId === row.id}
               changed={changedId === row.id}
               tabStop={row.id === stopId}
+              words={words}
               onOpen={() => onOpen(row.id)}
             />
           ))}
@@ -191,6 +237,7 @@ function EntryRow({
   open,
   changed,
   tabStop,
+  words,
   onOpen,
 }: {
   entry: GuideEntity;
@@ -199,8 +246,10 @@ function EntryRow({
   open: boolean;
   changed: boolean;
   tabStop: boolean;
+  words: readonly string[];
   onOpen: () => void;
 }) {
+  const alias = matchedAlias(entry, words);
   const kind = entry.category === 'Draft' ? categoryLabel(entry.category) : typeUnknown(entry) ? 'Type not set' : entry.category;
   return (
     <TableRow
@@ -212,8 +261,19 @@ function EntryRow({
       className={changed ? CHANGE_HIGHLIGHT_CLASSES : ''}
     >
       <TableCell className="overflow-hidden">
-        <span dir="auto" className="block truncate font-semibold">
-          {entry.canonical_name}
+        <span className="block truncate">
+          <span dir="auto" data-entry-name="" className="font-semibold">
+            <Marked text={entry.canonical_name} words={words} />
+          </span>
+          {alias !== undefined && (
+            <span data-entry-alias="" className="ml-1.5 text-[0.82rem] text-[var(--text-muted)]">
+              also “
+              <span dir="auto">
+                <Marked text={alias} words={words} />
+              </span>
+              ”
+            </span>
+          )}
         </span>
       </TableCell>
       <TableCell className="whitespace-nowrap">
@@ -223,5 +283,19 @@ function EntryRow({
         </span>
       </TableCell>
     </TableRow>
+  );
+}
+
+/** The text with the letters a search matched marked as a search hit, as the jump menu marks them. */
+function Marked({ text, words }: { text: string; words: readonly string[] }) {
+  if (words.length === 0) return text;
+  return markedParts(text, words).map((part, index) =>
+    part.marked ? (
+      <Highlight key={index} kind="Search">
+        {part.text}
+      </Highlight>
+    ) : (
+      part.text
+    ),
   );
 }

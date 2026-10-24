@@ -110,7 +110,7 @@ describe('a-row-per-entry', () => {
   });
   it('truncates a very long name instead of widening the table', () => {
     setup([entry('l', 'W'.repeat(400))]);
-    expect(within(bodyRows()[0]!).getAllByRole('cell')[0]!.querySelector('[dir]')!.className).toContain('truncate');
+    expect(within(bodyRows()[0]!).getAllByRole('cell')[0]!.querySelector('[data-entry-name]')!.parentElement!.className).toContain('truncate');
   });
   it('says what the caller says when no row is drawn', () => {
     setup([], { empty: <span>No entries match.</span> });

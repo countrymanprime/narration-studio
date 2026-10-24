@@ -70,8 +70,8 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   monitor_level: 'experimental',
   // No DAW the app talks to can set an audio interface's input gain.
   input_level: 'unsupported',
-  punch_preroll: 'experimental',
-  daw_meters: 'experimental',
+  punch_preroll: 'supported',
+  daw_meters: 'supported',
 };
 
 const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {

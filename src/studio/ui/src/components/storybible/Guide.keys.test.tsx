@@ -72,13 +72,16 @@ describe('arrow-keys-move-through-the-list', () => {
     expect(rows[1]).toBe(document.activeElement);
   });
 
-  it('leaves the arrow keys to the search box', async () => {
+  // Down in the search box now steps into the list (the redesign's search); Up and the other arrows stay the box's own.
+  it('leaves Up to the search box, and Down steps from it to the first row', async () => {
     const rows = await renderGuide();
     const box = screen.getByRole('textbox', { name: 'Search entries' });
     box.focus();
-    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowUp}{ArrowLeft}{ArrowRight}');
     expect(box).toBe(document.activeElement);
     expect(rows.every((row) => row !== document.activeElement)).toBe(true);
+    await userEvent.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(rows[0]);
   });
 
   it('keeps one tab stop in the list, on the selected entry', async () => {

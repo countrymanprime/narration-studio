@@ -9,7 +9,6 @@ import type { ChapterDoc } from '../model';
 import { docAt, projectAt, type ClosedCut } from './clockMap';
 import { EchoGuard } from './echoGuard';
 import { useVisible } from './useDawPlayPosition';
-import { DAW_ONLY } from './playRoute';
 
 /** How often the watch lease is renewed. The host asks for a lease of 6 s (transportsync.Lease), so one renewal can be lost and the stream goes on. */
 export const LEASE_RENEW_MS = 3000;
@@ -19,17 +18,17 @@ export const SILENT_MS = 3000;
 const WRITE_DEBOUNCE_MS = 80;
 
 const LOST = 'The DAW stopped answering, so playback stopped.';
-const DAW_PLAY_FAILED = (why: string): string => `The DAW could not play it (${why.replace(/\.$/, '')}). ${DAW_ONLY}`;
 
 /**
- * What `useScriptPlayback` asks of the DAW's transport. `refusal` is a plain read: null when the DAW can be asked to play the second, `not_ready`
- * while the watch lease is unanswered or refused (another project open, a recording), `not_placed` when the second has no project time. `start`
- * resolves true when the DAW took the play and false when it did not (nothing was left running, and the toast is said), and `stop` stops a DAW
- * play the app started or the DAW's own that the page is showing.
+ * What `useScriptPlayback` asks of the DAW's transport. `refusal` is a plain read: null when the DAW can be asked to play the second, `pending`
+ * until the watch lease is first answered, `not_ready` while it is refused (another project open, a recording; `refusedWith` is the DAW's sentence),
+ * `not_placed` when the second has no project time. `start` resolves null when the DAW took the play and the DAW's sentence when it did not
+ * (nothing was left running), and `stop` stops a DAW play the app started or the DAW's own that the page is showing.
  */
 export interface RemotePlayer {
-  refusal(docT: number): 'not_ready' | 'not_placed' | null;
-  start(docT: number): Promise<boolean>;
+  refusal(docT: number): 'pending' | 'not_ready' | 'not_placed' | null;
+  refusedWith(): string | null;
+  start(docT: number): Promise<string | null>;
   stop(): void;
 }
 
@@ -78,11 +77,13 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const { doc, state, dispatch } = useEditingPage();
   const visible = useVisible();
   const active = !!caps?.reachable && !!caps.capabilities['transport_sync']?.available;
-  const [ready, setReady] = useState(false);
+  // The watch lease: not answered since the page started watching, answered, or refused with the DAW's sentence.
+  const [lease, setLease] = useState<{ state: 'pending' | 'ready' | 'refused'; why: string | null }>({ state: 'pending', why: null });
+  const ready = lease.state === 'ready';
   const guard = useRef(new EchoGuard()).current;
-  const live = useRef({ ...options, doc, state, dispatch, ready });
+  const live = useRef({ ...options, doc, state, dispatch, lease });
   useEffect(() => {
-    live.current = { ...options, doc, state, dispatch, ready };
+    live.current = { ...options, doc, state, dispatch, lease };
   });
   /** The page's play is the DAW's: the app started it and has not stopped it. */
   const owns = useRef(false);
@@ -99,10 +100,12 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   useEffect(() => {
     if (!active || !visible) return;
     let alive = true;
+    // A renewal that answers as the last one did changes nothing, so the page does not render every 3 s.
+    const answer = (next: typeof lease): void => setLease((was) => (was.state === next.state && was.why === next.why ? was : next));
     const renew = (): void => {
       sync.dawTransportSync('watch', 0).then(
-        (result) => alive && setReady(result.ok),
-        () => alive && setReady(false),
+        (result) => alive && answer(result.ok ? { state: 'ready', why: null } : { state: 'refused', why: result.message || null }),
+        () => alive && answer({ state: 'refused', why: null }),
       );
     };
     renew();
@@ -110,7 +113,7 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
     return () => {
       alive = false;
       clearInterval(timer);
-      setReady(false);
+      setLease({ state: 'pending', why: null });
     };
   }, [sync, active, visible]);
 
@@ -234,13 +237,15 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
   const remote: RemotePlayer = useRef<RemotePlayer>({
     refusal: (docT) => {
       const l = live.current;
-      if (!l.ready) return 'not_ready';
+      if (l.lease.state === 'pending') return 'pending';
+      if (l.lease.state === 'refused') return 'not_ready';
       return projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT) === null ? 'not_placed' : null;
     },
+    refusedWith: () => live.current.lease.why,
     start: async (docT) => {
       const l = live.current;
       const project = projectAt({ playlist: l.playlist, items: l.items, cuts: l.cuts }, docT);
-      if (project === null) return false;
+      if (project === null) return 'That part has no place in the DAW project.';
       const mineEpoch = ++epoch.current;
       owns.current = true;
       lastHeard.current = Date.now();
@@ -252,16 +257,15 @@ export function useDawTransportSync(options: DawTransportSyncOptions): DawTransp
         ok = result.ok;
         why = result.message;
       } catch {
-        why = 'it could not be asked';
+        why = 'The DAW could not be asked to play.';
       }
       guard.settled(generation, ok);
       if (!ok) {
         if (epoch.current === mineEpoch) owns.current = false;
-        live.current.notify(DAW_PLAY_FAILED(why));
-        return false;
+        return why || 'The DAW did not play it.';
       }
       if (epoch.current !== mineEpoch) stopDaw(); // stopped while the DAW was being asked
-      return true;
+      return null;
     },
     stop: () => {
       epoch.current += 1;
