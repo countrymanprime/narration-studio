@@ -1,5 +1,5 @@
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { Button } from '../primitives/Button';
 import { ProgressBar } from '../primitives/ProgressBar';
 import type { RunState } from './checkRun';
@@ -12,7 +12,7 @@ export function RunningView({ chapters, run, model, onStop }: { chapters: readon
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {run.ids.map((id) => {
           const chapter = chapters.find((candidate) => candidate.id === id);
-          const name = chapter ? chapterName(chapter) : id;
+          const name = chapter ? headingName(chapter) : id;
           const active = run.active[id];
           const value = active ? active.percent : run.finished.includes(id) ? 100 : 0;
           return (

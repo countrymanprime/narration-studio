@@ -1,9 +1,9 @@
+import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ProductionChapter } from '../../api/contracts/production';
-import { chapterName } from '../../chapterName';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
 import { registerContextProvider, type ContextProvider } from '../../registries/context';
 import type { ChapterStatus, ChapterTrackLinks, ManuscriptChapter } from '../../types';
@@ -196,7 +196,7 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
         const credits = creditsKindOfId(row.id);
         if (credits) {
           return [
-            { key: 'heading', label: chapterName(row), unavailable: '', onSelect: () => {} },
+            { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },
             { key: 'script', label: 'Open prep in Script', onSelect: () => open_.script(row.id) },
             { key: 'booth', label: 'Open in Booth', onSelect: () => open_.booth(row.id) },
             { key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits', credits }) },
@@ -213,7 +213,7 @@ export function useChapterTools({ rows, credits, notify, go, goToScript, goToEdi
         const trackGuid = links?.chapters.find((entry) => entry.chapterId === row.id)?.links[0]?.trackGuid;
         return [
           // The primitive draws no heading yet, so the chapter's name is a disabled row.
-          { key: 'heading', label: chapterName(row), unavailable: '', onSelect: () => {} },
+          { key: 'heading', label: headingName(row), unavailable: '', onSelect: () => {} },
           { key: 'script', label: 'Open prep in Script', onSelect: () => open_.script(row.id) },
           { key: 'booth', label: 'Open in Booth', onSelect: () => open_.booth(row.id) },
           { key: 'proof', label: 'Open Proof', onSelect: () => open_.proof(row.id) },

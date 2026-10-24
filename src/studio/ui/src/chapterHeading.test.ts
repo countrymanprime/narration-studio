@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ManuscriptChapter } from './api/contracts/manuscript';
-import { cardLabel, chapterHeading, endedName } from './chapterHeading';
+import { cardLabel, chapterHeading, endedName, headingName } from './chapterHeading';
 
 const chapter = (over: Partial<ManuscriptChapter>): ManuscriptChapter => ({
   id: 'c',
@@ -39,5 +39,35 @@ describe('chapter names come from the data in every heading style', () => {
   it('the boundary names a numbered chapter by its label', () => {
     expect(endedName(chapter({ subtitle: 'x' }))).toBe('Chapter 8');
     expect(cardLabel(chapter({ subtitle: 'x' }))).toBe('Chapter 8');
+  });
+});
+
+// #2251 item 24: one display standard everywhere but the Booth reading area — the manuscript import dialog's. A numbered heading keeps its
+// own separator; a plain one keeps chapterName's em dash.
+describe('headingName is the one chapter-name display standard', () => {
+  it('a numbered heading keeps the manuscript separator, not the em dash', () => {
+    expect(headingName(chapter({ title: 'CHAPTER VIII.', subtitle: 'Croquet' }))).toBe('CHAPTER VIII. Croquet');
+    expect(headingName(chapter({ title: '8.', subtitle: 'Croquet' }))).toBe('8. Croquet');
+    expect(headingName(chapter({ title: 'Chapter 8:', subtitle: 'Croquet' }))).toBe('Chapter 8: Croquet');
+  });
+
+  it('a plain heading keeps the em dash, and a one-line heading is the title alone', () => {
+    expect(headingName(chapter({ title: 'Chapter 8', subtitle: 'Croquet' }))).toBe('Chapter 8 — Croquet');
+    expect(headingName(chapter({ title: 'Prologue' }))).toBe('Prologue');
+  });
+
+  it("matches the import dialog's headingName for the same heading", async () => {
+    const { headingName: importHeadingName } = await import('./components/production/importReviewModel');
+    for (const over of [
+      { title: 'CHAPTER VIII.', subtitle: 'Croquet' },
+      { title: '8.', subtitle: 'Croquet' },
+      { title: 'Chapter 8', subtitle: 'Croquet' },
+      { title: 'Prologue' },
+    ])
+      expect(headingName(chapter(over))).toBe(importHeadingName({ title: over.title, subtitle: over.subtitle }));
+  });
+
+  it("the Production page's empty content kind is not credits", () => {
+    expect(headingName({ title: 'Chapter 8', subtitle: 'Croquet', contentKind: '' })).toBe('Chapter 8 — Croquet');
   });
 });

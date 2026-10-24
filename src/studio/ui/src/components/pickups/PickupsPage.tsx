@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PickupItem, PickupList } from '../../api/contracts/pickups';
 import type { Measured } from '../../api/schemas/base';
-import { chapterHeading } from '../../chapterHeading';
+import { headingName } from '../../chapterHeading';
 import { CommandScope } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
 import { useOverlay } from '../../overlay/OverlayProvider';
@@ -21,12 +21,6 @@ import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
-
-/** A chapter named as the manuscript heads it, label then title ("Chapter 3 A Caucus-Race and a Long Tale"), as the mock's `chName` and the Editing page. */
-function headingName(chapter: Parameters<typeof chapterHeading>[0]): string {
-  const { label, title } = chapterHeading(chapter);
-  return label ? `${label} ${title}` : title;
-}
 
 const isNarration = (chapter: ManuscriptChapter) => (chapter.contentKind ?? 'narration') === 'narration';
 const LOADING: Measured<number> = { ok: false, reason: 'Reading the recording times…' };

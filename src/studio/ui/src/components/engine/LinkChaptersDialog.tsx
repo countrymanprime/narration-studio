@@ -1,3 +1,4 @@
+import { headingName } from '../../chapterHeading';
 import { useEffect, useMemo, useState } from 'react';
 import { chapterName } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
@@ -184,7 +185,7 @@ export function LinkChaptersDialog({ chapters, tracks, onClose }: { chapters: Ma
             const track = tracks.find((candidate) => candidate.guid === trackGuid);
             return (
               <TableRow key={chapter.id}>
-                <TableCell>{chapterName(chapter)}</TableCell>
+                <TableCell>{headingName(chapter)}</TableCell>
                 <TableCell>
                   <Select
                     label={`Track for ${chapterName(chapter, 'short')}`}
