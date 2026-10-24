@@ -1,6 +1,7 @@
 // Command proof-align serves the host's Proof analyses (the recording check's
 // alignment, internal/recordingcoverage, and the take comparison's,
-// internal/takedivergence) to the Python test tooling of the transcript-compare
+// internal/takedivergence, and the Transcript Compare run's markers,
+// internal/comparerun) to the Python test tooling of the transcript-compare
 // sidecar: its coverage harness, calibration, alignment spike and divergence
 // harness (src/studio/sidecars/transcript-compare/tests/go_coverage.py and
 // go_divergence.py), so they measure what the app ships. It is a development
@@ -15,6 +16,7 @@
 //	{"op": "measure", ...}  a manuscript chapter measured against items' words, as a run measures it
 //	{"op": "span", ...}     the spoken words of sentence units firstUnit..lastUnit of paragraphs
 //	{"op": "alignTake", ...} one take's words aligned to that span: each word's status, the divergences
+//	{"op": "compareRun", ...} a Transcript Compare run's results and diff files, as the host writes them
 //
 // A reply is {"error": "..."} when the request fails.
 package main
@@ -28,6 +30,7 @@ import (
 	"os"
 
 	"desktop/internal/compare"
+	"desktop/internal/comparerun"
 	"desktop/internal/recordingcoverage"
 	"desktop/internal/takedivergence"
 )
@@ -62,6 +65,9 @@ type request struct {
 	// span, alignTake
 	FirstUnit int `json:"firstUnit"`
 	LastUnit  int `json:"lastUnit"`
+
+	// compareRun (and manuscript, wordsReport, out)
+	DiffOut string `json:"diffOut"`
 }
 
 type measureItem struct {
@@ -151,6 +157,12 @@ func handle(req request) (any, error) {
 		return spanJSON(span), nil
 	case "alignTake":
 		return alignTake(req)
+	case "compareRun":
+		markers, err := comparerun.Run(comparerun.Request{ManuscriptPath: req.Manuscript, WordsReport: req.WordsReport, Out: req.Out, DiffOut: req.DiffOut})
+		if err != nil {
+			return nil, err
+		}
+		return map[string]int{"markers": markers}, nil
 	default:
 		return nil, fmt.Errorf("unknown op %q", req.Op)
 	}

@@ -7,6 +7,8 @@ package transcript
 import (
 	"context"
 	"desktop/internal/brand"
+	"desktop/internal/compare"
+	"desktop/internal/comparerun"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,7 +47,13 @@ type Service struct {
 	logPath string
 	// +checklocks:mu
 	logAt int64
-	files atomic.Pointer[persist.Reporter]
+	// words is where the sidecar writes the words it heard, and manuscript the canonical manuscript the host builds the
+	// markers against (internal/comparerun).
+	// +checklocks:mu
+	words string
+	// +checklocks:mu
+	manuscript string
+	files      atomic.Pointer[persist.Reporter]
 	// findingsStore and manuscriptLookup are nil until app.go opts in with
 	// SetFindings;
 	// every existing caller, including every test in this package, leaves
@@ -613,9 +621,10 @@ func (s *Service) handlePrepared(fields []string) {
 	runID, _ := s.state["runId"].(string)
 	s.mu.Unlock()
 	output := filepath.Join(s.config.SessionDir, "results_"+runID+".txt")
+	words := filepath.Join(s.config.SessionDir, "words_"+runID+".txt")
 	progress := filepath.Join(s.config.SessionDir, "progress_"+runID+".txt")
 	logPath := filepath.Join(s.config.SessionDir, "log_"+runID+".txt")
-	args := []string{"--manifest", fields[2], "--manuscript", fields[3], "--track-name", fields[4], "--out", output, "--diff-out", fields[5], "--model", option(options, "model", "small"), "--progress", progress, "--log", logPath}
+	args := []string{"--manifest", fields[2], "--manuscript", fields[3], "--track-name", fields[4], "--out", words, "--model", option(options, "model", "small"), "--progress", progress, "--log", logPath}
 	if s.config.Backend != "" {
 		args = append([]string{s.config.Backend}, args...)
 	}
@@ -642,7 +651,7 @@ func (s *Service) handlePrepared(fields []string) {
 		return
 	}
 	s.mu.Lock()
-	s.child, s.progress, s.logPath, s.logAt = child, progress, logPath, 0
+	s.child, s.progress, s.logPath, s.logAt, s.words, s.manuscript = child, progress, logPath, 0, words, fields[3]
 	s.state["phase"], s.state["message"], s.state["output"] = "running", "Launching transcript backend…", output
 	s.mu.Unlock()
 	s.notify()
@@ -708,11 +717,11 @@ func (s *Service) Poll() {
 func (s *Service) finishBackend(child *process.Child) {
 	s.mu.RLock()
 	output, diffPath := textValue(s.state, "output"), textValue(s.state, "diffPath")
+	words, manuscript, logPath := s.words, s.manuscript, s.logPath
 	s.mu.RUnlock()
-	bytes, err := os.ReadFile(output)
-	if err != nil {
-		return
-	}
+	// A sidecar that exited without writing --out (a crash, or a failure it reported only in its progress) is judged by
+	// its exit code below, so the run never stays "running".
+	bytes, _ := os.ReadFile(words)
 	content := string(bytes)
 	if rest, ok := strings.CutPrefix(content, "NEED_CHAPTER|"); ok {
 		s.mu.Lock()
@@ -736,6 +745,12 @@ func (s *Service) finishBackend(child *process.Child) {
 		s.fail("Transcript backend failed.")
 		return
 	}
+	markers, err := comparerun.Run(comparerun.Request{ManuscriptPath: manuscript, WordsReport: words, Out: output, DiffOut: diffPath})
+	if err != nil {
+		s.fail(err.Error())
+		return
+	}
+	appendRunLog(logPath, fmt.Sprintf("Wrote %d marker row(s) to %s", markers, output))
 	s.mu.Lock()
 	runID, _ := s.state["runId"].(string)
 	s.state["phase"], s.state["message"], s.child = "inspecting", "Checking existing take markers in REAPER…", nil
@@ -753,6 +768,22 @@ func (s *Service) finishBackend(child *process.Child) {
 	}
 	s.notify()
 }
+
+// appendRunLog adds one line to the run's log, in the sidecar's own shape ({"level", "msg", "ts"}, sorted keys), so the
+// log the page shows still ends with what the run wrote.
+func appendRunLog(path, message string) {
+	if path == "" {
+		return
+	}
+	line := []byte(compare.DumpPy(compare.PyObject{"level": "info", "msg": message, "ts": time.Now().UTC().Format("2006-01-02T15:04:05.000Z")}, false))
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	if err != nil {
+		return
+	}
+	defer func() { _ = file.Close() }()
+	_, _ = file.Write(append(line, '\n'))
+}
+
 func (s *Service) fail(message string) {
 	s.mu.Lock()
 	var ended CompletedRun

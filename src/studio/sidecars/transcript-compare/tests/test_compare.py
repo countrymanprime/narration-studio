@@ -172,11 +172,6 @@ def test_an_aside_is_an_extra_marker_that_repeats_nothing():
     assert _repeat_markers(said) == [("EXTRA", "what a lovely day", "")]
 
 
-def test_the_results_file_writes_the_repeated_text_as_the_thirteenth_marker_field():
-    assert "MARKER|<item_index>|<srcpos_seconds>|<kind>|<name>|<doc_text>|<audio_text>|" in compare.__doc__
-    assert "<confidence>|<timing_gap_seconds>|<repeat_of>" in compare.__doc__
-
-
 def test_a_skip_inside_the_recorded_span_is_marked():
     markers, _covered = _markers("Chapter 1", PARAGRAPHS, "ada opened the ledger at the first page then she closed the book")
 

@@ -1,0 +1,4 @@
+COMPARE_CHAPTER|{"chapterId":"c-1","score":1.0}
+COMPARE_SEGMENT|{"itemIndex":1,"startOffset":100.25,"concatStart":0.0}
+COMPARE_SEGMENT|{"itemIndex":3,"startOffset":0.5,"concatStart":8.123}
+COMPARE_WORDS|{"words":[["Chapter",0.0,0.4],["one",0.5,0.8],["She",1.5,1.8],["had",1.9,2.1],["nothing",2.2,2.6],["two",2.7,2.9],["do.",3.0,3.3],["Café",9.0,9.4],["“naïve”",9.5,10.0]]}
