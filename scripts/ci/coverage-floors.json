@@ -18,6 +18,7 @@
     {"tool":"go","project":"src/studio/desktop","path":"internal/persist","floor":98},
     {"tool":"go","project":"src/studio/desktop","path":"internal/project","floor":88},
     {"tool":"go","project":"src/studio/desktop","path":"internal/projectstate","floor":92},
+    {"tool":"go","project":"src/studio/desktop","path":"internal/roomtone","floor":93},
     {"tool":"go","project":"src/studio/desktop","path":"internal/manuscript","floor":85,"reason":"Baseline of 2026-09-20 (73.2%). The service and reader carry file and progress plumbing that is exercised end to end, not unit by unit; the ratchet stops it falling and each change here should raise it."},
     {"tool":"go","project":"src/studio/desktop","path":"internal/measure","floor":97,"reason":"Take metrics engine (take-review p8) added range analysis, clipping and per-take evidence; 97.9% measured"},
     {"tool":"go","project":"src/studio/desktop","path":"internal/takecompare","floor":87,"reason":"Take comparison (take-review p10); 87.2% measured. The uncovered statements are ProcessRunner.TakeDivergence starting the real sidecar (process glue, like takereview's ProcessRunner) and a neighbour WAV that cannot be read"},

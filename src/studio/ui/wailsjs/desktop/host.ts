@@ -2894,6 +2894,14 @@ export function TeleprompterResumeUnfollow(): $CancellablePromise<string> {
 }
 
 /**
+ * TeleprompterRoomTone answers device's room tone, measured by any capture of it the app ran (a reading session or the
+ * level meter) and kept in room-tone.json (#2251 item 10). It reads only; nothing is measured by asking.
+ */
+export function TeleprompterRoomTone(device: string): $CancellablePromise<string> {
+    return $Call.ByID(2638499092, device);
+}
+
+/**
  * TeleprompterSaveFlags writes a read-aloud session's suspected flags into the project's findings store as unreviewed
  * findings: a misread, extra or skip as a
  * transcript_discrepancy, a restart as a pickup. The dialog calls it when a session ends and when it closes, so it is

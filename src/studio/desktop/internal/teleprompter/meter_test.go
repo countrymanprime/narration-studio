@@ -26,9 +26,13 @@ func runFakeMeter(mode string) bool {
 		fmt.Fprintln(os.Stderr, "Could not open the microphone: device not found")
 		os.Exit(3)
 	}
-	fmt.Println(`{"type":"level","peak":-12.5,"rms":-20}`)
-	fmt.Println(`{"type":"position","read":1,"committed":0,"status":"listening","jump":null,"skipped":null}`)
-	fmt.Println(`{"type":"level","peak":-6,"rms":-9}`)
+	if mode == "room" {
+		printRoomLevels()
+	} else {
+		fmt.Println(`{"type":"level","peak":-12.5,"rms":-20}`)
+		fmt.Println(`{"type":"position","read":1,"committed":0,"status":"listening","jump":null,"skipped":null}`)
+		fmt.Println(`{"type":"level","peak":-6,"rms":-9}`)
+	}
 	for {
 		if _, err := os.Stat(stopFile); err == nil {
 			return true

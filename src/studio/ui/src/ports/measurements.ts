@@ -17,8 +17,8 @@ export interface MeasurementsPort {
   chapterLengths(): Promise<Measured<Record<string, number>>>;
 }
 
-/** The `NarrationApi` methods the host adapter calls: no new binding, only today's. */
-export type MeasurementsHostApi = Pick<NarrationApi, 'productionOverview' | 'recorderState'>;
+/** The `NarrationApi` methods the host adapter calls. */
+export type MeasurementsHostApi = Pick<NarrationApi, 'productionOverview' | 'recorderState' | 'teleprompterRoomTone'>;
 
 const NOTHING = 'Nothing has been measured yet.';
 const NO_LENGTHS = 'No chapter has a measured length yet.';
@@ -33,10 +33,17 @@ function localDateTime(ms: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** Reads today's bindings. Room tone and Booth time have no host source, so they answer a reason that names what is missing. */
+/**
+ * Reads the host. The room tone is the one the host keeps per microphone, measured by any capture of it (a take or the Levels
+ * menu's meter, #2251 item 10). Booth time has no host source, so it answers a reason that names what is missing.
+ */
 export function createHostMeasurements(api: MeasurementsHostApi): MeasurementsPort {
   return {
-    roomTone: (mic) => Promise.resolve(none(`The recorder does not report a room-tone reading for ${mic} yet.`)),
+    async roomTone(mic) {
+      if (!mic.trim()) return none('Choose a microphone to measure its room tone.');
+      const tone = await api.teleprompterRoomTone(mic);
+      return tone.db === null ? none(`Nothing has measured the room through ${mic} yet: open Levels or record a take.`) : { ok: true, value: tone.db };
+    },
     pickupSessionSeconds: () => Promise.resolve(none('No pickup has been redone in the Booth yet.')),
     async chapterLengths() {
       const overview = await api.productionOverview();

@@ -1128,7 +1128,9 @@ describe('the footer room tone', () => {
   it('says the room is not measured yet when there is no reading', async () => {
     renderPage({ measurements: createMockMeasurements({ none: true }) });
     await ready();
-    expect(await screen.findByText('Room not measured yet')).toBeTruthy();
+    const chip = await screen.findByText('Room not measured yet');
+    // Why, and what measures it, is the chip's tooltip.
+    await waitFor(() => expect(chip.closest('[title]')?.getAttribute('title')).toBe('Nothing has been measured yet.'));
   });
 });
 
