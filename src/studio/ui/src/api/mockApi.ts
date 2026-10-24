@@ -81,6 +81,7 @@ import type {
   DawRepairClickApi,
   DawUndoLastApi,
 } from './contracts/daw';
+import { DAW_CHOSEN_CHAIN } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
 import type { TakeEvidenceApi } from './contracts/takeEvidence';
 import type { PassageMark } from './contracts/passageMap';
@@ -99,6 +100,9 @@ import {
   fxRangeSetAnswerOf,
   nothingToStackAnswer,
   plainChainName,
+  fxChooseAnswerOf,
+  fxChosenAnswerOf,
+  fxChosenRemovedOf,
   rangeCutOf,
   MockBackupTable,
   rolledOf,
@@ -758,6 +762,10 @@ function createFxRangeMock(
       const support = setup.capabilities.fx_range;
       if (!support?.available) return refusedResult(support?.message ?? '');
       if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return stale;
+      if (chainName === DAW_CHOSEN_CHAIN) {
+        const off = fxChosenRemovedOf(setup);
+        return 'refused' in off ? refusedResult(off.refused) : off.result;
+      }
       if (!plainChainName(chainName)) return refusedResult(DAW_ANSWERS.fxBadChain);
       const fx = fxRangeRemovedOf(setup, chainName);
       return { ok: true, changed: true, message: fx.message, undoSteps: fx.undoSteps, ...(fx.steps ? { steps: fx.steps } : {}) };
@@ -787,6 +795,22 @@ function createFxRangeMock(
       const answer = fxRangeCompareAnswerOf(checked.setup, chainName);
       return 'refused' in answer ? { result: refusedResult(answer.refused), pass: 0 } : answer.compare;
     },
+    dawChooseFxForRange: async (chapterId, firstToken, lastToken, fadeMs) => {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.fx_range;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      if (!Number.isInteger(fadeMs) || fadeMs < 0 || fadeMs > 500) return refusedResult(DAW_ANSWERS.cutBadFade);
+      if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return stale;
+      const opened = fxChooseAnswerOf(setup, lastToken - firstToken + 1);
+      return 'refused' in opened ? refusedResult(opened.refused) : opened.result;
+    },
+    dawChosenFxForRange: async (chapterId, firstToken, lastToken) => {
+      const none = (result: DawResult) => ({ result, fx: [], label: '', chainOpen: false, truncated: false });
+      const checked = await checkTarget(chapterId, firstToken, lastToken, DAW_CHOSEN_CHAIN);
+      if ('refused' in checked) return none(checked.refused);
+      const answer = fxChosenAnswerOf(checked.setup);
+      return 'refused' in answer ? none(refusedResult(answer.refused)) : answer.choice;
+    },
     dawStopFxCompare: async () => {
       const setup = await daw.dawCapabilities();
       const support = setup.capabilities.fx_range;
@@ -806,7 +830,7 @@ function createFxRangeMock(
     const support = setup.capabilities.fx_range;
     if (!support?.available) return { refused: refusedResult(support?.message ?? '') };
     if (!(await hasChapter(chapterId)) || firstToken < 0 || lastToken < firstToken) return { refused: stale };
-    if (!plainChainName(chainName)) return { refused: refusedResult(DAW_ANSWERS.fxBadChain) };
+    if (!plainChainName(chainName) && chainName !== DAW_CHOSEN_CHAIN) return { refused: refusedResult(DAW_ANSWERS.fxBadChain) };
     return { setup };
   }
 }

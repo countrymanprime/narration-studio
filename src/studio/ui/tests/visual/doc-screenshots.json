@@ -1303,6 +1303,13 @@
   },
   {
     "page": "editing",
+    "state": "drawer-effects-choose",
+    "viewport": "desktop",
+    "docName": "editing-drawer-effects-choose",
+    "caption": "Editing - Choose in REAPER: REAPER's FX window is open for the selected words, and the panel names what is chosen there, with Keep it, Cancel and Check again"
+  },
+  {
+    "page": "editing",
     "state": "drawer-effects-inspector",
     "viewport": "desktop",
     "docName": "editing-drawer-effects-inspector",

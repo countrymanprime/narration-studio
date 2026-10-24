@@ -27,7 +27,7 @@ export interface EffectsTabProps {
   /** The keys of the words selected on the page. */
   selected: readonly string[];
   /** Add FX and Remove from the page's `useFxWords` (SN-E64): the question, the DAW and the history are its. */
-  fx: Pick<FxWords, 'list' | 'ask' | 'remove' | 'refusalOf'> & Partial<Pick<FxWords, 'favourites'>>;
+  fx: Pick<FxWords, 'list' | 'ask' | 'remove' | 'refusalOf'> & Partial<Pick<FxWords, 'favourites' | 'chooser'>>;
   /** Selects these words in the script. */
   onSelectWords: (keys: string[]) => void;
 }
@@ -88,6 +88,20 @@ export function EffectsTab({ doc, effects, cuts, total, selected, fx, onSelectWo
         list={fx.list}
         favourites={fx.favourites}
         onAdd={() => fx.ask(selected)}
+        choose={
+          // REAPER's own FX window lists every plug-in REAPER has (#2251); no other DAW the app drives has one it can open for words.
+          fx.chooser && kind === 'REAPER'
+            ? {
+                dawName,
+                reason: summary ? fx.chooser.refusalOf(summary) : '',
+                state: fx.chooser.state,
+                onChoose: () => summary && fx.chooser?.start(summary),
+                onKeep: fx.chooser.keep,
+                onCancel: fx.chooser.cancel,
+                onCheck: fx.chooser.check,
+              }
+            : undefined
+        }
       />
     </div>
   );
