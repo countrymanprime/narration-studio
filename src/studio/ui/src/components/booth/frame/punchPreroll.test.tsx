@@ -102,17 +102,22 @@ describe("the Levels menu punch pre-roll is REAPER's own when REAPER has one", (
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('puts the explanation behind an info button a keyboard reaches and a screen reader hears', async () => {
+  it('keeps the explanation behind an info button that the keyboard opens and closes', async () => {
     const { open } = menu('daw', {}, on);
     await open();
     const info = await screen.findByRole('button', { name: 'About REAPER’s pre-roll' });
-    const about = info.getAttribute('aria-description') ?? '';
-    expect(about).toContain('One measure is 2.0 s at the edit cursor.');
-    expect(about).toContain('Off, a punch records from the word with no lead-in.');
-    expect(about).toContain('“Pre-roll: Toggle pre-roll on record”');
-    await userEvent.tab();
+    expect(info.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText(/One measure is 2\.0 s at the edit cursor/)).toBeNull();
     while (document.activeElement !== info && document.activeElement !== document.body) await userEvent.tab();
     expect(document.activeElement).toBe(info);
+    await userEvent.keyboard('{Enter}');
+    expect(info.getAttribute('aria-expanded')).toBe('true');
+    const note = screen.getByText(/One measure is 2\.0 s at the edit cursor\./);
+    expect(note.textContent).toContain('Off, a punch records from the word with no lead-in.');
+    expect(note.textContent).toContain('“Pre-roll: Toggle pre-roll on record”');
+    expect(document.getElementById(info.getAttribute('aria-controls') ?? '')?.contains(note)).toBe(true);
+    await userEvent.keyboard('{Enter}');
+    expect(screen.queryByText(/One measure is 2\.0 s at the edit cursor/)).toBeNull();
   });
 
   it('shows a pre-roll REAPER plays before recording, with its length in seconds', async () => {
@@ -120,8 +125,8 @@ describe("the Levels menu punch pre-roll is REAPER's own when REAPER has one", (
     const { open } = menu('daw', { dawPunchPreroll: read } as Partial<NarrationApi>, on);
     await open();
     expect(await screen.findByText('Pre-roll on · 1 measure (1.8 s)')).toBeTruthy();
-    const about = screen.getByRole('button', { name: 'About REAPER’s pre-roll' }).getAttribute('aria-description') ?? '';
-    expect(about).toContain('plays from the bar line 1 measure or more before the word, then records from the word');
+    await userEvent.click(screen.getByRole('button', { name: 'About REAPER’s pre-roll' }));
+    expect(screen.getByText(/plays from the bar line 1 measure or more before the word, then records from the word/)).toBeTruthy();
   });
 
   it('reads it again when the window is looked at, since it is changed in REAPER', async () => {

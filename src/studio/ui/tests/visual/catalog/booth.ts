@@ -223,7 +223,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'levels-menu-preroll-about',
     description:
-      'Booth, the Levels menu\'s Punch line ("Pre-roll off · 2 measures (4.0 s)") with its info button reached by the keyboard: the note says what REAPER\'s pre-roll does, how long one measure is at the cursor, and where to change it in REAPER',
+      'Booth, the Levels menu\'s Punch line ("Pre-roll off · 2 measures (4.0 s)") with its info button opened from the keyboard: the note under it, inside the menu, says what REAPER\'s pre-roll does, how long one measure is at the cursor, and where to change it in REAPER',
     ...REFLOW,
   },
   {

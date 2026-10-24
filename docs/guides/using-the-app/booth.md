@@ -76,7 +76,7 @@ Settings** opens the switch.
 
 **Punch** shows the lead-in you hear before a punch. With REAPER it is REAPER's own pre-roll, the one the punch really uses, in
 one line: whether it is on and its length, for example **Pre-roll off · 2 measures (4.0 s)**. The seconds are the measures at the
-tempo at the edit cursor. Point at the **i** beside it, or Tab to it, to see what it does: with pre-roll on, REAPER plays from the
+tempo at the edit cursor. Press the **i** beside it (or Tab to it and press Enter) to read what it does under the line: with pre-roll on, REAPER plays from the
 bar line at or before that many measures before the word, then records from the word; with it off, a punch records from the word
 with no lead-in. Change it in REAPER: "Pre-roll: Toggle pre-roll on record" turns it on or off, and it applies to every project.
 The menu reads it again when you come back to the window. It needs no switch: the app only reads it.
