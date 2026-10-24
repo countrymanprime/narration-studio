@@ -124,6 +124,10 @@ export const dawFeedback = {
   'src/ports/daw.ts::dawBypassFxRange#1': adapter('Forwards Bypass with the words and chain only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawCompareFxRange#1': adapter('Forwards Compare with the words and chain only; the binding already answers a DawResult and each pass.'),
   'src/ports/daw.ts::dawStopFxCompare#1': adapter('Forwards Stop comparing; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::dawChooseFxForRange#1': adapter('Forwards Choose in the DAW with the words and fade only; the binding already answers a DawResult.'),
+  'src/ports/daw.ts::dawChosenFxForRange#1': adapter(
+    'Forwards the read of what was chosen in the DAW with the words only; the binding already answers the choice.',
+  ),
   'src/ports/daw.ts::dawStackTakes#1': adapter('Forwards Stack retries as takes with the passage ids only; the binding already answers a DawResult.'),
   'src/ports/daw.ts::dawBackupAround#1': adapter(
     'Forwards Back up the audio around the words with the chapter, tokens and label only; the binding already answers a DawResult.',

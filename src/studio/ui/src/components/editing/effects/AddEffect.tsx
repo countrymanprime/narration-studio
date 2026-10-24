@@ -3,12 +3,26 @@ import { Button } from '../../primitives/Button';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { fmtPct, type Impact } from './effectsMath';
 import type { FxFavourites } from './useFxFavourites';
+import type { ChooseState } from '../range/fx/useChooseInDaw';
+import { ChooseInDaw } from './ChooseInDaw';
+
+/** Choose in the DAW as Add an effect offers it: the button's DAW, why it is off for these words ('' when on), where it is, and its steps. */
+export interface AddEffectChoose {
+  dawName: string;
+  reason: string;
+  state: ChooseState;
+  onChoose: () => void;
+  onKeep: () => void;
+  onCancel: () => void;
+  onCheck: () => void;
+}
 
 export const SELECT_FIRST = 'Select the words first.';
 
 /**
  * Add an effect to the selected words. With no selection the button is off and says so; a DAW that cannot add one puts its own reason beside
  * it. Over the cap it warns before anything is asked, and the button reads "Add anyway". The DAW's own chains are listed under their source.
+ * With a DAW that has an FX window of its own, Choose in the DAW opens it for the words so any plug-in the DAW has can go on them (#2251).
  */
 export function AddEffect({
   hasSelection,
@@ -18,6 +32,7 @@ export function AddEffect({
   list,
   favourites,
   onAdd,
+  choose,
 }: {
   hasSelection: boolean;
   /** Why the DAW cannot add one to this selection, or ''. */
@@ -29,6 +44,8 @@ export function AddEffect({
   /** The narrator's favourites, when the page has them: each listed chain gets a star and the list is already in favourites-first order. */
   favourites?: FxFavourites;
   onAdd: () => void;
+  /** Choose in the DAW (#2251), for a DAW with an FX window of its own; absent for any other. */
+  choose?: AddEffectChoose;
 }) {
   const note = !hasSelection ? SELECT_FIRST : reason;
   const over = !!impact?.over;
@@ -53,7 +70,25 @@ export function AddEffect({
         <Button disabled={!!note} aria-describedby={note ? 'addfx-note' : undefined} onClick={onAdd}>
           {over ? 'Add anyway' : 'Add effect'}
         </Button>
+        {choose ? (
+          <Button
+            variant="secondary"
+            disabled={!hasSelection || !!choose.reason || choose.state.phase !== 'idle'}
+            aria-describedby={!hasSelection ? 'addfx-note' : choose.reason ? 'choosefx-note' : undefined}
+            onClick={choose.onChoose}
+          >
+            {choose.state.phase === 'opening' ? `Opening ${choose.dawName}…` : `Choose in ${choose.dawName}…`}
+          </Button>
+        ) : null}
       </div>
+      {choose && hasSelection && choose.reason && choose.reason !== note ? (
+        <p id="choosefx-note" className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
+          {choose.reason}
+        </p>
+      ) : null}
+      {choose?.state.phase === 'choosing' ? (
+        <ChooseInDaw state={choose.state} dawName={choose.dawName} onKeep={choose.onKeep} onCancel={choose.onCancel} onCheck={choose.onCheck} />
+      ) : null}
       {note ? (
         <p id="addfx-note" className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
           {note}

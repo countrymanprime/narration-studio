@@ -142,6 +142,18 @@ func dawRemoveFxFromRangeIn(ctx context.Context, svc hostServices, support dawpo
 	if err != nil || refused != nil {
 		return refusedOr(refused), err
 	}
+	if chainName == dawport.ChosenChain {
+		// A choice made in the DAW's own FX window comes off the piece the choose answered, even when nothing was chosen.
+		chooser, refusal := chooserOf(svc, applier)
+		if chooser == nil {
+			return refusal, nil
+		}
+		result, err := chooser.RemoveChosenFX(ctx, dawport.FXRangeTarget{RangeRequest: resolved.Request, ChainName: chainName})
+		if err != nil {
+			return fxRangeRefusal(readAloudAdapterName(svc), err), nil
+		}
+		return result, nil
+	}
 	if !plainChainName(chainName) {
 		return dawport.Refused(fxRangeBadChainSentence), nil
 	}
@@ -333,7 +345,7 @@ func dawFxRangeEditIn(ctx context.Context, svc hostServices, support dawport.Sup
 	if err != nil || refused != nil {
 		return refusedOr(refused), err
 	}
-	if !plainChainName(chainName) {
+	if !plainChainName(chainName) && chainName != dawport.ChosenChain {
 		return dawport.Refused(fxRangeBadChainSentence), nil
 	}
 	name := readAloudAdapterName(svc)

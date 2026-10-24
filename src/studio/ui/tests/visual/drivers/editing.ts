@@ -250,6 +250,18 @@ export const editingDrivers: Record<string, Driver> = {
       .first()
       .waitFor();
   },
+  'drawer-effects-choose': async (page) => {
+    // Choose in REAPER… on the selected words: the mock host's REAPER answers that ReaComp is chosen, its window still open.
+    await openEditing(page, EDITS);
+    await selectWords(page);
+    await page.getByRole('button', { name: 'Clean up and effects' }).click();
+    await page.locator('#drawer').waitFor();
+    await page.getByRole('tab', { name: /^Effects/ }).click();
+    await page.getByRole('button', { name: 'Choose in REAPER…' }).click();
+    const panel = page.getByRole('group', { name: 'Choosing in REAPER' });
+    await panel.getByRole('status').filter({ hasText: 'REAPER has ReaComp (Cockos)' }).waitFor();
+    await panel.scrollIntoViewIfNeeded();
+  },
   'drawer-timeline': async (page) => {
     // The timeline follows the line the cursor is on: place it on the first line's second word first.
     await openEditing(page, LINKED);

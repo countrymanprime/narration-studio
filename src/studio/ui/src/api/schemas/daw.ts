@@ -25,6 +25,8 @@ import type {
   DawCapabilityReason,
   DawCapabilitySupport,
   DawFxRangeCompare,
+  DawFxRangeChoice,
+  DawChosenFx,
   DawFxRangeSettings,
   DawFxSetting,
   DawKind,
@@ -249,6 +251,22 @@ export const dawFxRangeCompareSchema = z
     message: 'a started Compare plays for a time, and a refused one for none',
     path: ['pass'],
   }) satisfies z.ZodType<DawFxRangeCompare>;
+
+/** dawport.FXRangeChoice: a read adds no undo step and a refusal has no plug-ins; the label is the plug-ins' names, never a path. */
+export const dawFxRangeChoiceSchema = z
+  .object({
+    result: dawResultSchema,
+    fx: z.array(z.object({ name: z.string(), enabled: z.boolean() }) satisfies z.ZodType<DawChosenFx>).max(64),
+    label: z.string().refine((label) => !/[\\:/]/.test(label), { message: 'a chosen label has no colon, slash or backslash' }),
+    chainOpen: z.boolean(),
+    truncated: z.boolean(),
+  })
+  .refine((answer) => answer.result.undoSteps === 0, { message: 'a read adds no undo step', path: ['result'] })
+  .refine((answer) => answer.result.ok || answer.fx.length === 0, { message: 'a refused read has no plug-ins', path: ['fx'] })
+  .refine((answer) => (answer.fx.length === 0) === (answer.label === ''), {
+    message: 'the label names the plug-ins',
+    path: ['label'],
+  }) satisfies z.ZodType<DawFxRangeChoice>;
 
 /** A backup table row's text (the source track's name, the chapter id, the label): non-empty, at most 256 bytes as the host counts them, no
  * control characters (audacity.backupText). */
