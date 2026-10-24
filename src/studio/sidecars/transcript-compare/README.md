@@ -124,9 +124,10 @@ pick when no heading matches confidently. The pickup and duplicate scan chooses 
   some jitter, so don't trust marker timing to the millisecond.
 - Chunked transcription (the **Chunk**/**Workers** config-screen rows) splits only the
   transcription step - the diff/marker step still runs once over the full assembled transcript,
-  same as whole-file mode. Chunks overlap by ~1.5s and duplicate words in that overlap are
-  de-duplicated on reassembly, but this is a heuristic, not a guarantee - a chunk boundary
-  landing mid-word/mid-sentence in an unlucky spot can still occasionally produce an extra or
-  missing word right at the seam. Language auto-detection runs once (on the first chunk) and is
+  same as whole-file mode. Neighbouring chunks share ~3 s (each reaches ~1.5 s past the cut
+  between them), and each word is kept from the chunk its midpoint falls in, the cut being the
+  middle of the shared span, as the recording check's chunks are joined. A word Whisper hears
+  differently in the two chunks right at the cut can still come out once from each side or not
+  at all. Language auto-detection runs once (on the first chunk) and is
   reused for the rest when `--language` isn't forced, but each chunk's Whisper call otherwise
   has no visibility into its neighbors.
