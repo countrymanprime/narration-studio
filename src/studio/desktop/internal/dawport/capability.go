@@ -71,6 +71,9 @@ const (
 	// CapInputLevel would set the level an audio interface records at. No engine can: it is declared so every engine says so in its
 	// own sentence, and the narrator is sent to the interface's control panel.
 	CapInputLevel Capability = "input_level"
+	// CapPunchPreroll reads the engine's own pre-roll before a punched take: its length and whether the engine plays it before it records,
+	// so the Booth shows the pre-roll it punches with (#2251 item 11).
+	CapPunchPreroll Capability = "punch_preroll"
 )
 
 // Needs is what a capability needs from the running engine before it can be used.
@@ -137,6 +140,7 @@ var specs = []Spec{
 	{CapUndoLast, "Undo the app's last action", NeedsRunning, reflect.TypeFor[LastActionUndoer](), nil},
 	{CapMonitorLevel, "Set the monitor level", NeedsRunning, reflect.TypeFor[MonitorLeveler](), nil},
 	{CapInputLevel, "Set the input level", NeedsRunning, reflect.TypeFor[InputLeveler](), nil},
+	{CapPunchPreroll, "Punch pre-roll", NeedsRunning, reflect.TypeFor[PrerollReader](), nil},
 }
 
 // Capabilities returns every capability's spec, in catalog order. The slice is the caller's own.

@@ -746,7 +746,13 @@ function BoothSession({
               device: session.device,
               onDevice: session.changeDevice,
               listen: standalone ? undefined : { devices: session.devices, fromDaw: listening.fromDaw, note: listening.note },
-              levels: capabilities ? { monitor: capabilities.capabilities.monitor_level, input: capabilities.capabilities.input_level } : undefined,
+              levels: capabilities
+                ? {
+                    monitor: capabilities.capabilities.monitor_level,
+                    input: capabilities.capabilities.input_level,
+                    preroll: capabilities.capabilities.punch_preroll,
+                  }
+                : undefined,
             }}
             roomTone={roomTone.label}
             roomToneOk={roomTone.ok}

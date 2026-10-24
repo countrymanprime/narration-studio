@@ -170,3 +170,13 @@ H.test('7.82/Linux: TakeFX_SetEnabled adds an undo point per change outside an u
   H.eq(#fake.undo, 3, "inside a block the change is the block's own point")
   H.eq(fake.undo[3].label, H.brand.name .. ': bypass effect')
 end)
+
+-- Observed in REAPER 7.82 on Linux, 2026-10-24 (docs/research/reaper-preroll-2026-10-24.md).
+
+H.test('7.82/Linux: the pre-roll is two configuration variables, an integer bit field and a fourteen-decimal length', function()
+  local reaper_api, fake = api()
+  fake.config.preroll, fake.config.prerollmeas = '0', '2.00000000000000'
+  H.eq({ reaper_api.get_config_var_string('preroll') }, { true, '0' })
+  H.eq({ reaper_api.get_config_var_string('prerollmeas') }, { true, '2.00000000000000' })
+  H.eq({ reaper_api.TimeMap_GetTimeSigAtTime(0, 8) }, { 4, 4, 120 }, 'a new project is 4/4 at 120')
+end)

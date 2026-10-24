@@ -97,6 +97,8 @@ var declares = map[dawport.Capability]dawport.Level{
 	// sets an audio interface's input gain, so no later version of this app can add one.
 	dawport.CapMonitorLevel: dawport.Experimental,
 	dawport.CapInputLevel:   dawport.Unsupported,
+	// punch_preroll is punch_preroll's (narration_preroll.lua): it reads REAPER's own pre-roll preference. Experimental until the owner's pass.
+	dawport.CapPunchPreroll: dawport.Experimental,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and
@@ -143,6 +145,7 @@ var commandCapability = map[string]dawport.Capability{
 	"last_action":         dawport.CapUndoLast,
 	"undo_last":           dawport.CapUndoLast,
 	"monitor_level":       dawport.CapMonitorLevel,
+	"punch_preroll":       dawport.CapPunchPreroll,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -261,6 +264,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapClickRepair:     clickRepairer{actions, allowed},
 			dawport.CapUndoLast:        lastActionUndoer{actions, allowed},
 			dawport.CapMonitorLevel:    monitorLeveler{actions, allowed},
+			dawport.CapPunchPreroll:    prerollReader{actions, allowed},
 		},
 	}, nil
 }

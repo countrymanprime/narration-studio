@@ -206,6 +206,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'levels-menu-preroll',
+    description:
+      "Booth, the Levels menu open with Experimental DAW actions on: the Punch part is REAPER's own pre-roll, read only: off on record, 2 measures, one measure in seconds at the cursor, and where it is set in REAPER",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'text-popover',
     description:
       "Booth (as setup) with the top bar's Text settings open: the reader font (the choice the Script's text settings share) and the Booth size, 40 px, on a slider from 24 to 72 in steps of 4",

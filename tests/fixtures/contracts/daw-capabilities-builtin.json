@@ -133,6 +133,12 @@
       "message": "Not available with the built-in recorder yet.",
       "reason": "not_yet"
     },
+    "punch_preroll": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "range_gain": {
       "available": false,
       "level": "unsupported",

@@ -671,6 +671,20 @@
       "kind": "choice",
       "label": "Set the input level",
       "value": ""
+    },
+    {
+      "choices": [
+        "auto",
+        "on",
+        "off"
+      ],
+      "effectiveSource": "repo_default",
+      "effectiveValue": "auto",
+      "isSet": false,
+      "key": "capability.punch_preroll",
+      "kind": "choice",
+      "label": "Punch pre-roll",
+      "value": ""
     }
   ],
   "Editing": [

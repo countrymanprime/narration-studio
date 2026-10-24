@@ -134,6 +134,12 @@
       "mode": "native",
       "reason": "experimental_off"
     },
+    "punch_preroll": {
+      "available": false,
+      "level": "experimental",
+      "message": "Experimental: switched off in Settings.",
+      "reason": "experimental_off"
+    },
     "range_gain": {
       "available": false,
       "level": "experimental",

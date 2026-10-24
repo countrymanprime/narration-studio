@@ -136,6 +136,12 @@
       "message": "Experimental: switched off in Settings.",
       "reason": "experimental_off"
     },
+    "punch_preroll": {
+      "available": false,
+      "level": "not_yet_available",
+      "message": "Punch pre-roll is not available with Audacity yet.",
+      "reason": "not_yet"
+    },
     "range_gain": {
       "available": false,
       "level": "experimental",

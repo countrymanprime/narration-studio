@@ -37,6 +37,7 @@ type (
 	RecordStopped = bridge.RecordStopped
 	RecordEnded   = bridge.RecordEnded
 	PlayPosition  = bridge.PlayPosition
+	PunchPreroll  = bridge.PunchPreroll
 
 	Region         = bridge.Region
 	RegionsCreated = bridge.RegionsCreated
@@ -722,4 +723,10 @@ type InputLeveler interface {
 type BackupKeeper interface {
 	BackupAround(ctx context.Context, request BackupRequest) (Result, error)
 	RestoreBackup(ctx context.Context, backupGUID string) (Result, error)
+}
+
+// PrerollReader reads the engine's own pre-roll before a punched take: whether the engine plays it before it records, its length in
+// measures, and one measure in seconds at the edit cursor. It never changes it: the pre-roll is the narrator's engine preference.
+type PrerollReader interface {
+	PunchPreroll(ctx context.Context) (PunchPreroll, error)
 }

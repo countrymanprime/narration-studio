@@ -208,6 +208,7 @@ import {
   dawFxRangeSettingsSchema,
   dawLastActionSchema,
   dawMonitorLevelSchema,
+  dawPunchPrerollSchema,
   dawPlaceSchema,
   dawPositionSchema,
   dawProjectStateSchema,
@@ -3460,6 +3461,27 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(off.refused).toBe((await createMockApi().dawCapabilities()).capabilities.click_repair.message);
   });
 
+  it('dawPunchPreroll answers the DAW pre-roll or a refusal in a sentence: the host goldens parse, and the mock answers as the host does', async () => {
+    expectMatches(dawPunchPrerollSchema, readGolden('daw-punch-preroll-held.json'), 'daw-punch-preroll-held.json');
+    expectMatches(dawPunchPrerollSchema, readGolden('daw-punch-preroll-refused.json'), 'daw-punch-preroll-refused.json');
+    expect(readGolden('daw-punch-preroll-held.json')).toEqual({ ok: true, onRecord: true, measures: 1.5, measureSeconds: 2, message: '' });
+    expect(readGolden('daw-punch-preroll-refused.json')).toMatchObject({ ok: false, measures: 0 });
+    // A refusal carries its sentence, an answer has none, and an answer has a measure of some length and no negative length.
+    expect(dawPunchPrerollSchema.safeParse({ ok: false, onRecord: false, measures: 0, measureSeconds: 0, message: '' }).success).toBe(false);
+    expect(dawPunchPrerollSchema.safeParse({ ok: true, onRecord: false, measures: 2, measureSeconds: 0, message: '' }).success).toBe(false);
+    expect(dawPunchPrerollSchema.safeParse({ ok: true, onRecord: false, measures: -1, measureSeconds: 2, message: '' }).success).toBe(false);
+
+    const api = createMockApi({}, { daw: { toggles: { punch_preroll: 'on' } } });
+    const held = await api.dawPunchPreroll();
+    expectMatches(dawPunchPrerollSchema, held, 'mock punch pre-roll');
+    expect(held).toEqual({ ok: true, onRecord: false, measures: 2, measureSeconds: 2, message: '' });
+
+    const off = createMockApi();
+    const refused = await off.dawPunchPreroll();
+    expectMatches(dawPunchPrerollSchema, refused, 'mock punch pre-roll, experimental off');
+    expect(refused.message).toBe((await off.dawCapabilities()).capabilities.punch_preroll.message);
+  });
+
   it('dawMonitorLevel and dawSetMonitorLevel answer a level or a refusal in a sentence: the host goldens parse, and the mock answers as the host does', async () => {
     expectMatches(dawMonitorLevelSchema, readGolden('daw-monitor-level-ok.json'), 'daw-monitor-level-ok.json');
     expectMatches(dawMonitorLevelSchema, readGolden('daw-monitor-level-refused.json'), 'daw-monitor-level-refused.json');
@@ -4316,6 +4338,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawUndoLast',
       'dawMonitorLevel',
       'dawSetMonitorLevel',
+      'dawPunchPreroll',
       'dawPlace',
       'dawGoToChapter',
       'dawTransportSync',

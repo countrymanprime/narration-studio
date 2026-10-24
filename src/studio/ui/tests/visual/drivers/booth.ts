@@ -312,6 +312,13 @@ export const boothDrivers: Record<string, Driver> = {
     // The microphone the DAW records from is named (the mock's first listed microphone), not left blank.
     await menu.getByText('Microphone Array (Realtek(R) Audio)').waitFor();
   },
+  // Experimental DAW actions on: the Punch part is REAPER's own pre-roll, read from REAPER and shown in measures (#2251 item 11).
+  'levels-menu-preroll': async (page) => {
+    await readyToRecord(page, `${RECORD_ON}&mockDawExperimentalOn=1`);
+    await page.getByRole('button', { name: 'Levels' }).click();
+    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await menu.getByText('REAPER pre-roll is off: a punch records from the word with no lead-in.').waitFor();
+  },
   'text-popover': async (page) => {
     await readyToRecord(page);
     await page.getByRole('button', { name: 'Text settings' }).click();

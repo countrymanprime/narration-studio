@@ -404,3 +404,14 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Built-in recorder:** unsupported.
 - **Binding:** none.
 - **Checked:** the declaration and the sentence, by tests in `dawport`, `dawport/reaper`, `dawport/audacity` and `dawport/builtin`.
+
+### `punch_preroll`
+
+- **Intent:** the engine's own pre-roll before a punched take is the one the Booth punches with: its length, and whether the engine plays it before it records, so the app and the engine never disagree ([#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 11).
+- **Role:** `PrerollKeeper`, synchronous. `PunchPreroll()` reads; `SetPunchPreroll(measures, onRecord)` sets either (nil leaves it) and answers what the engine holds afterwards.
+- **Result:** `PunchPreroll{OnRecord, Measures, MeasureSeconds}`: whether the engine plays the pre-roll before it records, its length in measures (0 to 16), and one measure in seconds at the edit cursor. A set adds no undo point (the pre-roll is an engine preference, not project data) and is refused while the engine records; a read is not. A length outside 0 to 16, or a set with nothing to set, is an error and nothing is sent.
+- **REAPER:** `punch_preroll`, Experimental (`narration_preroll.lua`). The length is the `prerollmeas` configuration variable and the switch is bit 2 of `preroll` (bit 1 is pre-roll on play, kept as it is), the bit "Pre-roll: Toggle pre-roll on record" (action 41819) shows; both are read with `get_config_var_string` and written with `set_config_var_string(name, value, 0)` and read back. REAPER plays from the bar line at or before the edit cursor minus that many measures, and records from the cursor ([REAPER](reaper.md#what-reaper-was-seen-to-do)). A REAPER without `set_config_var_string` reads but cannot set, in its own sentence.
+- **Audacity:** not yet available. Audacity 3 keeps a punch-and-roll pre-roll in seconds in its preferences; the app does not read or set it.
+- **Built-in recorder:** unsupported: it does not punch.
+- **Binding:** `DawPunchPreroll()`, `DawSetPunchPrerollMeasures(measures)` and `DawSetPunchPrerollOnRecord(on)` (`src/studio/desktop/bindings_daw_preroll.go`) answer `{"ok", "onRecord", "measures", "measureSeconds", "message"}`; a refusal is `ok` false with the sentence. The Booth's Levels menu shows REAPER's pre-roll in its own unit, measures, with a switch for pre-roll on record; with an engine that has none, the menu keeps the app's own `Teleprompter.punch_preroll_seconds`.
+- **Checked:** harness (`preroll_test.lua`). REAPER 7.82 on Linux with the JACK dummy device, 2026-10-24 ([note](../../research/reaper-preroll-2026-10-24.md)): the defaults read 0 and 2 measures; a set of 1.5 measures and on read back, turned action 41819 on and added no undo point; a take then played in from before the cursor and was recorded from it. Not run: Windows, a real audio device, a tempo change inside the pre-roll.

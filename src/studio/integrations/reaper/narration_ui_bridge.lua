@@ -43,6 +43,7 @@ M.FEATURE_FILES = {
   'narration_media_file.lua',
   'narration_levels.lua',
   'narration_undo.lua',
+  'narration_preroll.lua',
 }
 
 local function own_directory()
