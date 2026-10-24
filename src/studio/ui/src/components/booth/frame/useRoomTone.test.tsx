@@ -20,8 +20,7 @@ describe('useRoomTone', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const port = hostPort({});
     const { result } = renderHook(() => useRoomTone(port, 'USB Mic'));
-    await waitFor(() => expect(port.roomTone).toHaveBeenCalled());
-    expect(result.current).toEqual({ label: 'Room not measured yet', ok: false });
+    await waitFor(() => expect(result.current).toEqual({ label: 'Room not measured yet', ok: false, hint: 'none' }));
     port.kept['USB Mic'] = -58.6;
     await act(async () => {
       await vi.advanceTimersByTimeAsync(ROOM_TONE_READ_MS);
@@ -74,7 +73,7 @@ describe('useRoomTone', () => {
     const { result } = renderHook(() => useRoomTone({ roomTone }, 'USB Mic'));
     await waitFor(() => expect(roomTone).toHaveBeenCalled());
     await Promise.allSettled(roomTone.mock.results.map((r) => r.value));
-    await waitFor(() => expect(result.current).toEqual({ label: 'Room tone unavailable', ok: false }));
+    await waitFor(() => expect(result.current).toEqual({ label: 'Room tone unavailable', ok: false, hint: 'the teleprompter service is unavailable' }));
     up = true;
     act(() => {
       window.dispatchEvent(new Event('focus'));

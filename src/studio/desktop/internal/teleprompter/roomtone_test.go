@@ -63,6 +63,9 @@ func TestTheLevelMeterMeasuresTheRoomToneAndKeepsItWhenItStops(t *testing.T) {
 	if kept, ok := roomtone.Open(path, nil).Get("Microphone Array"); !ok || kept != got {
 		t.Fatalf("kept %+v, %v; want it on disk too", kept, ok)
 	}
+	if trimmed, ok := f.service.RoomTone("  Microphone Array "); !ok || trimmed != got {
+		t.Fatalf("RoomTone with spaces around the name = %+v, %v; want the same reading", trimmed, ok)
+	}
 	if _, ok := f.service.RoomTone("Another Mic"); ok {
 		t.Fatal("a room tone for a microphone that was never heard")
 	}

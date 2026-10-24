@@ -25,7 +25,7 @@ export const ROOM_TONE_READ_MS = 5_000;
  * measured yet" until one is kept, or when there is none. Any capture of the microphone measures it, so it is read again every
  * ROOM_TONE_READ_MS and when the window regains focus, and the last answer stays on screen while the next one comes.
  */
-export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<number>> }, mic: string): { label: string; ok: boolean } {
+export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<number>> }, mic: string): { label: string; ok: boolean; hint?: string } {
   const [tone, setTone] = useState<{ mic: string; answer: Measured<number>; failed: boolean } | null>(null);
   const [again, setAgain] = useState(0);
   useEffect(() => {
@@ -50,7 +50,9 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
   }, [port, mic, again]);
   const current = tone?.mic === mic ? tone : null;
   const answer: Measured<number> = current?.answer ?? { ok: false, reason: 'Not read yet.' };
-  return { label: roomToneLabel(answer, current?.failed ?? false), ok: answer.ok };
+  // Why there is no value and what measures one (the port's reason), as the chip's tooltip.
+  const hint = !answer.ok && current ? answer.reason : undefined;
+  return { label: roomToneLabel(answer, current?.failed ?? false), ok: answer.ok, ...(hint ? { hint } : {}) };
 }
 
 type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels'>;
@@ -69,6 +71,7 @@ export function BoothFooter({
   mic,
   roomTone,
   roomToneOk = false,
+  roomToneHint,
   keymap,
   pickupSession = false,
 }: {
@@ -81,6 +84,8 @@ export function BoothFooter({
   mic: Mic;
   roomTone: string;
   roomToneOk?: boolean;
+  /** Why there is no room tone and what measures one, shown as the chip's tooltip. */
+  roomToneHint?: string;
   keymap: Keymap;
   pickupSession?: boolean;
 }) {
@@ -109,7 +114,7 @@ export function BoothFooter({
             {listenWhy}
           </span>
         ) : null}
-        <LevelsInline level={level} roomTone={roomTone} roomToneOk={roomToneOk} />
+        <LevelsInline level={level} roomTone={roomTone} roomToneOk={roomToneOk} roomToneHint={roomToneHint} />
       </div>
       <KeyHints id="bkeys" hints={hints} />
     </div>

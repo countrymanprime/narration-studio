@@ -2,6 +2,7 @@ package teleprompter
 
 import (
 	"encoding/json"
+	"strings"
 
 	"desktop/internal/roomtone"
 )
@@ -21,7 +22,8 @@ func (s *Service) RoomTone(device string) (roomtone.Reading, bool) {
 	if meter == nil {
 		return roomtone.Reading{}, false
 	}
-	return meter.Reading(device)
+	// The meter opens the name trimmed (MeterStart), so it is kept under the trimmed name.
+	return meter.Reading(strings.TrimSpace(device))
 }
 
 // levelReading is the part of a sidecar `level` event the room tone reads: its RMS in dBFS.
