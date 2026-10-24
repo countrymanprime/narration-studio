@@ -921,7 +921,14 @@
     "state": "zoom-level",
     "viewport": "desktop",
     "docName": "nav-zoom-chip",
-    "caption": "The header at 125% zoom: the chip between the jump button and the engine chip"
+    "caption": "The header at 125% zoom: the chip just left of the jump button"
+  },
+  {
+    "page": "proof",
+    "state": "default",
+    "viewport": "desktop",
+    "docName": "nav-page-footer",
+    "caption": "Proof: the key reminders in the footer, the full width of the page under the notes and the Inspector"
   },
   {
     "page": "production",

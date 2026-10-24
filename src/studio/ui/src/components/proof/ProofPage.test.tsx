@@ -20,6 +20,7 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { proofProgress } from './proof.selectors';
 import { ProofPage } from './ProofPage';
+import { PageFooterProvider } from '../primitives/KeyHints';
 
 /** What a chapter tile draws: its number and count, which it draws as generated content from data-text. */
 const drawn = (tile: HTMLElement): string => [...tile.querySelectorAll('[data-text]')].map((part) => part.getAttribute('data-text')).join('');
@@ -55,7 +56,8 @@ function renderPage({
   at = '/proof',
   before = [],
   hasManuscript = true,
-}: { api?: NarrationApi; at?: string; before?: string[]; hasManuscript?: boolean } = {}) {
+  footer = null,
+}: { api?: NarrationApi; at?: string; before?: string[]; hasManuscript?: boolean; footer?: HTMLElement | null } = {}) {
   const handlers = { goTo: vi.fn(), goToScript: vi.fn(), goToBooth: vi.fn(), goToEditing: vi.fn() };
   const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
   // The toast's Undo goes away on a real five-second timer. A loaded runner takes longer than that between the decision and the click, so the
@@ -71,7 +73,14 @@ function renderPage({
             <TooltipProvider>
               <Routes>
                 <Route path="/pickups" element={<p>The pickups page</p>} />
-                <Route path="/proof" element={<ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />} />
+                <Route
+                  path="/proof"
+                  element={
+                    <PageFooterProvider value={footer}>
+                      <ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />
+                    </PageFooterProvider>
+                  }
+                />
               </Routes>
               <Where />
               <Back />
@@ -178,13 +187,13 @@ describe('proof-route-draws-the-mock-page', () => {
     expect(where()).toBe('/proof');
   });
 
-  it('the key hints sit at the bottom of the scrolling page', async () => {
-    renderPage();
+  // #2251 item 35: the key hints are the shell's page footer, full width under the page, not a row inside the page.
+  it('the key hints are drawn in the shell page footer', async () => {
+    const footer = document.body.appendChild(document.createElement('div'));
+    renderPage({ footer });
     await noteRows();
-    const wrap = screen.getByRole('note', { name: 'Keyboard shortcuts' }).parentElement!;
-    expect(wrap.className).toContain('sticky');
-    expect(wrap.className).toContain('-bottom-4');
-    expect(wrap.parentElement!.lastElementChild).toBe(wrap);
+    expect(screen.getByRole('note', { name: 'Keyboard shortcuts' }).parentElement).toBe(footer);
+    footer.remove();
   });
 
   it('opens one chapter with its check card and its notes; Escape returns to all chapters', async () => {

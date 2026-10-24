@@ -1,5 +1,12 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { KeyChord } from './KeyCap';
+
+// The app shell's page footer (#2251 item 35): full width along the bottom of the main column, like the header, outside the page's
+// scrolling content and its cards. The shell provides the element; a `KeyHints` under it is drawn there, and one with no shell around it
+// (a story, a test of one page) is drawn where it stands.
+const PageFooterContext = createContext<HTMLElement | null>(null);
+export const PageFooterProvider = PageFooterContext.Provider;
 
 /** One hint: the keys, then what they do. Keys are named as `KeyCap` knows them ("↑", "Esc", "Right-click", "Space"). */
 export interface KeyHintItem {
@@ -8,11 +15,12 @@ export interface KeyHintItem {
   id?: string;
 }
 
-// The standard footer of key reminders (rule 3): one centred row of small hints along the bottom of a page,
-// outside the content, so the page itself stays quiet. It has a tone of its own, a touch raised from the page, and a line
+// The standard footer of key reminders (rule 3): one centred row of small hints along the bottom of the page, in the shell's page
+// footer, outside the content, so the page itself stays quiet. It has a tone of its own, a touch raised from the page, and a line
 // above it. The list is data only: the page decides what to remind, `KeyChord` decides how a key is drawn.
 export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: string; children?: ReactNode }) {
-  return (
+  const footer = useContext(PageFooterContext);
+  const bar = (
     <div
       id={id}
       role="note"
@@ -28,4 +36,5 @@ export function KeyHints({ hints, id, children }: { hints: KeyHintItem[]; id?: s
       {children}
     </div>
   );
+  return footer ? createPortal(bar, footer) : bar;
 }

@@ -8,6 +8,7 @@ import { NavButton } from '../primitives/NavButton';
 import { NavDrawer } from '../primitives/NavDrawer';
 import { IconButton } from '../primitives/IconButton';
 import { KeyChord } from '../primitives/KeyCap';
+import { PageFooterProvider } from '../primitives/KeyHints';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { AudacityLink, DawKind } from '../../api/contracts/daw';
 import { navAvailability, type NavFacts } from '../../navigation/navAvailability';
@@ -155,6 +156,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [footer, setFooter] = useState<HTMLElement | null>(null);
   const go = (next: string) => {
     viaDrawer.current = drawerOpen;
     setDrawerOpen(false);
@@ -312,6 +314,15 @@ export function AppShell({
               </button>
             </TooltipTarget>
             <div className="flex-1" />
+            {/* The zoom chip, only while zoom is not 100%: it opens the jump menu at the zoom commands (the mock's `zoomchip`). Left of the jump button
+                (#2251 item 25), on the spacer's side, so it appearing or going moves nothing else in the bar. */}
+            {zoom.percent !== 100 && (
+              <TooltipTarget text="Zoom (change it in the jump menu)">
+                <HeaderChip onClick={onOpenZoomMenu} aria-label={`Zoom ${zoom.percent}%: change in the jump menu`}>
+                  <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] font-medium tracking-normal">{zoom.percent}%</span>
+                </HeaderChip>
+              </TooltipTarget>
+            )}
             <TooltipTarget text="Jump to a page or chapter, or run a command (Ctrl+K)">
               <button
                 type="button"
@@ -328,14 +339,6 @@ export function AppShell({
                 </span>
               </button>
             </TooltipTarget>
-            {/* The zoom chip, only while zoom is not 100%: it opens the jump menu at the zoom commands (the mock's `zoomchip`). */}
-            {zoom.percent !== 100 && (
-              <TooltipTarget text="Zoom (change it in the jump menu)">
-                <HeaderChip onClick={onOpenZoomMenu} aria-label={`Zoom ${zoom.percent}%: change in the jump menu`}>
-                  <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.8125rem] font-medium tracking-normal">{zoom.percent}%</span>
-                </HeaderChip>
-              </TooltipTarget>
-            )}
             {/* A level change is announced once, politely, debounced by useZoom, not on every wheel notch. It stays mounted at 100% so the return to 100% is heard too. */}
             <div aria-live="polite" className="sr-only">
               {zoom.announcement}
@@ -351,9 +354,15 @@ export function AppShell({
               linkingDawFile={linkingDawFile}
             />
           </header>
-          <ContextMenuHost className="scroll-chrome-hidden relative flex-1 overflow-y-auto p-4" fallback={contextMenu?.fallback} tail={contextMenu?.tail}>
-            {children}
-          </ContextMenuHost>
+          <PageFooterProvider value={footer}>
+            <ContextMenuHost className="scroll-chrome-hidden relative flex-1 overflow-y-auto p-4" fallback={contextMenu?.fallback} tail={contextMenu?.tail}>
+              {children}
+            </ContextMenuHost>
+          </PageFooterProvider>
+          {/* The page footer (#2251 item 35): the page's key reminders (`KeyHints`), full width under the scrolling content like the header
+              above it. A `<footer>` (not a div), so the overlay guard still finds the scroll area as the last div child of <main>
+              (`tests/visual/helpers/overlayGuard.ts`); inside <main> it is a generic element, not a second `contentinfo` landmark. Empty, it takes no height. */}
+          <footer ref={setFooter} data-page-footer className="flex-none" />
         </main>
       </div>
     </div>
