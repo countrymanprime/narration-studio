@@ -9,11 +9,14 @@ import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import type { DawClient } from '../../../ports/index';
 import { PortOverrides } from '../../../ports/usePort';
-import { CHECKING, READ_FAILED, type DawRead } from '../follow/playRoute';
+import { CHECKING, READ_FAILED, type DawRead } from '../../../playback/providers';
 import type { LinePassage, LineTake } from './types';
-import { TAKE_DAW_ONLY, useTakeAudition } from './useTakeAudition';
+import { useTakeAudition } from './useTakeAudition';
 
-// #2251 item 32: with a DAW linked, a take under a line plays through the DAW's preview and never through the app's audio.
+const FELL_BACK = 'Played in the app instead.';
+
+// #2251 item 32, as the owner revised it: a take plays through the DAW's preview when it is ready, and through the app's player with a notice
+// when it is not or refuses; a DAW that is recording keeps the room quiet.
 
 const take = (id: string, sourceLength = 4): LineTake => ({
   id,
@@ -122,29 +125,44 @@ describe('a-linked-daw-plays-the-take', () => {
       /REAPER is recording\./,
     ],
     ['throws', () => Promise.reject(new Error('timed out')), /REAPER was not asked: timed out/],
-  ])('plays nothing and says why when the DAW %s', async (_, previewTake, why) => {
+  ])('plays the take in the app and says why when the DAW %s', async (_, previewTake, why) => {
     const { result } = mount(DAW_SETUPS.reaper, { previewTake });
     act(() => result.current.play(LINE.takes[0]));
     await flush();
-    expect(audio.play).not.toHaveBeenCalled();
-    expect(result.current.playingId).toBeNull();
+    expect(audio.play).toHaveBeenCalled();
+    expect(result.current.playingId).toBe('take-1');
     expect(notices.join(' ')).toMatch(why);
-    expect(notices.join(' ')).toContain(TAKE_DAW_ONLY);
+    expect(notices.join(' ')).toContain(FELL_BACK);
   });
-  it('plays nothing through the app while the DAW is not running, with its sentence', async () => {
-    const { result } = mount(DAW_SETUPS['reaper-off'], { previewTake: createMockDawClient(DAW_SETUPS['reaper-off']).previewTake });
+  it('plays the take in the app while the DAW is not running, with its sentence', async () => {
+    const previewTake = vi.fn();
+    const { result } = mount(DAW_SETUPS['reaper-off'], { previewTake });
     act(() => result.current.play(LINE.takes[0]));
     await flush();
-    expect(audio.play).not.toHaveBeenCalled();
+    expect(previewTake).not.toHaveBeenCalled();
+    expect(audio.play).toHaveBeenCalled();
     expect(notices.join(' ')).toContain(DAW_SETUPS['reaper-off'].capabilities.file_preview.message!);
+    expect(notices.join(' ')).toContain(FELL_BACK);
   });
-  it('a take whose line is gone asks nothing', async () => {
+  it('a take whose line is gone asks the DAW nothing and plays in the app', async () => {
     const previewTake = vi.fn();
     const { result } = mount(DAW_SETUPS.reaper, { previewTake });
     act(() => result.current.play(take('take-9')));
     await flush();
     expect(previewTake).not.toHaveBeenCalled();
-    expect(notices.join(' ')).toContain(TAKE_DAW_ONLY);
+    expect(audio.play).toHaveBeenCalled();
+    expect(notices.join(' ')).toMatch(/line is not on the page any more\. Played in the app instead\./);
+  });
+  it('plays nothing while the DAW records, in the DAW or the app', async () => {
+    const { result } = mount(DAW_SETUPS.reaper, {
+      previewTake: async () => ({ ok: false, changed: false, message: 'REAPER is recording.', undoSteps: 0, refused: 'REAPER is recording.' }),
+      projectState: async () => ({ savedAt: null, unsavedChanges: false, playState: 'recording', playPosition: 3 }),
+    });
+    act(() => result.current.play(LINE.takes[0]));
+    await flush();
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(result.current.playingId).toBeNull();
+    expect(notices.join(' ')).toMatch(/REAPER is recording, so nothing plays/);
   });
   it('an answer that comes after the narrator stopped is ignored', async () => {
     let answer: (r: DawResult) => void = () => {};
@@ -166,12 +184,13 @@ describe('before-the-daw-answers', () => {
     expect(audio.play).not.toHaveBeenCalled();
     expect(notices).toEqual([CHECKING]);
   });
-  it('says a failed read and asks again', async () => {
+  it('says a failed read, asks again, and plays the take in the app', async () => {
     const retry = vi.fn().mockResolvedValue(undefined);
     const { result } = mount(null, {}, { failed: true, retry });
     act(() => result.current.play(LINE.takes[0]));
     await flush();
-    expect(notices).toEqual([READ_FAILED]);
+    expect(audio.play).toHaveBeenCalled();
+    expect(notices).toEqual([`${READ_FAILED} ${FELL_BACK}`]);
     expect(retry).toHaveBeenCalledTimes(1);
   });
 });
@@ -187,5 +206,6 @@ describe('without-a-daw-that-plays-the-app-plays-the-take', () => {
     await flush();
     expect(previewTake).not.toHaveBeenCalled();
     expect(audio.play).toHaveBeenCalled();
+    expect(notices).toEqual([]);
   });
 });

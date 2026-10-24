@@ -617,6 +617,26 @@ describe('Editing.fx_cap_pct in the settings answer (SN-E106)', () => {
   });
 });
 
+describe('Booth.words_per_page in the settings answer', () => {
+  const pageField = (settings: Record<string, ScopedSettingField[]>) => settings.Booth?.find((item) => item.key === 'words_per_page');
+
+  it('the golden settings offer a whole number of words from 50 to 1000 that reads as 250 unset and as the stored figure once saved', () => {
+    const unset = pageField(parseWire(settingsForScopeSchema, readGolden('settings-words-per-page.json'), ctx('settings words per page')));
+    expect(unset).toMatchObject({ kind: 'number', isSet: false, effectiveValue: '250', number: { min: 50, max: 1000, step: 1, unit: 'words' } });
+    const set = pageField(parseWire(settingsForScopeSchema, readGolden('settings-words-per-page-set.json'), ctx('settings words per page set')));
+    expect(set).toMatchObject({ isSet: true, value: '300', effectiveValue: '300', effectiveSource: 'project' });
+    expect(pageField(parseWire(settingsForScopeSchema, readGolden('settings-project.json'), ctx('settings project')))?.effectiveValue).toBe('250');
+  });
+
+  it('the mock answers the field through the same schema, and a project save shows in the next read', async () => {
+    const api = createMockApi();
+    const before = parseWire(settingsForScopeSchema, await api.settingsForScope('project'), ctx('mock settings'));
+    expect(pageField(before)).toMatchObject({ effectiveValue: '250', number: { min: 50, max: 1000, step: 1 } });
+    await api.saveSettings('Booth', 'project', { words_per_page: '300' });
+    expect(pageField(parseWire(settingsForScopeSchema, await api.settingsForScope('project'), ctx('mock settings')))?.effectiveValue).toBe('300');
+  });
+});
+
 describe('answers of the mock client (it must pass the schemas the real host answers are held to)', () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -3496,14 +3516,15 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawPunchPrerollSchema.safeParse({ ok: true, onRecord: false, measures: 2, measureSeconds: 0, message: '' }).success).toBe(false);
     expect(dawPunchPrerollSchema.safeParse({ ok: true, onRecord: false, measures: -1, measureSeconds: 2, message: '' }).success).toBe(false);
 
-    const api = createMockApi({}, { daw: { toggles: { punch_preroll: 'on' } } });
+    // Supported (the owner's decision on #2251): read with the narrator's settings untouched.
+    const api = createMockApi();
     const held = await api.dawPunchPreroll();
     expectMatches(dawPunchPrerollSchema, held, 'mock punch pre-roll');
     expect(held).toEqual({ ok: true, onRecord: false, measures: 2, measureSeconds: 2, message: '' });
 
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { toggles: { punch_preroll: 'off' } } });
     const refused = await off.dawPunchPreroll();
-    expectMatches(dawPunchPrerollSchema, refused, 'mock punch pre-roll, experimental off');
+    expectMatches(dawPunchPrerollSchema, refused, 'mock punch pre-roll, turned off');
     expect(refused.message).toBe((await off.dawCapabilities()).capabilities.punch_preroll.message);
   });
 
@@ -3542,18 +3563,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(dawMetersSchema.safeParse({ ok: false, output: 0, input: null, inputTrack: '', message: '', reason: '' }).success).toBe(false);
     expect(dawMetersSchema.safeParse({ ok: false, output: 0, input: -6, inputTrack: '', message: 'x', reason: '' }).success).toBe(false);
 
-    const armed = await createMockApi({}, { daw: { toggles: { daw_meters: 'on' } } }).dawMeters();
+    // Supported (the owner's decision on #2251): read with the narrator's settings untouched.
+    const armed = await createMockApi().dawMeters();
     expectMatches(dawMetersSchema, armed, 'mock meters, armed');
     expect(armed).toMatchObject({ ok: true, input: -48, output: -100 });
-    const unarmed = await createMockApi({}, { daw: { toggles: { daw_meters: 'on' }, meters: 'unarmed' } }).dawMeters();
+    const unarmed = await createMockApi({}, { daw: { meters: 'unarmed' } }).dawMeters();
     expectMatches(dawMetersSchema, unarmed, 'mock meters, no armed track');
     expect(unarmed).toMatchObject({ ok: true, input: null, inputTrack: '' });
 
-    const off = createMockApi();
+    const off = createMockApi({}, { daw: { toggles: { daw_meters: 'off' } } });
     const refused = await off.dawMeters();
-    expectMatches(dawMetersSchema, refused, 'mock meters, experimental off');
+    expectMatches(dawMetersSchema, refused, 'mock meters, turned off');
     const support = (await off.dawCapabilities()).capabilities.daw_meters;
-    expect(refused).toEqual({ ok: false, output: 0, input: null, inputTrack: '', message: support.message, reason: 'experimental_off' });
+    expect(refused).toEqual({ ok: false, output: 0, input: null, inputTrack: '', message: support.message, reason: 'turned_off' });
   });
 
   it('dawPlace and dawGoToChapter answer where the narrator is and a move: the host goldens parse, and the mock answers as the host does', async () => {
@@ -4209,6 +4231,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'noteList',
       'bookmarksList',
       'bookmarksAdd',
+      'bookmarksSetStop',
       'bookmarksUpdate',
       'bookmarksRemove',
       'voiceSamplesList',
@@ -4899,6 +4922,31 @@ describe('the bookmarks bindings', () => {
     const remaining = await api.bookmarksRemove(added.id);
     expectMatches(bookmarksSchema, remaining, 'mock bookmarks remove');
     expect(remaining.map((bookmark) => bookmark.id)).toEqual([later.id]);
+  });
+
+  it('the mock keeps one stopping place per chapter, beside the plain bookmarks, as BookmarksSetStop does', async () => {
+    const api = createMockApi();
+    const [first, second] = await api.manuscriptChapters();
+    const [line, nextLine] = await api.manuscriptParagraphs(first?.id ?? '');
+    const otherLine = (await api.manuscriptParagraphs(second?.id ?? ''))[0];
+    const plain = await api.bookmarksAdd(first?.id ?? '', line?.id ?? '', 0);
+    expect(plain.kind).toBe('spot');
+    const once = await api.bookmarksSetStop(first?.id ?? '', line?.id ?? '', 0);
+    expectMatches(bookmarksSchema, once, 'mock bookmarks set stop');
+    const firstStop = once.find((bookmark) => bookmark.kind === 'stop');
+    expect(once).toHaveLength(2);
+    await api.bookmarksSetStop(second?.id ?? '', otherLine?.id ?? '', 0);
+    const moved = await api.bookmarksSetStop(first?.id ?? '', nextLine?.id ?? '', 0);
+    const stops = moved.filter((bookmark) => bookmark.kind === 'stop');
+    expect(stops.map((stop) => [stop.chapterId, stop.paragraphId])).toEqual([
+      [first?.id, nextLine?.id],
+      [second?.id, otherLine?.id],
+    ]);
+    expect(stops[0]?.id).not.toBe(firstStop?.id);
+    expect((await api.bookmarksAdd(first?.id ?? '', nextLine?.id ?? '', 0)).kind).toBe('spot');
+    const again = await api.bookmarksSetStop(first?.id ?? '', nextLine?.id ?? '', 0);
+    expect(again.find((bookmark) => bookmark.kind === 'stop' && bookmark.chapterId === first?.id)?.id).toBe(stops[0]?.id);
+    await expect(api.bookmarksSetStop(first?.id ?? '', 'no-such-line', 0)).rejects.toThrow('not in this chapter');
   });
 
   it('the mock refuses what the host refuses', async () => {

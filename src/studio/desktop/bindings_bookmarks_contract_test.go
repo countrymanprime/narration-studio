@@ -7,8 +7,8 @@ import (
 	"testing"
 )
 
-// The four bindings' payloads, the goldens the UI's schemas are checked against: an empty list, an added bookmark, an updated
-// one, the list in reading order with a stale bookmark, and what a remove leaves.
+// The five bindings' payloads, the goldens the UI's schemas are checked against: an empty list, an added bookmark, an updated
+// one, the list after a stopping place is set, the list in reading order with a stale bookmark, and what a remove leaves.
 func TestBookmarksContractGoldens(t *testing.T) {
 	host, project := bookmarksHost(t)
 	payload, err := host.BookmarksList()
@@ -28,6 +28,15 @@ func TestBookmarksContractGoldens(t *testing.T) {
 
 	soldiers := decodeBookmark(t)(host.BookmarksAdd("c-0001", "p-000002", 20))
 	decodeBookmark(t)(host.BookmarksAdd("c-0002", "p-000003", 0))
+
+	// The narrator's stopping place in the first chapter, at the start of the soldiers' line.
+	payload, err = host.BookmarksSetStop("c-0001", "p-000002", 0)
+	checkBindingContract(t, "bookmarks-set-stop", payload)
+	if withStop := decodeBookmarks(t)(payload, err); len(withStop) != 4 || withStop[1].Kind != "stop" || withStop[2].ID != soldiers.ID {
+		t.Fatalf("after set stop = %s", payload)
+	}
+	stop := decodeBookmarks(t)(host.BookmarksList())[1]
+	decodeBookmarks(t)(host.BookmarksRemove(stop.ID))
 
 	// The narrator re-imports a manuscript where the soldiers' line is shorter and Alice's line is gone: both bookmarks are
 	// stale, never moved, and the one whose line is gone goes last.

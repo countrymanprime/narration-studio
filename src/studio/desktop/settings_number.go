@@ -47,6 +47,10 @@ var numberSpecs = map[string]map[string]numberSpec{
 		// The Effects tab's coverage cap: a whole percent of the chapter, 1 to 100 (settings.wholeNumbers reads one outside as 10).
 		"fx_cap_pct": {min: bound(1), max: bound(100), step: bound(1), unit: "%"},
 	},
+	// The Booth's page size: a whole number of words, 50 to 1000 (settings.wholeNumbers reads one outside as 250).
+	"Booth": {
+		"words_per_page": {min: bound(50), max: bound(1000), step: bound(1), unit: "words"},
+	},
 	// The proofing render length tolerance is seconds, at least 0, with no
 	// declared maximum and a 0.1 s step; blank (no default) keeps the length check not required.
 	"Proofing": {
