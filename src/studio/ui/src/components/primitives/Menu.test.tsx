@@ -139,3 +139,30 @@ describe('Menu sections', () => {
     expect(screen.getByRole('menu')).toBeTruthy();
   });
 });
+
+it('closes on a choice in a section that asks to', async () => {
+  const user = userEvent.setup();
+  const pick = vi.fn();
+  render(
+    <Menu
+      label="Sort"
+      sections={[
+        {
+          key: 'order',
+          select: 'one',
+          closeOnSelect: true,
+          items: [
+            { key: 'name', label: 'Name', checked: true, onSelect: vi.fn() },
+            { key: 'kind', label: 'Kind', checked: false, onSelect: pick },
+          ],
+        },
+      ]}
+    >
+      Sort
+    </Menu>,
+  );
+  await user.click(screen.getByRole('button', { name: 'Sort' }));
+  await user.click(await screen.findByRole('menuitemradio', { name: 'Kind' }));
+  expect(pick).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+});

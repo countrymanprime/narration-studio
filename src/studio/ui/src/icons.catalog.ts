@@ -11,6 +11,7 @@ import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowLeft,
   faFilter,
+  faArrowDownWideShort,
   faArrowRight,
   faArrowUpRightFromSquare,
   faBackwardStep,
@@ -312,6 +313,7 @@ export const CATALOG = {
   compare: text('compare', 'Compare without and with the effect'),
   clearFilters: text('clear filters', 'Clear filters'),
   filterList: action(faFilter, 'filter the list', 'Show only some of the list'),
+  sortList: action(faArrowDownWideShort, 'sort the list', 'Show the list in another order'),
   reopen: text('reopen', 'Reopen'),
   scan: text('scan', 'Scan the manuscript'),
   importFromFile: text('import from a file', 'Import from a file instead'),

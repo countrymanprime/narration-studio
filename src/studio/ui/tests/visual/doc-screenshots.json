@@ -1100,6 +1100,13 @@
   },
   {
     "page": "storybible",
+    "state": "sort-book-order",
+    "viewport": "desktop",
+    "docName": "storybible-book-order",
+    "caption": "Story Bible - the Sort menu on Book order: the entries in the order they first appear in the book"
+  },
+  {
+    "page": "storybible",
     "state": "jump-entries",
     "viewport": "desktop",
     "docName": "storybible-jump-entries",
