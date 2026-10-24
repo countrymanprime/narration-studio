@@ -264,7 +264,7 @@ describe('record-from-here-and-flagged-words', () => {
     const found = /\b(?!Alice\b|Rabbit\b|White\b)\p{L}{4,}/u.exec(p.textContent!)!;
     selectIn('p-2', found.index, found.index + found[0].length);
     fireEvent.mouseUp(document.getElementById('reader')!);
-    fireEvent.click(await screen.findByRole('button', { name: 'Look up' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Look up in the dictionary or the Story Bible' }));
     await waitFor(() => expect(view.tab).toBe('pron'));
     fireEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
     await waitFor(() => expect(flag).toHaveBeenCalledWith('chapter-1', 'p-2', found.index, found.index + found[0].length));
