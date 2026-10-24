@@ -32,7 +32,7 @@ export function bookmarkSnippet(bookmark: Bookmark, lineText: LineText, max = 56
 }
 
 /** What a stopping place ("Read to here", kind `stop`) is called before the words it sits on. */
-export const STOP_TITLE = 'Read to here';
+const STOP_TITLE = 'Read to here';
 
 /**
  * What the mark is called: its label, else the words it sits on, else "Line changed" for a stale one. A stopping place with no label is

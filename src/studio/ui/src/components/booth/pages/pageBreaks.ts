@@ -4,8 +4,8 @@ import { wordCount, type BoothUnit, type ReadingParagraph } from '../reading/boo
 
 /** Booth.words_per_page: the default (a manuscript page) and the range the host accepts. */
 export const WORDS_PER_PAGE = 250;
-export const WORDS_PER_PAGE_MIN = 50;
-export const WORDS_PER_PAGE_MAX = 1000;
+const WORDS_PER_PAGE_MIN = 50;
+const WORDS_PER_PAGE_MAX = 1000;
 
 /** One page break: the page that starts at this word, where the word is in the text (sentence and word for drawing, paragraph and offset
  * for a bookmark), and the word's number in its paragraph. */
