@@ -396,14 +396,14 @@ def test_the_cli_refuses_recheck_without_coverage(tmp_path):
         "t",
         "--out",
         "o",
-        "--diff-out",
-        "d",
+        "--manuscript",
+        "m.json",
     ]
 
     result = subprocess.run(command, capture_output=True, text=True, timeout=120, check=False)
 
     assert result.returncode == 2
-    assert "--recheck" in result.stderr
+    assert "--recheck can only be used with --coverage" in result.stderr
 
 
 def test_the_cli_recheck_exits_1_when_a_named_words_file_has_nothing_cached(tmp_path):

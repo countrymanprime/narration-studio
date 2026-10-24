@@ -50,6 +50,9 @@ func (t Tokenizer) TokenizeWithRaw(text string) (tokens, raw []string) {
 // these and a period is joined to the next.
 var abbreviations = map[string]bool{"mr": true, "mrs": true, "ms": true, "dr": true, "st": true, "jr": true, "sr": true, "vs": true, "mt": true}
 
+// IsAbbreviation reports whether a token is one of ABBREVIATIONS ("mr", "dr", ...).
+func IsAbbreviation(token string) bool { return abbreviations[token] }
+
 // splitAtSentenceEnds is re.split(r"(?<=[.!?])\s+", text): split at each
 // maximal whitespace run that directly follows '.', '!' or '?'. Go's regexp
 // has no lookbehind.

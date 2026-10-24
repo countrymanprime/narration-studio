@@ -89,6 +89,13 @@ func (s *SequenceMatcher[T]) findLongestMatch(alo, ahi, blo, bhi int) Match {
 
 // MatchingBlocks is get_matching_blocks(), ending with the (len(a), len(b),
 // 0) sentinel.
+// FindLongestMatch is find_longest_match(alo, ahi, blo, bhi): the longest
+// matching block in a[alo:ahi] and b[blo:bhi], the earliest in a and then in b
+// on a tie.
+func (s *SequenceMatcher[T]) FindLongestMatch(alo, ahi, blo, bhi int) Match {
+	return s.findLongestMatch(alo, ahi, blo, bhi)
+}
+
 func (s *SequenceMatcher[T]) MatchingBlocks() []Match {
 	if s.blocks != nil {
 		return s.blocks

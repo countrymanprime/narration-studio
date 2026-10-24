@@ -10,7 +10,7 @@
 
 ## What Go already does
 
-The repository has moved pure logic out of the sidecars five times. What holds each Go copy to the behaviour it replaced:
+The repository has moved pure logic out of the sidecars six times. What holds each Go copy to the behaviour it replaced:
 
 | What | Go | Held by |
 | --- | --- | --- |
@@ -19,6 +19,7 @@ The repository has moved pure logic out of the sidecars five times. What holds e
 | Manuscript import (DOCX, EPUB) | `src/studio/desktop/internal/importer` | its own tests; no sidecar imports `pypdf` or `python-docx` |
 | The recording check's alignment and results (step 1, first part, 2026-10-24): `recording_coverage.py`, coverage_mode's report and compare.py's tokenizer, sentence units, `SequenceMatcher` and alignment | `src/studio/desktop/internal/recordingcoverage`, `internal/compare` (chaptermatch's tokenizer now calls it); the sidecar only transcribes and writes a words report | `results.golden.json`, unchanged, now written by `golden_test.go`; `tests/fixtures/compare-parity/cases.json`; the Python model and report are deleted; compare.py's tokenizer and alignment and the markers' `repeat_of` stay until the markers move (step 1, third part), held to Go by the parity files |
 | The take comparison's alignment and results (step 1, second part, 2026-10-24): `take_divergence.py` and the results half of `take_divergence_mode.py` | `src/studio/desktop/internal/takedivergence`; the sidecar only transcribes the takes and writes a words report | `take-divergence-results.json`, unchanged, now written by `run_test.go`; `fixtures/divergence/results.golden.txt`, written by the Python mode for every committed case before the move and reproduced by `results_golden_test.go`; `take_divergence.py` and its tests are deleted, and the divergence harness reaches the Go code through `tests/go_divergence.py` |
+| Transcript Compare's markers and diff (step 1, third part, first PR, 2026-10-24): the tail of `compare.py`'s run (`diff_and_build_markers`' markers, `build_marker_context`, `build_unit_audio_info`, `write_unified_diff` and their helpers) | `src/studio/desktop/internal/comparerun`; the sidecar matches the chapter, transcribes and writes a words report | `tests/fixtures/compare/results.golden.json`, written by the Python run before the move and reproduced by `golden_test.go`; 5,700 seeded random runs gave the same four files from both; `diff_and_build_markers` stays in Python for `--find-repeats` until the repeats move, and the chapter match stays until it joins `internal/compare` |
 
 The cost of this pattern is two live copies held together by parity tests. The Python mutation code in `manuscript_guide.py` still exists beside the Go code that the host now runs.
 

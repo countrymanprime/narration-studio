@@ -1,9 +1,9 @@
 # Transcript Compare
 
-Transcribes a chapter's narration with a local Whisper model, matches it to the chapter of the
-canonical manuscript, and diffs the two. The result is a list of misread, skipped and extra words
-(the host turns them into findings and, on request, take markers) plus a unified diff file of the
-script text against what was said. The workflow is documented in
+Transcribes a chapter's narration with a local Whisper model and matches it to the chapter of the
+canonical manuscript. The host diffs the words against the chapter
+(`src/studio/desktop/internal/comparerun`): a list of misread, skipped and extra words (findings and,
+on request, take markers) plus a unified diff file of the script text against what was said. The workflow is documented in
 [Transcript Compare](../../../../docs/utilities/transcript-compare.md) and the
 [Proof guide](../../../../docs/guides/using-the-app/proof.md).
 
@@ -70,7 +70,7 @@ Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 - `equivalences.csv` — custom spelling equivalences, one comma-separated group per line, like the built-in
   homophone groups but per manuscript. Only single words match, since matching is word by word.
 - `diffs/<track name>_<run number>.diff` — the unified diff of manuscript against transcript, with a plain
-  `.manuscript.txt` / `.recorded.txt` pair beside it for two-pane viewers.
+  `.manuscript.txt` / `.recorded.txt` pair beside it for two-pane viewers. The host writes them.
 
 One track is one chapter: the track name is matched (exact, then closest fuzzy match) against the
 manuscript's chapter headings, and the run asks for a pick when no heading matches confidently. This

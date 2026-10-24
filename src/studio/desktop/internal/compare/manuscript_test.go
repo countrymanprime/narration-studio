@@ -63,8 +63,8 @@ func TestOnlyNarrationChaptersWithParagraphsAreReadInFileOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	same(t, "chapters", chapters, []Chapter{
-		{ID: "b", Title: "Two", Subtitle: "The Return", Paragraphs: []string{"second"}, ParagraphIDs: []string{"p3"}},
-		{ID: "a", Title: "One", Paragraphs: []string{"first", "third"}, ParagraphIDs: []string{"p1", "p4"}},
+		{ID: "b", Title: "Two", Subtitle: "The Return", Paragraphs: []string{"second"}, ParagraphIDs: []string{"p3"}, ParagraphIndices: []*string{new("1")}},
+		{ID: "a", Title: "One", Paragraphs: []string{"first", "third"}, ParagraphIDs: []string{"p1", "p4"}, ParagraphIndices: []*string{new("0"), new("2")}},
 	})
 	same(t, "headings", []string{chapters[0].Heading(), chapters[1].Heading(), Chapter{}.Heading()}, []string{"Two The Return", "One", ""})
 }
@@ -130,4 +130,19 @@ func TestEveryValueTheWriterTakesIsWrittenAsPythonWritesIt(t *testing.T) {
 		}
 	}()
 	DumpPy(struct{}{}, true)
+}
+
+// A paragraph's index as Python's str() writes it into a MARKER line: json.loads' types, null as none.
+func TestAParagraphIndexIsWrittenAsPythonsStrWritesIt(t *testing.T) {
+	for raw, want := range map[string]string{
+		`7`: "7", `-0`: "0", `123456789012345678901234567890`: "123456789012345678901234567890", `3.5`: "3.5", `1e2`: "100.0", `1E400`: "inf",
+		`-1e400`: "-inf", `true`: "True", `false`: "False", `"7"`: "7", `"a\u00e9"`: "aé", `[1]`: "[1]",
+	} {
+		if got := pyStr([]byte(raw)); got == nil || *got != want {
+			t.Errorf("%s: %v, want %q", raw, got, want)
+		}
+	}
+	if pyStr([]byte(` null `)) != nil {
+		t.Error("null is no index")
+	}
 }

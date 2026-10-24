@@ -1,6 +1,8 @@
-"""The take markers `diff_and_build_markers` writes for every committed recording-coverage case,
-pinned byte for byte (docs/utilities/recording-coverage.md, docs/utilities/recording-coverage.md, success signal:
-the marker output is byte-identical before and after coverage is added).
+"""The markers Python's `diff_and_build_markers` makes for every committed recording-coverage case,
+pinned byte for byte (docs/utilities/recording-coverage.md, success signal: the marker output is
+byte-identical before and after coverage is added). The run's own markers are the host's now
+(`src/studio/desktop/internal/comparerun`, held by `fixtures/compare/results.golden.json`); this
+function stays for `--find-repeats` until that mode moves too.
 
 Coverage reads the same alignment the markers come from (Q2), so a change to that alignment
 shows up here first. Regenerate the golden file with `UPDATE_MARKER_GOLDEN=1` only when a marker

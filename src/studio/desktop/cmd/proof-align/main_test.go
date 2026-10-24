@@ -101,3 +101,27 @@ func TestTheSpanAndATakeAlignedToIt(t *testing.T) {
 		}
 	}
 }
+
+// The Transcript Compare run's op (the parity tooling): the results and diff files, as the host writes them.
+func TestTheCompareRunWritesTheResultsAndTheDiff(t *testing.T) {
+	dir := t.TempDir()
+	manuscript := filepath.Join(dir, "m.json")
+	_ = os.WriteFile(manuscript, []byte(`{"schemaVersion": 1, "documentId": "d", "chapters": [{"id": "c", "title": "One"}],
+		"paragraphs": [{"id": "p-1", "chapterId": "c", "text": "alpha bravo", "index": 0}]}`), 0o600)
+	words := filepath.Join(dir, "words.txt")
+	_ = os.WriteFile(words, []byte(`COMPARE_CHAPTER|{"chapterId":"c","score":1}`+"\n"+`COMPARE_WORDS|{"words":[["alpha",0,0.3],["delta",0.4,0.7]]}`+"\n"), 0o600)
+	request := func(wordsReport string) string {
+		return `{"op":"compareRun","manuscript":` + quote(manuscript) + `,"wordsReport":` + quote(wordsReport) + `,"out":` + quote(filepath.Join(dir, "r.txt")) + `,"diffOut":` + quote(filepath.Join(dir, "d.diff")) + `}`
+	}
+	var out strings.Builder
+	if err := serve(strings.NewReader(request(words)+"\n"+request(filepath.Join(dir, "none.txt"))+"\n"), &out); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
+	if len(lines) != 2 || lines[0] != `{"markers":1}` || !strings.HasPrefix(lines[1], `{"error":"The comparison's words report could not be read`) {
+		t.Fatalf("replies = %q", lines)
+	}
+	if diff, err := os.ReadFile(filepath.Join(dir, "d.diff")); err != nil || !strings.Contains(string(diff), "+alpha delta") {
+		t.Fatalf("diff = %q, %v", diff, err)
+	}
+}

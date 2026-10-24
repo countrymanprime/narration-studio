@@ -1,39 +1,28 @@
 """
 Transcribe one or more audio segments (items on a REAPER track), match them
 against the correspondingly-named chapter in a canonical manuscript by track name,
-diff the transcript against that chapter's text, and write take-marker
-placements REAPER can import.
+and write the words heard. The host diffs them against that chapter's text and
+writes the take markers and the diff (src/studio/desktop/internal/comparerun,
+docs/utilities/transcript-compare.md).
 
 Usage:
     python compare.py --manifest segments.txt --manuscript "manuscript.json" \
-        --track-name "Chapter 1" --out results.txt [--model base]
+        --track-name "Chapter 1" --out words.txt [--model base]
 
 Manifest input format (pipe-delimited, no header):
     item_index|source_file|start_offset_seconds|length_seconds
 
-Output format (pipe-delimited, tagged lines) - normally either a
-NEED_CHAPTER line alone, or a SUMMARY/DIFF/MARKER* block:
+Output (--out, written atomically) is either a NEED_CHAPTER line alone, or the
+words report, tagged lines with compact JSON payloads:
     NEED_CHAPTER|<title1>|<title2>|...
-    SUMMARY|<text>
-    DIFF|<diff_file_path>
-    MARKER|<item_index>|<srcpos_seconds>|<kind>|<name>|<doc_text>|<audio_text>|
-           <chapter_title>|<paragraph>|<script_context>|<audio_context>|
-           <confidence>|<timing_gap_seconds>|<repeat_of>
+    COMPARE_CHAPTER|{"chapterId", "score"}
+    COMPARE_SEGMENT|{"itemIndex", "startOffset", "concatStart"}   (one per item, in item order)
+    COMPARE_WORDS|{"words": [[text, start, end], ...]}           (seconds of the joined audio)
 
-kind is one of MISREAD / SKIPPED / EXTRA. doc_text/audio_text may be empty
-(e.g. SKIPPED has no audio_text, EXTRA has no doc_text). confidence is one
-of high/medium/low/unknown, derived from the audio-timing gap (in seconds,
-empty when unknown) at the discrepancy's boundary - see
-_marker_timing_confidence(). It is a secondary signal only: a low value
-means the words ran together with no pause (weaker evidence this is a
-genuine misread/skip/insertion rather than a token-split artifact of the
-diff itself), not proof either way. NEED_CHAPTER means the track name
-didn't confidently match any heading - the caller should re-invoke with
---chapter-title set to one of the listed titles. repeat_of is set only on an
-EXTRA whose words say the chapter text beside it again (a second take, issue
-#2251 item 30; recording_coverage.repeat_of): the chapter words it repeats, as
-written. It is empty otherwise, and a reader that splits 12 fields keeps it
-inside timing_gap_seconds' field, so it is appended, never reordered.
+NEED_CHAPTER means the track name didn't confidently match any heading - the
+caller should re-invoke with --chapter-title set to one of the listed titles.
+The host's results file (SUMMARY, DIFF and MARKER lines) is described in
+internal/comparerun.
 
 Two additive modes write their own tagged lines instead: --find-repeats
 (SPAN_GROUP/SPAN_MEMBER) and --coverage (recording coverage: a JSON manifest
@@ -96,7 +85,6 @@ ABBREVIATIONS = {"mr", "mrs", "ms", "dr", "st", "jr", "sr", "vs", "mt"}
 
 SAMPLE_RATE = 16000
 PAUSE_GAP_SECONDS = 0.6
-EXCERPT_TAIL_BUFFER_SENTENCES = 2
 
 # NUMBER_WORDS, FILLER_WORDS, the homophone canon and merge_number_words live in
 # narration_common.spoken_forms, shared with the teleprompter's live flags.
@@ -288,32 +276,6 @@ def build_sentence_units(paragraphs):
     return units
 
 
-def ends_sentence(word):
-    if not word or word[-1] not in ".!?":
-        return False
-    core = tokenize(word)
-    return not (core and core[-1] in ABBREVIATIONS and word.endswith("."))
-
-
-def split_audio_sentences(words):
-    """words: list of (text, start, end) for the spoken body. Breaks on
-    Whisper's own sentence-ending punctuation OR a natural pause gap -
-    Whisper sometimes writes a comma instead of a period at a real sentence
-    boundary, but the pause is still there, so the gap catches what the
-    punctuation mark missed."""
-    lines = []
-    current = []
-    for i, (w, _s, e) in enumerate(words):
-        current.append(w)
-        gap = words[i + 1][1] - e if i + 1 < len(words) else None
-        if ends_sentence(w) or (gap is not None and gap >= PAUSE_GAP_SECONDS):
-            lines.append(" ".join(current))
-            current = []
-    if current:
-        lines.append(" ".join(current))
-    return lines
-
-
 def read_segments(manifest_path):
     segments = []
     with open(manifest_path, "r", encoding="utf-8") as f:
@@ -413,24 +375,6 @@ def build_concatenated_audio(segments, progress_path=None):
 
     full_audio = np.concatenate(pieces) if pieces else np.zeros(0, dtype=np.float32)
     return full_audio, enriched
-
-
-def locate_in_segments(concat_time, segments):
-    """Map a timestamp in the concatenated audio back to (item_index, srcpos)
-    in the original item's source-relative coordinate space."""
-    if not segments:
-        return 0, 0.0
-
-    chosen = segments[0]
-    for seg in segments:
-        if seg["concat_start"] <= concat_time:
-            chosen = seg
-        else:
-            break
-
-    offset_into_segment = concat_time - chosen["concat_start"]
-    srcpos = chosen["start_offset"] + max(0.0, offset_into_segment)
-    return chosen["item_index"], srcpos
 
 
 def transcribe(audio_array, model_size, language, device="cpu", progress_path=None, hotwords=None, return_info=False, model_dir=None):
@@ -743,23 +687,6 @@ def load_manuscript_chapters(manuscript_path):
     if not chapters:
         raise ValueError("The canonical manuscript has no narratable chapters.")
     return chapters
-
-
-def resolve_global_paragraph(chapter, local_index):
-    """The Manuscript reader's global paragraph index for the local_index-th
-    paragraph of this chapter, falling back to the
-    nearest paragraph with a known global index if that exact one has none."""
-    indices = chapter["global_indices"]
-    if not indices:
-        return 0
-    local_index = min(max(local_index, 0), len(indices) - 1)
-    if indices[local_index] is not None:
-        return indices[local_index]
-    for distance in range(1, len(indices)):
-        for candidate in (local_index - distance, local_index + distance):
-            if 0 <= candidate < len(indices) and indices[candidate] is not None:
-                return indices[candidate]
-    return 0
 
 
 def extract_hints(manuscript_path, hints_out_path):
@@ -1344,266 +1271,6 @@ def diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, 
     return markers, covered_range, alignment
 
 
-def build_marker_context(
-    marker_i1, marker_i2, marker_j1, marker_j2, unit_idx, opcodes, index_map, chapter_index_map, chapter_raw_words, transcript_words, context_words=6
-):
-    """Return compact script/recorded excerpts centered on one diff opcode.
-
-    The marker's bounds are in the same normalized-token space as the
-    opcodes.  We keep up to ``context_words`` manuscript tokens on either
-    side, never cross the source sentence, and reconstruct the recorded
-    counterpart from the alignment.  Equal words deliberately reuse the
-    manuscript rendering; only a real replacement or insertion uses Whisper's
-    raw word(s).  This gives the proofing table useful local context without
-    making a run-on sentence fill the expanded row.
-    """
-    if not unit_idx or not chapter_index_map:
-        return "", ""
-
-    n = len(unit_idx)
-    source_i = marker_i1 if marker_i1 < n else marker_i1 - 1
-    if source_i < 0 or source_i >= n:
-        return "", ""
-    source_unit = unit_idx[source_i]
-    if source_unit is None or source_unit < 0:
-        return "", ""
-
-    unit_start = source_i
-    while unit_start > 0 and unit_idx[unit_start - 1] == source_unit:
-        unit_start -= 1
-    unit_end = source_i + 1
-    while unit_end < n and unit_idx[unit_end] == source_unit:
-        unit_end += 1
-
-    window_start = max(unit_start, marker_i1 - context_words)
-    window_end = min(unit_end, marker_i2 + context_words)
-    # An insertion has no document span; include the words on both sides of
-    # its anchor.  The same formula above already does that, but this clamp
-    # keeps an end-of-sentence insertion anchored inside its source unit.
-    if marker_i1 == marker_i2:
-        window_start = max(unit_start, marker_i1 - context_words)
-        window_end = min(unit_end, marker_i1 + context_words)
-
-    def add_doc_words(parts, seen_original, lo, hi):
-        for norm_i in range(max(lo, window_start), min(hi, window_end)):
-            original_i = chapter_index_map[norm_i]
-            if original_i != seen_original[0]:
-                parts.append(chapter_raw_words[original_i])
-                seen_original[0] = original_i
-
-    script_words = []
-    script_seen = [-1]
-    add_doc_words(script_words, script_seen, window_start, window_end)
-
-    heard_words = []
-    heard_seen = [-1]
-    for tag, i1, i2, j1, j2 in opcodes:
-        overlaps_window = i1 < window_end and i2 > window_start
-        is_target_insertion = i1 == i2 and i1 == marker_i1 and j1 == marker_j1 and j2 == marker_j2
-        insertion_in_window = i1 == i2 and window_start <= i1 <= window_end
-        if tag == "equal" and overlaps_window:
-            add_doc_words(heard_words, heard_seen, i1, i2)
-        elif tag == "replace" and overlaps_window or tag == "insert" and (insertion_in_window or is_target_insertion):
-            heard_words.extend(transcript_words[index_map[j]][0] for j in range(j1, j2))
-
-    if not script_words and not heard_words:
-        return "", ""
-
-    prefix = "... " if window_start > unit_start else ""
-    suffix = " ..." if window_end < unit_end else ""
-    return prefix + " ".join(script_words) + suffix, prefix + " ".join(heard_words) + suffix
-
-
-def find_transcript_title_boundary(title, transcript_words):
-    """Where does the spoken title end within the transcript? An
-    independent, best-effort heuristic (approximate is fine - this is for
-    display only, not marker placement): number-normalize the title, take a
-    short window from the very start of the transcript, and find the
-    longest matching run between the two. Returns a word index into
-    transcript_words (0 if nothing matched, meaning "no title detected -
-    treat the whole thing as body")."""
-    title_tokens = tokenize(title)
-    title_tokens, _ = merge_number_words(title_tokens, list(range(len(title_tokens))))
-    if not title_tokens or not transcript_words:
-        return 0
-
-    window_word_count = min(len(transcript_words), len(title_tokens) * 4 + 20)
-
-    transcript_tokens = []
-    idx_map = []
-    for i in range(window_word_count):
-        w = transcript_words[i][0]
-        for t in tokenize(w):
-            if t in FILLER_WORDS:
-                continue
-            transcript_tokens.append(t)
-            idx_map.append(i)
-    transcript_tokens, idx_map = merge_number_words(transcript_tokens, idx_map)
-
-    if not transcript_tokens:
-        return 0
-
-    sm = difflib.SequenceMatcher(None, title_tokens, transcript_tokens, autojunk=False)
-    match = sm.find_longest_match(0, len(title_tokens), 0, len(transcript_tokens))
-    if match.size == 0:
-        return 0
-
-    boundary_norm_idx = match.b + match.size
-    if boundary_norm_idx >= len(idx_map):
-        return idx_map[-1] + 1
-    return idx_map[boundary_norm_idx]
-
-
-def build_unit_audio_info(unit_idx, opcodes, index_map, chapter_index_map, chapter_raw_words, transcript_words, first_u, last_u):
-    """For manuscript sentence units [first_u, last_u], reconstruct what
-    the "recorded" side should show for that unit - word by word, not as
-    an all-or-nothing per-unit flag. Where a doc token aligns as a clean
-    'equal' match (including a fused hyphen-split compound - see
-    _fuse_hyphen_split_opcodes), the reconstruction reuses the
-    manuscript's own raw word (preserving its original casing,
-    punctuation, quotes, hyphenation) instead of Whisper's raw rendering,
-    since they're confirmed the same content; only a genuine replace/
-    insert substitutes the actual transcribed word(s). Without this, one
-    real misread in an otherwise-perfect sentence would make the whole
-    line fall back to Whisper's raw transcript, which then *also* painted
-    unrelated quote/dash/case/number formatting as "different" even
-    though only one word was actually wrong (confirmed live). Returns a
-    list (one entry per unit in range) of (is_exact, recorded_text) -
-    is_exact=True means the caller should use the manuscript's own
-    sentence text verbatim rather than recorded_text."""
-    unit_words = {u: [] for u in range(first_u, last_u + 1)}
-    unit_all_equal = {u: True for u in range(first_u, last_u + 1)}
-    unit_touched = {u: False for u in range(first_u, last_u + 1)}
-
-    def append_word(u, raw):
-        if u is None or u < first_u or u > last_u:
-            return
-        words = unit_words[u]
-        if not words or words[-1] != raw:  # dedupe a raw word repeated across its constituent tokens
-            words.append(raw)
-        unit_touched[u] = True
-
-    def mark_diff(units, j1, j2):
-        audio_words = [transcript_words[index_map[j]][0] for j in range(j1, j2)]
-        for u in units:
-            if u is None or u < first_u or u > last_u:
-                continue
-            unit_words[u].extend(audio_words)
-            unit_all_equal[u] = False
-            unit_touched[u] = True
-
-    n = len(unit_idx)
-    for tag, i1, i2, j1, j2 in opcodes:
-        if tag == "delete":
-            for u in sorted(set(unit_idx[i1:i2])):
-                if u is not None and first_u <= u <= last_u:
-                    unit_all_equal[u] = False
-                    unit_touched[u] = True
-            continue
-        if tag == "equal":
-            # Per doc-token, not per-audio-token, so a fused hyphen-split
-            # opcode (uneven i/j lengths - one compound doc token standing
-            # in for several audio tokens, or vice versa) still emits
-            # exactly the doc-side raw word(s) without needing the j-range
-            # at all, since the audio's exact wording doesn't matter once
-            # it's confirmed to be the same content.
-            for k in range(i2 - i1):
-                chapter_norm_i = i1 + k
-                append_word(unit_idx[chapter_norm_i], chapter_raw_words[chapter_index_map[chapter_norm_i]])
-        else:  # replace / insert - block-level, not token-precise
-            if i1 == i2:
-                probe = min(i1, n - 1)
-                mark_diff([unit_idx[probe] if 0 <= probe < n else None], j1, j2)
-            else:
-                mark_diff(sorted(set(unit_idx[i1:i2])), j1, j2)
-
-    info = []
-    for u in range(first_u, last_u + 1):
-        if not unit_touched[u]:
-            info.append((False, ""))
-        elif unit_all_equal[u]:
-            info.append((True, ""))
-        else:
-            info.append((False, " ".join(unit_words[u])))
-    return info
-
-
-def write_unified_diff(chapter, transcript_words, diff_path, covered_range, sentence_units, alignment):
-    """Writes the manuscript/recorded comparison two ways:
-    - diff_path: one unified-diff-formatted file ('-'/'+'/' ' syntax) -
-      always readable on its own (Notepad, any editor), no external tool
-      needed, and gets automatic red/green highlighting in editors that
-      recognize .diff/.patch syntax.
-    - <diff_path minus .diff>.manuscript.txt / .recorded.txt: a plain
-      line-for-line pair, one line per sentence unit, derived from the
-      exact same per-unit data - lets a real interactive two-pane diff
-      view (`code --diff manuscript.txt recorded.txt`) be attempted too,
-      since a standalone .diff file opened as a document is only ever
-      syntax-highlighted text, never an actual diff *view*.
-    Returns diff_path; the .txt pair's paths are deterministically
-    derivable from it (swap the .diff extension), so callers needing them
-    don't require a separate return value."""
-    heading = chapter_name(chapter)
-
-    if covered_range is not None:
-        first_u, last_u = covered_range
-    else:
-        first_u, last_u = 0, len(sentence_units) - 1
-
-    if covered_range is not None:
-        unit_info = build_unit_audio_info(
-            alignment["unit_idx"],
-            alignment["opcodes"],
-            alignment["index_map"],
-            alignment["chapter_index_map"],
-            alignment["chapter_raw_words"],
-            transcript_words,
-            first_u,
-            last_u,
-        )
-    else:
-        # Degenerate fallback - alignment found nothing at all, so there's
-        # no manuscript unit to line audio up against; fall back to
-        # punctuation/pause-based splitting over everything after the
-        # spoken title and just show it as one big addition.
-        title_boundary = find_transcript_title_boundary(spoken_heading(chapter), transcript_words)
-        fallback_lines = split_audio_sentences(transcript_words[title_boundary:])
-        unit_info = [(False, line) for line in fallback_lines]
-
-    diff_lines = [f"--- {heading} (manuscript)", f"+++ {heading} (recorded)"]
-    doc_lines, audio_lines = [], []
-    if first_u > 0:
-        diff_lines.append(" ...")
-        doc_lines.append("...")
-        audio_lines.append("...")
-    for offset, u in enumerate(range(first_u, last_u + 1)):
-        doc_text = sentence_units[u][0]
-        is_exact, audio_text = unit_info[offset] if offset < len(unit_info) else (False, "")
-        doc_lines.append(doc_text)
-        audio_lines.append(doc_text if is_exact else audio_text)
-        if is_exact:
-            diff_lines.append(" " + doc_text)
-        else:
-            diff_lines.append("-" + doc_text)
-            if audio_text:
-                diff_lines.append("+" + audio_text)
-    if last_u < len(sentence_units) - 1:
-        diff_lines.append(" ...")
-        doc_lines.append("...")
-        audio_lines.append("...")
-
-    with open(diff_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(diff_lines) + "\n")
-
-    base, _ext = os.path.splitext(diff_path)
-    with open(base + ".manuscript.txt", "w", encoding="utf-8") as f:
-        f.write(f"{heading}\n\n" + "\n".join(doc_lines) + "\n")
-    with open(base + ".recorded.txt", "w", encoding="utf-8") as f:
-        f.write(f"{heading}\n\n" + "\n".join(audio_lines) + "\n")
-
-    return diff_path
-
-
 def spoken_heading(chapter):
     """The heading a narrator reads before the chapter's first line: the title, then the subtitle when the chapter has
     one. Reading it is optional, so diff_and_build_markers makes no marker in it."""
@@ -1899,52 +1566,31 @@ def run(args):
         transcript_words = transcribe(full_audio, args.model, args.language, args.device, progress_path, hotwords, model_dir=args.model_dir)
 
     check_cancelled(progress_path)
-
-    sentence_units, chapter_tokens, chapter_unit_idx, chapter_raw_words = build_chapter_units(chapter)
-
-    check_cancelled(progress_path)
-    write_progress(progress_path, "DIFF", 96, "Building diff and markers...")
-    markers, covered_range, alignment = diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, transcript_words, args.min_words)
-    if covered_range is not None:
-        first_u, last_u = covered_range
-        last_u = min(last_u + EXCERPT_TAIL_BUFFER_SENTENCES, len(sentence_units) - 1)
-        covered_range = (first_u, last_u)
-
-    diff_path = write_unified_diff(chapter, transcript_words, args.diff_out, covered_range, sentence_units, alignment)
-
-    summary = f"MATCH: '{chapter_name(chapter)}' (score {score:.2f}) - {len(markers)} discrepancy marker(s)"
-
-    check_cancelled(progress_path)
-    write_progress(progress_path, "WRITE", 99, "Writing results...")
-    with open(args.out, "w", newline="", encoding="utf-8") as f:
-        f.write(f"SUMMARY|{summary}\n")
-        f.write(f"DIFF|{diff_path}\n")
-        for t, kind, name, doc_text, audio_text, unit_index, marker_i1, marker_i2, marker_j1, marker_j2, confidence, timing_gap, repeat_of in markers:
-            item_index, srcpos = locate_in_segments(t, segments)
-            paragraph = resolve_global_paragraph(chapter, sentence_units[unit_index][1] if 0 <= unit_index < len(sentence_units) else 0)
-            script_context, audio_context = build_marker_context(
-                marker_i1,
-                marker_i2,
-                marker_j1,
-                marker_j2,
-                alignment["unit_idx"],
-                alignment["opcodes"],
-                alignment["index_map"],
-                alignment["chapter_index_map"],
-                alignment["chapter_raw_words"],
-                transcript_words,
-            )
-            if not script_context:
-                script_context = sentence_units[unit_index][0] if 0 <= unit_index < len(sentence_units) else doc_text
-            if not audio_context:
-                audio_context = audio_text
-            timing_gap_field = f"{timing_gap:.3f}" if timing_gap is not None else ""
-            f.write(
-                f"MARKER|{item_index}|{srcpos:.3f}|{kind}|{name}|{doc_text}|{audio_text}|{clean_marker_field(chapter['title'])}|{paragraph}|{clean_marker_field(script_context)}|{clean_marker_field(audio_context)}|{confidence}|{timing_gap_field}|{repeat_of}\n"
-            )
-
-    log(f"Wrote {len(markers)} marker row(s) to {args.out}")
+    write_progress(progress_path, "WRITE", 99, "Writing the words...")
+    _write_atomically(args.out, _words_report(chapter, score, segments, transcript_words))
+    log(f"Wrote the words of {len(segments)} item(s) to {args.out}")
     write_progress(progress_path, "DONE", 100, "Finished")
+
+
+def _words_report(chapter, score, segments, transcript_words):
+    """The words report the host builds the markers from (src/studio/desktop/internal/comparerun): the chapter matched and
+    the match's score, each segment's item, source offset and start in the joined audio, and the words heard."""
+
+    def line(tag, payload):
+        return tag + "|" + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n"
+
+    lines = [line("COMPARE_CHAPTER", {"chapterId": chapter["id"], "score": float(score)})]
+    for seg in segments:
+        lines.append(line("COMPARE_SEGMENT", {"itemIndex": seg["item_index"], "startOffset": seg["start_offset"], "concatStart": seg["concat_start"]}))
+    lines.append(line("COMPARE_WORDS", {"words": [[text, float(start), float(end)] for text, start, end in transcript_words]}))
+    return "".join(lines)
+
+
+def _write_atomically(path, text):
+    tmp = path + ".tmp"
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, path)
 
 
 def _capability_row(descriptor) -> dict:
@@ -1973,7 +1619,6 @@ def main():
     ap.add_argument("--track-name", required=False, help="REAPER track name (matched against a doc heading)")
     ap.add_argument("--chapter-title", default=None, help="Bypass track-name matching and use this exact chapter title (from a prior NEED_CHAPTER prompt)")
     ap.add_argument("--out", required=False, help="Path to write the tagged results file")
-    ap.add_argument("--diff-out", required=False, help="Path to write the unified-diff-formatted manuscript/recorded comparison file")
     ap.add_argument(
         "--model", default=get_default("TranscriptCompare", "model_size", "small"), help="Whisper model size (tiny/base/small/medium/large-v3-turbo/large-v3)"
     )
@@ -1984,7 +1629,7 @@ def main():
         "when omitted, falls back to letting faster-whisper resolve --model itself for direct/manual CLI use",
     )
     ap.add_argument("--language", default=None, help="Force language code, e.g. 'en' (default: auto-detect)")
-    ap.add_argument("--min-words", type=int, default=1, help="Minimum word-block length to report as a discrepancy")
+    ap.add_argument("--min-words", type=int, default=1, help="With --find-repeats: the minimum word-block length its alignment reports as a discrepancy")
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"], help="Inference device (default: cpu)")
     ap.add_argument("--progress", default=None, help="Path to write live progress updates to (optional)")
     ap.add_argument("--log", default=None, help="Path to also mirror log output to (optional)")
@@ -2118,8 +1763,6 @@ def main():
         ap.error("--recheck can only be used with --coverage")
 
     required = [("--manifest", args.manifest), ("--track-name", args.track_name), ("--out", args.out)]
-    if not args.find_repeats:
-        required.append(("--diff-out", args.diff_out))
     missing = [name for name, val in required if not val]
     if missing:
         ap.error(", ".join(missing) + " required unless --extract-hints is given")

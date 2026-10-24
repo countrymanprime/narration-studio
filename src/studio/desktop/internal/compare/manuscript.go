@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -80,6 +83,9 @@ type Chapter struct {
 	Subtitle     string
 	Paragraphs   []string
 	ParagraphIDs []string
+	// ParagraphIndices is each paragraph's "index" (the reader's global paragraph index) as Python's str() writes it,
+	// nil for a null.
+	ParagraphIndices []*string
 }
 
 // Heading is the heading a narrator may read first: the title and the
@@ -189,6 +195,7 @@ func LoadManuscriptChapters(path string) ([]Chapter, error) {
 			}
 			chapter.Paragraphs = append(chapter.Paragraphs, paragraph.Text)
 			chapter.ParagraphIDs = append(chapter.ParagraphIDs, paragraph.ID)
+			chapter.ParagraphIndices = append(chapter.ParagraphIndices, pyStr(paragraph.Index))
 		}
 	}
 	chapters := []Chapter{}
@@ -201,4 +208,38 @@ func LoadManuscriptChapters(path string) ([]Chapter, error) {
 		return nil, sentence("The canonical manuscript has no narratable chapters.")
 	}
 	return chapters, nil
+}
+
+// pyStr is Python's str() of a JSON value as json.loads reads it, nil for null: an integer as written (any size), a
+// float with Python's repr ("inf" past the float range), true and false as "True" and "False", a string as itself. An
+// array or an object is its JSON text, which Python would write as its repr; the host never writes one.
+func pyStr(raw json.RawMessage) *string {
+	text := strings.TrimSpace(string(raw))
+	out := text
+	switch {
+	case text == "null":
+		return nil
+	case text == "true":
+		out = "True"
+	case text == "false":
+		out = "False"
+	case strings.HasPrefix(text, `"`):
+		out, _ = JSONString(raw)
+	case text != "" && (text[0] == '-' || text[0] >= '0' && text[0] <= '9'):
+		if !strings.ContainsAny(text, ".eE") {
+			if n, ok := new(big.Int).SetString(text, 10); ok {
+				out = n.String()
+			}
+		} else if value, err := strconv.ParseFloat(text, 64); err == nil || math.IsInf(value, 0) {
+			switch {
+			case math.IsInf(value, 1):
+				out = "inf"
+			case math.IsInf(value, -1):
+				out = "-inf"
+			default:
+				out = PyFloatRepr(value)
+			}
+		}
+	}
+	return &out
 }
