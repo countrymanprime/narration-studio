@@ -156,7 +156,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [footer, setFooter] = useState<HTMLDivElement | null>(null);
+  const [footer, setFooter] = useState<HTMLElement | null>(null);
   const go = (next: string) => {
     viaDrawer.current = drawerOpen;
     setDrawerOpen(false);
@@ -360,8 +360,9 @@ export function AppShell({
             </ContextMenuHost>
           </PageFooterProvider>
           {/* The page footer (#2251 item 35): the page's key reminders (`KeyHints`), full width under the scrolling content like the header
-              above it. Empty, it takes no height. */}
-          <div ref={setFooter} data-page-footer className="flex-none" />
+              above it. A `<footer>` (not a div), so the overlay guard still finds the scroll area as the last div child of <main>
+              (`tests/visual/helpers/overlayGuard.ts`); inside <main> it is a generic element, not a second `contentinfo` landmark. Empty, it takes no height. */}
+          <footer ref={setFooter} data-page-footer className="flex-none" />
         </main>
       </div>
     </div>
