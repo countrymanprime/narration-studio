@@ -26,7 +26,7 @@ const inNotes = (target: EventTarget | null) => target instanceof Element && tar
 
 /**
  * Proof's keys as catalogue commands (mock `registerKeys('proof')`): Up and Down (J and K) move through the notes, Left and Right step
- * the chapter, Space hears the selected note (or stops it), P E W D decide it, Escape goes back to All chapters, and Ctrl+F is find in notes. Registered while the
+ * the chapter, Space hears the selected note (or stops it), P E W D decide it, and Escape goes back to All chapters (Ctrl+F is the shell's jump menu, which searches the notes). Registered while the
  * page is mounted, so the footer, the shortcut sheet and Settings show them from the catalogue.
  */
 export function useProofKeys({
@@ -66,8 +66,6 @@ export function useProofKeys({
     },
     !allChapters,
   );
-  // The notes panel opens find in notes on Ctrl+F itself; this row only keeps the key from opening the jump menu on Proof.
-  useCommand('proof.find', () => {});
   // The jump menu offers the chapter steps with their keys while Proof is showing (mock `registerCommands`).
   useCommandProvider(
     useCallback(

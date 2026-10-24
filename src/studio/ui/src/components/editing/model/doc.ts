@@ -90,8 +90,10 @@ export interface DocItem {
   gap: string;
   tok?: WordTok;
   st: ItemState;
-  /** 0 to 1: how sure the recogniser was. 0 for a word that was not read. */
+  /** 0 to 1: how sure the recogniser was, or for a misread how likely it is one. 0 for a word that was not read. */
   conf: number;
+  /** Nothing scored the word: `conf` is a stand-in, never a figure to show. */
+  unscored?: true;
   /** The word that was heard, where it differs from the script (a misread). */
   heard?: string;
   pid: string;
@@ -354,6 +356,7 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
             gap: ' ',
             st: 'extra',
             conf: h.conf,
+            ...(h.unscored ? { unscored: true as const } : {}),
             pid: p.id,
             uKey: lastU,
             t0: r3(seg.abs(h.off0)),
@@ -387,6 +390,7 @@ export function buildDoc(input: ChapterInput): ChapterDoc {
           tok: w.tok,
           st: op.st,
           conf: h ? h.conf : 0,
+          ...(h?.unscored ? { unscored: true as const } : {}),
           heard: op.st === 'mis' ? h?.text : undefined,
           pid: p.id,
           uKey: w.u.key,

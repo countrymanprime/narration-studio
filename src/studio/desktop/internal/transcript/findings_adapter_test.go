@@ -1,12 +1,15 @@
 package transcript
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"desktop/internal/findings"
+	"desktop/internal/soundalike"
 )
 
 // fixtureRow builds a row exactly as Service.Handle builds one from a
@@ -105,8 +108,12 @@ func TestBuildFindingsMapsConfidenceLabelsAndTimingGap(t *testing.T) {
 		t.Fatal(err)
 	}
 	misread := findByAudio(t, grouped["chapter-1"], "the quick brown socks")
-	if misread.Confidence == nil || *misread.Confidence != 0.9 {
-		t.Errorf("high-confidence MISREAD: Confidence = %v, want 0.9", misread.Confidence)
+	// The high timing label (0.9) scaled by how unlike the words are (#2251 item 27).
+	if want := 0.9 * soundalike.MisreadConfidence("the quick brown fox", "the quick brown socks"); misread.Confidence == nil || math.Abs(*misread.Confidence-want) > 0.01 {
+		t.Errorf("high-confidence MISREAD: Confidence = %v, want %v", misread.Confidence, want)
+	}
+	if !strings.Contains(misread.ConfidenceReason, "letters and sound") || misread.Evidence["sound_alike"] == nil {
+		t.Errorf("a misread's reason and evidence must name the sound-alike score: %q %#v", misread.ConfidenceReason, misread.Evidence)
 	}
 	if misread.Evidence["timing_gap_seconds"] != 0.42 {
 		t.Errorf("timing_gap_seconds = %v, want 0.42", misread.Evidence["timing_gap_seconds"])
@@ -367,5 +374,38 @@ func TestBuildFindingsCarriesTheREAPERIdentityOfEachRow(t *testing.T) {
 	}
 	if withIdentity != 1 {
 		t.Fatalf("%d findings carry an item GUID, want exactly the one row that had it", withIdentity)
+	}
+}
+
+// TestAMisreadOfANearMatchIsLowConfidenceAndAnUnlikeOneHigh is the owner's case (#2251 item 27): "MBA" heard as "NBA"
+// was shown at 100%.
+func TestAMisreadOfANearMatchIsLowConfidenceAndAnUnlikeOneHigh(t *testing.T) {
+	rows := []map[string]any{
+		fixtureRow("Chapter One", 3, 0, 21.000, 109.000, "MISREAD", "mba", "nba", "She had an MBA.", "She had an NBA.", "pending", ""),
+		fixtureRow("Chapter One", 3, 0, 31.000, 119.000, "MISREAD", "ledger", "notebook", "She opened the ledger.", "She opened the notebook.", "pending", ""),
+	}
+	grouped, err := BuildFindings(rows, resultsFixture(), manifestFixture(), findings.Project{}, &fakeLookup{chapterID: "chapter-1", chapterOK: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	near, far := findByAudio(t, grouped["chapter-1"], "nba"), findByAudio(t, grouped["chapter-1"], "notebook")
+	// With no results row there is no timing label: the sound-alike score alone, where before there was none.
+	if near.Confidence == nil || *near.Confidence >= 0.35 {
+		t.Errorf("MBA heard as NBA: Confidence = %v, want under 0.35", near.Confidence)
+	}
+	if far.Confidence == nil || *far.Confidence < 0.6 {
+		t.Errorf("ledger heard as notebook: Confidence = %v, want 0.6 or more", far.Confidence)
+	}
+}
+
+func TestOnlyAMisreadIsScoredBySound(t *testing.T) {
+	grouped, err := BuildFindings(fixtureRows(), resultsFixture(), manifestFixture(), findings.Project{}, &fakeLookup{chapterID: "chapter-1", chapterOK: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range grouped["chapter-1"] {
+		if _, scored := f.Evidence["sound_alike"]; scored != (f.Evidence["kind"] == "MISREAD") {
+			t.Errorf("%s: sound_alike evidence = %v", f.Evidence["kind"], scored)
+		}
 	}
 }

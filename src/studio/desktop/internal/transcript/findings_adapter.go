@@ -29,6 +29,7 @@ import (
 	"strings"
 
 	"desktop/internal/findings"
+	"desktop/internal/soundalike"
 )
 
 const analyzerName = "transcript-compare"
@@ -143,6 +144,15 @@ func buildFinding(row map[string]any, evidence map[string]markerEvidence, source
 		repeatOf = ev.repeatOf
 	}
 
+	// A misread is scored by how alike the script's words and the heard words are too: "MBA" heard as "NBA" is more
+	// likely the recogniser mishearing a correct read than a misread (issue #2251 item 27).
+	similarity := -1.0
+	if kind == "MISREAD" && docText != "" && audioText != "" {
+		similarity = soundalike.Similarity(docText, audioText)
+		scaled := soundalike.Combine(confidence, docText, audioText)
+		confidence, reason = &scaled, reason+" "+soundalike.Reason(docText, audioText)
+	}
+
 	evidenceMap := map[string]any{
 		"kind": kind, "marker_state": markerState,
 		"script_context": scriptContext, "audio_context": audioContext,
@@ -152,6 +162,9 @@ func buildFinding(row map[string]any, evidence map[string]markerEvidence, source
 	}
 	if timingGap != nil {
 		evidenceMap["timing_gap_seconds"] = *timingGap
+	}
+	if similarity >= 0 {
+		evidenceMap["sound_alike"] = math.Round(similarity*100) / 100
 	}
 	if chapterUnresolved {
 		evidenceMap["chapter_id_unresolved"] = true

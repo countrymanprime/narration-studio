@@ -26,7 +26,9 @@ without the colour:
 
 - **Not in the script** (Extra): words heard that the script does not have, in italics on a red tint with a red bar at their left;
 - **In the script, not read** (Not read): words of the script nothing was heard for, in muted text inside a dashed red box;
-- **Misread**: a word heard differently, with a wavy red underline and what was heard on hover;
+- **Misread**: a word heard differently, with a wavy red underline and what was heard on hover. Its card's **Confidence** is how likely
+  it is a real misread: a word heard as one that sounds like it ("MBA" as "NBA") scores low, because the recogniser may have
+  misheard a correct read, and a word heard as something unlike it scores high;
 - **Low confidence**: a word the recogniser was unsure of, with a thin amber underline.
 
 Red means the words are wrong, amber means the recording or the recogniser is in doubt. The same colours mark the matching
@@ -324,7 +326,7 @@ With **Play and follow the project's transport** on (Settings > DAW; it is an ex
 - Pressing Play or Stop in REAPER lights the word it is on, or stops the page, the same way.
 - A word with no place in the project (the audio before a trim, a stretch after a cut, a gap between paragraphs) moves nothing, and REAPER's cursor on such a place moves nothing on the page.
 
-If REAPER refuses (it is recording, say), a message gives its reason and the app plays the audio itself, as it does when REAPER is not connected, has another project open, or the switch is off. If REAPER stops answering while it plays for the page, playback stops and says so.
+While REAPER is linked, the page plays the chapter only through REAPER, never through the computer's output, so what you hear has REAPER's FX and level. If REAPER cannot play (it is recording, it is not connected, it has another project open, the switch is off, or the word is not in its project), nothing plays and a message says why. If REAPER stops answering while it plays for the page, playback stops and says so. With the built-in recorder, or Audacity, the app plays the audio itself.
 
 ## When the DAW is not connected
 

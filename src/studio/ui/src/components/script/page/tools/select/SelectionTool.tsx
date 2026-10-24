@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '../../../../primitives/Button';
 import { IconButton } from '../../../../primitives/IconButton';
-import { TooltipTarget } from '../../../../primitives/Tooltip';
 import { useBookmarks } from '../../../bookmarks/model/useBookmarks';
 import { useEntries, useMarks, useScriptCommands, useScriptView } from '../../data/useScriptData';
 import { useBibleKindChoices } from '../../rail/bible/kinds';
@@ -134,21 +133,18 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
               }}
             />
           )}
-          <TooltipTarget text="Look the selected words up in the dictionary or the Story Bible">
-            <Button
-              variant="inverse"
-              size="sm"
-              onClick={() => {
-                onDismiss();
-                const target = lookupTarget(place.quote, entries);
-                if (target.tab === 'pron') updateView({ tab: 'pron', word: target.word, missSel: place });
-                else if ('entryId' in target) updateView({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
-                else updateView({ tab: 'bible', entryId: null, miss: target.miss, missSel: place });
-              }}
-            >
-              Look up
-            </Button>
-          </TooltipTarget>
+          <IconButton
+            action="lookUp"
+            size="sm"
+            className={TOOL_BUTTON}
+            onClick={() => {
+              onDismiss();
+              const target = lookupTarget(place.quote, entries);
+              if (target.tab === 'pron') updateView({ tab: 'pron', word: target.word, missSel: place });
+              else if ('entryId' in target) updateView({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
+              else updateView({ tab: 'bible', entryId: null, miss: target.miss, missSel: place });
+            }}
+          />
         </>
       )}
     </div>,

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"desktop/internal/evidence"
+	"desktop/internal/soundalike"
 	"desktop/internal/tracks"
 )
 
@@ -79,9 +80,10 @@ const (
 )
 
 // HeardToken is a token as the wire sends it: the stored line plus its score.
-// Conf is always nil with ConfNoWordScores: the words file carries Whisper's word
-// probabilities, but they only choose passages to re-check and no calibrated
-// mapping scores a heard word for the narrator.
+// Conf is nil with ConfNoWordScores for every token but a misread: the words file carries Whisper's word
+// probabilities, but they only choose passages to re-check and no calibrated mapping scores a heard word for the
+// narrator. A misread's Conf is how likely it is a real misread, by how alike the script's word and the heard word
+// are in letters and sound (soundalike.MisreadConfidence, issue #2251 item 27): "MBA" heard as "NBA" is low.
 type HeardToken struct {
 	TokenLine
 	Conf       *float64 `json:"conf"`
@@ -114,6 +116,11 @@ func (v AlignmentView) WireTokens() []HeardToken {
 	}
 	out := make([]HeardToken, 0, len(v.Tokens))
 	for _, token := range v.Tokens {
+		if token.Status == "misread" && token.Heard != nil {
+			score := soundalike.MisreadConfidence(token.Text, *token.Heard)
+			out = append(out, HeardToken{TokenLine: token, Conf: &score})
+			continue
+		}
 		out = append(out, HeardToken{TokenLine: token, ConfReason: ConfNoWordScores})
 	}
 	return out

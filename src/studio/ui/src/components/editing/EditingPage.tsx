@@ -24,6 +24,7 @@ import { ConnectionResolveDialog } from '../connection/ConnectionResolveDialog';
 import { useOpenOnce } from '../connection/useOpenOnce';
 import { DAW_CONNECT_GRACE_MS, useConnectGrace } from '../production/pipeline/dawConnectGrace';
 import { useEditingChapterCommands } from './page/useEditingPageCommands';
+import type { DawRead } from './follow/playRoute';
 
 /** At or below this window width the legend is short and the drawer lies over the text (the mock's `layout.medium`). */
 const COMPACT_MAX_WIDTH = 1280;
@@ -186,6 +187,7 @@ function EditingLoaded({
               dawDialogOpen={dawDialog.open}
               panels={panels}
               caps={daw.caps}
+              dawRead={{ failed: daw.readFailed, retry: daw.retry }}
               keymap={keymap}
               width={width}
               step={step}
@@ -230,6 +232,8 @@ type ChapterProps = {
   dawDialogOpen: boolean;
   panels: PanelsState;
   caps: ReturnType<typeof useDawStatus>['caps'];
+  /** Whether the page's last read of the DAW failed, and the read again. */
+  dawRead?: DawRead;
   keymap: ReturnType<typeof useUserKeymap>;
   width: number;
   step: (d: 1 | -1) => void;
@@ -248,6 +252,7 @@ function EditingChapter({
   dawDialogOpen,
   panels,
   caps,
+  dawRead,
   keymap,
   width,
   step,
@@ -299,6 +304,7 @@ function EditingChapter({
         onGoToParagraph={onGoToParagraph}
         onOpenStoryBible={onOpenStoryBible}
         caps={caps}
+        dawRead={dawRead}
         keymap={keymap}
         stripFits={stripFits}
         compact={width > 0 && width <= COMPACT_MAX_WIDTH}

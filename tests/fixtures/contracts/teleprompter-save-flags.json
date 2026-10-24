@@ -21,9 +21,9 @@
     },
     "category": "transcript_discrepancy",
     "severity": "warning",
-    "confidence": null,
+    "confidence": 0.14,
     "evidence_version": "sha256:05d155faec1934a624390735af8cba6ce10dc068d2b66d49a08463105757345f",
-    "confidence_reason": "Suspected from live speech recognition while reading aloud: the engine can mishear a correct read, so this has no score and is not proof. Transcript Compare over the recorded take is authoritative.",
+    "confidence_reason": "Suspected from live speech recognition while reading aloud: the engine can mishear a correct read, so this is not proof. Transcript Compare over the recorded take is authoritative. Scored by how alike “beginning” and “begging” are in letters and sound: a near match (M for N, a vowel for a vowel) is more likely the recogniser mishearing a correct read than a misread. An ordering to sort and judge by, not a probability.",
     "evidence": {
       "heard": "begging",
       "kind": "misread",

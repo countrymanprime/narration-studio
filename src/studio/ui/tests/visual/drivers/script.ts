@@ -31,7 +31,7 @@ export const scriptDrivers: Record<string, Driver> = {
   'rail-words': async (page) => {
     await goToPage(page, 'Script');
     await selectReaderWord(page, 'tired');
-    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Look up' }).click();
+    await page.getByRole('toolbar', { name: 'Selection tools' }).getByRole('button', { name: 'Look up in the dictionary or the Story Bible' }).click();
     const rail = await openRail(page);
     await rail
       .getByRole('group', { name: /^Word: / })

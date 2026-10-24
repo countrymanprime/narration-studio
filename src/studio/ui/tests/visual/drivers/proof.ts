@@ -151,6 +151,13 @@ export const proofDrivers: Record<string, Driver> = {
     await notes(page).getByPlaceholder('Find in notes').fill('rabbit');
     await notes(page).getByRole('heading', { name: /of 4$/ }).waitFor();
   },
+  'search-menu': async (page) => {
+    await openProof(page, 'mockChapterLink=none');
+    await page.keyboard.press('Control+f');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('rabbit');
+    await page.getByText('Notes', { exact: true }).waitFor();
+    await page.getByRole('listbox', { name: 'Jump menu results' }).getByRole('option').first().waitFor();
+  },
   'evidence-changed': async (page) => {
     // The seed's analyzer runs again once the page has read the notes, so opening the note's chapter reads it with new evidence: the
     // Inspector keeps the evidence it showed, puts up the banner and holds every decision until the new evidence is taken.

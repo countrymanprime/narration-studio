@@ -105,3 +105,15 @@ describe('buildDoc: a take that says the script beside the extra words again', (
     expect(docOf('The cat sat down well well well on the mat.').items.filter((i) => i.dup)).toEqual([]);
   });
 });
+
+// Issue #2251 item 27: the host sends no recogniser score (null), and the page counted such a word as sure, so a misread's
+// description read "Heard “NBA”, 100%". A stand-in score is marked unscored and never shown as a figure.
+describe('an unscored word is never shown as 100%', () => {
+  it('marks a heard word with no score unscored, and keeps a scored one', () => {
+    const doc = docFromHeard(PARAS, answer(said('p-1', 'Alice was beginning to'), added('um'), said('p-1', 'get very tired.', 4)));
+    const extra = extras(doc, 'p-1')[0];
+    expect(extra.unscored).toBe(true);
+    const scored = docFromHeard(PARAS, answer([{ text: 'Alice', paragraphId: 'p-1', ordinal: 0, item: 0, off0: 0.1, off1: 0.3, conf: 0.17 }]));
+    expect(scored.items.find((i) => i.key === 'p-1:0')?.unscored).toBeUndefined();
+  });
+});

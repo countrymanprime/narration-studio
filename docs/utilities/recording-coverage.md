@@ -170,7 +170,9 @@ flowchart LR
 
 - **Body tokens** are the chapter's paragraph words after `compare.py`'s tokenizing: homophones, number words,
   equivalences and hyphen fusing all apply. The title and subtitle are optional heading tokens. They are never in the
-  denominator and never extra (Q11).
+  denominator and never extra (Q11). Nor is anything said before the chapter's first word heard: that is the heading in
+  the narrator's own words ("Chapter two" for "Chapter II"), so it is never an extra run or a pickup (#2251 item 7). A
+  script with no heading, such as the credits, has no such words.
 - **Present.** An `equal` block of at least `min_anchor_run` tokens is read text. A shorter block counts only at either
   end of the alignment or next to another `equal` block. Elsewhere it is a chance match and joins the gap around it.
   In a gap of up to `max_misread_run` body tokens, up to as many tokens as were said count as present. That is a
@@ -192,7 +194,9 @@ flowchart LR
 
   An extra run between the first and last read word is an `extra` gap. Every gap has `confidence: null` and
   `confReason: "no_word_scores"`: the words file keeps Whisper's word probabilities, but they only choose passages to re-check
-, and no calibrated mapping scores a gap from them.
+, and no calibrated mapping scores a gap from them. On the Editing page's wire (`WorkspaceAlignment`) every token is
+  unscored the same way except a misread, whose `conf` is how likely it is a real misread by how alike the script's and
+  the heard word sound (`internal/soundalike`, #2251 item 27).
 - **A chapter is complete** when every paragraph has at least `min_paragraph_present` of its words present, and no run
   of missing words, counted across paragraph boundaries and including the head and tail, is longer than
   `max_missing_run`.
@@ -353,7 +357,7 @@ This table is the key to the labels that code comments, tests and the text above
 | Q7 | The narrator's Transcript Compare model (`small` by default), recorded on each result |
 | Q8 | The live teleprompter tracker is not reused: its "done" is a cursor position |
 | Q10 | Muted items are skipped and listed |
-| Q11 | A spoken title or subtitle is optional, and never counted as missing or extra |
+| Q11 | A spoken title or subtitle is optional, and never counted as missing or extra; nor is anything said before the chapter's first word (#2251 item 7) |
 | Q12 | *Superseded* by the Actual Recorded column: an unmeasured chapter kept the status estimate, labelled "estimated from status"; the column now reads a real recorded length or a plain dash, never a guess |
 | Q13 | Another model or language keeps a result current (labelled). Another alignment setting makes it stale |
 | Q14 | On demand only: the Production board reads stored results and never starts a check. Superseded in part by Recording Check (recording coverage): the host re-checks a changed chapter on its own, only on mains power with REAPER quiet and not recording (`RecordingCoverage.background_checks`, on by default); reading a status still never starts one |

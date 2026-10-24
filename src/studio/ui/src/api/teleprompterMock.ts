@@ -434,6 +434,10 @@ function scaleFlag(flag: TeleprompterFlag, scale: (value: number) => number): Te
 
 const FLAG_CONFIDENCE_REASON =
   'Suspected from live speech recognition while reading aloud: the engine can mishear a correct read, so this has no score and is not proof. Transcript Compare over the recorded take is authoritative.';
+/** A misread's score: the host's is how alike the two words sound (internal/soundalike); the mock gives one fixed value. */
+const MOCK_MISREAD_CONFIDENCE = 0.5;
+const MISREAD_CONFIDENCE_REASON =
+  'Suspected from live speech recognition while reading aloud: the engine can mishear a correct read, so this is not proof. Transcript Compare over the recorded take is authoritative. Scored by how alike the words are in letters and sound.';
 
 /**
  * The mock of `TeleprompterSaveFlags` (`src/studio/desktop/teleprompterflags.go`): the same id rule in spirit (chapter,
@@ -471,9 +475,9 @@ function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {
         },
         category: flag.kind === 'restart' ? 'pickup' : 'transcript_discrepancy',
         severity: flag.kind === 'misread' || flag.kind === 'skipped' ? 'warning' : 'info',
-        confidence: null,
+        confidence: flag.kind === 'misread' && flag.heard.trim() ? MOCK_MISREAD_CONFIDENCE : null,
         evidence_version: `mock:${version}`,
-        confidence_reason: FLAG_CONFIDENCE_REASON,
+        confidence_reason: flag.kind === 'misread' && flag.heard.trim() ? MISREAD_CONFIDENCE_REASON : FLAG_CONFIDENCE_REASON,
         evidence: {
           kind: flag.kind,
           heard: flag.heard,
