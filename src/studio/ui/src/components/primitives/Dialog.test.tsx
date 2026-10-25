@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
-import { Dialog } from './Dialog';
+import { Dialog, DIALOG_WIDTHS } from './Dialog';
 import { Popover } from './Popover';
 import { SlideOver } from './SlideOver';
 import { tabInsideTrap } from './tabInsideTrap';
@@ -306,14 +306,15 @@ describe('Dialog is a real modal', () => {
 // `size="full"` fills the viewport with a margin and scrolls its
 // body, with no change to the modal contract that every other size shares.
 describe('Dialog size="full"', () => {
-  it('defaults to the capped, content-sized popup', async () => {
+  it('defaults to the form width, capped at 80dvh tall', async () => {
     render(
       <Dialog dismissOnOutsidePress={false} title="Add note" onClose={() => undefined} actions={<Button variant="primary">Save</Button>}>
         <p>Body</p>
       </Dialog>,
     );
     const dialog = await screen.findByRole('dialog', { name: 'Add note' });
-    expect(dialog.className).toContain('max-w-[70vw]');
+    expect(dialog.className).toContain(DIALOG_WIDTHS.form);
+    expect(dialog.className).not.toContain('70vw');
     expect(dialog.style.maxHeight).toBe('80dvh');
     expect(dialog.style.height).toBe('');
   });
@@ -445,5 +446,72 @@ describe('Dialog body scrolling', () => {
     expect(bodyOf().className).toContain('flex-col');
     expect(bodyOf().className).toContain('overflow-y-hidden');
     expect(bodyOf().hasAttribute('tabindex')).toBe(false);
+  });
+});
+
+// Alignment audit cause B: every dialog was 70vw wide whatever it held, footers had three layouts and sat 1.6 px outside the
+// body's edge, and the jump menu was centred so its field moved as the list changed.
+describe('Dialog widths and action row', () => {
+  it('sizes an alert as a confirm, and takes an explicit size from the scale', async () => {
+    render(
+      <Dialog dismissOnOutsidePress={false} variant="alert" title="Delete entry?" description="It cannot be undone." actions={<Button>Delete</Button>}>
+        {null}
+      </Dialog>,
+    );
+    expect((await screen.findByRole('alertdialog', { name: 'Delete entry?' })).className).toContain(DIALOG_WIDTHS.confirm);
+    cleanup();
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Link chapters" size="wide" actions={null}>
+        <p>Table</p>
+      </Dialog>,
+    );
+    expect((await screen.findByRole('dialog', { name: 'Link chapters' })).className).toContain(DIALOG_WIDTHS.wide);
+    expect(Object.values(DIALOG_WIDTHS)).toEqual(['max-w-[28rem]', 'max-w-[36rem]', 'max-w-[40rem]', 'max-w-[56rem]']);
+  });
+
+  it('hangs a palette from the top and centres every other size', async () => {
+    render(
+      <Dialog dismissOnOutsidePress title="Jump menu" headerless size="palette" onClose={() => undefined} actions={null}>
+        <p>List</p>
+      </Dialog>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Jump menu' });
+    expect(dialog.className).toContain(DIALOG_WIDTHS.palette);
+    expect(dialog.parentElement!.className).toContain('items-start');
+    cleanup();
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Add note" actions={null}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    expect((await screen.findByRole('dialog', { name: 'Add note' })).parentElement!.className).toContain('items-center');
+  });
+
+  it('wraps the action row, keeps a lone action at the right, and insets it like the header and body', async () => {
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Options" onClose={() => undefined} actions={<Button>Close</Button>}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Options' });
+    const row = dialog.querySelector<HTMLElement>('[data-dialog-actions]')!;
+    expect(row.className).toContain('flex-wrap');
+    expect(row.className).toContain('justify-end');
+    expect(row.className).not.toContain('justify-between');
+    // 'between' moves only the first of several actions to the left.
+    expect(row.className).toContain('[&>:first-child:not(:only-child)]:mr-auto');
+    const header = within(dialog).getByText('Options').parentElement!;
+    const body = within(dialog).getByText('Body').parentElement!;
+    for (const part of [row, header, body]) expect(part.className).toContain('px-[var(--space-6)]');
+  });
+
+  it('puts a gap under the description before the content', async () => {
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Sync" description="Chapters become tracks." actions={null}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Sync' });
+    expect(within(dialog).getByText('Chapters become tracks.').className).toContain('mb-3');
   });
 });

@@ -44,6 +44,7 @@ import type { MarksApi } from '../api/contracts/marks';
 import type { ScriptPrepApi } from '../api/contracts/scriptPrep';
 import type { ExtractionApi } from '../api/contracts/extraction';
 import type { EditCutsApi } from '../api/contracts/editCuts';
+import type { ReplaceAudioApi } from '../api/contracts/replace';
 import type { EditWordFxApi } from '../api/contracts/wordFx';
 import type { EditStacksApi } from '../api/contracts/editStacks';
 import type { WorkspaceApi } from '../api/contracts/workspace';
@@ -132,6 +133,7 @@ export type {
   EditCutsApi,
   EditWordFxApi,
   EditStacksApi,
+  ReplaceAudioApi,
   WorkspaceApi,
   PreviewApi,
   DawCapabilitiesApi,
@@ -212,6 +214,7 @@ export interface PortMap {
   editCuts: EditCutsApi;
   editWordFx: EditWordFxApi;
   editStacks: EditStacksApi;
+  replaceAudio: ReplaceAudioApi;
   workspace: WorkspaceApi;
   preview: PreviewApi;
   dawCapabilities: DawCapabilitiesApi;

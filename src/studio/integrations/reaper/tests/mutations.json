@@ -2726,5 +2726,35 @@
     "file": "narration_replace.lua",
     "find": "  shift_items(later, shift)\n\n  local new",
     "replace": "  local new"
+  },
+  {
+    "name": "replace: import: a network path is opened",
+    "file": "narration_replace.lua",
+    "find": "  if text:match('^[\\\\/][\\\\/]') then\n    return false\n  end",
+    "replace": "  if false then\n    return false\n  end"
+  },
+  {
+    "name": "replace: import: a file that is not audio by its name is opened",
+    "file": "narration_replace.lua",
+    "find": "  return extension ~= nil and AUDIO_EXTENSIONS[extension:lower()] == true",
+    "replace": "  return true"
+  },
+  {
+    "name": "replace: import: their whole file plays in the mix",
+    "file": "narration_replace.lua",
+    "find": "CO_NARRATOR_KEY, '1', true)\n  reaper.SetMediaTrackInfo_Value(track, 'B_MUTE', 1)\n",
+    "replace": "CO_NARRATOR_KEY, '1', true)\n"
+  },
+  {
+    "name": "replace: import: a path split by a bar is opened",
+    "file": "narration_replace.lua",
+    "find": "  if extra ~= nil or not valid_path(path) then",
+    "replace": "  if not valid_path(path) then"
+  },
+  {
+    "name": "replace: import: a 0-second source is added",
+    "file": "narration_replace.lua",
+    "find": "  if not length or length <= EDGE_TOLERANCE then",
+    "replace": "  if not length then"
   }
 ]
