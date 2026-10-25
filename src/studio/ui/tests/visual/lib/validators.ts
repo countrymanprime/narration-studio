@@ -268,9 +268,9 @@ export interface RowControl {
 }
 
 // Two sibling controls whose centres are this close are on one row.
-export const ROW_CENTRE_TOLERANCE_PX = 3;
+const ROW_CENTRE_TOLERANCE_PX = 3;
 // Controls on one row differ in height by no more than this (the alignment audit's rule A6, "controls on one row have one height").
-export const ROW_HEIGHT_TOLERANCE_PX = 1.5;
+const ROW_HEIGHT_TOLERANCE_PX = 1.5;
 
 // Sibling controls on one row whose heights differ: a 40.8 px select beside a 36 px button reads as misaligned (alignment audit cause C).
 // One problem per pair, naming both and their heights.
