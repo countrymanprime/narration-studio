@@ -27,6 +27,7 @@ import { CategoryNav } from './CategoryNav';
 import { CategoryPane } from './CategoryPane';
 import { ModelsPane } from './ModelsPane';
 import { PagesPane } from './PagesPane';
+import { PaneTitle } from './PaneTitle';
 import { Results } from './Results';
 import { settingsPageItems } from './pageItems';
 import { useDeepLink } from './useDeepLink';
@@ -50,6 +51,9 @@ export type SettingsPageProps = {
 };
 
 type Filter = 'all' | 'changed' | 'project';
+
+// The loading rows take the settings row's two columns (row/SettingRowView.tsx), so the blocks sit where the labels and controls will.
+const SKELETON_ROW = 'grid gap-x-8 gap-y-1.5 @min-[761px]:grid-cols-[12rem_minmax(0,1fr)] @min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
 
 /** The name of the page a path leads to, longest path first so '/proof/ch1' is Proof and '/' is Production. */
 function pageNameOf(path: string): string {
@@ -184,12 +188,25 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   let content;
   if (loading) {
     content = (
-      <LoadingRegion label={`Loading ${crumb}`} status="Reading your settings…" className="flex flex-col gap-3">
-        <h2 id="settings-heading" tabIndex={-1} className="font-['Barlow_Condensed',sans-serif] text-[1.875rem] font-semibold outline-none">
-          {crumb}
-        </h2>
-        {[0, 1, 2, 3].map((index) => (
-          <Skeleton key={index} tall />
+      <LoadingRegion label={`Loading ${crumb}`} status="Reading your settings…" className="flex flex-col gap-4">
+        <PaneTitle title={crumb} blurb={searching ? undefined : category?.blurb} />
+        {[3, 2].map((rows, section) => (
+          <div key={section} className="flex flex-col">
+            <Skeleton className="mb-1.5 w-32" />
+            <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)]">
+              {Array.from({ length: rows }, (_, index) => (
+                <div key={index} className={`${SKELETON_ROW} border-t border-[var(--border)] px-5 py-4 first:border-t-0`}>
+                  <div className="flex flex-col gap-2">
+                    <Skeleton className="w-40" />
+                    <Skeleton className="w-full max-w-[24rem]" />
+                  </div>
+                  <div className="flex h-[var(--control-height)] items-center">
+                    <Skeleton className="w-80 max-w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         ))}
       </LoadingRegion>
     );
@@ -233,7 +250,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
 
   return (
     <SettingsNavProvider value={{ go, showCategory }}>
-      <div className="@container flex w-full max-w-[1180px] flex-col gap-4" data-testid="settings-page">
+      <div className="@container flex w-full flex-col gap-4" data-testid="settings-page">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Heading title="Settings" />
           {cameFrom && (
@@ -242,9 +259,8 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             </Button>
           )}
           <span className="flex-1" />
-          <div role="search" className="flex flex-wrap items-center gap-2.5 text-[var(--text-muted)]">
-            <Icon name="find" />
-            <div className="w-[260px] max-w-full">
+          <div role="search" className="flex flex-wrap items-center gap-2.5 @max-[760px]:w-full">
+            <div className="w-[260px] min-w-0 flex-[1_1_180px]">
               <SearchField
                 label="Search settings"
                 placeholder="Search settings"
@@ -282,17 +298,14 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             pageSettingCount={PAGE_SETTINGS.length}
           />
           <section aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
-            <div aria-label="Breadcrumb" className="text-[0.8125rem] text-[var(--text-muted)]">
-              Settings <span aria-hidden="true">/</span> {crumb}
-            </div>
             {store.failing && (
-              <InsetCard tone="warn" role="status" className="flex flex-col items-start gap-1.5">
+              <InsetCard tone="warn" role="status" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
                 <b>Changes cannot be saved right now.</b>
                 <span>The last change was not kept and the previous value is still in use. The setting says why.</span>
               </InsetCard>
             )}
             {broken && (
-              <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5">
+              <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
                 <b>Your settings could not be read.</b>
                 <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
                 <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
@@ -300,6 +313,9 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
                 </Button>
               </InsetCard>
             )}
+            <div aria-label="Breadcrumb" className="text-[0.8125rem] text-[var(--text-muted)]">
+              Settings <span aria-hidden="true">/</span> {crumb}
+            </div>
             {content}
           </section>
         </div>

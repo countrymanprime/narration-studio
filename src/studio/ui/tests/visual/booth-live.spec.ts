@@ -281,13 +281,10 @@ test.describe('Booth with a moving mock DAW', () => {
     await expect(page.getByText(/REAPER is starting/).first()).toBeVisible();
     // Close the dialog: what is under test is the mark and the messages that rise above it.
     await dialog(page).getByRole('button', { name: 'Close' }).click();
-    // Space while Record cannot start opens the dialog that fixes it, every time, and starts nothing; Escape closes it again.
-    await page.keyboard.press('Space');
-    await expect(dialog(page)).toBeVisible();
-    expect((await dawState(page))?.recording).toBe(false);
-    await dialog(page).getByRole('button', { name: 'Close' }).click();
     await expect(dialog(page)).toHaveCount(0);
-    // The notice is above the toasts: neither covers the other, and the notice is topmost at its own points.
+    // The notice is above the toasts: neither covers the other, and the notice is topmost at its own points. Measured as soon as the
+    // dialog is gone (while it is open the toasts sit at the window's top), because an information toast leaves after TOAST_INFO_MS
+    // and a slow runner spent longer than that on the Space round trip below.
     const box = await notice(page).boundingBox();
     const toast = await page
       .getByRole('status')
@@ -303,6 +300,12 @@ test.describe('Booth with a moving mock DAW', () => {
       return !!hit && el.contains(hit);
     });
     expect(topmost).toBe(true);
+    // Space while Record cannot start opens the dialog that fixes it, every time, and starts nothing; Escape closes it again.
+    await page.keyboard.press('Space');
+    await expect(dialog(page)).toBeVisible();
+    expect((await dawState(page))?.recording).toBe(false);
+    await dialog(page).getByRole('button', { name: 'Close' }).click();
+    await expect(dialog(page)).toHaveCount(0);
     void toasts;
   });
 
