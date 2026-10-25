@@ -1,6 +1,7 @@
 // Pure checks over what one visual-suite run captured. Kept free of Playwright
 // and Node APIs so they are unit-tested by Vitest (src/visualSuite.test.ts) and
 // reused unchanged by the whole-run checks in run-checks.ts.
+import type { LayoutHit, LayoutRule } from './layoutScan';
 
 // One axe rule that a page reported in one capture (the run's violations, grouped by rule).
 export interface AxeFinding {
@@ -69,6 +70,8 @@ export interface CaptureRecord {
   // What axe reported for this capture, grouped by rule; undefined when axe did not run (it is off unless the project
   // declares axeDebt or a run sets UI_AXE=1), an empty list when it ran and found nothing.
   axe?: AxeFinding[];
+  // What the alignment rules found (lib/layoutScan.ts), declared in layout-debt.ts or not; undefined in a record written before they ran.
+  layout?: LayoutHit[];
 }
 
 export interface SameAsDeclaration {
@@ -404,4 +407,34 @@ export function summariseAxeRun(records: readonly CaptureRecord[]): AxeRunSummar
     nodes: [...byRule.values()].reduce((sum, total) => sum + total.nodes, 0),
     byRule: [...byRule.entries()].map(([rule, total]) => ({ rule, ...total })).sort((a, b) => b.nodes - a.nodes || a.rule.localeCompare(b.rule)),
   };
+}
+
+// An alignment rule an app state is KNOWN to break (layout-debt.ts): the state, the widths, the rule, the element (the end of the
+// hit's path) and the defect as measured, for whoever fixes it.
+export interface LayoutDebt {
+  page: string;
+  state: string;
+  viewports: string[];
+  rule: LayoutRule;
+  element: string;
+  defect: string;
+}
+
+// What to report for one capture: each alignment hit no entry declares, and each entry for this capture that nothing hits any more (a
+// declared defect that is gone must leave the list, as an axe entry must).
+export function checkLayoutHits(hits: readonly LayoutHit[], debt: readonly LayoutDebt[], page: string, state: string, viewport: string): string[] {
+  const declared = debt.filter((entry) => entry.page === page && entry.state === state && entry.viewports.includes(viewport));
+  const covers = (entry: LayoutDebt, hit: LayoutHit) => entry.rule === hit.rule && hit.where.endsWith(entry.element);
+  const problems = hits
+    .filter((hit) => !declared.some((entry) => covers(entry, hit)))
+    .map(
+      (hit) =>
+        `alignment rule ${hit.rule} at ${viewport}: ${hit.where}: ${hit.detail} - fix the page (docs/research/alignment-audit.md#alignment-rules), or declare it in tests/visual/layout-debt.ts`,
+    );
+  for (const entry of declared)
+    if (!hits.some((hit) => covers(entry, hit)))
+      problems.push(
+        `layoutDebt no longer holds at ${viewport}: ${entry.rule} on ${entry.element} is not found any more - remove the entry from layout-debt.ts`,
+      );
+  return problems;
 }
