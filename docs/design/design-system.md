@@ -219,6 +219,15 @@ The Production slide-overs depart from the Studio Next mock in these lines, from
 - **Stage readiness draws only the decisions that can be taken.** Dismiss, Confirm and Revert appear when they are possible, under the evidence they decide; the mock (`StageReadiness.tsx`) draws all of them disabled at the panel's foot, which left two dead buttons 400 px under a "can't tell" sentence (XPR2-35). The body does not repeat the slide-over's "Stage readiness" title, and a not-ready box counts the unmet checks rather than repeating them (R3PR2-8).
 - **A missing track is not drawn as a healthy one.** The chapter-track panel drops playback and Select in REAPER when the linked track is gone, labels its figures "Last known", and draws the track dot hollow; with two links to choose between it offers only the Keep this one rows, not a second picker (R3PR1-1, R3PR1-6).
 
+## Schedule milestones
+
+The Schedule's milestone table departs from the Studio Next mock (`pages/Schedule.tsx`) in these lines, from the alignment audit and the owner's decision on #2251 to fix every finding:
+
+- **The done toggle leads the row's buttons, not the row.** The mock's first column is the toggle with a hidden header; it put the Milestone heading and every name 40 to 60 px right of the card title and left the Final row a blank cell (XSH-4, R3SH-5, R4SM-14). The row's four buttons stand 8 px apart, so Remove is not read as part of Edit (XSH-12).
+- **Fixed columns.** `Table columns`: Measures 9 rem, Due 9.5 rem (the mock's 152 px), Status 6 rem, the buttons 12 rem, and Milestone takes the rest, so Due and Status stand at one x whatever the milestones are called (XSH-3). A name stops at two lines with the whole name on hover (R3SH-7). Below 1024 px Measures folds and its words go under the name, so Due and Status stay on screen at 390 px (R4SM-13).
+- **The Final row reads like the others.** "Whole book" is the size of the other measures (the mock's `.sub`), and the due date field has no frame or fill until it is hovered or focused, its date at the other dates' x (XSH-11, R3SH-1).
+- **A card with only the Final row says so** in a line above it: "No other milestones yet. Add one with +." (XSH-17).
+
 ## Manuscript reader
 
 - **One card per section.** Each chapter starts with the mock's boundary: a dashed "End of … · N words" line, then `ChapterCard` (`src/studio/ui/src/components/script/page/chapters/ChapterCard.tsx`, not a primitive) with the label, Record in Booth, the title, the facts line and My prep. The opening and closing credits are drawn the same way by `CreditsSection.tsx` beside it, as the mock lists them as chapters, with their own prep state; their unresolved tokens and Fill in sit in the card's banner row. There is no disclosure: every section's text is always shown.

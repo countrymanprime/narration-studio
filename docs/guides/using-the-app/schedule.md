@@ -44,13 +44,12 @@ refused with a message and the box goes back to the stored amount. A refusal's m
 
 ## Milestones
 
-The table lists your milestones by date (the Milestone column keeps a readable width, so a long name wraps in it; in a narrow window the table scrolls sideways inside its card, with a shadow on the edge that has more to see, and Tab reaches it), with the **Final delivery** row, the book's due date, at the end. Each row has:
+The table lists your milestones by date, with the **Final delivery** row, the book's due date, at the end. With no other milestones, a line above it says so. The columns stay where they are whatever the milestones are called: a long name stops at two lines (hover it for the whole name, or open **Edit**). In a window narrower than 1024 px, what a milestone measures moves under its name; narrower still, the table scrolls sideways inside its card, with a shadow on the edge that has more to see, and Tab reaches it. Each row has:
 
-- a **done** toggle. A done milestone reads **Done** and is never estimated.
 - a name, what it **measures** (a custom milestone measures nothing), and its date.
 - a status cell: **Late by 3 d**, **At risk** or **On track** with the estimated date, or **Not estimated** for a custom one.
   Hover or focus it for the full sentence. **Final delivery** reads **No date** until a due date is set.
-- a note button (hover it to read the note; with no note it offers to add one), **Edit** and **Remove**. Removing offers Undo.
+- at the right, a **done** toggle (a done milestone reads **Done** and is never estimated), a note button (hover it to read the note; with no note it offers to add one), **Edit** and **Remove**. Removing offers Undo.
 
 ![Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
 
@@ -60,7 +59,7 @@ milestones, a name is at most 200 characters and a note 2,000; when a save is re
 
 ## The due date
 
-Set the date in the **Final delivery** row: type its parts or open the calendar. A whole, real date is saved as soon as it is written
+Set the date in the **Final delivery** row: it reads like the other dates until you point at it or Tab to it, then shows its box; type its parts or open the calendar. A whole, real date is saved as soon as it is written
 or picked, and a screen reader hears the saved date and the verdict it gives ("Due date saved: Oct 10. Behind · done Oct 27, due Oct 10 · 9 days overdue."); a date still being typed, or a year before 1000, is not saved, and leaving the field puts the saved date back. To clear the due date, empty the field and press Enter, and the page says **No
 due date set**, and a screen reader hears **Due date cleared**. A due date in the plan that is not a real date (the file was edited by hand) is named in the header and treated as no
 due date.
