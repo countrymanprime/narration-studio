@@ -195,4 +195,24 @@ describe('TagInput', () => {
     await user.type(box, 'x'.repeat(80));
     expect(box.value).toHaveLength(64);
   });
+
+  // R3PC-6, R3PC-4: only the 19 px typing line took a press, and a chip's x was a 16 x 19 target.
+  it('puts the cursor in the typing box on a press anywhere in the box, and gives each x a 24 px target', async () => {
+    const { container } = render(
+      <TagInput
+        label="Vocabulary hints"
+        inputLabel="Add a vocabulary term"
+        tags={['Alice']}
+        suggestions={[]}
+        emptyText="No hints yet"
+        onAdd={() => undefined}
+        onRemove={() => undefined}
+        onAcceptSuggestion={() => undefined}
+      />,
+    );
+    const box = container.querySelector('.cursor-text') as HTMLElement;
+    fireEvent.click(box);
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Add a vocabulary term' }));
+    expect(screen.getByRole('button', { name: 'Remove Alice' }).className).toContain('after:min-h-6');
+  });
 });
