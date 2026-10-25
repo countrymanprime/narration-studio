@@ -7,7 +7,7 @@ export const projectStates: StateEntry[] = [
     page: 'project',
     state: 'picker-empty',
     description:
-      'No project open yet - ProjectPicker with the mark, the New project action, the recent-projects list (Open and Remove on each row) and Browse folders',
+      'No project open yet - ProjectPicker with the mark, the New project action, Open folder…, the recent-projects list (Open and Remove on each row)',
   },
   {
     page: 'project',
@@ -22,16 +22,17 @@ export const projectStates: StateEntry[] = [
   {
     page: 'project',
     state: 'picker-pinned',
-    description: 'A recent project pinned - its row moves to the top and its pin toggle reads pressed',
+    description: 'A recent project pinned - its row moves under a Pinned heading above Recent and its pin toggle reads pressed',
   },
   {
     page: 'project',
     state: 'picker-daw-running',
-    description: 'REAPER running with a project linked to a recent project (?mockNoProject=1&mockDawRunning=1) - the banner above the list offers Open',
+    description:
+      'REAPER running with a project linked to a recent project (?mockNoProject=1&mockDawRunning=1) - the banner above the list names it and its row is marked Open in REAPER now',
   },
   {
     page: 'project',
     state: 'picker-no-recents',
-    description: 'Every recent project removed - the list says there are none; New project and Browse folders stay',
+    description: 'Every recent project removed - the list says there are none and offers New project in it; Open folder… stays',
   },
 ];

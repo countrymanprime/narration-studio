@@ -5,7 +5,7 @@
 Pickups lists every line to record again, so you can gather them into one session in the [Booth](booth.md). It sits
 under **Review** in the sidebar, after [Proof](proof.md). The page records nothing itself: it has no punch and does not
 move the DAW's cursor. Each line opens in the Booth, where you record it.
-While the list is being read, the table shows grey rows shaped like its lines under the page title, **Add a pickup by hand** is off, and the Pickup session panel shows blocks for **Lines** and **About**, not a count; if it cannot be read, the page says so with **Check again**.
+While the list is being read, the table shows grey rows shaped like its lines under the page title, **Add a pickup by hand** is off, and the Pickup session panel shows blocks for **Lines** and **Length**, not a count; if it cannot be read, the page says so with **Check again**.
 
 ## Where the lines come from
 
@@ -89,7 +89,8 @@ while it cannot read, and whenever you return to the window.
 list. It is off when the DAW is not reachable. An off button stays in the Tab order: focus it and the reason appears, and
 a screen reader reads it as the button's description. **Add a pickup by hand** asks for the time in the
 recording (`05:12.0`, or `5:12`; seconds run 00 to 59) and the line to re-record (one line, up to 500 characters), and
-adds it to the chapter in view (with every chapter shown, the last chapter you stepped to, or the first). A time or
+adds it to the chapter in view (with every chapter shown, the last chapter you stepped to, or the first); the form names that
+chapter under its title, and **Close** or Escape leaves it. A time or
 line the app cannot use is said under its box, which is marked as wrong until you change it, and in a short message; the
 form keeps what you typed.
 
@@ -103,13 +104,14 @@ for this chapter**. If a chapter you were viewing is no longer in the manuscript
 ## Pickup session
 
 The **Pickup session** panel beside the list counts the open lines in view that are not left out: **Lines** (**not known** while the list cannot be read), and
-**About** how many minutes they take to record, from the recordings' measured times (it says when there is no measured
-figure). From there:
+**Length**, about how many minutes they take to record, from the recordings' measured times (it says when there is no measured
+figure, or **no lines** when the session is empty). In a wide window the panel runs down beside the list; in a narrower one it sits
+under the list at its own width. From there:
 
 - **Open N in Booth** opens the Booth on those lines, starting with the first line's chapter (see
-  [A pickup session](booth.md#a-pickup-session)). With no lines in the session it is off, and the line under the
+  [A pickup session](booth.md#a-pickup-session)). With no lines in the session it is off (outlined), and the line under the
   buttons says why: there are no pickups yet, every line in view is recorded, or every open line is left out.
-- **Add N as markers in** the DAW puts a pickup marker at each line's place and says "Pickup markers for N lines are in
+- **Add N as markers in** the DAW, the flag beside it, puts a pickup marker at each line's place and says "Pickup markers for N lines are in
   REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers. With
   Audacity the markers are labels on a label track named "<!-- brand:identity.audacityLabelTrack -->Narration Studio<!-- /brand -->", written `[nu:pickup open] …` (and
   `[nu:pickup done] …` once resolved): one label per line, with no colour. They are Experimental, so they stay off until the

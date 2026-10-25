@@ -7,9 +7,13 @@ import { toneColors } from '../primitives/StatusBadge';
 import { TooltipTarget } from '../primitives/Tooltip';
 
 // The header's recording-engine chip (the Studio Next mock's top bar): the name of the recorder the project is connected to, with a dot
-// for how it is doing. Its tooltip says whether it is running. A click opens the engine panel, which holds the link and
-// relink action. 'builtin' is the project's recorder choice and, like a DAW of 'none', has no link to open.
+// for how it is doing. A state that needs the narrator also says so in words ("REAPER: Other project"), so the states do not differ by
+// colour alone, and below `md` the chip keeps a word rather than shrinking to a bare dot (alignment audit R3SL-2, R3PR1-9, XSL-12).
+// Its tooltip says more. A click opens the engine panel, which holds the link and relink action. 'builtin' is the project's recorder choice and, like a DAW of 'none', has no link to open.
 export type EngineState = 'daw' | 'builtin';
+
+// The word a state that needs the narrator draws after the DAW's name; a linked DAW draws its name alone, as the mock's chip does.
+const STATE_WORD: Partial<Record<StatusId, string>> = { not_linked: 'Not linked', not_running: 'Not running', wrong_project: 'Other project' };
 
 export function EngineChip({
   daw,
@@ -44,8 +48,8 @@ export function EngineChip({
     return (
       // role="group" (not a plain span): aria-label is only permitted on an element whose role supports naming, and
       // below `md` the visible text hides, leaving the dot as the chip's only content (axe aria-prohibited-attr).
-      <HeaderChip role="group" aria-label="Built-in: Recording happens in the app" dot="var(--non-text)" short className="flex-none">
-        <span className="max-md:hidden">Built-in</span>
+      <HeaderChip role="group" aria-label="Built-in: Recording happens in the app" dot="var(--non-text)" className="flex-none">
+        Built-in
       </HeaderChip>
     );
   }
@@ -70,6 +74,9 @@ export function EngineChip({
   const status: StatusId =
     forAudacity && !reachable ? 'not_running' : !linked ? 'not_linked' : mismatch ? 'wrong_project' : !reachable ? 'not_running' : 'linked';
   const tone = statusTone(status) as HeaderChipTone;
+  const word = STATE_WORD[status];
+  // The words drawn come first in the name: axe fails a name that does not contain the text the button draws.
+  const drawn = [label, word].filter(Boolean).join(': ');
   const dot = tone === 'neutral' ? 'var(--non-text)' : toneColors(tone).line;
   return (
     <TooltipTarget text={tooltip}>
@@ -78,12 +85,19 @@ export function EngineChip({
         dot={dot}
         onClick={onOpenEnginePanel}
         aria-busy={linkingDawFile}
-        aria-label={label ? `${label}: ${tooltip}` : tooltip}
-        short
+        aria-label={!word ? (label ? `${label}: ${tooltip}` : tooltip) : tooltip === word ? drawn : `${drawn}. ${tooltip}`}
         className="flex-none"
       >
-        {/* Below `md` the chip shortens to its dot; the full text stays in the accessible name above. */}
-        <span className="max-md:hidden">{label}</span>
+        {/* Below `md` a state word stands alone ("Other project"); the DAW's name stays in the accessible name above. */}
+        {/* One flex item, so the chip's gap does not open a second space after the colon. */}
+        {word ? (
+          <span>
+            {label && <span className="max-md:hidden">{label}: </span>}
+            {word}
+          </span>
+        ) : (
+          label
+        )}
       </HeaderChip>
     </TooltipTarget>
   );

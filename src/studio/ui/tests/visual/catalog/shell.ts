@@ -76,6 +76,9 @@ export const shellStates: StateEntry[] = [
     description:
       'No manuscript imported (?mockNoManuscript=1): the rail shows the nine pages that need one off with a lock, and a press on Proof opens its note with the reason, beside the item',
     pointer: 'keep',
+    // Driven at each width: driven once at desktop and resized, the note stayed anchored to the rail item that hides below 860 px and
+    // was drawn over the header (alignment audit XSL-9); at that width the press is in the drawer.
+    reloadPerViewport: true,
     extraViewports: [...REFLOW.extraViewports, ...LAYOUT_BANDS.extraViewports],
   },
   {

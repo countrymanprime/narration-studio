@@ -103,14 +103,17 @@ A running [production stage timer](production.md#the-stage-timer) is not in the 
 Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Search this page** (`Ctrl+F`) and a **View** submenu of the zoom steps and the theme.
 
 The engine chip at the right of the header names the audio engine the project records with (REAPER, Audacity or Built-in), with a
-dot for how it is doing. Hover it for the detail, and click it to open the [audio engine panel](#the-audio-engine-panel), where the
-project's `.rpp` file is linked or changed:
+dot for how it is doing, and says in words when something needs you. Hover it for the detail, and click it to open the
+[audio engine panel](#the-audio-engine-panel), where the project's `.rpp` file is linked or changed:
 
-- **Green dot, "Linked"**: the DAW is running with the linked project open.
-- **Amber dot, "Not running"**: the DAW is not running. Open it to carry on.
-- **Amber dot, "A different project is open"**: the DAW has another project open than the linked one. Link the open project instead,
+- **Green dot, "REAPER"**: the DAW is running with the linked project open.
+- **Amber dot, "REAPER: Not running"**: the DAW is not running. Open it to carry on.
+- **Amber dot, "REAPER: Other project"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
-- **Quiet dot, "Open the engine panel to link a project file"**: nothing is linked yet.
+- **Quiet dot, "REAPER: Not linked"**: nothing is linked yet.
+
+On a narrow window the chip drops the DAW's name and keeps the words ("Other project").
+
 - **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project and tools, with the [track list](#tracks) read from Audacity.
 - **Built-in**: the project records in the app. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
 
@@ -305,7 +308,7 @@ read.
 
 ### Editing check
 
-Each chapter's **More actions** menu in Chapter links has **Editing check…**, opening its own panel over this one: whether
+Each chapter's **More actions** menu in Chapter links has **Editing check…**, opening its own panel over this one, as wide as it, with **Back to the audio engine** at its top: whether
 empty space, clicks and breaths still need trimming out. The same panel opens from
 a chapter's [stage suggestion](production.md#stage-readiness) on Production when the editing signal
 names it as the way to resolve what's unknown.

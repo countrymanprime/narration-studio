@@ -36,12 +36,14 @@ spans on the waveform, the kind chip on a word's card, the rows of the drawer's 
 the take left out (as not read) and added (as extra). A cut word is struck through, and a selected or playing word keeps its own fill;
 the mark's underline stays under both.
 
-Each line starts with its time in the chapter, and a line that has takes shows how many in a round badge under the
-time. Every such line, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
+Each line starts with its time in the chapter (a chapter with nothing heard yet has no times, and its text starts at the
+card's edge). Every line that has takes, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
 the playing one filled, the one that plays, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
 first read's spot), **Duplicate read** (the take reads the line twice) or **To choose**. Tab visits one chip, the one on the
 line the cursor is on (the first before there is a cursor), so the script is not forty stops; **T** opens the takes of the
-cursor's line (and folds them again on a line with one take), and a click on the chip or the badge opens any other.
+cursor's line (and folds them again on a line with one take), and a click on a chip opens any other. The takes list
+lays every take out in the same columns: its name and state, a bar for its length, how much of the script it read as
+written, then Play and Keep.
 
 The script also shows what the Story Bible and your marks say about it, read from the [Script page](script.md)'s data. A
 quoted stretch starts with a chip naming the speaker, in the character's colour (dashed when the Story Bible only suggests
@@ -199,6 +201,9 @@ the nearest zero crossings), the track, and what happens to the gap: close it, s
 leave room tone of the same length so the timing does not move. You also choose the crossfade at the join, how much audio to keep at each
 edge of the cut, and whether the cut audio is kept on a muted track named Cuts. The DAW makes the cut as one undo step; the recording file is not
 touched. **Mute** keeps the audio and silences the words. The DAW names words by the script's words, so a word that was only said (in italics, not in the script) at the edge of your selection is left out: the question says so ("“um” was only said and is not in the script, so its audio stays.") and counts only the words that will be cut. A word that was only said between two script words is cut with them.
+
+Every question on this page keeps **Cancel** at the bottom left and its action at the bottom right, in view however far the
+question scrolls; when more of it is below them, a shadow over that row says so.
 
 ![Editing - Delete on four selected words: the question names the words, the cut and what the DAW will do](../../images/ui/editing-delete-dialog.webp)
 
@@ -369,7 +374,7 @@ experimental stay off until you turn them on in [Settings](settings.md).
 
 ### Effects, Backups and Timeline
 
-**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed, each with a **Favourite** button. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name) next to **Remove this effect** moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
+**Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed under their source, each name with a **Favourite** button at its right. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list; with words selected in the text, the effect on them is the one shown, and its row is marked. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name), beside **Preview** and **Compare**, moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
 backups of its project; with one that edits the audio itself, the app backs the words up before each delete, effect or
 stack, and refuses the edit if the backup fails. The Backups tab is also where this project's backup settings can be changed (**Keep backups**, the window either side of an edit, and **Keep backups for (days)**). It is a shortcut to the same settings as the Audacity backups under **Set on a page** in [Settings](settings.md#set-on-a-page), which also sets them for every project (Global); the tab edits this project only. **Timeline** shows the takes of the line the cursor is on, one lane each,
 on one time axis (the line's audio is the waveform above the bar). On a window 1360 px wide or more it is a strip under the text, which the header's

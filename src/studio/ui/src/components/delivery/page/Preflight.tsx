@@ -15,6 +15,13 @@ const DANGER = { color: 'var(--danger-text)' };
 const MUTED = { color: 'var(--text-muted)' };
 /** A book of thousands of chapters would make a list as long as the book; this many rows show first, the rest on request. */
 const FIRST_ROWS = 100;
+/**
+ * A row of the list, the summary and the loading blocks share one 32 px pitch with a hairline between rows, so the eye can follow a name
+ * to its pill across the card; a long name wraps to two lines instead of being cut (alignment audit XDL-4, R4TB-8, R3DL-4).
+ */
+const ROW = 'flex min-h-8 items-center';
+/** More rows than this (about 40 rem of them) scroll inside the card. */
+const SCROLL_AFTER = 18;
 
 /**
  * "Before you build" (the mock's aside): chapters passing n of N, then a row per chapter, named in the manuscript's heading style, that
@@ -63,31 +70,41 @@ export function Preflight({
             {measuring.message || 'Measuring the files'} ({measuring.percent}%)
           </p>
         )}
+        {/* The blocks are the list's own rows: a name and a pill on the list's pitch and rules (XDL-12). */}
         {!known && !problem && (
-          <LoadingRegion label="Loading the chapter checks" status="Reading the chapters…" className="flex flex-col gap-2">
+          <LoadingRegion label="Loading the chapter checks" status="Reading the chapters…" className="flex flex-col">
             {[0, 1, 2].map((row) => (
-              <Skeleton key={row} />
+              <div key={row} className={`${ROW} justify-between`}>
+                <Skeleton className="w-40" />
+                <Skeleton className="w-20" />
+              </div>
             ))}
           </LoadingRegion>
         )}
         {known && (
           <>
-            <div className="flex items-center justify-between text-sm">
+            <div className={`${ROW} justify-between text-sm`}>
               <span>Chapters passing</span>
               <b className="font-mono">
                 {states.filter((state) => state.kind === 'ok').length} of {states.length}
               </b>
             </div>
-            <ul className="flex flex-col">
+            {/* A long book scrolls inside the card rather than running the page on for thousands of pixels (R3DL-4); a short one is not a
+                scroll box, so no gutter is kept for a scrollbar it never shows. */}
+            <ul
+              className={`flex flex-col ${shown.length > SCROLL_AFTER ? 'max-h-[40rem] overflow-y-auto' : ''}`}
+              aria-label="Chapters"
+              tabIndex={shown.length > SCROLL_AFTER ? 0 : undefined}
+            >
               {shown.map((state) => (
-                <li key={state.id}>
+                <li key={state.id} className="border-t border-[var(--border)]">
                   <Button
                     variant="link"
                     onClick={() => onOpen(state.id)}
                     aria-label={`${state.name}: ${state.text}. Open in Master & QC`}
-                    className="flex! min-h-[2.8125rem] w-full items-center justify-between gap-2 text-left text-sm no-underline!"
+                    className={`${ROW} flex! w-full justify-between gap-2 py-1 text-left text-sm whitespace-normal! no-underline!`}
                   >
-                    <span dir="auto" title={state.name} className="min-w-0 flex-1 truncate">
+                    <span dir="auto" title={state.name} className="line-clamp-2 min-w-0 flex-1 [overflow-wrap:anywhere]">
                       {state.name}
                     </span>
                     {/* A space, so the text drawn reads "Chapter 01 Pass", words of the name: run together it fails axe's

@@ -80,8 +80,18 @@ describe('NewProjectDialog', () => {
   it('shows the real default projects folder until another location is chosen', async () => {
     renderDialog({ projectDefaultLocation: async () => ({ path: `C:/Users/Alice/${brand.identity.defaultProjectsFolder}` }) });
 
-    expect(await screen.findByText(`C:/Users/Alice/${brand.identity.defaultProjectsFolder}`)).toBeTruthy();
+    const path = `C:/Users/Alice/${brand.identity.defaultProjectsFolder}`;
+    // The path is drawn in pieces, a break after each separator (XPJ-9), so it is found by its whole text.
+    const shown = await screen.findByText((_, node) => node?.className === '[overflow-wrap:anywhere]' && node.textContent === path);
+    expect(shown.querySelectorAll('wbr')).toHaveLength(path.split('/').length);
     expect(screen.getByText(/default projects folder/)).toBeTruthy();
+  });
+
+  it('puts Cancel beside Create at the end of the footer (XPJ-5)', () => {
+    renderDialog();
+    const footer = screen.getByRole('button', { name: 'Cancel' }).parentElement!;
+    expect(footer.className).not.toContain('first-child:not(:only-child)]:mr-auto');
+    expect(footer.contains(screen.getByRole('button', { name: 'Create' }))).toBe(true);
   });
 
   it('still offers Change location when the default folder cannot be read', async () => {

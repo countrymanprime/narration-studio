@@ -103,7 +103,8 @@ export function OutputPanel({
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <SectionLabel>Folder</SectionLabel>
-          <p dir="auto" className="font-mono text-sm [overflow-wrap:anywhere]" style={build.folder ? undefined : MUTED}>
+          {/* A path is mono; the words said before there is one are sans and muted, so they do not read as code (alignment audit XDL-3). */}
+          <p dir="auto" className={`text-sm [overflow-wrap:anywhere] ${build.folder ? 'font-mono' : ''}`} style={build.folder ? undefined : MUTED}>
             {build.starting ? 'Choose a folder in the window that opened…' : (build.folder ?? 'Chosen when you build')}
           </p>
         </div>
