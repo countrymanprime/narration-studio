@@ -15,7 +15,6 @@ const VOCABULARY = new Set(['min-[1360px]', 'max-[1360px]', 'max-[1281px]', 'min
 // The off-vocabulary uses left after the page swaps. Each entry is a gap with a reason (SN-C4, #1217); the fix deletes it.
 const OFF_VOCABULARY: Record<string, Record<string, number>> = {
   // GAP (#1217): the Production skeleton still lays out at 1024 and 1280, not the mock's widths. `min-[1280px]` treats exactly 1280 as not medium; the mock treats it as medium.
-  'src/components/production/overview/ProductionSkeleton.tsx': { 'min-[1024px]': 2, 'min-[1280px]': 1 },
   // The Editing header's "Flagged by <engine>" label is written out when the header itself is 1240 px wide (`@min-[1240px]/hd`, a container query on the card, not
   // the window's): the legend and the controls beside it fill a 1440 px window's card, so the label needs more than the window's own widths say.
   'src/components/editing/flags/Legend.tsx': { 'min-[1240px]': 1 },

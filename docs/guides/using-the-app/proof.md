@@ -49,7 +49,7 @@ A chapter shows its **Recording check** card and its recording:
 
 - The card says whether the chapter's check is current, stale (and what changed since), running or not done yet; how much
   is recorded against the script's estimate; and what the check counted, against the script and in the audio. **Check
-  recordings** runs it (with **Cancel** while it runs). It is off, with the reason, when the chapter has no recording or
+  recordings** runs it (with **Stop checking** while it runs). Under **Last check** it says what the last check found and when. It is off, with the reason, when the chapter has no recording or
   no text, or the DAW is not reachable. A chapter with no measured recording shows no check result, only why (no track
   linked, more than one, the linked track not in the saved project, or no saved project), with the audio engine panel
   where it can be fixed. **Show the findings** lists what the check found, each with the suggested
@@ -84,13 +84,14 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 The notes panel lists the notes in view, **Notes · 14** for example, with:
 
 - chips that narrow the list: **All**, **To review**, **Open**, **Pickups** and **Decided**, each with its count;
-- **In view**, on one chapter while the waveform window shows only part of it. It starts on, so the list keeps to the
-  notes in the window; press it to list the whole chapter;
+- **In view**, on one chapter while the waveform window shows only part of it, set apart after the chips because it works
+  with any of them. It starts on, so the list keeps to the notes in the window; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
 - **Check recordings…**, the same check the card runs, starting with the chapter in view;
 - **Find in notes**, which keeps only the notes whose text matches what you type; Esc closes it;
-- **Import proofer sheet** and **Export for proofer**: the proofer's CSV sheet. Import adds each row as a pickup marker in
+- **Import proofer sheet** and **Export for proofer** (the sort, Check recordings, Find and these two sit at the right of the
+  panel; the sort and Find are left out while there are no notes): the proofer's CSV sheet. Import adds each row as a pickup marker in
   the DAW and, when the DAW has answered, says how many pickups it added, how many were there already and how many rows
   it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote; a pickup on the Pickups page with no
   marker in the DAW yet is not in the sheet, and the message says how many are missing and to add them as markers there first. Both need the
@@ -100,8 +101,11 @@ Under them, **Sources** names the checks the notes came from, with a count for e
 the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
 review**, **Needs pickup**, **Fix in edit**, **Fine as read** or **Defer**) for every note. Script vs heard is the note's headline
 sentence with the words in question marked in the note's own colour and form, for example “are” read as “our”; a note whose
-spot has more than one take also has a takes badge. With All chapters the table groups the notes by chapter, each group a
-tinted row with the chapter's open count.
+spot has more than one take also has a takes badge at the right of that column. A note still to review shows its Resolution
+as an outline; a decision is filled. The columns keep their widths in every chapter and filter, and Script vs heard takes
+the rest of the row. With All chapters the table groups the notes by chapter, each group a tinted row with the chapter's
+open count; with no notes it says **No notes yet**, and in one chapter **No notes for this chapter**. Beside the
+Inspector, the notes panel runs down to where the Inspector ends.
 
 ![Proof - the To review chip: "Notes · 3 of 4", the note marked fine as read left out](../../images/ui/proof-notes-filtered.webp)
 
@@ -243,10 +247,12 @@ linked chapter's **Open in Proof** link in the [audio engine panel](navigation.m
 Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
-While the chapter is being read, the view shows the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason and **Retry**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
+The view runs the full width of the page, like Proof, with its breadcrumb and title in the same place in every state.
+While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
-If the chapter hasn't been checked yet, the chapter view says so and offers **Check recording**, the same check
-[Production](production.md#checking-a-chapters-recording) runs.
+If the chapter hasn't been checked yet, the title row says **Not checked yet** and offers **Check recording**, the same check
+[Production](production.md#checking-a-chapters-recording) runs. A chapter with no linked REAPER track says so in a line
+under the title, with the way to the audio engine panel.
 
 ![Proof chapter view - a linked chapter that hasn't been checked yet](../../images/ui/proof-chapter-never.webp)
 
@@ -258,7 +264,7 @@ model, a second look with a larger model, chunk length, parallel processes, cros
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 
-**Native takes.** With the built-in recorder, the chapter view has a Native takes panel beside the Recording check card. It lists the chapter's native takes grouped by line and lets you mark one take of a line as its keeper (a click; mark it again or choose another take to undo, and choosing one clears the others on that line). While the project records with the built-in recorder it also offers to assign a take that has no line to one of the chapter's paragraphs. A take already assigned, and its keeper mark, stays visible whichever recorder the project uses now. The panel never edits audio.
+**Native takes.** With the built-in recorder, the chapter view has a Native takes panel beside the Recording check card. It lists the chapter's native takes grouped by line, each take's buttons next to its name, and lets you mark one take of a line as its keeper (a click; mark it again or choose another take to undo, and choosing one clears the others on that line). While the project records with the built-in recorder it also offers to assign a take that has no line to one of the chapter's paragraphs. A take already assigned, and its keeper mark, stays visible whichever recorder the project uses now. The panel never edits audio.
 
 ## Comparing the recording with the script
 
@@ -351,7 +357,7 @@ do on [Production](production.md#stage-readiness); Why opens the same evidence v
 **Open this note** opens it on [Editing](editing.md), its words selected, and an unmapped chapter
 links to the [audio engine panel](navigation.md#the-audio-engine-panel).
 
-Below the suggestion, **Rendered file** shows which file the delivery checks measure and lets you change
+Beside the suggestion (under it in a narrow window), **Rendered file** shows which file the delivery checks measure, when you chose it and when it was last measured, on one line, and lets you change
 it: **Choose rendered file** (**Change** once one is chosen) opens a file picker and attests the file was made
 from the chapter as it is now; **Clear** removes the choice; **Measure** runs the same measurement job [Master & QC](master-and-qc.md)
 uses, with its real progress, and needs no second file picker. If the file changes on disk, or the
