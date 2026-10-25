@@ -13,7 +13,7 @@ const BYTES_PER_MB = 1024 * 1024;
 const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 /** The day of a check, from the host's ISO time, as the app writes a date elsewhere ("Sep 21, 2026"); read in UTC so the day does not change with the time zone. */
-export function checkedDay(lastChecked: string): string {
+function checkedDay(lastChecked: string): string {
   const day = new Date(lastChecked);
   if (Number.isNaN(day.getTime())) return lastChecked.slice(0, 10);
   return day.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
