@@ -45,6 +45,7 @@ function Harness({ width, onReview = () => {}, children }: { width: number; onRe
       {children}
       <DrawerLayout
         open={d.open}
+        onClose={d.close}
         drawer={
           <Drawer
             doc={doc}
@@ -168,6 +169,19 @@ describe('layout-by-width', () => {
     mount(1440);
     await open();
     expect(document.querySelector('[data-drawer-open]')!.className).toContain(' min-[1281px]:grid-cols-[minmax(0,1fr)_352px]');
+  });
+
+  // Alignment audit cause O: over the text the drawer cut lines mid-word with nothing to say they were behind it.
+  it('dims the text under the overlay drawer, and a press on the dim closes it', async () => {
+    mount(1280);
+    await open();
+    const scrim = document.querySelector<HTMLElement>('[data-scrim]')!;
+    expect(scrim.className).toContain('bg-[var(--panel-scrim)]');
+    expect(scrim.className).toContain('min-[1281px]:hidden');
+    expect(scrim.getAttribute('aria-hidden')).toBe('true');
+    await userEvent.setup().click(scrim);
+    expect(document.querySelector('[data-drawer-slot]')).toBeNull();
+    expect(document.querySelector('[data-scrim]')).toBeNull();
   });
 });
 

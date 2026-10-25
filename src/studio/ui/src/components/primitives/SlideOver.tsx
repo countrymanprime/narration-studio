@@ -56,7 +56,7 @@ export function SlideOver({
       }}
     >
       <Drawer.Portal>
-        <Drawer.Backdrop data-slide-over-backdrop className="fixed inset-0 z-[var(--z-slide-over-scrim)] bg-transparent" />
+        <Drawer.Backdrop data-slide-over-backdrop className="fixed inset-0 z-[var(--z-slide-over-scrim)] bg-[var(--panel-scrim)]" />
         <Drawer.Viewport className="fixed inset-0 z-[var(--z-slide-over)] flex items-stretch justify-end">
           <Drawer.Popup
             data-slide-over
