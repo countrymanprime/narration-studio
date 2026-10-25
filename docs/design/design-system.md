@@ -324,6 +324,15 @@ In the Booth's speaker picker a row with no voice sample keeps the play button's
 - **The reader's frame.** The text and the header both have a 24 px inset (the mock's 20 plus 4), so the header title and the card under it share a left edge (XSC-28) and a bookmark ribbon gets its 24 px press area between the panel edge and the first letter. The ribbon is a fixed 16 px glyph centred in that inset, whatever the reader's text size (the Booth's text reaches 40 px, XBO-24, R3SC-12, XSC-21). Beside the reader (above 1280 px) the rail's tab strip is the reader header's 65 px, so the two rules are one line (XSC-11). The mock's strip is shorter and its reader inset 20 px; this supersedes both. Under 640 px the header title takes two lines before it is cut (XSC-9).
 - The retail sample's bar is drawn inside the reader's inset, square between paragraphs and round only at its two ends, so it is one unbroken line (XSC-18), and its **Retail sample** tag sits 12 px above the chapter's end-of line.
 
+## Editing drawer: Effects
+
+The Effects tab (`editing/effects/`) departs from the Studio Next mock in these lines, from the alignment audit:
+
+- **The inspector is about the selection.** With words selected, the effect on them is inspected and its row in the list is the `Table` row marked selected (a press anywhere on the row picks it); a row picked after that wins until the selection changes (R3ED-7). The effect's name is one cut line in the list, with the full name as its hint, and the table scrolls sideways in a narrow drawer (XED-13).
+- **One inspector layout.** The chain is the heading and not a fact again; the facts are a label column with left-aligned values; every setting is label over control, the slider's own layout; **Show in the DAW** sits with Preview and Compare, which act on the same effect, and **Remove this effect** is alone at the right under them (XED-14).
+- **Coverage swatches have a rim** (`--accent` on both shades, `--border` on None), since `--accent-soft` alone was all but invisible on the dark surface (R3ED-17).
+- **The DAW's chains** are listed under a section label, each name then its **Favourite** at the right, 8 px apart (XED-16, R3ED-18).
+
 ## Motion
 
 See [`motion-and-animation.md`](motion-and-animation.md). Every transition and animation is a `motion-ok:` utility timed by a `--motion-*` and `--ease-*` token in `styles.css`; `motion-ok:` stops under Windows reduced motion and under `<html data-motion="reduce">`, which the Settings **Motion** row sets, and `src/studio/ui/src/motion.test.ts` fails on anything else. `components.css` declares none (`src/studio/ui/src/legacyCss.test.ts`), because a legacy rule beats a utility in the same layer. Popovers and menus share one enter and exit (`primitives/overlayMotion.ts`); dialogs appear at once. What an action changed fades from `--accent-soft` once, and a failure arriving fades in once (`primitives/changeHighlight.ts`). The named keyframes are `work-progress-slide`, `tooltip-in`, `toast-in`, `change-highlight`, `arrive` and `settings-saved`, the per-row "Saved" fade on the Settings page, which leaves the word readable without motion.

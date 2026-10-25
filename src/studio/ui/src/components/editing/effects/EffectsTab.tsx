@@ -44,8 +44,14 @@ export function EffectsTab({ doc, effects, cuts, total, selected, fx, onSelectWo
   const dawName = kind === undefined ? 'the DAW' : kind === 'none' || kind === 'Built-in' ? BUILT_IN : kind;
   const fxCap = useFxCap();
   const projectFx = useProjectFx();
-  const [pick, setPick] = useState<string | null>(null);
-  const current = effects.find((f) => f.id === pick) ?? effects[0] ?? null;
+  // The words selected in the text pick the effect on them, so the inspector is about what was selected (alignment audit R3ED-7); a row
+  // picked in the list wins until the selection changes again.
+  const selectionKey = selected.join(' ');
+  const [picked, setPicked] = useState<{ id: string; under: string } | null>(null);
+  const pick = picked?.under === selectionKey ? picked.id : null;
+  const setPick = (id: string) => setPicked({ id, under: selectionKey });
+  const underSelection = selected.length ? effects.find((f) => f.keys.some((k) => selected.includes(k))) : undefined;
+  const current = effects.find((f) => f.id === pick) ?? underSelection ?? effects[0] ?? null;
   const at = current ? effects.indexOf(current) : -1;
   const stepTo = (by: -1 | 1) => {
     const to = effects[at + by];
