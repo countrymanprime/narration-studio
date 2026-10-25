@@ -218,7 +218,8 @@ func TestALongChapterIsSearchedQuickly(t *testing.T) {
 	location := LocateTail(tokens[9000:9080], tokens)
 	elapsed := time.Since(started)
 
-	if location.Word != 9080 || elapsed >= 5*time.Second {
+	// The sidecar's 5 s: a search that grew with the square of the chapter would miss it by far.
+	if location.Word != 9080 || elapsed >= 5*time.Second*raceSlowdown {
 		t.Fatalf("got %+v in %v", location, elapsed)
 	}
 }
