@@ -52,7 +52,7 @@ The mock shows 161 MB and 1,200 MB; the pinned totals are 160.4 MB and 1,196.2 M
 | `google/bert_uncased_L-6_H-768_A-12` @ `c132ecc85d3d` | 270,341,459 | `58058a678878a286bab61eb65b4df352a7a542358143f3518bb82d84e495d2d3` |
 | `google/bert_uncased_L-12_H-768_A-12` @ `cc478efa3482` | 440,472,395 | `874977abfe5eb5c3c1ce5156314da7ee75b00661556b94fc7167201860dd489a` |
 
-The full 40-character revisions, `config.json` and `vocab.txt` hashes are **PENDING**: the API listing shows these files without LFS hashes and the revisions were read truncated. Owner command in [Owner steps](#owner-steps). The encoders add about 142 MB to the small install (45.1 + 38.8 + 57.7 MB) and about 711 MB to the large one (270.3 + 440.5 MB, the `L-12` repository counted once for its two uses).
+The full revisions, `config.json` and `vocab.txt` are pinned in [Pinned and run](#pinned-and-run-2026-10-24); the encoder weights above are not downloaded at all. The encoders add about 142 MB to the small install (45.1 + 38.8 + 57.7 MB) and about 711 MB to the large one (270.3 + 440.5 MB, the `L-12` repository counted once for its two uses).
 
 **Python packages** (PyPI):
 
@@ -133,48 +133,53 @@ Cluster-to-name matching used normalised name strings. The rules baseline in the
 - **What the freeze must do:** as for GLiNER, keep the heavy packages out of the frozen tree and import them from the unpacked install directory at run time. The files of `sidecar-freeze` that change: `scripts/release/prepare-resources.py` (`exclude_modules`, not `collect_*`), `scripts/release/verify-installable.mjs` (the freeze must not carry `torch`), `src/studio/desktop/smoke.go` or the sidecar `self-check` (report "booknlp: not installed" as a normal state), and `scripts/release/tests/test_prepare_resources.py`. If BookNLP gets its own sidecar mode, `sidecar-add` also applies (project, test, packaging, asset and threat-model rows).
 - **Threat model:** unpickling a weight file executes code, so the download must be hashed before load. SN-X61 and SNX-7b re-read the first-use-download row of `docs/architecture/threat-model.md`; this slice does not edit it.
 
+## Pinned and run (2026-10-24)
+
+**Encoders.** The code confirms the mapping: each model strips its prefix and version from the weight file's name and calls `BertModel.from_pretrained("google/bert_uncased_L-…")`, then loads the weight file over it with a strict `load_state_dict`. Every weight file holds the whole encoder (embeddings, every layer, the pooler), so the encoder's own weights are overwritten and never used. The adapter builds each encoder from its `config.json` and the shared `vocab.txt` alone (`_local_encoders`). On chapter VI of Alice the small model's `.entities`, `.quotes` (122 lines), `.tokens` and `.book` files are byte-identical with and without the encoder weights. That saves 142 MB on the small install and 711 MB on the large one.
+
+| Repository @ revision | `config.json` (bytes, SHA-256) |
+| --- | --- |
+| `google/bert_uncased_L-2_H-256_A-4` @ `4e937a8675e5afd9a4836735c186ec01695bc3ea` | 383, `ba873b4875d069697fa5bab011ea9e3f63b7f8186701bdf5356b4d8622d8f5c1` |
+| `google/bert_uncased_L-4_H-256_A-4` @ `387825ce42dbb39b87911cdf8e383ee3b25184f8` | 383, `61716a972c73e9cc1d6f1165e27e577c1f4012a3cc480e431f427a78d5071ece` |
+| `google/bert_uncased_L-8_H-256_A-4` @ `fff21c203abcc9365418f2e46bb6801a2b98e3da` | 383, `786e6029b075a1bb4af66edcb09fa8b1e7df095b931829ab684a3e55e5dcb5c0` |
+| `google/bert_uncased_L-6_H-768_A-12` @ `c132ecc85d3d73b460b741cc50aa9ed18446c335` | 384, `701910395dc211b902e685089657ccb437ad4f8a7a6b3cae708f7030fc12ba73` |
+| `google/bert_uncased_L-12_H-768_A-12` @ `cc478efa3482fefe275eb2733363db9713d499ef` | 385, `887ee20f3594eacdd08318d1c096014389dca4672e3041892916abd17a80c90c` |
+
+All five repositories share one `vocab.txt` (231,508 bytes, `07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3`), installed once as `bert_uncased.vocab.txt`.
+
+**Python packages.** `transformers==5.16.0` and its closure, resolved for Windows and Python 3.12 against `uv.lock` (`uv pip compile`), minus what the guide's freeze already carries: `transformers`, `huggingface-hub` 1.31.0, `tokenizers` 0.23.2, `safetensors` 0.8.0, `regex` 2026.9.29, `filelock` 4.2.1, `fsspec` 2026.7.0, `sympy` 1.14.0, `mpmath` 1.3.0 and `networkx` 3.7. Add `setuptools` 80.10.2 for `pkg_resources`, which the freeze's `setuptools` 84 no longer has. Each wheel is pinned in `config/analysis-assets.json` with its PyPI SHA-256 and unpacked size. `hf-xet` is left out: it only serves downloads, and the load is offline. A frozen scan ran without `networkx` and `fsspec`, but both are declared dependencies, so they ship. This `transformers` satisfies GLiNER's `<5.17.0`, so the two share the one environment (SNX-Q4), and BookNLP 1.0.8 loads on it with the `position_ids` patch already in the adapter.
+
+**The freeze.** Running a scan in the frozen guide on Linux (`prepare-resources.py --sidecar manuscript-guide`, the pinned files in an install folder, no network settings in the environment) found four gaps, each fixed and pinned by a test:
+
+- the standard library the tools import that the guide does not (`pickletools`, then `filecmp`, `plistlib`, `mmap`, `struct`, `sysconfig`, and `ctypes.wintypes` on Windows);
+- submodules of packages the freeze carries in part (`tqdm.auto` and the rest of `tqdm`'s, `jinja2.meta`), since a frozen package wins over the install folder's copy;
+- the metadata of `tqdm`, `packaging`, `numpy` and `pyyaml`, whose versions `transformers` checks on import;
+- BookNLP printing to stdout, which the host would have read as a bad suggestion line.
+
+The list is `FREEZE_IMPORTS` and `FREEZE_METADATA` in the adapter; `prepare-resources.py` reads it, and the `tool-runtime` self-check line proves it in the packaged smoke test. After the fixes the frozen guide's scan of chapter VI (81 paragraphs, 3,328 words) printed 142 suggestion lines in 20 seconds on the small weights: 114 speakers, 15 entries, 10 Gender properties and 3 aliases. The Linux check used torch's Linux build with its CUDA libraries; the Windows freeze and wheels are the owner's packaged check below.
+
 ## Recommendation
 
-**Ship behind "not yet available":** BookNLP large gave the best local speaker attribution in the trial (61 of 61, about 10 minutes a book), but its loader needs a patch on a current `transformers`, the shared environment with GLiNER is unconfirmed, and its weights have no stated licence beyond the owner's ruling, so the adapter should wait for the owner run below.
+**Shipped as an optional download (2026-10-24).** Both sizes install from Settings > Analysis tools with consent. The speaker confidences in `SPEAKER_CONFIDENCE` stay provisional until the calibration below.
 
 ## Owner steps
 
 These go to [#992](https://github.com/countrymanprime/narration-studio/issues/992) (D65: none blocks a merge).
 
-1. Confirm the encoder mapping and pin the rest: for each of the five encoders, record the full revision and the hashes of `config.json` and `vocab.txt`:
+1. **Packaged check on Windows.** In a release build:
+   - Open Settings > Analysis tools, choose **Download** on BookNLP (small) and accept. Note how long it takes.
+   - Open a project with a manuscript, then Story Bible > More actions > **Scan the manuscript** with BookNLP ticked. Note the minutes, and the peak memory of the `manuscript-guide` process in Task Manager.
+   - Run the program with `--smoke` and keep its report: the `guide:tool-runtime` and `guide:booknlp` lines must pass.
+   - Repeat with BookNLP (large).
+   - **Send back:** the scan's log lines (Story Bible > the scan's messages), the `--smoke` report, the two timings and peak memory per size, and any line that says BookNLP could not be loaded.
+2. **Calibration of the 75% rule (SN-X8).** In the repository, with the app's install folders from step 1 (under the asset cache, `analysis\booknlp\booknlp-small\1.0` and `…\booknlp-big\1.0`):
 
    ```text
-   curl -sS "https://huggingface.co/api/models/google/bert_uncased_L-4_H-256_A-4?blobs=true"
+   python scripts/research/extraction-calibration/run_calibration.py fetch
+   python scripts/research/extraction-calibration/run_calibration.py gold-check
+   python scripts/research/extraction-calibration/run_calibration.py run --booknlp-small-install <small folder> --booknlp-large-install <large folder> --spacy-model <en_core_web_sm folder>
    ```
 
-2. Resolve the dependency question in a clean environment outside the repository: install `booknlp==1.0.8 --no-deps`, `gliner==0.2.29`, `transformers==5.16.0`, `torch==2.14.1`, `spacy`, `setuptools<81`; run the script below with `small`. Record whether it loads without the `position_ids` patch, and the closure's wheel sizes and hashes.
-3. Run the footprint and speaker checks. This script writes only to `--out`; the speaker score needs the gold file of the calibration protocol (SN-X13), so it records every quote's cluster and token offsets:
-
-   ```python
-   import argparse, glob, json, os, sys, time, resource
-   from booknlp.booknlp import BookNLP
-
-   p = argparse.ArgumentParser()
-   p.add_argument("--models", required=True)
-   p.add_argument("--size", choices=["small", "big"], required=True)
-   p.add_argument("--chapters", required=True)
-   p.add_argument("--out", required=True)
-   a = p.parse_args()
-
-   os.environ["HOME"] = a.models  # assumption: the package builds its model path from the home directory; confirm
-   t0 = time.time()
-   nlp = BookNLP("en", {"pipeline": "entity,quote,coref", "model": a.size})
-   load_s = time.time() - t0
-   rows = []
-   for path in sorted(glob.glob(os.path.join(a.chapters, "*.txt"))):
-       t = time.time()
-       out = os.path.join(os.path.dirname(a.out), "booknlp-" + a.size, os.path.basename(path)[:-4])
-       nlp.process(path, out, os.path.basename(path)[:-4])
-       rows.append({"chapter": os.path.basename(path), "seconds": time.time() - t, "output": out})
-   peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 if sys.platform != "win32" else None
-   json.dump({"size": a.size, "load_seconds": load_s, "peak_rss_mb": peak, "chapters": rows}, open(a.out, "w"), indent=1)
-   ```
-
-   On Windows record the peak working set separately; the script writes `null` rather than a guess. If `BookNLP(...)` tries to download weights over `http`, place the pinned files in `$MODELS/booknlp_models/` first.
+   A source is only scored against a gold set, and none exists yet. Write `data/<book>/gold.jsonl` for at least two scored books by reading their chapters, in [the protocol's format](studio-next-extraction-calibration-protocol.md#the-gold-set), until `gold-check` reports the minimums. **Send back:** `data/out/report.md`. Its threshold recommendation, and the speaker accuracy for tagged and implicit quotes per size, set `SPEAKER_CONFIDENCE` and whether `VerifyBelow` stays 0.75.
 
 Results stay provisional until they are re-run on the owner's own material (D70).

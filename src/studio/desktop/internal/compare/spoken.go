@@ -41,8 +41,8 @@ func IsFiller(token string) bool { return fillerWords[token] }
 
 // homophonesCSV is spoken_forms.HOMOPHONE_GROUPS written out as CSV (a Go
 // embed cannot reach Python data);
-// src/studio/sidecars/transcript-compare/tests/test_chapter_track_parity.py
-// fails when the two drift apart.
+// src/studio/libs/python/tests/test_spoken_forms.py fails when the two drift
+// apart.
 //
 //go:embed homophones.csv
 var homophonesCSV string
@@ -148,6 +148,17 @@ func CanonicalTokens(text string) []string {
 		tokens[k] = FoldToken(strings.ToLower(token)) // ASCII only: Go and Python agree
 	}
 	return tokens
+}
+
+// SpokenKey is spoken_forms.spoken_key: one string for how text is said, its
+// canonical tokens with numbers merged, joined with no separator and no
+// apostrophe, so "daisy chain" and "daisy-chain", "twenty three" and "23", or
+// "there" and "their" give the same key.
+func SpokenKey(text string) string {
+	tokens := CanonicalTokens(text)
+	identity := make([]int, len(tokens))
+	merged, _ := MergeNumberWords(tokens, identity)
+	return strings.ReplaceAll(strings.Join(merged, ""), "'", "")
 }
 
 // MergeNumberWords is spoken_forms.merge_number_words: each run of

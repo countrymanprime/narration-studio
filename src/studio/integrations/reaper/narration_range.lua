@@ -1942,6 +1942,8 @@ local function range_fx_chosen(session_dir, run_id, item_text, take_text)
 end
 
 return function(registry)
+  -- narration_replace.lua's commands change the project too, so they end a running Compare first.
+  registry.interrupt_compare = interrupt_compare
   registry.register('delete_range', function(ctx, args)
     interrupt_compare()
     local fade, pad, tone = cut_tail(args[6])

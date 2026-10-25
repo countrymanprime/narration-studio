@@ -21,7 +21,7 @@ local core = ...
 local event = core.event
 
 -- "File: Render project, using the most recent render settings, auto-close render dialog" (confirmed in REAPER 7.80 by
--- the S5 spike, docs/research/reaper-spike-s5-render-details.md).
+-- the S5 spike, docs/reference/daw/reaper.md).
 local RENDER_ACTION = 42230
 local RENDER_BOUNDS_CUSTOM = 0 -- RENDER_BOUNDSFLAG: custom time bounds, RENDER_STARTPOS to RENDER_ENDPOS.
 local RENDER_MASTER_MIX = 0 -- RENDER_SETTINGS: the master mix, not stems.

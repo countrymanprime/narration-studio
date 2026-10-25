@@ -2,7 +2,7 @@
 
 **Status: results pending, structure written 2026-10-11.** The owner has not returned spikes 1f and 1g of [the spike runbook](../operations/daw-spike-run-sheet.md), so neither has a result. A "pending" cell is not a failure: it means no table row has come back. A worker has no audio interface, no REAPER and no Audacity, so nothing here is a guess. Tracking: issue #1146, part of #1016.
 
-Spikes SND-S6 and SND-S7 of [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md). Style and limits follow [REAPER spike S6](reaper-spike-s6-daw-reachability.md) and [The DAW port](../architecture/daw-integration.md#the-daw-port).
+Spikes SND-S6 and SND-S7 of [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md). Style and limits follow [REAPER spike S6](../reference/daw/reaper.md#what-reaper-was-seen-to-do) and [The DAW port](../architecture/daw-integration.md#the-daw-port).
 
 ## How to fill this note
 

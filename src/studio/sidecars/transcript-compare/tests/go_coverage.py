@@ -147,6 +147,17 @@ def _aligned(raw: Mapping) -> AlignedChapter:
     )
 
 
+def tokenize(text: str) -> list[str]:
+    """The text's tokens as the host tokenizes them (no project equivalences)."""
+    return list(_SERVER.request({"op": "tokenize", "text": text})["tokens"])
+
+
+def fuse_hyphen_splits(opcodes: Sequence[Sequence], doc: Sequence[str], audio: Sequence[str]) -> list[tuple[str, int, int, int, int]]:
+    """Another aligner's opcodes with the hyphen splits fused, as the host fuses `SequenceMatcher`'s."""
+    reply = _SERVER.request({"op": "fuseHyphenSplits", "opcodes": [list(op) for op in opcodes], "doc": list(doc), "audio": list(audio)})
+    return [tuple(op) for op in reply["opcodes"]]
+
+
 def align(heading: str, paragraphs: Sequence[str], paragraph_ids: Sequence[str], words: Sequence[tuple[str, float, float]]) -> Alignment:
     """The chapter aligned to transcript words by the host's own tokenizing and `SequenceMatcher` port."""
     reply = _SERVER.request(

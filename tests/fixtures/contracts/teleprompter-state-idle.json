@@ -1,5 +1,6 @@
 {
   "chapter": null,
+  "coldRead": false,
   "engine": null,
   "message": "Choose a chapter to start the teleprompter.",
   "paused": false,

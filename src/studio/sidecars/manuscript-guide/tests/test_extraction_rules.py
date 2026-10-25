@@ -343,9 +343,9 @@ class NothingInALockedEntryTests(unittest.TestCase):
 
 # The SHA-256 of the Story Bible `build` writes for the Alice fixture (rules only, pronunciation stubbed, the
 # timestamp and the absolute manuscript path left out), taken on main before this slice and again when the product name in the
-# fixture manuscript changed (it moves `source.sha256` only), and again when the build's cues began suggesting Needs Review and
-# nearby speakers (it moves `dialogue_cues` only). A change to it means `suggest` changed the build.
-ALICE_BUILD_SHA256 = "a121f7c6ef3ec3bef4d453e9aa69a2dcadc4d452e02e803408043c28aa83e283"
+# fixture manuscript changed (it moves `source.sha256` only), and again when the build's cues began suggesting nearby speakers
+# (it moves `dialogue_cues` only). A change to it means `suggest` changed the build.
+ALICE_BUILD_SHA256 = "d0cae357cdc9a01683f384e9545a5013c42bcefc2d655626d61faae68062765b"
 
 
 class BuildIsUnchangedTests(unittest.TestCase):

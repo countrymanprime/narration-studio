@@ -1,7 +1,8 @@
 // Package takereview is the pickup/duplicate findings scan service: it builds
-// the scan scope from the static project model (internal/tracks), runs
-// the Transcript Compare sidecar's additive --find-repeats mode, adapts its
-// output into findings.Finding records via internal/repeats (which stays
+// the scan scope from the static project model (internal/tracks), has the
+// Transcript Compare sidecar's --find-repeats hear each read and groups the
+// reads (ProcessRunner, internal/comparerun), adapts the groups into
+// findings.Finding records via internal/repeats (which stays
 // independent of both the project model and the findings store so it can
 // be unit-tested and reused on its own), and saves them into the
 // findings store under repeats.AnalyzerName ("take-review").
@@ -76,8 +77,10 @@ type Segment struct {
 	TakeGUID    string
 }
 
-// SidecarOptions are the optional --find-repeats sidecar knobs a caller may
-// override; the zero value lets the sidecar use its own defaults.
+// SidecarOptions are the scan's optional knobs: the sidecar's model and
+// language, and how much two reads' spans must overlap to group. The zero
+// value keeps the defaults (the sidecar's model and language, half the
+// shorter span).
 type SidecarOptions struct {
 	Model          string
 	Language       string
