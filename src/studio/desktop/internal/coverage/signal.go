@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -206,7 +207,7 @@ func largestGap(report Report, thresholds Thresholds) string {
 	case longest != nil:
 		return fmt.Sprintf("%s: %s in a row not read.", describeParagraphs([]string{longest.ID}, numbers), words(longest.LongestMissingRun))
 	case thinnest != nil:
-		return fmt.Sprintf("%s: %d of %s read.", describeParagraphs([]string{thinnest.ID}, numbers), thinnest.Present, words(thinnest.Tokens))
+		return fmt.Sprintf("%s: %s of %s read.", describeParagraphs([]string{thinnest.ID}, numbers), grouped(thinnest.Present), words(thinnest.Tokens))
 	}
 	return fmt.Sprintf("%s in a row not read.", words(report.Summary.LongestMissingRun))
 }
@@ -223,9 +224,9 @@ func measuredEvidence(stored *StoredResult, settings Settings) []stages.Evidence
 	failing := failingParagraphs(report, settings.Thresholds)
 	entries := []stages.Evidence{{
 		Kind: "coverage", Label: "Text present",
-		Value: fmt.Sprintf("%d of %s present, %d missing (longest run %d), %d extra; %d of %s passing",
-			summary.PresentTokens, words(summary.BodyTokens), summary.MissingTokens, summary.LongestMissingRun, summary.ExtraTokens,
-			len(report.Paragraphs)-len(failing), plural(len(report.Paragraphs), "paragraph")),
+		Value: fmt.Sprintf("%s of %s present, %s missing (longest run %s), %s extra; %s of %s passing",
+			grouped(summary.PresentTokens), words(summary.BodyTokens), grouped(summary.MissingTokens), grouped(summary.LongestMissingRun),
+			grouped(summary.ExtraTokens), grouped(len(report.Paragraphs)-len(failing)), plural(len(report.Paragraphs), "paragraph")),
 	}}
 	numbers := paragraphNumbers(report)
 	regions := slices.Clone(report.Regions)
@@ -268,8 +269,8 @@ func failingParagraphs(report Report, thresholds Thresholds) []ParagraphLine {
 func paragraphEvidence(paragraph ParagraphLine, numbers map[string]int) stages.Evidence {
 	return stages.Evidence{
 		Kind: "paragraph", Label: "Paragraph short",
-		Value: fmt.Sprintf("%s: %d of %s read (%s), longest missing run %s", describeParagraphs([]string{paragraph.ID}, numbers),
-			paragraph.Present, words(paragraph.Tokens), percent(paragraph.PresentFraction()), words(paragraph.LongestMissingRun)),
+		Value: fmt.Sprintf("%s: %s of %s read (%s), longest missing run %s", describeParagraphs([]string{paragraph.ID}, numbers),
+			grouped(paragraph.Present), words(paragraph.Tokens), percent(paragraph.PresentFraction()), words(paragraph.LongestMissingRun)),
 		ParagraphIDs: []string{paragraph.ID},
 	}
 }
@@ -330,7 +331,17 @@ func plural(count int, noun string) string {
 	if count == 1 {
 		return "1 " + noun
 	}
-	return fmt.Sprintf("%d %ss", count, noun)
+	return grouped(count) + " " + noun + "s"
+}
+
+// grouped writes a count with thousands separators ("2,140"), as the UI's toLocaleString('en-US') does, so a count the host words
+// and the same count a tile formats read alike (alignment audit R3PR2-7).
+func grouped(count int) string {
+	text := strconv.Itoa(count)
+	for at := len(text) - 3; at > 0 && text[at-1] != '-'; at -= 3 {
+		text = text[:at] + "," + text[at:]
+	}
+	return text
 }
 
 func percent(share float64) string {

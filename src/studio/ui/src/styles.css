@@ -263,6 +263,7 @@ html[data-motion='reduce'] {
   --header-row-height: 2.25rem; /* 36, th: 13 px line plus 8 px padding each side and the rule */
   --font-size-page-title: 1.75rem; /* 28, h1 */
   --font-size-card-title: 1.3125rem; /* 21, h2 */
+  --font-size-overlay-title: 1.5rem; /* 24, .dlg .dh h2: a Dialog's and a SlideOver's title */
   --font-size-label: 0.8125rem; /* 13, .label and th */
   --tracking-label: 0.14em;
   --tracking-button: 0.09em;
@@ -486,5 +487,13 @@ html[data-motion='reduce'] {
       linear-gradient(to left, var(--surface) 30%, transparent) right center / 2rem 100% no-repeat local,
       linear-gradient(to right, rgb(0 0 0 / 0.2), transparent) left center / 0.75rem 100% no-repeat scroll,
       linear-gradient(to left, rgb(0 0 0 / 0.2), transparent) right center / 0.75rem 100% no-repeat scroll;
+  }
+  /* Its vertical twin, for a box that scrolls up and down inside a dialog (Check recordings' form, alignment audit XPF-2). */
+  .scroll-y-edges {
+    background:
+      linear-gradient(var(--surface) 30%, transparent) center top / 100% 2rem no-repeat local,
+      linear-gradient(to top, var(--surface) 30%, transparent) center bottom / 100% 2rem no-repeat local,
+      linear-gradient(rgb(0 0 0 / 0.2), transparent) center top / 100% 0.75rem no-repeat scroll,
+      linear-gradient(to top, rgb(0 0 0 / 0.2), transparent) center bottom / 100% 0.75rem no-repeat scroll;
   }
 }

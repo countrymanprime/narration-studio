@@ -12,7 +12,9 @@ const LOOK_CLASS: Record<PillLook, (active: boolean) => string> = {
   filter: (active) =>
     `h-[var(--chip-height)] rounded-full border px-3 leading-none ${active ? 'active border-[var(--text)] bg-[var(--text)] text-[var(--surface)]' : 'border-[var(--line-strong)] bg-[var(--surface)] text-[var(--text-muted)]'}`,
   segmented: (active) =>
-    `h-full rounded-[0.28rem] border-0 px-3 leading-none ${active ? 'active bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text)]'}`,
+    // A segment grows with the group, so a group wider than its labels shares the room and centres each label in its own part; an unchosen
+    // segment is muted and takes a fill on hover, so it reads as a choice and not a label (alignment audit XPF-6).
+    `h-full grow rounded-[0.28rem] border-0 px-3 leading-none ${active ? 'active bg-[var(--accent)] text-[var(--accent-contrast)]' : 'text-[var(--text-muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]'}`,
 };
 
 // A toggle chip. Base UI's Toggle gives it `aria-pressed`, so a screen reader hears which chip of a group is selected. The

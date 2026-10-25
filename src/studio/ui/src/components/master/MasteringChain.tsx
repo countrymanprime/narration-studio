@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { MasteringProviders } from '../../api/contracts/mastering';
@@ -35,10 +35,14 @@ export function useMasteringProviders(): { providers?: MasteringProviders; probl
 export function MasteringChain({ providers, problem }: { providers?: MasteringProviders; problem?: string }) {
   const row = providers?.providers.find((candidate) => candidate.name === providers.effective);
   return (
-    <Panel
-      title="Mastering chain"
-      subtitle={row ? `One chain for the book: ${row.label}, the same for every platform, with each platform's own RMS window and peak limit.` : undefined}
-    >
+    // The long description is the body's first line, not a subtitle squeezed beside the title, so the header is as tall as its neighbours'
+    // and the text does not fold into a narrow column at 390 (XMS-15, R4MS2-10).
+    <Panel title="Mastering chain">
+      {row && (
+        <p className="mb-3 max-w-[80ch] text-sm" style={MUTED}>
+          {`One chain for the book: ${row.label}, the same for every platform, with each platform's own RMS window and peak limit.`}
+        </p>
+      )}
       {problem && (
         <p role="alert" className="mt-1 text-sm" style={{ color: 'var(--danger-text)' }}>
           The mastering chain could not be read: {problem}
@@ -57,24 +61,23 @@ export function MasteringChain({ providers, problem }: { providers?: MasteringPr
                 // The chain's last step is the platform's own gain target, not one of the book's fixed steps (mock 05:
                 // its chip alone is --accent-soft).
                 const last = index === row.chain.length - 1;
+                // The arrow leads its step inside the step's item, so a row that wraps never ends on a dangling arrow.
                 return (
-                  <Fragment key={step.name}>
+                  <li key={step.name} className="inline-flex items-center gap-2">
                     {index > 0 && (
-                      <li aria-hidden="true" className="text-sm" style={MUTED}>
+                      <span aria-hidden="true" className="text-sm" style={MUTED}>
                         →
-                      </li>
+                      </span>
                     )}
-                    <li>
-                      <Badge
-                        label={`${step.name} · ${step.detail}`}
-                        colors={
-                          last
-                            ? { fill: 'var(--accent-soft)', text: 'var(--accent-strong)', line: 'transparent' }
-                            : { fill: 'var(--surface-2)', text: 'var(--text)', line: 'transparent' }
-                        }
-                      />
-                    </li>
-                  </Fragment>
+                    <Badge
+                      label={`${step.name} · ${step.detail}`}
+                      colors={
+                        last
+                          ? { fill: 'var(--accent-soft)', text: 'var(--accent-strong)', line: 'transparent' }
+                          : { fill: 'var(--surface-2)', text: 'var(--text)', line: 'transparent' }
+                      }
+                    />
+                  </li>
                 );
               })}
             </ol>

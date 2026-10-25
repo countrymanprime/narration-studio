@@ -26,21 +26,13 @@ export function TakeCompare(props: TakeCompareArgs) {
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <IconButton
-          action="play"
-          size="sm"
-          label="Play every take"
-          data-tall
-          {...(c.everyReason ? { disabledReason: c.everyReason } : {})}
-          onClick={c.playEvery}
-        />
+        <IconButton action="play" label="Play every take" data-tall {...(c.everyReason ? { disabledReason: c.everyReason } : {})} onClick={c.playEvery} />
         {passage.takes.length > 1 ? (
           <>
             <Select label="First take to compare" value={c.aId} options={options} onChange={c.setA} />
             <Select label="Second take to compare" value={c.bId} options={options} onChange={c.setB} />
             <Button
               variant="secondary"
-              size="sm"
               data-abplay
               aria-disabled={c.abReason ? true : undefined}
               title={c.abReason ?? undefined}
@@ -50,7 +42,7 @@ export function TakeCompare(props: TakeCompareArgs) {
             </Button>
           </>
         ) : null}
-        {c.running ? <IconButton action="stop" size="sm" label="Stop comparing" data-tstop onClick={c.stop} /> : null}
+        {c.running ? <IconButton action="stop" label="Stop comparing" data-tstop onClick={c.stop} /> : null}
       </div>
       {c.levelGap !== null && passage.takes.length > 1 ? (
         <span className="text-[var(--text-muted)]" data-compare-level>

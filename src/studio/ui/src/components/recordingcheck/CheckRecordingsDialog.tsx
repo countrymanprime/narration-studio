@@ -1,5 +1,5 @@
 import { headingName } from '../../chapterHeading';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { CoverageEngines, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import { describeApiError } from '../../api/errorMessage';
@@ -28,18 +28,6 @@ import { RunningView } from './RunningView';
 
 /** The dialog's section labels: the Chapters column, Audio to check. */
 const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
-
-/** A shadow on the edge of the form that has more beyond it, the vertical twin of `scroll-x-edges` (styles.css): the shadows stay put and a
- * cover in the dialog's colour moves with the content and hides each at its end (alignment audit XPF-2: the form was cut mid-sentence with
- * no sign it scrolls). */
-const SCROLL_Y_EDGES: CSSProperties = {
-  background: [
-    'linear-gradient(var(--surface) 30%, transparent) center top / 100% 2rem no-repeat local',
-    'linear-gradient(to top, var(--surface) 30%, transparent) center bottom / 100% 2rem no-repeat local',
-    'linear-gradient(rgb(0 0 0 / 0.2), transparent) center top / 100% 0.75rem no-repeat scroll',
-    'linear-gradient(to top, rgb(0 0 0 / 0.2), transparent) center bottom / 100% 0.75rem no-repeat scroll',
-  ].join(', '),
-};
 
 type Loaded = { chapters: ManuscriptChapter[]; results: Record<string, CoverageResult>; engines: CoverageEngines };
 
@@ -179,7 +167,7 @@ export function CheckRecordingsDialog({ preselected, close }: { preselected: rea
   // The dialog's 80dvh less its header and the body's padding (6.75rem) and its border: one scroll area for the form, the footer always shown.
   return (
     <div className="flex max-h-[calc(80dvh-7rem)] min-h-0 flex-col gap-3">
-      <div className="flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-4 overflow-y-auto" style={SCROLL_Y_EDGES}>
+      <div className="scroll-y-edges flex min-h-0 flex-1 [scrollbar-gutter:auto] flex-col gap-4 overflow-y-auto">
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex min-w-0 flex-col gap-3">
             <RunOptions engines={loaded.engines} choices={choices} onChange={change} sliders />

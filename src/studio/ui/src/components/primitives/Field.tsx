@@ -61,7 +61,8 @@ export function Field({
         render={
           textarea ? (
             <textarea
-              className={`${compact ? 'min-h-14' : 'min-h-20'} py-[0.6rem] ${labelHidden ? CONTROL_CLASSES.replace('mt-2', 'mt-0') : CONTROL_CLASSES}`}
+              // `block`: an inline textarea sits on the text baseline and leaves a 6 px descender gap under it in its row.
+              className={`block ${compact ? 'min-h-14' : 'min-h-20'} py-[0.6rem] ${labelHidden ? CONTROL_CLASSES.replace('mt-2', 'mt-0') : CONTROL_CLASSES}`}
             />
           ) : secret ? (
             <input

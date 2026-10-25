@@ -84,8 +84,11 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
   );
 }
 
-// While a modal dialog is open the toasts move to the top of the window, clear of the dialog's action row, which they covered at the bottom
-// (alignment audit cause P). A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
+// The region keeps the page gutter from the window's right and bottom edges, where the top bar's and the footer's content end (alignment audit XBO-13).
+// While a modal dialog is open the toasts stay in the window's bottom-right corner, at the gutter: a dialog hangs from the top and stops at
+// least 4.75rem above the bottom edge (`Dialog`), so a toast there is clear of its action row (alignment audit cause P), and the bars a toast
+// otherwise rises above are behind the scrim. At the top of the window a toast covered the top bar's buttons, the Booth's included (R4BO2-4).
+// A dialog says it is open with `useToastsClearOfModal`; the count keeps two stacked dialogs from clearing it early.
 const MODAL_OPEN_ATTRIBUTE = 'data-modal-open';
 let openModals = 0;
 export function useToastsClearOfModal(active: boolean): void {
@@ -109,7 +112,7 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
   return createPortal(
     <div
       data-toast-region
-      className="fixed right-[calc(1.25rem+var(--toast-clear-right,0px))] bottom-[calc(1.25rem+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2.5rem-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:top-4 [:root[data-modal-open]_&]:bottom-auto"
+      className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-clear,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex flex-col items-end gap-2">
         {messages

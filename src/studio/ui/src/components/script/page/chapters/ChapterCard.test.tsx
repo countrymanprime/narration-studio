@@ -9,6 +9,10 @@ import { WPH } from '../../../schedule/estimates';
 import { CREDITS, ONE, TWO, chapterHost } from './chapterFixtures';
 import { ChapterCard } from './ChapterCard';
 
+/** The facts paragraph, whose facts are separate unbreakable spans (alignment audit XSC-10), matched on its whole text. */
+const factsLine = (pattern: RegExp) => (_: string, element: Element | null) =>
+  element?.tagName === 'P' && pattern.test((element.textContent ?? '').replace(/\u00a0/g, ' '));
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -32,7 +36,9 @@ describe('chapter card', () => {
     expect(screen.getByRole('heading', { name: 'The Salt Marsh' })).toBeTruthy();
     const minutes = Math.round((TWO.wordCount / WPH) * 60);
     await vi.waitFor(() =>
-      expect(screen.getByText(new RegExp(`2,044 words · about ${minutes} min finished audio · 1 note`)).textContent).toContain('without pronunciation'),
+      expect(screen.getByText(factsLine(new RegExp(`2,044 words · about ${minutes} min finished audio · 1 note`))).textContent).toContain(
+        'without pronunciation',
+      ),
     );
   });
 

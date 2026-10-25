@@ -17,7 +17,7 @@ export function ReaderTextView({ prefs, onChange }: { prefs: TextPrefs; onChange
 }
 
 /** The four reading settings and the preview quote, without a panel: the Settings page's Reader text row draws this. */
-export function ReaderTextBody({ prefs, onChange }: { prefs: TextPrefs; onChange: (change: Partial<TextPrefs>) => void }) {
+function ReaderTextBody({ prefs, onChange }: { prefs: TextPrefs; onChange: (change: Partial<TextPrefs>) => void }) {
   return (
     <>
       <div className="flex flex-col gap-3">

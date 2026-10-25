@@ -73,7 +73,7 @@ follow the DAW as it connects or changes, and when the window regains focus; if 
 off and the page says **Can't tell what your DAW can do right now**, with **Check again**.
 
 Under it, the same file against the profile rule by rule: the result (**Met**, **Not met**, or why it was
-not judged), this file's value, what the platform requires, and the source: whether that requirement was
+not judged), this file's value, and what the platform requires with its source under it: whether that requirement was
 **Verified** on the platform's own page, is still **To verify**, or has **Conflicting sources**. Met is
 green, Not met is red, To verify and Conflicting sources are amber, and a rule the app does not check is grey, as the same words are on every page. The
 rules the app could not judge are listed too. Integrated loudness (LUFS) and the true peak are shown at
@@ -119,11 +119,12 @@ side by side.
 **Master all to spec…**, beside **Check files…**, picks the rendered files to master and encode and opens
 **Master to spec** with a row per file; **Add files…** adds more and **Remove** drops one. Give each its
 **Role** in the package (**Chapter**, **Opening credits**, **Closing credits** or **Retail sample**) and
-each chapter its **Title**, then press **Master & encode**: with **Master before encoding** on (the
+each chapter its **Title** (the other roles take none, shown as a dash), then press **Master & encode**, at the top
+of the panel beside **Add files…**: with **Master before encoding** on (the
 default) each file is mastered by the [chain](#the-mastering-chain) to the chosen platform's numbers, then
 encoded; turn it off and the button reads **Encode**. The bar shows the files' progress, **Cancel** stops
-it, and each row's **Status** says whether it waits, is mastering, is encoding, is ready or failed and
-why. Every stage writes a new file next to the app's own output: your renders are never changed.
+it, and each row's **Status** pill says whether it waits, is mastering, is encoding, is ready or failed, with the
+reason under a failure. Every stage writes a new file next to the app's own output: your renders are never changed.
 
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
 
@@ -187,7 +188,8 @@ one on screen; **Reset** on a changed setting hands it back to the computer-wide
 
 ## Exporting a report
 
-**Export report**, in **Report** at the bottom of the page, is off until some files are measured, then writes the last check and the last diagnostics to two files
+**Export report**, at the foot of **Report** at the bottom of the page under its one option, is off until some files are
+measured (the reason is written beside it, and the option is off with it), then writes the last check and the last diagnostics to two files
 in your project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/delivery folder: an HTML page a reviewer can open in any browser without
 the app, and a JSON file with the same findings for tools. Each export gets its own name from the time it
 was made (`delivery-report-20260923-140000Z.html`), so an earlier report is never overwritten, and nothing

@@ -44,23 +44,24 @@ const itemsOn = (key: string) => {
   });
   return items!;
 };
-const labels = (key: string) => itemsOn(key).map((i) => i.label);
 const select = (anchor: string, head: string) => act(() => page.dispatch({ type: 'select', anchor, head }));
 
 describe('right-click-selects-the-word-outside-the-selection', () => {
   it('selects a word outside the selection and lists its items; inside the selection it lists the selection', () => {
     mount();
     select('p-1:0', 'p-1:2');
-    expect(labels('p-2:0')[0]).toBe('1 word selected');
+    expect(itemsOn('p-2:0')[0]!.group).toBe('1 word selected');
     expect(page.selected).toEqual(['p-2:0']);
     select('p-1:0', 'p-1:2');
-    expect(labels('p-1:1')[0]).toBe('3 words selected');
+    expect(itemsOn('p-1:1')[0]!.group).toBe('3 words selected');
     expect(page.selected).toHaveLength(3);
   });
 });
 
 describe('heading-counts-the-words', () => {
-  it('says 1 word and 3 words, and puts a separator only between non-empty sections', () => {
+  // R3ED-5, XED-21: sections fall into labelled bands (the count, Edit, Mark, Takes, then the rest), so the menu draws a heading and a rule
+  // per band rather than seventeen rows in one run.
+  it('says 1 word and 3 words, and bands the non-empty sections by their order', () => {
     const doc = marksDoc();
     const keys = ['p-1:0', 'p-1:1', 'p-1:2'];
     const sel = (k: string[]): WordMenuSelection => ({ doc, keys: k, summary: {} as never, play: vi.fn(), notify: vi.fn() });
@@ -68,11 +69,21 @@ describe('heading-counts-the-words', () => {
       registerWordMenuSection({ order: 1, items: () => [{ key: 'a', label: 'A', onSelect: vi.fn() }] }),
       registerWordMenuSection({ order: 2, items: () => [] }),
       registerWordMenuSection({ order: 3, items: () => [{ key: 'c', label: 'C', onSelect: vi.fn() }] }),
+      registerWordMenuSection({ order: 100, items: () => [{ key: 'e', label: 'E', onSelect: vi.fn() }] }),
+      registerWordMenuSection({ order: 260, items: () => [{ key: 'm', label: 'M', onSelect: vi.fn() }] }),
+      registerWordMenuSection({ order: 310, items: () => [{ key: 't', label: 'T', onSelect: vi.fn() }] }),
+      registerWordMenuSection({ order: 900, items: () => [{ key: 'z', label: 'Z', onSelect: vi.fn() }] }),
     ];
     const menu = buildWordMenu(sel(keys));
     expect(menu.heading).toBe('3 words selected');
     expect(buildWordMenu(sel(['p-1:0'])).heading).toBe('1 word selected');
-    expect(menu.groups.map((g) => g.map((i) => i.label))).toEqual([['A'], ['C']]);
+    expect(menu.groups.map((g) => g.map((i) => `${i.group ?? '-'}:${i.label}`))).toEqual([
+      ['3 words selected:A', '3 words selected:C'],
+      ['Edit:E'],
+      ['Mark:M'],
+      ['Takes:T'],
+      ['-:Z'],
+    ]);
     off.forEach((o) => o());
   });
 });
@@ -183,7 +194,8 @@ describe('keyboard-and-pointer-give-the-same-items', () => {
     rightClick(word('p-1:1'));
     const fromPointer = (await screen.findAllByRole('menuitem')).map((i) => i.textContent);
     expect(fromKeyboard).toEqual(fromPointer);
-    expect(fromPointer[0]).toContain('1 word selected');
+    // The word count heads the first band (a group label, not a menu item).
+    expect(screen.getByRole('group', { name: '1 word selected' })).toBeTruthy();
   });
 });
 

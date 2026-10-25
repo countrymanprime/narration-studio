@@ -539,6 +539,9 @@ func TestProgressIsReportedAndNeverMovesBackwards(t *testing.T) {
 	waitFor(t, func() bool { return service.State().Percent == 50 })
 	progress := sidecar.lastArgs()["--progress"]
 
+	// The sidecar's ASCII "..." reaches the dialog as the one-character ellipsis the host's own messages use (R3PR2-22).
+	progressLine(progress, "TRANSCRIBE", 30, "Transcribing item 2/3... 0:41 / 1:30")
+	waitFor(t, func() bool { return service.State().Message == "Transcribing item 2/3… 0:41 / 1:30" })
 	progressLine(progress, "TRANSCRIBE", 20, "a lower percent")
 	waitFor(t, func() bool { return service.State().Message == "a lower percent" })
 	progressLine(progress, "TRANSCRIBE", 999, "not a percent")
@@ -554,6 +557,9 @@ func TestProgressIsReportedAndNeverMovesBackwards(t *testing.T) {
 	defer mu.Unlock()
 	if seen[0].Phase != PhaseRunning || seen[len(seen)-1].Phase != PhaseComplete {
 		t.Fatalf("states = %+v", seen)
+	}
+	if seen[0].Message != "Starting the recording check…" {
+		t.Fatalf("first message = %q, want one ellipsis character", seen[0].Message)
 	}
 	for i := 1; i < len(seen); i++ {
 		if seen[i].Percent < seen[i-1].Percent {

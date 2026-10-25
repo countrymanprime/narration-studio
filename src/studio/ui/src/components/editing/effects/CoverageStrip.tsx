@@ -14,6 +14,10 @@ const CAP_PILL: Record<CapState, [StatusTone, string]> = {
 };
 
 const SHADE: Record<number, string> = { 1: 'var(--accent-soft)', 2: 'var(--accent)' };
+/** The rim on every shade, the bar's segments and the legend's swatches alike: on the dark surface `--accent-soft` alone was all but
+ * invisible (alignment audit R3ED-17). */
+const RIM: Record<number, string> = { 0: 'var(--border)', 1: 'var(--accent)', 2: 'var(--accent)' };
+const swatch = 'mr-1 inline-block size-2.5 rounded-[2px] border align-middle';
 
 /**
  * Where effects sit in the chapter, how much of it they cover, and the cap that figure is judged against, in a field beside it. A click on
@@ -90,19 +94,27 @@ export function CoverageStrip({
               aria-pressed={top ? top.id === selectedId : undefined}
               title={label}
               className="absolute top-0 h-full border-0 p-0 data-[on]:ring-2 data-[on]:ring-[var(--accent-strong)]"
-              style={{ left: at(s.start), width: at(s.end - s.start), background: SHADE[Math.min(2, s.n)] }}
+              style={{
+                left: at(s.start),
+                width: at(s.end - s.start),
+                background: SHADE[Math.min(2, s.n)],
+                boxShadow: `inset 0 0 0 1px ${RIM[Math.min(2, s.n)]}`,
+              }}
               onClick={() => top && onSelect(top.id)}
             />
           );
         })}
       </div>
       <div className="flex gap-3 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-        <span>None</span>
         <span>
-          <i aria-hidden="true" className="mr-1 inline-block size-2.5 align-middle" style={{ background: SHADE[1] }} />1 effect
+          <i aria-hidden="true" data-swatch="0" className={swatch} style={{ background: 'var(--surface-2)', borderColor: RIM[0] }} />
+          None
         </span>
         <span>
-          <i aria-hidden="true" className="mr-1 inline-block size-2.5 align-middle" style={{ background: SHADE[2] }} />2 or more
+          <i aria-hidden="true" data-swatch="1" className={swatch} style={{ background: SHADE[1], borderColor: RIM[1] }} />1 effect
+        </span>
+        <span>
+          <i aria-hidden="true" data-swatch="2" className={swatch} style={{ background: SHADE[2], borderColor: RIM[2] }} />2 or more
         </span>
       </div>
     </section>

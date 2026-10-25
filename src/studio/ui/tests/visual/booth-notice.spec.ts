@@ -129,7 +129,7 @@ for (const c of [
       const r = (e: Element | null) => (e ? e.getBoundingClientRect() : null);
       const notice = r(document.querySelector('#brec-setup'));
       const panel = r(document.getElementById('booth-side'));
-      const footer = r(document.getElementById('btimer')?.parentElement ?? null);
+      const footer = r(document.getElementById('btimer')?.closest('.border-t') ?? null);
       const why = document.getElementById('brec-why');
       return {
         notice: notice && { left: notice.left, right: notice.right },

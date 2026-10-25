@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { ManuscriptChapter, RetailSampleAnswer } from '../../types';
 import { formatMinutesSeconds } from '../../state';
+import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { Button } from '../primitives/Button';
 import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
@@ -83,23 +84,29 @@ export function RetailSamplePanel({ notify }: { notify: Notify }) {
   };
 
   const sample = answer?.sample;
+  // One chapter is named once ("Chapter 3, lines 1 to 3"); a range across chapters names both (alignment audit R3SE2-7).
+  const rangeOf = (range: NonNullable<typeof sample>): string =>
+    range.startChapterId === range.endChapterId
+      ? `${titleOf(range.startChapterId)}, ${range.startLine === range.endLine ? `line ${range.startLine}` : `lines ${range.startLine} to ${range.endLine}`}`
+      : `${titleOf(range.startChapterId)}, line ${range.startLine} to ${titleOf(range.endChapterId)}, line ${range.endLine}`;
   return (
-    <section aria-labelledby="credits-sample-heading" className="space-y-3">
-      <h3 id="credits-sample-heading" className="font-medium">
+    <section aria-labelledby="credits-sample-heading" className={CREDITS_SECTION}>
+      <h3 id="credits-sample-heading" className={CREDITS_HEADING}>
         Retail sample
       </h3>
       <p style={{ color: 'var(--text-muted)' }}>
         Pick up to 5 minutes from anywhere in the book. The sample is marked in the Manuscript view; it adds no time to the estimate.
       </p>
-      <p aria-live="polite">
+      <p aria-live="polite" className="m-0 text-[0.8125rem]">
         {sample
-          ? `${titleOf(sample.startChapterId)}, line ${sample.startLine} to ${titleOf(sample.endChapterId)}, line ${sample.endLine}: ${sample.words.toLocaleString()} words, about ${formatMinutesSeconds(sample.seconds)}.`
+          ? `${rangeOf(sample)} (${sample.words.toLocaleString('en-US')} words, about ${formatMinutesSeconds(sample.seconds)}).`
           : answer?.problem
             ? `The saved sample cannot be shown: ${answer.problem}.`
             : 'No retail sample picked yet.'}
       </p>
       {chapters.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        // The chapter takes the row's width and its line a short field beside it, so a chapter's name is not cut while the page has room (XSE2-5).
+        <div className={`${CREDITS_FIELDS} grid grid-cols-[minmax(0,1fr)_6rem] gap-3`}>
           <LabelledSelect
             label="Sample starts in"
             value={start.chapterId}

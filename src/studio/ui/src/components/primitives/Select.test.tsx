@@ -142,4 +142,13 @@ describe('Select', () => {
     render(<Select label="x" value="a" placeholder="Choose" options={OPTIONS} onChange={() => undefined} />);
     expect(Array.from((screen.getByLabelText('x') as HTMLSelectElement).options)).toHaveLength(2);
   });
+
+  // XBO-20, R3MS-19: the operating system's chevron beside the app's own pickers, and a long label running under the caret.
+  it('draws its own caret in the room it keeps clear at the right', () => {
+    render(<Select label="Font" value="a" onChange={() => undefined} options={[{ value: 'a', label: 'A very long font name that runs on' }]} />);
+    const select = screen.getByRole('combobox', { name: 'Font' });
+    expect(select.className).toContain('appearance-none');
+    expect(select.className).toContain('pr-8');
+    expect(select.className).toContain('[background-image:linear-gradient(45deg,transparent_50%,var(--text-muted)_50%)');
+  });
 });

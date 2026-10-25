@@ -58,6 +58,13 @@ function labelOf(entry: Entry): ReactNode {
   );
 }
 
+/** The row's sub-line, unless it only repeats a word the row already says ("Set zoom to 110%" over "zoom", "Settings: Audio" over "settings"). */
+function shownHint(entry: Entry): string | undefined {
+  const hint = entry.hint?.trim().toLowerCase();
+  if (!hint) return undefined;
+  return entry.title.toLowerCase().includes(hint) || entry.groupName.toLowerCase() === hint ? undefined : entry.hint;
+}
+
 const resultCount = (count: number) => (count === 0 ? 'No results' : `${count} result${count === 1 ? '' : 's'}`);
 
 /**
@@ -188,12 +195,17 @@ function JumpMenu({
     }
   };
 
-  const options = entries.map<ListboxOption>((entry) => {
+  const options = entries.map<ListboxOption>((entry, index) => {
     const trailing: ReactNode = entry.keys ? <KeyChord keys={entry.keys} /> : entry.sub;
+    // A reason the row above in the same group already showed is not drawn again ("Import a manuscript to unlock this page." nine times):
+    // the first row of the run shows it, and every row keeps it for a screen reader (alignment audit XSL-6).
+    const before = entries[index - 1];
+    const repeated = entry.disabledReason !== undefined && before?.group === entry.group && before.disabledReason === entry.disabledReason;
     return {
       id: entry.id,
-      label: labelOf(entry),
-      description: entry.disabledReason ?? entry.hint,
+      label: entry.opens === 'back' ? <span className="font-normal text-[var(--text-muted)]">{entry.title}</span> : labelOf(entry),
+      description: repeated ? undefined : (entry.disabledReason ?? shownHint(entry)),
+      hint: repeated ? entry.disabledReason : undefined,
       leading: entry.icon ? <Icon name={entry.icon} /> : undefined,
       trailing,
       group: entry.group,
@@ -209,8 +221,11 @@ function JumpMenu({
 
   return (
     <>
-      <div className="border-b border-[var(--border)] p-2">
+      {/* The typed text starts 12 px in, where the group headings and the rows' labels do (alignment audit XSL-15): 4 px to the box,
+          its 1 px border and 7 px inside it. */}
+      <div className="border-b border-[var(--border)] px-1 py-2">
         <TextField
+          className="pl-[0.4375rem]!"
           label="Jump menu"
           autoFocus
           autoComplete="off"
@@ -264,6 +279,8 @@ function JumpMenu({
         empty="Nothing matches"
         flush
       />
+      {/* The last row keeps an inset above the dialog's edge when the list scrolls (alignment audit XSL-16, R3SL-7). */}
+      <div aria-hidden="true" data-jump-end className="h-2 flex-none" />
     </>
   );
 }

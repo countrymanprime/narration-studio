@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
@@ -76,6 +76,35 @@ describe('LinkChaptersDialog', () => {
 
     const alerts = await screen.findAllByRole('alert');
     expect(alerts.some((alert) => alert.textContent?.includes('app’s script'))).toBe(true);
+  });
+
+  // Alignment audit ENX-22: the same error was printed under the checkbox and again under "Currently stamped".
+  it('shows a failure once, beside the action that failed', async () => {
+    renderDialog({}, { lineIdentity: 'error' });
+    await screen.findAllByRole('alert');
+    expect(screen.getAllByText(/app’s script in REAPER sent a message/)).toHaveLength(1);
+    cleanup();
+
+    const user = userEvent.setup();
+    renderDialog({ lineIdentityRead: async () => Promise.reject(new Error('REAPER did not answer')) });
+    await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
+    const stamps = screen.getByRole('region', { name: 'Currently stamped in REAPER' });
+    expect(await within(stamps).findByRole('alert')).toBeTruthy();
+    expect(screen.getAllByText(/REAPER did not answer/)).toHaveLength(1);
+  });
+
+  // ENX-17, ENX-18, R3EN2-9: the track picker floated mid-row and headers broke over two lines.
+  it('lays both tables on fixed columns with short headers', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const mapping = screen.getByRole('table', { name: 'Chapter to track mapping' });
+    expect(mapping.className).toContain('table-fixed');
+    expect(within(mapping).getByRole('columnheader', { name: 'To stamp' })).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
+    const stamped = await screen.findByRole('table', { name: 'Stamped lines' });
+    expect(stamped.className).toContain('table-fixed');
+    expect(within(stamped).getByRole('columnheader', { name: 'Entity' })).toBeTruthy();
   });
 
   it('reads current stamps and shows a status for every row, including drift and removed', async () => {

@@ -58,43 +58,52 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
       id={takeRowId(passage.id, take.id)}
       data-take={take.id}
       data-on-key={onTake === take.id ? 'true' : undefined}
-      className={`flex flex-col gap-1 border-l-[3px] px-2.5 py-1.5 ${onTake === take.id ? 'border-[var(--accent)] bg-[var(--surface-2)]' : 'border-transparent'}`}
+      className={`-ml-[11px] flex flex-col gap-1 border-l-[3px] py-1.5 pr-2.5 pl-2 ${onTake === take.id ? 'border-[var(--accent)] bg-[var(--surface-2)]' : 'border-transparent'}`}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] font-medium">{take.label}</span>
-        <StatusBadge tone={statusTone(state)} label={statusLabel(state)} shape="tag" />
-        {firstReadId === take.id ? <StatusBadge tone={statusTone('first_read')} label={statusLabel('first_read')} shape="tag" /> : null}
-        {suggestedId === take.id ? <StatusBadge tone={statusTone('suggested_take')} label={statusLabel('suggested_take')} shape="tag" /> : null}
+      {/* One grid for every take: the name and its tags, the length bar, the share and the buttons each start and end at the same x on every
+          row (alignment audit XED-9, R3ED-12). */}
+      <div
+        data-take-grid
+        className="grid grid-cols-[minmax(0,13rem)_minmax(2rem,1fr)_2.75rem_4.25rem] items-center gap-2 max-[30rem]:grid-cols-[minmax(0,1fr)_2.75rem_4.25rem]"
+      >
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] font-medium">{take.label}</span>
+          <StatusBadge tone={statusTone(state)} label={statusLabel(state)} shape="tag" />
+          {firstReadId === take.id ? <StatusBadge tone={statusTone('first_read')} label={statusLabel('first_read')} shape="tag" /> : null}
+          {suggestedId === take.id ? <StatusBadge tone={statusTone('suggested_take')} label={statusLabel('suggested_take')} shape="tag" /> : null}
+        </span>
         {/* The take's length as a bar, not a waveform: the page draws one waveform, docked above the bar (#2251, item 29). */}
         <span
           data-take-length
           aria-hidden="true"
-          className="block h-1.5 min-w-[3rem] flex-1 rounded-full bg-[var(--line-strong)]"
+          className="block h-1.5 rounded-full bg-[var(--line-strong)] max-[30rem]:hidden"
           style={{ maxWidth: `${Math.max(3, Math.round(take.sourceLength * 16))}px` }}
         />
         <span
-          className="ml-auto font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
+          className="text-right font-['IBM_Plex_Mono',ui-monospace,monospace] text-[var(--text-muted)]"
           title="Share of the script's words this take read as written"
         >
           {share === null ? '' : `${share}%`}
         </span>
-        <IconButton
-          action={playing ? 'stop' : 'play'}
-          size="sm"
-          label={`${playing ? 'Stop' : 'Play'} ${take.label}`}
-          data-tplay={take.id}
-          onClick={() => onPlay(take)}
-        />
-        {kept ? null : (
+        <span className="flex justify-end gap-1">
           <IconButton
-            action="keepTake"
+            action={playing ? 'stop' : 'play'}
             size="sm"
-            label={`Keep ${take.label}`}
-            data-tkeep={take.id}
-            {...(!gate.ok ? { disabledReason: gate.reason } : !take.usable ? { disabledReason: take.reason ?? 'This take cannot be chosen.' } : {})}
-            onClick={() => onKeep(take)}
+            label={`${playing ? 'Stop' : 'Play'} ${take.label}`}
+            data-tplay={take.id}
+            onClick={() => onPlay(take)}
           />
-        )}
+          {kept ? null : (
+            <IconButton
+              action="keepTake"
+              size="sm"
+              label={`Keep ${take.label}`}
+              data-tkeep={take.id}
+              {...(!gate.ok ? { disabledReason: gate.reason } : !take.usable ? { disabledReason: take.reason ?? 'This take cannot be chosen.' } : {})}
+              onClick={() => onKeep(take)}
+            />
+          )}
+        </span>
       </div>
       <div className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[12px] text-[var(--text-muted)]">
         {[
@@ -132,7 +141,7 @@ export function TakeLines(props: TakeLinesProps) {
       aria-activedescendant={props.onTake ? takeRowId(passage.id, props.onTake) : undefined}
       data-takes={passage.id}
       onKeyDown={props.onKeyDown}
-      className="flex flex-col gap-2 border-l border-[var(--border)] pl-3"
+      className="flex w-full max-w-[1000px] flex-col gap-2 pb-2"
     >
       {props.duplicateAt != null ? (
         <p data-dupnote className="m-0 text-[var(--text-muted)]">
