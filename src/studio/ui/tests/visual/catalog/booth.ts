@@ -210,7 +210,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'resume',
     description:
-      'Booth, "Resume at ¶ 14" chosen: the reading position moves to where the recording ends, in ¶ 14, the text scrolls there and the progress line reads ¶ 14 of 24',
+      'Booth, "Resume at ¶ 14" chosen: the reading position moves to where the recording ends, in ¶ 14, the text scrolls there, the progress line reads ¶ 14 of 24 and the chip is gone, since the reader is at its place',
     ...REFLOW,
   },
   {

@@ -8,6 +8,8 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"desktop/internal/scripttrack"
 )
 
 // Punch and roll's offline word-time alignment (docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from: live anchors first,
@@ -47,7 +49,15 @@ func (s *Service) AlignWord(ctx context.Context, request AlignRequest) (WordTime
 	if request.Word < 0 {
 		return WordTime{}, errors.New("choose a word of the chapter to time")
 	}
-	code, out, stderr, err := s.runOverRecording(ctx, request.Recording, func(manuscript string) []string { return s.alignWordArgs(manuscript, request) })
+	var placement hostPlacement
+	placed := false
+	code, out, stderr, err := s.runOverRecording(ctx, request.Recording, func(manuscript string) []string {
+		args := s.alignWordArgs(manuscript, request)
+		if placement, placed = placementFor(manuscript, request.Recording.Chapter); placed {
+			args = append(args, "--words-only")
+		}
+		return args
+	})
 	if err != nil {
 		return WordTime{}, err
 	}
@@ -56,6 +66,13 @@ func (s *Service) AlignWord(ctx context.Context, request AlignRequest) (WordTime
 	}
 	if code != 0 {
 		return WordTime{}, errors.New(failureMessage(code, stderr, "Could not time the word in the recording"))
+	}
+	if placed {
+		heard, err := parseHeard(out)
+		if err != nil {
+			return WordTime{}, err
+		}
+		out = placedLine(scripttrack.WordTimeEvent(heard, placement.tokens, request.Word, sidecarSeconds(request.Recording.From)))
 	}
 	return parseWordTime(out, request)
 }
