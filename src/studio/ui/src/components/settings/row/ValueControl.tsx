@@ -8,7 +8,10 @@ import { choiceLabel } from '../data/values';
 import type { SettingMeta } from '../registry/types';
 
 // One width for a setting's select and text box, so the controls down the page line up (alignment audit cause E); a program path is wider.
-const FIELD_WIDTH = 'w-80 max-w-full';
+// The control takes its row's width up to that one (`w-full` with a cap), so in a narrow column it ends at the card's padding instead of
+// running past the card and the window (alignment audit XSE2-1, XSE2-2); `min-w-0` lets it shrink beside its Reset button.
+const FIELD_WIDTH = 'w-full max-w-80 min-w-0';
+const PATH_WIDTH = 'w-full max-w-[26rem] min-w-0';
 
 export type ValueControlProps = {
   row: SettingMeta;
@@ -175,7 +178,7 @@ export function ValueControl({ row, field, value, which, id, describedBy, invali
       invalid={invalid}
       describedBy={describedBy}
       placeholder={row.id === 'daw.reaperPath' ? 'C:\\Program Files\\REAPER\\reaper.exe' : undefined}
-      className={row.id === 'daw.reaperPath' ? 'w-[26rem] max-w-full' : FIELD_WIDTH}
+      className={row.id === 'daw.reaperPath' ? PATH_WIDTH : FIELD_WIDTH}
       onSettle={onChange}
     />
   );
