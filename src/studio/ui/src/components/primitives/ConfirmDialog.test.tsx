@@ -110,7 +110,9 @@ describe('ConfirmDialog', () => {
     expect(screen.getByRole('button', { name: 'Delete entry' }).className).toContain('bg-[var(--accent)]');
     rerender(<ConfirmDialog title="Delete entry" body="Sure?" confirmLabel="Delete entry" confirmVariant="danger" confirm={() => {}} cancel={() => {}} />);
     const confirm = screen.getByRole('button', { name: 'Delete entry' });
-    expect(confirm.className).toContain('text-[var(--danger-text)]');
+    // Filled, so it outweighs Cancel's outline (R4SB-4, R3SB1-14); it was a red outline lighter than Cancel.
+    expect(confirm.className).toContain('bg-[var(--danger)]');
+    expect(confirm.className).toContain('text-[var(--danger-contrast)]');
     expect(confirm.className).not.toContain('bg-[var(--accent)]');
   });
 

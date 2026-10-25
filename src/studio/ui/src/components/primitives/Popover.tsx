@@ -46,6 +46,10 @@ export function Popover({
   children: ReactNode;
 }) {
   const popup = useRef<HTMLDivElement>(null);
+  // The bars fixed along the bottom of the page (the Booth's footer and its setup notice) count as the window's edge: a popup opened above them
+  // stops short of them and scrolls inside itself rather than covering Record and the timer (alignment audit XBO-8). Their height is the one the
+  // toasts keep clear of, `--toast-clear` on <html> (useToastClearance).
+  const bottomBars = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--toast-clear')) || 0;
   return (
     // Focus stays inside while it is open (Tab cycles, it never walks out to a page that would keep the popover up); the page behind stays clickable.
     <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal="trap-focus">
@@ -56,7 +60,7 @@ export function Popover({
           side={side}
           align={align}
           sideOffset={12}
-          collisionPadding={8}
+          collisionPadding={{ top: 8, right: 8, left: 8, bottom: 8 + bottomBars }}
           collisionBoundary={fitToWindow ? document.documentElement : undefined}
           sticky={fitToWindow}
           className="z-[var(--z-dialog-popover)]"

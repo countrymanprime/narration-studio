@@ -54,6 +54,19 @@ function useCapabilities(): DawCapabilities | null {
   return caps;
 }
 
+/** The chosen kind's heading with what is left to fix, above its findings, so an empty list's sentence sits under its own heading
+ * (alignment audit XED-12). */
+export function CleanupKindHeading({ kind, open, fixed }: { kind: CleanupKind; open: number; fixed: number }) {
+  return (
+    <div className="flex items-baseline gap-2 pt-3">
+      <h3 className="m-0 font-['Barlow_Condensed',sans-serif] text-lg font-semibold">{opSpec(kind).label}</h3>
+      <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
+        {open} to fix{fixed ? ` · ${fixed} fixed` : ''}
+      </span>
+    </div>
+  );
+}
+
 /** Light, Standard or Heavy, the thresholds behind them, and Preview and Apply for the selected findings. */
 export function CleanupInspector(p: CleanupInspectorProps) {
   const spec = opSpec(p.kind);
@@ -62,13 +75,7 @@ export function CleanupInspector(p: CleanupInspectorProps) {
   // Why Apply is off, in the order a narrator can fix them: the DAW first, then what the DAW's capability report says it cannot do.
   const reason = p.dawReason ?? dawCommandReason(p.kind, caps);
   return (
-    <div className="flex flex-col gap-3 p-3">
-      <div className="flex items-baseline gap-2">
-        <h3 className="m-0 font-['Barlow_Condensed',sans-serif] text-lg font-semibold">{spec.label}</h3>
-        <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-          {p.open} to fix{p.fixed ? ` · ${p.fixed} fixed` : ''}
-        </span>
-      </div>
+    <div className="flex flex-col gap-3 pt-3">
       <SectionLabel>Strength</SectionLabel>
       <ToggleGroup
         label="Strength"
@@ -109,15 +116,6 @@ export function CleanupInspector(p: CleanupInspectorProps) {
         </div>
       ) : null}
       {p.preview ? <CleanupPreview preview={p.preview} /> : null}
-      <div className="flex items-center gap-2">
-        <Button variant="secondary" disabled={!p.selected} onClick={p.previewNote?.playing ? p.onStopPreview : p.onPreview}>
-          {p.previewNote?.playing ? 'Stop preview' : 'Preview'}
-        </Button>
-        <span className="flex-1" />
-        <Button disabled={!p.selected || reason !== null || p.busy} onClick={p.onApply}>
-          Apply to {p.selected} selected
-        </Button>
-      </div>
       {p.previewNote ? (
         <p role="status" className="m-0 text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
           {p.previewNote.text}
@@ -128,6 +126,16 @@ export function CleanupInspector(p: CleanupInspectorProps) {
           {reason}
         </p>
       ) : null}
+      {/* Preview and Apply stay in view at the drawer's foot while the settings above them scroll (alignment audit XED-11, R3ED-8). */}
+      <div data-cleanup-actions="" className="sticky bottom-0 -mx-3 -mb-3 flex items-center gap-2 border-t border-[var(--border)] bg-[var(--surface)] p-3">
+        <Button variant="secondary" disabled={!p.selected} onClick={p.previewNote?.playing ? p.onStopPreview : p.onPreview}>
+          {p.previewNote?.playing ? 'Stop preview' : 'Preview'}
+        </Button>
+        <span className="flex-1" />
+        <Button disabled={!p.selected || reason !== null || p.busy} onClick={p.onApply}>
+          Apply to {p.selected} selected
+        </Button>
+      </div>
     </div>
   );
 }

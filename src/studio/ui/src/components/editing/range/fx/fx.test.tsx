@@ -216,6 +216,8 @@ describe('the Add FX menu', () => {
     await openMenu();
     expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual([SOURCE, ...CHAINS, expect.stringMatching(/^Manage in REAPER…/)]);
     expect(menuItem(/Manage in REAPER…/).hasAttribute('data-disabled')).toBe(true);
+    // R3ED-4: one short line under it, not a two-line note that reads as an error.
+    expect(menuItem(/Manage in REAPER…/).textContent).toBe('Manage in REAPER…Change them in REAPER.');
     expect(menuItem(CHAINS[0]).hasAttribute('data-disabled')).toBe(false);
     cleanup();
 

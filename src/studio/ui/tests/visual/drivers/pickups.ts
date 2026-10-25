@@ -28,7 +28,7 @@ export const pickupsDrivers: Record<string, Driver> = {
     await list(page)
       .getByRole('button', { name: /^Chapter: .*\. Change chapter$/ })
       .click();
-    await page.getByRole('menuitemradio', { name: /^Chapter 1( |$)/ }).click();
+    await page.getByRole('menuitemradio', { name: /^Chapter 1(: | |$)/ }).click();
     await page.getByText('No pickups for this chapter').waitFor();
   },
   'session-left-out': async (page) => {

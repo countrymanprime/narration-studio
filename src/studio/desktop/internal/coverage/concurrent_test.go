@@ -27,7 +27,7 @@ func twoChapters(t *testing.T) (*Service, *fakeSidecar, func()) {
 }
 
 // awaitHeld returns a wait for n more of the sidecar's runs to be held at its gate. The fake honours a .cancel file between
-// items, before it reaches the gate, so a test that cancels and then waits to see "Cancelling..." cancels only after this:
+// items, before it reaches the gate, so a test that cancels and then waits to see "Cancelling…" cancels only after this:
 // a cancel sent earlier can end the run between items on a loaded runner, and the wait times out.
 func awaitHeld(t *testing.T, sidecar *fakeSidecar) func(n int) {
 	t.Helper()
@@ -121,7 +121,7 @@ func TestCancelStopsEveryRunAndReportsEach(t *testing.T) {
 	var mu sync.Mutex
 	cancelling := map[string]bool{}
 	service.changed = func(state State) {
-		if state.Message == "Cancelling..." {
+		if state.Message == "Cancelling…" {
 			mu.Lock()
 			cancelling[state.ChapterID] = true
 			mu.Unlock()
@@ -163,7 +163,7 @@ func TestCancelBackgroundLeavesTheNarratorsRunGoing(t *testing.T) {
 	}()
 	cancelling := func(chapter string) bool {
 		for _, state := range service.States() {
-			if state.ChapterID == chapter && state.Message == "Cancelling..." {
+			if state.ChapterID == chapter && state.Message == "Cancelling…" {
 				return true
 			}
 		}
@@ -194,7 +194,7 @@ func TestABackgroundRunHoldsTheOneSlotUntilItIsCancelled(t *testing.T) {
 		service.CancelBackground()
 		close(ended)
 	}()
-	waitFor(t, func() bool { return len(service.States()) == 1 && service.States()[0].Message == "Cancelling..." })
+	waitFor(t, func() bool { return len(service.States()) == 1 && service.States()[0].Message == "Cancelling…" })
 	release()
 	<-ended
 	if _, err := service.Start(request(testSecondChapter, 1)); err != nil {

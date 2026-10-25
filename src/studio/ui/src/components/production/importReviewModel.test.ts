@@ -162,7 +162,7 @@ describe('headingName', () => {
     expect(headingName({ title: '8.', subtitle: 'Croquet' })).toBe('8. Croquet');
     expect(headingName({ title: 'Chapter 8:', subtitle: 'Croquet' })).toBe('Chapter 8: Croquet');
     expect(headingName({ title: 'Chapter 8:' })).toBe('Chapter 8:');
-    expect(headingName({ title: 'Chapter Eight', subtitle: 'Croquet' })).toBe('Chapter Eight — Croquet');
+    expect(headingName({ title: 'Chapter Eight', subtitle: 'Croquet' })).toBe('Chapter Eight: Croquet');
     expect(headingName({ title: 'Prologue' })).toBe('Prologue');
   });
 });

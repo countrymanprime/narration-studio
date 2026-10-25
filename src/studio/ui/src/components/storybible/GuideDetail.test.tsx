@@ -325,7 +325,8 @@ describe('Story Bible delete confirmation', () => {
     await user.click(opener);
 
     const dialog = await screen.findByRole('alertdialog', { name: 'Delete entry' });
-    expect(within(dialog).getByRole('button', { name: 'Delete entry' }).className).toContain('text-[var(--danger-text)]');
+    // Red and filled: a destructive confirm is ConfirmDialog's danger-solid (R3SB1-14), no longer a red outline lighter than Cancel.
+    expect(within(dialog).getByRole('button', { name: 'Delete entry' }).className).toContain('bg-[var(--danger)]');
     // The page behind is out of the accessibility tree while the dialog is open.
     expect(screen.queryByRole('button', { name: 'Save changes to this entry' })).toBeNull();
 
