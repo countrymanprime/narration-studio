@@ -173,7 +173,8 @@ one on screen; **Reset** on a changed setting hands it back to the computer-wide
 
 ## Exporting a report
 
-**Export report**, in **Report** at the bottom of the page, is off until some files are measured, then writes the last check and the last diagnostics to two files
+**Export report**, at the foot of **Report** at the bottom of the page under its one option, is off until some files are
+measured (the reason is written beside it, and the option is off with it), then writes the last check and the last diagnostics to two files
 in your project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/delivery folder: an HTML page a reviewer can open in any browser without
 the app, and a JSON file with the same findings for tools. Each export gets its own name from the time it
 was made (`delivery-report-20260923-140000Z.html`), so an earlier report is never overwritten, and nothing

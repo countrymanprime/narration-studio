@@ -26,7 +26,7 @@ import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
 import { buildChapterRows } from '../files/rows';
-import { Consistency } from './Consistency';
+import { Consistency, rangeOf } from './Consistency';
 import { MeasureControls, MeasureProgress, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
 import { profileName } from './packageItems';
@@ -299,7 +299,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               Nothing measured yet. Check your rendered chapter files (WAV) to see them here.
             </p>
           )}
-          <Panel title="Book consistency" subtitle={profile ? `RMS by file against the ${profileName(profile)} range` : undefined}>
+          <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
             <Consistency files={run.files} profile={profile} />
           </Panel>
           <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} />
