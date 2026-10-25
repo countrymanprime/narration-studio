@@ -19,7 +19,7 @@ While the entries are being read, the table and the detail pane show grey blocks
 Selecting an entry opens its detail panel, read-only at first: its names and how you say each, its
 description, for a type that can speak **How they talk**, **How they act** and **What they know**, its
 properties, its **Relationships** to other entries, and **Appears in**, the chapters it is in, each with a
-button that opens it in the [Script](script.md). The kind beside the name is a plain label until you press Edit, when it becomes a menu that changes it, and the
+button that opens it in the [Script](script.md). **Rescan** beside the Appears in heading looks for the entry's names in the text again. The kind beside the name is a plain label until you press Edit, when it becomes a menu that changes it, and the
 magnifier button lights the name in the Script's text. Press Edit (the pencil) to change the entry, then Save
 (or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Locked entries can't be edited until
 unlocked. The scan is deliberately strict: it favors missing a name over listing ordinary
@@ -50,8 +50,8 @@ An entry with suggestions still to verify shows **Mark reviewed** switched off, 
 
 ![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
 
-In edit mode, **Add a name** is one input: type a name and press Enter to add it as an alias. If another entry
-already has that name, the line under the input says so and offers **Merge into this entry**, so a name mentioned under a
+In edit mode, **Add a name** sits under the names: type a name and press Enter, or **Add name**, to add it as an alias. If another entry
+already has that name, the line beside it says so and offers **Merge into this entry**, so a name mentioned under a
 different spelling is merged into the entry it already belongs to instead of creating a duplicate. The merge can be undone from its toast. A name the
 entry already has is refused with a line saying so.
 
@@ -90,7 +90,7 @@ again tries again; a failed run never leaves a broken recording behind.
 ## How you say each name
 
 An entry lists **the names the app links in the text, and how I say each**: its first name, then each alias, one row
-each. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
+each, the entry's own name in bold. The rows share their columns, so names, pronunciations, sources and play buttons line up down the list. Read-only, a row shows how you say the name and where that came from. In edit mode a row has a **How I say**
 field, a source tag, and beside the play button **Record my own clip** (for your own recording of the name):
 
 - Type in the field and press Enter (or leave it) to use your own; the tag then reads **Entered by me**.
