@@ -46,7 +46,7 @@ export const guidePronunciationSchema = z
     ipa: z.string().default(''),
     source: z.string().default(''),
     confidence: z.string().default(''),
-    /** Set by `pronounce()` when the narrator explicitly chose this value; a rebuild's `merge_locked` keeps it (B11). Absent on an auto-generated value. */
+    /** Set by `pronounce()` when the narrator explicitly chose this value; a rebuild's merge (the host's `mergeLocked`) keeps it (B11). Absent on an auto-generated value. */
     chosen: z.boolean().optional(),
     /** Absent on an entry written before status existed, which reads as researched. */
     status: pronunciationStatusSchema.default('researched'),

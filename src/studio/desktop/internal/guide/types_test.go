@@ -11,7 +11,8 @@ import (
 	"desktop/internal/contractfile"
 )
 
-// The sidecar's own list (test_bible_types.py writes guide-types-default-sidecar.json from manuscript_guide.py DEFAULT_TYPES).
+// The build's own list (build_test.go TestTheTypesOfAFileWithoutThemAreTheDefaults writes guide-types-default-sidecar.json from
+// defaultTypeRows, with the bytes the sidecar's test_bible_types.py wrote from manuscript_guide.py DEFAULT_TYPES).
 func TestDefaultTypesMatchTheSidecar(t *testing.T) {
 	dir, err := contractfile.Dir()
 	if err != nil {
