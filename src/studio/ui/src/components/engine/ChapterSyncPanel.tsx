@@ -10,15 +10,21 @@ import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
 import { StatusBadge } from '../primitives/StatusBadge';
-import { chapterSyncBackgroundWaitText, chapterSyncPanelNotChaptersText, chapterSyncPanelReasonText, chapterSyncSummaryFacts } from './chapterSyncText';
+import {
+  chapterSyncBackgroundWaitText,
+  chapterSyncPanelNotChaptersText,
+  chapterSyncPanelReasonText,
+  chapterSyncSummaryFacts,
+  type ChapterSyncDaw,
+} from './chapterSyncText';
 
 /**
  * Chapter sync's own section of the engine panel the on/off state and last-sync summary, the Needs you list with an inline Link
  * (chapterTrackSet, the same binding as Chapter links below), and the tracks sync could not place. The Sync activity log is in
  * Settings (Recording & DAW › Advanced). Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
- * decision, not a second copy of it here.
+ * decision, not a second copy of it here. `daw` is the DAW the project records with, which its text names.
  */
-export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChanged: () => void }) {
+export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; onChanged: () => void; daw: ChapterSyncDaw }) {
   const api = useApi();
   const state = useChapterSync(api);
   const [preview, setPreview] = useState<ChapterSyncPreview>();
@@ -88,8 +94,14 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
   const notChapters = preview ? chapterSyncPanelNotChaptersText(preview.unmatched, preview.pickupTracks) : '';
   const notChaptersCount = preview ? preview.unmatched.length + preview.pickupTracks.length : 0;
 
-  const facts = chapterSyncSummaryFacts({ lastSync: state.lastSync, projectFile: state.projectFile, chapters: state.chapters, linked: state.counts.linked });
-  const background = chapterSyncBackgroundWaitText(state.background);
+  const facts = chapterSyncSummaryFacts({
+    lastSync: state.lastSync,
+    projectFile: state.projectFile,
+    chapters: state.chapters,
+    linked: state.counts.linked,
+    daw,
+  });
+  const background = chapterSyncBackgroundWaitText(state.background, daw.daw);
 
   // One fact per row, label beside value (R3EN2-3): the status, when and from what it last synced, the links, background checks while they
   // wait, and the tracks it found that are not chapters, which used to be a second column under a rule.
@@ -104,7 +116,8 @@ export function ChapterSyncPanel({ notify, onChanged }: { notify: Notify; onChan
           ...(notChapters ? [{ label: `Not chapters (${notChaptersCount})`, value: <span className="[overflow-wrap:anywhere]">{notChapters}</span> }] : []),
         ]}
       />
-      {state.unsavedEdits && (
+      {/* Only REAPER's heartbeat carries an edit count, and the line names REAPER. */}
+      {state.unsavedEdits && daw.daw === 'REAPER' && (
         <p role="status" className="mt-2 text-sm" style={{ color: 'var(--warn-text)' }}>
           REAPER has changes that aren&rsquo;t saved yet. Sync reads the saved project, so it picks them up when you save.
         </p>

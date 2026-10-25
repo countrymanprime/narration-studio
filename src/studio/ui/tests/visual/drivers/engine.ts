@@ -49,6 +49,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page, 'Audacity');
     await page.getByText("Audacity is open and answering, with this project's Audacity project.").waitFor();
+    await page.getByText(/, from Book One\.aup3 in Audacity$/).waitFor();
   },
   'audacity-not-running': async (page) => {
     await page.goto('/?mockAudacityLink=not-running');

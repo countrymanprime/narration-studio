@@ -361,9 +361,10 @@ ways to link a project (this panel's link button, choosing a project here, an im
 project).
 
 Once on, the Chapter sync section lists one fact per row: **Status** (On), **Last synced** (when, and from which
-saved project file: "10:42, from the saved Alice.rpp"), **Links** (how many chapters it linked on its own and
+saved project file: "10:42, from the saved Alice.rpp"; for an Audacity project, the linked Audacity project: "10:42, from
+Book One.aup3 in Audacity", or "from the open Audacity project" when none is linked), **Links** (how many chapters it linked on its own and
 how many you linked: "8 chapters linked automatically, 1 by you"), **Background checks** while they are waiting
-("Waiting: REAPER is recording."), and **Not chapters** (below). **Turn off**, beside the heading, stops it (chapter
+("Waiting: REAPER is recording.", or Audacity for an Audacity project), and **Not chapters** (below). **Turn off**, beside the heading, stops it (chapter
 links you already made are kept); while it is off the same place has **Turn on**, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the

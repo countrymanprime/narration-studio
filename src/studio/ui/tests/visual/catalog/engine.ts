@@ -41,7 +41,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'audacity-linked',
     description:
-      "The engine panel for an Audacity project (?mockAudacityLink=linked): the Audacity card in place of the REAPER project section, answering with this project's Book One.aup3, and no REAPER tools",
+      "The engine panel for an Audacity project (?mockAudacityLink=linked): the Audacity card in place of the REAPER project section, answering with this project's Book One.aup3, Chapter sync's Last synced naming Book One.aup3 in Audacity (never a .rpp), and no REAPER tools",
   },
   {
     page: 'engine',

@@ -40,15 +40,17 @@ const preview: ChapterSyncPreview = {
   missing: [],
 };
 
+const REAPER = { daw: 'REAPER' } as const;
+
 describe('ChapterSyncConsentDialog', () => {
   it('shows a loading state before the preview arrives', () => {
-    render(<ChapterSyncConsentDialog projectFile="Alice.rpp" preview={undefined} busy={false} onSync={() => {}} onNotNow={() => {}} />);
+    render(<ChapterSyncConsentDialog projectFile="Alice.rpp" daw={REAPER} preview={undefined} busy={false} onSync={() => {}} onNotNow={() => {}} />);
     expect(screen.getByText('Reading the saved project…')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Sync chapters' })).toHaveProperty('disabled', true);
   });
 
   it('lists what will be linked, needs you and no-track chapters, and names the count on Sync', () => {
-    render(<ChapterSyncConsentDialog projectFile="Alice.rpp" preview={preview} busy={false} onSync={() => {}} onNotNow={() => {}} />);
+    render(<ChapterSyncConsentDialog projectFile="Alice.rpp" daw={REAPER} preview={preview} busy={false} onSync={() => {}} onNotNow={() => {}} />);
     expect(screen.getByText(/Alice\.rpp is now linked/)).toBeTruthy();
     expect(screen.getByText('CHAPTER ONE → Chapter 1')).toBeTruthy();
     expect(screen.getByText('Ch 3 → Chapter 3')).toBeTruthy();
@@ -61,7 +63,7 @@ describe('ChapterSyncConsentDialog', () => {
   it('calls onSync and onNotNow from their buttons', () => {
     const onSync = vi.fn();
     const onNotNow = vi.fn();
-    render(<ChapterSyncConsentDialog projectFile="Alice.rpp" preview={preview} busy={false} onSync={onSync} onNotNow={onNotNow} />);
+    render(<ChapterSyncConsentDialog projectFile="Alice.rpp" daw={REAPER} preview={preview} busy={false} onSync={onSync} onNotNow={onNotNow} />);
     fireEvent.click(screen.getByRole('button', { name: 'Sync 2 chapters' }));
     expect(onSync).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
@@ -70,7 +72,39 @@ describe('ChapterSyncConsentDialog', () => {
 
   it('disables Not now while busy and refuses to close', () => {
     const onNotNow = vi.fn();
-    render(<ChapterSyncConsentDialog projectFile="Alice.rpp" preview={preview} busy={true} onSync={() => {}} onNotNow={onNotNow} />);
+    render(<ChapterSyncConsentDialog projectFile="Alice.rpp" daw={REAPER} preview={preview} busy={true} onSync={() => {}} onNotNow={onNotNow} />);
     expect(screen.getByRole('button', { name: 'Not now' })).toHaveProperty('disabled', true);
+  });
+
+  // The host's projectFile for an Audacity project is its snapshot, or a stray .rpp discovery found: neither is what the narrator linked.
+  it('names the Audacity project and Audacity, never a REAPER file, for an Audacity project', () => {
+    render(
+      <ChapterSyncConsentDialog
+        projectFile="C:/Books/Alice/Alice.rpp"
+        daw={{ daw: 'Audacity', linkedFile: 'C:/Books/Alice/Book One.aup3' }}
+        preview={undefined}
+        busy={false}
+        onSync={() => {}}
+        onNotNow={() => {}}
+      />,
+    );
+    expect(screen.getByText(/^Book One\.aup3 is now linked\. The app can tie each chapter to its Audacity track by name/)).toBeTruthy();
+    expect(screen.getByText('Reading the Audacity project…')).toBeTruthy();
+    expect(screen.queryByText(/\.rpp|REAPER/)).toBeNull();
+  });
+
+  it('says "The Audacity project" when no .aup3 is linked', () => {
+    render(
+      <ChapterSyncConsentDialog
+        projectFile=""
+        daw={{ daw: 'Audacity', linkedFile: null }}
+        preview={preview}
+        busy={false}
+        onSync={() => {}}
+        onNotNow={() => {}}
+      />,
+    );
+    expect(screen.getByText(/^The open Audacity project is now linked\./)).toBeTruthy();
+    expect(screen.queryByText(/\.rpp|REAPER/)).toBeNull();
   });
 });
