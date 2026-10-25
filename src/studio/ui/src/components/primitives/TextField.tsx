@@ -5,8 +5,9 @@ import type { ControlNaming } from './controlNaming';
 // The look every text control shares; the wrapper owns it, not a global rule or a per-page copy.
 // The size is set separately (SANS_CLASSES/MONO_CLASSES): a `text-*` utility can't be layered safely, since two of them in one
 // className race for the same CSS property.
+// An `aria-invalid` box takes the danger border, so the box that is wrong is marked and not only the message under it (alignment audit R3SE2-17).
 const BASE_CLASSES =
-  'box-border rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-0 leading-[1.35] text-[var(--text)]';
+  'box-border rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-0 leading-[1.35] text-[var(--text)] aria-[invalid=true]:border-[var(--danger)]';
 // A colour swatch is a small square, not a field.
 const COLOR_CLASSES = 'size-[var(--control-height)] rounded-[0.35rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.2rem]';
 // The height is the shared control height (the mock's 36px, or 32px for `sm`). A caller's `w-` class replaces the default `w-full`.
