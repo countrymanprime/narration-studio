@@ -154,6 +154,19 @@ Four widths and the rail decide the layout, as the Studio Next mock lays it out:
 
 **What the visual suite draws.** The matrix is 1440, 1024 and 768 px. Two bands it would miss are drawn by rows that opt in with `LAYOUT_BANDS`: 1300 px (rail collapsed, not yet medium) and 1230 px (medium, not narrow). The 390 px reflow width is for rows that opt in with `extraViewports`. There is no phone viewport ([viewports.ts](../../src/studio/ui/tests/visual/viewports.ts)).
 
+## Production board
+
+The Production page follows the Studio Next mock's `phead`, `kpis`, `pstats` and `pgrid` with these departures, each from the alignment audit (`docs/research/alignment-audit/findings/production.md`) and the owner's decision on #2251 to fix every finding. They replace the mock's lines named here.
+
+- **One right-hand column.** Above 1280 px the stats row is `1.5fr 1fr 22.5rem`, not the mock's `1.5fr 1fr 1fr`, so Recording check has the same edges as Next up under it (XPR2-5, XPR1-7).
+- **Two short cards side by side from 640 px.** This week and Recording check share a row under the stage card from 640 to 1280 px; the mock puts each on a full row below 1180 px, which drew a two-row list 900 px wide (XPR2-13). Below 640 px everything is one column, Next up and the chart included (XPR2-17).
+- **What to do next comes first at 1280 px and below.** The Next up and chart pair sits above the chapter pipeline when the board stacks (the mock keeps it after the table, about 2000 px down; R4TA-3).
+- **Both board columns end together.** The lower board stretches its two columns and the chart card fills what the right column has left (`ProgressChart fill`), where the mock's `pgrid` is `align-items: start` and the right column stopped 120 to 210 px short (XPR2-15, R4TA-5). The stage card fills its row too, with its legend band on the card's foot.
+- **The verdict on the figures line.** The verdict pill sits on the line of chapters, words and due date, not on a row of its own, and the due date is told there by its colour and days only, the pill carrying the word and mark (XPR2-44, XPR1-13). With no due date the line says nothing about it and the pill says "No due date set" (R3PR1-7).
+- **Why Start session is off is said once.** It is one line under the header's buttons (with Open DAW settings when Settings fixes it), not in Next up beside Open Booth as the mock draws it, and not while the capabilities are still being read (XPR2-9, XPR2-41). Open Booth stays enabled.
+- **The stage bar's legend is a grid** of five, three, or two columns by the card's width, so no entry sits alone on a row (R3PR1-2); a stage with no hours draws no segment (R3PR2-13); the lighter tones are mixed toward white, not toward the surface, so their order is the same in both themes (XPR2-45).
+- **The chart's "not measured" note is a caption** under the plot on Production, and the "today" label takes the side clear of the lines as on the Schedule page (R4TA-2, R4SM-1).
+
 ## Settings rows
 
 The Settings page always keeps every setting. A working page may also offer a compact entry for one (a menu, a modal or a drawer tab, hidden until opened) that edits the same keys, but it never replaces the Settings control; `registry/pageSettings.test.ts` fails when a page-owned setting has no Settings panel.

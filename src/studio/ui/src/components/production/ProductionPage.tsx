@@ -349,7 +349,7 @@ export function ProductionPage({
     return (
       <LoadError
         title="Production"
-        message={`The production overview could not be read: ${load.message}`}
+        message={load.message}
         retry={() => {
           setLoad({ status: 'loading' });
           void read();
@@ -423,8 +423,10 @@ export function ProductionPage({
             targetInfo={<TargetInfoButton />}
           />
           <TimerFigures overview={overview} />
-          {/* The mock's widths: one column under 1180, two to 1280 with the stage card across both, three above. */}
-          <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[1180px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] min-[1180px]:max-[1281px]:[&>:first-child]:col-span-2">
+          {/* One column under 640 px; from there to 1280 the stage card spans two columns and This week and Recording check share the row
+              under it (two short lists drawn the full width put 700 px between a label and its figure); above 1280 three columns, the last
+              as wide as the Next up column below it, so the right-hand cards of both rows share their edges (alignment audit XPR2-5). */}
+          <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[640px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_22.5rem] min-[640px]:max-[1281px]:[&>:first-child]:col-span-2">
             <StageBar segments={stageSegments(narrated, WPH, pipelineSources.master)} wph={WPH} />
             <WeekCard figures={weekFigures(log, today, start, due, k.words / WPH)} />
             <CheckCountsCard
@@ -434,9 +436,11 @@ export function ProductionPage({
               onCheck={(ids) => openCheckRecordings(ids)}
             />
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]">
+          {/* Both columns run to the same foot: the chart card takes what the right column has left. At 1280 and below the Next up and
+              chart pair comes first, under the figures, so what to do next is not 2000 px down the page (alignment audit R4TA-3). */}
+          <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[1281px]:grid-cols-[minmax(0,1fr)_22.5rem]">
             <div className="flex min-w-0 flex-col gap-4">
-              <Panel title="Chapter pipeline" flush>
+              <Panel title="Chapter pipeline" flush className="min-[1281px]:flex-1">
                 <div {...{ [PIPELINE_AREA]: '' }}>
                   <PipelineTable
                     rows={rows}
@@ -455,7 +459,7 @@ export function ProductionPage({
               </Panel>
               {tools.panels}
             </div>
-            <div className="flex min-w-0 flex-col gap-4 max-[1281px]:grid max-[1281px]:grid-cols-2 max-[1281px]:items-stretch">
+            <div className="flex min-w-0 flex-col gap-4 max-[1281px]:order-first min-[640px]:max-[1281px]:grid min-[640px]:max-[1281px]:grid-cols-2 min-[640px]:max-[1281px]:items-stretch">
               <Panel title="Next up">
                 <NextUp
                   inputs={{
@@ -474,7 +478,6 @@ export function ProductionPage({
                     pickups: openPickups > 0 ? { lines: openPickups, chapters: pickupChapters(openLines ?? [], nameOf) } : null,
                     failing: pipelineSources.failing,
                   }}
-                  record={record}
                   onGo={(target, chapterId) => onGo(target, chapterId)}
                   timer={{ running: Boolean(overview.running), starting: timer.starting, onStart: (id, stage) => void timer.start(id, stage) }}
                 />
@@ -488,6 +491,9 @@ export function ProductionPage({
                 recordedHours={recordedHours}
                 series={recordedSeries(log, start)}
                 onOpenSchedule={() => go('/schedule')}
+                fill
+                clearTodayLabel
+                noteBelow
               />
             </div>
           </div>
