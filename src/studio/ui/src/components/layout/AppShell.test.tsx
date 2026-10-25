@@ -235,6 +235,19 @@ describe('AppShell grouped navigation', () => {
     });
   });
 
+  // Alignment audit XSL-21, R3PR1-12, R3PR2-27, R3MS-8: in dark the solid sun read as a second gear over Settings.
+  it('draws the Light theme item as a half-filled circle, not a rayed sun beside the Settings gear, and the Dark theme item with the moon', () => {
+    const { container, unmount } = renderShell({ theme: { dark: true, toggle: () => {} } });
+    const foot = container.querySelector('aside .rail-foot')!;
+    const svgOf = (name: string) => [...foot.querySelectorAll('button')].find((b) => b.textContent === name)!.querySelector('svg')!;
+    expect(svgOf('Light theme').getAttribute('data-icon')).toBe('circle-half-stroke');
+    expect(svgOf('Settings').getAttribute('data-icon')).toBe('gear');
+    unmount();
+    const light = renderShell({ theme: { dark: false, toggle: () => {} } });
+    const moon = [...light.container.querySelectorAll('aside .rail-foot button')].find((b) => b.textContent === 'Dark theme')!.querySelector('svg')!;
+    expect(moon.getAttribute('data-icon')).toBe('moon');
+  });
+
   // The Production home replaced Home at `/`, as the Production group's one item, active on `/` and nowhere else.
   it("has Production, not Home, as the Production group's item, active at /", () => {
     renderShell({ pathname: '/' });
