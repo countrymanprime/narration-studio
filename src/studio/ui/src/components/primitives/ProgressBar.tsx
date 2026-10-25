@@ -8,7 +8,8 @@ import { Progress } from '@base-ui/react/progress';
 // number ("44 of 109 MB"): the numbers move on nearly every poll, so they belong here and not in a live region.
 const MINIMUM_RUNNING_PERCENT = 4;
 
-export type ProgressBarTone = 'accent' | 'ok' | 'warn';
+// 'danger' is a job that failed: the bar stops where it got to, in the failure's colour rather than the running accent (R3SB2-15).
+export type ProgressBarTone = 'accent' | 'ok' | 'warn' | 'danger';
 
 // The default 16 px bar keeps its original look (accent fill on --surface-3); 'thin' is the benchmark's 8 px bar
 // under a StatTile and its "this week" rows (mocks B01/B05),
@@ -19,6 +20,7 @@ const TONE_FILL: Record<ProgressBarTone, string> = {
   accent: 'bg-[var(--accent)]',
   ok: 'bg-[var(--ok)]',
   warn: 'bg-[var(--warn)]',
+  danger: 'bg-[var(--danger)]',
 };
 
 export function ProgressBar({

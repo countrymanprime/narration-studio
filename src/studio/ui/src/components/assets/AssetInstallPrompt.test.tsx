@@ -95,6 +95,30 @@ describe('AssetInstallPrompt', () => {
     expect(dismiss).toHaveBeenCalledTimes(1);
   });
 
+  it('offers Retry on a failure, which starts the download again (R3SB2-15)', async () => {
+    const sentence = 'The voice could not be downloaded.';
+    let starts = 0;
+    function Retrying() {
+      const install = useAssetInstall({
+        start: async () => (++starts === 1 ? job({ phase: 'error', message: sentence, error: sentence }) : job({ percent: 10, bytesDone: 10 * 1024 * 1024 })),
+        state: async () => job({ percent: 10, bytesDone: 10 * 1024 * 1024 }),
+        cancel: async () => job({ phase: 'cancelled' }),
+      });
+      return (
+        <AssetInstallPrompt ask={{ title: 'Download?', body: 'b', confirmLabel: 'Download' }} workTitle="Downloading" install={install} dismiss={() => {}} />
+      );
+    }
+    render(<Retrying />);
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+    await advance(0);
+    expect(screen.getByRole('alert').textContent).toBe(sentence);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await advance(0);
+    expect(starts).toBe(2);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+  });
+
   it('shows a call that failed outright the same way', async () => {
     function Failing() {
       const install = useAssetInstall({

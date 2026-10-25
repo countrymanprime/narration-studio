@@ -1939,7 +1939,8 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"fx_cap_pct", "Most of a chapter effects may cover (%)", "number", nil},
 		{"replace_target_lufs", "Loudness another narrator's audio is set to (LUFS)", "number", nil},
 	},
-	// Booth.words_per_page is where the Booth draws a page break: every this many words from a chapter's first word. A whole number from
+	// Booth.words_per_page is where the Booth draws a page break: at the end of the paragraph that brings a page to this many words, counted
+	// from a chapter's first word (pageBreaks.ts). A whole number from
 	// 50 to 1000, 250 (a manuscript page) by default; a stored value outside the range reads as the layer below (settings.wholeNumbers).
 	"Booth": {{"words_per_page", "Words per page", "number", nil}},
 	// Preview is the preview suggestion's settings (docs/architecture/preview-suggestion.md): the narrator's target length, tolerance,
