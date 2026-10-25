@@ -46,7 +46,7 @@ describe('NavButton', () => {
       </NavButton>,
     );
     const item = screen.getByRole('button', { name: 'Production' });
-    for (const token of ['h-10', 'text-[0.9375rem]', 'tracking-[0.12em]', '[&_svg]:text-[1.25rem]', '[&_svg]:w-[1.375rem]!'])
+    for (const token of ['h-10', 'text-[0.9375rem]', 'tracking-[0.12em]', '[&>svg]:text-[1.25rem]', '[&>svg]:w-[1.375rem]!'])
       expect(item.className).toContain(token);
   });
 

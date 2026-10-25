@@ -6,6 +6,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { HINT_POPUP_SELECTOR } from './hintLayer';
 import { IconButton } from './IconButton';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
+import { useToastsClearOfModal } from './Toast';
 
 // Portals attach in the order the layers opened, so a modal later in the document is above this one.
 function hasModalAbove(popup: HTMLElement): boolean {
@@ -121,6 +122,9 @@ export function Dialog({
   const dismiss = escapeCloses ? (onClose ?? onEscape) : undefined;
   const width = size ?? (variant === 'alert' ? 'confirm' : 'form');
   const top = (placement ?? (width === 'palette' ? 'top' : 'center')) === 'top';
+  // Toasts move to the window's top while a centred dialog is open, clear of its action row. A full-size dialog leaves no room above it,
+  // and one hung from the top (the jump menu) has its own field there and no action row below.
+  useToastsClearOfModal(width !== 'full' && !top);
 
   const initialFocus = () => {
     const focused = document.activeElement;
