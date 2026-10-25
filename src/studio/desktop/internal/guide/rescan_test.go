@@ -2,7 +2,8 @@ package guide
 
 // State matrix of a rescan and a status in the host. Each cell names its test; a cell the sidecar's recorded cases already pin says so
 // (TestRescansMatchTheSidecarCases and TestStatusMatchesTheSidecarCases replay testdata/rescan-parity.json, TestFindOccurrencesMatches
-// TheSidecar replays testdata/occurrence-parity.json; test_rescan_parity.py writes them).
+// TheSidecar replays testdata/occurrence-parity.json; both were recorded from the sidecar's rescan, status and find_occurrences, with
+// testdata/rescan-manuscript.json, before #2251 deleted them, and are frozen: nothing rewrites them).
 //
 //	no Story Bible                             the recorded cases "with no Story Bible", "with an empty Story Bible"
 //	an entry with no occurrences               the recorded case "an entry with no occurrences"

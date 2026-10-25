@@ -58,8 +58,8 @@ func reasonOf(message string) string {
 	return message
 }
 
-// TestEditMatchesTheSidecarCases replays every case src/studio/sidecars/manuscript-guide/tests/test_edit_parity.py recorded from the sidecar's own
-// edit: the same file after it, or the same reason with the file untouched.
+// TestEditMatchesTheSidecarCases replays every case tests/fixtures/guide-edit/edit-parity.json recorded from the sidecar's own edit (frozen:
+// #2251 deleted the Python command and its recorder, so nothing rewrites it): the same file after it, or the same reason with the file untouched.
 func TestEditMatchesTheSidecarCases(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "..", "tests", "fixtures", "guide-edit", "edit-parity.json"))
 	if err != nil {
@@ -175,5 +175,41 @@ func TestAnAliasEditNeedsTheManuscriptAndNotTheSidecar(t *testing.T) {
 	}
 	if written, _ := os.ReadFile(s.guidePath()); string(written) != start {
 		t.Fatalf("a refused edit changed the file: %s", written)
+	}
+}
+
+// Ported from the sidecar's test_manuscript_guide.py when #2251 deleted its edit: renaming an entry keeps its id, so every relationship
+// that points at it, and its own, are unchanged.
+func TestARenameKeepsTheRelationshipsThatPointAtTheEntrysID(t *testing.T) {
+	relation := func(id, name, label string) any { return map[string]any{"id": id, "name": name, "label": label} }
+	entry := func(id, name string, relationships ...any) any {
+		return map[string]any{"id": id, "canonical_name": name, "category": "Character", "aliases": []any{}, "relationships": relationships}
+	}
+	s := serviceWithGuideFile(t, []any{
+		entry("nicholas", "Nicholas", relation("wren", "Wren", "friend")),
+		entry("nico", "Nico", relation("wren", "Wren", "brother"), relation("nicholas", "Nicholas", "same")),
+		entry("wren", "Wren", relation("nico", "Nico", "sister"), relation("nicholas", "Nicholas", "sister")),
+	})
+	if err := s.Edit("nicholas", "canonical_name", "Nicolas"); err != nil {
+		t.Fatal(err)
+	}
+	if got := entityField(t, s, "nicholas", "canonical_name"); got != "Nicolas" {
+		t.Fatalf("canonical_name = %v", got)
+	}
+	ids := func(id string) []any {
+		var out []any
+		for _, raw := range entityField(t, s, id, "relationships").([]any) {
+			out = append(out, raw.(map[string]any)["id"])
+		}
+		return out
+	}
+	if got := ids("wren"); !reflect.DeepEqual(got, []any{"nico", "nicholas"}) {
+		t.Fatalf("Wren's relationships point at %v", got)
+	}
+	if got := ids("nico"); !reflect.DeepEqual(got, []any{"wren", "nicholas"}) {
+		t.Fatalf("Nico's relationships point at %v", got)
+	}
+	if got := entityField(t, s, "nicholas", "relationships"); !reflect.DeepEqual(got, []any{relation("wren", "Wren", "friend")}) {
+		t.Fatalf("the renamed entry's own relationships = %v", got)
 	}
 }

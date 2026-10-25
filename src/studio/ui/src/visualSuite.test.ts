@@ -12,6 +12,7 @@ import {
   disambiguateLabels,
   findBlankCaptures,
   findCollapsedControls,
+  findMixedRowHeights,
   findNarrowestControl,
   findStaleSameAs,
   findUndeclaredDuplicates,
@@ -172,6 +173,25 @@ describe('NON_TEXT_INPUT_TYPES', () => {
 
   test('the types a person types into are measured', () => {
     for (const type of ['text', 'search', 'email', 'url', 'tel', 'password', 'number', 'date']) expect(NON_TEXT_INPUT_TYPES).not.toContain(type);
+  });
+});
+
+// Alignment audit cause C (rule A6): a 40.8 px select beside a 36 px Confirm on every row of the Engine's chapter links.
+describe('findMixedRowHeights', () => {
+  const at = (name: string, parent: number, top: number, height: number) => ({ name, parent, top, height });
+
+  test('reports siblings on one row whose heights differ, naming both', () => {
+    const [problem, ...rest] = findMixedRowHeights([at('select Track for Chapter 1', 0, 100, 40.8), at('button Confirm', 0, 102.4, 36)], 'tablet');
+    expect(rest).toEqual([]);
+    expect(problem).toContain('"select Track for Chapter 1" is 40.8px');
+    expect(problem).toContain('"button Confirm" is 36px');
+    expect(problem).toContain('tablet');
+  });
+
+  test('passes one height, a difference within the tolerance, controls on different rows and controls with different parents', () => {
+    expect(findMixedRowHeights([at('a', 0, 100, 36), at('b', 0, 100, 36), at('c', 0, 100.5, 35)], 'desktop')).toEqual([]);
+    expect(findMixedRowHeights([at('a', 0, 100, 36), at('b', 0, 160, 32)], 'desktop')).toEqual([]);
+    expect(findMixedRowHeights([at('a', 0, 100, 40), at('b', 1, 102, 36)], 'desktop')).toEqual([]);
   });
 });
 

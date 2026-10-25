@@ -24,7 +24,7 @@ export function Results({
 }) {
   if (hits.length === 0) {
     return (
-      <div className="rounded-[var(--radius-card)] border border-dashed border-[var(--border)] p-6 text-center" data-empty-results>
+      <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] px-5 py-4" data-empty-results>
         <p className="m-0 font-semibold">{empty}</p>
         {hint && <p className="m-0 mt-1 text-[0.8125rem] text-[var(--text-muted)]">{hint}</p>}
       </div>
@@ -40,14 +40,14 @@ export function Results({
         const category = CATEGORIES.find((candidate) => candidate.label === name);
         return (
           <section key={name} aria-label={name} className="flex flex-col">
-            <SectionLabel as="h3" className="mb-1.5 flex items-center gap-2.5">
-              {name}
+            <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <SectionLabel as="h3">{name}</SectionLabel>
               {category && (
-                <Button variant="link" size="sm" onClick={() => onShowCategory(category.id)}>
+                <Button variant="secondary" size="sm" onClick={() => onShowCategory(category.id)}>
                   Show the whole category
                 </Button>
               )}
-            </SectionLabel>
+            </div>
             {rows.length > 0 && (
               <Panel flush>
                 {rows.map((row) => (

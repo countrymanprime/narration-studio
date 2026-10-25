@@ -3,9 +3,12 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
+	"desktop/internal/brand"
 	"desktop/internal/process"
 )
 
@@ -37,11 +40,11 @@ func TestExtractionSourcesReportAvailabilityAndReason(t *testing.T) {
 		t.Fatalf("sources =\n%+v\nwant\n%+v", rows, want)
 	}
 
-	// The rules with no sidecar say why; BookNLP asks the asset registry for its install folder itself, so a host with no
-	// analysis catalog answers not downloaded whatever the installed list says.
+	// The rules run in the host, so a host with no sidecar still offers them; BookNLP asks the asset registry for its install
+	// folder itself, so a host with no analysis catalog answers not downloaded whatever the installed list says.
 	host = &Host{extractionInstalled: func() []string { return []string{"booknlp-big"} }}
 	rows = decodeSources(t)(host.ExtractionSources())
-	if rows[0].Available || rows[0].Reason != "The Story Bible sidecar is not set up." {
+	if !rows[0].Available || rows[0].Reason != "" {
 		t.Fatalf("rules with no sidecar = %+v", rows[0])
 	}
 	if rows[4].Available || rows[4].Reason != "BookNLP is not downloaded." {
@@ -49,23 +52,41 @@ func TestExtractionSourcesReportAvailabilityAndReason(t *testing.T) {
 	}
 }
 
-func TestRulesCommandRunsTheProjectsManuscriptAndStoryBible(t *testing.T) {
+func TestTheRulesReadTheProjectsManuscriptAndStoryBible(t *testing.T) {
 	host := &Host{}
-	if _, err := host.rulesCommand(); err == nil {
-		t.Fatal("a rules command with no project was not refused")
+	if _, err := host.rulesFiles(); err == nil {
+		t.Fatal("the rules' files with no project were not refused")
 	}
 	host.config.projectFolder = t.TempDir()
 	host.config.manuscriptPython = "missing.exe"
-	if _, err := host.rulesCommand(); err == nil {
-		t.Fatal("a rules command with no sidecar was not refused")
+	files, err := host.rulesFiles()
+	if err != nil || files.Manuscript != filepath.Join(host.config.projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json") ||
+		files.Guide != filepath.Join(host.config.projectFolder, "ManuscriptGuide", "manuscript_guide.json") {
+		t.Fatalf("rules files with no sidecar = %+v, %v", files, err)
+	}
+}
+
+func TestGuideSuggestCommandRunsTheProjectsManuscriptAndStoryBible(t *testing.T) {
+	host := &Host{}
+	if _, err := host.guideSuggestCommand(); err == nil {
+		t.Fatal("a suggest command with no project was not refused")
+	}
+	host.config.projectFolder = t.TempDir()
+	host.config.manuscriptPython = "missing.exe"
+	if _, err := host.guideSuggestCommand(); err == nil {
+		t.Fatal("a suggest command with no sidecar was not refused")
 	}
 	host.config.manuscriptPython = os.Args[0]
-	command, err := host.rulesCommand()
-	if err != nil || len(command.Args) != 0 || command.Program != host.config.manuscriptPython {
+	command, err := host.guideSuggestCommand()
+	if err != nil || len(command.Args) != 0 || command.Program != host.config.manuscriptPython || !strings.HasSuffix(command.Guide, "manuscript_guide.json") {
 		t.Fatalf("frozen sidecar = %+v, %v", command, err)
 	}
 	host.config.manuscriptBackend = host.config.manuscriptPython
-	if command, err = host.rulesCommand(); err != nil || !slices.Equal(command.Args, []string{host.config.manuscriptBackend}) {
+	if command, err = host.guideSuggestCommand(); err != nil || !slices.Equal(command.Args, []string{host.config.manuscriptBackend}) {
 		t.Fatalf("development sidecar = %+v, %v", command, err)
+	}
+	host.config.manuscriptBackend = "missing.py"
+	if _, err := host.guideSuggestCommand(); err == nil {
+		t.Fatal("a suggest command with no backend was not refused")
 	}
 }

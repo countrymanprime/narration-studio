@@ -50,6 +50,11 @@ type Service struct {
 	// pronunciationLookup answers the pronunciations the host needs for a new entry or alias; nil asks the sidecar (pronunciations). The
 	// tests set it.
 	pronunciationLookup func(words []string) ([]map[string]any, error)
+	// buildModel does a build's model work (build.go); nil asks the sidecar. The tests set recorded answers.
+	buildModel buildModel
+	// clock is a build's generated_at, and resolvePath its source path (Path.resolve); nil is the real ones. The tests set them.
+	clock       func() time.Time
+	resolvePath func(path string) string
 	// undoIDs makes the id a merge is stored under; nil in the app (a random one), set by the tests that need a known one.
 	undoIDs func() string
 	// parses counts how often an edit had to parse the file, for the tests of heldDocument.
@@ -274,7 +279,7 @@ func readPronunciation(value map[string]any) {
 }
 
 // DialogueCue is one entry of the guide file's dialogue_cues
-// (written by manuscript_guide.py extract_dialogue_cues/merge_dialogue_cues): a quoted span with its
+// (written by RefreshCues, cues.go): a quoted span with its
 // resolved (or unknown) speaker. It is a document-level list, a sibling of
 // "entities", not per-entity data.
 type DialogueCue struct {
@@ -329,8 +334,8 @@ func (s *Service) DialogueCues() ([]DialogueCue, error) {
 
 // CorrectCue records the narrator's own attribution for one dialogue cue
 // (speakerEntityID "unknown" or "" clears it back to unknown), so the next
-// rebuild's merge_dialogue_cues keeps it instead of overwriting it with
-// fresh, possibly-unknown, extraction - the same durability src/studio/sidecars/manuscript-guide/core/manuscript_guide.py's lock
+// refresh's mergeDialogueCues (cues.go) keeps it instead of overwriting it with
+// fresh, possibly-unknown, extraction - the same durability a build's lock
 // guard already gives a locked entity, applied to a cue instead.
 func (s *Service) CorrectCue(cueID, speakerEntityID string) error {
 	return s.mutateInHost(func(document map[string]any) (bool, error) { return correctCue(document, cueID, speakerEntityID) })
@@ -389,23 +394,6 @@ func (s *Service) command(args []string) (string, []string, error) {
 
 // RulesOnly is the model argument that builds without a language model: the rules-only extraction, lower quality, chosen for one build.
 const RulesOnly = "rules-only"
-
-// Build runs the Story Bible build. model is what the sidecar gives spaCy: the folder of an installed model, a model name, or RulesOnly.
-func (s *Service) Build(progress, log, model string) (string, error) {
-	if e := os.MkdirAll(filepath.Dir(s.guidePath()), 0755); e != nil {
-		return "", e
-	}
-	out, err := s.Run(s.buildArgs(progress, log, model)...)
-	if err != nil {
-		return out, err
-	}
-	_ = s.SaveFindings() // best-effort; a problem here never fails a build that already succeeded (see SaveFindings)
-	return out, nil
-}
-func (s *Service) buildArgs(progress, log, model string) []string {
-	args := []string{"build", "--manuscript", s.manuscript(), "--out", s.guidePath(), "--progress", progress, "--log", log, "--spacy-model", model}
-	return append(args, s.defaultPronunciationSourceArgs()...)
-}
 
 // defaultPronunciationSourceArgs is --default-source <value> when the narrator set a preferred pronunciation source
 // (Settings > Story Bible); omitted (not passed as an explicit empty
