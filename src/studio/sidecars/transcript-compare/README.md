@@ -11,12 +11,11 @@ on request, take markers) plus a unified diff file of the script text against wh
 
 ## Layout
 
-- `core/` — the DAW-agnostic Python backend (`compare.py`), plus
-  `common_words.txt`. No DAW APIs are used here; it's a plain CLI invoked by whichever DAW
-  driver below is running it. Its dependencies are declared in the repo-root `pyproject.toml` and pinned in `uv.lock`.
-- `core/recording_coverage.py` — the rule that an extra run says the chapter text beside it again, which the take
-  markers use (`repeat_of`). The recording-coverage model itself is the host's
-  (`src/studio/desktop/internal/recordingcoverage`).
+- `core/` — the DAW-agnostic Python backend (`compare.py`). It decodes and transcribes; the tokenizer,
+  the chapter match, the alignment and the markers are the host's (`src/studio/desktop/internal/compare`,
+  `chaptermatch`, `comparerun` and `recordingcoverage`). No DAW APIs are used here; it's a plain CLI
+  invoked by whichever DAW driver below is running it. Its dependencies are declared in the repo-root
+  `pyproject.toml` and pinned in `uv.lock`.
 - `core/coverage_mode.py` — `compare.py --coverage`: reads a JSON manifest of a chapter's items,
   reuses or writes one words file per item, and writes a words report (`COVERAGE_WORDS`,
   `COVERAGE_UNSURE`, `COVERAGE_RECHECKED`). The host aligns the chapter to the words and writes the
@@ -41,7 +40,7 @@ on request, take markers) plus a unified diff file of the script text against wh
   (`TAKE_TRANSCRIPTION` and `TAKE_WORDS` lines). The host aligns them to the span with the same diff
   the markers use and writes each span word's status and time and every divergence as span words plus
   source seconds (`src/studio/desktop/internal/takedivergence`). The manifest, output and exit codes
-  are in the module docstring; [the evaluation](../../../../docs/research/take-divergence-evaluation.md)
+  are in the module docstring; [Alignment and confidence](../../../../docs/utilities/transcript-compare.md#alignment-and-confidence)
   explains why ASR word timestamps are precise enough. `tests/divergence_harness.py` scores the host's
   alignment (through `tests/go_divergence.py`) against the constructed takes in `tests/fixtures/divergence/`.
 - `src/studio/libs/python/narration_common/spoken_forms.py` — the built-in homophone list (your/you're,
@@ -50,9 +49,6 @@ on request, take markers) plus a unified diff file of the script text against wh
   to the script so a frozen build always carries it. Add a globally-useful pair to
   `HOMOPHONE_GROUPS` there (for something manuscript-specific, use the per-project equivalence
   list instead - see "Handling invented names/words" below).
-- `core/common_words.txt` — a stoplist of ordinary English words, used only by the config
-  screen's **Suggest...** button (see "Handling invented names/words" below) to avoid
-  suggesting common words that just happen to be capitalized mid-sentence.
 - The desktop app owns the workflow and settings (`src/studio/desktop/internal/transcript`). Python runs from the
   checkout `.venv` that `pnpm run bootstrap` creates.
 
@@ -65,8 +61,7 @@ Settings are layered: a repo-wide default, a per-user **Global** value in
 Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 
 - `vocabulary_hints.txt` — comma-separated names and terms passed to Whisper as `hotwords`. Best-effort.
-  `compare.py --hints-out` writes suggested terms (capitalized words that are not sentence-initial, minus
-  `core/common_words.txt`) for the user to review; it never saves hints itself.
+  The host suggests terms from the Story Bible (`TranscriptSuggestHints`); the sidecar never saves hints.
 - `equivalences.csv` — custom spelling equivalences, one comma-separated group per line, like the built-in
   homophone groups but per manuscript. Only single words match, since matching is word by word.
 - `diffs/<track name>_<run number>.diff` — the unified diff of manuscript against transcript, with a plain
@@ -74,7 +69,8 @@ Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 
 One track is one chapter: the host matches the track name (exact, then closest fuzzy match) against the
 manuscript's chapter headings before it starts the run (`internal/comparerun`'s `Choose`), and asks for a
-pick when no heading matches confidently. `--find-repeats` still matches its chapter here.
+pick when no heading matches confidently. The pickup and duplicate scan chooses its chapter the same way, and
+`--find-repeats` only transcribes each read; the host groups them ([Take review](../../../../docs/utilities/take-review.md)).
 
 ## Notes / limitations
 

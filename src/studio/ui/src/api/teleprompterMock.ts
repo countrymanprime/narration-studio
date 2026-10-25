@@ -286,6 +286,7 @@ const idle: TeleprompterState = {
   engine: null,
   chapter: null,
   paused: false,
+  coldRead: false,
   script: null,
   position: null,
 };
@@ -549,7 +550,8 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       publish();
       return;
     }
-    if (autoStop !== undefined || state.phase !== 'running') return;
+    // A cold read never ends itself (the host's trackAutoStopLocked).
+    if (autoStop !== undefined || state.phase !== 'running' || state.coldRead) return;
     autoStop = setTimeout(() => {
       autoStop = undefined;
       cancelReplay();
@@ -669,7 +671,16 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       const { id, built } = options.credits ? planCredits(options.credits) : planChapter(options.chapter);
       cancelReplay();
       stopMeter();
-      state = { phase: 'starting', message: 'Starting the teleprompter…', engine, chapter: id, paused: false, script: null, position: null };
+      state = {
+        phase: 'starting',
+        message: 'Starting the teleprompter…',
+        engine,
+        chapter: id,
+        paused: false,
+        coldRead: Boolean(options.coldRead),
+        script: null,
+        position: null,
+      };
       publish();
       const { script, words } = built;
       sessionWords = words;

@@ -1,5 +1,5 @@
 -- The PROJECT_STATUS reachability heartbeat narration_ui_bridge.lua's tick loop appends: the mechanism spike
--- S6 (docs/research/reaper-spike-s6-daw-reachability.md) proved, wired into the same command loop compare_test.lua and
+-- S6 (docs/reference/daw/reaper.md) proved, wired into the same command loop compare_test.lua and
 -- launcher_test.lua already exercise. Uses Session:all_events() (not :events(), which filters this tag out for every
 -- other test file's sake - see harness.lua).
 

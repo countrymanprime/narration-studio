@@ -17,7 +17,7 @@ type Paragraph struct {
 	SourceIndex     int     `json:"sourceIndex"`
 	// SubtitleReturnsToBody says the subtitle was a line of plain text under the heading (a two-line plain-text heading block), not
 	// part of the heading itself, so a narrator who says it is not a subtitle wants it back as the chapter's first paragraph rather
-	// than joined to the title (case F3 of docs/research/import-heading-misreads.md).
+	// than joined to the title (case F3 of docs/architecture/import-settings-workflow.md#failure-modes).
 	// Set only on the first paragraph under that heading, which is where the line goes back, so a repeated heading loses no line.
 	// Never written to the canonical manuscript.
 	SubtitleReturnsToBody bool `json:"-"`

@@ -11,10 +11,9 @@ import (
 	"desktop/internal/layout"
 )
 
-// parityCases is tests/fixtures/chapter-track-match/parity-cases.json: what the
-// Python matcher (find_chapter_by_track_name) returns for each input. The
-// Python suite (src/studio/sidecars/transcript-compare/tests/test_chapter_track_parity.py)
-// reads the same file.
+// parityCases is tests/fixtures/chapter-track-match/parity-cases.json: what
+// compare.py's matcher (find_chapter_by_track_name) returned for each input
+// before it was deleted; the file is frozen, so this port is held to it.
 type parityCases struct {
 	NormalizedTokens []struct {
 		Input  string   `json:"input"`

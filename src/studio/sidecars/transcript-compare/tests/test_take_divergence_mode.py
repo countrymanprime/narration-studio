@@ -29,11 +29,6 @@ CHAPTER_TEXT = "Alice was beginning to get very tired. She had nothing to do. On
 TAKE = {"itemGuid": "{ITEM-1}", "takeGuid": "{TAKE-1}", "sourceFile": "take1.wav", "startOffset": 12.5, "length": 4.0}
 
 
-@pytest.fixture(autouse=True)
-def _no_custom_equivalences(monkeypatch):
-    monkeypatch.setattr(compare, "_CUSTOM_CANON", {})
-
-
 def project(tmp_path, chapter_text=CHAPTER_TEXT):
     texts = [chapter_text] if isinstance(chapter_text, str) else list(chapter_text)
     """A project folder laid out as the host lays it out: the manuscript under
@@ -80,7 +75,6 @@ def args_for(tmp_path, manuscript_path, manifest_path, **overrides):
         "device": "cpu",
         "find_repeats": False,
         "chunk_seconds": 0,
-        "extract_hints": False,
     }
     values.update(overrides)
     return argparse.Namespace(**values)
@@ -269,7 +263,6 @@ def test_a_cancel_between_takes_stops_with_no_results_and_clears_the_request(tmp
         ({"manifest": None}, "--manifest required"),
         ({"find_repeats": True}, "--find-repeats cannot"),
         ({"chunk_seconds": 30}, "--chunk-seconds cannot"),
-        ({"extract_hints": True}, "--extract-hints cannot"),
     ],
 )
 def test_conflicting_or_missing_arguments_are_usage_errors(tmp_path, overrides, message):

@@ -335,7 +335,7 @@ func checkFrozenGuide(ctx context.Context, options smokeOptions, root string) []
 		checks = append(checks, smokeCheck{Name: "guide:" + entry.Name, OK: entry.OK, Detail: entry.Detail, Millis: elapsed})
 	}
 	// Every check the sidecar must make has to be in its report: a sidecar that stopped making one must not pass by saying nothing.
-	required := []string{"cmudict", "espeak"}
+	required := []string{"cmudict", "espeak", "tool-runtime"}
 	if options.PiperModel != "" {
 		required = append(required, "synthesis")
 	}
