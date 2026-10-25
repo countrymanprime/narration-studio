@@ -98,7 +98,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
         <Field label="Name" value={name} onChange={setName} autoFocus disabled={busy} placeholder="My New Audiobook" hint={NAME_RULES} />
       </form>
       <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-        Location: {/* Breaks after a folder separator, never inside "NarrationStudio" (XPJ-9). */}
+        Location: {/* Breaks after a folder separator, never inside a folder name (XPJ-9). */}
         <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">
           <BreakablePath path={parent ?? (defaultLocation || 'the default projects folder')} />
         </span>
