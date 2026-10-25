@@ -62,6 +62,9 @@ export function SettingsFormsProvider({
   const inFlight = useRef<Partial<Record<Scope, Promise<void>>>>({});
   const forms = useRef(new Map<string, SettingsForm>());
   const [dirtyIds, setDirtyIds] = useState<ReadonlySet<string>>(new Set());
+  // Whether the computer's file has been read yet, and why its last read failed: until it has been read, the Settings page shows that sentence
+  // in its own alert instead of the categories (SettingsPage's `broken`).
+  const globalRead = useRef<{ loaded: boolean; error?: string }>({ loaded: false });
 
   const load = useCallback(
     (scope: Scope) => {
@@ -70,13 +73,19 @@ export function SettingsFormsProvider({
       const read = (async () => {
         try {
           const next = await system.settingsForScope(scope);
+          if (scope === 'global') globalRead.current = { loaded: true };
           setSettings((current) => ({ ...current, [scope]: next }));
           setErrors(({ [scope]: _cleared, ...rest }) => rest);
           applyPalette(next);
         } catch (error) {
           const message = apiErrorMessage(error);
           setErrors((current) => ({ ...current, [scope]: message }));
-          notify(message);
+          if (scope === 'global') globalRead.current = { ...globalRead.current, error: message };
+          // The project's read waits for the computer's to end, so it knows whether the page's alert already says its sentence.
+          else await inFlight.current.global;
+          // A failure the page's alert says already is not toasted as well (alignment audit R3SE2-4); any other read failure is.
+          const { loaded, error: shown } = globalRead.current;
+          if (loaded || shown !== message) notify(message);
         } finally {
           delete inFlight.current[scope];
         }

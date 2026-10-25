@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
@@ -20,7 +20,8 @@ async function renderPage({
   initialCategory,
   cameFrom,
   go = vi.fn(),
-}: { api?: NarrationApi; initialCategory?: string; cameFrom?: string; go?: (path: string) => void } = {}) {
+  notify = vi.fn(),
+}: { api?: NarrationApi; initialCategory?: string; cameFrom?: string; go?: (path: string) => void; notify?: (message: string) => void } = {}) {
   const data = await api.bootstrap();
   render(
     <MemoryRouter>
@@ -28,7 +29,7 @@ async function renderPage({
         <ApiProvider api={api}>
           <SettingsPage
             data={data}
-            notify={vi.fn()}
+            notify={notify}
             onDirtyChange={vi.fn()}
             registerActions={vi.fn()}
             onProjectDataCleared={async () => undefined}
@@ -542,6 +543,31 @@ describe('Settings: states', () => {
     fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
     await waitFor(() => expect(screen.queryByText('Your settings could not be read.')).toBeNull());
+  });
+
+  it('does not toast a read failure the alert already says, and toasts a project read failure it does not (alignment audit R3SE2-4)', async () => {
+    const api = createMockApi();
+    api.settingsForScope = async () => {
+      throw new Error('the settings file is damaged');
+    };
+    const notify = vi.fn();
+    await renderPage({ api, notify });
+    await screen.findByText('Your settings could not be read.');
+    // Both reads have ended by now; let the last one's handler run.
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 20))));
+    expect(notify.mock.calls.flat().filter((message) => String(message).includes('the settings file is damaged'))).toEqual([]);
+
+    cleanup();
+    const other = createMockApi();
+    const read = other.settingsForScope.bind(other);
+    other.settingsForScope = async (scope) => {
+      if (scope === 'project') throw new Error('the project file is locked');
+      return read(scope);
+    };
+    const told = vi.fn();
+    await renderPage({ api: other, notify: told });
+    await waitFor(() => expect(told).toHaveBeenCalledWith(expect.stringContaining('the project file is locked')));
+    expect(screen.queryByText('Your settings could not be read.')).toBeNull();
   });
 
   it('has a Category button that opens the list', async () => {

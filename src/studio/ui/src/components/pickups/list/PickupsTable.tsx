@@ -49,18 +49,19 @@ const LINE_TEXT = 'pt-4! pb-2.5! leading-6';
 /**
  * Below 46 rem of card (the tablet width and the 390 reflow) a row is a block instead of a table row (XPK-5): the checkbox, time, chip,
  * source and status on one line with the actions at its right, and the line under them at full width; under 30 rem the actions take a
- * line of their own. The headings go; each value keeps its cell.
+ * line of their own. The headings go; each value keeps its cell. The body is the grid and each row a subgrid of it, so a column is as
+ * wide as its widest cell down the list and a short chip ("Noise") does not pull its row's source left of the others (alignment audit A3).
  */
 const NARROW_TABLE =
-  '@max-[46rem]:block @max-[46rem]:[&>colgroup]:hidden @max-[46rem]:[&>thead]:sr-only @max-[46rem]:[&>tbody]:block @max-[46rem]:[&_td]:h-auto! @max-[46rem]:[&_td]:border-b-0';
+  '@max-[46rem]:block @max-[46rem]:[&>colgroup]:hidden @max-[46rem]:[&>thead]:sr-only @max-[46rem]:[&>tbody]:grid @max-[46rem]:[&>tbody]:grid-cols-[auto_auto_auto_minmax(0,1fr)_auto_auto] @max-[46rem]:[&>tbody]:gap-x-3 @max-[30rem]:[&>tbody]:grid-cols-[auto_auto_auto_minmax(0,1fr)_auto] @max-[46rem]:[&_td]:h-auto! @max-[46rem]:[&_td]:border-b-0';
 const NARROW_ROW =
-  '@max-[46rem]:grid! @max-[46rem]:grid-cols-[auto_auto_auto_minmax(0,1fr)_auto_auto] @max-[46rem]:border-b @max-[46rem]:border-[var(--border)] @max-[46rem]:px-4 @max-[46rem]:py-2 @max-[46rem]:last:border-b-0 @max-[46rem]:[&>td]:px-0! @max-[46rem]:[&>td]:py-0! @max-[46rem]:gap-x-3 @max-[30rem]:grid-cols-[auto_auto_auto_minmax(0,1fr)_auto]';
+  '@max-[46rem]:grid! @max-[46rem]:col-span-full @max-[46rem]:grid-cols-subgrid @max-[46rem]:border-b @max-[46rem]:border-[var(--border)] @max-[46rem]:px-4 @max-[46rem]:py-2 @max-[46rem]:last:border-b-0 @max-[46rem]:[&>td]:px-0! @max-[46rem]:[&>td]:py-0!';
 /** The line's cell in a narrow row: the second line, from the time's column to the end. */
 const NARROW_LINE = '@max-[46rem]:col-[2/-1] @max-[46rem]:row-start-2 @max-[46rem]:pt-0! @max-[46rem]:pb-1.5!';
 /** The actions' cell under 30 rem: a third line, at the right. */
 const NARROW_ACTIONS = '@max-[30rem]:col-[1/-1] @max-[30rem]:row-start-3 @max-[30rem]:pb-1!';
 /** A row that spans the table (a chapter's band, Show where) is one block in a narrow table. */
-const NARROW_SPAN_ROW = '@max-[46rem]:block @max-[46rem]:[&>td]:block @max-[46rem]:[&>td]:border-b @max-[46rem]:[&>td]:px-4!';
+const NARROW_SPAN_ROW = '@max-[46rem]:col-span-full @max-[46rem]:block @max-[46rem]:[&>td]:block @max-[46rem]:[&>td]:border-b @max-[46rem]:[&>td]:px-4!';
 
 /** The page's player for the original recording around a line: the line playing now, play or stop, and why a line cannot be heard. */
 export type OriginalPlayer = {
