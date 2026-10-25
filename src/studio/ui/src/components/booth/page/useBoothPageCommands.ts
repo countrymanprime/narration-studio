@@ -24,6 +24,8 @@ export interface BoothCommands {
   keymap: Keymap;
   /** The rows for the search showing (next, previous, clear); none when no search shows. */
   search?: () => PageItem[];
+  /** Cold read (#2251 item 13): on or off, and why it cannot start now. Absent, no entry. */
+  coldRead?: { on: boolean; toggle: () => void; disabledReason?: string };
 }
 
 /**
@@ -33,7 +35,7 @@ export interface BoothCommands {
  */
 export function useBoothPageCommands(page: BoothCommands): void {
   usePageCommands({ id: 'booth', label: 'Booth', supersedes: ['Chapters'] }, () => {
-    const { chapters, current, choose, recording, hasText, toggleTake, punchAndRoll, movePhrase, exit, pickups, keymap, search } = page;
+    const { chapters, current, choose, recording, hasText, toggleTake, punchAndRoll, movePhrase, exit, pickups, keymap, search, coldRead } = page;
     const keyOf = (id: CommandId): string | undefined => {
       const first = keymap[id]?.[0];
       return first ? gestureKeys(first).join('+') : undefined;
@@ -89,6 +91,16 @@ export function useBoothPageCommands(page: BoothCommands): void {
         run: () => movePhrase(-1),
       },
     );
+    if (coldRead) {
+      items.push({
+        id: 'booth.cold-read',
+        label: coldRead.on ? 'Stop cold read' : 'Start cold read',
+        group: 'Transport',
+        icon: coldRead.on ? 'stop' : 'microphone',
+        disabledReason: coldRead.disabledReason ?? noText,
+        run: coldRead.toggle,
+      });
+    }
     if (pickups.active) {
       const none = pickups.lines === 0 ? 'This pickup session has no lines.' : recording ? WHILE_RECORDING : undefined;
       items.push(

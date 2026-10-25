@@ -26,6 +26,11 @@ type Props = {
   paragraphs: readonly ReadingParagraph[];
   /** Where the narrator is. Left out: the first word. */
   position?: ReadingPosition;
+  /**
+   * Where a cold read hears the narrator (#2251 item 13): drawn as a ghost, a dashed outline and a muted wash with a dashed tick for
+   * a caret, never the real cursor's fill. While it is given the view follows it; when it goes the view eases back to `position`.
+   */
+  ghost?: ReadingPosition;
   /** The view has been moved off the reading position by the wheel or the page keys. */
   browse: boolean;
   onBrowse: (on: boolean) => void;
@@ -62,6 +67,8 @@ type UnitProps = {
   index: number;
   mode: Mode;
   wcur: number;
+  /** The word of this sentence a cold read hears, or -1. */
+  ghost: number;
   words: UnitWords;
   paragraph: ReadingParagraph;
   from: boolean;
@@ -76,6 +83,11 @@ type UnitProps = {
 const MODE_TONE: Record<Mode, string> = { done: 'text-[var(--text-muted)]', cur: 'text-[var(--text)]', next: 'text-[var(--text)]' };
 
 type Token = UnitWords['words'][number];
+
+// The ghost (a cold read's word) in a second channel, shape and tone, so it never relies on colour: a dashed outline and a muted wash,
+// and a dashed vertical tick where the real cursor has a filled caret.
+const GHOST =
+  'outline-dashed outline-[0.06em] outline-offset-[0.04em] outline-[var(--text-muted)] bg-[color-mix(in_srgb,var(--text-muted)_14%,transparent)] after:absolute after:top-[-0.34em] after:left-1/2 after:h-[0.22em] after:-translate-x-1/2 after:border-l-[0.07em] after:border-dashed after:border-[var(--text-muted)] after:content-[""]';
 
 // What a word is drawn with beyond its position: an entry's name as the registry's entity mark in the entry's colour, a narrator's mark in
 // the colour and line style its type chose (D8), a name under a mark both (the mark's own keys win). The word being read keeps its own
@@ -98,7 +110,21 @@ function wordLook(token: Token, now: boolean, said: boolean): CSSProperties | un
 }
 
 // One sentence. A click on a word seeks to it; a click between words seeks to the sentence's first word.
-const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragraph, from, speakers, colour, onSeek, onSetSpeaker, seekWord }: UnitProps) {
+const UnitView = memo(function UnitView({
+  unit,
+  index,
+  mode,
+  wcur,
+  ghost,
+  words,
+  paragraph,
+  from,
+  speakers,
+  colour,
+  onSeek,
+  onSetSpeaker,
+  seekWord,
+}: UnitProps) {
   return (
     <>
       {unit.quoted && !unit.cont ? (
@@ -117,22 +143,24 @@ const UnitView = memo(function UnitView({ unit, index, mode, wcur, words, paragr
         {words.words.map((token) => {
           const now = mode === 'cur' && token.index === wcur;
           const said = mode === 'cur' && token.index < wcur;
+          const heard = token.index === ghost;
           const look = wordLook(token, now, said);
           return (
             <Fragment key={token.index}>
               <span
                 data-word={token.index}
                 data-current={now ? '' : undefined}
+                data-ghost={heard ? '' : undefined}
                 data-find={token.find ? (token.find.kind === 'find' && token.find.current ? 'current' : 'match') : undefined}
                 aria-current={now ? 'true' : undefined}
-                aria-description={now ? 'Current word' : undefined}
+                aria-description={now ? 'Current word' : heard ? 'Cold read: heard here' : undefined}
                 title={token.mark?.title}
                 style={look}
                 className={`relative rounded-[0.12em] motion-ok:transition-colors ${
                   now
                     ? 'bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_0_0_0.08em_var(--accent)] before:absolute before:top-[-0.3em] before:left-1/2 before:-translate-x-1/2 before:border-x-[0.18em] before:border-t-[0.2em] before:border-x-transparent before:border-t-[var(--accent)] before:content-[""]'
                     : ''
-                }`}
+                } ${heard ? GHOST : ''}`}
               >
                 {token.text}
               </span>
@@ -156,6 +184,7 @@ function estimatedEm(text: string): number {
 export function BoothText({
   paragraphs: given,
   position,
+  ghost,
   browse,
   onBrowse,
   onSeek,
@@ -177,6 +206,9 @@ export function BoothText({
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const words = useMemo(() => units.map((unit) => unitWords(paragraphs[unit.paragraphIndex], unit, decorations)), [units, paragraphs, decorations]);
   const at = (position && unitAtPosition(paragraphs, units, position)) ?? { cur: 0, wcur: 0 };
+  const ghostAt = ghost ? unitAtPosition(paragraphs, units, ghost) : null;
+  // The view follows the ghost while a cold read runs, and the real cursor otherwise.
+  const followed = ghostAt ?? at;
   // The sentences of each paragraph, grouped once: a paragraph looking for its own among all of them each render is paragraphs × sentences.
   const unitsOf = useMemo(() => {
     const byParagraph: BoothUnit[][] = paragraphs.map(() => []);
@@ -184,10 +216,11 @@ export function BoothText({
     return byParagraph;
   }, [paragraphs, units]);
   const readingParagraph = units[at.cur]?.paragraphIndex ?? -1;
+  const ghostParagraph = ghostAt ? (units[ghostAt.cur]?.paragraphIndex ?? -1) : -1;
 
   const box = useRef<HTMLDivElement>(null);
   const text = useRef<HTMLDivElement>(null);
-  const { onWheel } = useBrowseView({ box, text, cur: at.cur, wcur: at.wcur, browse, onBrowse, viewRef });
+  const { onWheel } = useBrowseView({ box, text, cur: followed.cur, wcur: followed.wcur, browse, onBrowse, viewRef });
 
   // Every sentence is a memoised view: a step moves the reading position and must re-render the two sentences it touches, not every word of the
   // chapter. So what each sentence is given stays the same between renders: the callbacks read the latest props through a ref, and the list of
@@ -236,7 +269,7 @@ export function BoothText({
               // full, since its caret and glow reach past the paragraph's box, which a skipped paragraph would clip.
               style={{ '--est': `${estimatedEm(paragraph.text)}em` } as CSSProperties}
               data-pickup={pickup ? (pickup.done ? 'done' : 'open') : undefined}
-              className={`indent-[1.5em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `-ml-5 border-l-4 pl-4 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
+              className={`indent-[1.5em] [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `-ml-5 border-l-4 pl-4 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
             >
               {unitsOf[paragraphIndex].map((unit) => {
                 index++;
@@ -248,6 +281,7 @@ export function BoothText({
                     index={own}
                     mode={own === at.cur ? 'cur' : own < at.cur ? 'done' : 'next'}
                     wcur={own === at.cur ? at.wcur : -1}
+                    ghost={ghostAt && own === ghostAt.cur ? ghostAt.wcur : -1}
                     words={words[own]}
                     paragraph={paragraph}
                     from={own === punchAt}
