@@ -198,3 +198,31 @@ describe('ScopedSetting controls', () => {
     expect(Array.from(select.options).map((option) => option.value)).toEqual(['candidates', 'stable']);
   });
 });
+
+// Alignment audit (XSE2-22): number boxes are one width with or without a unit, and a label's hint icon stays on its last word's line.
+describe('ScopedSetting layout', () => {
+  const number = (unit?: string): ScopedSettingField => ({
+    ...FIELD,
+    key: unit ? 'gap' : 'share',
+    label: unit ? 'Longest run of missing words allowed' : 'Share of each paragraph that must be read',
+    kind: 'number',
+    choices: [],
+    effectiveValue: '3',
+    number: { min: 0, max: 200, step: 1, ...(unit ? { unit } : {}) },
+  });
+
+  it('draws a number box 8rem wide whether or not a unit follows it', () => {
+    renderSetting(number('words'));
+    renderSetting(number());
+    const boxes = screen.getAllByRole('textbox');
+    for (const box of boxes) expect(box.closest('[class*="w-32"]')).toBeTruthy();
+    for (const box of boxes) expect(box.closest('[class*="flex-[1_1_10rem]"]')).toBeNull();
+  });
+
+  it("keeps the hint icon on the line of the label's last word", () => {
+    renderSetting(number());
+    const last = screen.getByText(/^read$/);
+    expect(last.className).toContain('whitespace-nowrap');
+    expect(last.querySelector('button, [role="button"], svg')).toBeTruthy();
+  });
+});
