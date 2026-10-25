@@ -48,13 +48,17 @@ export function FileChecks({ row, chapterLabel, actions }: { row: FileRow | unde
       ) : row.waiting ? (
         <p className="text-sm text-[var(--text-muted)]">{row.waiting}.</p>
       ) : (
-        <ul className="flex flex-col gap-2 text-sm">
+        // One grid for every row: the pill in a fixed column, so a label starts at the same x after "Pass" and "✕ Fail", and the row capped
+        // so a value stays within reach of its label on a wide window (XMS-14). The mock's flex row spread them 900 px apart at 1920.
+        <ul className="grid max-w-[48rem] grid-cols-[4.5rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-sm sm:grid-cols-[4.5rem_minmax(0,1fr)_auto_minmax(9.5rem,auto)]">
           {row.checks.map((check) => (
-            <li key={check.ruleId} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <StatusBadge tone={statusTone(check.passed ? 'pass' : 'fail')} label={check.passed ? 'Pass' : 'Fail'} icon={check.passed ? undefined : '✕'} />
-              <span className="flex-1">{check.label}</span>
-              <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{check.value}</span>
-              <span className="min-w-[9.5rem] text-right text-[var(--text-muted)]">limit: {check.limit}</span>
+            <li key={check.ruleId} className="col-span-full grid grid-cols-subgrid items-center gap-y-1">
+              <span>
+                <StatusBadge tone={statusTone(check.passed ? 'pass' : 'fail')} label={check.passed ? 'Pass' : 'Fail'} icon={check.passed ? undefined : '✕'} />
+              </span>
+              <span>{check.label}</span>
+              <span className="text-right font-['IBM_Plex_Mono',ui-monospace,monospace] whitespace-nowrap">{check.value}</span>
+              <span className="text-[var(--text-muted)] max-sm:col-start-2 max-sm:col-end-[-1] sm:text-right">limit: {check.limit}</span>
             </li>
           ))}
         </ul>

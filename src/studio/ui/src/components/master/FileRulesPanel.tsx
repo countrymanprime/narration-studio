@@ -8,6 +8,12 @@ import { Requirement } from './DeliveryProfilePanel';
 import { ResultMark, VerificationMark } from './RuleBadges';
 
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
+
+// Fixed columns (`Table columns`): the result pill and the rule's name and id at their own widths, and the two text columns sharing the
+// rest. How a requirement was verified sits under the requirement rather than in a narrow column of its own, where its note became a
+// tower of six or seven short lines while the window grew (XMS-7, R4MS1-3). Under the floor the table scrolls in its box.
+const COLUMNS = ['8rem', '10.5rem', 'auto', 'auto'];
+const TABLE_FLOOR = 'min-w-[40rem]';
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
 
@@ -76,15 +82,19 @@ export function FileRulesPanel({ file, profile, onClose }: { file: MeasureFileRe
         </p>
       )}
       {/* tabIndex: the table scrolls sideways in a narrow window, and a scrolling region must be reachable by keyboard. */}
-      <div tabIndex={0} className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset">
-        <Table label={`${file.name}, rule by rule`} className={report ? 'mt-3' : undefined}>
+      <div
+        tabIndex={0}
+        role="group"
+        aria-label={`${file.name}, rule by rule, scroll area`}
+        className={`scroll-x-edges overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset ${report ? 'mt-3' : ''}`}
+      >
+        <Table label={`${file.name}, rule by rule`} columns={COLUMNS} className={TABLE_FLOOR}>
           <TableHead>
             <TableRow>
-              <TableHeader>Result</TableHeader>
-              <TableHeader>Rule</TableHeader>
-              <TableHeader>This file</TableHeader>
-              <TableHeader>{requirementOwner(profile)}</TableHeader>
-              <TableHeader>Source</TableHeader>
+              <TableHeader className="whitespace-nowrap">Result</TableHeader>
+              <TableHeader className="whitespace-nowrap">Rule</TableHeader>
+              <TableHeader className="whitespace-nowrap">This file</TableHeader>
+              <TableHeader>{`${requirementOwner(profile)}, and the source`}</TableHeader>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -92,21 +102,24 @@ export function FileRulesPanel({ file, profile, onClose }: { file: MeasureFileRe
               const result = file.rules.find((candidate) => candidate.ruleId === rule.id);
               return (
                 <TableRow key={rule.id}>
-                  <TableCell valign="top">{result && <ResultMark status={result.status} />}</TableCell>
-                  <TableCell valign="top" className="min-w-[8rem]">
+                  {/* On one line: a pill folded into a four-line blob at 768 (R4MS1-4). */}
+                  <TableCell valign="top" className="whitespace-nowrap">
+                    {result && <ResultMark status={result.status} short />}
+                  </TableCell>
+                  <TableCell valign="top" className="break-words">
                     <span className="block font-medium">{rule.label}</span>
                     <span className={`${MONO} block text-[0.72rem]`} style={MUTED}>
                       {rule.id}
                     </span>
                   </TableCell>
-                  <TableCell valign="top" className="min-w-[11rem]">
+                  <TableCell valign="top">
                     <ThisFile rule={rule} result={result} owner={owner} />
                   </TableCell>
-                  <TableCell valign="top" className="min-w-[12rem]">
+                  <TableCell valign="top">
                     <Requirement rule={rule} />
-                  </TableCell>
-                  <TableCell valign="top" className="min-w-[9rem]">
-                    <VerificationMark verification={rule.verification} />
+                    <span className="mt-1.5 block">
+                      <VerificationMark verification={rule.verification} />
+                    </span>
                     {rule.verificationNote && (
                       <span className="mt-1 block text-[0.75rem]" style={MUTED}>
                         {rule.verificationNote}

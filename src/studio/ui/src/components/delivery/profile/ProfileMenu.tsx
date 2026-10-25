@@ -32,7 +32,8 @@ export function ProfileMenu({
       value={deliveryProfileKey(current)}
       disabled={disabled}
       ref={selectRef}
-      className="max-w-[16rem] min-w-0 truncate"
+      // A native select draws nothing for `disabled`: dimmed as a disabled Button is, so a locked menu does not look live (R4DL-1).
+      className="max-w-[16rem] min-w-0 truncate disabled:cursor-not-allowed disabled:opacity-55"
       options={list.map((profile) => ({ value: deliveryProfileKey(profile), label: profileMenuLabel(profile) }))}
       onChange={(key) => {
         const next = list.find((profile) => deliveryProfileKey(profile) === key);

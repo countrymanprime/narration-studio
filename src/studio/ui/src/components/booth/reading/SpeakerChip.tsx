@@ -45,7 +45,9 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
       if (!samples?.loaded) return { id: `pick:${name}`, label: name, ...group };
       const mine = samples.samplesOf(name);
       const primary = samples.primaryOf(name);
-      if (mine.length === 0 || !primary) return { id: `pick:${name}`, label: name, trailing: 'no sample', ...group };
+      // A row with no sample keeps the play button's room, so "no sample" ends where "1 sample" does (alignment audit XBO-8).
+      if (mine.length === 0 || !primary)
+        return { id: `pick:${name}`, label: name, trailing: 'no sample', action: <span className="block size-[var(--button-height-sm)]" />, ...group };
       const playing = samples.statusOf(primary.id) !== 'idle';
       return {
         id: `pick:${name}`,
@@ -120,6 +122,7 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
       <div className="flex min-w-60 flex-col gap-2 text-base">
         <SearchField
           label="Search speakers"
+          placeholder="Search speakers"
           value={query}
           onChange={(value) => {
             setQuery(value);

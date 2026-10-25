@@ -334,13 +334,13 @@ export const settingsDrivers: Record<string, Driver> = {
   // The chapter announcement template ?mockCredits=extras adds, previewed for Chapter 1.
   'project-credits-chapter-announcement': async (page) => {
     await openCreditsEditor(page, '?mockCredits=extras');
-    await page.getByRole('combobox', { name: 'Template' }).selectOption({ label: 'Chapter announcement (Chapter announcement)' });
+    await page.getByRole('combobox', { name: 'Template' }).selectOption({ label: 'Chapter announcement' });
     await page.getByText(/Shown for Chapter 1/).waitFor();
   },
   // The retail sample ?mockCredits=extras picked (Chapter 3, lines 1-3), scrolled into view.
   'project-credits-retail-sample': async (page) => {
     await openCreditsEditor(page, '?mockCredits=extras');
-    await page.getByText(/line 1 to Chapter 3: A Caucus-Race and a Long Tale, line 3/).waitFor();
+    await page.getByText(/Chapter 3: A Caucus-Race and a Long Tale, lines 1 to 3/).waitFor();
     await page.getByRole('heading', { name: 'Retail sample' }).scrollIntoViewIfNeeded();
   },
   // A range over 5 minutes (Chapter 1 to Chapter 12) is refused, and the refusal says why.
@@ -370,7 +370,7 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'global-keyboard': async (page) => {
     await openShortcuts(page);
-    await page.getByText('Keys and pedals').waitFor();
+    await page.getByRole('button', { name: 'Reset all to defaults' }).waitFor();
   },
   'global-keyboard-recording': async (page) => {
     await openShortcuts(page);

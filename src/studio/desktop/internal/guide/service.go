@@ -39,6 +39,8 @@ type Service struct {
 	// existing caller, including every test in this package, leaves it nil
 	// and SaveFindings is then a no-op.
 	findingsStore atomic.Pointer[findings.Store]
+	// wiktextractIndex answers the installed Wiktextract index's path, or "" (SetWiktextractIndex); nil until app.go sets it.
+	wiktextractIndex atomic.Pointer[func() string]
 	// editMu serializes the edits the host applies itself (editInHost), each a read, change and rewrite of the whole file.
 	editMu sync.Mutex
 	// held is the Story Bible as the last host edit left it (heldDocument); nil until the first edit and after a failed write.
@@ -50,6 +52,8 @@ type Service struct {
 	// pronunciationLookup answers the pronunciations the host needs for a new entry or alias; nil asks the sidecar (pronunciations). The
 	// tests set it.
 	pronunciationLookup func(words []string) ([]map[string]any, error)
+	// sourceLookup answers Pronounce's one pronunciation from one source (sourcePronunciation); nil asks the sidecar. The tests set it.
+	sourceLookup func(name, source string) (*pyObject, error)
 	// buildModel does a build's model work (build.go); nil asks the sidecar. The tests set recorded answers.
 	buildModel buildModel
 	// clock is a build's generated_at, and resolvePath its source path (Path.resolve); nil is the real ones. The tests set them.
@@ -73,6 +77,43 @@ func (s *Service) manuscript() string {
 
 // SetPersist says where to report a Story Bible file that cannot be read.
 func (s *Service) SetPersist(reporter *persist.Reporter) { s.persist.Store(reporter) }
+
+// SetWiktextractIndex says where the installed Wiktextract index is: index answers its path once the source is installed and verifies,
+// and "" otherwise. It is asked each time a lookup that can reach Wiktextract starts the sidecar, so an install or a removal made while
+// the project is open counts. Never set, no lookup is given an index and the sidecar's Wiktextract source answers "not installed yet".
+func (s *Service) SetWiktextractIndex(index func() string) { s.wiktextractIndex.Store(&index) }
+
+// wiktextractIndexArgs is --wiktextract-index <path> when the index is installed, and nothing otherwise.
+func (s *Service) wiktextractIndexArgs() []string {
+	index := s.wiktextractIndex.Load()
+	if index == nil {
+		return nil
+	}
+	path := (*index)()
+	if path == "" {
+		return nil
+	}
+	return []string{"--wiktextract-index", path}
+}
+
+// automaticSourceArgs are the arguments of a lookup that tries every source in turn (a build's, a create's, an alias edit's): the
+// narrator's default source and the Wiktextract index.
+func (s *Service) automaticSourceArgs() []string {
+	return append(s.defaultPronunciationSourceArgs(), s.wiktextractIndexArgs()...)
+}
+
+// namedSourceArgs are the arguments of a lookup from exactly one source (Pronounce, Candidate): the Wiktextract index, for a source the
+// registry says reads a local dictionary, since no other reads it.
+func (s *Service) namedSourceArgs(source string) []string {
+	entry, err := pronunciationport.Sources.Lookup(source)
+	if err != nil {
+		return nil
+	}
+	if described, ok := entry.New().(pronunciationport.Described); !ok || !described.NeedsLocalDictionary() {
+		return nil
+	}
+	return s.wiktextractIndexArgs()
+}
 
 // SetFindings opts this service into producing findings.Finding records for
 // entities that still need review. store persists them. Called once at service
@@ -399,7 +440,7 @@ const RulesOnly = "rules-only"
 // (Settings > Story Bible); omitted (not passed as an explicit empty
 // value) when unset, so the build and pronunciation lookup command lines carry no extra flag.
 // It only reorders the sidecar's own build-time fallback (manuscript_guide.py's pronunciation()); it never limits the
-// entity/alias Generate-Replace control's own explicit --source choice (Pronounce, below).
+// entity/alias Generate-Replace control's own explicit --source choice (Pronounce, pronounce.go).
 func (s *Service) defaultPronunciationSourceArgs() []string {
 	value, _ := s.settings.Effective("ManuscriptGuide", "default_pronunciation_source", "")
 	if value == "" {
@@ -422,23 +463,6 @@ func (s *Service) EditFields(id string, values map[string]string) error {
 	return s.editInHost(id, values)
 }
 
-// Pronounce sets the pronunciation of an entity's own name (aliasIndex nil) or one of its aliases from exactly the
-// named engine ("cmu" or "espeak"), and marks it as the narrator's explicit choice so a rebuild keeps it.
-// It is refused on a locked entity (enforced by the sidecar) and when the chosen engine has nothing for the name.
-// Pronounce asks the named pronunciation source for the entity's (or one alias's) pronunciation. A source the pronunciation port
-// cannot ask for one is refused with its *port.NotSupportedError before the sidecar starts.
-func (s *Service) Pronounce(id string, aliasIndex *int, source string) error {
-	if err := pronunciationport.CheckPronounce(source); err != nil {
-		return err
-	}
-	args := []string{"pronounce", "--guide", s.guidePath(), "--entity-id", id, "--source", source}
-	if aliasIndex != nil {
-		args = append(args, "--alias-index", fmt.Sprint(*aliasIndex))
-	}
-	_, err := s.Run(args...)
-	return err
-}
-
 // ManualSource is the source id of a pronunciation the narrator typed. A file written before it says "user"; Entities reads
 // that as manual.
 const ManualSource = "manual"
@@ -459,7 +483,7 @@ func (s *Service) Candidate(word, source string) (Candidate, error) {
 	if err := pronunciationport.CheckPronounce(source); err != nil {
 		return Candidate{}, err
 	}
-	out, err := s.Run("candidate", "--word="+strings.TrimSpace(word), "--source", source)
+	out, err := s.Run(append([]string{"candidate", "--word=" + strings.TrimSpace(word), "--source", source}, s.namedSourceArgs(source)...)...)
 	if err != nil {
 		return Candidate{}, err
 	}

@@ -88,7 +88,8 @@ const stored = async () => (await api.productionPlan()).milestones;
 describe('the verdict for each deadline', () => {
   const verdict = async (seed: Setup['seed'], statuses?: ChapterStatus[]) => {
     await mount({ seed, statuses });
-    return (await screen.findByText(/·/, { selector: 'span' })).closest('span')!.textContent ?? '';
+    await screen.findByText(/·/, { selector: '[data-verdict] span' });
+    return document.querySelector('[data-verdict]')!.textContent ?? '';
   };
 
   it('reads On track when the due date is far and the work fits', async () => {
@@ -111,6 +112,9 @@ describe('the verdict for each deadline', () => {
   it('says there is no due date when none is set', async () => {
     await mount({ seed: { deadline: null } });
     expect(await screen.findByText('No due date set', { selector: 'span' })).toBeTruthy();
+    // Once, on the due-date line: no pill repeats it (alignment audit R3SH-2).
+    expect(screen.getAllByText('No due date set')).toHaveLength(1);
+    expect(document.querySelector('[data-verdict]')).toBeNull();
   });
 });
 

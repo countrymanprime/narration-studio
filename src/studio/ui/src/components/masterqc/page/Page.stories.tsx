@@ -55,7 +55,7 @@ export const NoManuscript: Story = {
 export const AllPassing: Story = {
   parameters: { files: ALL_PASS },
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByText('0 failing and 2 not ready.')).toBeTruthy();
+    await expect(await within(canvasElement).findByText('2 chapters not ready')).toBeTruthy();
   },
 };
 

@@ -104,4 +104,24 @@ describe('ToggleGroup', () => {
     expect(group.className).toContain('[:where(&)]:gap-1.5');
     for (const chip of screen.getAllByRole('button')) expect(chip.className).toContain('whitespace-nowrap');
   });
+
+  // XSE1-19, XPF-6: the segmented control was 33 px beside 36 px fields, and an unchosen half read as a bold label.
+  it('draws the segmented look at the control height, its parts sharing the room and an unchosen part muted', () => {
+    render(
+      <ToggleGroup
+        label="Author"
+        look="segmented"
+        value="proofer"
+        onChange={() => undefined}
+        options={[
+          { value: 'proofer', label: 'Proofer replied' },
+          { value: 'you', label: 'My note' },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('group', { name: 'Author' }).className).toContain('h-[var(--control-height)]');
+    const mine = screen.getByRole('button', { name: 'My note' });
+    expect(mine.className).toContain('grow');
+    expect(mine.className).toContain('text-[var(--text-muted)]');
+  });
 });

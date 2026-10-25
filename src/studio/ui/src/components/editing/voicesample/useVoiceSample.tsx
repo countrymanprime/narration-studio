@@ -162,7 +162,8 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
           allCut ? null : <SelectionActionButton icon="voiceSample" label="Voice sample" hint="Mark a voice sample (V)" onClick={() => latest.current(keys)} />,
       }),
       registerWordMenuSection({
-        order: 320,
+        // In the Mark band, with Mark as and Add note, not among the takes.
+        order: 280,
         items: ({ keys, summary }) =>
           summary.items.length > 0 && summary.items.every((i) => i.cut)
             ? []

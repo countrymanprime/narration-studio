@@ -103,14 +103,17 @@ A running [production stage timer](production.md#the-stage-timer) is not in the 
 Right-clicking empty space in a page opens a menu with a **Go to** submenu of the eleven pages (the one you are on is checked), **Jump menu…** (`Ctrl+K`), **Search this page** (`Ctrl+F`) and a **View** submenu of the zoom steps and the theme.
 
 The engine chip at the right of the header names the audio engine the project records with (REAPER, Audacity or Built-in), with a
-dot for how it is doing. Hover it for the detail, and click it to open the [audio engine panel](#the-audio-engine-panel), where the
-project's `.rpp` file is linked or changed:
+dot for how it is doing, and says in words when something needs you. Hover it for the detail, and click it to open the
+[audio engine panel](#the-audio-engine-panel), where the project's `.rpp` file is linked or changed:
 
-- **Green dot, "Linked"**: the DAW is running with the linked project open.
-- **Amber dot, "Not running"**: the DAW is not running. Open it to carry on.
-- **Amber dot, "A different project is open"**: the DAW has another project open than the linked one. Link the open project instead,
+- **Green dot, "REAPER"**: the DAW is running with the linked project open.
+- **Amber dot, "REAPER: Not running"**: the DAW is not running. Open it to carry on.
+- **Amber dot, "REAPER: Other project"**: the DAW has another project open than the linked one. Link the open project instead,
   or switch the DAW to the linked file.
-- **Quiet dot, "Open the engine panel to link a project file"**: nothing is linked yet.
+- **Quiet dot, "REAPER: Not linked"**: nothing is linked yet.
+
+On a narrow window the chip drops the DAW's name and keeps the words ("Other project").
+
 - **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project and tools, with the [track list](#tracks) read from Audacity.
 - **Built-in**: the project records in the app. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
 
@@ -172,18 +175,19 @@ opens [Proof](proof.md) with this panel open over it.)
 
 The panel reads the project's REAPER project file (`.rpp`) directly, so it needs neither REAPER running
 nor an imported manuscript; its [REAPER tools](#reaper-tools) are the exception. It shows the file it read
-and, beside the heading, **Link a REAPER project file** (or **Link a different REAPER project file** once
-one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
+and, beside the heading, **Link file…** (or **Change file…** once one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
 and the same one [Settings](settings.md#daw-integration) makes. The file can be anywhere: in the project
 folder or a subfolder of it (the link then survives moving the whole project), or in a separate folder or
 drive kept for REAPER (a short note says where the file and the project are). When REAPER has a different project
-open than the linked one, the panel says so: link the open project, or switch REAPER to the linked file. The notice
-says what it is waiting for ("Waiting for REAPER to open the linked project"), when the app last checked ("Last checked 4 s
-ago") and has **Check again**, which reads the project's state from the app again at once.
+open than the linked one, a warning box in the card says so: link the open project, or switch REAPER to the linked file. It
+says what it is waiting for ("Waiting for REAPER to open the linked project") and when the app last checked ("Last checked 4 s
+ago"), and has two buttons: **Link the open project…**, which picks the file REAPER has open, and **Check again**, which reads
+the project's state from the app again at once.
 
 ![The audio engine panel when REAPER has a different project open: the notice with when it last checked, and Check again](../../images/ui/engine-panel-wrong-project.webp)
 
-If the project folder holds more than one `.rpp` file, the panel asks which one to read. Backup copies
+If the project folder holds more than one `.rpp` file, the panel asks which one to read: each file is a row with its name
+first and its folder under it, and pressing the row reads that file. Backup copies
 (`.rpp-bak`, or files inside a subfolder such as Backups) aren't offered. The choice is remembered for the
 project.
 
@@ -215,12 +219,14 @@ REAPER starts when it opens; nothing is written until you press the dialog's act
 bridge in REAPER and connects to it without you running anything in REAPER.
 
 **Link chapters…** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
-items that hold its recording. Choose the track for each chapter; **Items to stamp** shows how many of
-that track's items will carry it, and **Stamp N items** writes it. An item already stamped with a
+items that hold its recording. Choose the track for each chapter; **To stamp** shows how many of
+that track's items will carry it, and **Stamp N items** writes it. What the stamp did, or why it failed, shows at the top
+of the dialog. An item already stamped with a
 different chapter is left alone unless you tick **Overwrite items already stamped with a different
 chapter**, and items REAPER no longer has are listed as stale. **Read current stamps** lists what the
 project carries now, with each item's status (OK, Text changed since stamping, Manuscript re-imported
-since stamping, Chapter no longer in the manuscript, and so on). This is not the same as the
+since stamping, Chapter no longer in the manuscript, and so on); if reading fails, the reason shows there, under
+the button. This is not the same as the
 [Chapter links](#linking-chapters-to-tracks) list below: that list is kept by the app and changes
 nothing in REAPER, and the dialog starts with every chapter Not linked whatever the list says.
 
@@ -230,18 +236,21 @@ The lines to record again have their own page, [Pickups](pickups.md); a proofer'
 **Prepare chapter render…** sets REAPER's render to every chapter region, names each file after its
 region, and saves into the **Output folder** (a `renders` folder in the project to start with). Press
 **Configure render** and it lists the files the render will create. It never renders anything itself:
-press Render in REAPER (Ctrl+Alt+R or File > Render) to create the files. If the project has no chapter
-regions yet, it says so.
+press Render in REAPER (Ctrl+Alt+R or File > Render) to create the files. Once it is configured, **Close** is the main
+button. If the project has no chapter regions yet, it warns you and offers **Create chapter regions…**, which opens
+that tool in its place.
 
 **Create chapter regions…** plans one REAPER region per chapter with a confirmed track link, plus an
 **Opening credits track** and **Closing credits track** you choose in the dialog, and shows the plan
 before writing anything: each row's title, track, start, end and status (New region, Already exists,
 Moves an existing region, or Several regions share this title). A chapter or credits track with nothing
-to plan is listed under **Not planned**, with why (for example, no track is linked to that chapter).
+to plan is listed under **Not planned**, one line per reason naming its chapters (for example, "No track is linked to this
+chapter. Chapter 2, Chapter 3").
 Tick **Move an existing region that shares a chapter's title, instead of adding a second one** to move a
 same-titled region instead of adding another; left unticked, a region that would move or is ambiguous
 still gets a new one alongside it. **Create N regions** writes the plan in one step and reports what
-happened ("Sent 3: 2 created, 1 already existed, 0 moved, 0 ambiguous, 0 failed."). Creating chapter
+happened, naming only the counts that aren't zero ("Sent 3: 2 created, 1 already existed."); **Close** then becomes the
+main button. Creating chapter
 regions is an experimental REAPER action ([Settings](settings.md)), off by default: until you turn it
 on, **Create N regions** stays disabled and says why.
 
@@ -256,12 +265,14 @@ in REAPER first, then press **Open** beside the tool. **Repair Pops/Clicks** is 
 (REAPER 7.80 or later); **Magnolius DeClick** is a free third-party script for mouth clicks, and works only
 if you installed it in REAPER yourself (ReaPack, or Actions > Load ReaScript). The app never
 installs it. Opening a tool changes nothing: you apply or cancel the repair in its own window, and REAPER's
-Undo takes it back. If nothing is selected, the tool is missing, or your REAPER is too old, the dialog says so.
+Undo takes it back. What happened shows under the tool you opened; if nothing is selected, the tool is missing, or
+your REAPER is too old, it says so there.
 
 **Retakes on lanes…** is for retakes recorded into REAPER's fixed item lanes. It lists every line of
 the manuscript (linked with **Link chapters…**) that has retakes on more than one lane of a track, with
 each retake's lane, its item name and whether that lane plays in the saved project. Press **Play this
-lane** beside the retake you want: that lane becomes the only one playing on its track. A lane plays
+lane** beside the retake you want: that lane becomes the only one playing on its track. The lane that already plays is
+highlighted, marked **Plays**, and its button is off. A lane plays
 across the whole track, so every other lane of that track goes silent, not only for this line.
 Nothing else changes, and one Undo in REAPER puts the previous lanes back. The app never turns
 lanes on, converts takes to lanes or builds a comp: if a track is not in fixed-lane mode, or the retake
@@ -271,8 +282,9 @@ has changed since you last saved, the dialog says so and changes nothing.
 
 Below the track list, Chapter links shows every narration chapter with the track it's confirmed
 to, so checks that need to know "which audio is this chapter" (the [editing check](#editing-check)
-below, an evidence view) don't guess by name. A chapter starts **Not linked**; choose a track and press Confirm to
-link it. A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
+below, an evidence view) don't guess by name. Each row is the chapter, its status, its track and its actions. A chapter
+starts **Not linked** with its track list on **Choose a track**: pick a track, then press Confirm, which stays off until you
+have picked one. A track another chapter already has is marked in the list with the chapter that has it. A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
 linked to another chapter moves to this one. Clear removes every link the chapter has. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
@@ -281,9 +293,12 @@ change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
 
-A linked chapter's row also has **Open in Editing**, which opens the chapter on [Editing](editing.md) to hear it against
-its script and edit it, and **Open in Proof**, into the chapter's [Proof view](proof.md#the-chapter-view), where its
-recording is compared with the manuscript.
+The **More actions** button (**⋯**) at the end of each row holds the rest. For a linked chapter it has **Open in Editing**, which opens
+the chapter on [Editing](editing.md) to hear it against its script and edit it, and **Open in Proof**, into the chapter's
+[Proof view](proof.md#the-chapter-view), where its recording is compared with the manuscript. Every row's menu has
+**Editing check…** ([below](#editing-check)).
+
+In a narrow window each row takes two lines: the chapter and its status, then the track and the actions.
 
 When one or more chapters have a [Production](production.md#stage-readiness) stage suggestion that can't be
 computed because its track link is missing or not yet confirmed, a line above Chapter links says so
@@ -293,41 +308,44 @@ read.
 
 ### Editing check
 
-Each chapter's row also has **Editing check…**, opening its own panel over this one: whether
+Each chapter's **More actions** menu in Chapter links has **Editing check…**, opening its own panel over this one, as wide as it, with **Back to the audio engine** at its top: whether
 empty space, clicks and breaths still need trimming out. The same panel opens from
 a chapter's [stage suggestion](production.md#stage-readiness) on Production when the editing signal
 names it as the way to resolve what's unknown.
 
 The panel never starts a check on its own: opening it only reads what the last check already
 found. **Check editing** (**Check again** once one has run) runs the scan with real progress and
-**Cancel**; items already checked are cached, so re-checking after a small edit is fast. Every
-result carries the caveat "Analysis of source audio; take FX, item gain and fades are not
-applied", since REAPER's own processing isn't part of what's analyzed.
+**Cancel** on the same line as the progress; items already checked are cached, so re-checking after a small edit is
+fast. A cancelled check says how far it got ("Stopped after 1 of 3 items"), and while a check runs the results under it
+are headed **Previous result**. A line under the source choice says what the analysis includes: for items, "Analysis
+of source audio; take FX, item gain and fades are not applied", since REAPER's own processing isn't part of what's
+analyzed.
 
 ![Production - the editing check with empty space not met and its open candidates](../../images/ui/production-editing-check.webp)
 
-A chapter's analysis source is your choice: **Items on this chapter's track** (the default) or
-**The rendered file**, a toggle near the top of the panel. Editing happens on items, so items stay
-the default; choosing the render is an explicit second check — its own evidence line always says
-which source was analyzed, and the render check needs a rendered file already chosen for the
+A chapter's analysis source is your choice: **Track items** (the default) or **Rendered file**, a
+toggle at the top of the panel. Editing happens on items, so items stay the default; choosing the
+render is an explicit second check, and the render check needs a rendered file already chosen for the
 chapter (see [Proof](proof.md#delivery-checks) for choosing one). If the render changes, or
 becomes older than a later edit to the chapter's items, the render's own check reads "Can't tell
 yet" until you check it again.
 
-Each of the three classes — Empty space, Click, Breath — has its own state: **Met** (checked, no
+The results list one row per class — Empty space, Click, Breath — each with a badge for its state: **Met** (checked, no
 open candidate remains), **Not met** (one or more open candidates), or **Can't tell yet** with why
 (not checked yet, changed since the last check, no track linked, a maximum gap not set in
 [Settings](settings.md), an item this build can't analyze, or the check running). Click and
-breath read "Not yet validated on the corpus" until their detectors are validated on a labeled
-corpus — a class this build cannot vouch for is never shown as done.
+breath share one row reading "Not yet validated on the corpus" until their detectors are validated on a labeled
+corpus — a class this build cannot vouch for is never shown as done. Once a check has run, one line under the list
+says which saved REAPER project it was based on.
 
 Outside the Editing stage a class shows how many candidates the last check found instead of a state. The candidates
-themselves are heard and worked on the [Editing](editing.md#cleaning-up) page's Clean up tab: **Clean up in Editing**
-opens the chapter there with the drawer on Clean up. **Match levels…** stays in the panel: it previews the linked
-track's items that are off the level target and, after you confirm, changes their volume in REAPER in one undo step.
+themselves are heard and worked on the [Editing](editing.md#cleaning-up) page's Clean up tab: **Clean up in Editing**,
+in the Empty space row whenever it has candidates, opens the chapter there with the drawer on Clean up. **Match
+levels…** stays in the panel: it previews the linked track's items that are off the level target and, after you
+confirm, changes their volume in REAPER in one undo step. While it is off, the reason shows under the button.
 
-If the chapter isn't linked to a track yet, the panel offers the same track picker the recording
-check does, right in place.
+If the chapter isn't linked to a track yet, the panel shows only the same track picker the recording
+check does, right in place; the check and its results come back once the chapter is linked.
 
 ### Chapter sync
 
@@ -340,14 +358,15 @@ asks again only if you unlink and relink the project. The same question can come
 ways to link a project (this panel's link button, choosing a project here, an import, or reopening a linked
 project).
 
-Once on, the Chapter sync section says when it last synced, from which saved project file, and how
-many chapters it linked on its own and how many you linked ("On · last synced 10:42 from the saved
-Alice.rpp · 8 chapters linked automatically, 1 by you"). **Turn off** stops it (chapter links you
-already made are kept); **Turn on** asks again from a project that had it off. Its own Needs you list
+Once on, the Chapter sync section lists one fact per row: **Status** (On), **Last synced** (when, and from which
+saved project file: "10:42, from the saved Alice.rpp"), **Links** (how many chapters it linked on its own and
+how many you linked: "8 chapters linked automatically, 1 by you"), **Background checks** while they are waiting
+("Waiting: REAPER is recording."), and **Not chapters** (below). **Turn off**, beside the heading, stops it (chapter
+links you already made are kept); while it is off the same place has **Turn on**, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the
 right track and press **Link**, the same link Chapter links below records. A track sync doesn't
-recognize as any chapter's is listed under "Tracks that are not chapters" so it isn't mistaken for a
+recognize as any chapter's is listed under **Not chapters** so it isn't mistaken for a
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.
 

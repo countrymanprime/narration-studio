@@ -1,5 +1,5 @@
 import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react';
-import { TABLE_CELL_CLASS, TABLE_EDGES, TABLE_FLUSH_EDGES, TABLE_HEADER_CLASS, TABLE_TEXT_CLASS } from './tableStyles';
+import { TABLE_CELL_CLASS, TABLE_EDGES, TABLE_FLUSH_EDGES, TABLE_HEADER_CLASS, TABLE_TEXT_CLASS, TABLE_TEXT_EDGES } from './tableStyles';
 import { Tooltip } from './Tooltip';
 
 // A presentational data table. It replaces the `table.dtable` rules in components.css: the look lives here, in
@@ -19,9 +19,13 @@ import { Tooltip } from './Tooltip';
 // A table that runs to its card's edges (`flush`, or any table in a `Panel flush`) starts its first column and ends its last
 // 16 px in, where the card title starts, and drops the last row's rule, which the card's own border replaces
 // (alignment audit cause D).
+// `textEdges` is for a table that reads as part of a padded card's form rather than a block of its own (a Story Bible entry's properties):
+// its first column starts and its last ends at the card's text edge, level with the labels and fields above it, instead of 10 px in
+// (alignment audit SBX-13). It has no effect with `flush`, which is at the card's edges already.
 export function Table({
   label,
   flush = false,
+  textEdges = false,
   rowCount,
   columns,
   className = '',
@@ -29,6 +33,7 @@ export function Table({
 }: {
   label: string;
   flush?: boolean;
+  textEdges?: boolean;
   rowCount?: number;
   columns?: readonly string[];
   className?: string;
@@ -38,7 +43,7 @@ export function Table({
     <table
       aria-label={label}
       aria-rowcount={rowCount}
-      className={`border-collapse ${TABLE_TEXT_CLASS} ${flush ? `-mx-[var(--panel-pad,1rem)] w-[calc(100%+2*var(--panel-pad,1rem))] ${TABLE_FLUSH_EDGES}` : `w-full ${TABLE_EDGES}`} ${columns ? 'table-fixed' : ''} ${className}`}
+      className={`border-collapse ${TABLE_TEXT_CLASS} ${flush ? `-mx-[var(--panel-pad,1rem)] w-[calc(100%+2*var(--panel-pad,1rem))] ${TABLE_FLUSH_EDGES}` : `w-full ${textEdges ? TABLE_TEXT_EDGES : TABLE_EDGES}`} ${columns ? 'table-fixed' : ''} ${className}`}
     >
       {columns && (
         <colgroup>

@@ -44,14 +44,14 @@ describe('SessionPanel', () => {
     const { onOpenInBooth, user } = setup({ pickups: [...MIXED.slice(0, 2), { ...SPEECH, id: 'out', included: false }] });
     // Two open, included lines; the recorded and the left-out one do not count.
     expect(screen.getByText('Lines').nextElementSibling?.textContent).toBe('2');
-    expect(screen.getByText('About').nextElementSibling?.textContent).toBe('6 min');
+    expect(screen.getByText('Length').nextElementSibling?.textContent).toBe('about 6 min');
     await user.click(screen.getByRole('button', { name: 'Open 2 in Booth' }));
     expect(onOpenInBooth).toHaveBeenCalledWith(sessionPickups(MIXED.slice(0, 2)));
   });
 
-  it('About is "not measured yet" without a source', () => {
+  it('Length is "not measured yet" without a source', () => {
     setup({ seconds: { ok: false, reason: 'no measurement' } });
-    expect(screen.getByText('About').nextElementSibling?.textContent).toBe('not measured yet');
+    expect(screen.getByText('Length').nextElementSibling?.textContent).toBe('not measured yet');
   });
 
   it('Open N in Booth is off at zero but stays focusable and names why', async () => {
@@ -126,8 +126,9 @@ describe('SessionPanel loading state', () => {
     expect(screen.queryByText('Reading the pickup list…')).toBeNull();
     expect(screen.queryByText('There are no pickups to include yet.')).toBeNull();
     expect(screen.getByText('Lines').nextElementSibling?.textContent).toBe('');
-    expect(screen.getByText('About').nextElementSibling?.textContent).toBe('');
-    expect(screen.getByRole('button', { name: 'Open 0 in Booth' }).getAttribute('aria-describedby')).toBeNull();
+    expect(screen.getByText('Length').nextElementSibling?.textContent).toBe('');
+    // No count until the list is read (XPK-15).
+    expect(screen.getByRole('button', { name: 'Open in Booth' }).getAttribute('aria-describedby')).toBeNull();
   });
 
   it('session-panel-loaded-says-its-counts', () => {
@@ -139,5 +140,34 @@ describe('SessionPanel loading state', () => {
   it('session-panel-unreadable-is-not-a-loading-state', () => {
     setup({ pickups: [], unreadable: true });
     expect(screen.getByText('not known')).toBeTruthy();
+  });
+});
+
+// Alignment audit (#2251), the Pickup session panel.
+describe('session-panel-alignment', () => {
+  it('a status in words is muted and regular, only a number is bold mono (XPK-14)', () => {
+    setup({ seconds: { ok: false, reason: 'no measurement' } });
+    const value = screen.getByText('not measured yet');
+    expect(value.tagName).toBe('SPAN');
+    expect(value.className).toContain('text-[var(--text-muted)]');
+    expect(screen.getByText('Lines').nextElementSibling?.tagName).toBe('B');
+  });
+
+  it('an empty session has no length to measure and an outlined Booth button (XPK-14, R3PK-3)', () => {
+    setup({ pickups: [] });
+    expect(screen.getByText('Length').nextElementSibling?.textContent).toBe('no lines');
+    expect(screen.getByRole('button', { name: 'Open 0 in Booth' }).className).not.toContain('bg-[var(--accent)]');
+  });
+
+  it('the markers button sits beside Open in Booth, in one row (XPK-4)', () => {
+    setup();
+    const booth = screen.getByRole('button', { name: /^Open \d+ in Booth$/ });
+    const markers = screen.getByRole('button', { name: /as markers in/ });
+    expect(booth.parentElement).toBe(markers.closest('div.grid'));
+  });
+
+  it('the empty reason does not leave one word on a line (R3PK-6)', () => {
+    setup({ pickups: [], unreadable: true });
+    expect(screen.getByText('The list could not be read, so the session is not known yet.').className).toContain('text-pretty');
   });
 });

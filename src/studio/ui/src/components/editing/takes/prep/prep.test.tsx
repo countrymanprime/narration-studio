@@ -141,6 +141,9 @@ describe('hide-others-needs-a-kept-take-first', () => {
     }).groups.flat();
     const item = items.find((i) => i.key === 'hide-others');
     expect(item?.unavailable).toBe('Keep a take first.');
+    // XED-21: one shortcut style, the key at the row's end.
+    expect(item?.label).toBe('Hide the other takes');
+    expect(item?.shortcut).toEqual(['H']);
   });
 
   it('after a keep it asks, hides the others in one DAW call, and a second press shows them again without one', async () => {

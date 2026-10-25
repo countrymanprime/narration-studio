@@ -5,6 +5,7 @@ import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useRef, useState, type ReactNode } from 'react';
 import { HINT_POPUP_SELECTOR } from './hintLayer';
 import { IconButton } from './IconButton';
+import { OVERLAY_TITLE_CLASS } from './panelStyles';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
 import { useToastsClearOfModal } from './Toast';
 
@@ -24,14 +25,15 @@ type DialogProps = {
   // false: Escape is ignored even though there is an `onClose`. For a dialog whose close would abort work in flight (a
   // running download): the header button and Cancel are the deliberate ways out, a stray key is not.
   escapeCloses?: boolean;
-  // The width, from one scale (DIALOG_WIDTHS), never wider than the window less 1rem a side, and at most 80dvh tall: 'confirm' (a question
+  // The width, from one scale (DIALOG_WIDTHS), never wider than the window less 1rem a side, and at most 80dvh tall (less where that would reach within 4.75rem of the bottom edge): 'confirm' (a question
   // and its answers, the default for an alert), 'form' (a few fields, the default otherwise), 'palette' (the jump menu), 'wide' (a table
   // or a list of rows with controls). 'full' fills the viewport with a fixed 1rem margin on every side and scrolls its body, for a surface
   // that needs the whole window (the teleprompter reading modal). Modality (focus trap, Escape, initial focus, hidden siblings) is
   // unchanged by size: every size is the one shell docs/design/design-system.md#base-ui-wrappers describes.
   size?: DialogSize;
-  // 'top': the popup hangs 12vh from the top of the window instead of centring, so a list that grows or shrinks as the narrator types
-  // (the jump menu) does not move its own field. The default for `palette`.
+  // 'top' (the default): the popup hangs from the top of the window, 8vh down as the Studio Next mock's `.scrim` places every dialog, 12vh for
+  // `palette` (the jump menu), so a dialog whose content grows or shrinks between states (a preview, then a result) keeps its title and Close
+  // where they were (alignment audit ENX-16). 'center' centres it in the window. A full-size dialog fills the window either way.
   placement?: 'center' | 'top';
   // Draws no header row and no Close button, for a surface whose first row is its own field (the jump menu, D98). The title
   // still names the dialog, visually hidden; Escape closes through `onClose` or `onEscape`. The body has no padding.
@@ -75,6 +77,9 @@ export const DIALOG_WIDTHS: Record<Exclude<DialogSize, 'full'>, string> = {
   palette: 'max-w-[40rem]',
   wide: 'max-w-[56rem]',
 };
+
+// The popup hangs 8vh down (12vh for the palette), so this leaves at least 4.75rem under it for a toast (`ToastRegion`).
+const DIALOG_MAX_HEIGHT = 'min(80dvh, calc(92dvh - 4.75rem))';
 
 // The one horizontal inset of the header, the body and the action row.
 const INSET = 'px-[var(--space-6)]';
@@ -121,10 +126,10 @@ export function Dialog({
   const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null));
   const dismiss = escapeCloses ? (onClose ?? onEscape) : undefined;
   const width = size ?? (variant === 'alert' ? 'confirm' : 'form');
-  const top = (placement ?? (width === 'palette' ? 'top' : 'center')) === 'top';
-  // Toasts move to the window's top while a centred dialog is open, clear of its action row. A full-size dialog leaves no room above it,
-  // and one hung from the top (the jump menu) has its own field there and no action row below.
-  useToastsClearOfModal(width !== 'full' && !top);
+  const top = (placement ?? 'top') === 'top';
+  // Toasts keep to the window's bottom-right corner while a dialog is open, under its action row, rather than rising above the page's bottom bars.
+  // A full-size dialog covers that corner whatever the toast does, and the jump menu has no action row.
+  useToastsClearOfModal(width !== 'full' && width !== 'palette');
 
   const initialFocus = () => {
     const focused = document.activeElement;
@@ -170,7 +175,7 @@ export function Dialog({
             left the page undimmed behind a confirm opened from a panel (chapter-track-link-control/06 draws it dimmed). */}
         <Parts.Backdrop data-dialog-backdrop forceRender className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)]" />
         <Parts.Viewport
-          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 ${top && width !== 'full' ? 'items-start pt-[12vh]' : 'items-center'}`}
+          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 ${top && width !== 'full' ? `items-start ${width === 'palette' ? 'pt-[12vh]' : 'pt-[8vh]'}` : 'items-center'}`}
         >
           <Parts.Popup
             ref={popupRef}
@@ -181,7 +186,8 @@ export function Dialog({
             }`}
             style={{
               height: width === 'full' ? 'calc(100dvh - 2rem)' : undefined,
-              maxHeight: width === 'full' ? 'calc(100dvh - 2rem)' : '80dvh',
+              // At most 80dvh, and ending at least 4.75rem above the window's bottom edge, the room a toast keeps there while a dialog is open.
+              maxHeight: width === 'full' ? 'calc(100dvh - 2rem)' : DIALOG_MAX_HEIGHT,
               background: 'var(--surface)',
               borderColor: 'var(--line-strong)',
               boxShadow: 'var(--shadow-lg)',
@@ -192,7 +198,7 @@ export function Dialog({
               <Parts.Title className="sr-only">{title}</Parts.Title>
             ) : (
               <div className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} py-[0.85rem]`}>
-                <Parts.Title className="font-semibold">{title}</Parts.Title>
+                <Parts.Title className={`flex-1 ${OVERLAY_TITLE_CLASS}`}>{title}</Parts.Title>
                 {onClose && (
                   <IconButton label="Close" onClick={onClose}>
                     <FontAwesomeIcon icon={faXmark} />
@@ -204,14 +210,18 @@ export function Dialog({
             <div
               ref={bodyRef}
               tabIndex={bodyScroll ? 0 : undefined}
-              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : `${INSET} py-[var(--space-6)]`} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
+              className={`min-h-0 flex-1 overflow-x-hidden ${bodyScroll ? 'overflow-y-auto' : 'flex flex-col overflow-y-hidden'} ${headerless ? '' : INSET} break-words focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:outline-none focus-visible:ring-inset`}
             >
-              {hasContent(description) && (
-                <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="mb-3 text-sm text-[var(--text-muted)] last:mb-0">
-                  {description}
-                </Parts.Description>
-              )}
-              {children}
+              {/* The vertical padding is on this wrapper, not the scroll box, so a sticky table head (`TableHead sticky`) sticks at the body's
+                  top edge, under the header's divider, and rows do not show above it (alignment audit ENX-23). */}
+              <div data-dialog-content className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? '' : 'py-[var(--space-6)]'}`}>
+                {hasContent(description) && (
+                  <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="mb-3 text-sm text-[var(--text-muted)] last:mb-0">
+                    {description}
+                  </Parts.Description>
+                )}
+                {children}
+              </div>
             </div>
             {hasContent(footer) && (
               <div className="flex-none border-t" style={{ borderColor: 'var(--border)' }}>

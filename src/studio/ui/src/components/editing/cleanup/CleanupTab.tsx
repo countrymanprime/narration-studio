@@ -10,7 +10,7 @@ import { initialParams, opSpec, type CleanupKind, type CleanupParams, type Level
 import { countsOf, noiseFloorOf, proposals, selectedRows, type CleanupRow } from './cleanupRows';
 import { notifyCleanupChanged } from './cleanupChanged';
 import { CleanupHeader } from './CleanupHeader';
-import { CleanupInspector } from './CleanupInspector';
+import { CleanupInspector, CleanupKindHeading } from './CleanupInspector';
 import { CleanupList } from './CleanupList';
 import { NO_PLAYBACK, usePreviewPlay, windowOf, type PreviewPlayback } from './usePreviewPlay';
 
@@ -116,17 +116,19 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
   return (
     // The div is not a control: it carries Escape from the focused Preview button to the preview.
     <div className="flex flex-col" onKeyDown={previewPlay.onKeyDown}>
-      <div className="flex flex-col gap-2 border-b border-[var(--border)] p-3">
+      {/* The drawer's section owns the 12 px inset; the rule under the kinds runs to its edges (alignment audit XED-10). */}
+      <div className="-mx-3 -mt-3 flex flex-col gap-2 border-b border-[var(--border)] p-3">
         <span className="font-['Barlow_Condensed',sans-serif] text-[11px] font-semibold tracking-[var(--tracking-button)] text-[var(--text-muted)] uppercase">
           In the audio
         </span>
         <CleanupHeader counts={counts} op={op} onOp={choose} />
       </div>
       {readError ? (
-        <p role="alert" className="m-0 p-3 text-[var(--danger-text)]">
+        <p role="alert" className="m-0 pt-3 text-[var(--danger-text)]">
           {readError}
         </p>
       ) : null}
+      <CleanupKindHeading kind={op} open={rows.length - fixed} fixed={fixed} />
       <CleanupList
         kind={op}
         rows={rows}

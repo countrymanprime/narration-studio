@@ -139,6 +139,23 @@ describe('not-transcribed-state', () => {
   });
 });
 
+// R3ED-15: with nothing heard there are no times or takes, so the 76 px time gutter is not kept as an empty indent.
+describe('the time gutter', () => {
+  it('is drawn for a transcribed chapter', () => {
+    show(marksDoc());
+    const row = document.querySelector<HTMLElement>('[data-pid]')!;
+    expect(row.className).toContain('grid-cols-[76px_minmax(0,1000px)]');
+    expect(row.querySelector('[data-gutter]')!.className).not.toContain('invisible');
+  });
+  it('is dropped when nothing was transcribed', () => {
+    const answer = notTranscribed();
+    show(docFromHeard(PARAS, answer), { reason: null });
+    const row = document.querySelector<HTMLElement>('[data-pid]')!;
+    expect(row.className).toContain('grid-cols-[0px_minmax(0,1000px)]');
+    expect(row.querySelector('[data-gutter]')!.className).toContain('invisible');
+  });
+});
+
 describe('empty-chapter-state', () => {
   it('says there is no text and draws no script element', () => {
     show(docFromHeard([], notTranscribed()));

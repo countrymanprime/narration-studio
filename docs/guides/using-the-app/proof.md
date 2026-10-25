@@ -15,7 +15,7 @@ the Inspector on the right for the selected note. The keys you can press are lis
 ![Proof - all chapters: the cleared ring, the chapter strip of open notes, the notes queue grouped by chapter and the Inspector on the first note](../../images/ui/proof-default.webp)
 
 Proof is always in the navigation. Until a manuscript is imported it asks you to import one. Until a check has found
-something, there is no ring, every chapter in the strip is empty and the Inspector says **No notes yet**.
+something, there is no ring, every chapter in the strip is empty and the Inspector is one line, **A note shows here once a check finds one**.
 
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
 
@@ -41,7 +41,8 @@ line you added) also keeps the ring from filling while it is open.
 
 Under the title, **Open notes, by chapter** draws one tile per chapter with how many of its notes are open, with **Open** and **Close** tiles
 for the opening and closing credits at the ends. Choose a chapter's tile to open that chapter; a credits tile opens that
-credits card on [Script](script.md), since Proof has no recording view for them.
+credits card on [Script](script.md), since Proof has no recording view for them. In a narrow window the tiles keep their
+size and the strip scrolls sideways, with **In** and **Out** for the credits.
 
 ### One chapter
 
@@ -49,7 +50,7 @@ A chapter shows its **Recording check** card and its recording:
 
 - The card says whether the chapter's check is current, stale (and what changed since), running or not done yet; how much
   is recorded against the script's estimate; and what the check counted, against the script and in the audio. **Check
-  recordings** runs it (with **Cancel** while it runs). It is off, with the reason, when the chapter has no recording or
+  recordings** runs it (with **Stop checking** while it runs). Under **Last check** it says what the last check found and when. It is off, with the reason, when the chapter has no recording or
   no text, or the DAW is not reachable. A chapter with no measured recording shows no check result, only why (no track
   linked, more than one, the linked track not in the saved project, or no saved project), with the audio engine panel
   where it can be fixed. **Show the findings** lists what the check found, each with the suggested
@@ -68,8 +69,8 @@ A chapter shows its **Recording check** card and its recording:
 - The waveform window draws the chapter's recording with a pin at each note that has a time. Press a pin to select its
   note. It opens on a minute of the chapter; zoom in and out, or drag the window's edges, to see more or less of it. The
   window follows the selected note.
-- When the selected note's spot has more than one take, the take that plays is a band on the waveform and the others sit
-  in lanes under it.
+- When the selected note's spot has more than one take, the take that plays is a see-through band on the waveform, named
+  with whether it is kept, and the others sit in lanes under it, each named.
 
 A chapter with no recording yet says **No recording for this chapter yet** where the waveform goes.
 
@@ -84,13 +85,14 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 The notes panel lists the notes in view, **Notes · 14** for example, with:
 
 - chips that narrow the list: **All**, **To review**, **Open**, **Pickups** and **Decided**, each with its count;
-- **In view**, on one chapter while the waveform window shows only part of it. It starts on, so the list keeps to the
-  notes in the window; press it to list the whole chapter;
+- **In view**, on one chapter while the waveform window shows only part of it, set apart after the chips because it works
+  with any of them. It starts on, so the list keeps to the notes in the window; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
 - **Check recordings…**, the same check the card runs, starting with the chapter in view;
 - **Find in notes**, which keeps only the notes whose text matches what you type; Esc closes it;
-- **Import proofer sheet** and **Export for proofer**: the proofer's CSV sheet. Import adds each row as a pickup marker in
+- **Import proofer sheet** and **Export for proofer** (the sort, Check recordings, Find and these two sit at the right of the
+  panel; the sort and Find are left out while there are no notes): the proofer's CSV sheet. Import adds each row as a pickup marker in
   the DAW and, when the DAW has answered, says how many pickups it added, how many were there already and how many rows
   it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote; a pickup on the Pickups page with no
   marker in the DAW yet is not in the sheet, and the message says how many are missing and to add them as markers there first. Both need the
@@ -100,8 +102,11 @@ Under them, **Sources** names the checks the notes came from, with a count for e
 the list. The table lists Time (minutes and seconds, `02:14.6`), Type, Script vs heard, From and Resolution (**To
 review**, **Needs pickup**, **Fix in edit**, **Fine as read** or **Defer**) for every note. Script vs heard is the note's headline
 sentence with the words in question marked in the note's own colour and form, for example “are” read as “our”; a note whose
-spot has more than one take also has a takes badge. With All chapters the table groups the notes by chapter, each group a
-tinted row with the chapter's open count.
+spot has more than one take also has a takes badge at the right of that column. A note still to review shows its Resolution
+as an outline; a decision is filled. The columns keep their widths in every chapter and filter, and Script vs heard takes
+the rest of the row. With All chapters the table groups the notes by chapter, each group a tinted row with the chapter's
+open count; with no notes it says **No notes yet**, and in one chapter **No notes for this chapter**. Beside the
+Inspector, the notes panel runs down to where the Inspector ends.
 
 ![Proof - the To review chip: "Notes · 3 of 4", the note marked fine as read left out](../../images/ui/proof-notes-filtered.webp)
 
@@ -115,7 +120,9 @@ part marked. Choosing one opens **Find in notes** on what you typed, clears the 
 
 ## A note and your decision
 
-Select a note in the table, or its pin on the waveform, and the Inspector shows it:
+Select a note in the table, or its pin on the waveform, and the Inspector shows it. In a window narrower than 1180 px the
+Inspector sits under the notes; clicking a note scrolls the page down to it, and stepping with the arrow keys does not.
+The Inspector shows:
 
 - its time and its type. The type is a list: if the check named the wrong kind of problem, choose the right one, and your
   choice is kept with the note;
@@ -301,14 +308,16 @@ stays usable.
 ![Proof chapter view - vocabulary hint chips: an accepted term alongside suggested (pending) candidates](../../images/ui/proof-chapter-hint-chips.webp)
 
 **Start comparison** needs a linked REAPER project and a connected REAPER; without either it is off,
-with the reason in its place. Once it's running, its progress is real, from the transcription itself,
+with the reason beside it. Once it's running, its progress is real, from the transcription itself,
 with **Cancel** to stop it.
 
 When it finishes, a summary reads "N discrepancies in \<chapter>", with how many more are in other chapters.
 **Export N markers** adds a take marker in REAPER for each discrepancy not already marked, the same
 marker [Add marker in the DAW](#going-to-a-note-in-the-daw) adds for one accepted note, so the two never
-mark a spot twice. **New comparison** starts over. **Last narrated take: …**, at the top of the setup, reopens the last completed
-comparison; Export markers is off while you review it.
+mark a spot twice; when it is off, the reason is beside it. **New comparison** starts over. **Review last run**, at the
+bottom of the setup beside the take's name, audio items and time, reopens the last completed comparison; Export markers is
+off while you review it. The steps across the card's header (Setup, Running, Results) show where the run is; they are not
+buttons.
 
 **With Audacity,** the comparison reads the audio track you have selected in Audacity (click its name), exports it whole to a
 WAV in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/audacity-session folder (for a long chapter that takes a while), and compares that. The
@@ -325,8 +334,10 @@ Below the compare run, the Preview panel suggests up to three five-minute excerp
 — one per chapter — so you don't have to scan the whole book to find a stretch worth listening to or
 sharing. Each candidate lists its chapter, paragraph range, estimated length and word count, alongside
 the reasons it was chosen (a mix of narration and dialogue, the Story Bible characters it touches, hard
-words, starting and ending on a paragraph boundary). A candidate that falls short of the target length
-even using the whole chapter says so, in words and an icon rather than colour alone. Open a candidate
+words, starting and ending on a paragraph boundary); a reason every candidate shares is said once under the table.
+A candidate that falls short of the target length even using the whole chapter says so on its own line under it, in
+words and an icon rather than colour alone. While the suggestions are computed the panel shows grey rows; with no
+manuscript it offers **Open Production** to import one, and a failed read offers **Retry**. Open a candidate
 in the manuscript reader, or copy its range and length to paste elsewhere; neither changes anything — a
 suggestion is recomputed fresh every time you visit the page, never applied, exported or stored.
 

@@ -163,9 +163,9 @@ export function useHideOthers({ journal, kept, current, passageOf }: HideOthersO
         const hiddenCount = (l.hidden[passage.id] ?? []).length;
         const hiding = l.othersOf(passage).length > 0;
         if (!hiding && hiddenCount === 0) return [];
-        const label = hiding ? 'Hide the other takes (H)' : `${l.revealed[passage.id] ? 'Put away' : 'Look at'} the hidden takes (H)`;
+        const label = hiding ? 'Hide the other takes' : `${l.revealed[passage.id] ? 'Put away' : 'Look at'} the hidden takes`;
         const off = hiding ? reasonToHold(l.gate, l.kept[passage.id]) : undefined;
-        return [{ key: 'hide-others', label, ...(off !== undefined ? { unavailable: off } : {}), onSelect: () => void l.toggle(passage) }];
+        return [{ key: 'hide-others', label, shortcut: ['H'], ...(off !== undefined ? { unavailable: off } : {}), onSelect: () => void l.toggle(passage) }];
       },
     });
     return () => {

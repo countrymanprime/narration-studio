@@ -37,13 +37,13 @@ export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose,
   const sections = drawSections(tab, { doc, chapterId });
   let body: ReactNode;
   if (tab === 'timeline') {
-    body = <TimelineStrip {...strip} inDrawer />;
+    body = <TimelineStrip {...strip} />;
   } else {
     body = (
       <>
         {tab === 'cleanup' ? <FoundList doc={doc} activeKind={flagKind} onReview={onReview} /> : null}
         {sections.map(({ section, node }, i) => (
-          <section key={`${section.order}-${i}`} aria-label={section.label} className="border-b border-[var(--border)] p-3">
+          <section key={`${section.order}-${i}`} aria-label={section.label} className="border-b border-[var(--border)] p-3 last:border-b-0">
             {node}
           </section>
         ))}
@@ -57,7 +57,7 @@ export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose,
       onKeyDown={onKeyDown}
       className="flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]"
     >
-      <div className="flex items-center gap-2 px-3 py-2">
+      <div className="flex items-center gap-2 px-3 pt-3 pb-2">
         <h2 className="m-0 flex-1 font-['Barlow_Condensed',sans-serif] text-xl font-semibold">Clean up and effects</h2>
         <IconButton action="close" id="drawerclose" onClick={onClose} />
       </div>

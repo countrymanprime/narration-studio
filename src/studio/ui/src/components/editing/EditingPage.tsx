@@ -7,7 +7,7 @@ import { usePort } from '../../ports/usePort';
 import type { ManuscriptChapter } from '../../types';
 import { ChapterStepper } from '../primitives/ChapterStepper';
 import { Panel } from '../primitives/Panel';
-import { LoadError, LoadErrorPanel } from '../layout/LoadError';
+import { LoadErrorPanel } from '../layout/LoadError';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import type { DrawerTab } from './drawer/drawerTabs';
 import { STRIP_MIN_WIDTH } from './drawer/drawerTabs';
@@ -175,7 +175,23 @@ function EditingLoaded({
       <section aria-label="Script editor" className="flex h-full min-h-0 flex-col">
         <div className="flex h-full min-h-0 flex-col">
           {error ? (
-            <LoadError title="Editing" message={error} retry={retry} />
+            // The same card and header as every other state, so the title does not move when the read fails (XED-30, R3ED-11).
+            <div className="min-h-0 flex-1 pb-3">
+              <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+                <EditingHeader
+                  stepper={null}
+                  legend={null}
+                  status={dawIndicator}
+                  strip={panels.strip}
+                  stripFits={width >= STRIP_MIN_WIDTH}
+                  drawerOpen={panels.drawer.open}
+                  onDrawer={panels.drawer.toggle}
+                />
+                <div className="px-4">
+                  <LoadErrorPanel message={error} retry={retry} />
+                </div>
+              </div>
+            </div>
           ) : chapter ? (
             <EditingChapter
               key={chapter.id}
@@ -201,7 +217,7 @@ function EditingLoaded({
             </Panel>
           ) : (
             // Still reading the chapters: the page's own header stays, the script is blocks.
-            <div className="min-h-0 flex-1 px-4 pb-3">
+            <div className="min-h-0 flex-1 pb-3">
               <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
                 <EditingHeader
                   stepper={<Skeleton className="h-8 w-56 max-w-full" />}
@@ -264,7 +280,7 @@ function EditingChapter({
   const stripFits = width >= STRIP_MIN_WIDTH;
   if (source.status !== 'ready') {
     return (
-      <div className="min-h-0 flex-1 px-4 pb-3">
+      <div className="min-h-0 flex-1 pb-3">
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
           <EditingHeader
             stepper={stepper}

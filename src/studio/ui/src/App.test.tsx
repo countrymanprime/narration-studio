@@ -19,6 +19,7 @@ import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { passing, profile as acxProfile } from './components/masterqc/files/testFiles';
 import type { MeasureJob } from './types';
 import { brand } from './brand.gen';
+import { claimAttachRefusal } from './components/connection/attachRefusal';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -97,10 +98,17 @@ const linkChapterOne = async () => {
     .getAllByRole('row')
     .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1(: |$)/ }))!;
   const select = within(row).getByRole('combobox') as HTMLSelectElement;
-  fireEvent.change(select, { target: { value: select.options[0].value } });
+  // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
+  fireEvent.change(select, { target: { value: select.options[1].value } });
   fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
-  await within(row).findByRole('link', { name: 'Open in Editing' });
+  await within(row).findByRole('button', { name: 'Change' });
   return row;
+};
+
+/** Chooses an item from a Chapter links row's More actions menu (Open in Editing, Open in Proof, Editing check…). */
+const rowAction = async (row: HTMLElement, item: string) => {
+  fireEvent.click(within(row).getByRole('button', { name: /^More actions for / }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: item }));
 };
 
 /** Opens Settings, Set on a page, and the panel kept behind one entry; resolves to the panel's region. */
@@ -410,6 +418,24 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     hasFocus.mockRestore();
   });
 
+  it('toasts why a launched project was turned away, unless a dialog that already says it claims the reason (R4BO2-4)', async () => {
+    let attach: ((state: { attached: boolean; reason?: string }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    const release = claimAttachRefusal();
+    act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
+    expect(screen.queryByText(/The app is busy/)).toBeNull();
+    release();
+    act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
+    expect(within(appToasts('alert')).getByText(/The app is busy/)).toBeTruthy();
+  });
+
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
     // App.tsx only wires this listener up from a useEffect, a passive effect React flushes on its own
     // schedule after the commit that renders the Production heading - not necessarily before it. Under load the
@@ -620,7 +646,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
     expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
     expect(within(tracks).getByText('Click Track')).toBeTruthy();
-    expect(within(panel).getByRole('button', { name: 'Link a different REAPER project file' })).toBeTruthy();
+    expect(within(panel).getByRole('button', { name: 'Change file…' })).toBeTruthy();
     expect(window.location.pathname).toBe('/');
   });
 
@@ -766,8 +792,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp();
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     const row = await linkChapterOne();
-    expect(within(row).getByRole('link', { name: 'Open in Proof' }).getAttribute('href')).toBe(`/proof/${WIRE_CHAPTERS[0].id}`);
-    fireEvent.click(within(row).getByRole('link', { name: 'Open in Editing' }));
+    await rowAction(row, 'Open in Editing');
     await screen.findByRole('region', { name: 'Script editor' });
     expect(window.location.pathname).toBe(`/editing/${WIRE_CHAPTERS[0].id}`);
   });
@@ -1330,7 +1355,7 @@ describe('App Back and Forward', () => {
     renderApp({ transcriptReset });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     // The engine panel's chapter link is the way into Proof's chapter view, where the compare run lives.
-    fireEvent.click(within(await linkChapterOne()).getByRole('link', { name: 'Open in Proof' }));
+    await rowAction(await linkChapterOne(), 'Open in Proof');
     await startRunOnChapterOne();
 
     await runFromJump('Back');

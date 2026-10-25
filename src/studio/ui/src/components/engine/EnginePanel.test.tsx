@@ -64,6 +64,23 @@ describe('EnginePanel', () => {
     expect(chapterCell(2)).toBe('Not linked');
   });
 
+  // Alignment audit R3EN1-7: a link made in Chapter links left the Tracks card above it saying "Not linked".
+  it('re-reads the Tracks card when a link is confirmed in Chapter links', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+    const tracks = await trackTable();
+    const links = await screen.findByRole('table', { name: 'Chapter links' });
+    const secondRow = within(links)
+      .getAllByRole('row')
+      .find((row) => within(row).queryByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` }));
+    if (!secondRow) throw new Error('no Chapter links row with a picker for the second chapter');
+    await user.selectOptions(within(secondRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
+    await user.click(within(secondRow).getByRole('button', { name: 'Confirm' }));
+
+    const trackRow = () => within(tracks).getAllByRole('row')[2];
+    await waitFor(() => expect(within(trackRow()).getAllByRole('cell')[1].textContent).toContain(WIRE_CHAPTERS[1].title));
+  });
+
   it('flags every track that has a missing or unsupported item', async () => {
     renderPanel();
     await trackTable();
@@ -102,9 +119,16 @@ describe('EnginePanel', () => {
   it('asks which .rpp to read when there are several, then lists that one’s tracks', async () => {
     const user = userEvent.setup();
     const api = renderPanel({}, { tracksCandidates: ['C:/Book/Draft.rpp', 'C:/Book/Final.rpp'] });
-    expect(await screen.findByRole('heading', { name: 'Choose a REAPER project file' })).toBeTruthy();
+    const files = await screen.findByRole('list', { name: 'REAPER project files' });
     expect(screen.queryByRole('table', { name: 'Tracks' })).toBeNull();
-    await user.click(screen.getByText('C:/Book/Final.rpp'));
+    // R3EN2-5: each row leads with the file name; the folder is the second line. The header's link action is left out while the list asks.
+    expect(
+      within(files)
+        .getAllByRole('button')
+        .map((row) => row.firstElementChild?.firstElementChild?.textContent),
+    ).toEqual(['Draft.rpp', 'Final.rpp']);
+    expect(screen.queryByRole('button', { name: /^(Change|Link) file…$/ })).toBeNull();
+    await user.click(within(files).getByRole('button', { name: /Final\.rpp/ }));
     await trackTable();
     await expect(api.tracksDiscover()).resolves.toEqual({ candidates: ['C:/Book/Draft.rpp', 'C:/Book/Final.rpp'], selected: 'C:/Book/Final.rpp' });
   });
@@ -127,16 +151,33 @@ describe('EnginePanel', () => {
   it('offers the shared DAW-link binding, worded for whether a file is already linked', async () => {
     const onLinkDawFile = vi.fn();
     renderPanel({}, {}, { dawFileLinked: false, onLinkDawFile });
-    (await screen.findByRole('button', { name: 'Link a REAPER project file' })).click();
+    (await screen.findByRole('button', { name: 'Link file…' })).click();
     expect(onLinkDawFile).toHaveBeenCalledTimes(1);
     cleanup();
     renderPanel();
-    expect(await screen.findByRole('button', { name: 'Link a different REAPER project file' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Change file…' })).toBeTruthy();
   });
 
   it('says when REAPER has a different project open than the linked one', async () => {
-    renderPanel({}, {}, { dawReachable: true, dawProjectMatches: false });
-    expect(await screen.findByText(/REAPER has a different project open than the one linked here/)).toBeTruthy();
+    const onLinkDawFile = vi.fn();
+    const onCheckAgain = vi.fn();
+    renderPanel({}, {}, { dawReachable: true, dawProjectMatches: false, onLinkDawFile, onCheckAgain });
+    const notice = await screen.findByText(/REAPER has a different project open than the one linked here/);
+    // R3EN2-4: a callout with both ways out as buttons beside the sentence, not coloured body text.
+    const callout = notice.closest('div')!;
+    await userEvent.click(within(callout).getByRole('button', { name: 'Link the open project…' }));
+    await userEvent.click(within(callout).getByRole('button', { name: 'Check again' }));
+    expect(onLinkDawFile).toHaveBeenCalledTimes(1);
+    expect(onCheckAgain).toHaveBeenCalledTimes(1);
+  });
+
+  // ENX-9: the tools were content-sized buttons wrapping 3 + 3 with ragged edges and a 4 px gap.
+  it('lays the REAPER tools out on an equal grid', async () => {
+    renderPanel();
+    const tools = await screen.findByRole('toolbar', { name: 'REAPER tools' });
+    expect(tools.className).toMatch(/grid-cols-3/);
+    expect(tools.className).toMatch(/gap-2/);
+    for (const button of within(tools).getAllByRole('button')) expect(button.className).toContain('w-full');
   });
 
   it('the wrong-project notice says when it last checked and has a Check again that reads again', async () => {

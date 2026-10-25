@@ -57,16 +57,17 @@ describe('badge-follows-the-text-and-says-takes', () => {
 });
 
 describe('lanes-draw-the-other-takes-and-the-active-as-a-band', () => {
-  it('draws the active take as a labelled band and the others as lanes, in the window scale, dimming a hidden one', () => {
+  it('draws the other takes as labelled lanes in the window scale, dimming a hidden one, and leaves the active take to the waveform band', () => {
     const s = spot([take('a'), take('b', { usable: false, reason: 'gone' }), take('c', { active: true, sourceLength: 5 })]);
     const { container } = render(<TakeLanes spot={s} winStart={0} winLen={20} />);
-    const band = container.querySelector<HTMLElement>('[data-active-band=c]')!;
-    expect(band.textContent).toBe('Take 3 · Kept');
-    expect(band.style.left).toBe('50%');
-    expect(band.style.width).toBe('25%');
+    // The playing take is the band on the waveform (WaveformWindow `bands`), drawn once (alignment audit R3PF-1).
+    expect(container.querySelector('[data-lane=c]')).toBeNull();
     expect(container.querySelectorAll('[data-lane]')).toHaveLength(2);
-    expect(container.querySelector('[data-lane=b] div')!.className).toContain('opacity-40');
-    expect(container.querySelector('[data-lane=a] div')!.className).not.toContain('opacity-40');
+    const lane = container.querySelector<HTMLElement>('[data-lane=a] div')!;
+    expect(lane.textContent).toBe('Take 1');
+    expect(lane.style.left).toBe('50%');
+    expect(container.querySelector('[data-lane=b] div')!.className).toContain('border-dashed');
+    expect(lane.className).not.toContain('border-dashed');
   });
   it('draws nothing at a one-take spot', () => {
     const { container } = render(<TakeLanes spot={null} winStart={0} winLen={20} />);

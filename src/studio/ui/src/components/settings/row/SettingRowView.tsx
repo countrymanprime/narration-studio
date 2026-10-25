@@ -48,16 +48,23 @@ function UsedBy({ row }: { row: SettingMeta }) {
 
 // A label column and a control column (docs/design/design-system.md#settings-rows): stacked in a narrow page, a fixed 12 rem label column
 // from 761 px of page width, `minmax(12rem,16rem)` from 860 (a width in `layoutBreakpoints.ts`). Two equal halves left a tall control's left half empty and pushed every
-// control a different distance from its label (alignment audit cause E).
-const SETTING_ROW_GRID = 'grid gap-x-8 gap-y-1.5 @min-[761px]:grid-cols-[12rem_minmax(0,1fr)] @min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
+// control a different distance from its label (alignment audit cause E). Stacked, 12 px part the meta line from the control under it (R3SE2-15).
+/** "Saved", fading after a moment; the caller keys it by the save, so the next save of the same row starts it again. */
+function SavedWord() {
+  return <span className="flex-none text-[0.8125rem] text-[var(--ok-text)] motion-ok:animate-[settings-saved_2.5s_forwards]">Saved</span>;
+}
+
+const SETTING_ROW_GRID =
+  'grid gap-x-8 gap-y-3 @min-[761px]:gap-y-1.5 @min-[761px]:grid-cols-[12rem_minmax(0,1fr)] @min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
 const CELL = `${SETTING_ROW_GRID} border-t border-[var(--border)] px-5 py-4 first:border-t-0`;
 
 /**
  * One setting: what it is, whose it is, who reads it, and its control. A change applies at once; a changed row says so in words and can be
  * reset; a row that allows a project override shows whether this project uses the computer value or its own. A row with `children` draws
- * that control instead of the host field's (the setting is more than one value).
+ * that control instead of the host field's (the setting is more than one value); a `wide` one draws it under the label across the whole row,
+ * for a table or a form that needs the width (alignment audit XSE2-4, XSE2-11).
  */
-export function SettingRowView({ row, children, flash }: { row: SettingMeta; children?: ReactNode; flash?: boolean }) {
+export function SettingRowView({ row, children, flash, wide }: { row: SettingMeta; children?: ReactNode; flash?: boolean; wide?: boolean }) {
   const store = useSettingsStore();
   const uid = useId();
   const [asking, setAsking] = useState<string>();
@@ -98,9 +105,11 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
       data-changed={changed ? 'true' : undefined}
       data-scope={row.scope}
     >
-      {changed && <span aria-hidden="true" className="absolute inset-y-2.5 left-0 w-[3px] rounded-[3px] bg-[var(--info)]" />}
+      {/* The bar runs the row's full height, so it marks the row instead of interrupting the card's edge (R3SE1-16, XSE2-34). */}
+      {changed && <span aria-hidden="true" data-changed-bar className="absolute inset-y-0 left-0 w-[3px] bg-[var(--info)]" />}
       <div className="flex min-w-0 flex-col gap-[3px]">
-        <span className="flex flex-wrap items-center gap-2">
+        {/* The title line is as tall as the Changed badge with or without it, so a switch beside it stays level (XSE1-22, XSE2-34). */}
+        <span data-title-line className="flex min-h-6 flex-wrap items-center gap-2">
           <label htmlFor={hasCustom ? undefined : controlId} id={`${uid}l`} className="text-[0.9375rem] font-semibold">
             {row.label}
           </label>
@@ -115,12 +124,14 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
           {row.also && <span>Also set in {row.also}</span>}
         </span>
       </div>
-      <div className="flex max-w-full min-w-0 flex-col items-start gap-2">
+      <div className={`flex max-w-full min-w-0 flex-col items-start gap-2 ${wide ? 'col-span-full' : ''}`} data-row-body={wide ? 'wide' : undefined}>
         {hasCustom ? (
           children
         ) : global ? (
           <>
-            <div className="flex flex-nowrap items-center gap-1.5">
+            {/* The row of the control and its Reset takes the column's width, so the control's own `w-full` has a width to resolve against.
+                Saved shows beside Reset, where the change was made (XSE1-22). */}
+            <div data-control-line className="flex w-full min-w-0 flex-nowrap items-center gap-1.5">
               <ValueControl
                 row={row}
                 field={global}
@@ -139,6 +150,7 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
                   onClick={() => void store.write(row, 'global', null)}
                 />
               )}
+              {saved && <SavedWord key={store.saved?.n} />}
             </div>
             {global.kind === 'choice' && <AssetNote row={row} value={comp} kindOf={kindOf} />}
             {row.scope === 'both' && project && (
@@ -199,10 +211,8 @@ export function SettingRowView({ row, children, flash }: { row: SettingMeta; chi
               </span>
               {error}
             </span>
-          ) : saved ? (
-            <span key={store.saved?.n} className="text-[var(--ok-text)] motion-ok:animate-[settings-saved_2.5s_forwards]">
-              Saved
-            </span>
+          ) : saved && (hasCustom || !global) ? (
+            <SavedWord key={store.saved?.n} />
           ) : null}
         </span>
       </div>

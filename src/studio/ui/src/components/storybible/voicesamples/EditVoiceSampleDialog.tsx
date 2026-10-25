@@ -48,7 +48,6 @@ export function EditVoiceSampleDialog({
       title="Rename voice sample"
       onClose={onCancel}
       dismissOnOutsidePress={false}
-      actionsAlign="end"
       actions={
         <>
           <Button type="button" variant="secondary" onClick={onCancel}>

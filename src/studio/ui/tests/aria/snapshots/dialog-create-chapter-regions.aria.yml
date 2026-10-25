@@ -1,6 +1,7 @@
 # The create-chapter-regions dialog: a modal dialog named for itself, with the two
-# credits-track selects, a named table of the planned regions, a "Not planned" list of chapters still missing a track link
-# (matched partially), a confirmation checkbox and Create N regions. The page behind it is aria-hidden.
+# credits-track selects, the Move-an-existing-region checkbox above a named table of the planned regions, a "Not planned"
+# region listing the chapters still missing a track link, one line per reason (matched partially), and Create N regions.
+# The page behind it is aria-hidden.
 - /children: equal
 # The two toast live regions stay in the tree on purpose (see dialog-mark-composer.aria.yml); empty here.
 - main
@@ -13,11 +14,14 @@
   - heading "Create chapter regions" [level=2]
   - button "Close"
   - paragraph: /Plan one REAPER region per chapter with a confirmed track link/
+  - text: Opening credits track
   - combobox "Opening credits track":
     - option "None"
     - option "Chapter 2" [selected]
+  - text: Closing credits track
   - combobox "Closing credits track":
     - option "None" [selected]
+  - checkbox "Move an existing region that shares a chapter’s title, instead of adding a second one"
   - table "Chapter regions":
     - rowgroup:
       - row "Region Track Start End Status"
@@ -26,10 +30,10 @@
         - cell "New region"
       - row /^Chapter 1 Chapter 1/:
         - cell "New region"
-  - paragraph: Not planned
-  - list:
-    - listitem: "Chapter 2: No track is linked to this chapter."
-  - checkbox "Move an existing region that shares a chapter’s title, instead of adding a second one"
+  - region /Not planned \(\d+\)/:
+    - heading /Not planned \(\d+\)/ [level=3]
+    - list:
+      - listitem: /^No track is linked to this chapter\. Chapter 2, Chapter 3/
   - button "Cancel"
   - button "Create 2 regions"
   - text: Experimental
