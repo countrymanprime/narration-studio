@@ -16,8 +16,8 @@
   - paragraph: A CSV or JSON file, or a JSON blob from any LLM you ran the manuscript through.
   - button "Cancel"
   - button "Choose a file…"
-  - button "Copy the prompt for your own LLM"
-  - button "Show the format example"
+  - button "Copy prompt"
+  - button "Show example"
   - textbox "Paste JSON or CSV":
     - /placeholder: Or paste JSON (or CSV) here
   - button "Add to the Story Bible" [disabled]
