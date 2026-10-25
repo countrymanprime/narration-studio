@@ -59,6 +59,15 @@ describe('AppShell on the Booth', () => {
     expect(screen.getAllByRole('button', { name: 'Booth' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /, switch project$/ })).toBeTruthy();
   });
+  // Alignment audit cause J: the bar's content started 20 px in (12 px below md) and the page's 16 px, so the bar's first item sat
+  // 4 px right of the page title.
+  it('starts the top bar and the page content at the one page gutter', () => {
+    renderShell({ pathname: '/script' });
+    const main = screen.getByRole('main');
+    expect(main.querySelector('header')!.className).toContain('px-[var(--page-gutter)]');
+    expect(main.querySelector('header')!.className).not.toMatch(/\bmd:px-|\bpx-3\b/);
+    expect(main.querySelector('.scroll-chrome-hidden')!.className).toContain('p-[var(--page-gutter)]');
+  });
 });
 
 describe('AppShell nav gating', () => {
