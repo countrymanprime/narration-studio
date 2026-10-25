@@ -445,6 +445,114 @@ local function restore_replacement(session_dir, run_id, guid_text, id)
   event(session_dir, 'REPLACEMENT_RESTORED', run_id, item_guid(cut), string.format('%.6f', shift), 1)
 end
 
+local IMPORT_LABEL = core.brand.name .. ': add their audio'
+local CO_NARRATOR_KEY = 'P_EXT:' .. PREFIX .. 'co_narrator'
+local THEIR_AUDIO_KEY = 'P_EXT:' .. PREFIX .. 'their_audio'
+local MAX_NAME_CHARS = 80
+local MAX_PATH_BYTES = 4096
+local AUDIO_EXTENSIONS = { wav = true, flac = true, mp3 = true, ogg = true, aif = true, aiff = true }
+local BAD_NAME = 'Their name must be 1 to 80 characters with no bar or control character.'
+local BAD_PATH = 'Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF).'
+local NOT_AUDIO = 'REAPER cannot read that file as audio.'
+local IMPORT_NEEDED = {
+  'InsertTrackAtIndex',
+  'GetSetMediaTrackInfo_String',
+  'AddMediaItemToTrack',
+  'AddTakeToMediaItem',
+  'PCM_Source_CreateFromFile',
+  'SetMediaItemTake_Source',
+  'GetMediaSourceLength',
+  'PCM_Source_Destroy',
+}
+
+local function valid_name(text)
+  if type(text) ~= 'string' or text:find('[%c|]') then
+    return false
+  end
+  local chars = utf8.len(text)
+  return chars ~= nil and chars >= 1 and chars <= MAX_NAME_CHARS and text:match('%S') ~= nil
+end
+
+-- A local, absolute path to a file with an audio extension: never a network path (\\server or //server), never relative.
+local function valid_path(text)
+  if type(text) ~= 'string' or text == '' or #text > MAX_PATH_BYTES or text:find('[%c|]') then
+    return false
+  end
+  if text:match('^[\\/][\\/]') then
+    return false
+  end
+  if not (text:match('^/') or text:match('^%a:[\\/]')) then
+    return false
+  end
+  local extension = text:match('%.([%w]+)$')
+  return extension ~= nil and AUDIO_EXTENSIONS[extension:lower()] == true
+end
+
+local function track_guid(track)
+  return normalize_guid(reaper.GetTrackGUID(track))
+end
+
+-- import_audio_track(run, name, path) puts the file at path, which the narrator chose in the app, on a new track named for the
+-- other narrator, after the last track: one item from 0 for the file's whole length, the track muted (their file never plays in the
+-- mix or a render; a replacement plays its stretch on the narrator's own track) and keyed P_EXT:<prefix>co_narrator, the item keyed
+-- <prefix>their_audio. It is the one command in this file that opens a path the host sent. Before any change it refuses a name that is
+-- not 1 to 80 characters or holds a bar or control character, a path that is not a local absolute path to a .wav, .flac, .mp3, .ogg,
+-- .aif or .aiff file (a network path is refused), a path the bar splits into more fields, a file that is not there, a file REAPER cannot
+-- open or reads as 0 seconds long, and recording. One undo block, "<app name>: add their audio". Answers
+-- AUDIO_TRACK_ADDED|run|trackGuid|itemGuid|length|undoPoints.
+local function import_audio_track(session_dir, run_id, name, path, extra)
+  if not valid_name(name) then
+    event(session_dir, 'ERROR', run_id, BAD_NAME)
+    return
+  end
+  if extra ~= nil or not valid_path(path) then
+    event(session_dir, 'ERROR', run_id, BAD_PATH)
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  for _, api in ipairs(IMPORT_NEEDED) do
+    if not reaper.APIExists(api) then
+      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot add their audio.')
+      return
+    end
+  end
+  if not core.file_exists(path) then
+    event(session_dir, 'ERROR', run_id, 'That file is no longer there. Choose it again.')
+    return
+  end
+  local source = reaper.PCM_Source_CreateFromFile(path)
+  if not source then
+    event(session_dir, 'ERROR', run_id, NOT_AUDIO)
+    return
+  end
+  local length = reaper.GetMediaSourceLength(source)
+  if not length or length <= EDGE_TOLERANCE then
+    reaper.PCM_Source_Destroy(source)
+    event(session_dir, 'ERROR', run_id, NOT_AUDIO)
+    return
+  end
+
+  reaper.Undo_BeginBlock2(0)
+  local index = reaper.CountTracks(0)
+  reaper.InsertTrackAtIndex(index, false)
+  local track = reaper.GetTrack(0, index)
+  reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)
+  reaper.GetSetMediaTrackInfo_String(track, CO_NARRATOR_KEY, '1', true)
+  reaper.SetMediaTrackInfo_Value(track, 'B_MUTE', 1)
+  local item = reaper.AddMediaItemToTrack(track)
+  reaper.SetMediaItemInfo_Value(item, 'D_POSITION', 0)
+  reaper.SetMediaItemInfo_Value(item, 'D_LENGTH', length)
+  local take = reaper.AddTakeToMediaItem(item)
+  reaper.SetMediaItemTake_Source(take, source)
+  reaper.GetSetMediaItemInfo_String(item, THEIR_AUDIO_KEY, '1', true)
+  reaper.Undo_EndBlock2(0, IMPORT_LABEL, -1)
+  reaper.UpdateArrange()
+  event(session_dir, 'AUDIO_TRACK_ADDED', run_id, track_guid(track), item_guid(item), string.format('%.6f', length), 1)
+end
+
 return function(registry)
   registry.register('replace_range', function(ctx, args)
     if registry.interrupt_compare then
@@ -457,5 +565,8 @@ return function(registry)
       registry.interrupt_compare()
     end
     restore_replacement(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '')
+  end)
+  registry.register('import_audio_track', function(ctx, args)
+    import_audio_track(ctx.session_dir, args[1] or '', args[2], args[3], args[4])
   end)
 end

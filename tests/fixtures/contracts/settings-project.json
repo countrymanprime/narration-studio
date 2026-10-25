@@ -797,6 +797,22 @@
         "unit": "%"
       },
       "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "-20",
+      "isSet": false,
+      "key": "replace_target_lufs",
+      "kind": "number",
+      "label": "Loudness another narrator's audio is set to (LUFS)",
+      "number": {
+        "max": -10,
+        "min": -40,
+        "step": 1,
+        "unit": "LUFS"
+      },
+      "value": ""
     }
   ],
   "General": [

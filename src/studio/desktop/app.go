@@ -75,7 +75,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 142
+const hostAPIVersion = 143
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -278,6 +278,9 @@ type Host struct {
 	// meterReader is the DAW port's daw_meters role over the same adapter: DawMeters (bindings_daw_meters.go) asks it to read the
 	// DAW's own meters. Nil with no bridge client or no such role.
 	meterReader dawport.MeterReader
+	// rangeReplacer is the DAW port's replace_range role over the same adapter: the Replace audio bindings (bindings_replace.go) ask
+	// it to bring another narrator's file in, replace words with it and put the narrator's audio back. Nil with no bridge client.
+	rangeReplacer dawport.RangeReplacer
 	// placeFollower is the DAW port's follow_position role over the same bridge client: DawPlace and DawGoToChapter (bindings_daw_place.go)
 	// read and move the narrator's place in the project. Nil (a true nil interface) with no bridge client or no such role.
 	placeFollower dawport.PlaceFollower
@@ -841,6 +844,7 @@ func (h *Host) configureLocked(next config) {
 		h.monitorLeveler, _ = dawAdapter.Role(dawport.CapMonitorLevel).(dawport.MonitorLeveler)
 		h.prerollReader, _ = dawAdapter.Role(dawport.CapPunchPreroll).(dawport.PrerollReader)
 		h.meterReader, _ = dawAdapter.Role(dawport.CapDawMeters).(dawport.MeterReader)
+		h.rangeReplacer, _ = dawAdapter.Role(dawport.CapReplaceRange).(dawport.RangeReplacer)
 		h.placeFollower, _ = dawAdapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)
 		h.transportSyncer, _ = dawAdapter.Role(dawport.CapTransportSync).(dawport.TransportSyncer)
 		if h.transportSyncer != nil {
@@ -849,7 +853,7 @@ func (h *Host) configureLocked(next config) {
 	} else {
 		h.takeCreator, h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
-		h.monitorLeveler, h.placeFollower, h.transportSyncer, h.prerollReader, h.meterReader = nil, nil, nil, nil, nil
+		h.monitorLeveler, h.placeFollower, h.transportSyncer, h.prerollReader, h.meterReader, h.rangeReplacer = nil, nil, nil, nil, nil, nil
 		// An Audacity project's place and track-selection roles are the Audacity adapter's, over the project's one pipe client.
 		if h.audacity != nil {
 			h.placeFollower, _ = h.audacity.adapter.Role(dawport.CapFollowPosition).(dawport.PlaceFollower)
@@ -1924,11 +1928,14 @@ var fieldSchemas = map[string][]fieldSchema{
 	// treats as "not checked" for that part, not as zero seconds.
 	// fx_cap_pct is the Effects tab's coverage cap: the share of a chapter, a whole percent from 1 to 100, effects may cover before
 	// the tab warns. It defaults to 10, and a stored value outside the range reads as the layer below (settings.wholeNumbers).
+	// replace_target_lufs is the integrated loudness Replace audio sets another narrator's stretch to (#2251): a whole number from -40
+	// to -10, -20 by default.
 	"Editing": {
 		{"max_gap_seconds", "Maximum gap before it's flagged (empty space)", "number", nil},
 		{"head_max_seconds", "Maximum leading silence (head)", "number", nil},
 		{"tail_max_seconds", "Maximum trailing silence (tail)", "number", nil},
 		{"fx_cap_pct", "Most of a chapter effects may cover (%)", "number", nil},
+		{"replace_target_lufs", "Loudness another narrator's audio is set to (LUFS)", "number", nil},
 	},
 	// Booth.words_per_page is where the Booth draws a page break: every this many words from a chapter's first word. A whole number from
 	// 50 to 1000, 250 (a manuscript page) by default; a stored value outside the range reads as the layer below (settings.wholeNumbers).

@@ -1,0 +1,29 @@
+{
+  "changed": [
+    "n-2"
+  ],
+  "narrators": [
+    {
+      "addedAt": "2026-09-21T10:00:00Z",
+      "files": [
+        {
+          "addedAt": "2026-09-21T10:00:00Z",
+          "daw": "REAPER",
+          "id": "f-1",
+          "length": 120,
+          "name": "Eric Leach ch1.wav",
+          "size": 18,
+          "state": "ok"
+        }
+      ],
+      "id": "n-1",
+      "name": "Eric Leach"
+    },
+    {
+      "addedAt": "2026-09-21T10:00:00Z",
+      "files": [],
+      "id": "n-2",
+      "name": "إريك 🎙"
+    }
+  ]
+}

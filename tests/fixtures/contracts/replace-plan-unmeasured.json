@@ -1,0 +1,20 @@
+{
+  "clamped": false,
+  "end": 14,
+  "gainDb": 0,
+  "loudnessNote": "Their level was not measured: reading WAV needs the audio encoder (Settings > Models & downloads). Their stretch keeps its own level unless you set one.",
+  "measuredLufs": null,
+  "narrator": "Eric Leach",
+  "result": {
+    "changed": false,
+    "message": "",
+    "ok": true,
+    "undoSteps": 0
+  },
+  "shift": 1,
+  "sourceEnd": 53,
+  "sourceStart": 50,
+  "start": 12,
+  "targetLufs": -20,
+  "words": 3
+}
