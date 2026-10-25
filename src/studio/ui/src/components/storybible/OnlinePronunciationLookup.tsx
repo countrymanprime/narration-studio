@@ -40,9 +40,10 @@ export function OnlinePronunciationLookup({ name, disabled, onUse }: { name: str
         >
           Look up online
         </Button>
-        <span className="text-xs text-[var(--text-muted)]">Sends “{name}” alone to Merriam-Webster, on your own key.</span>
+        <span className="text-[0.8125rem] text-[var(--text-muted)]">Sends “{name}” alone to Merriam-Webster, on your own key.</span>
       </div>
-      <div role="status" className="text-xs">
+      {/* Body-size text beside the 36 px Use this, not 12 px (SBX-8). */}
+      <div role="status" className="text-sm">
         {error && <p className="text-[var(--danger-text)]">{capitalize(error)}</p>}
         {result && result.found && (
           <div className="space-y-1">

@@ -200,7 +200,8 @@ export const masterDrivers: Record<string, Driver> = {
     await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
     await panel.getByRole('checkbox', { name: /^My ACX/ }).click();
     await panel.getByRole('button', { name: /^Build 2 packages/ }).click();
-    await panel.getByRole('list', { name: 'Multi-platform export results' }).waitFor();
+    // Each platform's result sits under its own checkbox; the job's own line says the build ended.
+    await panel.getByText(/^Built 2 packages/).waitFor();
     while ((await dismiss.count()) > 0) await dismiss.first().click();
     await scrollToTop(page, panel);
   },

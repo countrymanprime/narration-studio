@@ -98,6 +98,19 @@ describe('Settings: Project', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  // Alignment audit (XSE2-23, XSE2-24): Edit marks sits beside the pills, and the manuscript line is above its button at every width.
+  it('keeps Edit marks at the top right beside the pills, and the manuscript line above its button', async () => {
+    await renderPage();
+    await open('Project');
+    const marks = row('project.marks');
+    const edit = await within(marks).findByRole('button', { name: 'Edit marks…' });
+    const grid = within(marks).getByRole('list').parentElement!;
+    expect(grid.className).toContain('grid-cols-[minmax(0,1fr)_auto]');
+    expect(grid.contains(edit)).toBe(true);
+    const manuscript = row('project.manuscript');
+    expect(within(manuscript).getByText(/^Imported /).parentElement!.className).toContain('flex-col');
+  });
+
   it('clearing derived data asks first, and clears only after the confirm', async () => {
     const api = createMockApi();
     const clear = vi.spyOn(api, 'clearProjectData');
@@ -132,6 +145,19 @@ describe('Settings: Project', () => {
       expect(await within(credits).findByText('Opening credits')).toBeTruthy();
     });
 
+    // Alignment audit (XSE2-12, XSE1-23): the summary is one small table, its labels the row's text size, every line with a badge.
+    it('lays the summary out as label, badge and detail columns, the labels no bigger than the row title', async () => {
+      await renderPage();
+      await open('Project');
+      const credits = row('project.credits');
+      const label = await within(credits).findByText('Opening credits');
+      expect(label.className).toContain('text-[0.875rem]');
+      const summary = credits.querySelector<HTMLElement>('[data-credits-summary]')!;
+      expect(summary.className).toContain('grid-cols-[minmax(0,9rem)_minmax(0,auto)_minmax(0,1fr)]');
+      for (const line of summary.querySelectorAll<HTMLElement>('[data-credits]')) expect(line.className).toContain('grid-cols-subgrid');
+      expect(within(summary.querySelector<HTMLElement>('[data-credits="Retail sample"]')!).getByText(/Chosen|Not chosen/)).toBeTruthy();
+    });
+
     it('a /settings#credits link lands on the row', async () => {
       await renderPage({ initialCategory: 'Credits' });
       await screen.findByRole('heading', { level: 2, name: 'Project' });
@@ -150,6 +176,22 @@ describe('Settings: Project', () => {
       await within(types()).findByRole('textbox', { name: 'Type name: Character' });
       return api;
     }
+
+    // Alignment audit (R3SE1-2, XSE2-10, XSE1-15): the list measures its own width, a type's two lines sit closer than two types, the second
+    // line starts under the name box, the count keeps one width so the Remove buttons line up, and New type is as wide as a name box.
+    it('lays the types out as one list with one grid: counts one width, second line under the name, New type like a name box', async () => {
+      await openTypes();
+      const list = types().querySelector('ul')!;
+      expect(list.parentElement!.className).toContain('@container');
+      expect(list.parentElement!.className).toContain('w-full');
+      expect(list.className).toContain('gap-5');
+      const count = types().querySelector<HTMLElement>('[data-type-count="Place"]')!;
+      expect(count.className).toMatch(/(^| )min-w-\[70px\]/);
+      expect(count.className).toContain('text-right');
+      expect(count.parentElement!.className).toContain('pl-6');
+      expect(within(types()).getByRole('textbox', { name: 'New type' }).closest('[class*="max-w-[16rem]"]')).toBeTruthy();
+      expect(nameField('Place').closest('[class*="max-w-[16rem]"]')).toBeTruthy();
+    });
 
     it('lists each type with its entry count', async () => {
       await openTypes();
@@ -276,6 +318,36 @@ describe('Settings: Appearance & keys', () => {
     await waitFor(() => expect(save).toHaveBeenCalledWith(1.25));
     await userEvent.click(await within(zoom).findByRole('button', { name: 'Reset zoom to 100%' }));
     await waitFor(() => expect(set).toHaveBeenLastCalledWith(1));
+  });
+
+  // Alignment audit (XSE1-3, XSE1-4, XSE2-33).
+  it('shortcuts: the list grows with the card, no frame or scroller of its own, and Change keeps one right edge', async () => {
+    await renderPage();
+    await open('Appearance & keys');
+    const list = await within(row('keys.map')).findByRole('region', { name: 'Shortcuts' });
+    expect(list.className).not.toMatch(/overflow|max-h/);
+    expect(list.hasAttribute('tabindex')).toBe(false);
+    expect(list.parentElement!.style.borderColor).toBe('');
+    const change = (await within(list).findAllByRole('button', { name: 'Change' }))[0]!;
+    expect(change.parentElement!.className).toContain('ml-auto');
+    expect(change.parentElement!.className).toContain('justify-end');
+  });
+
+  it('shortcuts: the recorder keeps Cancel last in its one button row, not pushed apart', async () => {
+    await renderPage();
+    await open('Appearance & keys');
+    const list = await within(row('keys.map')).findByRole('region', { name: 'Shortcuts' });
+    await userEvent.click((await within(list).findAllByRole('button', { name: 'Change' }))[0]!);
+    const recorder = await within(list).findByRole('group', { name: /^Change "/ });
+    const cancel = within(recorder).getByRole('button', { name: 'Cancel' });
+    expect(cancel.className).not.toContain('ml-auto');
+    expect([...cancel.parentElement!.querySelectorAll('button')].at(-1)).toBe(cancel);
+  });
+
+  it('zoom is a short field of 8rem, not its content width', async () => {
+    await renderPage();
+    await open('Appearance & keys');
+    expect(within(row('look.zoom')).getByRole('combobox', { name: 'Zoom' }).className).toContain('w-32');
   });
 
   it('shortcuts: a find box narrows the list, and a key can be remapped', async () => {
