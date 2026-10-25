@@ -22,9 +22,22 @@ export interface WordMenuSection {
 export interface WordMenu {
   /** "3 words selected". */
   heading: string;
-  /** The sections that have items, in order; a separator falls between two of them. */
+  /** The bands that have items, in order, each item labelled with its band (`group`), so the menu draws a heading and a rule per band. */
   groups: ContextMenuItem[][];
 }
+
+/**
+ * The menu's bands, by section order: what plays the words, what changes them, what marks them, the takes, then the rest (copy). The first
+ * band is headed by the word count; the last has no heading. Seventeen rows in one run with no rule were a wall (alignment audit R3ED-5,
+ * XED-21). A section joins the band its `order` falls in.
+ */
+const BANDS: { below: number; label: (heading: string) => string | undefined }[] = [
+  { below: 50, label: (heading) => heading },
+  { below: 200, label: () => 'Edit' },
+  { below: 300, label: () => 'Mark' },
+  { below: 400, label: () => 'Takes' },
+  { below: Infinity, label: () => undefined },
+];
 
 const sections: WordMenuSection[] = [];
 
@@ -43,14 +56,17 @@ const headingFor = (count: number): string => `${count} ${count === 1 ? 'word' :
 
 /** The heading and the non-empty sections for a selection. A section that throws is dropped and logged; the rest still show. */
 export function buildWordMenu(selection: WordMenuSelection): WordMenu {
-  const groups: ContextMenuItem[][] = [];
+  const heading = headingFor(selection.keys.length);
+  const bands = BANDS.map(() => [] as ContextMenuItem[]);
   for (const section of [...sections]) {
     try {
       const items = section.items(selection);
-      if (items.length > 0) groups.push(items);
+      const band = BANDS.findIndex((b) => section.order < b.below);
+      const group = BANDS[band]!.label(heading);
+      bands[band]!.push(...items.map((item) => (item.group === undefined && group !== undefined ? { ...item, group } : item)));
     } catch (error) {
       console.error('A word menu section failed and was left out.', error);
     }
   }
-  return { heading: headingFor(selection.keys.length), groups };
+  return { heading, groups: bands.filter((band) => band.length > 0) };
 }

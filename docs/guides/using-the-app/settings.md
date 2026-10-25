@@ -128,7 +128,7 @@ the last 5 seconds, and the card says whether its open project matches the linke
   REAPER and REAPER does not connect.
 - **Experimental DAW actions** (Advanced, off by default, for REAPER and Audacity alike): the DAW actions not yet verified
   stay refused while it is off, unless you set that action to **On** in the table; while it is on, every one left on **Auto** is allowed.
-- **Capabilities** (Advanced): a table of what the app can ask the recording tool to do, each with **Auto**, **On** or
+- **Capabilities** (Advanced): a table, across the row under its name, of what the app can ask the recording tool to do, each with **Auto**, **On** or
   **Off** and a **Now** column: the level (**Supported**, **Experimental**, **Not yet available** or **Unsupported**),
   the tool's own reason when it is unavailable, and a warning on any action that replaces audio that cannot be brought back.
 - **Sync activity** (Advanced, REAPER only): what each chapter sync did, newest first: the first sync, each
@@ -141,7 +141,7 @@ The Audacity backups and the favourite effects are listed under [Set on a page](
 
 **Transcription model** is the one default for comparing and checking recordings: Production's recording check,
 [Proof](proof.md), [Pickups](pickups.md) and [Editing](editing.md) all use it. It is for all projects, and a project may override it.
-Changing it asks first. Choosing a model that is not on this computer shows **Not on this computer** with **Download** in the row.
+Changing it asks first. Choosing a model that is not on this computer shows **Not on this computer** in the row, with **Download** and a link to **Models & downloads** on the line under it.
 
 **Live reading in the Booth** holds the **Live engine** (Whisper, or Moonshine on Windows) and the **Live model** (`tiny`
 or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Recording check** holds the **Two-pass check**, its **First-pass model** and
@@ -197,7 +197,7 @@ With nothing downloaded, the page offers **Download the recommended set** (the S
 ![Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator](../../images/ui/settings-project.webp)
 
 - **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). **Replace manuscript…** opens the same two steps as the [import](production.md#importing-the-manuscript); step 2 names what the replace clears.
-- **Words per page** (this project, 250 by default, 50 to 1000) is where the [Booth](booth.md) marks a page break: every that many words, counted from the start of each chapter.
+- **Words per page** (this project, 250 by default, 50 to 1000) is where the [Booth](booth.md) marks a page break: at the end of the paragraph in which a page reaches that many words, counted from the start of each chapter, so a page never breaks inside a paragraph.
 - **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them.
 - **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour (the swatch is the colour the entries of that type are drawn in on every page), a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has, on one line in a wide window (in a narrow one the colour, **Can speak**, the count and the remove button take a second line under the name). A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
 - **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…**, the pencil at the right of the marks, opens the same **Define how you mark up** dialog as the Script page.
@@ -255,12 +255,12 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 - **Theme** sets **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light theme** item at the foot of the sidebar switches it too. It is kept in this window, so the page calls it **This computer**.
 - **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
-- **Reader text** sets how the [Script](script.md) reader draws the text: **Font**, **Size**, **Line spacing** and **Column width**, over a quote drawn in them. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
+- **Reader font**, **Reader text size**, **Line spacing** and **Column width** set how the [Script](script.md) reader draws the text, one row each, with a quote drawn in all four under **Column width**. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font chosen here.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
 - **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its **Change** button sit at the right of its line, and the list is as long as the card. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
 
-![Settings - Reader text: font, size, line spacing and column width over the preview quote](../../images/ui/settings-reader-text.webp)
+![Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote](../../images/ui/settings-reader-text.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 

@@ -144,4 +144,14 @@ describe('ToastRegion', () => {
     first.unmount();
     expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
   });
+
+  // XBO-13, R3SE2-4, R3PF-4: the dismiss X was a bare 17 x 20 glyph, and the error edge a border bent round the radius.
+  it("draws the dismiss button as a 32 px square, and an error's edge as a strip inside the clipped box", () => {
+    render(<ToastRegion messages={[failure(1)]} dismiss={vi.fn()} />);
+    const toast = screen.getByText('Failure 1').closest('[data-tone]') as HTMLElement;
+    expect(within(toast).getByRole('button', { name: 'Dismiss message' }).className).toContain('size-[var(--button-height-sm)]');
+    expect(toast.className).not.toContain('border-l-4');
+    expect(toast.className).toContain('overflow-hidden');
+    expect(toast.querySelector('[data-toast-edge]')!.className).toContain('bg-[var(--danger)]');
+  });
 });

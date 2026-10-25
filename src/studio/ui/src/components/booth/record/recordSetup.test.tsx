@@ -3,6 +3,7 @@ import { act, cleanup, render, renderHook, screen, waitFor, within } from '@test
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
+import { attachRefusalClaimed } from '../../connection/attachRefusal';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { DawCapabilities, DawTransport } from '../../../api/contracts/daw';
 import { createMockApi } from '../../../api/mockApi';
@@ -167,6 +168,8 @@ describe('RecordSetup when the app turns the launch away', () => {
     expect(dialog.textContent).toContain('REAPER started, but its project was turned away.');
     const alert = within(dialog).getByRole('alert');
     expect(alert.textContent).toContain('The app is busy');
+    // The dialog says it, so App's toast of the same reason stays out of the way of the script (R4BO2-4).
+    expect(attachRefusalClaimed()).toBe(true);
     expect(alert.textContent).toContain('Finish or cancel what is running, then press Open in REAPER and connect again.');
     attach({ attached: true });
     expect(screen.queryByRole('alert')).toBeNull();

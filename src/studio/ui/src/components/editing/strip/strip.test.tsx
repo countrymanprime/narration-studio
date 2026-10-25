@@ -89,6 +89,19 @@ describe('the strip follows the line', () => {
     // The line's audio is the page's one waveform, docked above the transport (#2251, item 29).
     expect(document.querySelector('#timeline canvas')).toBeNull();
   });
+  // Alignment audit XED-8: side by side in a 96 px column, "Retake on lane 2" ran under its lane and over its badge.
+  it('stacks each take name over its badge in one fixed column, the name cut with its full text as a hint', () => {
+    mount(three, { key: 'p-1:1' });
+    const labels = [...document.querySelectorAll<HTMLElement>('#timeline [data-lane-label]')];
+    expect(labels.length).toBeGreaterThan(0);
+    for (const label of labels) {
+      expect(label.className).toContain('flex-col');
+      expect(label.className).toContain('w-[7.5rem]');
+      const name = label.firstElementChild as HTMLElement;
+      expect(name.className).toContain('truncate');
+      expect(name.title).toBe(name.textContent);
+    }
+  });
   it('redraws for another line', () => {
     mount(three, { key: 'p-2:1' });
     const l = stripLayout(doc, 'p-2', three.takes, {}, [], null)!;

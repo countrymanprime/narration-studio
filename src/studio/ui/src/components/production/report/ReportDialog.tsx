@@ -132,7 +132,8 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
                   Building the preview…
                 </p>
               ) : format === 'html' ? (
-                <iframe title="Preview of the report" sandbox="" srcDoc={preview.html} className="size-full border-0 bg-white" />
+                // No fill of its own: the page draws its background, light or dark as the app's theme (the frame takes the root's color-scheme, XPR2-46).
+                <iframe title="Preview of the report" sandbox="" srcDoc={preview.html} className="size-full border-0" />
               ) : (
                 <pre aria-label="Preview of the report" className="p-3 font-mono text-xs [overflow-wrap:anywhere] whitespace-pre-wrap">
                   {preview.json}

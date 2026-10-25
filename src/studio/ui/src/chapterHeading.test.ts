@@ -43,7 +43,7 @@ describe('chapter names come from the data in every heading style', () => {
 });
 
 // #2251 item 24: one display standard everywhere but the Booth reading area — the manuscript import dialog's. A numbered heading keeps its
-// own separator; a plain one keeps chapterName's em dash.
+// own separator; a plain one reads "Title: Subtitle".
 describe('headingName is the one chapter-name display standard', () => {
   it('a numbered heading keeps the manuscript separator, not the em dash', () => {
     expect(headingName(chapter({ title: 'CHAPTER VIII.', subtitle: 'Croquet' }))).toBe('CHAPTER VIII. Croquet');
@@ -51,8 +51,8 @@ describe('headingName is the one chapter-name display standard', () => {
     expect(headingName(chapter({ title: 'Chapter 8:', subtitle: 'Croquet' }))).toBe('Chapter 8: Croquet');
   });
 
-  it('a plain heading keeps the em dash, and a one-line heading is the title alone', () => {
-    expect(headingName(chapter({ title: 'Chapter 8', subtitle: 'Croquet' }))).toBe('Chapter 8 — Croquet');
+  it('a plain heading reads "Title: Subtitle" (colon), and a one-line heading is the title alone', () => {
+    expect(headingName(chapter({ title: 'Chapter 8', subtitle: 'Croquet' }))).toBe('Chapter 8: Croquet');
     expect(headingName(chapter({ title: 'Prologue' }))).toBe('Prologue');
   });
 
@@ -68,6 +68,6 @@ describe('headingName is the one chapter-name display standard', () => {
   });
 
   it("the Production page's empty content kind is not credits", () => {
-    expect(headingName({ title: 'Chapter 8', subtitle: 'Croquet', contentKind: '' })).toBe('Chapter 8 — Croquet');
+    expect(headingName({ title: 'Chapter 8', subtitle: 'Croquet', contentKind: '' })).toBe('Chapter 8: Croquet');
   });
 });

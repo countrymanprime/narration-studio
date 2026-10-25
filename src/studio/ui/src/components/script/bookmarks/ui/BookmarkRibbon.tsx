@@ -39,7 +39,9 @@ export function BookmarkRibbon({ bookmark, lineText, top, flash = false, onUpdat
             data-bm-kind={bookmark.kind}
             aria-label={bookmark.kind === 'stop' ? tip : `Bookmark: ${tip}`}
             aria-haspopup="dialog"
-            className="relative flex h-[26px] w-4 cursor-pointer items-start justify-center rounded-sm border-0 bg-transparent p-0 text-[var(--accent)] hover:text-[var(--accent-strong)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
+            // A fixed 16 px glyph, whatever the reader's text size (the Booth's text is up to 40 px, alignment audit XBO-24), in a 16 px
+            // margin box whose press area reaches 24 px wide (R3SC-12).
+            className="relative flex h-[26px] w-4 cursor-pointer items-start justify-center rounded-sm border-0 bg-transparent p-0 text-base leading-none text-[var(--accent)] before:absolute before:-inset-x-1 before:inset-y-0 before:content-[''] hover:text-[var(--accent-strong)] focus-visible:outline-2 focus-visible:outline-[var(--focus)]"
           >
             <span data-just-changed={flash ? '' : undefined} className={flash ? `rounded-sm ${CHANGE_HIGHLIGHT_CLASSES}` : undefined}>
               <Icon name={bookmark.kind === 'stop' ? 'stoppingPlace' : 'bookmark'} />

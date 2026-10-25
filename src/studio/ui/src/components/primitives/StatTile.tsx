@@ -40,9 +40,12 @@ export function StatTile({
 }) {
   return (
     <div className={className}>
-      <SectionLabel as="div">{label}</SectionLabel>
+      {/* The row-start classes place each part in its own row when a StatStrip lays a row of tiles on one subgrid; elsewhere they do nothing. */}
+      <SectionLabel as="div" className="row-start-1">
+        {label}
+      </SectionLabel>
       {/* Plex Mono, weight 500: 22 px by default, 30 px for the Production `kpi` tile (the mock's `.kpi .v`). */}
-      <div className={`mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}>
+      <div className={`row-start-2 mt-1 ${size === 'kpi' ? 'text-[1.875rem] leading-[1.1]' : 'text-[1.375rem] leading-[1.35]'} font-medium ${MONO}`}>
         <span style={tone === 'neutral' ? undefined : { color: TONE_TEXT[tone] }}>{value}</span>
         {unit && (
           <span className={`ml-1 ${size === 'kpi' ? 'text-base' : 'text-sm'} font-normal ${MONO}`} style={{ color: 'var(--text-muted)' }}>
@@ -51,12 +54,12 @@ export function StatTile({
         )}
       </div>
       {hint && (
-        <div className={`${size === 'kpi' ? 'text-[0.8125rem]' : 'text-xs'} leading-[1.5]`} style={{ color: 'var(--text-muted)' }}>
+        <div className={`row-start-3 ${size === 'kpi' ? 'text-[0.8125rem]' : 'text-xs'} leading-[1.5]`} style={{ color: 'var(--text-muted)' }}>
           {hint}
         </div>
       )}
       {progress !== undefined && (
-        <div className="mt-1.5">
+        <div className="row-start-4 mt-1.5">
           <ProgressBar label={label} value={Math.round(progress * 100)} size="thin" tone="ok" />
         </div>
       )}

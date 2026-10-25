@@ -72,10 +72,11 @@ export const MeasuredHeader: Story = {
     const chip = canvas.getByText('REAPER linked · following Ch 7');
     // Measured in the atlas's browser; jsdom (stories.test.tsx) lays nothing out, so there HeaderChip.test.tsx pins the classes.
     if (chip.getBoundingClientRect().height === 0) return;
+    // 22 px, with a 1 px rim inside it since R3SL-5 (coloured only on the neutral tone).
     await expect(chip.getBoundingClientRect().height).toBeCloseTo(22, 0);
     await expect(canvas.getByRole('timer').getBoundingClientRect().height).toBeCloseTo(22, 0);
     const style = getComputedStyle(chip);
-    await expect(style.borderTopWidth).toBe('0px');
+    await expect(style.borderTopWidth).toBe('1px');
     await expect(style.textTransform).toBe('none');
     await expect(parseFloat(style.paddingLeft)).toBeCloseTo(10, 0);
   },

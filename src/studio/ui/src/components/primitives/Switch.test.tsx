@@ -46,4 +46,14 @@ describe('Switch', () => {
     await user.click(screen.getByText('Notify me when a job finishes'));
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  // R3SE1-7, R3SE2-13: the 36 x 20 track was the whole target when the switch has no visible label beside it.
+  it('takes presses in a 24 px band around its 20 px track', () => {
+    render(
+      <Switch checked={false} onChange={() => undefined}>
+        Check for updates
+      </Switch>,
+    );
+    expect(screen.getByRole('switch').className).toContain('after:min-h-6');
+  });
 });

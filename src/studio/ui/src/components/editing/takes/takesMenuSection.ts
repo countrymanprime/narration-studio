@@ -12,14 +12,14 @@ export interface TakesMenuSource {
   gate: () => TakesGate;
 }
 
-/** "Show takes of this line" (T) and one "Keep <take>" per take, the active one marked; off with the DAW's sentence when it cannot choose. */
+/** "Show takes of this line" (its key, T, drawn at the row's end like every other menu shortcut) and one "Keep <take>" per take, the active one marked; off with the DAW's sentence when it cannot choose. */
 export function registerTakesMenuSection(source: TakesMenuSource): () => void {
   return registerWordMenuSection({
     order: 300,
     items: (selection): ContextMenuItem[] => {
       const passage = source.passageOf(selection);
       if (!passage || passage.takes.length < 1) return [];
-      const show: ContextMenuItem = { key: 'show-takes', label: 'Show takes of this line (T)', onSelect: () => source.show(passage) };
+      const show: ContextMenuItem = { key: 'show-takes', label: 'Show takes of this line', shortcut: ['T'], onSelect: () => source.show(passage) };
       // A line with one take has nothing to choose between: the menu opens its takes and offers no Keep.
       if (passage.takes.length < 2) return [show];
       const gate = source.gate();

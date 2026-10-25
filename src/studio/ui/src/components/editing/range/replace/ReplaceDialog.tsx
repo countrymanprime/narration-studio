@@ -7,6 +7,7 @@ import { NumberInput } from '../../../primitives/NumberInput';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { Select } from '../../../primitives/Select';
 import { clock } from '../../bar/clock';
+import { DialogFooter } from '../common/DialogFooter';
 import type { ReplaceAsk } from './replaceCommand';
 
 /** The fades at each seam the dialog offers, in milliseconds (the host takes 0 to 500); 10 ms is the cut's default seam. */
@@ -325,7 +326,7 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
         {dawName} moves your audio for these words to the muted Cuts track and plays theirs in its place, in one undo step. Your recording and their file are
         not changed. Undo takes it back while it is {dawName}'s last action; <strong>Put my audio back</strong> works later too.
       </p>
-      <div className="sticky bottom-[-1.1rem] mx-[-1.1rem] mb-[-1.1rem] flex justify-end gap-2 border-t border-[var(--border)] bg-[var(--surface)] px-[1.1rem] py-3">
+      <DialogFooter>
         <Button type="button" variant="secondary" autoFocus onClick={onCancel}>
           Cancel
         </Button>
@@ -353,7 +354,7 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
         >
           {`Replace ${plural(words, 'word', 'words')}`}
         </Button>
-      </div>
+      </DialogFooter>
     </div>
   );
 }

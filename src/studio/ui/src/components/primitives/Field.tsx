@@ -61,7 +61,8 @@ export function Field({
         render={
           textarea ? (
             <textarea
-              className={`${compact ? 'min-h-14' : 'min-h-20'} py-[0.6rem] ${labelHidden ? CONTROL_CLASSES.replace('mt-2', 'mt-0') : CONTROL_CLASSES}`}
+              // `block`: an inline textarea sits on the text baseline and leaves a 6 px descender gap under it in its row.
+              className={`block ${compact ? 'min-h-14' : 'min-h-20'} py-[0.6rem] ${labelHidden ? CONTROL_CLASSES.replace('mt-2', 'mt-0') : CONTROL_CLASSES}`}
             />
           ) : secret ? (
             <input
@@ -73,7 +74,9 @@ export function Field({
               className={`h-[var(--control-height)] py-0 ${CONTROL_CLASSES}`}
             />
           ) : (
-            <input className={`h-[var(--control-height)] py-0 ${CONTROL_CLASSES}`} />
+            // A value wider than the box (a folder path in a narrow dialog) ends in an ellipsis while the box is not being edited, rather than being
+            // cut with nothing to say it goes on (alignment audit R3EN2-17). No `title`: it would be read as the box's description, the value twice.
+            <input className={`h-[var(--control-height)] py-0 text-ellipsis ${CONTROL_CLASSES}`} />
           )
         }
         disabled={disabled}

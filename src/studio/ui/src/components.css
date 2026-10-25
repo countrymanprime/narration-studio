@@ -10,15 +10,17 @@
   text-transform: uppercase;
   color: var(--text-muted);
 }
-/* The icon rail's group rule, drawn in place of each heading's text (the Studio Next mock's `.rail-c .grp::before`): 1 px, inset 4 px, 6 px
-   above the group's first item. The first group has no heading, so no rule (the brand block is above it); no rule while the rail is open
+/* The icon rail's group rule, drawn in place of each heading's text (the Studio Next mock's `.rail-c .grp::before`): 1 px, as wide as an item's highlight,
+   centred in the space between the groups. The first group has no heading, so no rule (the brand block is above it); no rule while the rail is open
    over the page, where the heading shows. AppShell's rail panel carries `icon-rail`; its headings are `relative`. */
 @media (max-width: 1359px) {
   .icon-rail:not(:hover, :has(:focus-visible)) [role='group']:not(:first-child) > .section-label::after {
     content: '';
     position: absolute;
-    inset-inline: 0.25rem;
-    top: 1.875rem;
+    /* As wide as an item's highlight and centred in the heading's space, where it sat 31 px under the last item and 8 px over the next
+       (alignment audit XSL-7). */
+    inset-inline: 0;
+    top: 50%;
     border-top: 1px solid var(--border);
   }
 }

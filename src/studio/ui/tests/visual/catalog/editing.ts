@@ -189,6 +189,9 @@ export const editingStates: StateEntry[] = [
   {
     page: 'editing',
     state: 'drawer-timeline',
+    // The driver opens the strip from 1360 px and the drawer's Timeline tab below it: a 1440 load resized to 1024 keeps neither
+    // (alignment audit R3ED-1), so each width loads and drives afresh.
+    reloadPerViewport: true,
     description:
       'Editing, the drawer on Timeline (the strip does not fit beside the text at these widths) - the takes of the line the cursor is on, one lane each, with the waveform docked above the bar',
   },

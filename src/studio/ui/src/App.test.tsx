@@ -19,6 +19,7 @@ import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { passing, profile as acxProfile } from './components/masterqc/files/testFiles';
 import type { MeasureJob } from './types';
 import { brand } from './brand.gen';
+import { claimAttachRefusal } from './components/connection/attachRefusal';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -95,7 +96,7 @@ const linkChapterOne = async () => {
   const table = await within(panel).findByRole('table', { name: 'Chapter links' });
   const row = within(table)
     .getAllByRole('row')
-    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1( — |$)/ }))!;
+    .find((candidate) => within(candidate).queryByRole('cell', { name: /^Chapter 1(: |$)/ }))!;
   const select = within(row).getByRole('combobox') as HTMLSelectElement;
   // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
   fireEvent.change(select, { target: { value: select.options[1].value } });
@@ -415,6 +416,24 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => expect(systemNotify).toHaveBeenCalledWith('story_bible', 'Task finished', 'Story Bible rebuild complete.'), { timeout: 10_000 });
 
     hasFocus.mockRestore();
+  });
+
+  it('toasts why a launched project was turned away, unless a dialog that already says it claims the reason (R4BO2-4)', async () => {
+    let attach: ((state: { attached: boolean; reason?: string }) => void) | undefined;
+    renderApp({
+      subscribeProjectAttach: (listener) => {
+        attach = listener;
+        return () => {};
+      },
+    });
+    await screen.findByRole('heading', { level: 1, name: 'Production' });
+    await waitFor(() => expect(attach).toBeDefined());
+    const release = claimAttachRefusal();
+    act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
+    expect(screen.queryByText(/The app is busy/)).toBeNull();
+    release();
+    act(() => attach!({ attached: false, reason: 'The app is busy, so the current project was left unchanged.' }));
+    expect(within(appToasts('alert')).getByText(/The app is busy/)).toBeTruthy();
   });
 
   it('says so when refreshing the project after an attach fails, instead of an unhandled rejection', async () => {
@@ -1155,7 +1174,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const activity = await screen.findByRole('dialog', { name: 'Import manuscript' });
     expect(activity.querySelector('.progressbar')).toBeTruthy();
     expect(await screen.findByText('Writing the project-owned manuscript…')).toBeTruthy();
-    expect((await screen.findAllByText('Manuscript import complete.')).length).toBeGreaterThanOrEqual(2);
+    // Said once: the status line. The work dialog's log no longer repeats the line the status already says (alignment audit R3SE1-1, R4SB-8).
+    expect(await screen.findAllByText('Manuscript import complete.')).toHaveLength(1);
     await waitFor(() => expect(bootstrap.mock.calls.length).toBeGreaterThanOrEqual(2));
     // The empty state has become the pipeline behind the modal import dialog, which stayed open through it (useManuscriptImport).
     expect(await screen.findByRole('table', { name: 'Chapter pipeline', hidden: true })).toBeTruthy();
@@ -1731,7 +1751,7 @@ describe('App shell mounts', () => {
     await screen.findByRole('heading', { level: 1, name: 'Production' });
     fireEvent.keyDown(document.body, { code: 'KeyH', key: 'h', ctrlKey: true, shiftKey: true });
     const dialog = await screen.findByRole('dialog', { name: 'Undo history' });
-    expect(within(dialog).getByText('Ctrl Z undoes the last one')).toBeTruthy();
+    expect(within(dialog).getByText('undoes the newest change')).toBeTruthy();
     fireEvent.keyDown(dialog, { code: 'KeyZ', key: 'z', ctrlKey: true });
     await waitFor(() => expect(undo).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Undid Added a bookmark')).toBeTruthy();

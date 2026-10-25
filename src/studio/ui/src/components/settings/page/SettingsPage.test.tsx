@@ -194,6 +194,93 @@ describe('Settings: field widths', () => {
   });
 });
 
+// Alignment audit, the row itself (settings/row/**): a wide body under the label, a Changed row that keeps its first line, a gap when the row
+// stacks, a placeholder for the narrator, one number box width, and a download note in two fixed lines named like the select.
+describe('Settings: row layout', () => {
+  const openAdvanced = async () => fireEvent.click(await screen.findByRole('button', { name: /Advanced/ }));
+  const wideBody = (id: string) => {
+    const body = row(id)?.querySelector<HTMLElement>('[data-row-body="wide"]');
+    expect(body).toBeTruthy();
+    return body!;
+  };
+
+  it('draws the Capabilities table under its label across the whole row (XSE2-4, R4SE2-6)', async () => {
+    await renderPage();
+    await openAdvanced();
+    const body = await waitFor(() => wideBody('daw.capabilities'));
+    expect(body.className).toContain('col-span-full');
+    expect(within(body).getByRole('table')).toBeTruthy();
+  });
+
+  it('draws the Credits body across the whole row (XSE2-11)', async () => {
+    await renderPage();
+    pick('Project');
+    const body = await waitFor(() => wideBody('project.credits'));
+    expect(body.className).toContain('col-span-full');
+    fireEvent.click(await within(body).findByRole('button', { name: /^Edit credits/ }));
+    const fields = await waitFor(() => {
+      const found = body.querySelector<HTMLElement>('[data-credits-fields]');
+      expect(found).toBeTruthy();
+      return found!;
+    });
+    expect(fields.className).toContain('max-w-[32rem]');
+    expect(within(fields).getByRole('combobox', { name: 'Template' })).toBeTruthy();
+  });
+
+  it("keeps a Changed row's title line one height, its bar the full row and Saved beside Reset (XSE1-22, XSE2-34, R3SE1-16)", async () => {
+    await renderPage();
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    const changed = row('app.channel');
+    await waitFor(() => expect(within(changed).getByText('Saved')).toBeTruthy());
+    expect(within(changed).getByText('Changed').closest('[data-title-line]')!.className).toContain('min-h-6');
+    expect(changed.querySelector('[data-changed-bar]')!.className).toContain('inset-y-0');
+    const reset = within(changed).getByRole('button', { name: /^Reset Update channel/ });
+    expect(within(changed).getByText('Saved').closest('[data-control-line]')).toBe(reset.closest('[data-control-line]'));
+  });
+
+  it('leaves a gap between the label and the control when the row stacks (R3SE2-15)', async () => {
+    await renderPage();
+    pick('App & updates');
+    await screen.findByRole('combobox', { name: /Update channel/ });
+    expect(row('app.channel').className).toMatch(/(^| )gap-y-3( |$)/);
+    expect(row('app.channel').className).toContain('@min-[761px]:gap-y-1.5');
+  });
+
+  it('says what goes in an empty Narrator name box (R3SE1-17)', async () => {
+    await renderPage();
+    pick('Project');
+    const box = await waitFor(() => within(row('project.narrator')).getByRole('textbox', { name: /Narrator name/ }));
+    expect(box.getAttribute('placeholder')).toBe('Your name as the narrator');
+  });
+
+  it('draws a number box 10rem wide with its range in the 13 px note size (XSE2-37)', async () => {
+    await renderPage();
+    pick('Speech to text');
+    await openAdvanced();
+    const box = await waitFor(() => within(row('stt.workers')).getByRole('textbox'));
+    expect(box.className).toContain('w-40');
+    const hint = within(row('stt.workers')).getByText(/^From \d+ to \d+/);
+    expect(hint.className).toContain('text-[0.8125rem]');
+  });
+
+  it('draws a download note as a status line then an action line, naming the voice as the select does (XSE2-14, R3SE2-20)', async () => {
+    await renderPage();
+    pick('Voice & pronunciation');
+    const note = await waitFor(() => {
+      const found = row('voice.id').querySelector<HTMLElement>('[data-asset-note]');
+      expect(found).toBeTruthy();
+      return found!;
+    });
+    const [status, actions] = Array.from(note.children) as HTMLElement[];
+    expect(note.children).toHaveLength(2);
+    expect(within(status).getByText('Not on this computer')).toBeTruthy();
+    expect(status.textContent).toContain('LJ Speech (US English, high) must be downloaded before it is used.');
+    expect(within(actions).getByRole('button', { name: 'Download LJ Speech (US English, high)' })).toBeTruthy();
+    expect(within(actions).getByRole('button', { name: 'Models & downloads' })).toBeTruthy();
+  });
+});
+
 describe('Settings: editing', () => {
   it('applies at once, says Saved, marks the row Changed and offers Reset', async () => {
     const api = createMockApi();

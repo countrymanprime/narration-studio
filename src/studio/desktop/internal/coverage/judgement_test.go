@@ -27,6 +27,19 @@ func TestTheViewSJudgementIsTheStageSignalS(t *testing.T) {
 	}
 }
 
+func TestCountsAreWrittenWithThousandsSeparators(t *testing.T) {
+	// The tile under the verdict formats 2,140 with toLocaleString; the host's sentence must read the same (alignment audit R3PR2-7).
+	long := testReport([]ParagraphLine{{ID: "p-000001", Tokens: 1140, Present: 1140}, {ID: "p-000002", Tokens: 1000, Present: 1000}})
+	if got := Judge(long, DefaultThresholds); got.Reason != "Text present: 2,140 of 2,140 words; every paragraph passes." {
+		t.Fatalf("reason = %q", got.Reason)
+	}
+	for n, want := range map[int]string{0: "0", 999: "999", 1000: "1,000", 1234567: "1,234,567", -1234: "-1,234"} {
+		if got := grouped(n); got != want {
+			t.Errorf("grouped(%d) = %q, want %q", n, got, want)
+		}
+	}
+}
+
 func TestJudgeNamesWhatFailsFirst(t *testing.T) {
 	if got := Judge(allRead, DefaultThresholds); got.State != stages.SignalMet || got.Reason != "Text present: 100 of 100 words; every paragraph passes." {
 		t.Fatalf("all read = %+v", got)

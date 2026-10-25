@@ -54,6 +54,14 @@ describe('StatusBadge', () => {
     });
   });
 
+  // XSE2-7: a neutral pill on a --surface-2 card was only its padding, its label a stray caption set in from the text under it.
+  it('keeps a --border rim on the neutral soft pill, and no rim on a tinted one', () => {
+    render(<StatusBadge tone="neutral" label="Not running" />);
+    expect(screen.getByText('Not running').style.borderColor).toBe('var(--border)');
+    render(<StatusBadge tone="success" label="Linked" />);
+    expect(screen.getByText('Linked').style.borderColor).toBe('transparent');
+  });
+
   it('defaults to the chip variant', () => {
     render(<StatusBadge tone="neutral" label="Not started" />);
     expect(screen.getByText('Not started')).toBeTruthy();

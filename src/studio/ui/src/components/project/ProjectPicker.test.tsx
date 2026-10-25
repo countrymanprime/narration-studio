@@ -96,12 +96,12 @@ describe('ProjectPicker', () => {
     expect(screen.getByText('Project files stay in the folder you choose.')).toBeTruthy();
   });
 
-  it('browses folders through an icon button named "Browse folders…" and switches to the folder chosen', async () => {
+  it('browses folders through "Open folder…" beside New project and switches to the folder chosen (XPJ-4)', async () => {
     const { api } = renderPicker({ selectProjectFolder: async () => ({ selected: true, path: 'C:\\Projects\\New-Project' }) });
     const switchProject = vi.spyOn(api, 'switchProject');
-    await waitFor(() => screen.getByRole('button', { name: 'Browse folders…' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Open folder…' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Browse folders…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open folder…' }));
 
     await waitFor(() => expect(switchProject).toHaveBeenCalledWith('C:\\Projects\\New-Project'));
   });
@@ -111,9 +111,9 @@ describe('ProjectPicker', () => {
     const { api } = renderPicker({ selectProjectFolder });
     const switchProject = vi.spyOn(api, 'switchProject');
     const createProject = vi.spyOn(api, 'createProject');
-    await waitFor(() => screen.getByRole('button', { name: 'Browse folders…' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Open folder…' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Browse folders…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open folder…' }));
 
     await waitFor(() => expect(selectProjectFolder).toHaveBeenCalled());
     expect(switchProject).not.toHaveBeenCalled();
@@ -160,8 +160,9 @@ describe('ProjectPicker', () => {
     renderPicker({ projectRecents: async () => [] });
 
     expect(await screen.findByText('No recent projects yet.')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'New project' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Browse folders…' })).toBeTruthy();
+    // One in the header, one in the empty list where the eye is (XPJ-8).
+    expect(screen.getAllByRole('button', { name: 'New project' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Open folder…' })).toBeTruthy();
   });
 
   it('surfaces a rejected switch call as visible text instead of failing silently', async () => {
@@ -179,9 +180,9 @@ describe('ProjectPicker', () => {
       selectProjectFolder: async () => ({ selected: true, path: 'C:\\Projects\\New-Project' }),
       switchProject: async () => ({ switched: false, reason: 'The app is busy, so the current project was left unchanged.' }),
     });
-    await waitFor(() => screen.getByRole('button', { name: 'Browse folders…' }));
+    await waitFor(() => screen.getByRole('button', { name: 'Open folder…' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Browse folders…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open folder…' }));
 
     expect(await screen.findByText('The app is busy, so the current project was left unchanged.')).toBeTruthy();
   });
@@ -306,7 +307,7 @@ describe('ProjectPicker', () => {
 
       fireEvent.click(removeButton(VOLTAGE));
 
-      await waitFor(() => expect(document.activeElement).toBe(screen.getByText('No recent projects yet.').parentElement));
+      await waitFor(() => expect(document.activeElement).toBe(screen.getByText('No recent projects yet.').closest('[tabindex="-1"]')));
     });
 
     it('clears a stale error message once a later removal is made', async () => {
@@ -374,15 +375,61 @@ describe('ProjectPicker', () => {
     expect(screen.queryByText(/REAPER is running/)).toBeNull();
   });
 
-  it('offers the project REAPER has open in a banner, and Open in it switches to that project', async () => {
+  it('marks the row of the project REAPER has open, whose Open switches to it, and the banner has no second Open (XPJ-7)', async () => {
     const { api } = renderPicker({}, {}, { dawRunningProject: true });
     const switchProject = vi.spyOn(api, 'switchProject');
     const banner = await screen.findByRole('status');
     expect(banner.textContent).toContain('REAPER is running with a project linked to');
     expect(within(banner).getByText(VOLTAGE)).toBeTruthy();
+    expect(within(banner).queryByRole('button')).toBeNull();
+    const row = screen.getAllByRole('listitem').find((item) => item.getAttribute('aria-current') === 'true')!;
+    expect(row.textContent).toContain(VOLTAGE);
+    expect(row.textContent).toContain('Open in REAPER now');
 
-    fireEvent.click(within(banner).getByRole('button', { name: `Open ${VOLTAGE}` }));
+    fireEvent.click(within(row).getByRole('button', { name: `Open ${VOLTAGE}` }));
 
     await waitFor(() => expect(switchProject).toHaveBeenCalledWith('C:\\Projects\\Voltage-and-the-Undercroft', VOLTAGE));
+  });
+
+  it('keeps Open in the banner when the project REAPER has open is not in the list', async () => {
+    const { api } = renderPicker({ projectRecents: async () => [] }, {}, { dawRunningProject: true });
+    const switchProject = vi.spyOn(api, 'switchProject');
+    const banner = await screen.findByRole('status');
+
+    fireEvent.click(await within(banner).findByRole('button', { name: `Open ${VOLTAGE}` }));
+
+    await waitFor(() => expect(switchProject).toHaveBeenCalledWith('C:\\Projects\\Voltage-and-the-Undercroft', VOLTAGE));
+  });
+
+  it('heads the pinned and the recent projects apart once one is pinned (XPJ-3), and the pinned glyph takes the accent (R4SM-16)', async () => {
+    renderPicker();
+    const list = await screen.findByRole('region', { name: 'Pinned and recent' });
+    await within(list).findByText(ALICE);
+    // Nothing pinned: one list, no group headings.
+    expect(within(list).queryByRole('heading', { name: 'Pinned' })).toBeNull();
+
+    fireEvent.click(within(list).getByRole('button', { name: `Pin ${VOLTAGE}` }));
+
+    const pinned = await within(list).findByRole('list', { name: 'Pinned' });
+    expect(within(pinned).getByText(VOLTAGE)).toBeTruthy();
+    expect(within(within(list).getByRole('list', { name: 'Recent' })).getByText(ALICE)).toBeTruthy();
+    expect(within(pinned).getByRole('button', { name: `Unpin ${VOLTAGE}` }).className).toContain('aria-pressed:text-[var(--accent-strong)]');
+  });
+
+  it('below sm the title has its row and a row wraps its buttons under the name, so the name is readable (XPJ-2, XPJ-10, XPJ-11)', async () => {
+    renderPicker();
+    const list = await screen.findByRole('region', { name: 'Pinned and recent' });
+    const header = screen.getByRole('button', { name: 'Open folder…' }).parentElement!.parentElement!;
+    expect(header.className).toMatch(/\bflex-col\b.*\bsm:flex-row\b.*\bsm:items-baseline\b/);
+    const row = within(list).getByText(ALICE).closest('li')!;
+    expect(row.className).toContain('flex-wrap');
+    expect(within(list).getByText(ALICE).parentElement!.className).toContain('max-sm:basis-full');
+  });
+
+  it('top-aligns the column, so the mark does not move with the length of the list (XPJ-1, R3PJ-1)', async () => {
+    renderPicker();
+    await screen.findByRole('region', { name: 'Pinned and recent' });
+    const column = screen.getByRole('heading', { level: 1, name: 'Choose your project' }).closest('.max-w-\\[47\\.5rem\\]')!;
+    expect(column.className).not.toContain('justify-center');
   });
 });

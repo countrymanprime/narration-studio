@@ -9,7 +9,7 @@ import { WIRE_CHAPTERS, WIRE_DISCREPANCIES, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { CommandRouter } from '../../input/router';
 import type { NarrationApi } from '../../types';
 import { ProofChapterPage } from './ProofChapterPage';
@@ -52,7 +52,7 @@ function renderWorkspace(overrides: Partial<NarrationApi> = {}, initial: Paramet
 describe('ProofChapterPage', () => {
   it('shows the chapter’s name and a current check state', async () => {
     renderWorkspace();
-    expect(await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: `Proof · ${headingName(chapter)}` })).toBeTruthy();
     expect(await screen.findByText('Check current')).toBeTruthy();
   });
 
@@ -189,7 +189,7 @@ describe('ProofChapterPage loading state', () => {
 
   it('is replaced by the chapter when it arrives', async () => {
     renderWorkspace();
-    expect(await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: `Proof · ${headingName(chapter)}` })).toBeTruthy();
     expect(region()).toBeNull();
   });
 
@@ -232,7 +232,7 @@ describe('ProofChapterPage loading state', () => {
       expect(screen.queryByText(/The manuscript could not be read\./)).toBeNull();
       expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
       await act(async () => release(WIRE_CHAPTERS));
-      expect(await screen.findByRole('heading', { name: `Proof · ${chapterName(chapter)}` })).toBeTruthy();
+      expect(await screen.findByRole('heading', { name: `Proof · ${headingName(chapter)}` })).toBeTruthy();
       expect(region()).toBeNull();
     });
 

@@ -26,7 +26,8 @@ export function fxMenuItems({ list, listWhy, refusal, dawName, onPick }: FxMenuI
   const manage: ContextMenuItem = {
     key: 'fx-manage',
     label: `Manage in ${dawName}…`,
-    unavailable: `${dawName} keeps its own effects; the app cannot open them yet.`,
+    // One short line: the two-line note made a row about where effects live read as an error (alignment audit R3ED-4).
+    unavailable: `Change them in ${dawName}.`,
     onSelect: () => {},
   };
   if (!list) return [{ key: 'fx-off', label: 'Add FX', unavailable: refusal || listWhy || NO_ANSWER, onSelect: () => {} }, manage];

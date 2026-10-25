@@ -245,9 +245,21 @@ export function useFxWords({ journal, chapterId, chapterName, effects, cuts, loc
     [refusalOf, doc, docCuts, list, listWhy, dawName, ask],
   );
 
+  // From the bar at the foot of the card the list ends just above the button, over the script, so it neither covers the bar's own Delete
+  // nor the key hints nor runs past the card (alignment audit R3ED-4, XED-22): the menu opens down from the point it is given, so once it
+  // is drawn and its height known it is opened again that far above the button. From a word it opens under the word.
   const openMenu = useCallback((el: HTMLElement) => {
     const box = el.getBoundingClientRect();
-    (anchor.current ?? el).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: box.left, clientY: box.bottom }));
+    const target = anchor.current ?? el;
+    const at = (y: number) =>
+      target.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: box.left, clientY: y }));
+    if (!el.closest('[role="toolbar"][aria-label="Playback and selection"]')) return void at(box.bottom);
+    at(box.top);
+    requestAnimationFrame(() => {
+      const popup = document.querySelector<HTMLElement>('[role="menu"]');
+      const height = popup?.getBoundingClientRect().height ?? 0;
+      if (height > 0 && box.top - 6 - height >= 8) at(box.top - 6 - height);
+    });
   }, []);
 
   const fx = useCallback(() => {

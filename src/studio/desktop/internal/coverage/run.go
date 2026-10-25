@@ -102,7 +102,7 @@ func (j *job) passLabel() string {
 
 func (j *job) initialState() State {
 	started := j.startedAt
-	state := State{RunID: j.runID, ChapterID: j.basis.ChapterID, Phase: PhaseRunning, Stage: "START", Message: "Starting the recording check...", StartedAt: &started, Background: j.request.Background}
+	state := State{RunID: j.runID, ChapterID: j.basis.ChapterID, Phase: PhaseRunning, Stage: "START", Message: "Starting the recording check…", StartedAt: &started, Background: j.request.Background}
 	if j.request.Recheck.Model != "" {
 		state.Pass, state.FirstPassModel, state.RecheckModel = j.passLabel(), j.request.Transcription.Model, j.request.Recheck.Model
 	}
@@ -232,6 +232,9 @@ func (s *Service) readProgress(running *job) {
 		s.config.Reporter.Warn("progress_line_ignored", fmt.Sprintf("Recording coverage progress line ignored: %v", err))
 		return
 	}
+	// The sidecar writes ASCII ("Transcribing item 2/3... 0:41 / 1:30"); the dialog's ellipsis is one character, as the host's own
+	// messages are (alignment audit R3PR2-22).
+	message = strings.ReplaceAll(message, "...", "…")
 	s.mu.Lock()
 	if stage == "ERROR" {
 		running.lastError = message
@@ -240,12 +243,12 @@ func (s *Service) readProgress(running *job) {
 		s.mu.Unlock()
 		return
 	}
-	changed := running.state.Stage != stage || running.state.Percent < percent || (message != "" && running.state.Message != message && running.state.Message != "Cancelling...")
+	changed := running.state.Stage != stage || running.state.Percent < percent || (message != "" && running.state.Message != message && running.state.Message != "Cancelling…")
 	running.state.Stage = stage
 	if percent > running.state.Percent {
 		running.state.Percent = percent
 	}
-	if message != "" && running.state.Message != "Cancelling..." {
+	if message != "" && running.state.Message != "Cancelling…" {
 		running.state.Message = message
 	}
 	if changed {
@@ -283,7 +286,7 @@ func (s *Service) finish(running *job) {
 			message = err.Error()
 		} else {
 			report, outcome, phase = parsed, evidence.LedgerComplete, PhaseComplete
-			message = fmt.Sprintf("Text present: %d of %d words.", parsed.Summary.PresentTokens, parsed.Summary.BodyTokens)
+			message = fmt.Sprintf("Text present: %s of %s.", grouped(parsed.Summary.PresentTokens), words(parsed.Summary.BodyTokens))
 		}
 	case code == exitCancelled:
 		outcome, phase, message = evidence.LedgerPartial, PhaseCancelled, "Cancelled. The items already transcribed are kept for the next check."

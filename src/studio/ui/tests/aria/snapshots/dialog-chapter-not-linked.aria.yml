@@ -7,15 +7,15 @@
 - status
 - alert
 - status
-- dialog "Chapter 1 — Down the Rabbit-Hole is not linked to a track":
-  - heading "Chapter 1 — Down the Rabbit-Hole is not linked to a track" [level=2]
+- 'dialog "Chapter 1: Down the Rabbit-Hole is not linked to a track"':
+  - 'heading "Chapter 1: Down the Rabbit-Hole is not linked to a track" [level=2]'
   - button "Close"
   - paragraph: There is no audio to edit yet. The script is shown without what was heard.
-  - combobox "Track for Chapter 1 — Down the Rabbit-Hole"
+  - 'combobox "Track for Chapter 1: Down the Rabbit-Hole"'
   - text: "Or have REAPER add a new track for this chapter, named after it, and link it:"
   - button "Create a new track"
   - paragraph:
-    - status: Waiting for Chapter 1 — Down the Rabbit-Hole to be linked.
+    - status: "Waiting for Chapter 1: Down the Rabbit-Hole to be linked."
     - text: /Last checked \d+ s ago, from the project as last saved\./
   - button "Check again"
   - button "Link track"

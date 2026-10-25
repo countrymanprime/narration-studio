@@ -2,6 +2,7 @@ import { Input } from '@base-ui/react/input';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { HIT_AREA } from './hitArea';
 import { TooltipTarget } from './Tooltip';
 
 const TAG_FONT = "font-['IBM_Plex_Mono',monospace] text-[0.8rem]";
@@ -87,54 +88,64 @@ export function TagInput({
   };
   return (
     <div role="group" aria-label={label}>
+      {/* The whole box is the field: a press anywhere in it that is not on a chip or a button puts the cursor in the typing box, which is
+          one 19 px line inside it (alignment audit R3PC-6); a mouse convenience only, as the typing box is the keyboard's way in. The chips and the typing box wrap in their own column, rows 6 px apart, and the
+          actions keep the top-right corner whatever the rows do (XPC-8). */}
       <div
-        className="flex min-h-11 flex-wrap items-center gap-2 rounded-md p-2"
+        className="flex min-h-11 cursor-text items-start gap-2 rounded-md p-2"
         style={{ border: '1px solid var(--line-strong)', background: 'var(--surface-2)' }}
+        onClick={(event) => {
+          if (!(event.target as HTMLElement).closest('button, input')) inputRef.current?.focus();
+        }}
       >
-        {tags.map((tag) => (
-          <span
-            key={tag}
-            className={`inline-flex items-center gap-[0.35rem] rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-[0.55rem] py-[0.3rem] ${TAG_FONT} text-[var(--accent-strong)]`}
-          >
-            {tag}
-            <button
-              type="button"
-              aria-label={`Remove ${tag}`}
-              onClick={() => {
-                onRemove(tag);
-                inputRef.current?.focus();
-              }}
+        <div className="flex min-h-7 min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className={`inline-flex h-7 items-center gap-[0.35rem] rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-[0.55rem] ${TAG_FONT} text-[var(--accent-strong)]`}
             >
-              <FontAwesomeIcon icon={faXmark} />
-            </button>
-          </span>
-        ))}
-        {suggestions.map((term) => (
-          <TooltipTarget key={term} text={suggestionHint}>
-            <button
-              type="button"
-              aria-description={suggestionHint}
-              className={`inline-flex items-center gap-[0.35rem] rounded-full border border-dashed border-[var(--line-strong)] bg-transparent px-[0.55rem] py-[0.3rem] ${TAG_FONT} text-[var(--text)]`}
-              onClick={() => onAcceptSuggestion(term)}
-            >
-              + {term}
-            </button>
-          </TooltipTarget>
-        ))}
-        {tags.length === 0 && suggestions.length === 0 && draft === '' && <span className="text-xs text-[var(--text)]">{emptyText}</span>}
-        <Input
-          ref={inputRef}
-          aria-label={inputLabel}
-          value={draft}
-          placeholder={placeholder}
-          maxLength={MAX_TERM_LENGTH}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={onKeyDown}
-          onPaste={onPaste}
-          onBlur={submit}
-          className="min-w-[8rem] flex-1 border-0 bg-transparent p-0 text-[0.88rem] leading-[1.35] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
-        />
-        {actions}
+              {tag}
+              {/* The x is drawn as it was and takes presses in 24 px around it (R3PC-4). */}
+              <button
+                type="button"
+                className={HIT_AREA}
+                aria-label={`Remove ${tag}`}
+                onClick={() => {
+                  onRemove(tag);
+                  inputRef.current?.focus();
+                }}
+              >
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </span>
+          ))}
+          {suggestions.map((term) => (
+            <TooltipTarget key={term} text={suggestionHint}>
+              <button
+                type="button"
+                aria-description={suggestionHint}
+                className={`inline-flex h-7 items-center gap-[0.35rem] rounded-full border border-dashed border-[var(--line-strong)] bg-transparent px-[0.55rem] ${TAG_FONT} text-[var(--text)]`}
+                onClick={() => onAcceptSuggestion(term)}
+              >
+                + {term}
+              </button>
+            </TooltipTarget>
+          ))}
+          {tags.length === 0 && suggestions.length === 0 && draft === '' && <span className="text-[0.88rem] text-[var(--text)]">{emptyText}</span>}
+          <Input
+            ref={inputRef}
+            aria-label={inputLabel}
+            value={draft}
+            placeholder={placeholder}
+            maxLength={MAX_TERM_LENGTH}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={onKeyDown}
+            onPaste={onPaste}
+            onBlur={submit}
+            className="min-w-[8rem] flex-1 border-0 bg-transparent p-0 text-[0.88rem] leading-[1.35] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
+          />
+        </div>
+        {actions && <div className="flex flex-none items-center gap-2">{actions}</div>}
       </div>
     </div>
   );
