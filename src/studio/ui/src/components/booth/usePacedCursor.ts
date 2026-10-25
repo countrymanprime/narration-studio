@@ -12,12 +12,17 @@ const SNAP_WORDS = 80;
  * confirmed phrase can move it several words at once), so forward movement is
  * walked a few words at a time to read as a smooth follow. It only ever
  * catches up to the real position - it never runs ahead of it - and
- * a move backward, or reduced-motion, lands immediately.
+ * a move backward, a new `session`, or reduced-motion, lands immediately.
  */
-export function usePacedCursor(target: number): number {
+export function usePacedCursor(target: number, session = 0): number {
   const [paced, setPaced] = useState(target);
+  // A new session (`session` changed) is not a move: it lands in place, so nothing the last one showed is walked through.
+  const [shown, setShown] = useState(session);
   const reduced = reducedMotion();
-  if (target < paced || target - paced > SNAP_WORDS) setPaced(target);
+  if (session !== shown) {
+    setShown(session);
+    setPaced(target);
+  } else if (target < paced || target - paced > SNAP_WORDS) setPaced(target);
 
   useEffect(() => {
     if (paced >= target || reduced) return;
