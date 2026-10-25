@@ -1,6 +1,6 @@
 // The `global` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { TOOLTIP_CLOSES_ON_RESIZE, FREEZES_THE_CLOCK, LAYOUT_BANDS } from './shared';
+import { TOOLTIP_CLOSES_ON_RESIZE, FREEZES_THE_CLOCK, LAYOUT_BANDS, REFLOW } from './shared';
 
 export const globalStates: StateEntry[] = [
   // Global overlays (captured once against the Production home, not per-page)
@@ -97,6 +97,18 @@ export const globalStates: StateEntry[] = [
     },
     ...TOOLTIP_CLOSES_ON_RESIZE,
     ...LAYOUT_BANDS,
+  },
+  {
+    page: 'global',
+    state: 'nav-drawer-open',
+    description:
+      "Primary navigation - below 860 px the top bar's Open navigation button opens the navigation drawer over the page, with the groups and their items; from 860 px there is a rail and no drawer, so this is the page as it was",
+    sameAs: {
+      of: 'production/no-data',
+      reason: 'From 860 px the rail replaces the drawer and its button, so there is nothing to open (alignment audit: the open drawer had no state).',
+      viewports: ['desktop', 'small-desktop'],
+    },
+    ...REFLOW,
   },
 
   // Theme smoke check (not the full page/state matrix - see docs/design/design-system.md#theme) - explicit Light/Dark selected via
