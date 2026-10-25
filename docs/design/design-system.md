@@ -184,6 +184,17 @@ Four widths and the rail decide the layout, as the Studio Next mock lays it out:
 
 **A bar that wraps keeps its tools together.** A page's top bar that wraps (`flex-wrap`) puts its trailing chips and icon buttons in one `ml-auto` group that does not wrap inside, so a narrow window moves the whole group to the next row at the right edge instead of leaving one tool under the first button of the bar (the Booth's `BoothTop`, `[data-booth-tools]`; alignment audit XBO-3, R3BO-2). A spacer `flex-1` does not do this: it only pushes on the row it lands on. The bar's chips are one family, the 22 px pill (`HeaderChip`, or `Badge` `shape="pill"` for one that is not a button, such as the Booth's REC and Pickups chips), never the 26 px `booth` tag beside a pill (XBO-11). In the medium layout the Booth's chapter picker is as wide as its name up to the wide layout's 340 px, not the mock's fixed 190 px (`.md .booth .chapbar .chapsel`), which cut short names while the bar had room (XBO-22); the bar wraps instead. Two more departures from the mock's Booth bar: its progress line says "~8:10 of audio left" where the mock says "finished left", which read as a typo (R4BO2-11), and its Resume chip is not drawn while the reading position is already in the offered paragraph (R4BO1-3, R4BO2-10).
 
+## The project picker
+
+The picker (`project/ProjectPicker.tsx`) departs from the Studio Next mock's `ProjectPicker` in these places (alignment audit, owner decision to fix every finding):
+
+- The column is top-aligned, not centred, so the mark stays put whatever the list's length or a banner (XPJ-1, R3PJ-1).
+- **Open folder…** is a secondary button beside **New project**, on the title's baseline, where the mock has a folder icon in the list's header (XPJ-4, XPJ-11). Below `sm` both go under the title (XPJ-10), and a row wraps its date and buttons under the name, so the name is readable (XPJ-2).
+- Once a project is pinned the list has a **Pinned** and a **Recent** heading (XPJ-3); the pressed pin's glyph is `--accent-strong`, so pinned reads louder than unpinned in dark (R4SM-16).
+- The project the running REAPER has open is marked on its own row ("Open in REAPER now", the accent tint and edge, `aria-current`), whose **Open** is the one to press; the banner keeps an **Open** only when that project is not listed (XPJ-7).
+- An empty list offers **New project** in it (XPJ-8).
+- The New Project dialog's Cancel sits beside Create (`actionsAlign="end"`, XPJ-5), and its location breaks after a folder separator (`BreakablePath`, XPJ-9).
+
 ## Production board
 
 The Production page follows the Studio Next mock's `phead`, `kpis`, `pstats` and `pgrid` with these departures, each from the alignment audit (`docs/research/alignment-audit/findings/production.md`) and the owner's decision on #2251 to fix every finding. They replace the mock's lines named here.
