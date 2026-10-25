@@ -168,7 +168,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'chapter-tags-not-rendered',
     description:
-      'The engine panel, "Embed chapter tags" dialog with a chapter configured but not yet rendered - "not rendered yet" and the press-Render-first message, Embed disabled (reached via the ?mockChapterTags=not-rendered mock seam)',
+      'The engine panel, "Embed chapter tags" dialog with a chapter configured but not yet rendered - a "Not rendered yet" badge and the press-Render-first warning, Embed disabled (reached via the ?mockChapterTags=not-rendered mock seam)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
