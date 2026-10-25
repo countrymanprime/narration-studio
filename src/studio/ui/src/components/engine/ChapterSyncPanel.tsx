@@ -116,7 +116,8 @@ export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; o
           ...(notChapters ? [{ label: `Not chapters (${notChaptersCount})`, value: <span className="[overflow-wrap:anywhere]">{notChapters}</span> }] : []),
         ]}
       />
-      {state.unsavedEdits && (
+      {/* Only REAPER's heartbeat carries an edit count, and the line names REAPER. */}
+      {state.unsavedEdits && daw.daw === 'REAPER' && (
         <p role="status" className="mt-2 text-sm" style={{ color: 'var(--warn-text)' }}>
           REAPER has changes that aren&rsquo;t saved yet. Sync reads the saved project, so it picks them up when you save.
         </p>

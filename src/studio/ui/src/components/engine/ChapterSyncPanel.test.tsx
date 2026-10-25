@@ -114,6 +114,17 @@ describe('ChapterSyncPanel', () => {
     expect(screen.getByText(/REAPER has changes that aren’t saved yet/)).toBeTruthy();
   });
 
+  // Only REAPER's heartbeat sets unsavedEdits, but the line names REAPER, so an Audacity project's card never shows it.
+  it('never says REAPER has unsaved changes for an Audacity project', async () => {
+    render(
+      <ApiProvider api={createMockApi({}, { chapterSync: 'unsaved' })}>
+        {<ChapterSyncPanel daw={{ daw: 'Audacity', linkedFile: 'Book One.aup3' }} notify={() => {}} onChanged={() => {}} />}
+      </ApiProvider>,
+    );
+    await screen.findByText('Last synced');
+    expect(screen.queryByText(/REAPER|\.rpp/)).toBeNull();
+  });
+
   // The card header is the row that holds the card's heading.
   const inHeader = (button: HTMLElement) => Boolean(button.parentElement?.parentElement?.querySelector('h2'));
 
