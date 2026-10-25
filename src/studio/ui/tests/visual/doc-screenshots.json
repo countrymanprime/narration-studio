@@ -721,6 +721,20 @@
     "caption": "Editing - an FX chain chosen for four words: how the item is split around the words"
   },
   {
+    "page": "editing",
+    "state": "replace-dialog",
+    "viewport": "desktop",
+    "docName": "editing-replace-dialog",
+    "caption": "Editing - Replace with another narrator's audio on four selected words: the other narrator, their file, their stretch, and the loudness and length"
+  },
+  {
+    "page": "editing",
+    "state": "replace-mark-open",
+    "viewport": "desktop",
+    "docName": "editing-replace-mark",
+    "caption": "Editing - the other narrator's name after four replaced words, opened: their stretch, the level change and Put my audio back"
+  },
+  {
     "page": "settings",
     "state": "recording-sample-output-builtin",
     "viewport": "desktop",

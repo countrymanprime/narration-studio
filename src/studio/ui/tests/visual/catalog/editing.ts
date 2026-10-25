@@ -123,6 +123,19 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'replace-dialog',
+    description:
+      "Editing, Replace with another narrator's audio on four selected words - the other narrator named, a file of theirs added, their stretch on its ruler, and the host's plan: the loudness against the project's target, the level change and how far the later audio moves",
+  },
+  {
+    page: 'editing',
+    state: 'replace-mark-open',
+    description:
+      "Editing, four words replaced with another narrator's audio - the narrator's name after the last word, opened: their stretch, the level change and Put my audio back",
+    ...TOAST_FADES_OUT,
+  },
+  {
+    page: 'editing',
     state: 'read-twice',
     description:
       'Editing, Chapter 1 linked, the next flag key stepped to words said again: their Read twice card says the recording reads the line twice and offers Stack as 2 takes, Hear both reads, Leave in place and Delete second read',
