@@ -488,4 +488,12 @@ html[data-motion='reduce'] {
       linear-gradient(to right, rgb(0 0 0 / 0.2), transparent) left center / 0.75rem 100% no-repeat scroll,
       linear-gradient(to left, rgb(0 0 0 / 0.2), transparent) right center / 0.75rem 100% no-repeat scroll;
   }
+  /* Its vertical twin, for a box that scrolls up and down inside a dialog (Check recordings' form, alignment audit XPF-2). */
+  .scroll-y-edges {
+    background:
+      linear-gradient(var(--surface) 30%, transparent) center top / 100% 2rem no-repeat local,
+      linear-gradient(to top, var(--surface) 30%, transparent) center bottom / 100% 2rem no-repeat local,
+      linear-gradient(rgb(0 0 0 / 0.2), transparent) center top / 100% 0.75rem no-repeat scroll,
+      linear-gradient(to top, rgb(0 0 0 / 0.2), transparent) center bottom / 100% 0.75rem no-repeat scroll;
+  }
 }
