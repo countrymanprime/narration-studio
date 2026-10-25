@@ -21,7 +21,7 @@ description, for a type that can speak **How they talk**, **How they act** and *
 properties, its **Relationships** to other entries, and **Appears in**, the chapters it is in, each with a
 button that opens it in the [Script](script.md). The kind beside the name is a plain label until you press Edit, when it becomes a menu that changes it, and the
 magnifier button lights the name in the Script's text. Press Edit (the pencil) to change the entry, then Save
-(or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Locked entries can't be edited until
+(or Cancel). Read-only, the entry shows no add-a-name box and no add-a-relationship row; Edit brings them in. Read-only, **How they talk**, **How they act** and **What they know** with nothing written share one "Not written yet" line, and an entry with no properties says "No properties yet." with no table. Locked entries can't be edited until
 unlocked. The scan is deliberately strict: it favors missing a name over listing ordinary
 words, so add unusual names by hand with the + button.
 
@@ -60,12 +60,12 @@ entry already has is refused with a line saying so.
 ## Relationships
 
 **Relationships** lists what this entry is to another entry, one row each: the relationship (for example "serves") and the entry it is to.
-A relationship written from the other entry's side ("The gardeners serve Queen of Hearts") shows an arrow, and its hint gives the whole sentence.
+A relationship written from the other entry's side ("The gardeners serve Queen of Hearts") shows an arrow, in edit mode too, and its hint gives the whole sentence.
 In edit mode a row changes in place:
 
 - Type in the relationship box, or pick one of the suggestions (loves, hates, lives in and so on), and press Enter or leave the box. An emptied box goes back to what it was.
-- Press the entry's name to open the picker: type to search by name or alias (it lists up to 50), press Enter to take the first match or press a row. The current one is marked.
-- The trash removes the row. The **+** below the rows adds a blank row; nothing is saved until it has both a relationship and an entry, and its trash drops it.
+- Press the entry's name to open the picker, a small window titled for the relationship ("Related entry for “follows”"): type to search by name or alias (it lists up to 50), press Enter to take the first match or press a row. The current one is marked; Esc, the close button or a press outside closes it without a change.
+- The trash beside the entry removes the row. The **+** below the table adds a blank row; nothing is saved until it has both a relationship and an entry, and its trash drops it.
 
 A change is saved at once, like the other edits to names and relationships, not with Save. It is written as the new relationship and then the old one is removed.
 

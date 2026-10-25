@@ -1,6 +1,6 @@
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
 import { statusLabel, statusTone } from '../../kinds/statusTone';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useInRouterContext, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -123,6 +123,23 @@ const nameOwner = (entries: readonly GuideEntity[], text: string, exceptId: stri
  * The entry's card: the panel look (panelStyles.ts) with the name as its heading, or, while the entry is edited, as a bare 26 px input in the
  * header with no label of its own (the mock's EntryEditor). Always the same elements, so turning Edit on does not rebuild the body.
  */
+/** The read view's one line for the entry's empty text parts: "Not written yet: How they talk, How they act." */
+function NotWritten({ labels }: { labels: string[] }) {
+  if (labels.length === 0) return null;
+  return (
+    <p className="m-0 text-[0.82rem] text-[var(--text-muted)]">
+      Not written yet:{' '}
+      {labels.map((label, index) => (
+        <Fragment key={label}>
+          {index > 0 && ', '}
+          <span>{label}</span>
+        </Fragment>
+      ))}
+      .
+    </p>
+  );
+}
+
 function EntryFrame({
   title,
   nameInput,
@@ -876,7 +893,7 @@ export function GuideDetail({
         <EntryText label="Description" value={draft.description} editing={!editingDisabled} onChange={(description) => setDraft({ ...draft, description })} />
 
         {speaks &&
-          TALK_FIELDS.map(({ key, label }) => (
+          TALK_FIELDS.filter(({ key }) => !editingDisabled || draft.talk[key]).map(({ key, label }) => (
             <EntryText
               key={key}
               label={label}
@@ -885,6 +902,8 @@ export function GuideDetail({
               onChange={(value) => setDraft({ ...draft, talk: { ...draft.talk, [key]: value } })}
             />
           ))}
+        {/* Read view: the empty ones are one line, not a label and a dash each (R3SB1-9). */}
+        {speaks && editingDisabled && <NotWritten labels={TALK_FIELDS.filter(({ key }) => !draft.talk[key]).map(({ label }) => label)} />}
 
         <PropertiesSection
           saved={propertiesOf(entity, speaks).rest}
