@@ -235,6 +235,11 @@ The Production slide-overs depart from the Studio Next mock in these lines, from
 - **Stage readiness draws only the decisions that can be taken.** Dismiss, Confirm and Revert appear when they are possible, under the evidence they decide; the mock (`StageReadiness.tsx`) draws all of them disabled at the panel's foot, which left two dead buttons 400 px under a "can't tell" sentence (XPR2-35). The body does not repeat the slide-over's "Stage readiness" title, and a not-ready box counts the unmet checks rather than repeating them (R3PR2-8).
 - **A missing track is not drawn as a healthy one.** The chapter-track panel drops playback and Select in REAPER when the linked track is gone, labels its figures "Last known", and draws the track dot hollow; with two links to choose between it offers only the Keep this one rows, not a second picker (R3PR1-1, R3PR1-6).
 
+## Host-written counts and the report preview
+
+- **A count the host writes into a sentence has thousands separators** ("2,140 of 2,140 words"), as the tile beside it formats with `toLocaleString('en-US')`: `grouped` in `desktop/internal/coverage/signal.go` for the recording check's verdict, evidence and status lines (alignment audit R3PR2-7). An ellipsis in a status line is one character, `…`; the host turns the sidecar's ASCII `...` into it (R3PR2-22).
+- **The report preview frame paints nothing itself.** The status report is the host's own styled page (`desktop/internal/productionreport/report.html.tmpl`, light and dark through `prefers-color-scheme`); the dialog's `iframe` has no background, so the page follows the app's theme through the root's `color-scheme` instead of showing a white slab in dark (`production/report/ReportDialog.tsx`, XPR2-46).
+
 ## Manuscript reader
 
 - **One card per section.** Each chapter starts with the mock's boundary: a dashed "End of … · N words" line, then `ChapterCard` (`src/studio/ui/src/components/script/page/chapters/ChapterCard.tsx`, not a primitive) with the label, Record in Booth, the title, the facts line and My prep. The opening and closing credits are drawn the same way by `CreditsSection.tsx` beside it, as the mock lists them as chapters, with their own prep state; their unresolved tokens and Fill in sit in the card's banner row. There is no disclosure: every section's text is always shown.
