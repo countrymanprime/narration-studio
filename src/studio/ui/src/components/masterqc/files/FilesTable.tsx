@@ -8,7 +8,7 @@ import { statusTone } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import type { FileActions } from './FileActions';
-import { buildChapterRows, buildRows, type Cell, type ChapterSlot, type FileRow } from './rows';
+import { buildChapterRows, buildRows, sharedWaiting, type Cell, type ChapterSlot, type FileRow } from './rows';
 import { useDawGates, type Gate } from './useDawGates';
 import { useMasterSelection } from './useMasterSelection';
 
@@ -16,6 +16,20 @@ import { useMasterSelection } from './useMasterSelection';
 const fileIdOf = (target: Element): string | null => target.closest('tr')?.querySelector('[data-file]')?.getAttribute('data-file') ?? null;
 
 const DANGER = { color: 'var(--danger-text)' };
+const MUTED = { color: 'var(--text-muted)' };
+
+/**
+ * The column widths (`Table columns`): File takes what is left, every other column is fixed, so a long message or a long name wraps in its
+ * own column and never moves the others between states (XMS-3, R4MS1-2). Each holds its heading and its longest value on one line ("Not
+ * measured", "✕ 0.4 / ✕ 6.1"), the outer ones with the card's 16 px inset.
+ * The table's own floor (`TABLE_FLOOR`) keeps File at least about 10rem: under it the table scrolls in its box rather than breaking a
+ * chapter name a letter a line (XMS-1).
+ */
+const COLUMNS = ['auto', '4.5rem', '4.75rem', '4.75rem', '6rem', '6.5rem', '7.5rem'] as const;
+const TABLE_FLOOR = 'min-w-[44rem]';
+const NOWRAP = 'whitespace-nowrap';
+
+const NOTHING_MEASURED = 'Nothing measured yet. Check your rendered chapter files (WAV) to see them here.';
 
 /** A measured value; one the profile's rule did not meet is red, bold, marked with a cross and said in words for a screen reader. */
 function Value({ cell }: { cell: Cell | undefined }) {
@@ -30,7 +44,7 @@ function Value({ cell }: { cell: Cell | undefined }) {
 }
 
 function Result({ row }: { row: FileRow }) {
-  if (row.waiting) return <StatusBadge tone={statusTone('waiting')} label={row.waitingPill ?? 'Waiting'} />;
+  if (row.waiting) return <StatusBadge tone={statusTone(row.waitingPill === 'Measuring' ? 'checking' : 'waiting')} label={row.waitingPill ?? 'Waiting'} />;
   if (row.verdict === 'fail') return <StatusBadge tone={statusTone('fail')} label="Fail" icon="✕" />;
   if (row.verdict === 'pass') return <StatusBadge tone={statusTone('pass')} label="Pass" />;
   return <StatusBadge tone={statusTone('not_checked')} label="Not judged" />;
@@ -38,9 +52,20 @@ function Result({ row }: { row: FileRow }) {
 
 /**
  * The table panel's header row (the mock's `.ph`): `heading` (the page title, the chapter bar and the profile pill) at the left; at the
- * right the one refresh icon, "Check the files again". The page's run controls (`controls`, which the mock lacks) sit in a strip under it.
+ * right the one refresh icon, "Check the files again". The page's run controls (`controls`, which the mock lacks) sit in a strip under it,
+ * and under that the card's notices (`notices`: a run's progress, what could not be read, the lines rows share), each at the card's inset.
  */
-function FilesHeader({ heading, controls, actions }: { heading?: ReactNode; controls?: ReactNode; actions: Pick<FileActions, 'onRecheck'> }) {
+function FilesHeader({
+  heading,
+  controls,
+  notices,
+  actions,
+}: {
+  heading?: ReactNode;
+  controls?: ReactNode;
+  notices: readonly ReactNode[];
+  actions: Pick<FileActions, 'onRecheck'>;
+}) {
   const gates = useDawGates();
   const gate: Gate = gates.recheck;
   return (
@@ -49,7 +74,8 @@ function FilesHeader({ heading, controls, actions }: { heading?: ReactNode; cont
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">{heading}</div>
         <IconButton action="retry" label="Check the files again" disabledReason={gate.ok ? undefined : gate.reason} onClick={actions.onRecheck} />
       </div>
-      {controls && <div className="flex flex-wrap items-center justify-end gap-2 border-b border-[var(--border)] px-4 py-2">{controls}</div>}
+      {controls && <div className="flex flex-wrap items-center justify-end gap-2 border-b border-[var(--border)] px-4 py-2 last:border-b-0">{controls}</div>}
+      {notices.length > 0 && <div className="flex flex-col gap-2 border-b border-[var(--border)] px-4 py-3 text-sm last:border-b-0">{notices}</div>}
     </>
   );
 }
@@ -67,6 +93,7 @@ export function FilesTable({
   openPickups,
   heading,
   controls,
+  notices = [],
   selected,
   onSelect,
   actions,
@@ -82,6 +109,8 @@ export function FilesTable({
   heading?: ReactNode;
   /** The page's run controls, drawn beside the refresh icon. */
   controls?: ReactNode;
+  /** The page's notices for this card (a run's progress, a read that failed), drawn under the controls; a falsy one is skipped. */
+  notices?: readonly ReactNode[];
   selected: string | undefined;
   onSelect: (fileId: string) => void;
   actions: FileActions;
@@ -91,6 +120,14 @@ export function FilesTable({
     return slots ? buildChapterRows(files, profile, slots, openPickups) : buildRows(files, profile);
   }, [files, profile, slots, openPickups]);
   const { current, bind, onKeyDown } = useMasterSelection({ rows, selected, onSelect });
+  // A message rows share is said once, in the card, and no row repeats it; with no file measured at all one line says so for every row.
+  const shared = useMemo(() => sharedWaiting(rows), [rows]);
+  const sharedTexts = useMemo(() => new Set(shared.map((group) => group.text)), [shared]);
+  const notes = !profile
+    ? []
+    : files.length === 0
+      ? [NOTHING_MEASURED, ...shared.filter((group) => !rows.some((row) => row.noFile && row.waiting === group.text)).map((group) => group.line)]
+      : shared.map((group) => group.line);
   const gates = useDawGates();
 
   const provider = useMemo<ContextProvider>(
@@ -129,25 +166,56 @@ export function FilesTable({
 
   return (
     <Panel flush label="Per-file checks">
-      <FilesHeader heading={heading} controls={controls} actions={actions} />
-      {/* The keys sit on the wrapper: a row's own Enter and Space come from `TableRow`, the arrows from here. */}
+      <FilesHeader
+        heading={heading}
+        controls={controls}
+        notices={[
+          ...notices.filter(Boolean),
+          ...notes.map((note) => (
+            <p key={note} style={MUTED}>
+              {note}
+            </p>
+          )),
+        ]}
+        actions={actions}
+      />
+      {/* The keys sit on the wrapper: a row's own Enter and Space come from `TableRow`, the arrows from here. It is the containing block of
+          the cells' screen-reader text (`sr-only`, absolute), so that text scrolls with the table instead of widening the page. */}
       {profile && (
-        <div ref={bind} onKeyDown={onKeyDown} className="overflow-x-auto">
-          <Table label="Per-file checks">
+        <div ref={bind} onKeyDown={onKeyDown} className="relative overflow-x-auto">
+          <Table label="Per-file checks" columns={COLUMNS} className={TABLE_FLOOR}>
             <TableHead>
               <TableRow>
-                <TableHeader>File</TableHeader>
-                <TableHeader align="right">Length</TableHeader>
-                <TableHeader align="right">RMS</TableHeader>
-                <TableHeader align="right">Peak</TableHeader>
-                <TableHeader align="right">Noise floor</TableHeader>
-                <TableHeader align="right">Head / tail</TableHeader>
-                <TableHeader align="right">Result</TableHeader>
+                <TableHeader className={NOWRAP}>File</TableHeader>
+                <TableHeader className={NOWRAP} align="right">
+                  Length
+                </TableHeader>
+                <TableHeader className={NOWRAP} align="right">
+                  RMS
+                </TableHeader>
+                <TableHeader className={NOWRAP} align="right">
+                  Peak
+                </TableHeader>
+                <TableHeader className={NOWRAP} align="right">
+                  Noise floor
+                </TableHeader>
+                <TableHeader className={NOWRAP} align="right">
+                  Head / tail
+                </TableHeader>
+                <TableHeader className={NOWRAP} align="right">
+                  Result
+                </TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.map((row) => (
-                <FileTableRow key={row.id} row={row} selected={row.id === current} onSelect={onSelect} />
+                <FileTableRow
+                  key={row.id}
+                  row={row}
+                  said={row.waiting !== undefined && sharedTexts.has(row.waiting)}
+                  selected={row.id === current}
+                  onSelect={onSelect}
+                />
               ))}
             </TableBody>
           </Table>
@@ -157,10 +225,11 @@ export function FilesTable({
   );
 }
 
-function FileTableRow({ row, selected, onSelect }: { row: FileRow; selected: boolean; onSelect: (id: string) => void }) {
+/** `said`: the row's message is one the card already says for several rows, so the row leaves it out. */
+function FileTableRow({ row, said, selected, onSelect }: { row: FileRow; said: boolean; selected: boolean; onSelect: (id: string) => void }) {
   return (
     <TableRow onActivate={() => onSelect(row.id)} selected={selected}>
-      <TableCell className="[overflow-wrap:anywhere]">
+      <TableCell className="break-words">
         {/* The marker the right-click provider reads: a row's own attributes are the primitive's. */}
         <span data-file={row.id} className="contents" />
         {row.name}
@@ -169,7 +238,7 @@ function FileTableRow({ row, selected, onSelect }: { row: FileRow; selected: boo
         <>
           <TableCell numeric>—</TableCell>
           <TableCell colSpan={4} muted>
-            {row.waiting} · not mastered
+            {said ? null : `${row.waiting} · not mastered`}
           </TableCell>
         </>
       ) : (
@@ -189,7 +258,7 @@ function FileTableRow({ row, selected, onSelect }: { row: FileRow; selected: boo
           </TableCell>
         </>
       )}
-      <TableCell align="right">
+      <TableCell align="right" className={NOWRAP}>
         <Result row={row} />
       </TableCell>
     </TableRow>
