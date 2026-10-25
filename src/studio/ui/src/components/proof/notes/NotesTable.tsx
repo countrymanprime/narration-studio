@@ -11,7 +11,7 @@ import { NOTE_KIND, RESOLUTION_CHIP_CH, TYPE_CHIP_CH, groupByChapter, type NoteR
 /** A badge as wide as the longest word it can show, so a changed type or decision never moves the cells around it. */
 function FixedChip({ ch, children }: { ch: number; children: ReactNode }) {
   return (
-    <span className="inline-flex" style={{ minWidth: `${ch + 4}ch` }}>
+    <span className="inline-flex" style={{ minWidth: `${ch + 1}ch` }}>
       {children}
     </span>
   );
@@ -46,11 +46,21 @@ function Headline({ row }: { row: NoteRow }) {
   );
 }
 
-/** The mock's From cell: the analyzer with its confidence, or the reason on hover when there is no score. */
+/** The mock's From cell: the analyzer with its confidence, or the reason on hover when there is no score. The source never breaks inside
+ * its name, and the score stays with its separator, so a narrow column never starts a line with "· 0.90". */
 function FromCell({ row }: { row: NoteRow }) {
-  if (row.confidence !== null) return <>{`${row.from} · ${row.confidence.toFixed(2)}`}</>;
+  if (row.confidence !== null)
+    return (
+      <>
+        <span className="whitespace-nowrap">{row.from}</span> <span className="whitespace-nowrap">· {row.confidence.toFixed(2)}</span>
+      </>
+    );
   return <TooltipTarget text={row.confidenceReason || 'No score'}>{row.from}</TooltipTarget>;
 }
+
+/** The columns' widths: Script vs heard takes what the others leave, so a sentence wraps only when that column is full, and the columns
+ * stand in the same place in every chapter and filter (alignment audit XPF-4). */
+const NOTE_COLUMNS = ['5.25rem', '6rem', 'auto', '11rem', '8.5rem'] as const;
 
 /**
  * The Proof notes table (Studio Next mock `NotesTable`): Time, Type, Script vs heard, From, Resolution. In all chapters it is
@@ -103,7 +113,7 @@ export function NotesTable({
       </div>
     ) : (
       <div className="p-8 text-center">
-        <h3 className="text-base font-semibold">No notes for this chapter</h3>
+        <h3 className="text-base font-semibold">{allChapters ? 'No notes yet' : 'No notes for this chapter'}</h3>
       </div>
     );
   }
@@ -115,17 +125,25 @@ export function NotesTable({
         <TypeChip row={row} />
       </TableCell>
       <TableCell>
-        <span className="[overflow-wrap:anywhere]">
-          <Headline row={row} />
+        <span className="flex items-center gap-2">
+          <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            <Headline row={row} />
+          </span>
+          {badge?.(row)}
         </span>
-        {badge?.(row)}
       </TableCell>
       <TableCell muted>
         <FromCell row={row} />
       </TableCell>
       <TableCell>
         <FixedChip ch={RESOLUTION_CHIP_CH}>
-          <StatusBadge tone={row.resolution.tone} label={row.resolution.label} className="w-full justify-center text-[13px]!" />
+          <StatusBadge
+            tone={row.resolution.tone}
+            // An undecided note's pill is drawn hollow, so it still shows on the selected row's fill (R3PF-10); a decision keeps its fill.
+            look={row.decided ? 'soft' : 'outline'}
+            label={row.resolution.label}
+            className="w-full justify-center text-[13px]!"
+          />
         </FixedChip>
       </TableCell>
     </TableRow>
@@ -133,10 +151,10 @@ export function NotesTable({
 
   return (
     <div ref={body}>
-      <Table label="Notes" className="min-w-[40rem]">
+      <Table label="Notes" columns={NOTE_COLUMNS} className="min-w-[40rem]">
         <TableHead sticky>
           <TableRow>
-            <TableHeader>Time</TableHeader>
+            <TableHeader align="right">Time</TableHeader>
             <TableHeader>Type</TableHeader>
             <TableHeader>Script vs heard</TableHeader>
             <TableHeader>From</TableHeader>

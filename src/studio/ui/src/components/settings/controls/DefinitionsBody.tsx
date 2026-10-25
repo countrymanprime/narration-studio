@@ -78,7 +78,9 @@ function DefinitionsView({
   return (
     <div className="space-y-2.5" role="group" aria-label="Show definitions from">
       {SOURCES.map((option) => (
-        <div key={option.value} className="flex min-h-[var(--button-height-sm)] flex-wrap items-center gap-2">
+        // The radio's label wraps in the left cell; its badge and button keep a cell at the right, so they never drop under the radio
+        // (alignment audit XSE2-15).
+        <div key={option.value} className="grid min-h-[var(--button-height-sm)] grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <Radio
             name="definition-source"
             value={option.value}
@@ -86,7 +88,7 @@ function DefinitionsView({
             checked={source === option.value}
             onCheckedChange={() => onSource(option.value)}
           />
-          {extras[option.value]}
+          <span className="flex items-center justify-end gap-2">{extras[option.value]}</span>
         </div>
       ))}
       {problem && (

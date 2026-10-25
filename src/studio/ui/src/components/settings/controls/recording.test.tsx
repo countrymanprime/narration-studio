@@ -475,6 +475,15 @@ describe('Voice & pronunciation', () => {
     await waitFor(() => expect(save).toHaveBeenLastCalledWith('Script', 'global', { definition_source: null }));
   });
 
+  // Alignment audit (XSE2-15, XSE2-16): each option's badge and button keep a cell at the right; the key's note is the row's note size.
+  it('keeps each definition source badge in a cell at the right of its radio', async () => {
+    await renderPage({ category: 'Voice & pronunciation' });
+    const local = await screen.findByRole('radio', { name: /^Local dictionary/ });
+    const option = local.closest('[class*="grid-cols-[minmax(0,1fr)_auto]"]');
+    expect(option).toBeTruthy();
+    expect(option!.lastElementChild!.className).toContain('justify-end');
+  });
+
   it('shows the local dictionary as installed or not, and removes then downloads it', async () => {
     const api = createMockApi();
     const { notify } = await renderPage({ api, category: 'Voice & pronunciation' });
@@ -590,6 +599,26 @@ describe('Delivery', () => {
     fireEvent.click(within(ask).getByRole('button', { name: 'Delete profile' }));
     await waitFor(() => expect(within(list).queryByText(name)).toBeNull());
     expect(notify).toHaveBeenCalledWith(`Deleted "${name}".`);
+  });
+
+  // Alignment audit (XSE1-9, XSE1-8): a custom profile's three buttons are one group at the right, and the editor centres every cell.
+  it('keeps the three profile buttons as one group beside the name, and the editor centres its cells', async () => {
+    const api = createMockApi({}, { deliveryProfile: 'custom' });
+    await renderPage({ api, category: 'Delivery', advanced: true });
+    const list = row('delivery.custom');
+    const name = 'My ACX, tighter peak';
+    await within(list).findByText(name);
+    const item = within(list).getByRole('listitem');
+    expect(item.className).toContain('grid-cols-[minmax(0,1fr)_auto]');
+    const del = within(item).getByRole('button', { name: `Delete ${name}` });
+    expect(
+      within(item)
+        .getByRole('button', { name: `Edit ${name}` })
+        .closest('span.flex-none'),
+    ).toBe(del.closest('span.flex-none'));
+    fireEvent.click(within(list).getByRole('button', { name: `Edit ${name}` }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('table').querySelector('td.align-top')).toBeNull();
   });
 
   it('says there are no custom profiles and offers to duplicate the built-in one', async () => {

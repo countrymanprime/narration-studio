@@ -24,6 +24,8 @@ export type FileRow = {
   noFile?: true;
   /** What the Result column says for a file with no measurements. */
   waitingPill?: string;
+  /** `waiting` said of several rows at once, for the one line the table shows when rows share it (R4MS1-6). */
+  waitingShared?: string;
   /** The cells of a measured file. */
   length?: string;
   rms?: Cell;
@@ -51,16 +53,19 @@ export function labelFiles(files: readonly MeasureFileResult[], chapters: readon
   });
 }
 
-function waitingText(file: MeasureFileResult): { text: string; pill: string } {
+function waitingText(file: MeasureFileResult): { text: string; pill: string; shared: string } {
   switch (file.status) {
     case 'pending':
-      return { text: 'Waiting to be measured', pill: 'Waiting' };
+      return { text: 'Waiting to be measured', pill: 'Waiting', shared: 'queued for this check' };
     case 'measuring':
-      return { text: 'Being measured now', pill: 'Waiting' };
+      return { text: 'Being measured now', pill: 'Measuring', shared: 'being measured now' };
+    // A run that broke on another file ends with the rest cancelled too, so this says only that the check stopped, not who stopped it.
     case 'cancelled':
-      return { text: 'The measurement was cancelled', pill: 'Not measured' };
-    default:
-      return { text: `Could not be measured: ${file.error ?? 'the file could not be read.'}`.replace(/\.$/, ''), pill: 'Not measured' };
+      return { text: 'The check stopped before this file', pill: 'Not measured', shared: 'the check stopped before these files' };
+    default: {
+      const reason = `${file.error ?? 'the file could not be read.'}`.replace(/\.$/, '');
+      return { text: `Could not be measured: ${reason}`, pill: 'Not measured', shared: `could not be measured: ${reason}` };
+    }
   }
 }
 
@@ -115,7 +120,7 @@ function measuredRow(file: MeasureFileResult, profile: DeliveryProfile, report: 
 function rowOf(file: MeasureFileResult, profile: DeliveryProfile, name = file.name): FileRow {
   if (file.status === 'measured' && file.report) return { ...measuredRow(file, profile, file.report), name };
   const waiting = waitingText(file);
-  return { id: file.path, name, verdict: 'none', waiting: waiting.text, waitingPill: waiting.pill, checks: [] };
+  return { id: file.path, name, verdict: 'none', waiting: waiting.text, waitingPill: waiting.pill, waitingShared: waiting.shared, checks: [] };
 }
 
 export function buildRows(files: readonly MeasureFileResult[], profile: DeliveryProfile): FileRow[] {
@@ -153,6 +158,7 @@ export function buildChapterRows(
     verdict: 'none',
     waiting: noFileText(open),
     waitingPill: 'Waiting',
+    waitingShared: noFileText(open).toLowerCase(),
     noFile: true,
     checks: [],
   });
@@ -170,6 +176,23 @@ export function buildChapterRows(
   if (sample) claimed.add(sample.path);
   const strays = files.filter((file) => !claimed.has(file.path)).map((file) => rowOf(file, profile));
   return [...rows, ...strays, sample ? rowOf(sample, profile, 'Retail sample') : waitingRow(SAMPLE_ROW_ID, 'Retail sample')];
+}
+
+/**
+ * The waiting messages two or more rows share, each said once for the table ("14 rows marked Waiting: no file measured yet · not
+ * mastered."), so a row repeats none of them; a row whose message is its own keeps it in the row.
+ */
+export function sharedWaiting(rows: readonly FileRow[]): { text: string; line: string }[] {
+  const groups = new Map<string, { pill: string; shared: string; count: number }>();
+  for (const row of rows) {
+    if (!row.waiting) continue;
+    const group = groups.get(row.waiting) ?? { pill: row.waitingPill ?? 'Waiting', shared: row.waitingShared ?? row.waiting, count: 0 };
+    group.count += 1;
+    groups.set(row.waiting, group);
+  }
+  return [...groups]
+    .filter(([, group]) => group.count > 1)
+    .map(([text, group]) => ({ text, line: `${group.count} rows marked ${group.pill}: ${group.shared} · not mastered.` }));
 }
 
 /** The file the table opens on: the first that fails, else the first with a file. Nothing before a file exists: no waiting row is picked for the narrator. */
