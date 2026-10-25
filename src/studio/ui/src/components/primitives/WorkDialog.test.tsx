@@ -167,7 +167,7 @@ describe('WorkDialog says each thing once (R4SB-8, R3SE1-1, R3SB2-15, R3PR2-22)'
 
   it('says the elapsed time under the bar, as a phrase', () => {
     render(<WorkDialog title="Import manuscript" job={job({ elapsed: 12.6 })} cancel={vi.fn()} />);
-    expect(screen.getByText('12 s').parentElement!.textContent).toBe('12 s elapsed');
+    expect(screen.getByText('12 s elapsed')).toBeTruthy();
   });
 
   it('offers Retry beside Close when the caller can start the job again, and draws the bar in the failure colour', () => {

@@ -111,9 +111,7 @@ export function WorkDialog({
         className="mt-3"
       />
       {/* Elapsed time under the bar's left end, beside what it measures, not alone at the far edge of the status line (R3PR2-22, R4SB-8). */}
-      <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-        <span className="font-['IBM_Plex_Mono',ui-monospace,monospace]">{Math.floor(job.elapsed)} s</span> elapsed
-      </p>
+      <p className="mt-1.5 text-xs text-[var(--text-muted)]">{Math.floor(job.elapsed)} s elapsed</p>
       {history.length > 0 && (
         <div className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
           <SectionLabel as="div" className="mb-1.5">
