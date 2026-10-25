@@ -27,7 +27,7 @@ Each row has a name, a line on what it does, and under it:
 
 A change applies at once, with no Save button. The row says **Saved** beside its control. A row that differs from its
 default shows **Changed**, a bar at its edge and a reset button that puts it back; a category with changed rows shows
-how many in the list and **Reset <category> to defaults**. A change that costs something asks first: changing the
+how many in the list and a **Reset to defaults** button beside its title. A change that costs something asks first: changing the
 transcription model says earlier checks are marked out of date and run again. A value the host refuses keeps
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
@@ -38,11 +38,11 @@ says how many it holds.
 
 ## Find a setting
 
-At the top right, the search box (with its magnifier) and the **All** / **Changed** / **In this project** control sit on one line. **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
-transcription model; "breath" finds silence cleanup). Results are grouped under their category with **Show the
-whole category**, and include matches from the Advanced sections. **Changed** lists everything that differs from
+At the top right, the **Search settings** box and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description and words you might use instead (typing "whisper" finds the
+transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
+whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists everything that differs from
 the default, wherever it is; **In this project** lists the settings this project owns or overrides. Each says so
-when nothing is there. **Escape** clears the search.
+when nothing is there; on a narrow window the folded category button reads **Search results** while results show. **Escape** clears the search.
 
 ![Settings - searching for "whisper"](../../images/ui/settings-search.webp)
 

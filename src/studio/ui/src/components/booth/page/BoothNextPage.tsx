@@ -51,7 +51,7 @@ import { useStaleToasts } from './useStaleToasts';
 import { SetupChip } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
-import { saveNote } from '../resume/resumeOfferModel';
+import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord, markNote } from '../side/decorations';
@@ -81,10 +81,11 @@ import { cueSpeakerEntries } from '../../manuscript/dialogueCues.selectors';
 const BOOTH_LINKS = { script: '/script', settings: '/settings', storyBible: '/story-bible', pickups: '/pickups' } as const;
 
 /**
- * In the medium layout (1280 and below, where the side panel is a drawer) the chapter picker is the mock's 190 px
- * (`.md .booth .chapbar .chapsel`), its name cut with an ellipsis, so the top bar fits a narrow window. Wider, it keeps the longest name's width.
+ * In the medium layout (1280 and below, where the side panel is a drawer) the chapter picker is as wide as its name, up to the wide
+ * layout's 340 px, and cut with an ellipsis only past that. The mock's fixed 190 px (`.md .booth .chapbar .chapsel`) cut a short name
+ * while the bar had hundreds of pixels free (alignment audit XBO-22); the bar wraps instead, its tools moving to a row of their own.
  */
-const MEDIUM_PICKER = "[&_[aria-label^='Chapter:']]:!w-[190px] [&_[aria-label^='Chapter:']]:!min-w-0";
+const MEDIUM_PICKER = "[&_[aria-label^='Chapter:']]:!w-auto [&_[aria-label^='Chapter:']]:!max-w-[21.25rem] [&_[aria-label^='Chapter:']]:!min-w-0";
 
 // In a pickup session the lines are the side panel's first section.
 registerPickupSession();
@@ -632,7 +633,11 @@ function BoothSession({
                 source.kind === 'credits' ? (
                   <CreditsWarning tokens={source.preview.unresolved} onFix={() => void page.goTo(`${BOOTH_LINKS.settings}#credits`)} />
                 ) : (
-                  <ResumeOfferLine state={page.resume} saved={saveNote(control.project, page.dawName)} onChoose={page.chooseResume} />
+                  <ResumeOfferLine
+                    state={offerAwayFrom(page.resume, page.position)}
+                    saved={saveNote(control.project, page.dawName)}
+                    onChoose={page.chooseResume}
+                  />
                 )
               }
               setup={

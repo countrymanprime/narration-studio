@@ -201,7 +201,7 @@ func TestDefaultPronunciationSourceIsOmittedWhenUnset(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("APPDATA", filepath.Join(root, "appdata")) // sandbox global scope away from the real machine (store_test.go's own pattern)
 	s := New(root, "unused", "", settings.New(root, root), process.NewSupervisor())
-	if got := s.buildArgs("progress.txt", "log.txt", "en_core_web_sm"); slices.Contains(got, "--default-source") {
+	if got := s.wordsFileArgs("words.json", "log.txt"); slices.Contains(got, "--default-source") {
 		t.Fatalf("build arguments must not include --default-source when unset: %#v", got)
 	}
 	if got := s.lookupArgs([]string{"A. Name"}); slices.Contains(got, "--default-source") {
@@ -218,7 +218,7 @@ func TestDefaultPronunciationSourceReachesBuildAndTheLookup(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := New(root, "unused", "", store, process.NewSupervisor())
-	if got := s.buildArgs("progress.txt", "log.txt", "en_core_web_sm"); !slices.Contains(got, "--default-source") || !slices.Contains(got, "espeak") {
+	if got := s.wordsFileArgs("words.json", "log.txt"); !slices.Contains(got, "--default-source") || !slices.Contains(got, "espeak") {
 		t.Fatalf("build arguments must carry the narrator's default source: %#v", got)
 	}
 	if got := s.lookupArgs([]string{"A. Name"}); !slices.Contains(got, "--default-source") || !slices.Contains(got, "espeak") {
