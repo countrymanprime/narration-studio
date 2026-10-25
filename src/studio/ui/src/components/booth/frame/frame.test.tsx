@@ -52,7 +52,7 @@ function footer(a: ReturnType<typeof api>, over: Partial<Parameters<typeof Booth
 }
 
 function top(over: Partial<Parameters<typeof BoothTop>[0]> = {}) {
-  return render(<BoothTop progress="¶ 1 of 2 · 0% · ~1:00 finished left" recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
+  return render(<BoothTop progress="¶ 1 of 2 · 0% · ~1:00 of audio left" recording={false} panelOpen={false} onTogglePanel={() => {}} {...over} />);
 }
 
 describe('rec-shows-only-while-recording', () => {
@@ -102,7 +102,7 @@ describe('the-resume-and-setup-slots', () => {
   });
   it('shows the progress line', () => {
     top();
-    expect(screen.getByText('¶ 1 of 2 · 0% · ~1:00 finished left')).toBeTruthy();
+    expect(screen.getByText('¶ 1 of 2 · 0% · ~1:00 of audio left')).toBeTruthy();
   });
 });
 

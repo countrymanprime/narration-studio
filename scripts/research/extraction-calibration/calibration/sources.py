@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -53,6 +54,21 @@ def wheel_version(install: Path, wheel: str, package: str) -> str:
     return "unknown"
 
 
+def run_command(name: str, command: list[str], cwd: Path | None, display: str, versions: dict[str, str]) -> SourceRun:
+    """``command``'s suggestion lines on stdout, or `not run` with its last stderr line when it fails or does not finish."""
+    env = os.environ | {"PYTHONIOENCODING": "utf-8"}
+    try:
+        done = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", timeout=TIMEOUT_SECONDS, env=env, cwd=cwd, check=False)
+    except subprocess.TimeoutExpired:
+        return not_run(name, f"{name} did not finish in {TIMEOUT_SECONDS} seconds.")
+    except OSError as error:
+        return not_run(name, f"{name} could not be started: {error}")
+    if done.returncode != 0:
+        last = (done.stderr.strip().splitlines() or ["no message"])[-1]
+        return not_run(name, f"{name} failed to run: {last}")
+    return SourceRun(name, "ran", items=parse_lines(done.stdout), versions=versions, command=display)
+
+
 def run_suggest(name: str, repo: Path, manuscript: Path, source: str, extra: list[str], versions: dict[str, str]) -> SourceRun:
     """The sidecar's own ``suggest`` command, as the host runs it, so what is scored is what the app would be offered."""
     core = repo / "src" / "studio" / "sidecars" / "manuscript-guide" / "core"
@@ -70,19 +86,17 @@ def run_suggest(name: str, repo: Path, manuscript: Path, source: str, extra: lis
         *extra,
     ]
     command = [sys.executable, "-I", "-c", launcher, str(core), str(repo / "src" / "studio" / "libs" / "python"), *args]
-    env = os.environ | {"PYTHONIOENCODING": "utf-8"}
-    try:
-        done = subprocess.run(command, capture_output=True, text=True, timeout=TIMEOUT_SECONDS, env=env, check=False)
-    except subprocess.TimeoutExpired:
-        return not_run(name, f"{name} did not finish in {TIMEOUT_SECONDS} seconds.")
-    if done.returncode != 0:
-        last = (done.stderr.strip().splitlines() or ["no message"])[-1]
-        return not_run(name, f"{name} failed to run: {last}")
-    return SourceRun(name, "ran", items=parse_lines(done.stdout), versions=versions, command="manuscript_guide.py " + " ".join(args[1:]))
+    return run_command(name, command, None, "manuscript_guide.py " + " ".join(args[1:]), versions)
 
 
 def run_rules(repo: Path, manuscript: Path, commit: str) -> SourceRun:
-    return run_suggest("rules", repo, manuscript, "rules", [], {"app commit": commit})
+    """The rules as the host runs them (internal/guide RuleSuggestions), through ``go run ./cmd/guide-rules``, which prints the
+    lines the sidecar's ``suggest --source rules`` printed before the rules moved into the host."""
+    if shutil.which("go") is None:
+        return not_run("rules", "Go is not installed here, and the rules run in the host's Go code, so they were not run.")
+    args = ["--manuscript", str(manuscript), "--guide", str(manuscript.parent / "no-story-bible.json")]
+    command = ["go", "run", "./cmd/guide-rules", *args]
+    return run_command("rules", command, repo / "src" / "studio" / "desktop", "guide-rules " + " ".join(args), {"app commit": commit})
 
 
 def run_installed(name: str, repo: Path, manuscript: Path, source: str, install: str | None, wheel: str, package: str, spacy_model: str = "") -> SourceRun:

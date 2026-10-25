@@ -1,24 +1,22 @@
-"""Local backend for the independent REAPER Manuscript Guide.
+"""The Story Bible's model work: the language model's entities, pronunciations and Piper previews.
 
-The only shared contract with other REAPER tools is the project's canonical
-``<app>/manuscript/manuscript.json`` file. All output belongs in the caller-provided
-ManuscriptGuide directory.
+The host builds and edits the Story Bible itself (src/studio/desktop/internal/guide). This program does what needs Python: spaCy's
+entity spans for a build (``entities``), the automatic pronunciation of names (``pronunciation``), one named source's pronunciation
+(``pronounce``, ``candidate``), a spoken preview (``render-audio``), GLiNER's and BookNLP's suggestions (``suggest``) and the packaged
+self-check. It reads the project's canonical ``<app>/manuscript/manuscript.json``.
 """
 
 from __future__ import annotations
 
 import argparse
-import hashlib
-import itertools
 import json
 import os
 import re
 import sys
+import time
 import wave
-from collections import Counter, defaultdict
-from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any
 
 _SHARED_PYTHON = Path(__file__).resolve().parents[5] / "src" / "studio" / "libs" / "python"
 if str(_SHARED_PYTHON) not in sys.path:
@@ -34,108 +32,15 @@ from narration_common.config import get_default
 from narration_common.logging_utils import log, set_log_file
 from narration_common.ports.pronunciation import SOURCES
 from narration_common.ports.tts import ENGINES as TTS_ENGINES
-from narration_common.progress import write_progress
 
 # Importing this also registers Piper into ENGINES and CMU/eSpeak into SOURCES.
 from providers import load_voice, synthesize_to_file
 
-SCHEMA_VERSION = 2
-CAPITALIZED = re.compile(r"\b[A-Z][A-Za-z'’-]*(?:\s+(?:(?:of|the|and)\s+)?[A-Z][A-Za-z'’-]*){0,3}\b")
-SENTENCES = re.compile(r"(?<=[.!?])\s+")
-STOPWORDS = {
-    "A",
-    "About",
-    "Above",
-    "After",
-    "An",
-    "And",
-    "As",
-    "At",
-    "But",
-    "Before",
-    "Chapter",
-    "For",
-    "He",
-    "Her",
-    "His",
-    "I",
-    "In",
-    "It",
-    "Its",
-    "My",
-    "No",
-    "Now",
-    "Not",
-    "Of",
-    "On",
-    "Or",
-    "Our",
-    "She",
-    "So",
-    "The",
-    "Their",
-    "They",
-    "This",
-    "That",
-    "Then",
-    "These",
-    "Those",
-    "To",
-    "We",
-    "When",
-    "With",
-    "You",
-    "Your",
-}
-# Story Bible extraction deliberately favours precision over recall - see
-# docs/architecture/story-bible-entity-accuracy.md. Better to miss a few names
-# than to surface half the dictionary.
-FILLER_PREFIXES = {"about", "the", "a", "an", "with", "from", "near", "of", "in", "on", "at", "to", "by"}
-LEADING_FILLER_WORDS = FILLER_PREFIXES | {word.lower() for word in STOPWORDS}
-LEADING_FILLER = re.compile(r"^(?:(?:" + "|".join(sorted(map(re.escape, LEADING_FILLER_WORDS))) + r")\s+)+", re.IGNORECASE)
-POSSESSIVE = re.compile(r"['’]s$", re.IGNORECASE)
-TRAILING_PUNCTUATION = " ,.;:!?\"'”’"
-CAPITAL_TOKEN = re.compile(r"\b[A-Z][A-Za-z'’-]*\b")
-LOWERCASE_TOKEN = re.compile(r"(?<![A-Za-z])[a-z]+(?:[-'’][a-z]+)*(?![A-Za-z])")
+# The characters that end a sentence, for sentence_around.
 SENTENCE_END_CHARACTERS = ".!?…"
-SENTENCE_START_SKIPPABLE = " \t\r\n\"'“”‘’()[]{}"
-SENTENCE_START_LOOKBEHIND = 16
-SPACY_ENTITY_LABELS = {"PERSON", "ORG", "GPE", "LOC", "FAC"}
-COMMON_WORD_SUFFIXES = ("able", "ible", "ing", "ed", "ly", "ous", "ful", "less", "ive")
-MIN_SUFFIX_STEM_LENGTH = 3  # "Ned" and "Fred" are names, not -ed adjectives.
-MIN_MID_SENTENCE_MENTIONS = 2
-MIN_NEEDS_REVIEW_OCCURRENCES = 3
-MIN_SINGLE_WORD_VOCABULARY_OCCURRENCES = 3
-PERSON_WORDS = {"said", "asked", "replied", "cried", "whispered", "smiled", "walked", "looked", "thought"}
-PLACE_WORDS = {"city", "town", "village", "kingdom", "country", "street", "river", "mountain", "forest", "castle", "planet", "station", "island"}
-ORG_WORDS = {"company", "guild", "order", "society", "council", "army", "agency", "corporation", "clan", "house", "university", "church"}
-TITLE_WORDS = {
-    "captain",
-    "commander",
-    "doctor",
-    "dr",
-    "lady",
-    "lord",
-    "master",
-    "miss",
-    "mister",
-    "mr",
-    "mrs",
-    "ms",
-    "professor",
-    "queen",
-    "king",
-    "prince",
-    "princess",
-    "saint",
-    "sir",
-}
-# A paragraph made only of this punctuation (***, - - -, # # #, a bullet or dash) is a scene break: it starts a
-# new scene and is not itself part of any scene.
-SCENE_BREAK = re.compile(r"^[*#\-–—•·\s]+$")
-# Verbs that mark a name next to a quotation as its speaker. Deliberately narrower than PERSON_WORDS above
-# (which also accepts "smiled"/"walked"/"looked"/"thought" as a proximity signal for classifying an entity's
-# category) - a cue's attribution is precision-first: only an unambiguous speech verb counts.
+# Verbs that mark a name next to a quotation as its speaker, and how far from it a tag may be: BookNLP's speaker check
+# (extraction_booknlp.py) uses both, as the host's dialogue cues do (src/studio/desktop/internal/guide/rules_text.go). Narrower than the
+# words the host's classify reads as a person nearby ("smiled", "walked", "looked", "thought"): only an unambiguous speech verb counts.
 SPEECH_VERBS = {
     "said",
     "asked",
@@ -160,58 +65,7 @@ SPEECH_VERBS = {
     "snapped",
     "yelled",
 }
-# A double-quoted span (straight or curly quotes; either character may open or close, so this doesn't try to
-# track directional pairing). Bounded length avoids a runaway match across an unrelated later quote mark.
-QUOTE_PATTERN = re.compile(r'[“"]([^”"]{1,400}?)[”"]')
-# Up to three capitalized words, for the name beside a speech verb.
-NAME_TOKEN = r"[A-Z][A-Za-z'’\-]*(?:\s+[A-Z][A-Za-z'’\-]*){0,2}"
-AFTER_QUOTE_TAG = re.compile(r"^[,.\s]*(" + NAME_TOKEN + r")\s+([A-Za-z]+)")
-BEFORE_QUOTE_TAG = re.compile(r"(" + NAME_TOKEN + r")\s+([A-Za-z]+)[,:]?\s*$")
 TAG_WINDOW = 60
-
-TRAITS = {
-    "angry",
-    "anxious",
-    "arrogant",
-    "brave",
-    "calm",
-    "careful",
-    "cautious",
-    "cheerful",
-    "clever",
-    "cold",
-    "cruel",
-    "curious",
-    "determined",
-    "fearful",
-    "fierce",
-    "gentle",
-    "generous",
-    "gruff",
-    "honest",
-    "kind",
-    "loyal",
-    "nervous",
-    "patient",
-    "proud",
-    "quiet",
-    "ruthless",
-    "sad",
-    "shy",
-    "stern",
-    "tired",
-    "warm",
-    "wise",
-    "wary",
-}
-
-
-def document_hash(path: str) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as handle:
-        for block in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def load_manuscript(path: str) -> list[dict[str, str]]:
@@ -231,191 +85,23 @@ def normalize_name(name: str) -> str:
     return re.sub(r"[^a-z0-9]", "", name.lower())
 
 
-def entity_id(name: str) -> str:
-    return "entity-" + hashlib.sha1(normalize_name(name).encode("utf-8")).hexdigest()[:12]
+# The longest quote, in characters, a GLiNER or BookNLP suggestion takes from the sentence its name is in. The host's rules use the
+# same window (src/studio/desktop/internal/guide/rules_text.go sentenceAround).
+MAX_QUOTE = 300
 
 
-def excerpt(text: str, start: int, end: int, radius: int = 150) -> str:
-    left = max(0, start - radius)
-    right = min(len(text), end + radius)
-    value = text[left:right].strip()
-    return ("…" if left else "") + value + ("…" if right < len(text) else "")
-
-
-class WordStats(NamedTuple):
-    """Manuscript-wide signals used to tell names from ordinary words without a dictionary."""
-
-    # Every word that appears wholly lowercase somewhere in the manuscript.
-    lowercase_forms: frozenset[str]
-    # Capitalized tokens (normalized) that are NOT the first word of a sentence.
-    mid_sentence_counts: Counter[str]
-
-
-def is_sentence_start(text: str, index: int) -> bool:
-    """True when the word at `index` opens a sentence (or the paragraph)."""
-    prefix = text[max(0, index - SENTENCE_START_LOOKBEHIND) : index].rstrip(SENTENCE_START_SKIPPABLE)
-    if not prefix:
-        return index <= SENTENCE_START_LOOKBEHIND
-    return prefix[-1] in SENTENCE_END_CHARACTERS
-
-
-def word_stats(paragraphs: list[dict[str, str]]) -> WordStats:
-    lowercase_forms: set[str] = set()
-    mid_sentence_counts: Counter[str] = Counter()
-    for paragraph in paragraphs:
-        text = paragraph["text"]
-        for token in LOWERCASE_TOKEN.findall(text):
-            lowercase_forms.add(token)
-            lowercase_forms.update(part for part in re.split(r"[-'’]", token) if len(part) > 1)
-        for match in CAPITAL_TOKEN.finditer(text):
-            if not is_sentence_start(text, match.start()):
-                mid_sentence_counts[normalize_name(POSSESSIVE.sub("", match.group(0)))] += 1
-    return WordStats(frozenset(lowercase_forms), mid_sentence_counts)
-
-
-def is_stopword(word: str) -> bool:
-    return word.lower() in LEADING_FILLER_WORDS
-
-
-def clean_entity_text(raw: str, start: int) -> tuple[str, int, int] | None:
-    """Strip filler ("About S-Dawn" -> "S-Dawn"), possessives and punctuation.
-
-    Returns the cleaned name with its offsets in the source text, or None when
-    nothing name-like is left."""
-    body = raw.lstrip()
-    start += len(raw) - len(body)
-    body = POSSESSIVE.sub("", body.rstrip(TRAILING_PUNCTUATION))
-    name = LEADING_FILLER.sub("", body)
-    start += len(body) - len(name)
-    if not name or all(is_stopword(word) for word in name.split()):
-        return None
-    return name, start, start + len(name)
-
-
-def has_common_suffix(word: str) -> bool:
-    letters = re.sub(r"[^a-z]", "", word.lower())
-    return any(letters.endswith(suffix) and len(letters) >= len(suffix) + MIN_SUFFIX_STEM_LENGTH for suffix in COMMON_WORD_SUFFIXES)
-
-
-def is_common_word(name: str, stats: WordStats, spacy_tagged: bool) -> bool:
-    """A single-word candidate is a common word when it also occurs in lowercase in
-    the manuscript, or looks like an adjective/adverb. Only a spaCy entity tag
-    backed by two capitalized mid-sentence mentions overrides that."""
-    if spacy_tagged and stats.mid_sentence_counts[normalize_name(name)] >= MIN_MID_SENTENCE_MENTIONS:
-        return False
-    return name.lower() in stats.lowercase_forms or has_common_suffix(name)
-
-
-def make_candidate(paragraph: dict[str, str], para_index: int, name: str, start: int, end: int, source: str) -> dict[str, str]:
-    return {
-        "name": name,
-        "chapter": paragraph["chapter"],
-        "chapterId": paragraph.get("chapterId", f"legacy-chapter-{para_index}"),
-        "paragraph": str(para_index),
-        "paragraphId": paragraph.get("paragraphId", f"legacy-paragraph-{para_index}"),
-        "text": paragraph["text"],
-        "start": str(start),
-        "end": str(end),
-        "source": source,
-    }
-
-
-def is_title_prefixed(name: str) -> bool:
-    words = name.split()
-    return len(words) > 1 and words[0].lower().strip(".") in TITLE_WORDS
-
-
-def accept_rule_name(name: str, stats: WordStats, title_aliases: set[str]) -> bool:
-    """Rules-only acceptance: multi-word names pass; a single word must not look
-    like a common word AND must either be the short form of an already accepted
-    "Captain X" style name or be capitalized mid-sentence at least twice."""
-    if len(name.split()) > 1:
-        return True
-    if is_common_word(name, stats, spacy_tagged=False):
-        return False
-    key = normalize_name(name)
-    return key in title_aliases or stats.mid_sentence_counts[key] >= MIN_MID_SENTENCE_MENTIONS
-
-
-def rule_candidates(paragraphs: list[dict[str, str]]) -> list[dict[str, str]]:
-    stats = word_stats(paragraphs)
-    mentions: list[tuple[int, str, int, int]] = []
-    for para_index, paragraph in enumerate(paragraphs):
-        for match in CAPITALIZED.finditer(paragraph["text"]):
-            cleaned = clean_entity_text(match.group(0), match.start())
-            if cleaned is not None:
-                mentions.append((para_index, *cleaned))
-    title_aliases = {normalize_name(name.split()[-1]) for _, name, _, _ in mentions if is_title_prefixed(name)}
-    return [
-        make_candidate(paragraphs[para_index], para_index, name, start, end, "rule")
-        for para_index, name, start, end in mentions
-        if accept_rule_name(name, stats, title_aliases)
-    ]
-
-
-# The model argument that builds with the rules-only extraction on purpose (the narrator chose it for this build), as opposed to a model that
-# was asked for and could not be loaded. The host sends it; it is the same word as guide.RulesOnly in Go.
-RULES_ONLY = "rules-only"
-
-
-def spacy_candidates(paragraphs: list[dict[str, str]], model_name: str) -> list[dict[str, str]] | None:
-    if model_name == RULES_ONLY:
-        log("Extraction: rules-only, chosen for this build. It is lower quality than a language model.")
-        return None
-    try:
-        import spacy
-
-        nlp = spacy.load(model_name, disable=["parser", "lemmatizer", "textcat"])
-    except Exception as exc:  # Local rule extraction is a supported fallback.  # noqa: BLE001
-        log(f"WARNING: spaCy model unavailable ({exc}); using lower-quality rules-only extraction.")
-        return None
-    stats = word_stats(paragraphs)
-    found: list[dict[str, str]] = []
-    for para_index, (paragraph, doc) in enumerate(zip(paragraphs, nlp.pipe(p["text"] for p in paragraphs))):
-        for ent in doc.ents:
-            if ent.label_ not in SPACY_ENTITY_LABELS:
-                continue
-            cleaned = clean_entity_text(ent.text, ent.start_char)
-            if cleaned is None:
-                continue
-            name, start, end = cleaned
-            if len(name.split()) == 1 and is_common_word(name, stats, spacy_tagged=True):
-                continue
-            found.append(make_candidate(paragraph, para_index, name, start, end, ent.label_))
-    return found
-
-
-def classify(candidate: dict[str, str]) -> str:
-    source = candidate["source"]
-    if source == "PERSON":
-        return "Character"
-    if source in {"GPE", "LOC", "FAC"}:
-        return "Place"
-    if source == "ORG":
-        return "Organization"
-    name_words = set(re.findall(r"[a-z]+", candidate["name"].lower()))
-    if name_words & ORG_WORDS:
-        return "Organization"
-    if name_words & PLACE_WORDS:
-        return "Place"
-    if name_words & TITLE_WORDS:
-        return "Character"
-    # Nothing confident applies to a lone word: a nearby "said" or "river" is not
-    # enough to call it a person or place (e.g. "S-Dawn"), so ask for review
-    # instead of guessing. spaCy-tagged entities already returned above.
-    if len(candidate["name"].split()) < 2:
-        return "Needs Review"
-    text = candidate["text"].lower()
-    start, end = int(candidate["start"]), int(candidate["end"])
-    before = re.findall(r"[a-z]+", text[max(0, start - 28) : start])
-    after = re.findall(r"[a-z]+", text[end : min(len(text), end + 28)])
-    if any(word in after for word in PERSON_WORDS):
-        return "Character"
-    if any(word in before for word in PLACE_WORDS):
-        return "Place"
-    if any(word in before for word in PERSON_WORDS):
-        return "Character"
-    return "Needs Review"
+def sentence_around(text: str, start: int, end: int) -> str:
+    """The sentence of ``text`` holding ``text[start:end]``, trimmed, or a window of at most MAX_QUOTE characters around
+    it when the sentence is longer. Always a slice of ``text``."""
+    left = max((text.rfind(mark, 0, start) for mark in SENTENCE_END_CHARACTERS), default=-1) + 1
+    ends = [at for at in (text.find(mark, end) for mark in SENTENCE_END_CHARACTERS) if at >= 0]
+    right = min(ends) + 1 if ends else len(text)
+    if right - left > MAX_QUOTE:
+        room = max(0, MAX_QUOTE - (end - start)) // 2
+        left = max(left, start - room)
+        right = min(right, left + MAX_QUOTE)
+    # A sentence that starts after a closing quote or bracket starts with it; drop it, keeping a slice of the text.
+    return text[left:right].strip().lstrip("”’)] ")
 
 
 # The narrator's choices for --source: the pronunciation source registry's own names.
@@ -511,227 +197,6 @@ def pronunciation(name: str, espeak_library: str | None, default_source: str | N
     return {"ipa": "", "source": "not generated", "confidence": "unknown"}
 
 
-def trait_notes(name: str, occurrences: list[dict[str, str]]) -> list[dict[str, Any]]:
-    notes: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    searchable_names = {name.lower(), name.lower().split()[-1]}
-    for occurrence in occurrences:
-        for sentence in SENTENCES.split(occurrence["text"]):
-            if not any(searchable_name in sentence.lower() for searchable_name in searchable_names):
-                continue
-            words = set(re.findall(r"[a-z]+", sentence.lower()))
-            for trait in sorted(words & TRAITS):
-                note = f"Described as {trait}."
-                if note not in seen:
-                    seen.add(note)
-                    notes.append({"text": note, "evidence": {"chapter": occurrence["chapter"], "excerpt": sentence.strip()}})
-    return notes[:5]
-
-
-def direct_description(name: str, occurrences: list[dict[str, str]]) -> dict[str, Any]:
-    """Return only an explicit appositive/copular description, never a guess."""
-    names = [re.escape(name), re.escape(name.split()[-1])]
-    for occurrence in occurrences:
-        # build_entities() candidates carry the full paragraph "text", but an
-        # occurrence stored in the file (the host's create, rescan and merge
-        # write them) has only a truncated "excerpt" - fall back to it.
-        source_text = occurrence.get("text", occurrence.get("excerpt", ""))
-        for sentence in SENTENCES.split(source_text):
-            for candidate in names:
-                match = re.search(
-                    rf"\b{candidate}\b\s*(?:,\s*)?(?:was|is)\s+(?:an?|the)\s+([^,.!;]+)",
-                    sentence,
-                    flags=re.IGNORECASE,
-                )
-                if match:
-                    description = match.group(1).strip()
-                    return {
-                        "text": f"Explicitly described as {description}.",
-                        "evidence": {"chapter": occurrence["chapter"], "excerpt": sentence.strip()},
-                    }
-    return {"text": "", "evidence": {}}
-
-
-def assign_scene_indices(paragraphs: list[dict[str, str]]) -> list[int | None]:
-    """One scene index per paragraph position, restarting at 0 for each chapter. A scene-break paragraph
-    (SCENE_BREAK) gets `None` - it is a separator, not part of either scene it sits between - and starts the
-    next scene."""
-    indices: list[int | None] = []
-    scene = 0
-    current_chapter: object = object()
-    for paragraph in paragraphs:
-        chapter_id = paragraph.get("chapterId")
-        if chapter_id != current_chapter:
-            current_chapter = chapter_id
-            scene = 0
-        if SCENE_BREAK.match(paragraph.get("text", "").strip()):
-            indices.append(None)
-            scene += 1
-        else:
-            indices.append(scene)
-    return indices
-
-
-def scene_by_paragraph_id(paragraphs: list[dict[str, str]]) -> dict[str, int | None]:
-    """Maps each paragraph's id (the same legacy-id fallback `make_candidate` uses) to its scene index."""
-    return {
-        paragraph.get("paragraphId", f"legacy-paragraph-{index}"): scene
-        for index, (paragraph, scene) in enumerate(zip(paragraphs, assign_scene_indices(paragraphs), strict=True))
-    }
-
-
-def appearance_map(occurrences: list[dict[str, Any]], scenes: dict[str, int | None]) -> list[dict[str, Any]]:
-    """Which (chapter, scene) pairs an entity's evidence touches - one row per pair, in reading order."""
-    seen: set[tuple[str, int]] = set()
-    appearances: list[dict[str, Any]] = []
-    for item in occurrences:
-        scene = scenes.get(item.get("paragraphId"))
-        if scene is None:
-            continue
-        key = (item.get("chapterId", ""), scene)
-        if key in seen:
-            continue
-        seen.add(key)
-        appearances.append({"chapterId": item.get("chapterId", ""), "chapter": item.get("chapter", ""), "sceneIndex": scene})
-    return sorted(appearances, key=lambda item: (item["chapterId"], item["sceneIndex"]))
-
-
-def evidence_entries(items: list[dict[str, str]]) -> list[dict[str, Any]]:
-    return [
-        {
-            "chapter": item["chapter"],
-            "chapterId": item["chapterId"],
-            "paragraph": int(item["paragraph"]),
-            "paragraphId": item["paragraphId"],
-            "excerpt": excerpt(item["text"], int(item["start"]), int(item["end"])),
-        }
-        for item in items
-    ]
-
-
-def build_entities(paragraphs: list[dict[str, str]], model_name: str, espeak_library: str | None, default_source: str | None = None) -> list[dict[str, Any]]:
-    scenes = scene_by_paragraph_id(paragraphs)
-    spacy = spacy_candidates(paragraphs, model_name)
-    candidates = rule_candidates(paragraphs) if spacy is None else spacy
-    grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
-    for candidate in candidates:
-        name = candidate["name"]
-        normalized = normalize_name(name)
-        if len(normalized) < 2 or name in STOPWORDS:
-            continue
-        grouped[normalized].append(candidate)
-
-    # Fiction commonly introduces "Captain Arelian" and then uses "Arelian".
-    # Merge only this conservative title-prefix pattern; all other possible
-    # aliases remain separate review candidates rather than risky guesses.
-    for short_name in list(grouped):
-        if short_name not in grouped:
-            continue
-        for long_name in list(grouped):
-            if long_name == short_name or not long_name.endswith(short_name):
-                continue
-            long_words = grouped[long_name][0]["name"].lower().split()
-            if long_words and long_words[0].strip(".") in TITLE_WORDS:
-                grouped[long_name].extend(grouped.pop(short_name))
-                break
-
-    entities: list[dict[str, Any]] = []
-    for normalized, occurrences in grouped.items():
-        category_counts: dict[str, int] = defaultdict(int)
-        for occurrence in occurrences:
-            category_counts[classify(occurrence)] += 1
-        # A confident category beats "Needs Review" votes (e.g. a bare alias of a
-        # "Captain X" name); only unresolved entities stay in review.
-        confident_counts = {name: count for name, count in category_counts.items() if name != "Needs Review"}
-        category = max(confident_counts, key=confident_counts.get) if confident_counts else "Needs Review"
-        # Ambiguous junk is not surfaced unless it recurs.
-        if category == "Needs Review" and len(occurrences) < MIN_NEEDS_REVIEW_OCCURRENCES:
-            continue
-        names = sorted({item["name"] for item in occurrences}, key=lambda value: (-len(value), value))
-        canonical_name = names[0]
-        alias_names = [name for name in names if name != canonical_name]
-
-        # Each literal spelling keeps its OWN evidence list (this is what lets
-        # the UI show "alias: X" against the specific occurrences that spelling
-        # produced), rather than one flat list for the whole entity.
-        by_literal_name: dict[str, list[dict[str, str]]] = defaultdict(list)
-        for item in occurrences:
-            by_literal_name[item["name"]].append(item)
-
-        canonical_evidence = evidence_entries(by_literal_name.get(canonical_name, []))
-        aliases = [
-            {
-                "text": name,
-                "pronunciation": pronunciation(name, espeak_library, default_source),
-                "occurrences": evidence_entries(by_literal_name.get(name, [])),
-            }
-            for name in alias_names
-        ]
-        all_evidence = canonical_evidence + [item for alias in aliases for item in alias["occurrences"]]
-
-        entities.append(
-            {
-                "id": entity_id(canonical_name),
-                "canonical_name": canonical_name,
-                "aliases": aliases,
-                "category": category,
-                "occurrences": canonical_evidence,
-                "occurrence_count": len(occurrences),
-                "pronunciation": pronunciation(canonical_name, espeak_library, default_source),
-                "description": direct_description(canonical_name, occurrences),
-                "personality_notes": trait_notes(canonical_name, occurrences) if category == "Character" else [],
-                "context": "",
-                "relationships": [],
-                "properties": [],
-                "locked": False,
-                "manual": False,
-                "review_state": "needs review" if category == "Needs Review" else "generated",
-                "review": {"entry": category == "Needs Review", "aliases": []},
-                "appearances": appearance_map(all_evidence, scenes),
-            }
-        )
-    found_counts = Counter(entity["category"] for entity in entities)
-    log(
-        "found entity candidates",
-        level="debug",
-        event="guide.entities_found",
-        entity_count=len(entities),
-        **{name.lower().replace(" ", "_"): count for name, count in found_counts.items()},
-    )
-    return sorted(entities, key=lambda entity: (entity["category"], entity["canonical_name"].lower()))
-
-
-def is_vocabulary_worthy(entity: dict[str, Any]) -> bool:
-    """Needs Review entries and thinly evidenced lone words stay out of the
-    Proofing suggestions; locked and manual entries are the user's own."""
-    if entity.get("category") == "Needs Review":
-        return False
-    if entity.get("locked") or entity.get("manual"):
-        return True
-    if len(entity.get("canonical_name", "").split()) > 1:
-        return True
-    count = entity.get("occurrence_count")
-    if count is None:
-        count = entity_occurrence_count(entity)
-    return count >= MIN_SINGLE_WORD_VOCABULARY_OCCURRENCES
-
-
-def vocabulary_candidates(entities: list[dict[str, Any]]) -> list[str]:
-    """Return the durable, narrator-reviewable vocabulary candidate list.
-
-    The guide already contains the manuscript-derived names and aliases we
-    want Whisper to recognize.  Keeping this list in the guide manifest makes
-    proofing suggestions reproducible and avoids a second ad-hoc DOCX scan.
-    """
-    values: list[str] = []
-    for entity in entities:
-        if not is_vocabulary_worthy(entity):
-            continue
-        values.append(entity.get("canonical_name", ""))
-        values.extend(alias.get("text", "") for alias in entity.get("aliases", []))
-    return sorted({value.strip() for value in values if value and value.strip()}, key=str.casefold)
-
-
 def load_json(path: str) -> dict[str, Any] | None:
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -750,193 +215,14 @@ def load_json(path: str) -> dict[str, Any] | None:
     return data
 
 
-def entity_name_keys(entity: dict[str, Any]) -> set[str]:
-    """Every normalized spelling (canonical name plus aliases) this entity currently answers to."""
-    keys = {normalize_name(entity.get("canonical_name", ""))}
-    keys.update(normalize_name(alias.get("text", "")) for alias in entity.get("aliases", []) or [])
-    keys.discard("")
-    return keys
-
-
-def merge_locked(generated: list[dict[str, Any]], old: dict[str, Any] | None) -> list[dict[str, Any]]:
-    if not old:
-        return generated
-    previous = {entity["id"]: entity for entity in old.get("entities", [])}
-    absorbed_names: dict[str, str] = old.get("absorbed_names", {})
-
-    # An entity's id is a hash of whichever spelling gets picked as canonical_name (entity_id()), and that pick can
-    # shift between builds - e.g. a title-prefixed mention ("Captain Arelian") joining a group that previously only had
-    # the short form ("Arelian") makes the long form win as canonical_name, hashing to a different id. Reconcile by name
-    # overlap, not only by exact id, so a freshly generated entity that shares ANY spelling with a previous one
-    # (locked/manual or not) reclaims that previous entity's id and its reviewed history, instead of silently orphaning
-    # both.
-    previous_id_by_name_key: dict[str, str] = {}
-    for previous_id, previous_entity in previous.items():
-        for key in entity_name_keys(previous_entity):
-            previous_id_by_name_key.setdefault(key, previous_id)
-    claimed_prior_ids: set[str] = set()
-
-    # A name a previous `merge` absorbed into another entity would otherwise
-    # come back as its own standalone entity on the very next rebuild, since
-    # rule/spaCy extraction has no memory of the merge - it just sees "Nico" in
-    # the text again. Redirect any freshly generated entity whose name was
-    # absorbed into folding into its merge target as an alias instead of
-    # standing alone, so a rebuild can't silently undo a merge.
-    redirected: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    still_standalone: list[dict[str, Any]] = []
-    for entity in generated:
-        target_id = absorbed_names.get(normalize_name(entity["canonical_name"]))
-        if target_id and target_id != entity["id"] and (target_id in previous or any(e["id"] == target_id for e in generated)):
-            redirected[target_id].append(entity)
-        else:
-            still_standalone.append(entity)
-    generated = still_standalone
-
-    merged: list[dict[str, Any]] = []
-    seen_ids: set[str] = set()
-    for entity in generated:
-        prior = previous.get(entity["id"])
-        if prior is not None:
-            claimed_prior_ids.add(prior["id"])
-        else:
-            for key in entity_name_keys(entity):
-                candidate_id = previous_id_by_name_key.get(key)
-                if candidate_id is not None and candidate_id not in claimed_prior_ids:
-                    prior = previous[candidate_id]
-                    claimed_prior_ids.add(candidate_id)
-                    entity["id"] = candidate_id  # reclaim the stable identity even though the spelling shifted
-                    break
-        if prior and (prior.get("locked") or prior.get("manual")):
-            # A fully locked entry is untouched by rebuilds, including its
-            # occurrence list - rescan is the only way to refresh it. A manually
-            # created entity is never rediscovered by rule/spaCy extraction at
-            # all, so it must survive every rebuild the same way, locked or not.
-            merged.append(prior)
-            seen_ids.add(prior["id"])
-            continue
-        if prior:
-            # User-authored material is never replaced by an empty generated value.
-            for field in ("description", "personality_notes", "context"):
-                if prior.get(field) and not entity.get(field):
-                    entity[field] = prior[field]
-            entity["relationships"] = prior.get("relationships", [])
-            # Properties are the narrator's own facts and extraction never produces them, so a rebuild keeps them all.
-            entity["properties"] = entity_properties(prior)
-            # The narrator's review flags and speaker colour are theirs too.
-            if isinstance(prior.get("review"), dict):
-                entity["review"] = prior["review"]
-            if prior.get("speaker_color"):
-                entity["speaker_color"] = prior["speaker_color"]
-            # A pronunciation the narrator explicitly chose (pronounce(), marked "chosen") survives a rebuild too,
-            # the same as a locked entity's - only an auto-generated one is replaced by the fresh build (B11).
-            # Otherwise the narrator's note and alternate carry over to the fresh one.
-            if (prior.get("pronunciation") or {}).get("chosen"):
-                entity["pronunciation"] = prior["pronunciation"]
-            elif prior.get("pronunciation"):
-                entity["pronunciation"] = carry_pronunciation_work(prior["pronunciation"], entity.get("pronunciation") or {})
-            # The same for a rediscovered alias: a chosen alias pronunciation is kept whole, an unchosen one keeps the narrator's work.
-            prior_aliases = {alias["text"].lower(): alias for alias in prior.get("aliases", []) if isinstance(alias, dict)}
-            for alias in entity.get("aliases", []):
-                prior_alias = prior_aliases.get(alias["text"].lower())
-                prior_value = (prior_alias or {}).get("pronunciation") or {}
-                if prior_value.get("chosen"):
-                    alias["pronunciation"] = prior_value
-                elif prior_value:
-                    alias["pronunciation"] = carry_pronunciation_work(prior_value, alias.get("pronunciation") or {})
-            # An alias added by hand (typed in, or the product of a merge) can
-            # never be "rediscovered" by extraction the way the automatic
-            # title-prefix aliases can, so anything prior-only survives too.
-            fresh_alias_texts = {alias["text"].lower() for alias in entity.get("aliases", [])}
-            for alias in prior.get("aliases", []):
-                if alias["text"].lower() not in fresh_alias_texts:
-                    entity.setdefault("aliases", []).append(alias)
-                    fresh_alias_texts.add(alias["text"].lower())
-            entity["occurrence_count"] = entity_occurrence_count(entity)
-            if "review" in entity:
-                entity["review"] = entity_review(entity)
-        merged.append(entity)
-        seen_ids.add(entity["id"])
-    # Locked or manual entries the rebuild didn't rediscover at all (e.g. a
-    # manually created entity with no manuscript occurrences) survive too.
-    for entity_id_value, prior in previous.items():
-        if (prior.get("locked") or prior.get("manual")) and entity_id_value not in seen_ids:
-            merged.append(prior)
-            seen_ids.add(entity_id_value)
-
-    if redirected:
-        merged_by_id = {entity["id"]: entity for entity in merged}
-        for target_id, absorbed_entities in redirected.items():
-            target = merged_by_id.get(target_id)
-            if not target:
-                continue
-            existing_alias_texts = {alias["text"].lower() for alias in target.get("aliases", [])} | {target["canonical_name"].lower()}
-            for absorbed_entity in absorbed_entities:
-                candidates = [
-                    {
-                        "text": absorbed_entity["canonical_name"],
-                        "pronunciation": absorbed_entity.get("pronunciation", {}),
-                        "occurrences": absorbed_entity.get("occurrences", []),
-                    },
-                    *absorbed_entity.get("aliases", []),
-                ]
-                for candidate in candidates:
-                    key = candidate["text"].lower()
-                    if key not in existing_alias_texts:
-                        target.setdefault("aliases", []).append(candidate)
-                        existing_alias_texts.add(key)
-            target["occurrence_count"] = entity_occurrence_count(target)
-    log(
-        "merged generated entities with the saved guide",
-        level="debug",
-        event="guide.entities_merged",
-        generated_count=len(generated),
-        merged_count=len(merged),
-        redirected_count=sum(len(absorbed) for absorbed in redirected.values()),
-    )
-    return merged
-
-
 def write_json(path: str, data: dict[str, Any]) -> None:
+    """Writes the Story Bible as the host does (internal/guide pyDumps): indented, non-ASCII as itself, beside the file and renamed over
+    it. ``pronounce`` is the one command here that writes it."""
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_suffix(target.suffix + ".tmp")
     temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(temporary, target)
-
-
-def build(args: argparse.Namespace) -> None:
-    log("Reading canonical manuscript")
-    write_progress(args.progress, "LOAD", 5, "Reading manuscript...")
-    source_hash = document_hash(args.manuscript)
-    paragraphs = load_manuscript(args.manuscript)
-    log(f"Loaded {len(paragraphs):,} paragraphs")
-    write_progress(args.progress, "EXTRACT", 30, "Finding people, places, and organizations...")
-    previous = load_json(args.out)
-    if args.spacy_model != RULES_ONLY:
-        log(f"Extracting candidates with spaCy model {args.spacy_model}")
-    entities = build_entities(paragraphs, args.spacy_model, args.espeak_library or None, getattr(args, "default_source", "") or None)
-    types = guide_types(previous or {})
-    file_under_types(entities, types)
-    write_progress(args.progress, "MERGE", 85, "Preserving locked edits...")
-    log("Merging generated entries with locked and manual edits")
-    entities = merge_locked(entities, previous)
-    fresh_cues = guide_dialogue_cues(paragraphs, entities, speaking_types(previous or {}))
-    dialogue_cues = merge_dialogue_cues(fresh_cues, (previous or {}).get("dialogue_cues", []))
-    guide = {
-        "schema_version": SCHEMA_VERSION,
-        "source": {"path": str(Path(args.manuscript).resolve()), "sha256": source_hash},
-        "generated_at": datetime.now(UTC).isoformat(),
-        "entities": entities,
-        "dialogue_cues": dialogue_cues,
-        "vocabulary_candidates": vocabulary_candidates(entities),
-        "absorbed_names": (previous or {}).get("absorbed_names", {}),
-    }
-    if "types" in (previous or {}):
-        guide["types"] = types
-    write_json(args.out, guide)
-    write_progress(args.progress, "DONE", 100, f"Built guide with {len(entities)} entities")
-    log(f"Built Story Bible with {len(entities)} entities")
-    print(f"BUILT|{len(entities)}|{args.out}")
 
 
 def find_entity(guide: dict[str, Any], entity_id_value: str) -> dict[str, Any]:
@@ -946,84 +232,9 @@ def find_entity(guide: dict[str, Any], entity_id_value: str) -> dict[str, Any]:
     return entity
 
 
-# Character/Place/Organization/Needs Review are the only categories rule/spaCy
-# extraction ever produces; Lore/Item/Event are manual-only classifications a
-# user assigns themselves - there is nothing in the text that would let
-# automatic detection guess "this name is Lore" versus "this name is a Place".
-# "Needs Review" and "Draft" are system states, not user-choosable targets:
-# Needs Review only ever comes from a build, and Draft only from a fresh
-# manual entity that hasn't been classified yet.
+# Character/Place/Organization/Needs Review are the only categories extraction produces; Lore/Item/Event are manual-only classifications a
+# narrator assigns themselves. GLiNER's suggestions name these (extraction_gliner.py).
 VALID_CATEGORIES = {"Character", "Place", "Organization", "Lore", "Item", "Event"}
-SYSTEM_CATEGORIES = {"Needs Review", "Draft"}
-
-# The Story Bible types (SN-B95): the narrator's own list of ``{name, colour, speaks}``, stored as ``types`` in the file. A file without
-# one reads as DEFAULT_TYPES, the fixed categories above with the hues the app has always drawn them in and only Character speaking, so
-# an old file reads as before and nothing is migrated; the first type edit writes the whole list. A colour names one of the six kind hues
-# of styles.css (green --character, blue --place, violet --org, amber --lore, teal --item, rose --event). ``builtin`` is kept in the
-# file only: the extracted category a row stands for, so a rebuild files a new Character under the type it was renamed to.
-TYPE_COLOURS = ("green", "blue", "violet", "amber", "teal", "rose")
-DEFAULT_TYPES: tuple[dict[str, Any], ...] = tuple(
-    {"name": name, "colour": colour, "speaks": name == "Character", "builtin": name}
-    for name, colour in zip(("Character", "Place", "Organization", "Lore", "Item", "Event"), TYPE_COLOURS, strict=True)
-)
-
-
-def guide_types(guide: dict[str, Any]) -> list[dict[str, Any]]:
-    """The Story Bible's types, in order: the stored list, or a copy of DEFAULT_TYPES for a file without one. A stored list that is
-    not a non-empty list of rows with a name, a palette colour and a speaks flag is refused, never guessed at."""
-    stored = guide.get("types")
-    if stored is None:
-        return [dict(row) for row in DEFAULT_TYPES]
-    if not isinstance(stored, list) or not stored:
-        raise ValueError("The Story Bible types are invalid.")
-    seen: set[str] = set()
-    types = []
-    for row in stored:
-        if (
-            not isinstance(row, dict)
-            or not isinstance(row.get("name"), str)
-            or not row["name"].strip()
-            or row["name"].casefold() in seen
-            or row.get("colour") not in TYPE_COLOURS
-            or not isinstance(row.get("speaks"), bool)
-        ):
-            raise ValueError("The Story Bible types are invalid.")
-        seen.add(row["name"].casefold())
-        types.append({key: row[key] for key in ("name", "colour", "speaks", "builtin") if key in row})
-    return types
-
-
-def speaking_types(guide: dict[str, Any]) -> set[str]:
-    """The types whose entries speak: their names are the speakers dialogue cues resolve to, and only they have a speaker colour."""
-    return {row["name"] for row in guide_types(guide) if row["speaks"]}
-
-
-def file_under_types(entities: list[dict[str, Any]], types: list[dict[str, Any]]) -> None:
-    """Files freshly extracted entries under the narrator's types: a category whose type was renamed takes the new name, and one whose
-    type was removed becomes Needs Review for the narrator to classify, so a rebuild never brings back a type they took away."""
-    names = {row["name"] for row in types}
-    renamed = {row["builtin"]: row["name"] for row in types if row.get("builtin")}
-    for entity in entities:
-        category = entity.get("category")
-        if category in SYSTEM_CATEGORIES:
-            continue
-        target = renamed.get(category) or (category if category in names else None)
-        if target is not None:
-            entity["category"] = target
-            continue
-        entity["category"] = "Needs Review"
-        entity["review_state"] = "needs review"
-        entity["review"] = {**(entity.get("review") or {"aliases": []}), "entry": True}
-
-
-def entity_occurrence_count(entity: dict[str, Any]) -> int:
-    return len(entity.get("occurrences", [])) + sum(len(alias.get("occurrences", [])) for alias in entity.get("aliases", []))
-
-
-def entity_properties(entity: dict[str, Any]) -> list[dict[str, str]]:
-    """The properties of an entity, empty for a file written before they existed."""
-    properties = entity.get("properties")
-    return properties if isinstance(properties, list) else []
 
 
 def _pronunciation_holder(guide: dict[str, Any], entity_id_value: str, alias_index: int | None) -> tuple[dict[str, Any], str]:
@@ -1042,24 +253,6 @@ def _pronunciation_holder(guide: dict[str, Any], entity_id_value: str, alias_ind
     return aliases[alias_index], aliases[alias_index]["text"]
 
 
-def entity_review(entity: dict[str, Any]) -> dict[str, Any]:
-    """The entry's review flags: ``entry`` for the entry itself and ``aliases``, the alias texts still to look at.
-
-    A file written before the flags existed has no ``review``; its entry flag is ``review_state == "needs review"`` and no name is flagged.
-    A stored name the entry no longer has is dropped.
-    """
-    stored = entity.get("review")
-    if not isinstance(stored, dict):
-        return {"entry": entity.get("review_state") == "needs review", "aliases": []}
-    names = {alias["text"] for alias in entity.get("aliases", []) if isinstance(alias, dict)}
-    flagged = [text for text in stored.get("aliases") or [] if isinstance(text, str) and text in names]
-    return {"entry": bool(stored.get("entry")), "aliases": list(dict.fromkeys(flagged))}
-
-
-# The types that speak in a file without a types list: only Character. A file with one speaks as its rows say (speaking_types).
-SPEAKING_CATEGORIES = {row["name"] for row in DEFAULT_TYPES if row["speaks"]}
-
-
 def _load_guide_for_edit(path: str) -> dict[str, Any]:
     guide = load_json(path)
     if not guide:
@@ -1071,7 +264,7 @@ def pronounce(args: argparse.Namespace) -> None:
     """Sets the pronunciation of an entity's own name, or one of its aliases, from one named engine.
 
     Refused on a locked entity, the same as every other edit. The value is marked ``chosen`` so a later
-    rebuild's ``merge_locked`` keeps it instead of overwriting it with a freshly generated one. A narrator's own
+    rebuild (the host's ``mergeLocked``, internal/guide/build_merge.go) keeps it instead of overwriting it with a freshly generated one. A narrator's own
     pronunciation it replaces is kept as the ``alternate``.
     """
     guide = _load_guide_for_edit(args.guide)
@@ -1106,209 +299,67 @@ def candidate(args: argparse.Namespace) -> None:
 
 
 def lookup_pronunciations(args: argparse.Namespace) -> None:
-    """Prints ``pronunciation()`` for each ``--word``, in order, one JSON line each: the whole value (``ipa``, ``source``, ``confidence``).
+    """Prints ``pronunciation()`` for each word, in order, one JSON line each: the whole value (``ipa``, ``source``, ``confidence``).
 
-    Stateless, like ``candidate``: it reads no guide and writes no file. It is what the host asks for when it creates an entry or adds an
-    alias itself (``create`` and the ``aliases`` edit, which also need only this from the sidecar). The value is the automatic one, the
-    ``--default-source`` first and then the usual CMU, eSpeak and Wiktextract order, and a word nothing knows is the ``not generated``
-    value, never an error. A word is the name as written, so there is no length limit (``create`` has none); a blank one is refused.
+    Stateless, like ``candidate``: it reads no guide and writes no file. The host asks for it when it creates an entry or adds an alias
+    (each ``--word``, stripped, a blank one refused) and for every name a Story Bible build keeps (``--words-file``, a JSON list of the
+    names exactly as the build found them, in one process for the whole book, since a book's names would not fit on a Windows command
+    line). The value is the automatic one, the ``--default-source`` first and then the usual CMU, eSpeak and Wiktextract order, and a word
+    nothing knows is the ``not generated`` value, never an error.
     """
-    words = [word.strip() for word in args.word]
-    if any(not word or "\0" in word for word in words):
-        raise ValueError("A word to look up is not blank.")
+    words_file = getattr(args, "words_file", "")
+    if bool(args.word) == bool(words_file):
+        raise ValueError("Give the words to look up as --word or as --words-file, not both.")
+    if words_file:
+        words = json.loads(Path(words_file).read_text(encoding="utf-8"))
+        if not isinstance(words, list) or not all(isinstance(word, str) and word for word in words):
+            raise ValueError("The words file is not a list of names.")
+    else:
+        words = [word.strip() for word in args.word]
+        if any(not word or "\0" in word for word in words):
+            raise ValueError("A word to look up is not blank.")
     for word in words:
         print(json.dumps(pronunciation(word, args.espeak_library or None, args.default_source or None), ensure_ascii=False))
 
 
-def empty_guide() -> dict[str, Any]:
-    """A Story Bible with nothing in it yet, which the host reports as stale until a real build fills ``source``."""
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "source": {},
-        "generated_at": None,
-        "entities": [],
-        "vocabulary_candidates": [],
-        "absorbed_names": {},
-    }
+# How long ``entities`` waits for the host's words file, and how often it looks: the host writes it as soon as it has read the spans.
+WORDS_FILE_TIMEOUT = 600.0
+WORDS_FILE_POLL = 0.02
 
 
-def cue_id(paragraph_id: str, start: int, quote_text: str) -> str:
-    digest = hashlib.sha1(f"{paragraph_id}:{start}:{quote_text}".encode()).hexdigest()[:12]
-    return "cue-" + digest
+def entities(args: argparse.Namespace) -> None:
+    """``entities``: the language model's entities in each narrated paragraph, for the host's Story Bible build
+    (src/studio/desktop/internal/guide/build.go), which does everything else with them. It writes nothing.
 
+    The first line is ``{"available": true}``, then one line per paragraph in manuscript order, ``{"paragraphId", "entities"}``, each
+    entity ``[start, end, label]`` (spaCy's ``start_char``, ``end_char`` and ``label_``, every label, in code points). A model that cannot
+    be loaded is logged and answered ``{"available": false}``, and the host falls back to its rules, as the build always has.
 
-def character_name_index(entities: list[dict[str, Any]], speaking: set[str] | None = None) -> dict[str, str]:
-    """Maps every normalized name and alias of an entry that speaks to its entity id: an entry whose type is in ``speaking``
-    (``speaking_types``; Character when not given), never an unresolved Needs Review candidate."""
-    speaking = SPEAKING_CATEGORIES if speaking is None else speaking
-    index: dict[str, str] = {}
-    for entity in entities:
-        if entity.get("category") not in speaking:
-            continue
-        for key in entity_name_keys(entity):
-            index.setdefault(key, entity["id"])
-    return index
-
-
-def find_speech_tag(text: str, quote_start: int, quote_end: int, character_index: dict[str, str]) -> tuple[str | None, str, str]:
-    """Looks for a speech-verb tag naming a known character right after or right before the quote
-    ('"..." Ada said.' / 'Ada said, "..."'). Anything else, including a tag naming someone who never became
-    a real Character entity, is left `unknown` rather than guessed at."""
-    after = text[quote_end : quote_end + TAG_WINDOW]
-    match = AFTER_QUOTE_TAG.match(after)
-    if match and match.group(2).lower() in SPEECH_VERBS:
-        entity_id_value = character_index.get(normalize_name(match.group(1)))
-        if entity_id_value:
-            return entity_id_value, "tag", (text[quote_start:quote_end] + " " + match.group(0)).strip()
-    before = text[max(0, quote_start - TAG_WINDOW) : quote_start]
-    match = BEFORE_QUOTE_TAG.search(before)
-    if match and match.group(2).lower() in SPEECH_VERBS:
-        entity_id_value = character_index.get(normalize_name(match.group(1)))
-        if entity_id_value:
-            return entity_id_value, "tag", (match.group(0) + " " + text[quote_start:quote_end]).strip()
-    return None, "unknown", ""
-
-
-def extract_cues_from_text(text: str, character_index: dict[str, str], chapter_id: str = "", paragraph_id: str = "") -> list[dict[str, Any]]:
-    """One dialogue cue per double-quoted span in `text`, each with its own tag lookup and evidence.
-    Per-scene continuation (an untagged quote alternating between exactly two known speakers) is
-    `extract_dialogue_cues`'s job, since it needs the paragraphs around this one."""
-    cues: list[dict[str, Any]] = []
-    for match in QUOTE_PATTERN.finditer(text):
-        start, end = match.start(), match.end()
-        quote_text = match.group(1)
-        speaker_entity_id, source, tag_evidence = find_speech_tag(text, start, end, character_index)
-        cues.append(
-            {
-                "id": cue_id(paragraph_id, start, quote_text),
-                "chapterId": chapter_id,
-                "paragraphId": paragraph_id,
-                "quote_start": start,
-                "quote_end": end,
-                "quote_text": quote_text,
-                "speaker_entity_id": speaker_entity_id,
-                "speaker_source": source,
-                "evidence": {"chapterId": chapter_id, "paragraphId": paragraph_id, "excerpt": excerpt(text, start, end), "tag": tag_evidence},
-                "corrected": False,
-            }
-        )
-    return cues
-
-
-# How far either side of a quote a name counts as near it (the Studio Next mock's rule, a lower-confidence suggestion than a tag).
-PROXIMITY_WINDOW = 70
-CAPITALIZED_WORD = re.compile(r"[A-Z][A-Za-z'’\-]*")
-
-
-def _names_in(text: str, index: dict[str, str]) -> list[tuple[int, str]]:
-    """Each name of ``index`` in ``text`` as one to three capitalized words, longest first at each word, with where it starts."""
-    words = list(CAPITALIZED_WORD.finditer(text))
-    found: list[tuple[int, str]] = []
-    for i, word in enumerate(words):
-        for n in (3, 2, 1):
-            span = words[i : i + n]
-            if len(span) < n or any(text[a.end() : b.start()].strip() for a, b in itertools.pairwise(span)):
-                continue
-            entity = index.get(normalize_name(text[word.start() : span[-1].end()]))
-            if entity:
-                found.append((word.start(), entity))
-                break
-    return found
-
-
-def nearby_speaker(text: str, after: tuple[int, int], before: tuple[int, int], index: dict[str, str]) -> str | None:
-    """The first name within PROXIMITY_WINDOW characters after the quote (up to the next quote), else the last one before it (back to the
-    previous quote): the mock's rule, any speaking name near the line."""
-    start, end = after
-    following = _names_in(text[start : min(end, start + PROXIMITY_WINDOW)], index)
-    if following:
-        return following[0][1]
-    start, end = before
-    preceding = _names_in(text[max(start, end - PROXIMITY_WINDOW) : end], index)
-    return preceding[-1][1] if preceding else None
-
-
-def guide_dialogue_cues(paragraphs: list[dict[str, str]], entities: list[dict[str, Any]], speaking: set[str]) -> list[dict[str, Any]]:
-    """The cues a build and ``cues`` write: a tag naming a speaking entry, continuation, then a speaking entry's name near the quote. Only
-    the Story Bible's speaking entries are ever a speaker; a Needs Review name is not one until the narrator files it."""
-    return extract_dialogue_cues(paragraphs, character_name_index(entities, speaking), nearby=True)
-
-
-def extract_dialogue_cues(paragraphs: list[dict[str, str]], character_index: dict[str, str], nearby: bool = False) -> list[dict[str, Any]]:
-    """Rules-based cue extraction (precision-first): quote spans, adjacent speech-verb tags resolved
-    against known Character names/aliases, and per-scene continuation for exactly two active speakers.
-    A scene-break paragraph resets who is "active" - continuation never crosses one. Three or more active
-    speakers in a scene, or only one so far, leaves an untagged quote `unknown` rather than guessing which
-    of several people it might be."""
-    cues: list[dict[str, Any]] = []
-    scene_speakers: dict[tuple[str, int], list[str]] = defaultdict(list)
-    last_speaker: dict[tuple[str, int], str] = {}
-    for paragraph, scene in zip(paragraphs, assign_scene_indices(paragraphs), strict=True):
-        if scene is None:
-            continue
-        chapter_id = paragraph.get("chapterId", "")
-        paragraph_id = paragraph.get("paragraphId", "")
-        scene_key = (chapter_id, scene)
-        text = paragraph.get("text", "")
-        own = extract_cues_from_text(text, character_index, chapter_id, paragraph_id)
-        for index, cue in enumerate(own):
-            if cue["speaker_entity_id"] is None:
-                active = scene_speakers[scene_key]
-                if len(active) == 2 and scene_key in last_speaker:
-                    other = next((speaker_id for speaker_id in active if speaker_id != last_speaker[scene_key]), None)
-                    if other:
-                        cue["speaker_entity_id"] = other
-                        cue["speaker_source"] = "continuation"
-            if cue["speaker_entity_id"] is None and nearby:
-                after_end = own[index + 1]["quote_start"] if index + 1 < len(own) else len(text)
-                before_start = own[index - 1]["quote_end"] if index else 0
-                near = nearby_speaker(text, (cue["quote_end"], after_end), (before_start, cue["quote_start"]), character_index)
-                if near:
-                    cue["speaker_entity_id"], cue["speaker_source"] = near, "proximity"
-            speaker_id = cue["speaker_entity_id"]
-            if speaker_id and cue["speaker_source"] != "proximity":  # a guess from proximity never starts a continuation
-                if speaker_id not in scene_speakers[scene_key]:
-                    scene_speakers[scene_key].append(speaker_id)
-                last_speaker[scene_key] = speaker_id
-            cues.append(cue)
-    return cues
-
-
-def merge_dialogue_cues(fresh: list[dict[str, Any]], previous_cues: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """A narrator's correction (the host's ``correctCue``) survives a rebuild the same way a locked entity does:
-    matched by `cue_id`, which is itself a hash of the paragraph, the quote's position and its text, so a cue
-    whose underlying text is unchanged always gets the same id back and reclaims its correction; a cue whose
-    paragraph text changed gets a new id and simply does not carry a stale correction onto unrelated content."""
-    previous_by_id = {cue["id"]: cue for cue in previous_cues}
-    merged = []
-    for cue in fresh:
-        prior = previous_by_id.get(cue["id"])
-        if prior and prior.get("corrected"):
-            cue = {**cue, "speaker_entity_id": prior.get("speaker_entity_id"), "speaker_source": prior.get("speaker_source", "correction"), "corrected": True}
-        merged.append(cue)
-    return merged
-
-
-def refresh_cues(args: argparse.Namespace) -> None:
-    """Writes the dialogue cues without a Story Bible build, against the entries already filed under a speaking type: the host runs it
-    after a manuscript import and after a scan. With ``--chapter-id``, only those chapters' cues are recomputed and the rest are kept.
-    A narrator's correction survives as it does a rebuild (``merge_dialogue_cues``). With no guide file yet, an empty one is started,
-    which the host reports as stale until a real build fills ``source``. Prints ``CUES|<cues>|<with a speaker>``."""
-    guide = load_json(args.guide) or empty_guide()
+    With ``--words-file`` the same process then answers the pronunciations, so a build starts one process as it always has: it waits for
+    the host to write the file (a JSON list of the names the build keeps, which the host makes from these spans) and prints
+    ``pronunciation()`` of each, one line each, as the ``pronunciation`` command does.
+    """
     paragraphs = load_manuscript(args.manuscript)
-    chapters = set(args.chapter_id or [])
-    previous = guide.get("dialogue_cues", [])
-    scope = [paragraph for paragraph in paragraphs if not chapters or paragraph["chapterId"] in chapters]
-    cues = merge_dialogue_cues(guide_dialogue_cues(scope, guide.get("entities", []), speaking_types(guide)), previous)
-    if chapters:
-        order: dict[str, int] = {}
-        for paragraph in paragraphs:
-            order.setdefault(paragraph["chapterId"], len(order))
-        kept = [cue for cue in previous if cue.get("chapterId") not in chapters]
-        cues = sorted([*kept, *cues], key=lambda cue: order.get(cue.get("chapterId", ""), len(order)))
-    guide["dialogue_cues"] = cues
-    write_json(args.guide, guide)
-    print(f"CUES|{len(cues)}|{sum(1 for cue in cues if cue.get('speaker_entity_id'))}")
+    try:
+        import spacy
+
+        nlp = spacy.load(args.spacy_model, disable=["parser", "lemmatizer", "textcat"])
+    except Exception as exc:  # Local rule extraction is a supported fallback.  # noqa: BLE001
+        log(f"WARNING: spaCy model unavailable ({exc}); using lower-quality rules-only extraction.")
+        print(json.dumps({"available": False}), flush=True)
+    else:
+        print(json.dumps({"available": True}))
+        for paragraph, doc in zip(paragraphs, nlp.pipe(p["text"] for p in paragraphs), strict=True):
+            print(json.dumps({"paragraphId": paragraph["paragraphId"], "entities": [[ent.start_char, ent.end_char, ent.label_] for ent in doc.ents]}))
+        sys.stdout.flush()
+    if not args.words_file:
+        return
+    deadline = time.monotonic() + WORDS_FILE_TIMEOUT
+    while not Path(args.words_file).is_file():
+        if time.monotonic() > deadline:
+            raise ValueError("The Story Bible build never asked for its pronunciations.")
+        time.sleep(WORDS_FILE_POLL)
+    lookup_pronunciations(argparse.Namespace(word=None, words_file=args.words_file, espeak_library=args.espeak_library, default_source=args.default_source))
 
 
 def _phoneme_block(ipa: str) -> str | None:
@@ -1487,21 +538,16 @@ def capabilities(args: argparse.Namespace) -> None:
 
 
 def suggest(args: argparse.Namespace) -> None:
-    """`suggest`: one source's suggestions as JSON lines; it writes nothing (the rules: extraction_rules.py, SN-X32; GLiNER:
-    extraction_gliner.py, SN-X71; BookNLP: extraction_booknlp.py, SN-X72)."""
+    """`suggest`: one source's suggestions as JSON lines; it writes nothing (GLiNER: extraction_gliner.py, SN-X71; BookNLP:
+    extraction_booknlp.py, SN-X72). The rules source runs in the host (src/studio/desktop/internal/guide/rules.go)."""
     if args.source == "booknlp":
         import extraction_booknlp
 
         extraction_booknlp.suggest(args)
         return
-    if args.source == "gliner":
-        import extraction_gliner
+    import extraction_gliner
 
-        extraction_gliner.suggest(args)
-        return
-    import extraction_rules
-
-    extraction_rules.suggest(args)
+    extraction_gliner.suggest(args)
 
 
 def use_utf8_stdio() -> None:
@@ -1521,15 +567,14 @@ def main() -> None:
     use_utf8_stdio()
     parser = argparse.ArgumentParser(description=__doc__)
     command = parser.add_subparsers(dest="command", required=True)
-    build_parser = command.add_parser("build")
-    build_parser.add_argument("--manuscript", required=True)
-    build_parser.add_argument("--out", required=True)
-    build_parser.add_argument("--progress")
-    build_parser.add_argument("--log")
-    build_parser.add_argument("--spacy-model", default=get_default("ManuscriptGuide", "spacy_model", "en_core_web_sm"))
-    build_parser.add_argument("--espeak-library", default="")
-    build_parser.add_argument("--wiktextract-index", default="")
-    build_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
+    entities_parser = command.add_parser("entities", help="print the language model's entities in each paragraph, one JSON line each; writes nothing")
+    entities_parser.add_argument("--manuscript", required=True)
+    entities_parser.add_argument("--spacy-model", default=get_default("ManuscriptGuide", "spacy_model", "en_core_web_sm"))
+    entities_parser.add_argument("--log")
+    entities_parser.add_argument("--words-file", default="", help="then wait for this JSON list of names and print their pronunciations")
+    entities_parser.add_argument("--espeak-library", default="")
+    entities_parser.add_argument("--wiktextract-index", default="")
+    entities_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
     pronounce_parser = command.add_parser("pronounce")
     pronounce_parser.add_argument("--guide", required=True)
     pronounce_parser.add_argument("--entity-id", required=True)
@@ -1543,14 +588,12 @@ def main() -> None:
     candidate_parser.add_argument("--espeak-library", default="")
     candidate_parser.add_argument("--wiktextract-index", default="")
     lookup_parser = command.add_parser("pronunciation", help="print the automatic pronunciation of each --word, one JSON line each; writes nothing")
-    lookup_parser.add_argument("--word", required=True, action="append")
+    lookup_parser.add_argument("--word", action="append")
+    lookup_parser.add_argument("--words-file", default="", help="a JSON list of the words, each looked up as it is")
+    lookup_parser.add_argument("--log")
     lookup_parser.add_argument("--espeak-library", default="")
     lookup_parser.add_argument("--wiktextract-index", default="")
     lookup_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
-    cues_parser = command.add_parser("cues", help="write the dialogue cues against the entries already filed, without a build")
-    cues_parser.add_argument("--guide", required=True)
-    cues_parser.add_argument("--manuscript", required=True)
-    cues_parser.add_argument("--chapter-id", action="append", default=[], help="recompute only this chapter's cues; repeat for several")
     audio_parser = command.add_parser("render-audio")
     audio_parser.add_argument("--guide", required=True)
     audio_parser.add_argument("--entity-id", required=True)
@@ -1563,7 +606,7 @@ def main() -> None:
     check_parser.add_argument("--gliner-install", default="", help="the GLiNER download's install folder, to report its version")
     check_parser.add_argument("--booknlp-install", action="append", help="a BookNLP download's install folder, best first, to report its version")
     suggest_parser = command.add_parser("suggest", help="print one source's Story Bible suggestions, one JSON line each; writes nothing")
-    suggest_parser.add_argument("--source", choices=("rules", "gliner", "booknlp"), default="rules")
+    suggest_parser.add_argument("--source", choices=("gliner", "booknlp"), required=True, help="the rules run in the host, not here")
     suggest_parser.add_argument("--install", default="", help="the source's install folder (gliner, booknlp)")
     suggest_parser.add_argument("--spacy-model", default="", help="the spaCy model BookNLP parses with: an installed model's folder or a name")
     suggest_parser.add_argument("--manuscript", required=True)
@@ -1588,11 +631,10 @@ def main() -> None:
         set_log_file(log_handle)
     try:
         {
-            "build": build,
+            "entities": entities,
             "pronounce": pronounce,
             "candidate": candidate,
             "pronunciation": lookup_pronunciations,
-            "cues": refresh_cues,
             "render-audio": render_audio,
             "self-check": self_check,
             "capabilities": capabilities,
@@ -1600,8 +642,6 @@ def main() -> None:
         }[args.command](args)
     except Exception as exc:  # noqa: BLE001
         log(f"ERROR: {exc}")
-        if args.command == "build":
-            write_progress(getattr(args, "progress", None), "ERROR", 0, str(exc))
         sys.exit(1)
     finally:
         if log_handle is not None:
