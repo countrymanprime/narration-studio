@@ -119,7 +119,7 @@ export const workspaceProjectFxResultSchema = z.object({
 }) satisfies z.ZodType<WorkspaceProjectFxResult>;
 
 // The waveform strip's peaks: src/studio/desktop/bindings_workspace_peaks.go.
-const peaksSchema = z.object({
+export const peaksSchema = z.object({
   startSeconds: z.number(),
   bucketsPerSecond: z.number(),
   buckets: z.number(),

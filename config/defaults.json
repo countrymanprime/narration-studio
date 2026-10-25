@@ -146,7 +146,8 @@
     "click_above_silence_db": "30"
   },
   "Editing": {
-    "fx_cap_pct": "10"
+    "fx_cap_pct": "10",
+    "replace_target_lufs": "-20"
   },
   "Booth": {
     "words_per_page": "250"

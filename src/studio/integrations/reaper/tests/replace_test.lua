@@ -348,3 +348,94 @@ H.test('a put-back while REAPER records is refused', function()
   H.eq(s:events(), { { 'ERROR', 'p1', 'REAPER is recording. Stop recording first.' } })
   H.truthy(by_guid(s, new_guid), 'the replacement stays')
 end)
+
+-- 4. import_audio_track -------------------------------------------------------------------------------------------
+
+local IMPORT_LABEL = H.brand.name .. ': add their audio'
+local CO_NARRATOR_KEY = PREFIX .. 'co_narrator'
+local THEIR_AUDIO_KEY = PREFIX .. 'their_audio'
+
+-- A file on disk to import, and the session with one chapter track.
+local function importable(name)
+  local s = H.session()
+  s.fake:add_track('Chapter 1')
+  local path = H.join(host.tmpdir(), name or 'leach_01.mp3')
+  H.write_file(path, 'audio')
+  s.fake.media_lengths[path] = 796.5
+  s.fake.calls = {}
+  return s, path
+end
+
+H.test('import-their-audio: the file goes on a new muted track named for them, as one item from 0, in one undo block', function()
+  local s, path = importable()
+  s:send('import_audio_track', 'i1', 'Eric Leach', path)
+  local events = s:events()
+  local track = s.fake.tracks[2]
+  H.truthy(track, 'a track is added after the existing ones')
+  H.eq(track.name, 'Eric Leach')
+  H.eq(track.muted, true, 'muted: their whole file never plays in the mix or a render')
+  H.eq(track.ext[CO_NARRATOR_KEY], '1')
+  H.eq(#track.items, 1)
+  local item = track.items[1]
+  H.eq(span(item), { 0, 796.5 })
+  H.eq(item.takes[1].source.file, path)
+  H.eq(item.ext[THEIR_AUDIO_KEY], '1')
+  H.eq(events, { { 'AUDIO_TRACK_ADDED', 'i1', track.guid, item.guid, '796.500000', '1' } })
+  H.eq(s.fake:undo_labels(), { IMPORT_LABEL })
+  H.eq(s.fake.open_undo_blocks, 0)
+end)
+
+H.test('the new track can be their source for a replacement straight away', function()
+  local s, path = importable()
+  local chapter = s.fake.tracks[1]
+  local mine = s.fake:add_item(chapter, { position = 10, length = 20, source = 'ch1.wav' })
+  s:send('import_audio_track', 'i1', 'Eric Leach', path)
+  local item_guid = s:events()[1][4]
+  s:send('replace_range', 'r1', mine.guid, '14', '16', item_guid, '100|102.5|10|0|' .. ID)
+  local answer = s:events()[1]
+  H.eq(answer[1], 'RANGE_REPLACED')
+  H.eq(by_guid(s, answer[3]).takes[1].source.file, path)
+end)
+
+H.test('an import refuses a bad name or path, a missing or unreadable file, and recording, with nothing changed', function()
+  local s, path = importable()
+  local cases = {
+    { '', path, 'Their name must be 1 to 80 characters with no bar or control character.' },
+    { 'Eric | Leach', path, 'Their name must be 1 to 80 characters with no bar or control character.' },
+    { 'Eric\tLeach', path, 'Their name must be 1 to 80 characters with no bar or control character.' },
+    { string.rep('n', 81), path, 'Their name must be 1 to 80 characters with no bar or control character.' },
+    { 'Eric Leach', '', 'Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF).' },
+    { 'Eric Leach', 'leach_01.mp3', 'Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF).' },
+    { 'Eric Leach', '\\\\server\\share\\leach_01.mp3', 'Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF).' },
+    { 'Eric Leach', '//server/share/leach_01.mp3', 'Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF).' },
+    { 'Eric Leach', H.join(host.tmpdir(), 'notes.docx'), 'Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF).' },
+    { 'Eric Leach', H.join(host.tmpdir(), 'gone.wav'), 'That file is no longer there. Choose it again.' },
+  }
+  for _, case in ipairs(cases) do
+    s:send('import_audio_track', 'i1', case[1], case[2])
+    H.eq(s:events(), { { 'ERROR', 'i1', case[3] } }, case[1] .. ' / ' .. case[2])
+  end
+  s:send('import_audio_track', 'i1', 'Eric Leach', path, 'extra')
+  H.eq(s:events(), { { 'ERROR', 'i1', 'Choose an audio file on this computer (WAV, FLAC, MP3, OGG or AIFF).' } }, 'a path split by a bar')
+  s.fake.unreadable_sources[path] = true
+  s:send('import_audio_track', 'i1', 'Eric Leach', path)
+  H.eq(s:events(), { { 'ERROR', 'i1', 'REAPER cannot read that file as audio.' } })
+  s.fake.unreadable_sources[path] = nil
+  s.fake.media_lengths[path] = 0
+  s:send('import_audio_track', 'i1', 'Eric Leach', path)
+  H.eq(s:events(), { { 'ERROR', 'i1', 'REAPER cannot read that file as audio.' } })
+  s.fake.media_lengths[path] = 10
+  s.fake.play_state = 5
+  s:send('import_audio_track', 'i1', 'Eric Leach', path)
+  H.eq(s:events(), { { 'ERROR', 'i1', 'REAPER is recording. Stop recording first.' } })
+  H.eq(#s.fake.tracks, 1, 'no track is added')
+  H.eq(#s.fake.undo, 0, 'no undo point')
+  H.eq(s.fake.sources_created, s.fake.sources_destroyed, 'no source is left open')
+end)
+
+H.test('a name with emoji and right-to-left text is kept as given', function()
+  local s, path = importable('صوت 🎙.wav')
+  s:send('import_audio_track', 'i1', 'إريك 🎙 Leach', path)
+  H.eq(s:events()[1][1], 'AUDIO_TRACK_ADDED')
+  H.eq(s.fake.tracks[2].name, 'إريك 🎙 Leach')
+end)
