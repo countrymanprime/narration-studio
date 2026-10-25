@@ -242,6 +242,25 @@ def excerpt(text: str, start: int, end: int, radius: int = 150) -> str:
     return ("…" if left else "") + value + ("…" if right < len(text) else "")
 
 
+# The longest quote, in characters, a GLiNER or BookNLP suggestion takes from the sentence its name is in. The host's rules use the
+# same window (src/studio/desktop/internal/guide/rules_text.go sentenceAround).
+MAX_QUOTE = 300
+
+
+def sentence_around(text: str, start: int, end: int) -> str:
+    """The sentence of ``text`` holding ``text[start:end]``, trimmed, or a window of at most MAX_QUOTE characters around
+    it when the sentence is longer. Always a slice of ``text``."""
+    left = max((text.rfind(mark, 0, start) for mark in SENTENCE_END_CHARACTERS), default=-1) + 1
+    ends = [at for at in (text.find(mark, end) for mark in SENTENCE_END_CHARACTERS) if at >= 0]
+    right = min(ends) + 1 if ends else len(text)
+    if right - left > MAX_QUOTE:
+        room = max(0, MAX_QUOTE - (end - start)) // 2
+        left = max(left, start - room)
+        right = min(right, left + MAX_QUOTE)
+    # A sentence that starts after a closing quote or bracket starts with it; drop it, keeping a slice of the text.
+    return text[left:right].strip().lstrip("”’)] ")
+
+
 class WordStats(NamedTuple):
     """Manuscript-wide signals used to tell names from ordinary words without a dictionary."""
 
@@ -1487,21 +1506,16 @@ def capabilities(args: argparse.Namespace) -> None:
 
 
 def suggest(args: argparse.Namespace) -> None:
-    """`suggest`: one source's suggestions as JSON lines; it writes nothing (the rules: extraction_rules.py, SN-X32; GLiNER:
-    extraction_gliner.py, SN-X71; BookNLP: extraction_booknlp.py, SN-X72)."""
+    """`suggest`: one source's suggestions as JSON lines; it writes nothing (GLiNER: extraction_gliner.py, SN-X71; BookNLP:
+    extraction_booknlp.py, SN-X72). The rules source runs in the host (src/studio/desktop/internal/guide/rules.go)."""
     if args.source == "booknlp":
         import extraction_booknlp
 
         extraction_booknlp.suggest(args)
         return
-    if args.source == "gliner":
-        import extraction_gliner
+    import extraction_gliner
 
-        extraction_gliner.suggest(args)
-        return
-    import extraction_rules
-
-    extraction_rules.suggest(args)
+    extraction_gliner.suggest(args)
 
 
 def use_utf8_stdio() -> None:
@@ -1563,7 +1577,7 @@ def main() -> None:
     check_parser.add_argument("--gliner-install", default="", help="the GLiNER download's install folder, to report its version")
     check_parser.add_argument("--booknlp-install", action="append", help="a BookNLP download's install folder, best first, to report its version")
     suggest_parser = command.add_parser("suggest", help="print one source's Story Bible suggestions, one JSON line each; writes nothing")
-    suggest_parser.add_argument("--source", choices=("rules", "gliner", "booknlp"), default="rules")
+    suggest_parser.add_argument("--source", choices=("gliner", "booknlp"), required=True, help="the rules run in the host, not here")
     suggest_parser.add_argument("--install", default="", help="the source's install folder (gliner, booknlp)")
     suggest_parser.add_argument("--spacy-model", default="", help="the spaCy model BookNLP parses with: an installed model's folder or a name")
     suggest_parser.add_argument("--manuscript", required=True)

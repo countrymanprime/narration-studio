@@ -27,7 +27,7 @@ Every entry carries `review: {"entry", "aliases"}`: whether the entry itself sti
 
 ## Dialogue cues without a build
 
-A cue's speaker is only ever an entry of a speaking type, never a Needs Review name (owner, 2026-10-24). It comes from, in order: a speech tag naming one (`tag`); the other of exactly two speakers taking turns in a scene (`continuation`); and the first such name within `PROXIMITY_WINDOW` (70) characters after the quote, up to the next one, else the last before it (`proximity`, the Studio Next mock's rule). A proximity speaker never starts a continuation. A build and `cues` both use these (`guide_dialogue_cues`); the rules source's speaker suggestions (`extraction_rules.py`) offer only a tag naming an entry of a speaking type. Every one is a suggestion until the narrator corrects the cue.
+A cue's speaker is only ever an entry of a speaking type, never a Needs Review name (owner, 2026-10-24). It comes from, in order: a speech tag naming one (`tag`); the other of exactly two speakers taking turns in a scene (`continuation`); and the first such name within `PROXIMITY_WINDOW` (70) characters after the quote, up to the next one, else the last before it (`proximity`, the Studio Next mock's rule). A proximity speaker never starts a continuation. A build and `cues` both use these (`guide_dialogue_cues`); the rules source's speaker suggestions (`internal/guide/rules.go`, in the host) offer only a tag naming an entry of a speaking type. Every one is a suggestion until the narrator corrects the cue.
 
 - **`cues --guide --manuscript [--chapter-id ...]`** writes `dialogue_cues` (one per double-quoted span, as a build does) against the entries already filed under a speaking type, keeps every other key of the file and every narrator correction, and prints `CUES|<cues>|<with a speaker>`. With `--chapter-id`, only those chapters' cues are recomputed and the rest are kept, in manuscript order. With no file yet it starts an empty Story Bible, which the host reports as stale until a build. The host runs it at the end of every scan and after every manuscript import; for the chapters an entry's names appear in (`guide.Service.SpeakerChapters`) after an edit of its type, name or aliases, a new entry, a merge or a delete, when the entry spoke before or speaks after; and for every chapter when a type starts or stops speaking (`src/studio/desktop/extraction_cues.go`, `guide.Service.RefreshCues`, holding the host's edit lock while it runs). All but the scan's run in the background and are logged to the run log. `test_character_cues.py` writes `cues-golden.json`, which `TestCuesMatchTheGolden` reads with the host's parser.
 
@@ -72,19 +72,23 @@ the Story Bible shows an old note read-only. A pronunciation's `source` is the r
 
 ## Rules suggestions
 
-`suggest --manuscript M --guide G` is the rules tier of the extraction port (SN-X32, `core/extraction_rules.py`). It reads
-the manuscript and the Story Bible, writes nothing, and prints one JSON line per suggestion: an `entry` for a name the
-build's rules accept that no entry answers to, or one held only as Needs Review; an `alias` for a spelling the rules
-group with a known entry that the entry lacks; a `speaker` for a quote a speech tag resolves to a Character, unless the
-Story Bible already attributes that cue or the narrator corrected it. A locked entry gets nothing (`src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`). Each quote
-is a slice of the paragraph it names. Each confidence comes from `RULE_CONFIDENCE`, which is provisional until SN-X8:
-`speech-tag` is 0.96 (the [cue evaluation](../research/character-continuity-cue-extraction-eval/RESULTS.md)), and the
-other rules give `null` with the note "The rules give no score for this." The `build` is unchanged.
+The rules tier of the extraction port (SN-X32) runs in the host, not in this sidecar: `guide.RuleSuggestions`
+(`src/studio/desktop/internal/guide/rules.go` and `rules_text.go`) reads the manuscript and the Story Bible, writes nothing, and
+gives one JSON line per suggestion: an `entry` for a name the build's rules accept that no entry answers to, or one held only
+as Needs Review; an `alias` for a spelling the rules group with a known entry that the entry lacks; a `speaker` for a quote a
+speech tag resolves to an entry of a speaking type, unless the Story Bible already attributes that cue or the narrator
+corrected it. A locked entry gets nothing, nor does a name a merge absorbed. Each quote is a slice of the paragraph it names.
+Each confidence comes from `RuleConfidence`, which is provisional until SN-X8: `speech-tag` is 0.96 (the
+[cue evaluation](../research/character-continuity-cue-extraction-eval/RESULTS.md)), and the other rules give `null` with the
+note "The rules give no score for this." The name rules are this sidecar's `rule_candidates` and `classify`, which `build`
+still runs; the host's copy matches them case for case (`tests/fixtures/guide-rules`, recorded from the sidecar's
+`suggest --source rules` before it was deleted on 2026-10-25).
 
-The host runs it through `src/studio/desktop/internal/extractionport/rules`, which caps the output (8 MB), each line (64 KB)
-and each field (8 KB), refuses an unknown field or a kind other than entry, alias or speaker, drops a suggestion whose
-quote `extraction.VerifyEvidence` does not find in its paragraph, and kills the sidecar when the run is cancelled. The
-line format is pinned by `rules/testdata/suggest-lines.json`, which the sidecar's contract test writes.
+`src/studio/desktop/internal/extractionport/rules` is the scan's rules row. It caps the lines (8 MB in all, 64 KB a line,
+8 KB a field), refuses an unknown field or a kind other than entry, alias or speaker, drops a suggestion whose quote
+`extraction.VerifyEvidence` does not find in its paragraph, and stops when the run is cancelled. The line format is pinned
+by `rules/testdata/suggest-lines.json`, which `TestTheSuggestLinesMatchTheContractFile` writes. `go run ./cmd/guide-rules
+--manuscript M --guide G` (from `src/studio/desktop`) prints the same lines; the extraction calibration tool runs it.
 
 ## GLiNER suggestions
 
@@ -94,7 +98,7 @@ turned off ([CI and releases](../operations/ci-and-releases.md)),
 and prints one `entry` line per name it finds: the type from `LABELS` (Character, Place, Item, Organization), no aliases,
 the model's own score or `null`, and the sentence the name is in as its quote. Spans under `SCORE_FLOOR` (0.5) are
 dropped, and a name found twice is offered once. A missing or damaged install exits 1 with a sentence. The host runs it
-through `src/studio/desktop/internal/extractionport/gliner` with the same caps and checks as the rules, plus an entry-only,
+through `src/studio/desktop/internal/extractionport/gliner` with the same caps and checks as the rules row, plus an entry-only,
 no-alias line format, pinned by `gliner/testdata/suggest-lines.json`. `self-check --gliner-install DIR` adds a `gliner`
 line: the installed version, or "not installed", which passes.
 
