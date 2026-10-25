@@ -215,3 +215,10 @@ manuscripts, and credits text with each line ending. A case that names `manuscri
 and `script` event), the `ChapterError` (message and candidates) or the name of any other exception, written by the
 same test; `scripttrack`'s `chapter_parity_test.go` must agree with it, and answers an input Python raised on with a
 `ChapterError` of its own.
+
+`placement-cases.jsonl`: the `locate.locate_event` and `align_word.word_time_event` calls the teleprompter suite made
+when they were recorded (2026-10-25), and seeded tails cut from `teleprompter-locate/`'s chapters and the coverage
+manuscript's: words dropped, misread, near-missed, added or re-read, another chapter's words, silence, timed words with
+pauses at punctuation, and words to time inside, between, before, after and past the end of what was heard. A seeded case
+names its script instead of holding it. `placement-cases.golden.jsonl` holds the `locate` or `word_time` event, written by
+`test_tracker_parity.py`; `scripttrack`'s `placement_parity_test.go` must agree with it.
