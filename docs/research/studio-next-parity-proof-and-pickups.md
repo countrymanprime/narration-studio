@@ -109,7 +109,7 @@ Method: each mock case is a row below, mapped to a real test by name, and by rea
 | f-proof.test.tsx | `counts takes per note, only for notes whose spot has several` | ported | src/studio/ui/src/components/proof/spot/spot.test.ts::counts the notes whose spot has two or more takes |  |
 | f-proof.test.tsx | `shows what the kept take heard against the script, struck through where it differs` | ported | src/studio/ui/src/components/proof/spot/spot.test.ts::strikes script words not said and marks words said that are not in the script |  |
 | f-proof.test.tsx | `puts an N takes badge after the text of notes with several takes, and nothing on the others` | ported | src/studio/ui/src/components/proof/spot/spotTakes.test.tsx::says "N takes" with an accessible name, and nothing under two | The badge after the heard text: NotesPanel.test.tsx "draws the badge after the heard text only when given one". |
-| f-proof.test.tsx | `draws the other takes as lanes under the waveform and the active one as a band on it` | ported | src/studio/ui/src/components/proof/spot/spotTakes.test.tsx::draws the active take as a labelled band and the others as lanes, in the window scale, dimming a hidden one |  |
+| f-proof.test.tsx | `draws the other takes as lanes under the waveform and the active one as a band on it` | ported | src/studio/ui/src/components/proof/spot/spotTakes.test.tsx::draws the other takes as labelled lanes in the window scale, dimming a hidden one, and leaves the active take to the waveform band |  |
 | f-proof.test.tsx | `draws no lanes and no section at a one-take spot` | ported | src/studio/ui/src/components/proof/spot/spotTakes.test.tsx::draws nothing at a one-take spot |  |
 | f-proof.test.tsx | `the inspector lists the takes with play buttons, the heard text, and the kept one marked` | ported | src/studio/ui/src/components/proof/spot/spotTakes.test.tsx::lists the takes with length and a Kept pill, the kept take heard against the script |  |
 | f-proof.test.tsx | `is read-mostly: no keep, delete or rank, and a link to Editing` | ported | src/studio/ui/src/components/proof/spot/spotTakes.test.tsx::read-mostly: one Manage takes in Editing button and no keep, delete, hide or rank | And "no file here calls workspaceUseTake or imports the Takes panel". |
@@ -169,7 +169,7 @@ Ids of [the ruling index](studio-next-ruling-index.md) that the Proof and Pickup
 | ruling id | test |
 | --- | --- |
 | PF-1 | src/studio/ui/src/components/proof/notes/NotesPanel.test.tsx::names the analyzers of every note in scope, before the filters (mock `sourcesOf(base)`) |
-| PF-2 | src/studio/ui/src/components/proof/spot/spotTakes.test.tsx::draws the active take as a labelled band and the others as lanes, in the window scale, dimming a hidden one |
+| PF-2 | src/studio/ui/src/components/proof/spot/spotTakes.test.tsx::draws the other takes as labelled lanes in the window scale, dimming a hidden one, and leaves the active take to the waveform band |
 | PF-3 | src/studio/ui/src/components/proof/checkcard/CheckCard.test.tsx::mounting and a finished run call no accept, ignore or review |
 | PF-4 | src/studio/ui/src/components/proof/ProofPage.test.tsx::a stale decision is refused with the evidence-changed banner and the typed note kept |
 | PF-5 | src/studio/desktop/internal/findings/store_test.go::TestReviewHistoryIsAppendOnlyAcrossMultipleDecisions |

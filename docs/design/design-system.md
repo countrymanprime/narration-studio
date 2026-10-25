@@ -126,6 +126,7 @@ The custom-CSS system (`.btn`, `.panel-head`/`.panel-body`, `.progressbar`, etc.
 
 ## Conventions
 
+- **A mark placed on a track by time** (Proof's waveform pins, the window's handles) is a 24 px press target centred on its time with the dot drawn inside it, so dots of different sizes share one centre line, and its position is `clamp(half, x%, 100% - half)` so a mark at the start or end stays inside the card's text edges (`WaveformWindow.tsx`, alignment audit XPF-15, R3PF-6).
 - **Numeric table columns are right-aligned** (`align="right"` on the `TableHeader`, `numeric` on its `TableCell`s) — see `DiagnosticsTables.tsx` (Delivery's diagnostics) for a reference implementation.
 - **Disabled interactive elements never show a hover affordance.** Use `disabled:pointer-events-none` (Tailwind) alongside `disabled:opacity-*`, not just the opacity change alone — a hover transform/background change that still fires on a disabled element reads as clickable when it isn't.
 - **A field that is read-only, locked or not-yet-persisted is `disabled`, not hidden**, so the user can see what exists without being able to edit it. Story Bible entries open read-only and gain Edit/Save/Cancel controls only on request ([Story Bible](../guides/using-the-app/story-bible.md)); see `GuideDetail.tsx`.s `editingDisabled`.
