@@ -24,7 +24,13 @@ describe('the kind registry', () => {
   it('draws a speaker in its entry’s colour, a suggested one dashed, an unknown one neutral and dashed (D6)', () => {
     expect(kindChipColors('speaker', WARN_COLOUR).text).toBe('var(--text)');
     expect(kindDef('speaker-suggested').dashed).toBe(true);
-    expect(kindChipColors('speaker-unknown')).toEqual({ fill: 'var(--surface-2)', text: 'var(--text-muted)', line: 'var(--line-strong)' });
+    // The neutral tone carries a soft-look rim since #2473 (XSE2-7); the unknown speaker is drawn dashed, which uses `line`, so nothing it draws changed.
+    expect(kindChipColors('speaker-unknown')).toEqual({
+      fill: 'var(--surface-2)',
+      text: 'var(--text-muted)',
+      line: 'var(--line-strong)',
+      softLine: 'var(--border)',
+    });
   });
 
   it('draws an entity with no colour in the faint fallback', () => {
