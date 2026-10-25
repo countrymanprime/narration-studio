@@ -676,6 +676,9 @@ def _run_locate(ap: argparse.ArgumentParser, args) -> None:
         ap.error(f"{error}{choices}")
     decode = _load_whisper_decoder(args, vad_filter=True)
     log(f"Locating seconds {args.tail_start:g} to {args.tail_end:g} of {args.wav}...")
+    if args.words_only:
+        _emit(_heard_event(args, decode))
+        return
     _emit(locate.run(args.wav, args.tail_start, args.tail_end, tokens, breaks, decode))
 
 
@@ -695,7 +698,20 @@ def _run_align_word(ap: argparse.ArgumentParser, args) -> None:
         ap.error(f"{error}{choices}")
     decode = _load_whisper_decoder(args, vad_filter=True)
     log(f"Timing script word {args.align_word} in seconds {args.tail_start:g} to {args.tail_end:g} of {args.wav}...")
+    if args.words_only:
+        _emit(_heard_event(args, decode))
+        return
     _emit(align_word.run(args.wav, args.tail_start, args.tail_end, tokens, args.align_word, decode))
+
+
+def _heard_event(args, decode) -> dict:
+    """--words-only: the words decoded from seconds --tail-start to --tail-end of --wav, each [text, start, end] in
+    seconds into the stretch, for the host to place (src/studio/desktop/internal/scripttrack)."""
+    import locate
+
+    audio = locate.read_audio_range(args.wav, args.tail_start, args.tail_end)
+    words = list(decode(audio)) if len(audio) else []
+    return {"type": "heard", "words": [[text, float(start), float(end)] for text, start, end in words]}
 
 
 def _check_engine_args(ap: argparse.ArgumentParser, args) -> None:
@@ -840,7 +856,7 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], tracker) -> No
 
 
 # What --meter cannot be combined with: it opens a microphone and reports its level, nothing else.
-_SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_word", "clock", "locate", "list_devices", "capabilities", "verify")
+_SESSION_ONLY_OPTIONS = ("wav", "manuscript", "script", "control_file", "start_word", "clock", "words_only", "locate", "list_devices", "capabilities", "verify")
 
 
 def _run_meter(ap: argparse.ArgumentParser, args) -> None:
@@ -1033,6 +1049,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Instead of a session: transcribe seconds --tail-start to --tail-end of --wav, place them in the script and print one "
         "`word_time` line with when script word WORD starts in --wav (align_word.py, punch and roll); needs --model-dir, never downloads a model",
     )
+    ap.add_argument(
+        "--words-only",
+        action="store_true",
+        help="With --locate or --align-word: print the decoded words as one `heard` line ({type: heard, words: [[text, "
+        "start, end], ...]}, seconds into the stretch) and leave placing them to the host",
+    )
     ap.add_argument("--tail-start", type=float, default=None, help="--locate/--align-word: where the stretch starts in --wav, in seconds")
     ap.add_argument("--tail-end", type=float, default=None, help="--locate/--align-word: where the stretch (the recorded audio) ends in --wav, in seconds")
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"], help="Inference device (default: cpu)")
@@ -1086,6 +1108,8 @@ def main() -> None:
         if args.verify and not _capabilities_all_loadable(report):
             sys.exit(1)
         return
+    if args.words_only and not (args.locate or args.align_word is not None):
+        ap.error("--words-only needs --locate or --align-word")
     if args.align_word is not None:
         _run_align_word(ap, args)
         return
