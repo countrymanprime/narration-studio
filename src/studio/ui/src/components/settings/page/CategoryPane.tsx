@@ -3,6 +3,7 @@ import { Disclosure } from '../../primitives/Disclosure';
 import { Panel } from '../../primitives/Panel';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import type { Category, SettingMeta } from '../registry/types';
+import { PaneTitle } from './PaneTitle';
 import { RowOf } from './RowOf';
 
 /** Rows in the order they were listed, grouped under their section's title. */
@@ -56,19 +57,17 @@ export function CategoryPane({
   const advanced = rows.filter((row) => row.advanced);
   return (
     <>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 id="settings-heading" tabIndex={-1} className="font-['Barlow_Condensed',sans-serif] text-[1.875rem] leading-[1.1] font-semibold outline-none">
-            {category.label}
-          </h2>
-          <p className="m-0 text-[0.8125rem] text-[var(--text-muted)]">{category.blurb}</p>
-        </div>
-        {changed > 0 && (
-          <Button variant="link" onClick={onReset}>
-            Reset {category.label} to defaults
-          </Button>
-        )}
-      </div>
+      <PaneTitle
+        title={category.label}
+        blurb={category.blurb}
+        action={
+          changed > 0 && (
+            <Button variant="secondary" size="sm" onClick={onReset}>
+              Reset to defaults
+            </Button>
+          )
+        }
+      />
       {bySection(basic).map(([title, group]) => (
         <Section key={title} title={title} rows={group} lit={lit} />
       ))}

@@ -43,7 +43,8 @@ describe('Story Bible: how they talk, act and know', () => {
     expect(screen.getByText('How they act')).toBeTruthy();
     expect(screen.getByText('What they know')).toBeTruthy();
     // They are the Script rail's rows, not a second copy in the Properties table.
-    expect(screen.getByRole('table', { name: 'Properties' }).textContent).not.toContain('Clipped');
+    // With nothing else, the entry has no properties at all (no table).
+    expect(screen.queryByRole('table', { name: 'Properties' })?.textContent ?? '').not.toContain('Clipped');
     cleanup();
 
     // A type that cannot speak keeps them as properties.
@@ -65,7 +66,7 @@ describe('Story Bible: how they talk, act and know', () => {
     renderDetail(place(), swapped);
     expect(await screen.findByText('How they talk')).toBeTruthy();
     expect(screen.getByText('kept as a property')).toBeTruthy();
-    expect(screen.getByRole('table', { name: 'Properties' }).textContent).not.toContain('kept as a property');
+    expect(screen.queryByRole('table', { name: 'Properties' })?.textContent ?? '').not.toContain('kept as a property');
     cleanup();
     renderDetail(character([{ key: 'says', value: 'Clipped' }]), swapped);
     await waitFor(() => expect(screen.getByRole('table', { name: 'Properties' }).textContent).toContain('Clipped'));
