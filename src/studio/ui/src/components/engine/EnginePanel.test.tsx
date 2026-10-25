@@ -225,6 +225,22 @@ describe('EnginePanel for an Audacity project', () => {
     expect(within(panel).queryByText('Link a REAPER project file')).toBeNull();
   });
 
+  // The mock's chapter sync reports Alice.rpp as the host does when discovery finds one; an Audacity project's card must not name it.
+  it('says Chapter sync read the Audacity project, never a REAPER file', async () => {
+    renderPanel(
+      {},
+      {
+        daw: { daw: 'Audacity' },
+        chapterSync: 'background',
+        audacityLink: { module: 'on', running: true, pipe: 'answering', openProject: 'linked', linkedFile: 'Book One.aup3' },
+      },
+    );
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    expect(await within(panel).findByText(/, from Book One\.aup3 in Audacity$/)).toBeTruthy();
+    expect(within(panel).getByText('Waiting: Audacity is recording.')).toBeTruthy();
+    expect(within(panel).queryByText(/\.rpp|REAPER/)).toBeNull();
+  });
+
   it("keeps REAPER's panel for a project that records elsewhere", async () => {
     renderPanel({}, { audacityLink: { module: 'on' } });
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });

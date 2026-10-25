@@ -40,22 +40,23 @@ describe('chapterSyncReasonText', () => {
 
 describe('chapterSyncBackgroundWaitText', () => {
   it('says nothing while background checks are off, regardless of wait', () => {
-    expect(chapterSyncBackgroundWaitText({ enabled: false, wait: 'recording' })).toBe('');
+    expect(chapterSyncBackgroundWaitText({ enabled: false, wait: 'recording' }, 'REAPER')).toBe('');
   });
 
   it('names REAPER recording, the reason this stream landed', () => {
-    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'recording' })).toMatch(/REAPER is recording/);
+    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'recording' }, 'REAPER')).toBe('Waiting: REAPER is recording.');
+    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'recording' }, 'Audacity')).toBe('Waiting: Audacity is recording.');
   });
 
   it('names battery, quiet and model', () => {
-    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'battery' })).toMatch(/mains power/);
-    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'quiet' })).toMatch(/settle/);
-    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'model' })).toMatch(/Whisper model/);
+    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'battery' }, 'REAPER')).toMatch(/mains power/);
+    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'quiet' }, 'REAPER')).toMatch(/settle/);
+    expect(chapterSyncBackgroundWaitText({ enabled: true, wait: 'model' }, 'REAPER')).toMatch(/Whisper model/);
   });
 
   it('says nothing for off, busy, nothing or an unlooked-at empty wait: none of those need a line', () => {
     for (const wait of ['', 'off', 'busy', 'nothing'] as const) {
-      expect(chapterSyncBackgroundWaitText({ enabled: true, wait })).toBe('');
+      expect(chapterSyncBackgroundWaitText({ enabled: true, wait }, 'REAPER')).toBe('');
     }
   });
 });
@@ -136,31 +137,52 @@ describe('chapterSyncTimeLabel', () => {
 
 // The facts the card used to join into one run-on line ("On · last synced … · …", alignment audit R3EN2-3), now one per row.
 describe('chapterSyncSummaryFacts', () => {
+  const REAPER = { daw: 'REAPER' } as const;
   const now = new Date(2026, 8, 28, 15, 0);
   const row = (origin: '' | 'manual' | 'auto') => ({ origin });
   it('names the saved file and splits automatic links from the narrator’s', () => {
     const chapters = [...Array.from({ length: 8 }, () => row('auto')), row('manual'), row('')];
     expect(
-      chapterSyncSummaryFacts({ lastSync: new Date(2026, 8, 28, 10, 42).toISOString(), projectFile: 'C:\\Books\\Alice\\Alice.rpp', chapters, linked: 9 }, now),
+      chapterSyncSummaryFacts(
+        { lastSync: new Date(2026, 8, 28, 10, 42).toISOString(), projectFile: 'C:\\Books\\Alice\\Alice.rpp', chapters, linked: 9, daw: REAPER },
+        now,
+      ),
     ).toEqual({ synced: '10:42, from the saved Alice.rpp', links: '8 chapters linked automatically, 1 by you' });
   });
 
   it('reads well with one kind of link, none, or no sync yet', () => {
     const at = new Date(2026, 8, 28, 10, 42).toISOString();
-    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: 'Alice.rpp', chapters: [row('auto')], linked: 1 }, now)).toEqual({
+    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: 'Alice.rpp', chapters: [row('auto')], linked: 1, daw: REAPER }, now)).toEqual({
       synced: '10:42, from the saved Alice.rpp',
       links: '1 chapter linked automatically',
     });
-    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: '', chapters: [row('manual'), row('manual')], linked: 2 }, now)).toEqual({
+    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: '', chapters: [row('manual'), row('manual')], linked: 2, daw: REAPER }, now)).toEqual({
       synced: '10:42',
       links: '2 chapters linked by you',
     });
-    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: 'Alice.rpp', chapters: [row('')], linked: 0 }, now).links).toBe('No chapters linked');
+    expect(chapterSyncSummaryFacts({ lastSync: at, projectFile: 'Alice.rpp', chapters: [row('')], linked: 0, daw: REAPER }, now).links).toBe(
+      'No chapters linked',
+    );
     // Before the host has its chapter rows (the saved .rpp unreadable), the plain count stands in.
-    expect(chapterSyncSummaryFacts({ lastSync: null, projectFile: 'Alice.rpp', chapters: [], linked: 3 }, now)).toEqual({
+    expect(chapterSyncSummaryFacts({ lastSync: null, projectFile: 'Alice.rpp', chapters: [], linked: 3, daw: REAPER }, now)).toEqual({
       synced: 'Not synced yet',
       links: '3 chapters linked',
     });
+  });
+
+  // An Audacity project has no .rpp: the host's projectFile is its snapshot (or, with none yet, whatever .rpp discovery found),
+  // so the file named is the linked .aup3, never projectFile.
+  it('names the Audacity project for an Audacity project, never a .rpp or the snapshot file', () => {
+    const at = new Date(2026, 8, 24, 10, 42).toISOString();
+    const facts = (projectFile: string, linkedFile: string | null) =>
+      chapterSyncSummaryFacts({ lastSync: at, projectFile, chapters: [row('auto')], linked: 1, daw: { daw: 'Audacity', linkedFile } }, now).synced;
+    expect(facts('C:/Books/Alice/Alice.rpp', 'C:/Books/Alice/Book One.aup3')).toBe('24 Sep, from Book One.aup3 in Audacity');
+    expect(facts('C:/Books/Alice/.app/audacity-snapshot.json', 'Book One.aup3')).toBe('24 Sep, from Book One.aup3 in Audacity');
+    expect(facts('C:/Books/Alice/Alice.rpp', null)).toBe('24 Sep, from the open Audacity project');
+    expect(facts('', null)).toBe('24 Sep, from the open Audacity project');
+    expect(
+      chapterSyncSummaryFacts({ lastSync: null, projectFile: 'Alice.rpp', chapters: [], linked: 0, daw: { daw: 'Audacity', linkedFile: null } }, now).synced,
+    ).toBe('Not synced yet');
   });
 });
 
