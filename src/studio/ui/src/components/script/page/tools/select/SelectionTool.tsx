@@ -66,11 +66,14 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
     const el = ref.current;
     if (!el || !selection) return;
     const place = () => {
-      const width = el.getBoundingClientRect().width / zoom;
+      const box = el.getBoundingClientRect();
+      const width = box.width / zoom;
       const rect = liveRect(selection.rect);
-      const top = rect.top / zoom - ABOVE;
+      const above = rect.top / zoom - ABOVE;
+      // Kept inside the window: with the words scrolled out of view it waits at the nearest edge rather than follow them off screen.
+      const lowest = window.innerHeight / zoom - box.height / zoom - EDGE;
       el.style.left = `${Math.max(EDGE, Math.min(rect.left / zoom + rect.width / zoom / 2 - width / 2, document.documentElement.clientWidth - width - EDGE))}px`;
-      el.style.top = `${top >= EDGE ? top : rect.bottom / zoom + BELOW}px`;
+      el.style.top = `${Math.max(EDGE, Math.min(above >= EDGE ? above : rect.bottom / zoom + BELOW, lowest))}px`;
     };
     place();
     window.addEventListener('scroll', place, true);
