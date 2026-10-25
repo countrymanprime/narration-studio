@@ -30,8 +30,8 @@ starts (`Pronounce`'s `CheckPronounce`).
   rather than raising.
 - **Chosen explicitly** through `GuideDetail.tsx`'s edit-mode Generate/Replace control, for the entity and
   independently for each alias: a `Menu` offering "From the CMU dictionary" / "From eSpeak NG" next to the
-  Play button, calling `Host.GuidePronounce` (which asks `pronounce_source()` for exactly the named source and raises
-  when it has nothing for the name, unlike the automatic fallback) and marking the result `chosen: true` so a rebuild
+  Play button, calling `Host.GuidePronounce` (the host asks the sidecar's `pronunciation --source`, which runs `pronounce_source()`
+  for exactly the named source and reports a miss, unlike the automatic fallback) and marking the result `chosen: true` so a rebuild
   never silently replaces it (the host's rebuild merge, `mergeLocked` in `src/studio/desktop/internal/guide/build_merge.go`). The narrator's own typed pronunciation
   ([Manuscript Guide](../utilities/manuscript-guide.md))
   and the kept alternate work the same way for an alias as for the entity — `GuidePronounce`,
@@ -62,7 +62,8 @@ human ear; it is filed as owner QA on issue #510 and blocks nothing.
 
 Python: `src/studio/sidecars/manuscript-guide/tests/test_providers.py` (the fallback order, a narrator's default source tried
 first and ignored when unregistered, each source's conformance suite) and `test_pronunciation_preview.py` (chosen vs.
-unchosen, the pronounce-then-rebuild-then-preview round trip). Go: `src/studio/desktop/internal/guide/service_test.go` (the
-default-source argument reaches build/alias-edit/create and only those) and `preview_test.go` (the cache key). Vitest:
+unchosen, a chosen pronunciation as the host writes it spoken by the preview) and `test_pronounce.py` (`pronunciation --source`). Go:
+`src/studio/desktop/internal/guide/service_test.go` (the default-source argument reaches build/alias-edit/create and only those),
+`pronounce_test.go` and `pronounce_parity_test.go` (Generate/Replace) and `preview_test.go` (the cache key). Vitest:
 `GuideDetail.pronunciation.test.tsx` and `GuideDetail.aliasPronunciation.test.tsx`. Visual: `storybible/entry-pronunciation-missing`,
 `entry-pronunciation-online` and `alias-pronunciation-editing`.
