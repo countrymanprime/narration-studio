@@ -154,15 +154,19 @@ Each file gets a line with its length, how many clip regions and level shifts it
 silence. Pacing and the speaking rate need the transcript's word timing, so a file checked here says **Not
 available** with the reason, and no long pause is guessed from silence alone.
 
-Under it, each finding gives its time in the file, what it is and why it was raised, what was measured, the
+A file not checked because the check stopped first says **Not checked**; when several do, the line above the
+table says why once.
+
+Under it, each finding gives its time in the file, what it is with its severity (**Warning** or **Info**) and why it was raised, what was measured, the
 threshold that raised it, and the file and the kind of source it was measured in. Listen at those times in
 REAPER: the section plays nothing, changes nothing and saves nothing, so every finding is a candidate to
 listen to, not a verdict. When nothing reaches a threshold, the section says so without calling the file
-a pass. **Thresholds**, below it, lists every threshold the check uses, even before you check anything.
+a pass. **Thresholds**, below it, lists every threshold the check uses, even before you check anything. They are
+fixed in this version; only the silence cleanup values below can be changed.
 
 **Silence cleanup candidates**, below that, lists the silences, breaths and clicks the same check found in
 each file, each a candidate to cut. Nothing is cut from here. The values the check used are listed under the
-candidates. Their thresholds are set in Settings, under Silence cleanup; **Open Settings** goes there. For this project
+candidates. Their thresholds are set in Settings, under Silence cleanup; **Open Settings**, at the top of the card, goes there. For this project
 only, **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog with the hold kept at each side of a
 cut silence, the shortest and longest run read as a breath, how far below the speech level a breath sits and how far
 above the silence around it a click stands. A change is saved at once and applies to the next check, not to the

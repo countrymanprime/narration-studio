@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { dawShortName } from '../../studio/StudioProvider';
@@ -34,6 +34,30 @@ const CLEANUP_OPTION_KEYS = ['pad_seconds', 'min_breath_seconds', 'max_breath_se
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
+// Panel prose stops at a readable measure on a wide window, not 150 characters a line (R3MS-17).
+const PROSE = 'max-w-[80ch]';
+
+// A label and value list, one label column for every panel here so Thresholds and Silence cleanup line up (R3MS-4).
+const DEFINITIONS = 'grid grid-cols-[minmax(8rem,11rem)_minmax(0,1fr)] gap-x-6 gap-y-1 text-sm';
+
+/**
+ * A table's scroll box, run to the card's edges: the table's own edge cells then start at the card's 16 px inset, level with the card's
+ * text and title, and its rules reach the card's border (R4MS1-10); its edges shade while it scrolls (XMS-23). A tab stop, since a
+ * scrolling region must be reachable by keyboard.
+ */
+function TableScroll({ label, className = '', children }: { label: string; className?: string; children: ReactNode }) {
+  return (
+    <div
+      tabIndex={0}
+      role="group"
+      aria-label={`${label} scroll area`}
+      className={`scroll-x-edges -mx-4 overflow-x-auto [--panel-pad:0px] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 /**
  * Silence cleanup candidates: every
  * `silence_cleanup` finding a checked file raised, apart from the Diagnostics tab's own findings above, with the
@@ -47,17 +71,22 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
   const anyChecked = files.some((file) => file.status === 'checked');
   const ended = job !== undefined && (job.phase === 'success' || job.phase === 'cancelled' || job.phase === 'error');
   return (
-    <Panel title="Silence cleanup candidates">
-      <p className="mt-2 text-sm" style={MUTED}>
+    <Panel
+      title="Silence cleanup candidates"
+      actions={
+        // In the header, not glued to the end of the hint sentence (XMS-21).
+        <Button variant="secondary" onClick={openSettings}>
+          Open Settings
+        </Button>
+      }
+    >
+      <p className={`text-sm ${PROSE}`} style={MUTED}>
         {`Silences, breaths and clicks the same check found while reading each file, each a candidate to cut, never applied here: cutting a candidate needs the ${dawName} actions this app does not yet run from here. Nothing is saved, played or changed.`}
       </p>
       {candidates.length > 0 ? (
-        <div
-          tabIndex={0}
-          className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset"
-        >
+        <TableScroll label="Silence cleanup candidates" className="mt-3">
           <CleanupFindingsTable files={files} />
-        </div>
+        </TableScroll>
       ) : (
         ended &&
         anyChecked && (
@@ -68,7 +97,7 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
       )}
       {job ? (
         <>
-          <dl className="mt-4 grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 text-sm">
+          <dl className={`mt-4 ${DEFINITIONS}`}>
             {cleanupThresholdRows(job.cleanupThresholds).map((row) => (
               <div key={row.label} className="contents">
                 <dt>{row.label}</dt>
@@ -76,12 +105,9 @@ function CleanupSection({ job, openSettings }: { job: DiagnosticsJob | undefined
               </div>
             ))}
           </dl>
-          <div className="mt-2 flex flex-wrap items-center gap-1 text-xs" style={MUTED}>
-            <span>Set in Settings &gt; Silence cleanup, or for this project only from Jump to or run &gt; Open Silence cleanup options.</span>
-            <Button variant="ghost" onClick={openSettings}>
-              Open Settings
-            </Button>
-          </div>
+          <p className={`mt-2 text-xs ${PROSE}`} style={MUTED}>
+            Set in Settings &gt; Silence cleanup (Open Settings, above), or for this project only from Jump to or run &gt; Open Silence cleanup options.
+          </p>
         </>
       ) : (
         <p className="mt-2 text-sm" style={MUTED}>
@@ -98,7 +124,7 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
     <Panel title="Thresholds">
       {job ? (
         <>
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 text-sm">
+          <dl className={DEFINITIONS}>
             {thresholdRows(job.thresholds).map((row) => (
               <div key={row.label} className="contents">
                 <dt>{row.label}</dt>
@@ -107,7 +133,7 @@ function ThresholdsPanel({ job }: { job: DiagnosticsJob | undefined }) {
             ))}
           </dl>
           <p className="mt-2 text-xs" style={MUTED}>
-            These are starting values, not a delivery specification. Each finding shows the threshold that raised it.
+            These are starting values, fixed in this version and not a delivery specification. Each finding shows the threshold that raised it.
           </p>
         </>
       ) : (
@@ -211,20 +237,21 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
           </div>
         }
       >
-        <p className="text-sm" style={MUTED}>
+        <p className={`text-sm ${PROSE}`} style={MUTED}>
           {`Clipping, level shifts, room-tone changes and long pauses, each with its time in the file and the threshold that raised it. Listen at those times in ${dawName}: nothing here is saved, played or changed.`}
         </p>
+        {/* A setting, so the segmented switch and not a second solid orange button beside "Choose files to check…" (R4MS1-8). */}
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
           <span aria-hidden="true">The files are</span>
           <ToggleGroup
             label="The files are"
+            look="segmented"
             value={sourceKind}
             onChange={(value) => setSourceKind(value as DiagnosticsSourceKind)}
             options={SOURCE_KINDS.map((option) => ({ ...option, disabled: running }))}
-            className="flex-wrap gap-1.5"
           />
         </div>
-        <p className="mt-1 text-xs" style={MUTED}>
+        <p className={`mt-2 text-xs ${PROSE}`} style={MUTED}>
           Room tone and level mean different things in each: a render may have been gated or cleaned on purpose.
         </p>
         {jobError && (
@@ -264,20 +291,13 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
         )}
         {files.length > 0 ? (
           <>
-            {/* tabIndex: the tables scroll sideways in a narrow window, and a scrolling region must be reachable by keyboard. */}
-            <div
-              tabIndex={0}
-              className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset"
-            >
+            <TableScroll label="Checked files" className="mt-3">
               <CheckedFilesTable files={files} />
-            </div>
+            </TableScroll>
             {findings.length > 0 ? (
-              <div
-                tabIndex={0}
-                className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset"
-              >
+              <TableScroll label="Findings" className="mt-4">
                 <FindingsTable files={files} sourceKind={checkedKind} />
-              </div>
+              </TableScroll>
             ) : (
               ended &&
               anyChecked && (
