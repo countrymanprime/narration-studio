@@ -23,7 +23,9 @@
 | B. Layout pages | Where a printed edition breaks | Needs the publisher's page map; the app has none. |
 | C. Time | Every N minutes of finished audio at `WPH` | Same as A with a different unit. |
 
-**Recommendation: A**, with the figure narrator-settable (below). A page break is a word offset: break *n* is before word `n x words_per_page` of the chapter, found with the same word count the progress line uses, so the break survives a change of text size and window width (nothing depends on layout).
+**Recommendation: A**, with the figure narrator-settable (below). A page break is a word offset, found with the same word count the progress line uses, so the break survives a change of text size and window width (nothing depends on layout).
+
+**Built (owner, 2026-10-25): a page ends on a paragraph.** "Let's make sure the page breaks happen after the last word in the section that the count comes up in. That way we don't break in the middle of a paragraph." A page's count runs from the chapter's first word; the paragraph holding the page's `words_per_page`-th word ends the page, and the break is before the next paragraph's first word, where the next page's count starts. So a page is at least `words_per_page` words; a paragraph longer than that is one long page; nothing breaks after a chapter's last paragraph; a paragraph with no words is passed over (`components/booth/pages/pageBreaks.ts`). A dialogue line is its own paragraph in the script, so a run of short lines can break between any two of them.
 
 ### Where the value lives
 
@@ -36,7 +38,7 @@
 
 ### The marker in the text
 
-A subtle break is a hairline across the text column with a small mono label ("Page 12", about 0.4em, `--text-muted`) in the margin the bookmark ribbons already use, at the start of the paragraph holding the break word. It must not move text (no extra height: the Booth just tightened paragraph spacing to a line, and a marker with height would undo it) and must read in light and dark. Breaking mid-paragraph is the honest place, so the rule draws through the paragraph at the sentence that holds the break word and the label sits in the margin. The progress line gains "Page 12 of 87" beside "¶ 38 of 71" (a choice: either replaces the other on a narrow window).
+A subtle break is a hairline across the text column with a small mono label ("Page 12", about 0.4em, `--text-muted`) in the margin the bookmark ribbons already use, at the start of the paragraph holding the break word. It must not move text (no extra height: the Booth just tightened paragraph spacing to a line, and a marker with height would undo it) and must read in light and dark. The rule is drawn above the first line of the paragraph that starts the page (breaks fall between paragraphs, above), and the label sits in the margin. The progress line gains "Page 12 of 87" beside "¶ 38 of 71" (a choice: either replaces the other on a narrow window).
 
 ### "I will read to here"
 
