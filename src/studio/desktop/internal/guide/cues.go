@@ -141,8 +141,15 @@ func cueBible(path string) (any, error) {
 	if err != nil {
 		return nil, nil //nolint:nilerr // load_json reads an OSError as no file
 	}
+	return pyLoadBible(raw, errCuesShape)
+}
+
+// pyLoadBible is manuscript_guide.py load_json over a file's bytes: nil when they are not JSON; the value otherwise, its entries'
+// plain-text aliases made objects and a legacy "user" pronunciation source read as "manual". Bytes that are not UTF-8, or an entry
+// load_json crashed on, are shape, the caller's error for it.
+func pyLoadBible(raw []byte, shape error) (any, error) {
 	if !utf8.Valid(raw) {
-		return nil, errCuesShape // read_text's UnicodeDecodeError, which load_json does not catch
+		return nil, shape // read_text's UnicodeDecodeError, which load_json does not catch
 	}
 	data, err := pyLoads(universalNewlines(string(raw)))
 	if err != nil {
@@ -155,12 +162,12 @@ func cueBible(path string) (any, error) {
 	entities, _ := pyGet(document, "entities", []any{})
 	walked, err := pyIter(entities)
 	if err != nil {
-		return nil, errCuesShape
+		return nil, shape
 	}
 	for _, item := range walked {
 		entity, ok := item.(*pyObject)
 		if !ok {
-			return nil, errCuesShape
+			return nil, shape
 		}
 		if list, ok := entity.values["aliases"].([]any); ok {
 			for i, alias := range list {
@@ -173,7 +180,7 @@ func cueBible(path string) (any, error) {
 		if aliases := entity.values["aliases"]; pyTruthy(aliases) {
 			walkedAliases, err := pyIter(aliases)
 			if err != nil {
-				return nil, errCuesShape
+				return nil, shape
 			}
 			for _, alias := range walkedAliases {
 				if holder, ok := alias.(*pyObject); ok {
