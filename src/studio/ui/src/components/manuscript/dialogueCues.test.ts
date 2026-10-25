@@ -10,8 +10,8 @@ const entitiesById = new Map([
   ['queen-of-hearts', entity('queen-of-hearts', 'Queen of Hearts')],
 ]);
 
-// A cue in the exact shape Character Continuity Review's own extractor writes (manuscript_guide.py's
-// `extract_cues_from_text`, PR #770): every field this test builds by hand mirrors that shape 1:1, since the contract test
+// A cue in the exact shape Character Continuity Review's own extractor writes (the host's internal/guide
+// `cuesFromText`, first manuscript_guide.py's `extract_cues_from_text`, PR #770): every field this test builds by hand mirrors that shape 1:1, since the contract test
 // below checks that a fixture cue and this "real" shape validate against the same schema.
 const realShapedCue: DialogueCue = {
   id: 'cue-abc123def456',
