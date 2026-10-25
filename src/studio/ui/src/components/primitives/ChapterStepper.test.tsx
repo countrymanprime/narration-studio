@@ -144,6 +144,9 @@ describe('ChapterStepper', () => {
     const picker = screen.getByRole('button', { name: /Change chapter/ });
     expect(picker.className).toContain('min-[860px]:w-[21.25rem]');
     expect(picker.getAttribute('style') ?? '').not.toContain('--chapter-ch');
+    // The name starts at the left and the caret keeps to the right, not both centred in the box.
+    expect(picker.firstElementChild!.className).toContain('flex-1');
+    expect(picker.firstElementChild!.className).toContain('text-left');
   });
 
   // Issue 1718: at 390 px a picker sized to the longest chapter name pushed the Booth's top bar over its own contents.

@@ -65,7 +65,8 @@ export function ChapterStepper({
         />
       }
     >
-      <span className="min-w-0 truncate">{label}</span>
+      {/* The label takes the room and starts at the left; the caret keeps to the right edge (alignment audit XPK-7). */}
+      <span className="min-w-0 flex-1 truncate text-left">{label}</span>
       <span aria-hidden="true">▾</span>
     </BaseMenu.Trigger>
   );
