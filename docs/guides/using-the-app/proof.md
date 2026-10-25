@@ -15,7 +15,7 @@ the Inspector on the right for the selected note. The keys you can press are lis
 ![Proof - all chapters: the cleared ring, the chapter strip of open notes, the notes queue grouped by chapter and the Inspector on the first note](../../images/ui/proof-default.webp)
 
 Proof is always in the navigation. Until a manuscript is imported it asks you to import one. Until a check has found
-something, there is no ring, every chapter in the strip is empty and the Inspector says **No notes yet**.
+something, there is no ring, every chapter in the strip is empty and the Inspector is one line, **A note shows here once a check finds one**.
 
 ![Proof - no notes yet](../../images/ui/proof-empty.webp)
 
@@ -120,7 +120,9 @@ part marked. Choosing one opens **Find in notes** on what you typed, clears the 
 
 ## A note and your decision
 
-Select a note in the table, or its pin on the waveform, and the Inspector shows it:
+Select a note in the table, or its pin on the waveform, and the Inspector shows it. In a window narrower than 1180 px the
+Inspector sits under the notes; clicking a note scrolls the page down to it, and stepping with the arrow keys does not.
+The Inspector shows:
 
 - its time and its type. The type is a list: if the check named the wrong kind of problem, choose the right one, and your
   choice is kept with the note;
