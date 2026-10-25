@@ -122,6 +122,8 @@ export function RunOptions({
             value={clampTo(choices.overlapSeconds, OVERLAP_RANGE)}
             onValueChange={(overlapSeconds) => onChange({ overlapSeconds })}
           />
+          {/* Each hint sits under the controls it explains (alignment audit XPF-20). */}
+          <p className="m-0 text-sm text-[var(--text-muted)]">Chunks overlap so a word on an edge is whole in one of them.</p>
           <Slider
             label={<span className={LABEL}>Parallel workers</span>}
             aria-label="Parallel workers"
@@ -136,10 +138,7 @@ export function RunOptions({
           <Checkbox checked={automatic && !whole} disabled={whole} onChange={(on) => onChange({ workers: on ? 0 : clampTo(cpus, WORKER_RANGE) })}>
             Let the model choose the workers
           </Checkbox>
-          <p className="m-0 text-[var(--text-muted)]">
-            Chunks overlap so a word on an edge is whole in one of them; each worker transcribes its own chunks. Chapters share the processors, so more chapters
-            at once means fewer workers for each.
-          </p>
+          <p className="m-0 text-sm text-[var(--text-muted)]">Each worker transcribes its own chunks.</p>
           <label className="flex flex-col gap-1">
             <span className={LABEL}>Chapters at once</span>
             <Select
@@ -150,6 +149,7 @@ export function RunOptions({
               options={withChoice(CHAPTERS_AT_ONCE, choices.chapters).map((count) => ({ value: String(count), label: String(count) }))}
             />
           </label>
+          <p className="m-0 text-sm text-[var(--text-muted)]">Chapters share the processors, so more chapters at once means fewer workers for each.</p>
         </fieldset>
       ) : (
         <fieldset className="m-0 grid min-w-0 grid-cols-1 gap-3 border-0 border-t border-[var(--border)] p-0 pt-3 @sm:grid-cols-3">

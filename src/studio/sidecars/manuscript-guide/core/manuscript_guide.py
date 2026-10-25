@@ -1,8 +1,8 @@
 """The Story Bible's model work: the language model's entities, pronunciations and Piper previews.
 
 The host builds and edits the Story Bible itself (src/studio/desktop/internal/guide). This program does what needs Python: spaCy's
-entity spans for a build (``entities``), the automatic pronunciation of names (``pronunciation``), one named source's pronunciation
-(``pronounce``, ``candidate``), a spoken preview (``render-audio``), GLiNER's and BookNLP's suggestions (``suggest``) and the packaged
+entity spans for a build (``entities``), the automatic pronunciation of names or one named source's (``pronunciation``), one source's
+answer for one word (``candidate``), a spoken preview (``render-audio``), GLiNER's and BookNLP's suggestions (``suggest``) and the packaged
 self-check. It reads the project's canonical ``<app>/manuscript/manuscript.json``.
 """
 
@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 import time
@@ -112,8 +111,8 @@ def pronounce_source(name: str, espeak_library: str | None, source: str) -> dict
     """Gets a pronunciation from exactly one named source, raising when that source has nothing for ``name``.
 
     Unlike ``pronunciation()`` (the automatic CMU-then-eSpeak fallback used at build time, which never raises), this
-    is what the narrator's explicit Generate/Replace control uses: the narrator chose the source, so a miss is
-    reported, not silently swallowed into "not generated".
+    is what the narrator's explicit Generate/Replace control asks for (``pronunciation --source``): the narrator chose the source, so a
+    miss is reported, not silently swallowed into "not generated".
     """
     engine = SOURCES.lookup(source)
     engine.espeak_library = espeak_library
@@ -122,11 +121,9 @@ def pronounce_source(name: str, espeak_library: str | None, source: str) -> dict
 
 
 # The narrator's own pronunciation. It is a provenance id, not a registered source: it is never looked
-# up, so it is not in SOURCES and the pronounce command does not offer it. A file written before docs/guides/using-the-app/story-bible.md#how-you-say-each-name says ``user``.
+# up, so it is not in SOURCES and ``pronunciation --source`` does not offer it. A file written before docs/guides/using-the-app/story-bible.md#how-you-say-each-name says ``user``.
 MANUAL_SOURCE = "manual"
 LEGACY_MANUAL_SOURCE = "user"
-# The fields that are the pronunciation itself; the note and the alternate are about the name and travel with it.
-_PRONUNCIATION_VALUE_FIELDS = ("ipa", "source", "confidence")
 
 
 def read_pronunciation_source(value: dict[str, Any]) -> dict[str, Any]:
@@ -137,45 +134,6 @@ def read_pronunciation_source(value: dict[str, Any]) -> dict[str, Any]:
     if isinstance(out.get("alternate"), dict):
         out["alternate"] = read_pronunciation_source(out["alternate"])
     return out
-
-
-def _is_manual(value: dict[str, Any] | None) -> bool:
-    return read_pronunciation_source(value or {}).get("source") == MANUAL_SOURCE
-
-
-def _pronunciation_core(value: dict[str, Any]) -> dict[str, Any]:
-    return {field: value[field] for field in _PRONUNCIATION_VALUE_FIELDS if field in value}
-
-
-def carry_pronunciation_work(prior: dict[str, Any] | None, fresh: dict[str, Any]) -> dict[str, Any]:
-    """``fresh`` with the narrator's note and alternate from ``prior``, the pronunciation it replaces.
-
-    A stored ``status`` is ignored: it is neither carried nor written. Nothing is added to a value that had none of these.
-    """
-    prior = prior or {}
-    value = dict(fresh)
-    if prior.get("note"):
-        value["note"] = prior["note"]
-    if prior.get("alternate") and "alternate" not in value:
-        value["alternate"] = prior["alternate"]
-    return value
-
-
-def set_pronunciation(prior: dict[str, Any] | None, new: dict[str, Any]) -> dict[str, Any]:
-    """Puts ``new`` in use in place of ``prior``, keeping the narrator's own and the dictionary's answers side by side.
-
-    The ``alternate`` is the most recent pronunciation of the other kind (the narrator's own or a dictionary's): when ``prior`` is of the
-    other kind and has an IPA it becomes the alternate, otherwise ``prior``'s alternate is kept. So switching back never re-runs a
-    lookup and never loses what the narrator typed.
-    """
-    prior = prior or {}
-    value = carry_pronunciation_work(prior, new)
-    value.pop("alternate", None)
-    if prior.get("ipa") and _is_manual(prior) != _is_manual(new):
-        value["alternate"] = _pronunciation_core(prior)
-    elif prior.get("alternate"):
-        value["alternate"] = prior["alternate"]
-    return value
 
 
 def pronunciation(name: str, espeak_library: str | None, default_source: str | None = None) -> dict[str, str]:
@@ -215,16 +173,6 @@ def load_json(path: str) -> dict[str, Any] | None:
     return data
 
 
-def write_json(path: str, data: dict[str, Any]) -> None:
-    """Writes the Story Bible as the host does (internal/guide pyDumps): indented, non-ASCII as itself, beside the file and renamed over
-    it. ``pronounce`` is the one command here that writes it."""
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    temporary = target.with_suffix(target.suffix + ".tmp")
-    temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, target)
-
-
 def find_entity(guide: dict[str, Any], entity_id_value: str) -> dict[str, Any]:
     entity = next((value for value in guide["entities"] if value["id"] == entity_id_value), None)
     if entity is None:
@@ -235,45 +183,6 @@ def find_entity(guide: dict[str, Any], entity_id_value: str) -> dict[str, Any]:
 # Character/Place/Organization/Needs Review are the only categories extraction produces; Lore/Item/Event are manual-only classifications a
 # narrator assigns themselves. GLiNER's suggestions name these (extraction_gliner.py).
 VALID_CATEGORIES = {"Character", "Place", "Organization", "Lore", "Item", "Event"}
-
-
-def _pronunciation_holder(guide: dict[str, Any], entity_id_value: str, alias_index: int | None) -> tuple[dict[str, Any], str]:
-    """The entity (alias_index None) or the alias whose ``pronunciation`` an edit changes, and the name it is for.
-
-    Refused on a locked entity, the same as every other edit.
-    """
-    entity = find_entity(guide, entity_id_value)
-    if entity.get("locked"):
-        raise ValueError("This entity is locked. Unlock it before editing.")
-    if alias_index is None:
-        return entity, entity["canonical_name"]
-    aliases = entity.get("aliases", [])
-    if not 0 <= alias_index < len(aliases):
-        raise ValueError("Alias index out of range.")
-    return aliases[alias_index], aliases[alias_index]["text"]
-
-
-def _load_guide_for_edit(path: str) -> dict[str, Any]:
-    guide = load_json(path)
-    if not guide:
-        raise ValueError("Guide file does not exist; build it first.")
-    return guide
-
-
-def pronounce(args: argparse.Namespace) -> None:
-    """Sets the pronunciation of an entity's own name, or one of its aliases, from one named engine.
-
-    Refused on a locked entity, the same as every other edit. The value is marked ``chosen`` so a later
-    rebuild (the host's ``mergeLocked``, internal/guide/build_merge.go) keeps it instead of overwriting it with a freshly generated one. A narrator's own
-    pronunciation it replaces is kept as the ``alternate``.
-    """
-    guide = _load_guide_for_edit(args.guide)
-    holder, name = _pronunciation_holder(guide, args.entity_id, args.alias_index)
-    value = pronounce_source(name, args.espeak_library or None, args.source)
-    value["chosen"] = True
-    holder["pronunciation"] = set_pronunciation(holder.get("pronunciation"), value)
-    write_json(args.guide, guide)
-    print(f"PRONOUNCED|{args.entity_id}|{value['source']}")
 
 
 MAX_CANDIDATE_WORD = 80
@@ -306,20 +215,33 @@ def lookup_pronunciations(args: argparse.Namespace) -> None:
     names exactly as the build found them, in one process for the whole book, since a book's names would not fit on a Windows command
     line). The value is the automatic one, the ``--default-source`` first and then the usual CMU, eSpeak and Wiktextract order, and a word
     nothing knows is the ``not generated`` value, never an error.
+
+    With ``--source`` each word is asked of that source alone (``pronounce_source``), for the narrator's Generate/Replace, which the host
+    applies to the Story Bible itself (src/studio/desktop/internal/guide/pronounce.go): the value, or ``{"miss": reason}`` when the source
+    has nothing for the word or fails on it, the reason being the exception's text (its type's name when it has none). The
+    ``--default-source`` is not used, and a words file may then hold an empty name, which is asked as it is.
     """
     words_file = getattr(args, "words_file", "")
+    source = getattr(args, "source", None)
     if bool(args.word) == bool(words_file):
         raise ValueError("Give the words to look up as --word or as --words-file, not both.")
     if words_file:
         words = json.loads(Path(words_file).read_text(encoding="utf-8"))
-        if not isinstance(words, list) or not all(isinstance(word, str) and word for word in words):
+        if not isinstance(words, list) or not all(isinstance(word, str) and (word or source) for word in words):
             raise ValueError("The words file is not a list of names.")
     else:
         words = [word.strip() for word in args.word]
         if any(not word or "\0" in word for word in words):
             raise ValueError("A word to look up is not blank.")
     for word in words:
-        print(json.dumps(pronunciation(word, args.espeak_library or None, args.default_source or None), ensure_ascii=False))
+        if source:
+            try:
+                value: dict[str, Any] = pronounce_source(word, args.espeak_library or None, source)
+            except Exception as exc:  # noqa: BLE001 - the host shows the narrator why, whatever it was
+                value = {"miss": str(exc) or type(exc).__name__}
+        else:
+            value = pronunciation(word, args.espeak_library or None, args.default_source or None)
+        print(json.dumps(value, ensure_ascii=False))
 
 
 # How long ``entities`` waits for the host's words file, and how often it looks: the host writes it as soon as it has read the spans.
@@ -376,7 +298,7 @@ def _phoneme_block(ipa: str) -> str | None:
 def spoken_form(holder: dict[str, Any] | None, name: str) -> str:
     """What a preview should hand to Piper for ``holder`` (an entity or an alias): its chosen pronunciation as
     raw phonemes when it has one and it converts cleanly, else the spelled ``name``, exactly as before this phase.
-    An auto-generated pronunciation the narrator never picked (``pronounce()`` and the host's own pronunciation mark ``chosen``)
+    An auto-generated pronunciation the narrator never picked (the host marks the one it sets ``chosen``)
     must not silently change what the preview says.
     """
     pronunciation = (holder or {}).get("pronunciation") or {}
@@ -575,13 +497,6 @@ def main() -> None:
     entities_parser.add_argument("--espeak-library", default="")
     entities_parser.add_argument("--wiktextract-index", default="")
     entities_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
-    pronounce_parser = command.add_parser("pronounce")
-    pronounce_parser.add_argument("--guide", required=True)
-    pronounce_parser.add_argument("--entity-id", required=True)
-    pronounce_parser.add_argument("--alias-index", type=int, default=None)
-    pronounce_parser.add_argument("--source", required=True, choices=sorted(PRONUNCIATION_SOURCES))
-    pronounce_parser.add_argument("--espeak-library", default="")
-    pronounce_parser.add_argument("--wiktextract-index", default="")
     candidate_parser = command.add_parser("candidate")
     candidate_parser.add_argument("--word", required=True)
     candidate_parser.add_argument("--source", required=True, choices=sorted(PRONUNCIATION_SOURCES))
@@ -594,6 +509,7 @@ def main() -> None:
     lookup_parser.add_argument("--espeak-library", default="")
     lookup_parser.add_argument("--wiktextract-index", default="")
     lookup_parser.add_argument("--default-source", default=get_default("ManuscriptGuide", "default_pronunciation_source", ""))
+    lookup_parser.add_argument("--source", default=None, choices=sorted(PRONUNCIATION_SOURCES), help="ask only this source; a miss is a reason")
     audio_parser = command.add_parser("render-audio")
     audio_parser.add_argument("--guide", required=True)
     audio_parser.add_argument("--entity-id", required=True)
@@ -632,7 +548,6 @@ def main() -> None:
     try:
         {
             "entities": entities,
-            "pronounce": pronounce,
             "candidate": candidate,
             "pronunciation": lookup_pronunciations,
             "render-audio": render_audio,

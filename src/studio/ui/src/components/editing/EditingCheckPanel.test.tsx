@@ -86,7 +86,9 @@ describe('EditingCheckPanel', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
     await waitFor(() => expect(within(dialog).getByText(/This chapter can.t be checked yet/)).toBeTruthy());
     expect(within(dialog).getByText(/link this chapter to the REAPER track/)).toBeTruthy();
-    await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
+    const select = await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
+    // The picker opens on "Choose a track" (MappingConfirm presets nothing), so a track is picked first.
+    await user.selectOptions(select, within(select).getAllByRole('option')[1]!);
     await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(dialog).queryByText(/This chapter can.t be checked yet/)).toBeNull());
   });

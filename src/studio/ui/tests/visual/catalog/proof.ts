@@ -34,8 +34,7 @@ export const proofStates: StateEntry[] = [
   {
     page: 'proof',
     state: 'chapter-no-recording',
-    description:
-      'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check, "No recording for this chapter yet" where the waveform goes',
+    description: 'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why, and no waveform under it',
     ...REFLOW,
   },
   {

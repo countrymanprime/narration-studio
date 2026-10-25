@@ -118,6 +118,7 @@ export function DeliveryProfileEditor({
           tabIndex={0}
           className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none focus-visible:ring-inset"
         >
+          {/* Every cell in a row is centred on the row, so a rule's name, its limits and the platform's value share a line (alignment audit XSE1-8). */}
           <Table label="Rules of this profile">
             <TableHead>
               <TableRow>
@@ -134,12 +135,12 @@ export function DeliveryProfileEditor({
                 const original = baseRule(rule.id);
                 return (
                   <TableRow key={rule.id}>
-                    <TableCell valign="top">
+                    <TableCell>
                       <Switch checked={!draft.off} onChange={(on) => update(rule.id, { off: !on })}>
                         <span className="sr-only">{`${rule.label} on`}</span>
                       </Switch>
                     </TableCell>
-                    <TableCell valign="top" className="min-w-[9rem]" style={draft.off ? MUTED : undefined}>
+                    <TableCell className="min-w-[9rem]" style={draft.off ? MUTED : undefined}>
                       <span className="inline-flex flex-wrap items-center gap-2 font-medium">
                         {rule.label}
                         {changed(rule) && <Mark status="changed">Changed</Mark>}
@@ -157,7 +158,7 @@ export function DeliveryProfileEditor({
                     </TableCell>
                     {adjustable(rule) ? (
                       (['min', 'max'] as const).map((side) => (
-                        <TableCell key={side} valign="top" className="min-w-[7.5rem]">
+                        <TableCell key={side} className="min-w-[7.5rem]">
                           {rule[side] === null ? (
                             <span className="text-sm" style={MUTED}>
                               none
@@ -181,11 +182,11 @@ export function DeliveryProfileEditor({
                         </TableCell>
                       ))
                     ) : (
-                      <TableCell colSpan={2} valign="top" style={MUTED}>
+                      <TableCell colSpan={2} style={MUTED}>
                         Fixed by {platform}; can only be turned off
                       </TableCell>
                     )}
-                    <TableCell numeric align="left" valign="top" style={MUTED}>
+                    <TableCell numeric align="left" style={MUTED}>
                       {original ? formatBound(original) : ''}
                     </TableCell>
                   </TableRow>

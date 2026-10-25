@@ -3,6 +3,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -21,6 +22,12 @@ SPEC = importlib.util.spec_from_file_location("manuscript_guide", MODULE_PATH)
 guide = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(guide)
+
+
+def _write_bible(path: Path, document: dict) -> None:
+    """Writes a Story Bible as the host does: two-space indented, non-ASCII as itself, a trailing newline."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _write_manuscript(root: Path, chapter_title: str, paragraph_texts: list[str]) -> Path:
@@ -107,7 +114,7 @@ class ManuscriptGuideTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
-            guide.write_json(str(guide_file), {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
+            _write_bible(guide_file, {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
             voice = MagicMock()
 
             def synthesize(_spoken, wav_file):
@@ -136,7 +143,7 @@ class ManuscriptGuideTests(unittest.TestCase):
         """Runs render_audio with a fake Piper voice against a one-entity guide and
         returns the audio directory so a test can inspect what was left behind."""
         guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
-        guide.write_json(str(guide_file), {"entities": [{"id": "entity-1", "canonical_name": name, "aliases": []}]})
+        _write_bible(guide_file, {"entities": [{"id": "entity-1", "canonical_name": name, "aliases": []}]})
         audio_dir = root / "ManuscriptGuide" / "audio"
         args = argparse.Namespace(
             guide=str(guide_file),
@@ -226,14 +233,14 @@ class ManuscriptGuideTests(unittest.TestCase):
         # On Windows os.replace fails while another program (antivirus, a player) holds the target open.
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            real_replace = guide.os.replace
+            real_replace = os.replace
 
             def replace(source, target):
                 if str(target).endswith("preview.wav"):
                     raise PermissionError(5, "Access is denied")
-                real_replace(source, target)  # the guide file itself is also written with os.replace
+                real_replace(source, target)
 
-            with patch.object(guide.os, "replace", side_effect=replace), self.assertRaises(ValueError) as caught:
+            with patch.object(os, "replace", side_effect=replace), self.assertRaises(ValueError) as caught:
                 self._render(root, self._speaking_voice())
             self.assertIn("could not be saved", str(caught.exception))
             self.assertIn("Access is denied", str(caught.exception))
@@ -254,7 +261,7 @@ class ManuscriptGuideTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             guide_file = root / "guide.json"
-            guide.write_json(str(guide_file), {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
+            _write_bible(guide_file, {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
             args = argparse.Namespace(
                 guide=str(guide_file),
                 entity_id="entity-1",
@@ -275,7 +282,7 @@ class ManuscriptGuideTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "项目"
             guide_file = root / "ManuscriptGuide" / "manuscript_guide.json"
-            guide.write_json(str(guide_file), {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
+            _write_bible(guide_file, {"entities": [{"id": "entity-1", "canonical_name": "Dawnspire", "aliases": []}]})
             out_pipe, err_pipe = io.BytesIO(), io.BytesIO()
             legacy_out = io.TextIOWrapper(out_pipe, encoding="cp1252", write_through=True)
             legacy_err = io.TextIOWrapper(err_pipe, encoding="cp1252", write_through=True)

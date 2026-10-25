@@ -22,7 +22,9 @@ export function ProofHeader({ progress, chapterBar }: { progress: ProofProgress;
             style={{
               ['--ring-percent' as string]: `${progress.percent}%`,
               background: 'conic-gradient(var(--accent) var(--ring-percent), var(--border) 0)',
-              mask: 'radial-gradient(circle, transparent 70%, #000 71%)',
+              // `closest-side`: the hole is 70% of the ring's own radius; the default (farthest-corner) made it wider than the ring, so the ring
+              // drew as a blank gap (alignment audit XPF-3).
+              mask: 'radial-gradient(circle closest-side, transparent 70%, #000 71%)',
             }}
           />
           <span>

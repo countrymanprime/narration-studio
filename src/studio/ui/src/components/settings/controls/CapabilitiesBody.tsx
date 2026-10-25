@@ -11,6 +11,9 @@ import { rowOf } from '../registry/rows';
 import type { SettingMeta } from '../registry/types';
 import { keepFocusOnRemoval } from '../../layout/keepFocusOnRemoval';
 
+// What takes the free width; Setting holds the Auto/On/Off select and Now a status badge, so neither needs more (alignment audit XSE2-4).
+const CAPABILITY_COLUMNS = ['auto', '6.5rem', '8.5rem'] as const;
+
 const LABELS = new Map<string, string>(DAW_CAPABILITIES.map(({ key, label }) => [key, label]));
 const MODES = [
   { value: 'auto', label: 'Auto' },
@@ -67,7 +70,7 @@ export function CapabilitiesBody() {
           </Button>
         </div>
       )}
-      <Table label="What the recording tool can do">
+      <Table label="What the recording tool can do" columns={CAPABILITY_COLUMNS}>
         <TableHead>
           <TableRow>
             <TableHeader>What</TableHeader>
@@ -104,7 +107,6 @@ export function CapabilitiesBody() {
             })}
         </TableBody>
       </Table>
-      <span className="text-[0.8125rem] text-[var(--text-muted)]">Auto follows what the recording tool reports.</span>
     </div>
   );
 }

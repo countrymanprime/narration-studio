@@ -223,6 +223,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const toVerifyAll = verifyCount(suggestions);
   const loose = verifyOnly ? unattached(suggestions) : [];
   const looseChosen = loose.find((suggestion) => suggestion.id === looseId);
+  const openHidden = selected !== undefined && !pendingNewEntity && !looseChosen && !sorted.some((row) => row.id === selected.id);
   const filtering = query.trim() !== '' || filterCount(filters) > 0;
   const clearFilters = () => {
     setQuery('');
@@ -410,6 +411,13 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 <SortMenu sort={sort} onPick={(column) => keepSort(pickSort(sort, column))} />
               </div>
               <FilterChips value={chosen} onChange={setFilter} />
+              {/* The open entry is not among the rows the search and filters leave: say so, so the entry beside the list does not look
+                  like one of them (R3SB1-2, R3SB2-12). */}
+              {openHidden && (
+                <p role="status" className="m-0 text-xs text-[var(--text-muted)]">
+                  {selected.canonical_name} is open but not in this list.
+                </p>
+              )}
               {/* Under the filters, so a scan starting or ending moves the table, never the buttons and chips the pointer is on. */}
               <ScanStatus scan={scanWithStart} />
             </div>
@@ -464,7 +472,7 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
                 loadingId={listPreview.loadingPreview ? heardId : undefined}
               />
             ) : (
-              <div className="min-h-0 flex-1 overflow-hidden p-2">
+              <div className="min-h-0 flex-1 overflow-hidden">
                 <GuideListSkeleton />
               </div>
             )}

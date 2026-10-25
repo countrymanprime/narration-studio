@@ -29,7 +29,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'refusal',
     description:
-      'Booth with the record capability switched off (the mock\'s default): Record looks off (aria-disabled, still pressable) and the footer says why in the capability\'s own sentence ("Experimental: switched off in Settings."), naming no DAW of its own; above the footer, the quiet "Record is switched off" chip that opens the dialog',
+      'Booth with the record capability switched off (the mock\'s default): Record looks off (aria-disabled, still pressable), described by the capability\'s own sentence ("Experimental: switched off in Settings."), which the footer keeps for screen readers but does not draw while the notice is up; under the text, above the footer, the quiet "Record is switched off" chip that opens the dialog, and the side panel running down to the footer',
     ...REFLOW,
   },
   {
@@ -50,7 +50,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'record-unlinked-closed',
     description:
-      'The same Booth after the dialog was closed: the "Not linked to a track" chip above the footer reopens it, Record looks off and the footer says the chapter has no track to record on and that Record links one; a press of Record reopens the dialog',
+      'The same Booth after the dialog was closed: the "Not linked to a track" chip under the text reopens it, Record looks off (its description, not drawn in the footer while the chip is up, says the chapter has no track to record on and that Record links one); a press of Record reopens the dialog',
     ...REFLOW,
   },
   {
@@ -71,21 +71,21 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'record-connect-closed',
     description:
-      'The same Booth after the dialog was closed with its X: the quiet "REAPER not connected" mark stands above the footer and reopens it; Record stays disabled with the capability\'s sentence',
+      'The same Booth after the dialog was closed with its X: the quiet "REAPER not connected" mark stands under the text and reopens it; Record stays disabled, described by the capability\'s sentence, which the footer does not draw while the mark is up',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-turned-away',
     description:
-      'Booth after REAPER was started from its connect notice but the busy app turned the project away (?mockDaw=busy, Record turned on and the project linked first): the connect dialog (reopened for it) says "REAPER started, but this app turned its project away: The app is busy, so the current project was left unchanged. Finish or cancel what is running, then press Open in REAPER and connect again.", and the host\'s sentence stays as a message until it is dismissed; Record stays off',
+      'Booth after REAPER was started from its connect notice but the busy app turned the project away (?mockDaw=busy, Record turned on and the project linked first): the connect dialog (reopened for it) says "REAPER started, but its project was turned away." and under it "The app is busy, so the current project was left unchanged. Finish or cancel what is running, then press Open in REAPER and connect again.", and the host\'s sentence stays as a message until it is dismissed; Record stays off',
     ...REFLOW,
   },
   {
     page: 'booth',
     state: 'record-other-project',
     description:
-      'Booth after REAPER was started from its connect notice and answered with another project open (?mockDaw=different, Record turned on and the project linked first): the "REAPER has a different project open" dialog opens by itself, saying a take would not land in the linked project, with Link the open project, DAW settings, what it waits for and when it last checked, and Check again; behind it the chip above the footer, Record off and the footer\'s same reason in its own sentence',
+      'Booth after REAPER was started from its connect notice and answered with another project open (?mockDaw=different, Record turned on and the project linked first): the "REAPER has a different project open" dialog opens by itself, saying a take would not land in the linked project, with Link the open project and its caption, DAW settings on its own line, what it waits for and when it last checked, and Check again; behind it the chip under the text, the top bar\'s setup chip warning "REAPER · other project", Record off and no repeat of the reason in the footer',
     ...REFLOW,
   },
   {
@@ -99,7 +99,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'builtin-refusal',
     description:
-      'Booth for a project that records with the built-in recorder while Experimental actions are off (?mockEngine=builtin): Record looks off and the footer says why in the capability\'s own sentence; above the footer, the "Record is switched off" chip opens the dialog that says the take is saved in the project\'s Recordings folder, with Turn on Record',
+      'Booth for a project that records with the built-in recorder while Experimental actions are off (?mockEngine=builtin): Record looks off, with no repeat of the reason in the footer; under the text, the "Record is switched off" chip opens the dialog that says the take is saved in the project\'s Recordings folder, with Turn on Record and Recording settings and nothing about a DAW',
     ...REFLOW,
   },
   {

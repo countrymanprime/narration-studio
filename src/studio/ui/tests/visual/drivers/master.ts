@@ -26,7 +26,7 @@ export const masterDrivers: Record<string, Driver> = {
     await goToPage(page, 'Master & QC');
     await page.getByRole('group', { name: 'Loading the delivery package checks' }).waitFor();
   },
-  // The chapters read fails: the page works and a line under the file table says so with Retry.
+  // The chapters read fails: the page works and a line in the file table's card says so with Retry.
   'chapters-load-failed': async (page) => {
     await page.goto('/?mockChapters=fails');
     await settlePage(page);
@@ -41,8 +41,8 @@ export const masterDrivers: Record<string, Driver> = {
     await settlePage(page);
     await goToPage(page, 'Master & QC');
     await page.getByRole('button', { name: 'Retry reading the delivery profile' }).waitFor();
-    // The line sits under the file table, below the fold where the window is short: bring it up, or the picture is `empty`'s.
-    await scrollToTop(page, page.getByRole('alert').filter({ hasText: 'The delivery profile could not be read' }));
+    // The line sits in the file table's card, under its controls: bring it up, so the picture is this state's and not `empty`'s.
+    await scrollToTop(page, page.getByRole('alert').filter({ hasText: /delivery profiles? could not be read/ }));
   },
   empty: async (page) => {
     await openMaster(page);
@@ -200,7 +200,8 @@ export const masterDrivers: Record<string, Driver> = {
     await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
     await panel.getByRole('checkbox', { name: /^My ACX/ }).click();
     await panel.getByRole('button', { name: /^Build 2 packages/ }).click();
-    await panel.getByRole('list', { name: 'Multi-platform export results' }).waitFor();
+    // Each platform's result sits under its own checkbox; the job's own line says the build ended.
+    await panel.getByText(/^Built 2 packages/).waitFor();
     while ((await dismiss.count()) > 0) await dismiss.first().click();
     await scrollToTop(page, panel);
   },

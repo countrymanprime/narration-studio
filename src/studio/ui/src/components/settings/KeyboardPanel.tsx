@@ -159,7 +159,7 @@ function Recorder({ command, currentGestures, scope, catalog, keymap, busy, onCa
             Try another key
           </Button>
         )}
-        <Button variant="secondary" className="ml-auto" disabled={busy} onClick={onCancel}>
+        <Button variant="secondary" disabled={busy} onClick={onCancel}>
           Cancel
         </Button>
       </div>
@@ -230,13 +230,9 @@ export function KeyboardPanel({
   return (
     <div className="space-y-4 text-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="font-medium">Keys and pedals</div>
-          <p style={{ color: 'var(--text-muted)' }}>
-            Every command you can run without the mouse. Choose Change, then press the key or pedal to use. A USB footswitch that types a key works like a
-            keyboard. These apply to every project.
-          </p>
-        </div>
+        <p className="m-0 max-w-[60ch] min-w-0 flex-[1_1_16rem] text-[0.8125rem]" style={{ color: 'var(--text-muted)' }}>
+          Choose Change, then press the key or pedal to use. A USB footswitch that types a key works like a keyboard. These apply to every project.
+        </p>
         <Button variant="secondary" disabled={busy || !anyChanged} onClick={() => void persist(defaults)}>
           Reset all to defaults
         </Button>
@@ -258,8 +254,10 @@ export function KeyboardPanel({
               const changed = isChanged(keymap, defaults, command.id);
               return (
                 <div key={command.id} className="border-b py-3" style={{ borderColor: 'var(--border)' }}>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="flex flex-wrap items-center gap-2 font-medium">
+                  {/* The name on the left, the keys and the buttons as one group on the right: when the line is too short the group wraps under
+                      the name and stays right-aligned, so Change keeps one right edge down the list (alignment audit XSE1-4). */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <span className="flex min-w-0 flex-[1_1_10rem] flex-wrap items-center gap-2 font-medium">
                       {command.label}
                       {command.noisy && (
                         <span className="text-[0.75rem] font-normal" style={{ color: 'var(--text-muted)' }}>
@@ -268,7 +266,7 @@ export function KeyboardPanel({
                       )}
                       {changed && <StatusBadge tone="warning" look="outline" label="Changed" />}
                     </span>
-                    <span className="flex flex-wrap items-center gap-2">
+                    <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
                       <GestureChips gestures={gestures} />
                       {changed && (
                         <Button variant="secondary" disabled={busy} onClick={() => void persist({ ...keymap, [command.id]: defaults[command.id] ?? [] })}>
