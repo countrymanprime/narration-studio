@@ -4,7 +4,7 @@ The question is whether diff plus ASR word timestamps localize where inside a ta
 goes wrong precisely enough, or whether forced alignment is needed. The owner chose synthetic,
 constructed fixtures over an annotated corpus: `fixtures/divergence/cases.json` holds a span of
 manuscript and, per case, a scripted take with a known flub, restart, skip or substitution at a
-known word. The protocol and the results are in `docs/research/take-divergence-evaluation.md`.
+known word. The results are in docs/utilities/transcript-compare.md#alignment-and-confidence.
 
 A script is planned against the span (which manuscript words each part reads, misreads, skips or
 adds to) and gives the ground truth: every divergence as span words and a true time range. Two
@@ -21,7 +21,16 @@ its time range overlaps the true one with both boundaries within `WORD_SECONDS` 
 words a minute): finer than that, forced alignment could not show the narrator a smaller sub-span.
 
 Run it: `python src/studio/sidecars/transcript-compare/tests/divergence_harness.py [--timing exact|jitter]
-[--asr DIR --model-dir DIR]`.
+[--asr DIR --model-dir DIR]`. The real-ASR run takes three steps on Windows, offline:
+
+1. `divergence_harness.py --tts-plan %TEMP%/plan.json` writes the texts to speak;
+2. `pwsh divergence_tts.ps1 -Plan %TEMP%/plan.json -OutDir %TEMP%/divergence-audio [-Voice "Microsoft Zira Desktop" -Rate 3]`
+   speaks them, one WAV and one onset file per case (scratch output, never committed);
+3. `divergence_harness.py --asr %TEMP%/divergence-audio --model small --model-dir <faster-whisper-small directory>
+   [--hotwords Arelian]` transcribes and scores them.
+
+To score real recordings, write a case per take in the same script format (the words actually said, with the
+divergences where they happened) and a `<case>.json` of true word onsets, for example from a hand-checked alignment.
 """
 
 from __future__ import annotations

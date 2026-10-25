@@ -21,7 +21,9 @@ compact JSON payloads:
 file (SUMMARY, DIFF and MARKER lines) is described in internal/comparerun.
 
 Two additive modes write their own tagged lines instead: --find-repeats
-(SPAN_GROUP/SPAN_MEMBER) and --coverage (recording coverage: a JSON manifest
+(each read of an item_index|source_file|start_offset|length|item_guid|take_guid
+manifest transcribed on its own, a REPEAT_WORDS line per read that the host
+groups into repeated spans) and --coverage (recording coverage: a JSON manifest
 in, one words file per item and a words report of COVERAGE_WORDS,
 COVERAGE_UNSURE and COVERAGE_RECHECKED lines with JSON payloads out, which the
 host aligns; see core/coverage_mode.py for its manifest, words files, output
@@ -93,16 +95,6 @@ def format_time(seconds):
 
 class Cancelled(Exception):
     pass
-
-
-class NeedsChapterSelection(Exception):
-    """Raised when the track name didn't confidently match any chapter
-    heading - not a failure, just a request for the caller to ask the user
-    to pick one of `candidates` and re-invoke with --chapter-title."""
-
-    def __init__(self, candidates):
-        super().__init__("Needs an explicit chapter selection")
-        self.candidates = candidates
 
 
 def check_cancelled(progress_path):
@@ -1276,9 +1268,9 @@ def spoken_heading(chapter):
 
 def build_chapter_units(chapter):
     """Flatten a chapter's title and paragraphs into the token/unit
-    structures diff_and_build_markers() needs, shared by the ordinary
-    compare run and the repeated-span detector (find_repeated_spans) so
-    both align against exactly the same chapter representation.
+    structures diff_and_build_markers() needs, shared by the marker
+    tests and their Go parity checks so both align against exactly the
+    same chapter representation.
 
     Narrators typically read the chapter heading/title aloud before the
     body text. The title is otherwise only used for track-name matching,
@@ -1337,131 +1329,20 @@ def read_repeat_segments(manifest_path):
     return segments
 
 
-def detect_exact_copies(segments):
-    """Pure, ASR-free pass: groups segments whose *source identity* -
-    resolved source file plus source range - is identical, meaning they
-    would decode to the exact same audio bytes (e.g. a take duplicated
-    onto another item, or two items both trimmed to the same underlying
-    range). This is the exact-copy detection from item source identity, and it
-    needs no transcription at all.
-
-    Returns a dict mapping segment index -> copy-group label ("EC0",
-    "EC1", ...) for every segment that has at least one exact-copy peer;
-    segments with no peer are absent from the dict."""
-    by_identity = {}
-    for i, seg in enumerate(segments):
-        key = (os.path.normcase(os.path.abspath(seg["source_file"])), round(seg["start_offset"], 3), round(seg["length"], 3))
-        by_identity.setdefault(key, []).append(i)
-
-    result = {}
-    group_n = 0
-    for indices in by_identity.values():
-        if len(indices) < 2:
-            continue
-        label = f"EC{group_n}"
-        group_n += 1
-        for i in indices:
-            result[i] = label
-    return result
-
-
-def _alignment_quality(alignment):
-    """Fraction of the diff's aligned opcodes that were an exact ("equal")
-    match - a cheap, reproducible stand-in for match quality that reuses
-    the same opcodes diff_and_build_markers() already computed, rather
-    than running a second comparison."""
-    opcodes = alignment["opcodes"]
-    equal_len = sum(max(i2 - i1, j2 - j1) for tag, i1, i2, j1, j2 in opcodes if tag == "equal")
-    total_len = sum(max(i2 - i1, j2 - j1) for _tag, i1, i2, j1, j2 in opcodes)
-    if total_len == 0:
-        return 0.0
-    return equal_len / total_len
-
-
-def group_repeated_spans(covered_ranges, min_overlap=0.5):
-    """Pure clustering step: groups segment indices whose manuscript span
-    (a (first_unit, last_unit) sentence-unit range from diff_and_build_markers'
-    covered_range, inclusive) overlaps enough to be "the same read of the
-    same passage" rather than two different passages that happen to sit
-    near each other.
-
-    covered_ranges is a list parallel to the segment list; an entry is
-    None where a segment had no aligned span at all (nothing recognisable
-    of the chapter in that read) and such segments never join a group.
-
-    A segment joins the most recent open group if its span overlaps that
-    group's running union span by at least min_overlap of the shorter of
-    the two spans (so a short pickup fully inside a long read still
-    groups, while two spans that merely touch at one sentence do not).
-    Segments are processed in the order given by first_unit so a group's
-    union only grows forward; this is a simple greedy pass, not full
-    interval graph clustering, which is enough for the conservative,
-    narrator-reviewed groups the take-review scan wants.
-
-    Returns a list of groups; each group is (first_unit, last_unit, [indices]),
-    sorted by first_unit. Only groups with 2 or more members are returned -
-    a single read of a span is not a "repeat"."""
-    indexed = [(i, r) for i, r in enumerate(covered_ranges) if r is not None]
-    indexed.sort(key=lambda pair: (pair[1][0], pair[1][1]))
-
-    groups = []  # each: {"first": int, "last": int, "members": [i, ...]}
-    for i, (first_u, last_u) in indexed:
-        placed = False
-        for g in groups:
-            overlap = min(g["last"], last_u) - max(g["first"], first_u) + 1
-            if overlap <= 0:
-                continue
-            shorter = min(g["last"] - g["first"] + 1, last_u - first_u + 1)
-            if shorter > 0 and overlap / shorter >= min_overlap:
-                g["first"] = min(g["first"], first_u)
-                g["last"] = max(g["last"], last_u)
-                g["members"].append(i)
-                placed = True
-                break
-        if not placed:
-            groups.append({"first": first_u, "last": last_u, "members": [i]})
-
-    return [(g["first"], g["last"], g["members"]) for g in groups if len(g["members"]) >= 2]
-
-
 def find_repeated_spans(args):
-    """Additive detector mode: independently transcribes and aligns
-    every read named in --manifest, clusters the reads that cover the same
-    manuscript span, and flags exact-copy pairs by source identity. Writes
-    new, additive tagged lines only - SUMMARY plus SPAN_GROUP/SPAN_MEMBER -
-    so the existing readers (the Lua bridge and the Go transcript service)
-    that only understand SUMMARY/MARKER/NEED_CHAPTER keep working unchanged
-    against this same --out file contract (see compare.py's module
-    docstring)."""
+    """The pickup and duplicate scan's transcription: every read named in --manifest decoded and transcribed on its
+    own, and its words written to --out as one REPEAT_WORDS line per read, in manifest order. The host chooses the
+    chapter before it starts this, then aligns each read, groups the reads that cover the same span and flags exact
+    copies (src/studio/desktop/internal/comparerun/repeats.go)."""
     progress_path = args.progress
 
     write_progress(progress_path, "START", 0, "Starting...")
-
-    register_project_equivalences(args.manuscript)
 
     segments = read_repeat_segments(args.manifest)
     if not segments:
         raise ValueError("Manifest contained no segments.")
 
-    check_cancelled(progress_path)
-    write_progress(progress_path, "MATCH", 1, "Matching chapter to track name...")
-    chapters = load_manuscript_chapters(args.manuscript)
-
-    if args.chapter_title:
-        chapter = find_chapter_by_exact_title(chapters, args.chapter_title)
-        if chapter is None:
-            raise ValueError(f"Chapter title override '{args.chapter_title}' not found in the document.")
-    else:
-        chapter, _score, candidates = find_chapter_by_track_name(chapters, args.track_name)
-        if chapter is None:
-            raise NeedsChapterSelection(candidates)
-
-    _sentence_units, chapter_tokens, chapter_unit_idx, chapter_raw_words = build_chapter_units(chapter)
-
-    exact_copies = detect_exact_copies(segments)
-
-    covered_ranges = []
-    qualities = []
+    lines = []
     n = len(segments)
     for i, seg in enumerate(segments):
         check_cancelled(progress_path)
@@ -1471,32 +1352,13 @@ def find_repeated_spans(args):
         )
         audio = decode_segment(seg["source_file"], seg["start_offset"], seg["length"])
         transcript_words = transcribe(audio, args.model, args.language, args.device, model_dir=args.model_dir)
-        _markers, covered_range, alignment = diff_and_build_markers(chapter_tokens, chapter_unit_idx, chapter_raw_words, transcript_words, args.min_words)
-        covered_ranges.append(covered_range)
-        qualities.append(_alignment_quality(alignment))
+        words = [[text, float(start), float(end)] for text, start, end in transcript_words]
+        lines.append("REPEAT_WORDS|" + json.dumps({"words": words}, ensure_ascii=False, separators=(",", ":")) + "\n")
 
     check_cancelled(progress_path)
-    write_progress(progress_path, "GROUP", 95, "Grouping repeated spans...")
-    groups = group_repeated_spans(covered_ranges, args.min_span_overlap)
-
     write_progress(progress_path, "WRITE", 99, "Writing results...")
-    with open(args.out, "w", newline="", encoding="utf-8") as f:
-        total_members = sum(len(members) for _f, _l, members in groups)
-        f.write(f"SUMMARY|Found {len(groups)} repeated-span group(s) across {total_members} segment(s)\n")
-        for group_i, (group_first, group_last, members) in enumerate(groups):
-            f.write(f"SPAN_GROUP|{group_i}|{group_first}|{group_last}|{len(members)}\n")
-            union_len = group_last - group_first + 1
-            for idx in members:
-                seg = segments[idx]
-                first_u, last_u = covered_ranges[idx]
-                overlap = min(group_last, last_u) - max(group_first, first_u) + 1
-                coverage = max(0.0, overlap) / union_len if union_len > 0 else 0.0
-                f.write(
-                    f"SPAN_MEMBER|{group_i}|{seg['item_index']}|{seg['item_guid']}|{seg['take_guid']}|{seg['source_file']}|"
-                    f"{seg['start_offset']:.3f}|{seg['length']:.3f}|{first_u}|{last_u}|{coverage:.3f}|{qualities[idx]:.3f}|{exact_copies.get(idx, '')}\n"
-                )
-
-    log(f"Wrote {len(groups)} repeated-span group(s) to {args.out}")
+    _write_atomically(args.out, "".join(lines))
+    log(f"Wrote the words of {n} read(s) to {args.out}")
     write_progress(progress_path, "DONE", 100, "Finished")
 
 
@@ -1584,12 +1446,6 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--manifest", required=False, help="Path to the pipe-delimited segment manifest")
     ap.add_argument("--manuscript", required=True, help="Path to canonical manuscript.json")
-    ap.add_argument("--track-name", required=False, help="With --find-repeats: the REAPER track name, matched against a doc heading")
-    ap.add_argument(
-        "--chapter-title",
-        default=None,
-        help="With --find-repeats: bypass track-name matching and use this exact chapter title (from a prior NEED_CHAPTER prompt)",
-    )
     ap.add_argument("--out", required=False, help="Path to write the tagged results file")
     ap.add_argument(
         "--model", default=get_default("TranscriptCompare", "model_size", "small"), help="Whisper model size (tiny/base/small/medium/large-v3-turbo/large-v3)"
@@ -1601,7 +1457,6 @@ def main():
         "when omitted, falls back to letting faster-whisper resolve --model itself for direct/manual CLI use",
     )
     ap.add_argument("--language", default=None, help="Force language code, e.g. 'en' (default: auto-detect)")
-    ap.add_argument("--min-words", type=int, default=1, help="With --find-repeats: the minimum word-block length its alignment reports as a discrepancy")
     ap.add_argument("--device", default="cpu", choices=["cpu", "cuda"], help="Inference device (default: cpu)")
     ap.add_argument("--progress", default=None, help="Path to write live progress updates to (optional)")
     ap.add_argument("--log", default=None, help="Path to also mirror log output to (optional)")
@@ -1667,15 +1522,9 @@ def main():
     ap.add_argument(
         "--find-repeats",
         action="store_true",
-        help="Additive mode: instead of one concatenated compare, independently transcribe and "
-        "align every read in --manifest (item_index|source_file|start_offset|length|item_guid|take_guid) and write "
-        "SPAN_GROUP/SPAN_MEMBER lines grouping reads that cover the same manuscript span, plus exact-copy flags",
-    )
-    ap.add_argument(
-        "--min-span-overlap",
-        type=float,
-        default=0.5,
-        help="With --find-repeats: minimum fraction of the shorter span two reads' manuscript spans must overlap by to be grouped as the same repeated read (default 0.5)",
+        help="Additive mode: instead of one concatenated compare, transcribe every read in --manifest "
+        "(item_index|source_file|start_offset|length|item_guid|take_guid) on its own and write a REPEAT_WORDS line of "
+        "its words per read, which the host groups into repeated spans",
     )
     ap.add_argument(
         "--coverage",
@@ -1735,8 +1584,6 @@ def main():
         ap.error("--recheck can only be used with --coverage")
 
     required = [("--manifest", args.manifest), ("--out", args.out)]
-    if args.find_repeats:
-        required.append(("--track-name", args.track_name))
     missing = [name for name, val in required if not val]
     if missing:
         ap.error(", ".join(missing) + " required unless --extract-hints is given")
@@ -1806,15 +1653,6 @@ def _run_and_exit(args, mode):
         # exits (confirmed live: a "finished" run stuck around indefinitely
         # at ~0% CPU). This forces real termination.
         os._exit(2)
-    except NeedsChapterSelection as e:
-        log("No confident chapter match - asking for an explicit selection.")
-        write_progress(args.progress, "NEED_CHAPTER", 0, "Waiting for chapter selection")
-        try:
-            with open(args.out, "w", newline="", encoding="utf-8") as f:
-                f.write("NEED_CHAPTER|" + "|".join(t.replace("|", "/") for t in e.candidates) + "\n")
-        except OSError:
-            pass
-        os._exit(0)
     except Exception as e:  # noqa: BLE001
         log(traceback.format_exc())
         write_progress(args.progress, "ERROR", 0, str(e))

@@ -1,6 +1,6 @@
 # Documentation gates
 
-How the repository keeps documentation current and free of filler. The decision is Documentation gates; how each check is wired into CI is in [CI and releases](ci-and-releases.md#the-docs-impact-check).
+How the repository keeps documentation current and free of filler. How each check is wired into CI is in [CI and releases](ci-and-releases.md#the-docs-impact-check).
 
 ## The checks
 
@@ -12,6 +12,15 @@ How the repository keeps documentation current and free of filler. The decision 
 | Docs references (`scripts/ci/docs-references.mjs`) | A doc names, in backticks, a repo path or root `pnpm` script that does not exist | `pnpm check`, the `Docs prose` steps of `Docs / Docs checks` | Fix the path, or say it was deleted next to the path |
 | Doc comments (`scripts/ci/doc-comments.mjs`) | The change adds a public Python name without a docstring or an exported Go name without a doc comment | Python `lint` targets, `quality.mjs go-lint` | `# noqa: D1xx` for a Python name that needs none |
 | Markdown style and links | markdownlint on changed files; lychee offline on all | the `Markdown lint` and `Links (offline)` steps of `Docs / Docs checks` | Fix the file |
+
+## Not used, and why
+
+- **A count of em dashes or triads.** One or two are coincidence; the phrase list and the `doc-unslop` review judge filler instead.
+- **Vale.** A Node script in `scripts/ci` does the phrase check with no new binary.
+- **`last_reviewed` front matter.** An agent can bump the date without reading the page.
+- **Swimm or Mintlify.** Commercial, with their own doc format, and they fix drift after the merge rather than block it.
+- **A TypeScript or Lua doc-comment check.** The repo has no TypeDoc or TSDoc ESLint plugin, and `lua-language-server --check` is not in CI ([the docs-style references](../../.claude/skills/docs-style/SKILL.md#code-comments-by-language)).
+- **A path-filtered docs job.** A required check that a path filter skips stays pending, so `docs.yml` runs on every pull request.
 
 ## Working with them
 

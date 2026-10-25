@@ -1,9 +1,8 @@
 {
-  "_comment": "Phrases scripts/ci/docs-slop.mjs looks for in the prose of changed Markdown (issue #943). `error` fails the run: only phrases with near-zero legitimate use in technical writing. `warn` is printed and never fails: words with real technical uses. `pattern` is a case-insensitive regular expression. Code, links, quotations and the files in `ignore` are skipped. Lists of these phrases (doc-unslop, docs-style, the research report) are in `ignore`. Tune this file from the output of `node scripts/ci/docs-slop.mjs --all`.",
+  "_comment": "Phrases scripts/ci/docs-slop.mjs looks for in the prose of changed Markdown (issue #943). `error` fails the run: only phrases with near-zero legitimate use in technical writing. `warn` is printed and never fails: words with real technical uses. `pattern` is a case-insensitive regular expression. Code, links, quotations and the files in `ignore` are skipped. Lists of these phrases (doc-unslop, docs-style) are in `ignore`. Tune this file from the output of `node scripts/ci/docs-slop.mjs --all`.",
   "ignore": [
     ".claude/skills/doc-unslop/**",
     ".claude/skills/docs-style/**",
-    "docs/research/documentation-practice-and-agent-gating.md",
     "CHANGELOG.md",
     "tests/fixtures/**"
   ],

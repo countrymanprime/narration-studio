@@ -428,7 +428,13 @@ def presence_stub(chapter: Chapter, items: tuple[Item, ...]) -> Report:
     """An order-blind stand-in: a paragraph is present when its words were heard anywhere.
 
     It lets the harness run without the real analyzer, and it is wrong on
-    purpose where order matters: a pickup at the end or a refrain read once looks complete."""
+    purpose where order matters: a pickup at the end or a refrain read once looks complete.
+    It is a floor to compare an analyzer against, not a target. On the committed set
+    (2026-09-23) it gives, for tune (9 cases), 1 false met (`c2-pickup-at-end`), 1 false not
+    met (`c4-names-and-numbers`), 34/41 labels and 3/4 regions, and for held_out (7 cases),
+    1 false met (`c3-refrain-read-once`), 1 false not met (`c4-misread`), 27/29 and 3/4: it
+    also rejects right words spelled differently (numbers, names, misreads). The host's
+    coverage model scores 0, 0, 70/70 and 8/8 on the same set."""
     if any(item.words is None for item in items):
         raise NeedsAudio("the presence stub reads transcript words, not audio")
     heard = {word for item in items for w in item.words for word in _normalized(w.text)}
