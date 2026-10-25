@@ -44,8 +44,10 @@ export function ProgressBar({
       <Progress.Track className={`progressbar overflow-hidden rounded-full ${SIZE_HEIGHT[size]} ${SIZE_TRACK[size]}`}>
         <div
           // motion-ok: the fill neither eases nor slides for people who have asked for reduced motion.
-          className={`h-full ${TONE_FILL[tone]} motion-ok:transition-[width] motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-standard) ${indeterminate ? 'motion-ok:animate-[work-progress-slide_1.15s_ease-in-out_infinite]' : ''}`}
-          style={{ width: `${Math.max(value ?? 0, running ? MINIMUM_RUNNING_PERCENT : 0)}%` }}
+          // Nothing measured yet: a 4% fill slides along the track; with reduced motion it cannot slide, so the whole track is filled faintly
+          // instead of a still 4% stub that read as a job stuck at 4% (alignment audit R4DL-5).
+          className={`h-full ${TONE_FILL[tone]} motion-ok:transition-[width] motion-ok:duration-(--motion-base) motion-ok:ease-(--ease-standard) ${indeterminate ? 'w-[4%] motion-ok:animate-[work-progress-slide_1.15s_ease-in-out_infinite] motion-still:w-full motion-still:opacity-35' : ''}`}
+          style={indeterminate ? undefined : { width: `${Math.max(value ?? 0, running ? MINIMUM_RUNNING_PERCENT : 0)}%` }}
         />
       </Progress.Track>
     </Progress.Root>

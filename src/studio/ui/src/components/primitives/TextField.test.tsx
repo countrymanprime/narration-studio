@@ -124,4 +124,10 @@ describe('TextField', () => {
     expect(b).not.toContain('w-full');
     expect(b).toContain('w-40');
   });
+
+  // R3SE2-17: an invalid path kept a normal border while only the message under it went red.
+  it('draws the danger border while aria-invalid', () => {
+    render(<TextField label="REAPER program" value="notes.txt" onChange={() => undefined} aria-invalid />);
+    expect(screen.getByRole('textbox', { name: 'REAPER program' }).className).toContain('aria-[invalid=true]:border-[var(--danger)]');
+  });
 });
