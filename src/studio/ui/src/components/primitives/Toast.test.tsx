@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Dialog } from './Dialog';
 import { TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
@@ -114,5 +115,28 @@ describe('ToastRegion', () => {
     const error = within(screen.getByRole('alert')).getByText('Failure 2').parentElement!;
     expect(error.querySelector('svg[data-icon="circle-exclamation"]')).not.toBeNull();
     expect(error.querySelector('svg[data-icon="layer-group"]')).toBeNull();
+  });
+
+  // Alignment audit cause P: a toast at the bottom right covered an open dialog's Cancel and Download buttons.
+  it('moves to the top of the window while a dialog is open, and back when the last one closes', () => {
+    render(<ToastRegion messages={[info(1)]} dismiss={vi.fn()} />);
+    const region = screen.getByText('Message 1').closest('[data-toast-region]') as HTMLElement;
+    expect(region.className).toContain('[:root[data-modal-open]_&]:top-4');
+    expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
+    const first = render(
+      <Dialog dismissOnOutsidePress={false} title="Download model" actions={null}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    const second = render(
+      <Dialog dismissOnOutsidePress={false} title="Are you sure?" actions={null}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    expect(document.documentElement.hasAttribute('data-modal-open')).toBe(true);
+    second.unmount();
+    expect(document.documentElement.hasAttribute('data-modal-open')).toBe(true);
+    first.unmount();
+    expect(document.documentElement.hasAttribute('data-modal-open')).toBe(false);
   });
 });
