@@ -69,7 +69,7 @@ export function MicBody() {
           ...(known ? [] : [{ value, label: `${value} (not found)` }]),
         ]}
       />
-      <Button variant="secondary" size="sm" onClick={load}>
+      <Button variant="secondary" onClick={load}>
         Refresh the list
       </Button>
       {listing.phase === 'loading' && <span className="text-[0.8125rem] text-[var(--text-muted)]">Looking for microphones…</span>}
